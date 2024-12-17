@@ -596,7 +596,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   ASS(theory->isInterpretedConstant(n)); 
   IntegerConstantType nc;
   ALWAYS(theory->tryInterpretConstant(n,nc));
-  ASS(nc.toInner()>0);
+  ASS(nc > 0);
 #endif
 
 // ![Y] : (divides(n,Y) <=> ?[Z] : multiply(Z,n) = Y)

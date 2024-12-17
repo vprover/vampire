@@ -17,7 +17,6 @@
 #define __LiteralIndex__
 
 #include "Lib/Output.hpp"
-#include "Debug/TimeProfiling.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"

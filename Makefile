@@ -541,7 +541,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

@@ -134,7 +134,8 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
 Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
 {
-  switch (i) {
+  try {
+    switch (i) {
 
 #define CONSTANT_CASE_2(Num, func, expr)                                                  \
     case Num##Traits:: func ## I:                                                         \
@@ -179,8 +180,11 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 #undef QUOTIENT_REMAINDER_CASES
 #undef CONSTANT_CASE
 
-    default:
-      return none<PolyNf>();
+      default:
+        return none<PolyNf>();
+    }
+  } catch (DivByZeroException&) {
+    return none<PolyNf>();
   }
 }
 

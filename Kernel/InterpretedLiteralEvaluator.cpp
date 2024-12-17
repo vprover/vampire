@@ -361,7 +361,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  IntegerConstantType resNum = IntegerConstantType::floor(arg);
+	  IntegerConstantType resNum = arg.floor();
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -381,7 +381,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  IntegerConstantType resNum = IntegerConstantType::floor(RationalConstantType(arg));
+	  auto resNum = arg.floor();
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -788,13 +788,13 @@ protected:
       res = -arg;
       return true;
     case Theory::RAT_FLOOR:
-      res = arg.floorRat();
+      res = RationalConstantType(arg.floor());
       return true;
     case Theory::RAT_CEILING:
-      res = arg.ceiling();
+      res = RationalConstantType(arg.ceiling());
       return true;
     case Theory::RAT_TRUNCATE:
-      res = arg.truncate();
+      res = RationalConstantType(arg.truncate());
       return true;
     default:
       return false;
@@ -877,10 +877,10 @@ protected:
       res = -arg;
       return true;
     case Theory::REAL_FLOOR:
-      res = arg.floorRat();
+      res = RealConstantType(arg.floor());
       return true;
     case Theory::REAL_CEILING:
-      res = arg.ceiling();
+      res = RealConstantType(arg.ceiling());
       return true;
     case Theory::REAL_TRUNCATE:
       res = arg.truncate();

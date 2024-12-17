@@ -75,7 +75,6 @@ std::string toString(A const& a) {
 }
 
 
-
-}
+} // namespace Lib
 
 #endif // __StringUtils__

@@ -88,12 +88,12 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax exportSyntax)
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
-  , _solver(new Z3Interfacing(_naming, showZ3, /* unsatCoresForAssumptions = */ generalisation, exportSmtlib, exportSyntax))
+  , _solver(new Z3Interfacing(_naming, showZ3, /* unsatCoresForAssumptions = */ generalisation, exportSmtlib, problemExportSyntax))
   , _generalisation(generalisation)
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")

@@ -16,11 +16,6 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-inline DArray<int> predLevels() {
-  DArray<int> out(env.signature->predicates());
-  out.init(out.size(), PredLevels::EQ);
-  return out;
-}
 
 using namespace Kernel;
 
@@ -36,7 +31,7 @@ inline KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboS
     out[i] = w == NULL ? df.symbolWeight(i) : *w;
   }
   return  {
-    ._weights = out,
+    ._weights = out.clone(),
     ._introducedSymbolWeight = introducedSymbolWeight,
     ._specialWeights         = ws,
   };

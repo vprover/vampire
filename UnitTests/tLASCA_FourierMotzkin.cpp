@@ -1029,7 +1029,6 @@ TEST_GENERATION_WITH_SUGAR(bug_uwa_04,
     )
 
 
-#if WITH_GMP
 
 TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
     SUGAR(Real),
@@ -1042,19 +1041,6 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
           // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
       ))
     )
-
-#else // !WITH_GMP
-TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
-    SUGAR(Real),
-    Generation::SymmetricTest()
-      .indices(idxFourierMotzkin())
-      .inputs  ({ clause({ selected(          num(2) * (1073741824 * a + 536870912) > 0 ) })  
-               ,  clause({ selected(num(-1) * num(2) * (1073741824 * a + 536870912) > 0 )   }) })
-      .expected(exactly(
-          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
-      ))
-    )
-#endif
 
   // 2 f13(f14, 1) 1073741824
 

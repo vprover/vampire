@@ -157,8 +157,8 @@ struct Top {};
 /** type to represent the bottom element in a lattice */
 struct Bot {};
 
-ostream& operator<<(std::ostream& out, Bot self) { return out << "bot"; }
-ostream& operator<<(std::ostream& out, Top self) { return out << "top"; }
+std::ostream& operator<<(std::ostream& out, Bot self) { return out << "bot"; }
+std::ostream& operator<<(std::ostream& out, Top self) { return out << "top"; }
 bool operator==(Top,Top) { return true; }
 bool operator==(Bot,Bot) { return true; }
 

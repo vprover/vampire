@@ -171,8 +171,7 @@ public:
     ASS(j > 0)
     auto k = (**rhs.ks_t)[rhs.sIdx].second;
 
-    // c = gcd(den(j), den(k))
-    auto c = IntegerConstantType::gcd(j.denominator(), k.denominator());
+    auto c = j.denominator().gcd(k.denominator());
 
     // fx = den(x) / c
     ASS(c.divides(j.denominator()))

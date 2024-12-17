@@ -17,6 +17,7 @@
 #define __LASCA_LascaIndex__
 
 
+#include "Indexing/SubstitutionTree.hpp"
 #include "Kernel/LASCA.hpp"
 
 #include "Indexing/IndexManager.hpp"
@@ -54,14 +55,9 @@ public:
 
   void setShared(std::shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
 
-  // auto find(TypedTermList key, unsigned queryBankNumber, AbstractingUnifier* state)
-  // { return iterTraits(_index.getUwa(key, queryBankNumber, _shared->uwaMode(), _shared->uwaFixedPointIteration, state))
-  //     .timeTraced(_lookupStr.c_str()); }
-
-  auto find(AbstractingUnifier* state, KeyType<T> key, int queryBank, int normInternalBank, int internalBank)
-  { return iterTraits(_index.getUwa(state, key
-        , queryBank, normInternalBank, internalBank
-        , _shared->uwaMode(), _shared->uwaFixedPointIteration))
+  template<class VarBanks>
+  auto find(AbstractingUnifier* state, KeyType<T> key)
+  { return iterTraits(_index.template getUwa<VarBanks>(state, key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
       .timeTraced(_lookupStr.c_str()); }
 
 
@@ -83,7 +79,7 @@ public:
         DEBUG_CODE(
         auto state = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
         )
-        ASS_REP(find(&state, k, 0, 1, 2).hasNext(), outputToString("key: ", Output::ptr(k), "\nindex: ", Output::multiline(_index)))
+        ASS_REP(find<RetrievalAlgorithms::DefaultVarBanks>(&state, k).hasNext(), outputToString("key: ", Output::ptr(k), "\nindex: ", Output::multiline(_index)))
       } else {
         _index.remove(std::move(appl));
       }

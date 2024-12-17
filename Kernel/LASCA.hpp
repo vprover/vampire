@@ -1097,10 +1097,8 @@ IntegerConstantType normalizeFactors_divide(IntegerConstantType gcd, IntegerCons
 template<class Numeral>
 Numeral normalizeFactors_gcd(Numeral l, Numeral r)
 {
-  auto lcm = [](auto l, auto r) { return (l * r).intDivide(IntegerConstantType::gcd(l,r)); };
-  return Numeral(
-      IntegerConstantType::gcd(l.numerator()  , r.numerator()  ),
-                           lcm(l.denominator(), r.denominator()));
+  return Numeral(l.numerator()  .gcd(r.numerator()),
+                 l.denominator().lcm(r.denominator()));
 }
 
 IntegerConstantType normalizeFactors_gcd(IntegerConstantType l, IntegerConstantType r);

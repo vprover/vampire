@@ -554,7 +554,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   }
 
   return KboWeightMap<SigTraits> {
-    ._weights                = weights,
+    ._weights                = weights.clone(),
     ._introducedSymbolWeight = introducedWeight,
     ._specialWeights         = specialWeights,
   };
@@ -978,7 +978,7 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, 
   }
 
   return KboWeightMap {
-    ._weights                = weights,
+    ._weights                = weights.clone(),
     ._introducedSymbolWeight = 1,
     ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(qkbo),
   };
@@ -1011,7 +1011,7 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
   }
 
   return KboWeightMap {
-    ._weights                = weights,
+    ._weights                = weights.clone(),
     ._introducedSymbolWeight = introducedWeight,
     ._specialWeights         = KboSpecialWeights<FuncSigTraits> {
       ._variableWeight = variableWeight,

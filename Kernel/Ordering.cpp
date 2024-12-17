@@ -352,17 +352,6 @@ Ordering::Result PrecedenceOrdering::comparePredicatePrecedences(unsigned p1, un
       p1 >= _predicates ? (int)(reverse ? -p1 : p1) : _predicatePrecedences[p1],
       p2 >= _predicates ? (int)(reverse ? -p2 : p2) : _predicatePrecedences[p2] ));
 }
-// {
-//   int res=pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
-//   if(NONINTERPRETED_PRECEDENCE_BOOST) {
-//     ASS_EQ(NONINTERPRETED_PRECEDENCE_BOOST & 1, 0); // an even number
-//
-//     bool intp = env.signature->getPredicate(pred)->interpreted();
-//     res *= 2;
-//     return intp ? res+1 : res+NONINTERPRETED_PRECEDENCE_BOOST;
-//   }
-//   return res;
-// } // PrecedenceOrdering::predicatePrecedences
 
 /**
  * Compare precedences of two function symbols

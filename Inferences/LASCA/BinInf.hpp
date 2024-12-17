@@ -48,9 +48,6 @@ struct BinInf
   using Rhs = typename Rule::Rhs;
   using Key = KeyType<Lhs>;
   static_assert(std::is_same_v<KeyType<Lhs>, KeyType<Rhs>>);
-  static constexpr int _lhsBank = 0;
-  static constexpr int _rhsBank = 1;
-  static constexpr int _internalBank = 2;
 private:
   std::shared_ptr<LascaState> _shared;
   Rule _rule;
@@ -117,14 +114,16 @@ public:
     auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
     ASS(sigma.isEmpty())
 
+    using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
+
     DEBUG(1, _rule.name())
     for (auto const& lhs : Lhs::iter(*_shared, premise)) {
       DEBUG(1, "lhs: ", lhs, " (", lhs.clause()->number(), ")")
-      for (auto rhs_sigma : _rhs->find(&sigma, lhs.key(), _lhsBank, _internalBank, _rhsBank)) {
+      for (auto rhs_sigma : _rhs->template find<VarBanks>(&sigma, lhs.key())) {
         auto& rhs   = *rhs_sigma.data;
         DEBUG(1, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
         DEBUG(1, "  sigma: ", sigma)
-        for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, sigma))) {
+        for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma))) {
           DEBUG(1, "    result: ", *res)
           out.push(res);
         }
@@ -136,12 +135,12 @@ public:
 
     for (auto const& rhs : Rhs::iter(*_shared, premise)) {
       DEBUG(1, "rhs: ", rhs, " (", rhs.clause()->number(), ")")
-      for (auto lhs_sigma : _lhs->find(&sigma, rhs.key(), _rhsBank, _internalBank, _lhsBank)) {
+      for (auto lhs_sigma : _lhs->template find<VarBanks>(&sigma, rhs.key())) {
         auto& lhs   = *lhs_sigma.data;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG(1, "  lhs: ", lhs, " (", lhs.clause()->number(), ")")
           DEBUG(1, "  sigma: ", sigma)
-          for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, sigma))) {
+          for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::internal, rhs, VarBanks::query, sigma))) {
             DEBUG(1, "    result: ", *res)
             out.push(res);
           }
@@ -163,7 +162,13 @@ struct TriInf
   using Premise1 = typename Rule::Premise1;
   using Premise2 = typename Rule::Premise2;
   static constexpr int bank(unsigned i) { return i * 2; }
-  static constexpr int bankInternal(unsigned i) { return i * 2 + 1; }
+  static constexpr int bankNorm(unsigned i) { return i * 2 + 1; }
+  template<unsigned q, unsigned i>
+  struct QueryBank {
+    static constexpr int query = bank(q);
+    static constexpr int internal = bank(i);
+    static constexpr int normInternal = bankNorm(i);
+  };
 private:
   std::shared_ptr<LascaState> _shared;
   Rule _rule;
@@ -243,10 +248,10 @@ public:
 
     for (auto const& prem0 : Premise0::iter(*_shared, premise)) {
       DEBUG(1, "prem0: ", prem0)
-      for (auto prem1_sigma : _prem1->find(&sigma, prem0.key(), bank(0), bankInternal(1), bank(1))) {
+      for (auto prem1_sigma : _prem1->template find<QueryBank<0, 1>>(&sigma, prem0.key())) {
         auto& prem1   = *prem1_sigma.data;
         DEBUG(1, "  prem1: ", prem1)
-        for (auto prem2_sigma : _prem2->find(&sigma, prem0.key(), bank(0), bankInternal(2), bank(2))) {
+        for (auto prem2_sigma : _prem2->template find<QueryBank<0, 2>>(&sigma, prem0.key())) {
           auto& prem2   = *prem2_sigma.data;
           DEBUG(1, "    prem2: ", prem2)
           for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
@@ -265,11 +270,11 @@ public:
 
     for (auto const& prem1 : Premise1::iter(*_shared, premise)) {
       DEBUG(1, "prem1: ", prem1)
-      for (auto prem0_sigma : _prem0->find(&sigma, prem1.key(), bank(1), bankInternal(0), bank(0))) {
+      for (auto prem0_sigma : _prem0->template find<QueryBank<1, 0>>(&sigma, prem1.key())) {
         auto& prem0   = *prem0_sigma.data;
         if (prem0.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG(1, "  prem0: ", prem0)
-          for (auto prem2_sigma : _prem2->find(&sigma, prem0.key(), bank(0), bankInternal(2), bank(2))) {
+          for (auto prem2_sigma : _prem2->template find<QueryBank<0, 2>>(&sigma, prem0.key())) {
             auto& prem2   = *prem2_sigma.data;
             DEBUG(1, "    prem2: ", prem2)
             for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
@@ -287,11 +292,11 @@ public:
 
     for (auto const& prem2 : Premise2::iter(*_shared, premise)) {
       DEBUG(1, "prem2: ", prem2)
-      for (auto prem0_sigma : _prem0->find(&sigma, prem2.key(), bank(2), bankInternal(0), bank(0))) {
+      for (auto prem0_sigma : _prem0->template find<QueryBank<2, 0>>(&sigma, prem2.key())) {
         auto& prem0   = *prem0_sigma.data;
         // if (prem0.clause() != premise && prem2.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG(1, "  prem0: ", prem0)
-          for (auto prem1_sigma : _prem1->find(&sigma, prem0.key(), bank(0), bankInternal(1), bank(1))) {
+          for (auto prem1_sigma : _prem1->template find<QueryBank<0, 1>>(&sigma, prem0.key())) {
             auto& prem1   = *prem1_sigma.data;
             DEBUG(1, "    prem1: ", prem1)
             for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 

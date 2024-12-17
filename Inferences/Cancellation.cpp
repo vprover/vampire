@@ -107,21 +107,8 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
   auto endl = oldl.nSummands();
   auto endr = oldr.nSummands();
 
-  auto safeMinus = [](Numeral l, Numeral r) 
-  { 
-    try {
-      return Option<Numeral>(l - r);
-    } catch (MachineArithmeticException&) {
-      return Option<Numeral>();
-    }
-  };
-
-  auto cmpPrecedence = [](Option<Numeral> lOpt, Numeral r) 
-  { 
-    if (lOpt.isNone()) return false;
-    auto l = lOpt.unwrap();
-    return Numeral::comparePrecedence(l,r) == Comparison::LESS;
-  };
+  auto cmpPrecedence = [](Numeral l, Numeral r) 
+  { return Numeral::comparePrecedence(l,r) == Comparison::LESS; };
 
   NumeralVec newl;
   NumeralVec newr;
@@ -131,12 +118,12 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
     if (l.factors == r.factors) {
       auto& m = l.factors;
 
-      auto lMinusR = safeMinus(l.numeral, r.numeral);
-      auto rMinusL = safeMinus(r.numeral, l.numeral);
-      auto pushDiffLeft  = [&]() { newl.push(Monom(lMinusR.unwrap(), m)); };
-      auto pushDiffRight = [&]() { newr.push(Monom(rMinusL.unwrap(), m)); };
+      auto lMinusR = l.numeral - r.numeral;
+      auto rMinusL = r.numeral - l.numeral;
+      auto pushDiffLeft  = [&]() { newl.push(Monom(lMinusR, m)); };
+      auto pushDiffRight = [&]() { newr.push(Monom(rMinusL, m)); };
       auto pushSmaller = [&] () {
-        if (cmpPrecedence(rMinusL, lMinusR.unwrap())) {
+        if (cmpPrecedence(rMinusL, lMinusR)) {
           pushDiffRight();
         } else {
           pushDiffLeft();
@@ -162,19 +149,8 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
         //   ^ l.numeral   ^ r.numeral          ^ rMinusL
         pushDiffRight();
       } else {
+        pushSmaller();
 
-        if (lMinusR.isSome() && rMinusL.isSome()){
-          pushSmaller();
-        } else if (lMinusR.isSome()) {
-          pushDiffLeft();
-        } else if (rMinusL.isSome()) {
-          pushDiffRight();
-        } else {
-          ASS_EQ(m, l.factors);
-          ASS_EQ(m, r.factors);
-          newl.push(l);
-          newr.push(r);
-        }
       }
       itl++;
       itr++;

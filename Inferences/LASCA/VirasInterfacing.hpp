@@ -46,8 +46,8 @@ struct VampireVirasConfig {
   void output_numeral(std::ostream& out, Numeral const& self) { out << self; }
 
   Numeral numeral(int i) { return Numeral(i); }
-  Numeral lcm(Numeral l, Numeral r) { ASS(l.isInt() && r.isInt()); return Numeral(Kernel::IntegerConstantType::lcm(l.numerator(), r.numerator())); }
-  Numeral gcd(Numeral l, Numeral r) { ASS(l.isInt() && r.isInt()); return Numeral(Kernel::IntegerConstantType::gcd(l.numerator(), r.numerator())); }
+  Numeral lcm(Numeral l, Numeral r) { ASS(l.isInt() && r.isInt()); return Numeral(l.numerator().lcm(r.numerator())); }
+  Numeral gcd(Numeral l, Numeral r) { ASS(l.isInt() && r.isInt()); return Numeral(l.numerator().gcd(r.numerator())); }
 
   Numeral mul(Numeral l, Numeral r) { return l * r; }
   Numeral add(Numeral l, Numeral r) { return l + r; }

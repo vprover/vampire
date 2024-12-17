@@ -14,12 +14,6 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Problem.hpp"
 
-DArray<int> lpoPredLevels() {
-  DArray<int> out(env.signature->predicates());
-  out.init(out.size(), Kernel::PredLevels::EQ);
-  return out;
-}
-
 inline void compareTwoWays(const Ordering& ord, TermSugar t1, TermSugar t2) {
   ASS_EQ(ord.compare(t1, t2), Ordering::Result::GREATER);
   ASS_EQ(ord.compare(t2, t1), Ordering::Result::LESS);
@@ -30,7 +24,7 @@ LPO lpo() {
       DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
       DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())), 
       DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
-      lpoPredLevels(), false /* reverseLCM */);
+      PrecedenceOrdering::testLevels(), false /* reverseLCM */);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

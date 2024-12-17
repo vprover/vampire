@@ -88,13 +88,14 @@ public:
 
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, subsTreeQueryBank(0), subsTreeNormResultBank(0), subsTreeResultBank(0), AbstractionOracle(uwa), fixedPointIteration)); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier, RetrievalAlgorithms::DefaultVarBanks>>>(t, /* retrieveSubstitutions */ true, AbstractingUnifier::empty(AbstractionOracle(uwa)), AbstractionOracle(uwa), fixedPointIteration)); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, TypedTermList t, int queryBank, int normInternalBank, int internalBank, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, state, queryBank, normInternalBank, internalBank, AbstractionOracle(uwa), fixedPointIteration)); }
+  template<class VarBanks>
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, VarBanks>>>(t, /* retrieveSubstitutions */ true, state, AbstractionOracle(uwa), fixedPointIteration)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions, subsTreeQueryBank(0), subsTreeNormResultBank(0), subsTreeResultBank(0))); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification<RetrievalAlgorithms::DefaultVarBanks>>>(t, retrieveSubstitutions)); }
 };
 
 } // namespace Indexing

@@ -13,6 +13,8 @@
 #include <iostream>
 #include <utility>
 #include <tuple>
+#include <string>
+#include <sstream>
 
 namespace std {
 template<class... As> 
@@ -159,6 +161,13 @@ std::ostream& operator<<(std::ostream& out, OutputCat<As...> const& self)
   return out;
 }
 
+// TODO deprecate
+template<class... As>
+std::string toString(As const&... as) {
+  std::stringstream out;
+  out << cat(as...);
+  return out.str();
+}
 } // namespace Output
 } // namespace Lib
 

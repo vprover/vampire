@@ -3930,7 +3930,6 @@ std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
   return cutoffs;
 }
 
-
 Stack<std::string> Options::getSimilarOptionNames(std::string name, bool is_short) const {
 
   Stack<std::string> similar_names;

@@ -67,9 +67,6 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 
 Clause* InterpretedEvaluation::simplify(Clause* cl)
 {
-  try { 
-
-
     TIME_TRACE("interpreted evaluation");
 
     /* do not evaluate theory axioms (both internal and external theory axioms)
@@ -112,11 +109,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
 
     env.statistics->evaluationCnt++;
     return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::EVALUATION, cl));
-
-  } catch (MachineArithmeticException&) {
-    /* overflow while evaluating addition, subtraction, etc. */
-    return cl;
-  }
 }
 
 }

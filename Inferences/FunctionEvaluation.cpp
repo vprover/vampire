@@ -177,7 +177,7 @@ inline Option<PolyNf> simplFloor(PolyNf* evalArgs)
   using Numeral = typename NumTraits::ConstantType;
   auto inner = evalArgs[0].tryNumeral<NumTraits>();
   if (inner) {
-    return some(PolyNf::fromNumeral(inner->floorRat()));
+    return some(PolyNf::fromNumeral(Numeral(inner->floor())));
   }  else {
     auto poly = evalArgs[0].wrapPoly<NumTraits>();
     // floor(s1 + ... + sn + t1 + ... + tm) ===> s1 + ... + sn + floor(t1 + ... + tn)
@@ -191,9 +191,9 @@ inline Option<PolyNf> simplFloor(PolyNf* evalArgs)
         // floor(t + k t) ==> floor(t + (k - i) t) + i t
         //   where t is an integer and
         //         i = floor(k)
-        auto i = k.floorRat();
-        if (i       != Numeral(0)) { pulledOut->push(Monom(i   , t)); }
-        if ((k - i) != Numeral(0)) { keptIn->   push(Monom(k -i, t)); }
+        auto i = Numeral(k.floor());
+        if (i       != 0) { pulledOut->push(Monom(i   , t)); }
+        if ((k - i) != 0) { keptIn->   push(Monom(k -i, t)); }
       } else {
         keptIn->push(monom);
       }
@@ -208,8 +208,8 @@ inline Option<PolyNf> simplFloor(PolyNf* evalArgs)
       if (keptIn->size() == 0) {
 
       } else if (keptIn->size() == 1 && (*keptIn)[0].isNumeral()) { 
-        auto numFloor = (*keptIn)[0].tryNumeral()->floorRat();
-        if (numFloor != Numeral(0))
+        auto numFloor = Numeral((*keptIn)[0].tryNumeral()->floor());
+        if (numFloor != 0)
           pulledOut->push(Monom<NumTraits>(numFloor));
       } else {
         auto innerSum = PolyNf(AnyPoly(perfect(Polynom<NumTraits>(std::move(*keptIn)))));

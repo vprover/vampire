@@ -70,6 +70,7 @@ class AbstractionOracle final
   friend class AbstractingUnifier;
 public:
   AbstractionOracle(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
+  AbstractionOracle() : AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF) {}
 
   struct EqualIf { 
     Recycled<Stack<UnificationConstraint>> _unify; 
@@ -157,7 +158,8 @@ class AbstractingUnifier
   friend class RobSubstitution;
   AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
-  void setAo(AbstractionOracle ao) 
+  AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle()) {}
+  void setAo(AbstractionOracle ao)
   { _uwa = std::move(ao); }
 
   void init(AbstractionOracle ao) 
@@ -167,7 +169,6 @@ public:
     }
     _subs->reset();
     _constr->reset();
-    // _bd = {};
     _uwa = std::move(ao);
   }
   bool isEmpty() const { return _subs->isEmpty() && _constr->isEmpty() && (_bd.isNone() || _bd->isEmpty()); }

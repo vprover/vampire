@@ -42,7 +42,7 @@
 #include "Z3Interfacing.hpp"
 #include <gmp.h>
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 #define TRACE_Z3 0
 #define INSTANTIATE_EXPRESSIONS 0
@@ -77,39 +77,34 @@ struct BottomUpChildIter<z3::expr>
 
 
 auto quotient0_name(char c, z3::sort s) 
-{ return outputToString("quot-0-", c, "-", s); }
+{ return Output::toString("quot-0-", c, "-", s); }
 
 auto remainder0_name(char c, z3::sort s) 
-{ return outputToString("rem-0-", c, "-", s); }
+{ return Output::toString("rem-0-", c, "-", s); }
 
 template<class UInt64ToExpr>
 z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
     auto sign = val.sign();
-    auto abs = val.abs().toInner();
+    auto abs = val.abs();
 
-#if WITH_GMP
-    Stack<uint64_t> digits;
-    z3::expr base =  // <- == 2^64
+    RStack<uint64_t> digits;
+    /* this is how we translate arbitrary big IntegerConstantType numbers to  z3::expr numbers */
+    z3::expr base = // <- == 2^64
       toExpr(std::numeric_limits<uint64_t>::max()) + toExpr(1);
-    while(!abs.fits_ulong_p()) {
-      auto ui = mpz_get_ui(abs.get_mpz_t());
+    while(!abs.fits<unsigned long>()) {
+      auto ui = abs.truncate<unsigned long>();
       using ui_t = decltype(ui);
-      static_assert(std::is_same<ui_t, long unsigned int>::value, "unexpected number typtype");
       static_assert(sizeof(ui_t) == sizeof(uint64_t), "unexpected number size");
       static_assert(sizeof(ui_t) == 64 / 8, "unexpected number size");
       static_assert(std::numeric_limits<ui_t>::max() == std::numeric_limits<uint64_t>::max(), "unexpected number size");
-      digits.push(uint64_t(ui));
-      mpz_tdiv_q_2exp(abs.get_mpz_t(), abs.get_mpz_t(), 64);
+      digits->push(uint64_t(ui));
+      abs.rshiftBits(64);
     }
-    z3::expr res = toExpr(uint64_t(mpz_get_ui(abs.get_mpz_t())));
-    while(digits.isNonEmpty()) {
-      res = toExpr(digits.pop()) + (res * base);
+    z3::expr res = toExpr(uint64_t(abs.template truncate<unsigned int>()));
+    while(digits->isNonEmpty()) {
+      res = toExpr(digits->pop()) + (res * base);
     }
 
-#else // !WITH_GMP
-    static_assert(sizeof(decltype(abs)) <= sizeof(uint64_t), "unexpected inner type for integers");
-    auto res = toExpr(abs);
-#endif
     return sign == Sign::Neg ? -res : res;
 };
 
@@ -267,7 +262,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, std::stri
   _sat2fo(s2f),
   _outSyntax(exportSyntax),
   _status(Status::SATISFIABLE),
-  _context(),
+  _context(new z3::context()),
   _solver(*_context),
   _model((_solver.check(), _solver.get_model())),
   _assumptions([]() {
@@ -454,7 +449,7 @@ std::string ProblemExport::ApiCalls::_escapeVarName(Outputable const& sym) {
   };
 
 
-  auto origName = outputToString(sym);
+  auto origName = Output::toString(sym);
   return _escapedNames.getOrInit(origName, [&](){
     auto& ids = _escapePrefixes.getOrInit(generatePrefix(origName));
     auto nextId = ids.size();
@@ -566,7 +561,7 @@ void ProblemExport::ApiCalls::terminate()
 struct ProblemExport::ApiCalls::EscapeString {
   std::string s;
   EscapeString(std::string s) : s(s) {}
-  EscapeString(z3::expr const& x) : EscapeString(outputToString(x)) {}
+  EscapeString(z3::expr const& x) : EscapeString(Output::toString(x)) {}
   friend std::ostream& operator<<(std::ostream& out, EscapeString const& self)
   { return out << "R\"(" << self.s << ")\""; }// TODO mask occurences of )"
 };
@@ -653,7 +648,7 @@ std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCal
   if (self.inner.kind() == Z3_INT_SYMBOL) {
     return out << "ctx.int_symbol(" << self.inner.to_int() << ")";
   } else  {
-    auto str = toString(self.inner);
+    auto str = Output::toString(self.inner);
     return out << "ctx.str_symbol(" << ProblemExport::ApiCalls::EscapeString(str) << ")";
   }
 }
@@ -1382,9 +1377,13 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
                            &discr_z3,
                            destr.begin());
 
+      auto registerDecl = [&](auto vampireId, auto z3Id) {
+        _toZ3.insert(vampireId, z3Id);
+        _fromZ3.insert(z3Id, vampireId);
+      };
+      registerDecl(FuncOrPredId::monomorphicFunction(ctor_v->functor()), z3::func_decl(*_context, ctor_z3));
       if (ctor_v->hasDiscriminator()) {
-        _toZ3  .insert(FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()), z3::func_decl(*_context, discr_z3));
-        _fromZ3.insert(z3::func_decl(*_context, discr_z3), FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()));
+        registerDecl(FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()), z3::func_decl(*_context, discr_z3));
       }
       for (unsigned iDestr = 0; iDestr < ctorTermArity; iDestr++)  {
         auto dtor = z3::func_decl(*_context, destr[iDestr]);
@@ -1394,8 +1393,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
         bool is_predicate = ctor_v->argSort(iDestr).isBoolSort();
         auto id = FuncOrPredId(ctor_v->destructorFunctor(iDestr), is_predicate);
 
-        _toZ3.insert(id, dtor);
-        _fromZ3.insert(dtor, id);
+        registerDecl(id, dtor);
       }
     }
 
@@ -1564,7 +1562,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         //if constant treat specially
         if(trm->arity() == 0) {
           if(symb->integerConstant()){
-            IntegerConstantType value = symb->integerValue();
             return int_to_z3_expr(symb->integerValue(), [&](uint64_t i) { return _context->int_val(i); });
           }
           if(symb->realConstant()) {

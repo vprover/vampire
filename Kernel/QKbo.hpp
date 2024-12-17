@@ -130,7 +130,7 @@ public:
     auto l = t->iterSummands()
       .map([](auto s) { return s.numeral.denominator(); })
       .fold(IntegerConstantType(1), [&](auto acc, auto next)
-               { return IntegerConstantType::lcm(acc, next); });
+               { return acc.lcm(next); });
     return std::make_tuple(l.abs(), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
   }
 

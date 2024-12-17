@@ -1348,9 +1348,9 @@ TermList Polynom<Number>::denormalize(TermList* results) const
       return c;
     } else {
       auto mon = monom.factors->denormalize(t);
-      if (monom.numeral == Numeral(1)) {
+      if (monom.numeral == 1) {
         return mon;
-      } else if (monom.numeral == Number::constant(-1)) {
+      } else if (monom.numeral == -1) {
         return Number::minus(mon);
       } else {
         return Number::mul(c, mon);

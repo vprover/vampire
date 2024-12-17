@@ -17,6 +17,7 @@
 #define __Shuffling__
 
 #include "Forwards.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Lib/List.hpp"
 #include "Lib/Coproduct.hpp"

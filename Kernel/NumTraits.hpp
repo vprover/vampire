@@ -293,11 +293,6 @@ struct NumTraits;
     static const char* name() {return #CamelCase;}                                        \
   };                                                                                      \
 
-#define __INSTANTIATE_NUM_TRAITS_ALL                                                      \
-  __INSTANTIATE_NUM_TRAITS(Rational)                                                      \
-  __INSTANTIATE_NUM_TRAITS(Real    )                                                      \
-  __INSTANTIATE_NUM_TRAITS(Integer )                                                      \
-
 #define __NUM_TRAITS_IF_FRAC(sort, ...) __NUM_TRAITS_IF_FRAC_ ## sort (__VA_ARGS__)
 #define __NUM_TRAITS_IF_FRAC_INT(...) 
 #define __NUM_TRAITS_IF_FRAC_REAL(...) __VA_ARGS__
@@ -403,21 +398,6 @@ auto ifOfType(Val val, IfT ifT, IfNotT ifNotT)
 
 }
 
-
-// namespace Kernel {
-// #define DEF_MUL_OP(Num) \
-//   inline TermList operator*(Num n, TermList t) { \
-//     using NT = NumTraits<Num>; \
-//     return n == 0 ? NT::zero() \
-//          : n == 1 ? t \
-//          : n == -1 ? TermList(NT::minus(t)) \
-//          : TermList(NT::mul(NT::constantTl(n), t)); \
-//   } \
-//
-// DEF_MUL_OP(IntegerConstantType)
-// DEF_MUL_OP(RationalConstantType)
-// DEF_MUL_OP(RealConstantType)
-// }
 
 namespace Shell {
 

@@ -62,13 +62,14 @@
 #include <iostream>
 #endif
 
-inline unsigned subsTreeQueryBank(unsigned n) 
+constexpr unsigned subsTreeQueryBank(unsigned n) 
 { return 3 * n; }
 
-inline unsigned subsTreeResultBank(unsigned n) 
+constexpr unsigned subsTreeInternalBank(unsigned n) 
 { return 3 * n + 1; }
 
-inline unsigned subsTreeNormResultBank(unsigned n) 
+// TODO rename result -> intrnal
+constexpr unsigned subsTreeNormInternalBank(unsigned n) 
 { return 3 * n + 2; }
 
 
@@ -1200,7 +1201,7 @@ public:
 
       template<class TermOrLit, class...AlgoArgs>
       void init(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args) {
-        _algo.init(args...);
+        _algo.init(std::move(args)...);
         _retrieveSubstitution = retrieveSubstitution;
         _leafData = {};
         _normalizationRecording = false;
@@ -1223,8 +1224,8 @@ public:
 
       template<class TermOrLit, class...AlgoArgs>
       Iterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
-       : _algo(args...)
-      { init(parent, root, query, retrieveSubstitution, reversed, args...); }
+       : _algo()
+      { init(parent, root, query, retrieveSubstitution, reversed, std::move(args)...); }
 
 
       ~Iterator()
@@ -1383,21 +1384,42 @@ public:
    */ 
   namespace RetrievalAlgorithms {
 
+      template<unsigned n>
+      struct VarBanksN {
+        static constexpr unsigned query = subsTreeQueryBank(n);
+        static constexpr unsigned internal = subsTreeInternalBank(n);
+        static constexpr unsigned normInternal = subsTreeNormInternalBank(n);
+      };
+
+      using DefaultVarBanks = VarBanksN<0>;
+
+      template<class LD>
+      static typename SubstitutionTree<LD>::NodeIterator __selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs, unsigned normInternalBank)
+      {
+        unsigned specVar=n->childVar;
+        auto top = subs.getSpecialVarTop(specVar, normInternalBank);
+        if(top.var()) {
+          return n->allChildren();
+        } else {
+          auto** match = n->childByTop(top, /* canCreate */ false);
+          if(match) {
+            return pvi(concatIters(
+                         getSingletonIterator(match),
+                         n->variableChildren()));
+          } else {
+            return n->variableChildren();
+          }
+        }
+      }
+
+
+      template<class VarBanks>
       class RobUnification { 
         RobSubstitution _subs;
-        unsigned _queryBank;
-        unsigned _normInternalBank;
-        unsigned _internalBank;
       public:
-        template<class... Args>
-        RobUnification(Args... args)  { init(std::move(args)...); }
+        RobUnification() { }
 
-        void init(int queryBank, int normInternalBank, int internalBank) { 
-          _subs.reset(); 
-          _queryBank = queryBank;
-          _normInternalBank = normInternalBank;
-          _internalBank = internalBank;
-        }
+        void init() { _subs.reset(); }
 
         /** a witness that the returned term matches the retrieval condition 
          * (could be a substitution, variable renaming, etc.) 
@@ -1407,7 +1429,7 @@ public:
         /** before starting to retrieve terms from the tree we insert some query terms, which we are going to 
          *  match the terms in the tree with. This is done using this function. */
         void bindQuerySpecialVar(unsigned var, TermList term)
-        { _subs.bindSpecialVar(var, _normInternalBank, term, _queryBank); }
+        { _subs.bindSpecialVar(var, VarBanks::normInternal, term, VarBanks::query); }
 
         /** we intrementally traverse the tree, and at every code we call this retrieval algorithm to check 
          * whether it is okay to bind a new special variable to some term in the tree.
@@ -1421,16 +1443,16 @@ public:
          * Matching them up again is done by the function denormalize.
          */
         bool associate(unsigned specialVar, TermList node)
-        { return _subs.unify(TermList(specialVar, /* special */ true), _normInternalBank, node, _normInternalBank); }
+        { return _subs.unify(TermList(specialVar, /* special */ true), VarBanks::normInternal, node, VarBanks::normInternal); }
 
 
         /** @see associate */
         void denormalize(Renaming& norm)
-        { _subs.denormalize(norm, _normInternalBank, _internalBank); }
+        { _subs.denormalize(norm, VarBanks::normInternal, VarBanks::internal); }
 
         /** whenever we arrive at a leave we return the currrent witness for the current leave term to unify
          * with the query term. The unifier is queried using this function.  */
-        Unifier unifier() { return ResultSubstitution::fromSubstitution(&_subs, _queryBank, _internalBank); }
+        Unifier unifier() { return ResultSubstitution::fromSubstitution(&_subs, VarBanks::query, VarBanks::internal); }
 
         /** same as in @Backtrackable */
         void bdRecord(BacktrackData& bd) { _subs.bdRecord(bd); }
@@ -1457,72 +1479,43 @@ public:
          */
         template<class LD>
         typename SubstitutionTree<LD>::NodeIterator selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n)
-        { return _selectPotentiallyUnifiableChildren<LD>(n, _subs, _internalBank); }
-
-        template<class LD>
-        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs, unsigned internalBank)
-        {
-          unsigned specVar=n->childVar;
-          auto top = subs.getSpecialVarTop(specVar, internalBank);
-          if(top.var()) {
-            return n->allChildren();
-          } else {
-            auto** match = n->childByTop(top, /* canCreate */ false);
-            if(match) {
-              return pvi(concatIters(
-                           getSingletonIterator(match),
-                           n->variableChildren()));
-            } else {
-              return n->variableChildren();
-            }
-          }
-        }
+        { return __selectPotentiallyUnifiableChildren<LD>(n, _subs, VarBanks::normInternal); }
         friend std::ostream& operator<<(std::ostream& out, RobUnification const& self)
         { return out << self._subs; }
 
       };
 
+
+      /* AU is either an AbstractingUnifier* or an AbstractingUnifier */
+      template<class AU, class VarBanks>
       class UnificationWithAbstraction { 
-        AbstractingUnifier* _externalUnif;
-        AbstractingUnifier _internalUnif;
+        AU _unif;
         bool _fixedPointIteration;
-        unsigned _queryBank;
-        unsigned _normInternalBank;
-        unsigned _internalBank;
       public:
-        template<class... Args>
-        UnificationWithAbstraction(Args... args) 
-          : _internalUnif(AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF))) 
-        { init(std::move(args)...); }
+        UnificationWithAbstraction() {}
 
-        void init(int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration)
-        { init(nullptr, queryBank, normInternalBank, internalBank, ao, fixedPointIteration); }
-
-        void init(AbstractingUnifier* externalUnif, int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration) { 
-          _queryBank = queryBank;
-          _normInternalBank = normInternalBank;
-          _internalBank = internalBank;
-          _externalUnif = externalUnif;
-          if (externalUnif) {
-            _externalUnif->setAo(ao);
-          }
-          _internalUnif.init(ao);
+        void init(AU unif, AbstractionOracle ao, bool fixedPointIteration) { 
+          _unif = std::move(unif);
+          // TODO set ao outside (?)
+          unifier()->setAo(ao);
           _fixedPointIteration = fixedPointIteration;
         }
 
         using Unifier = AbstractingUnifier*;
 
         bool associate(unsigned specialVar, TermList node)
-        { return unifier()->unify(TermList(specialVar, /* special */ true), _normInternalBank, node, _normInternalBank); }
+        { return unifier()->unify(TermList(specialVar, /* special */ true), VarBanks::normInternal, node, VarBanks::normInternal); }
 
-        AbstractingUnifier const *unifier() const
-        { return _externalUnif != nullptr ? _externalUnif : &_internalUnif; }
+        AbstractingUnifier const* unifier() const { return unifier(_unif); }
+        AbstractingUnifier      * unifier()       { return unifier(_unif); }
 
-        Unifier unifier()
-        { return _externalUnif != nullptr ? _externalUnif : &_internalUnif; }
+        AbstractingUnifier      * unifier(AbstractingUnifier      & u)       { return &u; }
+        AbstractingUnifier const* unifier(AbstractingUnifier const& u) const { return &u; }
+        AbstractingUnifier      * unifier(AbstractingUnifier      * u)       { return u; }
+        AbstractingUnifier const* unifier(AbstractingUnifier      * u) const { return u; }
 
         void bindQuerySpecialVar(unsigned var, TermList term)
-        { unifier()->subs().bindSpecialVar(var, _normInternalBank, term, _queryBank); }
+        { unifier()->subs().bindSpecialVar(var, VarBanks::normInternal, term, VarBanks::query); }
 
         void bdRecord(BacktrackData& bd)
         { unifier()->subs().bdRecord(bd); }
@@ -1531,17 +1524,18 @@ public:
         { unifier()->subs().bdDone(); }
 
         void denormalize(Renaming& norm)
-        { unifier()->subs().denormalize(norm, _normInternalBank, _internalBank); }
+        { unifier()->subs().denormalize(norm, VarBanks::normInternal, VarBanks::internal); }
 
         bool doFinalLeafCheck()
         { return !_fixedPointIteration || unifier()->fixedPointIteration(); }
 
+        // TODO make normInternal a type param
         template<class LD>
-        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, AbstractingUnifier& unif, unsigned internalBank)
+        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, AbstractingUnifier& unif, unsigned normInternalBank)
         {
           if (unif.usesUwa()) {
             unsigned specVar = n->childVar;
-            auto top = unif.subs().getSpecialVarTop(specVar, internalBank);
+            auto top = unif.subs().getSpecialVarTop(specVar, normInternalBank);
 
             if(top.var()) {
               return n->allChildren();
@@ -1559,13 +1553,13 @@ public:
               }
             }
           } else {
-            return RobUnification::template _selectPotentiallyUnifiableChildren<LD>(n, unif.subs(), internalBank);
+            return __selectPotentiallyUnifiableChildren<LD>(n, unif.subs(), normInternalBank);
           }
         }
 
         template<class LD>
         typename SubstitutionTree<LD>::NodeIterator selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n)
-        { return _selectPotentiallyUnifiableChildren<LD>(n, *unifier(), _internalBank); }
+        { return _selectPotentiallyUnifiableChildren<LD>(n, *unifier(), VarBanks::normInternal); }
         friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
         { return out << *self.unifier(); }
       };

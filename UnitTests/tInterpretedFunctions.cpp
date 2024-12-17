@@ -581,46 +581,6 @@ INT_TEST(div_zero_2,
     r(remainderE(num(7), 0),     11     )
     )
 
-#if !WITH_GMP
-ALL_NUMBERS_TEST(eval_overflow_1,
-    p(num(1661992960) + 1661992960),
-    evaluationFail
-    )
-
-ALL_NUMBERS_TEST(eval_overflow_2,
-    r(num(1661992960) + 1661992960, num(7) + 3),
-    r(num(1661992960) + 1661992960, 10)
-    )
-
-ALL_NUMBERS_TEST(eval_overflow_3,
-    r(num(1661992960) * 1661992960, num(7) + 3),
-    r(num(1661992960) * 1661992960, 10)
-    )
-
-ALL_NUMBERS_TEST(eval_overflow_4,
-    p(-1 * num(std::numeric_limits<int>::min())),
-    p(-1 * num(std::numeric_limits<int>::min()))
-    // evaluationFail
-    )
-
-ALL_NUMBERS_TEST(eval_overflow_5,
-    p(std::numeric_limits<int>::min() * num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()),
-    p(std::numeric_limits<int>::min() * (num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()))
-    )
-
-FRACTIONAL_TEST(eval_overflow_6,
-    // p($sum(0.0555556,-1260453006.0)),
-    p(frac(5,90) + num(-1260453006)),
-    evaluationFail
-    )
-
-FRACTIONAL_TEST(eval_overflow_7,
-    // p($sum(0.0555556,-1260453006.0)),
-    frac(5,90) < num(-1260453006),
-    false
-    )
-
-#endif // WITH_GMP
 
 ALL_NUMBERS_TEST(NUM_IS_NUM_01,
      ~isInt(num(3)),

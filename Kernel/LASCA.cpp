@@ -205,7 +205,7 @@ IntegerConstantType normalizeFactors_divide(IntegerConstantType gcd, IntegerCons
 
 
 IntegerConstantType normalizeFactors_gcd(IntegerConstantType l, IntegerConstantType r)
-{ return IntegerConstantType::gcd(l, r); }
+{ return l.gcd(r); }
 
 Ordering::Result compare(LascaPredicate l, LascaPredicate r) 
 {

@@ -30,6 +30,7 @@
 #include "VirtualIterator.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 namespace Lib {
 
@@ -154,7 +155,7 @@ public:
   }
 
   bool knowsSize() const { return false; }
-  bool size() const { ASSERTION_VIOLATION }
+  size_t size() const { ASSERTION_VIOLATION }
 
 private:
   

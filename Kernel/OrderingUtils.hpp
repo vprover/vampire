@@ -263,13 +263,7 @@ namespace Kernel {
 
 
         auto idx = std::make_pair(col, row);
-        auto res = cmpCache->getOrInit(idx,
-            [&]() { 
-                try { 
-                  return cmp_(col, row); 
-                } catch (MachineArithmeticException& e) { 
-                  return Ordering::Result::INCOMPARABLE;
-                } });
+        auto res = cmpCache->getOrInit(idx, [&]() { return cmp_(col, row); });
 
         res = l < r ? res : Ordering::reverse(res);
 

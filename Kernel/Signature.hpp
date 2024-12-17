@@ -30,6 +30,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
@@ -365,7 +366,7 @@ class Signature
 
   public:
     IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(val.toString(), 
+    : Symbol(Output::toString(val),
         /*             arity */ 0, 
         /*       interpreted */ true, 
         /*    preventQuoting */ false, 
@@ -387,7 +388,7 @@ class Signature
 
   public:
     RationalSymbol(const RationalConstantType& val)
-    : Symbol(val.toString(), 
+    : Symbol(Output::toString(val),
         /*             arity */ 0, 
         /*       interpreted */ true, 
         /*    preventQuoting */ false, 
@@ -409,7 +410,8 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(),
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")") 
+                                                                         : Output::toString(val),
         /*             arity */ 0, 
         /*       interpreted */ true, 
         /*    preventQuoting */ false, 

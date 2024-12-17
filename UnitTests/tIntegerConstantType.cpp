@@ -8,6 +8,7 @@
  * and in the source directory
  */
 #include <iostream>
+#include "Kernel/Theory.hpp"
 #include "Lib/List.hpp"
 #include "Lib/BitUtils.hpp"
 // TODO rename to theory test
@@ -77,27 +78,27 @@ TEST_FUN(divides) {
 }
 
 TEST_FUN(floor) {
-  ASS_EQ( rct(3,5).floorRat(), rct(0) )
-  ASS_EQ( rct(7,5).floorRat(), rct(1) )
-  ASS_EQ( rct(10,5).floorRat(), rct(2) )
-  ASS_EQ( rct(12,5).floorRat(), rct(2) )
+  ASS_EQ( rct(3,5).floor(), 0 )
+  ASS_EQ( rct(7,5).floor(), 1 )
+  ASS_EQ( rct(10,5).floor(), 2 )
+  ASS_EQ( rct(12,5).floor(), 2 )
 
-  ASS_EQ( rct(-12,5).floorRat(), rct(-3) )
-  ASS_EQ( rct(-10,5).floorRat(), rct(-2) )
-  ASS_EQ( rct( -7,5).floorRat(), rct(-2) )
-  ASS_EQ( rct( -3,5).floorRat(), rct(-1) )
+  ASS_EQ( rct(-12,5).floor(), -3 )
+  ASS_EQ( rct(-10,5).floor(), -2 )
+  ASS_EQ( rct( -7,5).floor(), -2 )
+  ASS_EQ( rct( -3,5).floor(), -1 )
 }
 
 TEST_FUN(ceiling) {
-  ASS_EQ( rct(3,5).ceiling(), rct(1) )
-  ASS_EQ( rct(7,5).ceiling(), rct(2) )
-  ASS_EQ( rct(10,5).ceiling(), rct(2) )
-  ASS_EQ( rct(12,5).ceiling(), rct(3) )
+  ASS_EQ( rct(3,5).ceiling(), 1 )
+  ASS_EQ( rct(7,5).ceiling(), 2 )
+  ASS_EQ( rct(10,5).ceiling(), 2 )
+  ASS_EQ( rct(12,5).ceiling(), 3 )
 
-  ASS_EQ( rct(-12,5).ceiling(), rct(-2) )
-  ASS_EQ( rct(-10,5).ceiling(), rct(-2) )
-  ASS_EQ( rct( -7,5).ceiling(), rct(-1) )
-  ASS_EQ( rct( -3,5).ceiling(), rct( 0) )
+  ASS_EQ( rct(-12,5).ceiling(), -2 )
+  ASS_EQ( rct(-10,5).ceiling(), -2 )
+  ASS_EQ( rct( -7,5).ceiling(), -1 )
+  ASS_EQ( rct( -3,5).ceiling(), 0 )
 }
 
 TEST_FUN(precedence) {
@@ -118,5 +119,16 @@ TEST_FUN(inverse_modulo_m) {
         ASS_EQ((i * inv).remainderE(m), oneModM)
       }
     }
+  }
+}
+
+TEST_FUN(to_string)
+{
+  for (std::string str : { 
+      "1111111111111111111111111111111111111111111",
+      "-1111111111111111111111111111111111111111111",
+      "1111111189123097123890102111111111111111111",
+      }) {
+    ASS_EQ(Output::toString(IntegerConstantType(str)), str);
   }
 }

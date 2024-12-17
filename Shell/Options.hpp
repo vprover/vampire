@@ -47,6 +47,7 @@
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
@@ -759,12 +760,6 @@ public:
   enum class ProblemExportSyntax : unsigned int {
     SMTLIB = 0,
     API_CALLS = 1,
-  };
-
-  enum class InstanceRedundancyCheck : unsigned int {
-    LAZY = 0,
-    EAGER = 1,
-    OFF = 2,
   };
 
     //==========================================================
@@ -2410,7 +2405,7 @@ private:
     }
   
     Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const;
-    
+
     //==========================================================
     // Variables holding option values
     //==========================================================
@@ -2730,8 +2725,10 @@ private:
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
+#if VTIME_PROFILING
   BoolOptionValue _timeStatistics;
   StringOptionValue _timeStatisticsFocus;
+#endif // VTIME_PROFILING
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
