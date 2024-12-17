@@ -17,62 +17,37 @@
 #define __ALASCA__
 
 #include "Debug/Assertion.hpp"
-#include "Indexing/Index.hpp"
-#include "Kernel/Formula.hpp"
-#include "Kernel/FormulaUnit.hpp"
-#include "Lib/Int.hpp"
 #include "Forwards.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/STL.hpp"
 
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "Signature.hpp" 
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "NumTraits.hpp"
-#include "Debug/Tracer.hpp"
 #include "Lib/Coproduct.hpp"
 #include <algorithm>
 #include <utility>
 #include <type_traits>
 #include <functional>
 #include "Lib/Hash.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/Option.hpp"
-#include "Debug/Tracer.hpp"
 #include "Kernel/Polynomial.hpp"
-#include "Kernel/BottomUpEvaluation.hpp"
-#include "Inferences/InferenceEngine.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/OrderingUtils.hpp"
-#define DEBUG(...) // DBG(__VA_ARGS__)
 
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 
 namespace Kernel {
   using Inferences::PolynomialEvaluation;
-
-  template<class A>
-  struct Indexed {
-    unsigned idx;
-    A self;
-    A& operator*() { return self; }
-    A const& operator*() const { return self; }
-    A* operator->() { return &self; }
-  };
-   
-
-  template<class A>
-  Indexed<A> indexed(unsigned idx, A self) 
-  { return {.idx = idx, .self = std::move(self), }; }
 
   enum class AlascaPredicate {
     EQ,
@@ -95,6 +70,7 @@ namespace Kernel {
 
   /** returns true iff the predicate is > or >= */
   bool isInequality(AlascaPredicate const& self);
+
   template<class NumTraits>
   Literal* createLiteral(AlascaPredicate self, TermList t)
   {
