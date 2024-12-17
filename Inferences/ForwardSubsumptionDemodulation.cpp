@@ -611,7 +611,7 @@ isRedundant:
                 ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
                   && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {
-                // TODO integrate this properly with LASCA/QKBO
+                // TODO integrate this properly with ALASCA/QKBO
                 // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
                 ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
               }
@@ -665,7 +665,7 @@ isRedundant:
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
                   && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {  // see note above
-                // TODO integrate this properly with LASCA/QKBO
+                // TODO integrate this properly with ALASCA/QKBO
                 // Check replacement < cl.
                 // This is quite obvious, and there should be no problems with this.
                 ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));

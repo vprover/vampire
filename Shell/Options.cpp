@@ -1282,20 +1282,20 @@ void Options::init()
     _pushUnaryMinus.tag(OptionTag::THEORIES);
 
 
-    _lasca  = BoolOptionValue("linear_arithmetic_superposition_calculus","lasca",false);
-    _lasca.description= "Enables the Linear Arithmetic Superposition CAlculus\n";
-    _lookup.insert(&_lasca);
-    _lasca.tag(OptionTag::INFERENCES);
-    _lasca.setExperimental();
-    _lasca.onlyUsefulWith2(Or(
+    _alasca  = BoolOptionValue("linear_arithmetic_superposition_calculus","alasca",false);
+    _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus\n";
+    _lookup.insert(&_alasca);
+    _alasca.tag(OptionTag::INFERENCES);
+    _alasca.setExperimental();
+    _alasca.onlyUsefulWith2(Or(
            _termOrdering.is(equal(TermOrdering::LALPO)),
            _termOrdering.is(equal(TermOrdering::QKBO)),
            _termOrdering.is(equal(TermOrdering::ALL_INCOMPARABLE))
            ));
-    _lasca.onlyUsefulWith2(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
-    // _lasca.onlyUsefulWith2(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
-    _lasca.onlyUsefulWith2(_highSchool.is(equal(false)));
-    _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(
+    _alasca.onlyUsefulWith2(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+    // _alasca.onlyUsefulWith2(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
+    _alasca.onlyUsefulWith2(_highSchool.is(equal(false)));
+    _alasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(
               equal(UnificationWithAbstraction::LPAR_CAN_ABSTRACT)
             , equal(UnificationWithAbstraction::LPAR_MAIN)
             , equal(UnificationWithAbstraction::LPAR_MAIN_FLOOR)
@@ -1303,47 +1303,47 @@ void Options::init()
             )));
 
     _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
-    _viras.description= "Enables the VIRAS quantifier elimination to be used in LASCA\n";
+    _viras.description= "Enables the VIRAS quantifier elimination to be used in ALASCA\n";
     _lookup.insert(&_viras);
     _viras.tag(OptionTag::INFERENCES);
     _viras.setExperimental();
-    _viras.onlyUsefulWith2(_lasca.is(equal(true)));
+    _viras.onlyUsefulWith2(_alasca.is(equal(true)));
 
-    _lascaDemodulation  = BoolOptionValue("lasca_demodulation","la_demod",false);
-    _lascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
-    _lookup.insert(&_lascaDemodulation);
-    _lascaDemodulation.tag(OptionTag::INFERENCES);
-    _lascaDemodulation.setExperimental();
-    _lascaDemodulation.onlyUsefulWith2(_lasca.is(equal(true)));
+    _alascaDemodulation  = BoolOptionValue("alasca_demodulation","la_demod",false);
+    _alascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
+    _lookup.insert(&_alascaDemodulation);
+    _alascaDemodulation.tag(OptionTag::INFERENCES);
+    _alascaDemodulation.setExperimental();
+    _alascaDemodulation.onlyUsefulWith2(_alasca.is(equal(true)));
 
-    _lascaStrongNormalization  = BoolOptionValue("lasca_strong_normalziation","la_sn",false);
-    _lascaStrongNormalization.description=
+    _alascaStrongNormalization  = BoolOptionValue("alasca_strong_normalziation","la_sn",false);
+    _alascaStrongNormalization.description=
             "enables stronger normalizations for inequalities: \n"
             "s >= 0 ==> s > 0 \\/  s == 0\n"
             "s != 0 ==> s > 0 \\/ -s  > 0\n"
             "\n";
-    _lookup.insert(&_lascaStrongNormalization);
-    _lascaStrongNormalization.tag(OptionTag::INFERENCES);
-    _lascaStrongNormalization.onlyUsefulWith2(_lasca.is(equal(true)));
+    _lookup.insert(&_alascaStrongNormalization);
+    _alascaStrongNormalization.tag(OptionTag::INFERENCES);
+    _alascaStrongNormalization.onlyUsefulWith2(_alasca.is(equal(true)));
 
 
-    _lascaIntegerConversion  = BoolOptionValue("lasca_integer_conversion","lascai",false);
-    _lascaIntegerConversion.description=
+    _alascaIntegerConversion  = BoolOptionValue("alasca_integer_conversion","alascai",false);
+    _alascaIntegerConversion.description=
             "enables converting integer problems into LIRA problems where there is only the sort of reals by"
             "replacing integer variables with floor functions and transforming the signature appropriately"
             "\n";
-    _lookup.insert(&_lascaIntegerConversion);
-    _lascaIntegerConversion.tag(OptionTag::INFERENCES);
-    _lascaIntegerConversion.onlyUsefulWith2(_lasca.is(equal(true)));
-    _lascaIntegerConversion.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::LPAR_MAIN_FLOOR)));
+    _lookup.insert(&_alascaIntegerConversion);
+    _alascaIntegerConversion.tag(OptionTag::INFERENCES);
+    _alascaIntegerConversion.onlyUsefulWith2(_alasca.is(equal(true)));
+    _alascaIntegerConversion.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::LPAR_MAIN_FLOOR)));
 
-    _lascaAbstraction  = BoolOptionValue("lasca_abstraction","lascaa",false);
-    _lascaAbstraction.description=
+    _alascaAbstraction  = BoolOptionValue("alasca_abstraction","alascaa",false);
+    _alascaAbstraction.description=
             "TODO"
             "\n";
-    _lookup.insert(&_lascaAbstraction);
-    _lascaAbstraction.tag(OptionTag::INFERENCES);
-    _lascaAbstraction.onlyUsefulWith2(_lasca.is(equal(true)));
+    _lookup.insert(&_alascaAbstraction);
+    _alascaAbstraction.tag(OptionTag::INFERENCES);
+    _alascaAbstraction.onlyUsefulWith2(_alasca.is(equal(true)));
 
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
@@ -2370,7 +2370,7 @@ void Options::init()
     _termOrdering.tag(OptionTag::SATURATION);
     _termOrdering.addHardConstraint(
         If(Or(equal(TermOrdering::QKBO), equal(TermOrdering::LALPO)))
-          .then(_lasca.is(equal(true)))); // <- lasca must be enabled, because the orderings rely on LascaState to be set
+          .then(_alasca.is(equal(true)))); // <- alasca must be enabled, because the orderings rely on AlascaState to be set
     _lookup.insert(&_termOrdering);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,

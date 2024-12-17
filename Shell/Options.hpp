@@ -2081,8 +2081,8 @@ public:
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
-  // TODO make lasca independent of normal eveluation
-  bool useACeval() const { return lasca() ? false : _useACeval.actualValue;}
+  // TODO make alasca independent of normal eveluation
+  bool useACeval() const { return alasca() ? false : _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
@@ -2307,12 +2307,12 @@ public:
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
   EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_FORCE : _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
-  bool lasca() const { return _lasca.actualValue; }
+  bool alasca() const { return _alasca.actualValue; }
   bool viras() const { return _viras.actualValue; }
-  bool lascaDemodulation() const { return _lascaDemodulation.actualValue; }
-  bool lascaStrongNormalization() const { return _lascaStrongNormalization.actualValue; }
-  bool lascaIntegerConversion() const { return _lascaIntegerConversion.actualValue; }
-  bool lascaAbstraction() const { return _lascaAbstraction.actualValue; }
+  bool alascaDemodulation() const { return _alascaDemodulation.actualValue; }
+  bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
+  bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
+  bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
@@ -2753,12 +2753,12 @@ private:
   BoolOptionValue _pushUnaryMinus;
   BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
-  BoolOptionValue _lasca;
+  BoolOptionValue _alasca;
   BoolOptionValue _viras;
-  BoolOptionValue _lascaDemodulation;
-  BoolOptionValue _lascaStrongNormalization;
-  BoolOptionValue _lascaIntegerConversion;
-  BoolOptionValue _lascaAbstraction;
+  BoolOptionValue _alascaDemodulation;
+  BoolOptionValue _alascaStrongNormalization;
+  BoolOptionValue _alascaIntegerConversion;
+  BoolOptionValue _alascaAbstraction;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 

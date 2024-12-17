@@ -42,8 +42,8 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
   if (l1 == l2) 
     return Result::EQUAL;
 
-  auto i1 = LascaState::interpretedPred(l1);
-  auto i2 = LascaState::interpretedPred(l2);
+  auto i1 = AlascaState::interpretedPred(l1);
+  auto i2 = AlascaState::interpretedPred(l2);
        if ( i1 && !i2) return Result::LESS;
   else if (!i1 &&  i2) return Result::GREATER;
   else if (!i1 && !i2) return TIME_TRACE_EXPR("uninterpreted", OU::lexProductCapture(

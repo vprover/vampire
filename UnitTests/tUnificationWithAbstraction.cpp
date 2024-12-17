@@ -10,7 +10,7 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
-#include "Kernel/LASCA.hpp"
+#include "Kernel/ALASCA.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Shell/Options.hpp"
@@ -75,13 +75,13 @@ auto getLiteralIndex()
 //   Stack<std::pair<TermList, TermList>> subsQuery;
 //   Stack<std::pair<TermList, TermList>> subsRes;
 //   Stack<Literal*> constraints;
-//   bool lascaSimpl = false;
+//   bool alascaSimpl = false;
 //
 //   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
 //   {
-//     static shared_ptr<LascaState> state = testLascaState();
+//     static shared_ptr<AlascaState> state = testAlascaState();
 //     auto eq = [&](auto t1, auto t2) { 
-//       return (l.lascaSimpl || r.lascaSimpl) ? state->norm().equivalent(t1, t2)
+//       return (l.alascaSimpl || r.alascaSimpl) ? state->norm().equivalent(t1, t2)
 //                                             : Test::TestUtils::eqModAC(t1, t2);
 //     };
 //     return eq(l.querySigma, r.querySigma)
@@ -105,13 +105,13 @@ struct UnificationResultSpec {
   TermOrLit querySigma;
   TermOrLit resultSigma;
   Stack<Literal*> constraints;
-  bool lascaSimpl = false;
+  bool alascaSimpl = false;
 
   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
   {
-    static shared_ptr<LascaState> state = testLascaState();
+    static shared_ptr<AlascaState> state = testAlascaState();
     auto eq = [&](auto t1, auto t2) { 
-      return (l.lascaSimpl || r.lascaSimpl) ? state->norm().equivalent(t1, t2)
+      return (l.alascaSimpl || r.alascaSimpl) ? state->norm().equivalent(t1, t2)
                                             : Test::TestUtils::eqModAC(t1, t2);
     };
     return eq(l.querySigma, r.querySigma)
@@ -1464,7 +1464,7 @@ ROB_UNIFY_TEST(alasca3_test_02_bad,
       .querySigma  = f2(f2(c,b), a + b + c),
       .resultSigma = f2(f2(c,b), c + b + a),
       .constraints = Stack<Literal*>{  },
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(alasca3_test_02_bad_fpi,
@@ -1477,7 +1477,7 @@ ROB_UNIFY_TEST(alasca3_test_02_bad_fpi,
       .querySigma  = f2(f2(c,b), a + b + c),
       .resultSigma = f2(f2(c,b), c + b + a),
       .constraints = Stack<Literal*>{  },
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 
@@ -1516,7 +1516,7 @@ ROB_UNIFY_TEST(alasca3_test_05,
       .querySigma  = f2(2 * a - x0 + c,  2 * a + b + c),
       .resultSigma = f2(2 * a - x0 + c,  2 * a + b + c),
       .constraints = Stack<Literal*>{  },
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 
@@ -1543,7 +1543,7 @@ ROB_UNIFY_TEST(alasca3_test_06,
       .querySigma  = f2(-x + 2 * a + frac(1,2) * b + c, 2 * a + b + c),
       .resultSigma = f2(-x + 2 * a + frac(1,2) * b + c, 2 * a + b + c),
       .constraints = Stack<Literal*>{  },
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 
@@ -2239,7 +2239,7 @@ ROB_UNIFY_TEST(lpar_better_normalization_02,
       .querySigma  = 2 * f(a + b),
       .resultSigma = 2 * f(a + b),
       .constraints = Stack<Literal*>{ },
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST_FAIL(lpar_better_normalization_03,
@@ -2336,7 +2336,7 @@ ROB_UNIFY_TEST(lpar_main_bug03,
       .querySigma = f2(f(x), f2(f(g(a)), f2(-f(g(a)), h((-f(g(a)) + f(x)))))),
       .resultSigma = f2(f(x), f2(f(g(a)), f2(-f(g(a)), h((-f(g(a)) + f(x)))))),
       .constraints = Stack<Literal*>{ },
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 
@@ -2389,7 +2389,7 @@ ROB_UNIFY_TEST(lpar_main_int_bug01,
       .querySigma  = -(-(a + x + -f(x))),
       .resultSigma = a + x + -f(x),
       .constraints = Stack<Literal*>{ },
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(lpar_main_int_bug02,
@@ -2402,7 +2402,7 @@ ROB_UNIFY_TEST(lpar_main_int_bug02,
       .querySigma  = 2 * x,
       .resultSigma = a + y + -f(y),
       .constraints = { 2 * x != a + y + -f(y)  },
-      // .lascaSimpl = true,
+      // .alascaSimpl = true,
     })
 
 
@@ -2416,7 +2416,7 @@ ROB_UNIFY_TEST(floor_test_1,
       .querySigma  = f(num(1234)),
       .resultSigma = f(floor(num(1234))),
       .constraints = noConstraints(),
-      // .lascaSimpl = true,
+      // .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(floor_test_2,
@@ -2430,7 +2430,7 @@ ROB_UNIFY_TEST(floor_test_2,
       .resultSigma = f(floor(x)),
       // TODO options here: x -> { ⌊a⌋ + ⌊b⌋ , a  + ⌊b⌋ , ⌊a⌋ +  b  }
       .constraints = constraints( floor(a) + floor(b) != floor(x) ),
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 
@@ -2445,7 +2445,7 @@ ROB_UNIFY_TEST(floor_test_3,
       .resultSigma = f(floor(x)),
       // TODO options here:  x -> { ⌊a⌋ + 1,  a + 1 }
       .constraints = constraints(floor(x) != floor(a) + 1),
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(floor_test_4,
@@ -2459,7 +2459,7 @@ ROB_UNIFY_TEST(floor_test_4,
       .resultSigma = f(floor(x) + frac(1,2)),
       // TODO options here: x ->  { a, ⌊a⌋ } 
       .constraints = constraints( floor(x) != floor(a) ),
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 
@@ -2481,7 +2481,7 @@ ROB_UNIFY_TEST(floor_test_7,
       .querySigma  = f(floor(x)),
       .resultSigma = f(x),
       .constraints = constraints(x != floor(x)),
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(floor_test_8,
@@ -2494,7 +2494,7 @@ ROB_UNIFY_TEST(floor_test_8,
       .querySigma  = f(floor(x)),
       .resultSigma = f(x + floor(a)),
       .constraints = constraints(floor(x) != x + floor(a)),
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(floor_test_9,
@@ -2507,7 +2507,7 @@ ROB_UNIFY_TEST(floor_test_9,
       .querySigma  = f(floor(x) + a),
       .resultSigma = f(x),
       .constraints = Stack<Literal*>{ floor(x) + a != x },
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(floor_test_10,
@@ -2521,7 +2521,7 @@ ROB_UNIFY_TEST(floor_test_10,
       .resultSigma = f(frac(1,2) * floor(a)),
       // TODO options here: x ->  { a, ⌊a⌋ } 
       .constraints = constraints(frac(1,2) * floor(x) != frac(1,2) * floor(a) ),
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(floor_test_11,
@@ -2535,7 +2535,7 @@ ROB_UNIFY_TEST(floor_test_11,
       .resultSigma = f(frac(1,2) * floor(a) + frac(1,2)),
       // TODO options here: x -> { a + 1 , ⌊a⌋ + 1 }
       .constraints = constraints( frac(1,2) * floor(x) != frac(1,2) * floor(a) + frac(1,2) ),
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(floor_test_12,
@@ -2548,7 +2548,7 @@ ROB_UNIFY_TEST(floor_test_12,
       .querySigma  = f(x0) + f(x1),
       .resultSigma = f(x2) + f(x3),
       .constraints = constraints(f(x0) + f(x1) - f(x2) - f(x3) != 0),
-      .lascaSimpl = true,
+      .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_14,
@@ -2561,7 +2561,7 @@ ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_14,
       .querySigma  = f(a + b),
       .resultSigma = f(b + a),
       .constraints = Stack<Literal*>{},
-      // .lascaSimpl = true,
+      // .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_15,
@@ -2574,7 +2574,7 @@ ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_15,
       .querySigma  = floor(f(x)),
       .resultSigma = floor(f(x)),
       .constraints = noConstraints()
-      // .lascaSimpl = true,
+      // .alascaSimpl = true,
     })
 
 ROB_UNIFY_TEST_FAIL(floor_test_16,

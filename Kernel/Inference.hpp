@@ -197,7 +197,7 @@ enum class InferenceRule : unsigned char {
 //     MINISCOPE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
-  LASCA_INTEGER_TRANSFORMATION,
+  ALASCA_INTEGER_TRANSFORMATION,
   /** skolemization */
   SKOLEMIZE,
   /** obtain clause from a formula */
@@ -225,9 +225,9 @@ enum class InferenceRule : unsigned char {
   /** backward demodulation inference */
   BACKWARD_DEMODULATION,
   /** forward demodulation modulo LA of the Inequality Resolution Calculus */
-  LASCA_FWD_DEMODULATION,
+  ALASCA_FWD_DEMODULATION,
   /** backward demodulation modulo LA of the Inequality Resolution Calculus */
-  LASCA_BWD_DEMODULATION,
+  ALASCA_BWD_DEMODULATION,
   /** forward subsumption demodulation inference */
   FORWARD_SUBSUMPTION_DEMODULATION,
   /** backward subsumption demodulation inference */
@@ -241,9 +241,9 @@ enum class InferenceRule : unsigned char {
   /** evaluation inference */
   EVALUATION,
   /** normalization rule of the Inequality Resolution Calculus */
-  LASCA_NORMALIZATION,
-  LASCA_ABSTRACTION,
-  LASCA_FLOOR_ELIMINATION,
+  ALASCA_NORMALIZATION,
+  ALASCA_ABSTRACTION,
+  ALASCA_FLOOR_ELIMINATION,
   CANCELLATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,
@@ -271,7 +271,7 @@ enum class InferenceRule : unsigned char {
   COMBINATOR_NORMALISE,
   /* negative extnsionality */
   CASES_SIMP,
-  LASCA_VIRAS_QE,
+  ALASCA_VIRAS_QE,
 
   BOOL_SIMP,
 
@@ -320,19 +320,19 @@ enum class InferenceRule : unsigned char {
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
   /* inequality factoring rule of the ALASCA Calculs */
-  LASCA_FOURIER_MOTZKIN,
-  LASCA_INTEGER_FOURIER_MOTZKIN,
+  ALASCA_FOURIER_MOTZKIN,
+  ALASCA_INTEGER_FOURIER_MOTZKIN,
   /* factoring rules of the Inequality Resolution Calculs */
-  LASCA_TERM_FACTORING,
-  LASCA_FLOOR_BOUNDS,
-  LASCA_EQ_FACTORING,
-  LASCA_LITERAL_FACTORING,
+  ALASCA_TERM_FACTORING,
+  ALASCA_FLOOR_BOUNDS,
+  ALASCA_EQ_FACTORING,
+  ALASCA_LITERAL_FACTORING,
   /** superposition rule of the Inequality Resolution Calculus */
-  LASCA_SUPERPOSITION,
-  LASCA_COHERENCE,
-  LASCA_COHERENCE_NORMALIZATION,
+  ALASCA_SUPERPOSITION,
+  ALASCA_COHERENCE,
+  ALASCA_COHERENCE_NORMALIZATION,
   /** variable elimination rule of the Inequality Resolution Calculus */
-  LASCA_VARIABLE_ELIMINATION,
+  ALASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
@@ -515,7 +515,7 @@ enum class InferenceRule : unsigned char {
   THA_TRANSITIVITY,
   THA_ORDER_TOTALALITY,
   THA_ORDER_MONOTONICITY,
-  THA_LASCA,
+  THA_ALASCA,
   THA_PLUS_ONE_GREATER,
   THA_ORDER_PLUS_ONE_DICHOTOMY,
   THA_MINUS_MINUS_X,

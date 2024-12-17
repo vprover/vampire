@@ -31,7 +31,7 @@ PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) 
   : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
   // TODO we have an additional step of normalization here. simplify!
-  , _alwaysEvaluate(env.options->lasca())
+  , _alwaysEvaluate(env.options->alasca())
   {}
 
 

@@ -39,29 +39,29 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
-#include "Kernel/LASCA/Ordering.hpp"
+#include "Kernel/ALASCA/Ordering.hpp"
 
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
-#include "Inferences/LASCA/VIRAS.hpp"
-#include "Inferences/LASCA/FourierMotzkin.hpp"
-#include "Inferences/LASCA/IntegerFourierMotzkin.hpp"
-#include "Inferences/LASCA/FloorFourierMotzkin.hpp"
-#include "Inferences/LASCA/Abstractions.hpp"
-#include "Inferences/LASCA/Normalization.hpp"
-#include "Inferences/LASCA/TermFactoring.hpp"
-#include "Inferences/LASCA/EqFactoring.hpp"
-#include "Inferences/LASCA/InequalityFactoring.hpp"
-#include "Inferences/LASCA/Superposition.hpp"
-#include "Inferences/LASCA/BinaryResolution.hpp"
-#include "Inferences/LASCA/Coherence.hpp"
-#include "Inferences/LASCA/FloorBounds.hpp"
-#include "Inferences/LASCA/VariableElimination.hpp"
-#include "Inferences/LASCA/FwdDemodulation.hpp"
-#include "Inferences/LASCA/BwdDemodulation.hpp"
+#include "Inferences/ALASCA/VIRAS.hpp"
+#include "Inferences/ALASCA/FourierMotzkin.hpp"
+#include "Inferences/ALASCA/IntegerFourierMotzkin.hpp"
+#include "Inferences/ALASCA/FloorFourierMotzkin.hpp"
+#include "Inferences/ALASCA/Abstractions.hpp"
+#include "Inferences/ALASCA/Normalization.hpp"
+#include "Inferences/ALASCA/TermFactoring.hpp"
+#include "Inferences/ALASCA/EqFactoring.hpp"
+#include "Inferences/ALASCA/InequalityFactoring.hpp"
+#include "Inferences/ALASCA/Superposition.hpp"
+#include "Inferences/ALASCA/BinaryResolution.hpp"
+#include "Inferences/ALASCA/Coherence.hpp"
+#include "Inferences/ALASCA/FloorBounds.hpp"
+#include "Inferences/ALASCA/VariableElimination.hpp"
+#include "Inferences/ALASCA/FwdDemodulation.hpp"
+#include "Inferences/ALASCA/BwdDemodulation.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -238,7 +238,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _activationLimit = opt.activationLimit();
 
-  InequalityNormalizer::initGlobal(InequalityNormalizer(env.options->lascaStrongNormalization()));
+  InequalityNormalizer::initGlobal(InequalityNormalizer(env.options->alascaStrongNormalization()));
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
@@ -1462,11 +1462,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (prb.hasEquality()) {
-    if (!env.options->lasca()) { // in lasca we have a special equality factoring rule
+    if (!env.options->alasca()) { // in alasca we have a special equality factoring rule
       gie->addFront(new EqualityFactoring());
     }
     gie->addFront(new EqualityResolution());
-    if(env.options->superposition() && !env.options->lasca()){ // in lasca we have a special equality factoring rule
+    if(env.options->superposition() && !env.options->alasca()){ // in alasca we have a special equality factoring rule
       gie->addFront(new Superposition());
     }
   }
@@ -1502,7 +1502,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   gie->addFront(new Factoring());
-  if (opt.binaryResolution() && !opt.lasca()) {
+  if (opt.binaryResolution() && !opt.alasca()) {
     gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
@@ -1569,47 +1569,47 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   auto ise = createISE(prb, opt, ordering);
-  if (env.options->lasca()) {
-    auto shared = Kernel::LascaState::create(
+  if (env.options->alasca()) {
+    auto shared = Kernel::AlascaState::create(
         InequalityNormalizer::global(),
         &ordering, 
         env.options->unificationWithAbstraction(),
         env.options->unificationWithAbstractionFixedPointIteration()
         );
-    if (env.options->lascaDemodulation()) {
-      res->addForwardSimplifierToFront(new LASCA::FwdDemodulation(shared));
-      res->addBackwardSimplifierToFront(new LASCA::BwdDemodulation(shared));
+    if (env.options->alascaDemodulation()) {
+      res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(shared));
+      res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared));
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
     // TODO also for rationals?
     // TODO add parameter for this
-    ise->addFront(new LASCA::FloorElimination<RealTraits>(shared)); 
+    ise->addFront(new ALASCA::FloorElimination<RealTraits>(shared)); 
     // TODO also for rationals?
-    if (env.options->lascaAbstraction())
-      ise->addFront(new LASCA::Abstraction<RealTraits>(shared)); 
-    ise->addFront(new LASCA::Normalization(shared)); 
+    if (env.options->alascaAbstraction())
+      ise->addFront(new ALASCA::Abstraction<RealTraits>(shared)); 
+    ise->addFront(new ALASCA::Normalization(shared)); 
     // TODO properly create an option for that, make it a simplifying rule
-    sgi->push(new LASCA::InequalityTautologyDetection(shared));
+    sgi->push(new ALASCA::InequalityTautologyDetection(shared));
     // TODO check when the other one is better
     if (env.options->viras())
-      sgi->push(new LASCA::VirasQuantifierElimination(shared));
+      sgi->push(new ALASCA::VirasQuantifierElimination(shared));
     else
-      sgi->push(new LASCA::VariableElimination(shared, /* simpl */ true ));
-    sgi->push(new LASCA::TermFactoring(shared)); 
-    sgi->push(new LASCA::InequalityFactoring(shared));
-    sgi->push(new LASCA::EqFactoring(shared)); 
-    sgi->push(new LASCA::FourierMotzkin(shared)); 
+      sgi->push(new ALASCA::VariableElimination(shared, /* simpl */ true ));
+    sgi->push(new ALASCA::TermFactoring(shared)); 
+    sgi->push(new ALASCA::InequalityFactoring(shared));
+    sgi->push(new ALASCA::EqFactoring(shared)); 
+    sgi->push(new ALASCA::FourierMotzkin(shared)); 
     // TODO also for rats?
-    sgi->push(new LASCA::FloorFourierMotzkin<RealTraits>(shared)); 
-    sgi->push(new LASCA::IntegerFourierMotzkin<RealTraits>(shared)); 
+    sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared)); 
+    sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared)); 
     if (env.options->superposition())
-      sgi->push(new LASCA::Superposition(shared)); 
+      sgi->push(new ALASCA::Superposition(shared)); 
     if (env.options->binaryResolution())
-      sgi->push(new LASCA::BinaryResolution(shared)); 
+      sgi->push(new ALASCA::BinaryResolution(shared)); 
     // TODO also for rationals?
-    sgi->push(new LASCA::CoherenceNormalization<RealTraits>(shared)); 
-    sgi->push(new LASCA::Coherence<RealTraits>(shared)); 
-    sgi->push(new LASCA::FloorBounds(shared)); 
+    sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared)); 
+    sgi->push(new ALASCA::Coherence<RealTraits>(shared)); 
+    sgi->push(new ALASCA::FloorBounds(shared)); 
   }
 
 
@@ -1804,8 +1804,8 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       res->addFront(&(new Cancellation(ordering))->asISE());
     }
 
-    if (env.options->lasca()) {
-      // all lasca rules are added later
+    if (env.options->alasca()) {
+      // all alasca rules are added later
     } else switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::OFF:
         break;

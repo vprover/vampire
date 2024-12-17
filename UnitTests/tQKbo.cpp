@@ -14,7 +14,7 @@
  */
 
 #include "Debug/Assertion.hpp"
-#include "Kernel/LASCA.hpp"
+#include "Kernel/ALASCA.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/QKbo.hpp"

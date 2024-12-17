@@ -81,8 +81,8 @@ private:
   void addIntegerAbsAxioms(Interpretation abs, Interpretation less,
                            Interpretation unaryMinus, TermList zeroElement);
   void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n);
-  friend struct LascaAxioms;
-  void addLascaAxioms();
+  friend struct AlascaAxioms;
+  void addAlascaAxioms();
 
   /**
    * TODO: we should have polymorphic array axioms only!

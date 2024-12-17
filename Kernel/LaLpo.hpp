@@ -22,7 +22,7 @@
 
 #include "Kernel/SubstHelper.hpp"
 #include "Lib/DArray.hpp"
-#include "Kernel/LASCA.hpp"
+#include "Kernel/ALASCA.hpp"
 
 #include "Ordering.hpp"
 #include "Lib/DArray.hpp"

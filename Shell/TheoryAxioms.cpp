@@ -364,7 +364,7 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(TermList sort, Interpretation pl
 }
 
 
-void _addLascaAxioms(IntTraits num, Problem& prb)
+void _addAlascaAxioms(IntTraits num, Problem& prb)
 {
   Property* prop = prb.getProperty();
   if (prop->hasInterpretedOperation(num.addI) 
@@ -376,7 +376,7 @@ void _addLascaAxioms(IntTraits num, Problem& prb)
 }
 
 
-struct LascaAxioms {
+struct AlascaAxioms {
 
 
 #define AXIOM_CONTEXT __ALLOW_UNUSED(                                                     \
@@ -385,7 +385,7 @@ struct LascaAxioms {
     auto z = TermList::var(2);                                                            \
     auto addAx = [&](std::initializer_list<Literal*> clause) {                            \
       ax.addTheoryClauseFromLits(clause,                                                  \
-          InferenceRule::THA_LASCA, TheoryAxioms::EXPENSIVE);                             \
+          InferenceRule::THA_ALASCA, TheoryAxioms::EXPENSIVE);                             \
     };                                                                                    \
     auto add = [&](auto l, auto r) -> TermList { return num.add(l,r); };                  \
     auto mul = [&](auto l, auto r) -> TermList { return num.mul(l,r); };                  \
@@ -451,7 +451,7 @@ struct LascaAxioms {
     }
   }
   template<class NumTraits>
-  static void addLascaAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax)
+  static void addAlascaAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax)
   {
     Property* prop = prb.getProperty();
     if (Shell::Getter::isNonLinear(*prop, num)) {
@@ -466,9 +466,9 @@ struct LascaAxioms {
 };
 
 
-void TheoryAxioms::addLascaAxioms()
+void TheoryAxioms::addAlascaAxioms()
 {
-  forEachNumTraits([&](auto n) { return LascaAxioms::addLascaAxioms(n, _prb, *this); });
+  forEachNumTraits([&](auto n) { return AlascaAxioms::addAlascaAxioms(n, _prb, *this); });
 }
 
 
@@ -482,7 +482,7 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
   unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
   auto srt = theory->getOperationSort(plus);
   TermList x(0,false);
-  if (!env.options->lasca()) {
+  if (!env.options->alasca()) {
 
     ASS_EQ(srt, theory->getOperationSort(unaryMinus));
     ASS_EQ(srt, theory->getOperationSort(less));
@@ -997,8 +997,8 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
  */
 void TheoryAxioms::apply()
 {
-  if (env.options->lasca()) {
-    addLascaAxioms();
+  if (env.options->alasca()) {
+    addAlascaAxioms();
     return;
   }
   Property* prop = _prb.getProperty();

@@ -740,8 +740,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "inner rewriting";
   case InferenceRule::CONDENSATION:
     return "condensation";
-  case InferenceRule::LASCA_INTEGER_TRANSFORMATION:
-    return "lasca integer transformation";
+  case InferenceRule::ALASCA_INTEGER_TRANSFORMATION:
+    return "alasca integer transformation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
   case InferenceRule::POLARITY_FLIPPING:
@@ -778,7 +778,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_TRANSITIVITY:
   case InferenceRule::THA_ORDER_TOTALALITY:
   case InferenceRule::THA_ORDER_MONOTONICITY:
-  case InferenceRule::THA_LASCA:
+  case InferenceRule::THA_ALASCA:
   case InferenceRule::THA_PLUS_ONE_GREATER:
   case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
   case InferenceRule::THA_MINUS_MINUS_X:
@@ -880,37 +880,37 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
-  case InferenceRule::LASCA_VARIABLE_ELIMINATION:
-    return "lasca variable elimination";
-  case InferenceRule::LASCA_VIRAS_QE:
-    return "lasca viras quantifier elimination";
-  case InferenceRule::LASCA_COHERENCE:
-    return "lasca coherence";
-  case InferenceRule::LASCA_COHERENCE_NORMALIZATION:
-    return "lasca coherence normalization";
-  case InferenceRule::LASCA_SUPERPOSITION:
-    return "lasca superposition";
-  case InferenceRule::LASCA_LITERAL_FACTORING:
-    return "lasca inequality literal factoring";
-  case InferenceRule::LASCA_EQ_FACTORING:
-    return "lasca equality factoring";
-  case InferenceRule::LASCA_FLOOR_BOUNDS:
-    return "lasca floor bounds";
-  case InferenceRule::LASCA_TERM_FACTORING:
-    return "lasca term factoring";
-  case InferenceRule::LASCA_INTEGER_FOURIER_MOTZKIN:
-    return "lasca integer fourier motzkin";
-  case InferenceRule::LASCA_FOURIER_MOTZKIN:
-    return "lasca fourier motzkin";
-  case InferenceRule::LASCA_FLOOR_ELIMINATION:
-    return "lasca floor elimination";
-  case InferenceRule::LASCA_NORMALIZATION:
-    return "lasca normalization";
-  case InferenceRule::LASCA_ABSTRACTION:
-    return "lasca abstraction";
-  case InferenceRule::LASCA_FWD_DEMODULATION:
-    return "lasca forward demodulation";
-  case InferenceRule::LASCA_BWD_DEMODULATION:
+  case InferenceRule::ALASCA_VARIABLE_ELIMINATION:
+    return "alasca variable elimination";
+  case InferenceRule::ALASCA_VIRAS_QE:
+    return "alasca viras quantifier elimination";
+  case InferenceRule::ALASCA_COHERENCE:
+    return "alasca coherence";
+  case InferenceRule::ALASCA_COHERENCE_NORMALIZATION:
+    return "alasca coherence normalization";
+  case InferenceRule::ALASCA_SUPERPOSITION:
+    return "alasca superposition";
+  case InferenceRule::ALASCA_LITERAL_FACTORING:
+    return "alasca inequality literal factoring";
+  case InferenceRule::ALASCA_EQ_FACTORING:
+    return "alasca equality factoring";
+  case InferenceRule::ALASCA_FLOOR_BOUNDS:
+    return "alasca floor bounds";
+  case InferenceRule::ALASCA_TERM_FACTORING:
+    return "alasca term factoring";
+  case InferenceRule::ALASCA_INTEGER_FOURIER_MOTZKIN:
+    return "alasca integer fourier motzkin";
+  case InferenceRule::ALASCA_FOURIER_MOTZKIN:
+    return "alasca fourier motzkin";
+  case InferenceRule::ALASCA_FLOOR_ELIMINATION:
+    return "alasca floor elimination";
+  case InferenceRule::ALASCA_NORMALIZATION:
+    return "alasca normalization";
+  case InferenceRule::ALASCA_ABSTRACTION:
+    return "alasca abstraction";
+  case InferenceRule::ALASCA_FWD_DEMODULATION:
+    return "alasca forward demodulation";
+  case InferenceRule::ALASCA_BWD_DEMODULATION:
     return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found : exhaustively excluded all possible domain size assignments";

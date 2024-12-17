@@ -35,7 +35,7 @@
 #include "FunctionDefinitionHandler.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
-#include "Kernel/LASCA.hpp"
+#include "Kernel/ALASCA.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "Shuffling.hpp"
@@ -76,17 +76,17 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
-  LascaPreprocessor lasca;
+  AlascaPreprocessor alasca;
   auto normalizeInterpreted = [&]() {
 
-    if (env.options->lascaIntegerConversion()) {
-      static InequalityNormalizer norm = InequalityNormalizer(env.options->lascaStrongNormalization());
+    if (env.options->alascaIntegerConversion()) {
+      static InequalityNormalizer norm = InequalityNormalizer(env.options->alascaStrongNormalization());
       InterpretedNormalizer(&norm).apply(prb);
-      lasca.integerConversion(prb);
+      alasca.integerConversion(prb);
       InterpretedNormalizer(&norm).apply(prb);
 
-    } else if (env.options->lasca()) {
-      static InequalityNormalizer norm = InequalityNormalizer(env.options->lascaStrongNormalization());
+    } else if (env.options->alasca()) {
+      static InequalityNormalizer norm = InequalityNormalizer(env.options->alascaStrongNormalization());
       InterpretedNormalizer(&norm).apply(prb);
 
     } else {

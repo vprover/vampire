@@ -22,7 +22,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
-#include "Kernel/LASCA.hpp"
+#include "Kernel/ALASCA.hpp"
 
 #include "Ordering.hpp"
 #include "Lib/DArray.hpp"
@@ -96,7 +96,7 @@ public:
   // the signs are not used here, but only there since we reuse code from signedAtoms and don't want to copy the datastructure.
   Option<AtomsWithLvl> atomsWithLvl(Literal* literal) const
   {
-    ASS(LascaState::interpretedPred(literal))
+    ASS(AlascaState::interpretedPred(literal))
     TermList term;
     uint8_t level;
     auto f = literal->functor();

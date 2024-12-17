@@ -23,7 +23,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
-#include "Kernel/LASCA.hpp"
+#include "Kernel/ALASCA.hpp"
 #include "Kernel/QKbo.hpp"
 #include <functional>
 #include "Debug/TimeProfiling.hpp"

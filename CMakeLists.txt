@@ -311,8 +311,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    Kernel/LASCA.hpp
-    Kernel/LASCA.cpp
+    Kernel/ALASCA.hpp
+    Kernel/ALASCA.cpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -386,8 +386,8 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
-    Indexing/LascaIndex.cpp
-    Indexing/LascaIndex.hpp
+    Indexing/AlascaIndex.cpp
+    Indexing/AlascaIndex.hpp
     )
 source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
@@ -428,28 +428,28 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing.cpp
     Kernel/Rebalancing/Inverters.cpp
     Inferences/Superposition.cpp
-    Inferences/LASCA/Normalization.cpp
-    Inferences/LASCA/Normalization.hpp
-    Inferences/LASCA/InequalityFactoring.cpp
-    Inferences/LASCA/InequalityFactoring.hpp
-    Inferences/LASCA/EqFactoring.cpp
-    Inferences/LASCA/EqFactoring.hpp
-    Inferences/LASCA/VariableElimination.cpp
-    Inferences/LASCA/VariableElimination.hpp
-    Inferences/LASCA/VIRAS.cpp
-    Inferences/LASCA/VIRAS.hpp
-    Inferences/LASCA/Superposition.cpp
-    Inferences/LASCA/Superposition.hpp
-    Inferences/LASCA/Demodulation.cpp
-    Inferences/LASCA/Demodulation.hpp
-    Inferences/LASCA/FwdDemodulation.cpp
-    Inferences/LASCA/FwdDemodulation.hpp
-    Inferences/LASCA/BwdDemodulation.cpp
-    Inferences/LASCA/BwdDemodulation.hpp
-    Inferences/LASCA/FourierMotzkin.cpp
-    Inferences/LASCA/FourierMotzkin.hpp
-    Inferences/LASCA/TermFactoring.cpp
-    Inferences/LASCA/TermFactoring.hpp
+    Inferences/ALASCA/Normalization.cpp
+    Inferences/ALASCA/Normalization.hpp
+    Inferences/ALASCA/InequalityFactoring.cpp
+    Inferences/ALASCA/InequalityFactoring.hpp
+    Inferences/ALASCA/EqFactoring.cpp
+    Inferences/ALASCA/EqFactoring.hpp
+    Inferences/ALASCA/VariableElimination.cpp
+    Inferences/ALASCA/VariableElimination.hpp
+    Inferences/ALASCA/VIRAS.cpp
+    Inferences/ALASCA/VIRAS.hpp
+    Inferences/ALASCA/Superposition.cpp
+    Inferences/ALASCA/Superposition.hpp
+    Inferences/ALASCA/Demodulation.cpp
+    Inferences/ALASCA/Demodulation.hpp
+    Inferences/ALASCA/FwdDemodulation.cpp
+    Inferences/ALASCA/FwdDemodulation.hpp
+    Inferences/ALASCA/BwdDemodulation.cpp
+    Inferences/ALASCA/BwdDemodulation.hpp
+    Inferences/ALASCA/FourierMotzkin.cpp
+    Inferences/ALASCA/FourierMotzkin.hpp
+    Inferences/ALASCA/TermFactoring.cpp
+    Inferences/ALASCA/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -759,21 +759,21 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tLASCA_FourierMotzkin.cpp
-    UnitTests/tLASCA_IntegerFourierMotzkin.cpp
-    UnitTests/tLASCA_InequalityFactoring.cpp
-    UnitTests/tLASCA_Normalization.cpp
-    UnitTests/tLASCA_FloorElimination.cpp
-    UnitTests/tLASCA_CoherenceNormalization.cpp
-    UnitTests/tLASCA_Abstraction.cpp
-    UnitTests/tLASCA_Superposition.cpp
-    UnitTests/tLASCA_Coherence.cpp
-    UnitTests/tLASCA_EqFactoring.cpp
-    UnitTests/tLASCA_VariableElimination.cpp
-    UnitTests/tLASCA_TermFactoring.cpp
-    UnitTests/tLASCA_Demodulation.cpp
-    UnitTests/tLASCA_VIRAS.cpp
-    UnitTests/tLASCA_LaKbo.cpp
+    UnitTests/tALASCA_FourierMotzkin.cpp
+    UnitTests/tALASCA_IntegerFourierMotzkin.cpp
+    UnitTests/tALASCA_InequalityFactoring.cpp
+    UnitTests/tALASCA_Normalization.cpp
+    UnitTests/tALASCA_FloorElimination.cpp
+    UnitTests/tALASCA_CoherenceNormalization.cpp
+    UnitTests/tALASCA_Abstraction.cpp
+    UnitTests/tALASCA_Superposition.cpp
+    UnitTests/tALASCA_Coherence.cpp
+    UnitTests/tALASCA_EqFactoring.cpp
+    UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tALASCA_TermFactoring.cpp
+    UnitTests/tALASCA_Demodulation.cpp
+    UnitTests/tALASCA_VIRAS.cpp
+    UnitTests/tALASCA_LaKbo.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp

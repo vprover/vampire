@@ -61,7 +61,7 @@ public:
 
 private:
   Result simplifyLiteral(Literal*) override;
-  // TODO make this one the same as in LascaState
+  // TODO make this one the same as in AlascaState
   PolynomialEvaluation _inner;
   const bool _alwaysEvaluate;
 };

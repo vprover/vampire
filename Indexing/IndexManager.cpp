@@ -27,17 +27,17 @@
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
-#include "Inferences/LASCA/Demodulation.hpp"
-#include "Inferences/LASCA/FourierMotzkin.hpp"
-#include "Inferences/LASCA/Superposition.hpp"
-#include "Inferences/LASCA/BinaryResolution.hpp"
-#include "Inferences/LASCA/Coherence.hpp"
+#include "Inferences/ALASCA/Demodulation.hpp"
+#include "Inferences/ALASCA/FourierMotzkin.hpp"
+#include "Inferences/ALASCA/Superposition.hpp"
+#include "Inferences/ALASCA/BinaryResolution.hpp"
+#include "Inferences/ALASCA/Coherence.hpp"
 
 #include "Shell/Statistics.hpp"
 
 #include "IndexManager.hpp"
-#include "Kernel/LASCA.hpp"
-#include "Indexing/LascaIndex.hpp"
+#include "Kernel/ALASCA.hpp"
+#include "Indexing/AlascaIndex.hpp"
 
 using namespace Lib;
 using namespace Indexing;
@@ -143,53 +143,53 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case LASCA_FWD_DEMODULATION_SUBST_TREE:
-    res = new LascaIndex<LASCA::Demodulation::Lhs>();
+  case ALASCA_FWD_DEMODULATION_SUBST_TREE:
+    res = new AlascaIndex<ALASCA::Demodulation::Lhs>();
     isGenerating = false;
     break;
 
-  case LASCA_BWD_DEMODULATION_SUBST_TREE:
-    res = new LascaIndex<LASCA::Demodulation::Rhs>();
+  case ALASCA_BWD_DEMODULATION_SUBST_TREE:
+    res = new AlascaIndex<ALASCA::Demodulation::Rhs>();
     isGenerating = false;
     break;
 
-  case LASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Lhs>();
+  case ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE:
+    res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Lhs>();
     isGenerating = true;
     break;
 
-  case LASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Rhs>();
+  case ALASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE:
+    res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Rhs>();
     isGenerating = true;
     break;
 
-  case LASCA_BINARY_RESOLUTION_LHS_SUBST_TREE: 
-    res = new LascaIndex<Inferences::LASCA::BinaryResolution::Lhs>();
+  case ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE: 
+    res = new AlascaIndex<Inferences::ALASCA::BinaryResolution::Lhs>();
     isGenerating = true;
     break;
 
-  case LASCA_BINARY_RESOLUTION_RHS_SUBST_TREE:
-    res = new LascaIndex<Inferences::LASCA::BinaryResolution::Rhs>();
+  case ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::BinaryResolution::Rhs>();
     isGenerating = true;
     break;
 
-  case LASCA_SUPERPOSITION_LHS_SUBST_TREE: 
-    res = new LascaIndex<Inferences::LASCA::Superposition::Lhs>();
+  case ALASCA_SUPERPOSITION_LHS_SUBST_TREE: 
+    res = new AlascaIndex<Inferences::ALASCA::Superposition::Lhs>();
     isGenerating = true;
     break;
 
-  case LASCA_SUPERPOSITION_RHS_SUBST_TREE:
-    res = new LascaIndex<Inferences::LASCA::Superposition::Rhs>();
+  case ALASCA_SUPERPOSITION_RHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::Superposition::Rhs>();
     isGenerating = true;
     break;
 
-  case LASCA_COHERENCE_LHS_SUBST_TREE:
-    res = new LascaIndex<Inferences::LASCA::Coherence<RealTraits>::Lhs>();
+  case ALASCA_COHERENCE_LHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Lhs>();
     isGenerating = true;
     break;
 
-  case LASCA_COHERENCE_RHS_SUBST_TREE:
-    res = new LascaIndex<Inferences::LASCA::Coherence<RealTraits>::Rhs>();
+  case ALASCA_COHERENCE_RHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Rhs>();
     isGenerating = true;
     break;
 
