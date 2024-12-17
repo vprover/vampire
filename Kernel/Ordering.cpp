@@ -77,12 +77,21 @@ OrderingSP Ordering::s_globalOrdering;
  */
 bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
 {
-
   if(s_globalOrdering) {
     return false;
   }
   s_globalOrdering = ordering;
   return true;
+}
+
+bool Ordering::unsetGlobalOrdering()
+{
+  if(s_globalOrdering) {
+    s_globalOrdering = OrderingSP();
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /**

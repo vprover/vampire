@@ -330,6 +330,7 @@ public:
     // // tear down saturation algorithm
     rule.InferenceEngine::detach();
 
+    Ordering::unsetGlobalOrdering();
   }
 };
 

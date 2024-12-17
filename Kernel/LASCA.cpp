@@ -339,7 +339,7 @@ TermList LascaPreprocessor::integerConversion(TypedTermList t)
           } else {
             if (IntTraits::isToReal(f) || IntTraits::isToInt(f) || RealTraits::isToReal(f)) {
               return args[0];
-            } if (RealTraits::isToInt(f)) {
+            } else if (RealTraits::isToInt(f)) {
               return TermList(RealTraits::floor(args[0]));
             } else {
               auto out = TermList(Term::create(this->integerFunctionConversion(f), t.term()->arity(), args));
