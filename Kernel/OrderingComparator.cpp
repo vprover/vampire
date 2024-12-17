@@ -268,6 +268,7 @@ OrderingComparator::~OrderingComparator() = default;
 void* OrderingComparator::next(const SubstApplicator* applicator)
 {
   ASS(_curr);
+  ASS(!_onlyVars);
   for (;;) {
     expand();
     auto node = _curr->node();
@@ -1029,7 +1030,8 @@ void OrderingComparator::Subsumption::pushNext()
 OrderingComparator::RedundancyCheck::RedundancyCheck(const Ordering& ord, void* data)
   : comp(ord.createComparator(/*onlyVars=*/true))
 {
-  comp->insert(OrderingConstraints(), data);
+  comp->_source = Branch(data, comp->_sink);
+  comp->_source.node()->ready = true;
   path.push(&comp->_source);
 }
 
@@ -1038,55 +1040,32 @@ std::pair<void*,const TermPartialOrdering*> OrderingComparator::RedundancyCheck:
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
   ASS(path.isNonEmpty());
 
-  // cout << "before" << endl;
-  // cout << *comp << endl;
-
-  // insert new node
   auto curr = path.top();
   ASS_EQ(curr->node()->tag, BranchTag::T_DATA);
   ASS(curr->node()->data);
+  ASS(curr->node()->ready); 
+  ASS_EQ(curr->node()->refcnt,1);
 
-  auto currData = curr->node()->data;
-
-  curr->node()->~Node();
+  // current node has to be processed again
   curr->node()->ready = false;
 
-  Branch origB(currData, comp->_sink);
+  // We replace (not modify) the current node
+  // with a new subtree containing ordCons and data
+  // and pointing to the original node otherwise.
+
+  Branch origB(*curr);
   Branch newB = data ? Branch(data, comp->_sink) : comp->_sink;
 
-  if (ordCons.isNonEmpty()) {
-    curr->node()->tag = T_TERM;
-    curr->node()->lhs = ordCons[0].lhs;
-    curr->node()->rhs = ordCons[0].rhs;
+  for (const auto& [lhs,rhs,rel] : ordCons) {
+    *curr = OrderingComparator::Branch(lhs, rhs);
     for (unsigned i = 0; i < 3; i++) {
-      if (ordVals[i] != ordCons[0].rel) {
+      if (ordVals[i] != rel) {
         curr->node()->getBranch(ordVals[i]) = origB;
       }
     }
-    curr = &curr->node()->getBranch(ordCons[0].rel);
-    for (unsigned i = 1; i < ordCons.size(); i++) {
-      auto [lhs,rhs,rel] = ordCons[i];
-      *curr = OrderingComparator::Branch(lhs, rhs);
-      for (unsigned i = 0; i < 3; i++) {
-        if (ordVals[i] != rel) {
-          curr->node()->getBranch(ordVals[i]) = origB;
-        }
-      }
-      curr = &curr->node()->getBranch(rel);
-    }
-    *curr = newB;
-  } else {
-    if (data) {
-      curr->node()->tag = T_DATA;
-      curr->node()->data = data;
-      curr->node()->alternative = comp->_sink;
-    } else {
-      *curr = comp->_sink;
-    }
+    curr = &curr->node()->getBranch(rel);
   }
-
-  // cout << "after" << endl;
-  // cout << *comp << endl;
+  *curr = newB;
 
   while (path.isNonEmpty()) {
     if (path.size()==1) {

@@ -756,6 +756,7 @@ set(UNIT_TESTS
     UnitTests/tTermAlgebra.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
+    UnitTests/tForwardGroundJoinability.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 

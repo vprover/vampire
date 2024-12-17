@@ -1594,8 +1594,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (prb.hasEquality()) {
-    // res->addForwardSimplifierToFront(new ForwardGroundJoinability(false));
-    res->addForwardSimplifierToFront(new ForwardGroundJoinability(true));
+    res->addForwardSimplifierToFront(new ForwardGroundJoinability());
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:

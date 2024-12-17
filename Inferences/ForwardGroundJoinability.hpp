@@ -18,10 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
-
-#include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
-#include "ProofExtra.hpp"
 
 namespace Inferences
 {
@@ -34,17 +31,21 @@ class ForwardGroundJoinability
 : public ForwardSimplificationEngine
 {
 public:
-  ForwardGroundJoinability(bool flag) : flag(flag) {}
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-protected:
-  DemodulationLHSIndex* _index;
-  bool flag;
-};
 
-using ForwardDemodulationExtra = RewriteInferenceExtra;
+#if VDEBUG
+  void setTestIndices(const Stack<Index*>& indices) override {
+    _index = static_cast<DemodulationLHSIndex*>(indices[0]);
+  }
+#endif // VDEBUG
+
+protected:
+  TermList normalize(TermList t, const TermPartialOrdering* tpo) const;
+
+  DemodulationLHSIndex* _index;
+};
 
 };
 

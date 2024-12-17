@@ -633,6 +633,17 @@ public:
       NonVariableNonTypeIterator::next();
     }
   }
+  NonVariableNonTypeIterator(TermList t0, TermList t1)
+  : _stack(8),
+    _added(0)
+  {
+    if (t0.isTerm()) {
+      _stack.push(t0.term());
+    }
+    if (t1.isTerm()) {
+      _stack.push(t1.term());
+    }
+  }
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
