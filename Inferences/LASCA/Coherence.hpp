@@ -110,6 +110,7 @@ public:
             .map([js_u,lhs](auto sIdx) { return Lhs { lhs, js_u, sIdx }; });
         })
         .flatten()
+        .filter([](auto& lhs) { return !lhs.s().isVar(); })
       ;
     }
 

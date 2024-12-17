@@ -382,6 +382,17 @@ TEST_GENERATION(vars_9,
       ))
     )
 
+TEST_GENERATION(vars_10,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(x + f(y)) )  }) 
+                , clause({ selected(p(floor(a + b)) )  }) })
+      .expected( exactly(
+          /* nothing. these cases are to be handled by an abstraction rule */ 
+      ))
+    )
+
 TEST_GENERATION(numeral_0,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
