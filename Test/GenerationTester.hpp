@@ -111,7 +111,7 @@ public:
   WithoutDuplicatesMatcher(std::shared_ptr<StackMatcher> m) : _inner(std::move(m)) {}
 
   template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) ;
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl);
 
   friend std::ostream& operator<<(std::ostream& out, WithoutDuplicatesMatcher const& self)
   { return out << "without duplicates: " << *self._inner; }
@@ -139,9 +139,19 @@ public:
 
 template<class Rule>
 bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl)
-{ sRes.sort();
-  sRes.dedup();
-  return _inner->matches(std::move(sRes), simpl); 
+{ 
+  Stack<Stack<Literal*>> clauses;
+  for (auto c : sRes) {
+    clauses.push(c->iterLits().collect<Stack<Literal*>>().sorted());
+  }
+  clauses.sort();
+  clauses.dedup();
+  Stack<Kernel::Clause*> newRes;
+  for (auto& c : clauses) {
+    newRes.push(Clause::fromStack(c, Inference(FromInput(UnitInputType::ASSUMPTION))));
+  }
+
+  return _inner->matches(std::move(newRes), simpl); 
 }
 
 template<class... As>

@@ -1222,9 +1222,6 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                                        , [&]() { return oneCase(s1, s0); }
                                        // , [&]() { return case1(s0, s1); }
                     );
-                // if (NumTraits::one() == t0.term) {
-                //   auto k = k0;
-                //
                 // }
                 //   
                 // } else {
