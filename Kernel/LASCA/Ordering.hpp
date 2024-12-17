@@ -340,12 +340,13 @@ class LiteralOrdering
   unsigned lvl(LascaPredicate p) const {
     switch(p) {
       case LascaPredicate::EQ: return 0;
-      case LascaPredicate::NEQ:
       case LascaPredicate::GREATER:
       case LascaPredicate::GREATER_EQ:
       case LascaPredicate::IS_INT_POS:
       case LascaPredicate::IS_INT_NEG: 
                                return 1;
+      case LascaPredicate::NEQ:
+                               return 2;
     } ASSERTION_VIOLATION
   }
 

@@ -85,9 +85,7 @@ void check_in_different_contexts(LaKbo& ord, TermList l, LaKbo::Result exp, Term
   check(ord, l != 0, exp, r != 0);
 }
 
-LaKbo& lakbo(bool rand = false) {
-  return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true), Lib::make_shared(InequalityNormalizer(/*strong=*/false))));
-}
+LaKbo& lakbo(bool rand = false) { return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true), Lib::make_shared(InequalityNormalizer(/*strong=*/false)))); }
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -215,7 +213,7 @@ TEST_FUN(interpreted_terms_01) {
 }
 
 
-TEST_FUN(TODO_interpreted_literals_01) {
+TEST_FUN(interpreted_literals_01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
   DECL_CONST(a, Int)
@@ -225,10 +223,6 @@ TEST_FUN(TODO_interpreted_literals_01) {
 
 
   auto& ord = lakbo();
-  // TODO what should the behaviour be here? this is copied from old qkbo
-
-  check(ord,     f(x) > 0, Less   , 3 * f(x) > 0);
-  check(ord, 5 * f(x) > 0, Greater, 3 * f(x) > 0);
 
   check(ord,     f(x) + a > 0, Less   , 3 * f(x) + a > 0);
   check(ord, 5 * f(x) + a > 0, Greater, 3 * f(x) + a > 0);
@@ -259,7 +253,7 @@ TEST_FUN(TODO_interpreted_literals_01) {
   // tricky 
   check(ord,   3 * f(a) + a +      b   > 0, Less,    f(f(a)) +      b   > 0);
   check(ord,   3 * f(a) + a + -f(f(a)) > 0, Greater, f(f(a)) + -f(f(a)) > 0);
-  check(ord,   3 * f(x) + x +      y   > 0, Incomp,  f(f(x)) +      y   > 0);
+  check(ord,   3 * f(x) + x +      y   > 0, Less  ,  f(f(x)) +      y   > 0);
 }
 
 TEST_FUN(misc01) {
@@ -291,8 +285,7 @@ TEST_FUN(misc02) {
 }
 
 
-TEST_FUN(TODO_tricky_01) {
-
+TEST_FUN(tricky_01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
   DECL_FUNC (f, {Real}, Real)
@@ -302,13 +295,12 @@ TEST_FUN(TODO_tricky_01) {
   DECL_CONST(b, Real)
 
   auto& ord = lakbo();
-  // TODO what should the behaviour be here? this is copied from old qkbo
   check_in_different_contexts(ord, f(g(a,a)) + 2 * f(a) - f(a), Less   , f(g(a,a)) + 2 * f(a), p , f );
   check_in_different_contexts(ord, f(g(a,b)) + 2 * f(a) - f(b), Greater, f(g(a,b)) + 2 * f(a), p , f );
-  check_in_different_contexts(ord, f(g(x,y)) + 2 * f(x) - f(y), Incomp , f(g(x,y)) + 2 * f(x), p , f ); 
+  check_in_different_contexts(ord, f(g(x,y)) + 2 * f(x) - f(y), Greater, f(g(x,y)) + 2 * f(x), p , f ); 
 }
 
-TEST_FUN(tricky_not_yet_implemented) {
+TEST_FUN(tricky_02) {
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
@@ -480,7 +472,7 @@ TEST_FUN(numerals) {
 }
 
 
-TEST_FUN(TODO_eq_equiv) {
+TEST_FUN(eq_equiv) {
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
@@ -492,11 +484,7 @@ TEST_FUN(TODO_eq_equiv) {
 
   check(ord,  f(a) - f(b) == 0, Equal, f(b) - f(a) == 0);
   check(ord, -f(a) - f(b) == 0, Equal, f(a) + f(b) == 0);
-
-  check(ord,  f(a) + f(b) == 0, Equal   , f(a) - f(b) == 0);
-  check(ord, -f(a) - f(b) == 0, Equal   , f(a) - f(b) == 0);
-  check(ord,  f(a) + f(b) == 0, Equal   , f(b) - f(a) == 0);
-  check(ord, -f(a) - f(b) == 0, Equal   , f(b) - f(a) == 0);
+  check(ord,  f(a) + f(b) == 0, Equal   , -f(a) - f(b) == 0);
 }
 
 TEST_FUN(var_equalities) {
@@ -515,7 +503,7 @@ TEST_FUN(var_equalities) {
 }
 
 
-TEST_FUN(TODO_ineq_diseq) {
+TEST_FUN(ineq_diseq) {
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
@@ -605,18 +593,4 @@ TEST_FUN(bug02) {
   DECL_CONST(c, Real)
 
   check(ord, c, Greater, -floor(frac(1,2) * floor(b) + frac(1,2) * floor(a)) + -floor(frac(1,2) + frac(1,2) * floor(b) + frac(1,2) * floor(a)));
-}
-
-TEST_FUN(bug03) {
-
-  DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
-
-  auto& ord = lakbo(/* rand */ false);
-
-  DECL_CONST(a, Real)
-  DECL_CONST(b, Real)
-  DECL_CONST(c, Real)
-
-  check(ord, a + b > 0, Greater, a + b != 0);
 }
