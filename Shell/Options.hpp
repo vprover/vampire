@@ -341,7 +341,6 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
-    CASC_HOL,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     MODEL_CHECK,
@@ -366,13 +365,8 @@ public:
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
-    CASC_2023,
-    CASC_2019,
     CASC_SAT,
     CASC_SAT_2024,
-    CASC_SAT_2023,
-    CASC_SAT_2019,
-    CASC_HOL_2020,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,

@@ -122,7 +122,6 @@ void Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
-                                        "casc_hol",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -152,8 +151,7 @@ void Options::init()
 
     auto UsingPortfolioTechnology = [this] {
       // Consider extending this list when adding a new Casc-like mode
-      return Or(_mode.is(equal(Mode::CASC_HOL)),
-                _mode.is(equal(Mode::CASC)),
+      return Or(_mode.is(equal(Mode::CASC)),
                 _mode.is(equal(Mode::SMTCOMP)),
                 _mode.is(equal(Mode::PORTFOLIO)));
     };
@@ -169,13 +167,8 @@ void Options::init()
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
          "casc_2024",
-         "casc_2023",
-         "casc_2019",
          "casc_sat",
          "casc_sat_2024",
-         "casc_sat_2023",
-         "casc_sat_2019",
-         "casc_hol_2020",
          "file",
          "induction",
          "integer_induction",
