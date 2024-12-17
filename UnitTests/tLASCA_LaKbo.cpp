@@ -33,22 +33,6 @@ const Ordering::Result Incomp  = Ordering::Result::INCOMPARABLE;
 using namespace Kernel;
 using LaKbo = LiteralOrdering<LAKBO>;
 
-inline DArray<int> funcPrec() {
-  unsigned num = env.signature->functions();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
-inline auto ict(int i) { return IntegerConstantType(i); }
-
-inline DArray<int> predPrec() {
-  unsigned num = env.signature->predicates();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
 template<class T>
 void check___(Ordering& ord, T lhs, Ordering::Result exp, T rhs, bool silent) {
   // std::cout << std::endl;
