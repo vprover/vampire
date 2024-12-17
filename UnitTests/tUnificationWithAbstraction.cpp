@@ -2538,6 +2538,19 @@ ROB_UNIFY_TEST(floor_test_11,
       .lascaSimpl = true,
     })
 
+ROB_UNIFY_TEST(floor_test_12,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(x0) + f(x1),
+    f(x2) + f(x3),
+    TermUnificationResultSpec { 
+      .querySigma  = f(x0) + f(x1),
+      .resultSigma = f(x2) + f(x3),
+      .constraints = constraints(f(x0) + f(x1) - f(x2) - f(x3) != 0),
+      .lascaSimpl = true,
+    })
+
 ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_14,
     SUGAR(Real),
     Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
@@ -2570,58 +2583,4 @@ ROB_UNIFY_TEST_FAIL(floor_test_16,
     /* fixedPointIteration */ false,
     a - floor(-a),
     num(0))
-
-// #define DO_FLIP(x,y) (y, x)
-// #define NO_FLIP(x,y) (x, y)
-//
-// #define FOR_FLIP(TEST_CASE) \
-//   TEST_CASE(_flip0, NO_FLIP) \
-//   TEST_CASE(_flip1, DO_FLIP) \
-//
-// #define floor_bug_1_test(_suffix, flip) \
-//   ROB_UNIFY_TEST(floor_bug_1 ## _suffix, \
-//       SUGAR(Real), \
-//       Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR, \
-//       /* fixedPointIteration */ false, \
-//       f2 flip(x, floor(x)), \
-//       f2 flip(floor(a), floor(a)), \
-//       TermUnificationResultSpec {  \
-//         .querySigma  = f2 flip(floor(a), floor(floor(a))), \
-//         .resultSigma = f2 flip(floor(a), floor(a)), \
-//         /* TODO options here: x -> { a } */ \
-//         .constraints = constraints(), \
-//       }) \
-//
-// FOR_FLIP(floor_bug_1_test)
-//
-// #define floor_bug_2_test(_suffix, flip) \
-//   ROB_UNIFY_TEST(floor_bug_2 ## _suffix, \
-//       SUGAR(Real), \
-//       Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR, \
-//       /* fixedPointIteration */ false, \
-//       f2 flip(floor(x), x), \
-//       f2 flip(floor(a), a), \
-//       TermUnificationResultSpec {  \
-//         .querySigma  = f2 flip(floor(a), a), \
-//         .resultSigma = f2 flip(floor(a), a), \
-//         .constraints = noConstraints(), \
-//       }) \
-//
-// FOR_FLIP(floor_bug_2_test)
-//
-//
-// #define floor_bug_3_test(_suffix, flip) \
-//   ROB_UNIFY_TEST(floor_bug_3 ## _suffix, \
-//       SUGAR(Real), \
-//       Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR, \
-//       /* fixedPointIteration */ false, \
-//       f2 flip(floor(x), x), \
-//       f2 flip(floor(a) + 3, a + 3), \
-//       TermUnificationResultSpec {  \
-//         .querySigma  = f2 flip(floor(a + 3), a + 3), \
-//         .resultSigma = f2 flip(floor(a) + 3, a + 3), \
-//         .constraints = noConstraints(), \
-//       }) \
-//
-// FOR_FLIP(floor_bug_3_test)
 

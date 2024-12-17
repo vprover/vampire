@@ -1249,7 +1249,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
           if (auto buckets = diff.buckets()) {
             auto equalIf = EqualIf();
             for (auto b : *buckets) {
-              if (b.summands().size()) {
+              if (b.summands().size() == 2) {
                 auto [t0_, k0, t1, k1] = tuple_flatten(b.summands().template collectTuple<2>());
                 auto t0 = t0_;
                 ASS_EQ(t0.functor(), t1.functor())
