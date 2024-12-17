@@ -149,7 +149,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
     clit->termArg(0), clit->termArg(1), true, true
   };
   states.push(curr);
-  OrderingComparator::RedundancyCheck checker(ordering, curr);
+  RedundancyCheck checker(ordering, curr);
   auto tpo = TermPartialOrdering::getEmpty(ordering);
   unsigned cnt = 0;
 
@@ -276,6 +276,106 @@ LOOP_END:
   env.statistics->groundRedundantClauses++;
   cleanup();
   return true;
+}
+
+TermList ForwardGroundJoinability::normalize(TermList t, const TermPartialOrdering* tpo) const
+{
+  return t;
+}
+
+ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, void* data)
+  : comp(ord.createComparator(/*onlyVars=*/true))
+{
+  comp->_source = Branch(data, comp->_sink);
+  comp->_source.node()->ready = true;
+  path.push(&comp->_source);
+}
+
+std::pair<void*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(OrderingConstraints ordCons, void* data)
+{
+  static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
+  ASS(path.isNonEmpty());
+
+  auto curr = path.top();
+  ASS_EQ(curr->node()->tag, BranchTag::T_DATA);
+  ASS(curr->node()->data);
+  ASS(curr->node()->ready); 
+  ASS_EQ(curr->node()->refcnt,1);
+
+  // current node has to be processed again
+  curr->node()->ready = false;
+
+  // We replace (not modify) the current node
+  // with a new subtree containing ordCons and data
+  // and pointing to the original node otherwise.
+
+  Branch origB(*curr);
+  Branch newB = data ? Branch(data, comp->_sink) : comp->_sink;
+
+  for (const auto& [lhs,rhs,rel] : ordCons) {
+    *curr = Branch(lhs, rhs);
+    for (unsigned i = 0; i < 3; i++) {
+      if (ordVals[i] != rel) {
+        curr->node()->getBranch(ordVals[i]) = origB;
+      }
+    }
+    curr = &curr->node()->getBranch(rel);
+  }
+  *curr = newB;
+
+  while (path.isNonEmpty()) {
+    if (path.size()==1) {
+      comp->_prev = nullptr;
+    } else {
+      comp->_prev = path[path.size()-2];
+    }
+    comp->_curr = path.top();
+    comp->expand();
+
+    auto node = comp->_curr->node();
+    if (node->tag == BranchTag::T_DATA && !node->data) {
+      pushNext();
+      continue;
+    }
+
+    if (!node->trace || node->trace->hasIncomp()) {
+      // invalid branch, continue
+      pushNext();
+      continue;
+    }
+
+    if (node->tag == BranchTag::T_DATA) {
+      ASS(node->data);
+      return { (Literal*)node->data, node->trace };
+    }
+    path.push(&node->gtBranch);
+  }
+
+  ASS(path.isEmpty());
+  return { nullptr, nullptr };
+}
+
+void ForwardGroundJoinability::RedundancyCheck::pushNext()
+{
+  while (path.isNonEmpty()) {
+    auto curr = path.pop();
+    if (path.isEmpty()) {
+      continue;
+    }
+
+    auto prev = path.top()->node();
+    ASS(prev->tag == BranchTag::T_POLY || prev->tag == BranchTag::T_TERM);
+    // if there is a previous node and we were either in the gt or eq
+    // branches, just go to next branch in order, otherwise backtrack
+    if (curr == &prev->gtBranch) {
+      path.push(&prev->eqBranch);
+      break;
+    }
+    if (curr == &prev->eqBranch) {
+      path.push(&prev->ngeBranch);
+      break;
+    }
+  }
 }
 
 }

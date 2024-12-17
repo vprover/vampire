@@ -20,6 +20,10 @@
 
 #include "Ordering.hpp"
 
+namespace Inferences {
+  class ForwardGroundJoinability;
+}
+
 namespace Kernel {
 
 using OrderingConstraints = Stack<Ordering::Constraint>;
@@ -59,19 +63,6 @@ public:
     Stack<std::tuple<Branch*,Branch*,Branch*>> path;
     bool ground;
   };
-
-  class RedundancyCheck {
-  public:
-    RedundancyCheck(const Ordering& ord, void* data);
-    std::pair<void*,const TermPartialOrdering*> next(OrderingConstraints cons, void* data);
-
-  private:
-    void pushNext();
-
-    OrderingComparatorUP comp;
-    Stack<Branch*> path;
-  };
-
 protected:
   void expand();
   virtual void expandTermCase();
@@ -134,6 +125,8 @@ protected:
   friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
   friend std::ostream& operator<<(std::ostream& str, const LCSign& lcSign);
   friend std::ostream& operator<<(std::ostream& str, const LinearConstraint& linCon);
+
+  friend class Inferences::ForwardGroundJoinability;
 
   using VarCoeffPair = std::pair<unsigned,int>;
 

@@ -45,6 +45,19 @@ protected:
   TermList normalize(TermList t, const TermPartialOrdering* tpo) const;
 
   DemodulationLHSIndex* _index;
+
+  struct RedundancyCheck {
+    RedundancyCheck(const Ordering& ord, void* data);
+    std::pair<void*,const TermPartialOrdering*> next(OrderingConstraints cons, void* data);
+
+    void pushNext();
+
+    using Branch = OrderingComparator::Branch;
+    using BranchTag = OrderingComparator::BranchTag;
+
+    OrderingComparatorUP comp;
+    Stack<OrderingComparator::Branch*> path;
+  };
 };
 
 };
