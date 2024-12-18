@@ -13,10 +13,6 @@ set(VAMPIRE_VERSION_NUMBER 4.9)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_MODULE_PATH cmake/modules/)
-
-# make __FILENAME__ macro as relative path used instead of absoulte source path __FILE__
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
 # make __FILENAME__ macro as relative path used instead of absoulte source path __FILE__
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
@@ -897,18 +893,6 @@ else()
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mini-gmp-6.3.0)
 endif()
 
-
-################################################################
-# gmp stuff
-################################################################
-
-FIND_PATH(GMP_INCLUDE_DIR gmpxx.h)
-FIND_PATH(GMPXX_INCLUDE_DIR gmpxx.h)
-include_directories(${GMPXX_INCLUDE_DIR} ${GMP_INCLUDE_DIR})
-
-find_library(GMP gmp)
-link_libraries(${GMP})
-
 ################################################################
 # z3 stuff
 ################################################################
@@ -925,9 +909,7 @@ find_package(
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
     PATHS
-      # ${Z3_DIR}
       ${CMAKE_SOURCE_DIR}/z3/build/
-      # ${CMAKE_SOURCE_DIR}/z3/build/
 )
 if (NOT Z3_FOUND)
   message(STATUS "No Z3 found -- Compiling without SMT support.")

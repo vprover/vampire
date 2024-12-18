@@ -15,7 +15,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Debug/TimeProfiling.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Inference.hpp"
