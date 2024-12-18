@@ -93,7 +93,16 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
   TIME_TRACE("forward subsumption demodulation");
 
+
   Ordering const& ordering = _salg->getOrdering();
+  // some assertions won't hold if we use an alasca ordering i.e. in an alasca ordering we might have s subterm t but s not less than t, especially for non-atomic theory terms. 
+  // e.g. a subterm a - a
+  // but  a greater 0 equiv a - a
+  // we use this boolean flag to disable the assertions broken in this case. 
+  // everything is still sound but might become incomplete.
+  // TODO investigate casese like this indepth and adjust demodulation appropriately
+  static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
+                              || env.options->termOrdering () == Shell::Options::TermOrdering::LAKBO;
 
   // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();
@@ -607,11 +616,11 @@ isRedundant:
                */
               Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
 #if VDEBUG
-              if (env.options->termOrdering () != Shell::Options::TermOrdering::QKBO) // <- TODO properyl investgate this
+              if (!isAlascaOrdering) 
                 ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
-                  && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {
-                // TODO integrate this properly with ALASCA/QKBO
+                  && !isAlascaOrdering ) {
+                
                 // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
                 ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
               }
@@ -664,8 +673,8 @@ isRedundant:
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
-                  && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {  // see note above
-                // TODO integrate this properly with ALASCA/QKBO
+                  && !isAlascaOrdering
+                  ) {  // see note above
                 // Check replacement < cl.
                 // This is quite obvious, and there should be no problems with this.
                 ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));

@@ -356,7 +356,9 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
 bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
 {
   Ordering const& ordering = _salg->getOrdering();
-
+  // to see why we use this have a look at the respective line in ForwardSubsumptionDemodulation
+  static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
+                              || env.options->termOrdering () == Shell::Options::TermOrdering::LAKBO;
   Literal* eqLit = matcher.getEqualityForDemodulation();
   if (!eqLit) {
     // eqLit == nullptr means that the whole side premise can be instantiated to some subset of the candidate,
@@ -618,11 +620,10 @@ isRedundant:
          */
         Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
 #if VDEBUG
-        if (env.options->termOrdering () != Shell::Options::TermOrdering::QKBO)
+        if (!isAlascaOrdering)
           ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
         if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
-            && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {
-          // TODO integrate this properly with ALASCA/QKBO
+            && !isAlascaOrdering) {
           // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
           ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
         }
@@ -671,8 +672,7 @@ isRedundant:
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
         if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
-            && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {  // see note above
-          // TODO integrate this properly with ALASCA/QKBO
+            && !isAlascaOrdering) {  // see note above
           // Check replacement < mainCl.
           ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
         }

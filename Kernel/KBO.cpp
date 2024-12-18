@@ -412,7 +412,8 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<i
   auto arityExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->arity(); };
   auto precedenceExtractor = [&](unsigned i) { return rawPrecedence[i]; };
   auto frequencyExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->usageCnt(); };
-  bool qkbo = env.options->termOrdering() == Options::TermOrdering::QKBO;
+  bool qkbo = env.options->termOrdering() == Options::TermOrdering::QKBO 
+           || env.options->termOrdering() == Options::TermOrdering::LAKBO ;
 
   if (!str.empty()) {
     return weightsFromFile<SigTraits>(opts);
@@ -535,7 +536,10 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   }
 
   unsigned introducedWeight = defaultSymbolWeight;
-  auto specialWeights = KboSpecialWeights<SigTraits>::dflt(env.options->termOrdering() == Shell::Options::TermOrdering::QKBO);
+  auto specialWeights = KboSpecialWeights<SigTraits>::dflt(
+         env.options->termOrdering() == Shell::Options::TermOrdering::QKBO
+      || env.options->termOrdering() == Shell::Options::TermOrdering::LAKBO
+      );
 
   ASS(!filename.empty());
 
@@ -1014,11 +1018,11 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
     ._weights                = weights.clone(),
     ._introducedSymbolWeight = introducedWeight,
     ._specialWeights         = KboSpecialWeights<FuncSigTraits> {
-      ._variableWeight = variableWeight,
-      ._numInt     =  numInt,
-      ._numRat     =  numRat,
-      ._numReal    =  numReal,
-      ._qkbo = qkbo,
+    ._variableWeight         = variableWeight,
+    ._numInt                 = numInt,
+    ._numRat                 = numRat,
+    ._numReal                = numReal,
+    ._qkbo                   = qkbo,
     },
   };
 }
