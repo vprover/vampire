@@ -227,12 +227,12 @@ struct NumTraits;
     };                                                                                    \
                                                                                           \
     static bool isEq(bool positive, Literal* lit)                                         \
-    { return lit->isPositive() == positive                                                \
+    { return (lit->isPositive() == positive)                                              \
           && lit->isEquality()                                                            \
-          && lit->eqArgSort() == sort();  }                                               \
+          && (lit->eqArgSort() == sort());  }                                               \
                                                                                           \
-    static bool isPosEq(Literal* lit) { return isEq(true, lit); }                         \
-    static bool isNegEq(Literal* lit) { return isEq(true, lit); }                         \
+    static bool isPosEq(Literal* lit) { return isEq(true , lit); }                        \
+    static bool isNegEq(Literal* lit) { return isEq(false, lit); }                        \
                                                                                           \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    Less,    SHORT, _LESS,          2)         \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     Leq,     SHORT, _LESS_EQUAL,    2)         \

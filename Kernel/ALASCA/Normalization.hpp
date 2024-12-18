@@ -86,8 +86,6 @@ namespace Kernel {
       : _term(term), _symbol(symbol) 
     { _term->integrity(); }
 
-    friend class InequalityNormalizer;
-
     /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
     Polynom<NumTraits> const& term() const
     { return *_term; }
@@ -207,9 +205,9 @@ namespace Kernel {
                               : Option<InequalityLiteral<NumTraits>>();
   }
 
-  class InequalityNormalizer {
+  class InequalityNormalizer 
+  {
     Inferences::PolynomialEvaluation _eval;
-    const bool _strong;
 
     // TODO get rid of this global state
     static std::shared_ptr<InequalityNormalizer> globalNormalizer;
@@ -223,13 +221,6 @@ namespace Kernel {
       ASS(globalNormalizer)
       return globalNormalizer;
     }
-
-    /** param strong enables rewrites 
-     * t >= 0 ==> t > 0 \/ t == 0
-     * t != 0 ==> t > 0 \/ -t > 0
-     */
-    InequalityNormalizer(bool strong)
-      : _strong(strong) {  }
 
     PolyNf normalize(TypedTermList term)
     { 
@@ -390,17 +381,8 @@ namespace Kernel {
 
 
         Stack<AlascaLiteral<NumTraits>> out;
-        if (_strong && pred == AlascaPredicate::GREATER_EQ) {
-          // t >= 0 ==> t > 0 \/ t == 0
-          out = { AlascaLiteral<NumTraits>(factorsNormalized, AlascaPredicate::GREATER)
-                , AlascaLiteral<NumTraits>(factorsNormalized, AlascaPredicate::EQ     ) };
-        } else if (_strong && pred == AlascaPredicate::NEQ) {
-          // t != 0 ==> t > 0 \/ -t > 0
-          out = { AlascaLiteral<NumTraits>( factorsNormalized, AlascaPredicate::GREATER)
-                , AlascaLiteral<NumTraits>(-factorsNormalized, AlascaPredicate::GREATER) };
-        } else {
-          out = { AlascaLiteral<NumTraits>(factorsNormalized, pred) };
-        }
+        // TODO don't return stack
+        out = { AlascaLiteral<NumTraits>(factorsNormalized, pred) };
 
         return Opt(std::move(out));
       };

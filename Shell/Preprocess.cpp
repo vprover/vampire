@@ -80,13 +80,13 @@ void Preprocess::preprocess(Problem& prb)
   auto normalizeInterpreted = [&]() {
 
     if (env.options->alascaIntegerConversion()) {
-      static InequalityNormalizer norm = InequalityNormalizer(env.options->alascaStrongNormalization());
+      static InequalityNormalizer norm = InequalityNormalizer();
       InterpretedNormalizer(&norm).apply(prb);
       alasca.integerConversion(prb);
       InterpretedNormalizer(&norm).apply(prb);
 
     } else if (env.options->alasca()) {
-      static InequalityNormalizer norm = InequalityNormalizer(env.options->alascaStrongNormalization());
+      static InequalityNormalizer norm = InequalityNormalizer();
       InterpretedNormalizer(&norm).apply(prb);
 
     } else {

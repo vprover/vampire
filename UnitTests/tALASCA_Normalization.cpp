@@ -16,6 +16,8 @@
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/Cancellation.hpp"
+#include "Inferences/ALASCA/Normalization.hpp"
+#include "Inferences/ALASCA/InequalityPredicateNormalization.hpp"
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
@@ -50,8 +52,6 @@ using namespace Indexing;
   )                                                                                                 \
 
 
-#define SIMPL_MUL_ZERO 1
-
 /////////////////////////////////////////////////////////
 // Basic tests
 //////////////////////////////////////
@@ -64,15 +64,43 @@ struct TestCase
 
   template<class NumTraits>
   void run() {
-    auto norm = InequalityNormalizer(strong);
-    
-    auto results = norm.normalizeLiteral(in);
-    if (!iterTraits(out.iterFifo()).any([&](auto const& out){ return TestUtils::eqModACRect(out, *results); })) {
-      std::cout << "\r" << endl;
-      std::cout << "\r[    input ]" << pretty(in) << endl;
-      std::cout << "\r[ expected ]" << pretty(out) << endl;
-      std::cout << "\r[  results ]" << pretty(results) << endl;
-      exit(-1);
+    Clause* input = Clause::fromLiterals({ in }, Inference(FromInput(UnitInputType::ASSUMPTION)));
+    auto state = testAlascaState();
+
+    Stack<ImmediateSimplificationEngine*> rules;
+    if (strong) {
+      rules.pushMany(new Inferences::ALASCA::Normalization(state), new Inferences::ALASCA::InequalityPredicateNormalization(state));
+    } else {
+      rules.pushMany(new Inferences::ALASCA::Normalization(state));
+    }
+
+    Clause* last = input;
+    Option<Clause*> current = some(input);
+    while (current.isSome() && *current != nullptr) {
+      last = *current;
+      current = arrayIter(rules)
+        .map([&](auto r) { return r->simplify(last); })
+        .filter([&](auto c) { return c != last; })
+        .tryNext();
+    }
+
+    if (last == nullptr && out.isNonEmpty()) {
+        std::cout << "\r" << endl;
+        std::cout << "\r[    input ]" << pretty(in) << endl;
+        std::cout << "\r[ expected ]" << pretty(out) << endl;
+        std::cout << "\r[  results ] <redundant>" << endl;
+        exit(-1);
+
+    } else {
+      auto results = last->iterLits().template collect<Stack<Literal*>>();
+
+      if (!iterTraits(out.iterFifo()).any([&](auto const& out){ return TestUtils::eqModACRect(out, results); })) {
+        std::cout << "\r" << endl;
+        std::cout << "\r[    input ]" << pretty(in) << endl;
+        std::cout << "\r[ expected ]" << pretty(out) << endl;
+        std::cout << "\r[  results ]" << pretty(results) << endl;
+        exit(-1);
+      }
     }
   }
 };
@@ -129,7 +157,7 @@ TEST_ALL(strict_04,
 
 TEST_ALL(eq_01, 
     TestCase {
-      .in  =     f(a) == 0                    , // TODO
+      .in  =     f(a) == 0                    , 
       .out = { { f(a) == 0 }, { -f(a) == 0 } },
       .strong = true,
     })
@@ -137,14 +165,14 @@ TEST_ALL(eq_01,
 TEST_ALL(eq_02, 
     TestCase {
       .in  =      0 == x                 ,
-      .out =  { { 0 == x }, { -x == 0 } }, // TODO
+      .out =  { { 0 == x }, { -x == 0 } }, 
       .strong = true,
     })
 
 TEST_ALL(eq_03, 
     TestCase {
       .in  =         a == b                    ,
-      .out = { { a - b == 0 }, { b - a == 0 } }, // TODO ?
+      .out = { { a - b == 0 }, { b - a == 0 } },
       .strong = true,
     })
 
@@ -164,7 +192,7 @@ TEST_ALL(eq_04,
 TEST_ALL(neq_01a, 
     TestCase {
       .in  =     f(a) != 0,
-      .out = { { f(a) != 0 }, { -f(a) != 0 } }, // TODO
+      .out = { { f(a) != 0 }, { -f(a) != 0 } },
       .strong = false,
     })
 
@@ -272,7 +300,7 @@ TEST_FRAC(lax_01a,
 TEST_FRAC(lax_01b, 
     TestCase {
       .in  =      f(a) <= 0,
-      .out = { { -f(a) == 0, -f(a) > 0 } },
+      .out = { { f(a) == 0, -f(a) > 0 } },
       .strong = true,
     })
 
@@ -286,7 +314,7 @@ TEST_FRAC(lax_02a,
 TEST_FRAC(lax_02b, 
     TestCase {
       .in  =      0 >= x,
-      .out = { { -x == 0, -x > 0  } },
+      .out = { { x == 0, -x > 0  } },
       .strong = true,
     })
 
@@ -359,11 +387,7 @@ TEST_FRAC(gcd_04,
 TEST_ALL(bug_01, 
     TestCase {
       .in  =     0 * num(-1) + 2 * a * 1073741824 > 0,
-#if SIMPL_MUL_ZERO
       .out = { {              a > 0 } },
-#else
-      .out = { {         0  + a > 0 } },
-#endif // SIMPL_MUL_ZERO
       .strong = true,
     })
 
@@ -401,33 +425,22 @@ TEST_FRAC(bug_05,
 TEST_FRAC(bug_06, 
     TestCase {
       .in  =     num(-4) + 0 >= 0  ,
-      .out = { { num(-1)     >= 0 } },
+      .out = { Stack<Literal*>() },
       .strong = false,
     })
 
 
 TEST_ALL(bug_07, 
     TestCase {
-      .in  =   -600335 * (-a * 251886) + 251886 * (-a * 600335) == 0 ,
-      //       -600335 * ( a * 251886) + 251886 * ( a * 600335) == 0
-      //       -600335 *   a           +            a * 600335  == 0
-      //                  -a           +            a           == 0
-#if SIMPL_MUL_ZERO
-      .out = { { num(0)== 0 } },
-#else
-      .out = { { 0 * a == 0 } },
-#endif // SIMPL_MUL_ZERO
+      .in  =   -600335 * (-a * 251886) + 251886 * (-b * 600335) == 0 ,
+      .out = {{ a - b == 0 } },
       .strong = false,
     })
 
 TEST_INT(bug_08, 
     TestCase {
       .in  =   0 * f(x) > 0,
-#if SIMPL_MUL_ZERO
-      .out = { {   num(0) > 0 } },
-#else
-      .out = { { 0 * f(x) > 0 } },
-#endif // SIMPL_MUL_ZERO
+      .out = { Stack<Literal*>{ } },
       .strong = false,
     })
 
@@ -457,11 +470,7 @@ TEST_INT(misc_02,
 TEST_ALL(misc_03, 
     TestCase {
       .in  =     a + 3 * ( 0 * f(a) +     b + 0 ) > 0  ,
-#if SIMPL_MUL_ZERO
       .out = { { a +                  3 * b       > 0  } },
-#else
-      .out = { { a +       0 * f(a) + 3 * b + 0   > 0  } },
-#endif // SIMPL_MUL_ZERO
       .strong = false,
     })
 
@@ -571,15 +580,15 @@ TEST_FRAC(floor_11,
 
 TEST_FRAC(floor_12, 
     TestCase {
-      .in  =     floor(frac(1,3)) > 0,
-      .out = { {     num(0) > 0 } },
+      .in  =     floor(frac(1,3)) + a > 0,
+      .out = { {     a > 0 } },
       .strong = false,
     })
 
 TEST_FRAC(floor_13, 
     TestCase {
-      .in  =     floor(frac(5,3)) > 0,
-      .out = { {     num(1) > 0 } },
+      .in  =     floor(frac(5,3)) + a > 0,
+      .out = { {     num(1) + a > 0 } },
       .strong = false,
     })
 
@@ -587,8 +596,8 @@ TEST_FRAC(floor_13,
 
 TEST_FRAC(floor_14, 
     TestCase {
-      .in  =     floor(frac(-1,3)) > 0,
-      .out = { {     num(-1) > 0 } },
+      .in  =     floor(frac(-1,3)) + a > 0,
+      .out = { {     num(-1) + a > 0 } },
       .strong = false,
     })
 

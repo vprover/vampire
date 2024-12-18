@@ -226,7 +226,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _activationLimit = opt.activationLimit();
 
-  InequalityNormalizer::initGlobal(InequalityNormalizer(env.options->alascaStrongNormalization()));
+  InequalityNormalizer::initGlobal(InequalityNormalizer());
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {

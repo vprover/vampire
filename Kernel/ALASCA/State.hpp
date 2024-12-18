@@ -381,7 +381,7 @@ namespace Kernel {
 #if VDEBUG
   std::shared_ptr<AlascaState> testAlascaState(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN,
-    std::shared_ptr<InequalityNormalizer> strongNormalization = Lib::make_shared(InequalityNormalizer(/*strong*/ false)),
+    std::shared_ptr<InequalityNormalizer> strongNormalization = Lib::make_shared(InequalityNormalizer()),
     Ordering* ordering = nullptr,
     bool uwaFixdPointIteration = false
     );
