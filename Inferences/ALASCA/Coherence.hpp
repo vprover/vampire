@@ -23,7 +23,7 @@
 #include "Inferences/ALASCA/Superposition.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Indexing/AlascaIndex.hpp"
+#include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
 #include "Lib/STL.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"

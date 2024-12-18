@@ -21,7 +21,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
-#include "Indexing/AlascaIndex.hpp"
+#include "Kernel/ALASCA/Index.hpp"
 #include "Kernel/ALASCA.hpp"
 
 namespace Inferences {

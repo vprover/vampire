@@ -392,8 +392,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
-    Indexing/AlascaIndex.cpp
-    Indexing/AlascaIndex.hpp
+    Kernel/ALASCA/Index.hpp
     )
 source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 

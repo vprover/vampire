@@ -19,7 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/ALASCA/Demodulation.hpp"
-#include "Indexing/AlascaIndex.hpp"
+#include "Kernel/ALASCA/Index.hpp"
 
 
 namespace Inferences {

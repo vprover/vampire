@@ -21,7 +21,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Indexing/AlascaIndex.hpp"
+#include "Kernel/ALASCA/Index.hpp"
 #include "Lib/Exception.hpp"
 #include "Shell/Options.hpp"
 

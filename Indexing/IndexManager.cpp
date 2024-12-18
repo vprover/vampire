@@ -37,7 +37,7 @@
 
 #include "IndexManager.hpp"
 #include "Kernel/ALASCA.hpp"
-#include "Indexing/AlascaIndex.hpp"
+#include "Kernel/ALASCA/Index.hpp"
 
 using namespace Lib;
 using namespace Indexing;

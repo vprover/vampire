@@ -23,7 +23,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Indexing/AlascaIndex.hpp"
+#include "Kernel/ALASCA/Index.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "BinInf.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
