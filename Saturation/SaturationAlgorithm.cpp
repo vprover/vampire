@@ -61,6 +61,7 @@
 #include "Inferences/ALASCA/VariableElimination.hpp"
 #include "Inferences/ALASCA/FwdDemodulation.hpp"
 #include "Inferences/ALASCA/BwdDemodulation.hpp"
+#include "Inferences/ALASCA/TautologyDeletion.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"

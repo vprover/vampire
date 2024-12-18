@@ -172,23 +172,6 @@ struct Superposition
   Superposition(std::shared_ptr<AlascaState> shared, Args... args) : BinInf<SuperpositionConf>(shared, SuperpositionConf(shared, args...)) {}
 };
 
-class InequalityTautologyDetection
-: public SimplifyingGeneratingInference
-{
-public:
-  USE_ALLOCATOR(InequalityTautologyDetection);
-
-  InequalityTautologyDetection(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared)) {}
-  virtual ~InequalityTautologyDetection() {}
-
-  virtual ClauseGenerationResult generateSimplify(Clause* premise) override;
-private:
-  std::shared_ptr<AlascaState> _shared;
-};
-
-
-
 #undef DEBUG
 } // namespaceALASCA 
 } // namespace Inferences

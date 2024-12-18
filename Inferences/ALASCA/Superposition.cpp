@@ -155,33 +155,5 @@ Option<Clause*> SuperpositionConf::applyRule_(
   return Option<Clause*>(out);
 }
 
-// TODO move to appropriate place
-
-SimplifyingGeneratingInference::ClauseGenerationResult InequalityTautologyDetection::generateSimplify(Clause* premise) {
-  Map<AnyAlascaLiteral, bool> lits;
-  TIME_TRACE("alasca tautology detection")
-  for (auto lit : iterTraits(premise->iterLits())) {
-    auto norm_ = _shared->norm().renormalize(lit);
-    if (norm_.isSome()) {
-      auto norm = norm_.unwrap();
-      lits.insert(norm, true);
-      auto opposite = norm.apply([&](auto lit) { return AnyAlascaLiteral(lit.negation()); });
-      if (lits.find(opposite)) {
-        // std::cout << "bla" << std::endl;
-        return ClauseGenerationResult {
-          .clauses = ClauseIterator::getEmpty(),
-          .premiseRedundant = true,
-        };
-      }
-    }
-  }
-
-  return ClauseGenerationResult {
-      .clauses = ClauseIterator::getEmpty(),
-      .premiseRedundant = false,
-    };
-}
-
-
 } // namespace ALASCA 
 } // namespace Inferences 
