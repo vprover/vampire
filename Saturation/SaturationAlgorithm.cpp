@@ -1569,9 +1569,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared));
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
-    // TODO also for rationals?
     // TODO add parameter for this
-    ise->addFront(new ALASCA::FloorElimination<RealTraits>(shared)); 
+    ise->addFront(new ALASCA::FloorElimination(shared)); 
     // TODO also for rationals?
     if (env.options->alascaAbstraction())
       ise->addFront(new ALASCA::Abstraction<RealTraits>(shared)); 

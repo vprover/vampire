@@ -43,12 +43,12 @@ public:
 };
 
 
-template<class NumTraits>
 class FloorElimination
 : public ImmediateSimplificationEngine 
 {
   std::shared_ptr<AlascaState> _shared;
 
+  template<class NumTraits>
   bool deleteableSum(Monom<NumTraits> const& l, Monom<NumTraits> const& r_) const { 
     auto r = r_.tryNumeral();
     return r.isSome() 
@@ -56,6 +56,13 @@ class FloorElimination
         && !(*r / l.numeral).isInt();
   }
 
+  bool deleteableLiteral(AnyAlascaLiteral const& l) const 
+  { return l.apply([&](auto l) { return deleteableLiteral(l); }); }
+
+  bool deleteableLiteral(AlascaLiteral<IntTraits> const& l) const 
+  { return false; }
+
+  template<class NumTraits>
   bool deleteableLiteral(AlascaLiteral<NumTraits> const& l) const { 
     return l.symbol() == AlascaPredicate::EQ 
         && l.term().nSummands() == 2 
@@ -67,11 +74,10 @@ public:
   FloorElimination(std::shared_ptr<AlascaState> shared) : _shared(std::move(shared)) {}
   USE_ALLOCATOR(FloorElimination);
 
-
   virtual Clause* simplify(Clause* cl) final override {
     auto res = RStack<Literal*>();
     for (auto l : cl->iterLits()) {
-      auto norm = _shared->norm().renormalizeAlasca<NumTraits>(l);
+      auto norm = _shared->norm().renormalize(l);
       if (norm.isSome() && deleteableLiteral(*norm)) {
         /* we the deleted literal */
       } else {

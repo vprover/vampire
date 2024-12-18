@@ -69,12 +69,12 @@ using namespace Inferences::ALASCA;
 inline auto testFloorElimination(Options::UnificationWithAbstraction uwa)
 { 
   auto s = testAlascaState(uwa);
-  return alascaSimplRule(toSgi(FloorElimination<RealTraits>(s)), Normalization(s));
+  return alascaSimplRule(toSgi(FloorElimination(s)), Normalization(s));
 }
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<AlascaSimplRule<ToSgi<FloorElimination<RealTraits>>>>(testFloorElimination(UWA_MODE)))
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<AlascaSimplRule<ToSgi<FloorElimination>>>(testFloorElimination(UWA_MODE)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
