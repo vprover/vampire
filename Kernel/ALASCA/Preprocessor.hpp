@@ -32,7 +32,7 @@ class AlascaPreprocessor {
 
   Literal* integerConversion(Literal* lit)
   {
-    // AlascaState::globalState->normalizer->normalizeLiteral()
+    // AlascaState::globalState->normalizer->normalizedLiteral()
     auto impl = [&]() { 
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);

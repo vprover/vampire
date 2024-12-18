@@ -101,7 +101,7 @@ public:
   {
     ASS(l->isEquality())
     using Num = typename NumTraits::ConstantType;
-    auto norm = this->norm().template renormalize<NumTraits>(l).unwrap();
+    auto norm = this->norm().template normalize<NumTraits>(l).unwrap();
     Recycled<MultiSet<TermList>> out;
     out->init(
       NumTraits::sum(

@@ -40,7 +40,7 @@ public:
     Map<AnyAlascaLiteral, bool> lits;
     TIME_TRACE("alasca tautology detection")
     for (auto lit : iterTraits(premise->iterLits())) {
-      auto norm_ = _shared->norm().renormalize(lit);
+      auto norm_ = _shared->norm().tryNormalizeInterpreted(lit);
       if (norm_.isSome()) {
         auto norm = norm_.unwrap();
         lits.insert(norm, true);

@@ -17,7 +17,7 @@ namespace Kernel  {
 SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, AlascaState& shared)
   : cl(clause)
   , litIdx(litIdx)
-  , interpreted(shared.norm().renormalize(literal()))
+  , interpreted(shared.norm().tryNormalizeInterpreted(literal()))
 {}
 
 

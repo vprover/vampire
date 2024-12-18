@@ -175,7 +175,7 @@ namespace Kernel {
 
     auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TermList>>
     {
-      return iterTraits(norm().renormalize(l)
+      return iterTraits(norm().tryNormalizeInterpreted(l)
         .match(
           [=](AnyAlascaLiteral l) -> VirtualIterator<TermList> {
             return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
@@ -238,7 +238,7 @@ namespace Kernel {
     }
 
     auto isUninterpreted(Literal* l) const 
-    { return !l->isEquality() && norm().renormalize(l).isNone(); }
+    { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 
     auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) {
       return maxLits(cl, selLit)

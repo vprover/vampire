@@ -220,7 +220,7 @@ namespace Kernel {
       return globalNormalizer;
     }
 
-    PolyNf normalize(TypedTermList term)
+    PolyNf normalize(TypedTermList term) const
     { 
       TIME_TRACE("alasca normalize term")
       auto norm = PolyNf::normalize(term);
@@ -228,7 +228,7 @@ namespace Kernel {
       return out || norm;
     }
 
-    PolyNf normalize(TermList t) 
+    PolyNf normalize(TermList t) const
     { return t.isTerm() ? normalize(t.term())
                         : PolyNf(Variable(t.var())); }
 
@@ -275,9 +275,8 @@ namespace Kernel {
 
   public:
 
-    // TODO rename
     template<class NumTraits> 
-    Option<AlascaLiteral<NumTraits>> normalizeAlasca(Literal* lit) const
+    Option<AlascaLiteral<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
     {
       DEBUG_NORM("in: ", *lit, " (", NumTraits::name(), ")")
       using Numeral = typename NumTraits::ConstantType;
@@ -356,6 +355,7 @@ namespace Kernel {
 
         ASS(!isInt || pred != AlascaPredicate::GREATER_EQ)
 
+          // TODO simpler
         auto tt = TypedTermList(t, NumTraits::sort());
         auto norm = Kernel::normalizeTerm(tt);
         auto simpl = _eval.evaluate(norm);
@@ -382,52 +382,26 @@ namespace Kernel {
       DEBUG_NORM("out: ", out);
       return out;
     }
-    // TODO deprecate
     template<class NumTraits> 
-    Option<AlascaLiteral<NumTraits>> renormalizeAlasca(Literal* lit) const
-    { return normalizeAlasca<NumTraits>(lit); }
+    Option<AlascaLiteral<NumTraits>> normalize(Literal* l)
+    { return tryNormalizeInterpreted<NumTraits>(l); }
 
-    // TODO deprecate
-    template<class NumTraits> 
-    Option<InequalityLiteral<NumTraits>> renormalizeIneq(Literal* lit) const 
-    { return normalizeAlasca<NumTraits>(lit)
-        .andThen([](auto lit) { 
-            return someIf(lit.isInequality(), [&]() { return InequalityLiteral<NumTraits>(std::move(lit)); }); }); }
-
-    // TODO deprecate
-    template<class NumTraits> 
-    Option<AlascaLiteral<NumTraits>> renormalize(Literal* l)
-    { return normalizeAlasca<NumTraits>(l); }
-
-    // TODO rename
-    Option<AnyAlascaLiteral> renormalize(Literal* lit) const
+    Option<AnyAlascaLiteral> tryNormalizeInterpreted(Literal* lit) const
     {
       using Out = AnyAlascaLiteral;
       auto wrapCoproduct = [](auto&& norm) {
         return std::move(norm).map([](auto x) { return Out(x); });
       };
-      return             wrapCoproduct(normalizeAlasca< IntTraits>(lit))
-        || [&](){ return wrapCoproduct(normalizeAlasca< RatTraits>(lit)); } 
-        || [&](){ return wrapCoproduct(normalizeAlasca<RealTraits>(lit)); } 
+      return             wrapCoproduct(tryNormalizeInterpreted< IntTraits>(lit))
+        || [&](){ return wrapCoproduct(tryNormalizeInterpreted< RatTraits>(lit)); } 
+        || [&](){ return wrapCoproduct(tryNormalizeInterpreted<RealTraits>(lit)); } 
         || Option<Out>();
     }
 
-    // TODO rename
-    Option<AnyInequalityLiteral> renormalizeIneq(Literal* lit)
-    {
-      return renormalize(lit)
-        .andThen([](auto res) {
-          return res.apply([](auto lit) { 
-              return tryInequalityLiteral(lit)
-                 .map([](auto x) { return AnyInequalityLiteral(x); }); 
-          });
-        });
-    }
-
-    Literal* normalizeLiteral(Literal* lit) const
+    Literal* normalizedLiteral(Literal* lit) const
     {
       auto interpreted = tryNumTraits([&](auto numTraits) { 
-          return normalizeAlasca<decltype(numTraits)>(lit)
+          return tryNormalizeInterpreted<decltype(numTraits)>(lit)
             .map([](auto lit) { return lit.denormalize(); });
         }); 
       auto out = interpreted.isSome() ? *interpreted : normalizeUninterpreted(lit);
@@ -456,8 +430,8 @@ namespace Kernel {
 
     bool equivalent(Literal* lhs, Literal* rhs) 
     { 
-       auto s1 = normalizeLiteral(lhs);
-       auto s2 = normalizeLiteral(rhs);
+       auto s1 = normalizedLiteral(lhs);
+       auto s2 = normalizedLiteral(rhs);
        return s1 == s2;
      }
 

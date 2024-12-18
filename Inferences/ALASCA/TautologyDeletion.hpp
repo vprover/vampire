@@ -39,11 +39,10 @@ public:
     Map<AnyAlascaLiteral, bool> lits;
     TIME_TRACE("alasca tautology detection")
     for (auto lit : iterTraits(premise->iterLits())) {
-      auto norm_ = _shared->norm().renormalize(lit);
-      if (norm_.isSome()) {
-        auto norm = norm_.unwrap();
-        lits.insert(norm, true);
-        auto opposite = norm.apply([&](auto lit) { return AnyAlascaLiteral(lit.negation()); });
+      
+      if (auto norm = _shared->norm().tryNormalizeInterpreted(lit)) {
+        lits.insert(*norm, true);
+        auto opposite = norm->apply([&](auto lit) { return AnyAlascaLiteral(lit.negation()); });
         if (lits.find(opposite)) {
           // std::cout << "bla" << std::endl;
           return ClauseGenerationResult {

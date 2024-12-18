@@ -358,7 +358,7 @@ class LiteralOrdering
   }
 
   Option<MultiSet<Atom>> atoms(Literal* l) const {
-    if (auto alasca = _termOrdering.norm().renormalize(l)) {
+    if (auto alasca = _termOrdering.norm().tryNormalizeInterpreted(l)) {
       return some(atoms(*alasca));
     } else if (l->isEquality()) {
       auto sym = l->isPositive() ? AlascaPredicate::EQ : AlascaPredicate::NEQ;

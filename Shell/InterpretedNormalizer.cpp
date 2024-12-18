@@ -487,7 +487,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
       modified = true;
     }
     if (_inequalityNormalizer)  {
-      auto simpl = _inequalityNormalizer->normalizeLiteral(newLit);
+      auto simpl = _inequalityNormalizer->normalizedLiteral(newLit);
       lits.push(simpl);
       if (simpl != orig) {
         modified = true;
