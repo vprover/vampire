@@ -51,7 +51,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) final override;
 
 #if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
+  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {  }
 #endif
 
 private:

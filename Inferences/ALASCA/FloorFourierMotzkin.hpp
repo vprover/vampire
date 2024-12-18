@@ -56,8 +56,8 @@ struct FloorFourierMotzkinConf
       Premise1 const& prem1, unsigned varBank1,
       AbstractingUnifier& uwa) const
   {
-    auto s0 = uwa.subs().apply(prem0.selectedTerm(), varBank0);
-    auto s1 = uwa.subs().apply(prem1.selectedTerm(), varBank1);
+    auto s0 = uwa.subs().apply(prem0.selectedAtom(), varBank0);
+    auto s1 = uwa.subs().apply(prem1.selectedAtom(), varBank1);
     if (NumTraits::isFloor(s0) || NumTraits::isFloor(s1)) {
       return IntegerFourierMotzkinConf<NumTraits>::applyRule__(
           prem0, varBank0,

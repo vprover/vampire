@@ -455,18 +455,10 @@ namespace Kernel {
     { return ircLiteral().apply([](auto& lit)
                                { return lit.isIsInt(); }); }
 
-          // TODO deprecate
-    auto monom() const 
+    TermList selectedAtom() const
     { return ircLiteral()
           .apply([this](auto& lit) 
               { return lit.term().summandAt(_term).factors->denormalize(); }); }
-
-          // TODO deprecate
-    TermList selectedAtom() const
-    { return monom(); }
-
-    TermList selectedTerm() const
-    { return monom(); }
 
     auto sign() const 
     { return numeral().apply([](auto const& self) { return self.sign(); }); }
@@ -481,7 +473,7 @@ namespace Kernel {
     auto symbol() const
     { return ircLiteral().apply([](auto& l) { return l.symbol(); }); }
 
-    TypedTermList key() const { return TypedTermList(monom(), sort()); }
+    TypedTermList key() const { return TypedTermList(selectedAtom(), sort()); }
 
     friend std::ostream& operator<<(std::ostream& out, SelectedSummand const& self);
 
@@ -511,7 +503,7 @@ namespace Kernel {
     { ASS(numTraits() == decltype(numTraits())(IntTraits{})) }
 
     TermList biggerSide() const 
-    { return IntTraits::mulSimpl(numeral<IntTraits>(), monom()); }
+    { return IntTraits::mulSimpl(numeral<IntTraits>(), selectedAtom()); }
 
     TermList smallerSide() const 
     { return IntTraits::sum(contextTerms<IntTraits>().map([](auto t) { return (-t).denormalize(); })); }
@@ -534,9 +526,8 @@ namespace Kernel {
       ASS(_inner.unwrap<0>().numTraits().apply([](auto x) { return x.isFractional(); }))
     }
 
-    TermList selectedTerm() const
+    TermList selectedAtom() const
     { return biggerSide(); }
-
 
     explicit SelectedEquality(SelectedIntegerEquality s) 
       : _inner(decltype(_inner)::variant<1>(std::move(s))) 
@@ -565,7 +556,7 @@ namespace Kernel {
     TypedTermList biggerSide() const 
     { return TypedTermList(
         _inner.match(
-          [](SelectedSummand               const& x) { return x.monom(); },
+          [](SelectedSummand               const& x) { return x.selectedAtom(); },
           [](SelectedIntegerEquality       const& x) { return x.biggerSide(); },
           [](SelectedUninterpretedEquality const& x) { return x.biggerSide(); }), 
         SortHelper::getEqualityArgumentSort(literal())); }
@@ -866,7 +857,7 @@ namespace Kernel {
             auto lit = sel_lit.literal();
             if (sel_lit.interpreted.isSome()) {
               return pvi(maxSummands(sel_lit, selSum)
-                  .filter([=](auto x) { return includeUnshieldedNumberVariables || x.numTraits().apply([](auto x) { return !x.isFractional(); }) || !x.monom().isVar(); })
+                  .filter([=](auto x) { return includeUnshieldedNumberVariables || x.numTraits().apply([](auto x) { return !x.isFractional(); }) || !x.selectedAtom().isVar(); })
                   .map([](auto x) { return Out(std::move(x)); }));
 
             } else if (lit->isEquality()) {
@@ -973,7 +964,7 @@ namespace Kernel {
             { return (*atoms)[i]; })
       .filter([=](auto x) 
           { return !x.template is<SelectedSummand>() 
-                || !x.template unwrap<SelectedSummand>().monom().isVar(); });
+                || !x.template unwrap<SelectedSummand>().selectedAtom().isVar(); });
     }
 
 
@@ -1225,120 +1216,6 @@ Option<Stack<AlascaLiteral<NumTraits>>> InequalityNormalizer::normalizeAlasca(Li
 ////////////////////////////////////////////////////////////////////////////
 // impl AlascaState
 /////////////////////////////
-
-template<class GetElem, class Cmp>
-auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) -> Stack<decltype(getElem(0))> 
-{
-  Stack<decltype(getElem(0))> max(size); // TODO not sure whether this size allocation brings an advantage
-  for (unsigned i = 0; i < size; i++) {
-    auto isMax = [&]() {
-      for (unsigned j = 0; j < size; j++) {
-        if (i != j) {
-          auto cmp = compare(getElem(i), getElem(j));
-          switch(cmp) {
-
-          case Ordering::LESS: return false;
-          case Ordering::EQUAL:
-            if (!strictlyMax) { /* ok */ break; }
-            else              { return false; }
-          case Ordering::INCOMPARABLE:
-          case Ordering::GREATER:
-            /* ok */
-            break;
-          default:
-            ASSERTION_VIOLATION_REP(cmp)
-          }
-        }
-      }
-      return true;
-    }();
-    
-    if (isMax)
-      max.push(getElem(i));
-  }
-  return max;
-}
-
-
-// template<class GetSummand> auto AlascaState::iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strictlyMax)
-// {
-//   return arrayIter(
-//       maxElements([=](unsigned i) { return i; }, litSize,
-//                      [&](auto l, auto r) { return ordering->compare(getSummand(l).factors->denormalize(), getSummand(r).factors->denormalize()); },
-//                      strictlyMax)
-//       )
-//     .filter([=](unsigned i) { return !getSummand(i).isVar(); }) ;
-// }
-
-
-// TODO check whether superposition modulo LA uses strictly max
-// template<class NumTraits>
-//
-// Stack<Monom<NumTraits>> AlascaState::iterSelectedTerms(AlascaLiteral<NumTraits>const& lit, bool strictlyMax)
-// template<class Sum, class GetSummand> 
-// auto AlascaState::iterSelectedTerms(Sum lit, unsigned sumSize, GetSummand getSummand, bool strictlyMax) -> Stack<decltype(lit(sz))>;
-// {
-
-//   auto max = maxElements([&](auto i) { return getSummand; }, 
-//                      sumSize,
-//                      [&](auto l, auto r) { return ordering->compare(l.factors->denormalize(), r.factors->denormalize()); },
-//                      strictlyMax);
-//
-//   unsigned offs = 0;
-//   for (unsigned i = 0; i < max.size(); i++) {
-//     if (max[i].factors->tryVar().isSome()) {
-//       /* we skip this one */
-//     } else {
-//       max[offs++] = max[i];
-//     }
-//   }
-//   max.pop(max.size() - offs);
-//   return max;
-// }
-
-// // TODO check whether superposition modulo LA uses strictly max
-// template<class NumTraits>
-// Stack<Monom<NumTraits>> AlascaState::selectedTerms(AlascaLiteral<NumTraits>const& lit, bool strictlyMax)
-// {
-//   return iterSelectedTerms([&](auto i) { return lit.term().summandAt(i); }, lit.term().nSummands(), strictlyMax)
-//     .map([=](unsigned i) { return lit.term().summandAt(i); })
-//     .template collect<Stack>();
-// }
-//
-// template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> AlascaState::selectedTerms(Clause* cl, bool strictlyMaxLiterals, bool strictlyMaxTerms)
-// {
-//
-//   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
-//     .filterMap([&](auto i) {
-//         // auto i = lit_idx.second;
-//         auto lit = (*cl)[i];
-//
-//         return normalizer.template renormalizeAlasca<NumTraits>(lit)
-//           .andThen([&](auto norm) -> Option<AlascaLiteral<NumTraits>> {
-//               return norm.overflowOccurred 
-//                 ? Option<AlascaLiteral<NumTraits>>()
-//                 : Option<AlascaLiteral<NumTraits>>(norm);
-//               })
-//           .map([&](auto irc) { 
-//               return pvi(iterSelectedTerms(
-//                     [=](unsigned i ) { return irc.term().summandAt(i); }, 
-//                     irc.term().nSummands(),
-//                     strictlyMaxTerms)
-//                 .map([=](auto j)  {
-//                     return SelectedAtomicTerm<NumTraits> {
-//                       .litIdx = i,
-//                       .literal = lit,
-//                       .ircLit = irc,
-//                       .termIdx = j,
-//                       .self = irc.term().summandAt(j),
-//                     };
-//                 }));
-//           });
-//         })
-//         .flatten()
-//         .template collect<Stack>();
-//
-// }
 
 Ordering::Result compare(AlascaPredicate l, AlascaPredicate r);
 

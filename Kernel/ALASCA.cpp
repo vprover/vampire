@@ -100,7 +100,7 @@ std::shared_ptr<AlascaState> testAlascaState(Options::UnificationWithAbstraction
 std::ostream& operator<<(std::ostream& out, SelectedSummand const& self)
 { 
   self.numeral().apply([&](auto n) -> void { out << n; });
-  out << " " << self.monom();
+  out << " " << self.selectedAtom();
   self.numTraits()
     .apply([&](auto numTraits) {
       for (auto s : self.contextTerms<decltype(numTraits)>()) {

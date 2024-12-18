@@ -12,48 +12,26 @@
  * Implements class TermFactoring.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
 #include "Lib/STL.hpp"
 
-#include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/LiteralSelector.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Lib/TypeList.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Indexing/Index.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "TermFactoring.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/ALASCA.hpp"
-#include "Indexing/TermIndexingStructure.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
-#define __DEBUG_OUTPUT 0
-#if __DEBUG_OUTPUT
-#  define DEBUG(...) \
-    DBG(__VA_ARGS__)
-#else
-#  define DEBUG(...)
-#endif // __DEBUG_OUTPUT
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
-
-using Kernel::InequalityLiteral;
 
 namespace Inferences {
 namespace ALASCA {
@@ -74,17 +52,6 @@ void TermFactoring::detach()
   GeneratingInferenceEngine::detach();
 }
 
-
-
-#if VDEBUG
-void TermFactoring::setTestIndices(Stack<Indexing::Index*> const& indices)
-{  }
-#endif
-
-#define OVERFLOW_SAFE 1
-
-auto rng(unsigned from, unsigned to)
-{ return iterTraits(getRangeIterator(from,to)); }
 
 //   C ∨ k₁ s₁ + k₂ s₂  + t <> 0
 // ---------------------------------------
@@ -121,12 +88,12 @@ Option<Clause*> TermFactoring::applyRule(
 
   auto k1 = sel1.numeral().template unwrap<Numeral>();
   auto k2 = sel2.numeral().template unwrap<Numeral>();
-  auto s1 = sel1.monom();
-  auto s2 = sel2.monom();
+  auto s1 = sel1.selectedAtom();
+  auto s2 = sel2.selectedAtom();
 
   check_side_condition(
       "s₁, s₂ are not variables",
-      !sel1.monom().isVar() && !sel2.monom().isVar())
+      !s1.isVar() && !s2.isVar())
 
   auto uwa = _shared->unify(s1, s2);
   if (uwa.isNone())  

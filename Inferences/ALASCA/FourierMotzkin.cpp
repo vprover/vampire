@@ -70,8 +70,10 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
 #endif // __ALASCA_FM_DERIVE_EQUALITIES
                        + cnst->size());      // Cnst
 
+    auto s1 = lhs.selectedAtom();
+    auto s2 = rhs.selectedAtom();
 
-    ASS(!NumTraits::isFractional() || (!lhs.monom().isVar() && !rhs.monom().isVar()))
+    ASS(!NumTraits::isFractional() || (!s1.isVar() && !s2.isVar()))
 
     // check_side_condition(
     //     "s₁, s₂ are not variables",
@@ -99,8 +101,8 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
            }));
 
 
-    auto s1σ = sigma(lhs.monom(), lhsVarBank);
-    auto s2σ = sigma(rhs.monom(), rhsVarBank);
+    auto s1σ = sigma(s1, lhsVarBank);
+    auto s2σ = sigma(s2, rhsVarBank);
     // ASS_REP(_shared->norm().equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
     Stack<TermList> t1σ(rhs.nContextTerms());
     Stack<TermList> t2σ(lhs.nContextTerms());

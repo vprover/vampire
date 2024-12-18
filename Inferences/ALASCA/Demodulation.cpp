@@ -1,4 +1,5 @@
 #include "Demodulation.hpp"
+#include "Kernel/EqHelper.hpp"
 
 namespace Inferences {
 namespace ALASCA {

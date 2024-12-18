@@ -94,7 +94,7 @@ struct IntegerFourierMotzkinConf
     ASS(prem1.numeral<NumTraits>().isNegative())
     auto sigma0 = [&](auto t)  { return uwa.subs().apply(t, varBank0); };
     auto sigma1 = [&](auto t)  { return uwa.subs().apply(t, varBank1); };
-    auto s_s  = sigma0(prem0.selectedTerm());
+    auto s_s  = sigma0(prem0.selectedAtom());
     auto t0_s = sigma0(prem0.notSelectedTerm());
     auto t1_s = sigma1(prem1.notSelectedTerm());
     ASS(j.isPositive())

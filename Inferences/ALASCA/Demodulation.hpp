@@ -17,13 +17,8 @@
 #define __ALASCA_Demodulation__
 
 #include "Forwards.hpp"
-#include "Inferences/InferenceEngine.hpp"
 #include "Kernel/ALASCA.hpp"
-#include "Kernel/EqHelper.hpp"
-#include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Shell/Statistics.hpp"
-#include "Kernel/LaLpo.hpp"
 
 #define UNIMPLEMENTED ASSERTION_VIOLATION
 

@@ -21,10 +21,7 @@
 #include "Indexing/IndexManager.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Indexing/AlascaIndex.hpp"
 #include "BinInf.hpp"
-#include "Shell/Options.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -104,7 +101,7 @@ struct SuperpositionConf
                         ? x.numeral().apply([](auto n) { return n.isPositive(); })
                         // x =  `t ~ 0`
                         : x.literal()->isPositive();
-                auto term = x.monom();
+                auto term = x.selectedAtom();
                 return std::make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ true);
              },
 

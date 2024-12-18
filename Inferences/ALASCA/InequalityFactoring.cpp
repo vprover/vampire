@@ -63,7 +63,9 @@ Option<Clause*> InequalityFactoring::applyRule(
 
   auto nothing = [&]() { return Option<Clause*>{}; };
 
-  auto uwa = _shared->unify(l1.monom(), l2.monom());
+  auto s1 = l1.selectedAtom();
+  auto s2 = l2.selectedAtom();
+  auto uwa = _shared->unify(s1, s2);
 
   CHECK_CONDITION("⟨σ,Cnst⟩ = uwa(s1,s2)",
                   uwa.isSome())
@@ -72,8 +74,6 @@ Option<Clause*> InequalityFactoring::applyRule(
   auto sigma = [&](auto x){ return uwa->subs().apply(x, /* varbank */ 0); };
   auto j = l1.numeral().unwrap<Numeral>();
   auto k = l2.numeral().unwrap<Numeral>();
-  auto s1 = l1.monom();
-  auto s2 = l2.monom();
   ASS_EQ(l1.clause(), l2.clause())
   auto premise = l1.clause();
 

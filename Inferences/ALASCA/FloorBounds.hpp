@@ -76,7 +76,7 @@ class FloorBounds
 
   auto generateClauses(Superposition::Lhs const& premise) const
   {
-    auto s = NumTraits::ifFloor(premise.selectedTerm(), [](auto s) { return s; }).unwrap();
+    auto s = NumTraits::ifFloor(premise.selectedAtom(), [](auto s) { return s; }).unwrap();
     auto t = premise.smallerSide();
     // C \/ ⌊s⌋ = t
     // ===========
@@ -91,7 +91,7 @@ class FloorBounds
   auto generateClauses(FourierMotzkin::Lhs const& premise) const 
   {
     ASS(premise.numeral<NumTraits>().isPositive())
-    auto s = NumTraits::ifFloor(premise.selectedTerm(), [](auto s) { return s; }).unwrap();
+    auto s = NumTraits::ifFloor(premise.selectedAtom(), [](auto s) { return s; }).unwrap();
     auto t = premise.notSelectedTerm();
     auto pred = premise.alascaPredicate().unwrap();
     ASS(isInequality(pred))
@@ -118,7 +118,7 @@ class FloorBounds
   auto generateClauses(FourierMotzkin::Rhs const& premise) const 
   {
     ASS(premise.numeral<NumTraits>().isNegative())
-    auto s = NumTraits::ifFloor(premise.selectedTerm(), [](auto s) { return s; }).unwrap();
+    auto s = NumTraits::ifFloor(premise.selectedAtom(), [](auto s) { return s; }).unwrap();
     auto t = premise.notSelectedTerm();
     auto pred = premise.alascaPredicate().unwrap();
     ASS(isInequality(pred))
@@ -143,7 +143,7 @@ class FloorBounds
   template<class RuleKind>
   auto generateClauses(Clause* premise) const {
     return iterTraits(RuleKind::iter(*_shared, premise))
-      .filter([](auto x) { return NumTraits::ifFloor(x.selectedTerm(), [](auto...) { return true; }); })
+      .filter([](auto x) { return NumTraits::ifFloor(x.selectedAtom(), [](auto...) { return true; }); })
       .flatMap([this](auto x) { return this->generateClauses(x); });
   }
 
