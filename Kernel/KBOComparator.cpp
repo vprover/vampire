@@ -29,10 +29,10 @@ void KBOComparator::expandTermCase()
 
   // we only care about the non-zero weights and counts
   bool varInbalance = false;
-  auto state = kbo._state;
+  auto state = kbo._state.get();
 #if VDEBUG
   // we make sure kbo._state is not used while we're using it
-  kbo._state = nullptr;
+  auto __state = std::move(kbo._state);
 #endif
   auto w = state->_weightDiff;
   decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
@@ -50,8 +50,7 @@ void KBOComparator::expandTermCase()
     }
   }
 #if VDEBUG
-  kbo._state = state;
-  state = nullptr;
+  kbo._state = std::move(__state);
 #endif
 
   auto node = _curr->node();

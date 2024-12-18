@@ -90,10 +90,8 @@ public:
   NodeAlgorithm algorithm() const { return SKIP_LIST; }
   inline
   bool isEmpty() const { return _children.isEmpty(); }
-#if VDEBUG
   inline
   int size() const { return _children.size(); }
-#endif
   inline
   LDIterator allChildren()
   {

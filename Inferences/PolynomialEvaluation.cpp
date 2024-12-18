@@ -173,9 +173,6 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
       default:
         return none<PolyNf>();
     }
-  } catch (MachineArithmeticException&) {
-    return none<PolyNf>();
-
   } catch (DivByZeroException&) {
     return none<PolyNf>();
   }
