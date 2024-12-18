@@ -15,30 +15,18 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/System.hpp"
 
-#include "Indexing/LiteralIndexingStructure.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/InferenceStore.hpp"
-#include "Kernel/KBO.hpp"
-#include "Kernel/QKbo.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/MLVariant.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
-#include "Kernel/ALASCA/Ordering.hpp"
 
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -118,7 +106,6 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Shell/UIHelper.hpp"
 #include "Shell/Shuffling.hpp"
 
 #include "Splitter.hpp"
