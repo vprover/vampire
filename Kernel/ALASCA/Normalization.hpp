@@ -355,19 +355,14 @@ namespace Kernel {
 
         ASS(!isInt || pred != AlascaPredicate::GREATER_EQ)
 
-          // TODO simpler
-        auto tt = TypedTermList(t, NumTraits::sort());
-        auto norm = Kernel::normalizeTerm(tt);
-        auto simpl = _eval.evaluate(norm);
-        auto simplValue = (simpl || norm).wrapPoly<NumTraits>();
-        simplValue->integrity();
-        auto factorsNormalized = normalizeFactors(simplValue);
+        auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, NumTraits::sort())).wrapPoly<NumTraits>());
         switch(pred) {
           case AlascaPredicate::EQ:
           case AlascaPredicate::NEQ:
             // normalizing s == t <-> -s == -t
             if (factorsNormalized->nSummands() > 0) {
-              if (factorsNormalized->summandAt(0).numeral < Numeral(0)) {
+              // TODO choose the numeral as the pivot if there is one
+              if (factorsNormalized->summandAt(0).numeral < 0) {
                 factorsNormalized = perfect(-*factorsNormalized);
               }
             }
