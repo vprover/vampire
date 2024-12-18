@@ -191,6 +191,7 @@ namespace Kernel {
 
     Literal* denormalize() const
     { return _self.denormalize(); }
+
   };
 
   using AnyInequalityLiteral = Coproduct< InequalityLiteral< IntTraits>
@@ -199,11 +200,8 @@ namespace Kernel {
                                         >;
 
   template<class NumTraits>
-  Option<InequalityLiteral<NumTraits>> inequalityLiteral(AlascaLiteral<NumTraits> lit) 
-  {
-    return lit.isInequality() ? some(InequalityLiteral<NumTraits>(lit)) 
-                              : Option<InequalityLiteral<NumTraits>>();
-  }
+  static Option<InequalityLiteral<NumTraits>> tryInequalityLiteral(AlascaLiteral<NumTraits> lit) 
+  { return someIf(lit.isInequality(), [&](){ return InequalityLiteral(std::move(lit)); }); }
 
   class InequalityNormalizer 
   {
@@ -278,20 +276,19 @@ namespace Kernel {
   public:
 
     // TODO rename
-    template<class NumTraits> Option<Stack<AlascaLiteral<NumTraits>>> normalizeAlasca(Literal* lit) const
+    template<class NumTraits> 
+    Option<AlascaLiteral<NumTraits>> normalizeAlasca(Literal* lit) const
     {
       DEBUG_NORM("in: ", *lit, " (", NumTraits::name(), ")")
       using Numeral = typename NumTraits::ConstantType;
 
-      auto impl = [&]() {
+      auto impl = [&]() -> Option<AlascaLiteral<NumTraits>> {
 
         constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
 
-        using Opt = Option<Stack<AlascaLiteral<NumTraits>>>;
-
         auto f = lit->functor();
         if (!theory->isInterpretedPredicate(f))
-          return Opt();
+          return {};
 
         auto itp = theory->interpretPredicate(f);
 
@@ -301,7 +298,7 @@ namespace Kernel {
          
           case Interpretation::EQUAL:/* l == r or l != r */
             if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
-              return Opt();
+              return {};
             if (*lit->nthArgument(0) == NumTraits::zero()) {
               l = *lit->nthArgument(0);
               r = *lit->nthArgument(1);
@@ -337,7 +334,7 @@ namespace Kernel {
             break;
 
           default: 
-            return Opt();
+            return {};
         }
 
         if (lit->isNegative() && isInequality(pred)) {
@@ -379,95 +376,62 @@ namespace Kernel {
             break;
         }
 
-
-        Stack<AlascaLiteral<NumTraits>> out;
-        // TODO don't return stack
-        out = { AlascaLiteral<NumTraits>(factorsNormalized, pred) };
-
-        return Opt(std::move(out));
+        return some(AlascaLiteral<NumTraits>(factorsNormalized, pred));
       };
       auto out = impl();
       DEBUG_NORM("out: ", out);
       return out;
     }
-    // TODO rename
-    template<class NumTraits> Option<AlascaLiteral<NumTraits>> renormalizeAlasca(Literal* lit) const
-    {
-      return normalizeAlasca<NumTraits>(lit)
-        .map([](auto&& lits) -> AlascaLiteral<NumTraits> { 
-            ASS_REP(lits.size() == 1, "literal has not been normalized before.");
-            return std::move(lits[0]);
-          });
-    }
+    // TODO deprecate
+    template<class NumTraits> 
+    Option<AlascaLiteral<NumTraits>> renormalizeAlasca(Literal* lit) const
+    { return normalizeAlasca<NumTraits>(lit); }
+
+    // TODO deprecate
+    template<class NumTraits> 
+    Option<InequalityLiteral<NumTraits>> renormalizeIneq(Literal* lit) const 
+    { return normalizeAlasca<NumTraits>(lit)
+        .andThen([](auto lit) { 
+            return someIf(lit.isInequality(), [&]() { return InequalityLiteral<NumTraits>(std::move(lit)); }); }); }
+
+    // TODO deprecate
+    template<class NumTraits> 
+    Option<AlascaLiteral<NumTraits>> renormalize(Literal* l)
+    { return normalizeAlasca<NumTraits>(l); }
 
     // TODO rename
-    template<class NumTraits> Option<InequalityLiteral<NumTraits>> renormalizeIneq(Literal* lit) const 
-    {
-      using Opt = Option<InequalityLiteral<NumTraits>>;
-      return normalizeAlasca<NumTraits>(lit)
-        .andThen([](auto lit) {
-          // The literal must have been normalized before, hence normalizing again can't produce more than one literal
-          ASS_EQ(lit.size(), 1) 
-          if (lit[0].isInequality()) {
-            return Opt(InequalityLiteral<NumTraits>(std::move(lit)));
-          } else {
-            return Opt();
-          }
-        });
-    }
-
-
-    template<class NumTraits> Option<AlascaLiteral<NumTraits>> renormalize(Literal* l)
-    {
-      auto norm = renormalizeAlasca<NumTraits>(l);
-      if (norm.isNone()) {
-        return Option<AlascaLiteral<NumTraits>>();
-      } else {
-        return Option<AlascaLiteral<NumTraits>>(norm.unwrap());
-      }
-    }
-
     Option<AnyAlascaLiteral> renormalize(Literal* lit) const
     {
       using Out = AnyAlascaLiteral;
       auto wrapCoproduct = [](auto&& norm) {
         return std::move(norm).map([](auto x) { return Out(x); });
       };
-      return             wrapCoproduct(renormalizeAlasca< IntTraits>(lit))
-        || [&](){ return wrapCoproduct(renormalizeAlasca< RatTraits>(lit)); } 
-        || [&](){ return wrapCoproduct(renormalizeAlasca<RealTraits>(lit)); } 
+      return             wrapCoproduct(normalizeAlasca< IntTraits>(lit))
+        || [&](){ return wrapCoproduct(normalizeAlasca< RatTraits>(lit)); } 
+        || [&](){ return wrapCoproduct(normalizeAlasca<RealTraits>(lit)); } 
         || Option<Out>();
     }
 
+    // TODO rename
     Option<AnyInequalityLiteral> renormalizeIneq(Literal* lit)
     {
       return renormalize(lit)
         .andThen([](auto res) {
           return res.apply([](auto lit) { 
-              return inequalityLiteral(lit).map([](auto x) { return AnyInequalityLiteral(x); }); 
+              return tryInequalityLiteral(lit)
+                 .map([](auto x) { return AnyInequalityLiteral(x); }); 
           });
         });
     }
 
-
-    Recycled<Stack<Literal*>> normalizeLiteral(Literal* lit) const
+    Literal* normalizeLiteral(Literal* lit) const
     {
-      Recycled<Stack<Literal*>> out;
-      auto num = forAnyNumTraits([&](auto numTraits) { 
-          auto norm = normalizeAlasca<decltype(numTraits)>(lit);
-          if (norm.isSome()) {
-            out->loadFromIterator(
-              arrayIter(*norm)
-                .map([](auto lit) { return lit.denormalize(); }));
-            return true;
-          } else {
-            return false;
-          }
+      auto interpreted = tryNumTraits([&](auto numTraits) { 
+          return normalizeAlasca<decltype(numTraits)>(lit)
+            .map([](auto lit) { return lit.denormalize(); });
         }); 
-      if (!num) {
-        out->push(normalizeUninterpreted(lit));
-      }
-      DEBUG_NORM(*lit, " ==> ", out)
+      auto out = interpreted.isSome() ? *interpreted : normalizeUninterpreted(lit);
+      DEBUG_NORM(*lit, " ==> ", *out)
       return out;
     }
 

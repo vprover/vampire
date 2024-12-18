@@ -487,11 +487,9 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
       modified = true;
     }
     if (_inequalityNormalizer)  {
-      auto norm = _inequalityNormalizer->normalizeLiteral(newLit);
-      for (auto lit : *norm){
-        lits.push(lit);
-      }
-      if (lits.size() != 1 || lits[0] != orig) {
+      auto simpl = _inequalityNormalizer->normalizeLiteral(newLit);
+      lits.push(simpl);
+      if (simpl != orig) {
         modified = true;
       }
     } else {

@@ -81,21 +81,19 @@ Clause* Normalization::simplify(Clause* cl)
   bool altered = false; 
   Recycled<Stack<Literal*>> out;
   for (unsigned i = 0; i < cl->size(); i++) {
-    auto lits = _shared->norm().normalizeLiteral((*cl)[i]);
-    altered |= lits->size() != 1 || (*lits)[0] != (*cl)[i];
-    for (auto lit : *lits) {
-      auto triv = trivial(lit);
-      if (triv.isSome()) {
-        if (*triv) {
-          /* trivialy true literal makes the literal redundant */
-          return nullptr;
-        } else {
-          /* trivialy false literals don't have to be added to the output */
-          altered = true;
-        }
+    auto lit = _shared->norm().normalizeLiteral((*cl)[i]);
+    altered |= lit != (*cl)[i];
+    auto triv = trivial(lit);
+    if (triv.isSome()) {
+      if (*triv) {
+        /* trivialy true literal makes the literal redundant */
+        return nullptr;
       } else {
-        out->push(lit);
+        /* trivialy false literals don't have to be added to the output */
+        altered = true;
       }
+    } else {
+      out->push(lit);
     }
   }
   if (altered) {
