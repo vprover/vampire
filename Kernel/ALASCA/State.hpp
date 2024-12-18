@@ -66,7 +66,7 @@ namespace Kernel {
 
 
     auto maxLits(Clause* cl, SelectionCriterion sel) {
-      return OrderingUtils2::maxElems(
+      return OrderingUtils::maxElems(
           cl->size(), 
           [=](unsigned l, unsigned r) 
           { return ordering->compare((*cl)[l], (*cl)[r]); },
@@ -83,11 +83,11 @@ namespace Kernel {
 
     template<class LitOrTerm>
     bool notLess(LitOrTerm lhs, LitOrTerm rhs)
-    { return OrderingUtils2::notLess(ordering->compare(lhs, rhs)); }
+    { return OrderingUtils::notLess(ordering->compare(lhs, rhs)); }
 
     template<class LitOrTerm>
     bool notLeq(LitOrTerm lhs, LitOrTerm rhs)
-    { return OrderingUtils2::notLeq(ordering->compare(lhs, rhs)); }
+    { return OrderingUtils::notLeq(ordering->compare(lhs, rhs)); }
 
     template<class NumTraits>
     auto maxSummandIndices(AlascaLiteral<NumTraits> const& lit, SelectionCriterion selection)
@@ -95,7 +95,7 @@ namespace Kernel {
         auto monomAt = [=](auto i) 
              { return lit.term().summandAt(i).factors->denormalize(); }; 
 
-        return iterTraits(OrderingUtils2::maxElems(
+        return iterTraits(OrderingUtils::maxElems(
                   lit.term().nSummands(),
                   [=](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
@@ -119,7 +119,7 @@ namespace Kernel {
         auto monomAt = [=](auto i) 
              { return sum[i].first; }; 
 
-        return iterTraits(OrderingUtils2::maxElems(
+        return iterTraits(OrderingUtils::maxElems(
                   sum.size(),
                   [=](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
@@ -320,7 +320,7 @@ namespace Kernel {
         }
       }
 
-      return OrderingUtils2::maxElems(
+      return OrderingUtils::maxElems(
           atoms->size(), 
           [=](unsigned l, unsigned r) 
           { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },

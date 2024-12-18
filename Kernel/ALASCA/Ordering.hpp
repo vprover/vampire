@@ -18,7 +18,6 @@
 
 #include "Kernel/Ordering.hpp"
 #include "Lib/DArray.hpp"
-#include "Kernel/LaLpo.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
@@ -114,7 +113,7 @@ struct LAKBO {
       return cmpSameSkeleton(t0.summandAt(0), t1.summandAt(0));
     } else {
       auto set = [](auto p) { return p.iterSummands().map([](auto& x) { return x; }).template collect<MultiSet>(); };
-      return OrderingUtils2::mulExt(set(t0), set(t1), [&](auto& l, auto& r) { return compare(l, r); });
+      return OrderingUtils::mulExt(set(t0), set(t1), [&](auto& l, auto& r) { return compare(l, r); });
     }
   }
 
@@ -220,7 +219,7 @@ struct LAKBO {
   DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
   {
     if (auto summands = trySkeleton(t.iterSummands())) {
-      auto maxIter = OrderingUtils2::maxElems(summands->size(), 
+      auto maxIter = OrderingUtils::maxElems(summands->size(), 
           [&](auto t0, auto t1) { return _kbo.compare((*summands)[t0], (*summands)[t1]);  }, 
           [&](auto i) { return (*summands)[i]; }, 
           SelectionCriterion::NOT_LESS, 
@@ -390,7 +389,7 @@ class LiteralOrdering
   //   auto a1 = atoms(l1);
   //   auto a2 = atoms(l2);
   //   return AlascaOrderingUtils::lexLazy(
-  //         [&](){ return OrderingUtils2::mulExt(a1, a2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
+  //         [&](){ return OrderingUtils::mulExt(a1, a2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
   //         [&](){ return cmpPrec<NumTraits>(l1.symbol(), l2.symbol()); }
   //         );
   // }
@@ -428,7 +427,7 @@ public:
     } else if (atoms1.isSome() && atoms2.isSome()) {
 
       return AlascaOrderingUtils::lexLazy(
-            [&](){ return OrderingUtils2::mulExt(*atoms1, *atoms2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
+            [&](){ return OrderingUtils::mulExt(*atoms1, *atoms2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
             [&](){ return cmpPrec(l1, l2); }
             );
 

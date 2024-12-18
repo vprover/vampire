@@ -528,9 +528,8 @@ public:
   enum class TermOrdering : unsigned int {
     KBO = 0,
     LPO = 1,
-    LALPO = 2,
-    QKBO = 3,
-    ALL_INCOMPARABLE = 4,
+    QKBO = 2,
+    ALL_INCOMPARABLE = 3,
   };
 
   enum class SymbolPrecedence : unsigned int {

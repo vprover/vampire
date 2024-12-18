@@ -331,7 +331,7 @@ namespace Kernel {
     }
   };
 
-  using SelectionCriterion = OrderingUtils2::SelectionCriterion;
+  using SelectionCriterion = OrderingUtils::SelectionCriterion;
 
 } // namespace Kernel
  

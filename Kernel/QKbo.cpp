@@ -21,7 +21,7 @@ std::string output_to_string(T const& t)
   return out.str();
 }
 
-using OU = OrderingUtils2;
+using OU = OrderingUtils;
 
 QKbo::QKbo(KBO kbo, std::shared_ptr<InequalityNormalizer> norm) 
   : _norm(std::move(norm))
@@ -29,7 +29,6 @@ QKbo::QKbo(KBO kbo, std::shared_ptr<InequalityNormalizer> norm)
 {
   ASS(_kbo.usesQkboPrecedence())
 }
-
 
 using MulExtMemo = DArray<Option<Ordering::Result>>;
 

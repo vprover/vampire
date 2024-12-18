@@ -1288,7 +1288,6 @@ void Options::init()
     _alasca.tag(OptionTag::INFERENCES);
     _alasca.setExperimental();
     _alasca.onlyUsefulWith2(Or(
-           _termOrdering.is(equal(TermOrdering::LALPO)),
            _termOrdering.is(equal(TermOrdering::QKBO)),
            _termOrdering.is(equal(TermOrdering::ALL_INCOMPARABLE))
            ));
@@ -2364,12 +2363,12 @@ void Options::init()
     _activationLimit.tag(OptionTag::SATURATION);
 
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
-                                                    {"kbo","lpo","lalpo","qkbo", "incomp"});
+                                                    {"kbo","lpo","qkbo", "incomp"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());
     _termOrdering.tag(OptionTag::SATURATION);
     _termOrdering.addHardConstraint(
-        If(Or(equal(TermOrdering::QKBO), equal(TermOrdering::LALPO)))
+        If(Or(equal(TermOrdering::QKBO)))
           .then(_alasca.is(equal(true)))); // <- alasca must be enabled, because the orderings rely on AlascaState to be set
     _lookup.insert(&_termOrdering);
 

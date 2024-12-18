@@ -32,7 +32,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/KBO.hpp"
-#include "Kernel/LaLpo.hpp"
 #include "Kernel/QKbo.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MLVariant.hpp"

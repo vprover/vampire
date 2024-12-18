@@ -41,7 +41,6 @@
 #include "Kernel/NumTraits.hpp" 
 #include "Kernel/QKbo.hpp"
 #include "Kernel/ALASCA/Ordering.hpp"
-#include "Kernel/LaLpo.hpp"
 #include "Shell/Shuffling.hpp"
 #include "NumTraits.hpp"
 
@@ -151,9 +150,6 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
     out = new KBO(prb, opt);
-    break;
-  case Options::TermOrdering::LALPO:
-    out = NEW_ORD(LaLpo, prb, opt);
     break;
   case Options::TermOrdering::QKBO:
     // out = NEW_ORD(QKbo, prb, opt);
@@ -903,11 +899,6 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
       //equality proxy predicates have the highest level (lower than colored predicates)
       predicateLevels[i] = nPredicates + PredLevels::MIN_USER_DEF+ 1;
     }
-    else if (predSym->interpreted()) {
-      if (theory->isInequality(theory->interpretPredicate(i)) && env.options->termOrdering() == Options::TermOrdering::LALPO) {
-        predicateLevels[i] = PredLevels::INEQ;
-      }
-    }
   }
 
   checkLevelAssumptions(predicateLevels);
@@ -923,7 +914,6 @@ void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
       if (itp == Kernel::Theory::EQUAL) {
         ASS_EQ(levels[i], PredLevels::EQ);
       } else if (theory->isInequality(itp)) {
-        ASS(env.options->termOrdering() != Options::TermOrdering::LALPO || levels[i] == PredLevels::INEQ);
       } else {
         ASS(levels[i] >= PredLevels::MIN_USER_DEF || levels[i] < 0)
       }

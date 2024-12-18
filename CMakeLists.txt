@@ -220,7 +220,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
     Kernel/QKbo.cpp
-    Kernel/LaLpo.cpp
     Kernel/KBOComparator.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
@@ -269,7 +268,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
     Kernel/QKbo.hpp
-    Kernel/LaLpo.hpp
     Kernel/KBOComparator.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
@@ -797,7 +795,6 @@ set(UNIT_TESTS
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp
-    UnitTests/tLaLpo.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
