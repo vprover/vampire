@@ -21,14 +21,10 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/ALASCA.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Indexing/AlascaIndex.hpp"
 #include "Superposition.hpp"
 #include "FourierMotzkin.hpp"
-#include "Shell/Options.hpp"
 #include "Lib/Metaiterators.hpp"
-#define DEBUG_FM(lvl, ...) if (lvl <= 0) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace ALASCA {

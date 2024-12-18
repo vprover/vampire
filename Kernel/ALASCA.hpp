@@ -228,7 +228,6 @@ namespace Kernel {
   }
 
   class InequalityNormalizer {
-    // Map<Literal*, Option<InequalityLiteral>> _normalized;
     PolynomialEvaluation _eval;
     const bool _strong;
 
@@ -397,10 +396,6 @@ namespace Kernel {
 
     auto termIdx() const { return _term; }
 
-    // explicit SelectedSummand(SelectedSummand const&) = default;
-    // SelectedSummand(SelectedSummand&&) = default;
-    // SelectedSummand& operator=(SelectedSummand&&) = default;
-
     auto numeral() const 
     { return ircLiteral()
           .apply([this](auto& lit) 
@@ -429,8 +424,6 @@ namespace Kernel {
                 .map([&](unsigned i) { return lit.term().summandAt(i); });
     }
 
-
-    // TODO use this everywhere possible
     TermList notSelectedTerm(AlascaLiteral<IntTraits> const& lit) const { ASSERTION_VIOLATION }
 
     template<class NumTraits>
@@ -615,41 +608,6 @@ namespace Kernel {
     }
   };
   using SelectionCriterion = OrderingUtils2::SelectionCriterion;
-
-  // TODO move to right place (ALASCA.hpp ?)
-  struct SignedTerm
-  {
-    Sign sign;
-    TermList term;
-
-    static SignedTerm pos(TermList t)
-    { return { .sign = Sign::Pos, .term = t, }; }
-
-    static SignedTerm neg(TermList t)
-    { return { .sign = Sign::Neg, .term = t, }; }
-
-    static SignedTerm zero(TermList t)
-    { return { .sign = Sign::Zero, .term = t, }; }
-
-    friend std::ostream& operator<<(std::ostream& out, SignedTerm const& self)
-    { return out << self.sign << self.term; }
-
-    friend bool operator==(SignedTerm const& lhs, SignedTerm const& rhs)
-    { return lhs.sign == rhs.sign && lhs.term == rhs.term; }
-
-    friend bool operator!=(SignedTerm const& lhs, SignedTerm const& rhs)
-    { return !(lhs == rhs); }
-
-    friend bool operator<(SignedTerm const& l, SignedTerm const& r)
-    { return std::tie(l.term, l.sign) < std::tie(r.term, r.sign); }
-
-    friend bool operator> (SignedTerm const& l, SignedTerm const& r) { return r < l; }
-    friend bool operator<=(SignedTerm const& l, SignedTerm const& r) { return l == r || l < r; }
-    friend bool operator>=(SignedTerm const& l, SignedTerm const& r) { return l == r || l > r; }
-  };
-
-  using SignedAtoms = WeightedMultiSet<SignedTerm>;
-
   struct AlascaState 
   {
     USE_ALLOCATOR(AlascaState);

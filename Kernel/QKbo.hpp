@@ -30,7 +30,42 @@
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
+// TODO namespacing ALASCA
 namespace Kernel {
+
+struct SignedTerm
+{
+  Sign sign;
+  TermList term;
+
+  static SignedTerm pos(TermList t)
+  { return { .sign = Sign::Pos, .term = t, }; }
+
+  static SignedTerm neg(TermList t)
+  { return { .sign = Sign::Neg, .term = t, }; }
+
+  static SignedTerm zero(TermList t)
+  { return { .sign = Sign::Zero, .term = t, }; }
+
+  friend std::ostream& operator<<(std::ostream& out, SignedTerm const& self)
+  { return out << self.sign << self.term; }
+
+  friend bool operator==(SignedTerm const& lhs, SignedTerm const& rhs)
+  { return lhs.sign == rhs.sign && lhs.term == rhs.term; }
+
+  friend bool operator!=(SignedTerm const& lhs, SignedTerm const& rhs)
+  { return !(lhs == rhs); }
+
+  friend bool operator<(SignedTerm const& l, SignedTerm const& r)
+  { return std::tie(l.term, l.sign) < std::tie(r.term, r.sign); }
+
+  friend bool operator> (SignedTerm const& l, SignedTerm const& r) { return r < l; }
+  friend bool operator<=(SignedTerm const& l, SignedTerm const& r) { return l == r || l < r; }
+  friend bool operator>=(SignedTerm const& l, SignedTerm const& r) { return l == r || l > r; }
+};
+
+using SignedAtoms = WeightedMultiSet<SignedTerm>;
+
 
 using namespace Lib;
 

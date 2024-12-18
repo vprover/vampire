@@ -17,7 +17,6 @@
 #define __ALASCA_FloorFourierMotzkin__
 
 #include "IntegerFourierMotzkin.hpp"
-#include "Coherence.hpp"
 
 namespace Inferences {
 namespace ALASCA {
