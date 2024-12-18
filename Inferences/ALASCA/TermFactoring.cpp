@@ -166,7 +166,7 @@ Option<Clause*> TermFactoring::applyRule(
   auto resSum = NumTraits::sum(concatIters(iterItems(resTerm), t_sigma));
   //   ^^^^^^---> ((k₁ + s₁)s₂ + t)σ
     
-  auto resLit = AlascaPredicateCreateLiteral<NumTraits>(sel1.symbol(), resSum);
+  auto resLit = createLiteral<NumTraits>(sel1.symbol(), resSum);
   //   ^^^^^^---> ((k₁ + s₁)s₂ + t <> 0)σ
 
 

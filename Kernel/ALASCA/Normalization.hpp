@@ -29,7 +29,7 @@ namespace Kernel {
   };
 
   template<class NumTraits>
-  Literal* AlascaPredicateCreateLiteral(AlascaPredicate p, TermList t)
+  Literal* createLiteral(AlascaPredicate p, TermList t)
   { 
     switch(p) {
       case AlascaPredicate::EQ: return Literal::createEquality(true, t, NumTraits::zero(), NumTraits::sort());

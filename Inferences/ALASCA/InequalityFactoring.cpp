@@ -158,7 +158,7 @@ Option<Clause*> InequalityFactoring::applyRule(
             && l2.symbol() == AlascaPredicate::GREATER ? AlascaPredicate::GREATER_EQ
                                                       : AlascaPredicate::GREATER;
 
-  auto pivotLit = AlascaPredicateCreateLiteral<NumTraits>(less3, pivotSum);
+  auto pivotLit = createLiteral<NumTraits>(less3, pivotSum);
 
   // adding (k t1 − j t2 >3 0)σ
   concl.push(pivotLit);
