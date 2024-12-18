@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_IntegerFourierMotzkin__
-#define __ALASCA_IntegerFourierMotzkin__
+#ifndef __ALASCA_Inferences_IntegerFourierMotzkin__
+#define __ALASCA_Inferences_IntegerFourierMotzkin__
 
 #include "FourierMotzkin.hpp"
 #include "Coherence.hpp"
@@ -164,4 +164,4 @@ struct IntegerFourierMotzkin : public TriInf<IntegerFourierMotzkinConf<NumTraits
 } // namespace Inferences 
 
 
-#endif /*__ALASCA_IntegerFourierMotzkin__*/
+#endif /*__ALASCA_Inferences_IntegerFourierMotzkin__*/

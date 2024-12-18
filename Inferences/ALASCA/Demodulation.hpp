@@ -13,8 +13,8 @@
  * Shared code between  FwdDemodulation and BwdDemodulation.
  */
 
-#ifndef __ALASCA_Demodulation__
-#define __ALASCA_Demodulation__
+#ifndef __ALASCA_Inferences_Demodulation__
+#define __ALASCA_Inferences_Demodulation__
 
 #include "Forwards.hpp"
 #include "Kernel/ALASCA.hpp"
@@ -117,4 +117,4 @@ public:
 } // namespace ALASCA
 } // namespace Inferences
 
-#endif /*__ALASCA_Demodulation__*/
+#endif /*__ALASCA_Inferences_Demodulation__*/

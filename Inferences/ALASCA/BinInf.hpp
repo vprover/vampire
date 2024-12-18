@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_BinInf__
-#define __ALASCA_BinInf__
+#ifndef __ALASCA_Inferences_BinInf__
+#define __ALASCA_Inferences_BinInf__
 
 #include "Forwards.hpp"
 
@@ -320,4 +320,4 @@ public:
 } // namespaceALASCA 
 } // namespace Inferences
 
-#endif /*__ALASCA_BinInf__*/
+#endif /*__ALASCA_Inferences_BinInf__*/

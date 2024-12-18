@@ -158,7 +158,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
 // TODO move to appropriate place
 
 SimplifyingGeneratingInference::ClauseGenerationResult InequalityTautologyDetection::generateSimplify(Clause* premise) {
-  Map<AnyAlascaLiteral, bool, StlHash> lits;
+  Map<AnyAlascaLiteral, bool> lits;
   TIME_TRACE("alasca tautology detection")
   for (auto lit : iterTraits(premise->iterLits())) {
     auto norm_ = _shared->norm().renormalize(lit);

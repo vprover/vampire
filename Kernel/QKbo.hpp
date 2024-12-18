@@ -25,8 +25,6 @@
 #include "Kernel/ALASCA.hpp"
 
 #include "Ordering.hpp"
-#include "Lib/DArray.hpp"
-#include "Kernel/LaLpo.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
 

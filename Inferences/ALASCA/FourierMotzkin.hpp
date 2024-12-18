@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_FourierMotzkin__
-#define __ALASCA_FourierMotzkin__
+#ifndef __ALASCA_Inferences_FourierMotzkin__
+#define __ALASCA_Inferences_FourierMotzkin__
 
 #include "Forwards.hpp"
 
@@ -107,4 +107,4 @@ struct FourierMotzkin : public BinInf<FourierMotzkinConf>  {
 } // namespace Inferences 
 
 
-#endif /*__ALASCA_FourierMotzkin__*/
+#endif /*__ALASCA_Inferences_FourierMotzkin__*/

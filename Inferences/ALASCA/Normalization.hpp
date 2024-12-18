@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_Normalization__
-#define __ALASCA_Normalization__
+#ifndef __ALASCA_Inferences_Normalization__
+#define __ALASCA_Inferences_Normalization__
 
 #include "Forwards.hpp"
 
@@ -86,4 +86,4 @@ public:
 } // namespace ALASCA
 } // namespace Inferences
 
-#endif /*__ALASCA_Normalization__*/
+#endif /*__ALASCA_Inferences_Normalization__*/

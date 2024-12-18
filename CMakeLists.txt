@@ -312,7 +312,15 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
     Kernel/ALASCA.hpp
-    Kernel/ALASCA.cpp
+    Kernel/ALASCA/Signature.hpp
+    Kernel/ALASCA/SelectionPrimitves.hpp
+    Kernel/ALASCA/SelectionPrimitves.cpp
+    Kernel/ALASCA/Normalization.cpp
+    Kernel/ALASCA/Normalization.hpp
+    Kernel/ALASCA/Preprocessor.hpp
+    Kernel/ALASCA/Ordering.hpp
+    Kernel/ALASCA/State.hpp
+    Kernel/ALASCA/State.cpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp

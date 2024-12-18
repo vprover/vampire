@@ -29,7 +29,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
     AbstractingUnifier& uwa
     ) const 
 {
-#define __ALASCA_FM_DERIVE_EQUALITIES 1
+#define __ALASCA_Inferences_FM_DERIVE_EQUALITIES 1
 
   TIME_TRACE("fourier motzkin")
   auto cnst = uwa.computeConstraintLiterals();
@@ -65,9 +65,9 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
     Stack<Literal*> out( lhs.clause()->size() - 1 // <- C1
                        + rhs.clause()->size() - 1 // <- C2
                        + 1                        // <- k t₁ + j t₂ > 0
-#if __ALASCA_FM_DERIVE_EQUALITIES
+#if __ALASCA_Inferences_FM_DERIVE_EQUALITIES
                        + (tight ? 1 : 0)          // <- -k s₂ + t₂ ≈ 0
-#endif // __ALASCA_FM_DERIVE_EQUALITIES
+#endif // __ALASCA_Inferences_FM_DERIVE_EQUALITIES
                        + cnst->size());      // Cnst
 
     auto s1 = lhs.selectedAtom();
@@ -147,7 +147,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
       resolventTerm = add(resolventTerm, NumTraits::constantTl(-1));
     }
 
-#if __ALASCA_FM_DERIVE_EQUALITIES
+#if __ALASCA_Inferences_FM_DERIVE_EQUALITIES
     // (k t₁ + j t₂ > 0)σ
     out.push(NumTraits::greater(true, resolventTerm, NumTraits::zero()));
 

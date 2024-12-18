@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_Coherence__
-#define __ALASCA_Coherence__
+#ifndef __ALASCA_Inferences_Coherence__
+#define __ALASCA_Inferences_Coherence__
 
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
@@ -285,4 +285,4 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
 } // namespace ALASCA 
 } // namespace Inferences
 
-#endif /*__ALASCA_Coherence__*/
+#endif /*__ALASCA_Inferences_Coherence__*/

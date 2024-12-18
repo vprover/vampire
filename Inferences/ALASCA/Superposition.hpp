@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_Superposition__
-#define __ALASCA_Superposition__
+#ifndef __ALASCA_Inferences_Superposition__
+#define __ALASCA_Inferences_Superposition__
 
 #include "Forwards.hpp"
 
@@ -193,4 +193,4 @@ private:
 } // namespaceALASCA 
 } // namespace Inferences
 
-#endif /*__ALASCA_Superposition__*/
+#endif /*__ALASCA_Inferences_Superposition__*/

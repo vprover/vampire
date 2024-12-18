@@ -35,7 +35,7 @@
 #include "FunctionDefinitionHandler.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
-#include "Kernel/ALASCA.hpp"
+#include "Kernel/ALASCA/Preprocessor.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "Shuffling.hpp"

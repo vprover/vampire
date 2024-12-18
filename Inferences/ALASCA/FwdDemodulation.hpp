@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_FwdDemodulation__
-#define __ALASCA_FwdDemodulation__
+#ifndef __ALASCA_Inferences_FwdDemodulation__
+#define __ALASCA_Inferences_FwdDemodulation__
 
 #include "Forwards.hpp"
 
@@ -61,4 +61,4 @@ private:
 } // namespaceALASCA 
 } // namespace Inferences
 
-#endif /*__ALASCA_FwdDemodulation__*/
+#endif /*__ALASCA_Inferences_FwdDemodulation__*/

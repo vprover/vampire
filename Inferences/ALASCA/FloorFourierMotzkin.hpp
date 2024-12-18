@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_FloorFourierMotzkin__
-#define __ALASCA_FloorFourierMotzkin__
+#ifndef __ALASCA_Inferences_FloorFourierMotzkin__
+#define __ALASCA_Inferences_FloorFourierMotzkin__
 
 #include "IntegerFourierMotzkin.hpp"
 
@@ -90,4 +90,4 @@ struct FloorFourierMotzkin : public BinInf<FloorFourierMotzkinConf<NumTraits>>  
 } // namespace Inferences 
 
 
-#endif /*__ALASCA_FloorFourierMotzkin__*/
+#endif /*__ALASCA_Inferences_FloorFourierMotzkin__*/

@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_FloorBounds__
-#define __ALASCA_FloorBounds__
+#ifndef __ALASCA_Inferences_FloorBounds__
+#define __ALASCA_Inferences_FloorBounds__
 
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
@@ -177,4 +177,4 @@ public:
 } // namespace Inferences 
 
 
-#endif /*__ALASCA_FloorBounds__*/
+#endif /*__ALASCA_Inferences_FloorBounds__*/

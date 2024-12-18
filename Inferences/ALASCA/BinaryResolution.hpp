@@ -13,8 +13,8 @@
  *
  */
 
-#ifndef __ALASCA_BinaryResolution__
-#define __ALASCA_BinaryResolution__
+#ifndef __ALASCA_Inferences_BinaryResolution__
+#define __ALASCA_Inferences_BinaryResolution__
 
 #include "Forwards.hpp"
 
@@ -128,4 +128,4 @@ struct BinaryResolution
 } // namespaceALASCA 
 } // namespace Inferences
 
-#endif /*__ALASCA_BinaryResolution__*/
+#endif /*__ALASCA_Inferences_BinaryResolution__*/
