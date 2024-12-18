@@ -28,18 +28,6 @@ namespace Kernel {
     GREATER_EQ,
   };
 
-  template<class NumTraits>
-  Literal* createLiteral(AlascaPredicate p, TermList t)
-  { 
-    switch(p) {
-      case AlascaPredicate::EQ: return Literal::createEquality(true, t, NumTraits::zero(), NumTraits::sort());
-      case AlascaPredicate::NEQ: return Literal::createEquality(false, t, NumTraits::zero(), NumTraits::sort());
-      case AlascaPredicate::GREATER_EQ: return NumTraits::geq(true, t, NumTraits::zero());
-      case AlascaPredicate::GREATER: return NumTraits::greater(true, t, NumTraits::zero());
-    }
-    ASSERTION_VIOLATION
-  }
-
   /** returns true iff the predicate is > or >= */
   inline bool isInequality(AlascaPredicate const& self) 
   {

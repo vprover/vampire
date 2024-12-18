@@ -25,6 +25,8 @@
 #include "Lib/Exception.hpp"
 #include "Shell/Options.hpp"
 
+#define UNSTABILITY_ABSTRACTION 0
+
 namespace Inferences {
 namespace ALASCA {
 
@@ -52,7 +54,9 @@ class Abstraction
       bool inBounds() const { return idx < current->size(); }
       // bool canPush() const { return true; }
       bool canPush() const { return deref()->numTermArguments() > 0; }
+#if UNSTABILITY_ABSTRACTION
       bool isUnstable() const { return false; }
+#endif // UNSTABILITY_ABSTRACTION
     };
 
     struct LiteralEntry {
@@ -64,7 +68,9 @@ class Abstraction
       Option<TermList> derefTermList() const { return some(deref()); }
       bool isUnderFloor() const { return false; }
       bool isShielded() const { return shielded; }
+#if UNSTABILITY_ABSTRACTION
       bool isUnstable() const { return false; }
+#endif // UNSTABILITY_ABSTRACTION
       bool inBounds() const { return idx < current->numTermArguments(); }
       // bool canPush() const { return current->numTermArguments() > 0; }
       bool canPush() const { return deref().isTerm() && deref().term()->numTermArguments() > 0; }
@@ -75,13 +81,17 @@ class Abstraction
       unsigned idx;
       bool underFloor;
       bool shielded;
+#if UNSTABILITY_ABSTRACTION
       bool unstable;
+#endif // UNSTABILITY_ABSTRACTION
 
       TermList deref() const { return current->termArg(idx); }
       Option<TermList> derefTermList() const { return some(deref()); }
       bool isUnderFloor() const { return underFloor; }
       bool inBounds() const { return idx < current->numTermArguments(); }
+#if UNSTABILITY_ABSTRACTION
       bool isUnstable() const { return unstable; }
+#endif // UNSTABILITY_ABSTRACTION
       bool isShielded() const { return shielded; }
       bool canPush() const { return deref().isTerm() && deref().term()->numTermArguments() > 0; }
     };
@@ -172,7 +182,7 @@ class Abstraction
     bool isUnshieldedUnderFloor() const 
     { return top([&](auto& t) { return t.isUnderFloor(); }); }
 
-    // TODO
+#if UNSTABILITY_ABSTRACTION
     void popToUnstable() { 
       // ASSERTION_VIOLATION
       // ASS(top([](auto x) { return x.derefIsUnstable(); }))
@@ -180,8 +190,8 @@ class Abstraction
         pop();
       }
     }
-    // TODO
     bool isUnstable() const { return top([](auto x) { return x.isUnstable(); }); }
+#endif // UNSTABILITY_ABSTRACTION
 
     Clause* abstract() const {
       auto newVar = TermList::var(1 + clause.current->iterLits()
@@ -246,15 +256,15 @@ class Abstraction
             NumTraits::isFloor(curT)                             ? true
           : (isNumMul<NumTraits>(curT) || NumTraits::isAdd(curT)) ? top([](auto& x) { return x.isUnderFloor(); })
            /* uninterpretd */                                   : false;
-        auto shielded = top([](auto& t) { return t.isShielded(); }) || isUninterpreted<NumTraits>(curT);
-        auto unstable = top([](auto& t) { return t.isUnstable(); })  
-          || (top([](auto& t) { return t.isShielded(); }) && NumTraits::isAdd(curT));
         termIdx->push(TermEntry { 
             .current = curT, 
             .idx = i, 
             .underFloor = unshieldedUnderFloor, 
-            .shielded = shielded,
-            .unstable = unstable,
+            .shielded = top([](auto& t) { return t.isShielded(); }) || isUninterpreted<NumTraits>(curT),
+#if UNSTABILITY_ABSTRACTION
+            .unstable = top([](auto& t) { return t.isUnstable(); })  
+                    || (top([](auto& t) { return t.isShielded(); }) && NumTraits::isAdd(curT)),
+#endif // UNSTABILITY_ABSTRACTION
         });
       } else {
         ASS(litIdx.isNone())
@@ -284,11 +294,13 @@ public:
   bool simplify(Clause* premise, Path& path, Set<TermList>& topLevelVars) {
     auto baseDepth = path.depth();
     while (path.nextStep(baseDepth)) {
+#if UNSTABILITY_ABSTRACTION
       if (topLevelVars.contains(path.currentTerm().unwrap()) && path.isUnstable()) {
         // unstably shielded var
         path.popToUnstable();
         return true;
       }
+#endif // UNSTABILITY_ABSTRACTION
       if (path.isUnshieldedUnderFloor() && path.currentTerm().unwrap().isVar()) {
         path.popToFloor();
         return true;

@@ -78,6 +78,9 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<ToSgi<Abstraction<RealTraits>>>(testA
 // Basic tests
 //////////////////////////////////////
 
+#define UNSTABILITY_ABSTRACTION 0
+
+#if UNSTABILITY_ABSTRACTION 
 TEST_GENERATION(stabilizing_1,
     Generation::SymmetricTest()
       .inputs  ({ clause({ 0 != x + f(f2(x,y) - f2(x, a))  }) })
@@ -104,15 +107,7 @@ TEST_GENERATION(stabilizing_3,
             clause({ 0 != -z + f(f2(x,y) - f2(x, a)) - f(x), 0 != x + f(z)  })
       ))
     )
-
-// TEST_GENERATION(stabilizing_4,
-//     Generation::SymmetricTest()
-//       .inputs  ({ clause({ 0 != x + f(f(f2(x,y) - f2(x, a)) - f(x))  }) })
-//       .premiseRedundant(true)
-//       .expected(exactly(
-//             clause({ 0 != -z + f2(x,y) - f2(x, a), 0 != x + f(f(z) - f(x))  })
-//       ))
-//     )
+#endif // UNSTABILITY_ABSTRACTION
 
 TEST_GENERATION(coherence_1,
     Generation::SymmetricTest()
