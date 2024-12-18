@@ -279,7 +279,6 @@ namespace Kernel {
     Option<AlascaLiteral<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
     {
       DEBUG_NORM("in: ", *lit, " (", NumTraits::name(), ")")
-      using Numeral = typename NumTraits::ConstantType;
 
       auto impl = [&]() -> Option<AlascaLiteral<NumTraits>> {
 
