@@ -106,7 +106,8 @@ struct NumTraits;
 #define IMPL_NUM_TRAITS__INTERPRETED_PRED(name, Name, SORT_SHORT, _INTERPRETATION, arity) \
     IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, Name, SORT_SHORT, _INTERPRETATION)          \
                                                                                           \
-    static bool is ## Name(unsigned f)                                                    \
+    template<class LitOrFunctor>                                                          \
+    static bool is ## Name(LitOrFunctor f)                                                \
     { return theory->isInterpretedPredicate(f, name ## I); }                              \
                                                                                           \
     template<class F>                                                                     \
@@ -221,9 +222,17 @@ struct NumTraits;
         }                                                                                 \
         return out;                                                                       \
       } else {                                                                            \
-        return NumTraits::one();                                                         \
+        return NumTraits::one();                                                          \
       }                                                                                   \
     };                                                                                    \
+                                                                                          \
+    static bool isEq(bool positive, Literal* lit)                                         \
+    { return lit->isPositive() == positive                                                \
+          && lit->isEquality()                                                            \
+          && lit->eqArgSort() == sort();  }                                               \
+                                                                                          \
+    static bool isPosEq(Literal* lit) { return isEq(true, lit); }                         \
+    static bool isNegEq(Literal* lit) { return isEq(true, lit); }                         \
                                                                                           \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    Less,    SHORT, _LESS,          2)         \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     Leq,     SHORT, _LESS_EQUAL,    2)         \

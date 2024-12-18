@@ -40,6 +40,7 @@
 #include "Inferences/ALASCA/Abstractions.hpp"
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/TermFactoring.hpp"
+#include "Inferences/ALASCA/InequalityPredicateNormalization.hpp"
 #include "Inferences/ALASCA/EqFactoring.hpp"
 #include "Inferences/ALASCA/InequalityFactoring.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
@@ -1574,6 +1575,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // TODO also for rationals?
     if (env.options->alascaAbstraction())
       ise->addFront(new ALASCA::Abstraction<RealTraits>(shared)); 
+
+    if (env.options->alascaStrongNormalization())
+      ise->addFront(new ALASCA::InequalityPredicateNormalization(shared)); 
+    
     ise->addFront(new ALASCA::Normalization(shared)); 
     // TODO properly create an option for that, make it a simplifying rule
     sgi->push(new ALASCA::InequalityTautologyDetection(shared));
