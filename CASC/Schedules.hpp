@@ -27,16 +27,8 @@ class Schedules
 public:
   static void getScheduleFromFile(const std::string& filename, Schedule& quick);
 
-  static void getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback);
-
   static void getCasc2024Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCascSat2024Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-
-  static void getCasc2023Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-  static void getCascSat2023Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-
-  static void getCasc2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-  static void getCascSat2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 

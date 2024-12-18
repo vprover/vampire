@@ -8,12 +8,6 @@
  * and in the source directory
  */
 
-inline DArray<int> predLevels() {
-  DArray<int> out(env.signature->predicates());
-  out.init(out.size(), 1);
-  return out;
-}
-
 using namespace Kernel;
 
 template<class SigTraits>

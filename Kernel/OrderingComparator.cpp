@@ -656,7 +656,6 @@ void OrderingComparator::processPolyCase()
       for (const auto& [t,r] : trs) {
         // TODO turn terms into polynomials with KBO
         if (t.isTerm()) {
-          env.statistics->intDBDownInduction++;
           continue;
         }
         switch (r) {

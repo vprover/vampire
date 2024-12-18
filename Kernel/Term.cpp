@@ -147,9 +147,9 @@ void TermList::Top::output(std::ostream& out) const
     ASS(this->functor())
     auto f = *this->functor();
     switch (f.kind) {
-      case TermKind::LITERAL: out << *env.signature->getPredicate(f.functor);
-      case TermKind::TERM:    out << *env.signature->getFunction(f.functor);
-      case TermKind::SORT:    out << *env.signature->getTypeCon(f.functor);
+      case TermKind::LITERAL: out << *env.signature->getPredicate(f.functor); break;
+      case TermKind::TERM:    out << *env.signature->getFunction(f.functor); break;
+      case TermKind::SORT:    out << *env.signature->getTypeCon(f.functor); break;
     }
   }
 }
@@ -722,7 +722,7 @@ std::string Term::toString(bool topLevel) const
       } else if (NumTraits::isMul(_functor)) {
         return binary(" ");
       } else if (NumTraits::isFloor(_functor)) {
-        return some(outputToString("⌊", termArg(0), "⌋"));
+        return some(Output::toString("⌊", termArg(0), "⌋"));
       } else if (NumTraits::isMinus(_functor)) {
         return uminus();
       }
