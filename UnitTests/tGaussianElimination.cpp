@@ -44,7 +44,7 @@ public:
   /**
    * NECESSARY: performs the simplification
    */
-  virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
+  virtual Kernel::Clause* simplify(Kernel::Clause* in) override 
   {
     KBO ord = KBO::testKBO();
     auto simpl = [](Clause* cl)  -> Clause*

@@ -1578,9 +1578,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (env.options->alascaStrongNormalization())
       ise->addFront(new ALASCA::InequalityPredicateNormalization(shared)); 
     
-    ise->addFront(new ALASCA::Normalization(shared)); 
     // TODO properly create an option for that, make it a simplifying rule
-    sgi->push(new ALASCA::TautologyDetection(shared));
+    ise->addFront(new ALASCA::TautologyDeletion(shared));
+    ise->addFront(new ALASCA::Normalization(shared)); 
     // TODO check when the other one is better
     if (env.options->viras())
       sgi->push(new ALASCA::VirasQuantifierElimination(shared));

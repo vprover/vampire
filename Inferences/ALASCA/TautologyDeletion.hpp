@@ -24,45 +24,37 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class TautologyDetection
-: public SimplifyingGeneratingInference
+// TODO write tests
+class TautologyDeletion
+: public ImmediateSimplificationEngine
 {
+  std::shared_ptr<AlascaState> _shared;
 public:
-  USE_ALLOCATOR(TautologyDetection);
+  USE_ALLOCATOR(TautologyDeletion);
 
-  TautologyDetection(std::shared_ptr<AlascaState> shared) 
+  TautologyDeletion(std::shared_ptr<AlascaState> shared) 
     : _shared(std::move(shared)) {}
-  virtual ~TautologyDetection() {}
 
-  virtual ClauseGenerationResult generateSimplify(Clause* premise) override 
+  virtual Clause* simplify(Clause* premise) override 
   {
     Map<AnyAlascaLiteral, bool> lits;
     TIME_TRACE("alasca tautology detection")
     for (auto lit : iterTraits(premise->iterLits())) {
-      
-      if (auto norm = _shared->norm().tryNormalizeInterpreted(lit)) {
-        lits.insert(*norm, true);
-        auto opposite = norm->apply([&](auto lit) { return AnyAlascaLiteral(lit.negation()); });
+      auto norm_ = _shared->norm().tryNormalizeInterpreted(lit);
+      if (norm_.isSome()) {
+        auto norm = norm_.unwrap();
+        lits.insert(norm, true);
+        auto opposite = norm.apply([&](auto lit) { return AnyAlascaLiteral(lit.negation()); });
         if (lits.find(opposite)) {
           // std::cout << "bla" << std::endl;
-          return ClauseGenerationResult {
-            .clauses = ClauseIterator::getEmpty(),
-            .premiseRedundant = true,
-          };
+          return nullptr;
         }
       }
     }
 
-    return ClauseGenerationResult {
-        .clauses = ClauseIterator::getEmpty(),
-        .premiseRedundant = false,
-      };
+    return premise;
   }
-private:
-  std::shared_ptr<AlascaState> _shared;
 };
-
-
 
 #undef DEBUG
 } // namespaceALASCA 
