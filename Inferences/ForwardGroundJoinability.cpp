@@ -123,6 +123,18 @@ TermList replace(TermList t, TermList from, TermList to)
   return TermList(EqHelper::replace(t.term(), from, to));
 }
 
+std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGroundJoinability::getNext(
+  RedundancyCheck& checker, State* curr, OrderingConstraints cons, TermList left, TermList right)
+{
+  if (left == right) {
+    return checker.next(cons, nullptr);
+  }
+  bool L = curr->L && curr->left == left;
+  bool R = curr->R && curr->right == right;
+  _states.push(new State{ left, right, L, R });
+  return checker.next(cons, _states.top());
+}
+
 bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
@@ -138,26 +150,20 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
     return false;
   }
   DHSet<Clause*> premiseSet;
-  struct State {
-    TermList left;
-    TermList right;
-    bool L;
-    bool R;
-  };
-  Stack<State*> states;
+
+  // cleanup previous states
+  while (_states.isNonEmpty()) {
+    delete _states.pop();
+  }
+
   auto curr = new State{
     clit->termArg(0), clit->termArg(1), true, true
   };
-  states.push(curr);
+
+  _states.push(curr);
   RedundancyCheck checker(ordering, curr);
   auto tpo = TermPartialOrdering::getEmpty(ordering);
   unsigned cnt = 0;
-
-  auto cleanup = [&]() {
-    while (states.isNonEmpty()) {
-      delete states.pop();
-    }
-  };
 
   while (curr) {
     if (cnt++ > 500) {
@@ -167,10 +173,21 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
     attempted.reset();
 
     auto kv = checker.next({ { curr->left, curr->right, Ordering::EQUAL } }, nullptr);
-    curr = static_cast<State*>(kv.first);
+    curr = kv.first;
     tpo = kv.second;
     if (!curr) {
       break;
+    }
+
+    auto left = normalize(curr->left, tpo);
+    auto right = normalize(curr->right, tpo);
+    if (left != curr->left || right != curr->right) {
+      auto next = getNext(checker, curr, OrderingConstraints(), left, right);
+      if (!next.first) {
+        break;
+      }
+      curr = next.first;
+      tpo = next.second;
     }
 
     NonVariableNonTypeIterator it(curr->left, curr->right);
@@ -206,8 +223,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         OrderingConstraints cons;
 
         TermList rhsS;
+        AppliedTerm rhsApplied(rhs, &appl, true);
 
-        Result comp = ordering.compare(AppliedTerm(lhs, &appl, true), AppliedTerm(rhs, &appl, true), tpo);
+        Result comp = ordering.compare(trm, rhsApplied, tpo);
         if (comp == Ordering::LESS || comp == Ordering::EQUAL) {
           continue;
         } else if (comp == Ordering::INCOMPARABLE) {
@@ -229,7 +247,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
           TermList other = trm == curr->left ? curr->right : curr->left;
-          auto redComp = ordering.compare(AppliedTerm(rhs, &appl, true), AppliedTerm(other));
+          auto redComp = ordering.compare(AppliedTerm(other), rhsApplied);
           if (redComp == Ordering::LESS || redComp == Ordering::EQUAL) {
             continue;
           } else if (redComp == Ordering::INCOMPARABLE) {
@@ -244,22 +262,13 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
           rhsS = subs->applyToBoundResult(rhs);
         }
 
-        auto newLeft = replace(curr->left, trm, rhsS);
-        auto newRight = replace(curr->right, trm, rhsS);
+        auto left = replace(curr->left, trm, rhsS);
+        auto right = replace(curr->right, trm, rhsS);
 
-        std::pair<void*,const TermPartialOrdering*> next;
-        if (newLeft == newRight) {
-          next = checker.next(cons, nullptr);
-        } else {
-          bool L = curr->L && curr->left == newLeft;
-          bool R = curr->R && curr->right == newRight;
-          auto newState = new State{ newLeft, newRight, L, R };
-          states.push(newState);
-          next = checker.next(cons, newState);
-        }
+        auto next = getNext(checker, curr, cons, left, right);
         // TODO can it be that we go to a different node in the tree and get the same result still?
         if (next.first != curr || next.second != tpo) {
-          curr = static_cast<State*>(next.first);
+          curr = next.first;
           tpo = next.second;
           premiseSet.insert(qr.data->clause);
           goto LOOP_END;
@@ -283,7 +292,7 @@ TermList ForwardGroundJoinability::normalize(TermList t, const TermPartialOrderi
   return t;
 }
 
-ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, void* data)
+ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, State* data)
   : comp(ord.createComparator(/*onlyVars=*/true))
 {
   comp->_source = Branch(data, comp->_sink);
@@ -291,7 +300,8 @@ ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, 
   path.push(&comp->_source);
 }
 
-std::pair<void*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(OrderingConstraints ordCons, void* data)
+std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
+  OrderingConstraints ordCons, State* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
   ASS(path.isNonEmpty());
@@ -346,7 +356,7 @@ std::pair<void*,const TermPartialOrdering*> ForwardGroundJoinability::Redundancy
 
     if (node->tag == BranchTag::T_DATA) {
       ASS(node->data);
-      return { (Literal*)node->data, node->trace };
+      return make_pair(static_cast<State*>(node->data), node->trace);
     }
     path.push(&node->gtBranch);
   }

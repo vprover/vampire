@@ -41,14 +41,17 @@ public:
   }
 #endif // VDEBUG
 
-protected:
-  TermList normalize(TermList t, const TermPartialOrdering* tpo) const;
-
-  DemodulationLHSIndex* _index;
+private:
+  struct State {
+    TermList left;
+    TermList right;
+    bool L;
+    bool R;
+  };
 
   struct RedundancyCheck {
-    RedundancyCheck(const Ordering& ord, void* data);
-    std::pair<void*,const TermPartialOrdering*> next(OrderingConstraints cons, void* data);
+    RedundancyCheck(const Ordering& ord, State* data);
+    std::pair<State*,const TermPartialOrdering*> next(OrderingConstraints cons, State* data);
 
     void pushNext();
 
@@ -58,6 +61,12 @@ protected:
     OrderingComparatorUP comp;
     Stack<OrderingComparator::Branch*> path;
   };
+
+  std::pair<State*,const TermPartialOrdering*> getNext(RedundancyCheck& checker, State* curr, OrderingConstraints cons, TermList left, TermList right);
+  TermList normalize(TermList t, const TermPartialOrdering* tpo) const;
+
+  DemodulationLHSIndex* _index;
+  Stack<State*> _states;
 };
 
 };
