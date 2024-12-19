@@ -62,7 +62,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
+#define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
 inline auto testAbstraction(Options::UnificationWithAbstraction uwa)
 { 

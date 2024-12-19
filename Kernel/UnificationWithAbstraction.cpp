@@ -271,10 +271,10 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
       return false;
     case Shell::Options::UnificationWithAbstraction::AC1: 
     case Shell::Options::UnificationWithAbstraction::AC2: 
-    case Shell::Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT: 
-    case Shell::Options::UnificationWithAbstraction::LPAR_MAIN: 
-    case Shell::Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR: 
-    case Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
+    case Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: 
+    case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN: 
+    case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: 
+    case Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP: 
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: 
       ASSERTION_VIOLATION_REP(Output::cat(_mode, " should be handled in AbstractionOracle::tryAbstract"))
   }
@@ -460,7 +460,7 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
   if (i1 || i2) {
     using Mode = Options::UnificationWithAbstraction;
     auto sort = i1 ? t1.sort() : t2.sort();
-    if (uwa == Mode::LPAR_ONE_INTERP) {
+    if (uwa == Mode::ALASCA_ONE_INTERP) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
           .constr(UnificationConstraint(t1, t2, sort))));
     }
@@ -471,7 +471,7 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
         });
     });
     ASS(res.isSome())
-    ASS_EQ(uwa, Mode::LPAR_MAIN_FLOOR);
+    ASS_EQ(uwa, Mode::ALASCA_MAIN_FLOOR);
     return res;
   } else {
     if (t1.isVar()) return occ(t1, t2);
@@ -521,7 +521,7 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
   if (i1 || i2) {
     using Mode = Options::UnificationWithAbstraction;
     auto sort = i1 ? t1.sort() : t2.sort();
-    if (uwa == Mode::LPAR_ONE_INTERP) {
+    if (uwa == Mode::ALASCA_ONE_INTERP) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
           .constr(UnificationConstraint(t1, t2, sort))));
     }
@@ -532,10 +532,10 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
         });
     });
     ASS(res.isSome())
-    if (uwa == Mode::LPAR_MAIN) {
+    if (uwa == Mode::ALASCA_MAIN) {
       return res;
     } else {
-      ASS(uwa == Mode::LPAR_CAN_ABSTRACT)
+      ASS(uwa == Mode::ALASCA_CAN_ABSTRACT)
       if (res->template is<AbstractionOracle::EqualIf>())
         return  some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
             .constr(UnificationConstraint(t1, t2, t1.term.isTerm() ? t1.sort() : t2.sort()))));
@@ -1371,12 +1371,12 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
   } else if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
     return funcExt(au, t1, t2);
 
-  } else if (_mode == Shell::Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR) {
+  } else if (_mode == Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR) {
     return uwa_floor(*au, t1, t2, _mode);
 
-  } else if (_mode == Shell::Options::UnificationWithAbstraction::LPAR_MAIN 
-      || _mode == Shell::Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT 
-      || _mode == Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP
+  } else if (_mode == Shell::Options::UnificationWithAbstraction::ALASCA_MAIN 
+      || _mode == Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT 
+      || _mode == Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP
       ) {
     return lpar(*au, t1, t2, _mode);
 
@@ -1482,10 +1482,10 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId 
     case Options::UnificationWithAbstraction::FUNC_EXT: anything();
     case Options::UnificationWithAbstraction::AC1: return some(recycledStack(f));
     case Options::UnificationWithAbstraction::AC2: return some(recycledStack(f));
-    case Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT: 
-    case Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
-    case Options::UnificationWithAbstraction::LPAR_MAIN: return isAlascaInterpreted(f) ? anything() : some(recycledStack(f));
-    case Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR: return isAlascaiInterpreted(f) ? anything() : some(recycledStack(f));
+    case Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: 
+    case Options::UnificationWithAbstraction::ALASCA_ONE_INTERP: 
+    case Options::UnificationWithAbstraction::ALASCA_MAIN: return isAlascaInterpreted(f) ? anything() : some(recycledStack(f));
+    case Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: return isAlascaiInterpreted(f) ? anything() : some(recycledStack(f));
   }
   ASSERTION_VIOLATION
 }

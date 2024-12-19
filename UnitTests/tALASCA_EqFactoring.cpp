@@ -59,7 +59,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
+#define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
 EqFactoring testEqFactoring()
 { return EqFactoring(testAlascaState(UWA_MODE)); }

@@ -94,7 +94,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
+#define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
 Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
 { return {
@@ -538,7 +538,7 @@ for_polarity(TEST_only_replace_in_active_uninterpretd)
 TEST_GENERATION_WITH_SUGAR(int_bug01, SUGAR(Int),
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN)))
       .inputs  ({ clause({ 0 == (-400 + f2(400,1))  }) 
                 , clause({ 0 == (a + (-b + f2((-a + b),1)))  }) 
                 })
@@ -684,7 +684,7 @@ TEST_GENERATION(bug06,
 TEST_GENERATION(abstraction_bug01a,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN)))
       .selfApplications(false)
       .inputs  ({ 
           clause({ 0 == f2(f(x), 0)  }),
@@ -698,7 +698,7 @@ TEST_GENERATION(abstraction_bug01a,
 TEST_GENERATION(abstraction_bug01b,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN)))
       .selfApplications(false)
       .inputs  ({ 
           clause({ 0 == f2(f(x), 0)  }),
@@ -713,7 +713,7 @@ TEST_GENERATION(abstraction_bug01b,
 TEST_GENERATION(is_int_skip_app,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR)))
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR)))
       .selfApplications(true)
       .inputs  ({ 
           clause({ f(x) == floor(f(x))  }),

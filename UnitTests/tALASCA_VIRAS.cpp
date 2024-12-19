@@ -57,7 +57,7 @@ using namespace Inferences::ALASCA;
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
 auto testVirasQuantifierElimination(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
     )
 { 
   auto state = testAlascaState(uwa);

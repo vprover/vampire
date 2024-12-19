@@ -58,7 +58,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-InequalityFactoring testInequalityFactoring(Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_ONE_INTERP)
+InequalityFactoring testInequalityFactoring(Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)
 { return InequalityFactoring(testAlascaState(uwa)); }
 
 template<class A> A* heap(A&& a) { return new A(std::move(a)); }

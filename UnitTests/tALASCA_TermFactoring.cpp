@@ -62,7 +62,7 @@ using namespace Inferences::ALASCA;
 
 
 TermFactoring testTermFactoring(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
     )
 { 
   return TermFactoring(testAlascaState(uwa));
@@ -245,7 +245,7 @@ TEST_GENERATION(unshielded_vars_3,
 
 TEST_GENERATION(abstraction1_one_interp,
     Generation::SymmetricTest()
-      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP)))
+      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
       .inputs  ({  clause({ selected(-f(f(x) + g(a, c)) + f(f(y) + g(b, c)) > 0)   })})
       .expected(exactly(
             clause({ 0 * f(f(x) + g(a, c)) > 0, f(y) + g(b, c) != f(x) + g(a, c) })
@@ -336,7 +336,7 @@ TEST_GENERATION(bug_01,
 
 TEST_GENERATION(bug_02b_one_interp,
     Generation::SymmetricTest()
-      .rule(move_to_heap(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP)))
+      .rule(move_to_heap(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
       .inputs  ({   clause({ selected( -23 * x0 + g(x0, -23 * x1) + -g(x1, -23 * x2) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^,    ^^^^^^^^^^^^^^ ) (1)
       .expected(exactly(  
@@ -355,7 +355,7 @@ TEST_GENERATION(bug_02b,
 
 TEST_GENERATION(bug_02_one_interp,
     Generation::SymmetricTest()
-      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP)))
+      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
   // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
       .inputs  ({    clause({ selected( -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
@@ -374,14 +374,14 @@ TEST_GENERATION(bug_02,
 TEST_GENERATION(non_linear_tryout01,
     Generation::SymmetricTest()
       .inputs  ({    clause({ (x * a) - (a * a) != 0 })    })
-      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN)))
       .expected(exactly(  
            clause({ 0 * (a * a) != 0 })
           )))
 
 TEST_GENERATION(tricky_uwa_01_one_interp,
     Generation::SymmetricTest()
-    .rule(move_to_heap(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP)))
+    .rule(move_to_heap(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
       .inputs  ({    clause({     f(x) + f(f(x) + y) > 0  })    })
       .expected(exactly( clause({ 2 * f(x) > 0, f(x) + y != x }) )))
 

@@ -54,7 +54,7 @@ using namespace Inferences::ALASCA;
 
 
 VariableElimination testVariableElimination(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
     )
 { 
   return VariableElimination(testAlascaState(uwa), /* simplify */ true);

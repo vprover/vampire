@@ -199,10 +199,10 @@ public:
     FUNC_EXT,
     AC1,
     AC2,
-    LPAR_ONE_INTERP,
-    LPAR_CAN_ABSTRACT,
-    LPAR_MAIN,
-    LPAR_MAIN_FLOOR,
+    ALASCA_ONE_INTERP,
+    ALASCA_CAN_ABSTRACT,
+    ALASCA_MAIN,
+    ALASCA_MAIN_FLOOR,
   };
   friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
   { 
@@ -216,10 +216,10 @@ public:
       case UnificationWithAbstraction::FUNC_EXT:          return out << "func_ext";
       case UnificationWithAbstraction::AC1:               return out << "ac1";
       case UnificationWithAbstraction::AC2:               return out << "ac2";
-      case UnificationWithAbstraction::LPAR_ONE_INTERP:   return out << "lpar_one_interp";
-      case UnificationWithAbstraction::LPAR_CAN_ABSTRACT: return out << "lpar_can_abstract";
-      case UnificationWithAbstraction::LPAR_MAIN:         return out << "lpar_main";
-      case UnificationWithAbstraction::LPAR_MAIN_FLOOR:   return out << "lpar_floor";
+      case UnificationWithAbstraction::ALASCA_ONE_INTERP:   return out << "alasca_one_interp";
+      case UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: return out << "alasca_can_abstract";
+      case UnificationWithAbstraction::ALASCA_MAIN:         return out << "alasca_main";
+      case UnificationWithAbstraction::ALASCA_MAIN_FLOOR:   return out << "alasca_floor";
     }
     ASSERTION_VIOLATION
   }

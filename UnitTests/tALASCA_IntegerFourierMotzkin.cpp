@@ -108,7 +108,7 @@ auto idxIntegerFourierMotzkin() {
 }
 
 auto testIntegerFourierMotzkin(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
     ) 
 { 
   auto state = testAlascaState(uwa);
