@@ -15,6 +15,7 @@
 #define __ALASCA_State__
 
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 namespace Kernel {
   struct AlascaState 

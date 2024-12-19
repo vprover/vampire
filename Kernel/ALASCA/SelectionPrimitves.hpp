@@ -16,6 +16,7 @@
 
 #include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/OrderingUtils.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Kernel {
 
