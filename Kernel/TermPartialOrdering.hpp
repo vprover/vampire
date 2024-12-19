@@ -34,10 +34,10 @@ public:
   ~TermPartialOrdering() = default;
 
   bool get(TermList lhs, TermList rhs, Result& res, bool flag = false) const;
-  bool set(Ordering::Constraint con);
 
   static const TermPartialOrdering* getEmpty(const Ordering& ord);
   static const TermPartialOrdering* set(const TermPartialOrdering* tpo, Ordering::Constraint con);
+  static Result solveInnerResult(Ordering::POStruct* po_struct, TermList s, TermList t);
 
   // Returns if PO contains full incomparability yet.
   // Useful to discard branches when reasoning over ground terms.
@@ -52,6 +52,8 @@ private:
 
   size_t idx_of_elem(TermList t) const;
   size_t idx_of_elem_ext(TermList t);
+
+  bool set(Ordering::Constraint con);
 
 #if DEBUG_ORDERING
   void debug_check() const;

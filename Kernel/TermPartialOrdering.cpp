@@ -312,6 +312,87 @@ const TermPartialOrdering* TermPartialOrdering::set(const TermPartialOrdering* t
   return *ptr;
 }
 
+Result TermPartialOrdering::solveInnerResult(Ordering::POStruct* po_struct, TermList s, TermList t)
+{
+  ASS(po_struct);
+  if (!po_struct) {
+    return Ordering::INCOMPARABLE;
+  }
+  if (s.isVar()) {
+    if (t.isTerm()) {
+      // this case we won't try to solve
+      return Ordering::LESS;
+    }
+    Result val;
+    if (po_struct->tpo->get(s, t, val, true) && val != Ordering::INCOMPARABLE) {
+      return val;
+    }
+    Ordering::Constraint con{ s, t, Ordering::GREATER };
+    auto etpo = TermPartialOrdering::set(po_struct->tpo, con);
+    if (etpo && !etpo->hasIncomp()) {
+      if (etpo != po_struct->tpo) {
+        po_struct->tpo = etpo;
+        po_struct->cons.push(con);
+      }
+      return Ordering::GREATER;
+    }
+
+    con.rel = Ordering::EQUAL;
+    etpo = TermPartialOrdering::set(po_struct->tpo, con);
+    if (etpo && !etpo->hasIncomp()) {
+      if (etpo != po_struct->tpo) {
+        po_struct->tpo = etpo;
+        po_struct->cons.push(con);
+      }
+      return Ordering::EQUAL;
+    }
+    return Ordering::LESS;
+  }
+
+  DHSet<TermList> varsToSet;
+  VariableIterator vit(s);
+  while (vit.hasNext()) {
+    auto v = vit.next();
+    if (v == t) {
+      continue;
+    }
+    Result res;
+    if (po_struct->tpo->get(v, t, res, true)) {
+      if (res == Ordering::GREATER || res == Ordering::EQUAL) {
+        // s ≠ v, hence s > v ≥ t
+        return Ordering::GREATER;
+      }
+    } else {
+      varsToSet.insert(v);
+    }
+  }
+
+  DHSet<TermList>::Iterator vsit(varsToSet);
+  while (vsit.hasNext()) {
+    auto v = vsit.next();
+    Ordering::Constraint con{ v, t, Ordering::GREATER };
+    auto etpo = TermPartialOrdering::set(po_struct->tpo, con);
+    if (etpo && !etpo->hasIncomp()) {
+      if (etpo != po_struct->tpo) {
+        po_struct->tpo = etpo;
+        po_struct->cons.push(con);
+      }
+      return Ordering::GREATER;
+    }
+
+    con.rel = Ordering::EQUAL;
+    etpo = TermPartialOrdering::set(po_struct->tpo, con);
+    if (etpo && !etpo->hasIncomp()) {
+      if (etpo != po_struct->tpo) {
+        po_struct->tpo = etpo;
+        po_struct->cons.push(con);
+      }
+      return Ordering::GREATER;
+    }
+  }
+  return Ordering::LESS;
+}
+
 size_t TermPartialOrdering::idx_of_elem(TermList t) const
 {
   ASS(_nodes.find(t));

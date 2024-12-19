@@ -156,7 +156,7 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
 
-  Result compare(AppliedTerm t1, AppliedTerm t2, const TermPartialOrdering* tpo = nullptr) const override;
+  Result compare(AppliedTerm t1, AppliedTerm t2, POStruct* po_struct = nullptr) const override;
   Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2) const override;
   OrderingComparatorUP createComparator(bool onlyVars = false) const override;
 
@@ -199,14 +199,14 @@ private:
       : _kbo(*kbo)
     {}
 
-    void init(const TermPartialOrdering* tpo = nullptr)
+    void init(POStruct* po_struct = nullptr)
     {
       _weightDiff=0;
       _posNum=0;
       _negNum=0;
       _lexResult=EQUAL;
       _varDiffs.reset();
-      _tpo=tpo;
+      _po_struct=po_struct;
     }
 
     /**
@@ -261,7 +261,7 @@ private:
     Result _lexResult;
     /** The ordering used */
     const KBO& _kbo;
-    const TermPartialOrdering* _tpo;
+    POStruct* _po_struct;
   }; // class KBO::State
 
   /**

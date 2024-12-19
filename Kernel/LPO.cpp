@@ -84,7 +84,7 @@ Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartialOrdering* tpo) const
+Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_struct) const
 {
   if(tl1.equalsShallow(tl2)) {
     return EQUAL;

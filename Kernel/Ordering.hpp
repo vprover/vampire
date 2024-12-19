@@ -65,6 +65,11 @@ public:
     { return out << self.lhs << " " << self.rhs << " " << resultToString(self.rel); }
   };
 
+  struct POStruct {
+    const TermPartialOrdering* tpo;
+    Stack<Constraint> cons;
+  };
+
   virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */
@@ -75,7 +80,7 @@ public:
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
   /** Same as @b compare, for applied (substituted) terms. */
-  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs, const TermPartialOrdering* tpo = nullptr) const
+  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs, POStruct* po_struct = nullptr) const
   { return compare(lhs.apply(), rhs.apply()); }
 
   /** Optimised function used for checking that @b t1 is greater than @b t2,

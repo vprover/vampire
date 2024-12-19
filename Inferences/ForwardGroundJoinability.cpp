@@ -167,7 +167,6 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
   while (curr) {
     if (cnt++ > 500) {
-      cleanup();
       return false;
     }
     attempted.reset();
@@ -179,16 +178,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
       break;
     }
 
-    auto left = normalize(curr->left, tpo);
-    auto right = normalize(curr->right, tpo);
-    if (left != curr->left || right != curr->right) {
-      auto next = getNext(checker, curr, OrderingConstraints(), left, right);
-      if (!next.first) {
-        break;
-      }
-      curr = next.first;
-      tpo = next.second;
-    }
+    ASS(!tpo->hasIncomp());
 
     NonVariableNonTypeIterator it(curr->left, curr->right);
     while (it.hasNext()) {
@@ -224,13 +214,18 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         TermList rhsS;
         AppliedTerm rhsApplied(rhs, &appl, true);
-
-        Result comp = ordering.compare(trm, rhsApplied, tpo);
-        if (comp == Ordering::LESS || comp == Ordering::EQUAL) {
-          continue;
-        } else if (comp == Ordering::INCOMPARABLE) {
-          rhsS = subs->applyToBoundResult(rhs);
-          cons.push({ trm, rhsS, Ordering::GREATER });
+        {
+          Ordering::POStruct po_struct{ tpo, OrderingConstraints() };
+          Result comp = ordering.compare(trm, rhsApplied, &po_struct);
+          if (comp == Ordering::LESS || comp == Ordering::EQUAL) {
+            ASS(po_struct.cons.isEmpty());
+            continue;
+          } else if (comp == Ordering::INCOMPARABLE) {
+            rhsS = subs->applyToBoundResult(rhs);
+            cons.push({ trm, rhsS, Ordering::GREATER });
+          } else {
+            cons = po_struct.cons;
+          }
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
@@ -247,14 +242,19 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
           TermList other = trm == curr->left ? curr->right : curr->left;
-          auto redComp = ordering.compare(AppliedTerm(other), rhsApplied);
+          Ordering::POStruct po_struct{ tpo, OrderingConstraints() };
+          auto redComp = ordering.compare(other, rhsApplied, &po_struct);
+          // Note: EQUAL should be fine when doing forward simplification
           if (redComp == Ordering::LESS || redComp == Ordering::EQUAL) {
+            ASS(po_struct.cons.isEmpty());
             continue;
           } else if (redComp == Ordering::INCOMPARABLE) {
             if (rhsS.isEmpty()) {
               rhsS = subs->applyToBoundResult(rhs);
             }
             cons.push({ other, rhsS, Ordering::GREATER });
+          } else {
+            cons.loadFromIterator(OrderingConstraints::Iterator(po_struct.cons));
           }
         }
 
@@ -275,7 +275,6 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         }
       }
     }
-    cleanup();
     return false;
 LOOP_END:
     continue;
@@ -283,7 +282,6 @@ LOOP_END:
   premises = pvi(getPersistentIterator(premiseSet.iterator()));
 
   env.statistics->groundRedundantClauses++;
-  cleanup();
   return true;
 }
 

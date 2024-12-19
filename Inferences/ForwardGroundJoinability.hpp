@@ -49,6 +49,9 @@ private:
     bool R;
   };
 
+  friend std::ostream& operator<<(std::ostream& str, const State& s)
+  { return str << s.left << (s.L ? "!" : "") << " ↓ " << s.right << (s.R ? "!" : ""); }
+
   struct RedundancyCheck {
     RedundancyCheck(const Ordering& ord, State* data);
     std::pair<State*,const TermPartialOrdering*> next(OrderingConstraints cons, State* data);

@@ -76,18 +76,6 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
 {
   ASS(!TermList::sameTopFunctor(tl1,tl2));
 
-  if (_tpo && tl1.isVar()) {
-    if (tl2.isVar()) {
-      ASS(!_weightDiff);
-      Result res;
-      if (_tpo->get(tl1, tl2, res)) {
-        return res;
-      }
-      return Ordering::INCOMPARABLE;
-    }
-    return Ordering::LESS;
-  }
-
   if(_posNum>0 && _negNum>0) {
     return INCOMPARABLE;
   }
@@ -241,8 +229,14 @@ Ordering::Result KBO::State::traverseLexBidir(AppliedTerm tl1, AppliedTerm tl2)
       traverse<-1,/*unidirectional=*/false>(t);
       if(_lexResult==EQUAL) {
         _lexResult=innerResult(s.term, t.term);
+        if (_po_struct && _lexResult == INCOMPARABLE) {
+          _lexResult = TermPartialOrdering::solveInnerResult(_po_struct, s.term, t.term);
+          if (_lexResult == LESS) {
+            return LESS;
+          }
+        }
         lexValidDepth=depth;
-        ASS(_lexResult!=EQUAL || _tpo);
+        ASS(_lexResult!=EQUAL || _po_struct);
       }
     }
   }
@@ -779,7 +773,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartialOrdering* tpo) const
+Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_struct) const
 {
   if(tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -804,7 +798,7 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartia
   _state=0;
 #endif
 
-  state->init(tpo);
+  state->init(po_struct);
   Result res;
   if(t1->functor()==t2->functor()) {
     res = state->traverseLexBidir(tl1,tl2);
