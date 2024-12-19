@@ -1598,8 +1598,6 @@ INDEX_TEST(bug02,
       },
     })
 
-
-
 ROB_UNIFY_TEST(alasca_main_test_01,
     SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA_MAIN,

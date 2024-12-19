@@ -25,15 +25,15 @@ using namespace Indexing;
 using namespace Saturation;
 
 // TODO write tests
-class InequalityTautologyDetection
+class TautologyDetection
 : public SimplifyingGeneratingInference
 {
 public:
-  USE_ALLOCATOR(InequalityTautologyDetection);
+  USE_ALLOCATOR(TautologyDetection);
 
-  InequalityTautologyDetection(std::shared_ptr<AlascaState> shared) 
+  TautologyDetection(std::shared_ptr<AlascaState> shared) 
     : _shared(std::move(shared)) {}
-  virtual ~InequalityTautologyDetection() {}
+  virtual ~TautologyDetection() {}
 
   virtual ClauseGenerationResult generateSimplify(Clause* premise) override 
   {
