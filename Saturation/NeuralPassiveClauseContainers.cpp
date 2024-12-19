@@ -151,7 +151,7 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
   return logit;
 }
 
-void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses) {
+void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool justRecord) {
   unsigned sz = clauses.size();
   if (sz == 0) return;
 
@@ -175,7 +175,13 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses) {
   std::vector<torch::jit::IValue> inputs;
   inputs.push_back(std::move(clauseNums));
   inputs.push_back(torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
-  auto logits = (*_model.find_method("eval_clauses"))(std::move(inputs)).toTensor();
+  auto result = (*_model.find_method("eval_clauses"))(std::move(inputs));
+
+  if (justRecord) {
+    return;
+  }
+
+  auto logits = result.toTensor();
 
   // cout << "Eval clauses for " << sz << " requires " << logits.requires_grad() << endl;
 

@@ -1543,6 +1543,15 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
+  if (_neuralActivityRecoring && !_neuralModelGuidance) {
+    // doing this specifically, for the "IMITATION" pathway
+    makeReadyForEval(cl);
+
+    Stack<Clause*> singleton;
+    singleton.push(cl);
+    _neuralModel->evalClauses(singleton,/* justRecord = */ true);
+  }
+
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
     _passive->add(cl);
@@ -1804,7 +1813,7 @@ void SaturationAlgorithm::saveNeuralActivity(Clause* refutation)
   while (it.hasNext()) {
     proof_units.push_back(it.next()->number());
   }
-  _neuralModel->setProofUnitsAndCleanModules(proof_units,env.options->neuralActivityRecording());
+  _neuralModel->setProofUnitsAndSaveRecorded(proof_units,env.options->neuralActivityRecording());
 }
 
 

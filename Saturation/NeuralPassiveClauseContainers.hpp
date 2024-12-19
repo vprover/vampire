@@ -114,7 +114,7 @@ public:
     (*m)(std::move(inputs));
   }
 
-  void setProofUnitsAndCleanModules(std::vector<int64_t>& proof_units, const std::string& filename) {
+  void setProofUnitsAndSaveRecorded(std::vector<int64_t>& proof_units, const std::string& filename) {
     auto m = _model.find_method("set_proof_units_and_save_recorded");
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(std::move(proof_units));
@@ -153,14 +153,10 @@ public:
     (*_model.find_method("embed_pending"))(std::vector<torch::jit::IValue>());
   }
 
-  void saveToFile(const std::string& filename) {
-    _model.save(filename);
-  }
-
   const DHMap<unsigned,float>& getScores() { return _scores; }
 
   float evalClause(Clause* cl);
-  void evalClauses(Stack<Clause*>& clauses);
+  void evalClauses(Stack<Clause*>& clauses, bool justRecord = false);
 
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
