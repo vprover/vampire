@@ -24,7 +24,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-// TODO write tests
 class TautologyDeletion
 : public ImmediateSimplificationEngine
 {
