@@ -342,6 +342,29 @@ public:
 };
 */
 
+template<class... Args>
+class TupleISE
+: public ImmediateSimplificationEngine
+{
+  std::tuple<Args...> _self;
+public:
+  TupleISE(Args... args) : _self(std::move(args)...) { }
+  auto iter() { return std::apply([](auto&... args) { return iterItems(static_cast<ImmediateSimplificationEngine*>(&args)...); }, _self); }
+  Clause* simplify(Clause* premise) override {
+    return iter()
+          .map([&](auto* rule) { return rule->simplify(premise); })
+          .find([&](auto concl) { return concl != premise; })
+          .unwrapOr(premise);
+  }
+};
+
+template<class... Args>
+TupleISE<Args...> tupleISE(Args... args) 
+{ return TupleISE<Args...>(std::move(args)...); }
+
+
+
+
 class CompositeISE
 : public ImmediateSimplificationEngine
 {

@@ -16,6 +16,32 @@
 namespace Inferences {
 
 template<class Rule>
+class LfpISE
+  : public ImmediateSimplificationEngine
+{
+  Rule _inner;
+public:
+  LfpISE(Rule rule) : _inner(std::move(rule)) {}
+  Clause* simplify(Clause* c) override {
+    auto c0 = c;
+    auto c1 = c;
+    do {
+      c0 = c1;
+      c1 = _inner.simplify(c0);
+      if (c1 == nullptr) {
+        return c1;
+      }
+      if (c0->splits())
+        c1->setSplits(c0->splits());
+    } while (c1 != c0);
+    return c1;
+  }
+};
+
+template<class Rule>
+LfpISE<Rule> lfpISE(Rule rule) { return LfpISE<Rule>(std::move(rule)); }
+
+template<class Rule>
 class LfpRule
   : public SimplifyingGeneratingInference1
 {

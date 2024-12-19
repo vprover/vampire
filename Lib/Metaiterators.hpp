@@ -1778,7 +1778,7 @@ template<class Array> auto arrayIter(Array      & a) { return arrayIter(        
 
 template<class Item, class... Items>
 auto iterItems(Item item, Items... items) 
-{ return arrayIter(Stack<Item>{std::move(item), std::move(items)...}); }
+{ return arrayIter(Stack<Item>{Item(std::move(item)), Item(std::move(items))...}); }
 
 template<class Item>
 auto iterItems()

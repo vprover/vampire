@@ -761,6 +761,7 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tALASCA_FourierMotzkin.cpp
+    UnitTests/tALASCA_TautologyDeletion.cpp
     UnitTests/tALASCA_IntegerFourierMotzkin.cpp
     UnitTests/tALASCA_InequalityFactoring.cpp
     UnitTests/tALASCA_Normalization.cpp
