@@ -353,7 +353,7 @@ public:
       ASS(from<size() && to<size()); //checking for underflows
       ASS(from<to);
       // invariant: from < to
-      size_t m = from + Random::getInteger(to-from+1);
+      size_t m = from + Random::getInteger(to-from+1,/*invisible = */ 1);
       C mid = (*this)[m];
       size_t l = from;
       size_t r = to;
