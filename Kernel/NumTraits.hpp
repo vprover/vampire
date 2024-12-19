@@ -229,7 +229,7 @@ struct NumTraits;
     static bool isEq(bool positive, Literal* lit)                                         \
     { return (lit->isPositive() == positive)                                              \
           && lit->isEquality()                                                            \
-          && (lit->eqArgSort() == sort());  }                                               \
+          && (lit->eqArgSort() == sort());  }                                             \
                                                                                           \
     static bool isPosEq(Literal* lit) { return isEq(true , lit); }                        \
     static bool isNegEq(Literal* lit) { return isEq(false, lit); }                        \
@@ -275,6 +275,9 @@ struct NumTraits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , One , 1)                                      \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, Zero, 0)                                      \
                                                                                           \
+                                                                                          \
+    static TermList linMul(ConstantType c, TermList t)                                    \
+    { return TermList(Term::create(env.signature->addLinMul(std::move(c)), {t})); }       \
                                                                                           \
     static ConstantType constant(int i) { return ConstantType(i); }                       \
     static Term* constantT(int i) { return constantT(constant(i)); }                      \

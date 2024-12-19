@@ -116,6 +116,7 @@ class Signature
 
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
+    unsigned _linMul : 1;
     /** symbol that doesn't come from input problem, but was introduced by Vampire */
     unsigned _introduced : 1;
     /** protected symbols aren't subject to any kind of preprocessing elimination */
@@ -187,6 +188,7 @@ class Signature
     void markEqualityProxy() { _equalityProxy=1; }
     /** mark predicate as (polarity) flipped */
     void markFlipped() { _wasFlipped=1; }
+    void markLinMul() { _linMul=1; }
     /** mark constant as overflown */
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
@@ -299,6 +301,9 @@ class Signature
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
 
+    inline bool linMul() const
+    { return _linMul; }
+
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
@@ -355,6 +360,60 @@ class Signature
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
+
+  class AnyLinMulSym 
+    : public Symbol {
+  public:
+    enum Type { Int, Rat, Real, } type;
+  private:
+    static Type typeOf(IntegerConstantType*) { return Int; }
+    static Type typeOf(RationalConstantType*) { return Rat; }
+    static Type typeOf(RealConstantType*) { return Real; }
+
+    static auto sortOf(IntegerConstantType *) { return AtomicSort::intSort(); }
+    static auto sortOf(RationalConstantType *) { return AtomicSort::rationalSort(); }
+    static auto sortOf(RealConstantType *) { return AtomicSort::realSort(); }
+  public:
+
+    template<class Numeral>
+    auto isType() const { return typeOf<Numeral>() == type; }
+    template<class Numeral>
+    static auto typeOf() { return typeOf((Numeral*)0); }
+
+    template<class Numeral>
+    static auto sortOf() { return sortOf((Numeral*)0); }
+
+    template<class... Args>
+    AnyLinMulSym(Type type, Args... args) : Symbol(std::move(args)...), type(type) 
+    { markLinMul(); }
+  };
+
+  template<class Numeral>
+  class LinMulSym
+  : public AnyLinMulSym
+  {
+    friend class Signature;
+    friend class Symbol;
+    Numeral _value;
+
+  public:
+    static std::string name(Numeral n) { return Output::toString("*", n); }
+    LinMulSym(Numeral val)
+    : AnyLinMulSym(
+        AnyLinMulSym::typeOf<Numeral>(),
+        name(val),
+        /*             arity */ 1, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+      _value(std::move(val))
+    {
+      setType(OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()));
+
+    }
+  };
+
 
   class IntegerSymbol
   : public Symbol
@@ -494,6 +553,30 @@ class Signature
   unsigned addIntegerConstant(const IntegerConstantType& number);
   unsigned addRationalConstant(const RationalConstantType& number);
   unsigned addRealConstant(const RealConstantType& number);
+
+  template<class Numeral>
+  unsigned addLinMul(Numeral number) {
+    // TODO make key more efficient
+    std::string key = LinMulSym<Numeral>::name(number);
+    unsigned result;
+    if (_funNames.find(key, result)) {
+      return result;
+    }
+    _integers++;
+    result = _funs.length();
+    Symbol* sym = new LinMulSym<Numeral>(std::move(number));
+    _funs.push(sym);
+    _funNames.insert(key,result);
+    return result;
+  }
+
+  template<class Numeral>
+  Option<Numeral const&> tryLinMul(unsigned f) {
+    auto sym = getFunction(f);
+    return someIf(sym->linMul()
+        && static_cast<LinMulSym<Numeral>*>(sym)->template isType<Numeral>()
+        , [&]() -> decltype(auto) { return static_cast<LinMulSym<Numeral>*>(sym)->_vale; });
+  }
  
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const std::string& name);
   unsigned addInterpretedFunction(Interpretation itp, const std::string& name)
