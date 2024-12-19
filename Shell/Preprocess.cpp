@@ -158,6 +158,7 @@ void Preprocess::preprocess(Problem& prb)
   //   normalizeInterpreted();
   // }
 
+
   if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
@@ -170,6 +171,18 @@ void Preprocess::preprocess(Problem& prb)
       FOOLElimination().apply(prb);
     }
   }
+
+  if (_options.alascaIntegerConversion()) {
+    if (env.options->showPreprocessing())
+      std::cout << "eliminating euclidean quotient and remainder" << std::endl;
+
+    QuotientEPreproc().proc(prb);
+    /* in quotientE preprocessing we might have introduced ITE, so we need to perform FOOL elim again */
+    if (prb.hasFOOL()) {
+      FOOLElimination().apply(prb);
+    }
+  }
+
 
   if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
     LambdaElimination::addFunctionExtensionalityAxiom(prb);

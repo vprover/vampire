@@ -15,12 +15,15 @@
 #define __ALASCA_Preprocessor__
 
 #include "Kernel/ALASCA/Normalization.hpp"
+#include "Kernel/FormulaTransformer.hpp"
+#include "Kernel/Formula.hpp"
 
 #define DEBUG_TRANSLATION(...) // DBG(__VA_ARGS__)
 
 namespace Kernel {
 
-class AlascaPreprocessor {
+class AlascaPreprocessor 
+{
   std::shared_ptr<InequalityNormalizer> _norm;
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
@@ -71,9 +74,15 @@ class AlascaPreprocessor {
               return  t == AtomicSort::superSort() ? t
                     : TermList(AtomicSort::create(this->integerTypeConsConversion(f), t.term()->arity(), args));
             } else {
+              auto rem = [](auto quot, auto l, auto r) { return R::add(l, R::minus(R::mul(r,quot(l,r)))); };
+              auto quotF = [](auto l, auto r) { return R::floor(R::div(l,r)); };
               if (IntTraits::isToReal(f) || IntTraits::isToInt(f) || RealTraits::isToReal(f)) {
                 return args[0];
-              } else if (RealTraits::isToInt(f)) {
+              } else if (Z::isRemainderF(f) || R::isRemainderF(f)) {
+                return rem(quotF,args[0], args[1]);
+              } else if (Z::isQuotientF(f) || R::isQuotientF(f)) {
+                return quotF(args[0], args[1]);
+              } else if (R::isToInt(f)) {
                 return TermList(RealTraits::floor(args[0]));
               } else {
                 auto out = TermList(Term::create(this->integerFunctionConversion(f), t.term()->arity(), args));
@@ -134,12 +143,8 @@ class AlascaPreprocessor {
       // TODO 
 #define ASS_NOT(itp) ASS(!theory->isInterpretedFunction(f, itp))
       ASS_NOT(Theory::INT_SUCCESSOR)
-      ASS_NOT(Theory::INT_QUOTIENT_E)
       ASS_NOT(Theory::INT_QUOTIENT_T)
-      ASS_NOT(Theory::INT_QUOTIENT_F)
-      ASS_NOT(Theory::INT_REMAINDER_E)
       ASS_NOT(Theory::INT_REMAINDER_T)
-      ASS_NOT(Theory::INT_REMAINDER_F)
       ASS_NOT(Theory::INT_CEILING)
       ASS_NOT(Theory::INT_TRUNCATE)
       ASS_NOT(Theory::INT_ROUND)
@@ -244,6 +249,115 @@ public:
       }
     }
     
+  }
+};
+
+class QuotientEPreproc 
+{
+  bool _addedITE = false;
+  using Z = IntTraits;
+  // TODO
+  static constexpr InferenceRule INF_RULE = InferenceRule::ALASCA_INTEGER_TRANSFORMATION;
+
+  Literal* proc(Literal* lit)
+  {
+    auto impl = [&]() { 
+      if (lit->isEquality()) {
+        auto sort = SortHelper::getEqualityArgumentSort(lit);
+        return Literal::createEquality(lit->polarity(), 
+            proc(TypedTermList(lit->termArg(0), sort)), 
+            proc(TypedTermList(lit->termArg(1), sort)), 
+            sort);
+      } else {
+        auto ff = lit->functor();
+        Recycled<Stack<TermList>> args;
+        args->loadFromIterator(typeArgIter(lit));
+        for (auto a : termArgIterTyped(lit)) {
+          args->push(proc(a));
+        }
+        return Literal::create(ff, args->size(), lit->polarity(), args->begin());
+      }
+    };
+    auto out = impl();
+    if (out != lit) {
+      DEBUG_TRANSLATION(*lit, " ==> ", *out);
+    }
+    return out;
+  }
+
+  TermList proc(TypedTermList t) 
+  {
+    return BottomUpEvaluation<TypedTermList, TermList>()
+      .context(Lib::TermListContext{ .ignoreTypeArgs = true, })
+      .function([&](TypedTermList t, TermList* args) -> TermList {
+          auto ite = [](auto c, auto x, auto y) {
+            return TermList(Term::createITE(new AtomicFormula(c), x, y, Z::sort()));
+          };
+          auto transQuotientE = [&]() {
+            return ite(Z::greater(true, args[1],  Z::constantTl(0)), Z::quotientF(args[0], args[1]),
+                   ite(Z::less(true, args[1], Z::constantTl(0)), Z::minus(Z::quotientF(Z::minus(args[0]), args[1])),
+                    Z::quotientE(args[0], Z::zero())
+            ));
+          };
+          if (Z::isQuotientE(t) && args[1] != Z::zero()) {
+            _addedITE = true;
+            return transQuotientE();
+          } else if (Z::isRemainderE(t)) {
+            _addedITE = true;
+            // quot * arg[1] + rem = arg[0]
+            // rem = arg[0] - quot * arg[1]
+            return Z::add(args[0], Z::minus(Z::mul(args[1], transQuotientE())));
+          } else {
+            return t.isVar() ? t : TermList(Term::create(t.term(), args));
+          }
+      })
+      .apply(t);
+  }
+
+  Clause* proc(Clause* clause)
+  {
+    auto change = false;
+    RStack<Literal*> res;
+    for (auto lit : clause->iterLits()) {
+      auto ll = proc(lit);
+      change |= ll != lit;
+      res->push(ll);
+    }
+    if (change) {
+      return Clause::fromStack(*res, Inference(FormulaTransformation(INF_RULE, clause)));
+    } else {
+      return clause;
+    }
+  }
+
+  struct FTrans : public FormulaTransformer {
+    QuotientEPreproc& _self;
+    FTrans(QuotientEPreproc& self) : _self(self) {}
+    virtual Formula* applyLiteral(Formula* f) override 
+    { return new AtomicFormula(_self.proc(static_cast<AtomicFormula*>(f)->getLiteral())); }
+  };
+
+  FormulaUnit* proc(FormulaUnit* unit) 
+  { 
+    auto trans = FTrans(*this);
+    return FTFormulaUnitTransformer<FTrans>(INF_RULE, trans).transform(unit); 
+  }
+  Unit* proc(Unit* unit) {
+    return unit->isClause() 
+      ? (Unit*)proc(static_cast<Clause*>(unit))
+      : (Unit*)proc(static_cast<FormulaUnit*>(unit));
+  }
+public:
+
+  void proc(Problem& prb)
+  {
+    for (auto& unit : iterTraits(prb.units()->iter())) {
+      unit = proc(unit);
+    }
+    DBGE(_addedITE)
+    if (_addedITE) {
+      prb.reportFOOLAdded();
+    }
   }
 };
 
