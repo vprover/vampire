@@ -7,14 +7,14 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file Theory.cpp
- * Implements class Theory.
- */
+
+#include "Theory.hpp"
+#include "Debug/Assertion.hpp"
 
 #include <cmath>
 
 #include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -26,279 +26,199 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 #include "Kernel/NumTraits.hpp"
+#include "Lib/StringUtils.hpp"
+#include <cstdio>
+#include <iostream>
+
+#if VMINI_GMP
+#include "mini-gmp.c"
+#include "mini-mpq.c"
+#endif
 
 #include "Theory.hpp"
-#define USES_2_COMPLEMENT (~0 == -1)
+
+std::string to_string(mpz_t const& self) {
+  auto s = mpz_sizeinbase(self, /* base */ 10);
+  auto str = new char[s + 2];
+  mpz_get_str(str, /* base */ 10, self);
+  auto out = std::string(str);
+  delete[] str;
+  return out;
+}
+
+#if VMINI_GMP
+std::ostream& operator<<(std::ostream& out, mpz_t const& self)
+{ return out << to_string(self); }
+#endif
 
 namespace Kernel
 {
 
-using namespace std;
 using namespace Lib;
 
 ///////////////////////
 // IntegerConstantType
 //
 
-IntegerConstantType::IntegerConstantType(const std::string& str)
+IntegerConstantType::IntegerConstantType(std::string const& str)
+  : Kernel::IntegerConstantType()
 {
-  if (!Int::stringToInt(str, _val)) {
-    throw MachineArithmeticException();
+  if (-1 == mpz_set_str(_val, str.c_str(), /* base */ 10)) {
+    throw UserErrorException("not a valit string literal: ", str);
   }
 }
 
-IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& num) const
+#define IMPL_BIN_OP(fun, mpz_fun)                                                              \
+  IntegerConstantType IntegerConstantType::fun(const IntegerConstantType& num) const \
+  { auto out = IntegerConstantType(0); mpz_fun(out._val, this->_val, num._val); return out; } \
+
+  // TODO move semantics
+IMPL_BIN_OP(operator+, mpz_add)
+IMPL_BIN_OP(operator-, mpz_sub)
+IMPL_BIN_OP(operator*, mpz_mul)
+IMPL_BIN_OP(lcm, mpz_lcm)
+IMPL_BIN_OP(gcd, mpz_gcd)
+IMPL_BIN_OP(inverseModulo, mpz_invert)
+
+// TODO operator(s) for move references ?!
+#define IMPL_UN_OP(fun, mpz_fun)                                                          \
+  IntegerConstantType IntegerConstantType::fun() const                                    \
+  {                                                                                       \
+    auto out = IntegerConstantType(0);                                                    \
+    mpz_fun(out._val, _val);                                                              \
+    return out;                                                                           \
+  }                                                                                       \
+
+IMPL_UN_OP(operator-, mpz_neg)
+IMPL_UN_OP(abs      , mpz_abs)
+
+IntegerConstantType IntegerConstantType::intDivide(const IntegerConstantType& num) const 
 {
-  InnerType res;
-  if (!Int::safePlus(_val, num._val, res)) {
-    throw MachineArithmeticException();
-  }
-  return IntegerConstantType(res);
+  ASS_REP(num.divides(*this),  Output::cat(num, " does not divide ", *this) );
+  ASS_REP(*this != 0, "divisor must not be zero")
+
+  IntegerConstantType out;
+  mpz_divexact(out._val, _val, num._val);
+  return out;
 }
 
-IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& num) const
+IntegerConstantType Kernel::IntegerConstantType::log2() const 
 {
-  InnerType res;
-  if (!Int::safeMinus(_val, num._val, res)) {
-    throw MachineArithmeticException();
-  }
-  return IntegerConstantType(res);
+  ASS(*this >= 0);
+  size_t size = mpz_sizeinbase(_val, 2);
+  return IntegerConstantType(size - 1);
 }
 
-IntegerConstantType IntegerConstantType::operator-() const
+
+/**
+ * specification from TPTP:
+ * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.
+ */
+IntegerConstantType::QR IntegerConstantType::divE(const IntegerConstantType& num) const
 {
-  InnerType res;
-  if (!Int::safeUnaryMinus(_val, res)) {
-    throw MachineArithmeticException();
+  auto& n = *this;
+  auto& d = num;
+  auto out = QR { .quot = IntegerConstantType(0), .rem  = IntegerConstantType(0), };
+  switch (d.sign()) {
+    case Sign::Zero: 
+      throw DivByZeroException();
+    case Sign::Pos:
+      mpz_fdiv_qr(out.quot._val, out.rem._val, n._val, d._val);
+      break;
+    case Sign::Neg:
+      mpz_cdiv_qr(out.quot._val, out.rem._val, n._val, d._val);
+      break;
   }
-  return IntegerConstantType(res);
+  return out;
 }
 
-IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& num) const
-{
-  InnerType res;
-  if (!Int::safeMultiply(_val, num._val, res)) {
-    throw MachineArithmeticException();
-  }
-  return IntegerConstantType(res);
-}
+Kernel::RationalConstantType::RationalConstantType(Kernel::IntegerConstantType n)
+  : _num(std::move(n)), _den(1)
+{ }
 
-inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerConstantType::InnerType lhs, typename IntegerConstantType::InnerType rhs) {
-    typename IntegerConstantType::InnerType out;
-    if (!Int::safeDivide(lhs,rhs, out))
-      throw MachineArithmeticException();
-    return out;
-}
+Kernel::RationalConstantType::RationalConstantType(int n)
+  : _num(std::move(n)), _den(1)
+{ }
 
-int IntegerConstantType::intDivide(const IntegerConstantType& num) const 
-{
-    ASS_REP(num.divides(*this),  num.toString() + " does not divide " + this->toString() );
-    return divideOrThrow(_val, num._val);
-}
-
-IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& num) const
-{
-  if (num._val == 0) {
-    throw MachineArithmeticException();
-  }
-
-  if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
-    return 0;
-  }
-
-  auto mod = IntegerConstantType(this->_val % num._val);
-  if (mod < 0) {
-    if (num._val >= 0) {
-      mod = mod + num;
-    } else {
-      mod = mod - num;
-    }
-  }
-  return mod;
-}
+Kernel::RationalConstantType::RationalConstantType(int n, int d)
+  : RationalConstantType(IntegerConstantType(n), IntegerConstantType(d))
+{ }
 
 RationalConstantType RationalConstantType::abs() const
 {
-  ASS_G(_den, 0)
+  ASS_G(_den, IntegerConstantType(0))
   return RationalConstantType(_num.abs(), _den);
 }
-RationalConstantType RealConstantType::representation() const
-{ return *this; }
 
 RealConstantType RealConstantType::abs() const
 {
   return RealConstantType(RationalConstantType(*this).abs());
 }
 
-IntegerConstantType IntegerConstantType::abs() const
-{
-  if (toInner() == std::numeric_limits<InnerType>::min() && USES_2_COMPLEMENT)
-    throw new MachineArithmeticException();
-  return IntegerConstantType(::std::abs(toInner()));
+IntegerConstantType::QR IntegerConstantType::divT(const IntegerConstantType& num) const
+{ 
+  ASS(num != 0)
+  auto& n = *this;
+  auto& d = num;
+  auto out = QR { .quot = IntegerConstantType(0), .rem  = IntegerConstantType(0), };
+  mpz_tdiv_qr(out.quot._val, out.rem._val, n._val, d._val);
+  return out;
 }
 
-/**
- * specification from TPTP:
- * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.
- */
-IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& num) const
+IntegerConstantType::QR IntegerConstantType::divF(const IntegerConstantType& num) const
 { 
-  if (num._val == 0) {
-    throw DivByZeroException();
-  }
-
-  if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
-    throw MachineArithmeticException();
-  }
-
-  // as in remainderE
-  auto mod = IntegerConstantType(this->_val % num._val);
-
-  // return (*this - this->remainderE(num)).intDivide(num); // the clean definition; but we don't want to subtract for small *this
-
-  if (mod < 0) {
-    // as in remainderE -- effectively adjust for the computation of the positive mod
-    if (num._val >= 0) {
-      return (*this - mod).intDivide(num)-1;
-    } else {
-      return (*this - mod).intDivide(num)+1;
-    }
-  } else {
-    if (*this < 0) { // we don't want to subtract a positive mod, counterbalance with num, adjusting with +/-1
-      if (num._val >= 0) {
-        return (*this + num - mod).intDivide(num)-1;
-      } else {
-        return (*this - num - mod).intDivide(num)+1;
-      }
-    } else {
-      return (*this - mod).intDivide(num);
-    }
-  }
-}
-
-IntegerConstantType IntegerConstantType::quotientF(const IntegerConstantType& num) const
-{ 
-  if(num.divides(*this)){
-    return IntegerConstantType(intDivide(num));
-  }
-  return IntegerConstantType(::floor(realDivide(num)));
-}
-
-IntegerConstantType IntegerConstantType::quotientT(const IntegerConstantType& num) const
-{ 
-  if(num.divides(*this)){
-    return IntegerConstantType(intDivide(num));
-  }
-  return IntegerConstantType(::trunc(realDivide(num)));
+  ASS(num != 0)
+  auto& n = *this;
+  auto& d = num;
+  auto out = QR { .quot = IntegerConstantType(0), .rem  = IntegerConstantType(0), };
+  mpz_fdiv_qr(out.quot._val, out.rem._val, n._val, d._val);
+  return out;
 }
 
 bool IntegerConstantType::divides(const IntegerConstantType& num) const 
 {
-  if (_val == 0) { return false; }
-  if (num._val == _val) { return true; }
-  if (num._val == numeric_limits<decltype(num._val)>::min() && _val == -1) {
-    return true;
-  } else {
-    return ( num._val % _val == 0);
-  }
+  if (*this == 0) { return false; }
+  // if (num._val == _val) { return true; }
+  return 0 != mpz_divisible_p(num._val, this->_val);
 }
 
-//TODO remove this operator. We already have 3 other ways of computing the remainder, required by the semantics of TPTP and SMTCOMP.
-IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& num) const
-{
-  //TODO: check if modulo corresponds to the TPTP semantic
-  if (num._val==0) {
-    throw DivByZeroException();
-  }
-  return IntegerConstantType(_val%num._val);
-}
+#define MK_ROUNDING(round, mpz_fun)                                                       \
+  IntegerConstantType RationalConstantType::round() const                                 \
+  {                                                                                       \
+    auto out = IntegerConstantType(0);                                                    \
+    mpz_fun(out._val,                                                                     \
+            numerator()._val,                                                             \
+            denominator()._val);                                                          \
+    return out;                                                                           \
+  }                                                                                       \
 
-bool IntegerConstantType::operator==(const IntegerConstantType& num) const
-{
-  return _val==num._val;
-}
+MK_ROUNDING(floor  , mpz_fdiv_q)
+MK_ROUNDING(ceiling, mpz_cdiv_q)
 
-bool IntegerConstantType::operator>(const IntegerConstantType& num) const
-{
-  return _val>num._val;
-}
+Sign IntegerConstantType::sign() const 
+{ auto s = mpz_sgn(_val);
+  return s > 0 ? Sign::Pos 
+       : s < 0 ? Sign::Neg 
+       :         Sign::Zero; }
 
-IntegerConstantType IntegerConstantType::floor(IntegerConstantType x)
-{ return x; }
+Sign RealConstantType::sign() const 
+{ return RationalConstantType::sign(); }
 
-IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
-{
-  IntegerConstantType num = rat.numerator();
-  IntegerConstantType den = rat.denominator();
-  if (den == IntegerConstantType(1)) {
-    return num;
-  }
-  /* there is a non-zero remainder for num / den */
-  ASS_G(den, 0);
-  if (num >= IntegerConstantType(0)) {
-    return IntegerConstantType(num.toInner() /den.toInner());
-  } else  {
-    return IntegerConstantType(num.toInner() / den.toInner() - 1);
-  }
-}
-
-IntegerConstantType IntegerConstantType::ceiling(IntegerConstantType x)
-{ return x; }
-
-/** 
- * TPTP spec:
- * The smallest integral number not less than the argument. 
- */
-IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
-{
-  IntegerConstantType num = rat.numerator();
-  IntegerConstantType den = rat.denominator();
-  if (den == IntegerConstantType(1)) {
-    return num;
-  }
-  /* there is a remainder for num / den */
-  ASS_G(den, 0);
-  if (num >= IntegerConstantType(0)) {
-    return IntegerConstantType(num.toInner() /den.toInner() + 1);
-  } else  {
-    return IntegerConstantType(num.toInner() / den.toInner());
-  }
+Sign RationalConstantType::sign() const 
+{ 
+  ASS_EQ(denominator().sign(), Sign::Pos)
+  return numerator().sign(); 
 }
 
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
 {
-  try {
-    if (n1 == numeric_limits<InnerType>::min()) {
-      if (n2 == numeric_limits<InnerType>::min()) {
-        return EQUAL;
-      } else {
-        return GREATER;
-      }
-    } else {
-      if (n2 == numeric_limits<InnerType>::min()) {
-        return LESS;
-      } else {
-        InnerType an1 = n1.abs().toInner();
-        InnerType an2 = n2.abs().toInner();
-
-        ASS_GE(an1,0);
-        ASS_GE(an2,0);
-
-        return an1 < an2 ? LESS : (an1 == an2 ? // compare the signed ones, making negative greater than positive
-            static_cast<Comparison>(-Int::compare(n1.toInner(), n2.toInner()))
-                              : GREATER);
-      }
-    }
-  }
-  catch(ArithmeticException&) {
-    ASSERTION_VIOLATION;
-    throw;
-  }
-}
-
-std::string IntegerConstantType::toString() const
-{
-  return Int::toString(_val);
+  auto cmp = mpz_cmpabs(n1._val, n2._val);
+  if (cmp > 0) return Comparison::GREATER;
+  if (cmp < 0) return Comparison::LESS;
+  cmp = -mpz_cmp(n1._val, n2._val);
+  if (cmp > 0) return Comparison::GREATER;
+  if (cmp < 0) return Comparison::LESS;
+  else return Comparison::EQUAL;
 }
 
 ///////////////////////
@@ -306,27 +226,12 @@ std::string IntegerConstantType::toString() const
 //
 
 RationalConstantType::RationalConstantType(InnerType num, InnerType den)
-{
-  init(num, den);
-}
-
-RationalConstantType::RationalConstantType(const std::string& num, const std::string& den)
-{
-  init(InnerType(num), InnerType(den));
-}
-
-void RationalConstantType::init(InnerType num, InnerType den)
-{
-  _num = num;
-  _den = den;
-  cannonize();
-
-  // Dividing by zero is bad!
-  if(_den.toInner()==0) throw DivByZeroException();
-}
+  : _num(num), _den(den)
+{ cannonize(); }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
 {
+
   if (_den==o._den) {
     return RationalConstantType(_num + o._num, _den);
   }
@@ -335,16 +240,19 @@ RationalConstantType RationalConstantType::operator+(const RationalConstantType&
 
 RationalConstantType RationalConstantType::operator-(const RationalConstantType& o) const
 {
+
   return (*this) + (-o);
 }
 
 RationalConstantType RationalConstantType::operator-() const
 {
+
   return RationalConstantType(-_num, _den);
 }
 
 RationalConstantType RationalConstantType::operator*(const RationalConstantType& o) const
 {
+
   return RationalConstantType(_num*o._num, _den*o._den);
 }
 
@@ -359,7 +267,7 @@ RationalConstantType RationalConstantType::operator/(const RationalConstantType&
 
 bool RationalConstantType::isInt() const
 {
-  return _den==1;
+  return _den == IntegerConstantType(1);
 }
 
 bool RationalConstantType::operator==(const RationalConstantType& o) const
@@ -367,23 +275,26 @@ bool RationalConstantType::operator==(const RationalConstantType& o) const
   return _num==o._num && _den==o._den;
 }
 
-bool RationalConstantType::operator>(const RationalConstantType& o) const
-{
-  /* prevents overflows */
-  auto toLong = [](IntegerConstantType t)  -> long int
-  { return  t.toInner(); };
-
-  return toLong(_num)*toLong(o._den)>(toLong(o._num)*toLong(_den));
+void init_mpq(mpq_t out, mpz_t const num, mpz_t const den) {
+  mpq_init(out);
+  mpq_set_num(out, num);
+  mpq_set_den(out, den);
+  mpq_canonicalize(out);
 }
 
+void init_mpq(mpq_t out, RationalConstantType const& q) 
+{ init_mpq(out, q._num._val, q._den._val); }
 
-std::string RationalConstantType::toString() const
+// TODO use mpq as repr for Rationals
+bool RationalConstantType::operator>(const RationalConstantType& o) const
 {
-  std::string numStr = _num.toString();
-  std::string denStr = _den.toString();
-
-//  return "("+numStr+"/"+denStr+")";
-  return numStr+"/"+denStr;
+  mpq_t l, r;
+  init_mpq(l, *this);
+  init_mpq(r, o);
+  auto res = mpq_cmp(l, r) > 0;
+  mpq_clear(l);
+  mpq_clear(r);
+  return res;
 }
 
 /**
@@ -392,88 +303,21 @@ std::string RationalConstantType::toString() const
  */
 void RationalConstantType::cannonize()
 {
-  unsigned gcd = Int::gcd(_num.toInner(), _den.toInner());
-  if (gcd == (unsigned)(-(long long)(numeric_limits<int>::min()))) { // we are talking about 2147483648, but I can't take minus of it's int representation!
-    ASS_EQ(_num, numeric_limits<int>::min());
-    ASS_EQ(_den, numeric_limits<int>::min());
-    _num = 1;
-    _den = 1;
-    return;
-  }
-
-  // now it's safe to treat this unsigned as signed
-  ASS_LE(gcd,(unsigned)numeric_limits<signed>::max());
-  if (gcd!=1) {
-    _num = _num.intDivide(gcd);
-    _den = _den.intDivide(gcd);
-  }
-  if (_den<0) {
-    _num = -_num;
-    _den = -_den;
-  }
-  // Normalize zeros
-  // If it is of the form 0/c then rewrite it to 0/1
-  // Unless it is of the form 0/0
-  if(_num==0 && _den!=0){ _den=1; }
+  // TODO faster (?)
+  mpq_t q;
+  init_mpq(q, *this);
+  auto den_ref = mpq_denref(q);
+  auto num_ref = mpq_numref(q);
+  mpz_swap(_num._val, num_ref);
+  mpz_swap(_den._val, den_ref);
+  mpq_clear(q);
 }
-
+ 
 Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
 {
-  /* cannot overflow */
   auto prec = IntegerConstantType::comparePrecedence(n1._den, n2._den);
   if (prec != EQUAL) return prec;
   return IntegerConstantType::comparePrecedence(n1._num, n2._num);
-  
-  // try {
-  //
-  //   if (n1==n2) { return EQUAL; }
-  //
-  //   bool haveRepr1 = true;
-  //   bool haveRepr2 = true;
-  //
-  //   IntegerConstantType repr1, repr2;
-  //
-  //   try {
-  //     repr1 = n1.numerator()+n1.denominator();
-  //   } catch(ArithmeticException) {
-  //     haveRepr1 = false;
-  //   }
-  //
-  //   try {
-  //     repr2 = n2.numerator()+n2.denominator();
-  //   } catch(ArithmeticException) {
-  //     haveRepr2 = false;
-  //   }
-  //
-  //   if (haveRepr1 && haveRepr2) {
-  //     Comparison res = IntegerConstantType::comparePrecedence(repr1, repr2);
-  //     if (res==EQUAL) {
-	// res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
-  //     }
-  //     ASS_NEQ(res, EQUAL);
-  //     return res;
-  //   }
-  //   if (haveRepr1 && !haveRepr2) {
-  //     return LESS;
-  //   }
-  //   if (!haveRepr1 && haveRepr2) {
-  //     return GREATER;
-  //   }
-  //
-  //   ASS(!haveRepr1);
-  //   ASS(!haveRepr2);
-  //
-  //   Comparison res = IntegerConstantType::comparePrecedence(n1.denominator(), n2.denominator());
-  //   if (res==EQUAL) {
-  //     res = IntegerConstantType::comparePrecedence(n1.numerator(), n2.numerator());
-  //   }
-  //   ASS_NEQ(res, EQUAL);
-  //   return res;
-  // }
-  // catch(ArithmeticException) {
-  //   ASSERTION_VIOLATION;
-  //   throw;
-  // }
 }
 
 
@@ -482,97 +326,83 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 //
 
 Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
-{
-  return RationalConstantType::comparePrecedence(n1, n2);
-}
+{ return RationalConstantType::comparePrecedence(n1, n2); }
 
 bool RealConstantType::parseDouble(const std::string& num, RationalConstantType& res)
 {
-  try {
-    std::string newNum;
-    IntegerConstantType denominator = 1;
-    bool haveDecimal = false;
-    bool neg = false;
-    size_t nlen = num.size();
-    for(size_t i=0; i<nlen; i++) {
-      if (num[i]=='.') {
-	if (haveDecimal) {
-	  return false;
-	}
-	haveDecimal = true;
+
+  std::string newNum;
+  IntegerConstantType denominator = IntegerConstantType(1);
+  bool haveDecimal = false;
+  bool neg = false;
+  size_t nlen = num.size();
+  for(size_t i=0; i<nlen; i++) {
+    if (num[i]=='.') {
+      if (haveDecimal) {
+        return false;
       }
-      else if (i==0 && num[i]=='-') {
-	neg = true;
-      }
-      else if (num[i]>='0' && num[i]<='9') {
-	if (newNum=="0") {
-	  newNum = num[i];
-	}
-	else {
-	  newNum += num[i];
-	}
-	if (haveDecimal) {
-	  denominator = denominator * 10;
-	}
+      haveDecimal = true;
+    }
+    else if (i==0 && num[i]=='-') {
+      neg = true;
+    }
+    else if (num[i]>='0' && num[i]<='9') {
+      if (newNum=="0") {
+        newNum = num[i];
       }
       else {
-	return false;
+        newNum += num[i];
+      }
+      if (haveDecimal) {
+        denominator = denominator * IntegerConstantType(10);
       }
     }
-    if (neg) {
-      newNum = '-'+newNum;
+    else {
+      return false;
     }
-    IntegerConstantType numerator(newNum);
-    res = RationalConstantType(numerator, denominator);
-  } catch(ArithmeticException&) {
-    return false;
   }
+  if (neg) {
+    newNum = '-'+newNum;
+  }
+  IntegerConstantType numerator(newNum);
+  res = RationalConstantType(numerator, denominator);
   return true;
 }
 
 
 RealConstantType::RealConstantType(const std::string& number)
+  : RealConstantType()
 {
+
   RationalConstantType value;
-  if (parseDouble(number, value)) {
-    init(value.numerator(), value.denominator());
+  if (parseDouble(number, value))  {
+    *this = RealConstantType(std::move(value));
     return;
+  } else {
+    throw UserErrorException("invalid decimal literal");
   }
-
-  double numDbl;
-  if (!Int::stringToDouble(number, numDbl)) {
-    throw MachineArithmeticException();
-  }
-  InnerType denominator = 1;
-  while(::floor(numDbl)!=numDbl) {
-    denominator = denominator*10;
-    numDbl *= 10;
-  }
-
-  if (numDbl > numeric_limits<InnerType::InnerType>::max() ||
-      numDbl < numeric_limits<InnerType::InnerType>::min()) {
-    //the numerator part of double doesn't fit inside the inner integer type
-    throw MachineArithmeticException();
-  }
-
-  InnerType::InnerType numerator = static_cast<InnerType::InnerType>(numDbl);
-  // the test below should now never trigger (thanks to the one above), but we include it to preserve the original semantics
-  if (numerator!=numDbl) {
-    //the numerator part of double doesn't fit inside the inner integer type
-    throw MachineArithmeticException();
-  }
-  init(numerator, denominator);
 }
 
-std::string RealConstantType::toNiceString() const
-{
-  if (denominator().toInner()==1) {
-    return numerator().toString()+".0";
-  }
-  float frep = (float) numerator().toInner() /(float) denominator().toInner();
-  return Int::toString(frep);
-  //return toString();
+size_t IntegerConstantType::hash() const {
+  return std::hash<decltype(mpz_get_si(_val))>{}(mpz_get_si(_val));
 }
+
+size_t RationalConstantType::hash() const {
+  return (denominator().hash() << 1) ^ numerator().hash();
+}
+
+size_t RealConstantType::hash() const {
+  return (denominator().hash() << 1) ^ numerator().hash();
+}
+
+} // namespace Kernel
+
+
+using namespace std;
+using namespace Lib;
+
+namespace Kernel {
+
 
 /////////////////
 // Theory
@@ -1556,9 +1386,7 @@ bool Theory::isInterpretedNumber(TermList t)
  * Return true iff @b pred is an interpreted predicate
  */
 bool Theory::isInterpretedPredicate(unsigned pred)
-{
-  return env.signature->getPredicate(pred)->interpreted();
-}
+{ return env.signature->getPredicate(pred)->interpreted(); }
 
 /**
  * Return true iff @b lit has an interpreted predicate
@@ -1583,6 +1411,11 @@ bool Theory::isInterpretedPredicate(Literal* lit)
   return env.signature->getPredicate(lit->functor())->interpreted();
 }
 
+
+bool Theory::isInterpretedPredicate(unsigned pred, Interpretation itp)
+{
+  return isInterpretedPredicate(pred) && interpretPredicate(pred) == itp;
+}
 
 /**
  * Return true iff @b lit has an interpreted predicate interpreted
@@ -1632,33 +1465,6 @@ bool Theory::isInterpretedFunction(TermList t)
 {
   return t.isTerm() && isInterpretedFunction(t.term());
 }
-
-/**
- * Return true iff @b t is an interpreted function interpreted
- * as @b itp
- */
-bool Theory::isInterpretedFunction(unsigned f, Interpretation itp)
-{
-  return isInterpretedFunction(f) && interpretFunction(f)==itp;
-}
-/**
- * Return true iff @b t is an interpreted function interpreted
- * as @b itp
- */
-bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
-{
-  return isInterpretedFunction(t->functor(), itp);
-}
-
-/**
- * Return true iff @b t is an interpreted function interpreted
- * as @b itp
- */
-bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
-{
-  return t.isTerm() && isInterpretedFunction(t.term(), itp);
-}
-
 
 Interpretation Theory::interpretFunction(unsigned func)
 {
@@ -1766,6 +1572,13 @@ bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
   return true;
 }
 
+bool Theory::tryInterpretConstant(TermList trm, RationalConstantType& res)
+{
+  if (!trm.isTerm()) {
+    return false;
+  }
+  return tryInterpretConstant(trm.term(),res);
+}
 
 /**
  * Try to interpret the term as a real constant. If it is an
@@ -1948,6 +1761,22 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
   }
   ASSERTION_VIOLATION
 }
+
+std::ostream& operator<<(std::ostream& out, IntegerConstantType const& self)
+{ return out << self._val; }
+
+std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
+#if NICE_THEORY_OUTPUT
+{ return self.isInt() ? out << self.numerator() 
+                      : out << self.numerator() << "/" << self.denominator(); }
+#else 
+{ return out << self.numerator() << "/" << self.denominator(); }
+#endif // NICE_THEORY_OUTPUT
+
+std::ostream& operator<<(std::ostream& out, RealConstantType const& self)
+{ return out << (RationalConstantType const&)self; }
+
+
 /**
  * We try and get a LaTeX special name for an interpeted function/predicate.
  * Note: the functions may not necessarily be interpreted in the sense that we treat
@@ -2051,17 +1880,50 @@ std::string Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool pol
 
 }
 
-size_t IntegerConstantType::hash() const {
-  return std::hash<decltype(_val)>{}(_val);
+
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
+bool Theory::isInterpretedFunction(unsigned f, Interpretation itp)
+{
+  return isInterpretedFunction(f) && interpretFunction(f)==itp;
+}
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
+bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
+{
+
+  return isInterpretedFunction(t->functor(), itp);
 }
 
-size_t RationalConstantType::hash() const {
-  return (denominator().hash() << 1) ^ numerator().hash();
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
+bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
+{
+  return t.isTerm() && isInterpretedFunction(t.term(), itp);
 }
 
-size_t RealConstantType::hash() const {
-  return (denominator().hash() << 1) ^ numerator().hash();
+IntegerConstantType naiveInverseModulo(IntegerConstantType const& l, IntegerConstantType const& m)
+{
+  ASS(!m.isZero())
+  if (m == IntegerConstantType(1)) {
+    return IntegerConstantType(0);
+  }
+  // TODO use extended euclidean algorithm instead
+  ASS(l.isPositive()) // <- can be done but not implemented
+  ASS(m.isPositive()) // <- can be done but not implemented
+  auto one = IntegerConstantType(1);
+  for (auto i : range(0, m)) {
+    if ((l * i).remainderE(m) == 1) {
+      return IntegerConstantType(i);
+    }
+  }
+  ASSERTION_VIOLATION_REP("inverse does not exists")
 }
 
-}
-
+} // namespace Kernel

@@ -24,6 +24,7 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
@@ -32,6 +33,13 @@
 #define DEBUG_ORDERING 0
 
 namespace Kernel {
+
+
+namespace PredLevels {
+  constexpr static int MIN_USER_DEF = 1;
+  constexpr static int EQ = 0;
+  constexpr static int INEQ = 0;
+};
 
 using namespace Shell;
 
@@ -55,6 +63,18 @@ public:
     EQUAL=3,
     INCOMPARABLE=4
   };
+
+  friend std::ostream& operator<<(std::ostream& out, Kernel::Ordering::Result const& r)
+  {
+    switch (r) {
+      case Kernel::Ordering::Result::GREATER: return out << "GREATER";
+      case Kernel::Ordering::Result::LESS: return out << "LESS";
+      case Kernel::Ordering::Result::EQUAL: return out << "EQUAL";
+      case Kernel::Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+    }
+    ASSERTION_VIOLATION
+    return out << "UNKNOWN";
+  }
 
   struct Constraint {
     TermList lhs;
@@ -152,14 +172,22 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
+  PrecedenceOrdering(PrecedenceOrdering&&) = default;
+  PrecedenceOrdering& operator=(PrecedenceOrdering&&) = default;
   Result compare(Literal* l1, Literal* l2) const override;
   void show(std::ostream&) const override;
   virtual void showConcrete(std::ostream&) const = 0;
 
+  static DArray<int> testLevels();
+
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+
+  Result comparePredicatePrecedences(unsigned fun1, unsigned fun2) const;
+  int predicatePrecedence(unsigned pred) const;
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
-
   PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
                      const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
   PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
@@ -167,14 +195,11 @@ protected:
 
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
-  int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;
 
   /** number of predicates in the signature at the time the order was created */
@@ -190,23 +215,12 @@ protected:
   /** Array of type con precedences */
   DArray<int> _typeConPrecedences;
 
+  static void checkLevelAssumptions(DArray<int> const&);
+
   bool _reverseLCM;
 };
 
 
-inline std::ostream& operator<<(std::ostream& out, Ordering::Result const& r) 
-{
-  switch (r) {
-    case Ordering::Result::GREATER: return out << "GREATER";
-    case Ordering::Result::LESS: return out << "LESS";
-    case Ordering::Result::EQUAL: return out << "EQUAL";
-    case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
-    default:
-      return out << "UNKNOWN";
-  }
-  ASSERTION_VIOLATION
-}
-
-}
+} // namespace Kernel
 
 #endif

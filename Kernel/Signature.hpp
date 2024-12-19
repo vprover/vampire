@@ -30,6 +30,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
@@ -357,7 +358,7 @@ class Signature
 
   public:
     IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(val.toString(), 0, true), _intValue(val)
+    : Symbol(Output::toString(val), 0, true), _intValue(val)
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
@@ -373,7 +374,7 @@ class Signature
 
   public:
     RationalSymbol(const RationalConstantType& val)
-    : Symbol(val.toString(), 0, true), _ratValue(val)
+    : Symbol(Output::toString(val), 0, true), _ratValue(val)
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
@@ -389,7 +390,7 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")") : Output::toString(val), 0, true), _realValue(val)
     {
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }

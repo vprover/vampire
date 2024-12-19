@@ -252,7 +252,7 @@ OrderingComparatorUP LPO::createComparator(bool onlyVars) const
   return make_unique<LPOComparator>(*this, onlyVars);
 }
 
-void LPO::showConcrete(ostream&) const 
+void LPO::showConcrete(std::ostream&) const 
 { /* lpo is fully defined by the precedence relation */ }
 
 }

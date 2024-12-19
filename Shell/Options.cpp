@@ -122,7 +122,6 @@ void Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
-                                        "casc_hol",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -152,8 +151,7 @@ void Options::init()
 
     auto UsingPortfolioTechnology = [this] {
       // Consider extending this list when adding a new Casc-like mode
-      return Or(_mode.is(equal(Mode::CASC_HOL)),
-                _mode.is(equal(Mode::CASC)),
+      return Or(_mode.is(equal(Mode::CASC)),
                 _mode.is(equal(Mode::SMTCOMP)),
                 _mode.is(equal(Mode::PORTFOLIO)));
     };
@@ -169,13 +167,8 @@ void Options::init()
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
          "casc_2024",
-         "casc_2023",
-         "casc_2019",
          "casc_sat",
          "casc_sat_2024",
-         "casc_sat_2023",
-         "casc_sat_2019",
-         "casc_hol_2020",
          "file",
          "induction",
          "integer_induction",
@@ -380,6 +373,12 @@ void Options::init()
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
     _timeStatistics.tag(OptionTag::OUTPUT);
+
+    _timeStatisticsFocus = StringOptionValue("time_statistics_focus","tstat_focus","");
+    _timeStatisticsFocus.description="focus on some special subtree of the time statistics";
+    _lookup.insert(&_timeStatisticsFocus);
+    _timeStatisticsFocus.tag(OptionTag::OUTPUT);
+    _timeStatisticsFocus.onlyUsefulWith(_timeStatistics.is(equal(true)));
 #endif // VTIME_PROFILING
 
 //*********************** Input  ***********************
@@ -702,6 +701,12 @@ void Options::init()
     _showZ3.description="Print the clauses being added to Z3";
     _lookup.insert(&_showZ3);
     _showZ3.tag(OptionTag::DEVELOPMENT);
+
+    _problemExportSyntax = ChoiceOptionValue<ProblemExportSyntax>("export_syntax","",ProblemExportSyntax::SMTLIB, {"smtlib", "api_calls",});
+    _problemExportSyntax.description="Set the syntax for exporting z3 problems.";
+    _lookup.insert(&_problemExportSyntax);
+    _problemExportSyntax.tag(OptionTag::DEVELOPMENT);
+    _problemExportSyntax.reliesOn(Or(_exportAvatarProblem.is(notEqual(std::string(""))), _exportThiProblem.is(notEqual(std::string("")))));
 
     _exportAvatarProblem = StringOptionValue("export_avatar","","");
     _exportAvatarProblem.description="Export the avatar problems to solve in smtlib syntax.";
@@ -1566,7 +1571,8 @@ void Options::init()
     _condensation.tag(OptionTag::INFERENCES);
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",DemodulationRedundancyCheck::ON,{"off","encompass","on"});
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",
+       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"});
     _demodulationRedundancyCheck.description=
        "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -1574,8 +1580,8 @@ void Options::init()
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
        "where t > t1 and s = t > C (RHS replaced)\n"
-       "With `on`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
+       "With `ordering`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `off`, we skip the checks, save time, but become incomplete.";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
@@ -2578,7 +2584,7 @@ std::string Options::includeFileName (const std::string& relativeName)
  * @since 27/11/2003 Manchester, changed using new XML routines and iterator
  *        of options
  */
-void Options::output (ostream& str) const
+void Options::output (std::ostream& str) const
 {
   if(printAllTheoryAxioms()){
     cout << "Sorry, not implemented yet!" << endl;
@@ -2707,7 +2713,7 @@ void Options::output (ostream& str) const
     //str << "======= End of options =======\n";
   }
 
-} // Options::output (ostream& str) const
+} // Options::output (std::ostream& str) const
 
 template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
@@ -3817,4 +3823,21 @@ std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
   }
 
   return cutoffs;
+}
+
+Stack<std::string> Options::getSimilarOptionNames(std::string name, bool is_short) const {
+
+  Stack<std::string> similar_names;
+
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){
+    AbstractOptionValue* opt = options.next();
+    std::string opt_name = is_short ? opt->shortName : opt->longName;
+    size_t dif = 2;
+    if(!is_short) dif += name.size()/4;
+    if(name.size()!=0 && StringUtils::distance(name,opt_name) < dif)
+      similar_names.push(opt_name);
+  }
+
+  return similar_names;
 }

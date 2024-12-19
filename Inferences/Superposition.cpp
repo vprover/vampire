@@ -45,6 +45,7 @@
 #include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Superposition.hpp"
 
@@ -304,7 +305,7 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
+  auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
 
