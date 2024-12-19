@@ -21,6 +21,7 @@
 namespace Kernel {
 
 class AlascaPreprocessor {
+  std::shared_ptr<InequalityNormalizer> _norm;
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
   // TODO create option for this
@@ -30,8 +31,9 @@ class AlascaPreprocessor {
   using R = RealTraits;
   static constexpr InferenceRule INF_RULE = InferenceRule::ALASCA_INTEGER_TRANSFORMATION;
 
-  Literal* integerConversion(Literal* lit)
+  Literal* integerConversion(Literal* l)
   {
+    auto lit = _norm->normalizedLiteral(l);
     // AlascaState::globalState->normalizer->normalizedLiteral()
     auto impl = [&]() { 
       if (lit->isEquality()) {
@@ -214,7 +216,13 @@ class AlascaPreprocessor {
     //   : (Unit*)integerConversion(static_cast<FormulaUnit*>(unit));
   }
 public:
-  AlascaPreprocessor() : _preds() {}
+
+
+  AlascaPreprocessor(std::shared_ptr<InequalityNormalizer> norm) 
+    : _norm(std::move(norm))
+    , _preds()
+    , _funcs() {}
+
   void integerConversion(Problem& prb)
   {
     for (auto& unit : iterTraits(prb.units()->iter())) {

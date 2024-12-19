@@ -226,8 +226,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _activationLimit = opt.activationLimit();
 
-  InequalityNormalizer::initGlobal(InequalityNormalizer());
-
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
     // this is not an error, it may just lead to lower performance (and most likely not significantly lower)

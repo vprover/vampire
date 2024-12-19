@@ -76,19 +76,15 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
-  AlascaPreprocessor alasca;
+  InequalityNormalizer::initGlobal(InequalityNormalizer());
+  AlascaPreprocessor alasca(InequalityNormalizer::global());
   auto normalizeInterpreted = [&]() {
 
+
     if (env.options->alascaIntegerConversion()) {
-      static InequalityNormalizer norm = InequalityNormalizer();
-      InterpretedNormalizer(&norm).apply(prb);
       alasca.integerConversion(prb);
-      InterpretedNormalizer(&norm).apply(prb);
-
     } else if (env.options->alasca()) {
-      static InequalityNormalizer norm = InequalityNormalizer();
-      InterpretedNormalizer(&norm).apply(prb);
-
+      /* alasca preprocessing is done in the saturation loop using immediate simplifications */
     } else {
       InterpretedNormalizer(nullptr).apply(prb);
     }
