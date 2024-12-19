@@ -88,20 +88,6 @@ protected:
   SaturationAlgorithm* _salg;
 };
 
-
-//struct GeneratingRecord
-//{
-//  GeneratingRecord() {}
-//  GeneratingRecord(Clause* newClause)
-//  : newClause(newClause), premises(ClauseIterator::getEmpty()) {}
-//  GeneratingRecord(Clause* newClause, Clause* premise);
-//  GeneratingRecord(Clause* newClause, ClauseIterator premises)
-//  : newClause(newClause), premises(premises) {}
-//
-//  Clause* newClause;
-//  ClauseIterator premises;
-//};
-
 /** A generating inference that might make its major premise redundant. */
 class SimplifyingGeneratingInference
 : public InferenceEngine
@@ -318,30 +304,6 @@ public:
   }
 };
 
-/*
-class DummyFSE
-: public ForwardSimplificationEngine
-{
-public:
-  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
-  {
-    keep=true;
-    toAdd=ClauseIterator::getEmpty();
-    premises=ClauseIterator::getEmpty();
-  }
-};
-
-class DummyBSE
-: public BackwardSimplificationEngine
-{
-public:
-  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
-  {
-    simplifications=BwSimplificationRecordIterator::getEmpty();
-  }
-};
-*/
-
 template<class... Args>
 class TupleISE
 : public ImmediateSimplificationEngine
@@ -382,21 +344,6 @@ private:
   ISList* _inners;
   ISList* _innersMany;
 };
-
-//class CompositeFSE
-//: public ForwardSimplificationEngine
-//{
-//public:
-//  CompositeFSE() : _inners(0) {}
-//  ~CompositeFSE();
-//  void addFront(ForwardSimplificationEngineSP fse);
-//  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
-//  void attach(SaturationAlgorithm* salg);
-//  void detach();
-//private:
-//  typedef List<ForwardSimplificationEngineSP> FSList;
-//  FSList* _inners;
-//};
 
 class CompositeGIE
 : public GeneratingInferenceEngine
