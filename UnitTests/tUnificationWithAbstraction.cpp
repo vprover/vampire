@@ -2166,6 +2166,28 @@ INDEX_TEST(bug_wrong_ouptut_var_01,
       },
     })
 
+
+INDEX_TEST(bug_linear_mul,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR,
+      .fixedPointIteration = true,
+      .insert = {
+        floor(2 * a),
+        floor(3 * a),
+      },
+      .query = 2 * a,
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = 2 * a,
+            .resultSigma = 2 * a,
+            .constraints = noConstraints() }, 
+
+      },
+    })
+
 ROB_UNIFY_TEST(alasca_main_int_bug01,
     SUGAR(Int),
     Options::UnificationWithAbstraction::ALASCA_MAIN,
