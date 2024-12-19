@@ -1257,177 +1257,6 @@ ROB_UNIFY_TEST(rob_unif_test_06,
       .constraints = { a != a + 1 },
     })
 
-ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ false,
-    f2(x, a + x),
-    f2(c, b + a),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(c, a + c),
-      .resultSigma = f2(c, b + a),
-      .constraints = { c != b },
-    })
-
-ROB_UNIFY_TEST_FAIL(over_approx_test_2_bad_AC1_fixedPointIteration,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ true,
-    f2(x, a + x),
-    f2(c, b + a)
-    )
-
-ROB_UNIFY_TEST_FAIL(over_approx_test_2_good_AC1,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ false,
-    f2(a + x, x),
-    f2(b + a, c))
-
-ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ false,
-    f2(f2(y, x), a + y + x),
-    f2(f2(b, c), c + b + a),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(f2(b,c), a + b + c),
-      .resultSigma = f2(f2(b,c), c + b + a),
-      .constraints = Stack<Literal*>{ b + c != c + b },
-    })
-
-ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1_fixedPointIteration,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ true,
-    f2(f2(y, x), a + y + x),
-    f2(f2(b, c), c + b + a),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(f2(b,c), a + b + c),
-      .resultSigma = f2(f2(b,c), c + b + a),
-      .constraints = Stack<Literal*>{  },
-    })
-
-ROB_UNIFY_TEST(bottom_constraint_test_1_good_AC1,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ false,
-    f2(a + x + y, f2(x, y)),
-    f2(c + b + a, f2(b, c)),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(a + b + c, f2(b,c)),
-      .resultSigma = f2(c + b + a, f2(b,c)),
-      .constraints = Stack<Literal*>{},
-    })
-
-
-ROB_UNIFY_TEST(ac_bug_01,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ false,
-    a + b + c + a,
-    a + b + x + y,
-    TermUnificationResultSpec { 
-      .querySigma  = a + b + c + a,
-      .resultSigma = a + b + x + y,
-      .constraints = { c + a != x + y },
-    })
-
-ROB_UNIFY_TEST(ac_test_01_AC1,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ false,
-    f2(b, a + b + c),
-    f2(b, x + y + c),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(b, a + b + c),
-      .resultSigma = f2(b, x + y + c),
-      .constraints = { a + b != x + y },
-    })
-
-ROB_UNIFY_TEST(ac_test_02_AC1_good,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ false,
-    f2(a + b + c, c),
-    f2(x + y + z, z),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(a + b + c, c),
-      .resultSigma = f2(x + y + c, c),
-      .constraints = { a + b != x + y },
-    })
-
-ROB_UNIFY_TEST(ac_test_02_AC1_bad,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ false,
-    f2(c, a + b + c),
-    f2(z, x + y + z),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(c, a + b + c),
-      .resultSigma = f2(c, x + y + c),
-      .constraints = { a + b + c != x + y + c },
-    })
-
-ROB_UNIFY_TEST(ac_test_02_AC1_bad_fixedPointIteration,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC1,
-    /* withFixedPointIteration */ true,
-    f2(c, a + b + c),
-    f2(z, x + y + z),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(c, a + b + c),
-      .resultSigma = f2(c, x + y + c),
-      .constraints = { a + b != x + y },
-    })
-
-ROB_UNIFY_TEST(ac2_test_01,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC2,
-    /* withFixedPointIteration */ false,
-    f2(x, a + b + c),
-    f2(x, x + b + a),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(c, a + b + c),
-      .resultSigma = f2(c, c + b + a),
-      .constraints = Stack<Literal*>{},
-    })
-
-ROB_UNIFY_TEST(ac2_test_02,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC2,
-    /* withFixedPointIteration */ false,
-    f2(a + b + c, f2(x,b)),
-    f2(x + y + a, f2(x,y)),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(a + b + c, f2(c,b)),
-      .resultSigma = f2(c + b + a, f2(c,b)),
-      .constraints = Stack<Literal*>{},
-    })
-
-ROB_UNIFY_TEST(ac2_test_02_bad,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC2,
-    /* withFixedPointIteration */ false,
-    f2(f2(x,b), a + b + c),
-    f2(f2(x,y), x + y + a),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(f2(x,b), a + b + c),
-      .resultSigma = f2(f2(x,b), x + b + a),
-      .constraints = Stack<Literal*>{ b + c != x + b },
-    })
-
-ROB_UNIFY_TEST(ac2_test_02_bad_fixedPointIteration,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC2,
-    /* withFixedPointIteration */ true,
-    f2(f2(x,b), a + b + c),
-    f2(f2(x,y), x + y + a),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(f2(c,b), a + b + c),
-      .resultSigma = f2(f2(c,b), c + b + a),
-      .constraints = Stack<Literal*>{ },
-    })
 
 
 ROB_UNIFY_TEST(alasca3_test_01,
@@ -1723,18 +1552,6 @@ ROB_UNIFY_TEST(constr_var_01,
       .constraints = Stack<Literal*>{x != r2s(s2r(x) + y)},
     })
 
-ROB_UNIFY_TEST(top_level_constraints_1,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC2,
-    /* withFixedPointIteration */ false,
-    a + y + x,
-    a + b + c,
-    TermUnificationResultSpec { 
-      .querySigma  = a + y + x,
-      .resultSigma = a + b + c,
-      .constraints = Stack<Literal*>{ b + c != x + y },
-    })
-
 
 INDEX_TEST(top_level_constraints_2,
     SUGAR(Rat),
@@ -1758,22 +1575,6 @@ INDEX_TEST(top_level_constraints_2,
           { .querySigma  = a + x0 + x1,
             .resultSigma = a + b + a + c,
             .constraints = Stack<Literal*>{ a + b + a + c != a + x1 + x0 } }, 
-
-      },
-    })
-
-INDEX_TEST(literal_tree_test_01,
-    SUGAR(Int),
-    LiteralIndexTest {
-      .index = getLiteralIndex(),
-      .uwa = Options::UnificationWithAbstraction::AC2,
-      .fixedPointIteration = true,
-      .insert = {
-        x < (a + (x + 1)),
-        x < (x + a),
-      },
-      .query = x < 1 + (x + 1),
-      .expected = Stack<LiteralUnificationResultSpec>{ 
 
       },
     })
@@ -1995,18 +1796,6 @@ ROB_UNIFY_TEST(alasca_main_constr_var_01,
       .querySigma  = s2r(x),
       .resultSigma = s2r(r2s(s2r(x) + y)),
       .constraints = Stack<Literal*>{x != r2s(s2r(x) + y)},
-    })
-
-ROB_UNIFY_TEST(alasca_main_top_level_constraints_1,
-    SUGAR(Int),
-    Options::UnificationWithAbstraction::AC2,
-    /* fixedPointIteration */ false,
-    a + y + x,
-    a + b + c,
-    TermUnificationResultSpec { 
-      .querySigma  = a + y + x,
-      .resultSigma = a + b + c,
-      .constraints = Stack<Literal*>{ b + c != x + y },
     })
 
 

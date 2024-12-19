@@ -269,8 +269,6 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
       return true;
     case Shell::Options::UnificationWithAbstraction::OFF:
       return false;
-    case Shell::Options::UnificationWithAbstraction::AC1: 
-    case Shell::Options::UnificationWithAbstraction::AC2: 
     case Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: 
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN: 
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: 
@@ -1309,66 +1307,7 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
   using Uwa = Shell::Options::UnificationWithAbstraction;
   ASS(_mode != Uwa::OFF)
 
-  auto intSort = []() { return TermSpec(IntTraits::sort(), 0); };
-
-  if (_mode == Uwa::AC1 || _mode == Uwa::AC2) {
-      if ( (t1.isTerm() && t1.isSort())
-        || (t2.isTerm() && t2.isSort())
-        || !(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
-        || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))
-        ) {
-        return Option<AbstractionResult>();
-      }
-      auto a1 = iterTraits(AcIter(IntTraits::addF(), t1, &au->subs())).template collect<Stack>();
-      auto a2 = iterTraits(AcIter(IntTraits::addF(), t2, &au->subs())).template collect<Stack>();
-      auto cmp = [&](TermSpec const& lhs, TermSpec const& rhs) { return TermSpec::compare(lhs, rhs, [&](auto& t) -> TermSpec const& { return au->subs().derefBound(t); }); };
-      auto less = [&](TermSpec const& lhs, TermSpec const& rhs) { return cmp(lhs, rhs) < 0; };
-      a1.sort(less);
-      a2.sort(less);
-
-      Recycled<Stack<TermSpec>> diff1_;
-      Recycled<Stack<TermSpec>> diff2_;
-      auto& diff1 = *diff1_;
-      auto& diff2 = *diff2_;
-      diff1.loadFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp));
-      diff2.loadFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp));
-      auto sum = [&](auto& diff) {
-          return arrayIter(diff)
-            .map([](TermSpec& t) -> TermSpec { return t; })
-            .fold([&](TermSpec l, TermSpec r) -> TermSpec
-              { return au->subs().createTerm(IntTraits::addF(), l, r); })
-            .unwrap(); };
-      auto diffConstr = [&]() 
-      { return UnificationConstraint(sum(diff1), sum(diff2), intSort()); };
-
-      auto functors = [](auto& diff) 
-      { return arrayIter(diff).map([](auto& f) { return f.functor(); }); };
-
-      if (diff1.size() == 0 && diff2.size() == 0) {
-        return some(AbstractionResult(EqualIf()));
-
-      } else if (( diff1.size() == 0 && diff2.size() != 0 )
-              || ( diff2.size() == 0 && diff1.size() != 0 ) ) {
-        return some(AbstractionResult(NeverEqual{}));
-
-      } else if (_mode == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
-        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(std::move(diff1[0]), sum(diff2), intSort()))));
-
-      } else if (_mode == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
-        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(std::move(diff2[0]), sum(diff1), intSort()))));
-
-      } else if (concatIters(arrayIter(diff1), arrayIter(diff2)).any([](auto& x) { return x.isVar(); })) {
-        return some(AbstractionResult(EqualIf().constr(diffConstr())));
-
-      } else if (iterSortedDiff(functors(diff1), functors(diff2)).hasNext()
-              || iterSortedDiff(functors(diff2), functors(diff1)).hasNext()) {
-        return some(AbstractionResult(NeverEqual{}));
-
-      } else {
-        return some(AbstractionResult(EqualIf().constr(diffConstr())));
-      }
-
-  } else if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
+  if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
     return funcExt(au, t1, t2);
 
   } else if (_mode == Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR) {
@@ -1480,8 +1419,6 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId 
     case Options::UnificationWithAbstraction::ALL: return anything();
     case Options::UnificationWithAbstraction::GROUND: anything();
     case Options::UnificationWithAbstraction::FUNC_EXT: anything();
-    case Options::UnificationWithAbstraction::AC1: return some(recycledStack(f));
-    case Options::UnificationWithAbstraction::AC2: return some(recycledStack(f));
     case Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: 
     case Options::UnificationWithAbstraction::ALASCA_ONE_INTERP: 
     case Options::UnificationWithAbstraction::ALASCA_MAIN: return isAlascaInterpreted(f) ? anything() : some(recycledStack(f));
