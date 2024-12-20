@@ -1343,23 +1343,23 @@ template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
-    auto c = TermList(theory->representConstant(monom.numeral));
-    if (monom.factors->isOne()) {
-      return c;
-    } else {
+    // auto c = TermList(theory->representConstant(monom.numeral));
+    // if (monom.factors->isOne()) {
+    //   return Number::linMul(monom.numeral, );
+    // } else {
       auto mon = monom.factors->denormalize(t);
       if (monom.numeral == 1) {
         return mon;
-      } else if (monom.numeral == -1) {
-        return Number::minus(mon);
+      // } else if (monom.numeral == -1) {
+      //   return Number::minus(mon);
       } else {
-        return Number::mul(c, mon);
+        return Number::linMul(monom.numeral, mon);
       }
-    }
+    // }
   };
 
   if (_summands.size() == 0) {
-    return Number::zero();
+    return Number::linMul(Numeral(0), Number::one());
   } else {
 
     auto flatSize = iterTraits(_summands.iterFifo())

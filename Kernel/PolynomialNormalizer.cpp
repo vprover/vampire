@@ -285,6 +285,11 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
   } else {
     auto term = t.term();
+    auto res = NumTraits::ifLinMul(term, [&](auto& n, auto t) {
+        auto lhs = NormalizationResult(MonomFactors<NumTraits>(PolyNf(perfect(FuncTerm(FuncId::symbolOf(NumTraits::constantT(n)), Stack<PolyNf>())))));
+        return normalizeMul<NumTraits>(lhs, ts[0]);
+    });
+    if (res) return *res;
     auto fn = FuncId::symbolOf(term);
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {
@@ -320,6 +325,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 PolyNf normalizeTerm(TypedTermList t) 
 {
   DEBUG("normalizing ", t)
+    // DBGE(t)
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
     .function(
         [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
@@ -350,7 +356,6 @@ PolyNf normalizeTerm(TypedTermList t)
 
 TermList PolyNf::denormalize() const
 { 
-
   static Memo::Hashed<PolyNf, TermList, StlHash> memo;
   return BottomUpEvaluation<PolyNf, TermList>()
     .function(

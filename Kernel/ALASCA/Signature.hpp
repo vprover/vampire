@@ -13,6 +13,13 @@
 
 namespace Kernel {
 
+template<class NumTraits, class T>
+Lib::Option<typename NumTraits::ConstantType const&> tryAlascaNumeral(T t) {
+  return NumTraits::ifLinMul(t, [](auto& c, auto t) {
+      return someIf(t == NumTraits::one(), [&]() -> auto& { return c; });
+  }).flatten();
+}
+
 // TODO rename
 template<class NumTraits, class F>
 Option<std::invoke_result_t<F, AlascaPredicate, TermList, unsigned>> ifAlascaLiteral(Literal* lit, F f) {

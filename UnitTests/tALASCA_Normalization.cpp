@@ -34,22 +34,60 @@ using namespace Inferences;
 using namespace Test;
 using namespace Indexing;
 
+void overrideFractionalNumerals(IntTraits n) { }
+
+template<class NumTraits>
+void overrideFractionalNumerals(NumTraits n) {
+  SyntaxSugarGlobals::instance().overrideFractionCreation([&](int n, int m) {
+      return n == 1 && m == 1 ? NumTraits::one() 
+           : NumTraits::linMul(NumTraits::constant(n, m), NumTraits::one());
+  });
+}
+
+template<class NumTraits>
+void overrideMultiplicationAndNumerals(NumTraits n) {
+
+  SyntaxSugarGlobals::instance().overrideMulOperator([&](auto lhs, auto rhs) {
+    auto linMul = [](auto lhs, auto rhs) {
+      return NumTraits::ifLinMul(lhs, [&](auto num, auto t) {
+          return someIf(t == NumTraits::one(), 
+              [&]() { return NumTraits::linMul(num, rhs); });
+      }).flatten();
+    };
+    return linMul(lhs,rhs) || linMul(rhs, lhs) || NumTraits::mul(lhs, rhs); 
+  });
+
+  SyntaxSugarGlobals::instance().overrideNumeralCreation([&](int i) {
+      return i == 1 ? NumTraits::one() 
+           : NumTraits::linMul(NumTraits::constant(i), NumTraits::one());
+  });
+
+  SyntaxSugarGlobals::instance().overrideMinus([&](auto t) {
+      return NumTraits::linMul(NumTraits::constant(-1), t);
+  });
+
+  overrideFractionalNumerals(n);
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                  \
-  __ALLOW_UNUSED(                                                                                   \
-    NUMBER_SUGAR(Num)                                                                               \
-    DECL_DEFAULT_VARS                                                                               \
-    DECL_FUNC(f, {Num}, Num)                                                                        \
-    DECL_FUNC(g, {Num, Num}, Num)                                                                   \
-    DECL_CONST(a, Num)                                                                              \
-    DECL_CONST(b, Num)                                                                              \
-    DECL_CONST(c, Num)                                                                              \
-    DECL_PRED(r, {Num,Num})                                                                         \
-    DECL_PRED(p, {Num})                                                                             \
-  )                                                                                                 \
+#define SUGAR(Num)                                                                        \
+  __ALLOW_UNUSED(                                                                         \
+    NUMBER_SUGAR(Num)                                                                     \
+    overrideMultiplicationAndNumerals(Num ## Traits{}); \
+    DECL_DEFAULT_VARS                                                                     \
+    DECL_FUNC(f, {Num}, Num)                                                              \
+    DECL_FUNC(g, {Num, Num}, Num)                                                         \
+    DECL_CONST(a, Num)                                                                    \
+    DECL_CONST(b, Num)                                                                    \
+    DECL_CONST(c, Num)                                                                    \
+    DECL_PRED(r, {Num,Num})                                                               \
+    DECL_PRED(p, {Num})                                                                   \
+  )                                                                                       \
 
 
 /////////////////////////////////////////////////////////
@@ -104,23 +142,23 @@ struct TestCase
     }
   }
 };
-#define TEST_CASE(Num, name, ...)                                                                   \
-  TEST_FUN(name ## _ ## Num) {                                                                      \
-    SUGAR(Num)                                                                                      \
-    __VA_ARGS__.run<Num ## Traits>();                                                               \
-  }                                                                                                 \
+#define TEST_CASE(Num, name, ...)                                                         \
+  TEST_FUN(name ## _ ## Num) {                                                            \
+    SUGAR(Num)                                                                            \
+    __VA_ARGS__.run<Num ## Traits>();                                                     \
+  }                                                                                       \
 
-#define TEST_FRAC(...)                                                                              \
-    TEST_CASE(Rat , __VA_ARGS__)                                                                    \
-    TEST_CASE(Real, __VA_ARGS__)                                                                    \
+#define TEST_FRAC(...)                                                                    \
+    TEST_CASE(Rat , __VA_ARGS__)                                                          \
+    TEST_CASE(Real, __VA_ARGS__)                                                          \
 
-#define TEST_INT(...)                                                                               \
-    TEST_CASE(Int, __VA_ARGS__)                                                                     \
+#define TEST_INT(...)                                                                     \
+    TEST_CASE(Int, __VA_ARGS__)                                                           \
 
-#define TEST_ALL(...)                                                                               \
-    TEST_CASE(Int , __VA_ARGS__)                                                                    \
-    TEST_CASE(Rat , __VA_ARGS__)                                                                    \
-    TEST_CASE(Real, __VA_ARGS__)                                                                    \
+#define TEST_ALL(...)                                                                     \
+    TEST_CASE(Int , __VA_ARGS__)                                                          \
+    TEST_CASE(Rat , __VA_ARGS__)                                                          \
+    TEST_CASE(Real, __VA_ARGS__)                                                          \
 
 
 TEST_ALL(strict_01, 
@@ -367,14 +405,14 @@ TEST_ALL(gcd_02,
 
 TEST_FRAC(gcd_03, 
     TestCase {
-      .in  =     frac(1, 2) * a + frac(1, 4) * b + -frac(1, 6) * c > 0,
+      .in  =     frac(1, 2) * a + frac(1, 4) * b + frac(-1, 6) * c > 0,
       .out = { {         6  * a +         3  * b + -        2  * c > 0 } },
       .strong = true,
     })
 
 TEST_FRAC(gcd_04, 
     TestCase {
-      .in  =     frac(9, 2) * a + frac(6, 4) * b + -frac(3, 6) * c > 0,
+      .in  =     frac(9, 2) * a + frac(6, 4) * b + frac(-3, 6) * c > 0,
       .out = { {         9  * a +         3  * b + -             c > 0 } },
       .strong = true,
     })
@@ -403,7 +441,7 @@ TEST_INT(bug_02,
 TEST_ALL(bug_03, 
     TestCase {
       .in  =     g(a, x) + -2 * b * y > 0,
-      .out = { { g(a, x) + -2 * b * y > 0 } },
+      .out = { { g(a, x) + -2 * (b * y) > 0 } },
       .strong = true,
    })
  
@@ -523,7 +561,7 @@ TEST_FRAC(floor_04,
 
 TEST_FRAC(floor_05, 
     TestCase {
-      .in  =     floor(floor(a) + -frac(3,2) * floor(b)) > 0,
+      .in  =     floor(floor(a) + frac(-3,2) * floor(b)) > 0,
       .out = { {    floor(a) + -2 * floor(b) + floor(frac(1,2) * floor(b)) > 0 } },
       .strong = false,
     })
@@ -544,7 +582,7 @@ TEST_FRAC(floor_07,
 
 TEST_FRAC(floor_08, 
     TestCase {
-      .in  =     floor(floor(a) + -frac(1,2) * floor(b) + frac(3,2)) > 0,
+      .in  =     floor(floor(a) + frac(-1,2) * floor(b) + frac(3,2)) > 0,
       .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b) + frac(1,2)) + 1 > 0 } },
       .strong = false,
     })
@@ -553,7 +591,7 @@ TEST_FRAC(floor_08,
 
 TEST_FRAC(floor_09, 
     TestCase {
-      .in  =     floor(floor(a) + -frac(1,2) * floor(b) + frac(-3,2)) > 0,
+      .in  =     floor(floor(a) + frac(-1,2) * floor(b) + frac(-3,2)) > 0,
       .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b) + frac(1,2)) + -2 > 0 } },
       .strong = false,
     })
@@ -562,7 +600,7 @@ TEST_FRAC(floor_09,
 
 TEST_FRAC(floor_10, 
     TestCase {
-      .in  =     floor(floor(a) + -frac(1,2) * floor(b) + frac(-1,2)) > 0,
+      .in  =     floor(floor(a) + frac(-1,2) * floor(b) + frac(-1,2)) > 0,
       .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b) + frac(1,2)) + -1 > 0 } },
       .strong = false,
     })
@@ -571,7 +609,7 @@ TEST_FRAC(floor_10,
 
 TEST_FRAC(floor_11, 
     TestCase {
-      .in  =     floor(floor(a) + -frac(1,2) * floor(b) + frac(1,2)) > 0,
+      .in  =     floor(floor(a) + frac(-1,2) * floor(b) + frac(1,2)) > 0,
       .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b) + frac(1,2)) > 0 } },
       .strong = false,
     })
@@ -623,5 +661,4 @@ TEST_FRAC(floor_17,
       .out = { { p(floor(a) + 1) } },
       .strong = false,
     })
-
 

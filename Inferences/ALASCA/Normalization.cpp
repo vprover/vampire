@@ -40,6 +40,7 @@
 #include "Normalization.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/ALASCA.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
 #define DEBUG_NORMALIZE(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
@@ -58,8 +59,8 @@ using namespace Saturation;
 template<class NumTraits, class CheckSymbol, class Semantics>
 Option<bool> groundEval(Literal* l, CheckSymbol checkSymbol, Semantics semantics) {
   if (checkSymbol(l)) {
-    auto a0 = NumTraits::tryNumeral(l->termArg(0));
-    auto a1 = NumTraits::tryNumeral(l->termArg(1));
+    auto a0 = tryAlascaNumeral<NumTraits>(l->termArg(0));
+    auto a1 = tryAlascaNumeral<NumTraits>(l->termArg(1));
     if (a0.isSome() && a1.isSome()) {
       return some(semantics(*a0, *a1) == l->polarity());
     }

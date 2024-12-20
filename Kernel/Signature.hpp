@@ -373,13 +373,18 @@ class Signature
     static auto sortOf(IntegerConstantType *) { return AtomicSort::intSort(); }
     static auto sortOf(RationalConstantType *) { return AtomicSort::rationalSort(); }
     static auto sortOf(RealConstantType *) { return AtomicSort::realSort(); }
+
+  protected:
+    static auto pfx(IntegerConstantType *) { return "int"; }
+    static auto pfx(RationalConstantType *) { return "rat"; }
+    static auto pfx(RealConstantType *) { return "real"; }
+
   public:
 
     template<class Numeral>
     auto isType() const { return typeOf<Numeral>() == type; }
     template<class Numeral>
     static auto typeOf() { return typeOf((Numeral*)0); }
-
     template<class Numeral>
     static auto sortOf() { return sortOf((Numeral*)0); }
 
@@ -397,7 +402,7 @@ class Signature
     Numeral _value;
 
   public:
-    static std::string name(Numeral n) { return Output::toString("*", n); }
+    static std::string name(Numeral n) { return Output::toString(n, AnyLinMulSym::pfx((Numeral*)0)); }
     LinMulSym(Numeral val)
     : AnyLinMulSym(
         AnyLinMulSym::typeOf<Numeral>(),
@@ -410,7 +415,6 @@ class Signature
       _value(std::move(val))
     {
       setType(OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()));
-
     }
   };
 
@@ -571,11 +575,18 @@ class Signature
   }
 
   template<class Numeral>
-  Option<Numeral const&> tryLinMul(unsigned f) {
-    auto sym = getFunction(f);
-    return someIf(sym->linMul()
-        && static_cast<LinMulSym<Numeral>*>(sym)->template isType<Numeral>()
-        , [&]() -> decltype(auto) { return static_cast<LinMulSym<Numeral>*>(sym)->_vale; });
+  static Lib::Option<LinMulSym<Numeral>&> tryLinMulSym(Symbol* sym) {
+    return someIf(sym->linMul() && static_cast<LinMulSym<Numeral>*>(sym)->template isType<Numeral>(), 
+        [&]() -> LinMulSym<Numeral>& { return *static_cast<LinMulSym<Numeral>*>(sym); });
+  }
+
+  template<class Numeral>
+  Lib::Option<Numeral const&> tryLinMul(unsigned f) {
+    if (auto sym = tryLinMulSym<Numeral>(getFunction(f))) {
+      return Option<Numeral const&>(sym->_value);
+    } else {
+      return {};
+    }
   }
  
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const std::string& name);

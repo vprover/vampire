@@ -275,6 +275,31 @@ struct NumTraits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , One , 1)                                      \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, Zero, 0)                                      \
                                                                                           \
+    template<class T>                                                                     \
+    static Option<ConstantType const&> tryLinMul(T t)                                     \
+    { return ifLinMul(t, [](auto& c, auto t) -> auto& { return c; }); }                   \
+                                                                                          \
+    static Option<ConstantType const&> tryLinMul(unsigned f)                              \
+    { return env.signature->tryLinMul<ConstantType>(f); }                      \
+                                                                                          \
+    static bool isLinMul(unsigned t)                                                      \
+    { return tryLinMul(t).isSome(); }                                                     \
+                                                                                          \
+    template<class T>                                                                     \
+    static bool isLinMul(T t)                                                             \
+    { return ifLinMul(t, [](auto...) { return true; }); }                                 \
+                                                                                          \
+    template<class F>                                                                     \
+    static auto ifLinMul(TermList t, F func)                                              \
+    { return someIf(t.isTerm(), [&]() { return ifLinMul(t.term(), std::move(func)); })    \
+               .flatten(); }                                                              \
+                                                                                          \
+    template<class F>                                                                     \
+    static auto ifLinMul(Term* t, F func)                                                 \
+    {                                                                                     \
+      auto c = tryLinMul(t->functor());                      \
+      return someIf(c.isSome(), [&]() { return func(*c, t->termArg(0)); });               \
+    }                                                                                     \
                                                                                           \
     static TermList linMul(ConstantType c, TermList t)                                    \
     { return TermList(Term::create(env.signature->addLinMul(std::move(c)), {t})); }       \

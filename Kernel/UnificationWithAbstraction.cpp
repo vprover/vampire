@@ -79,7 +79,7 @@ bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec 
       auto f = dt.functor();
       auto argsMightCancel = forAnyNumTraits([&](auto n){
             // check if its subterms might cancel out
-            return n.isAdd(f) || n.isMul(f);
+            return n.isAdd(f);
          });
       if (!argsMightCancel) {
         todo->loadFromIterator(dt.termArgs());
@@ -96,16 +96,17 @@ bool isAlascaInterpreted(unsigned f) {
       return numTraits.isAdd(f)
           || numTraits.isNumeral(f)
           || numTraits.isMinus(f)
-          || numTraits.isMul(f);
+          || numTraits.isLinMul(f);
   });
 };
 
+// TODO get rid of minus in alasca
 bool isAlascaiInterpreted(unsigned f) {
   return forAnyNumTraits([&](auto numTraits) -> bool {
       return numTraits.isAdd(f)
           || numTraits.isNumeral(f)
           || numTraits.isMinus(f)
-          || numTraits.isMul(f)
+          || numTraits.isLinMul(f)
           || numTraits.isFloor(f);
   });
 };
@@ -119,10 +120,7 @@ bool isAlascaInterpreted(TermSpec const& t, AbstractingUnifier& au) {
       return numTraits.isAdd(f)
           || numTraits.isNumeral(f)
           || numTraits.isMinus(f)
-          || (numTraits.isMul(f) && (
-                 (derefTerm(0).isTerm() && numTraits.isNumeral(derefTerm(0).functor()))
-              || (derefTerm(1).isTerm() && numTraits.isNumeral(derefTerm(1).functor()))
-             ));
+          || numTraits.isLinMul(f);
   });
 };
 
@@ -155,22 +153,11 @@ auto iterAtoms(TermSpec outer, AbstractingUnifier& au, NumTraits n, Action actio
           action(one, numeral * (*n.tryNumeral(f)));
           continue;
 
-        } else if (n.isMul(f)) {
-          auto lhs_ = term.termArg(0);
-          auto rhs_ = term.termArg(1);
-          auto& lhs = au.subs().derefBound(lhs_);
+        } else if (auto c = n.tryLinMul(f)) {
+          auto rhs_ = term.termArg(0);
           auto& rhs = au.subs().derefBound(rhs_);
-          if (lhs.isTerm() && n.isNumeral(lhs.functor())) {
-            todo->push(std::make_pair(rhs, numeral * (*n.tryNumeral(lhs.functor()))));
+          todo->push(std::make_pair(rhs, numeral * (*c)));
 
-          } else if (rhs.isTerm() && n.isNumeral(rhs.functor())) {
-            todo->push(std::make_pair(lhs, numeral * (*n.tryNumeral(rhs.functor()))));
-
-          } else {
-            // non-linear multiplication
-            action(term, numeral);
-
-          }
         } else if (n.isAdd(f)) {
           todo->push(std::make_pair(term.termArg(0), numeral));
           todo->push(std::make_pair(term.termArg(1), numeral));
@@ -426,12 +413,7 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
             || numTraits.isNumeral(f)
             || numTraits.isMinus(f)
             || numTraits.isFloor(f)
-            || (numTraits.isMul(f)
-                && ((au.subs().derefBound(t.termArg(0)).isTerm() 
-                     && numTraits.isNumeral(au.subs().derefBound(t.termArg(0)).functor()))
-                ||( au.subs().derefBound(t.termArg(1)).isTerm() 
-                     && numTraits.isNumeral(au.subs().derefBound(t.termArg(1)).functor()))
-                ));
+            || numTraits.isLinMul(f);
     });
   };
 
@@ -488,12 +470,7 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
         return numTraits.isAdd(f)
             || numTraits.isNumeral(f)
             || numTraits.isMinus(f)
-            || (numTraits.isMul(f)
-                && ((au.subs().derefBound(t.termArg(0)).isTerm() 
-                     && numTraits.isNumeral(au.subs().derefBound(t.termArg(0)).functor()))
-                ||( au.subs().derefBound(t.termArg(1)).isTerm() 
-                     && numTraits.isNumeral(au.subs().derefBound(t.termArg(1)).functor()))
-                ));
+            || numTraits.isLinMul(f);
     });
   };
 

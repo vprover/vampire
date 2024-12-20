@@ -12,10 +12,12 @@
  * Implements class Signature for handling signatures
  */
 
+#include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Debug/Tracer.hpp"
 
@@ -86,6 +88,16 @@ void Signature::Symbol::destroyFnSymbol()
   }
   else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
+  }
+  else if (linMul()) {
+    forAnyNumTraits([&](auto n) {
+        if (auto s = Signature::tryLinMulSym<typename decltype(n)::ConstantType>(this)) {
+          delete &*s;
+          return true;
+        } else {
+          return false;
+        }
+    });
   }
   else {
     delete this;

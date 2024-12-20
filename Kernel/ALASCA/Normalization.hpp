@@ -43,11 +43,12 @@ namespace Kernel {
   template<class NumTraits>
   Literal* createLiteral(AlascaPredicate self, TermList t)
   {
+    auto zero = NumTraits::linMul(NumTraits::constant(0), NumTraits::one());
     switch(self) {
-      case AlascaPredicate::EQ: return NumTraits::eq(true, t, NumTraits::zero());
-      case AlascaPredicate::NEQ: return NumTraits::eq(false, t, NumTraits::zero());
-      case AlascaPredicate::GREATER: return NumTraits::greater(true, t, NumTraits::zero());
-      case AlascaPredicate::GREATER_EQ: return NumTraits::geq(true, t, NumTraits::zero());
+      case AlascaPredicate::EQ: return NumTraits::eq(true, t, zero);
+      case AlascaPredicate::NEQ: return NumTraits::eq(false, t, zero);
+      case AlascaPredicate::GREATER: return NumTraits::greater(true, t, zero);
+      case AlascaPredicate::GREATER_EQ: return NumTraits::geq(true, t, zero);
     }
     ASSERTION_VIOLATION
   }
@@ -120,16 +121,7 @@ namespace Kernel {
     }
 
     Literal* denormalize() const
-    {
-      auto l = term().denormalize();
-      switch(symbol()) {
-        case AlascaPredicate::EQ:  return NumTraits::eq(true, l, NumTraits::zero());
-        case AlascaPredicate::NEQ: return NumTraits::eq(false, l, NumTraits::zero());
-        case AlascaPredicate::GREATER: return NumTraits::greater(true, l, NumTraits::zero());
-        case AlascaPredicate::GREATER_EQ: return NumTraits::geq(true, l, NumTraits::zero());
-      }
-      ASSERTION_VIOLATION
-    }
+    { return createLiteral<NumTraits>(symbol(), term().denormalize()) ; }
 
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
