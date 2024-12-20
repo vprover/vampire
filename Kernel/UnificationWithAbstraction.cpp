@@ -416,7 +416,6 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
     ASS(t.isTerm())
     // we know due to the uwa algorithm that v occurs in t
     if (uncanellableOccursCheck(au, v.varSpec(), t)) {
-      DBGE("blaaaaj")
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
     } else {
       // this means all
@@ -472,7 +471,6 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
     ASS(t.isTerm())
     // we know due to the uwa algorithm that v occurs in t
     if (uncanellableOccursCheck(au, v.varSpec(), t)) {
-      DBGE("blaaaaj")
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
     } else {
       // this means all
@@ -634,7 +632,6 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
 
        for (auto i : range(nVars, diff.size())) {
          if (uncanellableOccursCheck(au, var.varSpec(), diff[i].first)) {
-      DBGE("blaaaaj")
            return AbstractionResult(NeverEqual{});
          }
        }
@@ -654,7 +651,6 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
 
 
   auto curSumCanUnify = [&]() -> bool {
-      DBGE(curSum)
       if (curSum != Numeral(0)) {
         return false;
 
@@ -689,26 +685,19 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
       }
   };
 
-  DBGE(diff)
   for (auto& x : diff) {
     auto f = au.subs().derefBound(x.first).functor();
     if (f != curF) {
-      if (!curSumCanUnify()) {
-        DBG("blaaaaaaaa")
-        return AbstractionResult(NeverEqual{});}
+      if (!curSumCanUnify()) { return AbstractionResult(NeverEqual{});}
       curF = f;
       curSum = Numeral(0);
       curPosSummands->reset();
       curNegSummands->reset();
     }
-    DBGE(au.subs().derefBound(x.first))
-    DBGE(x.second)
     curSum += x.second;
     (x.second.isPositive() ? curPosSummands : curNegSummands)->push(std::move(x));
   }
-  if (!curSumCanUnify()) {
-        DBG("blaaaaaaaa")
-    return AbstractionResult(NeverEqual{});}
+  if (!curSumCanUnify()) { return AbstractionResult(NeverEqual{});}
   return AbstractionResult(EqualIf().unify(std::move(unify)).constr(std::move(constr)));
 }
 
