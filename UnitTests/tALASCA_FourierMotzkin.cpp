@@ -117,7 +117,7 @@ auto testFourierMotzkin(
 }
 
 
-REGISTER_GEN_TESTER(AlascaGenerationTester<FourierMotzkin>(testFourierMotzkin()))
+REGISTER_GEN_TESTER(AlascaGenerationTester<FourierMotzkin>())
 
 /////////////////////////////////////////////////////////
 // Basic tests

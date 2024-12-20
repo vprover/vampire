@@ -10,6 +10,7 @@
 #ifndef __TEST_ALASCA_SIMPL_RULE__
 #define __TEST_ALASCA_SIMPL_RULE__
 
+#include "Kernel/ALASCA/State.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/ALASCA.hpp"
@@ -28,8 +29,15 @@ template<class Rule>
 struct AlascaSimplRule 
   : public SimplifyingGeneratingInference
 {
+  Option<std::shared_ptr<AlascaState>> _state;
   Rule _rule;
   ALASCA::Normalization _norm;
+  AlascaSimplRule()
+    : _state(testAlascaState()) 
+    , _rule(*_state)
+    , _norm(*_state)
+  { }
+
   AlascaSimplRule(Rule r, ALASCA::Normalization n) : _rule(std::move(r)), _norm(std::move(n)) {}
 
   void attach(SaturationAlgorithm* salg) final override {
@@ -101,7 +109,10 @@ template<class Rule>
 class AlascaGenerationTester : public Test::Generation::GenerationTester<AlascaSimplRule<Rule>>
 {
  public:
+
+
   AlascaGenerationTester(AlascaSimplRule<Rule> r) : Test::Generation::GenerationTester<AlascaSimplRule<Rule>>(std::move(r)) { }
+  AlascaGenerationTester() : AlascaGenerationTester(AlascaSimplRule<Rule>()) { }
 
   virtual Clause* normalize(Kernel::Clause* c) override 
   { return Test::Generation::GenerationTester<AlascaSimplRule<Rule>>::_rule._norm.simplify(c); }

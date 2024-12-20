@@ -18,6 +18,7 @@
 #include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
+#include "Test/AlascaSimplRule.hpp"
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
@@ -58,12 +59,12 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-InequalityFactoring testInequalityFactoring(Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)
+auto testInequalityFactoring(Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)
 { return InequalityFactoring(testAlascaState(uwa)); }
 
 template<class A> A* heap(A&& a) { return new A(std::move(a)); }
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<InequalityFactoring>(testInequalityFactoring()))
+REGISTER_GEN_TESTER(AlascaGenerationTester<InequalityFactoring>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
