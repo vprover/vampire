@@ -67,6 +67,7 @@ struct AlascaSignature : public NumTraits {
   static Numeral oneN;
   static TermList oneT;
   static TermList sortT;
+  // static TermList zeroT;
 
   template<class T>
   static Option<Numeral const&> tryNumeral(T t) {
@@ -94,6 +95,9 @@ struct AlascaSignature : public NumTraits {
   static TermList linMul(Numeral const& c, T t) 
   { return c == 1 ? TermList(t) : NumTraits::linMul(c, t); }
 
+  // TODO faster
+  static TermList zero() { return numeralTl(0); }
+
   static bool isOne(unsigned f) 
   { return oneT.term()->functor() == f; }
 
@@ -107,6 +111,7 @@ struct AlascaSignature : public NumTraits {
 template<typename NumTraits> typename AlascaSignature<NumTraits>::Numeral AlascaSignature<NumTraits>::oneN = NumTraits::constant(1);
 template<typename NumTraits> TermList AlascaSignature<NumTraits>::oneT = NumTraits::one();
 template<typename NumTraits> TermList AlascaSignature<NumTraits>::sortT = NumTraits::sort();
+// template<typename NumTraits> TermList AlascaSignature<NumTraits>::zeroT = AlascaSignature<NumTraits>::numeralTl(0);
 
 // TODO rename
 template<class NumTraits, class F>
