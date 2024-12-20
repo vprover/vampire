@@ -14,6 +14,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/ALASCA.hpp"
 #include "Kernel/Theory.hpp"
+#include "Test/TestUtils.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
@@ -59,6 +60,7 @@ struct AlascaSimplRule
   }
 #endif
 };
+
 template<class Rule>
 AlascaSimplRule<Rule> alascaSimplRule(Rule r, ALASCA::Normalization n) { return AlascaSimplRule<Rule>(std::move(r), std::move(n)); }
 
@@ -101,16 +103,54 @@ class AlascaGenerationTester : public Test::Generation::GenerationTester<AlascaS
  public:
   AlascaGenerationTester(AlascaSimplRule<Rule> r) : Test::Generation::GenerationTester<AlascaSimplRule<Rule>>(std::move(r)) { }
 
-
-
   virtual Clause* normalize(Kernel::Clause* c) override 
   { return Test::Generation::GenerationTester<AlascaSimplRule<Rule>>::_rule._norm.simplify(c); }
 
   virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
   { 
-    // auto state = testAlascaState();
-    // return Test::TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->norm().equivalent(l,r); });
-    return Test::TestUtils::eqModACRect(normalize(lhs), normalize(rhs));
+    auto vars = [](auto cl) {
+      auto vs = cl->iterLits()
+        .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
+        .template collect<Stack>();
+      vs.sort();
+      vs.dedup();
+      return vs;
+    };
+
+    auto vl = vars(lhs);
+    auto vr = vars(rhs);
+
+    Map<TermList, unsigned> rVarIdx;
+    unsigned i = 0;
+    for (auto v : vr) {
+      rVarIdx.insert(v, i++);
+    }
+
+    if (vl.size() != vr.size()) return false;
+
+    return Test::anyPerm(vl.size(), [&](auto& perm) { 
+        Renaming rn;
+        auto renamed = Clause::fromIterator(
+            rhs->iterLits()
+            .map([&](auto l) {
+              return Literal::createFromIter(l, anyArgIter(l)
+                  .map([&](auto t) {
+                    return BottomUpEvaluation<TermList, TermList>()
+                    .context(TermListContext {.ignoreTypeArgs = false})
+                    .function([&](auto t, auto* args) {
+                        if (t.isVar()) {
+                          return vl[perm[rVarIdx.get(t)]];
+                        } else {
+                          return TermList(Term::create(t.term(), args));
+                        }
+                      })
+                      .apply(t);
+                    }));
+              }),
+            Inference(NonspecificInference1(InferenceRule::RECTIFY, rhs)));
+        auto r = normalize(renamed);
+        return Test::TestUtils::eqModAC(lhs, r); 
+    });
   }
 };
 
