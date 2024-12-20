@@ -53,6 +53,7 @@ namespace Kernel
 
 template<class NumTraits>
 typename NumTraits::ConstantType divOrPanic(NumTraits n, typename NumTraits::ConstantType c1, typename NumTraits::ConstantType c2) { return c1 / c2; }
+typename IntTraits::ConstantType divOrPanic(AlascaSignature<IntTraits> n, typename IntTraits::ConstantType c1, typename IntTraits::ConstantType c2) { ASSERTION_VIOLATION }
 typename IntTraits::ConstantType divOrPanic(IntTraits n, typename IntTraits::ConstantType c1, typename IntTraits::ConstantType c2) { ASSERTION_VIOLATION }
 
 
@@ -94,8 +95,6 @@ bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec 
 bool isAlascaInterpreted(unsigned f) {
   return forAnyNumTraits([&](auto numTraits) -> bool {
       return numTraits.isAdd(f)
-          || numTraits.isNumeral(f)
-          || numTraits.isMinus(f)
           || numTraits.isLinMul(f);
   });
 };
@@ -104,8 +103,6 @@ bool isAlascaInterpreted(unsigned f) {
 bool isAlascaiInterpreted(unsigned f) {
   return forAnyNumTraits([&](auto numTraits) -> bool {
       return numTraits.isAdd(f)
-          || numTraits.isNumeral(f)
-          || numTraits.isMinus(f)
           || numTraits.isLinMul(f)
           || numTraits.isFloor(f);
   });
@@ -114,21 +111,18 @@ bool isAlascaiInterpreted(unsigned f) {
 bool isAlascaInterpreted(TermSpec const& t, AbstractingUnifier& au) {
   if (t.isVar()) return false;
   ASS(!t.term.isTerm() || !t.term.term()->isLiteral()) 
-  auto derefTerm = [&](auto i) { return au.subs().derefBound(t.termArg(0)); };
   auto f = t.functor();
   return forAnyNumTraits([&](auto numTraits) -> bool {
       return numTraits.isAdd(f)
-          || numTraits.isNumeral(f)
-          || numTraits.isMinus(f)
           || numTraits.isLinMul(f);
   });
 };
 
 
-template<class NumTraits, class Action>
-auto iterAtoms(TermSpec outer, AbstractingUnifier& au, NumTraits n, Action action) {
-  static TermSpec one = TermSpec(TermList(n.one()), 0);
-  using Numeral = typename NumTraits::ConstantType;
+template<class ASig, class Action>
+auto iterAtoms(TermSpec outer, AbstractingUnifier& au, ASig sig, Action action) {
+  static TermSpec one = TermSpec(TermList(sig.one()), 0);
+  using Numeral = typename ASig::ConstantType;
   // auto action = [&](auto& term, auto numeral) {
   //   ASS(!isInterpreted(term))
   //   re
@@ -140,25 +134,17 @@ auto iterAtoms(TermSpec outer, AbstractingUnifier& au, NumTraits n, Action actio
     auto pair = todo->pop();
     auto& term = au.subs().derefBound(pair.first);
     auto numeral = std::move(pair.second);
-    if (numeral != Numeral(0)) {
+    if (numeral != 0) {
       if (term.isVar()) {
         action(term, numeral);
       } else {
         auto f = term.functor();
-        if (n.isMinus(f)) {
-          todo->push(std::make_pair(term.termArg(0), -numeral));
-          continue;
-
-        } else if (n.isNumeral(f)) {
-          action(one, numeral * (*n.tryNumeral(f)));
-          continue;
-
-        } else if (auto c = n.tryLinMul(f)) {
+        if (auto c = sig.tryLinMul(f)) {
           auto rhs_ = term.termArg(0);
           auto& rhs = au.subs().derefBound(rhs_);
           todo->push(std::make_pair(rhs, numeral * (*c)));
 
-        } else if (n.isAdd(f)) {
+        } else if (sig.isAdd(f)) {
           todo->push(std::make_pair(term.termArg(0), numeral));
           todo->push(std::make_pair(term.termArg(1), numeral));
 
@@ -327,11 +313,12 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
                     );
     };
     auto cTerm = [&](auto... args) { return au.subs().createTerm(args...); };
-    auto numResult = forAnyNumTraits([&](auto n){
-        return someIf(s.term == n.sort(), [&](){
-            using Numeral = typename decltype(n)::ConstantType;
+    auto numResult = forAnyNumTraits([&](auto n_){
+        using ASig = AlascaSignature<decltype(n_)>;
+        return someIf(s.term == ASig::sort(), [&](){
+            using Numeral = typename ASig::ConstantType;
             Recycled<Stack<std::pair<TermSpec, Numeral>>> sum;
-            iterAtoms(t, au, n, [&](auto& term, auto num) {
+            iterAtoms(t, au, ASig{}, [&](auto& term, auto num) {
                 sum->push(std::make_pair(uninterpreted(term), num));
             });
 
@@ -360,7 +347,7 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
                   i2++;
                 } else {
                   ASS(c < 0)
-                  if (diff[i1].second != Numeral(0)) {
+                  if (diff[i1].second != 0) {
                     // if there is a zero entry we override it
                     i1++;
                   }
@@ -370,7 +357,7 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
                   i2++;
                 }
               }
-              if (diff[i1].second == Numeral(0)) 
+              if (diff[i1].second == 0) 
                   diff.truncate(i1);
               else
                   diff.truncate(i1 + 1);
@@ -382,18 +369,17 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
               arrayIter(*sum)
                 .reverse()
                 .map([&](auto& pair) { 
-                    ASS(pair.second != Numeral(0))
+                    ASS(pair.second != 0)
                     auto k = pair.second;
                     auto& atomNorm = pair.first;
 
-                    return k == Numeral( 1) ? std::move(atomNorm)
-                         : k == Numeral(-1) ? cTerm(n.minusF(), std::move(atomNorm))
-                         : cTerm(n.mulF(), cTerm(n.numeralF(k)), std::move(atomNorm));
+                    return k == 1 ? std::move(atomNorm)
+                                  : cTerm(ASig::linMulF(k), std::move(atomNorm));
 
                 })
                 .fold([&](auto l, auto r)
-                    { return cTerm(n.addF(), std::move(l), std::move(r)); });
-            return result.isSome() ? std::move(*result) : cTerm(n.numeralF(Numeral(0)));
+                    { return cTerm(ASig::addF(), std::move(l), std::move(r)); });
+            return result.isSome() ? std::move(*result) : TermSpec(ASig::numeralTl(0), 0);
         });
 
     });
@@ -408,12 +394,12 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
     if (t.isVar()) return false;
     ASS(!t.term.isTerm() || !t.term.term()->isLiteral()) 
     auto f = t.functor();
-    return forAnyNumTraits([&](auto numTraits) -> bool {
-        return numTraits.isAdd(f)
-            || numTraits.isNumeral(f)
-            || numTraits.isMinus(f)
-            || numTraits.isFloor(f)
-            || numTraits.isLinMul(f);
+    return forAnyNumTraits([&](auto n) -> bool {
+        using ASig = AlascaSignature<decltype(n)>;
+        return ASig::isAdd(f)
+            || ASig::isOne(f)
+            || ASig::isFloor(f)
+            || ASig::isLinMul(f);
     });
   };
 
@@ -430,6 +416,7 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
     ASS(t.isTerm())
     // we know due to the uwa algorithm that v occurs in t
     if (uncanellableOccursCheck(au, v.varSpec(), t)) {
+      DBGE("blaaaaj")
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
     } else {
       // this means all
@@ -466,14 +453,13 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
     if (t.isVar()) return false;
     ASS(!t.term.isTerm() || !t.term.term()->isLiteral()) 
     auto f = t.functor();
-    return forAnyNumTraits([&](auto numTraits) -> bool {
-        return numTraits.isAdd(f)
-            || numTraits.isNumeral(f)
-            || numTraits.isMinus(f)
-            || numTraits.isLinMul(f);
+    return forAnyNumTraits([&](auto n) -> bool {
+        using ASig = AlascaSignature<decltype(n)>;
+        return ASig::isAdd(f)
+            || ASig::isOne(f)
+            || ASig::isLinMul(f);
     });
   };
-
 
   if ((t1.isTerm() && t1.isSort()) 
   || ( t2.isTerm() && t2.isSort())) return {};
@@ -486,6 +472,7 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
     ASS(t.isTerm())
     // we know due to the uwa algorithm that v occurs in t
     if (uncanellableOccursCheck(au, v.varSpec(), t)) {
+      DBGE("blaaaaj")
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
     } else {
       // this means all
@@ -525,24 +512,25 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
 
 
 template<class NumTraits>
-AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa) {
+AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n_, Options::UnificationWithAbstraction uwa) {
   TIME_TRACE("unification with abstraction ALASCA")
+  AlascaSignature<NumTraits> sig;
   using EqualIf = AbstractionOracle::EqualIf;
   using AbstractionResult = AbstractionOracle::AbstractionResult;
   using NeverEqual = AbstractionOracle::NeverEqual;
   using Numeral = typename NumTraits::ConstantType;
   
   auto cTerm = [&](auto... args) { return au.subs().createTerm(args...); };
-  auto constraint = [&](auto lhs, auto rhs) { return UnificationConstraint(lhs, rhs, TermSpec(n.sort(), 0)); };
+  auto constraint = [&](auto lhs, auto rhs) { return UnificationConstraint(lhs, rhs, TermSpec(sig.sort(), 0)); };
 
 #define CHECK_SORTS(t1, t2)                                                               \
   if (t1.isTerm()) {                                                                      \
     auto sort = SortHelper::getResultSort(t1.term.term());                                \
     if (sort.isVar()) {                                                                   \
       return AbstractionResult(EqualIf().unify(                                           \
-              constraint(TermSpec(sort, t1.index), TermSpec(NumTraits::sort(), t1.index)),\
+              constraint(TermSpec(sort, t1.index), TermSpec(sig.sort(), t1.index)),\
               constraint(t1, t2)));                                                       \
-    } else if (sort != NumTraits::sort()) {                                               \
+    } else if (sort != sig.sort()) {                                               \
       return AbstractionResult(NeverEqual{});                                             \
     }                                                                                     \
   }                                                                                       \
@@ -553,10 +541,10 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
   Recycled<Stack<std::pair<TermSpec, Numeral>>> _diff;
   auto& diff = *_diff;
   // TODO prevent these cterm calls?
-  auto dt = cTerm(n.addF(), cTerm(n.minusF(), t1), t2);
+  auto dt = cTerm(sig.addF(), cTerm(sig.minusF(), t1), t2);
   auto nf = norm(std::move(dt), au);
 
-  iterAtoms(std::move(nf), au, n,
+  iterAtoms(std::move(nf), au, sig,
     [&diff](auto& t, auto num) { diff.push(std::make_pair(t,  num)); });
 
   // TODO bin search if many elems
@@ -567,28 +555,12 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
   ASS(nVars == 0 || diff[nVars - 1].first.isVar())
   ASS(nVars == diff.size() || !diff[nVars].first.isVar())
 
-  auto numMul = [&cTerm](Numeral num, TermSpec t) {
-    ASS(num != Numeral(0))
-    if (num == Numeral(1)) {
-      return std::move(t);
-
-    } else if (num == Numeral(-1)) {
-      return cTerm(NumTraits::minusF(), std::move(t));
-
-    } else {
-      return cTerm(NumTraits::mulF(), 
-          cTerm(NumTraits::numeralF(num)),
-          std::move(t)
-      );
-    }
-  };
-
   auto sum = [&](auto iter) -> TermSpec {
       return iterTraits(std::move(iter))
         .map([&](auto x) { return numMul(x.second, std::move(x.first)); })
         .fold([&](auto l, auto r) 
-          { return cTerm(NumTraits::addF(), std::move(l), std::move(r)); })
-        .unwrapOrElse([&]() { return cTerm(NumTraits::numeralF(Numeral(0))); }); };
+          { return cTerm(sig.addF(), std::move(l), std::move(r)); })
+        .unwrapOrElse([&]() { return TermSpec(sig.numeralTl(Numeral(0)), 0); }); };
 
   // auto diffConstr = [&]() 
   // { return constraint(sum(diff1), sum(diff2)); };
@@ -604,7 +576,7 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
   };
 
   if (arrayIter(diff).any([&](auto& x) 
-        { return x.first.isTerm() && n.isMul(x.first.functor()); })) {
+        { return x.first.isTerm() && sig.isMul(x.first.functor()); })) {
 
     // non-linear multiplication. we cannot deal with this in alasca
     return AbstractionResult(EqualIf().constr(toConstr(diff)));
@@ -641,7 +613,8 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
                 .filter([&](auto i) { return i != *idx; })
                 .map([&](auto i) { return std::move(diff[i]); }); };
 
-      return AbstractionResult(ifIntTraits(n, 
+      return AbstractionResult(ifIntTraits(NumTraits{}, 
+            // TODO
             [&](auto n) { return num == Numeral(-1) ? EqualIf().unify(constraint(std::move(var), sum(rest())))
                                : num == Numeral( 1) ? EqualIf().unify(constraint(std::move(var), sum(rest().map([](auto x) { return std::make_pair(std::move(x.first), -std::move(x.second)); }))))
                                :                      EqualIf().constr(constraint(numMul(-num, std::move(var)), sum(rest())))
@@ -661,6 +634,7 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
 
        for (auto i : range(nVars, diff.size())) {
          if (uncanellableOccursCheck(au, var.varSpec(), diff[i].first)) {
+      DBGE("blaaaaj")
            return AbstractionResult(NeverEqual{});
          }
        }
@@ -680,6 +654,7 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
 
 
   auto curSumCanUnify = [&]() -> bool {
+      DBGE(curSum)
       if (curSum != Numeral(0)) {
         return false;
 
@@ -688,7 +663,7 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
           unify->push(UnificationConstraint(
             (*curNegSummands)[0].first,
             std::move(s.first), 
-            TermSpec(n.sort(), 0)));
+            TermSpec(sig.sort(), 0)));
         }
         return true;
 
@@ -698,7 +673,7 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
           unify->push(UnificationConstraint(
             (*curPosSummands)[0].first,
             std::move(s.first),
-            TermSpec(n.sort(), 0)));
+            TermSpec(sig.sort(), 0)));
         }
         return true;
 
@@ -709,31 +684,38 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
                  .map([](auto& x) { return std::make_pair(std::move(x.first), x.second); })),
               sum(arrayIter(*curNegSummands)
                  .map([](auto& x) { return std::make_pair(std::move(x.first), -x.second); })),
-              TermSpec(n.sort(), 0)));
+              TermSpec(sig.sort(), 0)));
         return true;
       }
   };
 
+  DBGE(diff)
   for (auto& x : diff) {
     auto f = au.subs().derefBound(x.first).functor();
     if (f != curF) {
-      if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
+      if (!curSumCanUnify()) {
+        DBG("blaaaaaaaa")
+        return AbstractionResult(NeverEqual{});}
       curF = f;
       curSum = Numeral(0);
       curPosSummands->reset();
       curNegSummands->reset();
     }
+    DBGE(au.subs().derefBound(x.first))
+    DBGE(x.second)
     curSum += x.second;
     (x.second.isPositive() ? curPosSummands : curNegSummands)->push(std::move(x));
   }
-  if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
+  if (!curSumCanUnify()) {
+        DBG("blaaaaaaaa")
+    return AbstractionResult(NeverEqual{});}
   return AbstractionResult(EqualIf().unify(std::move(unify)).constr(std::move(constr)));
 }
 
 
-template<class NumTraits>
+template<class ASig>
 struct FloorUwaState {
-  using Numeral = typename NumTraits::ConstantType;
+  using Numeral = typename ASig::Numeral;
   using Monom = std::pair<TermSpec, Numeral>;
   // bool _nonLinear = false;
   RStack<Monom> ratVars;
@@ -759,11 +741,9 @@ struct FloorUwaState {
   // bool nonLinear() const;
   // { return _nonLinear; }
 
-  static FloorUwaState scanNum(AbstractingUnifier& au, Numeral const& k) {
+  static FloorUwaState scanOne(AbstractingUnifier& au) {
     auto s = FloorUwaState();
-    if (k != 0) {
-      s.intAtoms->push(std::make_pair(TermSpec(NumTraits::constantTl(1), 0), k));
-    }
+    s.intAtoms->push(std::make_pair(TermSpec(ASig::one(), 0), Numeral(1)));
     return s;
   }
 
@@ -870,14 +850,14 @@ struct FloorUwaState {
 
     auto makeFloor = [&]() {
       auto t = sum(au.subs(), floorSummands());
-      return std::make_pair(TermSpec(NumTraits::floor(t.term), t.index), Numeral(1));
+      return std::make_pair(TermSpec(ASig::floor(t.term), t.index), Numeral(1));
     };
     if ( floorSummands().size() == 1 
       && floorRatVars->size() == 1
       && floorRatVars[0].second == 1) {
       out.intVarSet->insert(floorRatVars[0].first.varSpec());
       out.intVars->push(makeFloor());
-      ASS(NumTraits::isFloor(out.intVars[0].first.term) && out.intVars[0].first.term.term()->termArg(0).isVar());
+      ASS(ASig::isFloor(out.intVars[0].first.term) && out.intVars[0].first.term.term()->termArg(0).isVar());
     } else if (floorSummands().size() == 0) {
       /* nothing to add */
     } else if (floorVarSummands().size() == 0) {
@@ -926,12 +906,12 @@ struct FloorUwaState {
     auto deref = [&](auto t2) { return subs.derefBound(TermSpec(t2, t.index)); };
     auto res = 
       optionIfThenElse(
-            [&]() { return NumTraits::ifAdd(t.term, [&](auto l, auto r) { return scanAdd(au, deref(l), deref(r)); }); }
-          , [&]() { return NumTraits::ifNumeral(t.term, [&](auto k) { return scanNum(au, k); }); }
-          , [&]() { return ifNumMul<NumTraits>(t.term, [&](auto k, auto t, auto...) { return scanMul(au, k, deref(t)); }); }
-          , [&]() { return NumTraits::ifFloor(t.term, [&](auto t) { return scanFloor(au, deref(t)); }); }
+            [&]() { return ASig::ifAdd(t.term, [&](auto l, auto r) { return scanAdd(au, deref(l), deref(r)); }); }
+          , [&]() { return someIf(t.term == ASig::one(), [&]() { return scanOne(au); }); }
+          , [&]() { return ASig::ifLinMul(t.term, [&](auto& k, auto t) { return scanMul(au, k, deref(t)); }); }
+          , [&]() { return ASig::ifFloor(t.term, [&](auto t) { return scanFloor(au, deref(t)); }); }
           , [&]() {
-              ASS(t.term.isVar() || isUninterpreted<NumTraits>(t.term))
+              ASS(t.term.isVar() || ASig::isUninterpreted(t.term))
               auto out = FloorUwaState();
               if (t.term.isVar()) {
                 out.ratVars->push(std::make_pair(t, Numeral(1)));
@@ -1012,9 +992,9 @@ struct FloorUwaState {
     auto positive() const { return summands().filter([](auto& x) { return x.second > 0; }); }
     auto negative() const { return summands().filter([](auto& x) { return x.second < 0; }); }
     static unsigned hash(Term* t) { 
-      return ifNumMul<NumTraits>(t, [](auto k, auto t,auto...) { return hash(t.term()); })
-          || NumTraits::ifFloor(t, [](auto t) { return 2 * hash(t.term()) + 1; })
-          || NumTraits::ifAdd(t, [](auto l, auto r) { return hash(l.term()) + hash(r.term()); })
+      return ASig::ifLinMul(t, [](auto& k, auto t) { return hash(t.term()); })
+          || ASig::ifFloor(t, [](auto t) { return 2 * hash(t.term()) + 1; })
+          || ASig::ifAdd(t, [](auto l, auto r) { return hash(l.term()) + hash(r.term()); })
           || [&]() { return 2 * t->functor(); };
     }
     static unsigned hash(TermSpec t) { return hash(t.term.term()); }
@@ -1047,32 +1027,18 @@ struct FloorUwaState {
 
 
 template<class Numeral>
-TermSpec numMul(Numeral num, TermSpec t) {
-  ASS(num != 0)
-  if (auto num2 = NumTraits<Numeral>::tryNumeral(t.term)) {
-    return TermSpec(NumTraits<Numeral>::constantTl(num * (*num2)), 0);
-
-  } else if (num == 1) {
-    return t;
-
-  } else if (num == -1) {
-    return TermSpec(NumTraits<Numeral>::minus(t.term), t.index);
-
-  } else {
-    return TermSpec(NumTraits<Numeral>::mul(NumTraits<Numeral>::constantTl(num), t.term), t.index);
-
-  }
-};
+TermSpec numMul(Numeral num, TermSpec t) 
+{ return TermSpec(AlascaSignature<NumTraits<Numeral>>::linMul(num, t.term), t.index); }
 
 
 template<class Iter>
 TermSpec sum(RobSubstitution& subs, Iter iter) {
-    using NumTraits = ::NumTraits<typename std::remove_reference_t<std::remove_const_t<typename Iter::Elem>>::second_type>;
+    using ASig = AlascaSignature<::NumTraits<typename std::remove_reference_t<std::remove_const_t<typename Iter::Elem>>::second_type>>;
     return iterTraits(std::move(iter))
       .map([&](auto x) { return numMul(x.second, std::move(x.first)); })
       .fold([&](auto l, auto r) 
-        { return subs.createTerm(NumTraits::addF(), std::move(l), std::move(r)); })
-      .unwrapOrElse([&]() { return subs.createTerm(NumTraits::numeralF(NumTraits::constant(0))); }); 
+        { return subs.createTerm(ASig::addF(), std::move(l), std::move(r)); })
+      .unwrapOrElse([&]() { return TermSpec(ASig::numeralTl(ASig::constant(0)), 0); }); 
 }
 
 template<class F, class... Fs>
@@ -1080,15 +1046,16 @@ auto optionIfThenElse(F f, Fs... fs)
 { return (f() || ... || fs); }
 
 template<class NumTraits>
-AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa) {
+AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n_, Options::UnificationWithAbstraction uwa) {
   TIME_TRACE("unification with abstraction ALASCA+F")
+  AlascaSignature<NumTraits> sig;
   using EqualIf = AbstractionOracle::EqualIf;
   using AbstractionResult = AbstractionOracle::AbstractionResult;
   using NeverEqual = AbstractionOracle::NeverEqual;
   using Numeral = typename NumTraits::ConstantType;
 
-  auto constraint = [&](TermSpec lhs, TermSpec rhs) { return UnificationConstraint(lhs, rhs, TermSpec(n.sort(), 0)); };
-  auto constraint0 = [&](TermSpec x) { return constraint(x, TermSpec(NumTraits::constantTl(0), 0)); };
+  auto constraint = [&](TermSpec lhs, TermSpec rhs) { return UnificationConstraint(lhs, rhs, TermSpec(sig.sort(), 0)); };
+  auto constraint0 = [&](TermSpec x) { return constraint(x, TermSpec(sig.numeralTl(0), 0)); };
   auto sum = [&](auto iter) -> TermSpec { return ::sum(au.subs(), std::move(iter)); };
 
 #define CHECK_SORTS(t1, t2)                                                               \
@@ -1096,9 +1063,9 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
     auto sort = SortHelper::getResultSort(t1.term.term());                                \
     if (sort.isVar()) {                                                                   \
       return AbstractionResult(EqualIf().unify(                                           \
-              constraint(TermSpec(sort, t1.index), TermSpec(NumTraits::sort(), t1.index)),\
+              constraint(TermSpec(sort, t1.index), TermSpec(sig.sort(), t1.index)),\
               constraint(t1, t2)));                                                       \
-    } else if (sort != NumTraits::sort()) {                                               \
+    } else if (sort != sig.sort()) {                                               \
       return AbstractionResult(NeverEqual{});                                             \
     }                                                                                     \
   }                                                                                       \
@@ -1109,7 +1076,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
   // RStack<std::pair<TermSpec, Numeral>> _diff;
   // auto& diff = *_diff;
 
-  using FUA = FloorUwaState<NumTraits>;
+  using FUA = FloorUwaState<AlascaSignature<NumTraits>>;
 
   auto const diff = FUA::add(au, FUA::scan(au, t1), FUA::mul(au, Numeral(-1), FUA::scan(au, t2)));
 
@@ -1150,11 +1117,10 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                 auto oneCase = [&](auto s0, auto s1) -> Option<AbstractionResult> {
                   auto [one, k] = s0;
                   auto [t, kt] = s1;
-                  if (NumTraits::tryNumeral(one.term).isSome()) {
-                    ASS(one.term == NumTraits::one())
-                    ASS(NumTraits::isFloor(t.term))
+                  if (one.term == sig.one()) {
+                    ASS(sig.isFloor(t.term))
                     if ((k / kt).isInt()) {
-                      return some(AbstractionResult(EqualIf().unify(constraint(t.termArg(0), TermSpec(NumTraits::constantTl(-(k / kt)), 0)))));
+                      return some(AbstractionResult(EqualIf().unify(constraint(t.termArg(0), TermSpec(sig.numeralTl(-(k / kt)), 0)))));
                     } else {
                       return some(AbstractionResult(NeverEqual{}));
                     }
@@ -1168,8 +1134,8 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                 // auto case1 = [&](auto s0, auto s1) -> Option<AbstractionResult> {
                 //   auto [t0, k0] = s0;
                 //   auto [t1, k1] = s1;
-                //   ASS(NumTraits::isFloor(t0.term))
-                //   ASS(NumTraits::isFloor(t1.term))
+                //   ASS(sig.isFloor(t0.term))
+                //   ASS(sig.isFloor(t1.term))
                 //   if (k0 != -k1) {
                 //     return {};
                 //   } else {
@@ -1177,10 +1143,10 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                 //   }
                 //   // auto [one, k] = s0;
                 //   // auto [t, kt] = s1;
-                //   // if (NumTraits::tryNumeral(one.term) == some(Numeral(1))) {
-                //   //   ASS(NumTraits::isFloor(t.term))
+                //   // if (sig.tryNumeral(one.term) == some(Numeral(1))) {
+                //   //   ASS(sig.isFloor(t.term))
                 //   //   if ((k / kt).isInt()) {
-                //   //     return some(AbstractionResult(EqualIf().unify(constraint(t.termArg(0), TermSpec(NumTraits::constantTl(-(k / kt)), 0)))));
+                //   //     return some(AbstractionResult(EqualIf().unify(constraint(t.termArg(0), TermSpec(sig.numeralTl(-(k / kt)), 0)))));
                 //   //   } else {
                 //   //     return some(AbstractionResult(NeverEqual{}));
                 //   //   }
@@ -1205,7 +1171,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                 // if (k0 != -k1) {
                 //   return {};
                 // }
-                // if (NumTraits::one() == t0.term) {
+                // if (sig.one() == t0.term) {
                 //   return some(t1.isVar() ? AbstractionResult(EqualIf().unify(t1.term))
                 //                          : AbstractionResult(NeverEqual{}))
                 // }
@@ -1492,12 +1458,12 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
       } else if(dt1.isVar() && !occurs(dt1, dt2)) {
         progress = true;
-        DEBUG_UNIFY(3, "binding: ", dt1, " -> ", dt2)
+        DEBUG_UNIFY(2, "binding: ", dt1, " -> ", dt2)
         subs().bind(dt1.varSpec(), dt2);
 
       } else if(dt2.isVar() && !occurs(dt2, dt1)) {
         progress = true;
-        DEBUG_UNIFY(3, "binding: ", dt2, " -> ", dt1)
+        DEBUG_UNIFY(2, "binding: ", dt2, " -> ", dt1)
         subs().bind(dt2.varSpec(), dt1);
 
       } else if(doAbstract(dt1, dt2)) {

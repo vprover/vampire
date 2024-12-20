@@ -559,7 +559,7 @@ class Signature
   unsigned addRealConstant(const RealConstantType& number);
 
   template<class Numeral>
-  unsigned addLinMul(Numeral number) {
+  unsigned addLinMul(Numeral const& number) {
     // TODO make key more efficient
     std::string key = LinMulSym<Numeral>::name(number);
     unsigned result;
@@ -568,7 +568,7 @@ class Signature
     }
     _integers++;
     result = _funs.length();
-    Symbol* sym = new LinMulSym<Numeral>(std::move(number));
+    Symbol* sym = new LinMulSym<Numeral>(number);
     _funs.push(sym);
     _funNames.insert(key,result);
     return result;

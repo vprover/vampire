@@ -21,6 +21,7 @@
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
+#include "Test/AlascaSimplRule.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
@@ -34,43 +35,6 @@ using namespace Inferences;
 using namespace Test;
 using namespace Indexing;
 
-void overrideFractionalNumerals(IntTraits n) { }
-
-template<class NumTraits>
-void overrideFractionalNumerals(NumTraits n) {
-  SyntaxSugarGlobals::instance().overrideFractionCreation([&](int n, int m) {
-      return n == 1 && m == 1 ? NumTraits::one() 
-           : NumTraits::linMul(NumTraits::constant(n, m), NumTraits::one());
-  });
-}
-
-template<class NumTraits>
-void overrideMultiplicationAndNumerals(NumTraits n) {
-
-  SyntaxSugarGlobals::instance().overrideMulOperator([&](auto lhs, auto rhs) {
-    auto linMul = [](auto lhs, auto rhs) {
-      return NumTraits::ifLinMul(lhs, [&](auto num, auto t) {
-          return someIf(t == NumTraits::one(), 
-              [&]() { return NumTraits::linMul(num, rhs); });
-      }).flatten();
-    };
-    return linMul(lhs,rhs) || linMul(rhs, lhs) || NumTraits::mul(lhs, rhs); 
-  });
-
-  SyntaxSugarGlobals::instance().overrideNumeralCreation([&](int i) {
-      return i == 1 ? NumTraits::one() 
-           : NumTraits::linMul(NumTraits::constant(i), NumTraits::one());
-  });
-
-  SyntaxSugarGlobals::instance().overrideMinus([&](auto t) {
-      return NumTraits::linMul(NumTraits::constant(-1), t);
-  });
-
-  overrideFractionalNumerals(n);
-}
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
 /////////////////////////////////////
@@ -78,7 +42,7 @@ void overrideMultiplicationAndNumerals(NumTraits n) {
 #define SUGAR(Num)                                                                        \
   __ALLOW_UNUSED(                                                                         \
     NUMBER_SUGAR(Num)                                                                     \
-    overrideMultiplicationAndNumerals(Num ## Traits{}); \
+    mkAlascaSyntaxSugar(Num ## Traits{}); \
     DECL_DEFAULT_VARS                                                                     \
     DECL_FUNC(f, {Num}, Num)                                                              \
     DECL_FUNC(g, {Num, Num}, Num)                                                         \

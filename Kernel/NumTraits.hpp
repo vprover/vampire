@@ -280,7 +280,10 @@ struct NumTraits;
     { return ifLinMul(t, [](auto& c, auto t) -> auto& { return c; }); }                   \
                                                                                           \
     static Option<ConstantType const&> tryLinMul(unsigned f)                              \
-    { return env.signature->tryLinMul<ConstantType>(f); }                      \
+    { return env.signature->tryLinMul<ConstantType>(f); }                                 \
+                                                                                          \
+    static unsigned linMulF(ConstantType const& c)                                        \
+    { return env.signature->addLinMul(c); }                                               \
                                                                                           \
     static bool isLinMul(unsigned t)                                                      \
     { return tryLinMul(t).isSome(); }                                                     \
@@ -297,12 +300,12 @@ struct NumTraits;
     template<class F>                                                                     \
     static auto ifLinMul(Term* t, F func)                                                 \
     {                                                                                     \
-      auto c = tryLinMul(t->functor());                      \
+      auto c = tryLinMul(t->functor());                                                   \
       return someIf(c.isSome(), [&]() { return func(*c, t->termArg(0)); });               \
     }                                                                                     \
                                                                                           \
-    static TermList linMul(ConstantType c, TermList t)                                    \
-    { return TermList(Term::create(env.signature->addLinMul(std::move(c)), {t})); }       \
+    static TermList linMul(ConstantType const& c, TermList t)                             \
+    { return TermList(Term::create(linMulF(c), {t})); }                                   \
                                                                                           \
     static ConstantType constant(int i) { return ConstantType(i); }                       \
     static Term* constantT(int i) { return constantT(constant(i)); }                      \
@@ -352,7 +355,6 @@ IMPL_NUM_TRAITS(Integer , int     , INTEGER , INT )
 using IntTraits  = NumTraits< IntegerConstantType>;
 using RatTraits  = NumTraits<RationalConstantType>;
 using RealTraits = NumTraits<    RealConstantType>;
-
 
 template<class Clsr>
 auto forAnyNumTraits(Clsr clsr) {

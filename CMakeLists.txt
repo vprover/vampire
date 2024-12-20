@@ -307,6 +307,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SKIKBO.cpp
     Kernel/ALASCA.hpp
     Kernel/ALASCA/Signature.hpp
+    Kernel/ALASCA/Signature.cpp
     Kernel/ALASCA/SelectionPrimitves.hpp
     Kernel/ALASCA/SelectionPrimitves.cpp
     Kernel/ALASCA/Normalization.cpp

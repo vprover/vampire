@@ -59,8 +59,8 @@ using namespace Saturation;
 template<class NumTraits, class CheckSymbol, class Semantics>
 Option<bool> groundEval(Literal* l, CheckSymbol checkSymbol, Semantics semantics) {
   if (checkSymbol(l)) {
-    auto a0 = tryAlascaNumeral<NumTraits>(l->termArg(0));
-    auto a1 = tryAlascaNumeral<NumTraits>(l->termArg(1));
+    auto a0 = AlascaSignature<NumTraits>::tryNumeral(l->termArg(0));
+    auto a1 = AlascaSignature<NumTraits>::tryNumeral(l->termArg(1));
     if (a0.isSome() && a1.isSome()) {
       return some(semantics(*a0, *a1) == l->polarity());
     }

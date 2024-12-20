@@ -10,7 +10,9 @@
 
 #ifndef __ALASCA_Normalization__
 #define __ALASCA_Normalization__
+
 #include "Kernel/Term.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Reflection.hpp"
@@ -20,51 +22,6 @@
 
 #define DEBUG_NORM(...) // DBG(__VA_ARGS__)
 namespace Kernel {
-
-  enum class AlascaPredicate {
-    EQ,
-    NEQ,
-    GREATER,
-    GREATER_EQ,
-  };
-
-  /** returns true iff the predicate is > or >= */
-  inline bool isInequality(AlascaPredicate const& self) 
-  {
-    switch(self) {
-      case AlascaPredicate::EQ: 
-      case AlascaPredicate::NEQ: return false;
-      case AlascaPredicate::GREATER: 
-      case AlascaPredicate::GREATER_EQ: return true;
-    }
-    ASSERTION_VIOLATION
-  }
-
-  template<class NumTraits>
-  Literal* createLiteral(AlascaPredicate self, TermList t)
-  {
-    auto zero = NumTraits::linMul(NumTraits::constant(0), NumTraits::one());
-    switch(self) {
-      case AlascaPredicate::EQ: return NumTraits::eq(true, t, zero);
-      case AlascaPredicate::NEQ: return NumTraits::eq(false, t, zero);
-      case AlascaPredicate::GREATER: return NumTraits::greater(true, t, zero);
-      case AlascaPredicate::GREATER_EQ: return NumTraits::geq(true, t, zero);
-    }
-    ASSERTION_VIOLATION
-  }
-  bool isIsInt(AlascaPredicate const& self);
-
-  inline std::ostream& operator<<(std::ostream& out, AlascaPredicate const& self)
-  { 
-    switch(self) {
-      case AlascaPredicate::EQ: return out << "==";
-      case AlascaPredicate::NEQ: return out << "!=";
-      case AlascaPredicate::GREATER: return out << ">";
-      case AlascaPredicate::GREATER_EQ: return out << ">=";
-    } 
-    ASSERTION_VIOLATION
-  }
-
   /** 
    * Represents an inequality literal normalized for the rule FourierMotzkin.
    * this means it is a literal of the form

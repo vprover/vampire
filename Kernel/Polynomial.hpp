@@ -32,6 +32,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/Map.hpp"
+#include "ALASCA/Signature.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Perfect.hpp"
 #include "Kernel/NumTraits.hpp"
@@ -1343,23 +1344,16 @@ template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
-    // auto c = TermList(theory->representConstant(monom.numeral));
-    // if (monom.factors->isOne()) {
-    //   return Number::linMul(monom.numeral, );
-    // } else {
       auto mon = monom.factors->denormalize(t);
       if (monom.numeral == 1) {
         return mon;
-      // } else if (monom.numeral == -1) {
-      //   return Number::minus(mon);
       } else {
         return Number::linMul(monom.numeral, mon);
       }
-    // }
   };
 
   if (_summands.size() == 0) {
-    return Number::linMul(Numeral(0), Number::one());
+    return AlascaSignature<Number>::numeralTl(Numeral(0));
   } else {
 
     auto flatSize = iterTraits(_summands.iterFifo())
