@@ -90,6 +90,7 @@ struct AppliedTerm
       return term.containsSubterm(var);
     }
     if (term.isVar()) {
+      // TODO I think in this case we already used the applicator
       return (*applicator)(term.var()).containsSubterm(var);
     }
     VariableIterator vit(term.term());

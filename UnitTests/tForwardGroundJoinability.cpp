@@ -20,7 +20,7 @@ TermIndex<DemodulatorData>* demodulationLhsIndex(const SaturationAlgorithm& salg
 
 TEST_FUN(joinability_test01) {
   DECL_DEFAULT_VARS
-  DECL_VAR(u, 0)
+  DECL_VAR(u, 3)
   DECL_SORT(srt)
   DECL_FUNC (f, {srt, srt}, srt)
 

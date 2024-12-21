@@ -34,10 +34,13 @@ public:
   ~TermPartialOrdering() = default;
 
   bool get(TermList lhs, TermList rhs, Result& res, bool flag = false) const;
+  Result get(TermList lhs, TermList rhs) const;
 
   static const TermPartialOrdering* getEmpty(const Ordering& ord);
   static const TermPartialOrdering* set(const TermPartialOrdering* tpo, Ordering::Constraint con);
-  static Result solveInnerResult(Ordering::POStruct* po_struct, TermList s, TermList t);
+
+  static Result solveVarVar(Ordering::POStruct* po_struct, AppliedTerm s, AppliedTerm t);
+  static Result solveTermVar(Ordering::POStruct* po_struct, AppliedTerm s, AppliedTerm t);
 
   // Returns if PO contains full incomparability yet.
   // Useful to discard branches when reasoning over ground terms.
@@ -45,6 +48,8 @@ public:
 
   std::string to_string() const;
   std::string to_nice_string() const;
+
+  friend std::ostream& operator<<(std::ostream& str, const TermPartialOrdering& tpo) { return str << tpo.to_nice_string(); }
 
 private:
   PoComp get_one_external(TermList t, size_t idx) const;

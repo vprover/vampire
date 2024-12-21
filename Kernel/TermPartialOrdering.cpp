@@ -265,6 +265,15 @@ bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res, bool flag
   }
 }
 
+Ordering::Result TermPartialOrdering::get(TermList lhs, TermList rhs) const
+{
+  Result res;
+  if (!get(lhs, rhs, res, true)) {
+    return Ordering::INCOMPARABLE;
+  }
+  return res;
+}
+
 bool TermPartialOrdering::set(Ordering::Constraint con)
 {
   size_t x = idx_of_elem_ext(con.lhs);
@@ -312,85 +321,68 @@ const TermPartialOrdering* TermPartialOrdering::set(const TermPartialOrdering* t
   return *ptr;
 }
 
-Result TermPartialOrdering::solveInnerResult(Ordering::POStruct* po_struct, TermList s, TermList t)
+Result TermPartialOrdering::solveVarVar(Ordering::POStruct* po_struct, AppliedTerm s, AppliedTerm t)
 {
   ASS(po_struct);
-  if (!po_struct) {
+  ASS(s.apply().isVar());
+  ASS(t.apply().isVar());
+  Result val = po_struct->tpo->get(s.term, t.term);
+  if (val != Ordering::LESS && val != Ordering::INCOMPARABLE) {
+    return val;
+  }
+  Ordering::Constraint con{ s.term, t.term, Ordering::GREATER };
+  auto etpo = TermPartialOrdering::set(po_struct->tpo, con);
+  if (etpo && !etpo->hasIncomp()) {
+    if (etpo != po_struct->tpo) {
+      po_struct->tpo = etpo;
+      po_struct->cons.push(con);
+    }
+    return Ordering::GREATER;
+  }
+
+  con.rel = Ordering::EQUAL;
+  etpo = TermPartialOrdering::set(po_struct->tpo, con);
+  if (etpo && !etpo->hasIncomp()) {
+    if (etpo != po_struct->tpo) {
+      po_struct->tpo = etpo;
+      po_struct->cons.push(con);
+    }
+    return Ordering::EQUAL;
+  }
+  return Ordering::INCOMPARABLE;
+}
+
+Result TermPartialOrdering::solveTermVar(Ordering::POStruct* po_struct, AppliedTerm s, AppliedTerm t)
+{
+  ASS(po_struct);
+  ASS(s.apply().isTerm());
+  ASS(t.apply().isVar());
+  if (!s.aboveVar) {
+    VariableIterator vit(s.term);
+    while (vit.hasNext()) {
+      auto v = vit.next();
+      auto comp = solveVarVar(po_struct, v, t);
+      if (comp != Ordering::INCOMPARABLE) {
+        return comp;
+      }
+    }
     return Ordering::INCOMPARABLE;
   }
-  if (s.isVar()) {
-    if (t.isTerm()) {
-      // this case we won't try to solve
-      return Ordering::LESS;
-    }
-    Result val;
-    if (po_struct->tpo->get(s, t, val, true) && val != Ordering::INCOMPARABLE) {
-      return val;
-    }
-    Ordering::Constraint con{ s, t, Ordering::GREATER };
-    auto etpo = TermPartialOrdering::set(po_struct->tpo, con);
-    if (etpo && !etpo->hasIncomp()) {
-      if (etpo != po_struct->tpo) {
-        po_struct->tpo = etpo;
-        po_struct->cons.push(con);
-      }
-      return Ordering::GREATER;
-    }
-
-    con.rel = Ordering::EQUAL;
-    etpo = TermPartialOrdering::set(po_struct->tpo, con);
-    if (etpo && !etpo->hasIncomp()) {
-      if (etpo != po_struct->tpo) {
-        po_struct->tpo = etpo;
-        po_struct->cons.push(con);
-      }
-      return Ordering::EQUAL;
-    }
-    return Ordering::LESS;
-  }
-
-  DHSet<TermList> varsToSet;
-  VariableIterator vit(s);
+  ASS(s.term.isTerm());
+  VariableIterator vit(s.term);
   while (vit.hasNext()) {
-    auto v = vit.next();
-    if (v == t) {
-      continue;
-    }
-    Result res;
-    if (po_struct->tpo->get(v, t, res, true)) {
-      if (res == Ordering::GREATER || res == Ordering::EQUAL) {
-        // s ≠ v, hence s > v ≥ t
-        return Ordering::GREATER;
+    auto vS = (*s.applicator)(vit.next().var());
+    VariableIterator vitInner(vS);
+    while (vitInner.hasNext()) {
+      auto v = vitInner.next();
+      auto comp = solveVarVar(po_struct, v, t);
+      if (comp != Ordering::INCOMPARABLE) {
+        // TODO we should probably return GREATER when comp==EQUAL
+        return comp;
       }
-    } else {
-      varsToSet.insert(v);
     }
   }
-
-  DHSet<TermList>::Iterator vsit(varsToSet);
-  while (vsit.hasNext()) {
-    auto v = vsit.next();
-    Ordering::Constraint con{ v, t, Ordering::GREATER };
-    auto etpo = TermPartialOrdering::set(po_struct->tpo, con);
-    if (etpo && !etpo->hasIncomp()) {
-      if (etpo != po_struct->tpo) {
-        po_struct->tpo = etpo;
-        po_struct->cons.push(con);
-      }
-      return Ordering::GREATER;
-    }
-
-    con.rel = Ordering::EQUAL;
-    etpo = TermPartialOrdering::set(po_struct->tpo, con);
-    if (etpo && !etpo->hasIncomp()) {
-      if (etpo != po_struct->tpo) {
-        po_struct->tpo = etpo;
-        po_struct->cons.push(con);
-      }
-      return Ordering::GREATER;
-    }
-  }
-  return Ordering::LESS;
+  return Ordering::INCOMPARABLE;
 }
 
 size_t TermPartialOrdering::idx_of_elem(TermList t) const

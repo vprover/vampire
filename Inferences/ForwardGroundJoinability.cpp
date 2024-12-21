@@ -210,22 +210,17 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         Applicator appl(subs.ptr());
 
-        OrderingConstraints cons;
-
         TermList rhsS;
         AppliedTerm rhsApplied(rhs, &appl, true);
-        {
-          Ordering::POStruct po_struct{ tpo, OrderingConstraints() };
-          Result comp = ordering.compare(trm, rhsApplied, &po_struct);
-          if (comp == Ordering::LESS || comp == Ordering::EQUAL) {
-            ASS(po_struct.cons.isEmpty());
-            continue;
-          } else if (comp == Ordering::INCOMPARABLE) {
-            rhsS = subs->applyToBoundResult(rhs);
-            cons.push({ trm, rhsS, Ordering::GREATER });
-          } else {
-            cons = po_struct.cons;
-          }
+        Ordering::POStruct po_struct{ tpo, OrderingConstraints() };
+        Result comp = ordering.isGreaterOrEq(trm, rhsApplied, &po_struct);
+        ASS_NEQ(comp,Ordering::LESS);
+        if (comp == Ordering::EQUAL) {
+          continue;
+        } else if (comp == Ordering::INCOMPARABLE) {
+          continue;
+          // rhsS = subs->applyToBoundResult(rhs);
+          // po_struct.cons.push({ trm, rhsS, Ordering::GREATER });
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
@@ -242,19 +237,17 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
           TermList other = trm == curr->left ? curr->right : curr->left;
-          Ordering::POStruct po_struct{ tpo, OrderingConstraints() };
-          auto redComp = ordering.compare(other, rhsApplied, &po_struct);
+          auto redComp = ordering.isGreaterOrEq(other, rhsApplied, &po_struct);
+          ASS_NEQ(redComp,Ordering::LESS);
           // Note: EQUAL should be fine when doing forward simplification
-          if (redComp == Ordering::LESS || redComp == Ordering::EQUAL) {
-            ASS(po_struct.cons.isEmpty());
+          if (redComp == Ordering::EQUAL) {
             continue;
           } else if (redComp == Ordering::INCOMPARABLE) {
-            if (rhsS.isEmpty()) {
-              rhsS = subs->applyToBoundResult(rhs);
-            }
-            cons.push({ other, rhsS, Ordering::GREATER });
-          } else {
-            cons.loadFromIterator(OrderingConstraints::Iterator(po_struct.cons));
+            continue;
+            // if (rhsS.isEmpty()) {
+            //   rhsS = subs->applyToBoundResult(rhs);
+            // }
+            // po_struct.cons.push({ other, rhsS, Ordering::GREATER });
           }
         }
 
@@ -265,7 +258,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         auto left = replace(curr->left, trm, rhsS);
         auto right = replace(curr->right, trm, rhsS);
 
-        auto next = getNext(checker, curr, cons, left, right);
+        auto next = getNext(checker, curr, po_struct.cons, left, right);
         // TODO can it be that we go to a different node in the tree and get the same result still?
         if (next.first != curr || next.second != tpo) {
           curr = next.first;

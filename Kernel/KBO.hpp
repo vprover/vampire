@@ -160,8 +160,8 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
 
-  Result compare(AppliedTerm t1, AppliedTerm t2, POStruct* po_struct = nullptr) const override;
-  Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2) const override;
+  Result compare(AppliedTerm t1, AppliedTerm t2) const override;
+  Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2, POStruct* po_struct = nullptr) const override;
   OrderingComparatorUP createComparator(bool onlyVars = false) const override;
 
 protected:

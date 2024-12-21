@@ -46,8 +46,8 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  Result compare(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_struct = nullptr) const override;
-  Result isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const override;
+  Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
+  Result isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_struct = nullptr) const override;
   OrderingComparatorUP createComparator(bool onlyVars = false) const override;
 
   void showConcrete(std::ostream&) const override;

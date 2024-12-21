@@ -100,12 +100,12 @@ public:
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
   /** Same as @b compare, for applied (substituted) terms. */
-  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs, POStruct* po_struct = nullptr) const
+  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
   { return compare(lhs.apply(), rhs.apply()); }
 
   /** Optimised function used for checking that @b t1 is greater than @b t2,
    * under some substitutions captured by @b AppliedTerm. */
-  virtual Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2) const
+  virtual Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2, POStruct* po_struct = nullptr) const
   { return compare(t1, t2); }
 
   /** Creates optimised object for ordering checks. @see OrderingComparator. */

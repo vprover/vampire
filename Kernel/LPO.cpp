@@ -84,7 +84,7 @@ Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_struct) const
+Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 {
   if(tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -96,7 +96,7 @@ Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_str
   return clpo(tl1, tl2);
 }
 
-Ordering::Result LPO::isGreaterOrEq(AppliedTerm lhs, AppliedTerm rhs) const
+Ordering::Result LPO::isGreaterOrEq(AppliedTerm lhs, AppliedTerm rhs, POStruct* po_struct) const
 {
   return lpo(lhs,rhs);
 }

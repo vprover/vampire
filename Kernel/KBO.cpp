@@ -230,12 +230,6 @@ Ordering::Result KBO::State::traverseLexBidir(KBO const& kbo, AppliedTerm tl1, A
       traverse<-1,/*unidirectional=*/false>(kbo, t);
       if(_lexResult==EQUAL) {
         _lexResult=innerResult(kbo, s.term, t.term);
-        if (_po_struct && _lexResult == INCOMPARABLE) {
-          _lexResult = TermPartialOrdering::solveInnerResult(_po_struct, s.term, t.term);
-          if (_lexResult == LESS) {
-            return LESS;
-          }
-        }
         lexValidDepth=depth;
         ASS(_lexResult!=EQUAL || _po_struct);
       }
@@ -290,6 +284,14 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
         traverse<1,/*unidirectional=*/true>(kbo, s);
         traverse<-1,/*unidirectional=*/true>(kbo, t);
         if (!checkVars()) {
+          if (_po_struct && s.term.isTerm() && t.term.isVar()) {
+            auto comp = TermPartialOrdering::solveTermVar(_po_struct, s, t);
+            if (comp != INCOMPARABLE) {
+              ASS_NEQ(comp,LESS);
+              _lexResult = INCOMPARABLE;
+              continue;
+            }
+          }
           return INCOMPARABLE;
         }
         _lexResult = INCOMPARABLE;
@@ -297,9 +299,32 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
       }
       // ssw == ttw
       if (s.term.isVar()) {
+        if (_po_struct && t.term.isVar()) {
+          auto comp = TermPartialOrdering::solveVarVar(_po_struct, s, t);
+          if (comp != INCOMPARABLE) {
+            ASS_NEQ(comp,LESS);
+            traverse<1,/*unidirectional=*/true>(kbo, s);
+            traverse<-1,/*unidirectional=*/true>(kbo, t);
+            if (comp == GREATER) {
+              _lexResult = INCOMPARABLE;
+            }
+            continue;
+          }
+        }
         return INCOMPARABLE;
       }
       if (t.term.isVar()) {
+        if (_po_struct) {
+          auto comp = TermPartialOrdering::solveTermVar(_po_struct, s, t);
+          if (comp != INCOMPARABLE) {
+            ASS_NEQ(comp,LESS);
+            traverse<1,/*unidirectional=*/true>(kbo, s);
+            traverse<-1,/*unidirectional=*/true>(kbo, t);
+            _lexResult = INCOMPARABLE;
+            continue;
+          }
+          return INCOMPARABLE;
+        }
         if (!s.containsVar(t.term)) {
           return INCOMPARABLE;
         }
@@ -773,7 +798,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_struct) const
+Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 {
   if(tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -798,7 +823,7 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_str
   auto __state = std::move(_state);
 #endif
 
-  state->init(po_struct);
+  state->init();
   Result res;
   if(t1->functor()==t2->functor()) {
     res = state->traverseLexBidir(*this, tl1, tl2);
@@ -811,7 +836,7 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_str
   return res;
 }
 
-Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
+Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_struct) const
 {
   if (tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -843,7 +868,7 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
   auto __state = std::move(_state);
 #endif
 
-  state->init();
+  state->init(po_struct);
   Result res;
   if (w1>w2) {
     // traverse variables
