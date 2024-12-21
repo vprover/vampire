@@ -2035,6 +2035,7 @@ public:
   bool forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
+  bool forwardGroundJoinability() const { return _forwardGroundJoinability.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
@@ -2439,6 +2440,7 @@ private:
   BoolOptionValue _forwardSubsumptionResolution;
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
+  BoolOptionValue _forwardGroundJoinability;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;

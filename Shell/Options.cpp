@@ -1733,6 +1733,12 @@ void Options::init()
     _forwardSubsumptionDemodulationMaxMatches.onlyUsefulWith(_forwardSubsumptionDemodulation.is(equal(true)));
     _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
 
+    _forwardGroundJoinability = BoolOptionValue("forward_ground_joinability","fgj",false);
+    _forwardGroundJoinability.description="Perform forward ground joinability.";
+    _lookup.insert(&_forwardGroundJoinability);
+    _forwardGroundJoinability.onlyUsefulWith(ProperSaturationAlgorithm());
+    _forwardGroundJoinability.tag(OptionTag::INFERENCES);
+
     _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",true);
     _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
     _lookup.insert(&_simultaneousSuperposition);
