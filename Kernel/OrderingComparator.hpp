@@ -44,7 +44,7 @@ public:
 
   void reset() { _curr = &_source; _prev = nullptr; /* _trace.reset(); */ }
 
-  void* next(const SubstApplicator* applicator);
+  void* next(const SubstApplicator* applicator, Ordering::POStruct* po_struct = nullptr);
   void insert(const Stack<Ordering::Constraint>& comps, void* result);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);

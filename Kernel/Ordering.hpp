@@ -86,6 +86,9 @@ public:
   };
 
   struct POStruct {
+    POStruct(const TermPartialOrdering* tpo)
+      : tpo(tpo), cons() {}
+
     const TermPartialOrdering* tpo;
     Stack<Constraint> cons;
   };

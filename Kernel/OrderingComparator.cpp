@@ -265,7 +265,7 @@ OrderingComparator::OrderingComparator(const Ordering& ord, bool onlyVars)
 
 OrderingComparator::~OrderingComparator() = default;
 
-void* OrderingComparator::next(const SubstApplicator* applicator)
+void* OrderingComparator::next(const SubstApplicator* applicator, Ordering::POStruct* po_struct)
 {
   ASS(_curr);
   ASS(!_onlyVars);
@@ -286,7 +286,7 @@ void* OrderingComparator::next(const SubstApplicator* applicator)
     Ordering::Result comp = Ordering::INCOMPARABLE;
     if (node->tag == BranchTag::T_TERM) {
 
-      comp = _ord.isGreaterOrEq(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
+      comp = _ord.isGreaterOrEq(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true),po_struct);
 
     } else {
       ASS(node->tag == BranchTag::T_POLY);

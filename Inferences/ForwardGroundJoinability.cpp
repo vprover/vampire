@@ -210,17 +210,11 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         Applicator appl(subs.ptr());
 
-        TermList rhsS;
-        AppliedTerm rhsApplied(rhs, &appl, true);
-        Ordering::POStruct po_struct{ tpo, OrderingConstraints() };
-        Result comp = ordering.isGreaterOrEq(trm, rhsApplied, &po_struct);
-        ASS_NEQ(comp,Ordering::LESS);
-        if (comp == Ordering::EQUAL) {
+        Ordering::POStruct po_struct(tpo);
+
+        qr.data->comparator->reset();
+        if (!qr.data->comparator->next(&appl, &po_struct)) {
           continue;
-        } else if (comp == Ordering::INCOMPARABLE) {
-          continue;
-          // rhsS = subs->applyToBoundResult(rhs);
-          // po_struct.cons.push({ trm, rhsS, Ordering::GREATER });
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
@@ -237,23 +231,15 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
           TermList other = trm == curr->left ? curr->right : curr->left;
-          auto redComp = ordering.isGreaterOrEq(other, rhsApplied, &po_struct);
+          auto redComp = ordering.isGreaterOrEq(other, AppliedTerm(rhs, &appl, true), &po_struct);
           ASS_NEQ(redComp,Ordering::LESS);
           // Note: EQUAL should be fine when doing forward simplification
-          if (redComp == Ordering::EQUAL) {
+          if (redComp == Ordering::INCOMPARABLE) {
             continue;
-          } else if (redComp == Ordering::INCOMPARABLE) {
-            continue;
-            // if (rhsS.isEmpty()) {
-            //   rhsS = subs->applyToBoundResult(rhs);
-            // }
-            // po_struct.cons.push({ other, rhsS, Ordering::GREATER });
           }
         }
 
-        if (rhsS.isEmpty()) {
-          rhsS = subs->applyToBoundResult(rhs);
-        }
+        TermList rhsS = subs->applyToBoundResult(rhs);
 
         auto left = replace(curr->left, trm, rhsS);
         auto right = replace(curr->right, trm, rhsS);
@@ -276,11 +262,6 @@ LOOP_END:
 
   env.statistics->groundRedundantClauses++;
   return true;
-}
-
-TermList ForwardGroundJoinability::normalize(TermList t, const TermPartialOrdering* tpo) const
-{
-  return t;
 }
 
 ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, State* data)

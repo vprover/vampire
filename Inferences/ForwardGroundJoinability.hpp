@@ -66,7 +66,6 @@ private:
   };
 
   std::pair<State*,const TermPartialOrdering*> getNext(RedundancyCheck& checker, State* curr, OrderingConstraints cons, TermList left, TermList right);
-  TermList normalize(TermList t, const TermPartialOrdering* tpo) const;
 
   DemodulationLHSIndex* _index;
   Stack<State*> _states;

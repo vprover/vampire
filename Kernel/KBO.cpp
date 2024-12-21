@@ -842,9 +842,24 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2, POStruct* 
     return EQUAL;
   }
   if (tl1.term.isVar()) {
+    if (po_struct && tl2.term.isVar()) {
+      auto comp = TermPartialOrdering::solveVarVar(po_struct, tl1, tl2);
+      if (comp != INCOMPARABLE) {
+        ASS_NEQ(comp,LESS);
+        return comp;
+      }
+    }
     return INCOMPARABLE;
   }
   if (tl2.term.isVar()) {
+    if (po_struct) {
+      auto comp = TermPartialOrdering::solveTermVar(po_struct, tl1, tl2);
+      if (comp != INCOMPARABLE) {
+        ASS_NEQ(comp,LESS);
+        return GREATER;
+      }
+      return INCOMPARABLE;
+    }
     return tl1.containsVar(tl2.term) ? GREATER : INCOMPARABLE;
   }
 
