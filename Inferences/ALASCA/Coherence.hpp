@@ -21,6 +21,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
@@ -56,6 +57,7 @@ Iter assertIter(Iter iter) {
 template<class NumTraits>
 struct CoherenceConf
 {
+  using ASig = AlascaSignature<NumTraits>;
   using N = typename NumTraits::ConstantType;
   using SharedSum =  std::shared_ptr<RStack<std::pair<TermList, N>>>;
   static SharedSum toSum(AlascaState& shared, TermList t) {
@@ -84,10 +86,10 @@ public:
     auto j() const { return rawJ().abs(); }
     auto u() const { 
       auto mulByFactor = [&](auto n) { return rawJ().isPositive() ? n : -n;  };
-      return NumTraits::sum(
+      return ASig::sum(
         range(0, (**js_u).size())
           .filter([&](auto i) { return i != sIdx; })
-          .map([&](auto i) -> TermList { return TermList(NumTraits::mul(NumTraits::constantTl(mulByFactor((**js_u)[i].second)), (**js_u)[i].first)); })
+          .map([&](auto i) -> TermList { return TermList(ASig::linMul(mulByFactor((**js_u)[i].second), (**js_u)[i].first)); })
         ); 
     }
     auto clause() const { return self.clause(); }
@@ -95,15 +97,15 @@ public:
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
 
     // TODO get rid of the need for a typed term list in this case
-    TypedTermList key() const { return TypedTermList((**js_u)[sIdx].first, NumTraits::sort()); }
+    TypedTermList key() const { return TypedTermList((**js_u)[sIdx].first, ASig::sort()); }
     static const char* name() { return "alasca coherence lhs"; }
     static IndexType indexType() { return Indexing::ALASCA_COHERENCE_LHS_SUBST_TREE; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
       return iterTraits(ALASCA::Superposition::Lhs::iter(shared, cl))
-        .filter([](auto& lhs) -> bool { return NumTraits::isFloor(lhs.biggerSide()); })
-        .filter([](auto& lhs) { return !NumTraits::isNumeral(lhs.smallerSide()); })
+        .filter([](auto& lhs) -> bool { return ASig::isFloor(lhs.biggerSide()); })
+        .filter([](auto& lhs) { return !ASig::isNumeral(lhs.smallerSide()); })
         .map([&shared](auto lhs) {
           auto js_u = toSum(shared, lhs.smallerSide());
           return shared.maxSummandIndices(js_u, SelectionCriterion::NOT_LEQ)
@@ -132,7 +134,7 @@ public:
     IMPL_COMPARISONS_FROM_TUPLE(Rhs);
 
     // TODO get rid of the need for a typed term list in this case
-    TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, NumTraits::sort()); }
+    TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, ASig::sort()); }
     static const char* name() { return "alasca coherence rhs"; }
     static IndexType indexType() { return Indexing::ALASCA_COHERENCE_RHS_SUBST_TREE; }
 
@@ -141,7 +143,7 @@ public:
       return iterTraits(ALASCA::Superposition::Rhs::iter(shared, cl))
         .filterMap([&shared](auto rhs) { 
             auto toRewrite = rhs.key();
-            return NumTraits::ifFloor(toRewrite,
+            return ASig::ifFloor(toRewrite,
               [&shared, rhs, toRewrite](auto ks_t_term) { 
                 auto ks_t = toSum(shared, ks_t_term);
                 return range(0, (*ks_t)->size())
@@ -206,9 +208,9 @@ public:
 
     // TODO side condition checks after unification!!
 
-    auto add   = [](auto... as){ return NumTraits::add(as...); };
-    auto floor = [](auto... as){ return NumTraits::floor(as...); };
-    auto mul = [](auto n, auto t){ return NumTraits::mul(NumTraits::constantTl(n), t); };
+    auto add   = [](auto... as){ return ASig::add(as...); };
+    auto floor = [](auto... as){ return ASig::floor(as...); };
+    auto mul = [](auto n, auto t){ return ASig::linMul(n, t); };
     auto cnstr = uwa.computeConstraintLiterals();
     auto js_u = add(mul(j, lhs.s()), lhs.u());
     auto js_uσ = sigmaL(js_u);

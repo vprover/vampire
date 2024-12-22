@@ -65,15 +65,7 @@ inline Stack<std::function<Indexing::Index*()>> alascaCoherenceIndices()
     [](){ return new AlascaIndex<CoherenceConf<RealTraits>::Rhs>();},
   }; }
 
-inline auto testCoherence(Options::UnificationWithAbstraction uwa)
-{ 
-  auto s = testAlascaState(uwa);
-  return AlascaSimplRule<Coherence<RealTraits>>(Coherence<RealTraits>(s), Normalization(s));
-}
-
-
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<Coherence<RealTraits>>(testCoherence(UWA_MODE)))
+REGISTER_GEN_TESTER(AlascaGenerationTester<Coherence<RealTraits>>())
 
 /////////////////////////////////////////////////////////
 // Basic tests

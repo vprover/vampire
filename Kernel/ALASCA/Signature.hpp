@@ -97,9 +97,11 @@ struct AlascaSignature : public NumTraits {
   static auto isVar(Term* t) { return false; }
 
   // TODO check if any of the uses should include isOne as atomic
+  // TODO check if we could skip the LinMul part
+  // TODO what about ⌊x⌋
   template<class T>
   static auto isAtomic(T t) 
-  { return !isVar(t) && AlascaSignature::isUninterpreted(t); }
+  { return !isVar(t) && !AlascaSignature::isAdd(t) && !AlascaSignature::isLinMul(t); }
 
   template<class T>
   static TermList linMul(Numeral const& c, T t) 
