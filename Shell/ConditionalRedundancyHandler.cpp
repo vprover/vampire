@@ -205,6 +205,7 @@ public:
     while ((es = matcher.next()))
     {
       ASS(es->comparator);
+      es->comparator->reset();
       bool res = es->comparator->next(&applicator);
 #if DEBUG_ORDERING
       auto ordCons_crosscheck = iterTraits(es->comps.iter()).any([ord,&applicator](auto e) {
