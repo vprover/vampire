@@ -13,6 +13,7 @@
 
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Kernel {
 
@@ -64,15 +65,15 @@ inline std::ostream& operator<<(std::ostream& out, AlascaPredicate const& self)
 template<class NumTraits> 
 struct AlascaSignature : public NumTraits {
   using Numeral = typename NumTraits::ConstantType;
-  static Numeral oneN;
-  static TermList oneT;
-  static TermList sortT;
-  // static TermList zeroT;
+  static Option<Numeral> oneN;
+  static Option<TermList> oneT;
+  static Option<TermList> sortT;
+  static Option<TermList> zeroT;
 
   template<class T>
   static Option<Numeral const&> tryNumeral(T t) {
-    if (t == oneT) {
-      return Option<Numeral const&>(oneN);
+    if (t == AlascaSignature::one()) {
+      return Option<Numeral const&>(oneN.unwrapOrInit([&]() { return NumTraits::constant(1); }));
     } else {
       return NumTraits::ifLinMul(t, [](auto& c, auto t) {
           return someIf(t == NumTraits::one(), [&]() -> auto& { return c; });
@@ -83,23 +84,35 @@ struct AlascaSignature : public NumTraits {
   template<class T> static void numeralF(T) = delete;
   template<class T> static void constantTl(T) = delete;
 
-  static Kernel::TermList sort() { return sortT; }
   static auto addF() { return NumTraits::addF(); }
   static auto minusF() { return NumTraits::linMulF(Numeral(-1)); }
 
   template<class T>
   static auto isUninterpreted(T t) 
-  { return !NumTraits::isFloor(t) && !NumTraits::isAdd(t) && !NumTraits::isLinMul(t) && !NumTraits::isOne(t); }
+  { return !NumTraits::isFloor(t) && !NumTraits::isAdd(t) && !NumTraits::isLinMul(t) && !AlascaSignature::isOne(t); }
+
+
+
+  static auto isVar(TermList t) { return t.isVar(); }
+  static auto isVar(Term* t) { return false; }
+
+  // TODO check if any of the uses should include isOne as atomic
+  template<class T>
+  static auto isAtomic(T t) 
+  { return !isVar(t) && AlascaSignature::isUninterpreted(t); }
 
   template<class T>
   static TermList linMul(Numeral const& c, T t) 
   { return c == 1 ? TermList(t) : NumTraits::linMul(c, t); }
 
   // TODO faster
-  static TermList zero() { return numeralTl(0); }
+  static TermList const& zero() { return zeroT.unwrapOrInit([&]() { return NumTraits::zero(); }); }
+  static TermList const& one() { return oneT.unwrapOrInit([&]() { return NumTraits::one(); }); }
+  static TermList const& sort() { return sortT.unwrapOrInit([&]() { return NumTraits::sort(); }); }
 
-  static bool isOne(unsigned f) 
-  { return oneT.term()->functor() == f; }
+  static bool isOne(unsigned f) { return AlascaSignature::one().term()->functor() == f; }
+  static bool isOne(TermList t) { return AlascaSignature::one() == t; }
+  static bool isOne(Term* t) { return AlascaSignature::one() == TermList(t); }
 
   static Kernel::TermList numeralTl(int c) 
   { return numeralTl(NumTraits::constant(c)); }
@@ -108,10 +121,15 @@ struct AlascaSignature : public NumTraits {
   { return TermList(NumTraits::linMul(c, NumTraits::one())); }
 
 };
-template<typename NumTraits> typename AlascaSignature<NumTraits>::Numeral AlascaSignature<NumTraits>::oneN = NumTraits::constant(1);
-template<typename NumTraits> TermList AlascaSignature<NumTraits>::oneT = NumTraits::one();
-template<typename NumTraits> TermList AlascaSignature<NumTraits>::sortT = NumTraits::sort();
-// template<typename NumTraits> TermList AlascaSignature<NumTraits>::zeroT = AlascaSignature<NumTraits>::numeralTl(0);
+
+template<class NumTraits>
+AlascaSignature<NumTraits> asig(NumTraits n) 
+{ return AlascaSignature<NumTraits> {}; }
+
+template<typename NumTraits> Option<typename AlascaSignature<NumTraits>::Numeral> AlascaSignature<NumTraits>::oneN;
+template<typename NumTraits> Option<TermList> AlascaSignature<NumTraits>::oneT;
+template<typename NumTraits> Option<TermList> AlascaSignature<NumTraits>::sortT;
+template<typename NumTraits> Option<TermList> AlascaSignature<NumTraits>::zeroT;
 
 // TODO rename
 template<class NumTraits, class F>
