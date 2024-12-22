@@ -575,7 +575,7 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
   };
 
   if (arrayIter(diff).any([&](auto& x) 
-        { return x.first.isTerm() && sig.isMul(x.first.functor()); })) {
+        { return x.first.isTerm() && NumTraits::isMul(x.first.functor()); })) {
 
     // non-linear multiplication. we cannot deal with this in alasca
     return AbstractionResult(EqualIf().constr(toConstr(diff)));
