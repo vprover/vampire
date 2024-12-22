@@ -61,10 +61,10 @@ namespace Kernel {
       return globalState;
     }
 
-    bool isAtomic(Term* t) { return !interpretedFunction(t) || 
-      forAnyNumTraits([&](auto n) { return n.isFloor(t->functor()); }); }
-    bool isAtomic(TermList t) { return t.isTerm() && isAtomic(t.term()); }
+    bool isAtomic(TermList t) const { return t.isTerm() && isAtomic(t); }
 
+    bool isAtomic(Term* t) 
+    { return forAllNumTraits([&](auto n) { return asig(n).isAtomic(t); }); }
 
     auto maxLits(Clause* cl, SelectionCriterion sel) {
       return OrderingUtils::maxElems(
