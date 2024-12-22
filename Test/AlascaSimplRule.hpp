@@ -119,6 +119,8 @@ class AlascaGenerationTester : public Test::Generation::GenerationTester<AlascaS
 
   virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
   { 
+    lhs = normalize(lhs);
+    rhs = normalize(rhs);
     auto vars = [](auto cl) {
       auto vs = cl->iterLits()
         .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
