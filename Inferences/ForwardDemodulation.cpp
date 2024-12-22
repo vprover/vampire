@@ -164,8 +164,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
         DemodulatorData* dd = nullptr;
-        qr.data->comparator->reset();
-        while ((dd = static_cast<DemodulatorData*>(qr.data->comparator->next(appl)))) {
+        qr.data->comparator->init(appl);
+        while ((dd = static_cast<DemodulatorData*>(qr.data->comparator->next()))) {
 
           ASS_EQ(dd->clause->length(),1);
           ASS_EQ(lhs.sort(),dd->term.sort());

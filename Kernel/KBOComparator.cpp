@@ -21,7 +21,7 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void KBOComparator::expandTermCase()
+void KBOComparator::processTermNode()
 {
   const auto& kbo = static_cast<const KBO&>(_ord);
 
@@ -31,7 +31,7 @@ void KBOComparator::expandTermCase()
   bool varInbalance = false;
   auto state = kbo._state.get();
 #if VDEBUG
-  //this is to make sure _state isn't used while we're using it
+  // we make sure kbo._state is not used while we're using it
   auto __state = std::move(kbo._state);
 #endif
   auto w = state->_weightDiff;
@@ -66,7 +66,7 @@ void KBOComparator::expandTermCase()
   bool weightAdded = (w < 0 || varInbalance);
   if (weightAdded) {
     // we mutate the original node
-    curr->node()->tag = T_POLY;
+    curr->node()->tag = Node::T_POLY;
     curr->node()->poly = Polynomial::get(w, nonzeros);
     curr->node()->gtBranch = gtBranch;
     curr->node()->ngeBranch = ngeBranch;

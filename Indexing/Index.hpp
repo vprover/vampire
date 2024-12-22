@@ -162,7 +162,7 @@ struct DemodulatorDataContainer {
   OrderingComparatorUP comparator;
 
   DemodulatorDataContainer(DemodulatorData&& dd, const Ordering& ord) : term(dd.term) {
-    Stack<Ordering::Constraint> ordCons;
+    Stack<TermOrderingConstraint> ordCons;
     if (!dd.preordered) {
       ordCons.push({ dd.term, dd.rhs, Ordering::GREATER });
     }
@@ -186,7 +186,7 @@ struct DemodulatorDataContainer {
       return false;
     }
     dds.loadFromIterator(other.dds.iter());
-    Stack<Ordering::Constraint> ordCons;
+    Stack<TermOrderingConstraint> ordCons;
     if (!other.dds[0]->preordered) {
       ordCons.push({ other.dds[0]->term, other.dds[0]->rhs, Ordering::GREATER });
     }
