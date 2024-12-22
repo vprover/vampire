@@ -21,6 +21,7 @@
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
+#include "Test/AlascaSimplRule.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp" 
@@ -59,13 +60,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
-
-EqFactoring testEqFactoring()
-{ return EqFactoring(testAlascaState(UWA_MODE)); }
-
-
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<EqFactoring>(testEqFactoring()))
+REGISTER_GEN_TESTER(AlascaGenerationTester<EqFactoring>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
