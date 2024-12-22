@@ -182,7 +182,6 @@ public:
   };
 
   void printPretty(std::ostream& out);
-  void serialize(std::ostream& out);
   void setEnabled(bool);
 private:
 

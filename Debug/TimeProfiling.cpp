@@ -221,7 +221,7 @@ TimeTrace::Node TimeTrace::Node::flatten()
   return root;
 }
 
-TimeTrace::Node TimeTrace::Node::clone() const 
+TimeTrace::Node TimeTrace::Node::clone() const
 {
   auto out = Node(name);
   out.measurements = measurements;
@@ -259,7 +259,6 @@ void TimeTrace::Node::extendWith(TimeTrace::Node const& other)
 
 TimeTrace::Node TimeTrace::Node::focus(const char* name)
 {
-  FlattenState s;
   auto root = Node(name);
   _focus(name, root);
   return root;

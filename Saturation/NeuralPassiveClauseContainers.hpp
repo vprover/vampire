@@ -149,6 +149,32 @@ public:
     (*m)(std::move(inputs));
   }
 
+  void printStats() {
+    std::vector<torch::jit::IValue> inputs;
+    std::cout << "gage_stat: " << (*_model.find_method("gage_stat"))(inputs) << std::endl;
+    std::cout << "gweight_stat: " << (*_model.find_method("gweight_stat"))(inputs) << std::endl;
+  }
+
+  bool useProblemFeatures() {
+    std::vector<torch::jit::IValue> inputs;
+    return (*_model.find_method("use_problem_features"))(inputs).toBool();
+  }
+
+  bool useSimpleFeatures() {
+    std::vector<torch::jit::IValue> inputs;
+    return (*_model.find_method("use_simple_features"))(inputs).toBool();
+  }
+
+  bool useGage() {
+    std::vector<torch::jit::IValue> inputs;
+    return (*_model.find_method("use_gage"))(inputs).toBool();
+  }
+
+  bool useGweight() {
+    std::vector<torch::jit::IValue> inputs;
+    return (*_model.find_method("use_gweight"))(inputs).toBool();
+  }
+
   void embedPending() {
     (*_model.find_method("embed_pending"))(std::vector<torch::jit::IValue>());
   }

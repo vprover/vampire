@@ -250,6 +250,13 @@ protected:
 
   bool _neuralActivityRecoring;
   bool _neuralModelGuidance;
+
+  // these two are provided by the interface but not yet used
+  bool _useProblemFeatures;
+  bool _useSimpleFeatures;
+
+  bool _useGage;
+  bool _useGweight;
   ScopedPtr<NeuralClauseEvaluationModel> _neuralModel;
 
   // record the size of the signature at the time of gnn invocation

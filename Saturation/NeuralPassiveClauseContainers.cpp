@@ -217,7 +217,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
 void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
 {
-  TIME_TRACE("neural model evaluation");
+  TIME_TRACE(TimeTrace::DEEP_STUFF);
 
   if (!_delayedInsertionBuffer.size())
     return;

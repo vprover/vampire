@@ -260,6 +260,11 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
       // opt.neuralClauseEvaluationModelTweaks(),
       opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature());
 
+    _useProblemFeatures = _neuralModel->useProblemFeatures();
+    _useSimpleFeatures = _neuralModel->useSimpleFeatures();
+    _useGage = _neuralModel->useGage();
+    _useGweight = _neuralModel->useGweight();
+
     if (_neuralActivityRecoring) {
       _neuralModel->setRecording();
     }
@@ -268,7 +273,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
       _neuralModel->setComputing();
     }
 
-    if (_neuralActivityRecoring || _neuralModelGuidance) {
+    if (_useProblemFeatures && (_neuralActivityRecoring || _neuralModelGuidance)) {
       _neuralModel->setProblemFeatures(opt.numProblemFeatures(),prb);
     }
 
@@ -394,6 +399,7 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
   if (env.options->showActive()) {
     std::cout << "[SA] active: " << c->toString() << std::endl;
+    // _neuralModel->printStats();
   }
 }
 
@@ -509,10 +515,12 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
 
 void SaturationAlgorithm::makeReadyForEval(Clause* c) {
   if (!_shown.find(c)) {
-    // cout << cl->toString() << endl;
-
-    showPredecessors(c);
-    showClauseLiterals(c);
+    if (_useGage) {
+      showPredecessors(c);
+    }
+    if (_useGweight) {
+      showClauseLiterals(c);
+    }
 
     ALWAYS(_shown.insert(c));
   }
