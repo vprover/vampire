@@ -15,6 +15,7 @@
 #define __ALASCA_SelectionPrimitives__
 
 #include "Kernel/ALASCA/Normalization.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/OrderingUtils.hpp"
 #include "Kernel/Clause.hpp"
 
@@ -132,7 +133,7 @@ namespace Kernel {
 
     template<class NumTraits>
     TermList notSelectedTerm(AlascaLiteral<NumTraits> const& lit) const { 
-      return TermList(NumTraits::sum(range(0, lit.term().nSummands()) 
+      return TermList(AlascaSignature<NumTraits>::sum(range(0, lit.term().nSummands()) 
                 .filter([&](unsigned i) { return i != _term; })
                 .map([&](unsigned i) { return lit.term().summandAt(i) / numeral<NumTraits>().abs(); })
                 .map([&](auto t) { return t.denormalize(); })
@@ -284,9 +285,10 @@ namespace Kernel {
             return ifIntTraits(numTraits,
                 [](IntTraits) -> TermList { ASSERTION_VIOLATION },
                 [&](auto numTraits) {
+                   using ASig = AlascaSignature<decltype(numTraits)>;
                    using NumTraits = decltype(numTraits);
                    auto k = sel.numeral<NumTraits>();
-                   return NumTraits::sum(sel.contextTerms<NumTraits>()
+                   return ASig::sum(sel.contextTerms<NumTraits>()
                         .map([&](auto monom) { return (monom / (-k)).denormalize();  }));
                 });
             });

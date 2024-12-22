@@ -103,6 +103,13 @@ struct AlascaSignature : public NumTraits {
   static auto isAtomic(T t) 
   { return !isVar(t) && !AlascaSignature::isAdd(t) && !AlascaSignature::isLinMul(t); }
 
+  template<class Iter>
+  static TermList sum(Iter iter) {
+    return iterTraits(std::move(iter))
+      .fold([](auto l, auto r) { return AlascaSignature::add(l, r); })
+      .unwrapOr([&]() { return AlascaSignature::zero(); });
+  }
+
   template<class T>
   static TermList linMul(Numeral const& c, T t) 
   { return c == 1 ? TermList(t) : NumTraits::linMul(c, t); }
