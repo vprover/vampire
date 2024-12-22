@@ -76,15 +76,6 @@ public:
     return out << "UNKNOWN";
   }
 
-  struct Constraint {
-    TermList lhs;
-    TermList rhs;
-    Result rel;
-
-    friend std::ostream& operator<<(std::ostream& out, const Constraint& self)
-    { return out << self.lhs << " " << self.rhs << " " << resultToString(self.rel); }
-  };
-
   virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */

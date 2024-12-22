@@ -20,268 +20,39 @@
 
 #include "OrderingComparator.hpp"
 
-#include <deque>
-
 using namespace std;
 
 namespace Kernel {
 
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::BranchTag& t)
-{
-  switch (t) {
-    case OrderingComparator::BranchTag::T_DATA:
-      out << "d";
-      break;
-    case OrderingComparator::BranchTag::T_TERM:
-      out << "t";
-      break;
-    case OrderingComparator::BranchTag::T_POLY:
-      out << "p";
-      break;
-  }
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node)
-{
-  out << (OrderingComparator::BranchTag)node.tag << (node.ready?" ":"? ");
-  switch (node.tag) {
-    case OrderingComparator::BranchTag::T_DATA: {
-      out << node.data;
-      break;
-    }
-    case OrderingComparator::BranchTag::T_POLY: {
-      out << *node.poly;
-      break;
-    }
-    case OrderingComparator::BranchTag::T_TERM: {
-      out << node.lhs << " " << node.rhs;
-      break;
-    }
-  }
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Polynomial& poly)
-{
-  bool first = true;
-  for (const auto& [var, coeff] : poly.pos) {
-    out << (first ? "" : " + ");
-    first = false;
-    if (coeff!=1) {
-      out << coeff << " * ";
-    }
-    out << TermList::var(var);
-  }
-  for (const auto& [var, coeff] : poly.neg) {
-    out << (first ? "- " : " - ");
-    first = false;
-    if (coeff!=-1) {
-      out << std::abs(coeff) << " * ";
-    }
-    out << TermList::var(var);
-  }
-  if (poly.constant) {
-    out << (poly.constant<0 ? " - " : " + ");
-    out << std::abs(poly.constant);
-  }
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
-{
-  Stack<std::pair<const OrderingComparator::Branch*, unsigned>> todo;
-  todo.push(std::make_pair(&comp._source,0));
-  // Note: using this set we get a more compact representation
-  DHSet<OrderingComparator::Node*> seen;
-
-  while (todo.isNonEmpty()) {
-    auto kv = todo.pop();
-    for (unsigned i = 0; i < kv.second; i++) {
-      if (i+1 == kv.second) {
-        str << "  |--";
-      } else {
-        str << "  |  ";
-      }
-    }
-    str << *kv.first->node() << std::endl;
-    if (seen.insert(kv.first->node())) {
-      if (kv.first->node()->tag==OrderingComparator::BranchTag::T_DATA) {
-        if (kv.first->node()->data) {
-          todo.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
-        }
-      } else {
-        todo.push(std::make_pair(&kv.first->node()->ngeBranch,kv.second+1));
-        todo.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
-        todo.push(std::make_pair(&kv.first->node()->eqBranch,kv.second+1));
-      }
-    }
-  }
-  return str;
-}
-
-std::string to_tikz_term(TermList t)
-{
-  if (t.isVar()) {
-    switch (t.var()) {
-      case 0:
-        return "x";
-      case 1:
-        return "y";
-      case 2:
-        return "z";
-      default:
-        return "x_"+Int::toString(t.var());
-    }
-  }
-  auto tt = t.term();
-  auto res = tt->functionName() + "(";
-  for (unsigned i = 0; i < tt->arity(); i++) {
-    res += to_tikz_term(*tt->nthArgument(i)) + ",";
-  }
-  res += ")";
-  return res;
-}
-
-std::string OrderingComparator::to_dot() const
-{
-  std::deque<const OrderingComparator::Node*> todo;
-  todo.push_back(_source.node());
-  // Note: using this set we get a more compact representation
-  DHMap<const OrderingComparator::Node*,unsigned> seen;
-
-  seen.insert(_source.node(), 0);
-  unsigned cnt = 1;
-
-  auto getId = [&todo,&seen,&cnt](auto n) {
-    unsigned* ptr;
-    if (seen.getValuePtr(n,ptr)) {
-      todo.push_back(n);
-      *ptr = cnt++;
-    }
-    return *ptr;
-  };
-
-  enum class EdgeTag {
-    GT,
-    EQ,
-    INC,
-    ALT,
-  };
-  auto getBranch = [&getId](unsigned from, auto to_node, EdgeTag tag) -> std::string
-  {
-    auto res = "n" + Int::toString(from) + " -> n" + Int::toString(getId(to_node));
-    switch (tag) {
-      case EdgeTag::GT:
-        res += " [style = gtedge]";
-        break;
-      case EdgeTag::EQ:
-        res += " [style = eqedge]";
-        break;
-      case EdgeTag::INC:
-        res += " [style = ngeedge]";
-        break;
-      case EdgeTag::ALT:
-        res += " [style = trueedge]";
-        break;
-    }
-    return res + ";\n";
-  };
-
-  std::string nodes = "source [style = invisible, label = \"\"];\n";
-  std::string edges = "source -> n0 [style = trueedge];\n";
-
-  while (!todo.empty()) {
-    auto n = todo.front();
-    todo.pop_front();
-    auto id = seen.get(n);
-
-    std::string style = "";
-    std::string label = "";
-    if (n->ready) {
-      style += "processed,";
-    }
-    switch (n->tag) {
-      case BranchTag::T_DATA: {
-        auto alt = n->alternative.node();
-        if (!alt) {
-          // do not output anything for the fail node
-          style += "sinknode,";
-          label += "";
-          break;
-        }
-        style += "datanode,";
-        label += Int::toString((unsigned long)n->data);
-        edges += getBranch(id, alt, EdgeTag::ALT);
-        break;
-      }
-      case BranchTag::T_TERM: {
-        // nodes += "termnode] (n" + Int::toString(id) + ") at (" + Int::toString(x) + "," + Int::toString(y) + ") {$"
-        //   + to_tikz_term(n->lhs) + " \\comp " + to_tikz_term(n->rhs) + "$};\n";
-        style += "termnode,";
-        label += "$" + to_tikz_term(n->lhs) + " \\comp " + to_tikz_term(n->rhs) + "$";
-        edges += getBranch(id, n->gtBranch.node(), EdgeTag::GT);
-        edges += getBranch(id, n->eqBranch.node(), EdgeTag::EQ);
-        edges += getBranch(id, n->ngeBranch.node(), EdgeTag::INC);
-        break;
-      }
-      case BranchTag::T_POLY: {
-        style += "polynode,";
-        bool first = true;
-        label += "$";
-        for (const auto& [var, coeff] : n->poly->pos) {
-          label += first ? "" : "+";
-          first = false;
-          auto a = std::abs(coeff);
-          if (a==1) {
-            label += to_tikz_term(TermList::var(var));
-          } else {
-            label += Int::toString(a) + "\\cdot " + to_tikz_term(TermList::var(var));
-          }
-        }
-        for (const auto& [var, coeff] : n->poly->neg) {
-          label += "-";
-          first = false;
-          auto a = std::abs(coeff);
-          if (a==1) {
-            label += to_tikz_term(TermList::var(var));
-          } else {
-            label += Int::toString(a) + "\\cdot " + to_tikz_term(TermList::var(var));
-          }
-        }
-        if (n->poly->constant) {
-          label += n->poly->constant<0 ? "-" : (first ? "" : "+");
-          label += Int::toString((int)std::abs(n->poly->constant));
-        }
-        label += "$";
-        edges += getBranch(id, n->gtBranch.node(), EdgeTag::GT);
-        edges += getBranch(id, n->eqBranch.node(), EdgeTag::EQ);
-        edges += getBranch(id, n->ngeBranch.node(), EdgeTag::INC);
-        break;
-      }
-    }
-    nodes += "n" + Int::toString(id) + " [\n  style = \"" + style + "\"\n  label = \"" + label + "\"\n];\n";
-  }
-  return "digraph {\nnodesep = 0;\nsep = 0;\nranksep = 0;\nesep = 0;\n" + nodes + "\n" + edges + "}\n";
-}
+// OrderingComparator
 
 OrderingComparator::OrderingComparator(const Ordering& ord)
-: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr)
+: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr)
 {
   _sink.node()->ready = true;
 }
 
 OrderingComparator::~OrderingComparator() = default;
 
-void* OrderingComparator::next(const SubstApplicator* applicator)
+void OrderingComparator::init(const SubstApplicator* appl)
 {
+  _curr = &_source;
+  _prev = nullptr;
+  _appl = appl;
+}
+
+void* OrderingComparator::next()
+{
+  ASS(_appl);
   ASS(_curr);
+
   for (;;) {
-    expand();
+    processCurrentNode();
+
     auto node = _curr->node();
     ASS(node->ready);
 
-    if (node->tag == BranchTag::T_DATA) {
+    if (node->tag == Node::T_DATA) {
       if (!node->data) {
         return nullptr;
       }
@@ -291,29 +62,20 @@ void* OrderingComparator::next(const SubstApplicator* applicator)
     }
 
     Ordering::Result comp = Ordering::INCOMPARABLE;
-    if (node->tag == BranchTag::T_TERM) {
+    if (node->tag == Node::T_TERM) {
 
-      comp = _ord.isGreaterOrEq(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
+      comp = _ord.isGreaterOrEq(
+        AppliedTerm(node->lhs, _appl, true),
+        AppliedTerm(node->rhs, _appl, true));
 
     } else {
-      ASS(node->tag == BranchTag::T_POLY);
+      ASS(node->tag == Node::T_POLY);
 
       const auto& kbo = static_cast<const KBO&>(_ord);
       auto weight = node->poly->constant;
       ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->poly->pos) {
-        AppliedTerm tt(TermList::var(var), applicator, true);
-
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-        }
-        int64_t w = kbo.computeWeight(tt);
-        weight += coeff*w;
-      }
-      for (const auto& [var, coeff] : node->poly->neg) {
-        AppliedTerm tt(TermList::var(var), applicator, true);
+      for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
+        AppliedTerm tt(TermList::var(var), _appl, true);
 
         VariableIterator vit(tt.term);
         while (vit.hasNext()) {
@@ -347,10 +109,10 @@ loop_end:
   return nullptr;
 }
 
-void OrderingComparator::insert(const Stack<Ordering::Constraint>& comps, void* result)
+void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void* data)
 {
-  ASS(result);
-  static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
+  ASS(data);
+  static Ordering::Result ordVals[] = { Ordering::GREATER, Ordering::EQUAL, Ordering::INCOMPARABLE };
   // we mutate current fail node and add a new one
   auto curr = &_sink;
   Branch newFail(nullptr, Branch());
@@ -360,7 +122,7 @@ void OrderingComparator::insert(const Stack<Ordering::Constraint>& comps, void* 
   curr->node()->ready = false;
 
   if (comps.isNonEmpty()) {
-    curr->node()->tag = T_TERM;
+    curr->node()->tag = Node::T_TERM;
     curr->node()->lhs = comps[0].lhs;
     curr->node()->rhs = comps[0].rhs;
     for (unsigned i = 0; i < 3; i++) {
@@ -379,24 +141,24 @@ void OrderingComparator::insert(const Stack<Ordering::Constraint>& comps, void* 
       }
       curr = &curr->node()->getBranch(rel);
     }
-    *curr = Branch(result, newFail);
+    *curr = Branch(data, newFail);
   } else {
-    curr->node()->tag = T_DATA;
-    curr->node()->data = result;
+    curr->node()->tag = Node::T_DATA;
+    curr->node()->data = data;
     curr->node()->alternative = newFail;
   }
 
   _sink = newFail;
 }
 
-void OrderingComparator::expand()
+void OrderingComparator::processCurrentNode()
 {
   ASS(_curr->node());
   while (!_curr->node()->ready)
   {
     auto node = _curr->node();
 
-    if (node->tag == BranchTag::T_DATA) {
+    if (node->tag == Node::T_DATA) {
       ASS(node->data); // no fail nodes here
       // if refcnt > 1 we copy the node and
       // we can also safely use the original
@@ -404,12 +166,11 @@ void OrderingComparator::expand()
         *_curr = Branch(node->data, node->alternative);
       }
       _curr->node()->trace = getCurrentTrace();
-      _curr->node()->prevPoly = getPrevPoly();
       _curr->node()->ready = true;
       return;
     }
-    if (node->tag == BranchTag::T_POLY) {
-      processPolyCase();
+    if (node->tag == Node::T_POLY) {
+      processPolyNode();
       continue;
     }
 
@@ -428,21 +189,41 @@ void OrderingComparator::expand()
     }
     // If we have a variable, we cannot expand further.
     if (node->lhs.isVar() || node->rhs.isVar()) {
-      processVarCase();
+      processVarNode();
       continue;
     }
-
-    expandTermCase();
+    processTermNode();
   }
 }
 
-void OrderingComparator::expandTermCase()
+void OrderingComparator::processVarNode()
 {
-  ASS(_curr->node() && !_curr->node()->ready);
+  auto node = _curr->node();
+  auto trace = getCurrentTrace();
+  Ordering::Result val;
+  if (trace->get(node->lhs, node->rhs, val)) {
+    if (val == Ordering::GREATER) {
+      *_curr = node->gtBranch;
+    } else if (val == Ordering::EQUAL) {
+      *_curr = node->eqBranch;
+    } else {
+      *_curr = node->ngeBranch;
+    }
+    return;
+  }
+  // if refcnt > 1 we copy the node and
+  // we can also safely use the original
+  if (node->refcnt > 1) {
+    *_curr = Branch(node->lhs, node->rhs);
+    _curr->node()->eqBranch = node->eqBranch;
+    _curr->node()->gtBranch = node->gtBranch;
+    _curr->node()->ngeBranch = node->ngeBranch;
+  }
   _curr->node()->ready = true;
+  _curr->node()->trace = trace;
 }
 
-void OrderingComparator::processPolyCase()
+void OrderingComparator::processPolyNode()
 {
   auto node = _curr->node();
   auto trace = getCurrentTrace();
@@ -450,8 +231,7 @@ void OrderingComparator::processPolyCase()
   unsigned pos = 0;
   unsigned neg = 0;
 
-  auto vcs = node->poly->pos;
-  vcs.loadFromIterator(node->poly->neg.iter());
+  auto vcs = node->poly->varCoeffPairs;
 
   for (unsigned i = 0; i < vcs.size();) {
     auto& [var, coeff] = vcs[i];
@@ -492,105 +272,25 @@ void OrderingComparator::processPolyCase()
     return;
   }
   auto poly = Polynomial::get(constant, vcs);
-  auto prevPoly = getPrevPoly();
-
-  // check if we have seen this polynomial
-  // on the path leading here
-  auto polyIt = prevPoly;
-  while (polyIt.first) {
-    ASS_EQ(polyIt.first->tag, BranchTag::T_POLY);
-    if (polyIt.first->poly == poly) {
-      switch (polyIt.second) {
-        case Ordering::GREATER: {
-          *_curr = node->gtBranch;
-          return;
-        }
-        case Ordering::EQUAL: {
-          *_curr = node->eqBranch;
-          return;
-        }
-        case Ordering::INCOMPARABLE: {
-          *_curr = node->ngeBranch;
-          return;
-        }
-        default:
-          break;
-      }
-    }
-    polyIt = polyIt.first->prevPoly;
-  }
 
   // if refcnt > 1 we copy the node and
   // we can also safely use the original
   if (node->refcnt > 1) {
-    *_curr = Branch(node->poly);
+    *_curr = Branch(poly);
     _curr->node()->eqBranch = node->eqBranch;
     _curr->node()->gtBranch = node->gtBranch;
     _curr->node()->ngeBranch = node->ngeBranch;
+  } else {
+    _curr->node()->poly = poly;
   }
-
-  _curr->node()->poly = poly;
-  _curr->node()->prevPoly = prevPoly;
   _curr->node()->trace = trace;
   _curr->node()->ready = true;
 }
 
-void OrderingComparator::processVarCase()
+void OrderingComparator::processTermNode()
 {
-  auto node = _curr->node();
-  auto trace = getCurrentTrace();
-  Ordering::Result val;
-  if (trace->get(node->lhs, node->rhs, val)) {
-    if (val == Ordering::GREATER) {
-      *_curr = node->gtBranch;
-    } else if (val == Ordering::EQUAL) {
-      *_curr = node->eqBranch;
-    } else {
-      *_curr = node->ngeBranch;
-    }
-    return;
-  }
-  // if refcnt > 1 we copy the node and
-  // we can also safely use the original
-  if (node->refcnt > 1) {
-    *_curr = Branch(node->lhs, node->rhs);
-    _curr->node()->eqBranch = node->eqBranch;
-    _curr->node()->gtBranch = node->gtBranch;
-    _curr->node()->ngeBranch = node->ngeBranch;
-  }
+  ASS(_curr->node() && !_curr->node()->ready);
   _curr->node()->ready = true;
-  _curr->node()->prevPoly = getPrevPoly();
-  _curr->node()->trace = trace;
-}
-
-const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int constant, const Stack<VarCoeffPair>& vcs)
-{
-  static Set<Polynomial*, DerefPtrHash<DefaultHash>> polys;
-
-  auto pos = iterTraits(Stack<VarCoeffPair>::ConstRefIterator(vcs)).filter([](const auto& vc) {
-    return vc.second > 0;
-  }).collect<Stack<VarCoeffPair>>();
-  sort(pos.begin(),pos.end(),[](const auto& vc1, const auto& vc2) {
-    return vc1.first<vc2.first;
-  });
-
-  auto neg = iterTraits(Stack<VarCoeffPair>::ConstRefIterator(vcs)).filter([](const auto& vc) {
-    return vc.second < 0;
-  }).collect<Stack<VarCoeffPair>>();
-  sort(neg.begin(),neg.end(),[](const auto& vc1, const auto& vc2) {
-    return vc1.first<vc2.first;
-  });
-
-  Polynomial poly{ constant, pos, neg };
-  // The code below depends on the fact that the first argument
-  // is only called when poly is not used anymore, otherwise the
-  // move would give undefined behaviour.
-  bool unused;
-  return polys.rawFindOrInsert(
-    [&](){ return new Polynomial(std::move(poly)); },
-    poly.defaultHash(),
-    [&](Polynomial* p) { return *p == poly; },
-    unused);
 }
 
 const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
@@ -605,7 +305,7 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
   ASS(_prev->node()->trace);
 
   switch (_prev->node()->tag) {
-    case BranchTag::T_TERM: {
+    case Node::T_TERM: {
       auto lhs = _prev->node()->lhs;
       auto rhs = _prev->node()->rhs;
       Ordering::Result res;
@@ -618,35 +318,29 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
       }
       return Trace::set(_prev->node()->trace, { lhs, rhs, res });
     }
-    case BranchTag::T_DATA:
-    case BranchTag::T_POLY: {
+    case Node::T_DATA:
+    case Node::T_POLY: {
       return _prev->node()->trace;
     }
   }
   ASSERTION_VIOLATION;
 }
 
-std::pair<OrderingComparator::Node*, Ordering::Result> OrderingComparator::getPrevPoly()
-{
-  auto res = make_pair((Node*)nullptr, Ordering::INCOMPARABLE);
-  if (_prev) {
-    // take value from previous node by default
-    res = _prev->node()->prevPoly;
+// Branch
 
-    // override value if the previous is a poly node 
-    if (_prev->node()->tag == BranchTag::T_POLY) {
-      res.first = _prev->node();
-      if (_curr == &_prev->node()->gtBranch) {
-        res.second = Ordering::GREATER;
-      } else if (_curr == &_prev->node()->eqBranch) {
-        res.second = Ordering::EQUAL;
-      } else {
-        ASS_EQ(_curr, &_prev->node()->ngeBranch);
-        res.second = Ordering::INCOMPARABLE;
-      }
-    }
-  }
-  return res;
+OrderingComparator::Branch::Branch(void* data, Branch alt)
+{
+  setNode(new Node(data, alt));
+}
+
+OrderingComparator::Branch::Branch(TermList lhs, TermList rhs)
+{
+  setNode(new Node(lhs, rhs));
+}
+
+OrderingComparator::Branch::Branch(const Polynomial* p)
+{
+  setNode(new Node(p));
 }
 
 OrderingComparator::Branch::~Branch()
@@ -657,6 +351,22 @@ OrderingComparator::Branch::~Branch()
 OrderingComparator::Branch::Branch(const Branch& other)
 {
   setNode(other._node);
+}
+
+OrderingComparator::Node* OrderingComparator::Branch::node() const
+{
+  return _node;
+}
+
+void OrderingComparator::Branch::setNode(Node* node)
+{
+  if (node) {
+    node->incRefCnt();
+  }
+  if (_node) {
+    _node->decRefCnt();
+  }
+  _node = node;
 }
 
 OrderingComparator::Branch& OrderingComparator::Branch::operator=(const Branch& other)
@@ -683,6 +393,17 @@ OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch&& other
   return *this;
 }
 
+// Node
+
+OrderingComparator::Node::Node(void* data, Branch alternative)
+  : tag(T_DATA), data(data), alternative(alternative) {}
+
+OrderingComparator::Node::Node(TermList lhs, TermList rhs)
+  : tag(T_TERM), lhs(lhs), rhs(rhs) {}
+
+OrderingComparator::Node::Node(const Polynomial* p)
+  : tag(T_POLY), poly(p) {}
+
 OrderingComparator::Node::~Node()
 {
   if (tag==T_DATA) {
@@ -703,6 +424,112 @@ void OrderingComparator::Node::decRefCnt()
   if (refcnt==0) {
     delete this;
   }
+}
+
+OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result r)
+{
+  switch (r) {
+    case Ordering::EQUAL: return eqBranch;
+    case Ordering::GREATER: return gtBranch;
+    case Ordering::INCOMPARABLE: return ngeBranch;
+    default: ASSERTION_VIOLATION;
+  }
+}
+
+// Polynomial
+
+const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)
+{
+  static Set<Polynomial*, DerefPtrHash<DefaultHash>> polys;
+
+  sort(varCoeffPairs.begin(),varCoeffPairs.end(),[](const auto& vc1, const auto& vc2) {
+    auto vc1pos = vc1.second>0;
+    auto vc2pos = vc2.second>0;
+    return (vc1pos && !vc2pos) || (vc1pos == vc2pos && vc1.first<vc2.first);
+  });
+
+  Polynomial poly{ constant, varCoeffPairs };
+  // The code below depends on the fact that the first argument
+  // is only called when poly is not used anymore, otherwise the
+  // move would give undefined behaviour.
+  bool unused;
+  return polys.rawFindOrInsert(
+    [&](){ return new Polynomial(std::move(poly)); },
+    poly.defaultHash(),
+    [&](Polynomial* p) { return *p == poly; },
+    unused);
+}
+
+// Printing
+
+std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node::Tag& t)
+{
+  switch (t) {
+    case OrderingComparator::Node::T_DATA: return out << "d";
+    case OrderingComparator::Node::T_TERM: return out << "t";
+    case OrderingComparator::Node::T_POLY: return out << "p";
+  }
+}
+
+std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node)
+{
+  out << (OrderingComparator::Node::Tag)node.tag << (node.ready?" ":"? ");
+  switch (node.tag) {
+    case OrderingComparator::Node::Tag::T_DATA: return out << node.data;
+    case OrderingComparator::Node::Tag::T_POLY: return out << *node.poly;
+    case OrderingComparator::Node::Tag::T_TERM: return out << node.lhs << " " << node.rhs;
+  }
+}
+
+std::ostream& operator<<(std::ostream& out, const OrderingComparator::Polynomial& poly)
+{
+  bool first = true;
+  for (const auto& [var, coeff] : poly.varCoeffPairs) {
+    if (coeff > 0) {
+      out << (first ? "" : " + ");
+    } else {
+      out << (first ? "- " : " - ");
+    }
+    first = false;
+    auto abscoeff = std::abs(coeff);
+    if (abscoeff!=1) {
+      out << abscoeff << " * ";
+    }
+    out << TermList::var(var);
+  }
+  if (poly.constant) {
+    out << (poly.constant<0 ? " - " : " + ");
+    out << std::abs(poly.constant);
+  }
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
+{
+  Stack<std::pair<const OrderingComparator::Branch*, unsigned>> todo;
+  todo.push(std::make_pair(&comp._source,0));
+  // Note: using this set we get a more compact representation
+  DHSet<OrderingComparator::Node*> seen;
+
+  while (todo.isNonEmpty()) {
+    auto kv = todo.pop();
+    for (unsigned i = 0; i < kv.second; i++) {
+      str << ((i+1 == kv.second) ? "  |--" : "  |  ");
+    }
+    str << *kv.first->node() << std::endl;
+    if (seen.insert(kv.first->node())) {
+      if (kv.first->node()->tag==OrderingComparator::Node::Tag::T_DATA) {
+        if (kv.first->node()->data) {
+          todo.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
+        }
+      } else {
+        todo.push(std::make_pair(&kv.first->node()->ngeBranch,kv.second+1));
+        todo.push(std::make_pair(&kv.first->node()->eqBranch,kv.second+1));
+        todo.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
+      }
+    }
+  }
+  return str;
 }
 
 }

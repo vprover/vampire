@@ -161,8 +161,8 @@ private:
           ordCon.comp = ord->createComparator();
           ordCon.comp->insert({ { ordCon.lhs, ordCon.rhs, Ordering::GREATER } }, (void*)0x1);
         }
-        ordCon.comp->reset();
-        return ordCon.comp->next(&applicator);
+        ordCon.comp->init(&applicator);
+        return ordCon.comp->next();
       });
       if (!ordCons_ok) {
         continue;

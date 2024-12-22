@@ -33,7 +33,7 @@ class KBOComparator
 public:
   KBOComparator(const Ordering& ord) : OrderingComparator(ord) {}
 
-  void expandTermCase() override;
+  void processTermNode() override;
 };
 
 }
