@@ -385,6 +385,7 @@ TEST_GENERATION(vars_10,
       ))
     )
 
+  // TODO coherence needs to be applied for numerals as well but this can be done in normalization!!
 TEST_GENERATION(numeral_0,
     Generation::SymmetricTest()
       .indices(alascaCoherenceIndices())
