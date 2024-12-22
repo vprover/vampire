@@ -91,7 +91,8 @@ struct AlascaSignature : public NumTraits {
   static auto isUninterpreted(T t) 
   { return !NumTraits::isFloor(t) && !NumTraits::isAdd(t) && !NumTraits::isLinMul(t) && !AlascaSignature::isOne(t); }
 
-
+  static auto isNumeral(TermList t, Numeral n) { return AlascaSignature::tryNumeral(t) == Option<Numeral const&>(n); }
+  static auto isNumeral(TermList t) { return AlascaSignature::tryNumeral(t).isSome(); }
 
   static auto isVar(TermList t) { return t.isVar(); }
   static auto isVar(Term* t) { return false; }
@@ -107,27 +108,35 @@ struct AlascaSignature : public NumTraits {
   static TermList sum(Iter iter) {
     return iterTraits(std::move(iter))
       .fold([](auto l, auto r) { return AlascaSignature::add(l, r); })
-      .unwrapOr([&]() { return AlascaSignature::zero(); });
+      .unwrapOrElse([&]() { return AlascaSignature::zero(); });
   }
 
   template<class T>
   static TermList linMul(Numeral const& c, T t) 
   { return c == 1 ? TermList(t) : NumTraits::linMul(c, t); }
 
+  template<class... Args> static TermList ifMul(Args...)  = delete;
+  template<class... Args> static TermList isMul(Args...)  = delete;
+  template<class... Args> static TermList mul(Args...) = delete;
+  template<class... Args> static TermList mulF(Args...)  = delete;
+  template<class... Args> static TermList tryMul(Args...)  = delete;
+
   // TODO faster
-  static TermList const& zero() { return zeroT.unwrapOrInit([&]() { return NumTraits::zero(); }); }
+  static TermList const& zero() { return zeroT.unwrapOrInit([&]() { return AlascaSignature::numeralTl(0); }); }
   static TermList const& one() { return oneT.unwrapOrInit([&]() { return NumTraits::one(); }); }
   static TermList const& sort() { return sortT.unwrapOrInit([&]() { return NumTraits::sort(); }); }
 
   static bool isOne(unsigned f) { return AlascaSignature::one().term()->functor() == f; }
   static bool isOne(TermList t) { return AlascaSignature::one() == t; }
   static bool isOne(Term* t) { return AlascaSignature::one() == TermList(t); }
+  template<class T, class F>
+  static auto ifOne(T term, F fun) { return someIf(AlascaSignature::isOne(term), std::move(fun)); }
 
   static Kernel::TermList numeralTl(int c) 
   { return numeralTl(NumTraits::constant(c)); }
 
   static Kernel::TermList numeralTl(typename NumTraits::ConstantType const& c) 
-  { return TermList(NumTraits::linMul(c, NumTraits::one())); }
+  { return c == 1 ? AlascaSignature::one() : TermList(NumTraits::linMul(c, AlascaSignature::one())); }
 
 };
 
