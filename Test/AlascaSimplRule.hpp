@@ -24,12 +24,14 @@
 #include "Kernel/Ordering.hpp"
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Test/GenerationTester.hpp"
+#include "Test/FwdBwdSimplificationTester.hpp"
 
 template<class Rule>
 struct AlascaSimplRule 
   : public SimplifyingGeneratingInference
 {
   Option<std::shared_ptr<AlascaState>> _state;
+
   Rule _rule;
   ALASCA::Normalization _norm;
   AlascaSimplRule()
@@ -38,7 +40,9 @@ struct AlascaSimplRule
     , _norm(*_state)
   { }
 
-  AlascaSimplRule(Rule r, ALASCA::Normalization n) : _rule(std::move(r)), _norm(std::move(n)) {}
+  std::shared_ptr<AlascaState> state() const { return *_state; }
+
+  AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) : _state(state), _rule(std::move(r)), _norm(std::move(n)) {}
 
   void attach(SaturationAlgorithm* salg) final override {
     _rule.attach(salg);
@@ -70,7 +74,7 @@ struct AlascaSimplRule
 };
 
 template<class Rule>
-AlascaSimplRule<Rule> alascaSimplRule(Rule r, ALASCA::Normalization n) { return AlascaSimplRule<Rule>(std::move(r), std::move(n)); }
+AlascaSimplRule<Rule> alascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) { return AlascaSimplRule<Rule>(std::move(state), std::move(r), std::move(n)); }
 
 template<class ISE>
 struct ToSgi : SimplifyingGeneratingInference {
@@ -105,22 +109,15 @@ template<class ISE>
 ToSgi<ISE> toSgi(ISE ise) { return ToSgi<ISE>(std::move(ise)); }
 
 
-template<class Rule> 
-class AlascaGenerationTester : public Test::Generation::GenerationTester<AlascaSimplRule<Rule>>
-{
- public:
+struct AlascaTestUtil {
 
+  static Clause* normalize(std::shared_ptr<AlascaState> state, Kernel::Clause* c)
+  { return ALASCA::Normalization(state).simplify(c); }
 
-  AlascaGenerationTester(AlascaSimplRule<Rule> r) : Test::Generation::GenerationTester<AlascaSimplRule<Rule>>(std::move(r)) { }
-  AlascaGenerationTester() : AlascaGenerationTester(AlascaSimplRule<Rule>()) { }
-
-  virtual Clause* normalize(Kernel::Clause* c) override 
-  { return Test::Generation::GenerationTester<AlascaSimplRule<Rule>>::_rule._norm.simplify(c); }
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
+  static bool eq(std::shared_ptr<AlascaState> state, Kernel::Clause* lhs, Kernel::Clause* rhs)
   { 
-    lhs = normalize(lhs);
-    rhs = normalize(rhs);
+    lhs = normalize(state, lhs);
+    rhs = normalize(state, rhs);
     auto vars = [](auto cl) {
       auto vs = cl->iterLits()
         .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
@@ -161,12 +158,28 @@ class AlascaGenerationTester : public Test::Generation::GenerationTester<AlascaS
                     }));
               }),
             Inference(NonspecificInference1(InferenceRule::RECTIFY, rhs)));
-        auto r = normalize(renamed);
+        auto r = normalize(state, renamed);
         return Test::TestUtils::eqModAC(lhs, r); 
     });
   }
 };
 
+template<class Rule> 
+class AlascaGenerationTester : public Test::Generation::GenerationTester<AlascaSimplRule<Rule>>
+{
+ public:
+
+ std::shared_ptr<AlascaState> state() { return Test::Generation::GenerationTester<AlascaSimplRule<Rule>>::_rule.state(); }
+
+  AlascaGenerationTester(AlascaSimplRule<Rule> r) : Test::Generation::GenerationTester<AlascaSimplRule<Rule>>(std::move(r)) { }
+  AlascaGenerationTester() : AlascaGenerationTester(AlascaSimplRule<Rule>()) { }
+
+  virtual Clause* normalize(Kernel::Clause* c) override 
+  { return Test::Generation::GenerationTester<AlascaSimplRule<Rule>>::_rule._norm.simplify(c); }
+
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
+  { return AlascaTestUtil::eq(state(), lhs, rhs); }
+};
 
 
 inline void overrideFractionalNumerals(IntTraits n) { }

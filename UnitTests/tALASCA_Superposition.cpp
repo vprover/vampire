@@ -106,7 +106,7 @@ auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultaniou
 { 
   auto s = testAlascaState(uwa);
   auto n = ALASCA::Normalization(s);
-  return alascaSimplRule(Superposition(s, simultanious), n); 
+  return alascaSimplRule(s,Superposition(s, simultanious), n); 
 }
 
 

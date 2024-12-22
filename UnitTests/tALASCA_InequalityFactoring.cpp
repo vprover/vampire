@@ -62,7 +62,7 @@ using namespace Inferences::ALASCA;
 auto testInequalityFactoring(Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)
 { 
   auto s = testAlascaState(uwa);
-  return alascaSimplRule(InequalityFactoring(s), ALASCA::Normalization(s)); 
+  return alascaSimplRule(s,InequalityFactoring(s), ALASCA::Normalization(s)); 
 }
 
 template<class A> A* heap(A&& a) { return new A(std::move(a)); }

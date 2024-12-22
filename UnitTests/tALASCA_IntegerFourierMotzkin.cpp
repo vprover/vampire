@@ -111,8 +111,8 @@ auto testIntegerFourierMotzkin(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
     ) 
 { 
-  auto state = testAlascaState(uwa);
-  return alascaSimplRule(IntegerFourierMotzkin<RealTraits>(state), state); 
+  auto s = testAlascaState(uwa);
+  return alascaSimplRule(s, IntegerFourierMotzkin<RealTraits>(s), s); 
 }
 
 REGISTER_GEN_TESTER(AlascaGenerationTester<IntegerFourierMotzkin<RealTraits>>(testIntegerFourierMotzkin()))

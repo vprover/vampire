@@ -21,7 +21,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
+#include "Test/AlascaSimplRule.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
@@ -64,11 +64,9 @@ using namespace Inferences::ALASCA;
 TermFactoring testTermFactoring(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
     )
-{ 
-  return TermFactoring(testAlascaState(uwa));
-}
+{ return TermFactoring(testAlascaState(uwa)); }
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TermFactoring>(testTermFactoring()))
+REGISTER_GEN_TESTER(AlascaGenerationTester<TermFactoring>())
 
 /////////////////////////////////////////////////////////
 // Basic tests

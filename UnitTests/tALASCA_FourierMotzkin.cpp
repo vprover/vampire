@@ -113,7 +113,7 @@ auto testFourierMotzkin(
     ) 
 { 
   auto s = testAlascaState(uwa);
-  return alascaSimplRule(FourierMotzkin(s), ALASCA::Normalization(s));
+  return alascaSimplRule(s,FourierMotzkin(s), ALASCA::Normalization(s));
 }
 
 

@@ -37,7 +37,7 @@ public:
   USE_ALLOCATOR(VariableElimination);
 
   VariableElimination(VariableElimination&&) = default;
-  VariableElimination(std::shared_ptr<AlascaState> shared, bool simplify) 
+  VariableElimination(std::shared_ptr<AlascaState> shared, bool simplify = true) 
     : _shared(std::move(shared))
     , _simplify(simplify)
   {  }

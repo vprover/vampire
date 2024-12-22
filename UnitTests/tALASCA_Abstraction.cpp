@@ -67,7 +67,7 @@ using namespace Inferences::ALASCA;
 inline auto testAbstraction(Options::UnificationWithAbstraction uwa)
 { 
   auto s = testAlascaState(uwa);
-  return alascaSimplRule(toSgi(Abstraction<RealTraits>(s)), Normalization(s));
+  return alascaSimplRule(s,toSgi(Abstraction<RealTraits>(s)), Normalization(s));
 }
 
 

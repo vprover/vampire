@@ -56,17 +56,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
-auto testVirasQuantifierElimination(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
-    )
-{ 
-  auto state = testAlascaState(uwa);
-  return AlascaSimplRule<VirasQuantifierElimination>(VirasQuantifierElimination(state), Normalization(state));
-}
-
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<VirasQuantifierElimination>(testVirasQuantifierElimination()))
-// REGISTER_GEN_TESTER(Test::Generation::GenerationTester<AlascaSimplRule<VirasQuantifierElimination>>(testVirasQuantifierElimination()))
+REGISTER_GEN_TESTER(AlascaGenerationTester<VirasQuantifierElimination>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
