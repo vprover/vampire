@@ -15,6 +15,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Kernel/ALASCA.hpp"
+#include "Test/AlascaSimplRule.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/ALASCA/Ordering.hpp"
@@ -436,6 +437,32 @@ TEST_FUN(bug01) {
   check(ord, f(f(a)) - f(f(a)) > 0, Less   , f(f(a)) > 0);
 }
 
+TEST_FUN(bug02) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+
+  auto& ord = lakbo(/* rand */ false);
+
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_CONST(c, Real)
+
+  check(ord, c, Greater, -floor(frac(1,2) * floor(b) + frac(1,2) * floor(a)) + -floor(frac(1,2) + frac(1,2) * floor(b) + frac(1,2) * floor(a)));
+}
+
+TEST_FUN(bug03) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Rat)
+  mkAlascaSyntaxSugar(RatTraits{});
+  DECL_CONST(a, Rat)
+  DECL_FUNC (g, {Rat, Rat}, Rat)
+  auto& ord = lakbo();
+
+  check(ord, g(a,a), Incomp , frac(-1,2) * g(x,y));
+}
+
 TEST_FUN(numerals) {
 
   DECL_DEFAULT_VARS
@@ -581,16 +608,3 @@ TEST_FUN(check_numerals_smallest) {
 
 }
 
-TEST_FUN(bug02) {
-
-  DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
-
-  auto& ord = lakbo(/* rand */ false);
-
-  DECL_CONST(a, Real)
-  DECL_CONST(b, Real)
-  DECL_CONST(c, Real)
-
-  check(ord, c, Greater, -floor(frac(1,2) * floor(b) + frac(1,2) * floor(a)) + -floor(frac(1,2) + frac(1,2) * floor(b) + frac(1,2) * floor(a)));
-}

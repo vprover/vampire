@@ -710,6 +710,19 @@ TEST_FUN(bug01) {
 #endif // !ENABLE_ZERO_REMOVAL
 }
 
+TEST_FUN(bug02) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Rat)
+  mkAlascaSyntaxSugar(RatTraits{});
+  DECL_CONST(a, Rat)
+  DECL_FUNC (g, {Rat, Rat}, Rat)
+  auto& ord = qkbo();
+
+  check(ord, g(a,a), Incomp , frac(-1,2) * g(x,y));
+}
+
+
 TEST_FUN(numerals) {
 
   DECL_DEFAULT_VARS
