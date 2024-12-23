@@ -39,6 +39,7 @@ template<class NumTraits>
 class Abstraction
 : public ImmediateSimplificationEngine
 {
+  using ASig = AlascaSignature<NumTraits>;
   std::shared_ptr<AlascaState> _shared;
 
   struct Path {
@@ -174,7 +175,7 @@ class Abstraction
     Option<TermList> currentTerm() const { return top([](auto t) { return t.derefTermList(); }); }
 
     void popToFloor() {
-      while (!(NumTraits::isFloor(currentTerm().unwrap()) &&  top([](auto x) { return !x.isUnderFloor(); }))) {
+      while (!(ASig::isFloor(currentTerm().unwrap()) &&  top([](auto x) { return !x.isUnderFloor(); }))) {
         pop();
       }
     }
@@ -200,7 +201,7 @@ class Abstraction
         .max().unwrapOr(0));
       return Clause::fromIterator(
           concatIters(
-            iterItems(NumTraits::eq(false, newVar, currentTerm().unwrap())),
+            iterItems(ASig::eq(false, newVar, currentTerm().unwrap())),
             range(0, clause.current->size())
              .map([&](auto i) -> Literal* {
                if (i != clause.idx) {
@@ -253,22 +254,22 @@ class Abstraction
       if (auto cur = currentTerm()) {
         auto curT = cur->term();
         auto unshieldedUnderFloor = 
-            NumTraits::isFloor(curT)                             ? true
-          : (isNumMul<NumTraits>(curT) || NumTraits::isAdd(curT)) ? top([](auto& x) { return x.isUnderFloor(); })
+            ASig::isFloor(curT)                             ? true
+          : (ASig::isLinMul(curT) || ASig::isAdd(curT)) ? top([](auto& x) { return x.isUnderFloor(); })
            /* uninterpretd */                                   : false;
         termIdx->push(TermEntry { 
             .current = curT, 
             .idx = i, 
             .underFloor = unshieldedUnderFloor, 
-            .shielded = top([](auto& t) { return t.isShielded(); }) || isUninterpreted<NumTraits>(curT),
+            .shielded = top([](auto& t) { return t.isShielded(); }) || ASig::isUninterpreted(curT),
 #if UNSTABILITY_ABSTRACTION
             .unstable = top([](auto& t) { return t.isUnstable(); })  
-                    || (top([](auto& t) { return t.isShielded(); }) && NumTraits::isAdd(curT)),
+                    || (top([](auto& t) { return t.isShielded(); }) && ASig::isAdd(curT)),
 #endif // UNSTABILITY_ABSTRACTION
         });
       } else {
         ASS(litIdx.isNone())
-        litIdx = some(LiteralEntry { .current = clause.deref(), .idx = i, .shielded = !isAlascaLiteral<NumTraits>(clause.deref())});
+        litIdx = some(LiteralEntry { .current = clause.deref(), .idx = i, .shielded = !ASig::isAlascaLiteral(clause.deref())});
       }
     }
 
@@ -314,7 +315,7 @@ public:
       topLevelVars.insert(t);
     } else {
       auto term = t.term();
-          NumTraits::ifAdd(term, [&](auto t0, auto t1) {
+          ASig::ifAdd(term, [&](auto t0, auto t1) {
               path.push(0);
               collectTopLevelVars(path, t0,topLevelVars, todoT);
               path.top([](auto& x) { x.idx = 1; });
@@ -323,14 +324,12 @@ public:
               return 0;
           })
       .orElse([&](){ return 
-          ifNumMul<NumTraits>(term, [&](auto k, auto t, auto i) { 
-              path.push(i);
+          ASig::ifLinMulWithPath(term, path, [&](auto k, auto t) { 
               collectTopLevelVars(path, t, topLevelVars, todoT); 
-              path.pop();
               return 0;
           }); })
       .orElse([&](){ return 
-          NumTraits::ifFloor(term, [&](auto t) { 
+          ASig::ifFloor(term, [&](auto t) { 
               path.push(0);
               collectTopLevelVars(path, t, topLevelVars, todoT); 
               path.pop();
@@ -352,7 +351,7 @@ public:
     auto todo = RStack<Path>();
     auto path = Path(premise, 0);
     for (auto lit : premise->iterLits()) {
-      ifAlascaLiteral<NumTraits>(lit, [&](auto p, auto t, unsigned i) { 
+      ASig::ifAlascaLiteralWithPath(lit, [&](auto p, auto t, unsigned i) { 
           path.push(i);
           collectTopLevelVars(path, t, topLevelVars, todo);
           path.pop();

@@ -24,7 +24,6 @@
 #include "Kernel/Ordering.hpp"
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Test/GenerationTester.hpp"
-#include "Test/FwdBwdSimplificationTester.hpp"
 
 template<class Rule>
 struct AlascaSimplRule 
