@@ -34,9 +34,16 @@ struct RenderMonom {
     for (auto x : raw) {
       ASS_EQ(x.power, 1)
       Option<Numeral> attempt(x.term.template tryNumeral<NumTraits>());
-      if (!found && attempt.isSome()) {
+      if (!found && attempt.isSome() && *attempt != 1) {
         found = true;
         num = attempt.unwrap();
+      } else if (!found 
+          && x.term.template is<Perfect<FuncTerm>>() 
+          && NumTraits::isNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
+          && 1 != *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
+          ) {
+        found = true;
+        num = *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id());
       } else if (len == 0) {
         len++;
         raw[len - 1].term = x.term;
