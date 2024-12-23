@@ -112,6 +112,9 @@ struct AlascaSignature : public NumTraits {
   }
 
   template<class T>
+  static TermList linMul(int c, T t) { return AlascaSignature::linMul(Numeral(c), t); }
+
+  template<class T>
   static TermList linMul(Numeral const& c, T t) 
   { return c == 1 ? TermList(t) : NumTraits::linMul(c, t); }
 

@@ -43,6 +43,7 @@ struct AlascaSimplRule
   std::shared_ptr<AlascaState> state() const { return *_state; }
 
   AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) : _state(state), _rule(std::move(r)), _norm(std::move(n)) {}
+  AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r) : _state(state), _rule(std::move(r)), _norm(state) {}
 
   void attach(SaturationAlgorithm* salg) final override {
     _rule.attach(salg);

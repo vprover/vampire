@@ -298,7 +298,7 @@ struct NumTraits;
                .flatten(); }                                                              \
                                                                                           \
     template<class F>                                                                     \
-    static auto ifLinMul(Term* t, F func)                                                 \
+    static auto ifLinMul(Term const* t, F func)                                                 \
     {                                                                                     \
       auto c = tryLinMul(t->functor());                                                   \
       return someIf(c.isSome(), [&]() { return func(*c, t->termArg(0)); });               \
