@@ -105,6 +105,11 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   cout << "Model loaded in " << env.timer->elapsedMilliseconds() - start << " ms" << endl;
   cout << at::get_parallel_info() << endl;
 #endif
+
+  _useSimpleFeatures = useSimpleFeatures();
+  if (!_useSimpleFeatures) {
+    _numFeatures = 0;
+  }
 }
 
 float NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {

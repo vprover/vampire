@@ -261,7 +261,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
       opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature());
 
     _useProblemFeatures = _neuralModel->useProblemFeatures();
-    _useSimpleFeatures = _neuralModel->useSimpleFeatures();
     _useGage = _neuralModel->useGage();
     _useGweight = _neuralModel->useGweight();
 

@@ -42,6 +42,8 @@ class NeuralClauseEvaluationModel
 private:
   torch::jit::script::Module _model;
 
+  bool _useSimpleFeatures;
+
   unsigned _numFeatures;
   float _temp;
 
