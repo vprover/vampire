@@ -26,7 +26,7 @@ class LPOComparator
 public:
   LPOComparator(const Ordering& ord, bool onlyVars) : OrderingComparator(ord, onlyVars) {}
 
-  void expandTermCase() override;
+  void processTermNode() override;
 
 private:
   static void majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail);

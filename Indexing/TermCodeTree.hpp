@@ -43,13 +43,7 @@ class TermCodeTree : public CodeTree
 {
 protected:
   static void onCodeOpDestroying(CodeOp* op);
-
-  std::string leafToString(const CodeOp* success) const override {
-    std::stringstream str;
-    str << *success->getSuccessResult<Data>();
-    return str.str();
-  }
-
+  
 public:
   TermCodeTree();
 

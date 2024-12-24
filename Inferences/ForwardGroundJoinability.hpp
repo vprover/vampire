@@ -54,18 +54,19 @@ private:
 
   struct RedundancyCheck {
     RedundancyCheck(const Ordering& ord, State* data);
-    std::pair<State*,const TermPartialOrdering*> next(OrderingConstraints cons, State* data);
+    std::pair<State*,const TermPartialOrdering*> next(Stack<TermOrderingConstraint> cons, State* data);
 
     void pushNext();
 
     using Branch = OrderingComparator::Branch;
-    using BranchTag = OrderingComparator::BranchTag;
+    using Tag = OrderingComparator::Node::Tag;
 
     OrderingComparatorUP comp;
     Stack<OrderingComparator::Branch*> path;
   };
 
-  std::pair<State*,const TermPartialOrdering*> getNext(RedundancyCheck& checker, State* curr, OrderingConstraints cons, TermList left, TermList right);
+  std::pair<State*,const TermPartialOrdering*> getNext(
+    RedundancyCheck& checker, State* curr, Stack<TermOrderingConstraint> cons, TermList left, TermList right);
 
   DemodulationLHSIndex* _index;
   Stack<State*> _states;

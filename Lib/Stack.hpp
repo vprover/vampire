@@ -330,14 +330,6 @@ public:
     _cursor++;
   } // Stack::push()
 
-  inline
-  void pushUnsafe(C elem)
-  {
-    ASS(_cursor < _end);
-    ::new(_cursor) C(std::move(elem));
-    _cursor++;
-  } // Stack::push()
-
   /**
    * Pop the stack and return the popped element.
    * @since 11/03/2006 Bellevue

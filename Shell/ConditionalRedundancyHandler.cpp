@@ -205,8 +205,8 @@ public:
     while ((es = matcher.next()))
     {
       ASS(es->comparator);
-      es->comparator->reset();
-      bool res = es->comparator->next(&applicator);
+      es->comparator->init(&applicator);
+      bool res = es->comparator->next();
 #if DEBUG_ORDERING
       auto ordCons_crosscheck = iterTraits(es->comps.iter()).any([ord,&applicator](auto e) {
         return iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
@@ -347,14 +347,6 @@ public:
       delete es;
     }
   }
-
-  std::string leafToString(const CodeOp* op) const override {
-    std::stringstream str;
-    ASS(op->isSuccess());
-    auto es = op->getSuccessResult<Entries>();
-    str << *es->comparator;
-    return str.str();
-  }
 };
 
 
@@ -382,10 +374,10 @@ bool ConditionalRedundancySubsumption::check()
       subsumer._prev = get<0>(path[path.size()-2]);
     }
     subsumer._curr = get<0>(path.top());
-    subsumer.expand();
+    subsumer.processCurrentNode();
 
     auto lnode = subsumer._curr->node();
-    if (lnode->tag == OrderingComparator::BranchTag::T_DATA && lnode->data) {
+    if (lnode->tag == OrderingComparator::Node::T_DATA && lnode->data) {
       pushNext();
       continue;
     }
@@ -398,20 +390,20 @@ bool ConditionalRedundancySubsumption::check()
 
     subsumed->_prev = get<1>(path.top());
     subsumed->_curr = get<2>(path.top());
-    subsumed->expand();
+    subsumed->processCurrentNode();
     auto rnode = subsumed->_curr->node();
 
     switch (rnode->tag) {
-      case OrderingComparator::BranchTag::T_POLY: {
-        if (lnode->tag == OrderingComparator::BranchTag::T_DATA) {
+      case OrderingComparator::Node::T_POLY: {
+        if (lnode->tag == OrderingComparator::Node::T_DATA) {
           return false;
         }
         path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
         break;
       }
-      case OrderingComparator::BranchTag::T_DATA: {
+      case OrderingComparator::Node::T_DATA: {
         if (rnode->data) {
-          if (lnode->tag == OrderingComparator::BranchTag::T_DATA) {
+          if (lnode->tag == OrderingComparator::Node::T_DATA) {
             return false;
           }
           path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
@@ -420,12 +412,12 @@ bool ConditionalRedundancySubsumption::check()
         }
         break;
       }
-      case OrderingComparator::BranchTag::T_TERM: {
+      case OrderingComparator::Node::T_TERM: {
         auto lhs = rnode->lhs;
         auto rhs = rnode->rhs;
         Ordering::Result val;
         if (!trace->get(lhs, rhs, val)) {
-          if (lnode->tag == OrderingComparator::BranchTag::T_DATA) {
+          if (lnode->tag == OrderingComparator::Node::T_DATA) {
             return false;
           }
           path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
@@ -464,8 +456,8 @@ void ConditionalRedundancySubsumption::pushNext()
 
     auto prevE = path.top();
     auto prev = get<0>(prevE)->node();
-    ASS(prev->tag == OrderingComparator::BranchTag::T_POLY ||
-        prev->tag == OrderingComparator::BranchTag::T_TERM);
+    ASS(prev->tag == OrderingComparator::Node::T_POLY ||
+        prev->tag == OrderingComparator::Node::T_TERM);
     // if there is a previous node and we were either in the gt or eq
     // branches, just go to next branch in order, otherwise backtrack
     if (curr == &prev->gtBranch) {

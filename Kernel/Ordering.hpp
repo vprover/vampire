@@ -76,23 +76,6 @@ public:
     return out << "UNKNOWN";
   }
 
-  struct Constraint {
-    TermList lhs;
-    TermList rhs;
-    Result rel;
-
-    friend std::ostream& operator<<(std::ostream& out, const Constraint& self)
-    { return out << self.lhs << " " << self.rhs << " " << resultToString(self.rel); }
-  };
-
-  struct POStruct {
-    POStruct(const TermPartialOrdering* tpo)
-      : tpo(tpo), cons() {}
-
-    const TermPartialOrdering* tpo;
-    Stack<Constraint> cons;
-  };
-
   virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */

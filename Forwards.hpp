@@ -107,6 +107,7 @@ struct OrderingComparator;
 typedef std::unique_ptr<OrderingComparator> OrderingComparatorUP;
 class PartialOrdering;
 class TermPartialOrdering;
+struct POStruct;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;

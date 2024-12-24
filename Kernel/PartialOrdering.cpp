@@ -127,7 +127,7 @@ bool checkCompatibility(PoComp old, PoComp curr, PoComp& res)
   ASSERTION_VIOLATION;
 }
 
-string po_to_infix(PoComp c) {
+string pocompToInfix(PoComp c) {
   switch (c) {
     case PoComp::UNKNOWN:
       return "?";
@@ -148,10 +148,10 @@ string po_to_infix(PoComp c) {
 }
 
 PartialOrdering::PartialOrdering()
-  : _size(0), _array(nullptr), _hasIncomp(false), _prev(nullptr) {}
+  : _size(0), _array(nullptr), _hasIncomp(false) {}
 
 PartialOrdering::PartialOrdering(const PartialOrdering& other)
-  : _size(other._size), _array(nullptr), _hasIncomp(other._hasIncomp), _prev(&other)
+  : _size(other._size), _array(nullptr), _hasIncomp(other._hasIncomp)
 {
   size_t arrSize = ((_size - 1) * _size / 2);
   if (arrSize) {
@@ -175,7 +175,7 @@ PoComp PartialOrdering::get(size_t x, size_t y) const
   ASS_L(x,_size);
   ASS_L(y,_size);
 
-  return (x < y) ? get_unsafe(x,y) : reverse(get_unsafe(y,x));
+  return (x < y) ? getUnsafe(x,y) : reverse(getUnsafe(y,x));
 }
 
 const PartialOrdering* PartialOrdering::getEmpty()
@@ -205,7 +205,7 @@ const PartialOrdering* PartialOrdering::set(const PartialOrdering* po, size_t x,
     }
     auto res = new PartialOrdering(*po);
     bool changed;
-    if (!res->set_idx_of(x, y, v, changed)) {
+    if (!res->setRel(x, y, v, changed)) {
       delete res;
       *ptr = nullptr;
     } else if (!changed) {
@@ -214,7 +214,7 @@ const PartialOrdering* PartialOrdering::set(const PartialOrdering* po, size_t x,
     }
     // if something's changed, we calculate the transitive closure
     // TODO we could use the value that we get from compatibility checking here
-    else if (!res->set_inferred(x, y, v)) {
+    else if (!res->setInferred(x, y, v)) {
       delete res;
       *ptr = nullptr;
     } else {
@@ -260,7 +260,7 @@ void PartialOrdering::extend()
   }
 }
 
-bool PartialOrdering::set_idx_of(size_t x, size_t y, PoComp v, bool& changed)
+bool PartialOrdering::setRel(size_t x, size_t y, PoComp v, bool& changed)
 {
   size_t idx = y*(y-1)/2 + x;
   ASS_L(idx,((_size - 1) * _size / 2));
@@ -277,23 +277,57 @@ bool PartialOrdering::set_idx_of(size_t x, size_t y, PoComp v, bool& changed)
   return true;
 }
 
-bool PartialOrdering::set_idx_of_safe(size_t x, size_t y, PoComp v, bool& changed)
+bool PartialOrdering::setRelSafe(size_t x, size_t y, PoComp v, bool& changed)
 {
   if (x < y) {
-    return set_idx_of(x,y,v,changed);
+    return setRel(x,y,v,changed);
   } else {
-    return set_idx_of(y,x,reverse(v),changed);
+    return setRel(y,x,reverse(v),changed);
   }
 }
 
-PoComp PartialOrdering::get_unsafe(size_t x, size_t y) const
+PoComp PartialOrdering::getUnsafe(size_t x, size_t y) const
 {
   size_t idx = y*(y-1)/2 + x;
   ASS_L(idx,((_size - 1) * _size / 2));
   return _array[idx];
 }
 
-bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
+bool PartialOrdering::setInferred(size_t x, size_t y, PoComp result)
+{
+  switch (result) {
+    /* x > y: then ∀z. y ≥ z, also x > z,
+               and ∀z. z ≥ x, also z > y */
+    case PoComp::GREATER:
+    /* x < y: then ∀z. y ≤ z, also x < z,
+               and ∀z. z ≤ x, also z < y */
+    case PoComp::LESS:
+      RETURN_IF_FAIL(setInferredHelper(x, y, result));
+      break;
+    /* x = y: then ∀z. z = x, also z = y
+               and ∀z. z = y, also z = x
+               and ∀z. z > x, also z > y
+               and ∀z. z > y, also z > x
+               and ∀z. z < x, also z < y
+               and ∀z. z < y, also z < x */
+    case PoComp::EQUAL:
+      RETURN_IF_FAIL(setInferredHelperEq(x, y));
+      break;
+    case PoComp::NGEQ:
+    case PoComp::NLEQ:
+      RETURN_IF_FAIL(setInferredHelperInc(x, y, result));
+      break;
+    case PoComp::INCOMPARABLE:
+      RETURN_IF_FAIL(setInferredHelperInc(x, y, PoComp::NGEQ));
+      RETURN_IF_FAIL(setInferredHelperInc(x, y, PoComp::NLEQ));
+      break;
+    default:
+      break;
+  }
+  return true;
+}
+
+bool PartialOrdering::setInferredHelper(size_t x, size_t y, PoComp rel)
 {
   ASS_NEQ(x,y);
 
@@ -312,7 +346,7 @@ bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
     // if rel = ≤: z ≤ x  ∧  x ≤ y  →  z ≤ y
     // if rel = ≥: z ≥ x  ∧  x ≥ y  →  z ≥ y
     if (r == rel || r == PoComp::EQUAL) {
-      RETURN_IF_FAIL(set_idx_of_safe(z, y, rel, changed));
+      RETURN_IF_FAIL(setRelSafe(z, y, rel, changed));
       if (changed) {
         above.push(z);
         // TODO find out why we should continue here
@@ -322,7 +356,7 @@ bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
     // if rel = ≤: z ≱ x  ∧  x ≤ y  →  z ≱ y
     // if rel = ≥: z ≰ x  ∧  x ≥ y  →  z ≰ y
     else if (r == wkn || r == PoComp::INCOMPARABLE) {
-      RETURN_IF_FAIL(set_idx_of_safe(z, y, wkn, changed));
+      RETURN_IF_FAIL(setRelSafe(z, y, wkn, changed));
       if (changed) {
         above_w.push(z);
         // TODO find out why we should continue here
@@ -334,7 +368,7 @@ bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
     // x rel y  ∧  y rel z  →  x rel z
     // x rel y  ∧  y  =  z  →  x rel z
     if (r == rel || r == PoComp::EQUAL) {
-      RETURN_IF_FAIL(set_idx_of_safe(x, z, rel, changed));
+      RETURN_IF_FAIL(setRelSafe(x, z, rel, changed));
       if (changed) {
         below.push(z);
       }
@@ -342,7 +376,7 @@ bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
     // x rel y  ∧  y wkn z  →  x wkn z
     // x rel y  ∧  y inc z  →  x wkn z
     else if (r == wkn || r == PoComp::INCOMPARABLE) {
-      RETURN_IF_FAIL(set_idx_of_safe(x, z, wkn, changed));
+      RETURN_IF_FAIL(setRelSafe(x, z, wkn, changed));
       if (changed) {
         below_w.push(z);
       }
@@ -352,21 +386,21 @@ bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
   // connect all pairs that have been derived
   for (const auto& z : above) {
     for (const auto& u : below) {
-      RETURN_IF_FAIL(set_idx_of_safe(z,u,rel,changed));
+      RETURN_IF_FAIL(setRelSafe(z,u,rel,changed));
     }
     for (const auto& u : below_w) {
-      RETURN_IF_FAIL(set_idx_of_safe(z,u,wkn,changed));
+      RETURN_IF_FAIL(setRelSafe(z,u,wkn,changed));
     }
   }
   for (const auto& z : above_w) {
     for (const auto& u : below) {
-      RETURN_IF_FAIL(set_idx_of_safe(z,u,wkn,changed));
+      RETURN_IF_FAIL(setRelSafe(z,u,wkn,changed));
     }
   }
   return true;
 }
 
-bool PartialOrdering::set_inferred_loop_inc(size_t x, size_t y, PoComp wkn)
+bool PartialOrdering::setInferredHelperInc(size_t x, size_t y, PoComp wkn)
 {
   ASS_NEQ(x,y);
 
@@ -383,7 +417,7 @@ bool PartialOrdering::set_inferred_loop_inc(size_t x, size_t y, PoComp wkn)
     // z ≤ x  ∧  x ≱ y  →  z ≱ y
     // z ≥ x  ∧  x ≰ y  →  z ≰ y
     if (r == rel || r == PoComp::EQUAL) {
-      RETURN_IF_FAIL(set_idx_of_safe(z, y, wkn, changed));
+      RETURN_IF_FAIL(setRelSafe(z, y, wkn, changed));
       if (changed) {
         above.push(z);
         // TODO find out why we should continue here
@@ -394,7 +428,7 @@ bool PartialOrdering::set_inferred_loop_inc(size_t x, size_t y, PoComp wkn)
     // x ≱ y  ∧  y ≤ z  →  x ≱ z
     // x ≰ y  ∧  y ≥ z  →  x ≰ z
     if (r == rel || r == PoComp::EQUAL) {
-      RETURN_IF_FAIL(set_idx_of_safe(x, z, wkn, changed));
+      RETURN_IF_FAIL(setRelSafe(x, z, wkn, changed));
       if (changed) {
         below.push(z);
       }
@@ -404,13 +438,13 @@ bool PartialOrdering::set_inferred_loop_inc(size_t x, size_t y, PoComp wkn)
   // connect all pairs that have been derived
   for (const auto& z : above) {
     for (const auto& u : below) {
-      RETURN_IF_FAIL(set_idx_of_safe(z,u,wkn,changed));
+      RETURN_IF_FAIL(setRelSafe(z,u,wkn,changed));
     }
   }
   return true;
 }
 
-bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
+bool PartialOrdering::setInferredHelperEq(size_t x, size_t y)
 {
   ASS_NEQ(x,y);
 
@@ -426,7 +460,7 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
     }
     auto r = get(z, x);
     if (r != PoComp::UNKNOWN) {
-      RETURN_IF_FAIL(set_idx_of_safe(z, y, r, changed));
+      RETURN_IF_FAIL(setRelSafe(z, y, r, changed));
       if (changed) {
         x_rel.push({ z, r });
         // TODO find out why we should continue here
@@ -435,7 +469,7 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
     }
     r = get(y, z);
     if (r != PoComp::UNKNOWN) {
-      RETURN_IF_FAIL(set_idx_of_safe(x, z, r, changed));
+      RETURN_IF_FAIL(setRelSafe(x, z, r, changed));
       if (changed) {
         y_rel.push({ z, r });
       }
@@ -452,7 +486,7 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
       case PoComp::EQUAL: {
         for (const auto& [u,ru] : y_rel) {
           // z = x  ∧  x ru u  →  z ru u
-          RETURN_IF_FAIL(set_idx_of_safe(z, u, ru, changed));
+          RETURN_IF_FAIL(setRelSafe(z, u, ru, changed));
         }
         break;
       }
@@ -462,12 +496,12 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
             // z > x  ∧  x ≥ u  →  z > u
             case PoComp::EQUAL:
             case PoComp::GREATER:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::GREATER, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::GREATER, changed));
               break;
             // z > x  ∧  x ≰ u  →  z ≰ u
             case PoComp::NLEQ:
             case PoComp::INCOMPARABLE:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::NLEQ, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::NLEQ, changed));
               break;
             // z > x  ∧  x < u implies nothing
             case PoComp::LESS:
@@ -486,12 +520,12 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
             // z < x  ∧  x ≤ u  →  z < u
             case PoComp::EQUAL:
             case PoComp::LESS:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::LESS, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::LESS, changed));
               break;
             // z < x  ∧  x ≱ u  →  z ≱ u
             case PoComp::NGEQ:
             case PoComp::INCOMPARABLE:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::NGEQ, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::NGEQ, changed));
               break;
             // z < x  ∧  x > u implies nothing
             case PoComp::GREATER:
@@ -509,15 +543,15 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
           switch (ru) {
             // z ≰ x  ∧  x > u  →  z ≰ u
             case PoComp::GREATER:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::NLEQ, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::NLEQ, changed));
               break;
             // z ⋈ x  ∧  x = u  →  z ⋈ u
             case PoComp::EQUAL:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::INCOMPARABLE, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::INCOMPARABLE, changed));
               break;
             // z ≱ x  ∧  x < u  →  z ≱ u
             case PoComp::LESS:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::NGEQ, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::NGEQ, changed));
               break;
             // z ⋈ x  ∧  x ≱ u implies nothing
             case PoComp::NGEQ:
@@ -538,7 +572,7 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
             // z ≱ x  ∧  x ≤ u  →  z ≱ u
             case PoComp::EQUAL:
             case PoComp::LESS:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::NGEQ, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::NGEQ, changed));
               break;
             // z ≱ x  ∧  x > u implies nothing
             case PoComp::GREATER:
@@ -561,7 +595,7 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
             // z ≰ x  ∧  x ≥ u  →  z ≰ u
             case PoComp::GREATER:
             case PoComp::EQUAL:
-              RETURN_IF_FAIL(set_idx_of_safe(z, u, PoComp::NLEQ, changed));
+              RETURN_IF_FAIL(setRelSafe(z, u, PoComp::NLEQ, changed));
               break;
             // z ≰ x  ∧  x < u implies nothing
             case PoComp::LESS:
@@ -585,80 +619,33 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
   return true;
 }
 
-bool PartialOrdering::set_inferred(size_t x, size_t y, PoComp result)
+ostream& operator<<(ostream& str, const PartialOrdering& po)
 {
-  switch (result) {
-    /* x > y: then ∀z. y ≥ z, also x > z,
-               and ∀z. z ≥ x, also z > y */
-    case PoComp::GREATER:
-    /* x < y: then ∀z. y ≤ z, also x < z,
-               and ∀z. z ≤ x, also z < y */
-    case PoComp::LESS:
-      RETURN_IF_FAIL(set_inferred_loop(x, y, result));
-      break;
-    /* x = y: then ∀z. z = x, also z = y
-               and ∀z. z = y, also z = x
-               and ∀z. z > x, also z > y
-               and ∀z. z > y, also z > x
-               and ∀z. z < x, also z < y
-               and ∀z. z < y, also z < x */
-    case PoComp::EQUAL:
-      RETURN_IF_FAIL(set_inferred_loop_eq(x, y));
-      break;
-    case PoComp::NGEQ:
-    case PoComp::NLEQ:
-      RETURN_IF_FAIL(set_inferred_loop_inc(x, y, result));
-      break;
-    case PoComp::INCOMPARABLE:
-      RETURN_IF_FAIL(set_inferred_loop_inc(x, y, PoComp::NGEQ));
-      RETURN_IF_FAIL(set_inferred_loop_inc(x, y, PoComp::NLEQ));
-      break;
-    default:
-      break;
+  if (po._size == 0) {
+    return str << " {} ";
   }
-  return true;
-}
-
-string PartialOrdering::to_string() const
-{
-  if (_size == 0) {
-    return " {} ";
-  }
-  stringstream str;
-  size_t s = _size-1;
+  size_t s = po._size-1;
   size_t w = 0;
   while (s) { s /= 10; w++; }
 
-  for (size_t i = 0; i < _size; i++) {
+  for (size_t i = 0; i < po._size; i++) {
     str << std::setw(w) << i << " ";
     for (size_t j = 0; j < i; j++) {
       if (w>1) {
         str << std::setw(w-1) << " ";
       }
-      str << po_to_infix(get_unsafe(j,i)) << " ";
+      str << pocompToInfix(po.getUnsafe(j,i)) << " ";
     }
     if (w>1) {
       str << std::setw(w-1) << " ";
     }
-    str << po_to_infix(PoComp::EQUAL) << " " << endl;
+    str << pocompToInfix(PoComp::EQUAL) << " " << endl;
   }
   str << std::setw(w) << " " << " ";
-  for (size_t i = 0; i < _size; i++) {
+  for (size_t i = 0; i < po._size; i++) {
     str << std::setw(w) << i << " ";
   }
-  return str.str();
-}
-
-string PartialOrdering::all_to_string() const
-{
-  stringstream res;
-  auto curr = this;
-  while (curr) {
-    res << curr << " " << curr->_array << endl;
-    res << curr->to_string() << endl;
-    curr = curr->_prev;
-  }
-  return res.str();
+  return str;
 }
 
 }

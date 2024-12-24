@@ -30,159 +30,117 @@ namespace Shell {
 
 namespace Kernel {
 
-using OrderingConstraints = Stack<Ordering::Constraint>;
-
 /**
- * Class implementing runtime specialized ordering check between two terms.
- * The comparator is created and called from inside the respective ordering
- * object, but owned by the caller, so the destructor is exposed as virtual.
+ * Class implementing term ordering diagrams which handle the following
+ * problem. Given pairs (C_1,d_1),...,(C_n,d_n) where C_i are conjunctions
+ * of ordering constraints and d_i are arbitrary data, and a substitution θ,
+ * we want to retrieve all d_i s.t. C_iθ is true efficiently.
+ *
+ * TODO: refer to paper after publishing.
+ *
+ * The diagrams are created and called from inside a specific ordering
+ * object (KBO or LPO), but owned by the caller, so the destructor is virtual.
  * See @b KBOComparator and @b LPOComparator for implementation details.
  */
 struct OrderingComparator
 {
-protected:
-  struct Branch;
 public:
   OrderingComparator(const Ordering& ord, bool onlyVars);
   virtual ~OrderingComparator();
 
-  void reset() { _curr = &_source; _prev = nullptr; /* _trace.reset(); */ }
+  /** Has to be called each time a new retrieval is started. */
+  void init(const SubstApplicator* appl);
 
-  void* next(const SubstApplicator* applicator, Ordering::POStruct* po_struct = nullptr);
-  void insert(const Stack<Ordering::Constraint>& comps, void* result);
+  /** After calling @b init, repeated calls to @b next results in all
+   *  user-defined (non-null) data that has true corresponding ordering
+   *  constraints, or in null when no further such data can be retreived. */
+  void* next(POStruct* po_struct = nullptr);
+
+  /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
+  void insert(const Stack<TermOrderingConstraint>& cons, void* data);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
-  std::string to_dot() const;
+
+private:
+  /** Processes current node until it is either (i) a term or poly node whose result
+   *  cannot be inferred from earlier comparisons, or (ii) a data node.
+   *  We maintain the invariant that the subgraph containing only processed nodes
+   *  in the diagram is a tree, so that each node can be reached via exactly one path. */
+  void processCurrentNode();
+  void processVarNode();
+  void processPolyNode();
 
 protected:
-  void expand();
-  virtual void expandTermCase();
-  void processVarCase();
-  void processPolyCase();
+  /** Implements one step of a definitional expansion
+   *  for two terms in a specific term ordering.
+   *  See @b KBOComparator and @b LPOComparator. */
+  virtual void processTermNode();
 
-  enum BranchTag {
-    T_DATA = 0u,
-    T_TERM = 1u,
-    T_POLY = 2u,
-  };
+  /** As noted above, a processed node can be reached via exactly one path,
+   *  and we use this to get a conjunction of term ordering constraints on
+   *  this path which is then used to simplify the node. The trace contains
+   *  these constraints. */
+  using Trace = TermPartialOrdering;
+  const Trace* getCurrentTrace();
 
   struct Node;
   struct Polynomial;
 
-  struct LinearConstraint {
-    const Polynomial* poly;
-    enum class Sign {
-      EQ,
-      GEQ,
-      GT,
-    } sign;
-  };
-  using LinearConstraints = Stack<LinearConstraint>;
-  using LCSign = LinearConstraint::Sign;
-
-  bool fourierMotzkin(LinearConstraints linCons);
-
+  /** A branch is essentially a shared pointer for a node,
+   *  except the node takes care of its own lifecycle. */
   struct Branch {
-    Node* node() const { return _node; }
-    void setNode(Node* node) {
-      if (node) {
-        node->incRefCnt();
-      }
-      if (_node) {
-        _node->decRefCnt();
-      }
-      _node = node;
-    }
-
     Branch() = default;
-    template<typename S, typename T> Branch(S&& s, T&& t) {
-      setNode(new Node(std::forward<S>(s), std::forward<T>(t)));
-    }
-    Branch(const Polynomial* p) {
-      setNode(new Node(p));
-    }
+    Branch(void* data, Branch alt);
+    Branch(TermList lhs, TermList rhs);
+    Branch(const Polynomial* p);
+
     ~Branch();
+
     Branch(const Branch& other);
     Branch& operator=(const Branch& other);
     Branch(Branch&& other);
     Branch& operator=(Branch&& other);
 
+    Node* node() const;
+    void setNode(Node* node);
+
   private:
     Node* _node = nullptr;
   };
 
-  friend std::ostream& operator<<(std::ostream& out, const Node& node);
-  friend std::ostream& operator<<(std::ostream& out, const BranchTag& t);
-  friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
-  friend std::ostream& operator<<(std::ostream& str, const LCSign& lcSign);
-  friend std::ostream& operator<<(std::ostream& str, const LinearConstraint& linCon);
-
-  friend class Inferences::ForwardGroundJoinability;
-  friend class Shell::ConditionalRedundancySubsumption;
-
-  using VarCoeffPair = std::pair<unsigned,int>;
-
-  struct Polynomial {
-    static const Polynomial* get(int constant, const Stack<VarCoeffPair>& varCoeffPairs);
-
-    auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
-
-    // return -P where P is the current polynomial
-    const Polynomial* negate() const;
-    // returns c ⋅ P + d ⋅ Q where P is the current polynomial
-    const Polynomial* add(int c, const Polynomial* Q, int d) const;
-
-    IMPL_HASH_FROM_TUPLE(Polynomial);
-    IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
-
-    int constant;
-    // variable-coefficient pairs sorted by sign
-    // (positive first), and then by variable
-    // e.g. X1 + 2 ⋅ X4 - 5 ⋅ X0 - X3
-    Stack<VarCoeffPair> varCoeffPairs;
-  };
-
-  using Trace = TermPartialOrdering;
-
-  const Trace* getCurrentTrace();
-  std::pair<Node*, Result> getPrevPoly();
-
+  /** A node is a structure that either
+   * (i)   contains user-defined data, or
+   * (ii)  represents a term comparison, or
+   * (iii) represents a polynomial zero check.
+   */
   struct Node {
+    enum Tag {
+      T_DATA = 0u,
+      T_TERM = 1u,
+      T_POLY = 2u,
+    } tag;
+
+    explicit Node(void* data, Branch alternative);
+    explicit Node(TermList lhs, TermList rhs);
+    explicit Node(const Polynomial* p);
+
+    ~Node();
+
+    Node(const Node&) = delete;
+    Node& operator=(const Node&) = delete;
+
+    void incRefCnt();
+    void decRefCnt();
+
+    Branch& getBranch(Ordering::Result r);
+
+    // We need all this data to be of the same size
     static_assert(sizeof(uint64_t) == sizeof(Branch));
     static_assert(sizeof(uint64_t) == sizeof(TermList));
     static_assert(sizeof(uint64_t) == sizeof(void*));
     static_assert(sizeof(uint64_t) == sizeof(int64_t));
 
-    auto& getBranch(Ordering::Result r) {
-      switch (r) {
-        case Ordering::EQUAL:
-          return eqBranch;
-        case Ordering::GREATER:
-          return gtBranch;
-        case Ordering::INCOMPARABLE:
-          return ngeBranch;
-        default:
-          ASSERTION_VIOLATION;
-      }
-    }
-
-    explicit Node(void* data, Branch alternative)
-      : tag(T_DATA), data(data), alternative(alternative) {}
-    explicit Node(TermList lhs, TermList rhs)
-      : tag(T_TERM), lhs(lhs), rhs(rhs) {}
-    explicit Node(const Polynomial* p)
-      : tag(T_POLY), poly(p) {}
-    Node(const Node&) = delete;
-    Node& operator=(const Node&) = delete;
-
-    ~Node();
-
-    void incRefCnt();
-    void decRefCnt();
-
-    BranchTag tag;
-    bool ready = false;
-
+    // Tag specific data
     union {
       void* data = nullptr;
       TermList lhs;
@@ -196,6 +154,7 @@ protected:
     Branch eqBranch;
     Branch gtBranch;
     Branch ngeBranch;
+    bool ready = false;
     int refcnt = 0;
     const Trace* trace = nullptr;
     // points to the previous node containing a polynomial and branch
@@ -203,12 +162,36 @@ protected:
     std::pair<Node*, Result> prevPoly = { nullptr, Result::INCOMPARABLE };
   };
 
+  using VarCoeffPair = std::pair<unsigned,int>;
+
+  struct Polynomial {
+    static const Polynomial* get(int constant, const Stack<VarCoeffPair>& varCoeffPairs);
+
+    auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
+
+    IMPL_HASH_FROM_TUPLE(Polynomial);
+    IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
+
+    int constant;
+    // variable-coefficient pairs sorted by sign
+    // (positive first), and then by variable
+    // e.g. X1 + 2 ⋅ X4 - 5 ⋅ X0 - X3
+    Stack<VarCoeffPair> varCoeffPairs;
+  };
+
+  friend std::ostream& operator<<(std::ostream& out, const Node::Tag& t);
+  friend std::ostream& operator<<(std::ostream& out, const Node& node);
+  friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
+
+  friend class Inferences::ForwardGroundJoinability;
+  friend class Shell::ConditionalRedundancySubsumption;
+
   const Ordering& _ord;
   Branch _source;
   Branch _sink;
   Branch* _curr;
   Branch* _prev;
-  // Trace _trace;
+  const SubstApplicator* _appl;
   bool _onlyVars;
 };
 

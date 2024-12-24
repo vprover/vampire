@@ -27,38 +27,70 @@ namespace Kernel {
 using namespace Lib;
 using Result = Ordering::Result;
 
+/** 
+ * Class for ordering constraints capturing expressions
+ * s ≻ t, s = t, s ≺ t or s ⋈ t for some terms s and t.
+ */
+struct TermOrderingConstraint {
+  TermList lhs;
+  TermList rhs;
+  Result rel;
+
+  friend std::ostream& operator<<(std::ostream& out, const TermOrderingConstraint& con)
+  { return out << con.lhs << " " << con.rhs << " " << con.rel; }
+};
+
+struct POStruct {
+  POStruct(const TermPartialOrdering* tpo)
+    : tpo(tpo), cons() {}
+
+  const TermPartialOrdering* tpo;
+  Stack<TermOrderingConstraint> cons;
+};
+
+/**
+ * Class that represents a partial ordering between terms.
+ * Uses @b PartialOrdering and is built similarly to increase
+ * sharing.
+ * 
+ * Note that the structure is not complete as it is an under-
+ * approximation of the actual relation. For example, given
+ * x = f(y,z) and y = z, we should conclude x = f(z,y) but
+ * this is in general hard to calculate so we fail.
+ */
 class TermPartialOrdering
 {
 public:
-  TermPartialOrdering(const Ordering& ord) : _ord(ord), _po(PartialOrdering::getEmpty()) {}
-  ~TermPartialOrdering() = default;
-
+  /** Gets relation between two terms. If they are related, returns true
+   *  and set the relation in @b res. Otherwise returns false. */
   bool get(TermList lhs, TermList rhs, Result& res, bool flag = false) const;
   Result get(TermList lhs, TermList rhs) const;
 
+  /** Get empty relation. */
   static const TermPartialOrdering* getEmpty(const Ordering& ord);
-  static const TermPartialOrdering* set(const TermPartialOrdering* tpo, Ordering::Constraint con);
+  /** Set relation between two terms given by a term ordering constraint. */
+  static const TermPartialOrdering* set(const TermPartialOrdering* tpo, TermOrderingConstraint con);
 
-  static Result solveVarVar(Ordering::POStruct* po_struct, AppliedTerm s, AppliedTerm t);
-  static Result solveTermVar(Ordering::POStruct* po_struct, AppliedTerm s, AppliedTerm t);
+  static Result solveVarVar(POStruct* po_struct, AppliedTerm s, AppliedTerm t);
+  static Result solveTermVar(POStruct* po_struct, AppliedTerm s, AppliedTerm t);
 
   // Returns if PO contains full incomparability yet.
   // Useful to discard branches when reasoning over ground terms.
   bool hasIncomp() const;
 
-  std::string to_string() const;
-  std::string to_nice_string() const;
-
-  friend std::ostream& operator<<(std::ostream& str, const TermPartialOrdering& tpo) { return str << tpo.to_nice_string(); }
+  friend std::ostream& operator<<(std::ostream& str, const TermPartialOrdering& tpo);
 
 private:
-  PoComp get_one_external(TermList t, size_t idx) const;
-  PoComp get_two_external(TermList t1, TermList t2) const;
+  TermPartialOrdering(const Ordering& ord) : _ord(ord), _po(PartialOrdering::getEmpty()) {}
+  ~TermPartialOrdering() = default;
 
-  size_t idx_of_elem(TermList t) const;
-  size_t idx_of_elem_ext(TermList t);
+  bool set(TermOrderingConstraint con);
 
-  bool set(Ordering::Constraint con);
+  PoComp getOneExternal(TermList t, size_t idx) const;
+  PoComp getTwoExternal(TermList t1, TermList t2) const;
+
+  size_t getId(TermList t) const;
+  size_t getIdExt(TermList t);
 
 #if DEBUG_ORDERING
   void debug_check() const;

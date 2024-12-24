@@ -124,7 +124,7 @@ TermList replace(TermList t, TermList from, TermList to)
 }
 
 std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGroundJoinability::getNext(
-  RedundancyCheck& checker, State* curr, OrderingConstraints cons, TermList left, TermList right)
+  RedundancyCheck& checker, State* curr, Stack<TermOrderingConstraint> cons, TermList left, TermList right)
 {
   if (left == right) {
     return checker.next(cons, nullptr);
@@ -210,10 +210,10 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         Applicator appl(subs.ptr());
 
-        Ordering::POStruct po_struct(tpo);
+        POStruct po_struct(tpo);
 
-        qr.data->comparator->reset();
-        if (!qr.data->comparator->next(&appl, &po_struct)) {
+        qr.data->comparator->init(&appl);
+        if (!qr.data->comparator->next(&po_struct)) {
           continue;
         }
 
@@ -273,13 +273,13 @@ ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, 
 }
 
 std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
-  OrderingConstraints ordCons, State* data)
+  Stack<TermOrderingConstraint> ordCons, State* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
   ASS(path.isNonEmpty());
 
   auto curr = path.top();
-  ASS_EQ(curr->node()->tag, BranchTag::T_DATA);
+  ASS_EQ(curr->node()->tag, Tag::T_DATA);
   ASS(curr->node()->data);
   ASS(curr->node()->ready); 
   ASS_EQ(curr->node()->refcnt,1);
@@ -312,10 +312,10 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
       comp->_prev = path[path.size()-2];
     }
     comp->_curr = path.top();
-    comp->expand();
+    comp->processCurrentNode();
 
     auto node = comp->_curr->node();
-    if (node->tag == BranchTag::T_DATA && !node->data) {
+    if (node->tag == Tag::T_DATA && !node->data) {
       pushNext();
       continue;
     }
@@ -326,7 +326,7 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
       continue;
     }
 
-    if (node->tag == BranchTag::T_DATA) {
+    if (node->tag == Tag::T_DATA) {
       ASS(node->data);
       return make_pair(static_cast<State*>(node->data), node->trace);
     }
@@ -346,7 +346,7 @@ void ForwardGroundJoinability::RedundancyCheck::pushNext()
     }
 
     auto prev = path.top()->node();
-    ASS(prev->tag == BranchTag::T_POLY || prev->tag == BranchTag::T_TERM);
+    ASS(prev->tag == Tag::T_POLY || prev->tag == Tag::T_TERM);
     // if there is a previous node and we were either in the gt or eq
     // branches, just go to next branch in order, otherwise backtrack
     if (curr == &prev->gtBranch) {

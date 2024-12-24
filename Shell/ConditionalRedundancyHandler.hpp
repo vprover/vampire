@@ -56,7 +56,7 @@ namespace Shell {
 using namespace Lib;
 using namespace Indexing;
 
-using OrderingConstraints = Stack<Ordering::Constraint>;
+using OrderingConstraints = Stack<TermOrderingConstraint>;
 using LiteralSet = SharedSet<Literal*>;
 
 struct ConditionalRedundancyEntry

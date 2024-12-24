@@ -77,11 +77,11 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I.
+INCLUDES= -I. -I/opt/local/include
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
-INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++
+INCLUDES= -I. -I/opt/local/include -Iz3/src/api -Iz3/src/api/c++
 # ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 # Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 # else
@@ -193,8 +193,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
-        Kernel/Ordering_Equality.o\
         Kernel/OrderingComparator.o\
+        Kernel/Ordering_Equality.o\
+        Kernel/PartialOrdering.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
@@ -206,9 +207,10 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
-	Kernel/PolynomialNormalizer.o\
-	Kernel/Polynomial.o\
+        Kernel/PolynomialNormalizer.o\
+        Kernel/Polynomial.o\
         Kernel/TermIterators.o\
+        Kernel/TermPartialOrdering.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
         Kernel/Signature.o\
@@ -542,7 +544,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -lgmp -lgmpxx
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
