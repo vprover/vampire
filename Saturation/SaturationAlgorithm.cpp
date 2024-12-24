@@ -513,6 +513,8 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
 }
 
 void SaturationAlgorithm::makeReadyForEval(Clause* c) {
+  if (!_useGage && !_useGweight) return;
+
   if (!_shown.find(c)) {
     if (_useGage) {
       showPredecessors(c);
@@ -1171,7 +1173,7 @@ void SaturationAlgorithm::runGnnOnInput()
  */
 void SaturationAlgorithm::init()
 {
-  if (_neuralActivityRecoring || _neuralModelGuidance) {
+  if ((_neuralActivityRecoring || _neuralModelGuidance) && (_useGage || _useGweight)) {
     runGnnOnInput();
   }
 
