@@ -24,6 +24,10 @@ namespace Inferences {
   class ForwardGroundJoinability;
 }
 
+namespace Shell {
+  class ConditionalRedundancySubsumption;
+}
+
 namespace Kernel {
 
 using OrderingConstraints = Stack<Ordering::Constraint>;
@@ -50,19 +54,6 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
   std::string to_dot() const;
 
-  class Subsumption {
-  public:
-    Subsumption(OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& comps, bool ground);
-    bool check();
-
-  private:
-    void pushNext();
-
-    OrderingComparator& subsumer;
-    OrderingComparatorUP subsumed;
-    Stack<std::tuple<Branch*,Branch*,Branch*>> path;
-    bool ground;
-  };
 protected:
   void expand();
   virtual void expandTermCase();
@@ -127,6 +118,7 @@ protected:
   friend std::ostream& operator<<(std::ostream& str, const LinearConstraint& linCon);
 
   friend class Inferences::ForwardGroundJoinability;
+  friend class Shell::ConditionalRedundancySubsumption;
 
   using VarCoeffPair = std::pair<unsigned,int>;
 

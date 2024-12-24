@@ -176,6 +176,20 @@ private:
   const Ordering* _ord;
 };
 
+class ConditionalRedundancySubsumption {
+public:
+  ConditionalRedundancySubsumption(OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& comps, bool ground);
+  bool check();
+
+private:
+  void pushNext();
+
+  OrderingComparator& subsumer;
+  OrderingComparatorUP subsumed;
+  Stack<std::tuple<OrderingComparator::Branch*,OrderingComparator::Branch*,OrderingComparator::Branch*>> path;
+  bool ground;
+};
+
 };
 
 #endif // __ConditionalRedundancyHandler__

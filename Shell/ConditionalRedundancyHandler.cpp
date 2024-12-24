@@ -25,7 +25,7 @@
 using namespace std;
 using namespace Indexing;
 
-using Subsumption = OrderingComparator::Subsumption;
+using Subsumption = ConditionalRedundancySubsumption;
 
 namespace Shell
 {
@@ -356,6 +356,128 @@ public:
     return str.str();
   }
 };
+
+
+ConditionalRedundancySubsumption::ConditionalRedundancySubsumption(
+  OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& ordCons, bool ground)
+  : subsumer(subsumer), subsumed(ord.createComparator()), ground(ground)
+{
+  subsumed->insert(ordCons, (void*)0x1);
+  path.push({ &subsumer._source, nullptr, &subsumed->_source });
+}
+
+#define SUBSUMPTION_MAX_ITERATIONS 500
+
+bool ConditionalRedundancySubsumption::check()
+{
+  unsigned cnt = 0;
+  while (path.isNonEmpty()) {
+    if (cnt++ > SUBSUMPTION_MAX_ITERATIONS) {
+      return false;
+    }
+
+    if (path.size()==1) {
+      subsumer._prev = nullptr;
+    } else {
+      subsumer._prev = get<0>(path[path.size()-2]);
+    }
+    subsumer._curr = get<0>(path.top());
+    subsumer.expand();
+
+    auto lnode = subsumer._curr->node();
+    if (lnode->tag == OrderingComparator::BranchTag::T_DATA && lnode->data) {
+      pushNext();
+      continue;
+    }
+
+    auto trace = lnode->trace ? lnode->trace : subsumer.getCurrentTrace();
+    if (!trace || (ground && trace->hasIncomp())) {
+      pushNext();
+      continue;
+    }
+
+    subsumed->_prev = get<1>(path.top());
+    subsumed->_curr = get<2>(path.top());
+    subsumed->expand();
+    auto rnode = subsumed->_curr->node();
+
+    switch (rnode->tag) {
+      case OrderingComparator::BranchTag::T_POLY: {
+        if (lnode->tag == OrderingComparator::BranchTag::T_DATA) {
+          return false;
+        }
+        path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
+        break;
+      }
+      case OrderingComparator::BranchTag::T_DATA: {
+        if (rnode->data) {
+          if (lnode->tag == OrderingComparator::BranchTag::T_DATA) {
+            return false;
+          }
+          path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
+        } else {
+          pushNext();
+        }
+        break;
+      }
+      case OrderingComparator::BranchTag::T_TERM: {
+        auto lhs = rnode->lhs;
+        auto rhs = rnode->rhs;
+        Ordering::Result val;
+        if (!trace->get(lhs, rhs, val)) {
+          if (lnode->tag == OrderingComparator::BranchTag::T_DATA) {
+            return false;
+          }
+          path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
+        } else {
+          switch (val) {
+            case Ordering::GREATER: {
+              path.top() = { subsumer._curr, subsumed->_curr, &rnode->gtBranch };
+              break;
+            }
+            case Ordering::EQUAL: {
+              path.top() = { subsumer._curr, subsumed->_curr, &rnode->eqBranch };
+              break;
+            }
+            default: {
+              path.top() = { subsumer._curr, subsumed->_curr, &rnode->ngeBranch };
+              break;
+            }
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  ASS(path.isEmpty());
+  return true;
+}
+
+void ConditionalRedundancySubsumption::pushNext()
+{
+  while (path.isNonEmpty()) {
+    auto curr = get<0>(path.pop());
+    if (path.isEmpty()) {
+      continue;
+    }
+
+    auto prevE = path.top();
+    auto prev = get<0>(prevE)->node();
+    ASS(prev->tag == OrderingComparator::BranchTag::T_POLY ||
+        prev->tag == OrderingComparator::BranchTag::T_TERM);
+    // if there is a previous node and we were either in the gt or eq
+    // branches, just go to next branch in order, otherwise backtrack
+    if (curr == &prev->gtBranch) {
+      path.push({ &prev->eqBranch, get<1>(prevE), get<2>(prevE) });
+      break;
+    }
+    if (curr == &prev->eqBranch) {
+      path.push({ &prev->ngeBranch, get<1>(prevE), get<2>(prevE) });
+      break;
+    }
+  }
+}
 
 // ConditionalRedundancyHandler
 
