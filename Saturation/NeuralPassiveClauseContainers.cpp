@@ -33,6 +33,7 @@
 #include "Shell/Options.hpp"
 
 #include "SaturationAlgorithm.hpp"
+#include "Splitter.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -110,6 +111,12 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   if (!_useSimpleFeatures) {
     _numFeatures = 0;
   }
+
+  _gageEmbeddingSize = gageEmbeddingSize();
+  _gageRuleEmbed = _model.attr("gage_rule_embed").toModule().attr("weight").toTensor();
+  _gageCombine = _model.attr("gage_combine").toModule();
+
+  _evalClauses = _model.find_method("eval_clauses");
 }
 
 float NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {
@@ -156,13 +163,97 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
   return logit;
 }
 
+void NeuralClauseEvaluationModel::gageEmbedPending()
+{
+  /*
+    for todos in self.gage_todo_layers:
+      ruleIdxs: list[int] = [] # into gage_rule_embed
+      mainPrems = []
+      otherPrems = []
+      for clNum,infRule,parents in todos:
+        ruleIdxs.append(infRule)
+        mainPrems.append(self.gage_embed_store[parents[0]])
+        if len(parents) == 1:
+          otherPrems.append(torch.zeros(HP.GAGE_EMBEDDING_SIZE))
+        elif len(parents) == 2:
+          otherPrems.append(self.gage_embed_store[parents[1]])
+        else:
+          # this would work even in the binary case, but let's not invoke the monster if we don't need to
+          otherPrem = torch.sum(torch.stack([self.gage_embed_store[parents[p]] for p in parents[1:]]),dim=0)/(len(parents)-1)
+          otherPrems.append(otherPrem)
+      ruleEbeds = self.gage_rule_embed(torch.tensor(ruleIdxs))
+      mainPremEbeds = torch.stack(mainPrems)
+      otherPremEbeds = torch.stack(otherPrems)
+      res = self.gage_combine(torch.cat((ruleEbeds, mainPremEbeds, otherPremEbeds), dim=1))
+      for j,(clNum,_,_) in enumerate(todos):
+        self.gage_embed_store[clNum] = res[j]
+
+    self.gage_cur_base_layer += len(self.gage_todo_layers)
+    empty_todo_layers: list[list[Tuple[int,int,list[int]]]] = []
+    self.gage_todo_layers = empty_todo_layers
+  */
+
+  for (int64_t i = 0; i < static_cast<int64_t>(_gageTodoLayers.size()); i++) {
+    Stack<Clause*>& todos = _gageTodoLayers[i];
+    auto rect = torch::empty({static_cast<int64_t>(todos.size()), 3*_gageEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
+    {
+      auto it = todos.iterFifo();
+      int64_t j = 0;
+      while (it.hasNext()) {
+        Clause* c = it.next();
+        auto ruleIdx = (int64_t)toNumber(c->inference().rule());
+        rect.index_put_({j, torch::indexing::Slice(0, _gageEmbeddingSize)}, _gageRuleEmbed.index({ruleIdx}));
+        if (c->isComponent()) {
+          Clause* p = _splitter->getCausalParent(c);
+          rect.index_put_({j, torch::indexing::Slice(1*_gageEmbeddingSize, 2*_gageEmbeddingSize)}, _gageEmbedStore.get(p->number()));
+          rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, torch::zeros({_gageEmbeddingSize}));
+        } else {
+          Inference& inf = c->inference();
+          auto it1 = inf.iterator();
+          Unit* mainP = inf.next(it1);
+          rect.index_put_({j, torch::indexing::Slice(1*_gageEmbeddingSize, 2*_gageEmbeddingSize)}, _gageEmbedStore.get(mainP->number()));
+          int64_t k = 0;
+          auto remainingPremisesEmbedSum = torch::zeros({_gageEmbeddingSize});
+          while (inf.hasNext(it1)) {
+            Unit* p = inf.next(it1);
+            remainingPremisesEmbedSum += _gageEmbedStore.get(p->number());
+            k++;
+          }
+          if (k > 1) {
+            rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, remainingPremisesEmbedSum/k);
+          } else {
+            rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, remainingPremisesEmbedSum);
+          }
+        }
+        j++;
+      }
+    }
+    auto res = _gageCombine.forward({rect}).toTensor();
+    {
+      auto it = todos.iterFifo();
+      int64_t j = 0;
+      while (it.hasNext()) {
+        Clause* c = it.next();
+        _gageEmbedStore.insert(c->number(),res.index({j}));
+      }
+      j++;
+    }
+    List<torch::Tensor>::push(res, _laterGageResults); // just to prevent garbage collector from deleting too early
+  }
+  _gageCurBaseLayer += _gageTodoLayers.size();
+  _gageTodoLayers.reset();
+}
+
 void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool justRecord) {
-  unsigned sz = clauses.size();
+  int64_t sz = clauses.size();
   if (sz == 0) return;
+
+  auto gageRect = torch::empty({sz, _gageEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
 
   std::vector<int64_t> clauseNums;
   std::vector<float> features(_numFeatures*sz);
   {
+    int64_t j = 0;
     unsigned idx = 0;
     auto uIt = clauses.iter();
     while (uIt.hasNext()) {
@@ -174,13 +265,19 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool just
         features[idx] = cIt.next();
         idx++;
       }
+
+      if (_computing) {
+        gageRect.index_put_({j}, _gageEmbedStore.get(cl->number()));
+        j++;
+      }
     }
   }
 
-  std::vector<torch::jit::IValue> inputs;
-  inputs.push_back(std::move(clauseNums));
-  inputs.push_back(torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
-  auto result = (*_model.find_method("eval_clauses"))(std::move(inputs));
+  auto result = (*_evalClauses)({
+    std::move(clauseNums),
+    torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)),
+    gageRect
+  });
 
   if (justRecord) {
     return;
@@ -234,7 +331,8 @@ void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
     }
   }
 
-  _model.embedPending();
+  _model.gageEmbedPending();
+  // later the same for gweight
   _model.evalClauses(_delayedInsertionBuffer);
 
   // cout << "evalAndEnqueueDelayed for " << _delayedInsertionBuffer.size() << endl;

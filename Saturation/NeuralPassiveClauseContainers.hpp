@@ -37,12 +37,32 @@ namespace Saturation {
 
 using namespace Kernel;
 
+class Splitter;
+
 class NeuralClauseEvaluationModel
 {
 private:
   torch::jit::script::Module _model;
 
+  bool _computing = false;
+  bool _recording = false;
+
   bool _useSimpleFeatures;
+
+  Splitter* _splitter;
+
+  int64_t _gageEmbeddingSize;
+  torch::Tensor _gageRuleEmbed;
+  torch::jit::script::Module _gageCombine;
+
+  torch::Tensor _initialClauseGage;
+  List<torch::Tensor>* _laterGageResults = nullptr; // just to prevent garbage collector from deleting too early
+  unsigned _gageCurBaseLayer = 1;
+  DHMap<unsigned,torch::Tensor> _gageEmbedStore;
+  DHMap<unsigned,unsigned> _gageClLayers;
+  Stack<Stack<Clause*>> _gageTodoLayers;
+
+  std::optional<torch::jit::Method> _evalClauses;
 
   unsigned _numFeatures;
   float _temp;
@@ -53,17 +73,19 @@ public:
   NeuralClauseEvaluationModel(const std::string clauseEvalModelFilePath, //  const std::string& tweak_str,
     uint64_t random_seed, unsigned num_cl_features, float temperature);
 
+  void setSplitter(Splitter* splitter) { _splitter = splitter; }
+
   void setRecording() {
-    (*_model.find_method("set_recording"))(std::vector<torch::jit::IValue>());
+    (*_model.find_method("set_recording"))({});
+    _recording = true;
   }
 
   void setComputing() {
-    (*_model.find_method("set_computing"))(std::vector<torch::jit::IValue>());
+    (*_model.find_method("set_computing"))({});
+    _computing = true;
   }
 
   void setProblemFeatures(unsigned num_prb_features, Problem& prb) {
-    auto m = _model.find_method("set_problem_features");
-    std::vector<torch::jit::IValue> inputs;
     std::vector<float> probFeatures;
     probFeatures.reserve(num_prb_features);
     unsigned i = 0;
@@ -72,34 +94,38 @@ public:
       probFeatures.push_back(it.next());
       i++;
     }
-    inputs.push_back(torch::from_blob(probFeatures.data(), {num_prb_features}, torch::TensorOptions().dtype(torch::kFloat32)));
-    (*m)(std::move(inputs));
+
+    (*_model.find_method("set_problem_features"))({
+      torch::from_blob(probFeatures.data(), {num_prb_features}, torch::TensorOptions().dtype(torch::kFloat32))
+      });
   }
 
   void gnnNodeKind(const char* node_name, const torch::Tensor& node_features) {
-    auto m = _model.find_method("gnn_node_kind");
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(node_name);
-    inputs.push_back(node_features);
-    (*m)(std::move(inputs));
+    (*_model.find_method("gnn_node_kind"))({
+      node_name,node_features
+      });
   }
 
   void gnnEdgeKind(const char* src_name,const char* tgt_name, std::vector<int64_t>& src_idxs, std::vector<int64_t>& tgt_idxs) {
-    auto m = _model.find_method("gnn_edge_kind");
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(src_name);
-    inputs.push_back(tgt_name);
-    inputs.push_back(src_idxs);
-    inputs.push_back(tgt_idxs);
-    (*m)(std::move(inputs));
+    (*_model.find_method("gnn_edge_kind"))({
+      src_name,tgt_name,src_idxs,tgt_idxs
+      });
   }
 
   void gnnPerform(std::vector<int64_t>& clauseNums) {
     // the clause numbers in this vector are promised to go in the same order as the clausese in previously added gnnNodeKind("clause",...)
-    auto m = _model.find_method("gnn_perform");
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(std::move(clauseNums));
-    (*m)(std::move(inputs));
+     auto res = (*_model.find_method("gnn_perform"))({
+      clauseNums
+      });
+
+    if (_computing) {
+      _initialClauseGage = res.toTensor();
+
+      for (unsigned i = 0; i < clauseNums.size(); i++) {
+        _gageEmbedStore.insert(clauseNums[i],_initialClauseGage[i]);
+        _gageClLayers.insert(clauseNums[i],0);
+      }
+    }
   }
 
   enum JournalEntry {
@@ -110,75 +136,105 @@ public:
 
   void journal(JournalEntry tag, Clause* cl) {
     auto m = _model.find_method("journal_record");
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back((int64_t)tag);
-    inputs.push_back((int64_t)cl->number());
-    (*m)(std::move(inputs));
+    (*m)({
+      (int64_t)tag,
+      (int64_t)cl->number()
+      });
   }
 
   void setProofUnitsAndSaveRecorded(std::vector<int64_t>& proof_units, const std::string& filename) {
-    auto m = _model.find_method("set_proof_units_and_save_recorded");
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(std::move(proof_units));
-    inputs.push_back(filename);
-    (*m)(std::move(inputs));
+    (*_model.find_method("set_proof_units_and_save_recorded"))({
+      std::move(proof_units),
+      filename
+    });
+  }
+
+  void gageEnqueueOne(Clause* c, std::vector<int64_t>& parents) {
+    /*
+      layer_idx = max(1+max(self.gage_cl_layers[p] for p in parents),self.gage_cur_base_layer)
+      # index (counting from 0 with the initials) where cl_num could (and will) be derived
+      self.gage_cl_layers[cl_num] = layer_idx
+
+      eff_layer_idx = layer_idx-self.gage_cur_base_layer
+      if len(self.gage_todo_layers) == eff_layer_idx:
+        empty_todo_layer: list[Tuple[int,int,list[int]]] = []
+        self.gage_todo_layers.append(empty_todo_layer)
+      self.gage_todo_layers[eff_layer_idx].append((cl_num,inf_rule,parents))
+    */
+    unsigned layer_idx = 0;
+    for (auto p : parents) {
+      layer_idx = std::max(layer_idx,_gageClLayers.get(p));
+    }
+    layer_idx++;
+    layer_idx = std::max(layer_idx,_gageCurBaseLayer);
+    _gageClLayers.insert(c->number(),layer_idx);
+
+    unsigned eff_layer_idx = layer_idx-_gageCurBaseLayer;
+    if (_gageTodoLayers.size() == eff_layer_idx) {
+      _gageTodoLayers.push(Stack<Clause*>());
+    }
+    _gageTodoLayers[eff_layer_idx].push(c);
   }
 
   void gageEnqueue(Clause* c, std::vector<int64_t>& parents) {
-    auto m = _model.find_method("gage_enqueue");
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back((int64_t)c->number());
-    inputs.push_back((int64_t)toNumber(c->inference().rule()));
-    inputs.push_back(std::move(parents));
-    (*m)(std::move(inputs));
+    if (_computing) {
+      gageEnqueueOne(c,parents);
+    }
+
+    if (_recording) {
+      (*_model.find_method("gage_enqueue"))({
+        (int64_t)c->number(),
+        (int64_t)toNumber(c->inference().rule()),
+        std::move(parents)
+        });
+    }
   }
 
+  void gageEmbedPending();
+
   void gweightEnqueueTerm(int64_t id, unsigned functor, float sign, std::vector<int64_t>& args) {
-    auto m = _model.find_method("gweight_enqueue_term");
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(id);
-    inputs.push_back((int64_t)functor);
-    inputs.push_back(sign);
-    inputs.push_back(std::move(args));
-    (*m)(std::move(inputs));
+    (*_model.find_method("gweight_enqueue_term"))({
+      id,
+      (int64_t)functor,
+      sign,
+      std::move(args)
+      });
   }
 
   void gweightEnqueueClause(Clause* c, std::vector<int64_t>& lits) {
-    auto m = _model.find_method("gweight_enqueue_clause");
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back((int64_t)c->number());
-    inputs.push_back(std::move(lits));
-    (*m)(std::move(inputs));
+    (*_model.find_method("gweight_enqueue_clause"))({
+      (int64_t)c->number(),
+      std::move(lits)
+      });
   }
 
   void printStats() {
-    std::vector<torch::jit::IValue> inputs;
-    std::cout << "gage_stat: " << (*_model.find_method("gage_stat"))(inputs) << std::endl;
-    std::cout << "gweight_stat: " << (*_model.find_method("gweight_stat"))(inputs) << std::endl;
+    std::cout << "gage_stat: " << (*_model.find_method("gage_stat"))({}) << std::endl;
+    std::cout << "gweight_stat: " << (*_model.find_method("gweight_stat"))({}) << std::endl;
   }
 
   bool useProblemFeatures() {
-    std::vector<torch::jit::IValue> inputs;
-    return (*_model.find_method("use_problem_features"))(inputs).toBool();
+    return (*_model.find_method("use_problem_features"))({}).toBool();
   }
 
   bool useSimpleFeatures() {
-    std::vector<torch::jit::IValue> inputs;
-    return (*_model.find_method("use_simple_features"))(inputs).toBool();
+    return (*_model.find_method("use_simple_features"))({}).toBool();
   }
 
   bool useGage() {
-    std::vector<torch::jit::IValue> inputs;
-    return (*_model.find_method("use_gage"))(inputs).toBool();
+    return (*_model.find_method("use_gage"))({}).toBool();
   }
 
   bool useGweight() {
-    std::vector<torch::jit::IValue> inputs;
-    return (*_model.find_method("use_gweight"))(inputs).toBool();
+    return (*_model.find_method("use_gweight"))({}).toBool();
   }
 
   void embedPending() {
-    (*_model.find_method("embed_pending"))(std::vector<torch::jit::IValue>());
+    (*_model.find_method("embed_pending"))({});
+  }
+
+  int64_t gageEmbeddingSize() {
+    return (*_model.find_method("gage_embedding_size"))({}).toInt();
   }
 
   const DHMap<unsigned,float>& getScores() { return _scores; }

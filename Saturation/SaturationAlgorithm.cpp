@@ -509,6 +509,7 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
     ALWAYS(_literalsShown.insert(lit->getId()));
   }
 
+  // TODO
   _neuralModel->gweightEnqueueClause(c,lits);
 }
 
@@ -1173,8 +1174,12 @@ void SaturationAlgorithm::runGnnOnInput()
  */
 void SaturationAlgorithm::init()
 {
-  if ((_neuralActivityRecoring || _neuralModelGuidance) && (_useGage || _useGweight)) {
-    runGnnOnInput();
+  if (_neuralActivityRecoring || _neuralModelGuidance) {
+    _neuralModel->setSplitter(_splitter);
+
+    if (_useGage || _useGweight) {
+      runGnnOnInput();
+    }
   }
 
   ClauseIterator toAdd;
