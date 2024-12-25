@@ -364,7 +364,12 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
       } else if (_curr == &_prev->node()->gtBranch) {
         res = Ordering::GREATER;
       } else {
-        res = Ordering::INCOMPARABLE;
+        ASS_EQ(_curr, &_prev->node()->ngeBranch);
+        if (_onlyVars) {
+          res = Ordering::LESS;
+        } else {
+          res = Ordering::INCOMPARABLE;
+        }
       }
       return Trace::set(_prev->node()->trace, { lhs, rhs, res });
     }

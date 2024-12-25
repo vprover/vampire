@@ -27,6 +27,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+using Position = Stack<unsigned>;
+
 class ForwardGroundJoinability
 : public ForwardSimplificationEngine
 {
@@ -47,10 +49,11 @@ private:
     TermList right;
     bool L;
     bool R;
+    Position pos;
   };
 
   friend std::ostream& operator<<(std::ostream& str, const State& s)
-  { return str << s.left << (s.L ? "!" : "") << " ↓ " << s.right << (s.R ? "!" : ""); }
+  { return str << s.left << (s.L ? "!" : "") << " ↓ " << s.right << (s.R ? "!" : "") << "    " << s.pos; }
 
   struct RedundancyCheck {
     RedundancyCheck(const Ordering& ord, State* data);
@@ -66,7 +69,7 @@ private:
   };
 
   std::pair<State*,const TermPartialOrdering*> getNext(
-    RedundancyCheck& checker, State* curr, Stack<TermOrderingConstraint> cons, TermList left, TermList right);
+    RedundancyCheck& checker, State* curr, Stack<TermOrderingConstraint> cons, TermList left, TermList right, Position pos);
 
   DemodulationLHSIndex* _index;
   Stack<State*> _states;

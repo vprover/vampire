@@ -259,6 +259,14 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
       ASS(tt->isEmpty());
 
       if (!checkVars()) {
+        if (_po_struct) {
+          auto res = TermPartialOrdering::solveLinearConstraint(
+            _po_struct, _weightDiff, _varDiffs);
+          if (res == Result::GREATER || res == Result::EQUAL) {
+            // TODO probably _lexResult needs to be modified
+            continue;
+          }
+        }
         return INCOMPARABLE;
       }
       continue;
@@ -343,6 +351,14 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
           traverse<1,/*unidirectional=*/true>(kbo, s);
           traverse<-1,/*unidirectional=*/true>(kbo, t);
           if (!checkVars()) {
+            if (_po_struct) {
+              auto res = TermPartialOrdering::solveLinearConstraint(
+                _po_struct, _weightDiff, _varDiffs);
+              if (res == Result::GREATER || res == Result::EQUAL) {
+                // TODO probably _lexResult needs to be modified
+                continue;
+              }
+            }
             return INCOMPARABLE;
           }
           _lexResult = INCOMPARABLE;
@@ -373,7 +389,17 @@ Ordering::Result KBO::State::traverseNonLex(KBO const& kbo, AppliedTerm tl1, App
   traverse<-1,unidirectional>(kbo, tl2);
 
   if constexpr (unidirectional) {
-    return checkVars() ? GREATER : INCOMPARABLE;
+    if (checkVars()) {
+      return GREATER;
+    }
+    if (_po_struct) {
+      auto res = TermPartialOrdering::solveLinearConstraint(
+        _po_struct, _weightDiff, _varDiffs);
+      if (res == Result::GREATER || res == Result::EQUAL) {
+        return GREATER;
+      }
+    }
+    return INCOMPARABLE;
   } else {
     return result(kbo, tl1, tl2);
   }

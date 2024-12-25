@@ -69,11 +69,8 @@ void ForwardGroundJoinability::detach()
   ForwardSimplificationEngine::detach();
 }
 
-using Position = Stack<unsigned>;
-
-bool toTheLeftStrict(const Position& p1, const Position& p2, bool& prefix)
+bool toTheLeftStrict(const Position& p1, const Position& p2)
 {
-  prefix = false;
   for (unsigned i = 0; i < p1.size(); i++) {
     if (p2.size() <= i) {
       return false;
@@ -82,34 +79,7 @@ bool toTheLeftStrict(const Position& p1, const Position& p2, bool& prefix)
       return p1[i] < p2[i];
     }
   }
-  prefix = true;
   return false;
-}
-
-bool isUnderVariablePosition(const Position& p, TermList lhs)
-{
-  if (lhs.isVar()) {
-    return true;
-  }
-  auto curr = lhs.term();
-  for (unsigned i = 0; i < p.size(); i++) {
-    ASS_L(p[i],curr->arity());
-    auto next = *curr->nthArgument(i);
-    if (next.isVar()) {
-      return true;
-    }
-    curr = next.term();
-  }
-  return false;
-}
-
-string posToString(const Position& pos)
-{
-  string res;
-  for (const auto& i : pos) {
-    res += "." + Int::toString(i);
-  }
-  return res;
 }
 
 TermList replace(TermList t, TermList from, TermList to)
@@ -124,14 +94,14 @@ TermList replace(TermList t, TermList from, TermList to)
 }
 
 std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGroundJoinability::getNext(
-  RedundancyCheck& checker, State* curr, Stack<TermOrderingConstraint> cons, TermList left, TermList right)
+  RedundancyCheck& checker, State* curr, Stack<TermOrderingConstraint> cons, TermList left, TermList right, Position pos)
 {
   if (left == right) {
     return checker.next(cons, nullptr);
   }
   bool L = curr->L && curr->left == left;
   bool R = curr->R && curr->right == right;
-  _states.push(new State{ left, right, L, R });
+  _states.push(new State{ left, right, L, R, pos });
   return checker.next(cons, _states.top());
 }
 
@@ -157,7 +127,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   }
 
   auto curr = new State{
-    clit->termArg(0), clit->termArg(1), true, true
+    clit->termArg(0), clit->termArg(1), true, true, Position()
   };
 
   _states.push(curr);
@@ -182,14 +152,22 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
     NonVariableNonTypeIterator it(curr->left, curr->right);
     while (it.hasNext()) {
-      TypedTermList trm = it.next();
+      TermList trm(it.next());
       if (!attempted.insert(trm)) {
         it.right();
         continue;
       }
+      // if the position is to the left, we have already tried it
+      //
+      // TODO: this is not perfect as some terms we try and fail
+      // due to the extension of TPO in ordering being imperfect
+      auto pos = it.currPos();
+      if (toTheLeftStrict(pos, curr->pos)) {
+        continue;
+      }
 
       bool redundancyCheck =
-        (curr->L && trm == curr->left) || 
+        (curr->L && trm == curr->left) ||
         (curr->R && trm == curr->right);
 
       auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
@@ -244,14 +222,13 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         auto left = replace(curr->left, trm, rhsS);
         auto right = replace(curr->right, trm, rhsS);
 
-        auto next = getNext(checker, curr, po_struct.cons, left, right);
+        auto next = getNext(checker, curr, po_struct.cons, left, right, pos);
         // TODO can it be that we go to a different node in the tree and get the same result still?
-        if (next.first != curr || next.second != tpo) {
-          curr = next.first;
-          tpo = next.second;
-          premiseSet.insert(qr.data->clause);
-          goto LOOP_END;
-        }
+        ASS(next.first != curr || next.second != tpo);
+        curr = next.first;
+        tpo = next.second;
+        premiseSet.insert(qr.data->clause);
+        goto LOOP_END;
       }
     }
     return false;
@@ -306,11 +283,7 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
   *curr = newB;
 
   while (path.isNonEmpty()) {
-    if (path.size()==1) {
-      comp->_prev = nullptr;
-    } else {
-      comp->_prev = path[path.size()-2];
-    }
+    comp->_prev = path.size()==1 ? nullptr : path[path.size()-2];
     comp->_curr = path.top();
     comp->processCurrentNode();
 
@@ -320,11 +293,8 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
       continue;
     }
 
-    if (!node->trace || node->trace->hasIncomp()) {
-      // invalid branch, continue
-      pushNext();
-      continue;
-    }
+    // there shouldn't be any invalid branches here
+    ASS(node->trace && !node->trace->hasIncomp());
 
     if (node->tag == Tag::T_DATA) {
       ASS(node->data);
@@ -346,7 +316,7 @@ void ForwardGroundJoinability::RedundancyCheck::pushNext()
     }
 
     auto prev = path.top()->node();
-    ASS(prev->tag == Tag::T_POLY || prev->tag == Tag::T_TERM);
+    ASS_EQ(prev->tag, Tag::T_TERM);
     // if there is a previous node and we were either in the gt or eq
     // branches, just go to next branch in order, otherwise backtrack
     if (curr == &prev->gtBranch) {
