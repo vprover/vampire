@@ -116,6 +116,10 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   _gageRuleEmbed = _model.attr("gage_rule_embed").toModule().attr("weight").toTensor();
   _gageCombine = _model.attr("gage_combine").toModule();
 
+  _gweightEmbeddingSize = gweightEmbeddingSize();
+  _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().attr("weight").toTensor();
+  _gweightTermCombine = _model.attr("gweight_term_combine").toModule();
+
   _evalClauses = _model.find_method("eval_clauses");
 }
 
@@ -165,90 +169,201 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
 
 void NeuralClauseEvaluationModel::gageEmbedPending()
 {
+  torch::NoGradGuard no_grad; // TODO: check if this is necessary here
   /*
-    for todos in self.gage_todo_layers:
-      ruleIdxs: list[int] = [] # into gage_rule_embed
-      mainPrems = []
-      otherPrems = []
-      for clNum,infRule,parents in todos:
-        ruleIdxs.append(infRule)
-        mainPrems.append(self.gage_embed_store[parents[0]])
-        if len(parents) == 1:
-          otherPrems.append(torch.zeros(HP.GAGE_EMBEDDING_SIZE))
-        elif len(parents) == 2:
-          otherPrems.append(self.gage_embed_store[parents[1]])
-        else:
-          # this would work even in the binary case, but let's not invoke the monster if we don't need to
-          otherPrem = torch.sum(torch.stack([self.gage_embed_store[parents[p]] for p in parents[1:]]),dim=0)/(len(parents)-1)
-          otherPrems.append(otherPrem)
-      ruleEbeds = self.gage_rule_embed(torch.tensor(ruleIdxs))
-      mainPremEbeds = torch.stack(mainPrems)
-      otherPremEbeds = torch.stack(otherPrems)
-      res = self.gage_combine(torch.cat((ruleEbeds, mainPremEbeds, otherPremEbeds), dim=1))
-      for j,(clNum,_,_) in enumerate(todos):
-        self.gage_embed_store[clNum] = res[j]
-
-    self.gage_cur_base_layer += len(self.gage_todo_layers)
-    empty_todo_layers: list[list[Tuple[int,int,list[int]]]] = []
-    self.gage_todo_layers = empty_todo_layers
+  for todos in self.gage_todo_layers:
+    ruleIdxs: list[int] = [] # into gage_rule_embed
+    mainPrems = []
+    otherPrems = []
+    for clNum,infRule,parents in todos:
+      ruleIdxs.append(infRule)
+      mainPrems.append(self.gage_embed_store[parents[0]])
+      if len(parents) == 1:
+        otherPrems.append(torch.zeros(HP.GAGE_EMBEDDING_SIZE))
+      elif len(parents) == 2:
+        otherPrems.append(self.gage_embed_store[parents[1]])
+      else:
+        # this would work even in the binary case, but let's not invoke the monster if we don't need to
+        otherPrem = torch.sum(torch.stack([self.gage_embed_store[parents[p]] for p in parents[1:]]),dim=0)/(len(parents)-1)
+        otherPrems.append(otherPrem)
+    ruleEbeds = self.gage_rule_embed(torch.tensor(ruleIdxs))
+    mainPremEbeds = torch.stack(mainPrems)
+    otherPremEbeds = torch.stack(otherPrems)
   */
-
   for (int64_t i = 0; i < static_cast<int64_t>(_gageTodoLayers.size()); i++) {
-    Stack<Clause*>& todos = _gageTodoLayers[i];
+    Stack<std::tuple<Clause*,std::vector<int64_t>>>& todos = _gageTodoLayers[i];
     auto rect = torch::empty({static_cast<int64_t>(todos.size()), 3*_gageEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
     {
       auto it = todos.iterFifo();
       int64_t j = 0;
       while (it.hasNext()) {
-        Clause* c = it.next();
+        const auto& [c,parents] = it.next();
         auto ruleIdx = (int64_t)toNumber(c->inference().rule());
         rect.index_put_({j, torch::indexing::Slice(0, _gageEmbeddingSize)}, _gageRuleEmbed.index({ruleIdx}));
-        if (c->isComponent()) {
-          Clause* p = _splitter->getCausalParent(c);
-          rect.index_put_({j, torch::indexing::Slice(1*_gageEmbeddingSize, 2*_gageEmbeddingSize)}, _gageEmbedStore.get(p->number()));
-          rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, torch::zeros({_gageEmbeddingSize}));
-        } else {
-          Inference& inf = c->inference();
-          auto it1 = inf.iterator();
-          Unit* mainP = inf.next(it1);
-          rect.index_put_({j, torch::indexing::Slice(1*_gageEmbeddingSize, 2*_gageEmbeddingSize)}, _gageEmbedStore.get(mainP->number()));
-          int64_t k = 0;
-          auto remainingPremisesEmbedSum = torch::zeros({_gageEmbeddingSize});
-          while (inf.hasNext(it1)) {
-            Unit* p = inf.next(it1);
-            remainingPremisesEmbedSum += _gageEmbedStore.get(p->number());
-            k++;
-          }
-          if (k > 1) {
-            rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, remainingPremisesEmbedSum/k);
-          } else {
-            rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, remainingPremisesEmbedSum);
-          }
+        rect.index_put_({j, torch::indexing::Slice(1*_gageEmbeddingSize, 2*_gageEmbeddingSize)}, _gageEmbedStore.get(parents[0]));
+        int64_t k = 1;
+        auto remainingPremisesEmbedSum = torch::zeros({_gageEmbeddingSize});
+        while (k < parents.size()) {
+          remainingPremisesEmbedSum += _gageEmbedStore.get(parents[k++]);
         }
+        k--; // now it reflect the number of parents actually summed up in remainingPremisesEmbedSum
+        if (k > 1) {
+          rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, remainingPremisesEmbedSum/k);
+        } else {
+          rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, remainingPremisesEmbedSum);
+        }
+
         j++;
       }
     }
+    /*
+      res = self.gage_combine(torch.cat((ruleEbeds, mainPremEbeds, otherPremEbeds), dim=1))
+      for j,(clNum,_,_) in enumerate(todos):
+        self.gage_embed_store[clNum] = res[j]
+    */
     auto res = _gageCombine.forward({rect}).toTensor();
     {
       auto it = todos.iterFifo();
       int64_t j = 0;
       while (it.hasNext()) {
-        Clause* c = it.next();
-        _gageEmbedStore.insert(c->number(),res.index({j}));
+        _gageEmbedStore.insert(std::get<0>(it.next())->number(),res.index({j}));
       }
       j++;
     }
     List<torch::Tensor>::push(res, _laterGageResults); // just to prevent garbage collector from deleting too early
   }
+  /*
+    self.gage_cur_base_layer += len(self.gage_todo_layers)
+    empty_todo_layers: list[list[Tuple[int,int,list[int]]]] = []
+    self.gage_todo_layers = empty_todo_layers
+  */
   _gageCurBaseLayer += _gageTodoLayers.size();
   _gageTodoLayers.reset();
+}
+
+torch::Tensor NeuralClauseEvaluationModel::getSubtermEmbed(int64_t id) {
+  /*
+  if id < 0:
+    return self.gweight_var_embed(torch.tensor([id % HP.GWEIGHT_NUM_VAR_EMBEDS]))[0]
+  else:
+    return self.gweight_term_embed_store[id]
+  */
+  if (id < 0) {
+    return _gweightVarEmbed[0]; // only using 1 var embed now
+  } else {
+    return _gweightTermEmbedStore.get(id);
+  }
+}
+
+void NeuralClauseEvaluationModel::gweightEmbedPending() {
+  torch::NoGradGuard no_grad; // TODO: check if this is necessary here
+
+  /*
+  # first like what gage does with clause, but here with terms
+  for todos in self.gweight_todo_layers:
+    functors = []
+    signs = []
+    first_args = []
+    other_args = []
+    for id,functor,sign,args in todos:
+      functors.append(self.gweight_symbol_embeds[functor])
+      signs.append(torch.tensor([sign]))
+      if len(args) == 0:
+        first_args.append(torch.zeros(HP.GWEIGHT_EMBEDDING_SIZE))
+        other_args.append(torch.zeros(HP.GWEIGHT_EMBEDDING_SIZE))
+      else:
+        first_args.append(self.get_subterm_embed(args[0]))
+        if len(args) == 1:
+          other_args.append(torch.zeros(HP.GWEIGHT_EMBEDDING_SIZE))
+        else:
+          other_arg = torch.sum(torch.stack([self.get_subterm_embed(a) for a in args[1:]]),dim=0)/(len(args)-1)
+          other_args.append(other_arg)
+  */
+  for (int64_t i = 0; i < static_cast<int64_t>(_gweightTodoLayers.size()); i++) {
+    Stack<std::tuple<int64_t,unsigned,float,std::vector<int64_t>>>& todos = _gweightTodoLayers[i];
+    auto rect = torch::empty({static_cast<int64_t>(todos.size()), 1+3*_gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
+
+    auto it = todos.iterFifo();
+    int64_t j = 0;
+    while (it.hasNext()) {
+      const auto& [id,functor,sign,args] = it.next();
+      rect.index_put_({j, torch::indexing::Slice(0, _gweightEmbeddingSize)}, _gweightSymbolEmbeds.index({(int64_t)functor}));
+      rect.index_put_({j, _gweightEmbeddingSize}, sign);
+      if (args.size() == 0) {
+        rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, torch::zeros({2*_gweightEmbeddingSize}));
+      } else {
+        rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+2*_gweightEmbeddingSize)}, getSubtermEmbed(args[0]));
+        int64_t k = 1;
+        auto remainingArgsEmbedSum = torch::zeros({_gweightEmbeddingSize});
+        while (k < args.size()) {
+          remainingArgsEmbedSum += getSubtermEmbed(args[k++]);
+        }
+        k--; // now it reflect the number of args actually summed up in remainingArgsEmbedSum
+        if (k > 1) {
+          rect.index_put_({j, torch::indexing::Slice(1+2*_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, remainingArgsEmbedSum/k);
+        } else {
+          rect.index_put_({j, torch::indexing::Slice(1+2*_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, remainingArgsEmbedSum);
+        }
+      }
+      j++;
+    }
+    /*
+      res = self.gweight_term_combine(torch.cat((torch.stack(functors), torch.stack(signs), torch.stack(first_args), torch.stack(other_args)), dim=1))
+      for j,(id,_,_,_) in enumerate(todos):
+      self.gweight_term_embed_store[id] = res[j]
+    */
+    auto res = _gweightTermCombine.forward({rect}).toTensor();
+    {
+      auto it = todos.iterFifo();
+      int64_t j = 0;
+      while (it.hasNext()) {
+        _gweightTermEmbedStore.insert(std::get<0>(it.next()),res.index({j}));
+      }
+      j++;
+    }
+    List<torch::Tensor>::push(res, _gweightResults); // just to prevent garbage collector from deleting too early
+  }
+  /*
+    self.gweight_cur_base_layer += len(self.gweight_todo_layers)
+    empty_todo_layers: list[list[Tuple[int,int,float,list[int]]]] = []
+    self.gweight_todo_layers = empty_todo_layers
+  */
+  _gweightCurBaseLayer += _gweightTodoLayers.size();
+  _gweightTodoLayers.reset();
+
+  /*
+    # second, do the clauses part
+    for j,(cl_num,lits) in enumerate(self.gweight_clause_todo):
+      lit_embeds = torch.stack([self.gweight_term_embed_store[lit] for lit in lits])
+      # TODO: try: avg over lits, max over lits, attention over lits, extra non-linearity level, ...
+      self.gweight_clause_embeds[cl_num] = torch.sum(lit_embeds,dim=0)
+    empty_clause_todo: List[Tuple[int, List[int]]] = []
+    self.gweight_clause_todo = empty_clause_todo
+  */
+  {
+    auto it = _gweightClauseTodo.iterFifo();
+    while (it.hasNext()) {
+      Clause* c = it.next();
+      auto clauseEmbed = torch::zeros(_gweightEmbeddingSize);
+      for (Literal* lit : c->iterLits()) {
+        // using negative indices for literals (otherwise might overlap with term ids!)
+        int64_t litId = -1-(int64_t)lit->getId(); // an ugly copy-paste from SaturationAlgorithm.cpp
+        clauseEmbed += _gweightTermEmbedStore.get(litId);
+      }
+      _gweightClauseEmbeds.insert(c->number(),clauseEmbed);
+    }
+    _gweightClauseTodo.reset();
+  }
 }
 
 void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool justRecord) {
   int64_t sz = clauses.size();
   if (sz == 0) return;
 
+  torch::NoGradGuard no_grad; // TODO: check if this is necessary here
+
   auto gageRect = torch::empty({sz, _gageEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
+  auto gweightRect = torch::empty({sz, _gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
 
   std::vector<int64_t> clauseNums;
   std::vector<float> features(_numFeatures*sz);
@@ -266,8 +381,9 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool just
         idx++;
       }
 
-      if (_computing) {
+      if (_computing) { // could as well be (!justRecord) here
         gageRect.index_put_({j}, _gageEmbedStore.get(cl->number()));
+        gweightRect.index_put_({j}, _gweightClauseEmbeds.get(cl->number()));
         j++;
       }
     }
@@ -276,7 +392,7 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool just
   auto result = (*_evalClauses)({
     std::move(clauseNums),
     torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)),
-    gageRect
+    gageRect, gweightRect
   });
 
   if (justRecord) {
@@ -332,7 +448,7 @@ void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
   }
 
   _model.gageEmbedPending();
-  // later the same for gweight
+  _model.gweightEmbedPending();
   _model.evalClauses(_delayedInsertionBuffer);
 
   // cout << "evalAndEnqueueDelayed for " << _delayedInsertionBuffer.size() << endl;

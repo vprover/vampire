@@ -37,8 +37,6 @@ namespace Saturation {
 
 using namespace Kernel;
 
-class Splitter;
-
 class NeuralClauseEvaluationModel
 {
 private:
@@ -49,8 +47,6 @@ private:
 
   bool _useSimpleFeatures;
 
-  Splitter* _splitter;
-
   int64_t _gageEmbeddingSize;
   torch::Tensor _gageRuleEmbed;
   torch::jit::script::Module _gageCombine;
@@ -60,7 +56,23 @@ private:
   unsigned _gageCurBaseLayer = 1;
   DHMap<unsigned,torch::Tensor> _gageEmbedStore;
   DHMap<unsigned,unsigned> _gageClLayers;
-  Stack<Stack<Clause*>> _gageTodoLayers;
+  Stack<Stack<std::tuple<Clause*,std::vector<int64_t>>>> _gageTodoLayers;
+
+  torch::Tensor getSubtermEmbed(int64_t id);
+
+  int64_t _gweightEmbeddingSize;
+  torch::Tensor _gweightVarEmbed;
+  torch::jit::script::Module _gweightTermCombine;
+
+  torch::Tensor _gweightSymbolEmbeds;
+  List<torch::Tensor>* _gweightResults = nullptr; // just to prevent garbage collector from deleting too early
+  unsigned _gweightCurBaseLayer = 1;
+  DHMap<unsigned,torch::Tensor> _gweightTermEmbedStore;
+  DHMap<unsigned,unsigned> _gweightTermLayers;
+  Stack<Stack<std::tuple<int64_t,unsigned,float,std::vector<int64_t>>>> _gweightTodoLayers;
+
+  Stack<Clause*> _gweightClauseTodo;
+  DHMap<unsigned,torch::Tensor> _gweightClauseEmbeds;
 
   std::optional<torch::jit::Method> _evalClauses;
 
@@ -72,8 +84,6 @@ private:
 public:
   NeuralClauseEvaluationModel(const std::string clauseEvalModelFilePath, //  const std::string& tweak_str,
     uint64_t random_seed, unsigned num_cl_features, float temperature);
-
-  void setSplitter(Splitter* splitter) { _splitter = splitter; }
 
   void setRecording() {
     (*_model.find_method("set_recording"))({});
@@ -119,7 +129,9 @@ public:
       });
 
     if (_computing) {
-      _initialClauseGage = res.toTensor();
+      auto tup = res.toTuple();
+      _initialClauseGage = tup->elements()[0].toTensor();
+      _gweightSymbolEmbeds = tup->elements()[1].toTensor();
 
       for (unsigned i = 0; i < clauseNums.size(); i++) {
         _gageEmbedStore.insert(clauseNums[i],_initialClauseGage[i]);
@@ -171,9 +183,9 @@ public:
 
     unsigned eff_layer_idx = layer_idx-_gageCurBaseLayer;
     if (_gageTodoLayers.size() == eff_layer_idx) {
-      _gageTodoLayers.push(Stack<Clause*>());
+      _gageTodoLayers.push(Stack<std::tuple<Clause*,std::vector<int64_t>>>());
     }
-    _gageTodoLayers[eff_layer_idx].push(c);
+    _gageTodoLayers[eff_layer_idx].push(make_tuple(c, parents));
   }
 
   void gageEnqueue(Clause* c, std::vector<int64_t>& parents) {
@@ -192,20 +204,75 @@ public:
 
   void gageEmbedPending();
 
-  void gweightEnqueueTerm(int64_t id, unsigned functor, float sign, std::vector<int64_t>& args) {
-    (*_model.find_method("gweight_enqueue_term"))({
-      id,
-      (int64_t)functor,
-      sign,
-      std::move(args)
-      });
+  /*
+    def gweight_enqueue_one_term(self,id: int, functor: int, sign: float, args: list[int]):
+    if args:
+      # layer_idx = 1+max(self.gweight_term_layers[a] for a in args if a >= 0)
+      layer_idx = 0
+      for a in args:
+        if a >= 0:
+          v = self.gweight_term_layers[a]
+          if v > layer_idx:
+            layer_idx = v
+      layer_idx += 1
+    else:
+      layer_idx = 0
+    layer_idx = max(layer_idx,self.gweight_cur_base_layer)
+
+    self.gweight_term_layers[id] = layer_idx
+
+    eff_layer_idx = layer_idx-self.gweight_cur_base_layer
+    if len(self.gweight_todo_layers) == eff_layer_idx:
+      empty_todo_layer: list[Tuple[int,int,float,list[int]]] = []
+      self.gweight_todo_layers.append(empty_todo_layer)
+    self.gweight_todo_layers[eff_layer_idx].append((id,functor,sign,args))
+  */
+  void gweightEnqueuOneTerm(int64_t id, unsigned functor, float sign, std::vector<int64_t>& args) {
+    unsigned layer_idx = 0;
+    for (auto a : args) {
+      if (a >= 0) {
+        layer_idx = std::max(layer_idx,_gweightTermLayers.get(a));
+      }
+    }
+    layer_idx++;
+    layer_idx = std::max(layer_idx,_gweightCurBaseLayer);
+    _gweightTermLayers.insert(id,layer_idx);
+
+    unsigned eff_layer_idx = layer_idx-_gweightCurBaseLayer;
+    if (_gweightTodoLayers.size() == eff_layer_idx) {
+      _gweightTodoLayers.push(Stack<std::tuple<int64_t,unsigned,float,std::vector<int64_t>>>());
+    }
+    _gweightTodoLayers[eff_layer_idx].push(std::make_tuple(id,functor,sign,args));
   }
 
+  void gweightEnqueueTerm(int64_t id, unsigned functor, float sign, std::vector<int64_t>& args) {
+    if (_computing) {
+      gweightEnqueuOneTerm(id,functor,sign,args);
+    }
+
+    if (_recording) {
+      (*_model.find_method("gweight_enqueue_term"))({
+        id,
+        (int64_t)functor,
+        sign,
+        std::move(args)
+        });
+    }
+  }
+
+  void gweightEmbedPending();
+
   void gweightEnqueueClause(Clause* c, std::vector<int64_t>& lits) {
-    (*_model.find_method("gweight_enqueue_clause"))({
-      (int64_t)c->number(),
-      std::move(lits)
-      });
+    if (_computing) {
+      _gweightClauseTodo.push(c);
+    }
+
+    if (_recording) {
+      (*_model.find_method("gweight_enqueue_clause"))({
+        (int64_t)c->number(),
+        std::move(lits)
+        });
+    }
   }
 
   void printStats() {
@@ -235,6 +302,10 @@ public:
 
   int64_t gageEmbeddingSize() {
     return (*_model.find_method("gage_embedding_size"))({}).toInt();
+  }
+
+  int64_t gweightEmbeddingSize() {
+    return (*_model.find_method("gweight_embedding_size"))({}).toInt();
   }
 
   const DHMap<unsigned,float>& getScores() { return _scores; }
