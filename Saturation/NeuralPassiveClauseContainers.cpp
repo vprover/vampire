@@ -206,7 +206,7 @@ void NeuralClauseEvaluationModel::gageEmbedPending()
         while (k < parents.size()) {
           remainingPremisesEmbedSum += _gageEmbedStore.get(parents[k++]);
         }
-        k--; // now it reflect the number of parents actually summed up in remainingPremisesEmbedSum
+        k--; // now it reflects the number of parents actually summed up in remainingPremisesEmbedSum
         if (k > 1) {
           rect.index_put_({j, torch::indexing::Slice(2*_gageEmbeddingSize, 3*_gageEmbeddingSize)}, remainingPremisesEmbedSum/k);
         } else {
@@ -227,8 +227,8 @@ void NeuralClauseEvaluationModel::gageEmbedPending()
       int64_t j = 0;
       while (it.hasNext()) {
         _gageEmbedStore.insert(std::get<0>(it.next())->number(),res.index({j}));
+        j++;
       }
-      j++;
     }
     List<torch::Tensor>::push(res, _laterGageResults); // just to prevent garbage collector from deleting too early
   }
@@ -298,7 +298,7 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
         while (k < args.size()) {
           remainingArgsEmbedSum += getSubtermEmbed(args[k++]);
         }
-        k--; // now it reflect the number of args actually summed up in remainingArgsEmbedSum
+        k--; // now it reflects the number of args actually summed up in remainingArgsEmbedSum
         if (k > 1) {
           rect.index_put_({j, torch::indexing::Slice(1+2*_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, remainingArgsEmbedSum/k);
         } else {
@@ -318,8 +318,8 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
       int64_t j = 0;
       while (it.hasNext()) {
         _gweightTermEmbedStore.insert(std::get<0>(it.next()),res.index({j}));
+        j++;
       }
-      j++;
     }
     List<torch::Tensor>::push(res, _gweightResults); // just to prevent garbage collector from deleting too early
   }
@@ -382,17 +382,20 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool just
       }
 
       if (_computing) { // could as well be (!justRecord) here
+        // TODO: condition on useGage
         gageRect.index_put_({j}, _gageEmbedStore.get(cl->number()));
+        // TODO: condition on useGweight
         gweightRect.index_put_({j}, _gweightClauseEmbeds.get(cl->number()));
-        j++;
       }
+      j++;
     }
   }
 
   auto result = (*_evalClauses)({
     std::move(clauseNums),
     torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)),
-    gageRect, gweightRect
+    gageRect,
+    gweightRect
   });
 
   if (justRecord) {

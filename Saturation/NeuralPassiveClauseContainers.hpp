@@ -124,7 +124,7 @@ public:
 
   void gnnPerform(std::vector<int64_t>& clauseNums) {
     // the clause numbers in this vector are promised to go in the same order as the clausese in previously added gnnNodeKind("clause",...)
-     auto res = (*_model.find_method("gnn_perform"))({
+    auto res = (*_model.find_method("gnn_perform"))({
       clauseNums
       });
 
