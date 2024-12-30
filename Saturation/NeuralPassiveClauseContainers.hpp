@@ -46,6 +46,9 @@ private:
   bool _recording = false;
 
   bool _useSimpleFeatures;
+  bool _useProblemFeatures;
+  bool _useGage;
+  bool _useGweight;
 
   int64_t _gageEmbeddingSize;
   torch::Tensor _gageRuleEmbed;
@@ -75,6 +78,7 @@ private:
   DHMap<unsigned,torch::Tensor> _gweightClauseEmbeds;
 
   std::optional<torch::jit::Method> _evalClauses;
+  std::optional<torch::jit::Method> _journal;
 
   unsigned _numFeatures;
   float _temp;
@@ -147,8 +151,7 @@ public:
   };
 
   void journal(JournalEntry tag, Clause* cl) {
-    auto m = _model.find_method("journal_record");
-    (*m)({
+    (*_journal)({
       (int64_t)tag,
       (int64_t)cl->number()
       });
@@ -275,37 +278,35 @@ public:
     }
   }
 
-  void printStats() {
-    std::cout << "gage_stat: " << (*_model.find_method("gage_stat"))({}) << std::endl;
-    std::cout << "gweight_stat: " << (*_model.find_method("gweight_stat"))({}) << std::endl;
-  }
-
   bool useProblemFeatures() {
-    return (*_model.find_method("use_problem_features"))({}).toBool();
+    return _useProblemFeatures;
   }
 
   bool useSimpleFeatures() {
-    return (*_model.find_method("use_simple_features"))({}).toBool();
+    return _useSimpleFeatures;
   }
 
   bool useGage() {
-    return (*_model.find_method("use_gage"))({}).toBool();
+    return _useGage;
   }
 
   bool useGweight() {
-    return (*_model.find_method("use_gweight"))({}).toBool();
+    return _useGweight;
   }
 
+  // no longer used under "fast"
+  /*
   void embedPending() {
     (*_model.find_method("embed_pending"))({});
   }
+  */
 
   int64_t gageEmbeddingSize() {
-    return (*_model.find_method("gage_embedding_size"))({}).toInt();
+    return _gageEmbeddingSize;
   }
 
   int64_t gweightEmbeddingSize() {
-    return (*_model.find_method("gweight_embedding_size"))({}).toInt();
+    return _gweightEmbeddingSize;
   }
 
   const DHMap<unsigned,float>& getScores() { return _scores; }

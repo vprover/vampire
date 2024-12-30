@@ -107,20 +107,24 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   cout << at::get_parallel_info() << endl;
 #endif
 
-  _useSimpleFeatures = useSimpleFeatures();
+  _useSimpleFeatures = (*_model.find_method("use_simple_features"))({}).toBool();
   if (!_useSimpleFeatures) {
     _numFeatures = 0;
   }
+  _useProblemFeatures = (*_model.find_method("use_problem_features"))({}).toBool();
+  _useGage = (*_model.find_method("use_gage"))({}).toBool();
+  _useGweight = (*_model.find_method("use_gweight"))({}).toBool();
 
-  _gageEmbeddingSize = gageEmbeddingSize();
+  _gageEmbeddingSize = (*_model.find_method("gage_embedding_size"))({}).toInt();
   _gageRuleEmbed = _model.attr("gage_rule_embed").toModule().attr("weight").toTensor();
   _gageCombine = _model.attr("gage_combine").toModule();
 
-  _gweightEmbeddingSize = gweightEmbeddingSize();
+  _gweightEmbeddingSize = (*_model.find_method("gweight_embedding_size"))({}).toInt();
   _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().attr("weight").toTensor();
   _gweightTermCombine = _model.attr("gweight_term_combine").toModule();
 
   _evalClauses = _model.find_method("eval_clauses");
+  _journal = _model.find_method("journal_record");
 }
 
 float NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {
@@ -132,6 +136,7 @@ float NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {
   return std::numeric_limits<float>::max();
 }
 
+// obsolete - to revive, if we were to compare to ENIGMA-style (classifier) approach to lawa
 float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
   float* someVal = _scores.findPtr(cl->number());
   if (someVal) {
@@ -362,8 +367,12 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool just
 
   torch::NoGradGuard no_grad; // TODO: check if this is necessary here
 
-  auto gageRect = torch::empty({sz, _gageEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
-  auto gweightRect = torch::empty({sz, _gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
+  auto gageRect = (!justRecord && _useGage) ?
+                  torch::empty({sz, _gageEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32)) :
+                  torch::empty(0, torch::TensorOptions().dtype(torch::kFloat32));
+  auto gweightRect = (!justRecord && _useGweight) ?
+                  torch::empty({sz, _gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32)) :
+                  torch::empty(0, torch::TensorOptions().dtype(torch::kFloat32));
 
   std::vector<int64_t> clauseNums;
   std::vector<float> features(_numFeatures*sz);
@@ -382,10 +391,10 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool just
       }
 
       if (_computing) { // could as well be (!justRecord) here
-        // TODO: condition on useGage
-        gageRect.index_put_({j}, _gageEmbedStore.get(cl->number()));
-        // TODO: condition on useGweight
-        gweightRect.index_put_({j}, _gweightClauseEmbeds.get(cl->number()));
+        if (_useGage)
+          gageRect.index_put_({j}, _gageEmbedStore.get(cl->number()));
+        if (_useGweight)
+          gweightRect.index_put_({j}, _gweightClauseEmbeds.get(cl->number()));
       }
       j++;
     }

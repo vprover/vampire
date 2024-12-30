@@ -260,10 +260,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
       // opt.neuralClauseEvaluationModelTweaks(),
       opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature());
 
-    _useProblemFeatures = _neuralModel->useProblemFeatures();
-    _useGage = _neuralModel->useGage();
-    _useGweight = _neuralModel->useGweight();
-
     if (_neuralActivityRecoring) {
       _neuralModel->setRecording();
     }
@@ -272,7 +268,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
       _neuralModel->setComputing();
     }
 
-    if (_useProblemFeatures && (_neuralActivityRecoring || _neuralModelGuidance)) {
+    if (_neuralModel->useProblemFeatures() && (_neuralActivityRecoring || _neuralModelGuidance)) {
       _neuralModel->setProblemFeatures(opt.numProblemFeatures(),prb);
     }
 
@@ -513,13 +509,13 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
 }
 
 void SaturationAlgorithm::makeReadyForEval(Clause* c) {
-  if (!_useGage && !_useGweight) return;
+  if (!_neuralModel->useGage() && !_neuralModel->useGweight()) return;
 
   if (!_shown.find(c)) {
-    if (_useGage) {
+    if (_neuralModel->useGage()) {
       showPredecessors(c);
     }
-    if (_useGweight) {
+    if (_neuralModel->useGweight()) {
       showClauseLiterals(c);
     }
 
@@ -1174,7 +1170,7 @@ void SaturationAlgorithm::runGnnOnInput()
 void SaturationAlgorithm::init()
 {
   if (_neuralActivityRecoring || _neuralModelGuidance) {
-    if (_useGage || _useGweight) {
+    if (_neuralModel->useGage() || _neuralModel->useGweight()) {
       runGnnOnInput();
     }
   }
