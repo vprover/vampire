@@ -143,6 +143,9 @@ void TPTP::parse()
     case THF:
 #if VHOL
       _isThf = true;
+      if(env.options->unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF){
+        USER_ERROR("Higher-order and unification with abstraction are currently not compatible");
+      }
 #else
       PARSE_ERROR("To parse higher-order problems please build Vampire with higher-order support", _gpos);
 #endif

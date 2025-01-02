@@ -265,7 +265,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   else
   {
-    _passive = makeLevel4(true, prb.higherOrder(), opt, "");
+#if VHOL
+    bool higher_order = prb.higherOrder();
+#else
+    bool higher_order = false;
+#endif
+    _passive = makeLevel4(true, higher_order, opt, "");
   }
   _active = new ActiveClauseContainer(opt);
 
