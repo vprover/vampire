@@ -15,6 +15,7 @@
 #define __PartialOrdering__
 
 #include <string>
+#include <vector>
 
 namespace Kernel {
 
@@ -72,9 +73,9 @@ public:
   friend std::ostream& operator<<(std::ostream& str, const PartialOrdering& po);
 
 private:
-  PartialOrdering();
-  ~PartialOrdering();
-  PartialOrdering(const PartialOrdering& other);
+  PartialOrdering() = default;
+  ~PartialOrdering() = default;
+  PartialOrdering(const PartialOrdering&) = default;
   PartialOrdering& operator=(const PartialOrdering&) = delete;
 
   void extend();
@@ -88,8 +89,8 @@ private:
   bool setInferredHelperInc(size_t x, size_t y, PoComp wkn);
   bool setInferredHelperEq(size_t x, size_t y);
 
-  size_t _size;
-  PoComp* _array;
+  size_t _size = 0;
+  std::vector<PoComp> _array;
 };
 
 };
