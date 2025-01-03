@@ -69,7 +69,7 @@ void* OrderingComparator::next()
         AppliedTerm(node->rhs, _appl, true));
 
     } else {
-      ASS(node->tag == Node::T_POLY);
+      ASS_EQ(node->tag, Node::T_POLY);
 
       const auto& kbo = static_cast<const KBO&>(_ord);
       auto weight = node->poly->constant;
@@ -451,20 +451,24 @@ const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int co
 
 std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node::Tag& t)
 {
+  using Tag = OrderingComparator::Node::Tag;
   switch (t) {
-    case OrderingComparator::Node::T_DATA: return out << "d";
-    case OrderingComparator::Node::T_TERM: return out << "t";
-    case OrderingComparator::Node::T_POLY: return out << "p";
+    case Tag::T_DATA: return out << "d";
+    case Tag::T_TERM: return out << "t";
+    case Tag::T_POLY: return out << "p";
+    default: ASSERTION_VIOLATION;
   }
 }
 
 std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node)
 {
-  out << (OrderingComparator::Node::Tag)node.tag << (node.ready?" ":"? ");
+  using Tag = OrderingComparator::Node::Tag;
+  out << (Tag)node.tag << (node.ready?" ":"? ");
   switch (node.tag) {
-    case OrderingComparator::Node::Tag::T_DATA: return out << node.data;
-    case OrderingComparator::Node::Tag::T_POLY: return out << *node.poly;
-    case OrderingComparator::Node::Tag::T_TERM: return out << node.lhs << " " << node.rhs;
+    case Tag::T_DATA: return out << node.data;
+    case Tag::T_POLY: return out << *node.poly;
+    case Tag::T_TERM: return out << node.lhs << " " << node.rhs;
+    default: ASSERTION_VIOLATION;
   }
 }
 
@@ -505,7 +509,7 @@ std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
     }
     str << *kv.first->node() << std::endl;
     if (seen.insert(kv.first->node())) {
-      if (kv.first->node()->tag==OrderingComparator::Node::Tag::T_DATA) {
+      if (kv.first->node()->tag==OrderingComparator::Node::T_DATA) {
         if (kv.first->node()->data) {
           todo.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
         }

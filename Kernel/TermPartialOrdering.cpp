@@ -36,9 +36,8 @@ Result poCompToResult(PoComp c) {
     case PoComp::INCOMPARABLE:
       return Result::INCOMPARABLE;
     default:
-      break;
+      ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
 }
 
 PoComp resultToPoComp(Result r, bool reversed) {
@@ -51,6 +50,8 @@ PoComp resultToPoComp(Result r, bool reversed) {
       return reversed ? PoComp::GREATER : PoComp::LESS;
     case Result::INCOMPARABLE:
       return reversed ? PoComp::NLEQ : PoComp::NGEQ;
+    default:
+      ASSERTION_VIOLATION;
   }
 }
 
@@ -306,9 +307,6 @@ bool TermPartialOrdering::set(TermOrderingConstraint con)
   if (!_po) {
     return false;
   }
-#if DEBUG_ORDERING
-  // debug_check();
-#endif
   return true;
 }
 
@@ -364,107 +362,5 @@ ostream& operator<<(ostream& str, const TermPartialOrdering& tpo)
   }
   return str;
 }
-
-#if DEBUG_ORDERING
-void TermPartialOrdering::debug_check() const
-{
-  // auto output_args = [this](size_t x, size_t y, size_t z) {
-  //   return _po->all_to_string() + " at " + Int::toString(x) + ", " + Int::toString(y) + ", " + Int::toString(z);
-  // };
-
-  auto check_val = [/* &output_args */](auto actual_val, auto expected_val, size_t x, size_t y, size_t z) {
-    if (actual_val == PoComp::UNKNOWN) {
-      // INVALID_OPERATION(output_args(x,y,z));
-    }
-    if (expected_val == PoComp::NLEQ) {
-      if (actual_val != PoComp::NLEQ && actual_val != PoComp::INCOMPARABLE && actual_val != PoComp::GREATER) {
-        // INVALID_OPERATION(output_args(x,y,z));
-      }
-    } else if (expected_val == PoComp::NGEQ) {
-      if (actual_val != PoComp::NGEQ && actual_val != PoComp::INCOMPARABLE && actual_val != PoComp::LESS) {
-        // INVALID_OPERATION(output_args(x,y,z));
-      }
-    } else {
-      if (actual_val != expected_val) {
-        // INVALID_OPERATION(output_args(x,y,z));
-      }
-    }
-  };
-
-  decltype(_nodes)::Iterator it1(_nodes);
-  while (it1.hasNext()) {
-    auto& e1 = it1.next();
-
-    decltype(_nodes)::Iterator it2(_nodes);
-    while (it2.hasNext()) {
-      auto& e2 = it2.next();
-      if (e1.value() == e2.value()) {
-        continue;
-      }
-      auto v12 = _po->get(e1.value(),e2.value());
-      if (v12 == PoComp::UNKNOWN) {
-        continue;
-      }
-      auto comp = _ord.compare(e1.key(),e2.key());
-      if (comp != Ordering::INCOMPARABLE) {
-        check_val(v12, resultToPoComp(comp, false), e1.value(), e2.value(), e2.value());
-      }
-
-      decltype(_nodes)::Iterator it3(_nodes);
-      while (it3.hasNext()) {
-        auto& e3 = it3.next();
-        if (e1.value() == e3.value() || e2.value() == e3.value()) {
-          continue;
-        }
-
-        auto v13 = _po->get(e1.value(),e3.value());
-        if (v13 == PoComp::UNKNOWN) {
-          continue;
-        }
-
-        auto v23 = _po->get(e2.value(),e3.value());
-
-        switch (v12) {
-          case PoComp::UNKNOWN:
-            break;
-          case PoComp::EQUAL:
-            // x = y rel z -> x rel z
-            check_val(v13, v23, e1.value(), e2.value(), e3.value());
-            break;
-          case PoComp::GREATER:
-          case PoComp::NLEQ: {
-            if (v23 == PoComp::EQUAL || v23 == PoComp::GREATER) {
-              // x > y ≥ z -> x > z
-              // x ≰ y ≥ z -> x ≰ z
-              check_val(v13, v12, e1.value(), e2.value(), e3.value());
-            }
-            break;
-          }
-          case PoComp::LESS:
-          case PoComp::NGEQ: {
-            if (v23 == PoComp::EQUAL || v23 == PoComp::LESS) {
-              // x < y ≤ z -> x < z
-              // x ≱ y ≤ z -> x ≱ z
-              check_val(v13, v12, e1.value(), e2.value(), e3.value());
-            }
-            break;
-          }
-          case PoComp::INCOMPARABLE: {
-            if (v23 == PoComp::EQUAL || v23 == PoComp::GREATER) {
-              // x ≰ y ≥ z -> x ≰ z
-              check_val(v13, PoComp::NLEQ, e1.value(), e2.value(), e3.value());
-            }
-            if (v23 == PoComp::EQUAL || v23 == PoComp::LESS) {
-              // x ≱ y ≤ z -> x ≱ z
-              check_val(v13, PoComp::NGEQ, e1.value(), e2.value(), e3.value());
-            }
-            break;
-          }
-        }
-      }
-    }
-  }
-}
-#endif
 
 }
