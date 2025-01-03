@@ -160,8 +160,8 @@ void OrderingComparator::processCurrentNode()
 
     if (node->tag == Node::T_DATA) {
       ASS(node->data); // no fail nodes here
-      // if refcnt > 1 we copy the node and
-      // we can also safely use the original
+      // if refcnt > 1 we have to copy the node,
+      // otherwise we can mutate the original
       if (node->refcnt > 1) {
         *_curr = Branch(node->data, node->alternative);
       }
@@ -211,8 +211,8 @@ void OrderingComparator::processVarNode()
     }
     return;
   }
-  // if refcnt > 1 we copy the node and
-  // we can also safely use the original
+  // if refcnt > 1 we have to copy the node,
+  // otherwise we can mutate the original
   if (node->refcnt > 1) {
     *_curr = Branch(node->lhs, node->rhs);
     _curr->node()->eqBranch = node->eqBranch;
@@ -273,8 +273,8 @@ void OrderingComparator::processPolyNode()
   }
   auto poly = Polynomial::get(constant, vcs);
 
-  // if refcnt > 1 we copy the node and
-  // we can also safely use the original
+  // if refcnt > 1 we have to copy the node,
+  // otherwise we can mutate the original
   if (node->refcnt > 1) {
     *_curr = Branch(poly);
     _curr->node()->eqBranch = node->eqBranch;
@@ -369,26 +369,13 @@ void OrderingComparator::Branch::setNode(Node* node)
   _node = node;
 }
 
-OrderingComparator::Branch& OrderingComparator::Branch::operator=(const Branch& other)
-{
-  if (&other==this) {
-    return *this;
-  }
-  setNode(other.node());
-  return *this;
-}
-
 OrderingComparator::Branch::Branch(Branch&& other)
-  : _node(other._node)
 {
-  other._node = nullptr;
+  swap(_node,other._node);
 }
 
-OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch&& other)
+OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch other)
 {
-  if (&other==this) {
-    return *this;
-  }
   swap(_node,other._node);
   return *this;
 }
