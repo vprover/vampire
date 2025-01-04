@@ -35,9 +35,11 @@ Result poCompToResult(PoComp c) {
     case PoComp::NLEQ:
     case PoComp::INCOMPARABLE:
       return Result::INCOMPARABLE;
-    default:
+    case PoComp::UNKNOWN:
+      // no unknowns here
       ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION;
 }
 
 PoComp resultToPoComp(Result r, bool reversed) {
@@ -50,9 +52,8 @@ PoComp resultToPoComp(Result r, bool reversed) {
       return reversed ? PoComp::GREATER : PoComp::LESS;
     case Result::INCOMPARABLE:
       return reversed ? PoComp::NLEQ : PoComp::NGEQ;
-    default:
-      ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION;
 }
 
 // TermPartialOrdering

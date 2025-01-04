@@ -419,8 +419,9 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result
     case Ordering::EQUAL: return eqBranch;
     case Ordering::GREATER: return gtBranch;
     case Ordering::INCOMPARABLE: return ngeBranch;
-    default: ASSERTION_VIOLATION;
+    case Ordering::LESS: break; // no distinction between less and incomparable
   }
+  ASSERTION_VIOLATION;
 }
 
 // Polynomial
@@ -456,8 +457,8 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node::Tag&
     case Tag::T_DATA: return out << "d";
     case Tag::T_TERM: return out << "t";
     case Tag::T_POLY: return out << "p";
-    default: ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION;
 }
 
 std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node)
@@ -468,8 +469,8 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node
     case Tag::T_DATA: return out << node.data;
     case Tag::T_POLY: return out << *node.poly;
     case Tag::T_TERM: return out << node.lhs << " " << node.rhs;
-    default: ASSERTION_VIOLATION;
   }
+  ASSERTION_VIOLATION;
 }
 
 std::ostream& operator<<(std::ostream& out, const OrderingComparator::Polynomial& poly)
