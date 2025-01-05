@@ -40,7 +40,6 @@
 #include "Shell/UIHelper.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
-#include <gmp.h>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 

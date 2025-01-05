@@ -33,6 +33,8 @@
 #if VMINI_GMP
 #include "mini-gmp.c"
 #include "mini-mpq.c"
+#else
+#include <gmpxx.h>
 #endif
 
 std::string to_string(mpz_t const& self) {
@@ -44,10 +46,9 @@ std::string to_string(mpz_t const& self) {
   return out;
 }
 
-#if VMINI_GMP
-std::ostream& operator<<(std::ostream& out, mpz_t const& self)
+std::ostream& output(std::ostream& out, mpz_t const& self)
+// TODO: make this faster usign gmpxx output operator somehow if compiled with !VMINI_GMP
 { return out << to_string(self); }
-#endif
 
 using namespace Lib;
 
@@ -1754,7 +1755,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
 }
 
 std::ostream& operator<<(std::ostream& out, IntegerConstantType const& self)
-{ return out << self._val; }
+{ return output(out, self._val); }
 
 std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
 #if NICE_THEORY_OUTPUT
