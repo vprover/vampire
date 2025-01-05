@@ -883,9 +883,9 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
 # gmp stuff
 ################################################################
 
-option(MINI_GMP "compile an own version of minigmp even when a gmp is installed" ON)
-find_package(GMP)
-if ((NOT MINI_GMP) AND GMP_FOUND)
+option(MINI_GMP "compile an own version of mini-gmp instead of linking with system level gmp" OFF)
+if (NOT MINI_GMP)
+  find_package(GMP REQUIRED)
   message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
   add_compile_definitions(VMINI_GMP=0)
   include_directories(${GMP_INCLUDE_DIRS})
