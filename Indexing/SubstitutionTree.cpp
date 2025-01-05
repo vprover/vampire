@@ -198,7 +198,7 @@ start:
 
   if (*pnode == 0) {
     BinaryHeap<Binding, BindingComparator<LeafData_>> remainingBindings;
-    for (auto [var, Term] : iterTraits(svBindings.items())) {
+    for (auto [var, term] : iterTraits(svBindings.items())) {
       remainingBindings.insert(Binding(var, term));
     }
     while (!remainingBindings.isEmpty()) {
