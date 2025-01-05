@@ -42,6 +42,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _usageCount(0),
     _unitUsageCount(0),
     _interpreted(interpreted ? 1 : 0),
+    _linMul(0),
     _introduced(0),
     _protected(0),
     _skip(0),
