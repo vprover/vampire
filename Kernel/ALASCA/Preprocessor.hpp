@@ -354,7 +354,6 @@ public:
     for (auto& unit : iterTraits(prb.units()->iter())) {
       unit = proc(unit);
     }
-    DBGE(_addedITE)
     if (_addedITE) {
       prb.reportFOOLAdded();
     }
