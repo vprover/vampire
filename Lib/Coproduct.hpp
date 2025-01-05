@@ -27,6 +27,8 @@
 #include "Lib/Option.hpp"
 #include <memory>
 #include <functional>
+#include <type_traits>
+#include <vector>
 #include <tuple>
 
 namespace Lib {
