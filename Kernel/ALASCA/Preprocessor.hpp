@@ -237,7 +237,10 @@ public:
     if (!_useFloor) {
       for (auto& func : iterTraits(_funcs.iter())) {
         auto orig_sym = env.signature->getFunction(func.key());
-        if (!theory->isInterpretedFunction(func.value()) && !R::isNumeral(func.value())) {
+        if (!theory->isInterpretedFunction(func.value()) 
+            && !R::isNumeral(func.value())
+            && !R::isLinMul(func.value())
+            ) {
           auto sym = env.signature->getFunction(func.value());
           if (orig_sym->fnType()->result() == Z::sort()) {
             auto t = TermList(Term::createFromIter(func.value(), range(0, sym->arity()).map([](auto x) { return TermList::var(x); })));
