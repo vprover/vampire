@@ -123,7 +123,7 @@ struct VampireVirasConfig {
                            return NumTraits::ifNumeral(l, [&](auto k) { return if_mul(k, r); });
                      }).flatten(); })
      .orElse([&]() { return NumTraits::ifDiv(t, [&](auto l, auto r) { 
-                           return NumTraits::ifNumeral(r, [&](auto k) { return if_mul(k.inverse(), l); });
+                           return NumTraits::ifNumeral(r, [&](auto k) { return someIf(k != 0, [&](){ return if_mul(k.inverse(), l); }); }).flatten();
                      }).flatten(); })
      .orElse([&]() { return NumTraits::ifFloor(t, [&](auto t) { return if_floor(t); }); })
      .orElse([&]() { return if_var(VarWrapper(t)); });

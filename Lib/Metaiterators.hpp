@@ -1638,6 +1638,13 @@ public:
     return i;
   }
 
+  auto output() const
+  { return Output::interleaved(", ", *this); }
+
+  template<class Seperator>
+  auto output(Seperator const& sep) const
+  { return Output::interleaved(sep, *this); }
+
   Option<Elem> min()
   { return minBy(std::less<Elem>{}); }
 
@@ -1667,7 +1674,7 @@ public:
 
   template<class OtherIter>
   auto zip(OtherIter other)
-  { return map([other = std::move(other)](Elem x) mutable { return std::make_pair(std::move(x), other.next()); }); }
+  { return map([other = std::move(other)](Elem x) mutable { ALWAYS(other.hasNext()); return std::make_pair(std::move(x), other.next()); }); }
 
   auto zipWithIndex()
   { return map([idx = 0](Elem x) mutable { return std::make_pair(std::move(x), idx++); }); }
