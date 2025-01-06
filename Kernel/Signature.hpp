@@ -218,7 +218,6 @@ class Signature
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
     inline unsigned numTypeArguments() const 
     { 
-      // DBGE(name())
       if(name() == "="){ 
         //for some reason, equality is never assigned a type (probably because it is poly)
         return 0; 
@@ -558,6 +557,12 @@ class Signature
   unsigned addRationalConstant(const RationalConstantType& number);
   unsigned addRealConstant(const RealConstantType& number);
 
+ private:
+  void noteOccurrence(IntegerConstantType const&)  { _integers++; }
+  void noteOccurrence(RationalConstantType const&)  { _rationals++; }
+  void noteOccurrence(RealConstantType const&)  { _reals++; }
+ public:
+
   template<class Numeral>
   unsigned addLinMul(Numeral const& number) {
     // TODO make key more efficient
@@ -566,9 +571,11 @@ class Signature
     if (_funNames.find(key, result)) {
       return result;
     }
-    _integers++;
+    noteOccurrence(number);
     result = _funs.length();
     Symbol* sym = new LinMulSym<Numeral>(number);
+    auto s = AnyLinMulSym::sortOf<Numeral>();
+    sym->setType(OperatorType::getFunctionType({s}, s));
     _funs.push(sym);
     _funNames.insert(key,result);
     return result;
