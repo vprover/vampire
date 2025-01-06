@@ -139,6 +139,7 @@ class AlascaPreprocessor
       if (Z::isMul(f)) return R::mulF();
       if (Z::isMinus(f)) return R::minusF();
       ASS(!R::isToInt(f))
+      if (auto n = Z::tryLinMul(f)) return R::linMulF(typename R::ConstantType(*n));
       if (auto n = Z::tryNumeral(f)) return R::numeralF(typename R::ConstantType(*n));
       // TODO 
 #define ASS_NOT(itp) ASS(!theory->isInterpretedFunction(f, itp))
