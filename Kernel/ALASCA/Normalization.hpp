@@ -20,7 +20,7 @@
 // TODO remove(?)
 #include "Inferences/PolynomialEvaluation.hpp"
 
-#define DEBUG_NORM(...) // DBG(__VA_ARGS__)
+#define DEBUG_NORM(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 namespace Kernel {
   /** 
    * Represents an inequality literal normalized for the rule FourierMotzkin.
@@ -227,7 +227,7 @@ namespace Kernel {
     template<class NumTraits> 
     Option<AlascaLiteral<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
     {
-      DEBUG_NORM("in: ", *lit, " (", NumTraits::name(), ")")
+      DEBUG_NORM(0, "in: ", *lit, " (", NumTraits::name(), ")")
 
       auto impl = [&]() -> Option<AlascaLiteral<NumTraits>> {
 
@@ -322,7 +322,7 @@ namespace Kernel {
         return some(AlascaLiteral<NumTraits>(factorsNormalized, pred));
       };
       auto out = impl();
-      DEBUG_NORM("out: ", out);
+      DEBUG_NORM(0, "out: ", out);
       return out;
     }
     template<class NumTraits> 
@@ -348,7 +348,7 @@ namespace Kernel {
             .map([](auto lit) { return lit.denormalize(); });
         }); 
       auto out = interpreted.isSome() ? *interpreted : normalizeUninterpreted(lit);
-      DEBUG_NORM(*lit, " ==> ", *out)
+      DEBUG_NORM(0, *lit, " ==> ", *out)
       return out;
     }
 
@@ -400,7 +400,7 @@ namespace Kernel {
         }
       }
       auto out = Literal::create(lit, args.begin());
-      DEBUG_NORM(*lit, " ==> ", *out)
+      DEBUG_NORM(0, *lit, " ==> ", *out)
       return out;
     }
   };

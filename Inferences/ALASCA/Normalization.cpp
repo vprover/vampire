@@ -12,36 +12,18 @@
  * Implements class Normalization.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
 
 #include "Kernel/NumTraits.hpp"
-#include "Kernel/Theory.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/LiteralSelector.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Lib/TypeList.hpp"
 
 
-#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Normalization.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
-#include "Kernel/ALASCA.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
-#include "Indexing/TermIndexingStructure.hpp"
 
 #define DEBUG_NORMALIZE(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 

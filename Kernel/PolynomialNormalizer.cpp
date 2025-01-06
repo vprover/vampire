@@ -11,7 +11,7 @@
 #include "PolynomialNormalizer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 namespace Kernel {
 
@@ -331,7 +331,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
 PolyNf normalizeTerm(TypedTermList t) 
 {
-  DEBUG("normalizing ", t)
+  DEBUG(0, "normalizing ", t)
     // DBGE(t)
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
     .function(
@@ -358,7 +358,10 @@ PolyNf normalizeTerm(TypedTermList t)
         })
     .apply(t);
 
-  return std::move(r).apply(RenderPolyNf{});
+  DEBUG(1, "normed: ", r)
+  auto out = std::move(r).apply(RenderPolyNf{});
+  DEBUG(0, "out: ", r)
+  return out;
 }
 
 TermList PolyNf::denormalize() const

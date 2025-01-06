@@ -10,24 +10,12 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Indexing/TermSharing.hpp"
-#include "Inferences/ALASCA/FourierMotzkin.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Inferences/Cancellation.hpp"
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/InequalityPredicateNormalization.hpp"
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
 #include "Test/AlascaSimplRule.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
-#include "Test/GenerationTester.hpp"
-#include "Kernel/KBO.hpp"
-#include "Indexing/TermSubstitutionTree.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -625,4 +613,3 @@ TEST_FRAC(floor_17,
       .out = { { p(floor(a) + 1) } },
       .strong = false,
     })
-
