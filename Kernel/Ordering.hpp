@@ -30,8 +30,6 @@
 #include "Lib/Portability.hpp"
 #include "Kernel/SubstHelper.hpp"
 
-#define DEBUG_ORDERING 0
-
 namespace Kernel {
 
 

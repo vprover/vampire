@@ -193,8 +193,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
-        Kernel/Ordering_Equality.o\
         Kernel/OrderingComparator.o\
+        Kernel/Ordering_Equality.o\
+        Kernel/PartialOrdering.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
@@ -206,9 +207,10 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
-	Kernel/PolynomialNormalizer.o\
-	Kernel/Polynomial.o\
+        Kernel/PolynomialNormalizer.o\
+        Kernel/Polynomial.o\
         Kernel/TermIterators.o\
+        Kernel/TermPartialOrdering.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
         Kernel/Signature.o\
