@@ -451,6 +451,7 @@ TEST_FUN(bug02) {
   check(ord, c, Greater, -floor(frac(1,2) * floor(b) + frac(1,2) * floor(a)) + -floor(frac(1,2) + frac(1,2) * floor(b) + frac(1,2) * floor(a)));
 }
 
+
 TEST_FUN(bug03) {
 
   DECL_DEFAULT_VARS
@@ -608,3 +609,10 @@ TEST_FUN(check_numerals_smallest) {
 
 }
 
+TEST_FUN(bug_non_linear) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  auto& ord = lakbo(/* rand */ false);
+  DECL_CONST(a, Real)
+  check(ord, a * (1 + a), Greater, a * a);
+}

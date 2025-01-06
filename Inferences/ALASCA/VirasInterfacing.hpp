@@ -136,10 +136,12 @@ struct VampireVirasConfig {
      .orElse([&]() { return ASig::ifAdd(t, [&](auto l, auto r) { return if_add(l, r); }); })
      .orElse([&]() { return ASig::ifMinus(t, [&](auto t) { return if_mul(numeral(-1), t); }); })
      .orElse([&]() { return ASig::ifLinMul(t, std::move(if_mul)); })
-     .orElse([&]() { return ASig::ifDiv(t, [&](auto l, auto r) { 
-                           return ASig::ifNumeral(r, [&](auto k) { return if_mul(k.inverse(), l); });
-                     }).flatten(); })
      .orElse([&]() { return ASig::ifFloor(t, [&](auto t) { return if_floor(t); }); })
+     .orElse([&]() { return ASig::ifDiv(t, [&](auto l, auto r) { 
+                           return ASig::ifNumeral(r, [&](auto k) { return 
+                                someIf(k != 0, [&](){ return if_mul(k.inverse(), l); }); }).flatten();
+                               }).flatten();
+                   })
      .orElse([&]() { return if_var(VarWrapper(t)); });
 
   }

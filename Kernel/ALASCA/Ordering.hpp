@@ -90,9 +90,15 @@ struct LAKBO {
   template<class NumTraits>
   Ordering::Result cmpSameSkeleton(MonomFactors<NumTraits> const& t0, MonomFactors<NumTraits> const& t1) const 
   { 
+    auto iterFlat = [](MonomFactors<NumTraits> const& m) {
+      return m.iter()
+        .flatMap([](auto& x) { return 
+            range(0, x.power)
+              .map([&](auto) -> auto& { return x.term; }); });
+    };
     return AlascaOrderingUtils::lexIter(
-        t0.iter().zip(t1.iter())
-          .map([&](auto pair) { return cmpSameSkeleton(pair.first.term, pair.second.term); })
+        iterFlat(t0).zip(iterFlat(t1))
+          .map([&](auto pair) { return cmpSameSkeleton(pair.first, pair.second); })
         );
   }
 
