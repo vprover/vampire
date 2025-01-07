@@ -161,7 +161,7 @@ public:
   Result compare(TermList tl1, TermList tl2) const override;
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
-  Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2) const override;
+  Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const override;
   OrderingComparatorUP createComparator() const override;
 
 protected:

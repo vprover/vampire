@@ -174,7 +174,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         if (_precompiledComparison) {
 #if VDEBUG
-          auto dcomp = ordering.isGreaterOrEq(trm,rhsApplied);
+          auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
 #endif
           qr.data->comparator->init(appl);
           if (!preordered && (_preorderedOnly || !qr.data->comparator->next())) {
@@ -183,7 +183,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
           ASS_EQ(dcomp,Ordering::GREATER);
         } else {
-          if (!preordered && (_preorderedOnly || ordering.isGreaterOrEq(trm,rhsApplied)!=Ordering::GREATER)) {
+          if (!preordered && (_preorderedOnly || ordering.compareUnidirectional(trm,rhsApplied)!=Ordering::GREATER)) {
             continue;
           }
         }
