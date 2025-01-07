@@ -606,8 +606,6 @@ private:
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
   Map<unsigned,SList*> _variableSorts;
-  /** overflown arithmetical constants for which uninterpreted constants are introduced */
-  Set<std::string> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
   /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
@@ -817,11 +815,10 @@ private:
   OperatorType* constructOperatorType(Type* t, VList* vars = 0);
 
 public:
-  // make the tptp routines for dealing with overflown constants available to other parsers
-  static unsigned addIntegerConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addRationalConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addRealConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addUninterpretedConstant(const std::string& name, Set<std::string>& overflow, bool& added);
+  static unsigned addIntegerConstant(const std::string&, bool defaultSort);
+  static unsigned addRationalConstant(const std::string&, bool defaultSort);
+  static unsigned addRealConstant(const std::string&, bool defaultSort);
+  static unsigned addUninterpretedConstant(const std::string& name, bool& added);
 
   // also here, simply made public static to share the code with another use site
   static Unit* processClaimFormula(Unit* unit, Formula* f, const std::string& nm);

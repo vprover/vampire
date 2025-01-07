@@ -27,6 +27,8 @@
 #include "Lib/Option.hpp"
 #include <memory>
 #include <functional>
+#include <type_traits>
+#include <vector>
 #include <tuple>
 
 namespace Lib {
@@ -652,10 +654,10 @@ public:
   IMPL_COMPARISONS_FROM_COMPARE(Coproduct)
 
   unsigned defaultHash() const
-  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return x.defaultHash(); })); }
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return DefaultHash::hash(x); })); }
 
   unsigned defaultHash2() const
-  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return x.defaultHash2(); })); }
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return DefaultHash2::hash(x); })); }
 
   inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<As...>

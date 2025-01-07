@@ -122,7 +122,6 @@ void Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
-                                        "casc_hol",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -152,8 +151,7 @@ void Options::init()
 
     auto UsingPortfolioTechnology = [this] {
       // Consider extending this list when adding a new Casc-like mode
-      return Or(_mode.is(equal(Mode::CASC_HOL)),
-                _mode.is(equal(Mode::CASC)),
+      return Or(_mode.is(equal(Mode::CASC)),
                 _mode.is(equal(Mode::SMTCOMP)),
                 _mode.is(equal(Mode::PORTFOLIO)));
     };
@@ -169,13 +167,8 @@ void Options::init()
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
          "casc_2024",
-         "casc_2023",
-         "casc_2019",
          "casc_sat",
          "casc_sat_2024",
-         "casc_sat_2023",
-         "casc_sat_2019",
-         "casc_hol_2020",
          "file",
          "induction",
          "integer_induction",
@@ -1651,7 +1644,8 @@ void Options::init()
     _condensation.tag(OptionTag::INFERENCES);
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",DemodulationRedundancyCheck::ON,{"off","encompass","on"});
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",
+       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"});
     _demodulationRedundancyCheck.description=
        "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -1659,8 +1653,8 @@ void Options::init()
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
        "where t > t1 and s = t > C (RHS replaced)\n"
-       "With `on`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
+       "With `ordering`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `off`, we skip the checks, save time, but become incomplete.";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);

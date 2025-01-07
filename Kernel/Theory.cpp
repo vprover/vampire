@@ -33,6 +33,8 @@
 #if VMINI_GMP
 #include "mini-gmp.c"
 #include "mini-mpq.c"
+#else
+#include <gmpxx.h>
 #endif
 
 std::string to_string(mpz_t const& self) {
@@ -44,10 +46,9 @@ std::string to_string(mpz_t const& self) {
   return out;
 }
 
-#if VMINI_GMP
-std::ostream& operator<<(std::ostream& out, mpz_t const& self)
+std::ostream& output(std::ostream& out, mpz_t const& self)
+// TODO: make this faster usign gmpxx output operator somehow if compiled with !VMINI_GMP
 { return out << to_string(self); }
-#endif
 
 using namespace Lib;
 
@@ -57,7 +58,7 @@ IntegerConstantType::IntegerConstantType(std::string const& str)
   : Kernel::IntegerConstantType()
 {
   if (-1 == mpz_set_str(_val, str.c_str(), /* base */ 10)) {
-    throw UserErrorException("not a valit string literal: ", str);
+    throw UserErrorException("not a valid integer literal: ", str);
   }
 }
 
@@ -1599,19 +1600,19 @@ bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
-  unsigned func = env.signature->addIntegerConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
 Term* Theory::representConstant(const RationalConstantType& num)
 {
-  unsigned func = env.signature->addRationalConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
 Term* Theory::representConstant(const RealConstantType& num)
 {
-  unsigned func = env.signature->addRealConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1754,7 +1755,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
 }
 
 std::ostream& operator<<(std::ostream& out, IntegerConstantType const& self)
-{ return out << self._val; }
+{ return output(out, self._val); }
 
 std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
 #if NICE_THEORY_OUTPUT
@@ -1897,24 +1898,6 @@ bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
 bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
 {
   return t.isTerm() && isInterpretedFunction(t.term(), itp);
-}
-
-IntegerConstantType naiveInverseModulo(IntegerConstantType const& l, IntegerConstantType const& m)
-{
-  ASS(!m.isZero())
-  if (m == IntegerConstantType(1)) {
-    return IntegerConstantType(0);
-  }
-  // TODO use extended euclidean algorithm instead
-  ASS(l.isPositive()) // <- can be done but not implemented
-  ASS(m.isPositive()) // <- can be done but not implemented
-  auto one = IntegerConstantType(1);
-  for (auto i : range(0, m)) {
-    if ((l * i).remainderE(m) == 1) {
-      return IntegerConstantType(i);
-    }
-  }
-  ASSERTION_VIOLATION_REP("inverse does not exists")
 }
 
 } // namespace Kernel
