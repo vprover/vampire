@@ -33,9 +33,9 @@
 #if VMINI_GMP
 #include "mini-gmp.c"
 #include "mini-mpq.c"
+#else
+#include <gmpxx.h>
 #endif
-
-#include "Theory.hpp"
 
 std::string to_string(mpz_t const& self) {
   auto s = mpz_sizeinbase(self, /* base */ 10);
@@ -46,19 +46,13 @@ std::string to_string(mpz_t const& self) {
   return out;
 }
 
-#if VMINI_GMP
-std::ostream& operator<<(std::ostream& out, mpz_t const& self)
+std::ostream& output(std::ostream& out, mpz_t const& self)
+// TODO: make this faster usign gmpxx output operator somehow if compiled with !VMINI_GMP
 { return out << to_string(self); }
-#endif
-
-namespace Kernel
-{
 
 using namespace Lib;
 
-///////////////////////
-// IntegerConstantType
-//
+namespace Kernel {
 
 IntegerConstantType::IntegerConstantType(std::string const& str)
   : Kernel::IntegerConstantType()
@@ -1413,9 +1407,7 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 
 
 bool Theory::isInterpretedPredicate(unsigned pred, Interpretation itp)
-{
-  return isInterpretedPredicate(pred) && interpretPredicate(pred) == itp;
-}
+{ return isInterpretedPredicate(pred) && interpretPredicate(pred) == itp; }
 
 /**
  * Return true iff @b lit has an interpreted predicate interpreted
@@ -1608,19 +1600,19 @@ bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
-  unsigned func = env.signature->addIntegerConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
 Term* Theory::representConstant(const RationalConstantType& num)
 {
-  unsigned func = env.signature->addRationalConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
 Term* Theory::representConstant(const RealConstantType& num)
 {
-  unsigned func = env.signature->addRealConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1763,7 +1755,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
 }
 
 std::ostream& operator<<(std::ostream& out, IntegerConstantType const& self)
-{ return out << self._val; }
+{ return output(out, self._val); }
 
 std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
 #if NICE_THEORY_OUTPUT

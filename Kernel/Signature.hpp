@@ -43,13 +43,25 @@
 namespace Kernel {
 
 using namespace Lib;
-typedef Map<std::string, unsigned> SymbolMap;
 
 /**
  * Class implementing signatures
  */
 class Signature
 {
+  using SymbolKey = Coproduct<
+      std::pair<std::string, unsigned> // <- (name, arity)
+    , std::string // <- string-constant
+    // (number, arity). 
+    // if arity = 0 we mean a numeral constant
+    // if arity = 1 we mean a linear multiplication (this is not yet merged into master bug come with alasca)
+    , std::pair<IntegerConstantType, unsigned> 
+    , std::pair<RationalConstantType, unsigned> 
+    , std::pair<RealConstantType, unsigned> 
+    , std::pair<Theory::Interpretation, OperatorType*>
+    >;
+
+  using SymbolMap = Map<SymbolKey, unsigned>;
  public:
   /** Function or predicate symbol */
   
@@ -131,10 +143,6 @@ class Signature
     unsigned _wasFlipped : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
-    /** marks distinct string constants */
-    unsigned _stringConstant : 1;
-    /** marks numeric constants, they are only used in TPTP's fof declarations */
-    unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
     /** marks numbers too large to represent natively */
@@ -168,7 +176,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const std::string& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
+    Symbol(const std::string& name, unsigned arity, bool interpreted, bool preventQuoting, bool overflownConstant, bool super);
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
@@ -235,10 +243,6 @@ class Signature
     inline bool introduced() const { return _introduced; }
     /** Return true iff the symbol is must not be eliminated by proprocessing */
     inline bool protectedSymbol() const { return _protected; }
-    /** Return true iff symbol is a distinct string constant */
-    inline bool stringConstant() const { return _stringConstant; }
-    /** Return true iff symbol is a numeric constant */
-    inline bool numericConstant() const { return _numericConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
@@ -320,7 +324,16 @@ class Signature
     /** This takes the symbol number of this symbol as the symbol doesn't know it
         Note that this should only be called on a constant **/
     void addToDistinctGroup(unsigned group,unsigned this_number);
-    friend std::ostream& operator<<(std::ostream& out, const Signature::Symbol& self){ return out << self.name(); };
+    friend std::ostream& operator<<(std::ostream& out, const Signature::Symbol& self)
+    { 
+      out << self.name() << ": "; 
+      if (self._type) {
+        out << *self._type;
+      } else {
+        out << "<type not (yet) set>";
+      }
+      return out;
+    }
 
     void setType(OperatorType* type);
     void forceType(OperatorType* type);
@@ -339,8 +352,14 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const std::string& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    InterpretedSymbol(const std::string& name, Interpretation interp)
+    : Symbol(name, 
+        /* arity */ Theory::getArity(interp), 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+      _interp(interp)
     {
     }
 
@@ -357,8 +376,14 @@ class Signature
     IntegerConstantType _intValue;
 
   public:
-    IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(Output::toString(val), 0, true), _intValue(val)
+    IntegerSymbol(IntegerConstantType val)
+    : Symbol(Output::toString(val),
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+      _intValue(std::move(val))
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
@@ -373,8 +398,14 @@ class Signature
     RationalConstantType _ratValue;
 
   public:
-    RationalSymbol(const RationalConstantType& val)
-    : Symbol(Output::toString(val), 0, true), _ratValue(val)
+    RationalSymbol(RationalConstantType val)
+    : Symbol(Output::toString(val),
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+       _ratValue(std::move(val))
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
@@ -390,7 +421,14 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")") : Output::toString(val), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")") 
+                                                                         : Output::toString(val),
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+       _realValue(std::move(val))
     {
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
@@ -459,15 +497,60 @@ class Signature
    */
   unsigned getBoolDef(unsigned fn);
 
-  // Interpreted symbol declarations
-  unsigned addIntegerConstant(const std::string& number,bool defaultSort);
-  unsigned addRationalConstant(const std::string& numerator, const std::string& denominator,bool defaultSort);
-  unsigned addRealConstant(const std::string& number,bool defaultSort);
+ private:
+  Symbol* newNumeralConstantSymbol(IntegerConstantType n) 
+  { return new IntegerSymbol(std::move(n)); }
 
-  unsigned addIntegerConstant(const IntegerConstantType& number);
-  unsigned addRationalConstant(const RationalConstantType& number);
-  unsigned addRealConstant(const RealConstantType& number);
- 
+  Symbol* newNumeralConstantSymbol(RationalConstantType n) 
+  { return new RationalSymbol(std::move(n)); }
+
+  Symbol* newNumeralConstantSymbol(RealConstantType n) 
+  { return new RealSymbol(std::move(n)); }
+ public:
+
+  // Interpreted symbol declarations
+
+  template<class Numeral>
+  unsigned addNumeralConstant(Numeral number_, bool defaultSort = false) {
+    auto key = SymbolKey(std::make_pair(std::move(number_), unsigned(0)));
+    unsigned result;
+    if (_funNames.find(key,result)) {
+      return result;
+    }
+    result = _funs.length();
+    // copy number out of key again
+    auto number = key.as<std::pair<Numeral, unsigned>>()->first;
+    if (!defaultSort)
+      noteOccurrence(number);
+    Symbol* sym = 
+      defaultSort ? 
+        new Symbol(Output::toString(number),
+            /*             arity */ 0, 
+            /*       interpreted */ false, 
+            /*    preventQuoting */ true, 
+            /* overflownConstant */ false, 
+            /*             super */ false)
+                  : newNumeralConstantSymbol(std::move(number));
+    _funs.push(sym);
+    _funNames.insert(key,result);
+    return result;
+  }
+
+  unsigned addIntegerConstant(const std::string& number,bool defaultSort) 
+  { return addNumeralConstant(IntegerConstantType(number), defaultSort); }
+
+  unsigned addRationalConstant(const std::string& numerator, const std::string& denominator,bool defaultSort)
+  { return addNumeralConstant(RationalConstantType(IntegerConstantType(numerator), IntegerConstantType(denominator)), defaultSort); }
+
+  unsigned addRealConstant(const std::string& number,bool defaultSort)
+  { return addNumeralConstant(RealConstantType(number), defaultSort); }
+
+ private:
+  void noteOccurrence(IntegerConstantType const&)  { _integers++; }
+  void noteOccurrence(RationalConstantType const&)  { _rationals++; }
+  void noteOccurrence(RealConstantType const&)  { _reals++; }
+ public:
+
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const std::string& name);
   unsigned addInterpretedFunction(Interpretation itp, const std::string& name)
   {
@@ -540,7 +623,7 @@ class Signature
   /** return true iff predicate of given @b name and @b arity exists. */
   bool isPredicateName(std::string name, unsigned arity)
   {
-    std::string symbolKey = key(name,arity);
+    auto symbolKey = key(name,arity);
     unsigned tmp;
     return _predNames.find(symbolKey,tmp);
   }
@@ -659,7 +742,7 @@ class Signature
   bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
   bool hasDefPreds() const { return !_fnDefPreds.isEmpty() || !_boolDefPreds.isEmpty(); }
       
-  static std::string key(const std::string& name,int arity);
+  static SymbolKey key(const std::string& name,int arity);
 
   /** the number of string constants */
   unsigned strings() const {return _strings;}
@@ -933,19 +1016,12 @@ private:
   Stack<Symbol*> _typeCons;
 
   DHSet<unsigned> _choiceSymbols;
-  /**
-   * Map from std::string "name_arity" to their numbers
-   *
-   * String constants have key "value_c", integer constants "value_n",
-   * rational "numerator_denominator_q" and real "value_r".
-   */
+
   SymbolMap _funNames;
-  /** Map from std::string "name_arity" to their numbers */
   SymbolMap _predNames;
-  /** Map from std::string "name_arity" to their numbers */
   SymbolMap _typeConNames;
   /** Map for the arity_check options: maps symbols to their arities */
-  SymbolMap _arityCheck;
+  Map<std::string, unsigned> _arityCheck;
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 

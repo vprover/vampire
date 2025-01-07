@@ -60,6 +60,7 @@ struct QR { T quot; T rem; };
   MK_CAST_OP(Type, !=,ToCast)                                                             \
 
 #define MK_SIGN_OPS                                                                       \
+  Sign sign()       const;                                                                \
   bool isZero()     const { return sign() == Sign::Zero; }                                \
   bool isNegative() const { return sign() == Sign::Neg;  }                                \
   bool isPositive() const { return sign() == Sign::Pos;  }                                \
@@ -203,11 +204,9 @@ public:
   Option<T> cvt() const { return someIf(MpzToMachineInt<T>::fits(_val), [&]() { return MpzToMachineInt<T>::cvt(_val); }); }
 
   template<class T> 
-  T truncate() { return MpzToMachineInt<T>::truncate(_val); }
+  T truncate() const { return MpzToMachineInt<T>::truncate(_val); }
 
   void rshiftBits(mp_bitcnt_t cnt) { mpz_tdiv_q_2exp(_val, _val, cnt); }
-
-  Sign sign() const;
 
   MK_SIGN_OPS
 
@@ -216,6 +215,8 @@ public:
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
+  auto defaultHash () const { return DefaultHash ::hash(truncate<unsigned long>()); }
+  auto defaultHash2() const { return DefaultHash2::hash(truncate<unsigned long>()); }
 
   friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
   friend struct RationalConstantType;
@@ -276,8 +277,6 @@ struct RationalConstantType {
   const InnerType& denominator() const { return _den; }
   size_t hash() const;
 
-  Sign sign() const;
-
   MK_SIGN_OPS
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
@@ -287,6 +286,9 @@ struct RationalConstantType {
   MK_CAST_OPS(RationalConstantType, int)
   MK_CAST_OPS(RationalConstantType, IntegerConstantType)
   MK_CAST_OP(RationalConstantType, /, int)
+
+  auto defaultHash () const { return HashUtils::combine(_num.defaultHash(), _den.defaultHash()); }
+  auto defaultHash2() const { return HashUtils::combine(_num.defaultHash2(), _den.defaultHash2()); }
 
 private:
   void cannonize();
@@ -330,8 +332,6 @@ public:
   IntegerConstantType floor() const { return this->RationalConstantType::floor(); }
   IntegerConstantType ceiling() const { return this->RationalConstantType::ceiling(); }
   IntegerConstantType truncate() const { return this->RationalConstantType::truncate(); }
-
-  Sign sign() const;
 
   MK_SIGN_OPS
 
@@ -760,7 +760,7 @@ extern Theory* theory;
 
 std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self);
 
-}
+} // namespace Kernel
 
 template<>
 struct std::hash<Kernel::IntegerConstantType>
