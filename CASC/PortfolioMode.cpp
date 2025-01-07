@@ -369,29 +369,9 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getCasc2024Schedule(prop,quick,fallback);
     break;
 
-  case Options::Schedule::CASC_2023:
-    Schedules::getCasc2023Schedule(prop,quick,fallback);
-    break;
-
-  case Options::Schedule::CASC_2019:
-    Schedules::getCasc2019Schedule(prop,quick,fallback);
-    break;
-
   case Options::Schedule::CASC_SAT_2024:
   case Options::Schedule::CASC_SAT:
     Schedules::getCascSat2024Schedule(prop,quick,fallback);
-    break;
-
-  case Options::Schedule::CASC_SAT_2023:
-    Schedules::getCascSat2023Schedule(prop,quick,fallback);
-    break;
-
-  case Options::Schedule::CASC_SAT_2019:
-    Schedules::getCascSat2019Schedule(prop,quick,fallback);
-    break;
-
-  case Options::Schedule::CASC_HOL_2020:
-    Schedules::getHigherOrderSchedule2020(quick,fallback);
     break;
 
   case Options::Schedule::SMTCOMP:

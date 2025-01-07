@@ -91,8 +91,8 @@ void checkLiteralMatches(LiteralSubstitutionTree<LiteralClause>& index, Options:
   for (auto qr : iterTraits(index.getUwa(lit, /* complementary */ false, uwa, fixedPointIteration)) ) {
 
     is.push(LiteralUnificationResultSpec {
-        .querySigma = qr.unifier->subs().apply(lit, /* result */ QUERY_BANK),
-        .resultSigma = qr.unifier->subs().apply(qr.data->literal, /* result */ RESULT_BANK),
+        .querySigma = qr.unifier->subs().apply(lit, /* result */ subsTreeQueryBank(0)),
+        .resultSigma = qr.unifier->subs().apply(qr.data->literal, /* result */ subsTreeInternalBank(0)),
         .constraints = *qr.unifier->constr().literals(qr.unifier->subs()),
     });
   }
@@ -100,7 +100,7 @@ void checkLiteralMatches(LiteralSubstitutionTree<LiteralClause>& index, Options:
     cout << "[  OK  ] " << *lit << endl;
   } else {
     cout << "[ FAIL ] " << *lit << endl;
-    cout << "tree: " << multiline(index, 1) << endl;
+    cout << "tree: " << Output::multiline(index, 1) << endl;
     cout << "query: " << *lit << endl;
 
     cout << "is:" << endl;
@@ -121,8 +121,8 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
-        .querySigma  = qr.unifier->subs().apply(term, /* result */ QUERY_BANK),
-        .resultSigma = qr.unifier->subs().apply(qr.data->term, /* result */ RESULT_BANK),
+        .querySigma  = qr.unifier->subs().apply(term, /* result */ subsTreeQueryBank(0)),
+        .resultSigma = qr.unifier->subs().apply(qr.data->term, /* result */ subsTreeInternalBank(0)),
         .constraints = *qr.unifier->constr().literals(qr.unifier->subs()),
     });
   }
@@ -130,7 +130,7 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
     cout << "[  OK  ] " << term << endl;
   } else {
     cout << "[ FAIL ] " << term << endl;
-    cout << "tree: " << multiline(index, 1) << endl;
+    cout << "tree: " << Output::multiline(index, 1) << endl;
     cout << "query: " << term << endl;
 
     cout << "is:" << endl;

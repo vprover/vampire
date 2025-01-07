@@ -17,6 +17,7 @@
 #define __LiteralSubstitutionTree__
 
 #include "Indexing/Index.hpp"
+#include "Lib/STL.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -61,7 +62,7 @@ public:
   }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions)); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification<RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
@@ -99,24 +100,19 @@ private:
                                  [&]() { return iter(/* reverse */ false); },
                                  [&]() { return concatIters(iter(/* reverse */ false), iter(/* reverse */ true)); }); }
         );
-    // if (tree.isEmpty()) {
-    //
-    // }
-
-    // return ifElseIter(
-    //     !lit->commutative(),
-    //     [&]() { return iter( /* reversed */ false); },
-    //     [&]() { return concatIters(
-    //                 iter( /* reversed */ false),
-    //                 iter( /* reversed */ true)
-    //                 ); }
-    //     );
   }
 
 public:
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
+  { 
+    auto unif = Lib::make_shared(AbstractingUnifier::empty(AbstractionOracle(uwa)));
+    return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, /* retrieveSubstitutions */ true,  unif.get(), AbstractionOracle(uwa), fixedPointIteration)
+        .store(std::move(unif))); }
+
+  template<class VarBanks>
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, Literal* lit, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, VarBanks>>>(lit, /* complementar*/ false, /* retrieveSubstitutions */ true, state, AbstractionOracle(uwa), fixedPointIteration)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
@@ -132,15 +128,15 @@ public:
     }
     return out << "} ";
   }
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree> const& self)
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<LiteralSubstitutionTree<LeafData_>> const& self)
   { 
     int i = 0;
     out << "{ " << std::endl;
     for (auto& t : self.self._trees) {
       if (!t->isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
-        OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
-        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(*t, self.indent + 1) << ")" << std::endl; 
+        Output::Multiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << Output::multiline(*t, self.indent + 1) << ")" << std::endl; 
       }
       i++;
     }
@@ -149,7 +145,7 @@ public:
 
   virtual void output(std::ostream& out, Option<unsigned> multilineIndent) const override {
     if (multilineIndent) {
-      out << multiline(*this, *multilineIndent);
+      out << Output::multiline(*this, *multilineIndent);
     } else {
       out << *this;
     }

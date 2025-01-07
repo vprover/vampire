@@ -44,8 +44,6 @@
 
 #include "DemodulationHelper.hpp"
 
-#include "Shell/ConditionalRedundancyHandler.hpp"
-
 #include "ForwardDemodulation.hpp"
 
 namespace Inferences {
@@ -139,10 +137,13 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
       while(git.hasNext()) {
         auto qr=git.next();
+        ASS_EQ(qr.data->clause->length(),1);
+
+        if(!ColorHelper::compatible(cl->color(), qr.data->clause->color())) {
+          continue;
+        }
 
         auto lhs = qr.data->term;
-        auto subs = qr.unifier;
-        ASS(subs->isIdentityOnQueryWhenResultBound());
 
         // TODO:
         // to deal with polymorphic matching
@@ -155,119 +156,80 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if(lhs.isVar()){
           eqSortSubs.reset();
           TermList querySort = trm.sort();
-          TermList eqSort = lhs.sort();
+          TermList eqSort = qr.data->term.sort();
           if(!eqSortSubs.match(eqSort, 0, querySort, 1)){
             continue;
           }
         }
 
+        auto subs = qr.unifier;
+        ASS(subs->isIdentityOnQueryWhenResultBound());
+
         ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
         Applicator applWithoutEqSort(subs.ptr());
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
-        DemodulatorData* dd = nullptr;
-        qr.data->comparator->reset();
-        while ((dd = static_cast<DemodulatorData*>(qr.data->comparator->next(appl)))) {
+        AppliedTerm rhsApplied(qr.data->rhs,appl,true);
+        bool preordered = qr.data->preordered;
 
-          ASS_EQ(dd->clause->length(),1);
-          ASS_EQ(lhs.sort(),dd->term.sort());
-          if (dd->clause->store() == Clause::NONE) {
-            env.statistics->inductionApplication++;
+        if (_precompiledComparison) {
+#if VDEBUG
+          auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
+#endif
+          qr.data->comparator->init(appl);
+          if (!preordered && (_preorderedOnly || !qr.data->comparator->next())) {
+            ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
           }
-
-          if(!ColorHelper::compatible(cl->color(), dd->clause->color())) {
+          ASS_EQ(dcomp,Ordering::GREATER);
+        } else {
+          if (!preordered && (_preorderedOnly || ordering.compareUnidirectional(trm,rhsApplied)!=Ordering::GREATER)) {
             continue;
           }
+        }
 
-          AppliedTerm rhsApplied(dd->rhs,appl,true);
-  #if DEBUG_ORDERING
-          if (ordering.isGreaterOrEq(AppliedTerm(trm),rhsApplied)!=Ordering::GREATER) {
-            INVALID_OPERATION("forward demodulation wrong");
+        // encompassing demodulation is fine when rewriting the smaller guy
+        if (redundancyCheck && _encompassing) {
+          // this will only run at most once;
+          // could have been factored out of the getGeneralizations loop,
+          // but then it would run exactly once there
+          Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
+          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
+              (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
+            redundancyCheck = false;
           }
-  #endif
+        }
 
-          // encompassing demodulation is fine when rewriting the smaller guy
-          if (redundancyCheck && _encompassing) {
-            // this will only run at most once;
-            // could have been factored out of the getGeneralizations loop,
-            // but then it would run exactly once there
-            Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
-            if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
-                (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
-              redundancyCheck = false;
-            }
-          }
+        TermList rhsS = rhsApplied.apply();
 
-          TermList rhsS = rhsApplied.apply();
-          if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, appl)) {
-            continue;
-          }
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, appl)) {
+          continue;
+        }
 
-          Literal* resLit = EqHelper::replace(lit,trm,rhsS);
-          if(EqHelper::isEqTautology(resLit)) {
-            env.statistics->forwardDemodulationsToEqTaut++;
-            premises = pvi( getSingletonIterator(dd->clause));
-            return true;
-          }
-
-          RStack<Literal*> resLits;
-          resLits->push(resLit);
-
-          for(unsigned i=0;i<cLen;i++) {
-            Literal* curr=(*cl)[i];
-            if(curr!=lit) {
-              resLits->push(curr);
-            }
-          }
-
-          env.statistics->forwardDemodulations++;
-
-          premises = pvi( getSingletonIterator(dd->clause));
-          replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, dd->clause));
-          if(env.options->proofExtra() == Options::ProofExtra::FULL)
-            env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
-          // ConditionalRedundancyHandler::transfer(cl, replacement);
+        Literal* resLit = EqHelper::replace(lit,trm,rhsS);
+        if(EqHelper::isEqTautology(resLit)) {
+          env.statistics->forwardDemodulationsToEqTaut++;
+          premises = pvi( getSingletonIterator(qr.data->clause));
           return true;
         }
 
-#if DEBUG_ORDERING
-        for (const auto& dd : qr.data->dds) {
-          ASS_EQ(dd->clause->length(),1);
+        RStack<Literal*> resLits;
+        resLits->push(resLit);
 
-          if (dd->clause->store() == Clause::NONE) {
-            continue;
+        for(unsigned i=0;i<cLen;i++) {
+          Literal* curr=(*cl)[i];
+          if(curr!=lit) {
+            resLits->push(curr);
           }
-
-          if(!ColorHelper::compatible(cl->color(), dd->clause->color())) {
-            continue;
-          }
-
-          AppliedTerm rhsApplied(dd->rhs,appl,true);
-          bool preordered = dd->preordered;
-
-          if (!preordered && (_preorderedOnly || ordering.isGreaterOrEq(AppliedTerm(trm),rhsApplied)!=Ordering::GREATER)) {
-            continue;
-          }
-
-          // encompassing demodulation is fine when rewriting the smaller guy
-          if (redundancyCheck && _encompassing) {
-            // this will only run at most once;
-            // could have been factored out of the getGeneralizations loop,
-            // but then it would run exactly once there
-            Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
-            if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
-                (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
-              redundancyCheck = false;
-            }
-          }
-
-          if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsApplied.apply(), lhs, appl)) {
-            continue;
-          }
-          INVALID_OPERATION("forward demodulation missed");
         }
-#endif
+
+        env.statistics->forwardDemodulations++;
+
+        premises = pvi( getSingletonIterator(qr.data->clause));
+        replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
+        if(env.options->proofExtra() == Options::ProofExtra::FULL)
+          env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
+        return true;
       }
     }
   }

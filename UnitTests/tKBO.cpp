@@ -43,7 +43,7 @@ KBO kbo(unsigned introducedSymbolWeight,
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
-             predLevels(),
+             PrecedenceOrdering::testLevels(),
              /*revereseLCM*/ false);
 }
 
@@ -382,8 +382,8 @@ TEST_FUN(kbo_test23) {
 // isGreater tests
 
 bool isGreaterSymmetric(const KBO& ord, TermList t1, TermList t2) {
-  return ord.isGreaterOrEq(AppliedTerm(t1),AppliedTerm(t2))==Ordering::GREATER
-    && ord.isGreaterOrEq(AppliedTerm(t2),AppliedTerm(t1))!=Ordering::GREATER;
+  return ord.compareUnidirectional(AppliedTerm(t1),AppliedTerm(t2))==Ordering::GREATER
+    && ord.compareUnidirectional(AppliedTerm(t2),AppliedTerm(t1))!=Ordering::GREATER;
 }
 
 TEST_FUN(kbo_isGreater_test01) {
@@ -430,8 +430,8 @@ TEST_FUN(kbo_isGreater_test04) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS(ord.isGreaterOrEq(AppliedTerm(f(x)), AppliedTerm(g(g(g(g(g(y)))))))!=Ordering::GREATER);
-  ASS(ord.isGreaterOrEq(AppliedTerm(g(g(g(g(g(y)))))), AppliedTerm(f(x)))!=Ordering::GREATER);
+  ASS(ord.compareUnidirectional(AppliedTerm(f(x)), AppliedTerm(g(g(g(g(g(y)))))))!=Ordering::GREATER);
+  ASS(ord.compareUnidirectional(AppliedTerm(g(g(g(g(g(y)))))), AppliedTerm(f(x)))!=Ordering::GREATER);
 }
 
 TEST_FUN(kbo_isGreater_test05) {

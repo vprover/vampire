@@ -16,20 +16,18 @@
 #define __Indexing_Index__
 
 #include "Forwards.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Event.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
-
-#include "Kernel/Clause.hpp"
-#include "Kernel/OrderingComparator.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/UnificationWithAbstraction.hpp"
-
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
+#include "Lib/Allocator.hpp"
+#include "Kernel/OrderingComparator.hpp"
 
 /**
  * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.
@@ -59,7 +57,7 @@ public:
   Clause* clause = nullptr;
 
   friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
-  { return out << "{ " << outputPtr(self.clause) << ", " << outputPtr(self.literal) << " }"; }
+  { return out << "{ " << Output::ptr(self.clause) << ", " << Output::ptr(self.literal) << " }"; }
 };
 
 template<class Value>
@@ -106,17 +104,11 @@ struct TermLiteralClause
 
   IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
 
-  bool insert(TermLiteralClause& other) { return false; }
-
-  bool remove(const TermLiteralClause& other) { return *this==other; }
-
-  bool canBeDeleted() const { return true; }
-
   friend std::ostream& operator<<(std::ostream& out, TermLiteralClause const& self)
   { return out << "("
                << self.term << ", "
                << self.literal
-               << outputPtr(self.clause)
+               << Output::ptr(self.clause)
                << ")"; }
 };
 
@@ -125,8 +117,10 @@ struct TermLiteralClause
 struct DemodulatorData
 {
   DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
-    : term(term), rhs(rhs), clause(clause), preordered(preordered)
+    : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator(ord.createComparator())
   {
+    // insert pointer to owner as non-null value representing success
+    comparator->insert({ { term, rhs, Ordering::GREATER } }, this);
 #if VDEBUG
     ASS(term.containsAllVariablesOf(rhs));
     ASS(!preordered || ord.compare(term,rhs)==Ordering::GREATER);
@@ -142,6 +136,7 @@ struct DemodulatorData
   TermList rhs;
   Clause* clause;
   bool preordered; // whether term > rhs
+  OrderingComparatorUP comparator; // owned comparator for whether term > rhs
 
   TypedTermList const& key() const { return term; }
 
@@ -151,78 +146,7 @@ struct DemodulatorData
   IMPL_COMPARISONS_FROM_TUPLE(DemodulatorData)
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorData const& self)
-  { return out << "(" << self.term << " = " << self.rhs << ", cl " << outputPtr(self.clause) << ")"; }
-};
-
-struct DemodulatorDataContainer {
-  TypedTermList term;
-  Stack<DemodulatorData*> dds;
-  unsigned removedCnt = 0;
-  OrderingComparatorUP comparator;
-
-  DemodulatorDataContainer(DemodulatorData&& dd, const Ordering& ord) : term(dd.term) {
-    Stack<Ordering::Constraint> ordCons;
-    if (!dd.preordered) {
-      ordCons.push({ dd.term, dd.rhs, Ordering::GREATER });
-    }
-    auto ptr = new DemodulatorData(std::move(dd));
-    dds.push(ptr);
-    comparator = ord.createComparator();
-    comparator->insert(ordCons, ptr);
-  }
-
-  ~DemodulatorDataContainer() {
-    iterTraits(dds.iter()).forEach([](DemodulatorData* dd){ delete dd; });
-  }
-
-  DemodulatorDataContainer(DemodulatorDataContainer&&) = default;
-
-  bool insert(DemodulatorDataContainer& other) {
-    ASS_EQ(other.dds.size(),1);
-    // only allow insertion if term sorts are identical to
-    // avoid putting variables of different sorts together
-    if (term!=other.term || term.sort()!=other.term.sort()) {
-      return false;
-    }
-    dds.loadFromIterator(other.dds.iter());
-    Stack<Ordering::Constraint> ordCons;
-    if (!other.dds[0]->preordered) {
-      ordCons.push({ other.dds[0]->term, other.dds[0]->rhs, Ordering::GREATER });
-    }
-    comparator->insert(ordCons, other.dds[0]);
-    other.dds.reset(); // takes ownership
-    return true;
-  }
-
-  bool remove(const DemodulatorDataContainer& other) {
-    ASS_EQ(other.dds.size(),1);
-    if (term!=other.term || term.sort()!=other.term.sort()) {
-      return false;
-    }
-    ALWAYS(iterTraits(other.dds.iter()).all([this](DemodulatorData* toRemove){
-      decltype(dds)::Iterator it(dds);
-      unsigned removedOccs = 0;
-      while (it.hasNext()) {
-        auto curr = it.next();
-        if (*curr==*toRemove) {
-          // TODO this is not good until we can
-          // actually remove the node from the tree
-          //
-          // delete curr;
-          // it.del();
-          removedCnt++;
-          removedOccs++;
-        }
-      }
-      return removedOccs==1;
-    }));
-    return true;
-  }
-
-  bool canBeDeleted() const { return removedCnt==dds.size(); }
-
-  friend std::ostream& operator<<(std::ostream& out, DemodulatorDataContainer const& self)
-  { return out << *self.comparator; }
+  { return out << "(" << self.term << " = " << self.rhs << Output::ptr(self.clause) << ")"; }
 };
 
 template<class T>
@@ -230,7 +154,7 @@ struct is_indexed_data_normalized
 { static constexpr bool value = false; };
 
 template<>
-struct is_indexed_data_normalized<DemodulatorDataContainer>
+struct is_indexed_data_normalized<DemodulatorData>
 { static constexpr bool value = true; };
 
 /**

@@ -16,6 +16,7 @@
 #define __StringUtils__
 
 #include "DHMap.hpp"
+#include "Lib/Output.hpp"
 #include <cstdlib>
 
 namespace Lib {
@@ -41,6 +42,8 @@ public:
   template<class A>
   static A parse(std::string const& str)
   { return StringParser<A>{}(str); }
+
+  static size_t distance(const std::string &s1, const std::string &s2);
 };
 
 template<> struct StringParser<int>
@@ -57,7 +60,6 @@ template<> struct StringParser<float>
 };
 
 
-
-}
+} // namespace Lib
 
 #endif // __StringUtils__

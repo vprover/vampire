@@ -60,8 +60,8 @@ protected:
       
 public:
   CodeTree();
-  virtual ~CodeTree();
-
+  ~CodeTree();
+  
   struct LitInfo
   {
     LitInfo() {}
@@ -202,7 +202,7 @@ public:
       return _data<Term>();
     }
 
-    template<class T> inline T* getSuccessResult() const { ASS(isSuccess()); return _data<T>(); }
+    template<class T> inline T* getSuccessResult() { ASS(isSuccess()); return _data<T>(); }
 
     inline ILStruct* getILS() { ASS(isLitEnd()); return _data<ILStruct>(); }
     inline const ILStruct* getILS() const { return _data<ILStruct>(); }
@@ -350,6 +350,7 @@ public:
      * a call to the @b prepareLiteral function).
      */
     FlatTerm* ft;
+
   };
 
   //////// auxiliary methods //////////
@@ -367,7 +368,7 @@ public:
 
   typedef DHMap<unsigned,unsigned> VarMap;
 
-  template<bool forLits, bool linearize = false>
+  template<bool forLits>
   struct Compiler
   {
     Compiler(CodeStack& code);
@@ -384,7 +385,6 @@ public:
     unsigned nextGlobalVarNum;
     VarMap varMap;
     VarMap globalVarMap;
-    Stack<std::pair<unsigned,unsigned>> eqCons;
   };
 
   using LitCompiler = Compiler<true>;
@@ -461,8 +461,7 @@ public:
   struct BTPoint
   {
     BTPoint() {}
-    BTPoint(size_t tp, CodeOp* op)
-      : tp(tp), op(op) {}
+    BTPoint(size_t tp, CodeOp* op) : tp(tp), op(op) {}
 
     /** Position in the flat term */
     size_t tp;
@@ -546,8 +545,6 @@ public:
 
   void incTimeStamp();
 
-  virtual std::string leafToString(const CodeOp* success) const { return "<unknown>"; }
-
   //////// member variables //////////
 
 
@@ -556,7 +553,6 @@ public:
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */
   unsigned _maxVarCnt;
-  unsigned _maxTreeDepth;
 
   CodeBlock* _entryPoint;
 

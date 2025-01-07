@@ -330,14 +330,6 @@ public:
     _cursor++;
   } // Stack::push()
 
-  inline
-  void pushUnsafe(C elem)
-  {
-    ASS(_cursor < _end);
-    ::new(_cursor) C(std::move(elem));
-    _cursor++;
-  } // Stack::push()
-
   /**
    * Pop the stack and return the popped element.
    * @since 11/03/2006 Bellevue
@@ -379,12 +371,12 @@ public:
 
   template<class Less = std::less<C>>
   void sort(Less less = std::less<C>{})
-  { std::sort(begin(), end(), less); }
+  { std::sort(begin(), end(), std::move(less)); }
 
   /** like Stack::sort but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this */
-  template<class Equal = std::equal_to<C>>
-  Stack sorted(Equal eq = std::equal_to<C>{})
-  { sort(); return std::move(*this); }
+  template<class Less = std::less<C>>
+  Stack sorted(Less less = std::less<C>{})
+  { sort(std::move(less)); return std::move(*this); }
 
   inline
   void pop(unsigned cnt)

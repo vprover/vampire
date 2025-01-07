@@ -170,10 +170,10 @@ public:
     : _self([&](){ 
         if (mem().isNonEmpty()) {
           auto elem = mem().pop();
-          elem->init(a, as...);
+          elem->init(std::move(a), std::move(as)...);
           return elem;
         } else {
-          return IF_USE_PTRS(std::make_unique<T>, T)(a, as...);
+          return IF_USE_PTRS(std::make_unique<T>, T)(std::move(a), std::move(as)...);
         }
     }())
   { }
@@ -211,8 +211,8 @@ public:
   T* operator->() { return &self(); }
 
   auto size() const { return self().size(); }
-  template<class Idx> auto operator[](Idx idx) const { return self()[idx]; }
-  template<class Idx> auto operator[](Idx idx)       { return self()[idx]; }
+  template<class Idx> decltype(auto) operator[](Idx idx) const { return self()[idx]; }
+  template<class Idx> decltype(auto) operator[](Idx idx)       { return self()[idx]; }
 
   friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
   { if (self.alive())return out << self.self(); else return out << "Recycled(NULL)"; }

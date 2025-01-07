@@ -48,7 +48,7 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
   *branch = std::move(fail);
 }
 
-void LPOComparator::expandTermCase()
+void LPOComparator::processTermNode()
 {
   // take temporary ownership of node
   auto node = _curr->node();
@@ -58,7 +58,7 @@ void LPOComparator::expandTermCase()
   auto gtBranch = node->gtBranch;
   auto ngeBranch = node->ngeBranch;
 
-  ASS_EQ(node->tag, T_TERM);
+  ASS_EQ(node->tag, Node::T_TERM);
   ASS(!node->ready);
 
   ASS(lhs.isTerm() && rhs.isTerm());
@@ -78,7 +78,7 @@ void LPOComparator::expandTermCase()
       auto t_arg = *rhs.term()->nthArgument(i);
       if (i == 0) {
         // we mutate the original node in the first iteration
-        ASS_EQ(curr->node()->tag, T_TERM);
+        ASS_EQ(curr->node()->tag, Node::T_TERM);
         curr->node()->lhs = s_arg;
         curr->node()->rhs = t_arg;
       } else {

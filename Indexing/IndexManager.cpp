@@ -186,7 +186,7 @@ Index* IndexManager::create(IndexType t)
     break;
   }
   case DEMODULATION_LHS_CODE_TREE:
-    res = new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorDataContainer>(), _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 

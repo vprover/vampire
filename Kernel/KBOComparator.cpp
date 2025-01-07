@@ -21,7 +21,7 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void KBOComparator::expandTermCase()
+void KBOComparator::processTermNode()
 {
   const auto& kbo = static_cast<const KBO&>(_ord);
 
@@ -29,20 +29,20 @@ void KBOComparator::expandTermCase()
 
   // we only care about the non-zero weights and counts
   bool varInbalance = false;
-  auto state = kbo._state;
+  auto state = kbo._state.get();
 #if VDEBUG
   // we make sure kbo._state is not used while we're using it
-  kbo._state = nullptr;
+  auto __state = std::move(kbo._state);
 #endif
   auto w = state->_weightDiff;
   decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
-  ScopedPtr nonzeros(new Stack<VarCoeffPair>());
+  Stack<VarCoeffPair> nonzeros;
   while (vit.hasNext()) {
     unsigned v;
     int cnt;
     vit.next(v,cnt);
     if (cnt!=0) {
-      nonzeros->push(make_pair(v,cnt));
+      nonzeros.push({ v, cnt });
       w-=cnt; // we have to remove the variable weights from w
     }
     if (cnt<0) {
@@ -50,8 +50,7 @@ void KBOComparator::expandTermCase()
     }
   }
 #if VDEBUG
-  kbo._state = state;
-  state = nullptr;
+  kbo._state = std::move(__state);
 #endif
 
   auto node = _curr->node();
@@ -66,13 +65,9 @@ void KBOComparator::expandTermCase()
   auto curr = _curr;
   bool weightAdded = (w < 0 || varInbalance);
   if (weightAdded) {
-    sort(nonzeros->begin(),nonzeros->end(),[](const auto& e1, const auto& e2) {
-      return e1.second>e2.second;
-    });
     // we mutate the original node
-    curr->node()->tag = T_POLY;
-    curr->node()->w = w;
-    curr->node()->varCoeffPairs = nonzeros.release();
+    curr->node()->tag = Node::T_POLY;
+    curr->node()->poly = Polynomial::get(w, nonzeros);
     curr->node()->gtBranch = gtBranch;
     curr->node()->ngeBranch = ngeBranch;
     curr = &curr->node()->eqBranch;

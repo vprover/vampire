@@ -279,7 +279,7 @@ unsigned Signature::addIntegerConstant(const std::string& number,bool defaultSor
   }
 
   // default sort should be used
-  std::string name = value.toString();
+  std::string name = Output::toString(value);
   std::string symbolKey = name + "_n";
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
@@ -305,7 +305,7 @@ unsigned Signature::addIntegerConstant(const std::string& number,bool defaultSor
  */
 unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
 {
-  std::string key = value.toString() + "_n";
+  std::string key = Output::toString(value, "_n");
   unsigned result;
   if (_funNames.find(key, result)) {
     return result;
@@ -329,12 +329,12 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
  */
 unsigned Signature::addRationalConstant(const std::string& numerator, const std::string& denominator,bool defaultSort)
 {
-  RationalConstantType value(numerator, denominator);
+  auto value = RationalConstantType(IntegerConstantType(numerator), IntegerConstantType(denominator));
   if (!defaultSort) {
     return addRationalConstant(value);
   }
 
-  std::string name = value.toString();
+  std::string name = Output::toString(value);
   std::string key = name + "_q";
   unsigned result;
   if (_funNames.find(key,result)) {
@@ -355,7 +355,7 @@ unsigned Signature::addRationalConstant(const std::string& numerator, const std:
 
 unsigned Signature::addRationalConstant(const RationalConstantType& value)
 {
-  std::string key = value.toString() + "_q";
+  std::string key = Output::toString(value, "_q");
   unsigned result;
   if (_funNames.find(key, result)) {
     return result;
@@ -379,13 +379,13 @@ unsigned Signature::addRealConstant(const std::string& number,bool defaultSort)
   if (!defaultSort) {
     return addRealConstant(value);
   }
-  std::string key = value.toString() + "_r";
+  std::string key = Output::toString(value, "_r");
   unsigned result;
   if (_funNames.find(key,result)) {
     return result;
   }
   result = _funs.length();
-  Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
+  Symbol* sym = new Symbol(Output::toString(value),0,false,false,true);
   /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
@@ -399,7 +399,7 @@ unsigned Signature::addRealConstant(const std::string& number,bool defaultSort)
 
 unsigned Signature::addRealConstant(const RealConstantType& value)
 {
-  std::string key = value.toString() + "_r";
+  std::string key = Output::toString(value, "_r");
   unsigned result;
   if (_funNames.find(key, result)) {
     return result;
