@@ -28,41 +28,41 @@ struct RenderMonom {
     auto& raw = x.raw();
     std::sort(raw.begin(), raw.end());
 
-    Numeral num(1);
-    bool found = false;
-    unsigned len = 0;
-    for (auto x : raw) {
-      ASS_EQ(x.power, 1)
-      Option<Numeral> attempt(x.term.template tryNumeral<NumTraits>());
-      if (!found && attempt.isSome() && *attempt != 1) {
-        found = true;
-        num = attempt.unwrap();
-      } else if (!found 
-          && x.term.template is<Perfect<FuncTerm>>() 
-          && NumTraits::isNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
-          && 1 != *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
-          ) {
-        found = true;
-        num = *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id());
-      } else if (len == 0) {
-        len++;
-        raw[len - 1].term = x.term;
-        ASS_EQ(raw[len - 1].power, 1);
-
-      } else if (raw[len - 1].term == x.term) {
-        raw[len - 1].power++;
-
-      } else {
-        len++;
-        raw[len - 1].term = x.term;
-        ASS_EQ(raw[len - 1].power, 1)
-
-      }
-    }
-    raw.truncate(len);
-    ASS_EQ(raw.size(), len)
-    x.integrity();
-    return Monom(num, perfect(std::move(x)));
+    // Numeral num(1);
+    // bool found = false;
+    // unsigned len = 0;
+    // for (auto x : raw) {
+    //   ASS_EQ(x.power, 1)
+    //   Option<Numeral> attempt(x.term.template tryNumeral<NumTraits>());
+    //   if (!found && attempt.isSome() && *attempt != 1) {
+    //     found = true;
+    //     num = attempt.unwrap();
+    //   } else if (!found 
+    //       && x.term.template is<Perfect<FuncTerm>>() 
+    //       && NumTraits::isNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
+    //       && 1 != *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
+    //       ) {
+    //     found = true;
+    //     num = *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id());
+    //   } else if (len == 0) {
+    //     len++;
+    //     raw[len - 1].term = x.term;
+    //     ASS_EQ(raw[len - 1].power, 1);
+    //
+    //   } else if (raw[len - 1].term == x.term) {
+    //     raw[len - 1].power++;
+    //
+    //   } else {
+    //     len++;
+    //     raw[len - 1].term = x.term;
+    //     ASS_EQ(raw[len - 1].power, 1)
+    //
+    //   }
+    // }
+    // raw.truncate(len);
+    // ASS_EQ(raw.size(), len)
+    // x.integrity();
+    return Monom(Numeral(1), perfect(std::move(x)));
   }
 };
 
@@ -283,8 +283,12 @@ NormalizationResult normalizeMinus(NormalizationResult& x) {
 template<class NumTraits>
 NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts) 
 {
+  using Polynom      = Polynom<NumTraits>;
+  using MonomFactors = MonomFactors<NumTraits>;
+  using MonomFactor  = MonomFactor <NumTraits>;
+
   auto singletonProduct = [](PolyNf t) -> NormalizationResult {
-    return NormalizationResult(MonomFactors<NumTraits>(t));
+    return NormalizationResult(MonomFactors(t));
   };
 
   if (t.isVar()) {
@@ -292,11 +296,23 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
   } else {
     auto term = t.term();
-    auto res = NumTraits::ifLinMul(term, [&](auto& n, auto t) {
-        auto lhs = NormalizationResult(MonomFactors<NumTraits>(PolyNf(perfect(FuncTerm(FuncId::symbolOf(NumTraits::constantT(n)), Stack<PolyNf>())))));
-        return normalizeMul<NumTraits>(lhs, ts[0]);
+    auto res = NumTraits::ifLinMul(term, [&](auto& n, auto t) -> NormalizationResult {
+        auto& inner = ts[0];
+        ASS(inner.is<Polynom>() || inner.is<MonomFactors>()) 
+        auto t2 = FuncId::numeralConstant(n);
+        auto t1 = FuncTerm(t2, Stack<PolyNf>());
+        auto t0 = perfect(t1);
+        auto numeral = PolyNf(t0);
+        if (inner.is<Polynom>()) {
+          return NormalizationResult(MonomFactors(numeral, RenderPolyNf{}(std::move(*inner.template as<Polynom>()))));
+        } else {
+          inner.as<MonomFactors>()->raw().push(MonomFactor(numeral, 1));
+          return std::move(inner);
+        }
+
+        // return normalizeMul<NumTraits>(lhs, ts[0]);
     });
-    if (res) return *res;
+    if (res) return std::move(*res);
     auto fn = FuncId::symbolOf(term);
     if (fn.isInterpreted()) {
       switch(fn.interpretation()) {
@@ -329,11 +345,47 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
   }
 }
 
-PolyNf normalizeTerm(TypedTermList t) 
+PolyNf oldNormalizeTerm(TypedTermList t) 
 {
   DEBUG(0, "normalizing ", t)
     // DBGE(t)
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
+    .function(
+        [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
+        { 
+          auto sort = t.sort();
+          if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
+          if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
+          if (sort == RealTraits::sort()) { return normalizeNumSort<RealTraits>(t, ts); }
+          else {
+            if (t.isVar()) {
+              return NormalizationResult(PolyNf(Variable(t.var())));
+            } else {
+              auto fn = FuncId::symbolOf(t.term());
+              return NormalizationResult(PolyNf(perfect(FuncTerm(
+                  fn, 
+                  Stack<PolyNf>::fromIterator(
+                      iterTraits(arrayIter(ts, fn.numTermArguments()))
+                      .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
+                )
+              )));
+            }
+          }
+        })
+    .apply(t);
+
+  DEBUG(1, "normed: ", r)
+  auto out = std::move(r).apply(RenderPolyNf{});
+  DEBUG(0, "out: ", r)
+  return out;
+}
+PolyNf normalizeTerm(TypedTermList t) 
+{
+  DEBUG(0, "normalizing ", t)
+    // DBGE(t)
+  static Memo::Hashed<TypedTermList, NormalizationResult, StlHash> memo;
+  NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
+    .memo<decltype(memo)&>(memo)
     .function(
         [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
         { 
