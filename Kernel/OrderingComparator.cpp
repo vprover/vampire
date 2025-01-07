@@ -64,7 +64,7 @@ void* OrderingComparator::next()
     Ordering::Result comp = Ordering::INCOMPARABLE;
     if (node->tag == Node::T_TERM) {
 
-      comp = _ord.isGreaterOrEq(
+      comp = _ord.compareUnidirectional(
         AppliedTerm(node->lhs, _appl, true),
         AppliedTerm(node->rhs, _appl, true));
 

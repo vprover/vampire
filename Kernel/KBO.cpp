@@ -805,7 +805,7 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
   return res;
 }
 
-Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
+Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) const
 {
   if (tl1.equalsShallow(tl2)) {
     return EQUAL;
