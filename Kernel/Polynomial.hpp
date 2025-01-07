@@ -82,6 +82,15 @@ class FuncId
   
   explicit FuncId(unsigned num, const TermList* typeArgs);
 public: 
+
+  template<class Numeral> 
+  static FuncId numeralConstant(Numeral const& num) 
+  { return FuncId(NumTraits<Numeral>::constantF(num), nullptr); }
+
+  template<class Numeral> 
+  static FuncId linMul(Numeral const& num) 
+  { return FuncId(NumTraits<Numeral>::linMulF(num), nullptr); }
+
   static FuncId fromInterpretation(Theory::Interpretation i)
   { return FuncId(env.signature->getInterpretingSymbol(i), nullptr); }
 
@@ -160,6 +169,7 @@ struct Monom
   Monom(Numeral numeral) : Monom(numeral, perfect(MonomFactors<Number>::one())) {}
   Monom(int num) : Monom(Numeral(num)) {}
   Monom(int n1, int n2) : Monom(Numeral(n1, n2)) {}
+  Monom(PolyNf);
   Monom(MonomFactors<Number> factors) : Monom(Numeral(1), perfect(std::move(factors))) {}
 
   static Monom zero();

@@ -260,11 +260,12 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , Mul  , SHORT, _MULTIPLY   , 2)                \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(floor, Floor, SHORT, _FLOOR, 1)                      \
     __NUM_TRAITS_IF_FRAC(SHORT,                                                           \
-        IMPL_NUM_TRAITS__INTERPRETED_FUN(div, Div, SHORT, _QUOTIENT, 2)                   \
-        static ConstantType constant(int num, int den) { return ConstantType(num, den); } \
-        static Term* constantT(int num, int den) { return theory->representConstant(constant(num, den)); }    \
-        static TermList constantTl(int num, int den) { return TermList(constantT(num, den)); }      \
-        static bool isFractional() { return true; }                                       \
+      IMPL_NUM_TRAITS__INTERPRETED_FUN(div, Div, SHORT, _QUOTIENT, 2)                     \
+      static ConstantType constant(int num, int den) { return ConstantType(num, den); }   \
+      static auto constantT (int num, int den) { return constantT (constant(num, den)); } \
+      static auto constantF (int num, int den) { return constantF (constant(num, den)); } \
+      static auto constantTl(int num, int den) { return constantTl(constant(num, den)); } \
+      static bool isFractional() { return true; }                                         \
     )                                                                                     \
                                                                                           \
     __NUM_TRAITS_IF_NOT_FRAC(SHORT,                                                       \
@@ -298,7 +299,7 @@ struct NumTraits;
                .flatten(); }                                                              \
                                                                                           \
     template<class F>                                                                     \
-    static auto ifLinMul(Term const* t, F func)                                                 \
+    static auto ifLinMul(Term const* t, F func)                                           \
     {                                                                                     \
       auto c = tryLinMul(t->functor());                                                   \
       return someIf(c.isSome(), [&]() { return func(*c, t->termArg(0)); });               \
@@ -308,10 +309,15 @@ struct NumTraits;
     { return TermList(Term::create(linMulF(c), {t})); }                                   \
                                                                                           \
     static ConstantType constant(int i) { return ConstantType(i); }                       \
-    static Term* constantT(int i) { return constantT(constant(i)); }                      \
-    static Term* constantT(ConstantType i) { return theory->representConstant(i); }       \
-    static TermList constantTl(int i) { return TermList(constantT(i)); }                  \
-    static TermList constantTl(ConstantType i) { return TermList(constantT(i)); }         \
+    static auto constantF (int i) { return constantF (constant(i)); }                     \
+    static auto constantT (int i) { return constantT (constant(i)); }                     \
+    static auto constantTl(int i) { return constantTl(constant(i)); }                     \
+                                                                                          \
+    static unsigned constantF(ConstantType const& i)                                             \
+    { return env.signature->addNumeralConstant(i); }                                      \
+                                                                                          \
+    static Term*    constantT(ConstantType const& i) { return Term::create(constantF(i), {}); }  \
+    static TermList constantTl(ConstantType const& i) { return TermList(constantT(i)); }         \
     template<class TermOrFunctor>                                                         \
     static Option<ConstantType> tryNumeral(TermOrFunctor t) {                             \
       ConstantType out;                                                                   \

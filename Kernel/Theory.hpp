@@ -204,7 +204,7 @@ public:
   Option<T> cvt() const { return someIf(MpzToMachineInt<T>::fits(_val), [&]() { return MpzToMachineInt<T>::cvt(_val); }); }
 
   template<class T> 
-  T truncate() { return MpzToMachineInt<T>::truncate(_val); }
+  T truncate() const { return MpzToMachineInt<T>::truncate(_val); }
 
   void rshiftBits(mp_bitcnt_t cnt) { mpz_tdiv_q_2exp(_val, _val, cnt); }
 
@@ -215,6 +215,8 @@ public:
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
+  auto defaultHash () const { return DefaultHash ::hash(truncate<unsigned long>()); }
+  auto defaultHash2() const { return DefaultHash2::hash(truncate<unsigned long>()); }
 
   friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
   friend struct RationalConstantType;
@@ -284,6 +286,9 @@ struct RationalConstantType {
   MK_CAST_OPS(RationalConstantType, int)
   MK_CAST_OPS(RationalConstantType, IntegerConstantType)
   MK_CAST_OP(RationalConstantType, /, int)
+
+  auto defaultHash () const { return HashUtils::combine(_num.defaultHash(), _den.defaultHash()); }
+  auto defaultHash2() const { return HashUtils::combine(_num.defaultHash2(), _den.defaultHash2()); }
 
 private:
   void cannonize();
