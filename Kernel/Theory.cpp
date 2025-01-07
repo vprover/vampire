@@ -374,10 +374,11 @@ Option<RationalConstantType> parseExponentInteger(std::string const& number, con
   auto i = number.find_first_of(exponentChars);
   if (i != std::string::npos) {
     auto base = parseRat(number.substr(0, i));
-    // auto exp = IntegerConstantType(number.substr(i + 1));
-    unsigned exp = 0;
-    if (Int::stringToUnsignedInt(number.substr(i + 1).c_str(), exp) && base.isSome()) {
-      return some((*base) * (IntegerConstantType(10) ^ (unsigned long)exp));
+    int exp = 0;
+    if (Int::stringToInt(number.substr(i + 1).c_str(), exp) && base.isSome()) {
+      return some(
+          exp >= 0 ? (*base) * (IntegerConstantType(10) ^ (unsigned long)exp)
+                   : (*base) / RationalConstantType((IntegerConstantType(10) ^ (unsigned long)abs(exp))));
     }
   }
   return {};
