@@ -9,13 +9,13 @@
  */
 /**
  * @file PartialOrdering.hpp
- * Defines a partial ordering between elements of some set.
  */
 
 #ifndef __PartialOrdering__
 #define __PartialOrdering__
 
 #include <string>
+#include <vector>
 
 namespace Kernel {
 
@@ -35,13 +35,24 @@ enum class PoComp : uint8_t {
 bool checkCompatibility(PoComp old, PoComp curr, PoComp& res);
 std::string pocompToInfix(PoComp c);
 
-/** 
- * Partial ordering between elements of some set. The set elements
- * are denoted by IDs inside the class, which is given by order of
- * appearance, as explained below. The set elements are abstracted
- * via these IDs to increase sharing among partial ordering objects.
- * Hence, operations modifying the objects are performed through
- * static methods.
+/**
+ * Partial ordering between elements of some set.
+ *
+ * We initially have an empty relation, and we extend this by
+ * maintaining a triangular array where each entry is a @b PoComp
+ * value. After each extension we compute the transitive closure
+ * of the current relation. Assuming this was done for the previous
+ * relation, it is enough to compute what has become "connected"
+ * through the newly added value. In certain cases, this extension
+ * fails as the new relation would be contradictory. This state
+ * is represented by a null partial ordering.
+ *
+ * The set elements are denoted by IDs inside the class, which is
+ * given by order of appearance, as explained below. The set
+ * elements are abstracted via these IDs to increase sharing among
+ * partial ordering objects. Hence, operations modifying the
+ * objects are performed through static methods, and we get shared
+ * heap-allocated objects, or null if the operation fails.
  */
 class PartialOrdering
 {
@@ -52,7 +63,7 @@ public:
   /** Get empty partial ordering. */
   static const PartialOrdering* getEmpty();
   /** Add new element to partial ordering. The ID of this
-   *  element is set to @b size()-1 of the new partial ordering. */
+   *  element is set to @b _size-1 of the new partial ordering. */
   static const PartialOrdering* extend(const PartialOrdering* po);
   /** Tries to set relation between two elements with IDs @b x and @b y,
    *  and performs transitive closure over the entire set so far.
@@ -66,9 +77,9 @@ public:
   friend std::ostream& operator<<(std::ostream& str, const PartialOrdering& po);
 
 private:
-  PartialOrdering();
-  ~PartialOrdering();
-  PartialOrdering(const PartialOrdering& other);
+  PartialOrdering() = default;
+  ~PartialOrdering() = default;
+  PartialOrdering(const PartialOrdering&) = default;
   PartialOrdering& operator=(const PartialOrdering&) = delete;
 
   void extend();
@@ -82,9 +93,9 @@ private:
   bool setInferredHelperInc(size_t x, size_t y, PoComp wkn);
   bool setInferredHelperEq(size_t x, size_t y);
 
-  size_t _size;
-  PoComp* _array;
-  bool _hasIncomp;
+  size_t _size = 0;
+  std::vector<PoComp> _array;
+  bool _hasIncomp = false;
 };
 
 };

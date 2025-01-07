@@ -209,7 +209,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
           TermList other = trm == curr->left ? curr->right : curr->left;
-          auto redComp = ordering.isGreaterOrEq(other, AppliedTerm(rhs, &appl, true), &po_struct);
+          auto redComp = ordering.compareUnidirectional(other, AppliedTerm(rhs, &appl, true), &po_struct);
           ASS_NEQ(redComp,Ordering::LESS);
           // Note: EQUAL should be fine when doing forward simplification
           if (redComp == Ordering::INCOMPARABLE) {

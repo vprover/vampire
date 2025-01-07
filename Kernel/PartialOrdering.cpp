@@ -147,29 +147,6 @@ string pocompToInfix(PoComp c) {
   ASSERTION_VIOLATION;
 }
 
-PartialOrdering::PartialOrdering()
-  : _size(0), _array(nullptr), _hasIncomp(false) {}
-
-PartialOrdering::PartialOrdering(const PartialOrdering& other)
-  : _size(other._size), _array(nullptr), _hasIncomp(other._hasIncomp)
-{
-  size_t arrSize = ((_size - 1) * _size / 2);
-  if (arrSize) {
-    void* mem = ALLOC_KNOWN(arrSize*sizeof(PoComp), "Kernel::PartialOrdering");
-    _array = array_new<PoComp>(mem, arrSize);
-    memcpy(_array,other._array,arrSize*sizeof(PoComp));
-  }
-}
-
-PartialOrdering::~PartialOrdering()
-{
-  size_t arrSize = ((_size - 1) * _size / 2);
-  if (arrSize) {
-    array_delete(_array, arrSize);
-    DEALLOC_KNOWN(_array, arrSize*sizeof(PoComp), "Kernel::PartialOrdering");
-  }
-}
-
 PoComp PartialOrdering::get(size_t x, size_t y) const
 {
   ASS_L(x,_size);
@@ -239,31 +216,14 @@ const PartialOrdering* PartialOrdering::extend(const PartialOrdering* po)
 
 void PartialOrdering::extend()
 {
-  // extend array
-  size_t prevSize = ((_size - 1) * _size / 2);
-  auto prevArray = _array;
   _size++;
-  if (_size>1) {
-    size_t newSize = prevSize + _size;
-    void* mem = ALLOC_KNOWN(newSize*sizeof(PoComp), "Kernel::PartialOrdering");
-    _array = array_new<PoComp>(mem, newSize);
-    std::memset(_array, 0, newSize*sizeof(PoComp));
-    static_assert(static_cast<unsigned>(PoComp::UNKNOWN) == 0);
-    if (prevArray) {
-      memcpy(_array,prevArray,prevSize*sizeof(PoComp));
-    }
-  }
-  // remove previous array
-  if (prevSize) {
-    array_delete(prevArray, prevSize);
-    DEALLOC_KNOWN(prevArray, prevSize*sizeof(PoComp), "Kernel::PartialOrdering");
-  }
+  _array.insert(_array.end(),_size,PoComp::UNKNOWN);
 }
 
 bool PartialOrdering::setRel(size_t x, size_t y, PoComp v, bool& changed)
 {
   size_t idx = y*(y-1)/2 + x;
-  ASS_L(idx,((_size - 1) * _size / 2));
+  ASS_L(idx,_array.size());
   PoComp new_v;
   if (!checkCompatibility(_array[idx], v, new_v)) {
     changed = false;
@@ -289,7 +249,7 @@ bool PartialOrdering::setRelSafe(size_t x, size_t y, PoComp v, bool& changed)
 PoComp PartialOrdering::getUnsafe(size_t x, size_t y) const
 {
   size_t idx = y*(y-1)/2 + x;
-  ASS_L(idx,((_size - 1) * _size / 2));
+  ASS_L(idx,_array.size());
   return _array[idx];
 }
 

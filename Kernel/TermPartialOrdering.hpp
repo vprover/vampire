@@ -93,10 +93,6 @@ private:
   size_t getId(TermList t) const;
   size_t getIdExt(TermList t);
 
-#if DEBUG_ORDERING
-  void debug_check() const;
-#endif
-
   const Ordering& _ord;
   Map<TermList,size_t> _nodes;
   const PartialOrdering* _po;

@@ -97,9 +97,8 @@ protected:
     ~Branch();
 
     Branch(const Branch& other);
-    Branch& operator=(const Branch& other);
     Branch(Branch&& other);
-    Branch& operator=(Branch&& other);
+    Branch& operator=(Branch other);
 
     Node* node() const;
     void setNode(Node* node);

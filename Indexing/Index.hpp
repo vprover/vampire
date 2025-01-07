@@ -119,7 +119,8 @@ struct DemodulatorData
   DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
     : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator(ord.createComparator())
   {
-    comparator->insert({ { term, rhs, Ordering::GREATER } }, (void*)0x1);
+    // insert pointer to owner as non-null value representing success
+    comparator->insert({ { term, rhs, Ordering::GREATER } }, this);
 #if VDEBUG
     ASS(term.containsAllVariablesOf(rhs));
     ASS(!preordered || ord.compare(term,rhs)==Ordering::GREATER);
