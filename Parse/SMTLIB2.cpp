@@ -696,7 +696,7 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const std::string& n
     if (argSorts.size() > 0 || taArity > 0) {
       symNum = env.signature->addFunction(name, argSorts.size()+taArity, added);
     } else {
-      symNum = TPTP::addUninterpretedConstant(name,_overflow,added);
+      symNum = TPTP::addUninterpretedConstant(name,added);
     }
 
     sym = env.signature->getFunction(symNum);
@@ -1976,7 +1976,7 @@ bool SMTLIB2::parseAsSpecConstant(const std::string& id)
       goto real_constant; // just below
     }
 
-    unsigned symb = TPTP::addIntegerConstant(id,_overflow,false);
+    unsigned symb = TPTP::addIntegerConstant(id,false);
     TermList res = TermList(Term::createConstant(symb));
     _results.push(ParseResult(AtomicSort::intSort(),res));
 
@@ -1986,7 +1986,7 @@ bool SMTLIB2::parseAsSpecConstant(const std::string& id)
   if (StringUtils::isPositiveDecimal(id)) {
     real_constant:
 
-    unsigned symb = TPTP::addRealConstant(id,_overflow,false);
+    unsigned symb = TPTP::addRealConstant(id,false);
     TermList res = TermList(Term::createConstant(symb));
     _results.push(ParseResult(AtomicSort::realSort(),res));
 
@@ -2624,7 +2624,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       USER_ERROR_EXPR("Expected numeral as an argument of a ranked function in "+head->toString());
     }
 
-    unsigned divisorSymb = TPTP::addIntegerConstant(numeral,_overflow,false);
+    unsigned divisorSymb = TPTP::addIntegerConstant(numeral,false);
     TermList divisorTerm = TermList(Term::createConstant(divisorSymb));
 
     TermList arg;

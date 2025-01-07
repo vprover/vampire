@@ -30,7 +30,7 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * Standard constructor.
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interpreted, bool preventQuoting, bool overflownConstant, bool super)
+Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interpreted, bool preventQuoting, bool super)
   : _name(nm),
     _arity(arity),
     _typeArgsArity(0),
@@ -47,7 +47,6 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _wasFlipped(0),
     _color(COLOR_TRANSPARENT),
     _answerPredicate(0),
-    _overflownConstant(overflownConstant ? 1 : 0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),
     _inGoal(0),
@@ -455,13 +454,11 @@ unsigned Signature::getPredicateNumber(const std::string& name, unsigned arity) 
  * @param name name of the symbol
  * @param arity arity of the symbol
  * @param added will be set to true if the function did not exist
- * @param overflowConstant
  * @since 07/05/2007 Manchester
  */
 unsigned Signature::addFunction (const std::string& name,
 				 unsigned arity,
-				 bool& added,
-				 bool overflowConstant)
+				 bool& added)
 {
   auto symbolKey = key(name,arity);
   unsigned result;
@@ -487,8 +484,7 @@ unsigned Signature::addFunction (const std::string& name,
   bool super = (name == "$tType");
   _funs.push(new Symbol(name, arity, 
         /*       interpreted */ false, 
-        /*    preventQuoting */ overflowConstant || super, 
-                                overflowConstant, 
+        /*    preventQuoting */ super, 
                                 super));
   _funNames.insert(symbolKey, result);
   added = true;
@@ -516,7 +512,6 @@ unsigned Signature::addStringConstant(const std::string& name)
         /*             arity */ 0, 
         /*       interpreted */ false, 
         /*    preventQuoting */ true, 
-        /* overflownConstant */ false, 
         /*             super */ false);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
   _funs.push(sym);
@@ -662,7 +657,7 @@ unsigned Signature::addTypeCon (const std::string& name,
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  _typeCons.push(new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* overflownConstant */ false, /* super */ false));
+  _typeCons.push(new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* super */ false));
   _typeConNames.insert(symbolKey,result);
   added = true;
   return result;
@@ -709,7 +704,6 @@ unsigned Signature::addPredicate (const std::string& name,
   _preds.push(new Symbol(name, arity, 
         /*       interpreted */ false, 
         /*    preventQuoting */ false, 
-        /* overflownConstant */ false, 
         /*             super */ false));
   _predNames.insert(symbolKey,result);
   added = true;

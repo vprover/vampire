@@ -1411,7 +1411,7 @@ void TPTP::tff()
         unsigned arity = getConstructorArity();
         bool added = false;
         unsigned fun = arity == 0
-            ? addUninterpretedConstant(nm, _overflow, added)
+            ? addUninterpretedConstant(nm, added)
             : env.signature->addFunction(nm, arity, added);
         Signature::Symbol* symbol = env.signature->getFunction(fun);
         OperatorType* ot = OperatorType::getTypeConType(arity);
@@ -2893,13 +2893,13 @@ void TPTP::term()
           );
           break;
         case T_INT:
-          number = addIntegerConstant(tok.content,_overflow,_isFof);
+          number = addIntegerConstant(tok.content,_isFof);
           break;
         case T_REAL:
-          number = addRealConstant(tok.content,_overflow,_isFof);
+          number = addRealConstant(tok.content,_isFof);
           break;
         case T_RAT:
-          number = addRationalConstant(tok.content,_overflow,_isFof);
+          number = addRationalConstant(tok.content,_isFof);
           break;
         default:
           ASSERTION_VIOLATION;
@@ -3218,7 +3218,7 @@ TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
     if (arity > 0) {
       fun = addFunction(name, arity, dummy, _termLists.top());
     } else {
-      fun = addUninterpretedConstant(name, _overflow, dummy);
+      fun = addUninterpretedConstant(name, dummy);
     }
   }
 
@@ -3258,8 +3258,6 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   bool added = false;
-  //TODO not checking for overflown constant. Is that OK?
-  //seems to be done this way for predicates as well.
   unsigned typeCon = env.signature->addTypeCon(name,arity,added);
   if(added)
     USER_ERROR("Undeclared type constructor ", name, "/", arity);
@@ -3779,7 +3777,7 @@ void TPTP::endTff()
     }
   } else {
     unsigned fun = arity == 0
-                   ? addUninterpretedConstant(name, _overflow, added)
+                   ? addUninterpretedConstant(name, added)
                    : env.signature->addFunction(name, arity, added);
     symbol = env.signature->getFunction(fun);
     if (!added) {
@@ -4578,7 +4576,7 @@ unsigned TPTP::addFunction(std::string name,int arity,bool& added,TermList& arg)
   if (arity > 0) {
     return env.signature->addFunction(name,arity,added);
   }
-  return addUninterpretedConstant(name,_overflow,added);
+  return addUninterpretedConstant(name,added);
 } // addFunction
 
 /** Add a predicate to the signature
@@ -4741,110 +4739,39 @@ TermList TPTP::sortOf(TermList t)
 
 /**
  * Add an integer constant by reading it from the std::string name.
- * If it overflows, create an uninterpreted constant of the
- * integer type and the name 'name'. Check that the name of the constant
- * does not collide with user-introduced names of uninterpreted constants.
- * @since 22/07/2011 Manchester
- * @since 03/05/2013 train Manchester-London, bug fix: integers are treated
- *   as terms of the default sort when fof() or cnf() is used
- * @author Andrei Voronkov
  */
-unsigned TPTP::addIntegerConstant(const std::string& name, Set<std::string>& overflow, bool defaultSort)
+unsigned TPTP::addIntegerConstant(const std::string& name, bool defaultSort)
 {
-  try {
-    return env.signature->addIntegerConstant(name,defaultSort);
-  }
-  catch (Kernel::ArithmeticException&) {
-    bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
-    if (added) {
-      overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::intSort()));
-    }
-    else if (!overflow.contains(name)) {
-      USER_ERROR((std::string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
-    }
-    return fun;
-  }
+  return env.signature->addNumeralConstant(IntegerConstantType(name),defaultSort);
 } // TPTP::addIntegerConstant
 
 /**
  * Add an rational constant by reading it from the std::string name.
- * If it overflows, create an uninterpreted constant of the
- * rational type and the name 'name'. Check that the name of the constant
- * does not collide with user-introduced names of uninterpreted constants.
- * @since 22/07/2011 Manchester
- * @since 03/05/2013 train Manchester-London, fix to handle difference
- *    between treating rationals using fof() and tff()
- * @author Andrei Voronkov
  */
-unsigned TPTP::addRationalConstant(const std::string& name, Set<std::string>& overflow, bool defaultSort)
+unsigned TPTP::addRationalConstant(const std::string& name, bool defaultSort)
 {
   size_t i = name.find_first_of("/");
   ASS(i != std::string::npos);
-  try {
-    return env.signature->addRationalConstant(name.substr(0,i),
-					      name.substr(i+1),
-					      defaultSort);
-  }
-  catch(Kernel::ArithmeticException&) {
-    bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
-    if (added) {
-      overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::rationalSort()));
-    }
-    else if (!overflow.contains(name)) {
-      USER_ERROR((std::string)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
-    }
-    return fun;
-  }
+  return env.signature->addNumeralConstant(RationalConstantType(
+        IntegerConstantType(name.substr(0,i)),
+        IntegerConstantType(name.substr(i+1))), defaultSort);
 } // TPTP::addRationalConstant
 
 /**
  * Add an real constant by reading it from the std::string name.
- * If it overflows, create an uninterpreted constant of the
- * real type and the name 'name'. Check that the name of the constant
- * does not collide with user-introduced names of uninterpreted constants.
- * @since 22/07/2011 Manchester
- * @since 03/05/2013 train Manchester-London, fix to handle difference
- *    between treating rationals using fof() and tff()
- * @author Andrei Voronkov
  */
-unsigned TPTP::addRealConstant(const std::string& name, Set<std::string>& overflow, bool defaultSort)
+unsigned TPTP::addRealConstant(const std::string& name, bool defaultSort)
 {
-  try {
-    return env.signature->addRealConstant(name,defaultSort);
-  }
-  catch(Kernel::ArithmeticException&) {
-    bool added;
-    unsigned fun = env.signature->addFunction(name,0,added,true /* overflown constant*/);
-    if (added) {
-      overflow.insert(name);
-      Signature::Symbol* symbol = env.signature->getFunction(fun);
-      symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::realSort()));
-    }
-    else if (!overflow.contains(name)) {
-      USER_ERROR((std::string)"Cannot use name '" + name + "' as an atom name since it collides with an real number");
-    }
-    return fun;
-  }
+  return env.signature->addNumeralConstant(RealConstantType(IntegerConstantType(name)),defaultSort);
 }  // TPTP::addRealConstant
 
 
 /**
  * Add an uninterpreted constant by reading it from the std::string name.
- * Check that the name of the constant does not collide with uninterpreted constants
- * created by the parser from overflown input numbers.
  * @since 22/07/2011 Manchester
  */
-unsigned TPTP::addUninterpretedConstant(const std::string& name, Set<std::string>& overflow, bool& added)
+unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
 {
-  if (overflow.contains(name)) {
-    USER_ERROR((std::string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
-  }
   //TODO make sure Vampire internal names are unique to Vampire
   //and cannot occur in the input AYB
   if(name == "vAND" || name == "vOR" || name == "vIMP" ||
