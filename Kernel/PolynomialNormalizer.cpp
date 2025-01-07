@@ -390,7 +390,6 @@ PolyNf normalizeTerm(TypedTermList t)
     // DBGE(t)
   static Memo::Hashed<TypedTermList, NormalizationResult, StlHash> memo;
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
-    .memo<decltype(memo)&>(memo)
     .function(
         [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
         { 
@@ -413,6 +412,7 @@ PolyNf normalizeTerm(TypedTermList t)
             }
           }
         })
+    .memo<decltype(memo)&>(memo)
     .apply(t);
 
   DEBUG(1, "normed: ", r)
@@ -437,7 +437,7 @@ TermList PolyNf::denormalize() const
             [&](Variable          v) { return TermList::var(v.id()); },
             [&](AnyPoly           p) { return p.denormalize(results); }
             ); })
-    .memo(memo)
+    .memo<decltype(memo)&>(memo)
     .apply(*this);
 }
 
