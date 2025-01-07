@@ -22,7 +22,6 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Map.hpp"
@@ -30,7 +29,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
-#include "Lib/StringUtils.hpp"
 
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/Options.hpp"
@@ -49,7 +47,6 @@ using namespace Lib;
  */
 class Signature
 {
-  template<class T> struct LinMulName : public T {};
   using SymbolKey = Coproduct<
       std::pair<std::string, unsigned> // <- (name, arity)
     , std::string // <- string-constant
@@ -147,8 +144,6 @@ class Signature
     unsigned _color : 2;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
-    /** marks numbers too large to represent natively */
-    unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
     unsigned _termAlgebraCons : 1;
     /** marks term algebra destructors */
@@ -178,7 +173,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const std::string& name, unsigned arity, bool interpreted, bool preventQuoting, bool overflownConstant, bool super);
+    Symbol(const std::string& name, unsigned arity, bool interpreted, bool preventQuoting, bool super);
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
@@ -202,8 +197,6 @@ class Signature
     /** mark predicate as (polarity) flipped */
     void markFlipped() { _wasFlipped=1; }
     void markLinMul() { _linMul=1; }
-    /** mark constant as overflown */
-    void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
@@ -252,8 +245,6 @@ class Signature
     inline bool equalityProxy() const { return _equalityProxy; }
     /** Return true iff symbol was polarity flipped */
     inline bool wasFlipped() const { return _wasFlipped; }
-    /** Return true iff symbol is an overflown constant */
-    inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
     /** Return true iff symbol is a term algebra destructor */
@@ -363,7 +354,6 @@ class Signature
         /* arity */ Theory::getArity(interp), 
         /*       interpreted */ true, 
         /*    preventQuoting */ false, 
-        /* overflownConstant */ false, 
         /*             super */ false),
       _interp(interp)
     {
@@ -385,11 +375,6 @@ class Signature
     static auto sortOf(IntegerConstantType *) { return AtomicSort::intSort(); }
     static auto sortOf(RationalConstantType *) { return AtomicSort::rationalSort(); }
     static auto sortOf(RealConstantType *) { return AtomicSort::realSort(); }
-
-  protected:
-    static auto pfx(IntegerConstantType *) { return "int"; }
-    static auto pfx(RationalConstantType *) { return "rat"; }
-    static auto pfx(RealConstantType *) { return "real"; }
 
   public:
 
@@ -414,15 +399,14 @@ class Signature
     Numeral _value;
 
   public:
-    static std::string name(Numeral n) { return Output::toString(n, AnyLinMulSym::pfx((Numeral*)0)); }
+    static std::string name(Numeral n) { return Output::toString(n); }
     LinMulSym(Numeral val)
     : AnyLinMulSym(
         AnyLinMulSym::typeOf<Numeral>(),
         name(val),
         /*             arity */ 1, 
         /*       interpreted */ false, 
-        /*    preventQuoting */ false, 
-        /* overflownConstant */ false, 
+        /*    preventQuoting */ true, 
         /*             super */ false),
       _value(std::move(val))
     {
@@ -445,7 +429,6 @@ class Signature
         /*             arity */ 0, 
         /*       interpreted */ true, 
         /*    preventQuoting */ false, 
-        /* overflownConstant */ false, 
         /*             super */ false),
       _intValue(std::move(val))
     {
@@ -467,7 +450,6 @@ class Signature
         /*             arity */ 0, 
         /*       interpreted */ true, 
         /*    preventQuoting */ false, 
-        /* overflownConstant */ false, 
         /*             super */ false),
        _ratValue(std::move(val))
     {
@@ -490,7 +472,6 @@ class Signature
         /*             arity */ 0, 
         /*       interpreted */ true, 
         /*    preventQuoting */ false, 
-        /* overflownConstant */ false, 
         /*             super */ false),
        _realValue(std::move(val))
     {
@@ -504,7 +485,7 @@ class Signature
 
   unsigned addPredicate(const std::string& name,unsigned arity,bool& added);
   unsigned addTypeCon(const std::string& name,unsigned arity,bool& added);
-  unsigned addFunction(const std::string& name,unsigned arity,bool& added,bool overflowConstant = false);
+  unsigned addFunction(const std::string& name,unsigned arity,bool& added);
 
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -592,7 +573,6 @@ class Signature
             /*             arity */ 0, 
             /*       interpreted */ false, 
             /*    preventQuoting */ true, 
-            /* overflownConstant */ false, 
             /*             super */ false)
                   : newNumeralConstantSymbol(std::move(number));
     _funs.push(sym);
@@ -600,7 +580,7 @@ class Signature
     return result;
   }
 
-  unsigned addIntegerConstant(const std::string& number,bool defaultSort) 
+  unsigned addIntegerConstant(const std::string& number, bool defaultSort)
   { return addNumeralConstant(IntegerConstantType(number), defaultSort); }
 
   unsigned addRationalConstant(const std::string& numerator, const std::string& denominator,bool defaultSort)
@@ -608,13 +588,6 @@ class Signature
 
   unsigned addRealConstant(const std::string& number,bool defaultSort)
   { return addNumeralConstant(RealConstantType(number), defaultSort); }
-
-  unsigned addIntegerConstant(const IntegerConstantType& number)
-  { return addNumeralConstant(number, /* defaultSort */ false); }
-  unsigned addRationalConstant(const RationalConstantType& number)
-  { return addNumeralConstant(number, /* defaultSort */ false); }
-  unsigned addRealConstant(const RealConstantType& number)
-  { return addNumeralConstant(number, /* defaultSort */ false); }
 
  private:
   void noteOccurrence(IntegerConstantType const&)  { _integers++; }
@@ -641,7 +614,7 @@ class Signature
 
   template<class Numeral>
   static Lib::Option<LinMulSym<Numeral>&> tryLinMulSym(Symbol* sym) {
-    return someIf(sym->linMul() && static_cast<LinMulSym<Numeral>*>(sym)->template isType<Numeral>(), 
+    return someIf(sym->linMul() && static_cast<LinMulSym<Numeral>*>(sym)->template isType<Numeral>(),
         [&]() -> LinMulSym<Numeral>& { return *static_cast<LinMulSym<Numeral>*>(sym); });
   }
 
@@ -653,7 +626,8 @@ class Signature
       return {};
     }
   }
- 
+
+
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const std::string& name);
   unsigned addInterpretedFunction(Interpretation itp, const std::string& name)
   {
@@ -1120,16 +1094,8 @@ private:
 
   DHSet<unsigned> _choiceSymbols;
 
-  /**
-   * Map from std::string "name_arity" to their numbers
-   *
-   * String constants have key "value_c", integer constants "value_n",
-   * rational "numerator_denominator_q" and real "value_r".
-   */
   SymbolMap _funNames;
-  /** Map from std::string "name_arity" to their numbers */
   SymbolMap _predNames;
-  /** Map from std::string "name_arity" to their numbers */
   SymbolMap _typeConNames;
   /** Map for the arity_check options: maps symbols to their arities */
   Map<std::string, unsigned> _arityCheck;

@@ -28,41 +28,46 @@ struct RenderMonom {
     auto& raw = x.raw();
     std::sort(raw.begin(), raw.end());
 
-    // Numeral num(1);
-    // bool found = false;
-    // unsigned len = 0;
-    // for (auto x : raw) {
-    //   ASS_EQ(x.power, 1)
-    //   Option<Numeral> attempt(x.term.template tryNumeral<NumTraits>());
-    //   if (!found && attempt.isSome() && *attempt != 1) {
-    //     found = true;
-    //     num = attempt.unwrap();
-    //   } else if (!found 
-    //       && x.term.template is<Perfect<FuncTerm>>() 
-    //       && NumTraits::isNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
-    //       && 1 != *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
-    //       ) {
-    //     found = true;
-    //     num = *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id());
-    //   } else if (len == 0) {
-    //     len++;
-    //     raw[len - 1].term = x.term;
-    //     ASS_EQ(raw[len - 1].power, 1);
-    //
-    //   } else if (raw[len - 1].term == x.term) {
-    //     raw[len - 1].power++;
-    //
-    //   } else {
-    //     len++;
-    //     raw[len - 1].term = x.term;
-    //     ASS_EQ(raw[len - 1].power, 1)
-    //
-    //   }
-    // }
-    // raw.truncate(len);
-    // ASS_EQ(raw.size(), len)
-    // x.integrity();
+#if 1
+    Numeral num(1);
+    bool found = false;
+    unsigned len = 0;
+    for (auto x : raw) {
+      ASS_EQ(x.power, 1)
+      Option<Numeral> attempt(x.term.template tryNumeral<NumTraits>());
+      if (!found && attempt.isSome() && *attempt != 1) {
+        found = true;
+        num = attempt.unwrap();
+      } else if (!found 
+          && x.term.template is<Perfect<FuncTerm>>() 
+          && NumTraits::isNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
+          && 1 != *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id())
+          ) {
+        found = true;
+        num = *NumTraits::tryNumeral((**x.term.template as<Perfect<FuncTerm>>()).function().id());
+      } else if (len == 0) {
+        len++;
+        raw[len - 1].term = x.term;
+        ASS_EQ(raw[len - 1].power, 1);
+
+      } else if (raw[len - 1].term == x.term) {
+        raw[len - 1].power++;
+
+      } else {
+        len++;
+        raw[len - 1].term = x.term;
+        ASS_EQ(raw[len - 1].power, 1)
+
+      }
+    }
+    raw.truncate(len);
+    ASS_EQ(raw.size(), len)
+    x.integrity();
+    return Monom(num, perfect(std::move(x)));
+#else
     return Monom(Numeral(1), perfect(std::move(x)));
+#endif
+
   }
 };
 

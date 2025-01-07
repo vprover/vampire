@@ -202,8 +202,8 @@ sa!=fmb > fd ~cat all:500,off:41,preordered:168
 > $drc ~cat 0:1
 fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
-intent=unsat $drc=1 > drc ~cat encompass:500,on:500,off:354
-intent=sat sa!=fmb $drc=1 > drc ~cat on:643,encompass:554
+intent=unsat $drc=1 > drc ~cat encompass:500,ordering:500,off:354
+intent=sat sa!=fmb $drc=1 > drc ~cat ordering:643,encompass:554
 
 # demodulation_precompiled_comparison
 sa!=fmb $drc=1 > dpc ~cat on:1,off:1

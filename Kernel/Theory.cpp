@@ -58,7 +58,7 @@ IntegerConstantType::IntegerConstantType(std::string const& str)
   : Kernel::IntegerConstantType()
 {
   if (-1 == mpz_set_str(_val, str.c_str(), /* base */ 10)) {
-    throw UserErrorException("not a valit string literal: ", str);
+    throw UserErrorException("not a valid integer literal: ", str);
   }
 }
 
@@ -1600,19 +1600,19 @@ bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
-  unsigned func = env.signature->addIntegerConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
 Term* Theory::representConstant(const RationalConstantType& num)
 {
-  unsigned func = env.signature->addRationalConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
 Term* Theory::representConstant(const RealConstantType& num)
 {
-  unsigned func = env.signature->addRealConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
@@ -1898,24 +1898,6 @@ bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
 bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
 {
   return t.isTerm() && isInterpretedFunction(t.term(), itp);
-}
-
-IntegerConstantType naiveInverseModulo(IntegerConstantType const& l, IntegerConstantType const& m)
-{
-  ASS(!m.isZero())
-  if (m == IntegerConstantType(1)) {
-    return IntegerConstantType(0);
-  }
-  // TODO use extended euclidean algorithm instead
-  ASS(l.isPositive()) // <- can be done but not implemented
-  ASS(m.isPositive()) // <- can be done but not implemented
-  auto one = IntegerConstantType(1);
-  for (auto i : range(0, m)) {
-    if ((l * i).remainderE(m) == 1) {
-      return IntegerConstantType(i);
-    }
-  }
-  ASSERTION_VIOLATION_REP("inverse does not exists")
 }
 
 } // namespace Kernel
