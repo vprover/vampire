@@ -4762,7 +4762,7 @@ unsigned TPTP::addRationalConstant(const std::string& name, bool defaultSort)
  */
 unsigned TPTP::addRealConstant(const std::string& name, bool defaultSort)
 {
-  return env.signature->addNumeralConstant(RealConstantType(IntegerConstantType(name)),defaultSort);
+  return env.signature->addNumeralConstant(RealConstantType(name),defaultSort);
 }  // TPTP::addRealConstant
 
 

@@ -58,7 +58,7 @@ IntegerConstantType::IntegerConstantType(std::string const& str)
   : Kernel::IntegerConstantType()
 {
   if (-1 == mpz_set_str(_val, str.c_str(), /* base */ 10)) {
-    throw UserErrorException("not a valit string literal: ", str);
+    throw UserErrorException("not a valid integer literal: ", str);
   }
 }
 
