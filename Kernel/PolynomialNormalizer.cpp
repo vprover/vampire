@@ -320,6 +320,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 PolyNf normalizeTerm(TypedTermList t) 
 {
   DEBUG("normalizing ", t)
+  static Memo::Hashed<TypedTermList, NormalizationResult, StlHash> memo;
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
     .function(
         [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
@@ -343,6 +344,7 @@ PolyNf normalizeTerm(TypedTermList t)
             }
           }
         })
+    .memo<decltype(memo)&>(memo)
     .apply(t);
 
   return std::move(r).apply(RenderPolyNf{});
@@ -365,7 +367,7 @@ TermList PolyNf::denormalize() const
             [&](Variable          v) { return TermList::var(v.id()); },
             [&](AnyPoly           p) { return p.denormalize(results); }
             ); })
-    .memo(memo)
+    .memo<decltype(memo)&>(memo)
     .apply(*this);
 }
 
