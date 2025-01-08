@@ -115,6 +115,8 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
   unsigned limit = env.options->timeLimitInDeciseconds();
   while(true) {
     if(limit && Timer::elapsedDeciseconds() >= limit) {
+      // in principle could have a race on terminationReason, seems unlikely/harmless in practice
+      env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
       limitReached(TIME_LIMIT);
     }
 
@@ -123,7 +125,7 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
       Timer::updateInstructionCount();
       if (env.options->instructionLimit() && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)env.options->instructionLimit()) {
         // in principle could have a race on terminationReason, seems unlikely/harmless in practice
-        env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+        env.statistics->terminationReason = Shell::Statistics::INSTUCTION_LIMIT;
         limitReached(INSTRUCTION_LIMIT);
       }
     }

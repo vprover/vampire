@@ -73,7 +73,7 @@ public:
   private:
     /** Create a new entry */
     explicit Entry(Entry const& other)
-      : code(other.code)
+      : code(0)
     {
       if (other.occupied()) {
         init(Key(other.key()), Val(other.value()), other.code);
@@ -621,7 +621,7 @@ public:
     DECL_ELEMENT_TYPE(Entry&);
 
     /** Create a new iterator */
-    inline Iterator(Map& map)
+    inline Iterator(const Map& map)
       : _next(map._entries), _last(map._afterLast)
     { } // Map::Iterator
 

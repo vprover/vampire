@@ -805,7 +805,7 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
   return res;
 }
 
-Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
+Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) const
 {
   if (tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -874,14 +874,9 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
   return res;
 }
 
-bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
+OrderingComparatorUP KBO::createComparator() const
 {
-  return isGreaterOrEq(lhs,rhs)==GREATER;
-}
-
-OrderingComparatorUP KBO::createComparator(TermList lhs, TermList rhs) const
-{
-  return make_unique<KBOComparator>(lhs, rhs, *this);
+  return make_unique<KBOComparator>(*this);
 }
 
 int KBO::symbolWeight(const Term* t) const
