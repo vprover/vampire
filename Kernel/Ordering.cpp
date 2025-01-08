@@ -36,6 +36,7 @@
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
+#include "OrderingComparator.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
@@ -52,13 +53,6 @@
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-
-bool OrderingComparator::check(const SubstApplicator* applicator)
-{
-  return _ord.isGreater(
-    AppliedTerm(_lhs, applicator, /*aboveVar*/true),
-    AppliedTerm(_rhs, applicator, /*aboveVar*/true));
-}
 
 OrderingSP Ordering::s_globalOrdering;
 
@@ -220,6 +214,11 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
     eq->setArgumentOrderValue(static_cast<ArgumentOrderVals>(res));
   }
   return res;
+}
+
+OrderingComparatorUP Ordering::createComparator() const
+{
+  return std::make_unique<OrderingComparator>(*this);
 }
 
 //////////////////////////////////////////////////
