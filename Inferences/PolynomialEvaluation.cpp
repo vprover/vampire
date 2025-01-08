@@ -16,6 +16,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
 
 #define DEBUG(...)  // DBG(__VA_ARGS__)
 using namespace Lib;
@@ -211,7 +212,7 @@ PolyNf simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
   DEBUG("evaluating ", normalized)
-  static Memo::Hashed<PolyNf, PolyNf, StlHash> memo;
+  static MemoNonVars<PolyNf, PolyNf> memo;
   auto out = BottomUpEvaluation<PolyNf, PolyNf>()
     .function(
         [&](PolyNf orig, PolyNf* ts) -> PolyNf 
@@ -234,7 +235,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
               { return PolyNf(simplifyPoly(p, ts, /*removeZeros=*/true)); }
           );
         })
-    .memo(memo)
+    .memo<decltype(memo)&>(memo)
     .apply(normalized);
   if (out == normalized) {
     return Option<PolyNf>();
