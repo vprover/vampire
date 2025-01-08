@@ -64,9 +64,8 @@ Option<IntegerConstantType> IntegerConstantType::parse(std::string const& str)
   }
 }
 
-
-#define IMPL_BIN_OP(fun, mpz_fun)                                                              \
-  IntegerConstantType IntegerConstantType::fun(const IntegerConstantType& num) const \
+#define IMPL_BIN_OP(fun, mpz_fun)                                                         \
+  IntegerConstantType IntegerConstantType::fun(const IntegerConstantType& num) const      \
   { auto out = IntegerConstantType(0); mpz_fun(out._val, this->_val, num._val); return out; } \
 
   // TODO move semantics
@@ -76,6 +75,15 @@ IMPL_BIN_OP(operator*, mpz_mul)
 IMPL_BIN_OP(lcm, mpz_lcm)
 IMPL_BIN_OP(gcd, mpz_gcd)
 IMPL_BIN_OP(inverseModulo, mpz_invert)
+
+#undef IMPL_BIN_OP
+
+IntegerConstantType IntegerConstantType::operator^(unsigned long num) const
+{ 
+  auto out = IntegerConstantType(0); 
+  mpz_pow_ui(out._val, this->_val, num); 
+  return out; 
+}
 
 // TODO operator(s) for move references ?!
 #define IMPL_UN_OP(fun, mpz_fun)                                                          \
@@ -325,9 +333,8 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
 { return RationalConstantType::comparePrecedence(n1, n2); }
 
-bool RealConstantType::parseDouble(const std::string& num, RationalConstantType& res)
+Option<RationalConstantType> parseRat(const std::string& num)
 {
-
   std::string newNum;
   IntegerConstantType denominator = IntegerConstantType(1);
   bool haveDecimal = false;
@@ -336,7 +343,7 @@ bool RealConstantType::parseDouble(const std::string& num, RationalConstantType&
   for(size_t i=0; i<nlen; i++) {
     if (num[i]=='.') {
       if (haveDecimal) {
-        return false;
+        return {};
       }
       haveDecimal = true;
     }
@@ -355,26 +362,40 @@ bool RealConstantType::parseDouble(const std::string& num, RationalConstantType&
       }
     }
     else {
-      return false;
+      return {};
     }
   }
   if (neg) {
     newNum = '-'+newNum;
   }
   auto numerator = IntegerConstantType::parse(newNum).unwrap();
-  res = RationalConstantType(numerator, denominator);
-  return true;
+  return some(RationalConstantType(numerator, denominator));
 }
 
+Option<RationalConstantType> parseExponentInteger(std::string const& number, const char* exponentChars) {
+  auto i = number.find_first_of(exponentChars);
+  if (i != std::string::npos) {
+    auto base = parseRat(number.substr(0, i));
+    int exp = 0;
+    if (Int::stringToInt(number.substr(i + 1).c_str(), exp) && base.isSome()) {
+      return some(
+          exp >= 0 ? (*base) * (IntegerConstantType(10) ^ (unsigned long)exp)
+                   : (*base) / RationalConstantType((IntegerConstantType(10) ^ (unsigned long)abs(exp))));
+    }
+  }
+  return {};
+}
 
 Option<RealConstantType> RealConstantType::parse(std::string const& number)
 {
-
-  RationalConstantType value;
-  if (parseDouble(number, value))  {
-    return some(RealConstantType(std::move(value)));
+  if (auto r = parseExponentInteger(number, "E")) {
+    return some(RealConstantType(std::move(*r)));
+  } else if (auto r = parseExponentInteger(number, "e")) {
+    return some(RealConstantType(std::move(*r)));
+  } else if (auto r = parseRat(number))  {
+    return some(RealConstantType(std::move(*r)));
   } else {
-    throw UserErrorException("invalid decimal literal");
+    return {};
   }
 }
 

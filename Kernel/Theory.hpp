@@ -149,6 +149,7 @@ public:
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
   IntegerConstantType operator-(const IntegerConstantType& num) const;
+  IntegerConstantType operator^(unsigned long num) const;
 
   static Option<IntegerConstantType> parse(std::string const&);
 
@@ -328,6 +329,7 @@ public:
   explicit RealConstantType(int number) : RealConstantType(RationalConstantType(number)) {}
   RealConstantType(typename RationalConstantType::InnerType  num, typename RationalConstantType::InnerType den) : RealConstantType(RationalConstantType(num, den)) {}
 
+
 #define BIN_OP_FROM_RAT(op) \
   RealConstantType operator op(const RealConstantType& num) const \
   { return RealConstantType(RationalConstantType::operator op(num)); } \
@@ -361,8 +363,6 @@ public:
   MK_CAST_OPS(RealConstantType, IntegerConstantType)
   MK_CAST_OP(RealConstantType, /, int)
 
-private:
-  static bool parseDouble(const std::string& num, RationalConstantType& res);
 };
 
 inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
