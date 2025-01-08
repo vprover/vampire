@@ -182,27 +182,21 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
 {
   TermList sort = SortHelper::getResultSort(t);
 
-  try {
-        if(sort == AtomicSort::intSort()){
-              IntegerConstantType constant;
-              if(theory->tryInterpretConstant(t,constant)){
-                return theory->representConstant(constant+IntegerConstantType(1));
-              }
-        } else if(sort == AtomicSort::rationalSort()){
-              RationalConstantType constant;
-              RationalConstantType one(1,1);
-              if(theory->tryInterpretConstant(t,constant)){
-                return theory->representConstant(constant+one);
-              }
-        } else if(sort == AtomicSort::realSort()){
-              RealConstantType constant;
-              RealConstantType one(RationalConstantType(1,1));
-              if(theory->tryInterpretConstant(t,constant)){
-                return theory->representConstant(constant+one);
-              }
-        }
-  } catch (ArithmeticException&) {
-    // return 0 as well
+  if(sort == AtomicSort::intSort()){
+    IntegerConstantType constant;
+    if(theory->tryInterpretConstant(t,constant)){
+      return theory->representConstant(constant+1);
+    }
+  } else if(sort == AtomicSort::rationalSort()){
+    RationalConstantType constant;
+    if(theory->tryInterpretConstant(t,constant)){
+      return theory->representConstant(constant + 1);
+    }
+  } else if(sort == AtomicSort::realSort()){
+    RealConstantType constant;
+    if(theory->tryInterpretConstant(t,constant)){
+      return theory->representConstant(constant + 1);
+    }
   }
 
   return 0;

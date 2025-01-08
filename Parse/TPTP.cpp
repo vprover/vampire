@@ -2893,13 +2893,13 @@ void TPTP::term()
           );
           break;
         case T_INT:
-          number = addIntegerConstant(tok.content,_isFof);
+          number = addNumeralConstant<IntegerConstantType>(tok.content,_isFof);
           break;
         case T_REAL:
-          number = addRealConstant(tok.content,_isFof);
+          number = addNumeralConstant<RealConstantType>(tok.content,_isFof);
           break;
         case T_RAT:
-          number = addRationalConstant(tok.content,_isFof);
+          number = addNumeralConstant<RationalConstantType>(tok.content,_isFof);
           break;
         default:
           ASSERTION_VIOLATION;
@@ -4736,34 +4736,6 @@ TermList TPTP::sortOf(TermList t)
     }
   }
 } // sortOf
-
-/**
- * Add an integer constant by reading it from the std::string name.
- */
-unsigned TPTP::addIntegerConstant(const std::string& name, bool defaultSort)
-{
-  return env.signature->addNumeralConstant(IntegerConstantType(name),defaultSort);
-} // TPTP::addIntegerConstant
-
-/**
- * Add an rational constant by reading it from the std::string name.
- */
-unsigned TPTP::addRationalConstant(const std::string& name, bool defaultSort)
-{
-  size_t i = name.find_first_of("/");
-  ASS(i != std::string::npos);
-  return env.signature->addNumeralConstant(RationalConstantType(
-        IntegerConstantType(name.substr(0,i)),
-        IntegerConstantType(name.substr(i+1))), defaultSort);
-} // TPTP::addRationalConstant
-
-/**
- * Add an real constant by reading it from the std::string name.
- */
-unsigned TPTP::addRealConstant(const std::string& name, bool defaultSort)
-{
-  return env.signature->addNumeralConstant(RealConstantType(name),defaultSort);
-}  // TPTP::addRealConstant
 
 
 /**

@@ -243,10 +243,6 @@ public:
   Result compare(AppliedTerm t1, AppliedTerm t2) const override
   { return compare(t1.apply(), t2.apply()); }
 
-  // TODO more efficient impl (?)
-  bool isGreater(AppliedTerm t1, AppliedTerm t2) const override
-  { return compare(t1, t2) == Result::GREATER; }
-
 private:
 
   Result cmpNonAbstr(TermList, TermList) const;

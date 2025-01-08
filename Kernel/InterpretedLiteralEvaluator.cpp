@@ -401,7 +401,7 @@ public:
 	ASSERTION_VIOLATION;
       }
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
       return false;
     }
@@ -534,9 +534,8 @@ public:
       res = TermList(theory->representConstant(resNum));
       return true;
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
-       DEBUG( "ArithmeticException" );
       return false;
     }
   }
@@ -571,7 +570,7 @@ public:
       }
       return PredEvalResult::trivial(res);
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
       return PredEvalResult::nop();
     }

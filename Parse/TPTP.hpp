@@ -815,9 +815,21 @@ private:
   OperatorType* constructOperatorType(Type* t, VList* vars = 0);
 
 public:
-  static unsigned addIntegerConstant(const std::string&, bool defaultSort);
-  static unsigned addRationalConstant(const std::string&, bool defaultSort);
-  static unsigned addRealConstant(const std::string&, bool defaultSort);
+
+  /**
+   * Add a numeral constant by reading it from the std::string name.
+   */
+  template<class Numeral>
+  static unsigned addNumeralConstant(const std::string& name, bool defaultSort)
+  {
+    if (auto n = Numeral::parse(name)) {
+      return env.signature->addNumeralConstant(*n,defaultSort);
+    } else {
+      throw UserErrorException("not a valid ", Numeral::getSort(), " literal: ", name);
+    }
+  } 
+
+
   static unsigned addUninterpretedConstant(const std::string& name, bool& added);
 
   // also here, simply made public static to share the code with another use site

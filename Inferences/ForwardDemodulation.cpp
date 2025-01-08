@@ -163,9 +163,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        TermList rhs = qr.data->rhs;
-        bool preordered = qr.data->preordered;
-
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
@@ -173,12 +170,21 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Applicator applWithoutEqSort(subs.ptr());
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
+        AppliedTerm rhsApplied(qr.data->rhs,appl,true);
+        bool preordered = qr.data->preordered;
+
         if (_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || !qr.data->comparator->check(appl))) {
+#if VDEBUG
+          auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
+#endif
+          qr.data->comparator->init(appl);
+          if (!preordered && (_preorderedOnly || !qr.data->comparator->next())) {
+            ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
           }
+          ASS_EQ(dcomp,Ordering::GREATER);
         } else {
-          if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
+          if (!preordered && (_preorderedOnly || ordering.compareUnidirectional(trm,rhsApplied)!=Ordering::GREATER)) {
             continue;
           }
         }
@@ -195,10 +201,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        TermList rhsS = subs->applyToBoundResult(rhs);
-        if (lhs.isVar()) {
-          rhsS = eqSortSubs.apply(rhsS, 0);
-        }
+        TermList rhsS = rhsApplied.apply();
 
         if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, appl)) {
           continue;

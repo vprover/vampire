@@ -353,7 +353,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 PolyNf oldNormalizeTerm(TypedTermList t) 
 {
   DEBUG(0, "normalizing ", t)
-    // DBGE(t)
+  static Memo::Hashed<TypedTermList, NormalizationResult, StlHash> memo;
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
     .function(
         [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
@@ -377,6 +377,7 @@ PolyNf oldNormalizeTerm(TypedTermList t)
             }
           }
         })
+    .memo<decltype(memo)&>(memo)
     .apply(t);
 
   DEBUG(1, "normed: ", r)

@@ -580,15 +580,6 @@ class Signature
     return result;
   }
 
-  unsigned addIntegerConstant(const std::string& number, bool defaultSort)
-  { return addNumeralConstant(IntegerConstantType(number), defaultSort); }
-
-  unsigned addRationalConstant(const std::string& numerator, const std::string& denominator,bool defaultSort)
-  { return addNumeralConstant(RationalConstantType(IntegerConstantType(numerator), IntegerConstantType(denominator)), defaultSort); }
-
-  unsigned addRealConstant(const std::string& number,bool defaultSort)
-  { return addNumeralConstant(RealConstantType(number), defaultSort); }
-
  private:
   void noteOccurrence(IntegerConstantType const&)  { _integers++; }
   void noteOccurrence(RationalConstantType const&)  { _rationals++; }

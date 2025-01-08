@@ -42,24 +42,6 @@ namespace PredLevels {
 using namespace Shell;
 
 /**
- * Class implementing runtime specialized ordering check between two terms.
- * The comparator is created and called from inside the respective ordering
- * object, but owned by the caller, so the destructor is exposed as virtual.
- * See @b KBOComparator and @b LPOComparator for implementation details.
- */
-struct OrderingComparator
-{
-  OrderingComparator(TermList lhs, TermList rhs, const Ordering& ord) : _lhs(lhs), _rhs(rhs), _ord(ord) {}
-  virtual ~OrderingComparator() = default;
-  virtual std::string toString() const { return _lhs.toString()+" > "+_rhs.toString(); }
-  virtual bool check(const SubstApplicator* applicator);
-
-  TermList _lhs;
-  TermList _rhs;
-  const Ordering& _ord;
-};
-
-/**
  * An abstract class for simplification orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
@@ -105,15 +87,24 @@ public:
   virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
   { return compare(lhs.apply(), rhs.apply()); }
 
-  /** Optimised function used for checking that @b t1 is greater than @b t2,
-   * under some substitutions captured by @b AppliedTerm. */
-  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const
-  { return compare(t1, t2) == Result::GREATER; }
+  /** Unidirectional comparison of @b t1 and @b t2 under some
+   * substitutions captured by @b AppliedTerm which returns:
+   * (a) GREATER       if and only if  t1 ≻ t2,
+   * (b) EQUAL         if and only if  t1 = t2,
+   * (c) LESS                 only if  t1 ≺ t2,
+   * (d) INCOMPARABLE         only if  t1 ⪰̸ t2.
+   * That is, the function need not distinguish between t1 less
+   * than t2 and t1 and t2 being incomparable, which allows for
+   * some optimisations (see KBO and LPO implementation).
+   * 
+   * This is useful in simplifications such as demodulation where
+   * only the result being greater matters and in runtime specialized
+   * ordering checks (see OrderingComparator). */
+  virtual Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const
+  { return compare(t1, t2); }
 
-  /** Creates optimised object to check that @b lhs is greater than @b rhs.
-   *  @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const
-  { return std::make_unique<OrderingComparator>(lhs, rhs, *this); }
+  /** Creates optimised object for ordering checks. @see OrderingComparator. */
+  virtual OrderingComparatorUP createComparator() const;
 
   virtual void show(std::ostream& out) const = 0;
 
