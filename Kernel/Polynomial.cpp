@@ -30,16 +30,6 @@ Variable::Variable(unsigned num) : _num(num) {}
 unsigned Variable::id() const 
 { return _num; }
 
-
-bool operator==(Variable lhs, Variable rhs) 
-{ return lhs._num == rhs._num; }
-
-bool operator!=(Variable lhs, Variable rhs) 
-{ return !(lhs == rhs); }
-
-bool operator<(Variable const& lhs, Variable const& rhs)
-{ return lhs._num < rhs._num; }
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // impl FuncId
 /////////////////////////////////////////////////////////

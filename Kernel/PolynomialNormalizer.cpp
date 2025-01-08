@@ -317,10 +317,35 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
   }
 }
 
+/** a memoization realized as a hashmap */
+template<class Arg, class Result>
+struct MemoNonVars 
+{
+  Map<Arg, Result> _memo;
+
+public:
+  MemoNonVars() : _memo(decltype(_memo)()) {}
+
+  static bool isVar(PolyNf const& p) { return p.is<Variable>(); }
+  static bool isVar(TermList const& p) { return p.isVar(); }
+
+  template<class Init> Result getOrInit(Arg const& orig, Init init)
+  { 
+    return isVar(orig) 
+      ? init()
+      : _memo.getOrInit(Arg(orig), init);
+  }
+
+  Option<Result> get(const Arg& orig)
+  { return isVar(orig) ? Option<Result>() : _memo.tryGet(orig).toOwned(); }
+};
+
+
 PolyNf normalizeTerm(TypedTermList t) 
 {
-  DEBUG("normalizing ", t)
-  static Memo::Hashed<TypedTermList, NormalizationResult, StlHash> memo;
+  DEBUG(0, "normalizing ", t)
+    // DBGE(t)
+  static MemoNonVars<TypedTermList, NormalizationResult> memo;
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
     .function(
         [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
@@ -352,8 +377,7 @@ PolyNf normalizeTerm(TypedTermList t)
 
 TermList PolyNf::denormalize() const
 { 
-
-  static Memo::Hashed<PolyNf, TermList, StlHash> memo;
+  static MemoNonVars<PolyNf, TermList> memo;
   return BottomUpEvaluation<PolyNf, TermList>()
     .function(
         [&](PolyNf orig, TermList* results) -> TermList
