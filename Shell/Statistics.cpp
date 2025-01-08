@@ -233,6 +233,9 @@ void Statistics::print(std::ostream& out)
   case Statistics::TIME_LIMIT:
     out << "Time limit";
     break;
+  case Statistics::INSTRUCTION_LIMIT:
+    out << "Instruction limit";
+    break;
   case Statistics::MEMORY_LIMIT:
     out << "Memory limit";
     break;

@@ -528,6 +528,14 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Time limit reached!\n";
     break;
+  case Statistics::INSTRUCTION_LIMIT:
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
+      out << "unknown" << endl;
+      return;
+    }
+    addCommentSignForSZS(out);
+    out << "Instruction limit reached!\n";
+    break;
   case Statistics::MEMORY_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
