@@ -38,6 +38,7 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/Reflection.hpp"
+#include "Lib/Hash.hpp"
 #include <type_traits>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -57,10 +58,10 @@ public:
 
   void integrity() const {  }
   friend struct std::hash<Variable>;
-  friend bool operator==(Variable lhs, Variable rhs);
-  friend bool operator!=(Variable lhs, Variable rhs);
-  friend bool operator<(Variable const& lhs, Variable const& rhs);
   friend std::ostream& operator<<(std::ostream& out, const Variable& self);
+  auto asTuple() const { return std::make_tuple(_num); }
+  IMPL_HASH_FROM_TUPLE(Variable);
+  IMPL_COMPARISONS_FROM_TUPLE(Variable);
 };
 
 } // namespace Kernel
