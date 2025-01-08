@@ -611,6 +611,7 @@ class Signature
 
   template<class Numeral>
   Lib::Option<Numeral const&> tryLinMul(unsigned f) {
+    if (f >= Term::SPECIAL_FUNCTOR_LOWER_BOUND) return {};
     if (auto sym = tryLinMulSym<Numeral>(getFunction(f))) {
       return Option<Numeral const&>(sym->_value);
     } else {
