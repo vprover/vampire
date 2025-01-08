@@ -140,9 +140,12 @@ struct AlascaSignature : public NumTraits {
   static TermList const& one() { return oneT.unwrapOrInit([&]() { return NumTraits::one(); }); }
   static TermList const& sort() { return sortT.unwrapOrInit([&]() { return NumTraits::sort(); }); }
 
+  static bool isZero(TermList t) { return AlascaSignature::zero() == t; }
+
   static bool isOne(unsigned f) { return AlascaSignature::one().term()->functor() == f; }
   static bool isOne(TermList t) { return AlascaSignature::one() == t; }
   static bool isOne(Term* t) { return AlascaSignature::one() == TermList(t); }
+
   template<class T, class F>
   static auto ifOne(T term, F fun) { return someIf(AlascaSignature::isOne(term), std::move(fun)); }
 

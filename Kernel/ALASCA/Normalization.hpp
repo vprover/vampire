@@ -228,6 +228,7 @@ namespace Kernel {
     Option<AlascaLiteral<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
     {
       DEBUG_NORM(0, "in: ", *lit, " (", NumTraits::name(), ")")
+      using ASig = AlascaSignature<NumTraits>;
 
       auto impl = [&]() -> Option<AlascaLiteral<NumTraits>> {
 
@@ -244,9 +245,9 @@ namespace Kernel {
         switch(itp) {
          
           case Interpretation::EQUAL:/* l == r or l != r */
-            if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
+            if (SortHelper::getEqualityArgumentSort(lit) != ASig::sort()) 
               return {};
-            if (*lit->nthArgument(0) == NumTraits::zero()) {
+            if (ASig::isZero(*lit->nthArgument(0))) {
               l = *lit->nthArgument(0);
               r = *lit->nthArgument(1);
             } else {
@@ -292,18 +293,18 @@ namespace Kernel {
 
         if (isInt && pred == AlascaPredicate::GREATER_EQ) {
           /* l <= r ==> l < r + 1 */
-          r = NumTraits::add(r, NumTraits::one());
+          r = ASig::add(r, ASig::one());
           pred = AlascaPredicate::GREATER;
         }
 
         /* l < r ==> r > l ==> r - l > 0 */
-        auto t = l == NumTraits::zero() ? r 
-               : r == NumTraits::zero() ? NumTraits::minus(l)
-               : NumTraits::add(r, NumTraits::minus(l));
+        auto t = l == ASig::zero() ? r 
+               : r == ASig::zero() ? ASig::minus(l)
+               : ASig::add(r, ASig::minus(l));
 
         ASS(!isInt || pred != AlascaPredicate::GREATER_EQ)
 
-        auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, NumTraits::sort())).wrapPoly<NumTraits>());
+        auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, ASig::sort())).wrapPoly<NumTraits>());
         switch(pred) {
           case AlascaPredicate::EQ:
           case AlascaPredicate::NEQ:
@@ -385,19 +386,11 @@ namespace Kernel {
   private: 
     Literal* normalizeUninterpreted(Literal* lit) const
     {
+      // TODO RStack
       Stack<TermList> args(lit->arity());
       args.loadFromIterator(typeArgIter(lit));
       for (auto orig : termArgIter(lit)) {
-        if (orig.isVar()) {
-          args.push(orig);
-        } else {
-          auto norm = PolyNf::normalize(TypedTermList(orig.term()));
-          auto eval = _eval
-            .evaluate(norm)
-            .map([](auto t) { return t.denormalize(); }) 
-            || norm.denormalize();  // <- nothing was done during evaluation
-          args.push(eval);
-        }
+        args.push(normalize(orig).denormalize());
       }
       auto out = Literal::create(lit, args.begin());
       DEBUG_NORM(0, *lit, " ==> ", *out)
