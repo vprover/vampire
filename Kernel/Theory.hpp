@@ -66,19 +66,10 @@ struct QR { T quot; T rem; };
   bool isPositive() const { return sign() == Sign::Pos;  }                                \
 
 
-/**
- * Exception to be thrown when the requested operation cannot be performed,
- * e.g. because of overflow of a native type.
- */
-class ArithmeticException : public Exception {
-protected:
-  ArithmeticException(std::string msg) : Exception(msg) {}
-};
-
-class DivByZeroException         : public ArithmeticException 
+class DivByZeroException : public Exception 
 { 
 public:
-  DivByZeroException() : ArithmeticException("divided by zero"){} 
+  DivByZeroException() : Exception("divided by zero"){} 
 };
 
 enum class Sign : uint8_t {
@@ -148,7 +139,6 @@ public:
 
   IntegerConstantType() { mpz_init(_val); }
   explicit IntegerConstantType(int v) : IntegerConstantType() { mpz_set_si(_val, v); }
-  explicit IntegerConstantType(const std::string& str);
 
   IntegerConstantType(IntegerConstantType     && o) : IntegerConstantType() { mpz_swap(_val, o._val); }
   IntegerConstantType(IntegerConstantType const& o) : IntegerConstantType() {  mpz_set(_val, o._val); }
@@ -160,6 +150,8 @@ public:
   IntegerConstantType operator+(const IntegerConstantType& num) const;
   IntegerConstantType operator-(const IntegerConstantType& num) const;
   IntegerConstantType operator^(unsigned long num) const;
+
+  static Option<IntegerConstantType> parse(std::string const&);
 
   IntegerConstantType operator-() const;
   IntegerConstantType operator*(const IntegerConstantType& num) const;
@@ -239,12 +231,31 @@ struct RationalConstantType {
 
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
+
+
   RationalConstantType() {}
 
   explicit RationalConstantType(int n);
   explicit RationalConstantType(IntegerConstantType num);
   RationalConstantType(int num, int den);
   RationalConstantType(IntegerConstantType num, IntegerConstantType den);
+
+  static Option<RationalConstantType> parse(std::string const& number)
+  {
+    size_t i = number.find_first_of("/");
+    if (i == std::string::npos) {
+      return IntegerConstantType::parse(number)
+        .map([](auto x) { return RationalConstantType(std::move(x)); });
+    } else {
+      return IntegerConstantType::parse(number.substr(0,i))
+        .map([&](auto a) {
+            return IntegerConstantType::parse(number.substr(i + 1))
+               .map([&](auto b) {
+                   return RationalConstantType(std::move(a),std::move(b));
+               });
+            }).flatten();
+    }
+  }
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
@@ -311,7 +322,7 @@ public:
   RealConstantType(const RealConstantType&) = default;
   RealConstantType& operator=(const RealConstantType&) = default;
 
-  explicit RealConstantType(const std::string& number);
+  static Option<RealConstantType> parse(std::string const&);
   explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
   RealConstantType(IntegerConstantType num) : RationalConstantType(num) {}
   RealConstantType(int num, int den) : RationalConstantType(num, den) {}
@@ -644,8 +655,6 @@ public:
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
 
-  Term* representIntegerConstant(std::string str);
-  Term* representRealConstant(std::string str);
 private:
   Theory();
   static OperatorType* getConversionOperationType(Interpretation i);

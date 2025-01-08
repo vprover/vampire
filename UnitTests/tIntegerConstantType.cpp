@@ -39,6 +39,6 @@ TEST_FUN(to_string)
       "-1111111111111111111111111111111111111111111",
       "1111111189123097123890102111111111111111111",
       }) {
-    ASS_EQ(Output::toString(IntegerConstantType(str)), str);
+    ASS_EQ(Output::toString(IntegerConstantType::parse(str).unwrap()), str);
   }
 }
