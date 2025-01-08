@@ -156,11 +156,14 @@ private:
       }
 
       // check ordering constraints
-      auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
+      auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator,e](auto& ordCon) {
         if (!ordCon.comp) {
-          ordCon.comp = ord->createComparator(ordCon.lhs, ordCon.rhs);
+          ordCon.comp = ord->createComparator();
+          // insert pointer to owner as non-null value representing success
+          ordCon.comp->insert({ { ordCon.lhs, ordCon.rhs, Ordering::GREATER } }, e);
         }
-        return ordCon.comp->check(&applicator);
+        ordCon.comp->init(&applicator);
+        return ordCon.comp->next();
       });
       if (!ordCons_ok) {
         continue;
