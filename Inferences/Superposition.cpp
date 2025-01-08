@@ -342,6 +342,11 @@ Clause* Superposition::performSuperposition(
     }
   }
 
+  if (rwClause->isRedundant() || eqClause->isRedundant()) {
+    env.statistics->skippedSuperposition++;
+    return 0;
+  }
+
   const auto& condRedHandler = _salg->condRedHandler();
   if (!unifier->usesUwa()) {
     if (!condRedHandler.checkSuperposition(eqClause, eqLit, eqLHS, rwClause, rwLit, rwTerm, eqIsResult, subst.ptr())) {

@@ -80,6 +80,7 @@ ClauseIterator RenamingSuperposition::generateClauses(Clause* cl)
   Ordering& ordering = _salg->getOrdering();
 
   static DHSet<TermList> attempted;
+  attempted.reset();
   auto res = ClauseIterator::getEmpty();
 
   if (cl->length()>1) {
@@ -176,7 +177,8 @@ ClauseIterator RenamingSuperposition::generateClauses(Clause* cl)
 
   Shell::ConditionalRedundancySubsumption subs(*tod, ordering, Stack<TermOrderingConstraint>(), /*ground=*/true);
   if (subs.check()) {
-    cout << "redundant " << *cl << endl;
+    cl->markRedundant();
+    env.statistics->groundRedundantClauses++;
   }
   cl->setTod(tod);
 

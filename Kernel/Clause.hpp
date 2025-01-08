@@ -367,6 +367,9 @@ public:
   void setTod(void* tod) { _tod = tod; }
   void* getTod() const { return _tod; }
 
+  void markRedundant() { _redundant = true; }
+  bool isRedundant() const { return _redundant; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -401,6 +404,7 @@ protected:
   int _numActiveSplits;
 
   void* _tod;
+  bool _redundant;
 
   size_t _auxTimestamp;
   void* _auxData;
