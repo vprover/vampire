@@ -471,13 +471,10 @@ void Statistics::print(std::ostream& out)
   Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
 
-  long maxrss = Lib::peakMemoryUsage();
-  if (maxrss) {
+  long peakMemKB = Lib::peakMemoryUsageKB();
+  if (peakMemKB) {
     addCommentSignForSZS(out);
-#if defined(__APPLE__) && defined(__MACH__)
-    maxrss >>= 10; // at least more recent MacOses report in bytes
-#endif
-    out << "Peak memory usage: " << (maxrss >> 10) << " MB";
+    out << "Peak memory usage: " << (peakMemKB >> 10) << " MB";
     out << endl;
   }
 
