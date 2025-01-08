@@ -78,7 +78,6 @@ Clause* TPTP::parseClauseFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input);
-  parser._isFof = true;
   parser._lastInputType = UnitInputType::AXIOM;
   parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
   parser._strings.push("dummy_name");
@@ -150,17 +149,14 @@ void TPTP::parseImpl(State initialState)
       unitList();
       break;
     case FOF:
-      _isFof = true;
       fof(true);
       break;
     case THF:
       _isThf = true;
     case TFF:
-      _isFof = false;
       tff();
       break;
     case CNF:
-      _isFof = true;
       fof(false);
       break;
     case FORMULA:
@@ -2893,13 +2889,13 @@ void TPTP::term()
           );
           break;
         case T_INT:
-          number = addNumeralConstant<IntegerConstantType>(tok.content,_isFof);
+          number = addNumeralConstant<IntegerConstantType>(tok.content);
           break;
         case T_REAL:
-          number = addNumeralConstant<RealConstantType>(tok.content,_isFof);
+          number = addNumeralConstant<RealConstantType>(tok.content);
           break;
         case T_RAT:
-          number = addNumeralConstant<RationalConstantType>(tok.content,_isFof);
+          number = addNumeralConstant<RationalConstantType>(tok.content);
           break;
         default:
           ASSERTION_VIOLATION;
@@ -4659,7 +4655,6 @@ unsigned TPTP::addOverloadedFunction(std::string name,int arity,int symbolArity,
     if(sortOf(*n)!=srt){
       std::string msg = "The interpreted function symbol " + name + " is not used with a single sort.";
       msg += "\nArgument 0 is "+srt.toString()+" and argument "+Lib::Int::toString(i)+" is "+sortOf(*n).toString();
-      if(_isFof){ msg += "\nCheck that you are using tff if you want numbers to be interpreted"; }
       USER_ERROR(msg);
     }
     n = n->next();
@@ -4689,7 +4684,6 @@ unsigned TPTP::addOverloadedPredicate(std::string name,int arity,int symbolArity
     if(sortOf(*n)!=srt){
       std::string msg = "The interpreted predicate symbol " + name + " is not used with a single sort.";
       msg += "\nArgument 0 is "+srt.toString()+" and argument "+Lib::Int::toString(i)+" is "+sortOf(*n).toString();
-      if(_isFof){ msg += "Check that you are using tff if you want numbers to be interpreted"; }
       USER_ERROR(msg);
     }
     n = n->next(); 

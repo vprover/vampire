@@ -19,7 +19,6 @@
 
 #include <iostream>
 
-#include "Kernel/RobSubstitution.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -30,19 +29,15 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 //#define DEBUG_SHOW_STATE
-
-using namespace Lib;
-using namespace Kernel;
 
 namespace Kernel {
   class Clause;
 };
 
 namespace Parse {
-
-class TPTP;
 
 /**
  * Implements a TPTP parser
@@ -565,9 +560,6 @@ private:
   UnitInputType _lastInputType;
   /** true if the last read unit is a question */
   bool _isQuestion;
-  /** true if the last read unit is fof() or cnf() due to a subtle difference
-   * between fof() and tff() in treating numeric constants */
-  bool _isFof;
   /** */
   bool _isThf;
   /** */
@@ -820,10 +812,10 @@ public:
    * Add a numeral constant by reading it from the std::string name.
    */
   template<class Numeral>
-  static unsigned addNumeralConstant(const std::string& name, bool defaultSort)
+  static unsigned addNumeralConstant(const std::string& name)
   {
     if (auto n = Numeral::parse(name)) {
-      return env.signature->addNumeralConstant(*n,defaultSort);
+      return env.signature->addNumeralConstant(*n);
     } else {
       throw UserErrorException("not a valid ", Numeral::getSort(), " literal: ", name);
     }
