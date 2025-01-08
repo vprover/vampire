@@ -69,6 +69,7 @@
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
+#include "Inferences/RenamingSuperposition.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
@@ -1456,6 +1457,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (env.options->superposition()) {
       gie->addFront(new Superposition());
     }
+    gie->addFront(new RenamingSuperposition());
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
     gie->addFront(new EqualityResolution());

@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include "Lib/Set.hpp"
+
 namespace Kernel {
 
 /** This corresponds to the values we can handle between two elements.
@@ -76,6 +78,24 @@ public:
 
   friend std::ostream& operator<<(std::ostream& str, const PartialOrdering& po);
 
+  static unsigned hash(const PartialOrdering* po) {
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char*>(po->_array.data()),
+      (sizeof(PoComp)/sizeof(unsigned char))*po->_array.size());
+  }
+
+  static bool equals(const PartialOrdering* po1, const PartialOrdering* po2) {
+    if (po1->_array.size()!=po2->_array.size()) {
+      return false;
+    }
+    for (unsigned i = 0; i < po1->_array.size(); i++) {
+      if (po1->_array[i]!=po2->_array[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
 private:
   PartialOrdering() = default;
   ~PartialOrdering() = default;
@@ -96,6 +116,8 @@ private:
   size_t _size = 0;
   std::vector<PoComp> _array;
   bool _hasIncomp = false;
+
+  static Set<PartialOrdering*, PartialOrdering> kStore;
 };
 
 };

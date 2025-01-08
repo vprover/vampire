@@ -354,7 +354,7 @@ ConditionalRedundancySubsumption::ConditionalRedundancySubsumption(
   OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& ordCons, bool ground)
   : subsumer(subsumer), subsumed(ord.createComparator()), ground(ground)
 {
-  subsumed->insert(ordCons, (void*)0x1);
+  subsumed->insert(ordCons, this);
   path.push({ &subsumer._source, nullptr, &subsumed->_source });
 }
 

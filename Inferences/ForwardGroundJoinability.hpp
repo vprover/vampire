@@ -77,4 +77,4 @@ private:
 
 };
 
-#endif /*__ForwardDemodulation__*/
+#endif /*__ForwardGroundJoinability__*/

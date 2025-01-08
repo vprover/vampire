@@ -335,6 +335,9 @@ Result TermPartialOrdering::solveVarVar(POStruct* po_struct, AppliedTerm s, Appl
   ASS(po_struct);
   ASS(s.apply().isVar());
   ASS(t.apply().isVar());
+  if (s.term==t.term) {
+    return Ordering::EQUAL;
+  }
   Result val = po_struct->tpo->get(s.term, t.term);
   if (val != Ordering::LESS && val != Ordering::INCOMPARABLE) {
     return val;

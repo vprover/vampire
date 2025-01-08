@@ -423,6 +423,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GaussianVariableElimination.cpp
     Kernel/Rebalancing.cpp
     Kernel/Rebalancing/Inverters.cpp
+    Inferences/RenamingSuperposition.cpp
     Inferences/Superposition.cpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
@@ -462,6 +463,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing.hpp
     Kernel/Rebalancing/Inverters.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
+    Inferences/RenamingSuperposition.hpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp

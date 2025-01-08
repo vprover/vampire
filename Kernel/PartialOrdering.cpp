@@ -15,9 +15,11 @@
 #include <cstring>
 #include <iomanip>
 
-#include "PartialOrdering.hpp"
-#include "Lib/Stack.hpp"
+#include "Lib/Map.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Stack.hpp"
+
+#include "PartialOrdering.hpp"
 
 #define RETURN_IF_FAIL(Cond) \
   {                          \
@@ -147,6 +149,8 @@ string pocompToInfix(PoComp c) {
   ASSERTION_VIOLATION;
 }
 
+Set<PartialOrdering*, PartialOrdering> PartialOrdering::kStore;
+
 PoComp PartialOrdering::get(size_t x, size_t y) const
 {
   ASS_L(x,_size);
@@ -171,7 +175,7 @@ const PartialOrdering* PartialOrdering::set(const PartialOrdering* po, size_t x,
     return po;
   }
 
-  static DHMap<std::tuple<const PartialOrdering*, size_t, size_t, PoComp>, const PartialOrdering*> cache;
+  static Map<std::tuple<const PartialOrdering*, size_t, size_t, PoComp>, const PartialOrdering*> cache;
 
   const PartialOrdering** ptr;
   if (cache.getValuePtr(make_tuple(po, x, y, v), ptr, nullptr)) {
@@ -180,22 +184,24 @@ const PartialOrdering* PartialOrdering::set(const PartialOrdering* po, size_t x,
     if (reversed) {
       swap(x,y);
     }
-    auto res = new PartialOrdering(*po);
+    PartialOrdering res(*po);
     bool changed;
-    if (!res->setRel(x, y, v, changed)) {
-      delete res;
+    if (!res.setRel(x, y, v, changed)) {
       *ptr = nullptr;
     } else if (!changed) {
-      delete res;
       *ptr = po;
     }
     // if something's changed, we calculate the transitive closure
     // TODO we could use the value that we get from compatibility checking here
-    else if (!res->setInferred(x, y, v)) {
-      delete res;
+    else if (!res.setInferred(x, y, v)) {
       *ptr = nullptr;
     } else {
-      *ptr = res;
+      bool unused;
+      *ptr = kStore.rawFindOrInsert(
+        [&](){ return new PartialOrdering(std::move(res)); },
+        PartialOrdering::hash(&res),
+        [&](PartialOrdering* po) { return PartialOrdering::equals(po, &res); },
+        unused);
     }
   }
   return *ptr;

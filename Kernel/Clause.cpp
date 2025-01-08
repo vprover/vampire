@@ -78,6 +78,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _numActiveSplits(0),
+    _tod(nullptr),
     _auxTimestamp(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)

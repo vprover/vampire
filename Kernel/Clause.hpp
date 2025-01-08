@@ -364,6 +364,9 @@ public:
 
   bool computable();
 
+  void setTod(void* tod) { _tod = tod; }
+  void* getTod() const { return _tod; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -396,6 +399,8 @@ protected:
   InverseLookup<Literal>* _literalPositions;
 
   int _numActiveSplits;
+
+  void* _tod;
 
   size_t _auxTimestamp;
   void* _auxData;
