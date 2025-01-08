@@ -52,7 +52,7 @@ class Signature
     , std::string // <- string-constant
     // (number, arity). 
     // if arity = 0 we mean a numeral constant
-    // if arity = 1 we mean a linear multiplication (this is not yet merged into master bug come with alasca)
+    // if arity = 1 we mean a linear multiplication (this is not yet merged into master but will come with alasca)
     , std::pair<IntegerConstantType, unsigned> 
     , std::pair<RationalConstantType, unsigned> 
     , std::pair<RealConstantType, unsigned> 
