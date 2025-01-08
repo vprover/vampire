@@ -51,3 +51,14 @@ void Lib::setMemoryLimit(size_t limit) {
   // TODO should we warn here?
 #endif
 }
+
+long Lib::peakMemoryUsage() {
+#ifdef HAVE_RLIMIT
+  struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) == 0) {
+      return usage.ru_maxrss;
+    }
+#endif
+
+  return 0;
+}

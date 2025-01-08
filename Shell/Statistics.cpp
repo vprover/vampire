@@ -20,6 +20,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Allocator.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Shell/UIHelper.hpp"
@@ -469,6 +470,16 @@ void Statistics::print(std::ostream& out)
   out << "Time elapsed: ";
   Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
+
+  long maxrss = Lib::peakMemoryUsage();
+  if (maxrss) {
+    addCommentSignForSZS(out);
+#if defined(__APPLE__) && defined(__MACH__)
+    maxrss >>= 10; // at least more recent MacOses report in bytes
+#endif
+    out << "Peak memory usage: " << (maxrss >> 10) << " MB";
+    out << endl;
+  }
 
   Timer::updateInstructionCount();
   unsigned instr = Timer::elapsedMegaInstructions();
