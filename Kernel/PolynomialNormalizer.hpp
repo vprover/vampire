@@ -54,4 +54,28 @@ inline PolyNf normalizeTerm(Term* t)
 { return normalizeTerm(TypedTermList(t)); }
 } // namespace Kernel
 
+/** a memoization realized as a hashmap */
+template<class Arg, class Result>
+struct MemoNonVars 
+{
+  Map<Arg, Result> _memo;
+
+public:
+  MemoNonVars() : _memo(decltype(_memo)()) {}
+
+  static bool isVar(PolyNf const& p) { return p.is<Variable>(); }
+  static bool isVar(TermList const& p) { return p.isVar(); }
+
+  template<class Init> Result getOrInit(Arg const& orig, Init init)
+  { 
+    return isVar(orig) 
+      ? init()
+      : _memo.getOrInit(Arg(orig), init);
+  }
+
+  Option<Result> get(const Arg& orig)
+  { return isVar(orig) ? Option<Result>() : _memo.tryGet(orig).toOwned(); }
+};
+
+
 #endif // __POLYNOMIAL_NORMALIZER_HPP__
