@@ -37,16 +37,43 @@ namespace Kernel {
 
 using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
 
+/* non-shared monom */
+template<class NumTraits>
+struct PreMonom
+{
+  using Numeral = typename NumTraits::ConstantType;
+
+  PreMonom(Numeral n, std::initializer_list<PolyNf> factors) : numeral(std::move(n)), factors() 
+  { this->factors->init(factors); }
+
+  PreMonom(Numeral n)
+    : PreMonom(std::move(n), {}) {}
+
+  PreMonom(std::initializer_list<PolyNf> factors) 
+    : PreMonom(Numeral(1), factors) {}
+
+  Numeral numeral;
+  RStack<PolyNf> factors;
+  friend std::ostream& operator<<(std::ostream& out, PreMonom const& self)
+  { return out << Output::cat("PreMonom(", self.numeral, ", ", self.factors, ")"); }
+};
+
 using NormalizationResult = Coproduct<PolyNf 
         , Polynom< IntTraits>
         , Polynom< RatTraits>
         , Polynom<RealTraits>
-        , MonomFactors< IntTraits>
-        , MonomFactors< RatTraits>
-        , MonomFactors<RealTraits>
+        , PreMonom< IntTraits>
+        , PreMonom< RatTraits>
+        , PreMonom<RealTraits>
         >;
 
-PolyNf normalizeTerm(TypedTermList t);
+PolyNf normalizeTerm(TypedTermList t, bool& simplified);
+
+inline PolyNf normalizeTerm(TypedTermList t) {
+  bool dummy;
+  return normalizeTerm(t, dummy);
+}
+
 inline PolyNf normalizeTerm(TermList t, SortId sort)
 { return normalizeTerm(TypedTermList(t,sort)); }
 

@@ -36,6 +36,7 @@
 // define in version.cpp.in
 extern const char* VERSION_STRING;
 
+
 // try and invoke the GNU debugger in batch mode on this process
 static bool try_gdb(pid_t pid) {
   std::stringstream command;
