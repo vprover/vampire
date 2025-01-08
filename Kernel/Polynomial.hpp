@@ -317,6 +317,7 @@ public:
   template<class NumTraits>
   PolyNf(MonomFactors<NumTraits>     t) : PolyNf(perfect(std::move(t))) {}
 
+  static PolyNf normalize(TypedTermList t, bool& simplified);
   static PolyNf normalize(TypedTermList t);
 
   /** 

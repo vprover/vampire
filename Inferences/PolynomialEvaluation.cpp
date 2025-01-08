@@ -65,9 +65,10 @@ PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Liter
   auto anyChange = false;
   for (unsigned i = 0; i < lit->numTermArguments(); i++) {
     auto term = lit->termArg(i);
-    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
+    bool simplified;
+    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)), simplified);
     auto ev = _inner.evaluate(norm);
-    anyChange = anyChange || ev.isSome();
+    anyChange = anyChange || ev.isSome() || simplified;
     terms.push(std::move(ev) || norm);
   }
   auto simplified = _inner.tryEvalPredicate(lit, terms.begin());
