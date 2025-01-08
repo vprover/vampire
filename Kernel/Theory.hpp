@@ -66,19 +66,10 @@ struct QR { T quot; T rem; };
   bool isPositive() const { return sign() == Sign::Pos;  }                                \
 
 
-/**
- * Exception to be thrown when the requested operation cannot be performed,
- * e.g. because of overflow of a native type.
- */
-class ArithmeticException : public Exception {
-protected:
-  ArithmeticException(std::string msg) : Exception(msg) {}
-};
-
-class DivByZeroException         : public ArithmeticException 
+class DivByZeroException : public Exception 
 { 
 public:
-  DivByZeroException() : ArithmeticException("divided by zero"){} 
+  DivByZeroException() : Exception("divided by zero"){} 
 };
 
 enum class Sign : uint8_t {
