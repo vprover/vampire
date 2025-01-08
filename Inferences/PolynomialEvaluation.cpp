@@ -283,7 +283,8 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
     auto poly = Polynom(std::move(out));
     poly.integrity();
     return poly;
-  } catch (ArithmeticException&) { 
+  } catch (DivByZeroException&) { 
+    // TODO can we remove this?
     return in.replaceTerms(simplifiedArgs);
   }
 }
