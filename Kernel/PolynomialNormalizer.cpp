@@ -344,26 +344,12 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts, bool& 
   }
 }
 
-struct MyStat {
-  const char* text;
-  int cntr;
-  MyStat(const char* text) : text(text), cntr(0) {}
-  ~MyStat() { 
-    std::cout << "MyStat: " << text << ": " << cntr;
-  }
-};
-
-static MyStat norms("norms");
-
 PolyNf normalizeTerm(TypedTermList t, bool& simplified)
 {
   DBG_INDENT
   DEBUG(0, "normalizing ", t)
   static MemoNonVars<TypedTermList, std::pair<PolyNf, bool>> memo;
   auto out = memo.getOrInit(t, [&t]() {
-
-      norms.cntr++;
-      // std::cout << "normalizing: " << t << std::endl;
 
       bool simplified = false;
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
