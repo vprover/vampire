@@ -120,7 +120,7 @@ long long LRS::estimatedReachableCount()
   }
 
   {
-    long long processed=env.statistics->activeClauses;
+    long long processed=env.statistics->activations;
 
     if (processed<=10) {
       goto finish;
