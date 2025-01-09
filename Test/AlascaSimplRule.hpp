@@ -186,32 +186,32 @@ inline void overrideFractionalNumerals(IntTraits n) { }
 
 template<class NumTraits>
 void overrideFractionalNumerals(NumTraits n) {
+  using ASig = AlascaSignature<NumTraits>;
   SyntaxSugarGlobals::instance().overrideFractionCreation([&](int n, int m) {
-      return n == 1 && m == 1 ? NumTraits::one() 
-           : NumTraits::linMul(NumTraits::constant(n, m), NumTraits::one());
+      return ASig::numeralTl(typename ASig::ConstantType(n,m));
   });
 }
 
 template<class NumTraits>
 void mkAlascaSyntaxSugar(NumTraits n) {
-
+  using ASig = AlascaSignature<NumTraits>;
   SyntaxSugarGlobals::instance().overrideMulOperator([&](auto lhs, auto rhs) {
-    auto linMul = [](auto lhs, auto rhs) {
-      return NumTraits::ifLinMul(lhs, [&](auto num, auto t) {
-          return someIf(t == NumTraits::one(), 
-              [&]() { return NumTraits::linMul(num, rhs); });
-      }).flatten();
+    auto tryLinMul = [](auto lhs, auto rhs) -> Option<TermList> {
+      if (auto n =  ASig::tryNumeral(lhs)) {
+        return some(ASig::linMul(*n, rhs));
+      } else {
+        return {};
+      }
     };
-    return linMul(lhs,rhs) || linMul(rhs, lhs) || NumTraits::mul(lhs, rhs); 
+    return tryLinMul(lhs,rhs) || tryLinMul(rhs, lhs) || NumTraits::mul(lhs, rhs); 
   });
 
   SyntaxSugarGlobals::instance().overrideNumeralCreation([&](int i) {
-      return i == 1 ? NumTraits::one() 
-           : NumTraits::linMul(NumTraits::constant(i), NumTraits::one());
+      return ASig::numeralTl(i);
   });
 
   SyntaxSugarGlobals::instance().overrideMinus([&](auto t) {
-      return NumTraits::linMul(NumTraits::constant(-1), t);
+      return ASig::minus(t);
   });
 
   overrideFractionalNumerals(n);

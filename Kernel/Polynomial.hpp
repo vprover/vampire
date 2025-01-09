@@ -32,6 +32,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/Map.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 #include "ALASCA/Signature.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Perfect.hpp"
@@ -1357,7 +1358,9 @@ TermList Polynom<Number>::denormalize(TermList* results) const
 {
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
       auto mon = monom.factors->denormalize(t);
-      if (monom.numeral == 1) {
+      if (monom.factors->nFactors() == 0) {
+        return AlascaSignature<Number>::numeralTl(monom.numeral);
+      } else if (monom.numeral == 1) {
         return mon;
       } else {
         return Number::linMul(monom.numeral, mon);

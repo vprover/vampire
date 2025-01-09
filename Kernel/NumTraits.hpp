@@ -313,20 +313,28 @@ struct NumTraits;
     static auto constantT (int i) { return constantT (constant(i)); }                     \
     static auto constantTl(int i) { return constantTl(constant(i)); }                     \
                                                                                           \
-    static unsigned constantF(ConstantType const& i)                                             \
+    static unsigned constantF(ConstantType const& i)                                      \
     { return env.signature->addNumeralConstant(i); }                                      \
                                                                                           \
     static Term*    constantT(ConstantType const& i) { return Term::create(constantF(i), {}); }  \
-    static TermList constantTl(ConstantType const& i) { return TermList(constantT(i)); }         \
-    template<class TermOrFunctor>                                                         \
-    static Option<ConstantType> tryNumeral(TermOrFunctor t) {                             \
-      ConstantType out;                                                                   \
-      if (theory->tryInterpretConstant(t,out)) {                                          \
-        return Option<ConstantType>(out);                                                 \
-      } else {                                                                            \
-        return Option<ConstantType>();                                                    \
+    static TermList constantTl(ConstantType const& i) { return TermList(constantT(i)); }  \
+    static Option<ConstantType const&> tryNumeral(unsigned functor)                       \
+    {                                                                                     \
+      Signature::Symbol* sym = env.signature->getFunction(functor);                       \
+      if (!sym->numeralConstant<ConstantType>()) {                                        \
+        return {};                                                                        \
       }                                                                                   \
+      return Option<ConstantType const&>(sym->numeralValue<ConstantType>());              \
     }                                                                                     \
+                                                                                          \
+    static Option<ConstantType const&> tryNumeral(Term* t)                                \
+    { return tryNumeral(t->functor()); }                                                  \
+                                                                                          \
+    static Option<ConstantType const&> tryNumeral(TermList t) {                           \
+      if (t.isTerm()) return tryNumeral(t.term());                                        \
+      else            return {};                                                          \
+    }                                                                                     \
+                                                                                          \
     template<class TermOrFunctor>                                                         \
     static bool isNumeral(TermOrFunctor t) { return tryNumeral(t).isSome(); }             \
     template<class TermOrFunctor>                                                         \

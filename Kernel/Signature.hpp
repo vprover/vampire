@@ -300,6 +300,16 @@ class Signature
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::realSort(); }
 
+  private:
+    bool numeralConstant(RealConstantType*) const { return realConstant(); }
+    bool numeralConstant(RationalConstantType*) const { return rationalConstant(); }
+    bool numeralConstant(IntegerConstantType*) const { return integerConstant(); }
+  public:
+
+    /** template version of {integer,rational,real}Constant */
+    template<class Number> bool numeralConstant() const
+    { return numeralConstant((Number*)nullptr); }
+
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
@@ -308,14 +318,24 @@ class Signature
     { return _linMul; }
 
     /** Return value of an integer constant */
-    inline IntegerConstantType integerValue() const
+    inline IntegerConstantType const& integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
     /** Return value of a rational constant */
-    inline RationalConstantType rationalValue() const
+    inline RationalConstantType const& rationalValue() const
     { ASS(rationalConstant()); return static_cast<const RationalSymbol*>(this)->_ratValue; }
     /** Return value of a real constant */
-    inline RealConstantType realValue() const
+    inline RealConstantType const& realValue() const
     { ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
+
+  private:
+    RealConstantType const& numeralValue(RealConstantType*) const { return realValue(); }
+    RationalConstantType const& numeralValue(RationalConstantType*) const { return rationalValue(); }
+    IntegerConstantType const& numeralValue(IntegerConstantType*) const { return integerValue(); }
+  public:
+
+    /** template version of {integer,rational,real}Value */
+    template<class Number> auto const& numeralValue() const
+    { return numeralValue((Number*)nullptr); }
 
     const List<unsigned>* distinctGroups() const { return _distinctGroups; }
     /** This takes the symbol number of this symbol as the symbol doesn't know it

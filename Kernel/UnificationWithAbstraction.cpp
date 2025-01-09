@@ -123,10 +123,6 @@ template<class ASig, class Action>
 auto iterAtoms(TermSpec outer, AbstractingUnifier& au, ASig sig, Action action) {
   static TermSpec one = TermSpec(TermList(sig.one()), 0);
   using Numeral = typename ASig::ConstantType;
-  // auto action = [&](auto& term, auto numeral) {
-  //   ASS(!isInterpreted(term))
-  //   re
-  // };
 
   Recycled<Stack<std::pair<TermSpec, Numeral>>> todo;
   todo->push(std::make_pair(std::move(outer), Numeral(1)));
@@ -143,6 +139,9 @@ auto iterAtoms(TermSpec outer, AbstractingUnifier& au, ASig sig, Action action) 
           auto rhs_ = term.termArg(0);
           auto& rhs = au.subs().derefBound(rhs_);
           todo->push(std::make_pair(rhs, numeral * (*c)));
+
+        } else if (auto c = sig.tryNumeral(term.term)) {
+          action(TermSpec(sig.one(), 0), numeral * (*c));
 
         } else if (sig.isAdd(f)) {
           todo->push(std::make_pair(term.termArg(0), numeral));
@@ -318,7 +317,7 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
         return someIf(s.term == ASig::sort(), [&](){
             using Numeral = typename ASig::ConstantType;
             Recycled<Stack<std::pair<TermSpec, Numeral>>> sum;
-            iterAtoms(t, au, ASig{}, [&](auto& term, auto num) {
+            iterAtoms(t, au, ASig{}, [&](auto term, auto num) {
                 sum->push(std::make_pair(uninterpreted(term), num));
             });
 
@@ -399,6 +398,7 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
         using ASig = AlascaSignature<decltype(n)>;
         return ASig::isAdd(f)
             || ASig::isOne(f)
+            || ASig::isNumeral(t.term)
             || ASig::isFloor(f)
             || ASig::isLinMul(f);
     });
@@ -544,7 +544,7 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
   auto nf = norm(std::move(dt), au);
 
   iterAtoms(std::move(nf), au, sig,
-    [&diff](auto& t, auto num) { diff.push(std::make_pair(t,  num)); });
+    [&diff](auto t, auto num) { diff.push(std::make_pair(t,  num)); });
 
   // TODO bin search if many elems
   auto nVars = range(0, diff.size())
@@ -731,7 +731,11 @@ struct FloorUwaState {
   // bool nonLinear() const;
   // { return _nonLinear; }
 
-  static FloorUwaState scanOne(AbstractingUnifier& au) {
+  static FloorUwaState zero() {
+    return FloorUwaState();
+  }
+
+  static FloorUwaState one(AbstractingUnifier& au) {
     auto s = FloorUwaState();
     s.intAtoms->push(std::make_pair(TermSpec(ASig::one(), 0), Numeral(1)));
     return s;
@@ -865,9 +869,9 @@ struct FloorUwaState {
   static FloorUwaState scanAdd(AbstractingUnifier& au, TermSpec const& t0, TermSpec const& t1) { return add(au, scan(au, t0), scan(au, t1)); }
   static FloorUwaState scanFloor(AbstractingUnifier& au, TermSpec const& dt) { return floor(au, scan(au, dt)); }
 
-  static FloorUwaState mul(AbstractingUnifier& au, Numeral const& k, FloorUwaState s) {
+  static FloorUwaState _mul(AbstractingUnifier& au, Numeral const& k, FloorUwaState s) {
     if (k == 0) {
-      return FloorUwaState();
+      return FloorUwaState::zero();
     } else {
       auto procArray = [&](auto& sum) { 
         for (auto& s : sum) {
@@ -883,11 +887,14 @@ struct FloorUwaState {
     }
   }
 
-
-  static FloorUwaState scanMul(AbstractingUnifier& au, Numeral const& k, TermSpec t) {
-    return k == 0 ? FloorUwaState()
-                  : mul(au, k, scan(au, t));
+  static FloorUwaState mul(AbstractingUnifier& au, Numeral const& k, FloorUwaState s) {
+    auto out = _mul(au, k, std::move(s));
+    return out;
   }
+
+
+  static FloorUwaState scanMul(AbstractingUnifier& au, Numeral const& k, TermSpec t) 
+  { return k == 0 ? FloorUwaState::zero() : mul(au, k, scan(au, t)); }
 
 
   static FloorUwaState scan(AbstractingUnifier& au, TermSpec const& t) {
@@ -897,8 +904,15 @@ struct FloorUwaState {
     auto res = 
       optionIfThenElse(
             [&]() { return ASig::ifAdd(t.term, [&](auto l, auto r) { return scanAdd(au, deref(l), deref(r)); }); }
-          , [&]() { return someIf(t.term == ASig::one(), [&]() { return scanOne(au); }); }
+          , [&]() { return someIf(t.term == ASig::one(), [&]() { return one(au); }); }
           , [&]() { return ASig::ifLinMul(t.term, [&](auto& k, auto t) { return scanMul(au, k, deref(t)); }); }
+          , [&]() -> Option<FloorUwaState> { 
+              if (auto numeral = ASig::tryNumeral(t.term)) {
+                return some(mul(au, *numeral, one(au)));
+              } else {
+                return {};
+              }
+            }
           , [&]() { return ASig::ifFloor(t.term, [&](auto t) { return scanFloor(au, deref(t)); }); }
           , [&]() {
               ASS(t.term.isVar() || ASig::isUninterpreted(t.term))
@@ -992,6 +1006,7 @@ struct FloorUwaState {
     friend std::ostream& operator<<(std::ostream& out, Bucket const& self)
     { return out << Output::interleaved(" + ", self.summands()); }
   };
+
   auto buckets() const {
     Recycled<Map<unsigned, Bucket>> buckets;
     ASS(ratVars->isEmpty())

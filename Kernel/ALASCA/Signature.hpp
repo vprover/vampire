@@ -39,7 +39,7 @@ inline bool isInequality(AlascaPredicate const& self)
 template<class NumTraits>
 Literal* createLiteral(AlascaPredicate self, TermList t)
 {
-  auto zero = NumTraits::linMul(NumTraits::constant(0), NumTraits::one());
+  auto zero = NumTraits::constantTl(NumTraits::constant(0));
   switch(self) {
     case AlascaPredicate::EQ: return NumTraits::eq(true, t, zero);
     case AlascaPredicate::NEQ: return NumTraits::eq(false, t, zero);
@@ -61,6 +61,7 @@ inline std::ostream& operator<<(std::ostream& out, AlascaPredicate const& self)
   ASSERTION_VIOLATION
 }
 
+#define ALASCA_MULTI_NUMERAL 1
 
 template<class NumTraits> 
 struct AlascaSignature : public NumTraits {
@@ -72,6 +73,9 @@ struct AlascaSignature : public NumTraits {
 
   template<class T>
   static Option<Numeral const&> tryNumeral(T t) {
+#if ALASCA_MULTI_NUMERAL
+    return NumTraits::tryNumeral(t);
+#else 
     if (t == AlascaSignature::one()) {
       return Option<Numeral const&>(oneN.unwrapOrInit([&]() { return NumTraits::constant(1); }));
     } else {
@@ -79,13 +83,17 @@ struct AlascaSignature : public NumTraits {
           return someIf(t == NumTraits::one(), [&]() -> auto& { return c; });
       }).flatten();
     }
+#endif
   }
+  /* numerals might b complex terms */
+  static Option<Numeral const&> tryNumeral(unsigned t) = delete; 
 
   template<class T> static void numeralF(T) = delete;
   template<class T> static void constantTl(T) = delete;
 
   static auto addF() { return NumTraits::addF(); }
   static auto minusF() { return NumTraits::linMulF(Numeral(-1)); }
+  static TermList minus(TermList t) { return NumTraits::linMul(NumTraits::constant(-1), t); }
 
   template<class T, class F, class P>
   static decltype(auto) ifLinMulWithPath(T t, P& path, F fun) 
@@ -153,7 +161,11 @@ struct AlascaSignature : public NumTraits {
   { return numeralTl(NumTraits::constant(c)); }
 
   static Kernel::TermList numeralTl(typename NumTraits::ConstantType const& c) 
+#if ALASCA_MULTI_NUMERAL
+  { return NumTraits::constantTl(c); }
+#else
   { return c == 1 ? AlascaSignature::one() : TermList(NumTraits::linMul(c, AlascaSignature::one())); }
+#endif //ALASCA_MULTI_NUMERAL
 
 
   template<class F>

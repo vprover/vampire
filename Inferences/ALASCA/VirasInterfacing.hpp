@@ -136,6 +136,8 @@ struct VampireVirasConfig {
      .orElse([&]() { return ASig::ifAdd(t, [&](auto l, auto r) { return if_add(l, r); }); })
      .orElse([&]() { return ASig::ifMinus(t, [&](auto t) { return if_mul(numeral(-1), t); }); })
      .orElse([&]() { return ASig::ifLinMul(t, std::move(if_mul)); })
+     .orElse([&]() { return ASig::tryNumeral(t).toOwned()
+                                   .map([&](auto n) { return if_mul(n, ASig::one()); }); })
      .orElse([&]() { return ASig::ifFloor(t, [&](auto t) { return if_floor(t); }); })
      .orElse([&]() { return ASig::ifDiv(t, [&](auto l, auto r) { 
                            return ASig::ifNumeral(r, [&](auto k) { return 
