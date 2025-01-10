@@ -663,12 +663,6 @@ public:
     OFF,
   };
 
-  enum class AgeWeightRatioShape {
-    CONSTANT,
-    DECAY,
-    CONVERGE
-  };
-
   enum class KboWeightGenerationScheme : unsigned int {
     CONST = 0,
     RANDOM = 1,
@@ -2113,8 +2107,6 @@ public:
   std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
-	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
-	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2362,8 +2354,6 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
-	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
-	UnsignedOptionValue _ageWeightRatioShapeFrequency;
 
   BoolOptionValue _useTheorySplitQueues;
   StringOptionValue _theorySplitQueueRatios;
