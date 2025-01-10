@@ -43,48 +43,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name) :
-  PassiveClauseContainer(isOutermost, opt, name),
-  _ageQueue(opt),
-  _weightQueue(opt),
-  _ageRatio(opt.ageRatio()),
-  _weightRatio(opt.weightRatio()),
-  _balance(0),
-  _size(0),
-
-  _simulationBalance(0),
-  _simulationCurrAgeIt(_ageQueue),
-  _simulationCurrWeightIt(_weightQueue),
-  _simulationCurrAgeCl(nullptr),
-  _simulationCurrWeightCl(nullptr),
-
-  _ageSelectionMaxAge(UINT_MAX),
-  _ageSelectionMaxWeight(UINT_MAX),
-  _weightSelectionMaxWeight(UINT_MAX),
-  _weightSelectionMaxAge(UINT_MAX)
-{
-  if(_opt.ageWeightRatioShape() == Options::AgeWeightRatioShape::CONVERGE) {
-    _ageRatio = 1;
-    _weightRatio = 1;
-  }
-
-  ASS_GE(_ageRatio, 0);
-  ASS_GE(_weightRatio, 0);
-  ASS(_ageRatio > 0 || _weightRatio > 0);
-}
-
-AWPassiveClauseContainer::~AWPassiveClauseContainer()
-{
-  ClauseQueue::Iterator cit(_ageQueue);
-  while (cit.hasNext())
-  {
-    Clause* cl=cit.next();
-    ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
-    cl->setStore(Clause::NONE);
-  }
-}
-
-
 /**
  * Weight comparison of clauses.
  * @return the result of comparison (LESS, EQUAL or GREATER)
@@ -92,10 +50,44 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
  *          recomputes the numeral weight of clauses, see Clause::getNumeralWeight(), so it
  *          it can be expensive
  */
-Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
+static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
 {
   return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
 }
+
+/**
+ * Comparison of clauses. The comparison uses four orders in the
+ * following order:
+ * <ol><li>by age;</li>
+ *     <li>by weight;</li>
+ *     <li>by input type;</li>
+ *     <li>by number.</li>
+ * </ol>
+ * @since 30/12/2007 Manchester
+ */
+bool AgeQueue::lessThan(Clause* c1,Clause* c2)
+{
+  if (c1->age() < c2->age()) {
+    return true;
+  }
+  if (c2->age() < c1->age()) {
+    return false;
+  }
+
+  Comparison weightCmp=compareWeight(c1, c2, _opt);
+  if (weightCmp!=EQUAL) {
+    return weightCmp==LESS;
+  }
+
+  if (c1->inputType() < c2->inputType()) {
+    return false;
+  }
+  if (c2->inputType() < c1->inputType()) {
+    return true;
+  }
+
+  return c1->number() < c2->number();
+} // AgeQueue::lessThan
 
 /**
  * Comparison of clauses. The comparison uses four orders in the
@@ -119,7 +111,7 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
     }
   }
 
-  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
+  Comparison weightCmp=compareWeight(c1, c2, _opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;
   }
@@ -140,39 +132,39 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 } // WeightQueue::lessThan
 
 
-/**
- * Comparison of clauses. The comparison uses four orders in the
- * following order:
- * <ol><li>by age;</li>
- *     <li>by weight;</li>
- *     <li>by input type;</li>
- *     <li>by number.</li>
- * </ol>
- * @since 30/12/2007 Manchester
- */
-bool AgeQueue::lessThan(Clause* c1,Clause* c2)
+AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name) :
+  PassiveClauseContainer(isOutermost, opt, name),
+  _ageQueue(opt),
+  _weightQueue(opt),
+  _ageRatio(opt.ageRatio()),
+  _weightRatio(opt.weightRatio()),
+  _balance(0),
+  _size(0),
+
+  _simulationBalance(0),
+  _simulationCurrAgeIt(_ageQueue),
+  _simulationCurrWeightIt(_weightQueue),
+  _simulationCurrAgeCl(nullptr),
+  _simulationCurrWeightCl(nullptr),
+  _ageSelectionMaxAge(UINT_MAX),
+  _ageSelectionMaxWeight(UINT_MAX),
+  _weightSelectionMaxWeight(UINT_MAX)
 {
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
+  ASS_GE(_ageRatio, 0);
+  ASS_GE(_weightRatio, 0);
+  ASS(_ageRatio > 0 || _weightRatio > 0);
+}
 
-  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
+AWPassiveClauseContainer::~AWPassiveClauseContainer()
+{
+  ClauseQueue::Iterator cit(_ageQueue);
+  while (cit.hasNext())
+  {
+    Clause* cl=cit.next();
+    ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
+    cl->setStore(Clause::NONE);
   }
-
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-
-  return c1->number() < c2->number();
-} // WeightQueue::lessThan
+}
 
 /**
  * Add @b c clause in the queue.
@@ -256,32 +248,6 @@ Clause* AWPassiveClauseContainer::popSelected()
 {
   ASS( ! isEmpty());
 
-  auto shape = _opt.ageWeightRatioShape();
-  unsigned frequency = _opt.ageWeightRatioShapeFrequency();
-  static unsigned count = 0;
-  count++;
-
-  bool is_converging = shape == Options::AgeWeightRatioShape::CONVERGE;
-  int targetAgeRatio = is_converging ? _opt.ageRatio() : 1;
-  int targetWeightRatio = is_converging ? _opt.weightRatio() : 1;
-
-  if(count % frequency == 0) {
-    switch(shape) {
-    case Options::AgeWeightRatioShape::CONSTANT:
-      break;
-    case Options::AgeWeightRatioShape::DECAY:
-    case Options::AgeWeightRatioShape::CONVERGE:
-      int ageDifference = targetAgeRatio - _ageRatio;
-      int weightDifference = targetWeightRatio - _weightRatio;
-      int bonus = is_converging ? 1 : -1;
-      int ageUpdate = (ageDifference + bonus) / 2;
-      int weightUpdate = (weightDifference + bonus) / 2;
-
-      _ageRatio += ageUpdate;
-      _weightRatio += weightUpdate;
-   }
-  }
-  //std::cerr << _ageRatio << "\t" << _weightRatio << std::endl;
   _size--;
 
   Clause* cl;
@@ -339,7 +305,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
 
   while (toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
-    RSTAT_CTR_INC("clauses discarded from passive on weight limit update");
+    RSTAT_CTR_INC("clauses discarded from passive on age/weight limit update");
     env.statistics->discardedNonRedundantClauses++;
     remove(removed);
   }
@@ -476,7 +442,7 @@ void AWPassiveClauseContainer::simulationPopSelected()
 
 bool AWPassiveClauseContainer::setLimitsToMax()
 {
-  return setLimits(UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX);
+  return setLimits(UINT_MAX, UINT_MAX, UINT_MAX);
 }
 
 bool AWPassiveClauseContainer::setLimitsFromSimulation()
@@ -518,7 +484,6 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
   unsigned maxAgeQueueAge;
   unsigned maxAgeQueueWeight;
   unsigned maxWeightQueueWeight;
-  unsigned maxWeightQueueAge;
 
   // compute limits for age-queue
   if (_ageRatio > 0)
@@ -550,20 +515,17 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
     {
       // the weight-queue is in use and the simulation didn't get to the end of the weight-queue => set limits on weight-queue
       maxWeightQueueWeight = _simulationCurrWeightCl->weightForClauseSelection(_opt);
-      maxWeightQueueAge = _simulationCurrWeightCl->age();
     }
     else
     {
       // the weight-queue is in use and the simulation got to the end of the weight-queue => set no limits on weight-queue
       maxWeightQueueWeight = UINT_MAX;
-      maxWeightQueueAge = UINT_MAX;
     }
   }
   else
   {
     // the weight-queue is not in use, so no clause will be selected from the weight-queue => set tighest possible bound on weight-queue
     maxWeightQueueWeight = 0;
-    maxWeightQueueAge = 0;
   }
 
   // note: we ignore the option lrsWeightLimitOnly() if weightRatio is set to 0
@@ -576,12 +538,12 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
     maxAgeQueueWeight = 0;
   }
 
-  return setLimits(maxAgeQueueAge, maxAgeQueueWeight,maxWeightQueueWeight, maxWeightQueueAge);
+  return setLimits(maxAgeQueueAge, maxAgeQueueWeight,maxWeightQueueWeight);
 }
 
 bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
 {
-  if (cl->age() == _ageSelectionMaxAge)
+  if (cl->age() >= _ageSelectionMaxAge)
   {
     // creating a fake inference to represent our current (pessimistic) estimate potential
     // FromInput - so that there is no Unit ownership issue
@@ -606,7 +568,7 @@ bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsig
   return true;
 }
 
-bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge)
+bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight)
 {
   bool atLeastOneTightened = false;
   if(newAgeSelectionMaxAge != _ageSelectionMaxAge || newAgeSelectionMaxWeight != _ageSelectionMaxWeight) {
@@ -618,14 +580,11 @@ bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigne
     _ageSelectionMaxAge=newAgeSelectionMaxAge;
     _ageSelectionMaxWeight=newAgeSelectionMaxWeight;
   }
-  if(newWeightSelectionMaxWeight != _weightSelectionMaxWeight || newWeightSelectionMaxAge != _weightSelectionMaxAge) {
+  if(newWeightSelectionMaxWeight != _weightSelectionMaxWeight) {
     if(newWeightSelectionMaxWeight < _weightSelectionMaxWeight) {
-      atLeastOneTightened = true;
-    } else if (newWeightSelectionMaxWeight == _weightSelectionMaxWeight && newWeightSelectionMaxAge < _weightSelectionMaxAge) {
       atLeastOneTightened = true;
     }
     _weightSelectionMaxWeight=newWeightSelectionMaxWeight;
-    _weightSelectionMaxAge=newWeightSelectionMaxAge;
   }
   return atLeastOneTightened;
 }
@@ -637,20 +596,28 @@ bool AWPassiveClauseContainer::ageLimited() const
 
 bool AWPassiveClauseContainer::weightLimited() const
 {
-  return _weightRatio > 0 && _weightSelectionMaxWeight != UINT_MAX && _weightSelectionMaxAge != UINT_MAX;
+  return _weightRatio > 0 && _weightSelectionMaxWeight != UINT_MAX;
 }
 
 bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 {
   // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
   unsigned age = cl->age();
+
+  if (age < _ageSelectionMaxAge) return true;
+  if (age > _ageSelectionMaxAge) return false;
+
   unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
-  return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
+  return weightForClauseSelection <= _ageSelectionMaxWeight;
 }
 
 bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
   const unsigned age = inference.age();
+
+  if (age < _ageSelectionMaxAge) return true;
+  if (age > _ageSelectionMaxAge) return false;
+
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
   /* In principle, we could compute this from the Inference (and it's not so expensive)
@@ -660,20 +627,20 @@ bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveL
   const bool derivedFromGoal = inference.derivedFromGoal();
   // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
   unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
-  return age <= _ageSelectionMaxAge || (age == _ageSelectionMaxAge && weightForClauseSelection <= _ageSelectionMaxWeight);
+  return weightForClauseSelection <= _ageSelectionMaxWeight;
 }
 
 bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 {
   // don't want to reuse fulfilsWeightLimit(unsigned w,..) here, since we don't want to recompute weightForClauseSelection
   unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
-  unsigned age = cl->age();
-  return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
+  return weightForClauseSelection <= _weightSelectionMaxWeight;
 }
 
 bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
-  const unsigned age = inference.age();
+  if (_weightSelectionMaxWeight == UINT_MAX) return true;
+
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
   /* In principle, we could compute this from the Inference (and it's not so expensive)
@@ -683,7 +650,7 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositi
   const bool derivedFromGoal = inference.derivedFromGoal();
   // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
   unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
-  return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
+  return weightForClauseSelection <= _weightSelectionMaxWeight;
 }
 
 }

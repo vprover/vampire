@@ -67,7 +67,7 @@ public:
 
   //the following two functions allow to run the saturation algorithm step by step.
   void initAlgorithmRun();
-  void doOneAlgorithmStep();
+  void doOneAlgorithmStep(unsigned iter);
 
   UnitList* collectSaturatedSet();
 
@@ -275,6 +275,10 @@ protected:
     }
     return p;
   }
+
+  // start for the first activation, for the LRS estimate
+  long _lrsStartTime = 0;
+  long _lrsStartInstrs = 0;
 
   // counters
 

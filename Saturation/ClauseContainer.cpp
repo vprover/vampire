@@ -202,7 +202,7 @@ void ActiveClauseContainer::onLimitsUpdated()
     Clause* removed=toRemove.pop();
     ASS(removed->store()==Clause::ACTIVE);
 
-    RSTAT_CTR_INC("clauses discarded from active on weight limit update");
+    RSTAT_CTR_INC("clauses discarded from active on limit update");
     env.statistics->discardedNonRedundantClauses++;
 
     remove(removed);

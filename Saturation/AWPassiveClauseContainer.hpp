@@ -35,11 +35,7 @@ class AgeQueue
 public:
   AgeQueue(const Options& opt) : _opt(opt) {}
 protected:
-
   virtual bool lessThan(Clause*,Clause*);
-
-  friend class AWPassiveClauseContainer;
-
 private:
   const Shell::Options& _opt;
 };
@@ -51,8 +47,6 @@ public:
   WeightQueue(const Options& opt) : _opt(opt) {}
 protected:
   virtual bool lessThan(Clause*,Clause*);
-
-  friend class AWPassiveClauseContainer;
 private:
   const Shell::Options& _opt;
 };
@@ -79,8 +73,6 @@ public:
   { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
 
   unsigned sizeEstimate() const override { return _size; }
-
-  static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 
 private:
   /** The age queue, empty if _ageRatio=0 */
@@ -112,7 +104,7 @@ public:
 
   void onLimitsUpdated() override;
 private:
-  bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
+  bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight);
 
   int _simulationBalance;
   ClauseQueue::Iterator _simulationCurrAgeIt;
@@ -123,7 +115,10 @@ private:
   unsigned _ageSelectionMaxAge;
   unsigned _ageSelectionMaxWeight;
   unsigned _weightSelectionMaxWeight;
-  unsigned _weightSelectionMaxAge;
+  // experiment showed that maintaining the tiebreaker _weightSelectionMaxAge
+  // and doing the corresponding extra check (in fulfilsWeightLimit) didn't lead to a better performance
+  // (possible explanation: it's better to be careful on the weight queue about age as "all small clauses, no matter how old/young are potentially usefull"
+  // while at the same time, it's better to be more agressive with deletions on the age queue, as the large clauses there are probably useless)
 
   /*
    * LRS specific methods and fields for usage of limits
