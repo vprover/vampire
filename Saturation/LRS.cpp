@@ -91,7 +91,10 @@ long long LRS::estimatedReachableCount()
   }
 #endif
 
-  long long currTime = Timer::elapsedMilliseconds();
+  long currTime = Timer::elapsedMilliseconds();
+  // time spent in saturation (parsing, preprocessing, and the initial loading up of the input into passive are excluded)
+  long timeSpent=currTime-_lrsStartTime; // (in milliseconds)
+
   int opt_timeLimitDeci = _opt.timeLimitInDeciseconds();
   float correction_coef = _opt.lrsEstimateCorrectionCoef();
   int firstCheck=_opt.lrsFirstTimeCheck(); // (in percent)!
@@ -103,13 +106,14 @@ long long LRS::estimatedReachableCount()
     : _opt.instructionLimit();
 #endif
 
-  long int instrsBurned = Timer::elapsedMegaInstructions();
+  long currInstructions = Timer::elapsedMegaInstructions();
+  long instrsBurned = currInstructions - _lrsStartInstrs;
 
   long long result = -1;
 
   if ((opt_timeLimitDeci > 0 && currTime < firstCheck*opt_timeLimitDeci) ||
       // the above, unit-wise: cf milliseconds on the left, and deci * percent on the right
-      (opt_instruction_limit > 0 && instrsBurned*100 < firstCheck*opt_instruction_limit)
+      (opt_instruction_limit > 0 && currInstructions*100 < firstCheck*opt_instruction_limit)
   ) {
     goto finish;
   }
@@ -129,7 +133,7 @@ long long LRS::estimatedReachableCount()
     // note that result is -1 here already
 
     if(timeLeft > 0) {
-      result = correction_coef*(processed*timeLeft)/currTime;
+      result = correction_coef*(processed*timeLeft)/timeSpent;
     } // otherwise, it's somehow past the deadline, or no timilimit set
 
     if (instrsLeft > 0) {

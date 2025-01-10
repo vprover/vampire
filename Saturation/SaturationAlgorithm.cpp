@@ -1257,7 +1257,7 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
  *
  * This function may throw RefutationFoundException and TimeLimitExceededException.
  */
-void SaturationAlgorithm::doOneAlgorithmStep()
+void SaturationAlgorithm::doOneAlgorithmStep(unsigned iter)
 {
   doUnprocessedLoop();
 
@@ -1278,6 +1278,15 @@ void SaturationAlgorithm::doOneAlgorithmStep()
       }
     }
     throw MainLoopFinishedException(res);
+  }
+
+  /*
+   * Only after processing the whole input (with the first call to doUnprocessedLoop)
+   * it is time to recored for LRS the start time (and instrs) for the first iteration.
+   */
+  if (iter == 0) {
+    _lrsStartTime = Timer::elapsedMilliseconds();
+    _lrsStartInstrs = Timer::elapsedMegaInstructions();
   }
 
   Clause* cl = nullptr;
@@ -1301,20 +1310,18 @@ void SaturationAlgorithm::doOneAlgorithmStep()
  */
 MainLoopResult SaturationAlgorithm::runImpl()
 {
-  unsigned l = 0;
-
   // could be more precise, but we don't care too much
   unsigned startTime = Timer::elapsedDeciseconds();
   try {
-    for (;; l++) {
-      if (_activationLimit && l > _activationLimit) {
+    for (unsigned iter = 0;; iter++) {
+      if (_activationLimit && iter > _activationLimit) {
         throw ActivationLimitExceededException();
       }
       if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
         throw TimeLimitExceededException();
 
-      doOneAlgorithmStep();
-      env.statistics->activations = l;
+      doOneAlgorithmStep(iter);
+      env.statistics->activations = iter;
     }
   }
   catch (ThrowableBase&) {
