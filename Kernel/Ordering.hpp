@@ -24,6 +24,7 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
@@ -31,25 +32,14 @@
 
 namespace Kernel {
 
-using namespace Shell;
 
-/**
- * Class implementing runtime specialized ordering check between two terms.
- * The comparator is created and called from inside the respective ordering
- * object, but owned by the caller, so the destructor is exposed as virtual.
- * See @b KBOComparator and @b LPOComparator for implementation details.
- */
-struct OrderingComparator
-{
-  OrderingComparator(TermList lhs, TermList rhs, const Ordering& ord) : _lhs(lhs), _rhs(rhs), _ord(ord) {}
-  virtual ~OrderingComparator() = default;
-  virtual std::string toString() const { return _lhs.toString()+" > "+_rhs.toString(); }
-  virtual bool check(const SubstApplicator* applicator);
-
-  TermList _lhs;
-  TermList _rhs;
-  const Ordering& _ord;
+namespace PredLevels {
+  constexpr static int MIN_USER_DEF = 1;
+  constexpr static int EQ = 0;
+  constexpr static int INEQ = 0;
 };
+
+using namespace Shell;
 
 /**
  * An abstract class for simplification orderings
@@ -72,6 +62,18 @@ public:
     INCOMPARABLE=4
   };
 
+  friend std::ostream& operator<<(std::ostream& out, Kernel::Ordering::Result const& r)
+  {
+    switch (r) {
+      case Kernel::Ordering::Result::GREATER: return out << "GREATER";
+      case Kernel::Ordering::Result::LESS: return out << "LESS";
+      case Kernel::Ordering::Result::EQUAL: return out << "EQUAL";
+      case Kernel::Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+    }
+    ASSERTION_VIOLATION
+    return out << "UNKNOWN";
+  }
+
   virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */
@@ -85,15 +87,24 @@ public:
   virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
   { return compare(lhs.apply(), rhs.apply()); }
 
-  /** Optimised function used for checking that @b t1 is greater than @b t2,
-   * under some substitutions captured by @b AppliedTerm. */
-  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const
-  { return compare(t1, t2) == Result::GREATER; }
+  /** Unidirectional comparison of @b t1 and @b t2 under some
+   * substitutions captured by @b AppliedTerm which returns:
+   * (a) GREATER       if and only if  t1 ≻ t2,
+   * (b) EQUAL         if and only if  t1 = t2,
+   * (c) LESS                 only if  t1 ≺ t2,
+   * (d) INCOMPARABLE         only if  t1 ⪰̸ t2.
+   * That is, the function need not distinguish between t1 less
+   * than t2 and t1 and t2 being incomparable, which allows for
+   * some optimisations (see KBO and LPO implementation).
+   * 
+   * This is useful in simplifications such as demodulation where
+   * only the result being greater matters and in runtime specialized
+   * ordering checks (see OrderingComparator). */
+  virtual Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const
+  { return compare(t1, t2); }
 
-  /** Creates optimised object to check that @b lhs is greater than @b rhs.
-   *  @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const
-  { return std::make_unique<OrderingComparator>(lhs, rhs, *this); }
+  /** Creates optimised object for ordering checks. @see OrderingComparator. */
+  virtual OrderingComparatorUP createComparator() const;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -162,6 +173,8 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
+  PrecedenceOrdering(PrecedenceOrdering&&) = default;
+  PrecedenceOrdering& operator=(PrecedenceOrdering&&) = default;
   Result compare(Literal* l1, Literal* l2) const override;
   void show(std::ostream&) const override;
   virtual void showConcrete(std::ostream&) const = 0;
@@ -170,25 +183,27 @@ public:
   void sortArrayByFunctionPrecedence(DArray<unsigned>&) const override;
   void sortArrayByTypeConPrecedence(DArray<unsigned>&) const override;
 
+  static DArray<int> testLevels();
+
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+
+  int predicatePrecedence(unsigned pred) const;
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
-
   PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec,
                      const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
   PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
   PrecedenceOrdering(Problem& prb, const Options& opt);
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result comparePredicatePrecedences(unsigned pred1, unsigned pred2) const;
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
-  int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;
 
   /** number of predicates in the signature at the time the order was created */
@@ -204,23 +219,12 @@ protected:
   /** Array of type con precedences */
   DArray<int> _typeConPrecedences;
 
+  static void checkLevelAssumptions(DArray<int> const&);
+
   bool _reverseLCM;
 };
 
 
-inline std::ostream& operator<<(std::ostream& out, Ordering::Result const& r) 
-{
-  switch (r) {
-    case Ordering::Result::GREATER: return out << "GREATER";
-    case Ordering::Result::LESS: return out << "LESS";
-    case Ordering::Result::EQUAL: return out << "EQUAL";
-    case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
-    default:
-      return out << "UNKNOWN";
-  }
-  ASSERTION_VIOLATION
-}
-
-}
+} // namespace Kernel
 
 #endif

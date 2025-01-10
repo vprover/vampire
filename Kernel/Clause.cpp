@@ -303,7 +303,7 @@ bool Clause::isHorn()
 /**
  * Return iterator over clause variables
  */
-VirtualIterator<unsigned> Clause::getVariableIterator()
+VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
   return pvi( getUniquePersistentIterator(
       getMappingIterator(
@@ -364,6 +364,22 @@ std::string Clause::toNiceString() const
   }
 
   return result;
+}
+
+std::ostream& operator<<(std::ostream& out, Clause const& self)
+{ 
+  if (self.size() == 0) {
+    return out << "$false";
+  } else {
+    out << *self[0];
+    for (unsigned i = 1; i < self.size(); i++){
+      out << " | " << *self[i];
+    }
+    if (self.splits() && !self.splits()->isEmpty()) {
+      out << "{" << *self.splits() << "}";
+    }
+  }
+  return out;
 }
 
 /**
@@ -525,9 +541,13 @@ unsigned Clause::getNumeralWeight() const {
         continue;
       }
       IntegerConstantType intVal;
+      auto intWeight = [](IntegerConstantType const& i) {
+        return (i.abs().log2() - IntegerConstantType(1)).cvt<int>()
+          .orElse([&]() { return std::numeric_limits<int>::max(); });
+      };
 
       if (theory->tryInterpretConstant(t, intVal)) {
-        int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
+        int w = intWeight(intVal);
         if (w > 0) {
           res += w;
         }
@@ -546,8 +566,8 @@ unsigned Clause::getNumeralWeight() const {
       if (!haveRat) {
         continue;
       }
-      int wN = BitUtils::log2(Int::safeAbs(ratVal.numerator().toInner())) - 1;
-      int wD = BitUtils::log2(Int::safeAbs(ratVal.denominator().toInner())) - 1;
+      int wN = intWeight(ratVal.numerator());
+      int wD = intWeight(ratVal.denominator());
       int v = wN + wD;
       if (v > 0) {
         res += v;

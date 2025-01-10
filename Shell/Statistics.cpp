@@ -21,6 +21,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Allocator.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Shell/UIHelper.hpp"
@@ -233,6 +234,9 @@ void Statistics::print(std::ostream& out)
     break;
   case Statistics::TIME_LIMIT:
     out << "Time limit";
+    break;
+  case Statistics::INSTRUCTION_LIMIT:
+    out << "Instruction limit";
     break;
   case Statistics::MEMORY_LIMIT:
     out << "Memory limit";
@@ -467,6 +471,13 @@ void Statistics::print(std::ostream& out)
   out << "Time elapsed: ";
   Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
+
+  long peakMemKB = Lib::peakMemoryUsageKB();
+  if (peakMemKB) {
+    addCommentSignForSZS(out);
+    out << "Peak memory usage: " << (peakMemKB >> 10) << " MB";
+    out << endl;
+  }
 
   Timer::updateInstructionCount();
   unsigned instr = Timer::elapsedMegaInstructions();

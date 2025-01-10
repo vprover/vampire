@@ -244,9 +244,11 @@ public:
   };
 
   enum class DemodulationRedundancyCheck : unsigned int {
-    OFF,
-    ENCOMPASS,
-    ON
+    OFF,       // no check
+    ORDERING,  // solely ordering-based check
+    ENCOMPASS, // (1) positive unit equations (PUE) are smaller than non-PUE clauses,
+               // (2) more general PUE are smaller than less general PUE, and
+               // (3) equally general PUEs are ordered based on term ordering.
   };
 
   enum class TheoryAxiomLevel : unsigned int {
@@ -339,7 +341,6 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
-    CASC_HOL,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     MODEL_CHECK,
@@ -364,13 +365,8 @@ public:
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
-    CASC_2023,
-    CASC_2019,
     CASC_SAT,
     CASC_SAT_2024,
-    CASC_SAT_2023,
-    CASC_SAT_2019,
-    CASC_HOL_2020,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
@@ -719,6 +715,11 @@ public:
     SK = 1,
     SKI = 2,
     OFF = 3
+  };
+
+  enum class ProblemExportSyntax : unsigned int {
+    SMTLIB = 0,
+    API_CALLS = 1,
   };
 
     //==========================================================
@@ -1998,6 +1999,7 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  ProblemExportSyntax problemExportSyntax() const { return _problemExportSyntax.actualValue; }
   std::string const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
   std::string const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
@@ -2621,6 +2623,7 @@ private:
 
 #if VZ3
   BoolOptionValue _showZ3;
+  ChoiceOptionValue<ProblemExportSyntax> _problemExportSyntax;
   StringOptionValue _exportAvatarProblem;
   StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;

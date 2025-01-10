@@ -557,20 +557,6 @@ void dispatchByMode(Problem* problem)
     }
     break;
 
-  case Options::Mode::CASC_HOL: {
-    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-    env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
-    env.options->setInputSyntax(Options::InputSyntax::TPTP);
-    env.options->setOutputMode(Options::Output::SZS);
-    env.options->setProof(Options::Proof::TPTP);
-    env.options->setOutputAxiomNames(true);
-
-    if (CASC::PortfolioMode::perform(problem)) {
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-    }
-    break;
-  }
-
   case Options::Mode::SMTCOMP:
     env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
     env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);

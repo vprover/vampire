@@ -132,7 +132,8 @@ struct Generalize
       return perfect(poly->replaceTerms(generalizedArgs));
     }
 
-    auto& toCancel = gen.downcast<NumTraits>().unwrap().summands();
+    Option<MonomSet<NumTraits>&> genP = gen.downcast<NumTraits>();
+    auto& toCancel = genP.unwrap().summands();
 
 
     Stack<Monom> out(poly->nSummands() - toCancel.size());

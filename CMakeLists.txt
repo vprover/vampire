@@ -14,6 +14,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# make __FILENAME__ macro as relative path used instead of absoulte source path __FILE__
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
+
 # configure compilers
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
@@ -66,6 +69,7 @@ else()
     message(STATUS "(if you need IPO, set DEBUG_IPO=ON to investigate)")
   endif()
 endif()
+
 
 ################################################################
 # define all vampire sources,
@@ -219,7 +223,9 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
+    Kernel/OrderingComparator.cpp
     Kernel/Ordering_Equality.cpp
+    Kernel/PartialOrdering.cpp
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RobSubstitution.cpp
@@ -233,6 +239,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.cpp
     Kernel/Term.cpp
     Kernel/TermIterators.cpp
+    Kernel/TermPartialOrdering.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
     Kernel/Signature.cpp
@@ -266,6 +273,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcher.hpp
     Kernel/MLVariant.hpp
     Kernel/Ordering.hpp
+    Kernel/OrderingComparator.hpp
+    Kernel/PartialOrdering.hpp
     Kernel/Problem.hpp
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
@@ -281,6 +290,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.hpp
     Kernel/Term.hpp
     Kernel/TermIterators.hpp
+    Kernel/TermPartialOrdering.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
     Kernel/Signature.hpp
@@ -814,6 +824,25 @@ add_compile_definitions(VTIME_PROFILING=0)
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
+  
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
+
+################################################################
+# gmp stuff
+################################################################
+
+find_package(GMP)
+if (GMP_FOUND)
+  message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
+  add_compile_definitions(VMINI_GMP=0)
+  include_directories(${GMP_INCLUDE_DIRS})
+  link_libraries(${GMP_LIBRARIES})
+else()
+  message(STATUS "Compiling mini-gmp from source. If you want faster arithmetic install gmp on your system.")
+  add_compile_definitions(VMINI_GMP=1)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mini-gmp-6.3.0)
+endif()
+
 
 ################################################################
 # pytorch stuff

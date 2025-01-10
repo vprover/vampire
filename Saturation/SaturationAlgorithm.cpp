@@ -286,7 +286,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   else {
     _passive = makeLevel5(true, opt, "", _neuralModel.ptr());
   }
-  _active = new ActiveClauseContainer(opt);
+  _active = new ActiveClauseContainer();
 
   _active->attach(this);
   _passive->attach(this);
@@ -910,11 +910,11 @@ void SaturationAlgorithm::runGnnOnInput()
       (*symbol_features_ptr++) = 0;                  // isFunction symbol
       (*symbol_features_ptr++) = symb->introduced();
       (*symbol_features_ptr++) = symb->skolem();
-      (*symbol_features_ptr++) = symb->numericConstant();
+      (*symbol_features_ptr++) = symb->interpretedNumber();
       add_arity_symbol_features(symb->arity());
 
       //cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem()
-      //    << " " << symb->numericConstant() << " " << symb->arity() << " # " << symb->name() << endl;
+      //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
       // cout << "symb-to-sort: " << p << " " << env.signature->getBoolSort() << endl;
       symb2sort_one.push_back(p);
       symb2sort_two.push_back(env.signature->getBoolSort());
@@ -945,11 +945,11 @@ void SaturationAlgorithm::runGnnOnInput()
       (*symbol_features_ptr++) = 1;                  // isFunction symbol
       (*symbol_features_ptr++) = symb->introduced();
       (*symbol_features_ptr++) = symb->skolem();
-      (*symbol_features_ptr++) = symb->numericConstant();
+      (*symbol_features_ptr++) = symb->interpretedNumber();
       add_arity_symbol_features(symb->arity());
 
       //cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem()
-      //    << " " << symb->numericConstant() << " " << symb->arity() << " # " << symb->name() << endl;
+      //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
       // cout << "symb-to-sort: " << FUNC_TO_SYMB(f) << " " << symb->fnType()->result().term()->functor() << endl;
       symb2sort_one.push_back(funcToSymb(f));
       symb2sort_two.push_back(symb->fnType()->result().term()->functor());

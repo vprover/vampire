@@ -69,11 +69,14 @@ static std::recursive_mutex EXIT_LOCK;
   // for debugging crashes of limitReached: it is good to know what was called by vampire proper just before the interrupt
   // Debug::Tracer::printStack(cout);
 
-  const char* REACHED[2] = {"Time limit reached!\n","Instruction limit reached!\n"};
+  const char* REACHED[2] = {"Time limit reached! \n","Instruction limit reached! \n"}; // deliberate spaces before \n, so that it's a different string than in UIHelper::outputResult
   const char* STATUS[2] = {"% SZS status Timeout for ","% SZS status InstrOut for "};
+  Shell::Statistics::TerminationReason REASON[2] = {Shell::Statistics::TIME_LIMIT,Shell::Statistics::INSTRUCTION_LIMIT};
 
   // if we get this lock we can assume that the parent won't also try to exit
   EXIT_LOCK.lock();
+
+  env.statistics->terminationReason = REASON[whichLimit];
 
   // NB unsynchronised output:
   // probably OK as we don't output anything in other parts of Vampire during search
@@ -122,8 +125,6 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
     if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
       Timer::updateInstructionCount();
       if (env.options->instructionLimit() && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)env.options->instructionLimit()) {
-        // in principle could have a race on terminationReason, seems unlikely/harmless in practice
-        env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
         limitReached(INSTRUCTION_LIMIT);
       }
     }
