@@ -62,6 +62,9 @@ void LRS::onUnprocessedSelected(Clause* c)
  */
 bool LRS::shouldUpdateLimits()
 {
+  if (env.statistics->activations <= 10)
+    return false;
+
   static unsigned cnt=0;
   cnt++;
 
@@ -113,10 +116,6 @@ long long LRS::estimatedReachableCount()
 
   {
     long long processed=env.statistics->activations;
-
-    if (processed<=10) {
-      goto finish;
-    }
 
     long long timeLeft; // (in milliseconds)
     if(_opt.simulatedTimeLimit()) {
