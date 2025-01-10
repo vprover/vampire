@@ -16,11 +16,13 @@
 #ifndef __AWPassiveClauseContainers__
 #define __AWPassiveClauseContainers__
 
+#include <cmath>
 #include <memory>
 #include <vector>
 #include <climits>
 #include "Lib/Comparison.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
 #include "Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
 #include "AbstractPassiveClauseContainers.hpp"
@@ -105,6 +107,39 @@ class WeightBasedPassiveClauseContainer
 public:
   WeightBasedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name)
     : SingleQueuePassiveClauseContainer<WeightQueue>(isOutermost,opt,name) {}
+
+  bool mayBeAbleToDiscriminateChildrenOnLimits() const override { return limitsActive(); }
+  bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const override {
+    // TODO: this is an ungly copy-pase from AWPassiveClauseContainer::allChildrenNecessarilyExceedLimits
+
+    // creating a fake inference to represent our current (pessimistic) estimate potential
+    // FromInput - so that there is no Unit ownership issue
+    Inference inf = FromInput(UnitInputType::CONJECTURE); // CONJECTURE, so that derivedFromGoal is estimated as true
+    inf.setAge(cl->age() + 1); // clauses inferred from the clause as generating inferences will be over age limit...
+
+    int maxSelWeight=0;
+    for(unsigned i=0;i<upperBoundNumSelLits;i++) {
+      maxSelWeight=std::max((int)(*cl)[i]->weight(),maxSelWeight);
+    }
+    // TODO: this lower bound is not correct:
+    //       if Avatar is used, then the child-clause could become splittable,
+    //       in which case we don't know any lower bound on the resulting components.
+    unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
+    unsigned numPositiveLiteralsParent = cl->numPositiveLiterals();
+    unsigned numPositiveLiteralsLowerBound = numPositiveLiteralsParent > 0 ? numPositiveLiteralsParent-1 : numPositiveLiteralsParent; // heuristic: we assume that at most one literal will be removed from the clause
+    return exceedsWeightLimit(weightLowerBound, numPositiveLiteralsLowerBound, inf);
+  }
+
+  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
+  bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override
+  {
+    return limitsActive(); // there is no age queue, so exceeding the age limit is really easy
+  }
+  bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override
+  {
+    // the same considerations as in AWPassiveClauseContainer::exceedsWeightLimit
+    return Clause::computeWeightForClauseSelection(w, 0, 0, inference.derivedFromGoal(), _opt) > _curLimit.first;
+  }
 };
 
 /**
