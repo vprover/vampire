@@ -190,9 +190,9 @@ public:
   // if limits are active, LRS checks more frequently what the reachables are
   virtual bool limitsActive() const = 0;
 
-  // the calls to exceedsAllLimits establishes (in the SaturationAlgorithm) if the newly derived clause should be discarded
-  // (the method is called exceedsAllLimits, because if we alternate between more than one queue, such as with awr,
-  // all queues must agree that a clause is discardable, before that is done - in this regards, LRS is conservative)
+  // The calls to exceedsAllLimits establishes (in the SaturationAlgorithm) if the newly derived clause should be discarded.
+  // (The method is called exceedsAllLimits, because if we alternate between more than one queue, such as with awr,
+  // all queues must agree that a clause is discardable, before that is done. In this regards, LRS is conservative.)
   virtual bool exceedsAllLimits(Clause* c) const = 0;
 protected:
   bool _isOutermost;

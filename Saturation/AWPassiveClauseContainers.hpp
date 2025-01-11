@@ -230,10 +230,10 @@ private:
    * LRS specific methods and fields for usage of limits
    */
 public:
-  bool mayBeAbleToDiscriminateChildrenOnLimits() const override;
+  bool mayBeAbleToDiscriminateChildrenOnLimits() const override { return ageLimited() && weightLimited(); }
   bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
 
-  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
+  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return ageLimited() && weightLimited(); }
 
   // age is to be recovered from inference
   // andThatsIt not touched by AWPassive (as there is always also the weigtht queue to talk to)
@@ -244,7 +244,7 @@ public:
   // this method internally takes care of computing the corresponding weightForClauseSelection.
   bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
 
-  bool limitsActive() const override;
+  bool limitsActive() const override { return ageLimited() || weightLimited(); }
 
   bool exceedsAllLimits(Clause* c) const override;
 }; // class AWPassiveClauseContainer

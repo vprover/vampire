@@ -493,13 +493,6 @@ bool AWPassiveClauseContainer::weightLimited() const
   return _weightSelectionMaxWeight != UINT_MAX;
 }
 
-bool AWPassiveClauseContainer::mayBeAbleToDiscriminateChildrenOnLimits() const
-{
-  ASS(!ageLimited() || weightLimited());
-  ASS(!weightLimited() || ageLimited());
-  return ageLimited();
-}
-
 bool AWPassiveClauseContainer::exceedsAgeLimit(unsigned, const Inference& inference, bool&) const
 {
   const unsigned age = inference.age();
@@ -521,13 +514,6 @@ bool AWPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositi
   // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
   unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
   return weightForClauseSelection > _weightSelectionMaxWeight;
-}
-
-bool AWPassiveClauseContainer::limitsActive() const
-{
-  ASS(!ageLimited() || weightLimited());
-  ASS(!weightLimited() || ageLimited());
-  return ageLimited();
 }
 
 bool AWPassiveClauseContainer::exceedsAllLimits(Clause* cl) const
