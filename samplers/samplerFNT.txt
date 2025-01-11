@@ -68,12 +68,6 @@ sa!=fmb $awr=AW > awr ~u2r -10;4;:
 # random_awr
 sa!=fmb > rawr ~cat on:4,off:1
 
-# age_weight_ratio_shape
-sa!=fmb > awrs ~cat constant:8,decay:1,converge:1
-
-# age_weight_ratio_shape_frequency
-sa!=fmb  awrs!=constant > awrsf ~ui 1,500
-
 # nongoal_weight_coefficient
 sa!=fmb > $nwc ~cat 1:2,666:1
 sa!=fmb $nwc=1 > nwc ~cat 1:1

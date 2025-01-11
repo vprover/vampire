@@ -108,12 +108,6 @@ sa=lrs > lwlo ~cat off:5,on:1
 # sa=lrs $lecc!=1 > lecc ~uf 0.5,2.0
 # TODO: leaving out weird timing dependent options
 
-# age_weight_ratio_shape
-sa!=fmb > awrs ~cat constant:8,decay:1,converge:1
-
-# age_weight_ratio_shape_frequency
-sa!=fmb awrs!=constant > awrsf ~ui 1,500
-
 # nongoal_weight_coefficient
 sa!=fmb > $nwc ~cat 1:2,666:1
 sa!=fmb $nwc=1 > nwc ~cat 1:1
