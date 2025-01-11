@@ -68,6 +68,9 @@ $awr=AW > awr ~u2r -10;4;:
 # lrs_weight_limit_only
 sa=lrs > lwlo ~cat off:5,on:1
 
+# lrs_retroactive_deletes
+sa=lrs > lrd ~cat off:1,on:1
+
 # lrs_estimate_correction_coef
 # > $lecc ~cat 1:1
 # sa=lrs > $lecc ~cat 1:10,666:1
