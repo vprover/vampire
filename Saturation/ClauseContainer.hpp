@@ -166,21 +166,19 @@ public:
   // it this is true, there is a chance that allChildrenNecessarilyExceedLimits will ever return true
   virtual bool mayBeAbleToDiscriminateChildrenOnLimits() const = 0;
   // given a clause cl and an upper bound on the number of selected literals in that clause and taking into account the current LRS limits,
-  // this will return true whenever it can be esablished for cl that
+  // this will return true whenever it can be esablished for cl that all its children necessirly exceed the limits
   virtual bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const = 0;
 
   // it this is true, an inference may try to establish whether a clause under construction can be discarded early
   // by first checking, using exceedsAgeLimit(unsigned,unsigned,...), whether it exceeds the current ageLimit (if applicable)
   // and second checking, using exceedsWeightLimit(unsigned,unsigned,...) wether it exceeds the current weight (if applicable)
   virtual bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const = 0;
-  // this is basically a static property of the type (exceedsAgeLimit(unsigned,unsigned,...) may be used to check whether limiting is currently in place)
 
-  // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
   virtual bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const = 0;
   // if age limit is all there is, the function sets andThatsIt to true (and the clause under construction can be discarded immediately)
-  // if there is currently no weight limiting in place, yet the clause should later also be weight-limit-checked, this function should return false
+  // if there is currently no weight limiting in place, yet the clause should later also be weight-limit-checked, the call to
+  // mayBeAbleToDiscriminateClausesUnderConstructionOnLimits should have returned false already
 
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference

@@ -141,10 +141,10 @@ public:
     return exceedsWeightLimit(weightLowerBound, numPositiveLiteralsLowerBound, inf);
   }
 
-  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
+  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return limitsActive(); }
   bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override
   {
-    return limitsActive(); // there is no age queue, so exceeding the age limit is really easy
+    return true; // there is no age queue, so exceeding the age limit is really easy
   }
   bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override
   {
