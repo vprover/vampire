@@ -89,7 +89,7 @@ public:
    *
    * On the other hand, the above pair of functions (mayBeAbleToDiscriminateChildrenOnLimits and allChildrenNecessarilyExceedLimits)
    * as implemented (and not bluntly inhertied from SingleQueuePassiveClauseContainer)
-   * are probably able to improve performace a tiny bit.
+   * are now probably able to improve performace a tiny bit.
    */
 
   bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
@@ -107,6 +107,17 @@ class WeightBasedPassiveClauseContainer
 public:
   WeightBasedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name)
     : SingleQueuePassiveClauseContainer<WeightQueue>(isOutermost,opt,name) {}
+
+  /*
+   * Some of the previous, nominally buggy versions of "awr 0:1" path
+   # (as represented by this WeightBasedPassiveClauseContainer) were more performant.
+   * In particular, disabling retroactive deletes (at least for clauses with age == 0) should help.
+   *
+   * The implementation here is left as is, as it best reflects the ideas behind LRS
+   * on this simple example. (As learning step before looking at AWPassiveClauseContainer).
+   *
+   * Overall, "awr 0:1" is a very weak strategy and its value even for schedules is uncertain.
+   */
 
   bool mayBeAbleToDiscriminateChildrenOnLimits() const override { return limitsActive(); }
   bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const override {
@@ -206,11 +217,12 @@ private:
   unsigned _ageSelectionMaxAge;
   unsigned _ageSelectionMaxWeight;
   unsigned _weightSelectionMaxWeight;
-  // experiment showed that maintaining the tiebreaker _weightSelectionMaxAge
-  // and doing the corresponding extra check (in fulfilsWeightLimit) didn't lead to a better performance
-  // (possible explanation: it's better to be careful on the weight queue about age as "all small clauses, no matter how old/young are potentially usefull"
-  // while at the same time, it's better to be more agressive with deletions on the age queue, as the large clauses there are probably useless)
-
+  /*
+   * An experiment showed that maintaining the tiebreaker _weightSelectionMaxAge
+   * and doing the corresponding extra check (in fulfilsWeightLimit) didn't lead to a better performance
+   * (a possible explanation: it's better to be careful on the weight queue about age as "all small clauses, no matter how old/young are potentially usefull"
+   * while at the same time, it's better to be more agressive with deletions on the age queue, as the large clauses there are probably useless)
+   */
   bool ageLimited() const;
   bool weightLimited() const;
 
