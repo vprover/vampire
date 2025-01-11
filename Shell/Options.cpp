@@ -1119,6 +1119,13 @@ void Options::init()
     _lookup.insert(&_lrsWeightLimitOnly);
     _lrsWeightLimitOnly.tag(OptionTag::LRS);
 
+    _lrsRetroactiveDeletes = BoolOptionValue("lrs_retroactive_deletes","lrd",false);
+    _lrsRetroactiveDeletes.description = "Not only deleted new clauses that exceed current estimated limits in passive,"
+    " but also visit active and passive and delete clauses that exceed the new limit or would only generate children exceeding the limit.";
+    _lrsRetroactiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _lookup.insert(&_lrsRetroactiveDeletes);
+    _lrsRetroactiveDeletes.tag(OptionTag::LRS);
+
     _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
     "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
@@ -3083,10 +3090,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
     std::string args = pieces[2];
     pieces.reset();
 
-    if (sampler == "~set") {
-      ASS_NEQ(args,"");
-      strategySamplingAssign(optname,args,fakes);
-    } else if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
+    if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
       StringUtils::splitStr(args.c_str(),',',pieces);
 
       unsigned total = 0;

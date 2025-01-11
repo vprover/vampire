@@ -2056,6 +2056,7 @@ public:
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
+  int lrsRetroactiveDeletes() const { return _lrsRetroactiveDeletes.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
@@ -2495,6 +2496,7 @@ private:
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
+  BoolOptionValue _lrsRetroactiveDeletes;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;

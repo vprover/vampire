@@ -63,37 +63,26 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
 {
   ASS_GE(estReachableCnt,0);
 
-  bool atLeastOneLimitTightened;
-
   // optimization: if the estimated number of clause-selections is higher than the number of clauses in passive,
   // we already conclude that we will select all clauses, so we set the limits accordingly.
   if (estReachableCnt > static_cast<long long>(sizeEstimate())) {
-    atLeastOneLimitTightened = setLimitsToMax();
-    if (atLeastOneLimitTightened) {
-      onLimitsUpdated();
-    }
+    setLimitsToMax();
     return;
   }
   // otherwise we run the simulation and set the limits accordingly
-  else
+  Clause::requestAux();
+  simulationInit();
+
+  long long remains=estReachableCnt;
+  while (simulationHasNext() && remains > 0)
   {
-    Clause::requestAux();
-
-    simulationInit();
-
-    long long remains=estReachableCnt;
-    while (simulationHasNext() && remains > 0)
-    {
-      simulationPopSelected();
-      remains--;
-    }
-
-    atLeastOneLimitTightened = setLimitsFromSimulation();
-
-    Clause::releaseAux();
+    simulationPopSelected();
+    remains--;
   }
+  bool atLeastOneLimitTightened = setLimitsFromSimulation();
+  Clause::releaseAux();
 
-  if (atLeastOneLimitTightened) {
+  if (atLeastOneLimitTightened && env.options->lrsRetroactiveDeletes()) {
     // let's notify ourselves (the PassiveClauseContainer) ...
     onLimitsUpdated();
     // ... and also the getActiveClauseContainer, about the tightening limits
