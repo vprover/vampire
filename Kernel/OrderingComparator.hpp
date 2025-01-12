@@ -26,6 +26,7 @@ namespace Inferences {
 
 namespace Shell {
   class ConditionalRedundancySubsumption;
+  class ConditionalRedundancySubsumption2;
 }
 
 namespace Kernel {
@@ -45,7 +46,7 @@ namespace Kernel {
 struct OrderingComparator
 {
 public:
-  OrderingComparator(const Ordering& ord, bool onlyVars);
+  OrderingComparator(const Ordering& ord, bool onlyVars, bool ground);
   virtual ~OrderingComparator();
 
   /** Has to be called each time a new retrieval is started. */
@@ -184,6 +185,7 @@ protected:
 
   friend class Inferences::ForwardGroundJoinability;
   friend class Shell::ConditionalRedundancySubsumption;
+  friend class Shell::ConditionalRedundancySubsumption2;
 
   const Ordering& _ord;
   Branch _source;
@@ -192,6 +194,7 @@ protected:
   Branch* _prev;
   const SubstApplicator* _appl;
   bool _onlyVars;
+  bool _ground;
 };
 
 } // namespace Kernel

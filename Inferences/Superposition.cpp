@@ -368,6 +368,11 @@ Clause* Superposition::performSuperposition(
   if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
+  OrderingComparator* infTod = ordering.createComparator(/*onlyVars=*/false, /*ground=*/true).release();
+  OrderingConstraints ordCons;
+  if (comp == Ordering::INCOMPARABLE) {
+    ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
+  }
 
   if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
@@ -375,14 +380,51 @@ Clause* Superposition::performSuperposition(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
+      auto comp = ordering.getEqualityArgumentOrder(rwLitS);
+      if(Ordering::isGreaterOrEqual(comp)) {
         return 0;
+      }
+      if (comp == Ordering::INCOMPARABLE) {
+        ordCons.push({ rwLitS->termArg(1), rwLitS->termArg(0), Ordering::GREATER });
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+      auto comp = ordering.getEqualityArgumentOrder(rwLitS);
+      if(Ordering::isGreaterOrEqual(Ordering::reverse(comp))) {
         return 0;
       }
+      if (comp == Ordering::INCOMPARABLE) {
+        ordCons.push({ rwLitS->termArg(0), rwLitS->termArg(1), Ordering::GREATER });
+      }
     }
+  }
+
+  infTod->insert(ordCons, this);
+
+  struct Applicator : SubstApplicator {
+    Applicator(ResultSubstitution* subst, bool result) : subst(subst), result(result) {}
+    TermList operator()(unsigned v) const override {
+      return subst->apply(TermList::var(v), result);
+    }
+    ResultSubstitution* subst;
+    bool result;
+  };
+
+  Applicator rwAppl(subst.ptr(), !eqIsResult);
+  Applicator eqAppl(subst.ptr(),  eqIsResult);
+
+  Stack<std::pair<OrderingComparator&, const SubstApplicator*>> rights;
+  auto rwTod = static_cast<OrderingComparator*>(rwClause->getTod());
+  if (rwTod) {
+    rights.push({ *rwTod, &rwAppl });
+  }
+  auto eqTod = static_cast<OrderingComparator*>(eqClause->getTod());
+  if (eqTod) {
+    rights.push({ *eqTod, &eqAppl });
+  }
+  ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
+  if (subs.check()) {
+    env.statistics->skippedSuperposition++;
+    return 0;
   }
 
   if (!unifier->usesUwa()) {
@@ -543,6 +585,8 @@ Clause* Superposition::performSuperposition(
   // if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
   //   condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);
   // }
+
+  clause->setInfTod(infTod);
 
   return clause;
 }

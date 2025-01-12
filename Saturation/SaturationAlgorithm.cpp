@@ -1203,6 +1203,11 @@ start:
     ASS(!isRefutation(c));
 
     if (forwardSimplify(c)) {
+      auto infTod = static_cast<OrderingComparator*>(c->getInfTod());
+      if (infTod) {
+        delete infTod;
+        c->setInfTod(nullptr);
+      }
       onClauseRetained(c);
       addToPassive(c);
       ASS_EQ(c->store(), Clause::PASSIVE);

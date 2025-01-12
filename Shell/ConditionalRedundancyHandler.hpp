@@ -178,16 +178,30 @@ private:
 
 class ConditionalRedundancySubsumption {
 public:
-  ConditionalRedundancySubsumption(OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& comps, bool ground);
+  ConditionalRedundancySubsumption(OrderingComparator& subsumer, OrderingComparator& subsumed, bool ground);
   bool check();
 
 private:
   void pushNext();
 
   OrderingComparator& subsumer;
-  OrderingComparatorUP subsumed;
+  OrderingComparator& subsumed;
   Stack<std::tuple<OrderingComparator::Branch*,OrderingComparator::Branch*,OrderingComparator::Branch*>> path;
   bool ground;
+};
+
+class ConditionalRedundancySubsumption2 {
+public:
+  ConditionalRedundancySubsumption2(const Ordering& ord, OrderingComparator& left,
+    Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights);
+  bool check();
+
+private:
+  bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
+
+  const Ordering& ord;
+  OrderingComparator& left;
+  Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights;
 };
 
 };

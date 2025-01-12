@@ -349,13 +349,11 @@ public:
   }
 };
 
-
 ConditionalRedundancySubsumption::ConditionalRedundancySubsumption(
-  OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& ordCons, bool ground)
-  : subsumer(subsumer), subsumed(ord.createComparator()), ground(ground)
+  OrderingComparator& subsumer, OrderingComparator& subsumed, bool ground)
+  : subsumer(subsumer), subsumed(subsumed), ground(ground)
 {
-  subsumed->insert(ordCons, this);
-  path.push({ &subsumer._source, nullptr, &subsumed->_source });
+  path.push({ &subsumer._source, nullptr, &subsumed._source });
 }
 
 #define SUBSUMPTION_MAX_ITERATIONS 500
@@ -388,17 +386,17 @@ bool ConditionalRedundancySubsumption::check()
       continue;
     }
 
-    subsumed->_prev = get<1>(path.top());
-    subsumed->_curr = get<2>(path.top());
-    subsumed->processCurrentNode();
-    auto rnode = subsumed->_curr->node();
+    subsumed._prev = get<1>(path.top());
+    subsumed._curr = get<2>(path.top());
+    subsumed.processCurrentNode();
+    auto rnode = subsumed._curr->node();
 
     switch (rnode->tag) {
       case OrderingComparator::Node::T_POLY: {
         if (lnode->tag == OrderingComparator::Node::T_DATA) {
           return false;
         }
-        path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
+        path.push({ &lnode->gtBranch, subsumed._prev, subsumed._curr });
         break;
       }
       case OrderingComparator::Node::T_DATA: {
@@ -406,7 +404,7 @@ bool ConditionalRedundancySubsumption::check()
           if (lnode->tag == OrderingComparator::Node::T_DATA) {
             return false;
           }
-          path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
+          path.push({ &lnode->gtBranch, subsumed._prev, subsumed._curr });
         } else {
           pushNext();
         }
@@ -420,19 +418,19 @@ bool ConditionalRedundancySubsumption::check()
           if (lnode->tag == OrderingComparator::Node::T_DATA) {
             return false;
           }
-          path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
+          path.push({ &lnode->gtBranch, subsumed._prev, subsumed._curr });
         } else {
           switch (val) {
             case Ordering::GREATER: {
-              path.top() = { subsumer._curr, subsumed->_curr, &rnode->gtBranch };
+              path.top() = { subsumer._curr, subsumed._curr, &rnode->gtBranch };
               break;
             }
             case Ordering::EQUAL: {
-              path.top() = { subsumer._curr, subsumed->_curr, &rnode->eqBranch };
+              path.top() = { subsumer._curr, subsumed._curr, &rnode->eqBranch };
               break;
             }
             default: {
-              path.top() = { subsumer._curr, subsumed->_curr, &rnode->ngeBranch };
+              path.top() = { subsumer._curr, subsumed._curr, &rnode->ngeBranch };
               break;
             }
           }
@@ -469,6 +467,111 @@ void ConditionalRedundancySubsumption::pushNext()
       break;
     }
   }
+}
+
+ConditionalRedundancySubsumption2::ConditionalRedundancySubsumption2(
+  const Ordering& ord, OrderingComparator& left,
+  Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights)
+  : ord(ord), left(left), rights(rights)
+{
+#if VDEBUG
+  ASS(left._ground);
+  for (const auto& [tod,appl] : rights) {
+    ASS(tod._ground);
+  }
+#endif
+}
+
+bool ConditionalRedundancySubsumption2::check()
+{
+  unsigned cnt = 0;
+  Stack<pair<OrderingComparator::Branch*,OrderingComparator::Branch*>> todo;
+  todo.push({ nullptr, &left._source });
+
+  while (todo.isNonEmpty()) {
+    auto [prev,curr] = todo.pop();
+    left._prev = prev;
+    left._curr = curr;
+    left.processCurrentNode();
+
+    auto node = left._curr->node();
+    ASS(node->ready);
+
+    if (node->tag != OrderingComparator::Node::T_DATA) {
+      todo.push({ left._curr, &node->gtBranch });
+      todo.push({ left._curr, &node->eqBranch });
+      todo.push({ left._curr, &node->ngeBranch });
+      continue;
+    }
+    if (!node->data) {
+      continue;
+    }
+
+    auto trace = node->trace;
+
+    bool found = false;
+    for (auto& [tod, appl] : rights) {
+      if (checkRight(tod, appl, trace)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo)
+{
+  Stack<pair<OrderingComparator::Branch*,OrderingComparator::Branch*>> innerTodo;
+  innerTodo.push({ nullptr, &tod._source });
+  while (innerTodo.isNonEmpty()) {
+    auto [prev,curr] = innerTodo.pop();
+    tod._prev = prev;
+    tod._curr = curr;
+    tod.processCurrentNode();
+
+    auto node = tod._curr->node();
+    ASS(node->ready);
+
+    switch (node->tag) {
+      case OrderingComparator::Node::T_DATA: {
+        if (node->data) {
+          continue;
+        }
+        return false;
+      }
+      case OrderingComparator::Node::T_POLY: {
+        env.statistics->intDBUpInductionInProof++;
+        return false;
+      }
+      case OrderingComparator::Node::T_TERM: {
+        AppliedTerm lhsApplied(node->lhs,appl,true);
+        AppliedTerm rhsApplied(node->rhs,appl,true);
+        auto comp = ord.compare(lhsApplied,rhsApplied,tpo);
+        switch (comp) {
+          case Ordering::GREATER:
+            innerTodo.push({ tod._curr, &node->gtBranch });
+            break;
+          case Ordering::EQUAL:
+            innerTodo.push({ tod._curr, &node->eqBranch });
+            break;
+          case Ordering::LESS:
+            innerTodo.push({ tod._curr, &node->ngeBranch });
+            break;
+          case Ordering::INCOMPARABLE:
+            innerTodo.push({ tod._curr, &node->gtBranch });
+            innerTodo.push({ tod._curr, &node->eqBranch });
+            innerTodo.push({ tod._curr, &node->ngeBranch });
+            break;
+        }
+        break;
+      }
+    }
+  }
+  return true;
 }
 
 // ConditionalRedundancyHandler
@@ -931,69 +1034,69 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSubsum
     return;
   }
 
-  auto clDataPtr = getDataPtr(cl, /*doAllocate=*/false);
-  if (!clDataPtr) {
-    return;
-  }
-  auto cld = *clDataPtr;
+//   auto clDataPtr = getDataPtr(cl, /*doAllocate=*/false);
+//   if (!clDataPtr) {
+//     return;
+//   }
+//   auto cld = *clDataPtr;
 
-  if (cld->_redundant || cld->isEmpty()) {
-    return;
-  }
+//   if (cld->_redundant || cld->isEmpty()) {
+//     return;
+//   }
 
-  if (!cld->_subs) {
-    auto ts = cld->getInstances([](unsigned v) { return TermList::var(v); });
-    static ConstraintIndex::SubstMatcher matcher;
-    matcher.init((*clDataPtr), ts);
-    Entries* es = matcher.next();
-    matcher.reset();
-    // there can be only one such matching under linearization
-#if !LINEARIZE
-    static_assert(false);
-#endif
-    if (!es) {
-      // in this case we try to create the subsumption next time
-      return;
-    }
-    ASS(es->comparator);
+//   if (!cld->_subs) {
+//     auto ts = cld->getInstances([](unsigned v) { return TermList::var(v); });
+//     static ConstraintIndex::SubstMatcher matcher;
+//     matcher.init((*clDataPtr), ts);
+//     Entries* es = matcher.next();
+//     matcher.reset();
+//     // there can be only one such matching under linearization
+// #if !LINEARIZE
+//     static_assert(false);
+// #endif
+//     if (!es) {
+//       // in this case we try to create the subsumption next time
+//       return;
+//     }
+//     ASS(es->comparator);
 
-    cld->_subs = new Subsumption(*es->comparator.get(), *_ord, OrderingConstraints(), /*ground=*/true);
-    for (unsigned i = 0; i < cl->numSelected(); i++) {
-      auto lit = (*cl)[i];
-      if (!lit->isEquality() || _ord->getEqualityArgumentOrder(lit)!=Ordering::INCOMPARABLE) {
-        continue;
-      }
+//     cld->_subs = new Subsumption(*es->comparator.get(), *_ord, OrderingConstraints(), /*ground=*/true);
+//     for (unsigned i = 0; i < cl->numSelected(); i++) {
+//       auto lit = (*cl)[i];
+//       if (!lit->isEquality() || _ord->getEqualityArgumentOrder(lit)!=Ordering::INCOMPARABLE) {
+//         continue;
+//       }
 
-      auto& [subsLtr, subsRtl] = cld->_litSubs[i];
-      ASS(!subsLtr && !subsRtl);
-      Renaming r;
-      for (const auto t : ts) {
-        r.normalizeVariables(t);
-      }
-      auto lhs = r.apply(lit->termArg(0));
-      auto rhs = r.apply(lit->termArg(1));
-      subsLtr = new Subsumption(*es->comparator.get(), *_ord, { { lhs, rhs, Ordering::GREATER } }, /*ground=*/true);
-      subsRtl = new Subsumption(*es->comparator.get(), *_ord, { { rhs, lhs, Ordering::GREATER } }, /*ground=*/true);
-    }
-  }
-  if (cld->_subs->check()) {
-    cld->_redundant = true;
-    env.statistics->groundRedundantClauses++;
-    return;
-  }
+//       auto& [subsLtr, subsRtl] = cld->_litSubs[i];
+//       ASS(!subsLtr && !subsRtl);
+//       Renaming r;
+//       for (const auto t : ts) {
+//         r.normalizeVariables(t);
+//       }
+//       auto lhs = r.apply(lit->termArg(0));
+//       auto rhs = r.apply(lit->termArg(1));
+//       subsLtr = new Subsumption(*es->comparator.get(), *_ord, { { lhs, rhs, Ordering::GREATER } }, /*ground=*/true);
+//       subsRtl = new Subsumption(*es->comparator.get(), *_ord, { { rhs, lhs, Ordering::GREATER } }, /*ground=*/true);
+//     }
+//   }
+//   if (cld->_subs->check()) {
+//     cld->_redundant = true;
+//     env.statistics->groundRedundantClauses++;
+//     return;
+//   }
 
-  for (unsigned i = 0; i < cl->numSelected(); i++) {
-    auto& [subsLtr, subsRtl] = cld->_litSubs[i];
-    auto& [redLtr, redRtl] = cld->_litRedundant[i];
-    if (!redLtr && subsLtr && subsLtr->check()) {
-      redLtr = true;
-      env.statistics->groundRedundantEquationOrientations++;
-    }
-    if (!redRtl && subsRtl && subsRtl->check()) {
-      redRtl = true;
-      env.statistics->groundRedundantEquationOrientations++;
-    }
-  }
+//   for (unsigned i = 0; i < cl->numSelected(); i++) {
+//     auto& [subsLtr, subsRtl] = cld->_litSubs[i];
+//     auto& [redLtr, redRtl] = cld->_litRedundant[i];
+//     if (!redLtr && subsLtr && subsLtr->check()) {
+//       redLtr = true;
+//       env.statistics->groundRedundantEquationOrientations++;
+//     }
+//     if (!redRtl && subsRtl && subsRtl->check()) {
+//       redRtl = true;
+//       env.statistics->groundRedundantEquationOrientations++;
+//     }
+//   }
 }
 
 }

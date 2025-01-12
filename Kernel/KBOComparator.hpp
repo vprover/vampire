@@ -31,7 +31,7 @@ class KBOComparator
 : public OrderingComparator
 {
 public:
-  KBOComparator(const Ordering& ord, bool onlyVars) : OrderingComparator(ord, onlyVars) {}
+  KBOComparator(const Ordering& ord, bool onlyVars, bool ground) : OrderingComparator(ord, onlyVars, ground) {}
 
   void processTermNode() override;
 };

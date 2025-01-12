@@ -28,8 +28,9 @@ namespace Kernel {
 
 // OrderingComparator
 
-OrderingComparator::OrderingComparator(const Ordering& ord, bool onlyVars)
-: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr), _onlyVars(onlyVars)
+OrderingComparator::OrderingComparator(const Ordering& ord, bool onlyVars, bool ground)
+: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr),
+  _onlyVars(onlyVars), _ground(ground)
 {
   _sink.node()->ready = true;
 }
@@ -48,6 +49,7 @@ void* OrderingComparator::next(POStruct* po_struct)
   ASS(_appl);
   ASS(_curr);
   ASS(!_onlyVars);
+  ASS(!_ground);
 
   for (;;) {
     processCurrentNode();
@@ -365,7 +367,7 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
         res = Ordering::GREATER;
       } else {
         ASS_EQ(_curr, &_prev->node()->ngeBranch);
-        if (_onlyVars) {
+        if (_ground) {
           res = Ordering::LESS;
         } else {
           res = Ordering::INCOMPARABLE;

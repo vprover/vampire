@@ -84,7 +84,7 @@ public:
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
   /** Same as @b compare, for applied (substituted) terms. */
-  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
+  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs, const TermPartialOrdering* tpo = nullptr) const
   { return compare(lhs.apply(), rhs.apply()); }
 
   /** Unidirectional comparison of @b t1 and @b t2 under some
@@ -104,7 +104,7 @@ public:
   { return compare(t1, t2); }
 
   /** Creates optimised object for ordering checks. @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(bool onlyVars = false) const;
+  virtual OrderingComparatorUP createComparator(bool onlyVars = false, bool ground = false) const;
 
   virtual void show(std::ostream& out) const = 0;
 

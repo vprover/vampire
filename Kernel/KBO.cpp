@@ -824,7 +824,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
+Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartialOrdering* tpo) const
 {
   if(tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -946,9 +946,9 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2, PO
   return res;
 }
 
-OrderingComparatorUP KBO::createComparator(bool onlyVars) const
+OrderingComparatorUP KBO::createComparator(bool onlyVars, bool ground) const
 {
-  return make_unique<KBOComparator>(*this, onlyVars);
+  return make_unique<KBOComparator>(*this, onlyVars, ground);
 }
 
 int KBO::symbolWeight(const Term* t) const

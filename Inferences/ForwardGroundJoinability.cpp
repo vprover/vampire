@@ -242,7 +242,7 @@ LOOP_END:
 }
 
 ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, State* data)
-  : comp(ord.createComparator(/*onlyVars=*/true))
+  : comp(ord.createComparator(/*onlyVars=*/true, /*ground=*/true))
 {
   comp->_source = Branch(data, comp->_sink);
   comp->_source.node()->ready = true;

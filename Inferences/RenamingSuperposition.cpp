@@ -82,100 +82,106 @@ ClauseIterator RenamingSuperposition::generateClauses(Clause* cl)
   static DHSet<TermList> attempted;
   attempted.reset();
   auto res = ClauseIterator::getEmpty();
+  auto tod = ordering.createComparator(/*onlyVars=*/false, /*ground=*/true).release();
 
-  if (cl->length()>1) {
-    return res;
-  }
+  bool clRedCheck = cl->length()==1 && (*cl)[0]->isPositive() && (*cl)[0]->isEquality();
 
-  auto clit = (*cl)[0];
-  if (!clit->isEquality() || clit->isNegative()) {
-    return res;
-  }
-
-  auto tod = ordering.createComparator(false).release();
-  tod->insert({ { clit->termArg(0), clit->termArg(1), Ordering::EQUAL } }, (void*)0x1);
-
-  NonVariableNonTypeIterator it(clit);
-  while (it.hasNext()) {
-    TermList trm(it.next());
-    if (!attempted.insert(trm)) {
-      it.right();
-      continue;
-    }
-    bool redundancyCheck = false;
-    if (trm == clit->termArg(0) && ordering.getEqualityArgumentOrder(clit) != Ordering::LESS) {
-      redundancyCheck = true;
-    }
-    if (trm == clit->termArg(1) && ordering.getEqualityArgumentOrder(clit) != Ordering::GREATER) {
-      redundancyCheck = true;
+  for (unsigned i = 0; i < cl->numSelected(); i++) {
+    auto clit = (*cl)[i];
+    if (clit->isEquality() && clit->isPositive()) {
+      tod->insert({ { clit->termArg(0), clit->termArg(1), Ordering::EQUAL } }, (void*)0x1);
     }
 
-    auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
-    while (git.hasNext()) {
-      auto qr=git.next();
-      ASS_EQ(qr.data->clause->length(),1);
-
-      auto lhs = qr.data->term;
-      if (lhs.isVar()) {
-        // we are not interested in these for now
+    NonVariableNonTypeIterator it(clit);
+    while (it.hasNext()) {
+      TermList trm(it.next());
+      if (!attempted.insert(trm)) {
+        it.right();
         continue;
       }
-
-      auto subs = qr.unifier;
-      ASS(subs->isIdentityOnQueryWhenResultBound());
-      Applicator appl(subs.ptr());
-      AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
-
-      auto comp = ordering.compare(rhsApplied,trm);
-      if (Ordering::isGreaterOrEqual(comp)) {
-        continue;
+      bool redundancyCheck = false;
+      if (clRedCheck && trm == clit->termArg(0) && ordering.getEqualityArgumentOrder(clit) != Ordering::LESS) {
+        redundancyCheck = true;
+      }
+      if (clRedCheck && trm == clit->termArg(1) && ordering.getEqualityArgumentOrder(clit) != Ordering::GREATER) {
+        redundancyCheck = true;
       }
 
-      Ordering::Result redComp = Ordering::LESS;
-      if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
-        redComp = ordering.compare(rhsApplied, EqHelper::getOtherEqualitySide(clit, trm));
-        if (Ordering::isGreaterOrEqual(redComp)) {
+      auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
+      while (git.hasNext()) {
+        auto qr=git.next();
+        ASS_EQ(qr.data->clause->length(),1);
+
+        auto lhs = qr.data->term;
+        if (lhs.isVar()) {
+          // we are not interested in these for now
           continue;
         }
-      }
 
-      // one of them has to be incomparable otherwise we would have demodulated
-      ASS(comp == Ordering::INCOMPARABLE || redComp == Ordering::INCOMPARABLE);
+        auto subs = qr.unifier;
+        ASS(subs->isIdentityOnQueryWhenResultBound());
+        Applicator appl(subs.ptr());
+        AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
 
-      TermList rhsS = rhsApplied.apply();
-      Stack<TermOrderingConstraint> constraints;
-      if (comp == Ordering::INCOMPARABLE) {
-        constraints.push({ trm, rhsS, Ordering::GREATER });
-      }
-      if (redComp == Ordering::INCOMPARABLE) {
-        constraints.push({ EqHelper::getOtherEqualitySide(clit, trm), rhsS, Ordering::GREATER });
-      }
-
-      Shell::ConditionalRedundancySubsumption subsumption(*tod, ordering, constraints, true);
-      if (subsumption.check()) {
-        env.statistics->generalizedInductionApplicationInProof++;
-        continue;
-      }
-      tod->insert(constraints, (void*)0x1);
-
-      RStack<Literal*> resLits;
-      resLits->push(EqHelper::replace(clit,trm,rhsS));
-
-      for(unsigned i=0;i<cl->length();i++) {
-        Literal* curr=(*cl)[i];
-        if(curr!=clit) {
-          resLits->push(curr);
+        auto comp = ordering.compare(rhsApplied,trm);
+        if (Ordering::isGreaterOrEqual(comp)) {
+          continue;
         }
+
+        Ordering::Result redComp = Ordering::LESS;
+        if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
+          redComp = ordering.compare(rhsApplied, EqHelper::getOtherEqualitySide(clit, trm));
+          if (Ordering::isGreaterOrEqual(redComp)) {
+            continue;
+          }
+        }
+
+        // one of them has to be incomparable otherwise we would have demodulated
+        ASS(comp == Ordering::INCOMPARABLE || redComp == Ordering::INCOMPARABLE);
+
+        TermList rhsS = rhsApplied.apply();
+        Stack<TermOrderingConstraint> constraints;
+        if (comp == Ordering::INCOMPARABLE) {
+          constraints.push({ trm, rhsS, Ordering::GREATER });
+        }
+        if (redComp == Ordering::INCOMPARABLE) {
+          constraints.push({ EqHelper::getOtherEqualitySide(clit, trm), rhsS, Ordering::GREATER });
+        }
+
+        auto tod2 = ordering.createComparator();
+        tod2->insert(constraints, this);
+        Shell::ConditionalRedundancySubsumption subsumption(*tod, *tod2, true);
+        if (subsumption.check()) {
+          continue;
+        }
+        tod->insert(constraints, (void*)0x1);
+
+        RStack<Literal*> resLits;
+        resLits->push(EqHelper::replace(clit,trm,rhsS));
+
+        for(unsigned i=0;i<cl->length();i++) {
+          Literal* curr=(*cl)[i];
+          if(curr!=clit) {
+            resLits->push(curr);
+          }
+        }
+
+        auto resCl = Clause::fromStack(*resLits, GeneratingInference2(InferenceRule::INDUCTION_HYPERRESOLUTION, cl, qr.data->clause));
+        OrderingComparator* infTod = ordering.createComparator(false, true).release();
+        OrderingConstraints ordCons;
+        if (comp == Ordering::INCOMPARABLE) {
+          ordCons.push({ trm, rhsApplied.apply(), Ordering::GREATER });
+        }
+        infTod->insert(ordCons, resCl);
+        resCl->setInfTod(infTod);
+        res = pvi(concatIters(res,getSingletonIterator(resCl)));
       }
-
-      env.statistics->generalizedInductionApplication++;
-
-      res = pvi(concatIters(res,getSingletonIterator(
-        Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::INDUCTION_HYPERRESOLUTION, cl, qr.data->clause)))));
     }
   }
 
-  Shell::ConditionalRedundancySubsumption subs(*tod, ordering, Stack<TermOrderingConstraint>(), /*ground=*/true);
+  auto todOther = ordering.createComparator();
+  todOther->insert(OrderingConstraints(), this);
+  Shell::ConditionalRedundancySubsumption subs(*tod, *todOther, /*ground=*/true);
   if (subs.check()) {
     cl->markRedundant();
     env.statistics->groundRedundantClauses++;

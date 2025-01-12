@@ -370,6 +370,9 @@ public:
   void markRedundant() { _redundant = true; }
   bool isRedundant() const { return _redundant; }
 
+  void setInfTod(void* infTod) { _infTod = infTod; }
+  void* getInfTod() const { return _infTod; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -405,6 +408,7 @@ protected:
 
   void* _tod;
   bool _redundant;
+  void* _infTod;
 
   size_t _auxTimestamp;
   void* _auxData;
