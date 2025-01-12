@@ -1263,7 +1263,7 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
  *
  * This function may throw RefutationFoundException and TimeLimitExceededException.
  */
-void SaturationAlgorithm::doOneAlgorithmStep(unsigned iter)
+void SaturationAlgorithm::doOneAlgorithmStep()
 {
   doUnprocessedLoop();
 
@@ -1290,7 +1290,7 @@ void SaturationAlgorithm::doOneAlgorithmStep(unsigned iter)
    * Only after processing the whole input (with the first call to doUnprocessedLoop)
    * it is time to recored for LRS the start time (and instrs) for the first iteration.
    */
-  if (iter == 0) {
+  if (env.statistics->activations == 0) {
     _lrsStartTime = Timer::elapsedMilliseconds();
     _lrsStartInstrs = Timer::elapsedMegaInstructions();
   }
@@ -1302,6 +1302,10 @@ void SaturationAlgorithm::doOneAlgorithmStep(unsigned iter)
   }
   ASS_EQ(cl->store(), Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
+
+  // we really want to do it here (it's explained "activations started" to the user)
+  // and it should correspond to the number of times _passive->popSelected() was called (for good LRS estimates to work)
+  env.statistics->activations++;
 
   if (!handleClauseBeforeActivation(cl)) {
     return;
@@ -1319,15 +1323,15 @@ MainLoopResult SaturationAlgorithm::runImpl()
   // could be more precise, but we don't care too much
   unsigned startTime = Timer::elapsedDeciseconds();
   try {
-    for (unsigned iter = 0;; iter++) {
-      if (_activationLimit && iter > _activationLimit) {
+    env.statistics->activations = 0;
+    while (true) {
+      doOneAlgorithmStep(); // will bump env.statistics->activations by one
+
+      if (_activationLimit && env.statistics->activations > _activationLimit) {
         throw ActivationLimitExceededException();
       }
       if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
         throw TimeLimitExceededException();
-
-      doOneAlgorithmStep(iter);
-      env.statistics->activations = iter;
     }
   }
   catch (ThrowableBase&) {

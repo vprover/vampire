@@ -66,7 +66,7 @@ public:
 
   //the following two functions allow to run the saturation algorithm step by step.
   void initAlgorithmRun();
-  void doOneAlgorithmStep(unsigned iter);
+  void doOneAlgorithmStep();
 
   UnitList* collectSaturatedSet();
 
