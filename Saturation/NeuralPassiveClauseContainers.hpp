@@ -460,38 +460,6 @@ private:
   unsigned _reshuffleAt;
 };
 
-class LearnedPassiveClauseContainer
-: public LRSIgnoringPassiveClauseContainer
-{
-protected:
-  virtual float scoreClause(Clause*) = 0;
-public:
-  LearnedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
-  virtual ~LearnedPassiveClauseContainer() {}
-
-  unsigned sizeEstimate() const override { return _size; }
-  bool isEmpty() const override { return _size == 0; }
-
-  void add(Clause* cl) override;
-  void remove(Clause* cl) override;
-  Clause* popSelected() override;
-private:
-  DHMap<unsigned,float> _scores;
-  ShuffledScoreQueue _queue;
-  unsigned _size;
-  float _temperature;
-};
-
-class LearnedPassiveClauseContainerExperNF12cLoop5
-: public LearnedPassiveClauseContainer
-{
-public:
-  LearnedPassiveClauseContainerExperNF12cLoop5(bool isOutermost, const Shell::Options& opt) :
-    LearnedPassiveClauseContainer(isOutermost,opt) {}
-  ~LearnedPassiveClauseContainerExperNF12cLoop5() override {}
-protected:
-  float scoreClause(Clause*) override;
-};
 
 };
 
