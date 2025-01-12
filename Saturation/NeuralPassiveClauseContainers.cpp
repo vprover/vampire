@@ -437,10 +437,8 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool just
 
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
   NeuralClauseEvaluationModel& model, std::function<void(Clause*)> makeReadyForEval)
-  : LRSIgnoringPassiveClauseContainer(isOutermost, opt),
-  _model(model), _queue(_model.getScores()),
-  _makeReadyForEval(makeReadyForEval),
-  _size(0), _reshuffleAt(opt.reshuffleAt())
+  : SingleQueuePassiveClauseContainer<NeuralScoreQueue>(isOutermost,opt,model.getScores()),
+  _model(model), _makeReadyForEval(makeReadyForEval), _reshuffleAt(opt.reshuffleAt())
 {
   ASS(_isOutermost);
 }
@@ -522,60 +520,6 @@ Clause* NeuralPassiveClauseContainer::popSelected()
 
   selectedEvent.fire(cl);
   return cl;
-}
-
-bool NeuralPassiveClauseContainer::setLimits(float newLimit)
-{
-  bool tighened = newLimit > _curLimit;
-  _curLimit = newLimit;
-  return tighened;
-}
-
-void NeuralPassiveClauseContainer::simulationInit()
-{
-  evalAndEnqueueDelayed();
-
-  _simulationIt = new ClauseQueue::Iterator(_queue);
-}
-
-bool NeuralPassiveClauseContainer::simulationHasNext()
-{
-  return _simulationIt->hasNext();
-}
-
-void NeuralPassiveClauseContainer::simulationPopSelected()
-{
-  _simulationIt->next();
-}
-
-bool NeuralPassiveClauseContainer::setLimitsFromSimulation()
-{
-  if (_simulationIt->hasNext()) {
-    return setLimits(_model.getScores().get(_simulationIt->next()->number()));
-  } else {
-    return setLimitsToMax();
-  }
-}
-
-void NeuralPassiveClauseContainer::onLimitsUpdated()
-{
-  static Stack<Clause*> toRemove(256);
-  simulationInit(); // abused to setup fresh _simulationIt
-  while (_simulationIt->hasNext()) {
-    Clause* cl = _simulationIt->next();
-    if (exceedsLimit(cl)) {
-      toRemove.push(cl);
-    }
-  }
-
-  // cout << "Will remove " << toRemove.size() << " from passive through LRS update" << endl;
-
-  while (toRemove.isNonEmpty()) {
-    Clause* removed=toRemove.pop();
-    RSTAT_CTR_INC("clauses discarded from passive on limit update");
-    env.statistics->discardedNonRedundantClauses++;
-    remove(removed);
-  }
 }
 
 

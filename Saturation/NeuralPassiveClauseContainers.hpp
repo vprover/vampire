@@ -23,6 +23,7 @@
 #include "Kernel/ClauseQueue.hpp"
 #include "Shell/Property.hpp"
 #include "ClauseContainer.hpp"
+#include "AbstractPassiveClauseContainers.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -319,11 +320,24 @@ public:
   float tryGetScore(Clause* cl);
 };
 
-class ShuffledScoreQueue
+class NeuralScoreQueue
   : public ClauseQueue
 {
 public:
-  ShuffledScoreQueue(const DHMap<unsigned,float>& scores) : _scores(scores) {}
+  NeuralScoreQueue(const DHMap<unsigned,float>& scores) : _scores(scores) {}
+
+  typedef float OrdVal;
+  static constexpr OrdVal maxOrdVal = std::numeric_limits<float>::max();
+  OrdVal getOrdVal(Clause* cl) const {
+    // it's responsibility of the surrounding container (here the NeuralPassiveClauseContainer)
+    // to make sure clauses are evalauted in time for LRS estimations ...
+    float val;
+    if (_scores.find(cl->number(),val)) {
+      return -val; // negating: NNs think large is good, queues think small is good
+    }
+    // .. if not, each such clause is considered "to be kept"
+    return -maxOrdVal; // a very optimistic constant (since small is good)
+  }
 protected:
   virtual bool lessThan(Clause* c1,Clause* c2) {
     auto sc1 = _scores.get(c1->number());
@@ -343,121 +357,40 @@ private:
   const DHMap<unsigned,float>& _scores;
 };
 
-class LRSIgnoringPassiveClauseContainer
-: public PassiveClauseContainer
-{
-public:
-  LRSIgnoringPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost,opt) {}
-  virtual ~LRSIgnoringPassiveClauseContainer() {}
-
-  /*
-   * LRS specific methods for computation of Limits
-   */
-public:
-  void simulationInit() override { NOT_IMPLEMENTED; }
-  bool simulationHasNext() override { return false; }
-  void simulationPopSelected() override { NOT_IMPLEMENTED; }
-
-  // returns whether at least one of the limits was tightened
-  bool setLimitsToMax() override { return false; }
-  // returns whether at least one of the limits was tightened
-  bool setLimitsFromSimulation() override { return false; }
-
-  void onLimitsUpdated() override { NOT_IMPLEMENTED; }
-
-  /*
-   * LRS specific methods and fields for usage of limits
-   */
-  bool ageLimited() const override { return false; }
-  bool weightLimited() const override { return false; }
-
-  bool fulfilsAgeLimit(Clause* c) const override { return true; }
-  // note: w here denotes the weight as returned by weight().
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
-
-  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
-  bool fulfilsWeightLimit(Clause* cl) const override { return true; }
-  // note: w here denotes the weight as returned by weight().
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
-
-  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
-};
 
 /**
  * A neural single queue solution to clause selection.
  */
 class NeuralPassiveClauseContainer
-: public LRSIgnoringPassiveClauseContainer
+: public SingleQueuePassiveClauseContainer<NeuralScoreQueue>
 {
 public:
   NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
     NeuralClauseEvaluationModel& model,
     std::function<void(Clause*)> makeReadyForEval);
-  virtual ~NeuralPassiveClauseContainer(){}
 
-  unsigned sizeEstimate() const override { return _size; }
   bool isEmpty() const override { return _size == 0; }
+
   void add(Clause* cl) override;
   void remove(Clause* cl) override;
-
   Clause* popSelected() override;
-
-  /*
-   * LRS specific methods for computation of Limits
-   */
-private:
-  // we use min, because scores and salts are compared inverted (not as e.g. age and weigth)
-  static constexpr float _minLimit = -std::numeric_limits<float>::max();
-  float _curLimit = _minLimit; // effectively no limit
-  ScopedPtr<ClauseQueue::Iterator> _simulationIt;
-
-  bool setLimits(float newLimit);
-  bool exceedsLimit(Clause* cl) const {
-    auto score = _model.tryGetScore(cl);
-    // std::cout << "score "<<score << "  " << _curLimit << std::endl;
-    return score < _curLimit;
-  }
-public:
-  void simulationInit() override;
-  bool simulationHasNext() override;
-  void simulationPopSelected() override;
-
-  // returns whether at least one of the limits was tightened
-  bool setLimitsToMax() override { _curLimit = _minLimit; return false; }
-  // returns whether at least one of the limits was tightened
-  bool setLimitsFromSimulation() override;
-  void onLimitsUpdated() override;
-
-  /*
-   * LRS specific methods and fields for usage of limits
-   */
-  bool ageLimited() const override { return _curLimit != _minLimit; }
-  bool weightLimited() const override { return _curLimit != _minLimit; }
-
-  bool fulfilsAgeLimit(Clause* cl) const override { return !exceedsLimit(cl); }
-  // note: w here denotes the weight as returned by weight().
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
-
-  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
-  bool fulfilsWeightLimit(Clause* cl) const override { return !exceedsLimit(cl); }
-  // note: w here denotes the weight as returned by weight().
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
-
-  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 
 protected:
   void evalAndEnqueueDelayed();
 
 private:
   NeuralClauseEvaluationModel& _model;
-  ShuffledScoreQueue _queue;
   Stack<Clause*> _delayedInsertionBuffer;
   std::function<void(Clause*)> _makeReadyForEval;
 
-  unsigned _size;
   unsigned _reshuffleAt;
+
+public:
+  void simulationInit() override {
+    evalAndEnqueueDelayed();
+
+    SingleQueuePassiveClauseContainer<NeuralScoreQueue>::simulationInit();
+  }
 };
 
 

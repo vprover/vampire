@@ -8,8 +8,8 @@
  * and in the source directory
  */
 
-#ifndef __PredicateSplitPassiveClauseContainer__
-#define __PredicateSplitPassiveClauseContainer__
+#ifndef __PredicateSplitPassiveClauseContainers__
+#define __PredicateSplitPassiveClauseContainers__
 
 #define USING_LIBTORCH // see Lib/Output.hpp
 
@@ -17,7 +17,7 @@
 #include <vector>
 #include "Lib/Allocator.hpp"
 #include "ClauseContainer.hpp"
-#include "AWPassiveClauseContainer.hpp"
+#include "AWPassiveClauseContainers.hpp"
 #include "NeuralPassiveClauseContainers.hpp"
 
 namespace Saturation {
@@ -76,20 +76,21 @@ private:
    * LRS specific methods and fields for usage of limits
    */
 public:
-  bool ageLimited() const override;
-  bool weightLimited() const override;
+  bool mayBeAbleToDiscriminateChildrenOnLimits() const override;
+  bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
 
-  bool fulfilsAgeLimit(Clause* cl) const override;
+  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override;
+
+  // age is to be recovered from inference
+  bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override;
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
-  bool fulfilsWeightLimit(Clause* cl) const override;
-  // note: w here denotes the weight as returned by weight().
-  // age is to be recovered from inference
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
-  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
+  bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
+
+  bool limitsActive() const override;
+
+  bool exceedsAllLimits(Clause* c) const override;
 }; // class PredicateSplitPassiveClauseContainer
 
 class TheoryMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
@@ -149,4 +150,4 @@ private:
 
 };
 
-#endif /* __PredicateSplitPassiveClauseContainer__ */
+#endif /* __PredicateSplitPassiveClauseContainers__ */

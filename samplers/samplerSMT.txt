@@ -93,7 +93,10 @@ s=-1011 > $ls ~cat on:1
 $ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
 
 # age_weight_ratio
-> awr ~u2r -10;4;:
+> $awr ~cat A:1,W:1,AW:98
+$awr=A > awr ~set 1:0
+$awr=W > awr ~set 0:1
+$awr=AW > awr ~u2r -10;4;:
 
 # random_awr
 > rawr ~cat on:4,off:1
@@ -101,18 +104,15 @@ $ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
 # lrs_weight_limit_only
 sa=lrs > lwlo ~cat off:5,on:1
 
+# lrs_retroactive_deletes
+sa=lrs > lrd ~cat off:1,on:1
+
 # lrs_estimate_correction_coef
 # > $lecc ~cat 1:1
 # sa=lrs > $lecc ~cat 1:10,666:1
 # sa=lrs $lecc=1 > lecc ~cat 1.0:1
 # sa=lrs $lecc!=1 > lecc ~uf 0.5,2.0
 # TODO: leaving out weird timing dependent options
-
-# age_weight_ratio_shape
-> awrs ~cat constant:8,decay:1,converge:1
-
-# age_weight_ratio_shape_frequency
-awrs!=constant > awrsf ~ui 1,500
 
 # nongoal_weight_coefficient
 > $nwc ~cat 1:2,666:1

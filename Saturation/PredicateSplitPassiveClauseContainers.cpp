@@ -8,7 +8,7 @@
  * and in the source directory
  */
 
-#include "PredicateSplitPassiveClauseContainer.hpp"
+#include "PredicateSplitPassiveClauseContainers.hpp"
 
 #include <numeric>
 #include <string>
@@ -355,125 +355,90 @@ void PredicateSplitPassiveClauseContainer::onLimitsUpdated()
   }
 }
 
-bool PredicateSplitPassiveClauseContainer::ageLimited() const
+bool PredicateSplitPassiveClauseContainer::mayBeAbleToDiscriminateChildrenOnLimits() const
 {
-  for (const auto& queue : _queues)
-  {
-    if (queue->ageLimited())
-    {
-      return true;
-    }
-  }
+  // just ask the first queue we have
+  for (const auto& queue : _queues) return queue->mayBeAbleToDiscriminateChildrenOnLimits();
   return false;
 }
 
-bool PredicateSplitPassiveClauseContainer::weightLimited() const
-{
-  for (const auto& queue : _queues)
-  {
-    if (queue->weightLimited())
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-// returns true if the cl fulfils at least one age-limit of a queue it is in
-bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
-{
-  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
-  if (_layeredArrangement)
-  {
-    for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
-    {
-      auto& queue = _queues[i];
-      if (queue->fulfilsAgeLimit(cl))
-      {
-        return true;
-      }
-    }
-    return false;
-  }
-  else
-  {
-    return _queues[bestQueueIndex]->fulfilsAgeLimit(cl);
-  }
-}
-
-// returns true if the cl fulfills at least one age-limit of a queue it is in
-// note: w here denotes the weight as returned by weight().
-// this method internally takes care of computing the corresponding weightForClauseSelection.
-bool PredicateSplitPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
-{
-  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(numPositiveLiterals, inference));
-  // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
-  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
-  {
-    auto& queue = _queues[i];
-
-    if (queue->fulfilsAgeLimit(w, numPositiveLiterals, inference))
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-// returns true if the cl fulfills at least one weight-limit of a queue it is in
-bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
-{
-  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
-  if (_layeredArrangement)
-  {
-    for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
-    {
-      auto& queue = _queues[i];
-      if (queue->fulfilsWeightLimit(cl))
-      {
-        return true;
-      }
-    }
-    return false;
-  }
-  else
-  {
-    return _queues[bestQueueIndex]->fulfilsWeightLimit(cl);
-  }
-}
-
-// returns true if the cl fulfills at least one weight-limit of a queue it is in
-// note: w here denotes the weight as returned by weight().
-// this method internally takes care of computing the corresponding weightForClauseSelection.
-
-bool PredicateSplitPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
-{
-  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(numPositiveLiterals, inference));
-  // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
-  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
-  {
-    auto& queue = _queues[i];
-    if (queue->fulfilsWeightLimit(w, numPositiveLiterals, inference))
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const 
+bool PredicateSplitPassiveClauseContainer::allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const
 {
   // can't conclude any lower bounds on niceness of child-clause, so have to assume that it is potentially added to all queues.
   // In particular we need to check whether at least one of the queues could potentially select children of the clause.
-  for (const auto& queue : _queues)
-  {
-    if (queue->childrenPotentiallyFulfilLimits(cl, upperBoundNumSelLits))
-    {
+  for (const auto& queue : _queues) {
+    if (!queue->allChildrenNecessarilyExceedLimits(cl, upperBoundNumSelLits))
+      return false;
+  }
+  return true;
+}
+
+bool PredicateSplitPassiveClauseContainer::mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const
+{
+  for (const auto& queue : _queues) {
+    if (queue->mayBeAbleToDiscriminateClausesUnderConstructionOnLimits())
       return true;
-    }
   }
   return false;
 }
+
+bool PredicateSplitPassiveClauseContainer::exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const
+{
+  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(numPositiveLiterals, inference));
+  // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
+  for (unsigned i = bestQueueIndex; i < _queues.size(); i++) {
+    auto& queue = _queues[i];
+
+    if (!queue->exceedsAgeLimit(numPositiveLiterals, inference, andThatsIt))
+      return false;
+  }
+  return true;
+}
+
+// returns true if the cl fulfills at least one weight-limit of a queue it is in
+// note: w here denotes the weight as returned by weight().
+// this method internally takes care of computing the corresponding weightForClauseSelection.
+
+bool PredicateSplitPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
+{
+  auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(numPositiveLiterals, inference));
+  // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
+  for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
+  {
+    auto& queue = _queues[i];
+    if (!queue->exceedsWeightLimit(w, numPositiveLiterals, inference))
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool PredicateSplitPassiveClauseContainer::limitsActive() const
+{
+  for (const auto& queue : _queues) {
+    if (queue->limitsActive())
+      return true;
+  }
+  return false;
+}
+
+bool PredicateSplitPassiveClauseContainer::exceedsAllLimits(Clause* cl) const
+{
+  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  if (_layeredArrangement) {
+    // with layered arranegement, all relevant sub-queues should agree that cl exceeds
+    for (unsigned i = bestQueueIndex; i < _queues.size(); i++) {
+      auto& queue = _queues[i];
+      if (!queue->exceedsAllLimits(cl))
+        return false;
+    }
+    return true;
+  } else {
+    return _queues[bestQueueIndex]->exceedsAllLimits(cl);
+  }
+}
+
 
 TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
 PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios(), opt.theorySplitQueueLayeredArrangement()) {}
