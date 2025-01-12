@@ -38,6 +38,8 @@ namespace Saturation {
 
 using namespace Kernel;
 
+class NeuralPassiveClauseContainer; // forward
+
 class NeuralClauseEvaluationModel
 {
 private:
@@ -313,11 +315,91 @@ public:
   const DHMap<unsigned,float>& getScores() { return _scores; }
 
   float evalClause(Clause* cl);
-  void evalClauses(Stack<Clause*>& clauses, bool justRecord = false);
+
+  template<typename T>
+  void evalClauses(const T& clauses, bool justRecord = false) {
+    int64_t sz = clauses.size();
+    if (sz == 0) return;
+
+    torch::NoGradGuard no_grad; // TODO: check if this is necessary here
+
+    auto gageRect = (!justRecord && _useGage) ?
+                    torch::empty({sz, _gageEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32)) :
+                    torch::empty(0, torch::TensorOptions().dtype(torch::kFloat32));
+    auto gweightRect = (!justRecord && _useGweight) ?
+                    torch::empty({sz, _gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32)) :
+                    torch::empty(0, torch::TensorOptions().dtype(torch::kFloat32));
+
+    std::vector<int64_t> clauseNums;
+    std::vector<float> features(_numFeatures*sz);
+    {
+      int64_t j = 0;
+      unsigned idx = 0;
+      auto uIt = clauses.iter();
+      while (uIt.hasNext()) {
+        unsigned i = 0;
+        Clause* cl = uIt.next();
+        clauseNums.push_back((int64_t)cl->number());
+        Clause::FeatureIterator cIt(cl);
+        while (i++ < _numFeatures && cIt.hasNext()) {
+          features[idx] = cIt.next();
+          idx++;
+        }
+
+        if (_computing) { // could as well be (!justRecord) here
+          if (_useGage)
+            gageRect.index_put_({j}, _gageEmbedStore.get(cl->number()));
+          if (_useGweight)
+            gweightRect.index_put_({j}, _gweightClauseEmbeds.get(cl->number()));
+        }
+        j++;
+      }
+    }
+
+    auto result = (*_evalClauses)({
+      std::move(clauseNums),
+      torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)),
+      gageRect,
+      gweightRect
+    });
+
+    if (justRecord) {
+      return;
+    }
+
+    auto logits = result.toTensor();
+
+    // cout << "Eval clauses for " << sz << " requires " << logits.requires_grad() << endl;
+
+    {
+      auto uIt = clauses.iter();
+      unsigned idx = 0;
+      while (uIt.hasNext()) {
+        Clause* cl = uIt.next();
+        float logit = logits[idx++].item().toDouble();
+        if (_temp > 0.0) {
+          // adding the gumbel noise
+          logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
+        }
+
+        float* score;
+        // only overwrite, if not present
+        if (_scores.getValuePtr(cl->number(),score)) {
+          *score = logit;
+        }
+      }
+    }
+  }
 
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
   float tryGetScore(Clause* cl);
+
+private:
+  // some friendship ugliness - just between NeuralClauseEvaluationModel and NeuralPassiveClauseContainer
+  friend class NeuralPassiveClauseContainer;
+  Stack<Clause*>* _evalAlsoTheseInTheNextBulk = 0;
+  std::function<void()> _callThisWhenDone;
 };
 
 class NeuralScoreQueue
@@ -367,7 +449,7 @@ class NeuralPassiveClauseContainer
 public:
   NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
     NeuralClauseEvaluationModel& model,
-    std::function<void(Clause*)> makeReadyForEval);
+    std::function<bool(Clause*)> makeReadyForEval);
 
   bool isEmpty() const override { return _size == 0; }
 
@@ -381,7 +463,7 @@ protected:
 private:
   NeuralClauseEvaluationModel& _model;
   Stack<Clause*> _delayedInsertionBuffer;
-  std::function<void(Clause*)> _makeReadyForEval;
+  std::function<bool(Clause*)> _makeReadyForEval;
 
   unsigned _reshuffleAt;
 

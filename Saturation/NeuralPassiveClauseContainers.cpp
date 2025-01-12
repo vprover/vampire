@@ -361,82 +361,8 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
   }
 }
 
-void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses, bool justRecord) {
-  int64_t sz = clauses.size();
-  if (sz == 0) return;
-
-  torch::NoGradGuard no_grad; // TODO: check if this is necessary here
-
-  auto gageRect = (!justRecord && _useGage) ?
-                  torch::empty({sz, _gageEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32)) :
-                  torch::empty(0, torch::TensorOptions().dtype(torch::kFloat32));
-  auto gweightRect = (!justRecord && _useGweight) ?
-                  torch::empty({sz, _gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32)) :
-                  torch::empty(0, torch::TensorOptions().dtype(torch::kFloat32));
-
-  std::vector<int64_t> clauseNums;
-  std::vector<float> features(_numFeatures*sz);
-  {
-    int64_t j = 0;
-    unsigned idx = 0;
-    auto uIt = clauses.iter();
-    while (uIt.hasNext()) {
-      unsigned i = 0;
-      Clause* cl = uIt.next();
-      clauseNums.push_back((int64_t)cl->number());
-      Clause::FeatureIterator cIt(cl);
-      while (i++ < _numFeatures && cIt.hasNext()) {
-        features[idx] = cIt.next();
-        idx++;
-      }
-
-      if (_computing) { // could as well be (!justRecord) here
-        if (_useGage)
-          gageRect.index_put_({j}, _gageEmbedStore.get(cl->number()));
-        if (_useGweight)
-          gweightRect.index_put_({j}, _gweightClauseEmbeds.get(cl->number()));
-      }
-      j++;
-    }
-  }
-
-  auto result = (*_evalClauses)({
-    std::move(clauseNums),
-    torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)),
-    gageRect,
-    gweightRect
-  });
-
-  if (justRecord) {
-    return;
-  }
-
-  auto logits = result.toTensor();
-
-  // cout << "Eval clauses for " << sz << " requires " << logits.requires_grad() << endl;
-
-  {
-    auto uIt = clauses.iter();
-    unsigned idx = 0;
-    while (uIt.hasNext()) {
-      Clause* cl = uIt.next();
-      float logit = logits[idx++].item().toDouble();
-      if (_temp > 0.0) {
-        // adding the gumbel noise
-        logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
-      }
-
-      float* score;
-      // only overwrite, if not present
-      if (_scores.getValuePtr(cl->number(),score)) {
-        *score = logit;
-      }
-    }
-  }
-}
-
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
-  NeuralClauseEvaluationModel& model, std::function<void(Clause*)> makeReadyForEval)
+  NeuralClauseEvaluationModel& model, std::function<bool(Clause*)> makeReadyForEval)
   : SingleQueuePassiveClauseContainer<NeuralScoreQueue>(isOutermost,opt,model.getScores()),
   _model(model), _makeReadyForEval(makeReadyForEval), _reshuffleAt(opt.reshuffleAt())
 {

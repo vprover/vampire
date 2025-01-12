@@ -295,7 +295,7 @@ public:
     DECL_ELEMENT_TYPE(C);
     /** create an iterator for @b d */
     inline
-    explicit Iterator (Deque& d)
+    explicit Iterator (const Deque& d)
       : _pointer(d._front), _begin(d._data), _end(d._end), _afterLast(d._back)
     {
     }

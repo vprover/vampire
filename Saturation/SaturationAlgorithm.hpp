@@ -247,7 +247,7 @@ protected:
 
   void runGnnOnInput();
   void saveNeuralActivity(Clause* refutation);
-  void makeReadyForEval(Clause* cl);
+  bool makeReadyForEval(Clause* cl);
 
   bool _neuralActivityRecoring;
   bool _neuralModelGuidance;

@@ -514,9 +514,10 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
   _neuralModel->gweightEnqueueClause(c,lits);
 }
 
-void SaturationAlgorithm::makeReadyForEval(Clause* c) {
-  if (!_neuralModel->useGage() && !_neuralModel->useGweight()) return;
-
+/*
+ * Returns true, if the clause was seen for the first time.
+ */
+bool SaturationAlgorithm::makeReadyForEval(Clause* c) {
   if (!_shown.find(c)) {
     if (_neuralModel->useGage()) {
       showPredecessors(c);
@@ -526,7 +527,9 @@ void SaturationAlgorithm::makeReadyForEval(Clause* c) {
     }
 
     ALWAYS(_shown.insert(c));
+    return true;
   }
+  return false;
 }
 
 /**
@@ -1683,6 +1686,9 @@ void SaturationAlgorithm::doUnprocessedLoop()
 {
   do {
     newClausesToUnprocessed();
+    if (_neuralModelGuidance && _passive->limitsActive() ) {
+      _neuralModel->evalClauses(*_unprocessed);
+    }
 
     while (!_unprocessed->isEmpty()) {
       Clause* c = _unprocessed->pop();

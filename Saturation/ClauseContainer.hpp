@@ -125,7 +125,7 @@ public:
   Clause* pop();
   bool isEmpty() const { return _data.isEmpty(); }
   unsigned size() const { return _data.size(); }
-  Deque<Clause*>::Iterator iter() { return Deque<Clause*>::Iterator(_data); }
+  Deque<Clause*>::Iterator iter() const { return Deque<Clause*>::Iterator(_data); }
 private:
   Deque<Clause*> _data;
 };
