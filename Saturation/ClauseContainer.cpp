@@ -54,7 +54,7 @@ void UnprocessedClauseContainer::add(Clause* c)
 
 Clause* UnprocessedClauseContainer::pop()
 {
-  Clause* res=_data.pop_back();
+  Clause* res=_data.pop_front();
   selectedEvent.fire(res);
   return res;
 }
