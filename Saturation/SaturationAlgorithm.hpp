@@ -154,15 +154,23 @@ protected:
   virtual void onPassiveAdded(Clause* c);
   virtual void onPassiveRemoved(Clause* c);
   void onPassiveSelected(Clause* c);
+  /*
   void onUnprocessedAdded(Clause* c);
   void onUnprocessedRemoved(Clause* c);
   virtual void onUnprocessedSelected(Clause* c);
+  */
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
   /** called before the selected clause is deleted from the searchspace */
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   virtual bool isComplete();
+  /*
+   * Called at the beginning of doUnprocessedLoop;
+   * will recieve the number of unprocessed pops since last call;
+   * used by LRS to potentially update its estimates.
+  */
+  virtual void afterUnprocessedLoop(unsigned popsElapsed) {};
 
 private:
   void passiveRemovedHandler(Clause* cl);

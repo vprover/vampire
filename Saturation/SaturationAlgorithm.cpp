@@ -249,9 +249,11 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _passive->addedEvent.subscribe(this, &SaturationAlgorithm::onPassiveAdded);
   _passive->removedEvent.subscribe(this, &SaturationAlgorithm::passiveRemovedHandler);
   _passive->selectedEvent.subscribe(this, &SaturationAlgorithm::onPassiveSelected);
+  /*
   _unprocessed->addedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedAdded);
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
+  */
 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
@@ -411,24 +413,6 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  * removed by some simplification rule (in case of the Discount saturation algorithm).
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
-{
-}
-
-/**
- * A function that is called when a clause is added to the unprocessed clause container.
- */
-void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
-{
-}
-
-/**
- * A function that is called when a clause is removed from the unprocessed clause container.
- */
-void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
-{
-}
-
-void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 {
 }
 
@@ -1200,7 +1184,9 @@ void SaturationAlgorithm::doUnprocessedLoop()
   do {
     newClausesToUnprocessed();
 
+    unsigned unprocessedPops = 0;
     while (!_unprocessed->isEmpty()) {
+      unprocessedPops++;
       Clause* c = _unprocessed->pop();
       ASS(!isRefutation(c));
 
@@ -1216,6 +1202,8 @@ void SaturationAlgorithm::doUnprocessedLoop()
 
       newClausesToUnprocessed();
     }
+
+    afterUnprocessedLoop(unprocessedPops);
 
     ASS(clausesFlushed());
     onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions
