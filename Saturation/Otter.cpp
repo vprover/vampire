@@ -33,20 +33,6 @@ Otter::Otter(Problem& prb, const Options& opt)
 {
 }
 
-ClauseContainer* Otter::getSimplifyingClauseContainer()
-{
-  return &_simplCont;
-}
-
-void Otter::onActiveRemoved(Clause* cl)
-{
-  if(cl->store()==Clause::ACTIVE) {
-    _simplCont.remove(cl);
-  }
-
-  SaturationAlgorithm::onActiveRemoved(cl);
-}
-
 void Otter::onPassiveAdded(Clause* cl)
 {
   SaturationAlgorithm::onPassiveAdded(cl);

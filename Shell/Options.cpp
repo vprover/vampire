@@ -1739,6 +1739,12 @@ void Options::init()
     _forwardGroundJoinability.onlyUsefulWith(ProperSaturationAlgorithm());
     _forwardGroundJoinability.tag(OptionTag::INFERENCES);
 
+    _forwardGroundReducibility = BoolOptionValue("forward_ground_reducibility","fgr",false);
+    _forwardGroundReducibility.description="Perform forward ground reducibility.";
+    _lookup.insert(&_forwardGroundReducibility);
+    _forwardGroundReducibility.onlyUsefulWith(ProperSaturationAlgorithm());
+    _forwardGroundReducibility.tag(OptionTag::INFERENCES);
+
     _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",true);
     _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
     _lookup.insert(&_simultaneousSuperposition);

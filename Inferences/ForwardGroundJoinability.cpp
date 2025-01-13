@@ -57,7 +57,7 @@ struct Applicator : SubstApplicator {
 
 void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
 {
-  ForwardSimplificationEngine::attach(salg);
+  ForwardGroundSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 }
@@ -66,7 +66,7 @@ void ForwardGroundJoinability::detach()
 {
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
-  ForwardSimplificationEngine::detach();
+  ForwardGroundSimplificationEngine::detach();
 }
 
 bool toTheLeftStrict(const Position& p1, const Position& p2)
@@ -105,7 +105,7 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
   return checker.next(cons, _states.top());
 }
 
-bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
 
@@ -237,7 +237,7 @@ LOOP_END:
   }
   premises = pvi(getPersistentIterator(premiseSet.iterator()));
 
-  env.statistics->groundRedundantClauses++;
+  env.statistics->forwardGroundJoinability++;
   return true;
 }
 

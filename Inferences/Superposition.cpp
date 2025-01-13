@@ -368,7 +368,6 @@ Clause* Superposition::performSuperposition(
   if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
-  OrderingComparator* infTod = ordering.createComparator(/*onlyVars=*/false, /*ground=*/true).release();
   OrderingConstraints ordCons;
   if (comp == Ordering::INCOMPARABLE) {
     ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
@@ -398,6 +397,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
+  OrderingComparator* infTod = ordering.createComparator(/*onlyVars=*/false, /*ground=*/true).release();
   infTod->insert(ordCons, this);
 
   struct Applicator : SubstApplicator {

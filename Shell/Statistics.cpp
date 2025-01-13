@@ -130,6 +130,8 @@ Statistics::Statistics()
     condensations(0),
     globalSubsumption(0),
     interpretedSimplifications(0),
+    forwardGroundJoinability(0),
+    forwardGroundReducibility(0),
     groundRedundantClauses(0),
     groundRedundantEquationOrientations(0),
 
@@ -312,7 +314,7 @@ void Statistics::print(std::ostream& out)
       +( evaluationCnt - evaluationIncomp - evaluationGreater)
       +innerRewrites
       +booleanSimps
-      +groundRedundantClauses+groundRedundantEquationOrientations
+      +forwardGroundReducibility+groundRedundantClauses+groundRedundantEquationOrientations
       );
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
@@ -327,6 +329,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Interpreted simplifications", interpretedSimplifications);
+  COND_OUT("Fw ground reducibility", forwardGroundReducibility);
   COND_OUT("Ground redundant clauses", groundRedundantClauses);
   COND_OUT("Ground redundant eq. orientations", groundRedundantEquationOrientations);
 
@@ -347,7 +350,7 @@ void Statistics::print(std::ostream& out)
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
       forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
       forwardSubsumptionDemodulationsToEqTaut+backwardSubsumptionDemodulationsToEqTaut+
-      backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
+      backwardDemodulationsToEqTaut+innerRewritesToEqTaut+forwardGroundJoinability);
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
   COND_OUT("Deep equational tautologies", deepEquationalTautologies);
@@ -357,6 +360,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
   COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
   COND_OUT("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
+  COND_OUT("Fw ground joinability", forwardGroundJoinability);
   COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 

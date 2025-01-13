@@ -403,6 +403,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/FOOLParamodulation.cpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardGroundJoinability.cpp
+    Inferences/ForwardGroundReducibility.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
@@ -444,6 +445,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/FOOLParamodulation.hpp
     Inferences/ForwardDemodulation.hpp
     Inferences/ForwardGroundJoinability.hpp
+    Inferences/ForwardGroundReducibility.hpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
     Inferences/FunctionDefinitionRewriting.hpp

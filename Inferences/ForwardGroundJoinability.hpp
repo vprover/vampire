@@ -30,12 +30,12 @@ using namespace Saturation;
 using Position = Stack<unsigned>;
 
 class ForwardGroundJoinability
-: public ForwardSimplificationEngine
+: public ForwardGroundSimplificationEngine
 {
 public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  bool perform(Clause* cl, ClauseIterator& replacements, ClauseIterator& premises) override;
 
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {

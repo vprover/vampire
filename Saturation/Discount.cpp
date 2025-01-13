@@ -26,17 +26,11 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
 
-
-ClauseContainer* Discount::getSimplifyingClauseContainer()
-{
-  return _active;
-}
-
 bool Discount::handleClauseBeforeActivation(Clause* cl)
 {
   ASS(cl->store()==Clause::SELECTED);
 
-  if (!forwardSimplify(cl)) {
+  if (!forwardSimplify(cl) || !forwardGroundSimplify(cl)) {
     cl->setStore(Clause::NONE);
     return false;
   }

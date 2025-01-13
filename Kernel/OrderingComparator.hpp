@@ -22,6 +22,7 @@
 
 namespace Inferences {
   class ForwardGroundJoinability;
+  class ForwardGroundReducibility;
 }
 
 namespace Shell {
@@ -184,6 +185,7 @@ protected:
   friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
 
   friend class Inferences::ForwardGroundJoinability;
+  friend class Inferences::ForwardGroundReducibility;
   friend class Shell::ConditionalRedundancySubsumption;
   friend class Shell::ConditionalRedundancySubsumption2;
 

@@ -76,6 +76,7 @@ public:
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  void addForwardGroundSimplifierToFront(ForwardGroundSimplificationEngine* fwGrSimplifier);
   void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
@@ -95,7 +96,7 @@ public:
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
 
-  virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
+  ClauseContainer* getSimplifyingClauseContainer() { return &_simplCont; }
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
   ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
     return _extensionality;
@@ -143,6 +144,7 @@ protected:
   void newClausesToUnprocessed();
   void addUnprocessedClause(Clause* cl);
   bool forwardSimplify(Clause* c);
+  bool forwardGroundSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
   void activate(Clause* c);
@@ -192,12 +194,16 @@ protected:
   std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
+  FakeContainer _simplCont;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
+
+  typedef List<ForwardGroundSimplificationEngine*> FwGrSimplList;
+  FwGrSimplList* _fwGrSimplifiers;
 
   //Simplification occurs at the same point in the loop
   //as forward and backward simplification, but does not involve

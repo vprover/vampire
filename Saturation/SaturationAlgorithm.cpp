@@ -62,6 +62,7 @@
 #include "Inferences/FunctionDefinitionRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardGroundJoinability.hpp"
+#include "Inferences/ForwardGroundReducibility.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/InvalidAnswerLiteralRemovals.hpp"
@@ -352,6 +353,9 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
  */
 void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
+  if(c->store()==Clause::ACTIVE) {
+    _simplCont.remove(c);
+  }
   ASS(c->store()==Clause::ACTIVE);
   c->setStore(Clause::NONE);
   // at this point the c object may be deleted
@@ -689,6 +693,7 @@ simpl_start:
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
+  _simplCont.add(cl);
 
   onSOSClauseAdded(cl);
 
@@ -996,6 +1001,35 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   return true;
 }
 
+bool SaturationAlgorithm::forwardGroundSimplify(Clause* cl)
+{
+  TIME_TRACE("forward ground simplification");
+
+  /**
+   * we assume here that @b forwardSimplify was called
+   * before and did all the weird stuff that needed to be done.
+   * */
+
+  FwGrSimplList::Iterator fsit(_fwGrSimplifiers);
+  while (fsit.hasNext()) {
+    ForwardGroundSimplificationEngine *fse = fsit.next();
+    auto replacements = ClauseIterator::getEmpty();
+    auto premises = ClauseIterator::getEmpty();
+
+    if (fse->perform(cl, replacements, premises)) {
+      Stack<Clause*> replacementStack;
+      while (replacements.hasNext()) {
+        auto rp = replacements.next();
+        addNewClause(rp);
+      }
+      onClauseReduction(cl, replacementStack.begin(), replacementStack.size(), premises);
+      _simplCont.add(cl);
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * The the backward simplification with the clause @b cl.
  */
@@ -1142,6 +1176,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
+  _simplCont.add(cl);
 
   _conditionalRedundancyHandler->checkEquations(cl);
 
@@ -1202,7 +1237,7 @@ start:
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
 
-    if (forwardSimplify(c)) {
+    if (forwardSimplify(c) && forwardGroundSimplify(c)) {
       auto infTod = static_cast<OrderingComparator*>(c->getInfTod());
       if (infTod) {
         delete infTod;
@@ -1387,6 +1422,12 @@ void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngin
 {
   FwSimplList::push(fwSimplifier, _fwSimplifiers);
   fwSimplifier->attach(this);
+}
+
+void SaturationAlgorithm::addForwardGroundSimplifierToFront(ForwardGroundSimplificationEngine* fwGrSimplifier)
+{
+  FwGrSimplList::push(fwGrSimplifier, _fwGrSimplifiers);
+  fwGrSimplifier->attach(this);
 }
 
 void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
@@ -1601,8 +1642,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (prb.hasEquality()) {
+    if (opt.forwardGroundReducibility()) {
+      res->addForwardGroundSimplifierToFront(new ForwardGroundReducibility());
+    }
     if (opt.forwardGroundJoinability()) {
-      res->addForwardSimplifierToFront(new ForwardGroundJoinability());
+      res->addForwardGroundSimplifierToFront(new ForwardGroundJoinability());
     }
   }
   if (prb.hasEquality()) {

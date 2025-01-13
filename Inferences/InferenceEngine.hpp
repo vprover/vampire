@@ -275,6 +275,12 @@ public:
   virtual bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) = 0;
 };
 
+class ForwardGroundSimplificationEngine
+: public InferenceEngine
+{
+public:
+  virtual bool perform(Clause* cl, ClauseIterator& replacements, ClauseIterator& premises) = 0;
+};
 
 struct BwSimplificationRecord
 {
