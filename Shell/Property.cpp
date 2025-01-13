@@ -768,7 +768,14 @@ void Property::scanForInterpreted(Term* t)
   }
 
   forEachNumTraits([&](auto n) {
-    n.ifNumeral(t, [&](auto) { Setter::setHasNumerals(*this, n); return std::make_tuple(); });
+    switch (t->kind()) {
+      case TermKind::LITERAL:
+      case TermKind::SORT:
+        break;
+      case TermKind::TERM:
+        n.ifNumeral(t, [&](auto) { Setter::setHasNumerals(*this, n); return std::make_tuple(); });
+        break;
+    }
   });
   _hasInterpreted = true;
 
