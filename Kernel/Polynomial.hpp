@@ -1025,13 +1025,12 @@ template<class Number>
 MonomFactors<Number>::MonomFactors(Stack<MonomFactor>&& factors) 
   : _factors(std::move(factors)) 
 { 
-  if (_factors.size() == 1 
+  ASS(!(
+    _factors.size() == 1 
     && _factors[0].tryPolynom().isSome()
     && _factors[0].tryPolynom().unwrap()->nSummands() == 1
-    && _factors[0].tryPolynom().unwrap()->summandAt(0).numeral == Numeral(1)) {
-    _factors = _factors[0].tryPolynom().unwrap()->summandAt(0).factors->_factors;
-  }
-  // integrity(); 
+    && _factors[0].tryPolynom().unwrap()->summandAt(0).numeral == 1
+  ))
 }
 
 template<class Number>
