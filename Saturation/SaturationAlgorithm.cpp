@@ -302,9 +302,11 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _passive->addedEvent.subscribe(this, &SaturationAlgorithm::onPassiveAdded);
   _passive->removedEvent.subscribe(this, &SaturationAlgorithm::passiveRemovedHandler);
   _passive->selectedEvent.subscribe(this, &SaturationAlgorithm::onPassiveSelected);
+  /*
   _unprocessed->addedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedAdded);
   _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
   _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
+  */
 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
@@ -578,24 +580,6 @@ void SaturationAlgorithm::onPassiveSelected(Clause* c)
   if (_neuralActivityRecoring) {
     _neuralModel->journal(NeuralClauseEvaluationModel::JOURNAL_SEL,c);
   }
-}
-
-/**
- * A function that is called when a clause is added to the unprocessed clause container.
- */
-void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
-{
-}
-
-/**
- * A function that is called when a clause is removed from the unprocessed clause container.
- */
-void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
-{
-}
-
-void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
-{
 }
 
 /**
@@ -1691,7 +1675,9 @@ void SaturationAlgorithm::doUnprocessedLoop()
       _neuralModel->bulkEval(*_unprocessed);
     }
 
+    unsigned unprocessedPops = 0;
     while (!_unprocessed->isEmpty()) {
+      unprocessedPops++;
       Clause* c = _unprocessed->pop();
       ASS(!isRefutation(c));
 
@@ -1709,6 +1695,8 @@ void SaturationAlgorithm::doUnprocessedLoop()
       // It should not matter that much (from the point of view of the NN) that these new clauses are now unevaluated
       // (the assumption is that reduced good clause is also good)
     }
+
+    afterUnprocessedLoop(unprocessedPops);
 
     ASS(clausesFlushed());
     onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions
@@ -1752,7 +1740,7 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
  *
  * This function may throw RefutationFoundException and TimeLimitExceededException.
  */
-void SaturationAlgorithm::doOneAlgorithmStep(unsigned iter)
+void SaturationAlgorithm::doOneAlgorithmStep()
 {
   doUnprocessedLoop();
 
@@ -1779,7 +1767,7 @@ void SaturationAlgorithm::doOneAlgorithmStep(unsigned iter)
    * Only after processing the whole input (with the first call to doUnprocessedLoop)
    * it is time to recored for LRS the start time (and instrs) for the first iteration.
    */
-  if (iter == 0) {
+  if (env.statistics->activations == 0) {
     _lrsStartTime = Timer::elapsedMilliseconds();
     _lrsStartInstrs = Timer::elapsedMegaInstructions();
   }
@@ -1791,6 +1779,10 @@ void SaturationAlgorithm::doOneAlgorithmStep(unsigned iter)
   }
   ASS_EQ(cl->store(), Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
+
+  // we really want to do it here (it's explained "activations started" to the user)
+  // and it should correspond to the number of times _passive->popSelected() was called (for good LRS estimates to work)
+  env.statistics->activations++;
 
   if (!handleClauseBeforeActivation(cl)) {
     return;
@@ -1808,15 +1800,15 @@ MainLoopResult SaturationAlgorithm::runImpl()
   // could be more precise, but we don't care too much
   unsigned startTime = Timer::elapsedDeciseconds();
   try {
-    for (unsigned iter = 0;; iter++) {
-      if (_activationLimit && iter > _activationLimit) {
+    env.statistics->activations = 0;
+    while (true) {
+      doOneAlgorithmStep(); // will bump env.statistics->activations by one
+
+      if (_activationLimit && env.statistics->activations > _activationLimit) {
         throw ActivationLimitExceededException();
       }
       if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
         throw TimeLimitExceededException();
-
-      doOneAlgorithmStep(iter);
-      env.statistics->activations = iter;
     }
   }
   catch(const RefutationFoundException& r) {

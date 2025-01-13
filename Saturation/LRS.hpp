@@ -30,13 +30,13 @@ class LRS
 : public Otter
 {
 public:
-  LRS(Problem& prb, const Options& opt) : Otter(prb, opt) {}
+  using Otter::Otter;
 
 protected:
-  //overrides SaturationAlgorithm::onUnprocessedSelected
-  void onUnprocessedSelected(Clause* c);
+  void afterUnprocessedLoop(unsigned popsElapsed) override;
 
-  bool shouldUpdateLimits();
+  bool shouldUpdateLimits(unsigned popsElapsed);
+
   long long estimatedReachableCount();
 };
 
