@@ -274,7 +274,7 @@ struct LAKBO {
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const 
-  DEBUG_FN_RESULT(2, Output::cat("skeleton", std::tie(t0, t1), " = "),
+  DEBUG_FN_RESULT(2, Output::cat("comapre", std::tie(t0, t1), " = "),
   {
     if (t0 == t1) return Ordering::Result::EQUAL;
     auto s0 = skeleton(t0);
@@ -431,7 +431,6 @@ public:
       return Ordering::LESS;
 
     } else if (atoms1.isSome() && atoms2.isSome()) {
-
       return AlascaOrderingUtils::lexLazy(
             [&](){ return OrderingUtils::mulExt(*atoms1, *atoms2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
             [&](){ return cmpPrec(l1, l2); }
