@@ -56,17 +56,17 @@ TEST_FUN(joinability_test01) {
     container.add(c);
   }
 
-  Clause* replacement;
+  ClauseIterator replacements;
   ClauseIterator premises;
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,x),z) }), replacement, premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(x,f(y,u))) }), replacement, premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(u,f(x,f(y,z))) }), replacement, premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(y,f(x,u))) }), replacement, premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(u,f(y,x))) }), replacement, premises));
-  ASS(fgj.perform(clause({ f(y,f(x,f(z,u))) == f(u,f(x,f(y,z))) }), replacement, premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(y,f(z,f(u,x))) }), replacement, premises));
+  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,x),z) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(x,f(y,u))) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(u,f(x,f(y,z))) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(y,f(x,u))) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(u,f(y,x))) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(y,f(x,f(z,u))) == f(u,f(x,f(y,z))) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(y,f(z,f(u,x))) }), replacements, premises));
 
-  ASS(!fgj.perform(clause({ f(x,f(y,z)) == f(y,f(x,z)) }), replacement, premises));
+  ASS(!fgj.perform(clause({ f(x,f(y,z)) == f(y,f(x,z)) }), replacements, premises));
 
   // tear down saturation algorithm
   fgj.InferenceEngine::detach();

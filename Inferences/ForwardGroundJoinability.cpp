@@ -207,9 +207,11 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
           }
         }
 
+        AppliedTerm rhsApplied(rhs, &appl, true);
+
         if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
           TermList other = trm == curr->left ? curr->right : curr->left;
-          auto redComp = ordering.compareUnidirectional(other, AppliedTerm(rhs, &appl, true), &po_struct);
+          auto redComp = ordering.compareUnidirectional(other, rhsApplied, &po_struct);
           ASS_NEQ(redComp,Ordering::LESS);
           // Note: EQUAL should be fine when doing forward simplification
           if (redComp == Ordering::INCOMPARABLE) {
@@ -217,7 +219,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
           }
         }
 
-        TermList rhsS = subs->applyToBoundResult(rhs);
+        TermList rhsS = rhsApplied.apply();
 
         auto left = replace(curr->left, trm, rhsS);
         auto right = replace(curr->right, trm, rhsS);

@@ -44,6 +44,10 @@ public:
 #endif // VDEBUG
 
 private:
+  const TermPartialOrdering* next();
+
+  OrderingComparatorUP _comp;
+  Stack<OrderingComparator::Branch*> _path;
   DemodulationLHSIndex* _index;
 };
 
