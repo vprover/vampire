@@ -340,8 +340,8 @@ struct NumTraits;
     template<class TermOrFunctor>                                                         \
     static bool isNumeral(TermOrFunctor t, ConstantType n) { return tryNumeral(t) == some(n); }     \
     template<class Term, class F>                                                         \
-    static auto ifNumeral(Term t, F fun) -> Option<std::invoke_result_t<F, ConstantType&&>> \
-    { return tryNumeral(t).map([&](ConstantType n) { return fun(std::move(n)); }); }      \
+    static auto ifNumeral(Term t, F fun) -> Option<std::invoke_result_t<F, ConstantType const&>> \
+    { return tryNumeral(t).map([&](ConstantType const& n) { return fun(n); }); }      \
     static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }          \
                                                                                           \
     static const char* name() {return #CamelCase;}                                        \
