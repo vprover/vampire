@@ -263,6 +263,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _neuralModelGuidance = opt.neuralPassiveClauseContainer();
   if (!ncem.empty()) {
     _neuralModel = new NeuralClauseEvaluationModel(ncem,
+      std::bind(&SaturationAlgorithm::makeReadyForEval, this, std::placeholders::_1),
       // opt.neuralClauseEvaluationModelTweaks(),
       opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature());
 
@@ -283,8 +284,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   if (_neuralModelGuidance) {
     // could also be part of level0, so that neural queues can be combined with splits
-    _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt, *_neuralModel,
-      std::bind(&SaturationAlgorithm::makeReadyForEval, this, std::placeholders::_1));
+    _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt, *_neuralModel);
   }
   else if (opt.useManualClauseSelection()) {
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
@@ -1687,7 +1687,8 @@ void SaturationAlgorithm::doUnprocessedLoop()
   do {
     newClausesToUnprocessed();
     if (_neuralModelGuidance && _passive->limitsActive() ) {
-      _neuralModel->evalClauses(*_unprocessed);
+      // so that we can start kicking out the really bad clauses already in forwardSimplify's exceedsAllLimits
+      _neuralModel->bulkEval(*_unprocessed);
     }
 
     while (!_unprocessed->isEmpty()) {
@@ -1705,6 +1706,8 @@ void SaturationAlgorithm::doUnprocessedLoop()
       }
 
       newClausesToUnprocessed();
+      // It should not matter that much (from the point of view of the NN) that these new clauses are now unevaluated
+      // (the assumption is that reduced good clause is also good)
     }
 
     ASS(clausesFlushed());

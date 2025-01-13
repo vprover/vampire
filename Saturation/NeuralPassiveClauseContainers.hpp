@@ -26,6 +26,7 @@
 #include "AbstractPassiveClauseContainers.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Lib/Random.hpp"
 
@@ -86,10 +87,13 @@ private:
   unsigned _numFeatures;
   float _temp;
 
+  std::function<bool(Clause*)> _makeReadyForEval;
+
   // this stored the computed logits + _temp * gumbel_noise
   DHMap<unsigned,float> _scores;
 public:
   NeuralClauseEvaluationModel(const std::string clauseEvalModelFilePath, //  const std::string& tweak_str,
+    std::function<bool(Clause*)> makeReadyForEval,
     uint64_t random_seed, unsigned num_cl_features, float temperature);
 
   void setRecording() {
@@ -318,8 +322,10 @@ public:
 
   template<typename T>
   void evalClauses(const T& clauses, bool justRecord = false) {
-    int64_t sz = clauses.size();
+    int64_t sz = clauses.size() + _evalAlsoTheseInTheNextBulk->size();
     if (sz == 0) return;
+
+    // std::cout << "ec for: " << std::endl;
 
     torch::NoGradGuard no_grad; // TODO: check if this is necessary here
 
@@ -335,10 +341,13 @@ public:
     {
       int64_t j = 0;
       unsigned idx = 0;
-      auto uIt = clauses.iter();
+      auto uIt = concatIters(clauses.iter(),_evalAlsoTheseInTheNextBulk->iter());
       while (uIt.hasNext()) {
         unsigned i = 0;
         Clause* cl = uIt.next();
+
+        // std::cout << cl->number() << ", ";
+
         clauseNums.push_back((int64_t)cl->number());
         Clause::FeatureIterator cIt(cl);
         while (i++ < _numFeatures && cIt.hasNext()) {
@@ -356,6 +365,8 @@ public:
       }
     }
 
+    // std::cout << std::endl;
+
     auto result = (*_evalClauses)({
       std::move(clauseNums),
       torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)),
@@ -372,7 +383,7 @@ public:
     // cout << "Eval clauses for " << sz << " requires " << logits.requires_grad() << endl;
 
     {
-      auto uIt = clauses.iter();
+      auto uIt = concatIters(clauses.iter(),_evalAlsoTheseInTheNextBulk->iter());
       unsigned idx = 0;
       while (uIt.hasNext()) {
         Clause* cl = uIt.next();
@@ -391,6 +402,40 @@ public:
     }
   }
 
+  /*
+   * This will bulk-evaluate all the given clauses!
+   * as well as (if non-null) the _evalAlsoTheseInTheNextBulk
+   * clauses (as secretly agreed with the NeuralPassiveClauseContainer)
+   */
+  template<typename T>
+  void bulkEval(const T& clauses) {
+    TIME_TRACE(TimeTrace::DEEP_STUFF);
+
+    // std::cout << "bE:\n1:" << std::endl;
+
+    {
+      auto it = concatIters(clauses.iter(),_evalAlsoTheseInTheNextBulk->iter());
+      while (it.hasNext()) {
+        Clause* cl = it.next();
+        // std::cout << cl->number() << ", ";
+        _makeReadyForEval(cl);
+      }
+    }
+    // std::cout << std::endl;
+
+    gageEmbedPending();
+    gweightEmbedPending();
+    evalClauses(clauses);
+
+    {
+      auto it = _evalAlsoTheseInTheNextBulk->iter();
+      while (it.hasNext()) {
+        _delayedInsert(it.next());
+      }
+      _evalAlsoTheseInTheNextBulk->reset();
+    }
+  }
+
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
   float tryGetScore(Clause* cl);
@@ -398,8 +443,8 @@ public:
 private:
   // some friendship ugliness - just between NeuralClauseEvaluationModel and NeuralPassiveClauseContainer
   friend class NeuralPassiveClauseContainer;
-  Stack<Clause*>* _evalAlsoTheseInTheNextBulk = 0;
-  std::function<void()> _callThisWhenDone;
+  Stack<Clause*>* _evalAlsoTheseInTheNextBulk = new Stack<Clause*>(); // by default, a dummy empty stack
+  std::function<void(Clause*)> _delayedInsert;
 };
 
 class NeuralScoreQueue
@@ -448,8 +493,7 @@ class NeuralPassiveClauseContainer
 {
 public:
   NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
-    NeuralClauseEvaluationModel& model,
-    std::function<bool(Clause*)> makeReadyForEval);
+    NeuralClauseEvaluationModel& model);
 
   bool isEmpty() const override { return _size == 0; }
 
@@ -457,19 +501,16 @@ public:
   void remove(Clause* cl) override;
   Clause* popSelected() override;
 
-protected:
-  void evalAndEnqueueDelayed();
-
 private:
   NeuralClauseEvaluationModel& _model;
   Stack<Clause*> _delayedInsertionBuffer;
-  std::function<bool(Clause*)> _makeReadyForEval;
 
   unsigned _reshuffleAt;
 
+  void delayedInsert(Clause* cl) { _queue.insert(cl); }
 public:
   void simulationInit() override {
-    evalAndEnqueueDelayed();
+    _model.bulkEval(Stack<Clause*>());
 
     SingleQueuePassiveClauseContainer<NeuralScoreQueue>::simulationInit();
   }

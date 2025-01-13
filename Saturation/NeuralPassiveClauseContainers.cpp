@@ -51,9 +51,10 @@ using namespace Lib;
 using namespace Kernel;
 
 NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string clauseEvalModelFilePath,
+  std::function<bool(Clause*)> makeReadyForEval,
   // const std::string& tweak_str,
   uint64_t random_seed, unsigned num_cl_features, float temperature) :
-  _numFeatures(num_cl_features), _temp(temperature)
+  _numFeatures(num_cl_features), _temp(temperature), _makeReadyForEval(makeReadyForEval)
 {
   TIME_TRACE("neural model warmup");
 
@@ -362,44 +363,26 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
 }
 
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
-  NeuralClauseEvaluationModel& model, std::function<bool(Clause*)> makeReadyForEval)
+  NeuralClauseEvaluationModel& model)
   : SingleQueuePassiveClauseContainer<NeuralScoreQueue>(isOutermost,opt,model.getScores()),
-  _model(model), _makeReadyForEval(makeReadyForEval), _reshuffleAt(opt.reshuffleAt())
+  _model(model), _reshuffleAt(opt.reshuffleAt())
 {
   ASS(_isOutermost);
-}
 
-void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
-{
-  TIME_TRACE(TimeTrace::DEEP_STUFF);
+  delete _model._evalAlsoTheseInTheNextBulk; // delete the default one
+  _model._evalAlsoTheseInTheNextBulk = &_delayedInsertionBuffer;
 
-  if (!_delayedInsertionBuffer.size())
-    return;
-
-  {
-    auto it = _delayedInsertionBuffer.iter();
-    while (it.hasNext()) {
-      _makeReadyForEval(it.next());
-    }
-  }
-
-  _model.gageEmbedPending();
-  _model.gweightEmbedPending();
-  _model.evalClauses(_delayedInsertionBuffer);
-
-  // cout << "evalAndEnqueueDelayed for " << _delayedInsertionBuffer.size() << endl;
-  {
-    auto it = _delayedInsertionBuffer.iter();
-    while (it.hasNext()) {
-      _queue.insert(it.next());
-    }
-  }
-  _delayedInsertionBuffer.reset();
+  _model._delayedInsert = std::bind(&NeuralPassiveClauseContainer::delayedInsert, this, std::placeholders::_1);
 }
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
 {
-  _delayedInsertionBuffer.push(cl);
+  float dummy;
+  if (_model.getScores().find(cl->number(),dummy)) {
+    _queue.insert(cl);
+  } else {
+    _delayedInsertionBuffer.push(cl);
+  }
 
   // cout << "Inserting " << cl->number() << endl;
   _size++;
@@ -426,7 +409,7 @@ Clause* NeuralPassiveClauseContainer::popSelected()
 {
   ASS(_size);
 
-  evalAndEnqueueDelayed();
+  _model.bulkEval(Stack<Clause*>());
 
   static unsigned popCount = 0;
   if (++popCount == _reshuffleAt) {
