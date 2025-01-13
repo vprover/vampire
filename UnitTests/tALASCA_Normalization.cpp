@@ -613,3 +613,10 @@ TEST_FRAC(floor_17,
       .out = { { p(floor(a) + 1) } },
       .strong = false,
     })
+
+TEST_FRAC(bug_09, 
+    TestCase {
+      .in  =    p(((b*(-x + (a*a))) + ((b*x) + -((b * ((-x + (a*a))+x)))))),
+      .out = { { p(b*(-x + a * a) + (b*x) + -(b * (a*a))) } },
+      .strong = false,
+    })

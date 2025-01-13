@@ -84,7 +84,8 @@ PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Liter
 #include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
 Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const {
-  DEBUG("evaluating: ", orig->toString());
+  auto impl = [&]() {
+
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate(orig, evaluatedArgs); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return Option<LitSimplResult>();
@@ -129,6 +130,11 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 #undef HANDLE_CASE
 #undef IGNORE_CASE
 #undef HANDLE_NUM_CASES
+
+  };
+  auto out = impl();
+  DEBUG("evaluated: ", orig->toString(), " ==> ", out);
+  return out;
 }
 
 #include "Inferences/FunctionEvaluation.cpp"
@@ -212,7 +218,6 @@ PolyNf simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
-  DEBUG("evaluating ", normalized)
   static MemoNonVars<PolyNf, PolyNf> memo;
   auto out = BottomUpEvaluation<PolyNf, PolyNf>()
     .function(
@@ -238,11 +243,9 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
         })
     .memo<decltype(memo)&>(memo)
     .apply(normalized);
-  if (out == normalized) {
-    return Option<PolyNf>();
-  } else {
-    return Option<PolyNf>(out);
-  }
+  auto outOpt = someIf(out != normalized, [&]() { return out; });
+  DEBUG("evaluated ", normalized, " ==> ", outOpt)
+  return outOpt;
 }
 
 template<class Number>
@@ -272,7 +275,7 @@ PolyNf PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bo
   }
 
   if (summands.size() == 1 
-      && summands[0].numeral == typename Number::ConstantType(1)
+      && summands[0].numeral == 1
       && summands[0].factors->nFactors() == 1
       && summands[0].factors->factorAt(0).power == 1
       ) {
@@ -345,19 +348,28 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, boo
     return out;
   };
 
+  
   auto& facs = *in.factors;
+  auto numeral = in.numeral;
   Stack<MonomFactor> args(facs.nFactors());
   for (unsigned i = 0; i < facs.nFactors(); i++) {
+    if (auto poly_ = simplifiedArgs[i].downcast<Number>()) {
+      auto& poly = **poly_;
+      if (poly.nSummands() == 1) {
+        numeral *= poly.summandAt(0).numeral;
+        args.loadFromIterator(poly.summandAt(0).factors->iter());
+        continue;
+      }
+    }
     args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
   }
 
   std::sort(args.begin(), args.end());
 
   auto offs = 0;
-  auto numeral = in.numeral;
   bool needsSorting = false;
 
-  for (unsigned i = 0; i < facs.nFactors(); i++) {
+  for (unsigned i = 0; i < args.size(); i++) {
     auto& arg = args[i];
     auto c = arg.term.template tryNumeral<Number>();
     if (c.isSome()) {
@@ -368,12 +380,13 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, boo
       // arg is a non-number term
       auto term  = arg.term;
       auto power = arg.power;
-      while (i + 1 < facs.nFactors() && args[i + 1].term == term) {
+      while (i + 1 < args.size() && args[i + 1].term == term) {
         power += args[i + 1].power;
         i++;
       }
-      if (power != 0)
+      if (power != 0) {
         args[offs++] = MonomFactor(term, power);
+      }
     }
   }
   args.truncate(offs);

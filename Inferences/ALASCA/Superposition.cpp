@@ -60,11 +60,11 @@ Option<Clause*> SuperpositionConf::applyRule_(
   auto cnst = uwa.computeConstraintLiterals();
   auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t, bank); };
 
-#define check_side_condition(cond, cond_code)                                                       \
-    if (!(cond_code)) {                                                                             \
-      DEBUG(2, "side condition not fulfiled: ", cond)                                                  \
-      return nothing();                                                                             \
-    }                                                                                               \
+#define check_side_condition(cond, cond_code)                                             \
+    if (!(cond_code)) {                                                                   \
+      DEBUG(2, "side condition not fulfiled: ", cond)                                     \
+      return nothing();                                                                   \
+    }                                                                                     \
 
 
 

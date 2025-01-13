@@ -609,10 +609,34 @@ TEST_FUN(check_numerals_smallest) {
 
 }
 
-TEST_FUN(bug_non_linear) {
+TEST_FUN(bug_non_linear_1) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
   auto& ord = lakbo(/* rand */ false);
   DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
   check(ord, a * (1 + a), Greater, a * a);
+  check(ord, a * a, Greater, a);
+  check(ord, b * (a * a), Greater, b * a);
+}
+
+TEST_FUN(bug_non_linear_2) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  auto& ord = lakbo(/* rand */ false);
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_CONST(c, Real)
+  DECL_CONST(d, Real)
+
+// 0 = $sum(d,$sum(-1($product(b,$product(a,a))),-1($product(a,c))))
+// 0 = $sum($product(b,$sum(-1(X0),$product(a,a))),$sum($product(b,X0),-1($product(b,$sum($sum(-1(X0),$product(a,a)),X0)))))
+  // check(ord, b * (a * a), Greater, b * a);
+  // check(ord, b * (a * a), Greater, b * a);
+
+  auto l1 = 0 == b* (-x + (a*a) + x);
+  auto l2 = 0 == b*(a*a);
+  check(ord, l1, Equal, l2);
+  // 0 = (a + -d b b + -b c)
+  // 0 = (d (-x + b b) + d x + -d (-x + b b + x))
 }
