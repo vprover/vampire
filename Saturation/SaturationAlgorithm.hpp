@@ -166,7 +166,7 @@ protected:
   virtual bool isComplete();
 
 private:
-  DHSet<Clause*> _predecessorsShown;
+  DHSet<unsigned> _predecessorsShown;
   void showPredecessors(Clause* c);
   // we need both as literal have a different counter in term sharing than terms
   DHSet<unsigned> _subtermsShown;
@@ -175,7 +175,7 @@ private:
   void showClauseLiterals(Clause* c);
 
   // to remember which clauses have already had their feature vector shown
-  DHSet<Clause*> _shown;
+  DHSet<unsigned> _shown;
 
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);

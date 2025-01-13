@@ -433,7 +433,7 @@ void SaturationAlgorithm::onAllProcessed()
 
 void SaturationAlgorithm::showPredecessors(Clause* c) {
   if (c->isFromPreprocessing() ||
-    _predecessorsShown.find(c)) return;
+    _predecessorsShown.find(c->number())) return;
 
   vector<int64_t> parents;
   if (c->isComponent()) {
@@ -452,7 +452,7 @@ void SaturationAlgorithm::showPredecessors(Clause* c) {
   }
 
   _neuralModel->gageEnqueue(c,parents);
-  ALWAYS(_predecessorsShown.insert(c));
+  ALWAYS(_predecessorsShown.insert(c->number()));
 }
 
 void SaturationAlgorithm::showSubterms(Term* t) {
@@ -518,7 +518,7 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
  * Returns true, if the clause was seen for the first time.
  */
 bool SaturationAlgorithm::makeReadyForEval(Clause* c) {
-  if (!_shown.find(c)) {
+  if (!_shown.find(c->number())) {
     if (_neuralModel->useGage()) {
       showPredecessors(c);
     }
@@ -526,7 +526,7 @@ bool SaturationAlgorithm::makeReadyForEval(Clause* c) {
       showClauseLiterals(c);
     }
 
-    ALWAYS(_shown.insert(c));
+    ALWAYS(_shown.insert(c->number()));
     return true;
   }
   return false;
