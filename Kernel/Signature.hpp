@@ -576,7 +576,7 @@ class Signature
   // Interpreted symbol declarations
 
   template<class Numeral>
-  unsigned addNumeralConstant(Numeral number_, bool defaultSort = false) {
+  unsigned addNumeralConstant(Numeral number_) {
     auto key = SymbolKey(std::make_pair(std::move(number_), unsigned(0)));
     unsigned result;
     if (_funNames.find(key,result)) {
@@ -585,16 +585,8 @@ class Signature
     result = _funs.length();
     // copy number out of key again
     auto number = key.as<std::pair<Numeral, unsigned>>()->first;
-    if (!defaultSort)
-      noteOccurrence(number);
-    Symbol* sym = 
-      defaultSort ? 
-        new Symbol(Output::toString(number),
-            /*             arity */ 0, 
-            /*       interpreted */ false, 
-            /*    preventQuoting */ true, 
-            /*             super */ false)
-                  : newNumeralConstantSymbol(std::move(number));
+    noteOccurrence(number);
+    Symbol* sym = newNumeralConstantSymbol(std::move(number));
     _funs.push(sym);
     _funNames.insert(key,result);
     return result;
