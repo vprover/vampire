@@ -43,6 +43,8 @@ public:
   }
 #endif // VDEBUG
 
+  static bool makeEqual(TermList lhs, TermList rhs, Stack<TermOrderingConstraint>& res);
+
 private:
   struct State {
     TermList left;

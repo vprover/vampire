@@ -141,11 +141,14 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
     }
     attempted.reset();
 
-    auto kv = checker.next({ { curr->left, curr->right, Ordering::EQUAL } }, nullptr);
-    curr = kv.first;
-    tpo = kv.second;
-    if (!curr) {
-      break;
+    Stack<TermOrderingConstraint> eqCons;
+    if (makeEqual(curr->left, curr->right, eqCons)) {
+      auto kv = checker.next(eqCons, nullptr);
+      curr = kv.first;
+      tpo = kv.second;
+      if (!curr) {
+        break;
+      }
     }
 
     ASS(!tpo->hasIncomp());
@@ -274,6 +277,8 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
   Branch newB = data ? Branch(data, comp->_sink) : comp->_sink;
 
   for (const auto& [lhs,rhs,rel] : ordCons) {
+    ASS(lhs.isVar());
+    ASS(rhs.isVar());
     *curr = Branch(lhs, rhs);
     for (unsigned i = 0; i < 3; i++) {
       if (ordVals[i] != rel) {
@@ -330,6 +335,43 @@ void ForwardGroundJoinability::RedundancyCheck::pushNext()
       break;
     }
   }
+}
+
+bool ForwardGroundJoinability::makeEqual(TermList lhs, TermList rhs, Stack<TermOrderingConstraint>& res)
+{
+  if (lhs == rhs) {
+    return true;
+  }
+  if (lhs.isVar()!=rhs.isVar()) {
+    return false;
+  }
+  if (lhs.isVar() && rhs.isVar()) {
+    res.push({ lhs, rhs, Ordering::EQUAL });
+    return true;
+  }
+  auto lhsT = lhs.term();
+  auto rhsT = rhs.term();
+  if (lhsT->functor()!=rhsT->functor()) {
+    return false;
+  }
+  SubtermIterator it1(lhs.term());
+  SubtermIterator it2(rhs.term());
+  while (it1.hasNext()) {
+    ALWAYS(it2.hasNext());
+    auto st1 = it1.next();
+    auto st2 = it2.next();
+    if (st1.isVar()!=st2.isVar()) {
+      return false;
+    }
+    if (st1.isVar() && st2.isVar()) {
+      res.push({ st1, st2, Ordering::EQUAL });
+      continue;
+    }
+    if (st1.term()->functor()!=st2.term()->functor()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }

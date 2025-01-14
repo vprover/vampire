@@ -44,7 +44,8 @@ public:
 #endif // VDEBUG
 
 private:
-  const TermPartialOrdering* next();
+  const TermPartialOrdering* next(Stack<TermOrderingConstraint> ordCons);
+  void pushNext();
 
   OrderingComparatorUP _comp;
   Stack<OrderingComparator::Branch*> _path;

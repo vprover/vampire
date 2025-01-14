@@ -33,6 +33,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "DemodulationHelper.hpp"
+#include "ForwardGroundJoinability.hpp"
 
 #include "ForwardGroundReducibility.hpp"
 
@@ -84,18 +85,25 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
   _path.reset();
   _path.push(&_comp->_source);
 
+  auto tpo = TermPartialOrdering::getEmpty(ordering);
+
   for (unsigned i = 0; i < cl->length(); i++) {
     auto clit = (*cl)[i];
     if (clit->isEquality() && clit->isPositive()) {
-      _comp->insert({ { clit->termArg(0), clit->termArg(1), Ordering::EQUAL } }, this);
+      Stack<TermOrderingConstraint> eqCons;
+      if (ForwardGroundJoinability::makeEqual(clit->termArg(0), clit->termArg(1), eqCons)) {
+        tpo = next(eqCons);
+        if (!tpo) {
+          // this shouldn't happen though
+          return true;
+        }
+      }
     }
   }
 
   bool clRedCheck = cl->length()==1 && (*cl)[0]->isPositive() && (*cl)[0]->isEquality();
 
-  const TermPartialOrdering* tpo;
-
-  while ((tpo = next())) {
+  while (tpo) {
     for (unsigned i = 0; i < cl->length(); i++) {
       auto clit = (*cl)[i];
       NonVariableNonTypeIterator it(clit);
@@ -140,17 +148,13 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
           if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
             TermList other = EqHelper::getOtherEqualitySide(clit, trm);
             auto redComp = ordering.compareUnidirectional(other, rhsApplied, &po_struct);
-            // Subsumption should catch EQUAL cases
-            ASS(redComp == Ordering::GREATER || redComp == Ordering::INCOMPARABLE);
-            if (redComp == Ordering::INCOMPARABLE) {
+            if (redComp != Ordering::GREATER) {
               continue;
             }
           }
 
-          TermList rhsS = rhsApplied.apply();
-          _comp->insert(po_struct.cons, this);
-
-          results.insert({ trm, rhsS, qr.data->clause });
+          tpo = next(po_struct.cons);
+          results.insert({ trm, rhsApplied.apply(), qr.data->clause });
           goto LOOP_END;
         }
       }
@@ -178,12 +182,38 @@ LOOP_END:
   return true;
 }
 
-const TermPartialOrdering* ForwardGroundReducibility::next()
+const TermPartialOrdering* ForwardGroundReducibility::next(OrderingConstraints ordCons)
 {
   ASS(_comp->_ground);
   ASS(_comp->_onlyVars);
 
-  using Tag = OrderingComparator::Node::Tag;
+  using Node = OrderingComparator::Node;
+  using Branch = OrderingComparator::Branch;
+
+  static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
+  ASS(_path.isNonEmpty());
+
+  auto curr = _path.top();
+  ASS_EQ(curr->node(), _comp->_sink.node());
+
+  // We replace (not modify) the current node
+  // with a new subtree containing ordCons and data
+  // and pointing to the original node otherwise.
+
+  Branch success = Branch(this, _comp->_sink);
+
+  for (const auto& [lhs,rhs,rel] : ordCons) {
+    ASS(lhs.isVar());
+    ASS(rhs.isVar());
+    *curr = Branch(lhs, rhs);
+    for (unsigned i = 0; i < 3; i++) {
+      if (ordVals[i] != rel) {
+        curr->node()->getBranch(ordVals[i]) = _comp->_sink;
+      }
+    }
+    curr = &curr->node()->getBranch(rel);
+  }
+  *curr = success;
 
   while (_path.isNonEmpty()) {
     _comp->_prev = _path.size()==1 ? nullptr : _path[_path.size()-2];
@@ -191,16 +221,26 @@ const TermPartialOrdering* ForwardGroundReducibility::next()
     _comp->processCurrentNode();
     auto node = _comp->_curr->node();
 
-    if (node->tag != Tag::T_DATA) {
+    if (node->tag != Node::T_DATA) {
       _path.push(&node->gtBranch);
       continue;
     }
 
     if (!node->data) {
-      ASS(node->trace);
+      ASS(!node->trace);
       return _comp->getCurrentTrace();
     }
 
+    pushNext();
+  }
+
+  ASS(_path.isEmpty());
+  return nullptr;
+}
+
+
+void ForwardGroundReducibility::pushNext()
+{
     while (_path.isNonEmpty()) {
       auto curr = _path.pop();
       if (_path.isEmpty()) {
@@ -208,7 +248,7 @@ const TermPartialOrdering* ForwardGroundReducibility::next()
       }
 
       auto prev = _path.top()->node();
-      ASS_EQ(prev->tag, Tag::T_TERM);
+    ASS_EQ(prev->tag, OrderingComparator::Node::T_TERM);
       // if there is a previous node and we were either in the gt or eq
       // branches, just go to next branch in order, otherwise backtrack
       if (curr == &prev->gtBranch) {
@@ -220,10 +260,6 @@ const TermPartialOrdering* ForwardGroundReducibility::next()
         break;
       }
     }
-  }
-
-  ASS(_path.isEmpty());
-  return nullptr;
 }
 
 }
