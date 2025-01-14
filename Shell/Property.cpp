@@ -745,6 +745,7 @@ struct Setter {
 void Property::scanForInterpreted(Term* t)
 {
   Interpretation itp;
+  auto isNumeral = [&](auto n, auto t) { return t.isTerm() && !t.term()->isSpecial() && n.isNumeral(t.term()); };
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit->functor())) { return; }
@@ -759,7 +760,7 @@ void Property::scanForInterpreted(Term* t)
     itp = theory->interpretFunction(t);
     forEachNumTraits([&](auto n) {
       n.ifMul(t,[&](auto l, auto r) { 
-        if (!n.isNumeral(l) && !n.isNumeral(r)) {
+        if (!isNumeral(n, l) && !isNumeral(n, r)) {
           Setter::setNonLinear(*this, n);
         }
         return std::make_tuple();
@@ -773,7 +774,8 @@ void Property::scanForInterpreted(Term* t)
       case TermKind::SORT:
         break;
       case TermKind::TERM:
-        n.ifNumeral(t, [&](auto) { Setter::setHasNumerals(*this, n); return std::make_tuple(); });
+        if (!t->isSpecial())
+          n.ifNumeral(t, [&](auto) { Setter::setHasNumerals(*this, n); return std::make_tuple(); });
         break;
     }
   });
