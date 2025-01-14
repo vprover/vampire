@@ -187,7 +187,14 @@ class AlascaPreprocessor
 
   Clause* integerConversion(Clause* clause)
   {
-    auto notInt = [](auto t) { return R::eq(false, t, R::floor(t)); };
+    auto notInt = [&](auto t) -> Option<Literal*> { 
+      if (auto q = R::tryNumeral(t)) {
+        if (q->isInt()) {
+          return {};
+        }
+      }
+      return some(R::eq(false, t, R::floor(t))); 
+    };
     auto change = false;
     Recycled<Stack<Literal*>> res;
     for (auto l : clause->iterLits()) {
@@ -196,12 +203,13 @@ class AlascaPreprocessor
       if (!_useFloor) {
         if (l->isEquality() && l->eqArgSort() == Z::sort()) {
           ASS(ll->isEquality() && ll->eqArgSort() == R::sort() && change)
-          res->pushMany(notInt(ll->termArg(0)), notInt(ll->termArg(1)));
+          res->loadFromIterator(termArgIter(ll)
+              .filterMap([&](auto x) { return notInt(x); }));
         } else if (l->functor() != ll->functor() && theory->isInterpretedPredicate(ll->functor())) {
           ASS(ll->arity() == l->arity())
           res->loadFromIterator(range(0, l->numTermArguments())
               .filter([&](auto i) { return SortHelper::getTermArgSort(l, i) == Z::sort(); })
-              .map([&](auto i) { return notInt(ll->termArg(i)); }));
+              .filterMap([&](auto i) { return notInt(ll->termArg(i)); }));
         }
       }
       res->push(ll);
