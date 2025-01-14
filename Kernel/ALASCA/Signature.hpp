@@ -93,7 +93,16 @@ struct AlascaSignature : public NumTraits {
 
   static auto addF() { return NumTraits::addF(); }
   static auto minusF() { return NumTraits::linMulF(Numeral(-1)); }
-  static TermList minus(TermList t) { return NumTraits::linMul(NumTraits::constant(-1), t); }
+
+  static TermList minus(TermList t) { return TermList(Term::create(minusF(), {t})); }
+
+  template<class F>
+  static decltype(auto) ifLinMul(Term const* t, F fun)
+  { return NumTraits::ifLinMul(t, std::move(fun)); }
+
+  template<class F>
+  static decltype(auto) ifLinMul(TermList t, F fun)
+  { return someIf(t.isTerm(), [&]() { return ifLinMul(t.term(), std::move(fun)); }).flatten(); }
 
   template<class T, class F, class P>
   static decltype(auto) ifLinMulWithPath(T t, P& path, F fun) 
