@@ -7,6 +7,7 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+#include "Test/AlascaSimplRule.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -84,12 +85,13 @@ REGISTER_SIMPL_TESTER(GveSimplTester)
  * NECESSARY: We neet to tell the simplification tester which syntax sugar to import for creating terms & clauses. 
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
  */
-#define MY_SYNTAX_SUGAR                                                                                       \
-  NUMBER_SUGAR(Real)                                                                                          \
-  DECL_DEFAULT_VARS                                                                                           \
-  DECL_FUNC(f, {Real}, Real)                                                                                  \
-  DECL_PRED(p, {Real})                                                                                        \
-  DECL_PRED(q, {Real})                                                                                        \
+#define MY_SYNTAX_SUGAR                                                                   \
+  NUMBER_SUGAR(Real)                                                                      \
+  mkAlascaSyntaxSugar(Real ## Traits{});                                                  \
+  DECL_DEFAULT_VARS                                                                       \
+  DECL_FUNC(f, {Real}, Real)                                                              \
+  DECL_PRED(p, {Real})                                                                    \
+  DECL_PRED(q, {Real})                                                                    \
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES

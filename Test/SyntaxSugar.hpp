@@ -217,7 +217,6 @@ class SyntaxSugarGlobals
 
   }
 
-
   template<class NumTraits>
   void setFracTraits() 
   { 
@@ -230,6 +229,21 @@ public:
   static SyntaxSugarGlobals& instance() 
   { return _instance; }
 
+  template<class F>
+  void overrideMulOperator(F f)
+  { mul = std::move(f); }
+
+  template<class F>
+  void overrideNumeralCreation(F f)
+  { createNumeral = std::move(f); }
+
+  template<class F>
+  void overrideFractionCreation(F f)
+  { createFraction = std::move(f); }
+
+  template<class F>
+  void overrideMinus(F f)
+  { minus = std::move(f); }
 
   void setNumTraits(IntTraits)
   {
@@ -440,7 +454,19 @@ inline TermSugar ap(TermSugar lhs, TermSugar rhs)
 
 inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }  
 inline TermSugar operator-(TermSugar lhs, TermSugar rhs)  { return lhs + -rhs; }  
-inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().mul(lhs, rhs); }  
+inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { 
+  return syntaxSugarGlobals().mul(lhs, rhs); 
+}
+// inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { 
+//   auto linMul = [](auto lhs, auto rhs) {
+//     return forAnyNumTraits([&](auto n) {
+//       return n.ifNumeral(lhs, [&](auto num) {
+//           return n.linMul(num, rhs);
+//       });
+//     });
+//   };
+//   return linMul(lhs,rhs) || linMul(rhs, lhs) || syntaxSugarGlobals().mul(lhs, rhs); 
+// }
 inline TermSugar operator/(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().div(lhs, rhs); }  
 
 #define __IMPL_NUMBER_BIN_FUN(op, result_t)                                               \

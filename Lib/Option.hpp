@@ -414,10 +414,21 @@ public:
    * turns an Option<A&>, Option<A const&>, or Option<A&&> into an Option<A> by calling the 
    * appropriate move or copy constructor.
    */
-  Option<typename std::remove_const<typename std::remove_reference<A>::type>::type>  toOwned() const
+  Option<typename std::remove_const<typename std::remove_reference<A>::type>::type> toOwned() const&
   {
     using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;
     return map([](A elem) -> Out { return Out(std::move(elem)); });
+  }
+
+
+  /**
+   * turns an Option<A&>, Option<A const&>, or Option<A&&> into an Option<A> by calling the 
+   * appropriate move or copy constructor.
+   */
+  Option<typename std::remove_const<typename std::remove_reference<A>::type>::type> toOwned() &&
+  {
+    using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;
+    return map([](A elem) -> Out { return Out(move_if_value<A>(elem)); });
   }
 
   class OptionIter {

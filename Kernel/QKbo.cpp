@@ -250,23 +250,24 @@ Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const
 
 Option<TermList> QKbo::abstr(TermList t) const 
 {
+  t = this->norm().normalize(t).denormalize();
   using Out = Option<TermList>;
   if (t.isVar()) {
     return Option<TermList>(t);
   } else {
     auto term = t.term();
     auto f = term->functor();
-    auto res = tryNumTraits([&](auto numTraits) -> Option<Option<TermList>> {
-        using NumTraits = decltype(numTraits);
+    auto res = tryNumTraits([&](auto n) -> Option<Option<TermList>> {
+        using NumTraits = decltype(n);
         auto noAbstraction = []() { return Option<Option<TermList>>(Option<TermList>()); };
-        if (numTraits.isNumeral(t)) {
-          return some(some(NumTraits::one()));
+        if (asig(n).isNumeral(t)) {
+          return some(some(asig(n).one()));
 
         } else if (   
           /* t = t1 + ... + tn */
-               numTraits.addF() == f
+               asig(n).isAdd(f)
           /* t = k * t' */
-          || ( numTraits.mulF() == f && numTraits.isNumeral(*term->nthArgument(0)) )
+          || ( asig(n).isLinMul(f) )
           ) {
           auto norm = this->norm().normalize(TypedTermList(term)).wrapPoly<NumTraits>();
           RStack<TermList> abstracted_;

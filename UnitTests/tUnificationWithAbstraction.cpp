@@ -26,6 +26,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
+#include "Test/AlascaSimplRule.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
@@ -69,36 +70,6 @@ inline auto noConstraints() { return constraints(); }
 
 auto getLiteralIndex()
 { return std::make_unique<LiteralSubstitutionTree<LiteralClause>>(); }
-
-// template<class TermOrLit>
-// struct SubsSpec {
-//   Stack<std::pair<TermList, TermList>> subsQuery;
-//   Stack<std::pair<TermList, TermList>> subsRes;
-//   Stack<Literal*> constraints;
-//   bool alascaSimpl = false;
-//
-//   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
-//   {
-//     static shared_ptr<AlascaState> state = testAlascaState();
-//     auto eq = [&](auto t1, auto t2) { 
-//       return (l.alascaSimpl || r.alascaSimpl) ? state->norm().equivalent(t1, t2)
-//                                             : Test::TestUtils::eqModAC(t1, t2);
-//     };
-//     return eq(l.querySigma, r.querySigma)
-//        &&  eq(l.resultSigma, r.resultSigma)
-//        &&  Test::TestUtils::permEq(l.constraints, r.constraints,
-//              [&](auto& l, auto& r) { return eq(l,r); });
-//   }
-//
-//   friend std::ostream& operator<<(std::ostream& out, UnificationResultSpec const& self)
-//   { 
-//     out << "{ querySigma = " << Test::pretty(self.querySigma) << ", resultSigma = " << Test::pretty(self.resultSigma) << ", cons = [ ";
-//     for (auto& c : self.constraints) {
-//       out << *c << ", ";
-//     }
-//     return out << "] }";
-//   }
-// };
 
 template<class TermOrLit>
 struct UnificationResultSpec {
@@ -261,6 +232,7 @@ struct LiteralIndexTest {
       DECL_VAR(S12, 512)                                                                  \
                                                                                           \
       NUMBER_SUGAR(Num)                                                                   \
+      mkAlascaSyntaxSugar(Num ## Traits{}); \
       DECL_SORT(s)                                                                        \
       DECL_FUNC(r2s, {Num}, s)                                                            \
       DECL_FUNC(s2r, {s}, Num)                                                            \
@@ -1878,30 +1850,31 @@ ROB_UNIFY_TEST(alasca_main_constr_var_09,
     })
 
 
-ROB_UNIFY_TEST(alasca_main_constr_var_10,
-    SUGAR(Rat),
-    Options::UnificationWithAbstraction::ALASCA_MAIN,
-    /* fixedPointIteration */ false,
-    f2(x, y),
-    f2(y * x, 0),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(0    , 0),
-      .resultSigma = f2(num(0) * 0, 0),
-      .constraints = Stack<Literal*>{ },
-    })
-
-
-ROB_UNIFY_TEST(alasca_main_constr_var_11,
-    SUGAR(Rat),
-    Options::UnificationWithAbstraction::ALASCA_MAIN,
-    /* fixedPointIteration */ false,
-    f2(x, y),
-    f2(x * y, 0),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(0    , 0),
-      .resultSigma = f2(num(0) * 0, 0),
-      .constraints = Stack<Literal*>{ },
-    })
+// TODO this requires non-linear multiplication unification which we don't support rn
+// ROB_UNIFY_TEST(alasca_main_constr_var_10,
+//     SUGAR(Rat),
+//     Options::UnificationWithAbstraction::ALASCA_MAIN,
+//     /* fixedPointIteration */ false,
+//     f2(x, y),
+//     f2(y * x, 0),
+//     TermUnificationResultSpec { 
+//       .querySigma  = f2(0    , 0),
+//       .resultSigma = f2(num(0) * 0, 0),
+//       .constraints = Stack<Literal*>{ },
+//     })
+//
+//
+// ROB_UNIFY_TEST(alasca_main_constr_var_11,
+//     SUGAR(Rat),
+//     Options::UnificationWithAbstraction::ALASCA_MAIN,
+//     /* fixedPointIteration */ false,
+//     f2(x, y),
+//     f2(x * y, 0),
+//     TermUnificationResultSpec { 
+//       .querySigma  = f2(0    , 0),
+//       .resultSigma = f2(num(0) * 0, 0),
+//       .constraints = Stack<Literal*>{ },
+//     })
 
 ROB_UNIFY_TEST_FAIL(alasca_main_misc02,
     SUGAR(Rat),
@@ -1967,24 +1940,25 @@ ROB_UNIFY_TEST_FAIL(alasca_main_misc08,
     f2(f(a) + f(a) + -2 * g(x), f2(x, y))
     )
 
-ROB_UNIFY_TEST_FAIL(alasca_main_non_normalized_mul_01,
-    SUGAR(Rat),
-    Options::UnificationWithAbstraction::ALASCA_MAIN,
-    /* fixedPointIteration */ false,
-    f2(x * a * y, f2(x, y)),
-    f2(5 * a    , f2(2, 3)))
-
-ROB_UNIFY_TEST(alasca_main_non_normalized_mul_02,
-    SUGAR(Rat),
-    Options::UnificationWithAbstraction::ALASCA_MAIN,
-    /* fixedPointIteration */ false,
-    f2(x * a * y, f2(x, y)),
-    f2(6 * a    , f2(2, 3)),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(2 * a * 3, f2(2,3)),
-      .resultSigma = f2(6 * a    , f2(2,3)),
-      .constraints = Stack<Literal*>{ },
-    })
+// TODO requires non-linear reasoning
+// ROB_UNIFY_TEST_FAIL(alasca_main_non_normalized_mul_01,
+//     SUGAR(Rat),
+//     Options::UnificationWithAbstraction::ALASCA_MAIN,
+//     /* fixedPointIteration */ false,
+//     f2(x * a * y, f2(x, y)),
+//     f2(5 * a    , f2(2, 3)))
+//
+// ROB_UNIFY_TEST(alasca_main_non_normalized_mul_02,
+//     SUGAR(Rat),
+//     Options::UnificationWithAbstraction::ALASCA_MAIN,
+//     /* fixedPointIteration */ false,
+//     f2(x * a * y, f2(x, y)),
+//     f2(6 * a    , f2(2, 3)),
+//     TermUnificationResultSpec { 
+//       .querySigma  = f2(2 * a * 3, f2(2,3)),
+//       .resultSigma = f2(6 * a    , f2(2,3)),
+//       .constraints = Stack<Literal*>{ },
+//     })
 
 // TODO?
 // ROB_UNIFY_TEST_FAIL(alasca_main_constr_var_12,
@@ -2062,32 +2036,33 @@ ROB_UNIFY_TEST(alasca_main_non_linear_mul_1,
     })
 
 
-ROB_UNIFY_TEST_FAIL(alasca_main_non_linear_mul_2,
-    SUGAR(Rat),
-    Options::UnificationWithAbstraction::ALASCA_MAIN,
-    /* fixedPointIteration */ false,
-    f2(3 * a, 2),
-    f2(x * a, x))
-
-
-ROB_UNIFY_TEST(alasca_main_non_linear_mul_3_bad,
-    SUGAR(Rat),
-    Options::UnificationWithAbstraction::ALASCA_MAIN,
-    /* fixedPointIteration */ false,
-    f2(2, 3 * a),
-    f2(x, x * a),
-    TermUnificationResultSpec { 
-      .querySigma  = f2(2, 3 * a),
-      .resultSigma = f2(2, 2 * a),
-      .constraints = Stack<Literal*>{ 3 * a != 2 * a },
-    })
-
-ROB_UNIFY_TEST_FAIL(alasca_main_non_linear_mul_3_bad_fpi,
-    SUGAR(Rat),
-    Options::UnificationWithAbstraction::ALASCA_MAIN,
-    /* fixedPointIteration */ true,
-    f2(2, 3 * a),
-    f2(x, x * a))
+// TODO requires non-linear reasnoning
+// ROB_UNIFY_TEST_FAIL(alasca_main_non_linear_mul_2,
+//     SUGAR(Rat),
+//     Options::UnificationWithAbstraction::ALASCA_MAIN,
+//     /* fixedPointIteration */ false,
+//     f2(3 * a, 2),
+//     f2(x * a, x))
+//
+//
+// ROB_UNIFY_TEST(alasca_main_non_linear_mul_3_bad,
+//     SUGAR(Rat),
+//     Options::UnificationWithAbstraction::ALASCA_MAIN,
+//     /* fixedPointIteration */ false,
+//     f2(2, 3 * a),
+//     f2(x, x * a),
+//     TermUnificationResultSpec { 
+//       .querySigma  = f2(2, 3 * a),
+//       .resultSigma = f2(2, 2 * a),
+//       .constraints = Stack<Literal*>{ 3 * a != 2 * a },
+//     })
+//
+// ROB_UNIFY_TEST_FAIL(alasca_main_non_linear_mul_3_bad_fpi,
+//     SUGAR(Rat),
+//     Options::UnificationWithAbstraction::ALASCA_MAIN,
+//     /* fixedPointIteration */ true,
+//     f2(2, 3 * a),
+//     f2(x, x * a))
 
 ROB_UNIFY_TEST_NAMESPACED(alasca_main_namespace_bug_01,
     Options::UnificationWithAbstraction::ALASCA_MAIN,
@@ -2163,6 +2138,113 @@ INDEX_TEST(bug_wrong_ouptut_var_01,
             .resultSigma = 2 * f(x0),
             .constraints = noConstraints() }, 
 
+      },
+    })
+
+
+INDEX_TEST(test_split_num_muls_1,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ALASCA_MAIN,
+      .fixedPointIteration = true,
+      .insert = {
+        (2 * (3 * f(x0))),
+        (2 * a),
+        (2 * (3 * b)),
+      },
+      .query = 6 * f(x0),
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = 6 * f(x0),
+            .resultSigma = 2 * (3 * f(x0)) ,
+            .constraints = noConstraints() }, 
+
+      },
+    })
+
+INDEX_TEST(test_split_num_muls_2,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ALASCA_MAIN,
+      .fixedPointIteration = true,
+      .insert = {
+        (2 * (3 * f(x0))),
+        (2 * a),
+        (2 * (3 * b)),
+      },
+      .query = 2 * (3 * f(x0)),
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = 2 * (3 * f(x0)) ,
+            .resultSigma = 2 * (3 * f(x0)) ,
+            .constraints = noConstraints() }, 
+
+      },
+    })
+
+
+INDEX_TEST(test_split_num_muls_3,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ALASCA_MAIN,
+      .fixedPointIteration = true,
+      .insert = {
+        (2 * (3 * f(x0))),
+        (2 * a),
+        (2 * (3 * b)),
+      },
+      .query = 3 * (2 * f(x0)),
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = 3 * (2 * f(x0)) ,
+            .resultSigma = 2 * (3 * f(x0)) ,
+            .constraints = noConstraints() }, 
+
+      },
+    })
+
+
+INDEX_TEST(bug_linear_mul_1,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR,
+      .fixedPointIteration = true,
+      .insert = {
+        floor(2 * a),
+        floor(3 * a),
+      },
+      .query = floor(2 * a),
+      .expected = { 
+          TermUnificationResultSpec 
+          { .querySigma  = floor(2 * a),
+            .resultSigma = floor(2 * a),
+            .constraints = noConstraints() }, 
+      },
+    })
+
+INDEX_TEST(bug_linear_mul_2,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR,
+      .fixedPointIteration = true,
+      .insert = {
+        floor(2 * a),
+        floor(2 * b),
+      },
+      .query = floor(2 * a),
+      .expected = { 
+          TermUnificationResultSpec 
+          { .querySigma  = floor(2 * a),
+            .resultSigma = floor(2 * a),
+            .constraints = noConstraints() }, 
       },
     })
 

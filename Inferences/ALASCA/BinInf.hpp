@@ -116,39 +116,39 @@ public:
 
     using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
 
-    DEBUG(1, _rule.name())
+    DEBUG(0, _rule.name())
     for (auto const& lhs : Lhs::iter(*_shared, premise)) {
-      DEBUG(1, "lhs: ", lhs, " (", lhs.clause()->number(), ")")
+      DEBUG(0, "lhs: ", lhs, " (", lhs.clause()->number(), ")")
       for (auto rhs_sigma : _rhs->template find<VarBanks>(&sigma, lhs.key())) {
         auto& rhs   = *rhs_sigma.data;
-        DEBUG(1, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
-        DEBUG(1, "  sigma: ", sigma)
+        DEBUG(0, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
+        DEBUG(0, "  sigma: ", sigma)
         for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma))) {
-          DEBUG(1, "    result: ", *res)
+          DEBUG(0, "    result: ", *res)
           out.push(res);
         }
-        DEBUG(1, "")
+        DEBUG(0, "")
       }
     }
 
     ASS_REP(sigma.isEmpty(), sigma)
 
     for (auto const& rhs : Rhs::iter(*_shared, premise)) {
-      DEBUG(1, "rhs: ", rhs, " (", rhs.clause()->number(), ")")
+      DEBUG(0, "rhs: ", rhs, " (", rhs.clause()->number(), ")")
       for (auto lhs_sigma : _lhs->template find<VarBanks>(&sigma, rhs.key())) {
         auto& lhs   = *lhs_sigma.data;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-          DEBUG(1, "  lhs: ", lhs, " (", lhs.clause()->number(), ")")
-          DEBUG(1, "  sigma: ", sigma)
+          DEBUG(0, "  lhs: ", lhs, " (", lhs.clause()->number(), ")")
+          DEBUG(0, "  sigma: ", sigma)
           for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::internal, rhs, VarBanks::query, sigma))) {
-            DEBUG(1, "    result: ", *res)
+            DEBUG(0, "    result: ", *res)
             out.push(res);
           }
-          DEBUG(1, "")
+          DEBUG(0, "")
         }
       }
     }
-    DEBUG(1, "")
+    DEBUG(0, "")
     return pvi(arrayIter(std::move(out)));
   }
 
@@ -247,21 +247,21 @@ public:
     auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
 
     for (auto const& prem0 : Premise0::iter(*_shared, premise)) {
-      DEBUG(1, "prem0: ", prem0)
+      DEBUG(0, "prem0: ", prem0)
       for (auto prem1_sigma : _prem1->template find<QueryBank<0, 1>>(&sigma, prem0.key())) {
         auto& prem1   = *prem1_sigma.data;
-        DEBUG(1, "  prem1: ", prem1)
+        DEBUG(0, "  prem1: ", prem1)
         for (auto prem2_sigma : _prem2->template find<QueryBank<0, 2>>(&sigma, prem0.key())) {
           auto& prem2   = *prem2_sigma.data;
-          DEBUG(1, "    prem2: ", prem2)
+          DEBUG(0, "    prem2: ", prem2)
           for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
                                                         prem1, bank(1), 
                                                         prem2, bank(2), sigma))) {
-            DEBUG(1, "      result: ", *res)
+            DEBUG(0, "      result: ", *res)
             out.push(res);
           }
         }
-        DEBUG(1, "")
+        DEBUG(0, "")
       }
     }
 
@@ -269,21 +269,21 @@ public:
     ASS(sigma.isEmpty())
 
     for (auto const& prem1 : Premise1::iter(*_shared, premise)) {
-      DEBUG(1, "prem1: ", prem1)
+      DEBUG(0, "prem1: ", prem1)
       for (auto prem0_sigma : _prem0->template find<QueryBank<1, 0>>(&sigma, prem1.key())) {
         auto& prem0   = *prem0_sigma.data;
         if (prem0.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-          DEBUG(1, "  prem0: ", prem0)
+          DEBUG(0, "  prem0: ", prem0)
           for (auto prem2_sigma : _prem2->template find<QueryBank<0, 2>>(&sigma, prem0.key())) {
             auto& prem2   = *prem2_sigma.data;
-            DEBUG(1, "    prem2: ", prem2)
+            DEBUG(0, "    prem2: ", prem2)
             for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
                                                           prem1, bank(1), 
                                                           prem2, bank(2), sigma))) {
-              DEBUG(1, "      result: ", *res)
+              DEBUG(0, "      result: ", *res)
               out.push(res);
             }
-            DEBUG(1, "")
+            DEBUG(0, "")
           }
         }
       }
@@ -291,21 +291,21 @@ public:
     ASS(sigma.isEmpty())
 
     for (auto const& prem2 : Premise2::iter(*_shared, premise)) {
-      DEBUG(1, "prem2: ", prem2)
+      DEBUG(0, "prem2: ", prem2)
       for (auto prem0_sigma : _prem0->template find<QueryBank<2, 0>>(&sigma, prem2.key())) {
         auto& prem0   = *prem0_sigma.data;
         // if (prem0.clause() != premise && prem2.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-          DEBUG(1, "  prem0: ", prem0)
+          DEBUG(0, "  prem0: ", prem0)
           for (auto prem1_sigma : _prem1->template find<QueryBank<0, 1>>(&sigma, prem0.key())) {
             auto& prem1   = *prem1_sigma.data;
-            DEBUG(1, "    prem1: ", prem1)
+            DEBUG(0, "    prem1: ", prem1)
             for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
                                                           prem1, bank(1), 
                                                           prem2, bank(2), sigma))) {
-              DEBUG(1, "      result: ", *res)
+              DEBUG(0, "      result: ", *res)
               out.push(res);
             }
-            DEBUG(1, "")
+            DEBUG(0, "")
           }
         // }
       }

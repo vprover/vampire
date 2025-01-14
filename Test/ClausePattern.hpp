@@ -37,14 +37,27 @@ struct AnyOf
 class ClausePattern : Coproduct<Kernel::Clause*, AnyOf>
 {
   using Copro =  Coproduct<Kernel::Clause*, AnyOf>;
+  ClausePattern(Copro c) 
+    : Copro(std::move(c)) {}
+
 public:
   ClausePattern(Kernel::Clause* clause) 
-    : Copro(clause) {}
+    : ClausePattern(Copro(clause)) {}
 
-  ClausePattern(ClausePattern l, ClausePattern r) : Copro(AnyOf {
+  ClausePattern(AnyOf anyOf) : ClausePattern(Copro(std::move(anyOf))) {}
+
+  ClausePattern(ClausePattern l, ClausePattern r) : ClausePattern(AnyOf {
         std::make_unique<ClausePattern>(std::move(l)),
         std::make_unique<ClausePattern>(std::move(r))
       }) {}
+
+  template<class F> 
+  ClausePattern mapClauses(F fun) const {
+    return match(
+        [&](Kernel::Clause* c) { return ClausePattern(fun(c)); },
+        [&](AnyOf any) { return ClausePattern(any.lhs->mapClauses(fun), any.rhs->mapClauses(fun)); }
+        );
+  }
 
   template<class EqualityOperator>
   bool matches(EqualityOperator& equality, Kernel::Clause* result);

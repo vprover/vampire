@@ -15,6 +15,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Kernel/ALASCA.hpp"
+#include "Test/AlascaSimplRule.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/QKbo.hpp"
@@ -584,6 +585,7 @@ TEST_FUN(atoms_comparison_two_sorts) {
 TEST_FUN(normal_form01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
+  mkAlascaSyntaxSugar(RealTraits{});
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
   // DECL_CONST(c, Real)
@@ -707,6 +709,19 @@ TEST_FUN(bug01) {
   check(ord, f(f(a)) - f(f(a)) > 0, Incomp , f(  x ) > 0);
 #endif // !ENABLE_ZERO_REMOVAL
 }
+
+TEST_FUN(bug02) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Rat)
+  mkAlascaSyntaxSugar(RatTraits{});
+  DECL_CONST(a, Rat)
+  DECL_FUNC (g, {Rat, Rat}, Rat)
+  auto& ord = qkbo();
+
+  check(ord, g(a,a), Incomp , frac(-1,2) * g(x,y));
+}
+
 
 TEST_FUN(numerals) {
 

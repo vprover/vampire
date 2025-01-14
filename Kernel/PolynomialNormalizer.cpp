@@ -11,7 +11,7 @@
 #include "PolynomialNormalizer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 namespace Kernel {
 
@@ -294,6 +294,21 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts, bool& 
 
   } else {
     auto term = t.term();
+    auto res = NumTraits::ifLinMul(term, [&](auto& n, auto t) -> NormalizationResult {
+        auto& inner = ts[0];
+        ASS(inner.is<Polynom>() || inner.is<PreMonom>()) 
+        if (inner.is<Polynom>()) {
+          return NormalizationResult(
+              PreMonom(n, {RenderPolyNf{}(std::move(*inner.template as<Polynom>()))}));
+        } else {
+          if (inner.as<PreMonom>()->numeral != 1 && n != 1) {
+            simplified = true;
+          }
+          inner.as<PreMonom>()->numeral *= n;
+          return std::move(inner);
+        }
+    });
+    if (res) return std::move(*res);
     if (auto n = NumTraits::tryNumeral(term)) {
       return wrapNumeral(*n);
     }

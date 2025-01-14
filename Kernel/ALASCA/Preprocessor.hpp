@@ -139,6 +139,7 @@ class AlascaPreprocessor
       if (Z::isMul(f)) return R::mulF();
       if (Z::isMinus(f)) return R::minusF();
       ASS(!R::isToInt(f))
+      if (auto n = Z::tryLinMul(f)) return R::linMulF(typename R::ConstantType(*n));
       if (auto n = Z::tryNumeral(f)) return R::numeralF(typename R::ConstantType(*n));
       // TODO 
 #define ASS_NOT(itp) ASS(!theory->isInterpretedFunction(f, itp))
@@ -186,7 +187,14 @@ class AlascaPreprocessor
 
   Clause* integerConversion(Clause* clause)
   {
-    auto notInt = [](auto t) { return R::eq(false, t, R::floor(t)); };
+    auto notInt = [&](auto t) -> Option<Literal*> { 
+      if (auto q = R::tryNumeral(t)) {
+        if (q->isInt()) {
+          return {};
+        }
+      }
+      return some(R::eq(false, t, R::floor(t))); 
+    };
     auto change = false;
     Recycled<Stack<Literal*>> res;
     for (auto l : clause->iterLits()) {
@@ -195,12 +203,13 @@ class AlascaPreprocessor
       if (!_useFloor) {
         if (l->isEquality() && l->eqArgSort() == Z::sort()) {
           ASS(ll->isEquality() && ll->eqArgSort() == R::sort() && change)
-          res->pushMany(notInt(ll->termArg(0)), notInt(ll->termArg(1)));
+          res->loadFromIterator(termArgIter(ll)
+              .filterMap([&](auto x) { return notInt(x); }));
         } else if (l->functor() != ll->functor() && theory->isInterpretedPredicate(ll->functor())) {
           ASS(ll->arity() == l->arity())
           res->loadFromIterator(range(0, l->numTermArguments())
               .filter([&](auto i) { return SortHelper::getTermArgSort(l, i) == Z::sort(); })
-              .map([&](auto i) { return notInt(ll->termArg(i)); }));
+              .filterMap([&](auto i) { return notInt(ll->termArg(i)); }));
         }
       }
       res->push(ll);
@@ -236,7 +245,10 @@ public:
     if (!_useFloor) {
       for (auto& func : iterTraits(_funcs.iter())) {
         auto orig_sym = env.signature->getFunction(func.key());
-        if (!theory->isInterpretedFunction(func.value()) && !R::isNumeral(func.value())) {
+        if (!theory->isInterpretedFunction(func.value()) 
+            && !R::isNumeral(func.value())
+            && !R::isLinMul(func.value())
+            ) {
           auto sym = env.signature->getFunction(func.value());
           if (orig_sym->fnType()->result() == Z::sort()) {
             auto t = TermList(Term::createFromIter(func.value(), range(0, sym->arity()).map([](auto x) { return TermList::var(x); })));

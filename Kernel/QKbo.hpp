@@ -129,6 +129,7 @@ public:
   // the signs are not used here, but only there since we reuse code from signedAtoms and don't want to copy the datastructure.
   Option<AtomsWithLvl> atomsWithLvl(Literal* literal) const
   {
+    using ASig = AlascaSignature<NumTraits>;
     ASS(AlascaState::interpretedPred(literal))
     TermList term;
     uint8_t level;
@@ -136,8 +137,9 @@ public:
     if (literal->isEquality() || f == NumTraits::geqF() || f == NumTraits::greaterF()) {
       auto mainIdx = literal->isEquality() && literal->termArg(0) == NumTraits::zero() ? 1 : 0;
 
-      term = NumTraits::zero() == literal->termArg(1 - mainIdx) ? literal->termArg(mainIdx)
-                                                                : NumTraits::add(literal->termArg(0), NumTraits::minus(literal->termArg(1)));
+      term = ASig::zero() == literal->termArg(1 - mainIdx) 
+           ? literal->termArg(mainIdx)
+           : NumTraits::add(literal->termArg(0), NumTraits::minus(literal->termArg(1)));
 
       level = literal->isEquality() 
         ? (literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL)

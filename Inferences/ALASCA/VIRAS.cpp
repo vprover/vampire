@@ -75,6 +75,7 @@ void traverseLiraVars(TermList self, F f) {
 
 SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
   DEBUG(0, *premise)
+    // TODO for rationals ?
   using NumTraits = RealTraits;
   auto viras = viras::viras(VampireVirasConfig{});
   Recycled<DHSet<unsigned>> shieldedVars;

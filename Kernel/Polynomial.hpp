@@ -32,6 +32,8 @@
 #include "Lib/Coproduct.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/Map.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
+#include "ALASCA/Signature.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Perfect.hpp"
 #include "Kernel/NumTraits.hpp"
@@ -82,6 +84,15 @@ class FuncId
   
   explicit FuncId(unsigned num, const TermList* typeArgs);
 public: 
+
+  template<class Numeral> 
+  static FuncId numeralConstant(Numeral const& num) 
+  { return FuncId(NumTraits<Numeral>::constantF(num), nullptr); }
+
+  template<class Numeral> 
+  static FuncId linMul(Numeral const& num) 
+  { return FuncId(NumTraits<Numeral>::linMulF(num), nullptr); }
+
   static FuncId fromInterpretation(Theory::Interpretation i)
   { return FuncId(env.signature->getInterpretingSymbol(i), nullptr); }
 
@@ -160,6 +171,7 @@ struct Monom
   Monom(Numeral numeral) : Monom(numeral, perfect(MonomFactors<Number>::one())) {}
   Monom(int num) : Monom(Numeral(num)) {}
   Monom(int n1, int n2) : Monom(Numeral(n1, n2)) {}
+  Monom(PolyNf);
   Monom(MonomFactors<Number> factors) : Monom(Numeral(1), perfect(std::move(factors))) {}
 
   static Monom zero();
@@ -1344,23 +1356,18 @@ template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
-    auto c = TermList(theory->representConstant(monom.numeral));
-    if (monom.factors->isOne()) {
-      return c;
-    } else {
       auto mon = monom.factors->denormalize(t);
-      if (monom.numeral == 1) {
+      if (monom.factors->nFactors() == 0) {
+        return AlascaSignature<Number>::numeralTl(monom.numeral);
+      } else if (monom.numeral == 1) {
         return mon;
-      } else if (monom.numeral == -1) {
-        return Number::minus(mon);
       } else {
-        return Number::mul(c, mon);
+        return Number::linMul(monom.numeral, mon);
       }
-    }
   };
 
   if (_summands.size() == 0) {
-    return Number::zero();
+    return AlascaSignature<Number>::numeralTl(Numeral(0));
   } else {
 
     auto flatSize = iterTraits(_summands.iterFifo())

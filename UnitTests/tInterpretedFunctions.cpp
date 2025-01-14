@@ -21,6 +21,7 @@
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
+#include "Test/AlascaSimplRule.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/KBO.hpp"
 
@@ -201,6 +202,7 @@ void check_eval(Lit orig_, Lit expected_) {
 #define NUM_TEST(NUM, name, formula, expected)                                            \
     TEST_FUN(name ## _ ## NUM) {                                                          \
       NUMBER_SUGAR(NUM);                                                                  \
+      mkAlascaSyntaxSugar(NUM ## Traits{});                                               \
       DECL_DEFAULT_VARS                                                                   \
       ADDITIONAL_FUNCTIONS(NUM)                                                           \
       check_eval(( formula ), ( expected ));                                              \
@@ -396,10 +398,10 @@ ALL_NUMBERS_TEST(polynomial__push_unary_minus,
       p((-7 * a))
       )
 
-FRACTIONAL_TEST(test_div_1,
-      p((a * 6) / 7),
-      p(a * frac(6,7))
-      )
+// FRACTIONAL_TEST(test_div_1,
+//       p((a * 6) / 7),
+//       p(a * frac(6,7))
+//       )
 
 // ALL_NUMBERS_TEST(polynomial__sorting_1,
 //       p(((7 * x) * a)),

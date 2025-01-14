@@ -10,7 +10,9 @@
 
 #ifndef __ALASCA_Normalization__
 #define __ALASCA_Normalization__
+
 #include "Kernel/Term.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Reflection.hpp"
@@ -18,52 +20,8 @@
 // TODO remove(?)
 #include "Inferences/PolynomialEvaluation.hpp"
 
-#define DEBUG_NORM(...) // DBG(__VA_ARGS__)
+#define DEBUG_NORM(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 namespace Kernel {
-
-  enum class AlascaPredicate {
-    EQ,
-    NEQ,
-    GREATER,
-    GREATER_EQ,
-  };
-
-  /** returns true iff the predicate is > or >= */
-  inline bool isInequality(AlascaPredicate const& self) 
-  {
-    switch(self) {
-      case AlascaPredicate::EQ: 
-      case AlascaPredicate::NEQ: return false;
-      case AlascaPredicate::GREATER: 
-      case AlascaPredicate::GREATER_EQ: return true;
-    }
-    ASSERTION_VIOLATION
-  }
-
-  template<class NumTraits>
-  Literal* createLiteral(AlascaPredicate self, TermList t)
-  {
-    switch(self) {
-      case AlascaPredicate::EQ: return NumTraits::eq(true, t, NumTraits::zero());
-      case AlascaPredicate::NEQ: return NumTraits::eq(false, t, NumTraits::zero());
-      case AlascaPredicate::GREATER: return NumTraits::greater(true, t, NumTraits::zero());
-      case AlascaPredicate::GREATER_EQ: return NumTraits::geq(true, t, NumTraits::zero());
-    }
-    ASSERTION_VIOLATION
-  }
-  bool isIsInt(AlascaPredicate const& self);
-
-  inline std::ostream& operator<<(std::ostream& out, AlascaPredicate const& self)
-  { 
-    switch(self) {
-      case AlascaPredicate::EQ: return out << "==";
-      case AlascaPredicate::NEQ: return out << "!=";
-      case AlascaPredicate::GREATER: return out << ">";
-      case AlascaPredicate::GREATER_EQ: return out << ">=";
-    } 
-    ASSERTION_VIOLATION
-  }
-
   /** 
    * Represents an inequality literal normalized for the rule FourierMotzkin.
    * this means it is a literal of the form
@@ -120,16 +78,7 @@ namespace Kernel {
     }
 
     Literal* denormalize() const
-    {
-      auto l = term().denormalize();
-      switch(symbol()) {
-        case AlascaPredicate::EQ:  return NumTraits::eq(true, l, NumTraits::zero());
-        case AlascaPredicate::NEQ: return NumTraits::eq(false, l, NumTraits::zero());
-        case AlascaPredicate::GREATER: return NumTraits::greater(true, l, NumTraits::zero());
-        case AlascaPredicate::GREATER_EQ: return NumTraits::geq(true, l, NumTraits::zero());
-      }
-      ASSERTION_VIOLATION
-    }
+    { return createLiteral<NumTraits>(symbol(), term().denormalize()) ; }
 
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
@@ -278,7 +227,8 @@ namespace Kernel {
     template<class NumTraits> 
     Option<AlascaLiteral<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
     {
-      DEBUG_NORM("in: ", *lit, " (", NumTraits::name(), ")")
+      DEBUG_NORM(0, "in: ", *lit, " (", NumTraits::name(), ")")
+      using ASig = AlascaSignature<NumTraits>;
 
       auto impl = [&]() -> Option<AlascaLiteral<NumTraits>> {
 
@@ -295,9 +245,9 @@ namespace Kernel {
         switch(itp) {
          
           case Interpretation::EQUAL:/* l == r or l != r */
-            if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
+            if (SortHelper::getEqualityArgumentSort(lit) != ASig::sort()) 
               return {};
-            if (*lit->nthArgument(0) == NumTraits::zero()) {
+            if (ASig::isZero(*lit->nthArgument(0))) {
               l = *lit->nthArgument(0);
               r = *lit->nthArgument(1);
             } else {
@@ -343,18 +293,18 @@ namespace Kernel {
 
         if (isInt && pred == AlascaPredicate::GREATER_EQ) {
           /* l <= r ==> l < r + 1 */
-          r = NumTraits::add(r, NumTraits::one());
+          r = ASig::add(r, ASig::one());
           pred = AlascaPredicate::GREATER;
         }
 
         /* l < r ==> r > l ==> r - l > 0 */
-        auto t = l == NumTraits::zero() ? r 
-               : r == NumTraits::zero() ? NumTraits::minus(l)
-               : NumTraits::add(r, NumTraits::minus(l));
+        auto t = l == ASig::zero() ? r 
+               : r == ASig::zero() ? ASig::minus(l)
+               : ASig::add(r, ASig::minus(l));
 
         ASS(!isInt || pred != AlascaPredicate::GREATER_EQ)
 
-        auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, NumTraits::sort())).wrapPoly<NumTraits>());
+        auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, ASig::sort())).wrapPoly<NumTraits>());
         switch(pred) {
           case AlascaPredicate::EQ:
           case AlascaPredicate::NEQ:
@@ -373,7 +323,7 @@ namespace Kernel {
         return some(AlascaLiteral<NumTraits>(factorsNormalized, pred));
       };
       auto out = impl();
-      DEBUG_NORM("out: ", out);
+      DEBUG_NORM(0, "out: ", out);
       return out;
     }
     template<class NumTraits> 
@@ -399,7 +349,7 @@ namespace Kernel {
             .map([](auto lit) { return lit.denormalize(); });
         }); 
       auto out = interpreted.isSome() ? *interpreted : normalizeUninterpreted(lit);
-      DEBUG_NORM(*lit, " ==> ", *out)
+      DEBUG_NORM(0, *lit, " ==> ", *out)
       return out;
     }
 
@@ -436,22 +386,14 @@ namespace Kernel {
   private: 
     Literal* normalizeUninterpreted(Literal* lit) const
     {
+      // TODO RStack
       Stack<TermList> args(lit->arity());
       args.loadFromIterator(typeArgIter(lit));
       for (auto orig : termArgIter(lit)) {
-        if (orig.isVar()) {
-          args.push(orig);
-        } else {
-          auto norm = PolyNf::normalize(TypedTermList(orig.term()));
-          auto eval = _eval
-            .evaluate(norm)
-            .map([](auto t) { return t.denormalize(); }) 
-            || norm.denormalize();  // <- nothing was done during evaluation
-          args.push(eval);
-        }
+        args.push(normalize(orig).denormalize());
       }
       auto out = Literal::create(lit, args.begin());
-      DEBUG_NORM(*lit, " ==> ", *out)
+      DEBUG_NORM(0, *lit, " ==> ", *out)
       return out;
     }
   };

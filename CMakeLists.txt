@@ -313,6 +313,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SKIKBO.cpp
     Kernel/ALASCA.hpp
     Kernel/ALASCA/Signature.hpp
+    Kernel/ALASCA/Signature.cpp
     Kernel/ALASCA/SelectionPrimitves.hpp
     Kernel/ALASCA/SelectionPrimitves.cpp
     Kernel/ALASCA/Normalization.cpp
@@ -869,6 +870,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_compile_definitions(VDEBUG=1)
+elseif(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
+  add_compile_definitions(VDEBUG=0)
+  add_compile_definitions(NDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
   add_compile_definitions(NDEBUG)
@@ -888,8 +892,9 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
 # gmp stuff
 ################################################################
 
-find_package(GMP)
-if (GMP_FOUND)
+option(MINI_GMP "compile an own version of mini-gmp instead of linking with system level gmp" OFF)
+if (NOT MINI_GMP)
+  find_package(GMP REQUIRED)
   message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
   add_compile_definitions(VMINI_GMP=0)
   include_directories(${GMP_INCLUDE_DIRS})

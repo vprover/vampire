@@ -134,7 +134,7 @@ struct SuperpositionConf
                ;
            }
         })
-      .inspect([](auto& x) { ASS(x.literal()->containsSubterm(x.toRewrite())); })
+      .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite()), Output::cat(x, "\n", *x.literal(), "\n", x.toRewrite())); })
       ;
     }
       

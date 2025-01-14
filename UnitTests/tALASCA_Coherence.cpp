@@ -65,15 +65,7 @@ inline Stack<std::function<Indexing::Index*()>> alascaCoherenceIndices()
     [](){ return new AlascaIndex<CoherenceConf<RealTraits>::Rhs>();},
   }; }
 
-inline auto testCoherence(Options::UnificationWithAbstraction uwa)
-{ 
-  auto s = testAlascaState(uwa);
-  return AlascaSimplRule<Coherence<RealTraits>>(Coherence<RealTraits>(s), Normalization(s));
-}
-
-
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<Coherence<RealTraits>>(testCoherence(UWA_MODE)))
+REGISTER_GEN_TESTER(AlascaGenerationTester<Coherence<RealTraits>>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -393,6 +385,7 @@ TEST_GENERATION(vars_10,
       ))
     )
 
+  // TODO coherence needs to be applied for numerals as well but this can be done in normalization!!
 TEST_GENERATION(numeral_0,
     Generation::SymmetricTest()
       .indices(alascaCoherenceIndices())

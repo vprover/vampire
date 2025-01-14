@@ -61,10 +61,10 @@ namespace Kernel {
       return globalState;
     }
 
-    bool isAtomic(Term* t) { return !interpretedFunction(t) || 
-      forAnyNumTraits([&](auto n) { return n.isFloor(t->functor()); }); }
-    bool isAtomic(TermList t) { return t.isTerm() && isAtomic(t.term()); }
+    bool isAtomic(Term* t) const
+    { return forAllNumTraits([&](auto n) { return asig(n).isAtomic(t); }); }
 
+    bool isAtomic(TermList t) const { return t.isTerm() && isAtomic(t.term()); }
 
     auto maxLits(Clause* cl, SelectionCriterion sel) {
       return OrderingUtils::maxElems(
@@ -93,6 +93,7 @@ namespace Kernel {
     template<class NumTraits>
     auto maxSummandIndices(AlascaLiteral<NumTraits> const& lit, SelectionCriterion selection)
     {
+        // TODO optimize less denormalization
         auto monomAt = [=](auto i) 
              { return lit.term().summandAt(i).factors->denormalize(); }; 
 
@@ -102,7 +103,10 @@ namespace Kernel {
                   { return ordering->compare(monomAt(l), monomAt(r)); },
                   [=](unsigned i)
                   { return monomAt(i); },
-                  selection));
+                  selection))
+                 .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !lit.term().summandAt(i).isNumeral()
+                                            : selection == SelectionCriterion::NOT_LESS ? !lit.term().summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
+                                            : true; });
     }
 
 

@@ -62,15 +62,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
-inline auto testCoherenceNormalization(Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN)
-{ 
-  auto s = testAlascaState(uwa);
-  return alascaSimplRule(CoherenceNormalization<RealTraits>(s), Normalization(s));
-}
-
-
-
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<AlascaSimplRule<CoherenceNormalization<RealTraits>>>(testCoherenceNormalization()))
+REGISTER_GEN_TESTER(AlascaGenerationTester<CoherenceNormalization<RealTraits>>())
 
 /////////////////////////////////////////////////////////
 // Basic tests

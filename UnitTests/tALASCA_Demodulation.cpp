@@ -23,6 +23,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
 #include "Test/FwdBwdSimplificationTester.hpp"
+#include "Test/AlascaSimplRule.hpp"
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -52,7 +53,7 @@ using namespace Inferences::ALASCA;
   DECL_PRED(p0, {})                                                                                 \
   DECL_PRED(r, {Num,Num})                                                                           \
 
-#define MY_SYNTAX_SUGAR SUGAR(Rat)
+#define MY_SYNTAX_SUGAR SUGAR(Rat) mkAlascaSyntaxSugar(Rat ## Traits{});
 
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 

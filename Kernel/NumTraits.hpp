@@ -229,7 +229,7 @@ struct NumTraits;
     static bool isEq(bool positive, Literal* lit)                                         \
     { return (lit->isPositive() == positive)                                              \
           && lit->isEquality()                                                            \
-          && (lit->eqArgSort() == sort());  }                                               \
+          && (lit->eqArgSort() == sort());  }                                             \
                                                                                           \
     static bool isPosEq(Literal* lit) { return isEq(true , lit); }                        \
     static bool isNegEq(Literal* lit) { return isEq(false, lit); }                        \
@@ -260,11 +260,12 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , Mul  , SHORT, _MULTIPLY   , 2)                \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(floor, Floor, SHORT, _FLOOR, 1)                      \
     __NUM_TRAITS_IF_FRAC(SHORT,                                                           \
-        IMPL_NUM_TRAITS__INTERPRETED_FUN(div, Div, SHORT, _QUOTIENT, 2)                   \
-        static ConstantType constant(int num, int den) { return ConstantType(num, den); } \
-        static Term* constantT(int num, int den) { return theory->representConstant(constant(num, den)); }    \
-        static TermList constantTl(int num, int den) { return TermList(constantT(num, den)); }      \
-        static bool isFractional() { return true; }                                       \
+      IMPL_NUM_TRAITS__INTERPRETED_FUN(div, Div, SHORT, _QUOTIENT, 2)                     \
+      static ConstantType constant(int num, int den) { return ConstantType(num, den); }   \
+      static auto constantT (int num, int den) { return constantT (constant(num, den)); } \
+      static auto constantF (int num, int den) { return constantF (constant(num, den)); } \
+      static auto constantTl(int num, int den) { return constantTl(constant(num, den)); } \
+      static bool isFractional() { return true; }                                         \
     )                                                                                     \
                                                                                           \
     __NUM_TRAITS_IF_NOT_FRAC(SHORT,                                                       \
@@ -275,28 +276,72 @@ struct NumTraits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , One , 1)                                      \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, Zero, 0)                                      \
                                                                                           \
+    template<class T>                                                                     \
+    static Option<ConstantType const&> tryLinMul(T t)                                     \
+    { return ifLinMul(t, [](auto& c, auto t) -> auto& { return c; }); }                   \
+                                                                                          \
+    static Option<ConstantType const&> tryLinMul(unsigned f)                              \
+    { return env.signature->tryLinMul<ConstantType>(f); }                                 \
+                                                                                          \
+    static unsigned linMulF(ConstantType const& c)                                        \
+    { return env.signature->addLinMul(c); }                                               \
+                                                                                          \
+    static bool isLinMul(unsigned t)                                                      \
+    { return tryLinMul(t).isSome(); }                                                     \
+                                                                                          \
+    template<class T>                                                                     \
+    static bool isLinMul(T t)                                                             \
+    { return ifLinMul(t, [](auto...) { return true; }); }                                 \
+                                                                                          \
+    template<class F>                                                                     \
+    static auto ifLinMul(TermList t, F func)                                              \
+    { return someIf(t.isTerm(), [&]() { return ifLinMul(t.term(), std::move(func)); })    \
+               .flatten(); }                                                              \
+                                                                                          \
+    template<class F>                                                                     \
+    static auto ifLinMul(Term const* t, F func)                                           \
+    {                                                                                     \
+      auto c = tryLinMul(t->functor());                                                   \
+      return someIf(c.isSome(), [&]() { return func(*c, t->termArg(0)); });               \
+    }                                                                                     \
+                                                                                          \
+    static TermList linMul(ConstantType const& c, TermList t)                             \
+    { return TermList(Term::create(linMulF(c), {t})); }                                   \
                                                                                           \
     static ConstantType constant(int i) { return ConstantType(i); }                       \
-    static Term* constantT(int i) { return constantT(constant(i)); }                      \
-    static Term* constantT(ConstantType i) { return theory->representConstant(i); }       \
-    static TermList constantTl(int i) { return TermList(constantT(i)); }                  \
-    static TermList constantTl(ConstantType i) { return TermList(constantT(i)); }         \
-    template<class TermOrFunctor>                                                         \
-    static Option<ConstantType> tryNumeral(TermOrFunctor t) {                             \
-      ConstantType out;                                                                   \
-      if (theory->tryInterpretConstant(t,out)) {                                          \
-        return Option<ConstantType>(out);                                                 \
-      } else {                                                                            \
-        return Option<ConstantType>();                                                    \
+    static auto constantF (int i) { return constantF (constant(i)); }                     \
+    static auto constantT (int i) { return constantT (constant(i)); }                     \
+    static auto constantTl(int i) { return constantTl(constant(i)); }                     \
+                                                                                          \
+    static unsigned constantF(ConstantType const& i)                                      \
+    { return env.signature->addNumeralConstant(i); }                                      \
+                                                                                          \
+    static Term*    constantT(ConstantType const& i) { return Term::create(constantF(i), {}); }  \
+    static TermList constantTl(ConstantType const& i) { return TermList(constantT(i)); }  \
+    static Option<ConstantType const&> tryNumeral(unsigned functor)                       \
+    {                                                                                     \
+      Signature::Symbol* sym = env.signature->getFunction(functor);                       \
+      if (!sym->numeralConstant<ConstantType>()) {                                        \
+        return {};                                                                        \
       }                                                                                   \
+      return Option<ConstantType const&>(sym->numeralValue<ConstantType>());              \
     }                                                                                     \
+                                                                                          \
+    static Option<ConstantType const&> tryNumeral(Term* t)                                \
+    { return tryNumeral(t->functor()); }                                                  \
+                                                                                          \
+    static Option<ConstantType const&> tryNumeral(TermList t) {                           \
+      if (t.isTerm()) return tryNumeral(t.term());                                        \
+      else            return {};                                                          \
+    }                                                                                     \
+                                                                                          \
     template<class TermOrFunctor>                                                         \
     static bool isNumeral(TermOrFunctor t) { return tryNumeral(t).isSome(); }             \
     template<class TermOrFunctor>                                                         \
     static bool isNumeral(TermOrFunctor t, ConstantType n) { return tryNumeral(t) == some(n); }     \
     template<class Term, class F>                                                         \
-    static auto ifNumeral(Term t, F fun) -> Option<std::invoke_result_t<F, ConstantType&&>> \
-    { return tryNumeral(t).map([&](ConstantType n) { return fun(std::move(n)); }); }      \
+    static auto ifNumeral(Term t, F fun) -> Option<std::invoke_result_t<F, ConstantType const&>> \
+    { return tryNumeral(t).map([&](ConstantType const& n) { return fun(n); }); }      \
     static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }          \
                                                                                           \
     static const char* name() {return #CamelCase;}                                        \
@@ -324,7 +369,6 @@ IMPL_NUM_TRAITS(Integer , int     , INTEGER , INT )
 using IntTraits  = NumTraits< IntegerConstantType>;
 using RatTraits  = NumTraits<RationalConstantType>;
 using RealTraits = NumTraits<    RealConstantType>;
-
 
 template<class Clsr>
 auto forAnyNumTraits(Clsr clsr) {

@@ -12,35 +12,18 @@
  * Implements class Normalization.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
 
 #include "Kernel/NumTraits.hpp"
-#include "Kernel/Theory.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/LiteralSelector.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Lib/TypeList.hpp"
 
 
-#include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Normalization.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
-#include "Kernel/ALASCA.hpp"
-#include "Indexing/TermIndexingStructure.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 
 #define DEBUG_NORMALIZE(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
@@ -58,8 +41,8 @@ using namespace Saturation;
 template<class NumTraits, class CheckSymbol, class Semantics>
 Option<bool> groundEval(Literal* l, CheckSymbol checkSymbol, Semantics semantics) {
   if (checkSymbol(l)) {
-    auto a0 = NumTraits::tryNumeral(l->termArg(0));
-    auto a1 = NumTraits::tryNumeral(l->termArg(1));
+    auto a0 = AlascaSignature<NumTraits>::tryNumeral(l->termArg(0));
+    auto a1 = AlascaSignature<NumTraits>::tryNumeral(l->termArg(1));
     if (a0.isSome() && a1.isSome()) {
       return some(semantics(*a0, *a1) == l->polarity());
     }
