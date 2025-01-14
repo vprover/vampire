@@ -16,6 +16,7 @@
 
 #include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/FormulaTransformer.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
 
 #define DEBUG_TRANSLATION(...) // DBG(__VA_ARGS__)
@@ -297,33 +298,37 @@ class QuotientEPreproc
     return out;
   }
 
+  TermList transformSubterm(TermList t) {
+    if (!t.isTerm()) return t;
+    if (t.term()->isSpecial()) return t;
+    auto &trm = *t.term();
+
+    auto ite = [](auto c, auto x, auto y) {
+      return TermList(Term::createITE(new AtomicFormula(c), x, y, Z::sort()));
+    };
+    auto transQuotientE = [&]() {
+      return ite(Z::greater(true, trm.termArg(1),  Z::constantTl(0)), Z::quotientF(trm.termArg(0), trm.termArg(1)),
+             ite(Z::less(true, trm.termArg(1), Z::constantTl(0)), Z::minus(Z::quotientF(Z::minus(trm.termArg(0)), trm.termArg(1))),
+              Z::quotientE(trm.termArg(0), Z::zero())
+      ));
+    };
+    if (Z::isQuotientE(t) && trm.termArg(1) != Z::zero()) {
+      _addedITE = true;
+      return transQuotientE();
+    } else if (Z::isRemainderE(t)) {
+      _addedITE = true;
+      // quot * arg[1] + rem = arg[0]
+      // rem = arg[0] - quot * arg[1]
+      return Z::add(trm.termArg(0), Z::minus(Z::mul(trm.termArg(1), transQuotientE())));
+    } else {
+      return t;
+    }
+  }
+
   TermList proc(TypedTermList t) 
   {
-    return BottomUpEvaluation<TypedTermList, TermList>()
-      .context(Lib::TermListContext{ .ignoreTypeArgs = true, })
-      .function([&](TypedTermList t, TermList* args) -> TermList {
-          auto ite = [](auto c, auto x, auto y) {
-            return TermList(Term::createITE(new AtomicFormula(c), x, y, Z::sort()));
-          };
-          auto transQuotientE = [&]() {
-            return ite(Z::greater(true, args[1],  Z::constantTl(0)), Z::quotientF(args[0], args[1]),
-                   ite(Z::less(true, args[1], Z::constantTl(0)), Z::minus(Z::quotientF(Z::minus(args[0]), args[1])),
-                    Z::quotientE(args[0], Z::zero())
-            ));
-          };
-          if (Z::isQuotientE(t) && args[1] != Z::zero()) {
-            _addedITE = true;
-            return transQuotientE();
-          } else if (Z::isRemainderE(t)) {
-            _addedITE = true;
-            // quot * arg[1] + rem = arg[0]
-            // rem = arg[0] - quot * arg[1]
-            return Z::add(args[0], Z::minus(Z::mul(args[1], transQuotientE())));
-          } else {
-            return t.isVar() ? t : TermList(Term::create(t.term(), args));
-          }
-      })
-      .apply(t);
+    auto trans = TermTrans(*this);
+    return t.isVar() ? t : TermList(trans.transform(t.term()));
   }
 
   Clause* proc(Clause* clause)
@@ -342,17 +347,18 @@ class QuotientEPreproc
     }
   }
 
-  struct FTrans : public FormulaTransformer {
+  struct TermTrans : public TermTransformer {
     QuotientEPreproc& _self;
-    FTrans(QuotientEPreproc& self) : _self(self) {}
-    virtual Formula* applyLiteral(Formula* f) override 
-    { return new AtomicFormula(_self.proc(static_cast<AtomicFormula*>(f)->getLiteral())); }
+    TermTrans(QuotientEPreproc& self) : _self(self) {}
+    virtual TermList transformSubterm(TermList t) override 
+    { return _self.transformSubterm(t); }
   };
 
   FormulaUnit* proc(FormulaUnit* unit) 
   { 
-    auto trans = FTrans(*this);
-    return FTFormulaUnitTransformer<FTrans>(INF_RULE, trans).transform(unit); 
+    auto trans = TermTrans(*this);
+    auto inf = Inference(FormulaTransformation(INF_RULE, unit));
+    return new FormulaUnit(TermTransformingFormulaTransformer(trans).transform(unit->formula()), inf); 
   }
   Unit* proc(Unit* unit) {
     return unit->isClause() 
