@@ -1406,10 +1406,8 @@ void TPTP::tff()
         resetToks();
         unsigned arity = getConstructorArity();
         bool added = false;
-        unsigned fun = arity == 0
-            ? addUninterpretedConstant(nm, added)
-            : env.signature->addFunction(nm, arity, added);
-        Signature::Symbol* symbol = env.signature->getFunction(fun);
+        unsigned fun = env.signature->addTypeCon(nm, arity, added);
+        Signature::Symbol* symbol = env.signature->getTypeCon(fun);
         OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
           if(symbol->fnType()!=ot){
