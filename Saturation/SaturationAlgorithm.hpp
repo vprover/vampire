@@ -103,6 +103,7 @@ public:
 
   ClauseIterator activeClauses();
 
+  ActiveClauseContainer* getActiveClauseContainer() { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
@@ -153,15 +154,13 @@ protected:
   virtual void onPassiveAdded(Clause* c);
   virtual void onPassiveRemoved(Clause* c);
   void onPassiveSelected(Clause* c);
-  void onUnprocessedAdded(Clause* c);
-  void onUnprocessedRemoved(Clause* c);
-  virtual void onUnprocessedSelected(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
   /** called before the selected clause is deleted from the searchspace */
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   virtual bool isComplete();
+  virtual void poppedFromUnprocessed(Clause* cl) {}; // mainly for LRS to inherit and update its estimates there
 
 private:
   void passiveRemovedHandler(Clause* cl);
@@ -180,7 +179,6 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
-
   bool _completeOptionSettings;
   bool _clauseActivationInProgress;
 
@@ -233,12 +231,14 @@ protected:
    */
   ScopedPtr<LiteralSelector> _sosLiteralSelector;
 
+  // start for the first activation, for the LRS estimate
+  long _lrsStartTime = 0;
+  long _lrsStartInstrs = 0;
 
   // counters
 
   /** Number of clauses that entered the unprocessed container */
   unsigned _generatedClauseCount;
-
   unsigned _activationLimit;
 private:
   static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering);

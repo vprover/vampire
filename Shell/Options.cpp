@@ -947,24 +947,11 @@ void Options::init()
 
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
-    "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "
-    "there will be w selected based on weight.";
+    "Ratio in which clauses are being selected for activation i.e. A:W means that for every A clauses selected based on age "
+    "there will be W selected based on weight. (At most one of A and W can be zero, which means that that queue won't be used at all.)";
     _lookup.insert(&_ageWeightRatio);
     _ageWeightRatio.tag(OptionTag::SATURATION);
     _ageWeightRatio.onlyUsefulWith2(ProperSaturationAlgorithm());
-
-    _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
-    _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
-    _ageWeightRatioShape.onlyUsefulWith(_ageWeightRatio.is(isNotDefaultRatio()));
-    _lookup.insert(&_ageWeightRatioShape);
-    _ageWeightRatioShape.tag(OptionTag::SATURATION);
-
-    _ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
-    _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
-    _ageWeightRatioShapeFrequency.onlyUsefulWith(_ageWeightRatioShape.is(notEqual(AgeWeightRatioShape::CONSTANT)));
-    _ageWeightRatioShapeFrequency.addHardConstraint(greaterThan(0u));
-    _lookup.insert(&_ageWeightRatioShapeFrequency);
-    _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
     _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
     _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
@@ -1139,6 +1126,13 @@ void Options::init()
     _lrsWeightLimitOnly.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
     _lookup.insert(&_lrsWeightLimitOnly);
     _lrsWeightLimitOnly.tag(OptionTag::LRS);
+
+    _lrsRetroactiveDeletes = BoolOptionValue("lrs_retroactive_deletes","lrd",false);
+    _lrsRetroactiveDeletes.description = "Not only deleted new clauses that exceed current estimated limits in passive,"
+    " but also visit active and passive and delete clauses that exceed the new limit or would only generate children exceeding the limit.";
+    _lrsRetroactiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _lookup.insert(&_lrsRetroactiveDeletes);
+    _lrsRetroactiveDeletes.tag(OptionTag::LRS);
 
     _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
