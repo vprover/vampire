@@ -418,10 +418,10 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result
   switch (r) {
     case Ordering::EQUAL: return eqBranch;
     case Ordering::GREATER: return gtBranch;
+    case Ordering::LESS: // no distinction between less and incomparable
     case Ordering::INCOMPARABLE: return ngeBranch;
-    case Ordering::LESS: break; // no distinction between less and incomparable
   }
-  ASSERTION_VIOLATION;
+  ASSERTION_VIOLATION_REP(r);
 }
 
 // Polynomial
