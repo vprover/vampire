@@ -1586,20 +1586,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
             auto ctor = findConstructor(trm);
             return ctor();
           }
-          // TODO do we really have overflownConstants ?? not in evaluation(s) at least
-          if (symb->overflownConstant()) {
-            // too large for native representation, but z3 should cope
-            auto s = symb->fnType()->result();
-            if (s == IntTraits::sort()) {
-              return _context->int_val(symb->name().c_str());
-            } else if (s == RatTraits::sort()) {
-              return _context->real_val(symb->name().c_str());
-            } else if (s == RealTraits::sort()) {
-              return _context->real_val(symb->name().c_str());
-            } else {
-              ; // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
-            }
-          }
 
           // If not value then create constant symbol
           return getConst(symb, getz3sort(range_sort));

@@ -39,6 +39,18 @@ TEST_FUN(to_string)
       "-1111111111111111111111111111111111111111111",
       "1111111189123097123890102111111111111111111",
       }) {
-    ASS_EQ(Output::toString(IntegerConstantType(str)), str);
+    ASS_EQ(Output::toString(IntegerConstantType::parse(str).unwrap()), str);
   }
+}
+
+TEST_FUN(parse_real)
+{
+  ASS_EQ(RealConstantType::parse("0.123E20"), 
+         RealConstantType::parse("12300000000000000000"));
+  ASS_EQ(RealConstantType::parse("0.123e20"), 
+         RealConstantType::parse("12300000000000000000"));
+  ASS_EQ(RealConstantType::parse("0.123E-8"), 
+         RealConstantType::parse("0.00000000123"));
+  ASS_EQ(RealConstantType::parse("0.123e-8"), 
+         RealConstantType::parse("0.00000000123"));
 }
