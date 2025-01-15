@@ -33,8 +33,7 @@ public:
   using Otter::Otter;
 
 protected:
-  //overrides SaturationAlgorithm::onUnprocessedSelected
-  void onUnprocessedSelected(Clause* c);
+  void poppedFromUnprocessed(Clause* c) override;
 
   bool shouldUpdateLimits();
 

@@ -39,10 +39,8 @@ using namespace Kernel;
 using namespace Shell;
 
 
-void LRS::onUnprocessedSelected(Clause* c)
+void LRS::poppedFromUnprocessed(Clause* c)
 {
-  SaturationAlgorithm::onUnprocessedSelected(c);
-
   if(shouldUpdateLimits()) {
     TIME_TRACE("LRS limit maintenance");
 
