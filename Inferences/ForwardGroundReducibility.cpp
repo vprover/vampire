@@ -71,13 +71,33 @@ void ForwardGroundReducibility::detach()
   ForwardGroundSimplificationEngine::detach();
 }
 
+namespace {
+  struct Result {
+    TermList lhs;
+    TermList rhs;
+    Clause* demodulator;
+    friend ostream& operator<<(ostream& str, const Result& r) { return str << r.lhs << " " << r.rhs << " " << *r.demodulator << endl; }
+  };
+  struct ResultHash {
+    static bool equals(const Result& r1, const Result& r2) { return r1.lhs==r2.lhs && r1.rhs==r2.rhs && r1.demodulator==r2.demodulator; }
+    static unsigned hash(const Result& r) {
+      return HashUtils::combine(
+        r.lhs.isVar() ? r.lhs.defaultHash() : r.lhs.term()->hash(),
+        r.rhs.isVar() ? r.rhs.defaultHash() : r.rhs.term()->hash(),
+        r.demodulator->number());
+    }
+  };
+}
+
 bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
 
   static DHSet<TermList> attempted;
 
-  DHSet<tuple<TermList,TermList,Clause*>> results;
+  // TODO investigate source of nondeterminism here
+
+  Set<Result, ResultHash> results;
 
   auto res = ClauseIterator::getEmpty();
   _comp = ordering.createComparator(/*onlyVars=*/true, /*ground=*/true);
@@ -102,6 +122,7 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
     }
   }
 
+  bool fail = false;
   bool clRedCheck = cl->length()==1 && (*cl)[0]->isPositive() && (*cl)[0]->isEquality();
 
   while (tpo) {
@@ -161,25 +182,45 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
         }
       }
     }
-    return false;
+    if (cl->store()==Clause::SELECTED) {
+      tpo = skip();
+      fail = true;
+    } else {
+      return false;
+    }
 LOOP_END:
     continue;
   }
 
-  DHSet<tuple<TermList,TermList,Clause*>>::Iterator rit(results);
-  while (rit.hasNext()) {
-    auto result = rit.next();
-    RStack<Literal*> resLits;
-    for(unsigned i=0;i<cl->length();i++) {
-      resLits->push(EqHelper::replace((*cl)[i],get<0>(result),get<1>(result)));
-    }
-
-    auto resCl = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_GROUND_REDUCIBILITY, cl, get<2>(result)));
-    res = pvi(concatIters(res,getSingletonIterator(resCl)));
-    premises = pvi(concatIters(premises,getSingletonIterator(get<2>(result)))); // this gives duplicates
+  if (fail && results.size()==0) {
+    return false;
   }
 
-  env.statistics->forwardGroundReducibility++;
+  Set<Result,ResultHash>::Iterator rit(results);
+  while (rit.hasNext()) {
+    auto [lhs,rhs,demodulator] = rit.next();
+    RStack<Literal*> resLits;
+    for(unsigned i=0;i<cl->length();i++) {
+      resLits->push(EqHelper::replace((*cl)[i],lhs,rhs));
+    }
+
+    auto resCl = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_GROUND_REDUCIBILITY, cl, demodulator));
+    auto infTod = ordering.createComparator(true, true).release();
+    OrderingConstraints ordCons;
+    ordCons.push({ lhs, rhs, Ordering::GREATER });
+    infTod->insert(ordCons, resCl);
+    resCl->setInfTod(infTod);
+    res = pvi(concatIters(res,getSingletonIterator(resCl)));
+    premises = pvi(concatIters(premises,getSingletonIterator(demodulator))); // this gives duplicates
+  }
+
+  if (fail) {
+    delete static_cast<OrderingComparator*>(cl->getTod());
+    cl->setTod(_comp.release());
+    res = pvi(concatIters(res,getSingletonIterator(cl)));
+  } else {
+    env.statistics->forwardGroundReducibility++;
+  }
   replacements = res;
   return true;
 }

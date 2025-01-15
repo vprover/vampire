@@ -104,7 +104,7 @@ public:
   { return compare(t1, t2); }
 
   /** Creates optimised object for ordering checks. @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(bool onlyVars = false, bool ground = false) const;
+  virtual OrderingComparatorUP createComparator(bool onlyVars = false, bool ground = false, const TermPartialOrdering* head = nullptr) const;
 
   virtual void show(std::ostream& out) const = 0;
 

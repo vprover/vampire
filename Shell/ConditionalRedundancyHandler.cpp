@@ -482,6 +482,9 @@ ConditionalRedundancySubsumption2::ConditionalRedundancySubsumption2(
 #endif
 }
 
+#define SUBSUMPTION2_OUTER_LIMIT 500
+#define SUBSUMPTION2_INNER_LIMIT 500
+
 bool ConditionalRedundancySubsumption2::check()
 {
   unsigned cnt = 0;
@@ -489,6 +492,9 @@ bool ConditionalRedundancySubsumption2::check()
   todo.push({ nullptr, &left._source });
 
   while (todo.isNonEmpty()) {
+    if (cnt++ >= SUBSUMPTION2_OUTER_LIMIT) {
+      return false;
+    }
     auto [prev,curr] = todo.pop();
     left._prev = prev;
     left._curr = curr;
@@ -525,10 +531,17 @@ bool ConditionalRedundancySubsumption2::check()
 
 bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo)
 {
-  Stack<pair<OrderingComparator::Branch*,OrderingComparator::Branch*>> innerTodo;
-  innerTodo.push({ nullptr, &tod._source });
+  unsigned cnt = 0;
+  using Branch = OrderingComparator::Branch;
+  using Node = OrderingComparator::Node;
+
+  Stack<tuple<Branch*,Branch*,const TermPartialOrdering*>> innerTodo;
+  innerTodo.push({ nullptr, &tod._source, tpo });
   while (innerTodo.isNonEmpty()) {
-    auto [prev,curr] = innerTodo.pop();
+    if (cnt++ >= SUBSUMPTION2_INNER_LIMIT) {
+      return false;
+    }
+    auto [prev,curr,trace] = innerTodo.pop();
     tod._prev = prev;
     tod._curr = curr;
     tod.processCurrentNode();
@@ -537,35 +550,40 @@ bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, cons
     ASS(node->ready);
 
     switch (node->tag) {
-      case OrderingComparator::Node::T_DATA: {
+      case Node::T_DATA: {
         if (node->data) {
           continue;
         }
         return false;
       }
-      case OrderingComparator::Node::T_POLY: {
-        env.statistics->intDBUpInductionInProof++;
-        return false;
+      case Node::T_POLY: {
+        // tod should consist of variables only
+        ASSERTION_VIOLATION;
       }
-      case OrderingComparator::Node::T_TERM: {
+      case Node::T_TERM: {
+        ASS(node->lhs.isVar());
+        ASS(node->rhs.isVar());
         AppliedTerm lhsApplied(node->lhs,appl,true);
         AppliedTerm rhsApplied(node->rhs,appl,true);
-        auto comp = ord.compare(lhsApplied,rhsApplied,tpo);
-        switch (comp) {
-          case Ordering::GREATER:
-            innerTodo.push({ tod._curr, &node->gtBranch });
-            break;
-          case Ordering::EQUAL:
-            innerTodo.push({ tod._curr, &node->eqBranch });
-            break;
-          case Ordering::LESS:
-            innerTodo.push({ tod._curr, &node->ngeBranch });
-            break;
-          case Ordering::INCOMPARABLE:
-            innerTodo.push({ tod._curr, &node->gtBranch });
-            innerTodo.push({ tod._curr, &node->eqBranch });
-            innerTodo.push({ tod._curr, &node->ngeBranch });
-            break;
+        auto lhsS = lhsApplied.apply();
+        auto rhsS = rhsApplied.apply();
+
+        auto comp = ord.createComparator(false, true, trace);
+        comp->insert({ { lhsS, rhsS, Ordering::GREATER } }, (void*)0x1);
+        comp->insert({ { lhsS, rhsS, Ordering::EQUAL } }, (void*)0x2);
+        comp->insert({ { rhsS, lhsS, Ordering::GREATER } }, (void*)0x3);
+
+        auto it = comp->enumerate();
+        for (const auto& [res,restpo] : it) {
+          if (res == (void*)0x1) {
+            innerTodo.push({ tod._curr, &node->gtBranch, restpo });
+          } else if (res == (void*)0x2) {
+            innerTodo.push({ tod._curr, &node->eqBranch, restpo });
+          } else if (res == (void*)0x3) {
+            innerTodo.push({ tod._curr, &node->ngeBranch, restpo });
+          } else {
+            INVALID_OPERATION("xx");
+          }
         }
         break;
       }

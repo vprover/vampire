@@ -397,34 +397,37 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  OrderingComparator* infTod = ordering.createComparator(/*onlyVars=*/false, /*ground=*/true).release();
-  infTod->insert(ordCons, this);
+  OrderingComparator* infTod = nullptr;
+  if (getOptions().conditionalRedundancySubsumption()) {
+    infTod = ordering.createComparator(/*onlyVars=*/false, /*ground=*/true).release();
+    infTod->insert(ordCons, this);
 
-  struct Applicator : SubstApplicator {
-    Applicator(ResultSubstitution* subst, bool result) : subst(subst), result(result) {}
-    TermList operator()(unsigned v) const override {
-      return subst->apply(TermList::var(v), result);
+    struct Applicator : SubstApplicator {
+      Applicator(ResultSubstitution* subst, bool result) : subst(subst), result(result) {}
+      TermList operator()(unsigned v) const override {
+        return subst->apply(TermList::var(v), result);
+      }
+      ResultSubstitution* subst;
+      bool result;
+    };
+
+    Applicator rwAppl(subst.ptr(), !eqIsResult);
+    Applicator eqAppl(subst.ptr(),  eqIsResult);
+
+    Stack<std::pair<OrderingComparator&, const SubstApplicator*>> rights;
+    auto rwTod = static_cast<OrderingComparator*>(rwClause->getTod());
+    if (rwTod) {
+      rights.push({ *rwTod, &rwAppl });
     }
-    ResultSubstitution* subst;
-    bool result;
-  };
-
-  Applicator rwAppl(subst.ptr(), !eqIsResult);
-  Applicator eqAppl(subst.ptr(),  eqIsResult);
-
-  Stack<std::pair<OrderingComparator&, const SubstApplicator*>> rights;
-  auto rwTod = static_cast<OrderingComparator*>(rwClause->getTod());
-  if (rwTod) {
-    rights.push({ *rwTod, &rwAppl });
-  }
-  auto eqTod = static_cast<OrderingComparator*>(eqClause->getTod());
-  if (eqTod) {
-    rights.push({ *eqTod, &eqAppl });
-  }
-  ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
-  if (subs.check()) {
-    env.statistics->skippedSuperposition++;
-    return 0;
+    auto eqTod = static_cast<OrderingComparator*>(eqClause->getTod());
+    if (eqTod) {
+      rights.push({ *eqTod, &eqAppl });
+    }
+    ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
+    if (subs.check()) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
   }
 
   if (!unifier->usesUwa()) {

@@ -47,7 +47,7 @@ namespace Kernel {
 struct OrderingComparator
 {
 public:
-  OrderingComparator(const Ordering& ord, bool onlyVars, bool ground);
+  OrderingComparator(const Ordering& ord, bool onlyVars, bool ground, const TermPartialOrdering* head);
   virtual ~OrderingComparator();
 
   /** Has to be called each time a new retrieval is started. */
@@ -60,6 +60,8 @@ public:
 
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
+
+  Stack<std::pair<void*,const TermPartialOrdering*>> enumerate();
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
@@ -197,6 +199,7 @@ protected:
   const SubstApplicator* _appl;
   bool _onlyVars;
   bool _ground;
+  const TermPartialOrdering* _head;
 };
 
 } // namespace Kernel

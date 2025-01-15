@@ -247,9 +247,9 @@ Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, uns
   return GREATER;
 }
 
-OrderingComparatorUP LPO::createComparator(bool onlyVars, bool ground) const
+OrderingComparatorUP LPO::createComparator(bool onlyVars, bool ground, const TermPartialOrdering* head) const
 {
-  return make_unique<LPOComparator>(*this, onlyVars, ground);
+  return make_unique<LPOComparator>(*this, onlyVars, ground, head);
 }
 
 void LPO::showConcrete(std::ostream&) const 

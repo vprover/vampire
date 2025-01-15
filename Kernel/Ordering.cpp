@@ -216,9 +216,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-OrderingComparatorUP Ordering::createComparator(bool onlyVars, bool ground) const
+OrderingComparatorUP Ordering::createComparator(bool onlyVars, bool ground, const TermPartialOrdering* head) const
 {
-  return std::make_unique<OrderingComparator>(*this, onlyVars, ground);
+  return std::make_unique<OrderingComparator>(*this, onlyVars, ground, head);
 }
 
 //////////////////////////////////////////////////

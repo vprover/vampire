@@ -2037,6 +2037,7 @@ public:
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool forwardGroundJoinability() const { return _forwardGroundJoinability.actualValue; }
   bool forwardGroundReducibility() const { return _forwardGroundReducibility.actualValue; }
+  bool conditionalRedundancySubsumption() const { return _conditionalRedundancySubsumption.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
@@ -2443,6 +2444,7 @@ private:
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _forwardGroundJoinability;
   BoolOptionValue _forwardGroundReducibility;
+  BoolOptionValue _conditionalRedundancySubsumption;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;

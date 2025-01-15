@@ -42,7 +42,7 @@ bool Discount::handleClauseBeforeActivation(Clause* cl)
 {
   ASS(cl->store()==Clause::SELECTED);
 
-  if (!forwardSimplify(cl) || !forwardGroundSimplify(cl)) {
+  if (!forwardSimplify(cl)/*  || !forwardGroundSimplify(cl) */) {
     cl->setStore(Clause::NONE);
     return false;
   }

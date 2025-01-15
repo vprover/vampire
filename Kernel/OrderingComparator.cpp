@@ -28,9 +28,9 @@ namespace Kernel {
 
 // OrderingComparator
 
-OrderingComparator::OrderingComparator(const Ordering& ord, bool onlyVars, bool ground)
+OrderingComparator::OrderingComparator(const Ordering& ord, bool onlyVars, bool ground, const TermPartialOrdering* head)
 : _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr),
-  _onlyVars(onlyVars), _ground(ground)
+  _onlyVars(onlyVars), _ground(ground), _head(head)
 {
   _sink.node()->ready = true;
 }
@@ -154,6 +154,54 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
   }
 
   _sink = newFail;
+}
+
+Stack<pair<void*,const TermPartialOrdering*>> OrderingComparator::enumerate()
+{
+  ASS(_ground);
+  Stack<pair<void*,const Trace*>> res;
+  Stack<Branch*> path;
+  path.push(&_source);
+  while (path.isNonEmpty()) {
+    if (path.size()==1) {
+      _prev = nullptr;
+    } else {
+      _prev = path[path.size()-2];
+    }
+    _curr = path.top();
+    processCurrentNode();
+
+    auto lnode = _curr->node();
+    if (lnode->tag != OrderingComparator::Node::T_DATA) {
+      path.push(&lnode->gtBranch);
+      continue;
+    }
+    if (lnode->data) {
+      ASS(lnode->trace);
+      res.push({ lnode->data, lnode->trace });
+    }
+    while (path.isNonEmpty()) {
+      auto curr = path.pop();
+      if (path.isEmpty()) {
+        continue;
+      }
+
+      auto prev = path.top()->node();
+      ASS(prev->tag == OrderingComparator::Node::T_POLY ||
+          prev->tag == OrderingComparator::Node::T_TERM);
+      // if there is a previous node and we were either in the gt or eq
+      // branches, just go to next branch in order, otherwise backtrack
+      if (curr == &prev->gtBranch) {
+        path.push(&prev->eqBranch);
+        break;
+      }
+      if (curr == &prev->eqBranch) {
+        path.push(&prev->ngeBranch);
+        break;
+      }
+    }
+  }
+  return res;
 }
 
 void OrderingComparator::processCurrentNode()
@@ -350,7 +398,7 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
   ASS(!_curr->node()->ready);
 
   if (!_prev) {
-    return Trace::getEmpty(_ord);
+    return _head ? _head : Trace::getEmpty(_ord);
   }
 
   ASS(_prev->node()->ready);

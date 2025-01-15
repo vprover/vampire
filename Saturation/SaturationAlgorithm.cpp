@@ -1242,7 +1242,7 @@ start:
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
 
-    if (forwardSimplify(c) && forwardGroundSimplify(c)) {
+    if (forwardSimplify(c)/*  && forwardGroundSimplify(c) */) {
       auto infTod = static_cast<OrderingComparator*>(c->getInfTod());
       if (infTod) {
         delete infTod;
