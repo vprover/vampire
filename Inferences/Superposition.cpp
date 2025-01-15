@@ -137,10 +137,10 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2, 
+  auto itb3 = getMapAndFlattenIterator(itb2,
       [this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(
-              arg, 
+              arg,
               _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
 
   //Perform backward superposition
@@ -247,7 +247,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   }
 
   //we assume that there will be at least one rewrite in the rwLit
-  if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + eqRHS.weight(), numPositiveLiteralsLowerBound, inf)) {
+  if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + eqRHS.weight(), numPositiveLiteralsLowerBound, inf)) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped early");
     return false;
@@ -260,7 +260,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   if(rwrBalance>=0) {
     //there must be at least one rewriting, possibly more
     unsigned approxWeight = rwLit->weight()+rwrBalance;
-    if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numPositiveLiteralsLowerBound, inf)) {
+    if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numPositiveLiteralsLowerBound, inf)) {
       env.statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval");
       return false;
@@ -271,7 +271,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   if(rwrCnt>1) {
     ASS_GE(rwrCnt, 1);
     unsigned approxWeight = rwLit->weight()+(rwrBalance*rwrCnt);
-    if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numPositiveLiteralsLowerBound, inf)) {
+    if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numPositiveLiteralsLowerBound, inf)) {
       env.statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval with occurrence counting");
       return false;
@@ -281,7 +281,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   unsigned rwLitSWeight = subst->getApplicationWeight(rwLit, !eqIsResult);
 
   unsigned finalLitWeight = rwLitSWeight+(rwrBalance*rwrCnt);
-  if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numPositiveLiteralsLowerBound, inf)) {
+  if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numPositiveLiteralsLowerBound, inf)) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped after rewrited literal weight retrieval");
     return false;
@@ -306,8 +306,7 @@ Clause* Superposition::performSuperposition(
 
   // the first checks the reference and the second checks the stack
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
-  TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
-
+  TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit);
 
   if(eqLHS.isVar()) {
     if(!checkSuperpositionFromVariable(eqClause, eqLit, eqLHS)) {
@@ -335,8 +334,17 @@ Clause* Superposition::performSuperposition(
   Inference::Destroyer inf_destroyer(inf);
 
   auto passiveClauseContainer = _salg->getPassiveClauseContainer();
-  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
-  if(needsToFulfilWeightLimit) {
+  bool andThatsIt = false;
+  bool hasAgeLimitStrike = passiveClauseContainer && passiveClauseContainer->mayBeAbleToDiscriminateClausesUnderConstructionOnLimits()
+                        && passiveClauseContainer->exceedsAgeLimit(numPositiveLiteralsLowerBound, inf, andThatsIt);
+
+  if(hasAgeLimitStrike && andThatsIt) { // we are dealing with purely age-limited container (no need for weight-related investigations)
+    env.statistics->discardedNonRedundantClauses++;
+    RSTAT_CTR_INC("superpositions skipped for (pure) age limit before building clause");
+    return 0;
+  }
+
+  if(hasAgeLimitStrike) {
     if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, passiveClauseContainer, numPositiveLiteralsLowerBound, inf)) {
       return 0;
     }
@@ -427,9 +435,9 @@ Clause* Superposition::performSuperposition(
         return nullptr;
       }
 
-      if(needsToFulfilWeightLimit) {
+      if(hasAgeLimitStrike) {
         weight+=currAfter->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+        if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
           RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
           env.statistics->discardedNonRedundantClauses++;
           return nullptr;
@@ -463,9 +471,9 @@ Clause* Superposition::performSuperposition(
         if(EqHelper::isEqTautology(currAfter)) {
           return nullptr;
         }
-        if(needsToFulfilWeightLimit) {
+        if(hasAgeLimitStrike) {
           weight+=currAfter->weight();
-          if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+          if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
             RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
             env.statistics->discardedNonRedundantClauses++;
             return nullptr;
@@ -497,7 +505,7 @@ Clause* Superposition::performSuperposition(
     res->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
   }
 
-  if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+  if(hasAgeLimitStrike && passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
     env.statistics->discardedNonRedundantClauses++;
     return nullptr;
