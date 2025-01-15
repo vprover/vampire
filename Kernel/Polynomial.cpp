@@ -49,7 +49,7 @@ unsigned FuncId::numTypeArguments() const
 { return symbol()->numTypeArguments(); }
 
 TermList FuncId::typeArg(unsigned i) const
-{ return _typeArgs[i]; }
+{ return *(_typeArgs - i); }
 
 std::ostream& operator<<(std::ostream& out, const Kernel::FuncId& self) 
 { 
