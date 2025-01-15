@@ -302,11 +302,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _passive->addedEvent.subscribe(this, &SaturationAlgorithm::onPassiveAdded);
   _passive->removedEvent.subscribe(this, &SaturationAlgorithm::passiveRemovedHandler);
   _passive->selectedEvent.subscribe(this, &SaturationAlgorithm::onPassiveSelected);
-  /*
-  _unprocessed->addedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedAdded);
-  _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
-  _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
-  */
 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
@@ -1380,7 +1375,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   TIME_TRACE("forward simplification");
 
-  if (_passive->exceedsAllLimits(cl)) {
+  if (env.options->lrsPreemptiveDeletes() && _passive->exceedsAllLimits(cl)) {
     RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;
@@ -1670,7 +1665,7 @@ void SaturationAlgorithm::doUnprocessedLoop()
 {
   do {
     newClausesToUnprocessed();
-    if (_neuralModelGuidance && _passive->limitsActive() ) {
+    if (_neuralModelGuidance && _passive->limitsActive() && env.options->lrsPreemptiveDeletes()) {
       // so that we can start kicking out the really bad clauses already in forwardSimplify's exceedsAllLimits
       _neuralModel->bulkEval(*_unprocessed);
     }
