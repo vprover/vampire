@@ -95,6 +95,8 @@ void ForwardDemodulation::detach()
   ForwardSimplificationEngine::detach();
 }
 
+#define DEBUG_ORDERING 0
+
 template <bool combinatorySupSupport>
 bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
@@ -179,7 +181,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
           AppliedTerm rhsApplied(dd->rhs,appl,true);
   #if DEBUG_ORDERING
-          if (ordering.isGreaterOrEq(AppliedTerm(trm),rhsApplied)!=Ordering::GREATER) {
+          if (ordering.compareUnidirectional(AppliedTerm(trm),rhsApplied)!=Ordering::GREATER) {
             INVALID_OPERATION("forward demodulation wrong");
           }
   #endif
@@ -242,7 +244,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           AppliedTerm rhsApplied(dd->rhs,appl,true);
           bool preordered = dd->preordered;
 
-          if (!preordered && (_preorderedOnly || ordering.isGreaterOrEq(AppliedTerm(trm),rhsApplied)!=Ordering::GREATER)) {
+          if (!preordered && (_preorderedOnly || ordering.compareUnidirectional(AppliedTerm(trm),rhsApplied)!=Ordering::GREATER)) {
             continue;
           }
 
