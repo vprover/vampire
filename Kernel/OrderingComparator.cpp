@@ -322,6 +322,7 @@ void OrderingComparator::processPolyNode()
 {
   auto node = _curr->node();
   auto trace = getCurrentTrace();
+  auto prevPoly = getPrevPoly();
 
   if (!trace) {
     *_curr = _sink;
@@ -372,6 +373,39 @@ void OrderingComparator::processPolyNode()
     return;
   }
   auto poly = Polynomial::get(constant, vcs);
+
+  // check if we have seen this polynomial
+  // on the path leading here
+  auto polyIt = prevPoly;
+  while (polyIt.first) {
+    ASS_EQ(polyIt.first->tag, Node::T_POLY);
+    switch (polyIt.second) {
+      case Ordering::GREATER: {
+        if (polyIt.first->poly == poly) {
+          *_curr = node->gtBranch;
+          return;
+        }
+        break;
+      }
+      case Ordering::EQUAL: {
+        if (polyIt.first->poly == poly) {
+          *_curr = node->eqBranch;
+          return;
+        }
+        break;
+      }
+      case Ordering::INCOMPARABLE: {
+        if (polyIt.first->poly == poly) {
+          *_curr = node->ngeBranch;
+          return;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+    polyIt = polyIt.first->prevPoly;
+  }
 
   // if refcnt > 1 we have to copy the node,
   // otherwise we can mutate the original
@@ -429,6 +463,29 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
     }
   }
   ASSERTION_VIOLATION;
+}
+
+std::pair<OrderingComparator::Node*, Ordering::Result> OrderingComparator::getPrevPoly()
+{
+  auto res = make_pair((Node*)nullptr, Ordering::INCOMPARABLE);
+  if (_prev) {
+    // take value from previous node by default
+    res = _prev->node()->prevPoly;
+
+    // override value if the previous is a poly node 
+    if (_prev->node()->tag == Node::T_POLY) {
+      res.first = _prev->node();
+      if (_curr == &_prev->node()->gtBranch) {
+        res.second = Ordering::GREATER;
+      } else if (_curr == &_prev->node()->eqBranch) {
+        res.second = Ordering::EQUAL;
+      } else {
+        ASS_EQ(_curr, &_prev->node()->ngeBranch);
+        res.second = Ordering::INCOMPARABLE;
+      }
+    }
+  }
+  return res;
 }
 
 // Branch

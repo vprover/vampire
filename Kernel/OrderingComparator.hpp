@@ -90,6 +90,8 @@ protected:
   struct Node;
   struct Polynomial;
 
+  std::pair<Node*, Result> getPrevPoly();
+
   /** A branch is essentially a shared pointer for a node,
    *  except the node takes care of its own lifecycle. */
   struct Branch {
