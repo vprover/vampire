@@ -404,6 +404,13 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
   // at this point the c object can be deleted
 }
 
+void SaturationAlgorithm::onGroundRedundantAdded(Clause* c)
+{
+  if (env.options->showAll()) {
+    std::cout << "[SA] ground redundant: " << c->toString() << std::endl;
+  }
+}
+
 /**
  * A function that is called when a clause is selected and removed from the passive
  * clause container to be activated.
@@ -693,7 +700,6 @@ simpl_start:
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-  _simplCont.add(cl);
 
   onSOSClauseAdded(cl);
 
@@ -1023,7 +1029,7 @@ bool SaturationAlgorithm::forwardGroundSimplify(Clause* cl)
         addNewClause(rp);
       }
       onClauseReduction(cl, replacementStack.begin(), replacementStack.size(), premises);
-      _simplCont.add(cl);
+      onGroundRedundantAdded(cl);
       return false;
     }
   }
@@ -1176,7 +1182,6 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-  _simplCont.add(cl);
 
   _conditionalRedundancyHandler->checkEquations(cl);
 
@@ -1341,6 +1346,33 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
+  FwGrSimplList::Iterator fsit(_fwGrSimplifiers);
+  while (fsit.hasNext()) {
+    ForwardGroundSimplificationEngine *fse = fsit.next();
+    auto replacements = ClauseIterator::getEmpty();
+    auto premises = ClauseIterator::getEmpty();
+
+    bool replacementsHasCl = false;
+    if (fse->perform(cl, replacements, premises)) {
+      Stack<Clause*> replacementStack;
+      while (replacements.hasNext()) {
+        auto rp = replacements.next();
+        if (rp == cl) {
+          replacementsHasCl = true;
+          continue;
+        }
+        addNewClause(rp);
+      }
+      if (!replacementsHasCl) {
+        onClauseReduction(cl, replacementStack.begin(), replacementStack.size(), premises);
+        onGroundRedundantAdded(cl);
+        cl->setStore(Clause::PASSIVE); // TODO should we make some new enum item up
+        return;
+      }
+      doUnprocessedLoop();
+    }
+  }
+
   activate(cl);
 
   _conditionalRedundancyHandler->checkSubsumption(cl);
@@ -1503,7 +1535,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (env.options->superposition()) {
       gie->addFront(new Superposition());
     }
-    gie->addFront(new RenamingSuperposition());
+    // gie->addFront(new RenamingSuperposition());
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
     gie->addFront(new EqualityResolution());

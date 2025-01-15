@@ -31,10 +31,13 @@ public:
   Discount(Problem& prb, const Options& opt)
     : SaturationAlgorithm(prb, opt) {}
 
+  void onActiveAdded(Clause* cl) override;
+  void onGroundRedundantAdded(Clause* cl) override;
+
 protected:
 
   //overrides SaturationAlgorithm::handleClauseBeforeActivation
-  bool handleClauseBeforeActivation(Clause* cl);
+  bool handleClauseBeforeActivation(Clause* cl) override;
 
 };
 

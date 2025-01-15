@@ -150,10 +150,11 @@ protected:
   void activate(Clause* c);
   void removeSelected(Clause*);
   virtual void onSOSClauseAdded(Clause* c) {}
-  void onActiveAdded(Clause* c);
+  virtual void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);
   virtual void onPassiveAdded(Clause* c);
   virtual void onPassiveRemoved(Clause* c);
+  virtual void onGroundRedundantAdded(Clause* c);
   void onPassiveSelected(Clause* c);
   void onUnprocessedAdded(Clause* c);
   void onUnprocessedRemoved(Clause* c);

@@ -45,6 +45,7 @@ public:
 
 private:
   const TermPartialOrdering* next(Stack<TermOrderingConstraint> ordCons);
+  const TermPartialOrdering* skip();
   void pushNext();
 
   OrderingComparatorUP _comp;

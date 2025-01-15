@@ -76,7 +76,6 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
   Ordering& ordering = _salg->getOrdering();
 
   static DHSet<TermList> attempted;
-  attempted.reset();
 
   DHSet<tuple<TermList,TermList,Clause*>> results;
 
@@ -89,15 +88,17 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
 
   for (unsigned i = 0; i < cl->length(); i++) {
     auto clit = (*cl)[i];
-    if (clit->isEquality() && clit->isPositive()) {
-      Stack<TermOrderingConstraint> eqCons;
-      if (ForwardGroundJoinability::makeEqual(clit->termArg(0), clit->termArg(1), eqCons)) {
-        tpo = next(eqCons);
-        if (!tpo) {
-          // this shouldn't happen though
-          return true;
-        }
-      }
+    if (!clit->isEquality() || clit->isNegative()) {
+      continue;
+    }
+    Stack<TermOrderingConstraint> eqCons;
+    if (!ForwardGroundJoinability::makeEqual(clit->termArg(0), clit->termArg(1), eqCons)) {
+      continue;
+    }
+    tpo = next(eqCons);
+    if (!tpo) {
+      // this shouldn't happen though
+      return true;
     }
   }
 
@@ -106,6 +107,7 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
   while (tpo) {
     for (unsigned i = 0; i < cl->length(); i++) {
       auto clit = (*cl)[i];
+      attempted.reset();
       NonVariableNonTypeIterator it(clit);
       while (it.hasNext()) {
         TermList trm(it.next());
@@ -238,28 +240,63 @@ const TermPartialOrdering* ForwardGroundReducibility::next(OrderingConstraints o
   return nullptr;
 }
 
+const TermPartialOrdering* ForwardGroundReducibility::skip()
+{
+  ASS(_comp->_ground);
+  ASS(_comp->_onlyVars);
+
+  using Node = OrderingComparator::Node;
+
+  ASS(_path.isNonEmpty());
+  ASS_EQ(_path.top()->node()->tag,Node::T_DATA);
+  ASS(!_path.top()->node()->data);
+
+  pushNext();
+
+  while (_path.isNonEmpty()) {
+    _comp->_prev = _path.size()==1 ? nullptr : _path[_path.size()-2];
+    _comp->_curr = _path.top();
+    _comp->processCurrentNode();
+    auto node = _comp->_curr->node();
+
+    if (node->tag != Node::T_DATA) {
+      _path.push(&node->gtBranch);
+      continue;
+    }
+
+    if (!node->data) {
+      ASS(!node->trace);
+      return _comp->getCurrentTrace();
+    }
+
+    pushNext();
+  }
+
+  ASS(_path.isEmpty());
+  return nullptr;
+}
 
 void ForwardGroundReducibility::pushNext()
 {
-    while (_path.isNonEmpty()) {
-      auto curr = _path.pop();
-      if (_path.isEmpty()) {
-        continue;
-      }
-
-      auto prev = _path.top()->node();
-    ASS_EQ(prev->tag, OrderingComparator::Node::T_TERM);
-      // if there is a previous node and we were either in the gt or eq
-      // branches, just go to next branch in order, otherwise backtrack
-      if (curr == &prev->gtBranch) {
-        _path.push(&prev->eqBranch);
-        break;
-      }
-      if (curr == &prev->eqBranch) {
-        _path.push(&prev->ngeBranch);
-        break;
-      }
+  while (_path.isNonEmpty()) {
+    auto curr = _path.pop();
+    if (_path.isEmpty()) {
+      continue;
     }
+
+    auto prev = _path.top()->node();
+    ASS_EQ(prev->tag, OrderingComparator::Node::T_TERM);
+    // if there is a previous node and we were either in the gt or eq
+    // branches, just go to next branch in order, otherwise backtrack
+    if (curr == &prev->gtBranch) {
+      _path.push(&prev->eqBranch);
+      break;
+    }
+    if (curr == &prev->eqBranch) {
+      _path.push(&prev->ngeBranch);
+      break;
+    }
+  }
 }
 
 }

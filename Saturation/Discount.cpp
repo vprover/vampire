@@ -26,6 +26,18 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
 
+void Discount::onActiveAdded(Clause* cl)
+{
+  SaturationAlgorithm::onActiveAdded(cl);
+  _simplCont.add(cl);
+}
+
+void Discount::onGroundRedundantAdded(Clause* cl)
+{
+  SaturationAlgorithm::onGroundRedundantAdded(cl);
+  _simplCont.add(cl);
+}
+
 bool Discount::handleClauseBeforeActivation(Clause* cl)
 {
   ASS(cl->store()==Clause::SELECTED);

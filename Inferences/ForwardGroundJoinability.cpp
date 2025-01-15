@@ -217,7 +217,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
           auto redComp = ordering.compareUnidirectional(other, rhsApplied, &po_struct);
           ASS_NEQ(redComp,Ordering::LESS);
           // Note: EQUAL should be fine when doing forward simplification
-          if (redComp == Ordering::INCOMPARABLE) {
+          if (((curr->L && curr->R) || redComp != Ordering::EQUAL) && redComp != Ordering::GREATER) {
             continue;
           }
         }
