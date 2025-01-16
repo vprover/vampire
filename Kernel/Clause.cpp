@@ -779,6 +779,8 @@ std::ostream& operator<<(std::ostream& out, Clause::Store const& store)
     case Clause::UNPROCESSED: return out << "UNPROCESSED";
     case Clause::NONE:        return out << "NONE";
     case Clause::SELECTED:    return out << "SELECTED";
+    case Clause::RETAINED_REDUNDANT:
+                              return out << "RETAINED_REDUNDANT";
   }
   ASSERTION_VIOLATION;
 }

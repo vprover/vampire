@@ -557,10 +557,9 @@ bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, cons
       if (node->data) {
         // push next
         while (path.isNonEmpty()) {
-          auto [c, t, it] = path.pop();
-          ASS(!it);
+          path.pop();
           if (path.isEmpty()) {
-            continue;
+            break;
           }
 
           auto& [prev, prevTrace, prevIt] = path.top();

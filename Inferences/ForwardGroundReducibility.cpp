@@ -35,6 +35,8 @@
 #include "DemodulationHelper.hpp"
 #include "ForwardGroundJoinability.hpp"
 
+#include <set>
+
 #include "ForwardGroundReducibility.hpp"
 
 namespace Inferences {
@@ -71,24 +73,6 @@ void ForwardGroundReducibility::detach()
   ForwardGroundSimplificationEngine::detach();
 }
 
-namespace {
-  struct Result {
-    TermList lhs;
-    TermList rhs;
-    Clause* demodulator;
-    friend ostream& operator<<(ostream& str, const Result& r) { return str << r.lhs << " " << r.rhs << " " << *r.demodulator << endl; }
-  };
-  struct ResultHash {
-    static bool equals(const Result& r1, const Result& r2) { return r1.lhs==r2.lhs && r1.rhs==r2.rhs && r1.demodulator==r2.demodulator; }
-    static unsigned hash(const Result& r) {
-      return HashUtils::combine(
-        r.lhs.isVar() ? r.lhs.defaultHash() : r.lhs.term()->hash(),
-        r.rhs.isVar() ? r.rhs.defaultHash() : r.rhs.term()->hash(),
-        r.demodulator->number());
-    }
-  };
-}
-
 bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
@@ -97,7 +81,8 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
 
   // TODO investigate source of nondeterminism here
 
-  Set<Result, ResultHash> results;
+  // we need consistent order of results so we use an STL set
+  std::set<std::tuple<TermList,TermList,Clause*>> results;
 
   auto res = ClauseIterator::getEmpty();
   _comp = ordering.createComparator(/*onlyVars=*/true, /*ground=*/true);
@@ -199,9 +184,7 @@ LOOP_END:
     return false;
   }
 
-  Set<Result,ResultHash>::Iterator rit(results);
-  while (rit.hasNext()) {
-    auto [lhs,rhs,demodulator] = rit.next();
+  for (const auto& [lhs,rhs,demodulator] : results) {
     RStack<Literal*> resLits;
     for(unsigned i=0;i<cl->length();i++) {
       resLits->push(EqHelper::replace((*cl)[i],lhs,rhs));

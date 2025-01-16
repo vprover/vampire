@@ -838,6 +838,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
         break;
       case Clause::SELECTED:
       case Clause::ACTIVE:
+      case Clause::RETAINED_REDUNDANT:
 #if VDEBUG
         cout << "FAIL: " << cl->toString() << endl;
         // such clauses should not appear as new ones
@@ -1366,7 +1367,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
       if (!replacementsHasCl) {
         onClauseReduction(cl, replacementStack.begin(), replacementStack.size(), premises);
         onGroundRedundantAdded(cl);
-        cl->setStore(Clause::PASSIVE); // TODO should we make some new enum item up
+        cl->setStore(Clause::RETAINED_REDUNDANT);
         return;
       }
       doUnprocessedLoop();
