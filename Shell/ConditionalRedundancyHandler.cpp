@@ -532,64 +532,165 @@ bool ConditionalRedundancySubsumption2::check()
 bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo)
 {
   unsigned cnt = 0;
-  using Branch = OrderingComparator::Branch;
   using Node = OrderingComparator::Node;
 
-  Stack<tuple<Branch*,Branch*,const TermPartialOrdering*>> innerTodo;
-  innerTodo.push({ nullptr, &tod._source, tpo });
-  while (innerTodo.isNonEmpty()) {
+  Stack<tuple<Branch*,const TermPartialOrdering*,Iterator*>> path;
+  path.push({ &tod._source, tpo, nullptr });
+  while (path.isNonEmpty()) {
     if (cnt++ >= SUBSUMPTION2_INNER_LIMIT) {
       return false;
     }
-    auto [prev,curr,trace] = innerTodo.pop();
-    tod._prev = prev;
+    if (path.size()==1) {
+      tod._prev = nullptr;
+    } else {
+      tod._prev = get<0>(path[path.size()-2]);
+    }
+    auto& [curr, trace, iterator] = path.top();
+    ASS(trace);
     tod._curr = curr;
     tod.processCurrentNode();
 
     auto node = tod._curr->node();
     ASS(node->ready);
 
-    switch (node->tag) {
-      case Node::T_DATA: {
-        if (node->data) {
-          continue;
+    if (node->tag == Node::T_DATA) {
+      if (node->data) {
+        // push next
+        while (path.isNonEmpty()) {
+          auto [c, t, it] = path.pop();
+          ASS(!it);
+          if (path.isEmpty()) {
+            continue;
+          }
+
+          auto& [prev, prevTrace, prevIt] = path.top();
+          auto prevN = prev->node();
+          ASS(prevN->tag == Node::T_POLY || prevN->tag == Node::T_TERM);
+          if (!prevIt->hasNext()) {
+            // go one up further
+            delete prevIt;
+            path.pop();
+            continue;
+          }
+          auto [res,resTrace] = prevIt->next();
+          switch (res) {
+            case Ordering::GREATER:
+              path.push({ &prevN->gtBranch, resTrace, nullptr });
+              break;
+            case Ordering::EQUAL:
+              path.push({ &prevN->eqBranch, resTrace, nullptr });
+              break;
+            case Ordering::LESS:
+              path.push({ &prevN->ngeBranch, resTrace, nullptr });
+              break;
+            case Ordering::INCOMPARABLE:
+              ASSERTION_VIOLATION;
+          }
+          break;
         }
-        return false;
+        continue;
       }
-      case Node::T_POLY: {
-        // tod should consist of variables only
+      return false;
+    }
+
+    ASS_EQ(node->tag, Node::T_TERM);
+    ASS(node->lhs.isVar());
+    ASS(node->rhs.isVar());
+
+    auto lhsS = (*appl)(node->lhs.var());
+    auto rhsS = (*appl)(node->rhs.var());
+
+    ASS(!iterator);
+    iterator = new Iterator(ord, trace, lhsS, rhsS);
+    if (iterator->hasNext()) {
+      // go down
+      auto [res,resTrace] = iterator->next();
+      switch (res) {
+        case Ordering::GREATER:
+          path.push({ &node->gtBranch, resTrace, nullptr });
+          break;
+        case Ordering::EQUAL:
+          path.push({ &node->eqBranch, resTrace, nullptr });
+          break;
+        case Ordering::LESS:
+          path.push({ &node->ngeBranch, resTrace, nullptr });
+          break;
+        case Ordering::INCOMPARABLE:
+          ASSERTION_VIOLATION;
+      }
+      continue;
+    }
+    INVALID_OPERATION("should have at least one result");
+  }
+  return true;
+}
+
+ConditionalRedundancySubsumption2::Iterator::Iterator(
+  const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs)
+  : comp(ord.createComparator(/*onlyVars=*/false, /*ground=*/true, trace))
+{
+  comp->_source = Branch(lhs, rhs);
+  comp->_source.node()->gtBranch = Branch((void*)GT, comp->_sink);
+  comp->_source.node()->eqBranch = Branch((void*)EQ, comp->_sink);
+  comp->_source.node()->ngeBranch = Branch((void*)LT, comp->_sink);
+  path.push(&comp->_source);
+}
+
+bool ConditionalRedundancySubsumption2::Iterator::hasNext()
+{
+  using Node = OrderingComparator::Node;
+
+  while (path.isNonEmpty()) {
+    if (path.size()==1) {
+      comp->_prev = nullptr;
+    } else {
+      comp->_prev = path[path.size()-2];
+    }
+    comp->_curr = path.top();
+    comp->processCurrentNode();
+
+    auto lnode = comp->_curr->node();
+    if (lnode->tag != Node::T_DATA) {
+      path.push(&lnode->gtBranch);
+      continue;
+    }
+    if (lnode->data) {
+      ASS(lnode->trace);
+      res.second = lnode->trace;
+      if (lnode->data == (void*)GT) {
+        res.first = Ordering::GREATER;
+      } else if (lnode->data == (void*)EQ) {
+        res.first = Ordering::EQUAL;
+      } else if (lnode->data == (void*)LT) {
+        res.first = Ordering::LESS;
+      } else {
         ASSERTION_VIOLATION;
       }
-      case Node::T_TERM: {
-        ASS(node->lhs.isVar());
-        ASS(node->rhs.isVar());
-        AppliedTerm lhsApplied(node->lhs,appl,true);
-        AppliedTerm rhsApplied(node->rhs,appl,true);
-        auto lhsS = lhsApplied.apply();
-        auto rhsS = rhsApplied.apply();
+    } else {
+      INVALID_OPERATION("found 0");
+    }
+    while (path.isNonEmpty()) {
+      auto curr = path.pop();
+      if (path.isEmpty()) {
+        continue;
+      }
 
-        auto comp = ord.createComparator(false, true, trace);
-        comp->insert({ { lhsS, rhsS, Ordering::GREATER } }, (void*)0x1);
-        comp->insert({ { lhsS, rhsS, Ordering::EQUAL } }, (void*)0x2);
-        comp->insert({ { rhsS, lhsS, Ordering::GREATER } }, (void*)0x3);
-
-        auto it = comp->enumerate();
-        for (const auto& [res,restpo] : it) {
-          if (res == (void*)0x1) {
-            innerTodo.push({ tod._curr, &node->gtBranch, restpo });
-          } else if (res == (void*)0x2) {
-            innerTodo.push({ tod._curr, &node->eqBranch, restpo });
-          } else if (res == (void*)0x3) {
-            innerTodo.push({ tod._curr, &node->ngeBranch, restpo });
-          } else {
-            INVALID_OPERATION("xx");
-          }
-        }
+      auto prev = path.top()->node();
+      ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
+      // if there is a previous node and we were either in the gt or eq
+      // branches, just go to next branch in order, otherwise backtrack
+      if (curr == &prev->gtBranch) {
+        path.push(&prev->eqBranch);
+        break;
+      }
+      if (curr == &prev->eqBranch) {
+        path.push(&prev->ngeBranch);
         break;
       }
     }
+    return true;
   }
-  return true;
+  return false;
 }
 
 // ConditionalRedundancyHandler

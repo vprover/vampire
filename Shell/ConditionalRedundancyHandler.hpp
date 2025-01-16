@@ -196,8 +196,23 @@ public:
     Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights);
   bool check();
 
+  using Branch = OrderingComparator::Branch;
+
 private:
   bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
+
+  struct Iterator {
+    Iterator(const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs);
+
+    bool hasNext();
+    std::pair<Result,const TermPartialOrdering*> next() { return res; }
+
+    enum Res { GT = 0x1, EQ = 0x2, LT = 0x3, };
+
+    OrderingComparatorUP comp;
+    Stack<Branch*> path;
+    std::pair<Result,const TermPartialOrdering*> res;
+  };
 
   const Ordering& ord;
   OrderingComparator& left;
