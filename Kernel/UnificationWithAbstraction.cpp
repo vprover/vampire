@@ -64,8 +64,11 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
 template<class NumTraits>
 AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa);
 Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa);
+
 AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, IntTraits n, Options::UnificationWithAbstraction uwa) {
-  ASSERTION_VIOLATION
+  // TODO use uwa_floor
+  // TODO remove uwa arg
+  return lpar(au, t1, t2, n, uwa);
 }
 
 bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec const& t) {
@@ -446,6 +449,8 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
     return {};
   }
 }
+
+// TODO rename
 Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa) {
   ASS(t1.isTerm() || t2.isTerm())
 
@@ -614,8 +619,8 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
 
       return AbstractionResult(ifIntTraits(NumTraits{}, 
             // TODO
-            [&](auto n) { return num == Numeral(-1) ? EqualIf().unify(constraint(std::move(var), sum(rest())))
-                               : num == Numeral( 1) ? EqualIf().unify(constraint(std::move(var), sum(rest().map([](auto x) { return std::make_pair(std::move(x.first), -std::move(x.second)); }))))
+            [&](auto n) { return num == -1 ? EqualIf().unify(constraint(std::move(var), sum(rest())))
+                               : num ==  1 ? EqualIf().unify(constraint(std::move(var), sum(rest().map([](auto x) { return std::make_pair(std::move(x.first), -std::move(x.second)); }))))
                                :                      EqualIf().constr(constraint(numMul(-num, std::move(var)), sum(rest())))
                                                     ; },
             // [&](auto n) { return EqualIf().unify(UnificationConstraint(numMul(-num, std::move(var)), sum(rest()))); },
