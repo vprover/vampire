@@ -183,6 +183,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
           // we are not interested in these for now
           continue;
         }
+        if (!qr.data->clause->noSplits()) {
+          continue;
+        }
 
         TermList rhs = qr.data->rhs;
 
