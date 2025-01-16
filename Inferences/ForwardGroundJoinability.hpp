@@ -75,6 +75,8 @@ private:
 
   DemodulationLHSIndex* _index;
   Stack<State*> _states;
+  bool _redundancyCheck;
+  bool _encompassing;
 };
 
 };

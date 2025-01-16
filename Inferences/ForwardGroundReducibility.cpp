@@ -64,6 +64,9 @@ void ForwardGroundReducibility::attach(SaturationAlgorithm* salg)
   ForwardGroundSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
+  auto drc = _salg->getOptions().demodulationRedundancyCheck();
+  _redundancyCheck = drc != Options::DemodulationRedundancyCheck::OFF;
+  _encompassing = drc == Options::DemodulationRedundancyCheck::ENCOMPASS;
 }
 
 void ForwardGroundReducibility::detach()
@@ -75,6 +78,11 @@ void ForwardGroundReducibility::detach()
 
 bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements, ClauseIterator& premises)
 {
+  // we do not support AVATAR yet
+  if (!cl->noSplits()) {
+    return false;
+  }
+
   Ordering& ordering = _salg->getOrdering();
 
   static DHSet<TermList> attempted;
@@ -108,7 +116,8 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
   }
 
   bool fail = false;
-  bool clRedCheck = cl->length()==1 && (*cl)[0]->isPositive() && (*cl)[0]->isEquality();
+  bool clRedCheck = _redundancyCheck && cl->length()==1 &&
+    (*cl)[0]->isPositive() && (*cl)[0]->isEquality();
 
   while (tpo) {
     for (unsigned i = 0; i < cl->length(); i++) {
@@ -139,6 +148,7 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
             // we are not interested in these for now
             continue;
           }
+          // we do not support AVATAR yet
           if (!qr.data->clause->noSplits()) {
             continue;
           }
@@ -146,7 +156,7 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
           auto subs = qr.unifier;
           ASS(subs->isIdentityOnQueryWhenResultBound());
           Applicator appl(subs.ptr());
-          
+
           POStruct po_struct(tpo);
 
           qr.data->comparator->init(&appl);
@@ -156,7 +166,7 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
 
           AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
 
-          if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
+          if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
             TermList other = EqHelper::getOtherEqualitySide(clit, trm);
             auto redComp = ordering.compareUnidirectional(other, rhsApplied, &po_struct);
             if (redComp != Ordering::GREATER) {

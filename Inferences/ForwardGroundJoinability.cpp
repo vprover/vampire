@@ -60,6 +60,9 @@ void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
   ForwardGroundSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
+  auto drc = _salg->getOptions().demodulationRedundancyCheck();
+  _redundancyCheck = drc != Options::DemodulationRedundancyCheck::OFF;
+  _encompassing = drc == Options::DemodulationRedundancyCheck::ENCOMPASS;
 }
 
 void ForwardGroundJoinability::detach()
@@ -111,7 +114,8 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
 
   static DHSet<TermList> attempted;
 
-  if (cl->length()>1) {
+  // we do not support AVATAR yet
+  if (!cl->noSplits() || cl->length()>1) {
     return false;
   }
 
@@ -169,9 +173,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
         continue;
       }
 
-      bool redundancyCheck =
-        (curr->L && trm == curr->left) ||
-        (curr->R && trm == curr->right);
+      bool redundancyCheck = _redundancyCheck &&
+        ((curr->L && trm == curr->left) ||
+         (curr->R && trm == curr->right));
 
       auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
       while(git.hasNext()) {
@@ -183,6 +187,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
           // we are not interested in these for now
           continue;
         }
+        // we do not support AVATAR yet
         if (!qr.data->clause->noSplits()) {
           continue;
         }
@@ -215,7 +220,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
 
         AppliedTerm rhsApplied(rhs, &appl, true);
 
-        if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
+        if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
           TermList other = trm == curr->left ? curr->right : curr->left;
           auto redComp = ordering.compareUnidirectional(other, rhsApplied, &po_struct);
           ASS_NEQ(redComp,Ordering::LESS);
@@ -266,7 +271,7 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
   auto curr = path.top();
   ASS_EQ(curr->node()->tag, Tag::T_DATA);
   ASS(curr->node()->data);
-  ASS(curr->node()->ready); 
+  ASS(curr->node()->ready);
   ASS_EQ(curr->node()->refcnt,1);
 
   // current node has to be processed again

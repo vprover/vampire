@@ -51,6 +51,8 @@ private:
   OrderingComparatorUP _comp;
   Stack<OrderingComparator::Branch*> _path;
   DemodulationLHSIndex* _index;
+  bool _redundancyCheck;
+  bool _encompassing;
 };
 
 };
