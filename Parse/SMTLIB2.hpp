@@ -507,12 +507,6 @@ private:
   UnitList::FIFO _formulas;
 
   /**
-   * To support a mechanism for dealing with large arithmetic constants.
-   * Adapted from the tptp parser.
-   */
-  Set<std::string> _overflow;
-
-  /**
    * Top-level expression that is parsed presently.
    * Saved for better error output.
    */

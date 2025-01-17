@@ -110,8 +110,8 @@
 #include "SymElOutput.hpp"
 #include "SaturationAlgorithm.hpp"
 #include "ManCSPassiveClauseContainer.hpp"
-#include "AWPassiveClauseContainer.hpp"
-#include "PredicateSplitPassiveClauseContainer.hpp"
+#include "AWPassiveClauseContainers.hpp"
+#include "PredicateSplitPassiveClauseContainers.hpp"
 #include "Discount.hpp"
 #include "LRS.hpp"
 #include "Otter.hpp"
@@ -133,6 +133,12 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
 std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, std::string name)
 {
+  if (opt.weightRatio() == 0) {
+    ASS_G(opt.ageRatio(),0);
+    return std::make_unique<AgeBasedPassiveClauseContainer>(isOutermost, opt, name + "AgeQ");
+  } else if (opt.ageRatio() == 0) {
+    return std::make_unique<WeightBasedPassiveClauseContainer>(isOutermost, opt, name + "WeightQ");
+  }
   return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
@@ -246,9 +252,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _passive->addedEvent.subscribe(this, &SaturationAlgorithm::onPassiveAdded);
   _passive->removedEvent.subscribe(this, &SaturationAlgorithm::passiveRemovedHandler);
   _passive->selectedEvent.subscribe(this, &SaturationAlgorithm::onPassiveSelected);
-  _unprocessed->addedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedAdded);
-  _unprocessed->removedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedRemoved);
-  _unprocessed->selectedEvent.subscribe(this, &SaturationAlgorithm::onUnprocessedSelected);
 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
@@ -330,7 +333,8 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
  */
 bool SaturationAlgorithm::isComplete()
 {
-  return _completeOptionSettings && !env.statistics->inferencesSkippedDueToColors;
+  return _completeOptionSettings && !env.statistics->inferencesSkippedDueToColors
+        && !env.statistics->discardedNonRedundantClauses; // this covers removals from LRS!
 }
 
 ClauseIterator SaturationAlgorithm::activeClauses()
@@ -419,24 +423,6 @@ void SaturationAlgorithm::onGroundRedundantAdded(Clause* c)
  * removed by some simplification rule (in case of the Discount saturation algorithm).
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
-{
-}
-
-/**
- * A function that is called when a clause is added to the unprocessed clause container.
- */
-void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
-{
-}
-
-/**
- * A function that is called when a clause is removed from the unprocessed clause container.
- */
-void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
-{
-}
-
-void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 {
 }
 
@@ -927,8 +913,8 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   TIME_TRACE("forward simplification");
 
-  if (!_passive->fulfilsAgeLimit(cl) && !_passive->fulfilsWeightLimit(cl)) {
-    RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
+  if (_passive->exceedsAllLimits(cl)) {
+    RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;
   }
@@ -1235,38 +1221,36 @@ void SaturationAlgorithm::activate(Clause* cl)
  */
 void SaturationAlgorithm::doUnprocessedLoop()
 {
-start:
-
-  newClausesToUnprocessed();
-
-  while (!_unprocessed->isEmpty()) {
-    Clause* c = _unprocessed->pop();
-    ASS(!isRefutation(c));
-
-    if (forwardSimplify(c)/*  && forwardGroundSimplify(c) */) {
-      auto infTod = static_cast<OrderingComparator*>(c->getInfTod());
-      if (infTod) {
-        delete infTod;
-        c->setInfTod(nullptr);
-      }
-      onClauseRetained(c);
-      addToPassive(c);
-      ASS_EQ(c->store(), Clause::PASSIVE);
-    }
-    else {
-      ASS_EQ(c->store(), Clause::UNPROCESSED);
-      c->setStore(Clause::NONE);
-    }
-
+  do {
     newClausesToUnprocessed();
-  }
 
-  ASS(clausesFlushed());
-  onAllProcessed();
-  if (!clausesFlushed()) {
-    // there were some new clauses added, so let's process them
-    goto start;
-  }
+    while (!_unprocessed->isEmpty()) {
+      Clause* c = _unprocessed->pop();
+      poppedFromUnprocessed(c); // tells LRS's it might make sense to update limits
+
+      ASS(!isRefutation(c));
+
+      if (forwardSimplify(c)/*  && forwardGroundSimplify(c) */) {
+        auto infTod = static_cast<OrderingComparator*>(c->getInfTod());
+        if (infTod) {
+          delete infTod;
+          c->setInfTod(nullptr);
+        }
+        onClauseRetained(c);
+        addToPassive(c);
+        ASS_EQ(c->store(), Clause::PASSIVE);
+      }
+      else {
+        ASS_EQ(c->store(), Clause::UNPROCESSED);
+        c->setStore(Clause::NONE);
+      }
+
+      newClausesToUnprocessed();
+    }
+
+    ASS(clausesFlushed());
+    onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions
+  } while (!clausesFlushed());
 }
 
 /**
@@ -1329,11 +1313,14 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     throw MainLoopFinishedException(res);
   }
 
-  // auto acl = _active->clauses();
-  // while (acl.hasNext()) {
-  //   auto cl = acl.next();
-  //   _conditionalRedundancyHandler->checkSubsumption(cl);
-  // }
+  /*
+   * Only after processing the whole input (with the first call to doUnprocessedLoop)
+   * it is time to recored for LRS the start time (and instrs) for the first iteration.
+   */
+  if (env.statistics->activations == 0) {
+    _lrsStartTime = Timer::elapsedMilliseconds();
+    _lrsStartInstrs = Timer::elapsedMegaInstructions();
+  }
 
   Clause* cl = nullptr;
   {
@@ -1342,6 +1329,10 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   }
   ASS_EQ(cl->store(), Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
+
+  // we really want to do it here (it's explained "activations started" to the user)
+  // and it should correspond to the number of times _passive->popSelected() was called (for good LRS estimates to work)
+  env.statistics->activations++;
 
   if (!handleClauseBeforeActivation(cl)) {
     return;
@@ -1385,20 +1376,18 @@ void SaturationAlgorithm::doOneAlgorithmStep()
  */
 MainLoopResult SaturationAlgorithm::runImpl()
 {
-  unsigned l = 0;
-
   // could be more precise, but we don't care too much
   unsigned startTime = Timer::elapsedDeciseconds();
   try {
-    for (;; l++) {
-      if (_activationLimit && l > _activationLimit) {
+    env.statistics->activations = 0;
+    while (true) {
+      doOneAlgorithmStep(); // will bump env.statistics->activations by one
+
+      if (_activationLimit && env.statistics->activations > _activationLimit) {
         throw ActivationLimitExceededException();
       }
       if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
         throw TimeLimitExceededException();
-
-      doOneAlgorithmStep();
-      env.statistics->activations = l;
     }
   }
   catch (ThrowableBase&) {

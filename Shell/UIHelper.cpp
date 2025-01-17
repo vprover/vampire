@@ -528,6 +528,14 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Time limit reached!\n";
     break;
+  case Statistics::INSTRUCTION_LIMIT:
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
+      out << "unknown" << endl;
+      return;
+    }
+    addCommentSignForSZS(out);
+    out << "Instruction limit reached!\n";
+    break;
   case Statistics::MEMORY_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
@@ -668,11 +676,6 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
 
   if (sym->interpreted()) {
     //there is no need to output type definitions for interpreted symbols
-    return;
-  }
-
-  if (sym->overflownConstant()) {
-    // don't output definitions of numbers; not even big ones
     return;
   }
 

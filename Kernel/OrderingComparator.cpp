@@ -609,6 +609,7 @@ void OrderingComparator::processTermNode()
 {
   ASS(_curr->node() && !_curr->node()->ready);
   _curr->node()->ready = true;
+  _curr->node()->trace = Trace::getEmpty(_ord);
 }
 
 const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
@@ -765,7 +766,9 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result
     case Ordering::EQUAL: return eqBranch;
     case Ordering::GREATER: return gtBranch;
     case Ordering::INCOMPARABLE:
-    case Ordering::LESS: return ngeBranch;
+    case Ordering::LESS:
+      // no distinction between less and incomparable
+      return ngeBranch;
   }
   ASSERTION_VIOLATION;
 }

@@ -33,9 +33,9 @@
 #if VMINI_GMP
 #include "mini-gmp.c"
 #include "mini-mpq.c"
+#else
+#include <gmpxx.h>
 #endif
-
-#include "Theory.hpp"
 
 std::string to_string(mpz_t const& self) {
   auto s = mpz_sizeinbase(self, /* base */ 10);
@@ -46,30 +46,26 @@ std::string to_string(mpz_t const& self) {
   return out;
 }
 
-#if VMINI_GMP
-std::ostream& operator<<(std::ostream& out, mpz_t const& self)
+std::ostream& output(std::ostream& out, mpz_t const& self)
+// TODO: make this faster usign gmpxx output operator somehow if compiled with !VMINI_GMP
 { return out << to_string(self); }
-#endif
-
-namespace Kernel
-{
 
 using namespace Lib;
 
-///////////////////////
-// IntegerConstantType
-//
+namespace Kernel {
 
-IntegerConstantType::IntegerConstantType(std::string const& str)
-  : Kernel::IntegerConstantType()
+Option<IntegerConstantType> IntegerConstantType::parse(std::string const& str)
 {
-  if (-1 == mpz_set_str(_val, str.c_str(), /* base */ 10)) {
-    throw UserErrorException("not a valit string literal: ", str);
+  auto out = IntegerConstantType(0);
+  if (-1 == mpz_set_str(out._val, str.c_str(), /* base */ 10)) {
+    return {};
+  } else {
+    return some(out);
   }
 }
 
-#define IMPL_BIN_OP(fun, mpz_fun)                                                              \
-  IntegerConstantType IntegerConstantType::fun(const IntegerConstantType& num) const \
+#define IMPL_BIN_OP(fun, mpz_fun)                                                         \
+  IntegerConstantType IntegerConstantType::fun(const IntegerConstantType& num) const      \
   { auto out = IntegerConstantType(0); mpz_fun(out._val, this->_val, num._val); return out; } \
 
   // TODO move semantics
@@ -79,6 +75,15 @@ IMPL_BIN_OP(operator*, mpz_mul)
 IMPL_BIN_OP(lcm, mpz_lcm)
 IMPL_BIN_OP(gcd, mpz_gcd)
 IMPL_BIN_OP(inverseModulo, mpz_invert)
+
+#undef IMPL_BIN_OP
+
+IntegerConstantType IntegerConstantType::operator^(unsigned long num) const
+{ 
+  auto out = IntegerConstantType(0); 
+  mpz_pow_ui(out._val, this->_val, num); 
+  return out; 
+}
 
 // TODO operator(s) for move references ?!
 #define IMPL_UN_OP(fun, mpz_fun)                                                          \
@@ -328,9 +333,8 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
 { return RationalConstantType::comparePrecedence(n1, n2); }
 
-bool RealConstantType::parseDouble(const std::string& num, RationalConstantType& res)
+Option<RationalConstantType> parseRat(const std::string& num)
 {
-
   std::string newNum;
   IntegerConstantType denominator = IntegerConstantType(1);
   bool haveDecimal = false;
@@ -339,7 +343,7 @@ bool RealConstantType::parseDouble(const std::string& num, RationalConstantType&
   for(size_t i=0; i<nlen; i++) {
     if (num[i]=='.') {
       if (haveDecimal) {
-        return false;
+        return {};
       }
       haveDecimal = true;
     }
@@ -358,28 +362,40 @@ bool RealConstantType::parseDouble(const std::string& num, RationalConstantType&
       }
     }
     else {
-      return false;
+      return {};
     }
   }
   if (neg) {
     newNum = '-'+newNum;
   }
-  IntegerConstantType numerator(newNum);
-  res = RationalConstantType(numerator, denominator);
-  return true;
+  auto numerator = IntegerConstantType::parse(newNum).unwrap();
+  return some(RationalConstantType(numerator, denominator));
 }
 
+Option<RationalConstantType> parseExponentInteger(std::string const& number, const char* exponentChars) {
+  auto i = number.find_first_of(exponentChars);
+  if (i != std::string::npos) {
+    auto base = parseRat(number.substr(0, i));
+    int exp = 0;
+    if (Int::stringToInt(number.substr(i + 1).c_str(), exp) && base.isSome()) {
+      return some(
+          exp >= 0 ? (*base) * (IntegerConstantType(10) ^ (unsigned long)exp)
+                   : (*base) / RationalConstantType((IntegerConstantType(10) ^ (unsigned long)abs(exp))));
+    }
+  }
+  return {};
+}
 
-RealConstantType::RealConstantType(const std::string& number)
-  : RealConstantType()
+Option<RealConstantType> RealConstantType::parse(std::string const& number)
 {
-
-  RationalConstantType value;
-  if (parseDouble(number, value))  {
-    *this = RealConstantType(std::move(value));
-    return;
+  if (auto r = parseExponentInteger(number, "E")) {
+    return some(RealConstantType(std::move(*r)));
+  } else if (auto r = parseExponentInteger(number, "e")) {
+    return some(RealConstantType(std::move(*r)));
+  } else if (auto r = parseRat(number))  {
+    return some(RealConstantType(std::move(*r)));
   } else {
-    throw UserErrorException("invalid decimal literal");
+    return {};
   }
 }
 
@@ -1413,9 +1429,7 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 
 
 bool Theory::isInterpretedPredicate(unsigned pred, Interpretation itp)
-{
-  return isInterpretedPredicate(pred) && interpretPredicate(pred) == itp;
-}
+{ return isInterpretedPredicate(pred) && interpretPredicate(pred) == itp; }
 
 /**
  * Return true iff @b lit has an interpreted predicate interpreted
@@ -1608,48 +1622,20 @@ bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
-  unsigned func = env.signature->addIntegerConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
 Term* Theory::representConstant(const RationalConstantType& num)
 {
-  unsigned func = env.signature->addRationalConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
 }
 
 Term* Theory::representConstant(const RealConstantType& num)
 {
-  unsigned func = env.signature->addRealConstant(num);
+  unsigned func = env.signature->addNumeralConstant(num);
   return Term::create(func, 0, 0);
-}
-
-Term* Theory::representIntegerConstant(std::string str)
-{
-  try {
-    return Theory::instance()->representConstant(IntegerConstantType(str));
-  }
-  catch(ArithmeticException&) {
-    NOT_IMPLEMENTED;
-//    bool added;
-//    unsigned fnNum = env.signature->addFunction(str, 0, added);
-//    if (added) {
-//      env.signature->getFunction(fnNum)->setType(new FunctionType(Sorts::SRT_INTEGER));
-//      env.signature->addToDistinctGroup(fnNum, Signature::INTEGER_DISTINCT_GROUP);
-//    }
-//    else {
-//      ASS(env.signature->getFunction(fnNum))
-//    }
-  }
-}
-
-Term* Theory::representRealConstant(std::string str)
-{
-  try {
-    return Theory::instance()->representConstant(RealConstantType(str));
-  } catch(ArithmeticException&) {
-    NOT_IMPLEMENTED;
-  }
 }
 
 /**
@@ -1763,7 +1749,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
 }
 
 std::ostream& operator<<(std::ostream& out, IntegerConstantType const& self)
-{ return out << self._val; }
+{ return output(out, self._val); }
 
 std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
 #if NICE_THEORY_OUTPUT
@@ -1906,24 +1892,6 @@ bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
 bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
 {
   return t.isTerm() && isInterpretedFunction(t.term(), itp);
-}
-
-IntegerConstantType naiveInverseModulo(IntegerConstantType const& l, IntegerConstantType const& m)
-{
-  ASS(!m.isZero())
-  if (m == IntegerConstantType(1)) {
-    return IntegerConstantType(0);
-  }
-  // TODO use extended euclidean algorithm instead
-  ASS(l.isPositive()) // <- can be done but not implemented
-  ASS(m.isPositive()) // <- can be done but not implemented
-  auto one = IntegerConstantType(1);
-  for (auto i : range(0, m)) {
-    if ((l * i).remainderE(m) == 1) {
-      return IntegerConstantType(i);
-    }
-  }
-  ASSERTION_VIOLATION_REP("inverse does not exists")
 }
 
 } // namespace Kernel

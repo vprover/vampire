@@ -68,7 +68,7 @@ void Otter::onSOSClauseAdded(Clause* cl)
   _simplCont.add(cl);
 }
 
-void Otter::beforeSelectedRemoved(Clause* cl) 
+void Otter::beforeSelectedRemoved(Clause* cl)
 {
   ASS_EQ(cl->store(), Clause::SELECTED);
   _simplCont.remove(cl);
