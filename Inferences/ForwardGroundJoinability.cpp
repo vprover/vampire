@@ -60,9 +60,6 @@ void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
   ForwardGroundSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
-  auto drc = _salg->getOptions().demodulationRedundancyCheck();
-  _redundancyCheck = drc != Options::DemodulationRedundancyCheck::OFF;
-  _encompassing = drc == Options::DemodulationRedundancyCheck::ENCOMPASS;
 }
 
 void ForwardGroundJoinability::detach()

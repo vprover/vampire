@@ -1665,10 +1665,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (prb.hasEquality()) {
     if (opt.forwardGroundReducibility()) {
-      res->addForwardGroundSimplifierToFront(new ForwardGroundReducibility());
+      res->addForwardGroundSimplifierToFront(new ForwardGroundReducibility(opt));
     }
     if (opt.forwardGroundJoinability()) {
-      res->addForwardGroundSimplifierToFront(new ForwardGroundJoinability());
+      res->addForwardGroundSimplifierToFront(new ForwardGroundJoinability(opt));
     }
   }
   if (prb.hasEquality()) {

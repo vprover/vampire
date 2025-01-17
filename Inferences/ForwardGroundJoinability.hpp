@@ -33,6 +33,10 @@ class ForwardGroundJoinability
 : public ForwardGroundSimplificationEngine
 {
 public:
+  ForwardGroundJoinability(const Options& opts)
+    : _redundancyCheck(opts.demodulationRedundancyCheck()!=Options::DemodulationRedundancyCheck::OFF),
+      _encompassing(opts.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS) {}
+
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, ClauseIterator& replacements, ClauseIterator& premises) override;

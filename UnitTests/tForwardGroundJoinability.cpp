@@ -43,7 +43,7 @@ TEST_FUN(joinability_test01) {
   Test::MockedSaturationAlgorithm salg(p, o);
   const Stack<Index*>& indices = { demodulationLhsIndex(salg) };
 
-  ForwardGroundJoinability fgj;
+  ForwardGroundJoinability fgj(o);
   fgj.setTestIndices(indices);
   fgj.InferenceEngine::attach(&salg);
   for (auto i : indices) {
