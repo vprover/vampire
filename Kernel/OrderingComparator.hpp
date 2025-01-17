@@ -218,6 +218,7 @@ public:
       Stack<TermOrderingConstraint> cons;
       Branch* branch;
     };
+    void initCurrent(Stack<BranchingPoint>* ptr);
 
     DHMap<Branch*, Stack<BranchingPoint>> _map;
   };

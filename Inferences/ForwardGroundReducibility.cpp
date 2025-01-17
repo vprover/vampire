@@ -86,6 +86,7 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
   Ordering& ordering = _salg->getOrdering();
 
   static DHSet<TermList> attempted;
+  DHMap<std::pair<TermList,TermList>,OrderingComparator::VarOrderExtractor> extractors;
 
   // TODO investigate source of nondeterminism here
 
@@ -159,12 +160,28 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
 
           POStruct po_struct(tpo);
 
-          qr.data->comparator->init(&appl);
-          if (!qr.data->comparator->next(&po_struct)) {
+          // qr.data->comparator->init(&appl);
+          // if (!qr.data->comparator->next(&po_struct)) {
+          //   continue;
+          // }
+
+          AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
+
+          OrderingComparator::VarOrderExtractor* ptr;
+          if (extractors.getValuePtr({ trm, rhsApplied.apply() }, ptr)) {
+            auto comp = ordering.createComparator(false, true);
+            comp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
+            ptr->init(std::move(comp));
+          }
+          if (!ptr->extract(po_struct)) {
             continue;
           }
 
-          AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
+#if VDEBUG
+          auto dcomp = ordering.createComparator(false, false, po_struct.tpo);
+          dcomp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
+          ASS(dcomp->checkAndCompress());
+#endif
 
           if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
             TermList other = EqHelper::getOtherEqualitySide(clit, trm);
@@ -172,6 +189,11 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
             if (redComp != Ordering::GREATER) {
               continue;
             }
+#if VDEBUG
+            dcomp = ordering.createComparator(false, false, po_struct.tpo);
+            dcomp->insert({ { other, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
+            ASS(dcomp->checkAndCompress());
+#endif
           }
 
           tpo = next(po_struct.cons);

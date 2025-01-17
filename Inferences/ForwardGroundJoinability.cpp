@@ -124,6 +124,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
     return false;
   }
   DHSet<Clause*> premiseSet;
+  DHMap<std::pair<TermList,TermList>,OrderingComparator::VarOrderExtractor> extractors;
 
   // cleanup previous states
   while (_states.isNonEmpty()) {
@@ -201,10 +202,10 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
 
         POStruct po_struct(tpo);
 
-        qr.data->comparator->init(&appl);
-        if (!qr.data->comparator->next(&po_struct)) {
-          continue;
-        }
+        // qr.data->comparator->init(&appl);
+        // if (!qr.data->comparator->next(&po_struct)) {
+        //   continue;
+        // }
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (redundancyCheck) {
@@ -220,6 +221,22 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
 
         AppliedTerm rhsApplied(rhs, &appl, true);
 
+        OrderingComparator::VarOrderExtractor* ptr;
+        if (extractors.getValuePtr({ trm, rhsApplied.apply() }, ptr)) {
+          auto comp = ordering.createComparator(false, true);
+          comp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
+          ptr->init(std::move(comp));
+        }
+        if (!ptr->extract(po_struct)) {
+          continue;
+        }
+
+#if VDEBUG
+        auto dcomp = ordering.createComparator(false, false, po_struct.tpo);
+        dcomp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
+        ASS(dcomp->checkAndCompress());
+#endif
+
         if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
           TermList other = trm == curr->left ? curr->right : curr->left;
           auto redComp = ordering.compareUnidirectional(other, rhsApplied, &po_struct);
@@ -228,6 +245,14 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
           if (((curr->L && curr->R) || redComp != Ordering::EQUAL) && redComp != Ordering::GREATER) {
             continue;
           }
+#if VDEBUG
+          dcomp = ordering.createComparator(false, false, po_struct.tpo);
+          dcomp->insert({ { other, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
+          if (!curr->L || !curr->R) {
+            dcomp->insert({ { other, rhsApplied.apply(), Ordering::EQUAL } }, (void*)0x1);
+          }
+          ASS(dcomp->checkAndCompress());
+#endif
         }
 
         TermList rhsS = rhsApplied.apply();

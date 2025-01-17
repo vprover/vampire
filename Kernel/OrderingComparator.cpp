@@ -268,86 +268,6 @@ void OrderingComparator::VarOrderExtractor::init(OrderingComparatorUP comp)
 {
   _comp = std::move(comp);
   ASS(_comp->_ground);
-  Stack<Branch*> path;
-  path.push(&_comp->_source);
-  while (path.isNonEmpty()) {
-    if (path.size()==1) {
-      _comp->_prev = nullptr;
-    } else {
-      _comp->_prev = path[path.size()-2];
-    }
-    _comp->_curr = path.top();
-    _comp->processCurrentNode();
-
-    Stack<BranchingPoint>* ptr;
-    ALWAYS(_map.getValuePtr(path.top(), ptr));
-
-    auto lnode = _comp->_curr->node();
-    switch (lnode->tag) {
-      case Node::T_DATA: {
-        // go to next node
-        while (path.isNonEmpty()) {
-          auto curr = path.pop();
-          if (path.isEmpty()) {
-            break;
-          }
-
-          auto prev = path.top()->node();
-          ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
-          // if there is a previous node and we were either in the gt or eq
-          // branches, just go to next branch in order, otherwise backtrack
-          if (curr == &prev->gtBranch) {
-            path.push(&prev->eqBranch);
-            break;
-          }
-          if (curr == &prev->eqBranch) {
-            path.push(&prev->ngeBranch);
-            break;
-          }
-          ASS_EQ(curr, &prev->ngeBranch);
-        }
-        break;
-      }
-      case Node::T_TERM: {
-        auto lhs = lnode->lhs;
-        auto rhs = lnode->rhs;
-        ASS(lhs.isVar() || rhs.isVar());
-        if (lhs.isVar() && rhs.isVar()) {
-          // x ? y
-          ptr->push({ { { lhs, rhs, Result::GREATER } }, &lnode->gtBranch });
-          ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &lnode->eqBranch });
-          ptr->push({ { { lhs, rhs, Result::LESS    } }, &lnode->ngeBranch });
-        } else if (rhs.isVar()) {
-          ASS(lhs.isTerm());
-          // s[x_1,...,x_n] ? y
-          VariableIterator vit(lhs.term());
-          while (vit.hasNext()) {
-            auto v = vit.next();
-            // x_i ≥ y ⇒ s[x_1,...,x_n] > y
-            ptr->push({ { { v, rhs, Result::GREATER } }, &lnode->gtBranch });
-            ptr->push({ { { v, rhs, Result::EQUAL   } }, &lnode->gtBranch });
-          }
-        } else {
-          ASS(rhs.isTerm());
-          // x ? t[y_1,...,y_n]
-          VariableIterator vit(rhs.term());
-          while (vit.hasNext()) {
-            auto v = vit.next();
-            // x ≤ y_i ⇒ x < t[y_1,...,y_n]
-            ptr->push({ { { lhs, v, Result::EQUAL } }, &lnode->ngeBranch });
-            ptr->push({ { { lhs, v, Result::LESS  } }, &lnode->ngeBranch });
-          }
-        }
-        path.push(&lnode->gtBranch);
-        break;
-      }
-      case Node::T_POLY: {
-        ASSERTION_VIOLATION;
-        path.push(&lnode->gtBranch);
-        break;
-      }
-    }
-  }
 }
 
 bool OrderingComparator::VarOrderExtractor::extract(POStruct& po_struct)
@@ -355,8 +275,14 @@ bool OrderingComparator::VarOrderExtractor::extract(POStruct& po_struct)
   Stack<std::tuple<Branch*,POStruct,unsigned>> path;
   path.push({ &_comp->_source, po_struct, 0 });
   while (path.isNonEmpty()) {
+    if (path.size()==1) {
+      _comp->_prev = nullptr;
+    } else {
+      _comp->_prev = get<0>(path[path.size()-2]);
+    }
     auto& [branch, ps, index] = path.top();
-    ASS(branch->node()->ready);
+    _comp->_curr = branch;
+    _comp->processCurrentNode();
 
     auto node = branch->node();
     if (node->tag == Node::T_DATA) {
@@ -369,8 +295,10 @@ bool OrderingComparator::VarOrderExtractor::extract(POStruct& po_struct)
       continue;
     }
 
-    auto ptr = _map.findPtr(branch);
-    ASS(ptr);
+    Stack<BranchingPoint>* ptr;
+    if (_map.getValuePtr(branch, ptr)) {
+      initCurrent(ptr);
+    }
     bool success = false;
     while (index < ptr->size()) {
       auto& bp = (*ptr)[index++];
@@ -410,6 +338,54 @@ bool OrderingComparator::VarOrderExtractor::tryExtend(POStruct& po_struct, const
     po_struct.cons.push(con);
   }
   return true;
+}
+
+void OrderingComparator::VarOrderExtractor::initCurrent(Stack<BranchingPoint>* ptr)
+{
+  auto lnode = _comp->_curr->node();
+  ASS(lnode->ready);
+
+  switch (lnode->tag) {
+    case Node::T_DATA: {
+      break;
+    }
+    case Node::T_TERM: {
+      auto lhs = lnode->lhs;
+      auto rhs = lnode->rhs;
+      ASS(lhs.isVar() || rhs.isVar());
+      if (lhs.isVar() && rhs.isVar()) {
+        // x ? y
+        ptr->push({ { { lhs, rhs, Result::GREATER } }, &lnode->gtBranch });
+        ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &lnode->eqBranch });
+        ptr->push({ { { lhs, rhs, Result::LESS    } }, &lnode->ngeBranch });
+      } else if (rhs.isVar()) {
+        ASS(lhs.isTerm());
+        // s[x_1,...,x_n] ? y
+        VariableIterator vit(lhs.term());
+        while (vit.hasNext()) {
+          auto v = vit.next();
+          // x_i ≥ y ⇒ s[x_1,...,x_n] > y
+          ptr->push({ { { v, rhs, Result::GREATER } }, &lnode->gtBranch });
+          ptr->push({ { { v, rhs, Result::EQUAL   } }, &lnode->gtBranch });
+        }
+      } else {
+        ASS(rhs.isTerm());
+        // x ? t[y_1,...,y_n]
+        VariableIterator vit(rhs.term());
+        while (vit.hasNext()) {
+          auto v = vit.next();
+          // x ≤ y_i ⇒ x < t[y_1,...,y_n]
+          ptr->push({ { { lhs, v, Result::EQUAL } }, &lnode->ngeBranch });
+          ptr->push({ { { lhs, v, Result::LESS  } }, &lnode->ngeBranch });
+        }
+      }
+      break;
+    }
+    case Node::T_POLY: {
+      ASSERTION_VIOLATION;
+      break;
+    }
+  }
 }
 
 void OrderingComparator::processCurrentNode()
@@ -788,8 +764,8 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result
   switch (r) {
     case Ordering::EQUAL: return eqBranch;
     case Ordering::GREATER: return gtBranch;
-    case Ordering::INCOMPARABLE: return ngeBranch;
-    case Ordering::LESS: break; // no distinction between less and incomparable
+    case Ordering::INCOMPARABLE:
+    case Ordering::LESS: return ngeBranch;
   }
   ASSERTION_VIOLATION;
 }
