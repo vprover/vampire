@@ -210,6 +210,8 @@ LOOP_END:
     premises = pvi(concatIters(premises,getSingletonIterator(demodulator))); // this gives duplicates
   }
 
+  ALWAYS(fail != _comp->checkAndCompress());
+
   if (fail) {
     delete static_cast<OrderingComparator*>(cl->getTod());
     cl->setTod(_comp.release());

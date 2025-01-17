@@ -204,6 +204,214 @@ Stack<pair<void*,const TermPartialOrdering*>> OrderingComparator::enumerate()
   return res;
 }
 
+bool OrderingComparator::checkAndCompress()
+{
+  bool res = true;
+
+  Stack<Branch*> path;
+  path.push(&_source);
+  while (path.isNonEmpty()) {
+    if (path.size()==1) {
+      _prev = nullptr;
+    } else {
+      _prev = path[path.size()-2];
+    }
+    _curr = path.top();
+    processCurrentNode();
+
+    auto lnode = _curr->node();
+    if (lnode->tag != Node::T_DATA) {
+      path.push(&lnode->gtBranch);
+      continue;
+    }
+    if (!lnode->data) {
+      res = false;
+    }
+    while (path.isNonEmpty()) {
+      auto curr = path.pop();
+      if (path.isEmpty()) {
+        continue;
+      }
+
+      auto prev = path.top()->node();
+      ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
+      // if there is a previous node and we were either in the gt or eq
+      // branches, just go to next branch in order, otherwise backtrack
+      if (curr == &prev->gtBranch) {
+        path.push(&prev->eqBranch);
+        break;
+      }
+      if (curr == &prev->eqBranch) {
+        path.push(&prev->ngeBranch);
+        break;
+      }
+      // all subtrees traversed, let's compress if possible
+      ASS_EQ(curr, &prev->ngeBranch);
+      if (prev->gtBranch.node()->tag != Node::T_DATA ||
+          prev->eqBranch.node()->tag != Node::T_DATA ||
+          prev->ngeBranch.node()->tag != Node::T_DATA)
+      {
+        continue;
+      }
+      if (prev->gtBranch.node()->data != prev->eqBranch.node()->data ||
+          prev->eqBranch.node()->data != prev->ngeBranch.node()->data)
+      {
+        continue;
+      }
+      *path.top() = Branch(prev->gtBranch.node()->data, _sink);
+    }
+  }
+  return res;
+}
+
+void OrderingComparator::VarOrderExtractor::init(OrderingComparatorUP comp)
+{
+  _comp = std::move(comp);
+  ASS(_comp->_ground);
+  Stack<Branch*> path;
+  path.push(&_comp->_source);
+  while (path.isNonEmpty()) {
+    if (path.size()==1) {
+      _comp->_prev = nullptr;
+    } else {
+      _comp->_prev = path[path.size()-2];
+    }
+    _comp->_curr = path.top();
+    _comp->processCurrentNode();
+
+    Stack<BranchingPoint>* ptr;
+    ALWAYS(_map.getValuePtr(path.top(), ptr));
+
+    auto lnode = _comp->_curr->node();
+    switch (lnode->tag) {
+      case Node::T_DATA: {
+        // go to next node
+        while (path.isNonEmpty()) {
+          auto curr = path.pop();
+          if (path.isEmpty()) {
+            break;
+          }
+
+          auto prev = path.top()->node();
+          ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
+          // if there is a previous node and we were either in the gt or eq
+          // branches, just go to next branch in order, otherwise backtrack
+          if (curr == &prev->gtBranch) {
+            path.push(&prev->eqBranch);
+            break;
+          }
+          if (curr == &prev->eqBranch) {
+            path.push(&prev->ngeBranch);
+            break;
+          }
+          ASS_EQ(curr, &prev->ngeBranch);
+        }
+        break;
+      }
+      case Node::T_TERM: {
+        auto lhs = lnode->lhs;
+        auto rhs = lnode->rhs;
+        ASS(lhs.isVar() || rhs.isVar());
+        if (lhs.isVar() && rhs.isVar()) {
+          // x ? y
+          ptr->push({ { { lhs, rhs, Result::GREATER } }, &lnode->gtBranch });
+          ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &lnode->eqBranch });
+          ptr->push({ { { lhs, rhs, Result::LESS    } }, &lnode->ngeBranch });
+        } else if (rhs.isVar()) {
+          ASS(lhs.isTerm());
+          // s[x_1,...,x_n] ? y
+          VariableIterator vit(lhs.term());
+          while (vit.hasNext()) {
+            auto v = vit.next();
+            // x_i ≥ y ⇒ s[x_1,...,x_n] > y
+            ptr->push({ { { v, rhs, Result::GREATER } }, &lnode->gtBranch });
+            ptr->push({ { { v, rhs, Result::EQUAL   } }, &lnode->gtBranch });
+          }
+        } else {
+          ASS(rhs.isTerm());
+          // x ? t[y_1,...,y_n]
+          VariableIterator vit(rhs.term());
+          while (vit.hasNext()) {
+            auto v = vit.next();
+            // x ≤ y_i ⇒ x < t[y_1,...,y_n]
+            ptr->push({ { { lhs, v, Result::EQUAL } }, &lnode->ngeBranch });
+            ptr->push({ { { lhs, v, Result::LESS  } }, &lnode->ngeBranch });
+          }
+        }
+        path.push(&lnode->gtBranch);
+        break;
+      }
+      case Node::T_POLY: {
+        ASSERTION_VIOLATION;
+        path.push(&lnode->gtBranch);
+        break;
+      }
+    }
+  }
+}
+
+bool OrderingComparator::VarOrderExtractor::extract(POStruct& po_struct)
+{
+  Stack<std::tuple<Branch*,POStruct,unsigned>> path;
+  path.push({ &_comp->_source, po_struct, 0 });
+  while (path.isNonEmpty()) {
+    auto& [branch, ps, index] = path.top();
+    ASS(branch->node()->ready);
+
+    auto node = branch->node();
+    if (node->tag == Node::T_DATA) {
+      if (node->data) {
+        po_struct = ps;
+        return true;
+      }
+      // backtrack
+      path.pop();
+      continue;
+    }
+
+    auto ptr = _map.findPtr(branch);
+    ASS(ptr);
+    bool success = false;
+    while (index < ptr->size()) {
+      auto& bp = (*ptr)[index++];
+      POStruct eps = ps;
+      if (tryExtend(eps, bp.cons)) {
+        // go one down
+        path.push({ bp.branch, eps, 0 });
+        success = true;
+        break;
+      }
+    }
+    if (!success) {
+      path.pop();
+    }
+  }
+  return false;
+}
+
+bool OrderingComparator::VarOrderExtractor::tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons)
+{
+  for (const auto& con : cons) {
+    // already contains relation
+    if (po_struct.tpo->get(con.lhs, con.rhs) == con.rel) {
+      continue;
+    }
+    auto etpo = TermPartialOrdering::set(po_struct.tpo, con);
+    // extension failed
+    if (!etpo) {
+      return false;
+    }
+    ASS(!etpo->hasIncomp());
+    // relation did not change
+    if (etpo == po_struct.tpo) {
+      continue;
+    }
+    po_struct.tpo = etpo;
+    po_struct.cons.push(con);
+  }
+  return true;
+}
+
 void OrderingComparator::processCurrentNode()
 {
   ASS(_curr->node());

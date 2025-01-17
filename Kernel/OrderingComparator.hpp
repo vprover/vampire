@@ -63,6 +63,8 @@ public:
 
   Stack<std::pair<void*,const TermPartialOrdering*>> enumerate();
 
+  bool checkAndCompress();
+
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
 private:
@@ -202,6 +204,23 @@ protected:
   bool _onlyVars;
   bool _ground;
   const TermPartialOrdering* _head;
+
+public:
+  struct VarOrderExtractor {
+    void init(OrderingComparatorUP comp);
+
+    bool extract(POStruct& po_struct);
+    bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
+
+    OrderingComparatorUP _comp;
+
+    struct BranchingPoint {
+      Stack<TermOrderingConstraint> cons;
+      Branch* branch;
+    };
+
+    DHMap<Branch*, Stack<BranchingPoint>> _map;
+  };
 };
 
 } // namespace Kernel
