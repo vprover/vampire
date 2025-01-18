@@ -171,14 +171,14 @@ Stack<pair<void*,const TermPartialOrdering*>> OrderingComparator::enumerate()
     _curr = path.top();
     processCurrentNode();
 
-    auto lnode = _curr->node();
-    if (lnode->tag != OrderingComparator::Node::T_DATA) {
-      path.push(&lnode->gtBranch);
+    auto node = _curr->node();
+    if (node->tag != OrderingComparator::Node::T_DATA) {
+      path.push(&node->gtBranch);
       continue;
     }
-    if (lnode->data) {
-      ASS(lnode->trace);
-      res.push({ lnode->data, lnode->trace });
+    if (node->data) {
+      ASS(node->trace);
+      res.push({ node->data, node->trace });
     }
     while (path.isNonEmpty()) {
       auto curr = path.pop();
@@ -219,12 +219,12 @@ bool OrderingComparator::checkAndCompress()
     _curr = path.top();
     processCurrentNode();
 
-    auto lnode = _curr->node();
-    if (lnode->tag != Node::T_DATA) {
-      path.push(&lnode->gtBranch);
+    auto node = _curr->node();
+    if (node->tag != Node::T_DATA) {
+      path.push(&node->gtBranch);
       continue;
     }
-    if (!lnode->data) {
+    if (!node->data) {
       res = false;
     }
     while (path.isNonEmpty()) {
@@ -342,22 +342,22 @@ bool OrderingComparator::VarOrderExtractor::tryExtend(POStruct& po_struct, const
 
 void OrderingComparator::VarOrderExtractor::initCurrent(Stack<BranchingPoint>* ptr)
 {
-  auto lnode = _comp->_curr->node();
-  ASS(lnode->ready);
+  auto node = _comp->_curr->node();
+  ASS(node->ready);
 
-  switch (lnode->tag) {
+  switch (node->tag) {
     case Node::T_DATA: {
       break;
     }
     case Node::T_TERM: {
-      auto lhs = lnode->lhs;
-      auto rhs = lnode->rhs;
+      auto lhs = node->lhs;
+      auto rhs = node->rhs;
       ASS(lhs.isVar() || rhs.isVar());
       if (lhs.isVar() && rhs.isVar()) {
         // x ? y
-        ptr->push({ { { lhs, rhs, Result::GREATER } }, &lnode->gtBranch });
-        ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &lnode->eqBranch });
-        ptr->push({ { { lhs, rhs, Result::LESS    } }, &lnode->ngeBranch });
+        ptr->push({ { { lhs, rhs, Result::GREATER } }, &node->gtBranch });
+        ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->eqBranch });
+        ptr->push({ { { lhs, rhs, Result::LESS    } }, &node->ngeBranch });
       } else if (rhs.isVar()) {
         ASS(lhs.isTerm());
         // s[x_1,...,x_n] ? y
@@ -365,8 +365,8 @@ void OrderingComparator::VarOrderExtractor::initCurrent(Stack<BranchingPoint>* p
         while (vit.hasNext()) {
           auto v = vit.next();
           // x_i ≥ y ⇒ s[x_1,...,x_n] > y
-          ptr->push({ { { v, rhs, Result::GREATER } }, &lnode->gtBranch });
-          ptr->push({ { { v, rhs, Result::EQUAL   } }, &lnode->gtBranch });
+          ptr->push({ { { v, rhs, Result::GREATER } }, &node->gtBranch });
+          ptr->push({ { { v, rhs, Result::EQUAL   } }, &node->gtBranch });
         }
       } else {
         ASS(rhs.isTerm());
@@ -375,8 +375,8 @@ void OrderingComparator::VarOrderExtractor::initCurrent(Stack<BranchingPoint>* p
         while (vit.hasNext()) {
           auto v = vit.next();
           // x ≤ y_i ⇒ x < t[y_1,...,y_n]
-          ptr->push({ { { lhs, v, Result::EQUAL } }, &lnode->ngeBranch });
-          ptr->push({ { { lhs, v, Result::LESS  } }, &lnode->ngeBranch });
+          ptr->push({ { { lhs, v, Result::EQUAL } }, &node->ngeBranch });
+          ptr->push({ { { lhs, v, Result::LESS  } }, &node->ngeBranch });
         }
       }
       break;

@@ -65,6 +65,8 @@ protected:
   Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
   Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
+  Result lpoIterative(AppliedTerm tl1, AppliedTerm tl2) const;
+
   friend class LPOComparator;
 };
 
