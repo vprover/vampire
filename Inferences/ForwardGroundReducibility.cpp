@@ -162,17 +162,21 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
           //   continue;
           // }
 
-          AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
-
-          OrderingComparator::VarOrderExtractor* ptr;
-          if (extractors.getValuePtr({ trm, rhsApplied.apply() }, ptr)) {
-            auto comp = ordering.createComparator(false, true);
-            comp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
-            ptr->init(std::move(comp));
-          }
-          if (!ptr->extract(po_struct)) {
+          if (!qr.data->comparator->extractVarOrder(&appl, po_struct)) {
             continue;
           }
+
+          AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
+
+          // OrderingComparator::VarOrderExtractor* ptr;
+          // if (extractors.getValuePtr({ trm, rhsApplied.apply() }, ptr)) {
+          //   auto comp = ordering.createComparator(false, true);
+          //   comp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
+          //   ptr->init(std::move(comp));
+          // }
+          // if (!ptr->extract(po_struct)) {
+          //   continue;
+          // }
 
 #if VDEBUG
           auto dcomp = ordering.createComparator(false, false, po_struct.tpo);

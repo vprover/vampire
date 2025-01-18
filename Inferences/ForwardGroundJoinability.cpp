@@ -204,6 +204,10 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
         //   continue;
         // }
 
+        if (!qr.data->comparator->extractVarOrder(&appl, po_struct)) {
+          continue;
+        }
+
         // encompassing demodulation is fine when rewriting the smaller guy
         if (redundancyCheck) {
           // this will only run at most once;
@@ -218,15 +222,15 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
 
         AppliedTerm rhsApplied(rhs, &appl, true);
 
-        OrderingComparator::VarOrderExtractor* ptr;
-        if (extractors.getValuePtr({ trm, rhsApplied.apply() }, ptr)) {
-          auto comp = ordering.createComparator(false, true);
-          comp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
-          ptr->init(std::move(comp));
-        }
-        if (!ptr->extract(po_struct)) {
-          continue;
-        }
+        // OrderingComparator::VarOrderExtractor* ptr;
+        // if (extractors.getValuePtr({ trm, rhsApplied.apply() }, ptr)) {
+        //   auto comp = ordering.createComparator(false, true);
+        //   comp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
+        //   ptr->init(std::move(comp));
+        // }
+        // if (!ptr->extract(po_struct)) {
+        //   continue;
+        // }
 
 #if VDEBUG
         auto dcomp = ordering.createComparator(false, false, po_struct.tpo);

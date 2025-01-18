@@ -65,6 +65,8 @@ public:
 
   bool checkAndCompress();
 
+  bool extractVarOrder(const SubstApplicator* appl, POStruct& po_struct);
+
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
 private:
@@ -221,6 +223,27 @@ public:
     void initCurrent(Stack<BranchingPoint>* ptr);
 
     DHMap<Branch*, Stack<BranchingPoint>> _map;
+  };
+
+  struct VarOrderExtractor2 {
+    VarOrderExtractor2(const Ordering& ord, TermList lhs, TermList rhs, const SubstApplicator* appl, POStruct po_struct);
+
+    // bool hasAlternative() { _path.isNonEmpty(); }
+    std::pair<Result,POStruct> next();
+
+    bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
+
+    OrderingComparatorUP _comp;
+
+    struct BranchingPoint {
+      Stack<TermOrderingConstraint> cons;
+      Branch* branch;
+    };
+    void initCurrent(Stack<BranchingPoint>* ptr);
+
+    DHMap<Branch*, Stack<BranchingPoint>> _map;
+    Stack<std::tuple<Branch*,POStruct,unsigned>> _path;
+    POStruct _po_struct;
   };
 };
 

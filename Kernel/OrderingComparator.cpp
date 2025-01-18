@@ -264,6 +264,68 @@ bool OrderingComparator::checkAndCompress()
   return res;
 }
 
+bool OrderingComparator::extractVarOrder(const SubstApplicator* appl, POStruct& po_struct)
+{
+  Stack<tuple<Branch*,POStruct,std::unique_ptr<VarOrderExtractor2>>> path;
+  Stack<unsigned> btStack;
+
+  path.push({ &_source, po_struct, nullptr });
+  while (path.isNonEmpty()) {
+    if (path.size()==1) {
+      _prev = nullptr;
+    } else {
+      _prev = get<0>(path[path.size()-2]);
+    }
+    auto& [curr,ps,voe] = path.top();
+    _curr = curr;
+    processCurrentNode();
+
+    auto node = _curr->node();
+    switch (node->tag) {
+      case Node::T_DATA: {
+        // we have success, return true
+        if (node->data) {
+          po_struct = ps;
+          return true;
+        }
+        // we cannot backtrack, return false
+        if (btStack.isEmpty()) {
+          return false;
+        }
+        // backtrack
+        path.truncate(btStack.pop());
+        break;
+      }
+      case Node::T_POLY: {
+        // TODO this could be just branching three ways for now
+        ASSERTION_VIOLATION;
+        break;
+      }
+      case Node::T_TERM: {
+        auto lhs = node->lhs;
+        auto rhs = node->rhs;
+        if (voe == nullptr) {
+          voe = make_unique<VarOrderExtractor2>(_ord, lhs, rhs, appl, ps);
+        }
+        // the iterator must always have a next item:
+        // (i)  if we execute it for the first time
+        // (ii) if we backtrack here because it has an alternative
+
+        // TODO except when e.g. it is always GREATER or EQUAL
+        auto [comp,new_ps] = voe->next();
+        path.push({ &node->getBranch(comp), new_ps, nullptr });
+        // INCOMPARABLE is always the last we get,
+        // until then we can always backtrack here
+        if (comp != Ordering::INCOMPARABLE) {
+          btStack.push(path.size());
+        }
+        break;
+      }
+    }
+  }
+  return false;
+}
+
 void OrderingComparator::VarOrderExtractor::init(OrderingComparatorUP comp)
 {
   _comp = std::move(comp);
@@ -378,6 +440,143 @@ void OrderingComparator::VarOrderExtractor::initCurrent(Stack<BranchingPoint>* p
           ptr->push({ { { lhs, v, Result::EQUAL } }, &node->ngeBranch });
           ptr->push({ { { lhs, v, Result::LESS  } }, &node->ngeBranch });
         }
+      }
+      break;
+    }
+    case Node::T_POLY: {
+      ASSERTION_VIOLATION;
+      break;
+    }
+  }
+}
+
+OrderingComparator::VarOrderExtractor2::VarOrderExtractor2(const Ordering& ord, TermList lhs, TermList rhs, const SubstApplicator* appl, POStruct po_struct)
+  : _comp(ord.createComparator()), _po_struct(po_struct)
+{
+  auto lhsS = AppliedTerm(lhs, appl, true).apply();
+  auto rhsS = AppliedTerm(rhs, appl, true).apply();
+  _comp->_source = Branch(lhsS, rhsS);
+  _comp->_source.node()->gtBranch = Branch((void*)0x1, _comp->_sink);
+  _comp->_source.node()->eqBranch = Branch((void*)0x2, _comp->_sink);
+  // TODO should we add a value to the 3rd branch?
+  _comp->_source.node()->ngeBranch = _comp->_sink;
+  _path.push({ &_comp->_source, _po_struct, 0 });
+}
+
+std::pair<Result,POStruct> OrderingComparator::VarOrderExtractor2::next()
+{
+  while (_path.isNonEmpty()) {
+    if (_path.size()==1) {
+      _comp->_prev = nullptr;
+    } else {
+      _comp->_prev = get<0>(_path[_path.size()-2]);
+    }
+    auto& [branch, ps, index] = _path.top();
+    _comp->_curr = branch;
+    _comp->processCurrentNode();
+
+    auto node = branch->node();
+    if (node->tag == Node::T_DATA) {
+      auto res_ps = ps;
+      _path.pop();
+      if (node->data == (void*)0x1) {
+        return { Result::GREATER, res_ps };
+      }
+      if (node->data == (void*)0x2) {
+        return { Result::EQUAL, res_ps };
+      }
+      continue;
+    }
+
+    Stack<BranchingPoint>* ptr;
+    if (_map.getValuePtr(branch, ptr)) {
+      initCurrent(ptr);
+    }
+    bool success = false;
+    while (index < ptr->size()) {
+      auto& bp = (*ptr)[index++];
+      POStruct eps = ps;
+      if (tryExtend(eps, bp.cons)) {
+        // go one down
+        _path.push({ bp.branch, eps, 0 });
+        success = true;
+        break;
+      }
+    }
+    if (!success) {
+      _path.pop();
+    }
+  }
+  // incomparable is the default we return at the end
+  return { Ordering::INCOMPARABLE, _po_struct };
+}
+
+bool OrderingComparator::VarOrderExtractor2::tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons)
+{
+  for (const auto& con : cons) {
+    // already contains relation
+    if (po_struct.tpo->get(con.lhs, con.rhs) == con.rel) {
+      continue;
+    }
+    auto etpo = TermPartialOrdering::set(po_struct.tpo, con);
+    // extension failed
+    if (!etpo) {
+      return false;
+    }
+    ASS(!etpo->hasIncomp());
+    // relation did not change
+    if (etpo == po_struct.tpo) {
+      continue;
+    }
+    po_struct.tpo = etpo;
+    po_struct.cons.push(con);
+  }
+  return true;
+}
+
+void OrderingComparator::VarOrderExtractor2::initCurrent(Stack<BranchingPoint>* ptr)
+{
+  auto node = _comp->_curr->node();
+  ASS(node->ready);
+
+  // TODO not sure if we should enforce LESS on ngeBranches, those
+  // constraints are technically not needed to get GREATER in the end
+
+  switch (node->tag) {
+    case Node::T_DATA: {
+      break;
+    }
+    case Node::T_TERM: {
+      auto lhs = node->lhs;
+      auto rhs = node->rhs;
+      ASS(lhs.isVar() || rhs.isVar());
+      if (lhs.isVar() && rhs.isVar()) {
+        // x ? y
+        ptr->push({ { { lhs, rhs, Result::GREATER } }, &node->gtBranch });
+        ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->eqBranch });
+        ptr->push({ Stack<TermOrderingConstraint>(),   &node->ngeBranch });
+        // ptr->push({ { { lhs, rhs, Result::LESS    } }, &node->ngeBranch });
+      } else if (rhs.isVar()) {
+        ASS(lhs.isTerm());
+        // s[x_1,...,x_n] ? y
+        VariableIterator vit(lhs.term());
+        while (vit.hasNext()) {
+          auto v = vit.next();
+          // x_i ≥ y ⇒ s[x_1,...,x_n] > y
+          ptr->push({ { { v, rhs, Result::GREATER } }, &node->gtBranch });
+          ptr->push({ { { v, rhs, Result::EQUAL   } }, &node->gtBranch });
+        }
+      } else {
+        ASS(rhs.isTerm());
+        // x ? t[y_1,...,y_n]
+        ptr->push({ Stack<TermOrderingConstraint>(),   &node->ngeBranch });
+        // VariableIterator vit(rhs.term());
+        // while (vit.hasNext()) {
+        //   auto v = vit.next();
+        //   // x ≤ y_i ⇒ x < t[y_1,...,y_n]
+        //   ptr->push({ { { lhs, v, Result::EQUAL } }, &node->ngeBranch });
+        //   ptr->push({ { { lhs, v, Result::LESS  } }, &node->ngeBranch });
+        // }
       }
       break;
     }
