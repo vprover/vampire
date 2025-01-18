@@ -199,14 +199,14 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
 
         POStruct po_struct(tpo);
 
-        // qr.data->comparator->init(&appl);
-        // if (!qr.data->comparator->next(&po_struct)) {
-        //   continue;
-        // }
-
-        if (!qr.data->comparator->extractVarOrder(&appl, po_struct)) {
+        qr.data->comparator->init(&appl);
+        if (!qr.data->comparator->next(&po_struct)) {
           continue;
         }
+
+        // if (!qr.data->comparator->extractVarOrder(&appl, po_struct)) {
+        //   continue;
+        // }
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (redundancyCheck) {
