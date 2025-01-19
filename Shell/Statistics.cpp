@@ -52,6 +52,7 @@ Statistics::Statistics()
     functionDefinitions(0),
     selectedBySine(0),
     sineIterations(0),
+    blockedClauses(0),
     factoring(0),
     resolution(0),
     urResolution(0),
