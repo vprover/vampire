@@ -52,6 +52,7 @@ Statistics::Statistics()
     functionDefinitions(0),
     selectedBySine(0),
     sineIterations(0),
+    blockedClauses(0),
     factoring(0),
     resolution(0),
     urResolution(0),
@@ -270,10 +271,11 @@ void Statistics::print(std::ostream& out)
   HEADING("Input",inputClauses+inputFormulas);
   COND_OUT("Input clauses", inputClauses);
   COND_OUT("Input formulas", inputFormulas);
+  SEPARATOR;
 
   HEADING("Preprocessing",formulaNames+purePredicates+trivialPredicates+
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
-    sineIterations+splitInequalities);
+    sineIterations+blockedClauses+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
@@ -282,6 +284,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Function definitions", functionDefinitions);
   COND_OUT("Selected by SInE selection", selectedBySine);
   COND_OUT("SInE iterations", sineIterations);
+  COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Split inequalities", splitInequalities);
   SEPARATOR;
 
@@ -294,7 +297,6 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
-  COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
