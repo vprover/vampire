@@ -848,6 +848,9 @@ void SaturationAlgorithm::runGnnOnInput()
 {
   TIME_TRACE("gnn-eval");
 
+  Timer::updateInstructionCount();
+  long long gnn_start_instrs = Timer::elapsedInstructions();
+
   _numPreds = env.signature->predicates();
   _numFuncs = env.signature->functions();
   _numSorts = env.signature->typeCons();
@@ -1148,6 +1151,9 @@ void SaturationAlgorithm::runGnnOnInput()
     torch::NoGradGuard no_grad; // This disables gradient computation
     _neuralModel->gnnPerform(clauseNums);
   }
+
+  Timer::updateInstructionCount();
+  env.statistics->gnnEval += (Timer::elapsedInstructions()-gnn_start_instrs);
 }
 
 

@@ -19,6 +19,7 @@
 #include <memory>
 #include <vector>
 #include "Lib/Comparison.hpp"
+#include "Lib/Timer.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
 #include "Shell/Property.hpp"
@@ -411,6 +412,9 @@ public:
   void bulkEval(const T& clauses) {
     TIME_TRACE(TimeTrace::DEEP_STUFF);
 
+    Timer::updateInstructionCount(); // TODO: consider leaving this out (more efficient vampire, less precise stats)
+    long long bulk_eval_start_instrs = Timer::elapsedInstructions();
+
     // std::cout << "bE:\n1:" << std::endl;
 
     {
@@ -434,6 +438,9 @@ public:
       }
       _evalAlsoTheseInTheNextBulk->reset();
     }
+
+    Timer::updateInstructionCount(); // TODO: consider leaving this out (more efficient vampire, less precise stats)
+    env.statistics->bulkEvals += (Timer::elapsedInstructions()-bulk_eval_start_instrs);
   }
 
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
