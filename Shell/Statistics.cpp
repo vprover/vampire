@@ -466,9 +466,9 @@ void Statistics::print(std::ostream& out)
   SEPARATOR;
 
   HEADING("Neural Instruction Counts",neuralModelWarmup+gnnEval+bulkEvals);
-  COND_OUT("Neural model warmup", neuralModelWarmup);
-  COND_OUT("Gnn eval", gnnEval);
-  COND_OUT("Bulk evals", bulkEvals);
+  COND_OUT("Neural model warmup", neuralModelWarmup >> 20);
+  COND_OUT("Gnn eval", gnnEval >> 20);
+  COND_OUT("Bulk evals", bulkEvals >> 20);
 
   SEPARATOR;
 
