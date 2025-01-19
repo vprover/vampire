@@ -482,19 +482,14 @@ ConditionalRedundancySubsumption2::ConditionalRedundancySubsumption2(
 #endif
 }
 
-#define SUBSUMPTION2_OUTER_LIMIT 500
-#define SUBSUMPTION2_INNER_LIMIT 500
+#define SUBSUMPTION2_LIMIT 500
 
 bool ConditionalRedundancySubsumption2::check()
 {
-  unsigned cnt = 0;
   Stack<pair<OrderingComparator::Branch*,OrderingComparator::Branch*>> todo;
   todo.push({ nullptr, &left._source });
 
   while (todo.isNonEmpty()) {
-    if (cnt++ >= SUBSUMPTION2_OUTER_LIMIT) {
-      return false;
-    }
     auto [prev,curr] = todo.pop();
     left._prev = prev;
     left._curr = curr;
@@ -531,13 +526,12 @@ bool ConditionalRedundancySubsumption2::check()
 
 bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo)
 {
-  unsigned cnt = 0;
   using Node = OrderingComparator::Node;
 
   Stack<tuple<Branch*,const TermPartialOrdering*,Iterator*>> path;
   path.push({ &tod._source, tpo, nullptr });
   while (path.isNonEmpty()) {
-    if (cnt++ >= SUBSUMPTION2_INNER_LIMIT) {
+    if (cnt++ >= SUBSUMPTION2_LIMIT) {
       return false;
     }
     if (path.size()==1) {

@@ -61,8 +61,6 @@ public:
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
 
-  Stack<std::pair<void*,const TermPartialOrdering*>> enumerate();
-
   bool checkAndCompress();
 
   bool extractVarOrder(const SubstApplicator* appl, POStruct& po_struct);

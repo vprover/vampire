@@ -217,6 +217,7 @@ private:
   const Ordering& ord;
   OrderingComparator& left;
   Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights;
+  unsigned cnt = 0;
 };
 
 };

@@ -156,54 +156,6 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
   _sink = newFail;
 }
 
-Stack<pair<void*,const TermPartialOrdering*>> OrderingComparator::enumerate()
-{
-  ASS(_ground);
-  Stack<pair<void*,const Trace*>> res;
-  Stack<Branch*> path;
-  path.push(&_source);
-  while (path.isNonEmpty()) {
-    if (path.size()==1) {
-      _prev = nullptr;
-    } else {
-      _prev = path[path.size()-2];
-    }
-    _curr = path.top();
-    processCurrentNode();
-
-    auto node = _curr->node();
-    if (node->tag != OrderingComparator::Node::T_DATA) {
-      path.push(&node->gtBranch);
-      continue;
-    }
-    if (node->data) {
-      ASS(node->trace);
-      res.push({ node->data, node->trace });
-    }
-    while (path.isNonEmpty()) {
-      auto curr = path.pop();
-      if (path.isEmpty()) {
-        continue;
-      }
-
-      auto prev = path.top()->node();
-      ASS(prev->tag == OrderingComparator::Node::T_POLY ||
-          prev->tag == OrderingComparator::Node::T_TERM);
-      // if there is a previous node and we were either in the gt or eq
-      // branches, just go to next branch in order, otherwise backtrack
-      if (curr == &prev->gtBranch) {
-        path.push(&prev->eqBranch);
-        break;
-      }
-      if (curr == &prev->eqBranch) {
-        path.push(&prev->ngeBranch);
-        break;
-      }
-    }
-  }
-  return res;
-}
-
 bool OrderingComparator::checkAndCompress()
 {
   bool res = true;
