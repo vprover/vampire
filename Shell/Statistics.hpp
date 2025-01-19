@@ -280,6 +280,9 @@ public:
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 
+  /** Neural instruction counts */
+  long long neuralModelWarmup = 0;
+
   /** termination reason */
   enum TerminationReason {
     /** refutation found */

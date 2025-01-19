@@ -58,6 +58,9 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
 {
   TIME_TRACE("neural model warmup");
 
+  Timer::updateInstructionCount();
+  long long neural_model_start_instrs = Timer::elapsedInstructions();
+
 #if DEBUG_MODEL
   auto start = env.timer->elapsedMilliseconds();
 #endif
@@ -126,6 +129,9 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
 
   _evalClauses = _model.find_method("eval_clauses");
   _journal = _model.find_method("journal_record");
+
+  Timer::updateInstructionCount();
+  env.statistics->neuralModelWarmup += (Timer::elapsedInstructions()-neural_model_start_instrs);
 }
 
 float NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {

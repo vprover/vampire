@@ -46,6 +46,7 @@ namespace Timer {
   // whether instruction limiting succeeded
   bool instructionLimitingInPlace();
   // elapsed instructions
+  long long elapsedInstructions();
   long elapsedMegaInstructions();
 
   // make sure that the instruction data is as up-to-date as possible

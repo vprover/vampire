@@ -243,6 +243,14 @@ bool instructionLimitingInPlace()
 #endif
 }
 
+long long elapsedInstructions() {
+#if VAMPIRE_PERF_EXISTS
+  return (LAST_INSTRUCTION_COUNT_READ >= 0) ? LAST_INSTRUCTION_COUNT_READ : 0;
+#else
+  return 0;
+#endif
+}
+
 long elapsedMegaInstructions() {
 #if VAMPIRE_PERF_EXISTS
   return (LAST_INSTRUCTION_COUNT_READ >= 0) ? LAST_INSTRUCTION_COUNT_READ / MEGA : 0;

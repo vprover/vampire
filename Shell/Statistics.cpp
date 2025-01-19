@@ -465,6 +465,10 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 
+  HEADING("Neural Instruction Counts",neuralModelWarmup);
+  COND_OUT("Neural model warmup", neuralModelWarmup);
+  SEPARATOR;
+
   }
 
   addCommentSignForSZS(out);
