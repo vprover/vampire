@@ -157,26 +157,28 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
 
           POStruct po_struct(tpo);
 
-          qr.data->comparator->init(&appl);
-          if (!qr.data->comparator->next(&po_struct)) {
+          // qr.data->comparator->init(&appl);
+          // if (!qr.data->comparator->next(&po_struct)) {
+          //   continue;
+          // }
+
+#if VDEBUG
+          POStruct dpo_struct(tpo);
+          OrderingComparator::VarOrderExtractor2 extractor(ordering, qr.data->term, qr.data->rhs, &appl, dpo_struct);
+          std::pair<Result,POStruct> kv { Ordering::INCOMPARABLE, nullptr };
+          do {
+           kv = extractor.next();
+          } while (kv.second.tpo && kv.first != Ordering::GREATER);
+#endif
+
+          if (!qr.data->comparator->extractVarOrder(&appl, po_struct)) {
+            ASS_NEQ(kv.first, Ordering::GREATER);
             continue;
           }
-
-          // if (!qr.data->comparator->extractVarOrder(&appl, po_struct)) {
-          //   continue;
-          // }
+          ASS_EQ(kv.first, Ordering::GREATER);
+          // ASS_EQ(kv.second.tpo, po_struct.tpo);
 
           AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
-
-          // OrderingComparator::VarOrderExtractor* ptr;
-          // if (extractors.getValuePtr({ trm, rhsApplied.apply() }, ptr)) {
-          //   auto comp = ordering.createComparator(false, true);
-          //   comp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
-          //   ptr->init(std::move(comp));
-          // }
-          // if (!ptr->extract(po_struct)) {
-          //   continue;
-          // }
 
 #if VDEBUG
           auto dcomp = ordering.createComparator(false, false, po_struct.tpo);
