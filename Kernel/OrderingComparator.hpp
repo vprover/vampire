@@ -226,7 +226,6 @@ public:
   struct VarOrderExtractor2 {
     VarOrderExtractor2(const Ordering& ord, TermList lhs, TermList rhs, const SubstApplicator* appl, POStruct po_struct);
 
-    // bool hasAlternative() { _path.isNonEmpty(); }
     std::pair<Result,POStruct> next();
 
     bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
@@ -242,6 +241,7 @@ public:
     DHMap<Branch*, Stack<BranchingPoint>> _map;
     Stack<std::tuple<Branch*,POStruct,unsigned>> _path;
     POStruct _po_struct;
+    bool _retIncomp = false;
   };
 };
 
