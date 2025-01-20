@@ -214,6 +214,19 @@ private:
     std::pair<Result,const TermPartialOrdering*> res;
   };
 
+  struct Iterator2 {
+    Iterator2(const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs);
+
+    bool hasNext();
+    std::pair<Result,const TermPartialOrdering*> next() { return res; }
+
+    enum Res { GT = 0x1, EQ = 0x2, LT = 0x3, };
+
+    OrderingComparator* comp;
+    Stack<std::tuple<Branch*,Branch*,const TermPartialOrdering*,bool>> todo;
+    std::pair<Result,const TermPartialOrdering*> res;
+  };
+
   const Ordering& ord;
   OrderingComparator& left;
   Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights;

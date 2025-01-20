@@ -32,6 +32,9 @@ namespace Shell {
 
 namespace Kernel {
 
+class KBOComparator;
+class LPOComparator;
+
 /**
  * Class implementing term ordering diagrams which handle the following
  * problem. Given pairs (C_1,d_1),...,(C_n,d_n) where C_i are conjunctions
@@ -47,6 +50,8 @@ namespace Kernel {
 struct OrderingComparator
 {
 public:
+  static OrderingComparator* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs, bool ground);
+
   OrderingComparator(const Ordering& ord, bool onlyVars, bool ground, const TermPartialOrdering* head);
   virtual ~OrderingComparator();
 
@@ -140,6 +145,7 @@ protected:
     void decRefCnt();
 
     Branch& getBranch(Ordering::Result r);
+    Branch& getBranchUnsafe(Ordering::Result r);
 
     // We need all this data to be of the same size
     static_assert(sizeof(uint64_t) == sizeof(Branch));
@@ -158,9 +164,16 @@ protected:
       TermList rhs;
     };
 
+    friend struct OrderingComparator;
+    friend class KBOComparator;
+    friend class LPOComparator;
+    friend std::ostream& operator<<(std::ostream&, const OrderingComparator&);
+
+  private:
     Branch eqBranch;
     Branch gtBranch;
     Branch ngeBranch;
+  public:
     bool ready = false;
     int refcnt = 0;
     const Trace* trace = nullptr;
@@ -230,7 +243,7 @@ public:
 
     bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
 
-    OrderingComparatorUP _comp;
+    OrderingComparator* _comp;
 
     struct BranchingPoint {
       Stack<TermOrderingConstraint> cons;

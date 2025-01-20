@@ -28,6 +28,25 @@ namespace Kernel {
 
 // OrderingComparator
 
+OrderingComparator* OrderingComparator::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs, bool ground)
+{
+  static Map<tuple<TermList,TermList,bool>,OrderingComparator*> cache; // TODO this leaks now
+
+  OrderingComparator** ptr;
+  if (cache.getValuePtr({ lhs, rhs, ground }, ptr, nullptr)) {
+    *ptr = ord.createComparator(/*onlyVars=*/false, ground).release();
+    (*ptr)->_source = Branch(lhs, rhs);
+    (*ptr)->_source.node()->gtBranch = Branch((void*)0x1, (*ptr)->_sink);
+    (*ptr)->_source.node()->eqBranch = Branch((void*)0x2, (*ptr)->_sink);
+    if (ground) {
+      (*ptr)->_source.node()->ngeBranch = Branch((void*)0x3, (*ptr)->_sink);
+    } else {
+      (*ptr)->_source.node()->ngeBranch = (*ptr)->_sink;
+    }
+  }
+  return *ptr;
+}
+
 OrderingComparator::OrderingComparator(const Ordering& ord, bool onlyVars, bool ground, const TermPartialOrdering* head)
 : _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr),
   _onlyVars(onlyVars), _ground(ground), _head(head)
@@ -132,19 +151,19 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
     curr->node()->rhs = comps[0].rhs;
     for (unsigned i = 0; i < 3; i++) {
       if (ordVals[i] != comps[0].rel) {
-        curr->node()->getBranch(ordVals[i]) = newFail;
+        curr->node()->getBranchUnsafe(ordVals[i]) = newFail;
       }
     }
-    curr = &curr->node()->getBranch(comps[0].rel);
+    curr = &curr->node()->getBranchUnsafe(comps[0].rel);
     for (unsigned i = 1; i < comps.size(); i++) {
       auto [lhs,rhs,rel] = comps[i];
       *curr = OrderingComparator::Branch(lhs, rhs);
       for (unsigned i = 0; i < 3; i++) {
         if (ordVals[i] != rel) {
-          curr->node()->getBranch(ordVals[i]) = newFail;
+          curr->node()->getBranchUnsafe(ordVals[i]) = newFail;
         }
       }
-      curr = &curr->node()->getBranch(rel);
+      curr = &curr->node()->getBranchUnsafe(rel);
     }
     *curr = Branch(data, newFail);
   } else {
@@ -391,15 +410,11 @@ void OrderingComparator::VarOrderExtractor::initCurrent(Stack<BranchingPoint>* p
 }
 
 OrderingComparator::VarOrderExtractor2::VarOrderExtractor2(const Ordering& ord, TermList lhs, TermList rhs, const SubstApplicator* appl, POStruct po_struct)
-  : _comp(ord.createComparator()), _po_struct(po_struct)
+  : _comp(), _po_struct(po_struct)
 {
   auto lhsS = AppliedTerm(lhs, appl, true).apply();
   auto rhsS = AppliedTerm(rhs, appl, true).apply();
-  _comp->_source = Branch(lhsS, rhsS);
-  _comp->_source.node()->gtBranch = Branch((void*)0x1, _comp->_sink);
-  _comp->_source.node()->eqBranch = Branch((void*)0x2, _comp->_sink);
-  // TODO should we add a value to the 3rd branch?
-  _comp->_source.node()->ngeBranch = _comp->_sink;
+  _comp = createForSingleComparison(ord, lhsS, rhsS, /*ground=*/false);
   _path.push({ &_comp->_source, _po_struct, 0 });
 }
 
@@ -894,6 +909,20 @@ void OrderingComparator::Node::decRefCnt()
 }
 
 OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result r)
+{
+  ASS(ready && trace);
+  switch (r) {
+    case Ordering::EQUAL: return eqBranch;
+    case Ordering::GREATER: return gtBranch;
+    case Ordering::INCOMPARABLE:
+    case Ordering::LESS:
+      // no distinction between less and incomparable
+      return ngeBranch;
+  }
+  ASSERTION_VIOLATION;
+}
+
+OrderingComparator::Branch& OrderingComparator::Node::getBranchUnsafe(Ordering::Result r)
 {
   switch (r) {
     case Ordering::EQUAL: return eqBranch;

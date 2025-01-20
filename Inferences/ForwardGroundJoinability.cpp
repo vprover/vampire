@@ -318,10 +318,10 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
     *curr = Branch(lhs, rhs);
     for (unsigned i = 0; i < 3; i++) {
       if (ordVals[i] != rel) {
-        curr->node()->getBranch(ordVals[i]) = origB;
+        curr->node()->getBranchUnsafe(ordVals[i]) = origB;
       }
     }
-    curr = &curr->node()->getBranch(rel);
+    curr = &curr->node()->getBranchUnsafe(rel);
   }
   *curr = newB;
 
@@ -343,7 +343,7 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
       ASS(node->data);
       return make_pair(static_cast<State*>(node->data), node->trace);
     }
-    path.push(&node->gtBranch);
+    path.push(&node->getBranch(Ordering::GREATER));
   }
 
   ASS(path.isEmpty());
@@ -362,12 +362,12 @@ void ForwardGroundJoinability::RedundancyCheck::pushNext()
     ASS_EQ(prev->tag, Tag::T_TERM);
     // if there is a previous node and we were either in the gt or eq
     // branches, just go to next branch in order, otherwise backtrack
-    if (curr == &prev->gtBranch) {
-      path.push(&prev->eqBranch);
+    if (curr == &prev->getBranch(Ordering::GREATER)) {
+      path.push(&prev->getBranch(Ordering::EQUAL));
       break;
     }
-    if (curr == &prev->eqBranch) {
-      path.push(&prev->ngeBranch);
+    if (curr == &prev->getBranch(Ordering::EQUAL)) {
+      path.push(&prev->getBranch(Ordering::LESS));
       break;
     }
   }

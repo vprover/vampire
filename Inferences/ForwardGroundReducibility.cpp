@@ -274,10 +274,10 @@ const TermPartialOrdering* ForwardGroundReducibility::next(OrderingConstraints o
     *curr = Branch(lhs, rhs);
     for (unsigned i = 0; i < 3; i++) {
       if (ordVals[i] != rel) {
-        curr->node()->getBranch(ordVals[i]) = _comp->_sink;
+        curr->node()->getBranchUnsafe(ordVals[i]) = _comp->_sink;
       }
     }
-    curr = &curr->node()->getBranch(rel);
+    curr = &curr->node()->getBranchUnsafe(rel);
   }
   *curr = success;
 
@@ -288,7 +288,7 @@ const TermPartialOrdering* ForwardGroundReducibility::next(OrderingConstraints o
     auto node = _comp->_curr->node();
 
     if (node->tag != Node::T_DATA) {
-      _path.push(&node->gtBranch);
+      _path.push(&node->getBranch(Ordering::GREATER));
       continue;
     }
 
@@ -324,7 +324,7 @@ const TermPartialOrdering* ForwardGroundReducibility::skip()
     auto node = _comp->_curr->node();
 
     if (node->tag != Node::T_DATA) {
-      _path.push(&node->gtBranch);
+      _path.push(&node->getBranch(Ordering::GREATER));
       continue;
     }
 
@@ -352,12 +352,12 @@ void ForwardGroundReducibility::pushNext()
     ASS_EQ(prev->tag, OrderingComparator::Node::T_TERM);
     // if there is a previous node and we were either in the gt or eq
     // branches, just go to next branch in order, otherwise backtrack
-    if (curr == &prev->gtBranch) {
-      _path.push(&prev->eqBranch);
+    if (curr == &prev->getBranch(Ordering::GREATER)) {
+      _path.push(&prev->getBranch(Ordering::EQUAL));
       break;
     }
-    if (curr == &prev->eqBranch) {
-      _path.push(&prev->ngeBranch);
+    if (curr == &prev->getBranch(Ordering::EQUAL)) {
+      _path.push(&prev->getBranch(Ordering::LESS));
       break;
     }
   }

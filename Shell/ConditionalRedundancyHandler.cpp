@@ -396,7 +396,7 @@ bool ConditionalRedundancySubsumption::check()
         if (lnode->tag == OrderingComparator::Node::T_DATA) {
           return false;
         }
-        path.push({ &lnode->gtBranch, subsumed._prev, subsumed._curr });
+        path.push({ &lnode->getBranch(Ordering::GREATER), subsumed._prev, subsumed._curr });
         break;
       }
       case OrderingComparator::Node::T_DATA: {
@@ -404,7 +404,7 @@ bool ConditionalRedundancySubsumption::check()
           if (lnode->tag == OrderingComparator::Node::T_DATA) {
             return false;
           }
-          path.push({ &lnode->gtBranch, subsumed._prev, subsumed._curr });
+          path.push({ &lnode->getBranch(Ordering::GREATER), subsumed._prev, subsumed._curr });
         } else {
           pushNext();
         }
@@ -418,19 +418,19 @@ bool ConditionalRedundancySubsumption::check()
           if (lnode->tag == OrderingComparator::Node::T_DATA) {
             return false;
           }
-          path.push({ &lnode->gtBranch, subsumed._prev, subsumed._curr });
+          path.push({ &lnode->getBranch(Ordering::GREATER), subsumed._prev, subsumed._curr });
         } else {
           switch (val) {
             case Ordering::GREATER: {
-              path.top() = { subsumer._curr, subsumed._curr, &rnode->gtBranch };
+              path.top() = { subsumer._curr, subsumed._curr, &rnode->getBranch(Ordering::GREATER) };
               break;
             }
             case Ordering::EQUAL: {
-              path.top() = { subsumer._curr, subsumed._curr, &rnode->eqBranch };
+              path.top() = { subsumer._curr, subsumed._curr, &rnode->getBranch(Ordering::EQUAL) };
               break;
             }
             default: {
-              path.top() = { subsumer._curr, subsumed._curr, &rnode->ngeBranch };
+              path.top() = { subsumer._curr, subsumed._curr, &rnode->getBranch(Ordering::INCOMPARABLE) };
               break;
             }
           }
@@ -458,12 +458,12 @@ void ConditionalRedundancySubsumption::pushNext()
         prev->tag == OrderingComparator::Node::T_TERM);
     // if there is a previous node and we were either in the gt or eq
     // branches, just go to next branch in order, otherwise backtrack
-    if (curr == &prev->gtBranch) {
-      path.push({ &prev->eqBranch, get<1>(prevE), get<2>(prevE) });
+    if (curr == &prev->getBranch(Ordering::GREATER)) {
+      path.push({ &prev->getBranch(Ordering::EQUAL), get<1>(prevE), get<2>(prevE) });
       break;
     }
-    if (curr == &prev->eqBranch) {
-      path.push({ &prev->ngeBranch, get<1>(prevE), get<2>(prevE) });
+    if (curr == &prev->getBranch(Ordering::EQUAL)) {
+      path.push({ &prev->getBranch(Ordering::LESS), get<1>(prevE), get<2>(prevE) });
       break;
     }
   }
@@ -499,9 +499,9 @@ bool ConditionalRedundancySubsumption2::check()
     ASS(node->ready);
 
     if (node->tag != OrderingComparator::Node::T_DATA) {
-      todo.push({ left._curr, &node->gtBranch });
-      todo.push({ left._curr, &node->eqBranch });
-      todo.push({ left._curr, &node->ngeBranch });
+      todo.push({ left._curr, &node->getBranch(Ordering::GREATER) });
+      todo.push({ left._curr, &node->getBranch(Ordering::EQUAL) });
+      todo.push({ left._curr, &node->getBranch(Ordering::LESS) });
       continue;
     }
     if (!node->data) {
@@ -528,8 +528,8 @@ bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, cons
 {
   using Node = OrderingComparator::Node;
 
-  Stack<tuple<Branch*,const TermPartialOrdering*,Iterator*>> path;
-  path.push({ &tod._source, tpo, nullptr });
+  Stack<tuple<Branch*,const TermPartialOrdering*,std::unique_ptr<Iterator2>>> path;
+  path.push({ &tod._source, tpo, unique_ptr<Iterator2>() });
   while (path.isNonEmpty()) {
     if (cnt++ >= SUBSUMPTION2_LIMIT) {
       return false;
@@ -561,24 +561,11 @@ bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, cons
           ASS(prevN->tag == Node::T_POLY || prevN->tag == Node::T_TERM);
           if (!prevIt->hasNext()) {
             // go one up further
-            delete prevIt;
-            path.pop();
             continue;
           }
           auto [res,resTrace] = prevIt->next();
-          switch (res) {
-            case Ordering::GREATER:
-              path.push({ &prevN->gtBranch, resTrace, nullptr });
-              break;
-            case Ordering::EQUAL:
-              path.push({ &prevN->eqBranch, resTrace, nullptr });
-              break;
-            case Ordering::LESS:
-              path.push({ &prevN->ngeBranch, resTrace, nullptr });
-              break;
-            case Ordering::INCOMPARABLE:
-              ASSERTION_VIOLATION;
-          }
+          ASS_NEQ(res,Ordering::INCOMPARABLE);
+          path.push({ &prevN->getBranch(res), resTrace, unique_ptr<Iterator2>() });
           break;
         }
         continue;
@@ -594,23 +581,12 @@ bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, cons
     auto rhsS = (*appl)(node->rhs.var());
 
     ASS(!iterator);
-    iterator = new Iterator(ord, trace, lhsS, rhsS);
+    iterator = make_unique<Iterator2>(ord, trace, lhsS, rhsS);
     if (iterator->hasNext()) {
       // go down
       auto [res,resTrace] = iterator->next();
-      switch (res) {
-        case Ordering::GREATER:
-          path.push({ &node->gtBranch, resTrace, nullptr });
-          break;
-        case Ordering::EQUAL:
-          path.push({ &node->eqBranch, resTrace, nullptr });
-          break;
-        case Ordering::LESS:
-          path.push({ &node->ngeBranch, resTrace, nullptr });
-          break;
-        case Ordering::INCOMPARABLE:
-          ASSERTION_VIOLATION;
-      }
+      ASS_NEQ(res,Ordering::INCOMPARABLE);
+      path.push({ &node->getBranch(res), resTrace, unique_ptr<Iterator2>() });
       continue;
     }
     INVALID_OPERATION("should have at least one result");
@@ -623,9 +599,19 @@ ConditionalRedundancySubsumption2::Iterator::Iterator(
   : comp(ord.createComparator(/*onlyVars=*/false, /*ground=*/true, trace))
 {
   comp->_source = Branch(lhs, rhs);
-  comp->_source.node()->gtBranch = Branch((void*)GT, comp->_sink);
-  comp->_source.node()->eqBranch = Branch((void*)EQ, comp->_sink);
-  comp->_source.node()->ngeBranch = Branch((void*)LT, comp->_sink);
+
+  // hack on
+  comp->_source.node()->ready = true;
+  comp->_source.node()->trace = TermPartialOrdering::getEmpty(ord);
+
+  comp->_source.node()->getBranch(Ordering::GREATER) = Branch((void*)GT, comp->_sink);
+  comp->_source.node()->getBranch(Ordering::EQUAL) = Branch((void*)EQ, comp->_sink);
+  comp->_source.node()->getBranch(Ordering::LESS) = Branch((void*)LT, comp->_sink);
+
+  // hack off
+  comp->_source.node()->ready = false;
+  comp->_source.node()->trace = nullptr;
+
   path.push(&comp->_source);
 }
 
@@ -644,7 +630,7 @@ bool ConditionalRedundancySubsumption2::Iterator::hasNext()
 
     auto lnode = comp->_curr->node();
     if (lnode->tag != Node::T_DATA) {
-      path.push(&lnode->gtBranch);
+      path.push(&lnode->getBranch(Ordering::GREATER));
       continue;
     }
     if (lnode->data) {
@@ -672,16 +658,91 @@ bool ConditionalRedundancySubsumption2::Iterator::hasNext()
       ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
       // if there is a previous node and we were either in the gt or eq
       // branches, just go to next branch in order, otherwise backtrack
-      if (curr == &prev->gtBranch) {
-        path.push(&prev->eqBranch);
+      if (curr == &prev->getBranch(Ordering::GREATER)) {
+        path.push(&prev->getBranch(Ordering::EQUAL));
         break;
       }
-      if (curr == &prev->eqBranch) {
-        path.push(&prev->ngeBranch);
+      if (curr == &prev->getBranch(Ordering::EQUAL)) {
+        path.push(&prev->getBranch(Ordering::LESS));
         break;
       }
     }
     return true;
+  }
+  return false;
+}
+
+ConditionalRedundancySubsumption2::Iterator2::Iterator2(
+  const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs)
+  : comp(OrderingComparator::createForSingleComparison(ord,lhs,rhs,/*ground=*/true))
+{
+  todo.push({ nullptr, &comp->_source, trace, false });
+}
+
+bool ConditionalRedundancySubsumption2::Iterator2::hasNext()
+{
+  using Node = OrderingComparator::Node;
+
+  while (todo.isNonEmpty()) {
+    auto [prev, curr, tpo, updateTpo] = todo.pop();
+    comp->_prev = prev;
+    comp->_curr = curr;
+    comp->processCurrentNode();
+    ASS_EQ(curr,comp->_curr);
+
+    const TermPartialOrdering* etpo = tpo;
+    if (prev && updateTpo) {
+      auto pnode = prev->node();
+      ASS_EQ(pnode->tag,Node::T_TERM);
+      auto lhs = pnode->lhs;
+      auto rhs = pnode->rhs;
+      if (curr == &pnode->getBranch(Ordering::GREATER)) {
+        etpo = TermPartialOrdering::set(tpo, { lhs, rhs, Ordering::GREATER });
+      } else if (curr == &pnode->getBranch(Ordering::EQUAL)) {
+        etpo = TermPartialOrdering::set(tpo, { lhs, rhs, Ordering::EQUAL });
+      } else {
+        ASS_EQ(curr, &pnode->getBranch(Ordering::LESS));
+        etpo = TermPartialOrdering::set(tpo, { lhs, rhs, Ordering::LESS });
+      }
+    }
+    ASS(etpo);
+
+    auto node = curr->node();
+    ASS(node->ready);
+    switch (node->tag) {
+      case Node::T_DATA:
+        if (node->data) {
+          ASS(node->trace);
+          res.second = etpo;
+          if (node->data == (void*)GT) {
+            res.first = Ordering::GREATER;
+          } else if (node->data == (void*)EQ) {
+            res.first = Ordering::EQUAL;
+          } else {
+            ASS_EQ(node->data, (void*)LT);
+            res.first = Ordering::LESS;
+          }
+        } else {
+          INVALID_OPERATION("found 0");
+        }
+        return true;
+      case Node::T_POLY:
+        todo.push({ curr, &node->getBranch(Ordering::LESS), etpo, false });
+        todo.push({ curr, &node->getBranch(Ordering::EQUAL), etpo, false });
+        todo.push({ curr, &node->getBranch(Ordering::GREATER), etpo, false });
+        break;
+      case Node::T_TERM:
+        Ordering::Result val;
+        if (etpo->get(node->lhs, node->rhs, val)) {
+          ASS_NEQ(val,Ordering::INCOMPARABLE);
+          todo.push({ curr, &node->getBranch(val), etpo, false });
+          continue;
+        }
+        todo.push({ curr, &node->getBranch(Ordering::GREATER), etpo, true });
+        todo.push({ curr, &node->getBranch(Ordering::EQUAL), etpo, true });
+        todo.push({ curr, &node->getBranch(Ordering::LESS), etpo, true });
+        break;
+    }
   }
   return false;
 }
