@@ -1519,7 +1519,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
       TermList arg = SubstHelper::apply(type->arg(i), typeSubst);
       domain_sorts.push_back(self.getz3sort(arg));
     }
-    auto codomain = functor.isPredicate ? self._context->bool_sort() : self.getz3sort(type->result());
+    auto codomain = functor.isPredicate ? self._context->bool_sort() : self.getz3sort(SubstHelper::apply(type->result(), typeSubst));
     auto decl = self.z3_declare_fun(namebuf, domain_sorts, codomain);
     self._toZ3.insert(functor, decl);
     return decl;

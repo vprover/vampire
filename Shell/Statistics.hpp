@@ -241,7 +241,7 @@ public:
   unsigned taAcyclicityGeneratedDisequalities;
 
   // Saturation
-  unsigned activations; // This is not a mere stat, it is also used for LRS estimation!
+  unsigned activations = 0; // This is not a mere stat, it is also used for LRS estimation!
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */
