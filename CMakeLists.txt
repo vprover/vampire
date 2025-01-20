@@ -33,8 +33,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Threads REQUIRED)
 link_libraries(Threads::Threads)
 
-find_package(Threads REQUIRED)
-
 # set build type if not set
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
@@ -322,6 +320,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ALASCA/Ordering.hpp
     Kernel/ALASCA/State.hpp
     Kernel/ALASCA/State.cpp
+    Kernel/ALASCA/Index.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -395,7 +394,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
-    Kernel/ALASCA/Index.hpp
     )
 source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
@@ -808,7 +806,6 @@ set(UNIT_TESTS
     UnitTests/tList.cpp
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
-    # UnitTests/tEqualityResolution.cpp
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
