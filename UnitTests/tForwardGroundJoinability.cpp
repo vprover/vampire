@@ -74,7 +74,7 @@ TEST_FUN(joinability_test01) {
   // ASS(fgj.perform(clause({ f(f(x,y),z) == f(x,f(z,y)) }), replacements, premises));
   // ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(x,z)) }), replacements, premises));
   // ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(z,x)) }), replacements, premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(x,y)) }), replacements, premises));
+  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(x,y)) }), replacements, premises));
   // ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(y,x)) }), replacements, premises));
 
   // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(x,y),z) }), replacements, premises));
@@ -151,22 +151,22 @@ TEST_FUN(joinability_test02) {
   ASS(!fgj.perform(clause({ f(x,f(y,z)) == f(y,f(x,z)) }), replacements, premises));
 
   ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(x,y),z) }), replacements, premises));
-  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(x,z),y) }), replacements, premises));
-  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,x),z) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(x,z),y) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,x),z) }), replacements, premises));
   ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,z),x) }), replacements, premises));
   ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(z,x),y) }), replacements, premises));
-  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(z,y),x) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(z,y),x) }), replacements, premises));
 
   // ASS(fgj.perform(clause({ f(f(x,y),z) == f(x,f(z,y)) }), replacements, premises));
   // ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(x,z)) }), replacements, premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(z,x)) }), replacements, premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(x,y)) }), replacements, premises));
+  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(z,x)) }), replacements, premises));
+  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(x,y)) }), replacements, premises));
   // ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(y,x)) }), replacements, premises));
 
   // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(x,y),z) }), replacements, premises));
-  // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(x,z),y) }), replacements, premises));
+  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(x,z),y) }), replacements, premises));
   // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(y,x),z) }), replacements, premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(y,z),x) }), replacements, premises));
+  // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(y,z),x) }), replacements, premises));
   ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(z,x),y) }), replacements, premises));
   // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(z,y),x) }), replacements, premises));
 
