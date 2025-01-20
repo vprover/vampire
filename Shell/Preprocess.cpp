@@ -152,6 +152,24 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
+  // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+
+    // Add theory axioms if needed
+    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
+      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env.options->showPreprocessing())
+        std::cout << "adding theory axioms" << std::endl;
+
+      TheoryAxioms(prb).apply();
+    }
+
+
+    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
+    normalizeInterpreted();
+  }
+
+
   // // If there are interpreted operations
   // if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
   //   // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
@@ -323,24 +341,6 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   prb.getProperty();
-
-  // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-
-    // Add theory axioms if needed
-    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
-      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-      if (env.options->showPreprocessing())
-        std::cout << "adding theory axioms" << std::endl;
-
-      TheoryAxioms(prb).apply();
-    }
-
-
-    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
-    normalizeInterpreted();
-  }
-
 
 
   if (prb.mayHaveFunctionDefinitions()) {
