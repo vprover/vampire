@@ -204,21 +204,28 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
         //   continue;
         // }
 
+        AppliedTerm rhsApplied(rhs, &appl, true);
+
 #if VDEBUG
         POStruct dpo_struct(tpo);
-        OrderingComparator::VarOrderExtractor2 extractor(ordering, qr.data->term, qr.data->rhs, &appl, dpo_struct);
+        OrderingComparator::VarOrderExtractor::Iterator dextIt(ordering, trm, rhsApplied.apply(), dpo_struct);
         std::pair<Result,POStruct> kv { Ordering::INCOMPARABLE, nullptr };
         do {
-          kv = extractor.next();
+          kv = dextIt.next();
         } while (kv.second.tpo && kv.first != Ordering::GREATER);
 #endif
 
-        if (!qr.data->comparator->extractVarOrder(&appl, po_struct)) {
-          ASS_NEQ(kv.first, Ordering::GREATER);
+        bool nodebug = false;
+        OrderingComparator::VarOrderExtractor extractor(qr.data->comparator.get(), &appl, po_struct);
+        if (!extractor.hasNext(nodebug)) {
+          ASS(nodebug || kv.first != Ordering::GREATER);
           continue;
         }
-        ASS_EQ(kv.first, Ordering::GREATER);
-        // ASS_EQ(kv.second.tpo, po_struct.tpo);
+        po_struct = extractor.next();
+        ASS(nodebug || kv.first == Ordering::GREATER);
+        // TODO for some rather complicated reason this sometimes
+        // fail as the two extractors take two different branches
+        // ASS(nodebug || kv.second.tpo == po_struct.tpo);
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (redundancyCheck) {
@@ -232,8 +239,6 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
           }
         }
 
-        AppliedTerm rhsApplied(rhs, &appl, true);
-
 #if VDEBUG
         auto dcomp = ordering.createComparator(false, false, po_struct.tpo);
         dcomp->insert({ { trm, rhsApplied.apply(), Ordering::GREATER } }, (void*)0x1);
@@ -242,10 +247,25 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& replacements,
 
         if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
           TermList other = trm == curr->left ? curr->right : curr->left;
-          auto redComp = ordering.compareUnidirectional(other, rhsApplied, &po_struct);
-          ASS_NEQ(redComp,Ordering::LESS);
-          // Note: EQUAL should be fine when doing forward simplification
-          if (((curr->L && curr->R) || redComp != Ordering::EQUAL) && redComp != Ordering::GREATER) {
+          bool fail = false;
+          while (!fail) {
+            OrderingComparator::VarOrderExtractor::Iterator extIt(ordering, other, rhsApplied.apply(), po_struct);
+            auto [redComp,red_po_struct] = extIt.next();
+            ASS_NEQ(redComp,Ordering::LESS);
+            // Note: EQUAL should be fine when doing forward simplification
+            if (redComp == Ordering::GREATER || (redComp == Ordering::EQUAL && (!curr->L || !curr->R))) {
+              // success
+              po_struct = red_po_struct;
+              break;
+            }
+            // TODO add debug checks here
+            if (extractor.hasNext(nodebug)) {
+              po_struct = extractor.next();
+              continue;
+            }
+            fail = true;
+          }
+          if (fail) {
             continue;
           }
 #if VDEBUG

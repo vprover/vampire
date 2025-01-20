@@ -162,23 +162,28 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
           //   continue;
           // }
 
+          AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
+
 #if VDEBUG
           POStruct dpo_struct(tpo);
-          OrderingComparator::VarOrderExtractor2 extractor(ordering, qr.data->term, qr.data->rhs, &appl, dpo_struct);
+          OrderingComparator::VarOrderExtractor::Iterator dextIt(ordering, trm, rhsApplied.apply(), dpo_struct);
           std::pair<Result,POStruct> kv { Ordering::INCOMPARABLE, nullptr };
           do {
-           kv = extractor.next();
+           kv = dextIt.next();
           } while (kv.second.tpo && kv.first != Ordering::GREATER);
 #endif
 
-          if (!qr.data->comparator->extractVarOrder(&appl, po_struct)) {
-            ASS_NEQ(kv.first, Ordering::GREATER);
+          bool nodebug = false;
+          OrderingComparator::VarOrderExtractor extractor(qr.data->comparator.get(), &appl, po_struct);
+          if (!extractor.hasNext(nodebug)) {
+            ASS(nodebug || kv.first != Ordering::GREATER);
             continue;
           }
-          ASS_EQ(kv.first, Ordering::GREATER);
-          // ASS_EQ(kv.second.tpo, po_struct.tpo);
-
-          AppliedTerm rhsApplied(qr.data->rhs, &appl, true);
+          po_struct = extractor.next();
+          ASS(nodebug || kv.first == Ordering::GREATER);
+          // TODO for some rather complicated reason this sometimes
+          // fail as the two extractors take two different branches
+          // ASS(nodebug || kv.second.tpo == po_struct.tpo);
 
 #if VDEBUG
           auto dcomp = ordering.createComparator(false, false, po_struct.tpo);

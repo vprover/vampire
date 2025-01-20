@@ -68,8 +68,6 @@ public:
 
   bool checkAndCompress();
 
-  bool extractVarOrder(const SubstApplicator* appl, POStruct& po_struct);
-
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
 private:
@@ -220,41 +218,40 @@ protected:
 
 public:
   struct VarOrderExtractor {
-    void init(OrderingComparatorUP comp);
+    VarOrderExtractor(OrderingComparator* comp, const SubstApplicator* appl, POStruct po_struct);
 
-    bool extract(POStruct& po_struct);
-    bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
+    bool hasNext(bool& nodebug);
+    POStruct next() { return res; }
 
-    OrderingComparatorUP _comp;
+    struct Iterator {
+      Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct);
 
-    struct BranchingPoint {
-      Stack<TermOrderingConstraint> cons;
-      Branch* branch;
+      std::pair<Result,POStruct> next();
+
+      bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
+
+      OrderingComparator* _comp;
+
+      struct BranchingPoint {
+        Stack<TermOrderingConstraint> cons;
+        Branch* branch;
+      };
+      void initCurrent(Stack<BranchingPoint>* ptr);
+
+      DHMap<Branch*, Stack<BranchingPoint>> _map;
+      Stack<std::tuple<Branch*,POStruct,unsigned>> _path;
+      POStruct _po_struct;
+      bool _retIncomp = false;
     };
-    void initCurrent(Stack<BranchingPoint>* ptr);
 
-    DHMap<Branch*, Stack<BranchingPoint>> _map;
-  };
+    bool backtrack();
 
-  struct VarOrderExtractor2 {
-    VarOrderExtractor2(const Ordering& ord, TermList lhs, TermList rhs, const SubstApplicator* appl, POStruct po_struct);
-
-    std::pair<Result,POStruct> next();
-
-    bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
-
-    OrderingComparator* _comp;
-
-    struct BranchingPoint {
-      Stack<TermOrderingConstraint> cons;
-      Branch* branch;
-    };
-    void initCurrent(Stack<BranchingPoint>* ptr);
-
-    DHMap<Branch*, Stack<BranchingPoint>> _map;
-    Stack<std::tuple<Branch*,POStruct,unsigned>> _path;
-    POStruct _po_struct;
-    bool _retIncomp = false;
+    OrderingComparator* comp;
+    const SubstApplicator* appl;
+    Stack<std::tuple<Branch*,POStruct,std::unique_ptr<Iterator>>> path;
+    Stack<unsigned> btStack;
+    POStruct res;
+    bool fresh = true;
   };
 };
 
