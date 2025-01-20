@@ -145,7 +145,7 @@ const TermPartialOrdering* TermPartialOrdering::getEmpty(const Ordering& ord)
 
 const TermPartialOrdering* TermPartialOrdering::set(const TermPartialOrdering* tpo, TermOrderingConstraint con)
 {
-  static DHMap<std::tuple<const TermPartialOrdering*, TermList, TermList, Result>, const TermPartialOrdering*> cache;
+  static Map<std::tuple<const TermPartialOrdering*, TermList, TermList, Result>, const TermPartialOrdering*> cache;
   const TermPartialOrdering** ptr;
   if (cache.getValuePtr(make_tuple(tpo, con.lhs, con.rhs, con.rel), ptr, nullptr)) {
     auto res = new TermPartialOrdering(*tpo);

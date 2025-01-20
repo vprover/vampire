@@ -238,7 +238,7 @@ bool OrderingComparator::checkAndCompress()
 OrderingComparator::VarOrderExtractor::VarOrderExtractor(OrderingComparator* comp, const SubstApplicator* appl, POStruct po_struct)
   : comp(comp), appl(appl), res(po_struct)
 {
-  path.push({ &comp->_source, po_struct, nullptr });
+  path->push({ &comp->_source, po_struct, nullptr });
 }
 
 bool OrderingComparator::VarOrderExtractor::hasNext(bool& nodebug)
@@ -250,8 +250,8 @@ bool OrderingComparator::VarOrderExtractor::hasNext(bool& nodebug)
       return false;
     }
   }
-  while (path.isNonEmpty()) {
-    auto& [curr,ps,voe] = path.top();
+  while (path->isNonEmpty()) {
+    auto& [curr,ps,voe] = path->top();
     comp->_prev = (path.size()==1) ? nullptr : get<0>(path[path.size()-2]);
     comp->_curr = curr;
     comp->processCurrentNode();
@@ -289,7 +289,7 @@ bool OrderingComparator::VarOrderExtractor::hasNext(bool& nodebug)
           break;
         }
         btStack.push(path.size());
-        path.push({ &node->getBranch(comp), new_ps, nullptr });
+        path->push({ &node->getBranch(comp), new_ps, nullptr });
         break;
       }
     }
@@ -302,7 +302,7 @@ bool OrderingComparator::VarOrderExtractor::backtrack()
   if (btStack.isEmpty()) {
     return false;
   }
-  path.truncate(btStack.pop());
+  path->truncate(btStack.pop());
   return true;
 }
 
@@ -310,13 +310,13 @@ OrderingComparator::VarOrderExtractor::Iterator::Iterator(const Ordering& ord, T
   : _comp(), _po_struct(po_struct)
 {
   _comp = createForSingleComparison(ord, lhs, rhs, /*ground=*/false);
-  _path.push({ &_comp->_source, _po_struct, 0 });
+  _path->push({ &_comp->_source, _po_struct, 0 });
 }
 
 std::pair<Result,POStruct> OrderingComparator::VarOrderExtractor::Iterator::next()
 {
-  while (_path.isNonEmpty()) {
-    auto& [branch, ps, index] = _path.top();
+  while (_path->isNonEmpty()) {
+    auto& [branch, ps, index] = _path->top();
     _comp->_prev = (_path.size()==1) ? nullptr : get<0>(_path[_path.size()-2]);
     _comp->_curr = branch;
     _comp->processCurrentNode();
@@ -324,7 +324,7 @@ std::pair<Result,POStruct> OrderingComparator::VarOrderExtractor::Iterator::next
     auto node = branch->node();
     if (node->tag == Node::T_DATA) {
       auto res_ps = ps; // save result before popping _path
-      _path.pop();
+      _path->pop();
       if (node->data == (void*)0x1) {
         return { Result::GREATER, res_ps };
       }
@@ -336,7 +336,7 @@ std::pair<Result,POStruct> OrderingComparator::VarOrderExtractor::Iterator::next
     }
 
     Stack<BranchingPoint>* ptr;
-    if (_map.getValuePtr(branch, ptr)) {
+    if (_map.getValuePtr(branch, ptr, Stack<BranchingPoint>())) {
       initCurrent(ptr);
     }
     bool success = false;
@@ -345,13 +345,13 @@ std::pair<Result,POStruct> OrderingComparator::VarOrderExtractor::Iterator::next
       POStruct eps = ps;
       if (tryExtend(eps, bp.cons)) {
         // go one down
-        _path.push({ bp.branch, eps, 0 });
+        _path->push({ bp.branch, eps, 0 });
         success = true;
         break;
       }
     }
     if (!success) {
-      _path.pop();
+      _path->pop();
     }
   }
   // incomparable is the default we return at the end,

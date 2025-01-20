@@ -238,8 +238,8 @@ public:
       };
       void initCurrent(Stack<BranchingPoint>* ptr);
 
-      DHMap<Branch*, Stack<BranchingPoint>> _map;
-      Stack<std::tuple<Branch*,POStruct,unsigned>> _path;
+      Map<Branch*, Stack<BranchingPoint>> _map;
+      Recycled<Stack<std::tuple<Branch*,POStruct,unsigned>>> _path;
       POStruct _po_struct;
       bool _retIncomp = false;
     };
@@ -248,7 +248,7 @@ public:
 
     OrderingComparator* comp;
     const SubstApplicator* appl;
-    Stack<std::tuple<Branch*,POStruct,std::unique_ptr<Iterator>>> path;
+    Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<Iterator>>>> path;
     Stack<unsigned> btStack;
     POStruct res;
     bool fresh = true;
