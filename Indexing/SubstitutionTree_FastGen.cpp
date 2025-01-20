@@ -115,7 +115,6 @@ public:
   _applicator(0)
   {}
 
-
   ~Substitution()
   {
     if(_applicator) {
@@ -134,7 +133,7 @@ public:
 
   virtual void output(std::ostream& out) const final override 
   { out << "GenMatcher::Substitution(<output unimplemented>)"; }
-  private:
+private:
   Applicator* getApplicator()
   {
     if(!_applicator) {

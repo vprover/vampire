@@ -46,5 +46,4 @@ void Index::attachContainer(ClauseContainer* cc)
   _removedSD = cc->removedEvent.subscribe(this,&Index::onRemovedFromContainer);
 }
 
-
 }

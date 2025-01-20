@@ -171,7 +171,6 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
       t->setColor(color);
     }
 
-    // TODO do we need this for lin mul as well?
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
     //poly function works for mono as well, but is slow

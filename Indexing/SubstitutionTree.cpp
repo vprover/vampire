@@ -614,5 +614,4 @@ void SubstitutionTree<LeafData_>::IntermediateNode::output(std::ostream& out, bo
 
 }
 
-
 } // namespace Indexing
