@@ -566,9 +566,6 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
           { return cTerm(sig.addF(), std::move(l), std::move(r)); })
         .unwrapOrElse([&]() { return TermSpec(sig.numeralTl(Numeral(0)), 0); }); };
 
-  // auto diffConstr = [&]() 
-  // { return constraint(sum(diff1), sum(diff2)); };
-
   auto toConstr = [&](auto& stack) {
     return constraint(
               sum(arrayIter(stack)
@@ -623,7 +620,6 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
                                : num ==  1 ? EqualIf().unify(constraint(std::move(var), sum(rest().map([](auto x) { return std::make_pair(std::move(x.first), -std::move(x.second)); }))))
                                :                      EqualIf().constr(constraint(numMul(-num, std::move(var)), sum(rest())))
                                                     ; },
-            // [&](auto n) { return EqualIf().unify(UnificationConstraint(numMul(-num, std::move(var)), sum(rest()))); },
             [&](auto n) { return EqualIf().unify(constraint(std::move(var), 
                 sum(rest().map([&](auto x) { return std::make_pair(std::move(x.first), divOrPanic(n, x.second, -num)); })
                   ))); }
@@ -670,7 +666,6 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
         return true;
 
       } else if (curPosSummands->size() == 1) {
-        // ASS((*curPosSummands)[0].second == -(*curSummands)[1].second)
         for (auto& s : *curNegSummands) {
           unify->push(UnificationConstraint(
             (*curPosSummands)[0].first,
@@ -712,7 +707,6 @@ template<class ASig>
 struct FloorUwaState {
   using Numeral = typename ASig::Numeral;
   using Monom = std::pair<TermSpec, Numeral>;
-  // bool _nonLinear = false;
   RStack<Monom> ratVars;
   RStack<Monom> intVars;
   RStack<Monom> mixVars;
@@ -732,9 +726,6 @@ struct FloorUwaState {
 
   unsigned size() const 
   { return ratVars->size() + intVars->size() + mixVars->size() + ratAtoms->size() + intAtoms->size(); }
-
-  // bool nonLinear() const;
-  // { return _nonLinear; }
 
   static FloorUwaState zero() {
     return FloorUwaState();
@@ -784,7 +775,6 @@ struct FloorUwaState {
         }
       }
       l.pop(l.size() - write);
-      // l.loadFromIterator(arrayIter(r)); 
     };
     mergeArray(*s1.ratVars, *s2.ratVars);
     mergeArray(*s1.intVars, *s2.intVars);
@@ -958,10 +948,6 @@ struct FloorUwaState {
 
   IterTraits<VirtualIterator<Monom>> summandsFloor() const 
     ;
-  // { return concatIters(
-  //         arrayIter(*intVars), 
-  //         arrayIter(*mixVars), 
-  //         arrayIter(*intAtoms)); }
 
   auto summandsInt() const 
   { return concatIters(
@@ -1083,9 +1069,6 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
   CHECK_SORTS(t1, t2)
   CHECK_SORTS(t2, t1)
 
-  // RStack<std::pair<TermSpec, Numeral>> _diff;
-  // auto& diff = *_diff;
-
   using FUA = FloorUwaState<AlascaSignature<NumTraits>>;
 
   auto const diff = FUA::add(au, FUA::scan(au, t1), FUA::mul(au, Numeral(-1), FUA::scan(au, t2)));
@@ -1110,15 +1093,6 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
               return {};
             }
           },
-      // [&]() { return someIf(diff.size() == 2 
-      //                   && diff.intVars.size() == 1 
-      //                   && diff.ratVars.size() == 1
-      //                   && diff.ratVars[0].second == -diff.ratVars[0].second
-      //                   , [&](){
-      //   ASS_EQ(diff.intVars[0].first.termArg(0), diff.ratVars[0].first)
-      //   return 
-      //   })
-      // },
       [&]() { return someIf(diff.hasTopVars(), [&]() { 
         return optionIfThenElse(
             [&]() -> Option<AbstractionResult> { 
@@ -1171,20 +1145,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
 
                 return optionIfThenElse( [&]() { return oneCase(s0, s1); }
                                        , [&]() { return oneCase(s1, s0); }
-                                       // , [&]() { return case1(s0, s1); }
                     );
-                // }
-                //   
-                // } else {
-                //   return {};
-                // }
-                // if (k0 != -k1) {
-                //   return {};
-                // }
-                // if (sig.one() == t0.term) {
-                //   return some(t1.isVar() ? AbstractionResult(EqualIf().unify(t1.term))
-                //                          : AbstractionResult(NeverEqual{}))
-                // }
               } else {
                 return {};
               }
@@ -1218,40 +1179,6 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
             return AbstractionResult(NeverEqual{});
           }
       });
-
-  // } else if (diff.hasTopVars() && diff.size() == 2 && diff.intVars->size() == 2) {
-  //   auto [x, j] = diff.intVars[0];
-  //   auto [t, k] = diff.intVars[]
-  //   if ((j > 0) == (k > 0)) {
-  //     return AbstractionResult(NeverEqual{});
-  //   } else if (s.isVar() || t.isVar()) {
-  //     auto v = s;
-  //     auto j = t;
-  //   } else {
-  //
-  //   }
-  //
-  // } else if (auto v = arrayIter(*diff.intVars)
-  //              .find([&](auto& floor_v) { 
-  //                auto v = floor_v.first.termArg(0);
-  //                return !diff.isShielded(v) && !diff.isMixVar(v) && diff.gcd().map([](auto x) { return x.abs(); }) == some(floor_v.second.abs()); })) {
-  //
-  //   //     k ⌊x⌋   + k t1 + ... + k tn  = 0
-  //   // <-> k ⌊x⌋ = - k t1 - ... - k tn
-  //   // <->   ⌊x⌋ = -   t1 - ... -   tn 
-  //   // <->    x  = -   t1 - ... -   tn   as isInt(ti)
-  //   auto& k = v->second;
-  //   auto& floor_x = v->first;
-  //   return AbstractionResult(EqualIf().unify(constraint(
-  //           floor_x.termArg(0), 
-  //           sum(diff.summands()  // diff.summands() = t
-  //                    .filter([&](auto s) { /* filter out k x */ return s != *v; })
-  //                    .map([&](auto s) { return std::make_pair(s.first, -s.second / k); }) 
-  //           ))));
-  //
-  // } else  {
-
-  // }
 }
 
 

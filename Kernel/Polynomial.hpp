@@ -795,17 +795,6 @@ Option<typename Number::ConstantType> FuncId::tryNumeral() const
 
 namespace Kernel {
 
-// template<class Args> FuncTerm::FuncTerm(FuncId f, Args const& args) 
-//   : _fun(f)
-//   , _args(f.arity())
-// {
-//   static_assert(std::is_same< typename std::remove_const<typename std::remove_reference<decltype(args[0u])>::type>::type
-//                             , PolyNf
-//                             >::value, "args must return a PolyNf on a call  operator[](unsigned)");
-//   for (unsigned i = 0; i < f.arity(); i++) 
-//     _args.push(args[i]);
-// }
-
 template<class Number>
 Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
 { return _fun.template tryNumeral<Number>(); }
@@ -1229,10 +1218,6 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
   return out;
 }
 
-// template<class Number>
-// typename MonomFactors<Number>::FactorIter MonomFactors<Number>::iter() const&
-// { return iterTraits(getArrayishObjectIterator<no_ref_t>(_factors)); }
-
 template<class Number>
 auto MonomFactors<Number>::iterSubterms() const
 { return iter().flatMap([](auto fac) { return fac.iterSubterms(); }); }
@@ -1421,18 +1406,12 @@ template<class Number>
 void Polynom<Number>::integrity() const {
 #if VDEBUG
   ASS(_summands.size() > 0)
-  // if (_summands.size() == 1) {
-  //   ASS(_summands[0].numeral != 1 
-  //       || _summands[0].factors->nFactors() != 1
-  //       || _summands[0].factors->factorAt(0).power != 1 )
-  // }
   for (auto const& x : _summands)
     x.integrity();
   if (_summands.size() > 0) {
     auto iter = this->_summands.begin();
     auto last = iter++;
     while (iter != _summands.end()) {
-      // ASS_REP(std::less<Perfect<MonomFactors>>{}(last->factors, iter->factors), *this);
       ASS_REP(last->factors <= iter->factors, *this);
       last = iter++;
     }
@@ -1443,11 +1422,6 @@ void Polynom<Number>::integrity() const {
 template<class Number>
 Option<Monom<Number>> Polynom<Number>::tryMonom() const
 { return someIf(_summands.size() == 1, [&](){ return summandAt(0); }); }
-
-// template<class Number>
-// typename Polynom<Number>::SummandIter Polynom<Number>::iterSummands() const&
-// { return iterTraits(getArrayishObjectIterator<no_ref_t>(_summands)); }
-
 
 template<class Number> 
 TermList Polynom<Number>::denormalize()  const

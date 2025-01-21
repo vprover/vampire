@@ -1029,9 +1029,3 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
   }
   return true;
 } // areSortsValid 
-
-// TermList SortHelper::sortTerm(unsigned sortNum)
-// { return env.sorts->getSortTerm(sortNum); }
-//
-// unsigned SortHelper::sortNum(TermList sort)
-// { return env.sorts->getSortNum(sort); }
