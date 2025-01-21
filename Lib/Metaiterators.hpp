@@ -1839,6 +1839,8 @@ template<class Inner>
 auto getPersistentIterator(Inner it)
 { return pvi(arrayIter(iterTraits(it).template collect<Stack>())); }
 
+/* wrapper around an iterator that implements ==, <, > and hash functions.
+ * <,> are implemented as lexicographic comparison of the iterator elements */
 template<class Iter>
 class IterContOps {
   Iter const _iter;
@@ -1873,7 +1875,6 @@ public:
   { return !(lhs == rhs); }
 };
 
-// TODO document
 template<class Iter>
 auto iterContOps(Iter iter) { return IterContOps<Iter>(std::move(iter)); }
 
