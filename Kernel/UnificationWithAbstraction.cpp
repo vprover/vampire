@@ -58,8 +58,8 @@ typename IntTraits::ConstantType divOrPanic(IntTraits n, typename IntTraits::Con
 
 
 template<class NumTraits>
-AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa);
-Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa);
+AbstractionOracle::AbstractionResult alasca(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa);
+Option<AbstractionOracle::AbstractionResult> alasca(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa);
 
 template<class NumTraits>
 AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa);
@@ -68,7 +68,7 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
 AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, IntTraits n, Options::UnificationWithAbstraction uwa) {
   // TODO use uwa_floor
   // TODO remove uwa arg
-  return lpar(au, t1, t2, n, uwa);
+  return alasca(au, t1, t2, n, uwa);
 }
 
 bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec const& t) {
@@ -451,7 +451,7 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
 }
 
 // TODO rename
-Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa) {
+Option<AbstractionOracle::AbstractionResult> alasca(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa) {
   ASS(t1.isTerm() || t2.isTerm())
 
   auto interpreted = [&](TermSpec const& t) {
@@ -494,7 +494,7 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
 
     auto res = forAnyNumTraits([&](auto n) {
         return someIf(sort.term == n.sort(), [&]() { 
-            return lpar(au, t1, t2, n, uwa); 
+            return alasca(au, t1, t2, n, uwa); 
         });
     });
     ASS(res.isSome())
@@ -516,7 +516,7 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
 
 
 template<class NumTraits>
-AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n_, Options::UnificationWithAbstraction uwa) {
+AbstractionOracle::AbstractionResult alasca(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n_, Options::UnificationWithAbstraction uwa) {
   TIME_TRACE("unification with abstraction ALASCA")
   AlascaSignature<NumTraits> sig;
   using EqualIf = AbstractionOracle::EqualIf;
@@ -1197,7 +1197,7 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
       || _mode == Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT 
       || _mode == Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP
       ) {
-    return lpar(*au, t1, t2, _mode);
+    return alasca(*au, t1, t2, _mode);
 
   } else {
     auto abs = canAbstract(au, t1, t2);
