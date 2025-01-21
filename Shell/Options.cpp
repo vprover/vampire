@@ -1269,7 +1269,7 @@ void Options::init()
     _pushUnaryMinus.tag(OptionTag::THEORIES);
 
 
-    _alasca  = BoolOptionValue("linear_arithmetic_superposition_calculus","alasca",false);
+    _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",false);
     _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus\n";
     _lookup.insert(&_alasca);
     _alasca.tag(OptionTag::INFERENCES);
@@ -1303,7 +1303,7 @@ void Options::init()
     _alascaDemodulation.setExperimental();
     _alascaDemodulation.onlyUsefulWith2(_alasca.is(equal(true)));
 
-    _alascaStrongNormalization  = BoolOptionValue("alasca_strong_normalziation","la_sn",false);
+    _alascaStrongNormalization  = BoolOptionValue("alasca_strong_normalziation","alasca_sn",false);
     _alascaStrongNormalization.description=
             "enables stronger normalizations for inequalities: \n"
             "s >= 0 ==> s > 0 \\/  s == 0\n"

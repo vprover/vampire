@@ -164,18 +164,9 @@ void Preprocess::preprocess(Problem& prb)
       TheoryAxioms(prb).apply();
     }
 
-
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     normalizeInterpreted();
   }
-
-
-  // // If there are interpreted operations
-  // if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-  //   // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
-  //   normalizeInterpreted();
-  // }
-
 
   if (_options.alascaIntegerConversion()) {
     if (env.options->showPreprocessing())
