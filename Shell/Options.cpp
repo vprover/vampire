@@ -415,10 +415,10 @@ void Options::init()
 
 
     auto noZ3 = [&](auto& x) {
-#if VZ3
-      x.reliesOn(_satSolver.is(notEqual(SatSolver::Z3))); 
-      x.reliesOn(_theoryInstAndSimp.is(equal(TheoryInstSimp::OFF)));
-#endif // VZ3
+// #if VZ3
+//       x.reliesOn(_satSolver.is(notEqual(SatSolver::Z3))); 
+//       x.reliesOn(_theoryInstAndSimp.is(equal(TheoryInstSimp::OFF)));
+// #endif // VZ3
     };
 
 //*********************** Preprocessing  ***********************
