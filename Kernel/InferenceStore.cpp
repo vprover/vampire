@@ -1344,19 +1344,6 @@ protected:
     };
     switch (f->connective()) {
       case NAME:
-        // TODO
-        // try {
-        //   auto& name = static_cast<const NamedFormula*>(f)->name();
-        //   bool negated = name[0] == '~';
-        //   BYPASSING_ALLOCATOR
-        //   SplitLevel num = name[0] == '~' 
-        //                  ? std::stoi(name.substr(1).c_str()) 
-        //                  : std::stoi(name.c_str());
-        //   outputFormula(out, env.splitter)
-        // } catch (std::invalid_argument) {
-        //   throw UserErrorException("could not parse named formula ", *f);
-        // }
-        // return;
         out << static_cast<const NamedFormula*>(f)->name();
         return;
 
@@ -1455,16 +1442,11 @@ protected:
     if (vars.size() != 0) {
       out << ")";
     }
-
-    // out << std::endl;
-    // exit(-1);
   }
+
   void printStep(Unit* concl)
   {
     auto prems = iterTraits(concl->getParents());
-
-    // if (InferenceRule::AVATAR_REFUTATION_SMT != rule)
-    //   return;
  
     outputSymbolDeclarations(out);
     out        << std::endl;

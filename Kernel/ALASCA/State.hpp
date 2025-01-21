@@ -204,7 +204,6 @@ namespace Kernel {
     bool subtermEqModT(TermList sub, TermList sup)
     {
       ASS(isAtomic(sub))
-      // TODO add assertion that sub is an atomic term
       return norm().normalize(sup).denormalize()
         .containsSubterm(norm().normalize(sub).denormalize());
     }

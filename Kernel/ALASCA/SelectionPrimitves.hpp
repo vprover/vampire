@@ -180,7 +180,6 @@ namespace Kernel {
 
     IMPL_COMPARISONS_FROM_TUPLE(SelectedSummand)
 
-      // TODO simpler
     friend std::ostream& operator<<(std::ostream& out, SelectedSummand const& self)
     { 
       self.numeral().apply([&](auto n) -> void { out << n; });
@@ -224,10 +223,6 @@ namespace Kernel {
 
     TermList smallerSide() const 
     { return IntTraits::sum(contextTerms<IntTraits>().map([](auto t) { return (-t).denormalize(); })); }
-
-    // friend std::ostream& operator<<(std::ostream& out, SelectedIntegerEquality const& self)
-    // { return out << (SelectedSummand const&)self; }
-
   };
 
   class SelectedEquality 
@@ -298,12 +293,6 @@ namespace Kernel {
 
     auto contextLiterals() const
     { return _inner.apply([](auto& x) { return x.contextLiterals(); }); }
-    // { return ifElseIter(
-    //     _inner.is<0>(), 
-    //     [&]() { return _inner.unwrap<0>().contextLiterals(); },
-    //     // else
-    //     [&]() { return _inner.unwrap<1>().contextLiterals(); }); }
-
 
     Literal* literal() const
     { return _inner.apply([](auto& x) { return x.literal(); }); }

@@ -1873,7 +1873,17 @@ public:
   { return !(lhs == rhs); }
 };
 
+// TODO document
 template<class Iter>
 auto iterContOps(Iter iter) { return IterContOps<Iter>(std::move(iter)); }
+
+template<class A, class Iter>
+Iter assertIter(Iter iter) {
+  static_assert(std::is_same_v<A   ,ELEMENT_TYPE(Iter)> 
+             && std::is_same_v<A   , decltype(iter.next())>
+             && std::is_same_v<bool, decltype(iter.hasNext())>
+             );
+  return iter;
+}
 
 #endif /* __Metaiterators__ */

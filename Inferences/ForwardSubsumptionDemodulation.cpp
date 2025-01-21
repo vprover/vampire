@@ -34,16 +34,6 @@
 #include <unordered_set>
 #include <vector>
 
-#define ASS_ORD(ord, l, exp, r)                                                                     \
-{                                                                                                   \
-  auto cmp =  ord.compare(l,r);                                                                     \
-  if (cmp != exp) {                                                                                 \
-    ASSERTION_VIOLATION_REP(                                                                        \
-        "is:       " + l + " " + cmp + " " r + "\n"                                                 \
-        "expected: " + l + " " + exp + " " r)                                                       \
-  }                                                                                                 \
-}                                                                                                   \
-
 using namespace Kernel;
 using namespace Lib;
 using namespace Inferences;

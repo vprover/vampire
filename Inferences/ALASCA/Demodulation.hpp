@@ -80,24 +80,8 @@ public:
         .flatMap([cl](Literal* lit) {
 
           return iterTraits(vi(new NonVariableNonTypeIterator(lit)))
-              // TODO filter our things that can never be rewritten
-            // .filter([](TermList t) {
-            //   if (t.isTerm()) {
-            //     auto term = t.term();
-            //     return forAnyNumTraits([&](auto numTraits){
-            //         using NumTraits = decltype(numTraits);
-            //         return SortHelper::getResultSort(term) == NumTraits::sort()
-            //             && !NumTraits::isNumeral(term)
-            //             && !(NumTraits::mulF() == term->functor() && NumTraits::isNumeral(*term->nthArgument(0)) );
-            //                     // ^^^ term = k * t
-            //     });
-            //   } else {
-            //     return false;
-            //   }
-            // })
-            // TODO better optimizations
+            // TODO filter our things that can never be rewritten
             .map([=](auto t) { return Rhs { .term = TypedTermList(t), .ordOptimization = !(lit->isEquality() && lit->isPositive()), .clause = cl, }; })
-            // .filter([](auto& t) { return t.ordOptimization; })
             ;
         })
       .timeTraced("alasca demodulation rhs");

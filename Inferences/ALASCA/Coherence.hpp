@@ -45,15 +45,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-template<class A, class Iter>
-Iter assertIter(Iter iter) {
-  static_assert(std::is_same_v<A   ,ELEMENT_TYPE(Iter)> 
-             && std::is_same_v<A   , decltype(iter.next())>
-             && std::is_same_v<bool, decltype(iter.hasNext())>
-             );
-  return iter;
-}
-
 template<class NumTraits>
 struct CoherenceConf
 {

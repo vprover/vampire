@@ -389,26 +389,6 @@ class LiteralOrdering
           );
   }
 
-  // template<class NumTraits>
-  // Result compare(AlascaLiteral<NumTraits> const& l1, AlascaLiteral<NumTraits> const& l2) const 
-  // {
-  //   auto a1 = atoms(l1);
-  //   auto a2 = atoms(l2);
-  //   return AlascaOrderingUtils::lexLazy(
-  //         [&](){ return OrderingUtils::mulExt(a1, a2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
-  //         [&](){ return cmpPrec<NumTraits>(l1.symbol(), l2.symbol()); }
-  //         );
-  // }
-
-  // Result cmpAlascaLit(AnyAlascaLiteral const& l1, AnyAlascaLiteral const& l2) const {
-  //   if (l1.tag() == l2.tag()) {
-  //     return l1.applyWithIdx([&](auto& l1, auto N) { return compare(l1, l2.unwrap<N.value>()); });
-  //   } else {
-  //     return l1.tag() < l2.tag() ? Ordering::Result::LESS
-  //                                : Ordering::Result::GREATER;
-  //   }
-  // }
-
 public:
   USE_ALLOCATOR(LiteralOrdering);
 

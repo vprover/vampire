@@ -222,13 +222,9 @@ class AlascaPreprocessor
     }
   }
 
-  // FormulaUnit* integerConversion(FormulaUnit* unit);
   Unit* integerConversion(Unit* unit) {
     ASS_REP(unit->isClause(), "integer conversion needs to be performed after clausification because we don't wanna deal with FOOL & friends here")
     return (Unit*)integerConversion(static_cast<Clause*>(unit));
-    // return unit->isClause() 
-    //   ? (Unit*)integerConversion(static_cast<Clause*>(unit))
-    //   : (Unit*)integerConversion(static_cast<FormulaUnit*>(unit));
   }
 public:
 

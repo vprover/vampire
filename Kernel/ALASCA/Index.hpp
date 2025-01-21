@@ -7,11 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file AlascaIndex.hpp
- * Defines class AlascaIndex
- *
- */
 
 #ifndef __ALASCA_AlascaIndex__
 #define __ALASCA_AlascaIndex__
@@ -35,6 +30,7 @@ namespace Indexing {
 template<class C>
 using KeyType = decltype(assertionViolation<C>().key());
 
+// TODO move this to some other place maybe?
 template<class T, class C> struct GenSubstitutionTree_;
 template<class T         > struct GenSubstitutionTree_<T, Literal*     > { using Type = LiteralSubstitutionTree<T>; };
 template<class T         > struct GenSubstitutionTree_<T, TypedTermList> { using Type = TermSubstitutionTree<T>;    };

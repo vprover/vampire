@@ -120,18 +120,6 @@ struct VampireVirasConfig {
       IfAdd   if_add, 
       IfFloor if_floor) -> decltype(if_one()) {
 
-    // return NumTraits::ifNumeral(t, [&](auto n) { return n == Numeral(1) ? if_one() : if_mul(n, term(numeral(1))); })
-    //  .orElse([&]() { return NumTraits::ifAdd(t, [&](auto l, auto r) { return if_add(l, r); }); })
-    //  .orElse([&]() { return NumTraits::ifMinus(t, [&](auto t) { return if_mul(numeral(-1), t); }); })
-    //  .orElse([&]() { return NumTraits::ifMul(t, [&](auto l, auto r) { 
-    //                        return NumTraits::ifNumeral(l, [&](auto k) { return if_mul(k, r); });
-    //                  }).flatten(); })
-    //  .orElse([&]() { return NumTraits::ifDiv(t, [&](auto l, auto r) { 
-    //                        return NumTraits::ifNumeral(r, [&](auto k) { return if_mul(k.inverse(), l); });
-    //                  }).flatten(); })
-    //  .orElse([&]() { return NumTraits::ifFloor(t, [&](auto t) { return if_floor(t); }); })
-    //  .orElse([&]() { return if_var(VarWrapper(t)); });
-
     return ASig::ifOne(t, std::move(if_one))
      .orElse([&]() { return ASig::ifAdd(t, [&](auto l, auto r) { return if_add(l, r); }); })
      .orElse([&]() { return ASig::ifMinus(t, [&](auto t) { return if_mul(numeral(-1), t); }); })
