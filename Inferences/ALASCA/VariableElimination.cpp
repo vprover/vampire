@@ -208,11 +208,11 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
   auto Ksize = K.size();
 
   if (Ksize > 0) {
-    env.statistics->ircVarElimKNonZeroCnt++;
+    env.statistics->alascaVarElimKNonZeroCnt++;
   }
-  env.statistics->ircVarElimKSum += Ksize;
-  if (Ksize > env.statistics->ircVarElimKMax)
-    env.statistics->ircVarElimKMax = Ksize;
+  env.statistics->alascaVarElimKSum += Ksize;
+  if (Ksize > env.statistics->alascaVarElimKMax)
+    env.statistics->alascaVarElimKMax = Ksize;
 
   auto Csize = premise->size() - Ksize - I.size() - J.size() - L.size();
 

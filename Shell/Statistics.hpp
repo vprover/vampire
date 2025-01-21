@@ -212,9 +212,9 @@ public:
   unsigned evaluationCnt;
 
   /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
-  unsigned ircVarElimKNonZeroCnt;
-  unsigned ircVarElimKSum;
-  unsigned ircVarElimKMax;
+  unsigned alascaVarElimKNonZeroCnt;
+  unsigned alascaVarElimKSum;
+  unsigned alascaVarElimKMax;
 
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;

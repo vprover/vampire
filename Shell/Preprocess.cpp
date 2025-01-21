@@ -449,7 +449,6 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   // TODO output sth here as well (?)
    normalizeInterpreted();
 
    if (_options.blockedClauseElimination()) {

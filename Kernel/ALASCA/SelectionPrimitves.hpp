@@ -102,7 +102,7 @@ namespace Kernel {
     auto termIdx() const { return _term; }
 
     auto numeral() const 
-    { return ircLiteral()
+    { return alascaLiteral()
           .apply([this](auto& lit) 
               { return AnyConstantType(lit.term().summandAt(_term).numeral); }); }
 
@@ -111,19 +111,19 @@ namespace Kernel {
     { return numeral().unwrap<typename NumTraits::ConstantType>(); }
 
     auto nContextTerms() const 
-    { return ircLiteral().apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
+    { return alascaLiteral().apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
 
-    AnyAlascaLiteral const& ircLiteral() const
+    AnyAlascaLiteral const& alascaLiteral() const
     { return interpreted.unwrap(); }
 
     template<class NumTraits>
-    auto const& ircLiteral() const
-    { return ircLiteral().template unwrap<AlascaLiteral<NumTraits>>(); }
+    auto const& alascaLiteral() const
+    { return alascaLiteral().template unwrap<AlascaLiteral<NumTraits>>(); }
 
     template<class NumTraits>
     auto contextTerms() const 
     { 
-      auto& lit = ircLiteral<NumTraits>();
+      auto& lit = alascaLiteral<NumTraits>();
       return range(0, lit.term().nSummands()) 
                 .filter([&](unsigned i) { return i != _term; })
                 .map([&](unsigned i) { return lit.term().summandAt(i); });
@@ -142,19 +142,19 @@ namespace Kernel {
 
     // TODO use this everywhere possible
     auto notSelectedTerm() const 
-    { return ircLiteral()
+    { return alascaLiteral()
         .apply([this](auto& x) { return notSelectedTerm(x); }); }
 
     bool isInequality() const
-    { return ircLiteral().apply([](auto& lit)
+    { return alascaLiteral().apply([](auto& lit)
                                { return lit.isInequality(); }); }
 
     bool isIsInt() const
-    { return ircLiteral().apply([](auto& lit)
+    { return alascaLiteral().apply([](auto& lit)
                                { return lit.isIsInt(); }); }
 
     TermList selectedAtom() const
-    { return ircLiteral()
+    { return alascaLiteral()
           .apply([this](auto& lit) 
               { return lit.term().summandAt(_term).factors->denormalize(); }); }
 
@@ -169,7 +169,7 @@ namespace Kernel {
     TermList sort() const { return numTraits().apply([](auto num) { return num.sort(); });  }
 
     auto symbol() const
-    { return ircLiteral().apply([](auto& l) { return l.symbol(); }); }
+    { return alascaLiteral().apply([](auto& l) { return l.symbol(); }); }
 
     TypedTermList key() const { return TypedTermList(selectedAtom(), sort()); }
 

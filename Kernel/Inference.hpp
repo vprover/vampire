@@ -224,9 +224,7 @@ enum class InferenceRule : unsigned char {
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
   BACKWARD_DEMODULATION,
-  /** forward demodulation modulo LA of the Inequality Resolution Calculus */
   ALASCA_FWD_DEMODULATION,
-  /** backward demodulation modulo LA of the Inequality Resolution Calculus */
   ALASCA_BWD_DEMODULATION,
   /** forward subsumption demodulation inference */
   FORWARD_SUBSUMPTION_DEMODULATION,
@@ -240,7 +238,6 @@ enum class InferenceRule : unsigned char {
   CONDENSATION,
   /** evaluation inference */
   EVALUATION,
-  /** normalization rule of the Inequality Resolution Calculus */
   ALASCA_NORMALIZATION,
   ALASCA_ABSTRACTION,
   ALASCA_FLOOR_ELIMINATION,
@@ -322,16 +319,13 @@ enum class InferenceRule : unsigned char {
   /* inequality factoring rule of the ALASCA Calculs */
   ALASCA_FOURIER_MOTZKIN,
   ALASCA_INTEGER_FOURIER_MOTZKIN,
-  /* factoring rules of the Inequality Resolution Calculs */
   ALASCA_TERM_FACTORING,
   ALASCA_FLOOR_BOUNDS,
   ALASCA_EQ_FACTORING,
   ALASCA_LITERAL_FACTORING,
-  /** superposition rule of the Inequality Resolution Calculus */
   ALASCA_SUPERPOSITION,
   ALASCA_COHERENCE,
   ALASCA_COHERENCE_NORMALIZATION,
-  /** variable elimination rule of the Inequality Resolution Calculus */
   ALASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating

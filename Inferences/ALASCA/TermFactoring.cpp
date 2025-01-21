@@ -142,10 +142,10 @@ Option<Clause*> TermFactoring::applyRule(
   //
   // check_side_condition(
   //     "s₁σ /≺ atoms(t)σ and s₂σ /≺ atoms(t)σ ",
-  //     range(0, sel1.ircLiteral<NumTraits>().term().nSummands())
+  //     range(0, sel1.alascaLiteral<NumTraits>().term().nSummands())
   //         .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
   //         .all([&](auto i) {
-  //           auto ki_ti = sel1.ircLiteral<NumTraits>().term().summandAt(i);
+  //           auto ki_ti = sel1.alascaLiteral<NumTraits>().term().summandAt(i);
   //           auto tiσ = sigma(ki_ti.factors->denormalize());
   //           t_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
   //           return _shared->notLess(s1_sigma, tiσ)
@@ -155,10 +155,10 @@ Option<Clause*> TermFactoring::applyRule(
   // auto resSum = NumTraits::sum(concatIters(iterItems(resTerm), t_sigma.iterFifo()));
   // //   ^^^^^^---> ((k₁ + s₁)s₂ + t)σ
     
-  auto t_sigma = range(0, sel1.ircLiteral<NumTraits>().term().nSummands())
+  auto t_sigma = range(0, sel1.alascaLiteral<NumTraits>().term().nSummands())
           .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
           .map([&](auto i) {
-            auto ki_ti = sel1.ircLiteral<NumTraits>().term().summandAt(i);
+            auto ki_ti = sel1.alascaLiteral<NumTraits>().term().summandAt(i);
             auto tiσ = sigma(ki_ti.factors->denormalize());
             return NumTraits::mulSimpl(ki_ti.numeral, tiσ);
           });
