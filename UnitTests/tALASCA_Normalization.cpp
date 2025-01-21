@@ -15,7 +15,7 @@
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 
 using namespace std;
 using namespace Kernel;

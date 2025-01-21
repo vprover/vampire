@@ -25,7 +25,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"

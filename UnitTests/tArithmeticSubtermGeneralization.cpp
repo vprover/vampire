@@ -23,7 +23,7 @@
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Kernel/KBO.hpp"
 #include <memory>
 

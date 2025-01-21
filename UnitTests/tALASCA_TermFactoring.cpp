@@ -21,7 +21,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"

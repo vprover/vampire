@@ -7,7 +7,7 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"

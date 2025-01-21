@@ -25,7 +25,7 @@
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp" 
 #include "Inferences/PolynomialEvaluation.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
 
 using namespace std;

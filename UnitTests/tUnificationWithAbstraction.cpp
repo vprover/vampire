@@ -26,7 +26,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"

@@ -18,7 +18,7 @@
 #include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"

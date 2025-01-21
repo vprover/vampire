@@ -26,7 +26,7 @@
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp" 
 #include "Inferences/PolynomialEvaluation.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -74,7 +74,7 @@ inline auto testFloorElimination(Options::UnificationWithAbstraction uwa)
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<AlascaSimplRule<ToSgi<FloorElimination>>>(testFloorElimination(UWA_MODE)))
+REGISTER_GEN_TESTER(AlascaGenerationTester<ToSgi<FloorElimination>>(testFloorElimination(UWA_MODE)))
 
 /////////////////////////////////////////////////////////
 // Basic tests

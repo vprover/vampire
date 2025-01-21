@@ -21,7 +21,7 @@
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/KBO.hpp"
 

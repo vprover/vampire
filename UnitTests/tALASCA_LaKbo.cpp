@@ -15,7 +15,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Kernel/ALASCA.hpp"
-#include "Test/AlascaSimplRule.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/ALASCA/Ordering.hpp"
