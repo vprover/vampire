@@ -163,9 +163,6 @@ void Preprocess::preprocess(Problem& prb)
 
       TheoryAxioms(prb).apply();
     }
-
-    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
-    normalizeInterpreted();
   }
 
   if (_options.alascaIntegerConversion()) {
