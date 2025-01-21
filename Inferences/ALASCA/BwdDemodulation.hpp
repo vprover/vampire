@@ -7,11 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file BwdDemodulation.hpp
- * Defines class BwdDemodulation.hpp
- *
- */
 
 #ifndef __ALASCA_Inferences_BwdDemodulation__
 #define __ALASCA_Inferences_BwdDemodulation__
