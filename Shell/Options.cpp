@@ -1209,6 +1209,8 @@ void Options::init()
       "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
       "- all: always apply\n"
       "- ground: only if both s and t are ground\n"
+      "- alasca_one_interp, alasca_can_abstract, alasca_main: strategies used for the real-arithmetic version of alasca. these are described in  the LPAR2023 paper  \"Refining Unification with Abstraction\""
+      "- alasca_main_floor: an extension of the alasca_main strategy to work with mixed integer-real arithmetic. this option is experimental\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
@@ -1262,7 +1264,7 @@ void Options::init()
 
 
     _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",false);
-    _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus\n";
+    _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n";
     _lookup.insert(&_alasca);
     _alasca.tag(OptionTag::INFERENCES);
     _alasca.setExperimental();
@@ -1282,13 +1284,13 @@ void Options::init()
             )));
 
     _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
-    _viras.description= "Enables the VIRAS quantifier elimination to be used in ALASCA\n";
+    _viras.description= "Enables the VIRAS quantifier elimination to be used in ALASCA. The VIRAS method is explained in the LPAR2024 paper \"VIRAS: Conflict-Driven Quantifier Elimination for Integer-Real Arithmetic\"\n";
     _lookup.insert(&_viras);
     _viras.tag(OptionTag::INFERENCES);
     _viras.setExperimental();
     _viras.onlyUsefulWith2(_alasca.is(equal(true)));
 
-    _alascaDemodulation  = BoolOptionValue("alasca_demodulation","la_demod",false);
+    _alascaDemodulation  = BoolOptionValue("alasca_demodulation","alasca_demod",false);
     _alascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
     _lookup.insert(&_alascaDemodulation);
     _alascaDemodulation.tag(OptionTag::INFERENCES);
@@ -1312,6 +1314,7 @@ void Options::init()
             "replacing integer variables with floor functions and transforming the signature appropriately"
             "\n";
     _lookup.insert(&_alascaIntegerConversion);
+    _alascaIntegerConversion.setExperimental();
     _alascaIntegerConversion.tag(OptionTag::INFERENCES);
     _alascaIntegerConversion.onlyUsefulWith2(_alasca.is(equal(true)));
     _alascaIntegerConversion.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)));
@@ -2325,7 +2328,14 @@ void Options::init()
 
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
                                                     {"kbo","lpo","qkbo", "lakbo", "incomp"});
-    _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
+    _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
+      "\n"
+      "possible values:\n"
+      "- kbo: Knuth-Bendix Ordering\n"
+      "- lpo: Lexicographical Path Ordering\n"
+      "- qkbo: QKBO ordering as described in the TACAS 2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n"
+      "- lakbo: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
+      ;
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());
     _termOrdering.tag(OptionTag::SATURATION);
     _termOrdering.addHardConstraint(
