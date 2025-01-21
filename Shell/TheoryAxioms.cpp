@@ -414,53 +414,13 @@ struct AlascaAxioms {
     // <=>  x >= 0 \/  y - z >= 0 \/ x * y - x * z > 0
     addAx({ geq(x), geq(add(y, minus(z))), greater(add(mul(x,y), minus(mul(x,z)))) });
   }
-  static void maybeAddFloorAxioms(RatTraits num, Problem& prb, TheoryAxioms& ax)
-  { /* TODO how do we deal with rationals? */ }
-  static void maybeAddFloorAxioms(IntTraits num, Problem& prb, TheoryAxioms& ax)
-  {  }
-  static void maybeAddFloorAxioms(RealTraits num, Problem& prb, TheoryAxioms& ax)
-  { 
-    if (prb.getProperty()->hasInterpretedOperation(RealTraits::floorI)) {
-      AXIOM_CONTEXT
-      //      x < y -> floor(x) <= floor(y)
-      // <=> ~x < y \/ floor(x) <= floor(y)
-      // <=> x >= y \/ floor(x) <= floor(y)
-      // <=> x - y >= 0 \/ floor(y) - floor(x) >= 0
-      addAx({geq(add(x, minus(y))), 
-             geq(add(floor(y), minus(floor(x)) ))});
-      //     floor(x) <= x 
-      // <=> x - floor(x) >= 0
-      addAx({ geq(add(x, minus(floor(x)))) });
-      //     x < floor(x) + 1
-      // <=> floor(x) + 1 - x > 0
-      addAx({ greater(add(add(floor(x), numeral(1)), minus(x))), });
-      // <=> floor(x) + 1 - x > 0
-      //      floor(x) <  floor(y) -> floor(x) <= floor(y) - 1
-      // <=> ~floor(x) <  floor(y) \/ floor(x) <= floor(y) - 1
-      // <=>  floor(x) >= floor(y) \/ floor(x) <= floor(y) - 1
-      // <=>  floor(x) - floor(y) >= 0 \/ floor(y) - 1 - floor(x) >= 0
-      addAx({ geq(add(floor(x), minus(floor(y)))), 
-              geq(add(add(floor(y), numeral(-1)), minus(floor(x)))) });
-      //      floor(z) <= x /\  x <  floor(z) + 1 -> floor(x) = floor(z)
-      // <=> ~floor(z) <= x \/ ~x <  floor(z) + 1 \/ floor(x) = floor(z)
-      // <=>  floor(z) >  x \/  x >= floor(z) + 1 \/ floor(x) = floor(z)
-      // <=>  floor(z) - x > 0 \/  x - floor(z) - 1 >= 0 \/ floor(x) = floor(z)
-      addAx({ greater(add(floor(z), minus(x))), 
-              geq(add(add(x, minus(floor(z))), numeral(-1))), 
-              num.eq(true, floor(x), floor(z)) });
-    }
-  }
+
   template<class NumTraits>
   static void addAlascaAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax)
   {
     Property* prop = prb.getProperty();
-    if (Shell::Getter::isNonLinear(*prop, num)) {
+    if (prop->isNonLinear<typename NumTraits::ConstantType>()) {
       addNonLinearAxioms(num, prb, ax);
-    }
-    if (false) {
-      // we aren't adding the floor axioms as we got rules for that
-      // TODO remove this dead code (?)
-      maybeAddFloorAxioms(num,prb,ax);
     }
   }
 };

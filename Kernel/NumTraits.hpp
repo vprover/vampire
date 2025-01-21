@@ -420,16 +420,6 @@ template<class IfInt, class Else, class NumTraits>
 auto ifIntTraits(NumTraits n, IfInt, Else elseF) 
 { return elseF(std::move(n)); }
 
-
-// template<class T, class IfT, class IfNotT, class Val>
-// auto ifOfType(Val val, IfT ifT, IfNotT ifNotT)
-// { return ifNotT(std::move(val)); }
-//
-// template<class T, class IfT, class IfNotT>
-// auto ifOfType<T, IfT, IfNotT, T>(T val, IfT ifT, IfNotT ifNotT)
-// { return ifT(std::move(val)); }
-
-
 template<class T, class Val, class IfT, class IfNotT>
 struct IfOfType 
 {
@@ -450,31 +440,5 @@ auto ifOfType(Val val, IfT ifT, IfNotT ifNotT)
 
 
 }
-
-
-namespace Shell {
-
-struct Getter {
-  static bool hasNumeral (Property& p,  Kernel::IntTraits t) { return p._hasNumeralsInt;  }
-  static bool hasNumeral (Property& p,  Kernel::RatTraits t) { return p._hasNumeralsRat;  }
-  static bool hasNumeral (Property& p, Kernel::RealTraits t) { return p._hasNumeralsReal; }
-
-  static bool isNonLinear(Property& p,  Kernel::IntTraits t) { return p._nonLinearInt;  }
-  static bool isNonLinear(Property& p,  Kernel::RatTraits t) { return p._nonLinearRat;  }
-  static bool isNonLinear(Property& p, Kernel::RealTraits t) { return p._nonLinearReal; }
-
-  template<class NumTraits>
-  static bool isNonLinear(Property& p) { return isNonLinear(p, NumTraits{}); }
-  template<class NumTraits>
-  static bool hasArithSymbols(Property& p) { 
-    return p.hasInterpretedOperation(NumTraits::addI)
-        || p.hasInterpretedOperation(NumTraits::mulI)
-        || p.hasInterpretedOperation(NumTraits::minusI)
-        || hasNumeral(p, NumTraits{})
-        || p.hasInterpretedOperation(NumTraits::floorI);
-  }
-};
-
-} // namespace Shell
 
 #endif // __NUM_TRAITS_H__
