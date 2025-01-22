@@ -347,8 +347,7 @@ static std::ostream &operator<<(std::ostream &out, DkLit<Care, Transform> dk) {
       << DkTerm(dk.transform(dk.literal->termArg(1)), dk.care) << ")";
 
   Literal *l = dk.transform(dk.literal);
-  out << cp.open_if(l->arity());
-  return out << DkName(l->predicateName()) << DkArgs(l->args(), dk.care);
+  return out << cp.open_if(l->arity()) << DkName(l->predicateName()) << DkArgs(l->args(), dk.care);
 }
 
 template<typename Transform, typename Care>
@@ -884,19 +883,23 @@ static void outputSuperposition(std::ostream &out, Clause *derived) {
   }
 }
 
-static bool isDemodulatorFor(Literal *demodulator, TermList target) {
+// check whether `demodulator` l = r rewrites left-to-right in the context of C[t] -> C[s]
+static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermList target, Clause *result) {
   ASS(demodulator->isEquality())
   ASS(demodulator->isPositive())
 
+  // TODO this is waaay overkill, but it's very hard to work out which way a demodulator was used
+  // consult MH about how best to do this
   SimpleSubstitution subst;
-  if(!MatchingUtils::matchTerms((*demodulator)[0], target, subst))
+  if(!MatchingUtils::matchTerms(demodulator->termArg(0), target, subst))
     return false;
+  TermList rhsSubst = SubstHelper::apply(demodulator->termArg(1), subst);
 
-  Ordering &ordering = *Ordering::tryGetGlobalOrdering();
-  return ordering.compare(
-    SubstHelper::apply((*demodulator)[0], subst),
-    SubstHelper::apply((*demodulator)[1], subst)
-  ) == Ordering::GREATER;
+  for(Literal *l : rewritten->iterLits())
+    if(!result->contains(l) && !result->contains(EqHelper::replace(l, target, rhsSubst)))
+      return false;
+
+  return true;
 }
 
 static void outputDemodulation(std::ostream &out, Clause *derived) {
@@ -909,9 +912,9 @@ static void outputDemodulation(std::ostream &out, Clause *derived) {
   SimpleSubstitution subst;
   Literal *rightLit = (*right)[0];
   TermList target = rw.rewritten;
-  TermList from = isDemodulatorFor(rightLit, target)
-    ? (*rightLit)[0]
-    : (*rightLit)[1];
+  TermList from = isL2RDemodulatorFor(rightLit, left, target, derived)
+    ? rightLit->termArg(0)
+    : rightLit->termArg(1);
   TermList to = EqHelper::getOtherEqualitySide(rightLit, from);
   bool fromisLHS = rightLit->termArg(0) == from;
   ASS(rightLit->isEquality())
@@ -952,6 +955,7 @@ static void outputDemodulation(std::ostream &out, Clause *derived) {
   for(Literal *litLeft : litsLeft) {
     out << " ";
 
+    // TODO derived->contains()?
     bool needs_rewrite = find(
       derivedLits.begin(),
       derivedLits.end(),
@@ -966,7 +970,7 @@ static void outputDemodulation(std::ostream &out, Clause *derived) {
     outputParentWithSplits(out, right);
 
     for(unsigned v : rightVars)
-      out << " " << DkTerm(SubstHelper::apply(TermList(v, false), subst), care);
+      out << " " << DkTerm(subst.apply(v), care);
     out << " (r : (Prf " << DkLit(rightLit, care, DoSubstitution(subst)) << ") => ";
     outputLiteralPtr(out, litLeft, care, DoReplacement(target, toSubst));
     out << " (";
