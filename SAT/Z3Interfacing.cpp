@@ -1570,14 +1570,16 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         }
 
 
-        // TODO write tests for z3 interfacing and linear multiplicaiton 
-        auto linMul = tryNumTraits([&](auto n) { 
-            return asig(n).ifLinMul(trm, [&](auto& c, auto t) {
-                return to_z3_expr(c, *_context) * args[0];
-                });
-            });
-        if (linMul) {
-          return *linMul;
+        if (!isLit) {
+          // TODO write tests for z3 interfacing and linear multiplicaiton 
+          auto linMul = tryNumTraits([&](auto n) { 
+              return asig(n).ifLinMul(trm, [&](auto& c, auto t) {
+                  return to_z3_expr(c, *_context) * args[0];
+                  });
+              });
+          if (linMul) {
+            return *linMul;
+          }
         }
 
         //if constant treat specially
