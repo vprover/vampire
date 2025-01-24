@@ -191,7 +191,13 @@ static std::set<unsigned> variables(Clause *cl) {
 }
 
 struct AlwaysCare {
-  bool operator()(unsigned _) { return true; }
+  bool care(unsigned _) { return true; }
+};
+
+struct CareFor {
+  std::set<unsigned> &vars;
+  CareFor(std::set<unsigned> &vars) : vars(vars) {}
+  bool care(unsigned var) { return vars.count(var); }
 };
 
 struct CloseParens {
@@ -224,7 +230,7 @@ struct DkVar {
   DkVar(unsigned var, bool specialVar, Care care) {
     if(specialVar)
       code = -1;
-    else if(!care(var))
+    else if(!care.care(var))
       code = -2;
     else
       code = var;
@@ -623,7 +629,7 @@ static void resolution(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
@@ -673,7 +679,7 @@ static void subsumptionResolution(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
@@ -683,6 +689,7 @@ static void subsumptionResolution(std::ostream &out, Clause *derived) {
   bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, left);
 
+  // NB no substitution as `left` is subsumed
   for(unsigned v : leftVars)
     out << " " << DkVar(v, care);
 
@@ -777,7 +784,7 @@ static void superposition(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
@@ -869,7 +876,7 @@ static void demodulation(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
@@ -915,7 +922,7 @@ static void definitionUnfolding(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   bindClause(out, derived, derivedVars);
   out << " deduction" << parent->number();
@@ -1008,7 +1015,7 @@ static void trivialInequalityRemoval(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   // construct the proof term: refer to
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
@@ -1051,7 +1058,7 @@ static void equalityResolution(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
@@ -1101,7 +1108,7 @@ static void equalityResolutionWithDeletion(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
@@ -1166,7 +1173,7 @@ static void factoring(std::ostream &out, Clause *derived) {
 
   // for variables in the substitution that do not appear in the output
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
+  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
