@@ -10,6 +10,10 @@
 /**
  * @file Dedukti.cpp
  * Routines for Dedukti output
+ *
+ * Most of the magic proof terms taken from
+ * "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
+ * Guillaume Burel
  */
 
 #include "Dedukti.hpp"
@@ -36,7 +40,6 @@
 #include "Shell/EqResWithDeletion.hpp"
 #include "Shell/FunctionDefinition.hpp"
 
-#include <array>
 #include <unordered_map>
 #include <set>
 #include <sstream>
@@ -123,87 +126,12 @@ def Prf_av_clause : av_clause -> Type.
 
 using namespace Kernel;
 
-template<typename S, typename T>
-struct Sequence;
-
-template<typename Derived>
-struct Transformation {
-  template<typename Other>
-  Sequence<Derived, Other> then(Other &&other) {
-    return Sequence<Derived, Other> { std::move(*static_cast<Derived *>(this)), other };
-  }
-};
-
-struct Identity : public Transformation<Identity> {
-  Literal *operator()(Literal *literal) { return literal; }
-  TermList operator()(TermList term) { return term; }
-};
-
-template<typename S, typename T>
-struct Sequence : public Transformation<Sequence<S, T>> {
-  S s;
-  T t;
-  Sequence(S s, T t) : s(s), t(t) {}
-  Literal *operator()(Literal *literal) { return t(s(literal)); }
-  TermList operator()(TermList term) { return t(s(term)); }
-};
-
-struct DoSubstitution : public Transformation<DoSubstitution> {
-  SimpleSubstitution &substitution;
-  DoSubstitution(SimpleSubstitution &substitution) : substitution(substitution) {}
-
-  Literal *operator()(Literal *literal) { return SubstHelper::apply(literal, substitution); }
-  TermList operator()(TermList term) { return SubstHelper::apply(term, substitution); }
-};
-
-template<unsigned bank>
-struct DoRobSubstitution : public Transformation<DoRobSubstitution<bank>> {
-  RobSubstitution &substitution;
-  DoRobSubstitution(RobSubstitution &substitution) : substitution(substitution) {}
-
-  Literal *operator()(Literal *literal) { return substitution.apply(literal, bank); }
-  TermList operator()(TermList term) { return substitution.apply(term, bank); }
-};
-using DoRobSubstitution0 = DoRobSubstitution<0>;
-using DoRobSubstitution1 = DoRobSubstitution<1>;
-
-struct DoReplacement : public Transformation<DoReplacement> {
-  TermList from, to;
-  DoReplacement(TermList from, TermList to) : from(from), to(to) {}
-  Literal *operator()(Literal *literal) { return EqHelper::replace(literal, from, to); }
-
-  TermList operator()(TermList term) {
-    if(term.isVar())
-      return term;
-    // EqHelper::replace only replaces _occurrences_
-    if(term == from)
-      return to;
-    return TermList(EqHelper::replace(term.term(), from, to));
-  }
-};
-
-static std::set<unsigned> variables(Clause *cl) {
-  std::set<unsigned> vars;
-  auto it = cl->getVariableIterator();
-  while(it.hasNext())
-    vars.insert(it.next());
-  return vars;
-}
-
-struct AlwaysCare {
-  bool cares(unsigned _) { return true; }
-};
-
-struct CareFor {
-  std::set<unsigned> &vars;
-  CareFor(std::set<unsigned> &vars) : vars(vars) {}
-  bool cares(unsigned var) { return vars.count(var); }
-};
-
+// RAII to automatically close tracked open parentheses
 struct CloseParens {
   std::ostream &out;
   unsigned count = 0;
   CloseParens(std::ostream &out) : out(out) {}
+  // OK to move, but not to copy
   CloseParens(CloseParens &&other) noexcept
     : out(other.out), count(other.count) { other.count = 0; }
   CloseParens(const CloseParens &) = delete;
@@ -223,7 +151,100 @@ struct CloseParens {
   ~CloseParens() { while(count--) out << ')'; }
 };
 
+/*
+ * These types describe various transformations that could be applied to a term or literal.
+ * This is useful when we want to print an equation under some transformation,
+ * but _without_ changing the order of its literals.
+ *
+ * For example: if we have X = c and we apply the substitution X -> d,
+ * we may end up with the equation c = d, _not_ d = c.
+ */
+
+template<typename S, typename T>
+struct Sequence;
+
+// CRTP
+template<typename Derived>
+struct Transformation {
+  template<typename Other>
+  Sequence<Derived, Other> then(Other &&other) {
+    return Sequence<Derived, Other> { std::move(*static_cast<Derived *>(this)), other };
+  }
+};
+
+// do-nothing identity transform
+struct Identity : public Transformation<Identity> {
+  Literal *operator()(Literal *literal) { return literal; }
+  TermList operator()(TermList term) { return term; }
+};
+
+// apply S, then T
+template<typename S, typename T>
+struct Sequence : public Transformation<Sequence<S, T>> {
+  S s;
+  T t;
+  Sequence(S s, T t) : s(s), t(t) {}
+  Literal *operator()(Literal *literal) { return t(s(literal)); }
+  TermList operator()(TermList term) { return t(s(term)); }
+};
+
+// simple substitution, no banks here
+struct DoSubstitution : public Transformation<DoSubstitution> {
+  SimpleSubstitution &substitution;
+  DoSubstitution(SimpleSubstitution &substitution) : substitution(substitution) {}
+
+  Literal *operator()(Literal *literal) { return SubstHelper::apply(literal, substitution); }
+  TermList operator()(TermList term) { return SubstHelper::apply(term, substitution); }
+};
+
+// apply a RobSubstitution using a particular bank
+template<unsigned bank>
+struct DoRobSubstitution : public Transformation<DoRobSubstitution<bank>> {
+  RobSubstitution &substitution;
+  DoRobSubstitution(RobSubstitution &substitution) : substitution(substitution) {}
+
+  Literal *operator()(Literal *literal) { return substitution.apply(literal, bank); }
+  TermList operator()(TermList term) { return substitution.apply(term, bank); }
+};
+using DoRobSubstitution0 = DoRobSubstitution<0>;
+using DoRobSubstitution1 = DoRobSubstitution<1>;
+
+// replace a term with another
+struct DoReplacement : public Transformation<DoReplacement> {
+  TermList from, to;
+  DoReplacement(TermList from, TermList to) : from(from), to(to) {}
+  Literal *operator()(Literal *literal) { return EqHelper::replace(literal, from, to); }
+
+  TermList operator()(TermList term) {
+    if(term.isVar())
+      return term;
+    // EqHelper::replace only replaces _occurrences_
+    if(term == from)
+      return to;
+    return TermList(EqHelper::replace(term.term(), from, to));
+  }
+};
+
+/* here ends the transforms */
+
+/*
+ * We sometimes need to know whether we should use a specific variable or a don't-care.
+ * Consider resolving p(X) against ~p(Y) to get the empty clause.
+ * Neither X nor Y will be bound in the resulting Dedukti term,
+ * but we have to supply something of type iota.
+ * In this case we should rely on iota being non-empty and use the don't-care term "inhabit"
+ * instead of a specific variable.
+ *
+ * We abstract this with a `Care` type which tells us when we care.
+ * `AlwaysCare` is when we always care about which variable we have.
+ */
+struct AlwaysCare {
+  bool cares(unsigned _) { return true; }
+};
+
+// dedukti-print a variable
 struct DkVar {
+  // negative numbers are special, everything else is a variable
   int code = 0;
 
   template<typename Care>
@@ -243,14 +264,18 @@ struct DkVar {
 };
 
 static std::ostream &operator<<(std::ostream &out, DkVar dk) {
+  // special variables are used for the "z" term
+  // frequently encountered when doing replacements
   if(dk.code == -1)
     return out << "z";
+  // if we don't care, say simply "inhabit"
   else if(dk.code == -2)
     return out << "inhabit";
   else
     return out << dk.code;
 }
 
+// dedukti-print a symbol name
 struct DkName {
   const char *name;
   DkName(const char *name) : name(name) {}
@@ -262,6 +287,7 @@ static std::ostream &operator<<(std::ostream &out, DkName dk) {
   return out << "{|" << dk.name << "|}";
 }
 
+// space-separated term arguments
 template<typename Care>
 struct DkArgs {
   TermList *start;
@@ -274,10 +300,12 @@ static std::ostream &operator<<(std::ostream &out, DkArgs<Care> args) {
   if(args.start->isEmpty())
     return out;
 
+  // one set of recursive term arguments, kept on a stack
   struct Frame {
     TermList *remaining;
     CloseParens close;
-    Frame(std::ostream &out, TermList *remaining) : remaining(remaining), close(out) { out << close.open(); }
+    Frame(std::ostream &out, TermList *remaining) : remaining(remaining), close(out)
+    { out << close.open(); }
   };
 
   Stack<Frame> todo;
@@ -306,6 +334,7 @@ static std::ostream &operator<<(std::ostream &out, DkArgs<Care> args) {
   }
 }
 
+// dedukti-print a term
 template<typename Care = AlwaysCare>
 struct DkTerm {
   TermList term;
@@ -324,6 +353,7 @@ static std::ostream &operator<<(std::ostream &out, DkTerm<Care> dk) {
   return out << DkName(term) << DkArgs(term->args(), dk.care);
 }
 
+// dedukti-print a literal
 template<typename Care = AlwaysCare, typename Transform = Identity>
 struct DkLit {
   Literal *literal;
@@ -377,6 +407,8 @@ static void outputLiteralName(
     out << ")";
 }
 
+// dedukti-print a literal _reference_ named as a pointer
+// this takes care of commuting equational literals if they flip under the `Transform`
 template<typename Care, typename Transform>
 struct DkLitPtr {
   Literal *literal;
@@ -403,6 +435,7 @@ static std::ostream &operator<<(std::ostream &out, DkLitPtr<Care, Transform> dk)
   return out << after;
 }
 
+// dedukti-print an AVATAR split
 struct DkSplit {
   SATLiteral split;
   DkSplit(SATLiteral split) : split(split) {}
@@ -414,6 +447,16 @@ static std::ostream &operator<<(std::ostream &out, DkSplit dk) {
   return out << cp.open_if(!dk.split.polarity(), "(not ") << "sp" << dk.split.var();
 }
 
+// compute an ordered set of the variables in `cl`
+static std::set<unsigned> variables(Clause *cl) {
+  std::set<unsigned> vars;
+  auto it = cl->getVariableIterator();
+  while(it.hasNext())
+    vars.insert(it.next());
+  return vars;
+}
+
+// dedukti-print a clause
 struct DkClause {
   Clause *clause;
   DkClause(Clause *clause) : clause(clause) {}
@@ -431,16 +474,15 @@ static std::ostream &operator<<(std::ostream &out, DkClause dk) {
     out << cp.open(" (acl");
   }
 
-  auto vars = variables(dk.clause);
-  for(unsigned var : vars)
+  for(unsigned var : variables(dk.clause))
     out << cp.open(" (bind iota ") << cp.open() << var << " : El iota =>";
-
   out << cp.open(" (cl");
   for(Literal *literal : dk.clause->iterLits())
     out << cp.open(" (cons ") << DkLit(literal);
   return out << " ec";
 }
 
+// dedukti-print a formula
 struct DkFormula {
   Formula *formula;
   DkFormula(Formula *formula) : formula(formula) {}
@@ -494,6 +536,7 @@ static std::ostream &operator<<(std::ostream &out, DkFormula dk) {
   }
 }
 
+// dedukti-print either a clause or a formula
 struct DkUnit {
   Unit *unit;
   DkUnit(Unit *unit) : unit(unit) {}
@@ -514,6 +557,7 @@ static void axiomName(std::ostream &out, Unit *axiom) {
   out << axiom->number() << "|}";
 }
 
+// def deduction : <clause> := <intro splits>
 static void deductionPrefix(std::ostream &out, Unit *deduction, bool splits = true) {
   out << "def deduction" << deduction->number() << ": " << DkUnit(deduction) << " := ";
   if(splits && deduction->isClause()) {
@@ -536,6 +580,7 @@ static void deductionPrefix(std::ostream &out, Unit *deduction, bool splits = tr
   }
 }
 
+// deductionN <splits>
 static void parentWithSplits(std::ostream &out, Clause *parent) {
   out << "deduction" << parent->number();
   if(parent->noSplits())
@@ -561,34 +606,6 @@ static void sorry(std::ostream &out, Unit *admit) {
     out << " deduction" << parents.next()->number();
 }
 
-// get N parents of a unit
-template<unsigned N>
-std::array<Clause *, N> getParents(Unit *unit) {
-  std::array<Clause *, N> parents;
-  UnitIterator it = unit->getParents();
-  for(unsigned i = 0; i < N; i++) {
-    ALWAYS(it.hasNext())
-    parents[i] = static_cast<Clause *>(it.next());
-  }
-  ALWAYS(!it.hasNext())
-  return parents;
-}
-
-// get N parents of a unit
-template<unsigned N>
-std::pair<std::array<Clause *, N>, std::vector<Clause *>> getParentsVariadic(Unit *unit) {
-  std::array<Clause *, N> parents;
-  UnitIterator it = unit->getParents();
-  for(unsigned i = 0; i < N; i++) {
-    ALWAYS(it.hasNext())
-    parents[i] = static_cast<Clause *>(it.next());
-  }
-  std::vector<Clause *> rest;
-  while(it.hasNext())
-    rest.push_back(static_cast<Clause *>(it.next()));
-  return {parents, rest};
-}
-
 // apply `subst` to all literals of a clause, except `except`, discarding the result
 // useful in order to reconstruct the _output_ bank variable names for an inference
 static void applySubstToClause(RobSubstitution &subst, int bank, Clause *clause, Literal *except = nullptr) {
@@ -597,6 +614,7 @@ static void applySubstToClause(RobSubstitution &subst, int bank, Clause *clause,
       subst.apply(l, bank);
 }
 
+// bind all variables and literals present in `clause`
 static void bindClause(std::ostream &out, Clause *clause, std::set<unsigned> &variables) {
   for(unsigned v : variables)
     out << " " << v << " : El iota => ";
@@ -604,11 +622,13 @@ static void bindClause(std::ostream &out, Clause *clause, std::set<unsigned> &va
     out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
 }
 
+// wrap up common behaviour found when printing an inference
 template<typename Extra>
 struct ClausalInference {
+  // the retrieved proof-extra
   const Extra &extra;
+  // variables in `derived`
   std::set<unsigned> derivedVars;
-  CareFor care;
   UnitIterator parentIt;
 
   template<typename E = Extra>
@@ -624,16 +644,16 @@ struct ClausalInference {
   ClausalInference(std::ostream &out, Clause *derived) :
     extra(getExtra(derived)),
     derivedVars(variables(derived)),
-    care(derivedVars),
     parentIt(derived->getParents())
   {
     deductionPrefix(out, derived);
     bindClause(out, derived, derivedVars);
   }
 
-  bool cares(unsigned var) { return care.cares(var); }
+  bool cares(unsigned var) { return derivedVars.count(var); }
 };
 
+// for inferences with only one parent
 template<typename Extra>
 struct UnaryClausalInference : public ClausalInference<Extra> {
   Clause *parent = nullptr;
@@ -645,9 +665,11 @@ struct UnaryClausalInference : public ClausalInference<Extra> {
     ALWAYS(this->parentIt.hasNext())
     parent = this->parentIt.next()->asClause();
     parentVars = variables(parent);
+    parentWithSplits(out, parent);
   }
 };
 
+// for inferences with one-or-more parents
 template<typename Extra>
 struct VariadicClausalInference : public UnaryClausalInference<Extra> {
   std::vector<Clause *> others;
@@ -659,6 +681,7 @@ struct VariadicClausalInference : public UnaryClausalInference<Extra> {
   }
 };
 
+// for inferences with exactly two parents
 template<typename Extra>
 struct BinaryClausalInference : public UnaryClausalInference<Extra> {
   Clause *left = nullptr, *right = nullptr;
@@ -690,9 +713,6 @@ static void resolution(std::ostream &out, Clause *derived) {
   Literal *leftSelectedSubst = subst.apply(selectedLeft, 0);
   Literal *rightSelectedSubst = subst.apply(selectedRight, 1);
 
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  parentWithSplits(out, inf.left);
   for(unsigned v : inf.leftVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 0), inf);
   unsigned litLeft;
@@ -727,12 +747,9 @@ static void subsumptionResolution(std::ostream &out, Clause *derived) {
   ALWAYS(satSR.checkSubsumptionResolutionWithLiteral(inf.right, inf.left, inf.left->getLiteralPosition(m)))
   auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
 
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  //
   // TODO this should be more or less the 'resolution' term, but with multiple tnp/tp lambdas factored out
   // Anja is a smart cookie
-  parentWithSplits(out, inf.left);
+
   // NB no substitution as `left` is subsumed
   for(unsigned v : inf.leftVars)
     out << " " << DkVar(v, inf);
@@ -819,9 +836,6 @@ static void superposition(std::ostream &out, Clause *derived) {
   TermList fromSubst = subst.apply(from, 1);
   TermList toSubst = subst.apply(to, 1);
 
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  parentWithSplits(out, inf.left);
   for(unsigned v : inf.leftVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 0), inf);
   for(Literal *litLeft : inf.left->iterLits()) {
@@ -898,9 +912,6 @@ static void demodulation(std::ostream &out, Clause *derived) {
   // also apply subst to the selected literals because we need it later
   TermList toSubst = SubstHelper::apply(to, subst);
 
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  parentWithSplits(out, inf.left);
   for(unsigned v : inf.leftVars)
     out << " " << DkVar(v, inf);
   for(Literal *litLeft : inf.left->iterLits()) {
@@ -931,7 +942,6 @@ static void demodulation(std::ostream &out, Clause *derived) {
 static void definitionUnfolding(std::ostream &out, Clause *derived) {
   VariadicClausalInference<Inferences::FunctionDefinitionExtra> inf(out, derived);
 
-  parentWithSplits(out, inf.parent);
   for(unsigned v : inf.derivedVars)
     out << " " << DkVar(v, inf);
 
@@ -1013,10 +1023,6 @@ restart:
 
 static void trivialInequalityRemoval(std::ostream &out, Clause *derived) {
   UnaryClausalInference<std::nullptr_t> inf(out, derived);
-  // construct the proof term: refer to
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  parentWithSplits(out, inf.parent);
 
   for(unsigned v : inf.parentVars)
     out << " " << DkVar(v, inf);
@@ -1041,9 +1047,6 @@ static void equalityResolution(std::ostream &out, Clause *derived) {
   // apply subst to all of the parent literals in the same order as EqualityResolution does it
   applySubstToClause(subst, 0, inf.parent, selected);
 
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  parentWithSplits(out, inf.parent);
   for(unsigned v : inf.parentVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 0), inf);
   unsigned lit;
@@ -1079,9 +1082,6 @@ static void equalityResolutionWithDeletion(std::ostream &out, Clause *derived) {
     ALWAYS(subst.bind(s.var(), t))
   }
 
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  parentWithSplits(out, inf.parent);
   for(unsigned v : inf.parentVars)
     out << " " << DkTerm(subst.apply(v), inf);
   for(Literal *l : inf.parent->iterLits()) {
@@ -1102,9 +1102,6 @@ static void equalityResolutionWithDeletion(std::ostream &out, Clause *derived) {
 static void duplicateLiteral(std::ostream &out, Clause *derived) {
   UnaryClausalInference<std::nullptr_t> inf(out, derived);
 
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  parentWithSplits(out, inf.parent);
   for(unsigned v : inf.derivedVars)
     out << " " << DkVar(v);
   for(Literal *l : inf.parent->iterLits())
@@ -1125,9 +1122,6 @@ static void factoring(std::ostream &out, Clause *derived) {
   // apply subst to all of the parent literals in the same order as Factoring does it
   applySubstToClause(subst, 0, inf.parent, other);
 
-  // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
-  // Guillaume Burel
-  parentWithSplits(out, inf.parent);
   for(unsigned v : inf.parentVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 0), inf);
   for(Literal *l : inf.parent->iterLits())
@@ -1302,7 +1296,9 @@ static void AVATARSplitClause(std::ostream &out, Unit *derived) {
 }
 
 static void AVATARContradictionClause(std::ostream &out, Unit *contradiction) {
-  auto [parent] = getParents<1>(contradiction);
+  UnitIterator it = contradiction->getParents();
+  ALWAYS(it.hasNext())
+  Clause *parent = it.next()->asClause();
   out
     << "def deduction" << contradiction->number() << " : "
     << DkClause(parent) << " := deduction" << parent->number();
