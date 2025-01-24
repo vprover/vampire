@@ -32,6 +32,7 @@
 #include "Shell/Shuffling.hpp"
 #include "Shell/TheoryFinder.hpp"
 
+#include <limits>
 #include <unistd.h>
 #include <signal.h>
 #include <fstream>
@@ -296,7 +297,14 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
  */
 void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier) 
 {
+  ASS(limit_multiplier >= 0)
   Schedule::BottomFirstIterator it(sOld);
+  auto scale = [&](auto v) {
+    int newV = v * limit_multiplier;
+    return limit_multiplier > 0 && newV < v 
+       ? /* overflow */ std::numeric_limits<int>::max()
+       : newV;
+    };
   while(it.hasNext()){
     std::string s = it.next();
 
@@ -310,19 +318,19 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
       size_t eidx = s.find_first_of(":_",bidx); // find the end of the number there
       ASS_NEQ(eidx,std::string::npos);
       std::string instrStr = s.substr(bidx,eidx-bidx);
-      unsigned instr;
-      ALWAYS(Int::stringToUnsignedInt(instrStr,instr));
-      instr *= limit_multiplier;
-      s = s.substr(0,bidx) + Lib::Int::toString(instr) + s.substr(eidx);
+      unsigned oldInstr;
+      ALWAYS(Int::stringToUnsignedInt(instrStr,oldInstr));
+      s = s.substr(0,bidx) + Lib::Int::toString(scale(oldInstr)) + s.substr(eidx);
     }
 
     // do the analogous with the time limit suffix
     std::string ts = s.substr(s.find_last_of("_")+1,std::string::npos);
-    unsigned time;
-    ALWAYS(Lib::Int::stringToUnsignedInt(ts,time));
+    unsigned oldTime;
+    ALWAYS(Lib::Int::stringToUnsignedInt(ts,oldTime));
     std::string prefix = s.substr(0,s.find_last_of("_"));
     // Add a copy with increased time limit ...
-    std::string new_time_suffix = Lib::Int::toString((int)(time*limit_multiplier));
+
+    std::string new_time_suffix = Lib::Int::toString(scale(oldTime));
 
     sNew.push(prefix + "_" + new_time_suffix);
   }
@@ -557,7 +565,11 @@ unsigned PortfolioMode::getSliceTime(const std::string &sliceCode)
     sliceTime = 1 + sliceInstr / 200; // rather round up than down (and never return 0 here)
   }
 
-  return _slowness * sliceTime;
+  ASS(_slowness > 0)
+  int res = _slowness * sliceTime;
+  return _slowness >= 1 && res < sliceTime 
+    ? /* overflow */ std::numeric_limits<int>::max()
+    : res;
 } // getSliceTime
 
 /**
