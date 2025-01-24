@@ -591,13 +591,10 @@ static void applySubstToClause(RobSubstitution &subst, int bank, Clause *clause,
       subst.apply(l, bank);
 }
 
-static void bindDerived(std::ostream &out, Clause *derived) {
-  auto derivedVars = variables(derived);
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
+static void bindClause(std::ostream &out, Clause *clause, std::set<unsigned> &variables) {
+  for(unsigned v : variables)
     out << " " << v << " : El iota => ";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
+  for(Literal *l : clause->iterLits())
     out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
 }
 
@@ -630,8 +627,7 @@ static void resolution(std::ostream &out, Clause *derived) {
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-
-  bindDerived(out, derived);
+  bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, left);
 
   for(unsigned v : leftVars)
@@ -659,7 +655,7 @@ static void resolution(std::ostream &out, Clause *derived) {
     out << " " << DkLitPtr((*left)[litLeft], care, DoRobSubstitution0(subst));
 }
 
-static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
+static void subsumptionResolution(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [left, right] = getParents<2>(derived);
   auto sr = env.proofExtra.get<Inferences::LiteralInferenceExtra>(derived);
@@ -679,19 +675,12 @@ static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
   auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
 
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
-    out << " " << v << " : El iota => ";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << " " << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
-
-  // construct the proof term: refer to
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
   //
   // TODO this should be more or less the 'resolution' term, but with multiple tnp/tp lambdas factored out
   // Anja is a smart cookie
+  bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, left);
 
   for(unsigned v : leftVars)
@@ -752,7 +741,7 @@ static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
   }
 }
 
-static void outputSuperposition(std::ostream &out, Clause *derived) {
+static void superposition(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [left, right] = getParents<2>(derived);
   auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(derived);
@@ -790,15 +779,9 @@ static void outputSuperposition(std::ostream &out, Clause *derived) {
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
   auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
 
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
-    out << " " << v << " : El iota =>";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << " " << l << " : (Prf " << DkLit(l) << " -> Prf false) =>";
-
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
+  bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, left);
 
   for(unsigned v : leftVars)
@@ -856,7 +839,7 @@ static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermLis
   return true;
 }
 
-static void outputDemodulation(std::ostream &out, Clause *derived) {
+static void demodulation(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [left, right] = getParents<2>(derived);
   ASS_EQ(right->length(), 1)
@@ -888,16 +871,9 @@ static void outputDemodulation(std::ostream &out, Clause *derived) {
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
   auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
 
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
-    out << " " << v << " : El iota =>";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << " " << l << " : (Prf " << DkLit(l, care) << " -> Prf false) =>";
-
-  // construct the proof term: refer to
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
+  bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, left);
 
   for(unsigned v : leftVars)
@@ -927,7 +903,7 @@ static void outputDemodulation(std::ostream &out, Clause *derived) {
   }
 }
 
-static void outputDefinitionUnfolding(std::ostream &out, Clause *derived) {
+static void definitionUnfolding(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [parents, defs] = getParentsVariadic<1>(derived);
   auto [parent] = parents;
@@ -941,13 +917,7 @@ static void outputDefinitionUnfolding(std::ostream &out, Clause *derived) {
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
   auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
 
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
-    out << " " << v << " : El iota =>";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << " " << l << " : (Prf " << DkLit(l, care) << " -> Prf false) =>";
-
+  bindClause(out, derived, derivedVars);
   out << " deduction" << parent->number();
   for(unsigned v : derivedVars)
     out << " " << DkVar(v, care);
@@ -1028,7 +998,7 @@ restart:
   }
 }
 
-static void outputTrivialInequalityRemoval(std::ostream &out, Clause *derived) {
+static void trivialInequalityRemoval(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [parent] = getParents<1>(derived);
 
@@ -1040,16 +1010,10 @@ static void outputTrivialInequalityRemoval(std::ostream &out, Clause *derived) {
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
   auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
 
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
-    out << " " << v << " : El iota => ";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << "" << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
-
   // construct the proof term: refer to
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
+  bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, parent);
 
   for(unsigned v : parentVars)
@@ -1064,8 +1028,7 @@ static void outputTrivialInequalityRemoval(std::ostream &out, Clause *derived) {
   }
 }
 
-
-static void outputEqualityResolution(std::ostream &out, Clause *derived) {
+static void equalityResolution(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
 
   auto [parent] = getParents<1>(derived);
@@ -1090,16 +1053,9 @@ static void outputEqualityResolution(std::ostream &out, Clause *derived) {
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
   auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
 
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
-    out << " " << v << " : El iota => ";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << "" << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
-
-  // construct the proof term: refer to
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
+  bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, parent);
 
   for(unsigned v : parentVars)
@@ -1119,7 +1075,7 @@ static void outputEqualityResolution(std::ostream &out, Clause *derived) {
     out << " " << DkLitPtr((*parent)[lit], care, DoRobSubstitution0(subst));
 }
 
-static void outputEqualityResolutionWithDeletion(std::ostream &out, Clause *derived) {
+static void equalityResolutionWithDeletion(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [parent] = getParents<1>(derived);
   const auto &er = env.proofExtra.get<Inferences::EqResWithDeletionExtra>(derived);
@@ -1147,16 +1103,9 @@ static void outputEqualityResolutionWithDeletion(std::ostream &out, Clause *deri
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
   auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
 
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
-    out << " " << v << " : El iota => ";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << "" << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
-
-  // construct the proof term: refer to
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
+  bindClause(out, derived, derivedVars);
   out << "deduction" << parent->number();
 
   for(unsigned v : parentVars)
@@ -1176,33 +1125,25 @@ static void outputEqualityResolutionWithDeletion(std::ostream &out, Clause *deri
   }
 }
 
-
-static void outputDuplicateLiteral(std::ostream &out, Clause *derived) {
+static void duplicateLiteral(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [parent] = getParents<1>(derived);
 
   // variables in numerical order
-  auto vars = variables(derived);
+  auto derivedVars = variables(derived);
 
-  // bind variables present in the derived clause
-  for(unsigned v : vars)
-    out << " " << v << " : El iota => ";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
-
-  // construct the proof term: refer to
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
+  bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, parent);
 
-  for(unsigned v : vars)
+  for(unsigned v : derivedVars)
     out << " " << DkVar(v);
   for(Literal *l : parent->iterLits())
     out << " " << l;
 }
 
-static void outputFactoring(std::ostream &out, Clause *derived) {
+static void factoring(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
 
   auto [parent] = getParents<1>(derived);
@@ -1227,15 +1168,9 @@ static void outputFactoring(std::ostream &out, Clause *derived) {
   // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
   auto care = [&](unsigned var) -> bool { return derivedVars.count(var); };
 
-  // bind variables present in the derived clause
-  for(unsigned v : derivedVars)
-    out << " " << v << " : El iota => ";
-  // bind literals in the derived clause
-  for(Literal *l : derived->iterLits())
-    out << "" << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
-
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
+  bindClause(out, derived, derivedVars);
   outputParentWithSplits(out, parent);
 
   for(unsigned v : parentVars)
@@ -1244,23 +1179,22 @@ static void outputFactoring(std::ostream &out, Clause *derived) {
     out << " " << DkLitPtr(l, care, DoRobSubstitution0(subst));
 }
 
-static void outputAVATARDefinition(std::ostream &out, Unit *def) {
+static void AVATARDefinition(std::ostream &out, Unit *def) {
   Clause *component = env.proofExtra.get<SplitDefinitionExtra>(def).component;
   unsigned componentName = component->splits()->sval();
   SATLiteral split = Splitter::getLiteralFromName(componentName);
   out << "def sp" << split.var() << " : Prop :=";
 
+  CloseParens cp(out);
   auto vars = variables(component);
   for(unsigned var : vars)
-    out << " forall iota (" << var << " : El iota =>";
+    out << cp.open(" forall iota (") << var << " : El iota =>";
   for(Literal *literal : component->iterLits())
-    out << " (imp (not " << DkLit(literal) << ")";
+    out << cp.open(" (imp ") << "(not " << DkLit(literal) << ")";
   out << " false";
-  for(unsigned i = 0; i < component->size() + vars.size(); i++)
-    out << ")";
 }
 
-static void outputAVATARComponent(std::ostream &out, Clause *component) {
+static void AVATARComponent(std::ostream &out, Clause *component) {
   ASS(component->splits())
   ASS_EQ(component->splits()->size(), 1)
   outputDeductionPrefix(out, component);
@@ -1269,22 +1203,17 @@ static void outputAVATARComponent(std::ostream &out, Clause *component) {
   SATLiteral split = Splitter::getLiteralFromName(componentName);
   // variables in numerical order
   auto componentVars = variables(component);
-  // bind variables present in the derived clause
-  for(unsigned v : componentVars)
-    out << " " << v << " : El iota => ";
-  // bind literals in the derived clause
-  for(Literal *l : component->iterLits())
-    out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
-  out << "nnsp" << split.var() << "(psp : Prf " << DkSplit(componentName) << " => psp";
 
+  bindClause(out, component, componentVars);
+  CloseParens cp(out);
+  out << "nnsp" << split.var() << cp.open() << "psp : Prf " << DkSplit(componentName) << " => psp";
   for(unsigned v : componentVars)
     out << " " << v;
   for(Literal *l : component->iterLits())
     out << " " << l;
-  out << ")";
 }
 
-static void outputAVATARSplitClause(std::ostream &out, Unit *derived) {
+static void AVATARSplitClause(std::ostream &out, Unit *derived) {
   UnitIterator parents = derived->getParents();
   ALWAYS(parents.hasNext())
   Clause *parent = parents.next()->asClause();
@@ -1417,7 +1346,7 @@ static void outputAVATARSplitClause(std::ostream &out, Unit *derived) {
   }
 }
 
-static void outputAVATARContradictionClause(std::ostream &out, Unit *contradiction) {
+static void AVATARContradictionClause(std::ostream &out, Unit *contradiction) {
   auto [parent] = getParents<1>(contradiction);
   out
     << "def deduction" << contradiction->number() << " : "
@@ -1473,47 +1402,47 @@ void outputDeduction(std::ostream &out, Unit *u) {
     outputAxiomName(out, u);
     break;
   case InferenceRule::DEFINITION_UNFOLDING:
-    outputDefinitionUnfolding(out, u->asClause());
+    definitionUnfolding(out, u->asClause());
     break;
   case InferenceRule::RESOLUTION:
     resolution(out, u->asClause());
     break;
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
-    outputDuplicateLiteral(out, u->asClause());
+    duplicateLiteral(out, u->asClause());
     break;
   case InferenceRule::FACTORING:
-    outputFactoring(out, u->asClause());
+    factoring(out, u->asClause());
     break;
   case InferenceRule::SUBSUMPTION_RESOLUTION:
-    outputSubsumptionResolution(out, u->asClause());
+    subsumptionResolution(out, u->asClause());
     break;
   case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
-    outputTrivialInequalityRemoval(out, u->asClause());
+    trivialInequalityRemoval(out, u->asClause());
     break;
   case InferenceRule::EQUALITY_RESOLUTION:
-    outputEqualityResolution(out, u->asClause());
+    equalityResolution(out, u->asClause());
     break;
   case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
-    outputEqualityResolutionWithDeletion(out, u->asClause());
+    equalityResolutionWithDeletion(out, u->asClause());
     break;
   case InferenceRule::SUPERPOSITION:
-    outputSuperposition(out, u->asClause());
+    superposition(out, u->asClause());
     break;
   case InferenceRule::FORWARD_DEMODULATION:
   case InferenceRule::BACKWARD_DEMODULATION:
-    outputDemodulation(out, u->asClause());
+    demodulation(out, u->asClause());
     break;
   case InferenceRule::AVATAR_DEFINITION:
-    outputAVATARDefinition(out, u);
+    AVATARDefinition(out, u);
     break;
   case InferenceRule::AVATAR_COMPONENT:
-    outputAVATARComponent(out, u->asClause());
+    AVATARComponent(out, u->asClause());
     break;
   case InferenceRule::AVATAR_SPLIT_CLAUSE:
-    outputAVATARSplitClause(out, u);
+    AVATARSplitClause(out, u);
     break;
   case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
-    outputAVATARContradictionClause(out, u);
+    AVATARContradictionClause(out, u);
     // TODO just the identity function
     break;
   case InferenceRule::AVATAR_REFUTATION:
