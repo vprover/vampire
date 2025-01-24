@@ -170,7 +170,8 @@ protected:
 
 private:
   DHSet<unsigned> _predecessorsShown;
-  void showPredecessors(Clause* c);
+  // void showPredecessors(Clause* c); // left only for documentation purposes
+  void showPredecessorsNR(Clause* cl); // a non-recursive version
   // we need both as literal have a different counter in term sharing than terms
   DHSet<unsigned> _subtermsShown;
   DHSet<unsigned> _literalsShown;

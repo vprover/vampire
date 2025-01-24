@@ -428,6 +428,7 @@ void SaturationAlgorithm::onAllProcessed()
   }
 }
 
+/*
 void SaturationAlgorithm::showPredecessors(Clause* c) {
   if (c->isFromPreprocessing() ||
     _predecessorsShown.find(c->number())) return;
@@ -450,6 +451,58 @@ void SaturationAlgorithm::showPredecessors(Clause* c) {
 
   _neuralModel->gageEnqueue(c,parents);
   ALWAYS(_predecessorsShown.insert(c->number()));
+}
+*/
+
+void SaturationAlgorithm::showPredecessorsNR(Clause* cl) {
+  struct Todo {
+    Clause* c;
+    bool starting;
+  };
+
+  Stack<Todo> todos;
+  todos.push({cl,true});
+  while (todos.isNonEmpty()) {
+    Todo& todo = todos.top();
+    Clause* c = todo.c;
+    if (todo.starting) {
+      if (c->isFromPreprocessing() || _predecessorsShown.find(c->number())) {
+        todos.pop();
+      } else {
+        todo.starting = false;
+        // don't touch todo anymore, after pushing!
+
+        if (c->isComponent()) {
+          Clause* p = _splitter->getCausalParent(c);
+          ASS(p); // CAREFUL: causal parent can be none; for the ccModel thingie (we will not consider that!)
+          todos.push({p,true});
+        } else {
+          Inference& inf = c->inference();
+          auto it1 = inf.iterator();
+          while (inf.hasNext(it1)) {
+            Unit* p = inf.next(it1);
+            todos.push({p->asClause(),true});
+          }
+        }
+      }
+    } else {
+      vector<int64_t> parents;
+      if (c->isComponent()) {
+        Clause* p = _splitter->getCausalParent(c);
+        parents.push_back(p->number());
+      } else {
+        Inference& inf = c->inference();
+        auto it1 = inf.iterator();
+        while (inf.hasNext(it1)) {
+          Unit* p = inf.next(it1);
+          parents.push_back(p->number());
+        }
+      }
+      _neuralModel->gageEnqueue(c,parents);
+      ALWAYS(_predecessorsShown.insert(c->number()));
+      todos.pop();
+    }
+  }
 }
 
 void SaturationAlgorithm::showSubterms(Term* t) {
@@ -517,7 +570,7 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
 bool SaturationAlgorithm::makeReadyForEval(Clause* c) {
   if (!_shown.find(c->number())) {
     if (_neuralModel->useGage()) {
-      showPredecessors(c);
+      showPredecessorsNR(c);
     }
     if (_neuralModel->useGweight()) {
       showClauseLiterals(c);
