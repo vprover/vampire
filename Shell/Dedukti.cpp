@@ -182,14 +182,6 @@ struct DoReplacement : public Transformation<DoReplacement> {
   }
 };
 
-static std::vector<Literal *> canonicalise(Clause *cl) {
-  std::vector<Literal *> lits;
-  for(unsigned i = 0; i < cl->length(); i++)
-    lits.push_back((*cl)[i]);
-  sort(lits.begin(), lits.end());
-  return lits;
-}
-
 static std::set<unsigned> variables(Clause *cl) {
   std::set<unsigned> vars;
   auto it = cl->getVariableIterator();
@@ -438,8 +430,7 @@ static std::ostream &operator<<(std::ostream &out, DkClause dk) {
     out << cp.open(" (bind iota ") << cp.open() << var << " : El iota =>";
 
   out << cp.open(" (cl");
-  auto canonical = canonicalise(dk.clause);
-  for(Literal *literal : canonical)
+  for(Literal *literal : dk.clause->iterLits())
     out << cp.open(" (cons ") << DkLit(literal);
   return out << " ec";
 }
@@ -602,12 +593,11 @@ static void applySubstToClause(RobSubstitution &subst, int bank, Clause *clause,
 
 static void bindDerived(std::ostream &out, Clause *derived) {
   auto derivedVars = variables(derived);
-  auto derivedLits = canonicalise(derived);
   // bind variables present in the derived clause
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota => ";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
 }
 
@@ -629,10 +619,6 @@ static void resolution(std::ostream &out, Clause *derived) {
   Literal *leftSelectedSubst = subst.apply(selectedLeft, 0);
   Literal *rightSelectedSubst = subst.apply(selectedRight, 1);
 
-  // canonicalise order of literals in all clauses
-  auto litsLeft = canonicalise(left);
-  auto litsRight = canonicalise(right);
-
   // variables in numerical order
   auto derivedVars = variables(derived);
   auto leftVars = variables(left);
@@ -651,8 +637,8 @@ static void resolution(std::ostream &out, Clause *derived) {
   for(unsigned v : leftVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 0), care);
   unsigned litLeft;
-  for(litLeft = 0; litsLeft[litLeft] != selectedLeft; litLeft++)
-    out << " " << DkLitPtr(litsLeft[litLeft], care, DoRobSubstitution0(subst));
+  for(litLeft = 0; (*left)[litLeft] != selectedLeft; litLeft++)
+    out << " " << DkLitPtr((*left)[litLeft], care, DoRobSubstitution0(subst));
 
   const char *tp = "tp", *tnp = "tnp";
   if(selectedLeft->isNegative())
@@ -663,14 +649,14 @@ static void resolution(std::ostream &out, Clause *derived) {
   for(unsigned v : rightVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 1), care);
   unsigned litRight;
-  for(litRight = 0; litsRight[litRight] != selectedRight; litRight++)
-    out << " " << DkLitPtr(litsRight[litRight], care, DoRobSubstitution1(subst));
+  for(litRight = 0; (*right)[litRight] != selectedRight; litRight++)
+    out << " " << DkLitPtr((*right)[litRight], care, DoRobSubstitution1(subst));
   out << " (" << tnp << ": Prf " << DkLit(rightSelectedSubst, care) << " => (tnp tp))";
-  for(litRight++; litRight < litsRight.size(); litRight++)
-    out << " " << DkLitPtr(litsRight[litRight], care, DoRobSubstitution1(subst));
+  for(litRight++; litRight < right->length(); litRight++)
+    out << " " << DkLitPtr((*right)[litRight], care, DoRobSubstitution1(subst));
   out << ")";
-  for(litLeft++; litLeft < litsLeft.size(); litLeft++)
-    out << " " << DkLitPtr(litsLeft[litLeft], care, DoRobSubstitution0(subst));
+  for(litLeft++; litLeft < left->length(); litLeft++)
+    out << " " << DkLitPtr((*left)[litLeft], care, DoRobSubstitution0(subst));
 }
 
 static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
@@ -683,11 +669,6 @@ static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
   SATSubsumption::SATSubsumptionAndResolution satSR;
   ALWAYS(satSR.checkSubsumptionResolutionWithLiteral(right, left, left->getLiteralPosition(m)))
   auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
-
-  // canonicalise order of literals in all clauses
-  auto derivedLits = canonicalise(derived);
-  auto litsLeft = canonicalise(left);
-  auto litsRight = canonicalise(right);
 
   // variables in numerical order
   auto derivedVars = variables(derived);
@@ -702,7 +683,7 @@ static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota => ";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << " " << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
 
   // construct the proof term: refer to
@@ -718,7 +699,7 @@ static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
 
   // TODO can we make this case distinction less unpleasant?
   if(m->isPositive()) {
-    for(Literal *l : litsLeft) {
+    for(Literal *l : left->iterLits()) {
       out << " ";
       if(l != m) {
         out << l;
@@ -729,7 +710,7 @@ static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
       outputParentWithSplits(out, right);
       for(unsigned v : rightVars)
         out << " " << DkTerm(SubstHelper::apply(TermList(v, false), subst), care);
-      for(Literal *k : litsRight) {
+      for(Literal *k : right->iterLits()) {
         out << " ";
         Literal *ksubst = SubstHelper::apply(k, subst);
         if(Literal::complementaryLiteral(ksubst) != m) {
@@ -744,7 +725,7 @@ static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
     }
   }
   else {
-    for(Literal *l : litsLeft) {
+    for(Literal *l : left->iterLits()) {
       out << " ";
       if(l != m) {
         out << l;
@@ -755,7 +736,7 @@ static void outputSubsumptionResolution(std::ostream &out, Clause *derived) {
       outputParentWithSplits(out, right);
       for(unsigned v : rightVars)
         out << " " << DkTerm(SubstHelper::apply(TermList(v, false), subst), care);
-      for(Literal *k : litsRight) {
+      for(Literal *k : right->iterLits()) {
         out << " ";
         Literal *ksubst = SubstHelper::apply(k, subst);
         if(Literal::complementaryLiteral(ksubst) != m) {
@@ -800,11 +781,6 @@ static void outputSuperposition(std::ostream &out, Clause *derived) {
   TermList fromSubst = subst.apply(from, 1);
   TermList toSubst = subst.apply(to, 1);
 
-  // canonicalise order of literals in all clauses
-  auto derivedLits = canonicalise(derived);
-  auto litsLeft = canonicalise(left);
-  auto litsRight = canonicalise(right);
-
   // variables in numerical order
   auto derivedVars = variables(derived);
   auto leftVars = variables(left);
@@ -818,7 +794,7 @@ static void outputSuperposition(std::ostream &out, Clause *derived) {
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota =>";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << " " << l << " : (Prf " << DkLit(l) << " -> Prf false) =>";
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
@@ -827,7 +803,7 @@ static void outputSuperposition(std::ostream &out, Clause *derived) {
 
   for(unsigned v : leftVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 0), care);
-  for(Literal *litLeft : litsLeft) {
+  for(Literal *litLeft : left->iterLits()) {
     out << " ";
     if(derived->contains(subst.apply(litLeft, 0))) {
       out << DkLitPtr(litLeft, care, DoRobSubstitution0(subst));
@@ -840,8 +816,8 @@ static void outputSuperposition(std::ostream &out, Clause *derived) {
     for(unsigned v : rightVars)
       out << " " << DkTerm(subst.apply(TermList(v, false), 1), care);
     unsigned litRight;
-    for(litRight = 0; litsRight[litRight] != rightSelected; litRight++)
-      out << " " << DkLitPtr(litsRight[litRight], care, DoRobSubstitution1(subst));
+    for(litRight = 0; (*right)[litRight] != rightSelected; litRight++)
+      out << " " << DkLitPtr((*right)[litRight], care, DoRobSubstitution1(subst));
 
     out
       << " (r : (Prf " << DkLit(rightSelected, care, DoRobSubstitution1(subst)) << ") => "
@@ -855,8 +831,8 @@ static void outputSuperposition(std::ostream &out, Clause *derived) {
     TermList z(0, true);
     out << DkLit(litLeft, care, DoRobSubstitution0(subst).then(DoReplacement(fromSubst, z))) << ") q))";
 
-    for(litRight++; litRight < litsRight.size(); litRight++)
-      out << " " << DkLitPtr(litsRight[litRight], care, DoRobSubstitution1(subst));
+    for(litRight++; litRight < right->length(); litRight++)
+      out << " " << DkLitPtr((*right)[litRight], care, DoRobSubstitution1(subst));
     out << ")";
   }
 }
@@ -903,10 +879,6 @@ static void outputDemodulation(std::ostream &out, Clause *derived) {
   // now also apply subst to the selected literals because we need it later
   TermList toSubst = SubstHelper::apply(to, subst);
 
-  // canonicalise order of literals in all clauses
-  auto derivedLits = canonicalise(derived);
-  auto litsLeft = canonicalise(left);
-
   // variables in numerical order
   auto derivedVars = variables(derived);
   auto leftVars = variables(left);
@@ -920,7 +892,7 @@ static void outputDemodulation(std::ostream &out, Clause *derived) {
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota =>";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << " " << l << " : (Prf " << DkLit(l, care) << " -> Prf false) =>";
 
   // construct the proof term: refer to
@@ -930,7 +902,7 @@ static void outputDemodulation(std::ostream &out, Clause *derived) {
 
   for(unsigned v : leftVars)
     out << " " << DkVar(v, care);
-  for(Literal *litLeft : litsLeft) {
+  for(Literal *litLeft : left->iterLits()) {
     out << " ";
     if(derived->contains(litLeft)) {
       out << litLeft;
@@ -961,9 +933,6 @@ static void outputDefinitionUnfolding(std::ostream &out, Clause *derived) {
   auto [parent] = parents;
   const auto &rw = env.proofExtra.get<Inferences::FunctionDefinitionExtra>(derived);
 
-  // canonicalise order of literals
-  auto derivedLits = canonicalise(derived);
-  auto parentLits = canonicalise(parent);
   // variables in numerical order
   auto derivedVars = variables(derived);
   auto parentVars = variables(parent);
@@ -976,7 +945,7 @@ static void outputDefinitionUnfolding(std::ostream &out, Clause *derived) {
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota =>";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << " " << l << " : (Prf " << DkLit(l, care) << " -> Prf false) =>";
 
   out << " deduction" << parent->number();
@@ -988,7 +957,7 @@ static void outputDefinitionUnfolding(std::ostream &out, Clause *derived) {
     rewrites.insert({rw.lhs[i]->functor(), i});
 
   std::vector<std::string> after;
-  for(Literal *l : parentLits) {
+  for(Literal *l : parent->iterLits()) {
 restart:
     out << " (t_" << l << " : Prf " << DkLit(l, care) << " =>";
     NonVariableIterator subterms(l);
@@ -1063,10 +1032,6 @@ static void outputTrivialInequalityRemoval(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [parent] = getParents<1>(derived);
 
-  // canonicalise order of literals in all clauses
-  auto derivedLits = canonicalise(derived);
-  auto litsParent = canonicalise(parent);
-
   // variables in numerical order
   auto derivedVars = variables(derived);
   auto parentVars = variables(parent);
@@ -1079,7 +1044,7 @@ static void outputTrivialInequalityRemoval(std::ostream &out, Clause *derived) {
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota => ";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << "" << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
 
   // construct the proof term: refer to
@@ -1089,7 +1054,7 @@ static void outputTrivialInequalityRemoval(std::ostream &out, Clause *derived) {
 
   for(unsigned v : parentVars)
     out << " " << DkVar(v, care);
-  for(Literal *l : litsParent) {
+  for(Literal *l : parent->iterLits()) {
     out << " ";
     if(l->polarity() || !l->isEquality() || l->termArg(0) != l->termArg(1)) {
       out << l;
@@ -1117,10 +1082,6 @@ static void outputEqualityResolution(std::ostream &out, Clause *derived) {
   // apply subst to all of the parent literals in the same order as EqualityResolution does it
   applySubstToClause(subst, 0, parent, selected);
 
-  // canonicalise order of literals in all clauses
-  auto derivedLits = canonicalise(derived);
-  auto litsParent = canonicalise(parent);
-
   // variables in numerical order
   auto derivedVars = variables(derived);
   auto parentVars = variables(parent);
@@ -1133,7 +1094,7 @@ static void outputEqualityResolution(std::ostream &out, Clause *derived) {
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota => ";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << "" << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
 
   // construct the proof term: refer to
@@ -1144,8 +1105,8 @@ static void outputEqualityResolution(std::ostream &out, Clause *derived) {
   for(unsigned v : parentVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 0), care);
   unsigned lit;
-  for(lit = 0; litsParent[lit] != selected; lit++)
-    out << " " << DkLitPtr(litsParent[lit], care, DoRobSubstitution0(subst));
+  for(lit = 0; (*parent)[lit] != selected; lit++)
+    out << " " << DkLitPtr((*parent)[lit], care, DoRobSubstitution0(subst));
 
   out
     << " (p : Prf ("
@@ -1154,8 +1115,8 @@ static void outputEqualityResolution(std::ostream &out, Clause *derived) {
     << DkTerm(subst.apply(s, 0), care)
     << "))";
 
-  for(lit++; lit < litsParent.size(); lit++)
-    out << " " << DkLitPtr(litsParent[lit], care, DoRobSubstitution0(subst));
+  for(lit++; lit < parent->length(); lit++)
+    out << " " << DkLitPtr((*parent)[lit], care, DoRobSubstitution0(subst));
 }
 
 static void outputEqualityResolutionWithDeletion(std::ostream &out, Clause *derived) {
@@ -1178,10 +1139,6 @@ static void outputEqualityResolutionWithDeletion(std::ostream &out, Clause *deri
     ALWAYS(subst.bind(s.var(), t))
   }
 
-  // canonicalise order of literals in all clauses
-  auto derivedLits = canonicalise(derived);
-  auto litsParent = canonicalise(parent);
-
   // variables in numerical order
   auto derivedVars = variables(derived);
   auto parentVars = variables(parent);
@@ -1194,7 +1151,7 @@ static void outputEqualityResolutionWithDeletion(std::ostream &out, Clause *deri
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota => ";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << "" << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
 
   // construct the proof term: refer to
@@ -1204,7 +1161,7 @@ static void outputEqualityResolutionWithDeletion(std::ostream &out, Clause *deri
 
   for(unsigned v : parentVars)
     out << " " << DkTerm(subst.apply(v), care);
-  for(Literal *l : litsParent) {
+  for(Literal *l : parent->iterLits()) {
     out << " ";
     if(!er.resolved.count(l)) {
       out << DkLitPtr(l, care, DoSubstitution(subst));
@@ -1224,10 +1181,6 @@ static void outputDuplicateLiteral(std::ostream &out, Clause *derived) {
   outputDeductionPrefix(out, derived);
   auto [parent] = getParents<1>(derived);
 
-  // canonicalise order of literals in all clauses
-  auto derivedLits = canonicalise(derived);
-  auto litsParent = canonicalise(parent);
-
   // variables in numerical order
   auto vars = variables(derived);
 
@@ -1235,7 +1188,7 @@ static void outputDuplicateLiteral(std::ostream &out, Clause *derived) {
   for(unsigned v : vars)
     out << " " << v << " : El iota => ";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
 
   // construct the proof term: refer to
@@ -1245,7 +1198,7 @@ static void outputDuplicateLiteral(std::ostream &out, Clause *derived) {
 
   for(unsigned v : vars)
     out << " " << DkVar(v);
-  for(Literal *l : litsParent)
+  for(Literal *l : parent->iterLits())
     out << " " << l;
 }
 
@@ -1266,10 +1219,6 @@ static void outputFactoring(std::ostream &out, Clause *derived) {
   // apply subst to all of the parent literals in the same order as Factoring does it
   applySubstToClause(subst, 0, parent, other);
 
-  // canonicalise order of literals in all clauses
-  auto derivedLits = canonicalise(derived);
-  auto litsParent = canonicalise(parent);
-
   // variables in numerical order
   auto derivedVars = variables(derived);
   auto parentVars = variables(parent);
@@ -1282,7 +1231,7 @@ static void outputFactoring(std::ostream &out, Clause *derived) {
   for(unsigned v : derivedVars)
     out << " " << v << " : El iota => ";
   // bind literals in the derived clause
-  for(Literal *l : derivedLits)
+  for(Literal *l : derived->iterLits())
     out << "" << l << " : (Prf " << DkLit(l, care) << " -> Prf false) => ";
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
@@ -1291,7 +1240,7 @@ static void outputFactoring(std::ostream &out, Clause *derived) {
 
   for(unsigned v : parentVars)
     out << " " << DkTerm(subst.apply(TermList(v, false), 0), care);
-  for(Literal *l : litsParent)
+  for(Literal *l : parent->iterLits())
     out << " " << DkLitPtr(l, care, DoRobSubstitution0(subst));
 }
 
@@ -1304,11 +1253,10 @@ static void outputAVATARDefinition(std::ostream &out, Unit *def) {
   auto vars = variables(component);
   for(unsigned var : vars)
     out << " forall iota (" << var << " : El iota =>";
-  auto literals = canonicalise(component);
-  for(Literal *literal : literals)
+  for(Literal *literal : component->iterLits())
     out << " (imp (not " << DkLit(literal) << ")";
   out << " false";
-  for(unsigned i = 0; i < literals.size() + vars.size(); i++)
+  for(unsigned i = 0; i < component->size() + vars.size(); i++)
     out << ")";
 }
 
@@ -1319,20 +1267,19 @@ static void outputAVATARComponent(std::ostream &out, Clause *component) {
 
   unsigned componentName = component->splits()->sval();
   SATLiteral split = Splitter::getLiteralFromName(componentName);
-  auto literals = canonicalise(component);
   // variables in numerical order
   auto componentVars = variables(component);
   // bind variables present in the derived clause
   for(unsigned v : componentVars)
     out << " " << v << " : El iota => ";
   // bind literals in the derived clause
-  for(Literal *l : literals)
+  for(Literal *l : component->iterLits())
     out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
   out << "nnsp" << split.var() << "(psp : Prf " << DkSplit(componentName) << " => psp";
 
   for(unsigned v : componentVars)
     out << " " << v;
-  for(Literal *l : literals)
+  for(Literal *l : component->iterLits())
     out << " " << l;
   out << ")";
 }
@@ -1423,7 +1370,7 @@ static void outputAVATARSplitClause(std::ostream &out, Unit *derived) {
       out << cp.open(" (") << subst.apply(foundVar).var() << " : El iota =>";
       ALWAYS(parent2SplitVars.bind(subst.apply(foundVar).var(), TermList(foundVar, false)))
     }
-    for(Literal *l : canonicalise(found)) {
+    for(Literal *l : found->iterLits()) {
       if(flip)
         l = Literal::complementaryLiteral(l);
       out
@@ -1452,7 +1399,7 @@ static void outputAVATARSplitClause(std::ostream &out, Unit *derived) {
 
   for(unsigned parentVar : variables(parent))
     out << " " << parentVar;
-  for(Literal *l : canonicalise(parent)) {
+  for(Literal *l : parent->iterLits()) {
     out << ' ';
     Literal *lsubst = SubstHelper::apply(l, parent2SplitVars);
     bool needs_commute = l->isEquality() && (
