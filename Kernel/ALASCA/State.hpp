@@ -287,9 +287,8 @@ namespace Kernel {
       auto f = t->functor();
       return t->isEquality()
         || forAnyNumTraits([&](auto numTraits) -> bool {
-            return f == numTraits.geqF()
-               ||  f == numTraits.greaterF()
-               ||  f == numTraits.isIntF();
+            return numTraits.isGeq(f)
+               ||  numTraits.isGreater(f);
       });
     }
 
@@ -313,7 +312,7 @@ namespace Kernel {
             }
           } else {
             // must be an equality of uninterpreted terms
-            ASS(isUninterpretedEquality(l.literal()));
+            ASS_REP(isUninterpretedEquality(l.literal()), *l.literal());
             for (auto a : selectUninterpretedEquality(l, criterion)) {
               atoms->push(Out(a));
             }
