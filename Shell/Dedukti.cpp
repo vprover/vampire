@@ -191,13 +191,13 @@ static std::set<unsigned> variables(Clause *cl) {
 }
 
 struct AlwaysCare {
-  bool care(unsigned _) { return true; }
+  bool cares(unsigned _) { return true; }
 };
 
 struct CareFor {
   std::set<unsigned> &vars;
   CareFor(std::set<unsigned> &vars) : vars(vars) {}
-  bool care(unsigned var) { return vars.count(var); }
+  bool cares(unsigned var) { return vars.count(var); }
 };
 
 struct CloseParens {
@@ -230,7 +230,7 @@ struct DkVar {
   DkVar(unsigned var, bool specialVar, Care care) {
     if(specialVar)
       code = -1;
-    else if(!care.care(var))
+    else if(!care.cares(var))
       code = -2;
     else
       code = var;
@@ -506,7 +506,7 @@ static std::ostream &operator<<(std::ostream &out, DkUnit dk) {
     return out << "Prf " << DkFormula(static_cast<FormulaUnit *>(dk.unit)->formula());
 }
 
-static void outputAxiomName(std::ostream &out, Unit *axiom) {
+static void axiomName(std::ostream &out, Unit *axiom) {
   out << "{|axiom_";
   std::string recoveredName;
   if(Parse::TPTP::findAxiomName(axiom, recoveredName))
@@ -514,7 +514,7 @@ static void outputAxiomName(std::ostream &out, Unit *axiom) {
   out << axiom->number() << "|}";
 }
 
-static void outputDeductionPrefix(std::ostream &out, Unit *deduction, bool splits = true) {
+static void deductionPrefix(std::ostream &out, Unit *deduction, bool splits = true) {
   out << "def deduction" << deduction->number() << ": " << DkUnit(deduction) << " := ";
   if(splits && deduction->isClause()) {
     Clause *clause = static_cast<Clause *>(deduction);
@@ -536,7 +536,7 @@ static void outputDeductionPrefix(std::ostream &out, Unit *deduction, bool split
   }
 }
 
-static void outputParentWithSplits(std::ostream &out, Clause *parent) {
+static void parentWithSplits(std::ostream &out, Clause *parent) {
   out << "deduction" << parent->number();
   if(parent->noSplits())
     return;
@@ -554,7 +554,7 @@ static void sorry(std::ostream &out, Unit *admit) {
     << DkUnit(admit) << ".\n"
     << "#PRINT \"sorry: " << ruleName(admit->inference().rule()) << "\".\n";
 
-  outputDeductionPrefix(out, admit, false);
+  deductionPrefix(out, admit, false);
   out << "sorry" << admit->number();
   parents = admit->getParents();
   while(parents.hasNext())
@@ -604,143 +604,187 @@ static void bindClause(std::ostream &out, Clause *clause, std::set<unsigned> &va
     out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
 }
 
+template<typename Extra>
+struct ClausalInference {
+  const Extra &extra;
+  std::set<unsigned> derivedVars;
+  CareFor care;
+  UnitIterator parentIt;
+
+  template<typename E = Extra>
+  static E &getExtra(Clause *derived) { return env.proofExtra.get<Extra>(derived); }
+
+  // specialisation for clausal inferences that don't need proof-extra
+  template<>
+  static std::nullptr_t &getExtra<std::nullptr_t>(Clause *derived) {
+    static std::nullptr_t EXTRA;
+    return EXTRA;
+  }
+
+  ClausalInference(std::ostream &out, Clause *derived) :
+    extra(getExtra(derived)),
+    derivedVars(variables(derived)),
+    care(derivedVars),
+    parentIt(derived->getParents())
+  {
+    deductionPrefix(out, derived);
+    bindClause(out, derived, derivedVars);
+  }
+
+  bool cares(unsigned var) { return care.cares(var); }
+};
+
+template<typename Extra>
+struct UnaryClausalInference : public ClausalInference<Extra> {
+  Clause *parent = nullptr;
+  std::set<unsigned> parentVars;
+
+  UnaryClausalInference(std::ostream &out, Clause *derived) :
+    ClausalInference<Extra>(out, derived)
+  {
+    ALWAYS(this->parentIt.hasNext())
+    parent = this->parentIt.next()->asClause();
+    parentVars = variables(parent);
+  }
+};
+
+template<typename Extra>
+struct VariadicClausalInference : public UnaryClausalInference<Extra> {
+  std::vector<Clause *> others;
+  VariadicClausalInference(std::ostream &out, Clause *derived)
+    : UnaryClausalInference<Extra>(out, derived)
+  {
+    for(Unit *u : iterTraits(this->parentIt))
+      others.push_back(u->asClause());
+  }
+};
+
+template<typename Extra>
+struct BinaryClausalInference : public UnaryClausalInference<Extra> {
+  Clause *left = nullptr, *right = nullptr;
+  std::set<unsigned> &leftVars, rightVars;
+  BinaryClausalInference(std::ostream &out, Clause *derived) :
+    UnaryClausalInference<Extra>(out, derived),
+    left(this->parent),
+    leftVars(this->parentVars)
+  {
+    ALWAYS(this->parentIt.hasNext())
+    right = this->parentIt.next()->asClause();
+    rightVars = variables(right);
+  }
+};
+
 static void resolution(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-  auto [left, right] = getParents<2>(derived);
-  const auto &br = env.proofExtra.get<Inferences::BinaryResolutionExtra>(derived);
+  BinaryClausalInference<Inferences::BinaryResolutionExtra> inf(out, derived);
 
   // compute unifier for selected literals
   RobSubstitution subst;
-  Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
-  Literal *selectedRight = br.otherLiteral;
+  Literal *selectedLeft = inf.extra.selectedLiteral.selectedLiteral;
+  Literal *selectedRight = inf.extra.otherLiteral;
   ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
   ALWAYS(subst.unify(TermList(selectedLeft), 0, TermList(selectedRight), 1));
 
   // apply subst to all of the parent literals in the same order as BinaryResolution does it
-  applySubstToClause(subst, 0, left, selectedLeft);
-  applySubstToClause(subst, 1, right, selectedRight);
+  applySubstToClause(subst, 0, inf.left, selectedLeft);
+  applySubstToClause(subst, 1, inf.right, selectedRight);
   Literal *leftSelectedSubst = subst.apply(selectedLeft, 0);
   Literal *rightSelectedSubst = subst.apply(selectedRight, 1);
 
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto leftVars = variables(left);
-  auto rightVars = variables(right);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
-
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-  bindClause(out, derived, derivedVars);
-  outputParentWithSplits(out, left);
-
-  for(unsigned v : leftVars)
-    out << " " << DkTerm(subst.apply(TermList(v, false), 0), care);
+  parentWithSplits(out, inf.left);
+  for(unsigned v : inf.leftVars)
+    out << " " << DkTerm(subst.apply(TermList(v, false), 0), inf);
   unsigned litLeft;
-  for(litLeft = 0; (*left)[litLeft] != selectedLeft; litLeft++)
-    out << " " << DkLitPtr((*left)[litLeft], care, DoRobSubstitution0(subst));
+  for(litLeft = 0; (*inf.left)[litLeft] != selectedLeft; litLeft++)
+    out << " " << DkLitPtr((*inf.left)[litLeft], inf, DoRobSubstitution0(subst));
 
   const char *tp = "tp", *tnp = "tnp";
   if(selectedLeft->isNegative())
     std::swap(tp, tnp);
 
-  out << " (" << tp << ": (Prf " << DkLit(leftSelectedSubst, care) << ") => ";
-  outputParentWithSplits(out, right);
-  for(unsigned v : rightVars)
-    out << " " << DkTerm(subst.apply(TermList(v, false), 1), care);
+  out << " (" << tp << ": (Prf " << DkLit(leftSelectedSubst, inf) << ") => ";
+  parentWithSplits(out, inf.right);
+  for(unsigned v : inf.rightVars)
+    out << " " << DkTerm(subst.apply(TermList(v, false), 1), inf);
   unsigned litRight;
-  for(litRight = 0; (*right)[litRight] != selectedRight; litRight++)
-    out << " " << DkLitPtr((*right)[litRight], care, DoRobSubstitution1(subst));
-  out << " (" << tnp << ": Prf " << DkLit(rightSelectedSubst, care) << " => (tnp tp))";
-  for(litRight++; litRight < right->length(); litRight++)
-    out << " " << DkLitPtr((*right)[litRight], care, DoRobSubstitution1(subst));
+  for(litRight = 0; (*inf.right)[litRight] != selectedRight; litRight++)
+    out << " " << DkLitPtr((*inf.right)[litRight], inf, DoRobSubstitution1(subst));
+  out << " (" << tnp << ": Prf " << DkLit(rightSelectedSubst, inf) << " => (tnp tp))";
+  for(litRight++; litRight < inf.right->length(); litRight++)
+    out << " " << DkLitPtr((*inf.right)[litRight], inf, DoRobSubstitution1(subst));
   out << ")";
-  for(litLeft++; litLeft < left->length(); litLeft++)
-    out << " " << DkLitPtr((*left)[litLeft], care, DoRobSubstitution0(subst));
+  for(litLeft++; litLeft < inf.left->length(); litLeft++)
+    out << " " << DkLitPtr((*inf.left)[litLeft], inf, DoRobSubstitution0(subst));
 }
 
 static void subsumptionResolution(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-  auto [left, right] = getParents<2>(derived);
-  auto sr = env.proofExtra.get<Inferences::LiteralInferenceExtra>(derived);
-  Literal *m = sr.selectedLiteral;
+  BinaryClausalInference<Inferences::LiteralInferenceExtra> inf(out, derived);
 
   // reconstruct match by calling into the SATSR code
+  Literal *m = inf.extra.selectedLiteral;
   SATSubsumption::SATSubsumptionAndResolution satSR;
-  ALWAYS(satSR.checkSubsumptionResolutionWithLiteral(right, left, left->getLiteralPosition(m)))
+  ALWAYS(satSR.checkSubsumptionResolutionWithLiteral(inf.right, inf.left, inf.left->getLiteralPosition(m)))
   auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
-
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto leftVars = variables(left);
-  auto rightVars = variables(right);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
   //
   // TODO this should be more or less the 'resolution' term, but with multiple tnp/tp lambdas factored out
   // Anja is a smart cookie
-  bindClause(out, derived, derivedVars);
-  outputParentWithSplits(out, left);
-
+  parentWithSplits(out, inf.left);
   // NB no substitution as `left` is subsumed
-  for(unsigned v : leftVars)
-    out << " " << DkVar(v, care);
+  for(unsigned v : inf.leftVars)
+    out << " " << DkVar(v, inf);
 
   // TODO can we make this case distinction less unpleasant?
   if(m->isPositive()) {
-    for(Literal *l : left->iterLits()) {
+    for(Literal *l : inf.left->iterLits()) {
       out << " ";
       if(l != m) {
         out << l;
         continue;
       }
 
-      out << "(tp: (Prf " << DkLit(m, care) << ") => ";
-      outputParentWithSplits(out, right);
-      for(unsigned v : rightVars)
-        out << " " << DkTerm(SubstHelper::apply(TermList(v, false), subst), care);
-      for(Literal *k : right->iterLits()) {
+      out << "(tp: (Prf " << DkLit(m, inf) << ") => ";
+      parentWithSplits(out, inf.right);
+      for(unsigned v : inf.rightVars)
+        out << " " << DkTerm(SubstHelper::apply(TermList(v, false), subst), inf);
+      for(Literal *k : inf.right->iterLits()) {
         out << " ";
         Literal *ksubst = SubstHelper::apply(k, subst);
         if(Literal::complementaryLiteral(ksubst) != m) {
-          out << DkLitPtr(k, care, DoSubstitution(subst));
+          out << DkLitPtr(k, inf, DoSubstitution(subst));
           continue;
         }
-        out << "(tnp: Prf " << DkLit(k, care, DoSubstitution(subst)) << " => (";
-        outputLiteralName(out, k, "tnp", "comml", care, DoSubstitution(subst));
+        out << "(tnp: Prf " << DkLit(k, inf, DoSubstitution(subst)) << " => (";
+        outputLiteralName(out, k, "tnp", "comml", inf, DoSubstitution(subst));
         out << " tp))";
       }
       out << ")";
     }
   }
   else {
-    for(Literal *l : left->iterLits()) {
+    for(Literal *l : inf.left->iterLits()) {
       out << " ";
       if(l != m) {
         out << l;
         continue;
       }
 
-      out << "(tnp: (Prf " << DkLit(m, care) << ") => ";
-      outputParentWithSplits(out, right);
-      for(unsigned v : rightVars)
-        out << " " << DkTerm(SubstHelper::apply(TermList(v, false), subst), care);
-      for(Literal *k : right->iterLits()) {
+      out << "(tnp: (Prf " << DkLit(m, inf) << ") => ";
+      parentWithSplits(out, inf.right);
+      for(unsigned v : inf.rightVars)
+        out << " " << DkTerm(SubstHelper::apply(TermList(v, false), subst), inf);
+      for(Literal *k : inf.right->iterLits()) {
         out << " ";
         Literal *ksubst = SubstHelper::apply(k, subst);
         if(Literal::complementaryLiteral(ksubst) != m) {
-          out << DkLitPtr(k, care, DoSubstitution(subst));
+          out << DkLitPtr(k, inf, DoSubstitution(subst));
           continue;
         }
-        out << "(tp: Prf " << DkLit(k, care, DoSubstitution(subst)) << " => (tnp ";
-        outputLiteralName(out, k, "tp", "comm", care, DoSubstitution(subst));
+        out << "(tp: Prf " << DkLit(k, inf, DoSubstitution(subst)) << " => (tnp ";
+        outputLiteralName(out, k, "tp", "comm", inf, DoSubstitution(subst));
         out << "))";
       }
       out << ")";
@@ -749,18 +793,16 @@ static void subsumptionResolution(std::ostream &out, Clause *derived) {
 }
 
 static void superposition(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-  auto [left, right] = getParents<2>(derived);
-  auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(derived);
+  BinaryClausalInference<Inferences::SuperpositionExtra> inf(out, derived);
 
   // compute unifier for selected literals
   RobSubstitution subst;
-  Literal *leftSelected = sup.selected.selectedLiteral.selectedLiteral;
-  Literal *rightSelected = sup.selected.otherLiteral;
-  TermList from = sup.rewrite.lhs;
+  Literal *leftSelected = inf.extra.selected.selectedLiteral.selectedLiteral;
+  Literal *rightSelected = inf.extra.selected.otherLiteral;
+  TermList from = inf.extra.rewrite.lhs;
   TermList to = EqHelper::getOtherEqualitySide(rightSelected, from);
   bool fromisLHS = rightSelected->termArg(0) == from;
-  TermList target = sup.rewrite.rewritten;
+  TermList target = inf.extra.rewrite.rewritten;
   ASS(rightSelected->isEquality())
   ASS(rightSelected->isPositive())
   ASS(rightSelected->termArg(0) == from || rightSelected->termArg(1) == from)
@@ -771,58 +813,47 @@ static void superposition(std::ostream &out, Clause *derived) {
   subst.apply(leftSelected, 0);
   subst.apply(target, 0);
   subst.apply(from, 1);
-  applySubstToClause(subst, 0, left, leftSelected);
-  applySubstToClause(subst, 1, right, rightSelected);
+  applySubstToClause(subst, 0, inf.left, leftSelected);
+  applySubstToClause(subst, 1, inf.right, rightSelected);
 
   TermList fromSubst = subst.apply(from, 1);
   TermList toSubst = subst.apply(to, 1);
 
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto leftVars = variables(left);
-  auto rightVars = variables(right);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
-
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-  bindClause(out, derived, derivedVars);
-  outputParentWithSplits(out, left);
-
-  for(unsigned v : leftVars)
-    out << " " << DkTerm(subst.apply(TermList(v, false), 0), care);
-  for(Literal *litLeft : left->iterLits()) {
+  parentWithSplits(out, inf.left);
+  for(unsigned v : inf.leftVars)
+    out << " " << DkTerm(subst.apply(TermList(v, false), 0), inf);
+  for(Literal *litLeft : inf.left->iterLits()) {
     out << " ";
     if(derived->contains(subst.apply(litLeft, 0))) {
-      out << DkLitPtr(litLeft, care, DoRobSubstitution0(subst));
+      out << DkLitPtr(litLeft, inf, DoRobSubstitution0(subst));
       continue;
     }
 
-    out << " (q : (Prf (" << DkLit(litLeft, care, DoRobSubstitution0(subst)) << ")) => ";
-    outputParentWithSplits(out, right);
+    out << " (q : (Prf (" << DkLit(litLeft, inf, DoRobSubstitution0(subst)) << ")) => ";
+    parentWithSplits(out, inf.right);
 
-    for(unsigned v : rightVars)
-      out << " " << DkTerm(subst.apply(TermList(v, false), 1), care);
+    for(unsigned v : inf.rightVars)
+      out << " " << DkTerm(subst.apply(TermList(v, false), 1), inf);
     unsigned litRight;
-    for(litRight = 0; (*right)[litRight] != rightSelected; litRight++)
-      out << " " << DkLitPtr((*right)[litRight], care, DoRobSubstitution1(subst));
+    for(litRight = 0; (*inf.right)[litRight] != rightSelected; litRight++)
+      out << " " << DkLitPtr((*inf.right)[litRight], inf, DoRobSubstitution1(subst));
 
     out
-      << " (r : (Prf " << DkLit(rightSelected, care, DoRobSubstitution1(subst)) << ") => "
-      << DkLitPtr(litLeft, care, DoRobSubstitution0(subst).then(DoReplacement(fromSubst, toSubst)))
+      << " (r : (Prf " << DkLit(rightSelected, inf, DoRobSubstitution1(subst)) << ") => "
+      << DkLitPtr(litLeft, inf, DoRobSubstitution0(subst).then(DoReplacement(fromSubst, toSubst)))
       << " (";
 
     if(!fromisLHS)
-      out << "comm " << DkTerm(toSubst, care) << " " << DkTerm(fromSubst, care) << " ";
+      out << "comm " << DkTerm(toSubst, inf) << " " << DkTerm(fromSubst, inf) << " ";
     out << "r (z : (El iota) => ";
 
     TermList z(0, true);
-    out << DkLit(litLeft, care, DoRobSubstitution0(subst).then(DoReplacement(fromSubst, z))) << ") q))";
+    out << DkLit(litLeft, inf, DoRobSubstitution0(subst).then(DoReplacement(fromSubst, z))) << ") q))";
 
-    for(litRight++; litRight < right->length(); litRight++)
-      out << " " << DkLitPtr((*right)[litRight], care, DoRobSubstitution1(subst));
+    for(litRight++; litRight < inf.right->length(); litRight++)
+      out << " " << DkLitPtr((*inf.right)[litRight], inf, DoRobSubstitution1(subst));
     out << ")";
   }
 }
@@ -847,16 +878,14 @@ static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermLis
 }
 
 static void demodulation(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-  auto [left, right] = getParents<2>(derived);
-  ASS_EQ(right->length(), 1)
-  auto rw = env.proofExtra.get<Inferences::RewriteInferenceExtra>(derived);
+  BinaryClausalInference<Inferences::RewriteInferenceExtra> inf(out, derived);
 
-  // compute unifier for selected literals
+  // compute match for demodulation
+  ASS_EQ(inf.right->length(), 1)
   SimpleSubstitution subst;
-  Literal *rightLit = (*right)[0];
-  TermList target = rw.rewritten;
-  TermList from = isL2RDemodulatorFor(rightLit, left, target, derived)
+  Literal *rightLit = (*inf.right)[0];
+  TermList target = inf.extra.rewritten;
+  TermList from = isL2RDemodulatorFor(rightLit, inf.left, target, derived)
     ? rightLit->termArg(0)
     : rightLit->termArg(1);
   TermList to = EqHelper::getOtherEqualitySide(rightLit, from);
@@ -866,96 +895,73 @@ static void demodulation(std::ostream &out, Clause *derived) {
   ASS(rightLit->termArg(0) == from || rightLit->termArg(1) == from)
   ALWAYS(MatchingUtils::matchTerms(from, target, subst))
 
-  // now also apply subst to the selected literals because we need it later
+  // also apply subst to the selected literals because we need it later
   TermList toSubst = SubstHelper::apply(to, subst);
-
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto leftVars = variables(left);
-  auto rightVars = variables(right);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-  bindClause(out, derived, derivedVars);
-  outputParentWithSplits(out, left);
-
-  for(unsigned v : leftVars)
-    out << " " << DkVar(v, care);
-  for(Literal *litLeft : left->iterLits()) {
+  parentWithSplits(out, inf.left);
+  for(unsigned v : inf.leftVars)
+    out << " " << DkVar(v, inf);
+  for(Literal *litLeft : inf.left->iterLits()) {
     out << " ";
     if(derived->contains(litLeft)) {
       out << litLeft;
       continue;
     }
 
-    out << " (q : (Prf (" << DkLit(litLeft, care) << ")) => ";
-    outputParentWithSplits(out, right);
+    out << " (q : (Prf (" << DkLit(litLeft, inf) << ")) => ";
+    parentWithSplits(out, inf.right);
 
-    for(unsigned v : rightVars)
-      out << " " << DkTerm(subst.apply(v), care);
+    for(unsigned v : inf.rightVars)
+      out << " " << DkTerm(subst.apply(v), inf);
     out
-      << " (r : (Prf " << DkLit(rightLit, care, DoSubstitution(subst)) << ") => "
-      << DkLitPtr(litLeft, care, DoReplacement(target, toSubst)) << " (";
+      << " (r : (Prf " << DkLit(rightLit, inf, DoSubstitution(subst)) << ") => "
+      << DkLitPtr(litLeft, inf, DoReplacement(target, toSubst)) << " (";
 
     if(!fromisLHS)
-      out << "comm " << DkTerm(toSubst, care) << " " << DkTerm(target, care) << " ";
+      out << "comm " << DkTerm(toSubst, inf) << " " << DkTerm(target, inf) << " ";
     out << "r (z : (El iota) => ";
 
     TermList z(0, true);
-    out << DkLit(litLeft, care, DoReplacement(target, z)) << ") q)))";
+    out << DkLit(litLeft, inf, DoReplacement(target, z)) << ") q)))";
   }
 }
 
 static void definitionUnfolding(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-  auto [parents, defs] = getParentsVariadic<1>(derived);
-  auto [parent] = parents;
-  const auto &rw = env.proofExtra.get<Inferences::FunctionDefinitionExtra>(derived);
+  VariadicClausalInference<Inferences::FunctionDefinitionExtra> inf(out, derived);
 
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto parentVars = variables(parent);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
-
-  bindClause(out, derived, derivedVars);
-  out << " deduction" << parent->number();
-  for(unsigned v : derivedVars)
-    out << " " << DkVar(v, care);
+  parentWithSplits(out, inf.parent);
+  for(unsigned v : inf.derivedVars)
+    out << " " << DkVar(v, inf);
 
   std::unordered_map<unsigned, unsigned> rewrites;
-  for(unsigned i = 0; i < defs.size(); i++)
-    rewrites.insert({rw.lhs[i]->functor(), i});
+  for(unsigned i = 0; i < inf.others.size(); i++)
+    rewrites.insert({inf.extra.lhs[i]->functor(), i});
 
   std::vector<std::string> after;
-  for(Literal *l : parent->iterLits()) {
+  for(Literal *l : inf.parent->iterLits()) {
 restart:
-    out << " (t_" << l << " : Prf " << DkLit(l, care) << " =>";
+    out << " (t_" << l << " : Prf " << DkLit(l, inf) << " =>";
     NonVariableIterator subterms(l);
     while(subterms.hasNext()) {
       Term *candidate = subterms.next().term();
       if(auto found = rewrites.find(candidate->functor()); found != rewrites.end()) {
         auto [_, i] = *found;
-        Clause *def = defs[i];
+        Clause *def = inf.others[i];
         Literal *eq = (*def)[0];
-        TermList lhs(rw.lhs[i]);
+        TermList lhs(inf.extra.lhs[i]);
         TermList rhs = EqHelper::getOtherEqualitySide(eq, lhs);
         SimpleSubstitution subst;
         ALWAYS(MatchingUtils::matchTerms(TermList(lhs), TermList(candidate), subst))
         TermList lhsSubst(SubstHelper::apply(lhs, subst));
         TermList rhsSubst = SubstHelper::apply(rhs, subst);
-        out << " deduction" << def->number();
+        parentWithSplits(out, def);
 
         auto defVars = variables(def);
         for(unsigned v : defVars)
-          out << " " << DkTerm(subst.apply(v), care);
-        out << " (e_" << eq << " : Prf " << DkLit(eq, care, DoSubstitution(subst)) << " => ";
+          out << " " << DkTerm(subst.apply(v), inf);
+        out << " (e_" << eq << " : Prf " << DkLit(eq, inf, DoSubstitution(subst)) << " => ";
 
         std::stringstream deferred;
 
@@ -972,7 +978,7 @@ restart:
           if (needs_comm)
             deferred
               << "(comm" << (lAfter->polarity() ? "" : "l")
-              << " " << DkTerm(leftAfter, care) << " " << DkTerm(rightAfter, care);
+              << " " << DkTerm(leftAfter, inf) << " " << DkTerm(rightAfter, inf);
         }
 
         deferred << " (";
@@ -981,13 +987,13 @@ restart:
         else
           deferred
             << "(comm "
-            << DkTerm(SubstHelper::apply(eq->termArg(0), subst), care)
+            << DkTerm(SubstHelper::apply(eq->termArg(0), subst), inf)
             << " "
-            << DkTerm(SubstHelper::apply(eq->termArg(1), subst), care)
+            << DkTerm(SubstHelper::apply(eq->termArg(1), subst), inf)
             << " e_" << eq << ")";
         deferred
           << " (z : El iota => "
-          << DkLit(l, care, DoReplacement(lhsSubst, TermList(0, true)))
+          << DkLit(l, inf, DoReplacement(lhsSubst, TermList(0, true)))
           << ") t_" << l << ")))";
         if(needs_comm)
           deferred << ")";
@@ -1006,90 +1012,61 @@ restart:
 }
 
 static void trivialInequalityRemoval(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-  auto [parent] = getParents<1>(derived);
-
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto parentVars = variables(parent);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
-
+  UnaryClausalInference<std::nullptr_t> inf(out, derived);
   // construct the proof term: refer to
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-  bindClause(out, derived, derivedVars);
-  outputParentWithSplits(out, parent);
+  parentWithSplits(out, inf.parent);
 
-  for(unsigned v : parentVars)
-    out << " " << DkVar(v, care);
-  for(Literal *l : parent->iterLits()) {
-    out << " ";
-    if(l->polarity() || !l->isEquality() || l->termArg(0) != l->termArg(1)) {
-      out << l;
-      continue;
-    }
-    out << "(p : Prf (" << DkLit(l, care) << ") => p (refl " << DkTerm(l->termArg(0), care) << "))";
-  }
+  for(unsigned v : inf.parentVars)
+    out << " " << DkVar(v, inf);
+  for(Literal *l : inf.parent->iterLits())
+    if(l->isEquality() && !l->polarity() && l->termArg(0) == l->termArg(1))
+      out << " (p : Prf (" << DkLit(l, inf) << ") => p (refl " << DkTerm(l->termArg(0), inf) << "))";
+    else
+      out << ' ' << l;
 }
 
 static void equalityResolution(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
+  UnaryClausalInference<Inferences::EqualityResolutionExtra> inf(out, derived);
 
-  auto [parent] = getParents<1>(derived);
-  const auto &er = env.proofExtra.get<Inferences::EqualityResolutionExtra>(derived);
-
-  // compute unifier for selected literal
+  // compute unifier
   RobSubstitution subst;
-  Literal *selected = er.selectedLiteral;
+  Literal *selected = inf.extra.selectedLiteral;
   ASS(selected->isEquality())
   ASS(selected->isNegative())
   TermList s = selected->termArg(0), t = selected->termArg(1);
   ALWAYS(subst.unify(s, 0, t, 0));
 
   // apply subst to all of the parent literals in the same order as EqualityResolution does it
-  applySubstToClause(subst, 0, parent, selected);
-
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto parentVars = variables(parent);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
+  applySubstToClause(subst, 0, inf.parent, selected);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-  bindClause(out, derived, derivedVars);
-  outputParentWithSplits(out, parent);
-
-  for(unsigned v : parentVars)
-    out << " " << DkTerm(subst.apply(TermList(v, false), 0), care);
+  parentWithSplits(out, inf.parent);
+  for(unsigned v : inf.parentVars)
+    out << " " << DkTerm(subst.apply(TermList(v, false), 0), inf);
   unsigned lit;
-  for(lit = 0; (*parent)[lit] != selected; lit++)
-    out << " " << DkLitPtr((*parent)[lit], care, DoRobSubstitution0(subst));
+  for(lit = 0; (*inf.parent)[lit] != selected; lit++)
+    out << " " << DkLitPtr((*inf.parent)[lit], inf, DoRobSubstitution0(subst));
 
   out
     << " (p : Prf ("
-    << DkLit(subst.apply(selected, 0), care)
+    << DkLit(subst.apply(selected, 0), inf)
     << ") => p (refl "
-    << DkTerm(subst.apply(s, 0), care)
+    << DkTerm(subst.apply(s, 0), inf)
     << "))";
 
-  for(lit++; lit < parent->length(); lit++)
-    out << " " << DkLitPtr((*parent)[lit], care, DoRobSubstitution0(subst));
+  for(lit++; lit < inf.parent->length(); lit++)
+    out << " " << DkLitPtr((*inf.parent)[lit], inf, DoRobSubstitution0(subst));
 }
 
 static void equalityResolutionWithDeletion(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-  auto [parent] = getParents<1>(derived);
-  const auto &er = env.proofExtra.get<Inferences::EqResWithDeletionExtra>(derived);
+  UnaryClausalInference<Inferences::EqResWithDeletionExtra> inf(out, derived);
 
-  // compute unifier for selected literal
+  // compute unifier
   SimpleSubstitution subst;
-  for(Literal *l : er.resolved) {
+  for(Literal *l : inf.extra.resolved) {
     ASS(l->isNegative())
     ASS(l->isEquality())
 
@@ -1102,88 +1079,59 @@ static void equalityResolutionWithDeletion(std::ostream &out, Clause *derived) {
     ALWAYS(subst.bind(s.var(), t))
   }
 
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto parentVars = variables(parent);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
-
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-  bindClause(out, derived, derivedVars);
-  out << "deduction" << parent->number();
-
-  for(unsigned v : parentVars)
-    out << " " << DkTerm(subst.apply(v), care);
-  for(Literal *l : parent->iterLits()) {
+  parentWithSplits(out, inf.parent);
+  for(unsigned v : inf.parentVars)
+    out << " " << DkTerm(subst.apply(v), inf);
+  for(Literal *l : inf.parent->iterLits()) {
     out << " ";
-    if(!er.resolved.count(l)) {
-      out << DkLitPtr(l, care, DoSubstitution(subst));
+    if(!inf.extra.resolved.count(l)) {
+      out << DkLitPtr(l, inf, DoSubstitution(subst));
       continue;
     }
     out
       << " (p : Prf ("
-      << DkLit(SubstHelper::apply(l, subst), care)
+      << DkLit(SubstHelper::apply(l, subst), inf)
       << ") => p (refl "
-      << DkTerm(SubstHelper::apply(l->termArg(0), subst), care)
+      << DkTerm(SubstHelper::apply(l->termArg(0), subst), inf)
       << "))";
   }
 }
 
 static void duplicateLiteral(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-  auto [parent] = getParents<1>(derived);
-
-  // variables in numerical order
-  auto derivedVars = variables(derived);
+  UnaryClausalInference<std::nullptr_t> inf(out, derived);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-  bindClause(out, derived, derivedVars);
-  outputParentWithSplits(out, parent);
-
-  for(unsigned v : derivedVars)
+  parentWithSplits(out, inf.parent);
+  for(unsigned v : inf.derivedVars)
     out << " " << DkVar(v);
-  for(Literal *l : parent->iterLits())
+  for(Literal *l : inf.parent->iterLits())
     out << " " << l;
 }
 
 static void factoring(std::ostream &out, Clause *derived) {
-  outputDeductionPrefix(out, derived);
-
-  auto [parent] = getParents<1>(derived);
-  const auto &fact = env.proofExtra.get<Inferences::FactoringExtra>(derived);
+  UnaryClausalInference<Inferences::FactoringExtra> inf(out, derived);
 
   // compute unifier for selected literal
   RobSubstitution subst;
-  Literal *selected = fact.selectedLiteral.selectedLiteral;
-  Literal *other = fact.otherLiteral;
+  Literal *selected = inf.extra.selectedLiteral.selectedLiteral;
+  Literal *other = inf.extra.otherLiteral;
   ASS_EQ(selected->polarity(), other->polarity())
   ASS_EQ(selected->functor(), other->functor())
   ALWAYS(subst.unify(TermList(selected), 0, TermList(other), 0));
 
   // apply subst to all of the parent literals in the same order as Factoring does it
-  applySubstToClause(subst, 0, parent, other);
-
-  // variables in numerical order
-  auto derivedVars = variables(derived);
-  auto parentVars = variables(parent);
-
-  // for variables in the substitution that do not appear in the output
-  // consider e.g. p(X) and ~p(Y): X -> Y, but output is $false and has no variables
-  CareFor care(derivedVars);
+  applySubstToClause(subst, 0, inf.parent, other);
 
   // "A Shallow Embedding of Resolution and Superposition Proofs into the λΠ-Calculus Modulo"
   // Guillaume Burel
-  bindClause(out, derived, derivedVars);
-  outputParentWithSplits(out, parent);
-
-  for(unsigned v : parentVars)
-    out << " " << DkTerm(subst.apply(TermList(v, false), 0), care);
-  for(Literal *l : parent->iterLits())
-    out << " " << DkLitPtr(l, care, DoRobSubstitution0(subst));
+  parentWithSplits(out, inf.parent);
+  for(unsigned v : inf.parentVars)
+    out << " " << DkTerm(subst.apply(TermList(v, false), 0), inf);
+  for(Literal *l : inf.parent->iterLits())
+    out << " " << DkLitPtr(l, inf, DoRobSubstitution0(subst));
 }
 
 static void AVATARDefinition(std::ostream &out, Unit *def) {
@@ -1204,7 +1152,7 @@ static void AVATARDefinition(std::ostream &out, Unit *def) {
 static void AVATARComponent(std::ostream &out, Clause *component) {
   ASS(component->splits())
   ASS_EQ(component->splits()->size(), 1)
-  outputDeductionPrefix(out, component);
+  deductionPrefix(out, component);
 
   unsigned componentName = component->splits()->sval();
   SATLiteral split = Splitter::getLiteralFromName(componentName);
@@ -1393,7 +1341,7 @@ void outputTypeDecl(std::ostream &out, const std::string &name, OperatorType *ty
 }
 
 void outputAxiom(std::ostream &out, Unit *axiom) {
-  outputAxiomName(out, axiom);
+  axiomName(out, axiom);
   out << ": " << DkUnit(axiom) << ".\n";
 }
 
@@ -1405,8 +1353,8 @@ void outputDeduction(std::ostream &out, Unit *u) {
       return;
   case InferenceRule::NEGATED_CONJECTURE:
     outputAxiom(out, u);
-    outputDeductionPrefix(out, u);
-    outputAxiomName(out, u);
+    deductionPrefix(out, u);
+    axiomName(out, u);
     break;
   case InferenceRule::DEFINITION_UNFOLDING:
     definitionUnfolding(out, u->asClause());
