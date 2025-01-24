@@ -2316,7 +2316,7 @@ void Options::init()
     _questionAnsweringAvoidThese.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
     _questionAnsweringAvoidThese.tag(OptionTag::OTHER);
 
-    _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
+    _randomSeed = UnsignedOptionValue("random_seed","",0 /* this should be the value of Random::_seed from Random.cpp */);
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
@@ -3100,7 +3100,9 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
   }
 
   // our local randomizing engine (randomly seeded)
-  std::mt19937 rng((std::random_device())());
+  auto rng = env.options->randomSeed() == 0 
+    ? std::mt19937((std::random_device())())
+    : std::mt19937(env.options->randomSeed());
   // map of local variables (fake options)
   DHMap<std::string,std::string> fakes;
 
