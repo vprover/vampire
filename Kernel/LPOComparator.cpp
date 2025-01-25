@@ -18,36 +18,6 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-/**
- * Implements an @b LPO::majo call via instructions.
- */
-void LPOComparator::majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail)
-{
-  ASS(branch);
-  for (unsigned j = i; j < t->arity(); j++) {
-    *branch = Branch(tl1,*t->nthArgument(j));
-    branch->node()->eqBranch = fail;
-    branch->node()->ngeBranch = fail;
-    branch = &branch->node()->gtBranch;
-  }
-  *branch = std::move(success);
-}
-
-/**
- * Implements an @b LPO::alpha call via instructions.
- */
-void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2, Branch success, Branch fail)
-{
-  ASS(branch);
-  for (unsigned j = i; j < s->arity(); j++) {
-    *branch = Branch(*s->nthArgument(j),tl2);
-    branch->node()->eqBranch = success;
-    branch->node()->gtBranch = success;
-    branch = &branch->node()->ngeBranch;
-  }
-  *branch = std::move(fail);
-}
-
 void LPOComparator::processTermNode()
 {
   // take temporary ownership of node
@@ -71,6 +41,25 @@ void LPOComparator::processTermNode()
     ASS(s->arity()); // constants cannot be incomparable
     auto curr = _curr;
 
+    Recycled<DArray<std::pair<Branch,Branch>>> sideBranches;
+    sideBranches->init(s->arity());
+    (*sideBranches)[0] = { gtBranch, ngeBranch };
+
+    for (unsigned i = 1; i < s->arity(); i++) {
+      auto& [majo, alpha] = (*sideBranches)[i];
+      auto arg_i = s->arity()-i;
+
+      majo = Branch(lhs,*t->nthArgument(arg_i));
+      majo.node()->gtBranch   = (*sideBranches)[i-1].first;
+      majo.node()->eqBranch   = ngeBranch;
+      majo.node()->ngeBranch  = ngeBranch;
+
+      alpha = Branch(*s->nthArgument(arg_i),rhs);
+      alpha.node()->gtBranch  = gtBranch;
+      alpha.node()->eqBranch  = gtBranch;
+      alpha.node()->ngeBranch = (*sideBranches)[i-1].second;
+    }
+
     // lexicographic comparisons
     for (unsigned i = 0; i < s->arity(); i++)
     {
@@ -84,10 +73,8 @@ void LPOComparator::processTermNode()
       } else {
         *curr = Branch(s_arg,t_arg);
       }
-      // greater branch is a majo chain
-      majoChain(&curr->node()->gtBranch, lhs, rhs.term(), i+1, gtBranch, ngeBranch);
-      // incomparable branch is an alpha chain
-      alphaChain(&curr->node()->ngeBranch, lhs.term(), i+1, rhs, gtBranch, ngeBranch);
+      curr->node()->gtBranch = sideBranches[s->arity()-i-1].first;
+      curr->node()->ngeBranch = sideBranches[s->arity()-i-1].second;
       curr = &curr->node()->eqBranch;
     }
     *curr = eqBranch;
@@ -100,7 +87,14 @@ void LPOComparator::processTermNode()
     _curr->node()->rhs = *t->nthArgument(0);
     _curr->node()->eqBranch = ngeBranch;
     _curr->node()->ngeBranch = ngeBranch;
-    majoChain(&_curr->node()->gtBranch, lhs, t, 1, gtBranch, ngeBranch);
+    auto curr = &_curr->node()->gtBranch;
+    for (unsigned i = 1; i < t->arity(); i++) {
+      *curr = Branch(lhs,*t->nthArgument(i));
+      curr->node()->eqBranch = ngeBranch;
+      curr->node()->ngeBranch = ngeBranch;
+      curr = &curr->node()->gtBranch;
+    }
+    *curr = gtBranch;
     break;
   }
   case Ordering::LESS: {
@@ -110,7 +104,14 @@ void LPOComparator::processTermNode()
     _curr->node()->rhs = rhs;
     _curr->node()->eqBranch = gtBranch;
     _curr->node()->gtBranch = gtBranch;
-    alphaChain(&_curr->node()->ngeBranch, s, 1, rhs, gtBranch, ngeBranch);
+    auto curr = &_curr->node()->ngeBranch;
+    for (unsigned i = 1; i < s->arity(); i++) {
+      *curr = Branch(*s->nthArgument(i),rhs);
+      curr->node()->eqBranch = gtBranch;
+      curr->node()->gtBranch = gtBranch;
+      curr = &curr->node()->ngeBranch;
+    }
+    *curr = ngeBranch;
     break;
   }
   default:
