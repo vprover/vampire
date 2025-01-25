@@ -128,6 +128,9 @@ public:
    * Caller should not manipulate literals, with the exception of
    * clause construction and literal selection. */
   Literal** literals() { return _literals; }
+  // support use of clauses as an iterator
+  Literal **begin() { return _literals; }
+  Literal **end() { return _literals + _length; }
 
   /** True if the clause is empty */
   bool isEmpty() const { return _length == 0; }
