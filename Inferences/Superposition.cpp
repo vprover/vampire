@@ -431,7 +431,16 @@ Clause* Superposition::performSuperposition(
     if (eqTod) {
       rights.push({ *eqTod, &eqAppl });
     }
-    ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
+    struct IdApplicator : SubstApplicator {
+      TermList operator()(unsigned v) const override { return TermList::var(v); }
+    } idAppl;
+
+    Stack<std::pair<OrderingComparator&, const SubstApplicator*>> lefts;
+    for (const auto& con : ordCons) {
+      lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.lhs,con.rhs,/*ground=*/true), &idAppl });
+    }
+    // ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
+    ConditionalRedundancySubsumption3 subs(ordering, lefts, rights);
     if (subs.check()) {
       env.statistics->skippedSuperposition++;
       return 0;

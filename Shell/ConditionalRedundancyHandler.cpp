@@ -734,6 +734,16 @@ bool ConditionalRedundancySubsumption3::Iterator::hasNext()
         auto& [prev, prevTrace, prevIt] = _path.top();
         auto prevN = prev->node();
         ASS(prevN->tag == Node::T_POLY || prevN->tag == Node::T_TERM);
+        if (prevN->tag == Node::T_POLY) {
+          if (_comp._curr == &prevN->getBranch(Ordering::GREATER)) {
+            _path.push({ &prevN->getBranch(Ordering::EQUAL), prevTrace, unique_ptr<OrderingComparator::Iterator>() });
+            break;
+          } else if (_comp._curr == &prevN->getBranch(Ordering::EQUAL)) {
+            _path.push({ &prevN->getBranch(Ordering::LESS), prevTrace, unique_ptr<OrderingComparator::Iterator>() });
+            break;
+          }
+          continue;
+        }
         if (!prevIt->hasNext()) {
           // go one up further
           continue;
@@ -747,7 +757,8 @@ bool ConditionalRedundancySubsumption3::Iterator::hasNext()
     }
 
     if (node->tag == Node::T_POLY) {
-      return false;
+      _path.push({ &node->getBranch(Ordering::GREATER), trace, unique_ptr<OrderingComparator::Iterator>() });
+      continue;
     }
 
     ASS_EQ(node->tag, Node::T_TERM);
