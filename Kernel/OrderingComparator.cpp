@@ -408,10 +408,14 @@ void OrderingComparator::VarOrderExtractor::Iterator::initCurrent(Stack<Branchin
         ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->eqBranch });
       } else if (rhs.isVar()) {
         ASS(lhs.isTerm());
+        DHSet<TermList> seen;
         // s[x_1,...,x_n] ? y
         VariableIterator vit(lhs.term());
         while (vit.hasNext()) {
           auto v = vit.next();
+          if (!seen.insert(v)) {
+            continue;
+          }
           // x_i ≥ y ⇒ s[x_1,...,x_n] > y
           ptr->push({ { { v, rhs, Result::GREATER } }, &node->gtBranch });
           ptr->push({ { { v, rhs, Result::EQUAL   } }, &node->gtBranch });
@@ -425,6 +429,81 @@ void OrderingComparator::VarOrderExtractor::Iterator::initCurrent(Stack<Branchin
       break;
     }
   }
+}
+
+OrderingComparator::Iterator::Iterator(
+  const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs)
+  : comp(OrderingComparator::createForSingleComparison(ord,lhs,rhs,/*ground=*/true))
+{
+  todo.push({ nullptr, &comp->_source, trace, false });
+}
+
+bool OrderingComparator::Iterator::hasNext()
+{
+  using Node = OrderingComparator::Node;
+
+  while (todo.isNonEmpty()) {
+    auto [prev, curr, tpo, updateTpo] = todo.pop();
+    comp->_prev = prev;
+    comp->_curr = curr;
+    comp->processCurrentNode();
+    ASS_EQ(curr,comp->_curr);
+
+    const TermPartialOrdering* etpo = tpo;
+    if (prev && updateTpo) {
+      auto pnode = prev->node();
+      ASS_EQ(pnode->tag,Node::T_TERM);
+      auto lhs = pnode->lhs;
+      auto rhs = pnode->rhs;
+      if (curr == &pnode->getBranch(Ordering::GREATER)) {
+        etpo = TermPartialOrdering::set(tpo, { lhs, rhs, Ordering::GREATER });
+      } else if (curr == &pnode->getBranch(Ordering::EQUAL)) {
+        etpo = TermPartialOrdering::set(tpo, { lhs, rhs, Ordering::EQUAL });
+      } else {
+        ASS_EQ(curr, &pnode->getBranch(Ordering::LESS));
+        etpo = TermPartialOrdering::set(tpo, { lhs, rhs, Ordering::LESS });
+      }
+    }
+    ASS(etpo);
+
+    auto node = curr->node();
+    ASS(node->ready);
+    switch (node->tag) {
+      case Node::T_DATA:
+        if (node->data) {
+          ASS(node->trace);
+          res.second = etpo;
+          if (node->data == (void*)GT) {
+            res.first = Ordering::GREATER;
+          } else if (node->data == (void*)EQ) {
+            res.first = Ordering::EQUAL;
+          } else {
+            ASS_EQ(node->data, (void*)LT);
+            res.first = Ordering::LESS;
+          }
+        } else {
+          INVALID_OPERATION("found 0");
+        }
+        return true;
+      case Node::T_POLY:
+        todo.push({ curr, &node->getBranch(Ordering::LESS), etpo, false });
+        todo.push({ curr, &node->getBranch(Ordering::EQUAL), etpo, false });
+        todo.push({ curr, &node->getBranch(Ordering::GREATER), etpo, false });
+        break;
+      case Node::T_TERM:
+        Ordering::Result val;
+        if (etpo->get(node->lhs, node->rhs, val)) {
+          ASS_NEQ(val,Ordering::INCOMPARABLE);
+          todo.push({ curr, &node->getBranch(val), etpo, false });
+          continue;
+        }
+        todo.push({ curr, &node->getBranch(Ordering::GREATER), etpo, true });
+        todo.push({ curr, &node->getBranch(Ordering::EQUAL), etpo, true });
+        todo.push({ curr, &node->getBranch(Ordering::LESS), etpo, true });
+        break;
+    }
+  }
+  return false;
 }
 
 void OrderingComparator::processCurrentNode()

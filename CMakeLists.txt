@@ -214,7 +214,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
     Kernel/KBOComparator.cpp
-    Kernel/LinearConstraint.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
@@ -265,7 +264,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
     Kernel/KBOComparator.hpp
-    Kernel/LinearConstraint.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
@@ -285,7 +283,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
     Kernel/OperatorType.hpp
-    Kernel/SparseMatrix.hpp
     Kernel/SpassLiteralSelector.hpp
     Kernel/RndLiteralSelector.hpp
     Kernel/SubformulaIterator.hpp

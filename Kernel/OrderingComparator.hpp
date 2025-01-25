@@ -28,6 +28,7 @@ namespace Inferences {
 namespace Shell {
   class ConditionalRedundancySubsumption;
   class ConditionalRedundancySubsumption2;
+  class ConditionalRedundancySubsumption3;
 }
 
 namespace Kernel {
@@ -205,6 +206,7 @@ protected:
   friend class Inferences::ForwardGroundReducibility;
   friend class Shell::ConditionalRedundancySubsumption;
   friend class Shell::ConditionalRedundancySubsumption2;
+  friend class Shell::ConditionalRedundancySubsumption3;
 
   const Ordering& _ord;
   Branch _source;
@@ -252,6 +254,19 @@ public:
     Stack<unsigned> btStack;
     POStruct res;
     bool fresh = true;
+  };
+
+  struct Iterator {
+    Iterator(const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs);
+
+    bool hasNext();
+    std::pair<Result,const TermPartialOrdering*> next() { return res; }
+
+    enum Res { GT = 0x1, EQ = 0x2, LT = 0x3, };
+
+    OrderingComparator* comp;
+    Stack<std::tuple<Branch*,Branch*,const TermPartialOrdering*,bool>> todo;
+    std::pair<Result,const TermPartialOrdering*> res;
   };
 };
 

@@ -201,35 +201,43 @@ public:
 private:
   bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
 
-  struct Iterator {
-    Iterator(const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs);
-
-    bool hasNext();
-    std::pair<Result,const TermPartialOrdering*> next() { return res; }
-
-    enum Res { GT = 0x1, EQ = 0x2, LT = 0x3, };
-
-    OrderingComparatorUP comp;
-    Stack<Branch*> path;
-    std::pair<Result,const TermPartialOrdering*> res;
-  };
-
-  struct Iterator2 {
-    Iterator2(const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs);
-
-    bool hasNext();
-    std::pair<Result,const TermPartialOrdering*> next() { return res; }
-
-    enum Res { GT = 0x1, EQ = 0x2, LT = 0x3, };
-
-    OrderingComparator* comp;
-    Stack<std::tuple<Branch*,Branch*,const TermPartialOrdering*,bool>> todo;
-    std::pair<Result,const TermPartialOrdering*> res;
-  };
-
   const Ordering& ord;
   OrderingComparator& left;
   Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights;
+  unsigned cnt = 0;
+};
+
+class ConditionalRedundancySubsumption3 {
+public:
+  using CompSubstPair = std::pair<OrderingComparator&, const SubstApplicator*>;
+
+  ConditionalRedundancySubsumption3(const Ordering& ord, Stack<CompSubstPair>& lefts, Stack<CompSubstPair>& rights);
+  bool check();
+
+  using Branch = OrderingComparator::Branch;
+
+private:
+  bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
+
+  struct Iterator {
+    Iterator(OrderingComparator& comp, bool nonNullIsGreater) : _comp(comp), _nonNullIsGreater(nonNullIsGreater) {}
+
+    void init(const TermPartialOrdering* tpo, const SubstApplicator* appl);
+
+    bool hasNext();
+    std::pair<Result, const TermPartialOrdering*> next() { return _res; }
+
+    OrderingComparator& _comp;
+    const SubstApplicator* _appl;
+    const TermPartialOrdering* _tpo;
+    Stack<std::tuple<Branch*,const TermPartialOrdering*,std::unique_ptr<OrderingComparator::Iterator>>> _path;
+    std::pair<Result, const TermPartialOrdering*> _res;
+    bool _nonNullIsGreater;
+  };
+
+  const Ordering& ord;
+  Stack<CompSubstPair>& lefts;
+  Stack<CompSubstPair>& rights;
   unsigned cnt = 0;
 };
 

@@ -15,8 +15,6 @@
 #include <cstring>
 #include <iomanip>
 
-#include "LinearConstraint.hpp"
-
 #include "TermPartialOrdering.hpp"
 
 namespace Kernel {
@@ -395,27 +393,6 @@ Result TermPartialOrdering::solveTermVar(POStruct* po_struct, AppliedTerm s, App
     }
   }
   return Ordering::INCOMPARABLE;
-}
-
-Result TermPartialOrdering::solveLinearConstraint(
-  POStruct* po_struct, int constant, const DHMap<unsigned, int, IdentityHash, DefaultHash>& varDiffs)
-{
-  Stack<pair<unsigned, int>> pos;
-  Stack<pair<unsigned, int>> neg;
-  DHMap<unsigned, int, IdentityHash, DefaultHash>::Iterator it(varDiffs);
-  while (it.hasNext()) {
-    unsigned var;
-    int coeff;
-    it.next(var, coeff);
-    if (coeff > 0) {
-      pos.push({ var, coeff });
-    } else if (coeff < 0) {
-      neg.push({ var, coeff });
-    }
-  }
-
-  LinearConstraint lc;
-  return lc.getSign(constant, pos, neg, po_struct->tpo);
 }
 
 size_t TermPartialOrdering::getId(TermList t) const

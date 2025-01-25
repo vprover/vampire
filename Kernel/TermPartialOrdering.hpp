@@ -73,7 +73,6 @@ public:
 
   static Result solveVarVar(POStruct* po_struct, AppliedTerm s, AppliedTerm t);
   static Result solveTermVar(POStruct* po_struct, AppliedTerm s, AppliedTerm t);
-  static Result solveLinearConstraint(POStruct* po_struct, int constant, const DHMap<unsigned, int, IdentityHash, DefaultHash>& varDiffs);
 
   // Returns if PO contains full incomparability yet.
   // Useful to discard branches when reasoning over ground terms.
