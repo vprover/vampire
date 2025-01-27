@@ -18,7 +18,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <cstring>
 
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Exception.hpp"
