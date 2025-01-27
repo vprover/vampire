@@ -124,7 +124,6 @@ bool isAlascaInterpreted(TermSpec const& t, AbstractingUnifier& au) {
 
 template<class ASig, class Action>
 auto iterAtoms(TermSpec outer, AbstractingUnifier& au, ASig sig, Action action) {
-  static TermSpec one = TermSpec(TermList(sig.one()), 0);
   using Numeral = typename ASig::ConstantType;
 
   Recycled<Stack<std::pair<TermSpec, Numeral>>> todo;
@@ -738,17 +737,17 @@ struct FloorUwaState {
   }
 
   static FloorUwaState add(AbstractingUnifier& au, FloorUwaState s1, FloorUwaState s2) {
-    auto mergeArray = [](auto& l, auto& r) { 
-      auto compare = [](auto& l, auto& r) { return TermSpec::compare(l.first, r.first, 
+    auto mergeArray = [](auto& l, auto& r) {
+      auto compare = [](auto& l, auto& r) { return TermSpec::compare(l.first, r.first,
           [](auto& t) -> auto& { return t; }); };
       //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
       // TODO create option for "deep" compare using a differnt deref clsoure
       l.sort([&](auto& l, auto& r) { return compare(l, r) < 0; });
       r.sort([&](auto& l, auto& r) { return compare(l, r) < 0; });
-      auto li = 0;
-      auto ri = 0;
-      auto lEnd = l.size();
-      auto rEnd = r.size();
+      size_t li = 0;
+      size_t ri = 0;
+      size_t lEnd = l.size();
+      size_t rEnd = r.size();
       while (li < lEnd && ri < rEnd) {
         auto cmp = compare(l[li], r[ri]);
         if (cmp == 0) {
@@ -764,9 +763,9 @@ struct FloorUwaState {
         while (ri < rEnd) {
           l.push(r[ri++]);
         }
-      } 
-      auto read = 0;
-      auto write = 0;
+      }
+      size_t read = 0;
+      size_t write = 0;
       while (read < l.size()) {
         if (l[read].second == 0) {
           read++;

@@ -23,7 +23,6 @@ struct RenderMonom {
   template<class NumTraits>
   Monom<NumTraits> operator()(PreMonom<NumTraits>&& x) const
   {
-    using Numeral      = typename NumTraits::ConstantType;
     using Monom        = Monom       <NumTraits>;
 
     auto& factors = *x.factors;
@@ -51,20 +50,20 @@ struct RenderMonom {
 /** a struct that turns any alternative of a NormalizationResult into a PolyNf */
 struct RenderPolyNf {
 
-  PolyNf operator()(PolyNf x) const 
+  PolyNf operator()(PolyNf x) const
   { return x; }
 
   template<class NumTraits>
-  PolyNf operator()(Polynom<NumTraits> x) const 
-  { 
+  PolyNf operator()(Polynom<NumTraits> x) const
+  {
     std::sort(x.raw().begin(), x.raw().end());
     x.integrity();
-    return PolyNf(perfect(std::move(x))); 
+    return PolyNf(perfect(std::move(x)));
   }
 
   template<class NumTraits>
-  PolyNf operator()(PreMonom<NumTraits> facs) const 
-  { 
+  PolyNf operator()(PreMonom<NumTraits> facs) const
+  {
     auto poly = Polynom<NumTraits>(RenderMonom{}(std::move(facs)));
     poly.integrity();
     return (*this)(std::move(poly));
@@ -79,7 +78,6 @@ template<class NumTraits>
 NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& rhs) {
   using Polynom = Polynom<NumTraits>;
   using Monom = Monom<NumTraits>;
-  using MonomFactors = MonomFactors<NumTraits>;
   using PreMonom = PreMonom<NumTraits>;
   ASS(lhs.is<Polynom>() || lhs.is<PreMonom>())
   ASS(rhs.is<Polynom>() || rhs.is<PreMonom>())
@@ -126,9 +124,7 @@ NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& 
 template<class NumTraits>
 NormalizationResult normalizeMul(NormalizationResult& lhs, NormalizationResult& rhs, bool& simplified) {
   using Polynom      = Polynom<NumTraits>;
-  using MonomFactors = MonomFactors<NumTraits>;
   using PreMonom     = PreMonom<NumTraits>;
-  using MonomFactor  = MonomFactor<NumTraits>;
   ASS(lhs.is<Polynom>() || lhs.is<PreMonom>())
   ASS(rhs.is<Polynom>() || rhs.is<PreMonom>())
 
@@ -215,13 +211,13 @@ struct TryNumeral {
   { ASSERTION_VIOLATION }
 
   Option<Numeral const&> operator()(Polynom<NumTraits> const& term) const
-  { 
+  {
     ASS(term.nSummands() > 1)
     return {};
   }
 
   Option<Numeral const&> operator()(PreMonom<NumTraits> const& term) const
-  { 
+  {
     if (term.factors->size() == 0) {
       return Option<Numeral const&>(term.numeral);
     } else {
@@ -231,16 +227,16 @@ struct TryNumeral {
 
   template<class Num2>
   Option<Numeral const&> operator()(PreMonom<Num2> const& term) const
-  { 
+  {
     static_assert(!std::is_same_v<Num2,NumTraits>);
-    ASSERTION_VIOLATION 
+    ASSERTION_VIOLATION
   }
 
   template<class Num2>
   Option<Numeral const&> operator()(Polynom<Num2> const& term) const
-  { 
+  {
     static_assert(!std::is_same_v<Num2,NumTraits>);
-    ASSERTION_VIOLATION 
+    ASSERTION_VIOLATION
   }
 
   // template<class C> Option<Numeral> operator()(C& term) const
@@ -250,19 +246,18 @@ struct TryNumeral {
 };
 
 template<class ConstantType>
-NormalizationResult wrapNumeral(ConstantType c) 
-{ 
+NormalizationResult wrapNumeral(ConstantType c)
+{
   using NumTraits = NumTraits<ConstantType>;
   return NormalizationResult(PreMonom<NumTraits>(std::move(c)));
 }
 
 template<class NumTraits>
 Option<NormalizationResult> normalizeDiv(NormalizationResult& lhs, NormalizationResult& rhs, bool& simplfied) {
-  using Numeral = typename NumTraits::ConstantType;
   auto num = rhs.apply(TryNumeral<NumTraits>{});
-  if (num.isSome() && *num != 0 ) { 
+  if (num.isSome() && *num != 0 ) {
     auto inv = wrapNumeral(1 / *num);
-    return Option<NormalizationResult>(normalizeMul<NumTraits>(inv, lhs, simplfied)); 
+    return Option<NormalizationResult>(normalizeMul<NumTraits>(inv, lhs, simplfied));
   } else {
     return Option<NormalizationResult>();
   }
@@ -274,15 +269,13 @@ NormalizationResult normalizeMinus(NormalizationResult& x, bool& simplified) {
   using Numeral = typename NumTraits::ConstantType;
 
   auto minusOne = wrapNumeral(Numeral(-1));
-  return normalizeMul<NumTraits>(minusOne, x, simplified); 
+  return normalizeMul<NumTraits>(minusOne, x, simplified);
 }
 
 template<class NumTraits>
 NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts, bool& simplified)
 {
   using Polynom      = Polynom<NumTraits>;
-  using MonomFactors = MonomFactors<NumTraits>;
-  using MonomFactor  = MonomFactor <NumTraits>;
   using PreMonom     = PreMonom    <NumTraits>;
 
   auto singletonProduct = [](PolyNf t) -> NormalizationResult {
@@ -296,7 +289,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts, bool& 
     auto term = t.term();
     auto res = NumTraits::ifLinMul(term, [&](auto& n, auto t) -> NormalizationResult {
         auto& inner = ts[0];
-        ASS(inner.is<Polynom>() || inner.is<PreMonom>()) 
+        ASS(inner.is<Polynom>() || inner.is<PreMonom>())
         if (inner.is<Polynom>()) {
           return NormalizationResult(
               PreMonom(n, {RenderPolyNf{}(std::move(*inner.template as<Polynom>()))}));
