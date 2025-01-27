@@ -54,7 +54,6 @@ class PolynomialEvaluationRule
 : public SimplifyingGeneratingLiteralSimplification
 {
 public:
-  USE_ALLOCATOR(PolynomialEvaluationRule);
 
   PolynomialEvaluationRule(Ordering& ordering);
   virtual ~PolynomialEvaluationRule();
