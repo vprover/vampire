@@ -890,7 +890,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
 # gmp stuff
 ################################################################
 
-option(MINI_GMP "compile an own version of mini-gmp instead of linking with system level gmp" OFF)
+option(MINI_GMP "compile an own version of mini-gmp instead of linking with system level gmp" ON)
 if (NOT MINI_GMP)
   find_package(GMP REQUIRED)
   message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
