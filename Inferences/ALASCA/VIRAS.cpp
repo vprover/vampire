@@ -34,7 +34,7 @@ public:
   IntoVampireIter(VirasIter iter) : _iter(std::move(iter)), _next() {}
 
   DECL_ELEMENT_TYPE(viras::iter::value_type<VirasIter>);
-  void loadNext() { 
+  void loadNext() {
     if (_next.isNone()) {
       _next = some(_iter.next());
     }
@@ -52,7 +52,7 @@ public:
 };
 
 template<class VirasIter>
-auto intoVampireIter(VirasIter i) 
+auto intoVampireIter(VirasIter i)
 { return iterTraits(IntoVampireIter<VirasIter>(std::move(i))); }
 
 struct Void {};
@@ -60,15 +60,15 @@ struct Void {};
 template<class F>
 void traverseLiraVars(TermList self, F f) {
   VampireVirasConfig{}.
-    matchTerm(self, 
-      /* var v */ [&](auto y) { f(y); return Void {}; }, 
-      /* numeral 1 */ [&]() { return Void {}; }, 
-      /* k * t */ [&](auto k, auto t)  { traverseLiraVars(t, f); return Void {}; }, 
-      /* l + r */ [&](auto l, auto r)  { 
+    matchTerm(self,
+      /* var v */ [&](auto y) { f(y); return Void {}; },
+      /* numeral 1 */ [&]() { return Void {}; },
+      /* k * t */ [&](auto k, auto t)  { traverseLiraVars(t, f); return Void {}; },
+      /* l + r */ [&](auto l, auto r)  {
         traverseLiraVars(l, f);
         traverseLiraVars(r, f);
-        return Void {}; 
-      }, 
+        return Void {};
+      },
       /* floor */ [&](auto t) { traverseLiraVars(t, f); return Void {}; }
       );
 }
@@ -108,7 +108,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
       noteShielded(l);
     } else {
       toElim->push(l);
-      traverseLiraVars(norm->term().denormalize(), 
+      traverseLiraVars(norm->term().denormalize(),
           [&](TermList t) {
             if (t.isVar()) {
               candidateVars->insert(t.var());
@@ -133,13 +133,12 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
     return ClauseGenerationResult {
       .clauses = pvi(
           intoVampireIter(viras.quantifier_elimination(var, &*toElim))
-            .map([premise, otherLits = std::move(otherLits)](auto litIter) { 
-
+            .map([premise, otherLits = std::move(otherLits)](auto litIter) {
               return Clause::fromIterator(
                   concatIters(
                     intoVampireIter(litIter),
                     otherLits->iter()
-                    ), 
+                    ),
                   Inference(SimplifyingInference1(InferenceRule::ALASCA_VIRAS_QE, premise)));
             })
           )
