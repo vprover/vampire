@@ -376,9 +376,9 @@ Clause* Superposition::performSuperposition(
   if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
-  OrderingConstraints ordCons;
+  Stack<std::pair<TermList,TermList>> ordCons;
   if (comp == Ordering::INCOMPARABLE) {
-    ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
+    ordCons.push({ rwTermS, tgtTermS });
   }
 
   if(rwLitS->isEquality()) {
@@ -392,7 +392,7 @@ Clause* Superposition::performSuperposition(
         return 0;
       }
       if (comp == Ordering::INCOMPARABLE) {
-        ordCons.push({ rwLitS->termArg(1), rwLitS->termArg(0), Ordering::GREATER });
+        ordCons.push({ rwLitS->termArg(1), rwLitS->termArg(0) });
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
       auto comp = ordering.getEqualityArgumentOrder(rwLitS);
@@ -400,27 +400,32 @@ Clause* Superposition::performSuperposition(
         return 0;
       }
       if (comp == Ordering::INCOMPARABLE) {
-        ordCons.push({ rwLitS->termArg(0), rwLitS->termArg(1), Ordering::GREATER });
+        ordCons.push({ rwLitS->termArg(0), rwLitS->termArg(1) });
       }
     }
   }
 
-  OrderingComparator* infTod = nullptr;
   if (getOptions().conditionalRedundancySubsumption()) {
-    infTod = ordering.createComparator(/*onlyVars=*/false, /*ground=*/true).release();
-    infTod->insert(ordCons, this);
 
     struct Applicator : SubstApplicator {
-      Applicator(ResultSubstitution* subst, bool result) : subst(subst), result(result) {}
       TermList operator()(unsigned v) const override {
-        return subst->apply(TermList::var(v), result);
+        // return _cache.getOrInit(v, [&](){ return _subst->apply(TermList::var(v), _result); });
+        return _subst->apply(TermList::var(v), _result);
       }
-      ResultSubstitution* subst;
-      bool result;
+      void reset(ResultSubstitution* subst, bool result) {
+        _subst = subst;
+        _result = result;
+        // _cache.reset();
+      }
+      ResultSubstitution* _subst;
+      bool _result;
+      // mutable Map<unsigned,TermList> _cache;
     };
 
-    Applicator rwAppl(subst.ptr(), !eqIsResult);
-    Applicator eqAppl(subst.ptr(),  eqIsResult);
+    static Applicator rwAppl;
+    static Applicator eqAppl;
+    rwAppl.reset(subst.ptr(), !eqIsResult);
+    eqAppl.reset(subst.ptr(), eqIsResult);
 
     Stack<std::pair<OrderingComparator&, const SubstApplicator*>> rights;
     auto rwTod = static_cast<OrderingComparator*>(rwClause->getTod());
@@ -437,7 +442,7 @@ Clause* Superposition::performSuperposition(
 
     Stack<std::pair<OrderingComparator&, const SubstApplicator*>> lefts;
     for (const auto& con : ordCons) {
-      lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.lhs,con.rhs,/*ground=*/true), &idAppl });
+      lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.first,con.second,/*ground=*/true), &idAppl });
     }
     // ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
     // ConditionalRedundancySubsumption3<false> subs(ordering, lefts, rights);
@@ -603,12 +608,6 @@ Clause* Superposition::performSuperposition(
       eqLHS,
       rwTerm
     ));
-
-  // if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
-  //   condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);
-  // }
-
-  clause->setInfTod(infTod);
 
   return clause;
 }
