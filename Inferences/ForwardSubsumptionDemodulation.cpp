@@ -560,6 +560,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   }
                 }
                 Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
+                dli_was_checked = true;
                 if (r_cmp_t == Ordering::LESS) {
                   // rhsS < t implies eqLitS < dlit
                   ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
