@@ -134,6 +134,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
       .clauses = pvi(
           intoVampireIter(viras.quantifier_elimination(var, &*toElim))
             .map([premise, otherLits = std::move(otherLits)](auto litIter) { 
+
               return Clause::fromIterator(
                   concatIters(
                     intoVampireIter(litIter),
