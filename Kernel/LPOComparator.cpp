@@ -84,6 +84,7 @@ void LPOComparator::processTermNode()
       } else {
         *curr = Branch(s_arg,t_arg);
       }
+      // TODO point to the existing chain if there is one
       // greater branch is a majo chain
       majoChain(&curr->node()->gtBranch, lhs, rhs.term(), i+1, gtBranch, ngeBranch);
       // incomparable branch is an alpha chain

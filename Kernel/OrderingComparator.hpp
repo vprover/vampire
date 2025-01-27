@@ -17,6 +17,7 @@
 #include "Forwards.hpp"
 
 #include "TermPartialOrdering.hpp"
+#include "Benchmarking/BenchTOD.hpp"
 
 #include "Ordering.hpp"
 
@@ -52,6 +53,7 @@ public:
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
+  static void printCounter();
 
 private:
   /** Processes current node until it is either (i) a term or poly node whose result

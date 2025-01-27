@@ -761,6 +761,13 @@ set(UNIT_TESTS
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
+set(BENCHMARKING
+    Benchmarking/BenchTOD.hpp
+    Benchmarking/BenchUtils.hpp
+    Benchmarking/BenchUtils.cpp
+    )
+source_group(benchmarking FILES ${BENCHMARKING})
+
 set(UNIT_TESTS_Z3
     UnitTests/tTheoryInstAndSimp.cpp
     UnitTests/tZ3Interfacing.cpp
@@ -786,6 +793,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
     ${VAMPIRE_SAT_SUBSUMPTION_SOURCES}
+    ${BENCHMARKING}
     Forwards.hpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
@@ -822,7 +830,7 @@ add_compile_definitions(VTIME_PROFILING=0)
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
-  
+
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
 
 ################################################################

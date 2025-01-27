@@ -19,6 +19,9 @@
 #include "SubstHelper.hpp"
 
 #include "OrderingComparator.hpp"
+#include "Benchmarking/BenchTOD.hpp"
+
+static bench::TODCounter _counter;
 
 using namespace std;
 
@@ -47,9 +50,18 @@ void* OrderingComparator::next()
   ASS(_curr);
 
   for (;;) {
+    // TODO preprocess to measure
+    _counter.startPreProcess();
     processCurrentNode();
+    _counter.stopPreProcess();
 
     auto node = _curr->node();
+    /*
+    if(!node->useful) {
+      node->useful = true;
+      used_nodes_counter++;
+    }
+    */
     ASS(node->ready);
 
     if (node->tag == Node::T_DATA) {
@@ -63,12 +75,15 @@ void* OrderingComparator::next()
 
     Ordering::Result comp = Ordering::INCOMPARABLE;
     if (node->tag == Node::T_TERM) {
-
+      _counter.startComparison();
+      // TODO measure the number of comparisons + time
       comp = _ord.compareUnidirectional(
         AppliedTerm(node->lhs, _appl, true),
         AppliedTerm(node->rhs, _appl, true));
-
+      _counter.stopComparison();
     } else {
+      _counter.startPositivityCheck();
+      // TODO measure the positivity check
       ASS_EQ(node->tag, Node::T_POLY);
 
       const auto& kbo = static_cast<const KBO&>(_ord);
@@ -101,8 +116,9 @@ void* OrderingComparator::next()
       } else if (weight == 0) {
         comp = Ordering::EQUAL;
       }
-    }
 loop_end:
+      _counter.stopPositivityCheck();
+    }
     _prev = _curr;
     _curr = &node->getBranch(comp);
   }
@@ -167,10 +183,12 @@ void OrderingComparator::processCurrentNode()
       }
       _curr->node()->trace = getCurrentTrace();
       _curr->node()->prevPoly = getPrevPoly();
+      // TODO count this one too
       _curr->node()->ready = true;
       return;
     }
     if (node->tag == Node::T_POLY) {
+      // TODO measure this?
       processPolyNode();
       continue;
     }
@@ -220,6 +238,7 @@ void OrderingComparator::processVarNode()
     _curr->node()->gtBranch = node->gtBranch;
     _curr->node()->ngeBranch = node->ngeBranch;
   }
+  // TODO count this one too
   _curr->node()->ready = true;
   _curr->node()->prevPoly = getPrevPoly();
   _curr->node()->trace = trace;
@@ -311,7 +330,7 @@ void OrderingComparator::processPolyNode()
     }
     polyIt = polyIt.first->prevPoly;
   }
- 
+
   if (trace) {
     for (const auto& [var, coeff] : poly->varCoeffPairs) {
       auto trs = trace->collectForVariable(TermList::var(var));
@@ -341,6 +360,9 @@ void OrderingComparator::processPolyNode()
   }
 
   if (linCons.isNonEmpty()) {
+    // TODO try to do this in one call?
+    // TODO look at the logic to try to reduce the number of calls (change FM if the overhead is too big)
+    // TODO measure the number of FM calls
     linCons.push({ poly, LCSign::GT });
     auto gt_ok = fourierMotzkin(linCons);
 
@@ -378,6 +400,7 @@ void OrderingComparator::processPolyNode()
   }
   _curr->node()->trace = trace;
   _curr->node()->prevPoly = prevPoly;
+  // TODO measure this as processed
   _curr->node()->ready = true;
 }
 
@@ -427,7 +450,7 @@ std::pair<OrderingComparator::Node*, Ordering::Result> OrderingComparator::getPr
     // take value from previous node by default
     res = _prev->node()->prevPoly;
 
-    // override value if the previous is a poly node 
+    // override value if the previous is a poly node
     if (_prev->node()->tag == Node::T_POLY) {
       res.first = _prev->node();
       if (_curr == &_prev->node()->gtBranch) {
@@ -662,6 +685,11 @@ bool OrderingComparator::fourierMotzkin(LinearConstraints linCons)
   return true;
 }
 
+void OrderingComparator::printCounter()
+{
+  _counter.print();
+}
+
 const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)
 {
   static Set<Polynomial*, DerefPtrHash<DefaultHash>> polys;
@@ -704,7 +732,7 @@ const OrderingComparator::Polynomial* OrderingComparator::Polynomial::add(
   for (const auto& [var, coeff] : Q->varCoeffPairs) {
     varCoeffs[var] += coeff * d;
   }
-  
+
   Stack<VarCoeffPair> res;
   for (unsigned i = 0; i < varCoeffs.size(); i++) {
     if (varCoeffs[i]) {
@@ -762,6 +790,7 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Polynomial
   return out;
 }
 
+// TODO copy this to count the stats
 std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
 {
   Stack<std::pair<const OrderingComparator::Branch*, unsigned>> todo;
