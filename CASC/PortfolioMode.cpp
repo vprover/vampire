@@ -566,9 +566,9 @@ unsigned PortfolioMode::getSliceTime(const std::string &sliceCode)
   }
 
   ASS(_slowness > 0)
-  int res = _slowness * sliceTime;
-  return _slowness >= 1 && res < sliceTime 
-    ? /* overflow */ std::numeric_limits<int>::max()
+  unsigned res = _slowness * sliceTime;
+  return _slowness >= 1 && res < sliceTime
+    ? /* overflow */ std::numeric_limits<unsigned>::max()
     : res;
 } // getSliceTime
 
