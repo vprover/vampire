@@ -138,7 +138,7 @@ public:
      */
     const std::string& problemName () const { return _problemName.actualValue; }
     void setProblemName(std::string str) { _problemName.actualValue = str; }
-    
+
     void setInputFile(const std::string& newVal){ _inputFile.set(newVal); }
     std::string includeFileName (const std::string& relativeName);
 
@@ -2604,6 +2604,7 @@ private:
   StringOptionValue _questionAnsweringAvoidThese;
 
   UnsignedOptionValue _randomSeed;
+  UnsignedOptionValue _randomStrategySeed;
 
   StringOptionValue _sampleStrategy;
 

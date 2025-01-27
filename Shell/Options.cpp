@@ -225,6 +225,15 @@ void Options::init()
     _sampleStrategy.setExperimental();
     _sampleStrategy.tag(OptionTag::DEVELOPMENT);
 
+    _randomStrategySeed = UnsignedOptionValue("random_strategy_seed","",0);
+    _randomStrategySeed.description="Sets the seed for generating random strategies."
+      "This option necessary because --random_seed <value> will be included as fixed value in the generated random strategy,"
+      " hence won't have any effect on the random strategy generation. Set to non-0 for this to have effect; the default 0 still calls a random_device.";
+    _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
+    _randomStrategySeed.setExperimental();
+    _lookup.insert(&_randomStrategySeed);
+    _randomStrategySeed.tag(OptionTag::INPUT);
+
     _forbiddenOptions = StringOptionValue("forbidden_options","","");
     _forbiddenOptions.description=
     "If some of the specified options are set to a forbidden state, vampire will fail to start, or in portfolio modes it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>";
@@ -3100,9 +3109,9 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
   }
 
   // our local randomizing engine (randomly seeded)
-  auto rng = env.options->randomSeed() == 0 
+  auto rng = _randomStrategySeed.actualValue == 0
     ? std::mt19937((std::random_device())())
-    : std::mt19937(env.options->randomSeed());
+    : std::mt19937(_randomStrategySeed.actualValue);
   // map of local variables (fake options)
   DHMap<std::string,std::string> fakes;
 
