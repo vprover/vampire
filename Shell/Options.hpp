@@ -1787,7 +1787,7 @@ bool _hard;
         ASS(p)
         return (p->hasPolymorphicSym());
       }
-      std::string msg(){ return " only useful with higher-order problems"; }
+      std::string msg(){ return " only useful with polymorphic problems"; }
     };
 
 
