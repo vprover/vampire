@@ -35,6 +35,7 @@ OrderingComparator* OrderingComparator::createForSingleComparison(const Ordering
   OrderingComparator** ptr;
   if (cache.getValuePtr({ lhs, rhs, ground }, ptr, nullptr)) {
     *ptr = ord.createComparator(/*onlyVars=*/false, ground).release();
+    (*ptr)->_threeValued = true;
     (*ptr)->_source = Branch(lhs, rhs);
     (*ptr)->_source.node()->gtBranch = Branch((void*)0x1, (*ptr)->_sink);
     (*ptr)->_source.node()->eqBranch = Branch((void*)0x2, (*ptr)->_sink);

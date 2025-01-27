@@ -594,7 +594,8 @@ bool ConditionalRedundancySubsumption2::checkRight(OrderingComparator& tod, cons
   return true;
 }
 
-ConditionalRedundancySubsumption3::ConditionalRedundancySubsumption3(
+template<bool contrapositive>
+ConditionalRedundancySubsumption3<contrapositive>::ConditionalRedundancySubsumption3(
   const Ordering& ord, Stack<CompSubstPair>& lefts, Stack<CompSubstPair>& rights)
   : ord(ord), lefts(lefts), rights(rights)
 {
@@ -610,11 +611,12 @@ ConditionalRedundancySubsumption3::ConditionalRedundancySubsumption3(
 
 #define SUBSUMPTION3_LIMIT 500
 
-bool ConditionalRedundancySubsumption3::check()
+template<bool contrapositive>
+bool ConditionalRedundancySubsumption3<contrapositive>::check()
 {
   Stack<Iterator> iterators;
   for (const auto& [comp,appl] : lefts) {
-    iterators.push(Iterator(comp, false));
+    iterators.push(Iterator(comp));
   }
   unsigned i = 0;
   if (lefts.isNonEmpty()) {
@@ -635,8 +637,14 @@ bool ConditionalRedundancySubsumption3::check()
     // try to get a next success
     while (it.hasNext()) {
       auto [val,tpo] = it.next();
-      if (val != Ordering::GREATER) {
-        continue;
+      if constexpr (contrapositive) {
+        if (val == Ordering::GREATER) {
+          continue;
+        }
+      } else {
+        if (val != Ordering::GREATER) {
+          continue;
+        }
       }
       curr = tpo;
       break;
@@ -673,20 +681,28 @@ bool ConditionalRedundancySubsumption3::check()
   return true;
 }
 
-bool ConditionalRedundancySubsumption3::checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo)
+template<bool contrapositive>
+bool ConditionalRedundancySubsumption3<contrapositive>::checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo)
 {
-  Iterator it(tod, true);
+  Iterator it(tod);
   it.init(tpo, appl);
   while (it.hasNext()) {
     auto [val,trace] = it.next();
-    if (val != Ordering::GREATER) {
-      return false;
+    if constexpr (contrapositive) {
+      if (val == Ordering::GREATER) {
+        return false;
+      }
+    } else {
+      if (val != Ordering::GREATER) {
+        return false;
+      }
     }
   }
   return true;
 }
 
-void ConditionalRedundancySubsumption3::Iterator::init(const TermPartialOrdering* tpo, const SubstApplicator* appl)
+template<bool contrapositive>
+void ConditionalRedundancySubsumption3<contrapositive>::Iterator::init(const TermPartialOrdering* tpo, const SubstApplicator* appl)
 {
   _tpo = tpo;
   _appl = appl;
@@ -694,7 +710,8 @@ void ConditionalRedundancySubsumption3::Iterator::init(const TermPartialOrdering
   _path.push({ &_comp._source, tpo, unique_ptr<OrderingComparator::Iterator>() });
 }
 
-bool ConditionalRedundancySubsumption3::Iterator::hasNext()
+template<bool contrapositive>
+bool ConditionalRedundancySubsumption3<contrapositive>::Iterator::hasNext()
 {
   using Node = OrderingComparator::Node;
 
@@ -711,9 +728,7 @@ bool ConditionalRedundancySubsumption3::Iterator::hasNext()
 
     if (node->tag == Node::T_DATA) {
       _res.second = trace;
-      if (_nonNullIsGreater) {
-        _res.first = node->data ? Ordering::GREATER : Ordering::INCOMPARABLE;
-      } else {
+      if (_comp._threeValued) {
         if (node->data == (void*)0x1) {
           _res.first = Ordering::GREATER;
         } else if (node->data == (void*)0x2) {
@@ -723,6 +738,8 @@ bool ConditionalRedundancySubsumption3::Iterator::hasNext()
         } else {
           _res.first = Ordering::INCOMPARABLE;
         }
+      } else {
+        _res.first = node->data ? Ordering::GREATER : Ordering::INCOMPARABLE;
       }
       // push next first
       while (_path.isNonEmpty()) {
@@ -784,6 +801,9 @@ bool ConditionalRedundancySubsumption3::Iterator::hasNext()
   }
   return false;
 }
+
+template class ConditionalRedundancySubsumption3<false>;
+template class ConditionalRedundancySubsumption3<true>;
 
 // ConditionalRedundancyHandler
 

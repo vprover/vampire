@@ -28,7 +28,7 @@ namespace Inferences {
 namespace Shell {
   class ConditionalRedundancySubsumption;
   class ConditionalRedundancySubsumption2;
-  class ConditionalRedundancySubsumption3;
+  template<bool contrapositive> class ConditionalRedundancySubsumption3;
 }
 
 namespace Kernel {
@@ -206,7 +206,7 @@ protected:
   friend class Inferences::ForwardGroundReducibility;
   friend class Shell::ConditionalRedundancySubsumption;
   friend class Shell::ConditionalRedundancySubsumption2;
-  friend class Shell::ConditionalRedundancySubsumption3;
+  template<bool contrapositive> friend class Shell::ConditionalRedundancySubsumption3;
 
   const Ordering& _ord;
   Branch _source;
@@ -216,6 +216,7 @@ protected:
   const SubstApplicator* _appl;
   bool _onlyVars;
   bool _ground;
+  bool _threeValued = false;
   const TermPartialOrdering* _head;
 
 public:

@@ -207,6 +207,7 @@ private:
   unsigned cnt = 0;
 };
 
+template<bool contrapositive>
 class ConditionalRedundancySubsumption3 {
 public:
   using CompSubstPair = std::pair<OrderingComparator&, const SubstApplicator*>;
@@ -220,7 +221,7 @@ private:
   bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
 
   struct Iterator {
-    Iterator(OrderingComparator& comp, bool nonNullIsGreater) : _comp(comp), _nonNullIsGreater(nonNullIsGreater) {}
+    Iterator(OrderingComparator& comp) : _comp(comp) {}
 
     void init(const TermPartialOrdering* tpo, const SubstApplicator* appl);
 
@@ -232,7 +233,6 @@ private:
     const TermPartialOrdering* _tpo;
     Stack<std::tuple<Branch*,const TermPartialOrdering*,std::unique_ptr<OrderingComparator::Iterator>>> _path;
     std::pair<Result, const TermPartialOrdering*> _res;
-    bool _nonNullIsGreater;
   };
 
   const Ordering& ord;

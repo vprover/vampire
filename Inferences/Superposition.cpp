@@ -440,8 +440,10 @@ Clause* Superposition::performSuperposition(
       lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.lhs,con.rhs,/*ground=*/true), &idAppl });
     }
     // ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
-    ConditionalRedundancySubsumption3 subs(ordering, lefts, rights);
-    if (subs.check()) {
+    // ConditionalRedundancySubsumption3<false> subs(ordering, lefts, rights);
+    ConditionalRedundancySubsumption3<true> subsCP(ordering, rights, lefts);
+    auto res = subsCP.check();
+    if (res) {
       env.statistics->skippedSuperposition++;
       return 0;
     }
