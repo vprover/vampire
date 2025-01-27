@@ -23,7 +23,7 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-COMMON_FLAGS = -DVTIME_PROFILING=0
+COMMON_FLAGS = -DVTIME_PROFILING=0 -DVMINI_GMP
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
@@ -77,11 +77,11 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I. -I/opt/local/include
+INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
-INCLUDES= -I. -I/opt/local/include -Iz3/src/api -Iz3/src/api/c++
+INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src -Iz3/src/api -Iz3/src/api/c++
 # ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 # Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 # else
@@ -177,8 +177,13 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
+        Kernel/QKbo.o\
         Kernel/KBOComparator.o\
         Kernel/SKIKBO.o\
+        Kernel/ALASCA/Signature.o\
+        Kernel/ALASCA/SelectionPrimitves.o\
+        Kernel/ALASCA/Normalization.o\
+        Kernel/ALASCA/State.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
         Kernel/LPO.o\
@@ -275,6 +280,17 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/PolynomialEvaluation.o\
          Inferences/ArithmeticSubtermGeneralization.o\
          Inferences/Superposition.o\
+         Inferences/ALASCA/Normalization.o\
+         Inferences/ALASCA/InequalityFactoring.o\
+         Inferences/ALASCA/EqFactoring.o\
+         Inferences/ALASCA/VariableElimination.o\
+         Inferences/ALASCA/VIRAS.o\
+         Inferences/ALASCA/Superposition.o\
+         Inferences/ALASCA/Demodulation.o\
+         Inferences/ALASCA/FwdDemodulation.o\
+         Inferences/ALASCA/BwdDemodulation.o\
+         Inferences/ALASCA/FourierMotzkin.o\
+         Inferences/ALASCA/TermFactoring.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
