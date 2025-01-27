@@ -300,9 +300,9 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
   ASS(limit_multiplier >= 0)
   Schedule::BottomFirstIterator it(sOld);
   auto scale = [&](auto v) {
-    int newV = v * limit_multiplier;
-    return limit_multiplier > 0 && newV < v 
-       ? /* overflow */ std::numeric_limits<int>::max()
+    unsigned newV = v * limit_multiplier;
+    return limit_multiplier > 0 && newV < v
+       ? /* overflow */ std::numeric_limits<unsigned>::max()
        : newV;
     };
   while(it.hasNext()){
