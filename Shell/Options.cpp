@@ -1271,21 +1271,21 @@ void Options::init()
     _pushUnaryMinus.addProblemConstraint(hasTheories());
     _pushUnaryMinus.tag(OptionTag::THEORIES);
 
+    auto addRecommendationConstraint = [](auto& opt, auto constr) { };
 
     _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",false);
     _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n";
     _lookup.insert(&_alasca);
     _alasca.tag(OptionTag::INFERENCES);
     _alasca.setExperimental();
-    _alasca.onlyUsefulWith2(Or(
+    addRecommendationConstraint(_alasca, Or(
            _termOrdering.is(equal(TermOrdering::QKBO)),
            _termOrdering.is(equal(TermOrdering::LAKBO)),
            _termOrdering.is(equal(TermOrdering::ALL_INCOMPARABLE))
            ));
-    _alasca.onlyUsefulWith2(_cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
-    // _alasca.onlyUsefulWith2(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
-    _alasca.onlyUsefulWith2(_highSchool.is(equal(false)));
-    _alasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(
+    addRecommendationConstraint(_alasca, _cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+    addRecommendationConstraint(_alasca, _highSchool.is(equal(false)));
+    addRecommendationConstraint(_alasca, _unificationWithAbstraction.is(Or(
               equal(UnificationWithAbstraction::ALASCA_CAN_ABSTRACT)
             , equal(UnificationWithAbstraction::ALASCA_MAIN)
             , equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)
@@ -1297,14 +1297,14 @@ void Options::init()
     _lookup.insert(&_viras);
     _viras.tag(OptionTag::INFERENCES);
     _viras.setExperimental();
-    _viras.onlyUsefulWith2(_alasca.is(equal(true)));
+    _viras.onlyUsefulWith(_alasca.is(equal(true)));
 
     _alascaDemodulation  = BoolOptionValue("alasca_demodulation","alasca_demod",false);
     _alascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
     _lookup.insert(&_alascaDemodulation);
     _alascaDemodulation.tag(OptionTag::INFERENCES);
     _alascaDemodulation.setExperimental();
-    _alascaDemodulation.onlyUsefulWith2(_alasca.is(equal(true)));
+    _alascaDemodulation.onlyUsefulWith(_alasca.is(equal(true)));
 
     _alascaStrongNormalization  = BoolOptionValue("alasca_strong_normalziation","alasca_sn",false);
     _alascaStrongNormalization.description=
@@ -1314,7 +1314,7 @@ void Options::init()
             "\n";
     _lookup.insert(&_alascaStrongNormalization);
     _alascaStrongNormalization.tag(OptionTag::INFERENCES);
-    _alascaStrongNormalization.onlyUsefulWith2(_alasca.is(equal(true)));
+    _alascaStrongNormalization.onlyUsefulWith(_alasca.is(equal(true)));
 
 
     _alascaIntegerConversion  = BoolOptionValue("alasca_integer_conversion","alascai",false);
@@ -1325,16 +1325,17 @@ void Options::init()
     _lookup.insert(&_alascaIntegerConversion);
     _alascaIntegerConversion.setExperimental();
     _alascaIntegerConversion.tag(OptionTag::INFERENCES);
-    _alascaIntegerConversion.onlyUsefulWith2(_alasca.is(equal(true)));
-    _alascaIntegerConversion.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)));
+    _alascaIntegerConversion.onlyUsefulWith(_alasca.is(equal(true)));
+    addRecommendationConstraint(_alascaIntegerConversion, _unificationWithAbstraction.is(equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)));
 
     _alascaAbstraction  = BoolOptionValue("alasca_abstraction","alascaa",false);
     _alascaAbstraction.description=
-            "TODO"
+            "Enables the alasca abstraction rule. This is an experimental rule not yet finished."
             "\n";
     _lookup.insert(&_alascaAbstraction);
     _alascaAbstraction.tag(OptionTag::INFERENCES);
-    _alascaAbstraction.onlyUsefulWith2(_alasca.is(equal(true)));
+    _alascaAbstraction.setExperimental();
+    _alascaAbstraction.onlyUsefulWith(_alasca.is(equal(true)));
 
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
