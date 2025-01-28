@@ -1551,7 +1551,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   auto ise = createISE(prb, opt, ordering);
-  if (env.options->alasca()) {
+  if (env.options->alasca() && prb.hasAlascaArithmetic()) {
     auto shared = Kernel::AlascaState::create(
         InequalityNormalizer::global(),
         &ordering, 
@@ -1565,9 +1565,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
     // TODO add parameter for this
     ise->addFront(new ALASCA::FloorElimination(shared)); 
-    // TODO also for rationals?
-    if (env.options->alascaAbstraction())
+    if (env.options->alascaAbstraction()) {
       ise->addFront(new ALASCA::Abstraction<RealTraits>(shared)); 
+      ise->addFront(new ALASCA::Abstraction<RatTraits>(shared)); 
+    }
 
     if (env.options->alascaStrongNormalization())
       ise->addFront(new ALASCA::InequalityPredicateNormalization(shared)); 
@@ -1584,14 +1585,15 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new ALASCA::InequalityFactoring(shared));
     sgi->push(new ALASCA::EqFactoring(shared)); 
     sgi->push(new ALASCA::FourierMotzkin(shared)); 
-    // TODO also for rats?
+    sgi->push(new ALASCA::FloorFourierMotzkin<RatTraits>(shared)); 
     sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared)); 
     sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared)); 
+    sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared)); 
     if (env.options->superposition())
       sgi->push(new ALASCA::Superposition(shared)); 
     if (env.options->binaryResolution())
       sgi->push(new ALASCA::BinaryResolution(shared)); 
-    // TODO also for rationals?
+    sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared)); 
     sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared)); 
     sgi->push(new ALASCA::Coherence<RealTraits>(shared)); 
     sgi->push(new ALASCA::FloorBounds(shared)); 
