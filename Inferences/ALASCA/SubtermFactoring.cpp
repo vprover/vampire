@@ -82,6 +82,7 @@ ClauseIterator SubtermFactoring::generateClauses(Clause* premise)
                       .map([&](auto l) { return unif.subs().apply(l, 0); }),
                     arrayIter(unif.computeConstraintLiterals())
                     ),
+                  // TODO make its own InferenceRule
                   Inference(GeneratingInference1(Kernel::InferenceRule::ALASCA_TERM_FACTORING, premise))
                   );
           });

@@ -40,6 +40,7 @@
 #include "Inferences/ALASCA/Abstractions.hpp"
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/TermFactoring.hpp"
+#include "Inferences/ALASCA/SubtermFactoring.hpp"
 #include "Inferences/ALASCA/InequalityPredicateNormalization.hpp"
 #include "Inferences/ALASCA/EqFactoring.hpp"
 #include "Inferences/ALASCA/InequalityFactoring.hpp"
@@ -1581,7 +1582,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       sgi->push(new ALASCA::VirasQuantifierElimination(shared));
     else
       sgi->push(new ALASCA::VariableElimination(shared, /* simpl */ true ));
+    // TODO remove term distinction between term and subterm factoring (?)
     sgi->push(new ALASCA::TermFactoring(shared)); 
+    if (env.options->alascaSubtermFactoring())
+      sgi->push(new ALASCA::SubtermFactoring(shared)); 
     sgi->push(new ALASCA::InequalityFactoring(shared));
     sgi->push(new ALASCA::EqFactoring(shared)); 
     sgi->push(new ALASCA::FourierMotzkin(shared)); 

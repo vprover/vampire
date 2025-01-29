@@ -1337,6 +1337,16 @@ void Options::init()
     _alascaAbstraction.setExperimental();
     _alascaAbstraction.onlyUsefulWith(_alasca.is(equal(true)));
 
+
+    _alascaSubtermFactoring  = BoolOptionValue("alasca_subterm_factoring","alasca-stf",true);
+    _alascaSubtermFactoring.description=
+            "Enables the alasca term factoring for non-toplevel terms. This is an experimental rule not yet finished. " // TODO
+            "\n";
+    _lookup.insert(&_alascaSubtermFactoring);
+    _alascaSubtermFactoring.tag(OptionTag::INFERENCES);
+    _alascaSubtermFactoring.setExperimental();
+    _alascaSubtermFactoring.onlyUsefulWith(_alasca.is(equal(true)));
+
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
        ArithmeticSimplificationMode::OFF);

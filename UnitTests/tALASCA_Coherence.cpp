@@ -431,3 +431,14 @@ TEST_GENERATION(bug02,
                  , 0 == (x + y + -f2(y,x))     })
           ))
     )
+
+TEST_GENERATION(bug03,
+    Generation::SymmetricTest()
+      .indices(alascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ isInteger(3 * f(a))  }) 
+                 , clause({ p(floor( 3 * f(x) )) }) })
+      .expected(exactly(
+          clause({ p(3 * f(a)) })
+          ))
+    )
