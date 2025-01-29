@@ -38,25 +38,21 @@ using namespace Inferences::ALASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                  \
-  NUMBER_SUGAR(Num)                                                                                 \
-  DECL_DEFAULT_VARS                                                                                 \
-  DECL_VAR(x0, 0)                                                                                   \
-  DECL_VAR(x1, 1)                                                                                   \
-  DECL_VAR(x2, 2)                                                                                   \
-  DECL_VAR(x3, 3)                                                                                   \
-  DECL_VAR(x4, 4)                                                                                   \
-  DECL_FUNC(f, {Num}, Num)                                                                          \
-  DECL_FUNC(ff, {Num}, Num)                                                                         \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                     \
-  DECL_FUNC(g0, {Num, Num}, Num)                                                                    \
-  DECL_FUNC(g1, {Num, Num}, Num)                                                                    \
-  DECL_FUNC(h, {Num, Num, Num}, Num)                                                                \
-  DECL_CONST(a, Num)                                                                                \
-  DECL_CONST(b, Num)                                                                                \
-  DECL_CONST(c, Num)                                                                                \
-  DECL_PRED(p, {Num})                                                                               \
-  DECL_PRED(r, {Num,Num})                                                                           \
+#define SUGAR(Num)                                                                        \
+  NUMBER_SUGAR(Num)                                                                       \
+  DECL_DEFAULT_VARS                                                                       \
+  DECL_VAR(x0, 0)                                                                         \
+  DECL_VAR(x1, 1)                                                                         \
+  DECL_VAR(x2, 2)                                                                         \
+  DECL_VAR(x3, 3)                                                                         \
+  DECL_VAR(x4, 4)                                                                         \
+  DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(g, {Num, Num}, Num)                                                           \
+  DECL_CONST(a, Num)                                                                      \
+  DECL_CONST(b, Num)                                                                      \
+  DECL_CONST(c, Num)                                                                      \
+  DECL_PRED(p, {Num})                                                                     \
+  DECL_PRED(r, {Num,Num})                                                                 \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -93,4 +89,12 @@ TEST_GENERATION(basic04,
       .inputs  ({  clause({ p(x + f(y))   }) })
       .expected(exactly(
           /* nothing, this is done by abstraction */
+      )))
+
+
+TEST_GENERATION(basic05,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({ f(f(f(x) + f(y)) - f(0)) + f(x) > 0  }) })
+      .expected(exactly(
+          clause({ f(f(2 * f(x)) - f(0)) + f(x) > 0 })
       )))
