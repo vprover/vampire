@@ -370,6 +370,9 @@ using IntTraits  = NumTraits< IntegerConstantType>;
 using RatTraits  = NumTraits<RationalConstantType>;
 using RealTraits = NumTraits<    RealConstantType>;
 
+template<template<class> class Tmplt>
+using NumTraitsCopro = Coproduct<Tmplt<IntTraits>, Tmplt<RatTraits>, Tmplt<RealTraits>>;
+
 template<class Clsr>
 auto forAnyNumTraits(Clsr clsr) {
   return clsr( IntTraits{}) 
@@ -437,7 +440,6 @@ struct IfOfType<T, T, IfT, IfNotT>
 template<class T, class Val, class IfT, class IfNotT>
 auto ifOfType(Val val, IfT ifT, IfNotT ifNotT)
 { return IfOfType<T, Val, IfT, IfNotT>{}(std::move(val), ifT, ifNotT); }
-
 
 }
 

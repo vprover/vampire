@@ -454,6 +454,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ALASCA/BwdDemodulation.hpp
     Inferences/ALASCA/FourierMotzkin.cpp
     Inferences/ALASCA/FourierMotzkin.hpp
+    Inferences/ALASCA/SubtermFactoring.cpp
+    Inferences/ALASCA/SubtermFactoring.hpp
     Inferences/ALASCA/TermFactoring.cpp
     Inferences/ALASCA/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
@@ -779,6 +781,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_EqFactoring.cpp
     UnitTests/tALASCA_VariableElimination.cpp
     UnitTests/tALASCA_TermFactoring.cpp
+    UnitTests/tALASCA_SubtermFactoring.cpp
     UnitTests/tALASCA_Demodulation.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_LaKbo.cpp

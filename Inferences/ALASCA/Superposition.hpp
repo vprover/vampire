@@ -84,13 +84,18 @@ struct SuperpositionConf
     bool inLitPlus() const
     { return _inLitPlus; }
 
-    static auto iter(AlascaState& shared, Clause* cl)
-    { 
-      using Out = Rhs;
+    static auto activePositions(AlascaState& shared, Clause* cl) 
+    {
       return shared.selectedActivePositions(cl, 
           /* literals */ SelectionCriterion::NOT_LESS, 
           /* terms    */ SelectionCriterion::NOT_LEQ,
-          /* include number vars */ false)
+          /* include number vars */ false);
+    }
+
+    static auto iter(AlascaState& shared, Clause* cl)
+    { 
+      using Out = Rhs;
+      return activePositions(shared, cl)
         .flatMap([&](auto sel_lit) -> VirtualIterator<Out> {
            auto tup = sel_lit.match(
              [=](SelectedSummand& x) -> std::tuple<SelectedLiteral, TermList, bool, bool> 

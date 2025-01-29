@@ -14,6 +14,7 @@
 #ifndef __ALASCA_State__
 #define __ALASCA_State__
 
+#include "Debug/Assertion.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 
@@ -239,6 +240,12 @@ namespace Kernel {
               return pvi(getSingletonIterator(Out(SelectedUninterpretedPredicate(sel_lit))));
             }
         });
+    }
+
+    auto iterInterpretedSubterms(TermList t) {
+      return iterTraits(_normalizer->normalize(t)
+        .iterSubterms())
+        .filterMap([](PolyNf t) { return t.template as<AnyPoly>().toOwned(); });
     }
 
     auto isUninterpreted(Literal* l) const 

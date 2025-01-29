@@ -39,7 +39,25 @@ template <class... As>
 class Coproduct;
 
 /* a type level function that maps a List<F, A> to the result std::invoke_result_t<F,A> */
-struct ApplyFuncToArg
+template<class A>
+struct ApplyFuncToArg;
+
+template<>
+struct ApplyFuncToArg<unsigned&>
+{
+  template<class Pair>
+  using apply = std::invoke_result_t<TL::Get<0, Pair>, TL::Get<1, Pair>&>;
+};
+
+template<>
+struct ApplyFuncToArg<unsigned const&>
+{
+  template<class Pair>
+  using apply = std::invoke_result_t<TL::Get<0, Pair>, TL::Get<1, Pair> const&>;
+};
+
+template<>
+struct ApplyFuncToArg<unsigned &&>
 {
   template<class Pair>
   using apply = std::invoke_result_t<TL::Get<0, Pair>, TL::Get<1, Pair>>;
@@ -519,7 +537,7 @@ public:
    */                                                                                     \
   template <class F>                                                                      \
   inline auto applyCo(F f) REF -> decltype(auto) {                                        \
-    using Out = TL::Into<Coproduct, TL::Map<ApplyFuncToArg,                               \
+    using Out = TL::Into<Coproduct, TL::Map<ApplyFuncToArg<unsigned REF>,                               \
           TL::Zip<TL::Repeat<TL::Size<Ts>::val, F>, TL::List<As REF...>>>>;               \
     return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
         return Out::template variant<N.value>(                                            \
@@ -542,7 +560,7 @@ public:
   auto map(F... fs) REF {                                                                 \
     auto fs_ = std::tie(fs...);                                                           \
     using Fs = TL::List<F...>;                                                            \
-    using Out = TL::Into<Coproduct, TL::Map<ApplyFuncToArg, TL::Zip<Fs, Ts>>>;            \
+    using Out = TL::Into<Coproduct, TL::Map<ApplyFuncToArg<unsigned REF>, TL::Zip<Fs, Ts>>>;            \
     return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
         auto& f = std::get<N.value>(fs_);                                                 \
         return Out::template variant<N.value>(f(unwrap<N.value>()));                      \
