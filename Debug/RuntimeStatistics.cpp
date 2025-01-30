@@ -99,7 +99,6 @@ RuntimeStatistics::~RuntimeStatistics()
 void RuntimeStatistics::print(std::ostream& out)
 {
   out<<"% ----  Runtime statistics ----"<<endl;
-  Kernel::OrderingComparator::printCounter();
   ObjSkipList::Iterator it(_objs);
   while(it.hasNext()) {
     it.next()->print(out);

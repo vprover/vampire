@@ -754,6 +754,7 @@ set(UNIT_TESTS
     UnitTests/tStack.cpp
     UnitTests/tSet.cpp
     UnitTests/tSATSubsumptionResolution.cpp
+    UnitTests/tBenchUtils.cpp
     UnitTests/tDeque.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tFunctionDefinitionHandler.cpp

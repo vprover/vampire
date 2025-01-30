@@ -9,116 +9,96 @@
 #include <linux/perf_event.h>
 #endif
 #include "BenchUtils.hpp"
+#include "Shell/Statistics.hpp"
 
 #include <iostream>
 
 
 namespace bench {
+  static InstrCounter demodulationCounter;
+  static InstrCounter queryCounter;
+  static InstrCounter preProcessCounter;
+  static InstrCounter comparisonCounter;
+  static InstrCounter positivityCheckCounter;
+  // The blocker is used to prevent the other counters from measuring extra statistics
+  static InstrCounter blockCounter;
   class TODCounter {
     public:
       TODCounter() = default;
       ~TODCounter() = default;
 
-      inline void startFullProcedure() {
-        _fullProcedureCounter.startAndHold();
-        _fullProcedureNumber++;
-        _fullProcedureCounter.resume();
+      static inline void startFwDemodulation() {
+        demodulationCounter.start();
       }
-      inline void stopFullProcedure(){
-        _fullProcedureCounter.stop();
+      static inline void stopFwDemodulation(){
+        demodulationCounter.stop();
       }
-      inline void startPreProcess(){
-        _preProcessCounter.startAndHold();
-        _preProcessNumber++;
-        _preProcessCounter.resume();
-      }
-      inline void stopPreProcess(){
-        _preProcessCounter.stop();
-      }
-      inline void startComparison(){
-        _comparisonCounter.startAndHold();
-        _comparisonNumber++;
-        _comparisonCounter.resume();
-      }
-      inline void stopComparison(){
-        _comparisonCounter.stop();
-      }
-      inline void startPositivityCheck(){
-        _positivityCheckCounter.startAndHold();
-        _positivityCheckNumber++;
-        _positivityCheckCounter.resume();
-      }
-      inline void stopPositivityCheck(){
-        _positivityCheckCounter.stop();
+      static long long getTotalFwDemodulationCount() {
+        return demodulationCounter.getTotalInstrCount();
       }
 
-      inline void bumpCreatedNodes(){
-        _blocker.start();
-        _numberOfCreatedNodes++;
-        _blocker.stop();
+      static inline void startTODQuery() {
+        queryCounter.startAndHold();
+        env.statistics->todQueries++;
+        std::cout << "startTODQuery" << std::endl;
+        std::cout << "Number of instructions so far " << getInstrTodQuery() << std::endl;
+        queryCounter.resume();
       }
-      inline void bumpProcessedNodes(){
-        _blocker.start();
-        _numberOfProcessedNodes++;
-        _blocker.stop();
+      static inline void stopTODQuery(){
+        queryCounter.stop();
       }
-      inline void bumpUsedNodes(){
-        _blocker.start();
-        _numberOfUsedNodes++;
-        _blocker.stop();
+      static inline long long getInstrTodQuery() {
+        return queryCounter.getTotalInstrCount();
       }
 
-      inline long long getTotalFullProcedureCount() {
-        return _fullProcedureCounter.getTotalInstrCount();
+      static inline void startPreProcess(){
+        preProcessCounter.startAndHold();
+        env.statistics->todPreprocesses++;
+        preProcessCounter.resume();
       }
-      inline long long getTotalPreProcessCount() {
-        return _preProcessCounter.getTotalInstrCount();
+      static inline void stopPreProcess(){
+        preProcessCounter.stop();
       }
-      inline long long getTotalComparisonCount() {
-        return _comparisonCounter.getTotalInstrCount();
-      }
-      inline long long getTotalPositivityCheckCount() {
-        return _positivityCheckCounter.getTotalInstrCount();
-      }
-
-      inline long getNumberOfCreatedNodes() {
-        return _numberOfCreatedNodes;
-      }
-      inline long getNumberOfProcessedNodes() {
-        return _numberOfProcessedNodes;
-      }
-      inline long getNumberOfUsedNodes() {
-        return _numberOfUsedNodes;
+      static inline long long getInstrPreProcess() {
+        return preProcessCounter.getTotalInstrCount();
       }
 
-      void print() {
-        std::cout << "Executed " << _fullProcedureNumber << " full procedures in total with " << getTotalFullProcedureCount() << " instructions." << std::endl;
-        std::cout << "Executed " << _preProcessNumber << " pre-processes in total with " << getTotalPreProcessCount() << " instructions." << std::endl;
-        std::cout << "Executed " << _comparisonNumber << " comparisons in total with " << getTotalComparisonCount() << " instructions." << std::endl;
-        std::cout << "Executed " << _positivityCheckNumber << " positivity checks in total with " << getTotalPositivityCheckCount() << " instructions." << std::endl;
-        std::cout << "Created " << _numberOfCreatedNodes << " nodes." << std::endl;
-        std::cout << "Processed " << _numberOfProcessedNodes << " nodes." << std::endl;
-        std::cout << "Used " << _numberOfUsedNodes << " nodes." << std::endl;
+      static inline void startOrderingCheck(){
+        comparisonCounter.startAndHold();
+        env.statistics->todOrderingChecks++;
+        comparisonCounter.resume();
+      }
+      static inline void stopOrderingCheck(){
+        comparisonCounter.stop();
+      }
+      static inline long long getInstrOrederinCheck() {
+        return comparisonCounter.getTotalInstrCount();
       }
 
-    private:
-      InstrCounter _fullProcedureCounter;
-      long _fullProcedureNumber = 0;
+      static inline void startPositivityCheck(){
+        positivityCheckCounter.startAndHold();
+        env.statistics->todPositivityChecks++;
+        positivityCheckCounter.resume();
+      }
+      static inline void stopPositivityCheck(){
+        positivityCheckCounter.stop();
+      }
+      static inline long long getInstrPositivityCheckCount() {
+        return positivityCheckCounter.getTotalInstrCount();
+      }
 
-      InstrCounter _preProcessCounter;
-      long _preProcessNumber = 0;
+      static inline void bumpCreatedNodes(){
+        blockCounter.start();
+        env.statistics->todNodesCreated++;
+        blockCounter.stop();
+      }
+      static inline void bumpUsedNodes(){
+        blockCounter.start();
+        env.statistics->todNodesUsed++;
+        blockCounter.stop();
+      }
 
-      InstrCounter _comparisonCounter;
-      long _comparisonNumber = 0;
 
-      InstrCounter _positivityCheckCounter;
-      long _positivityCheckNumber = 0;
-
-      // The blocker is used to prevent the other counters from measuring extra statistics
-      InstrCounter _blocker;
-      long _numberOfCreatedNodes = 0;
-      long _numberOfProcessedNodes = 0;
-      long _numberOfUsedNodes = 0;
   };
 }
 

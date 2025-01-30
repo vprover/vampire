@@ -11,10 +11,11 @@
 #include <vector>
 #include <algorithm>
 
-static unsigned depth = 0;
-static int eventFd = -1;
+static unsigned nInstances = 0;
 static long long instrOverhead = 0;
-static std::vector<bench::InstrCounter*> instances;
+static long long totalOverHead = 0;
+static int eventFd = -1;
+static int pid = -1;
 
 // Helper function for perf_event_open
 static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid,
@@ -42,42 +43,47 @@ int setup_perf_event() {
 
 bench::InstrCounter::InstrCounter()
 {
-  if (depth == 0) {
+  int currPid = getpid();
+  if (currPid != pid) {
+    pid = currPid;
     eventFd = setup_perf_event();
+  }
+  if (nInstances == 0) {
     ioctl(eventFd, PERF_EVENT_IOC_RESET, 0);
-
+    // Calibration of the counting
     // We count the number of instruction it takes to start and stop the counter
     // This is done to minimize the impact of the measuring device on the measurement.
     start();
     stop();
     instrOverhead = getTotalInstrCount();
-    _totalInstrCount = 0;
+    reset();
   }
-  depth++;
-  instances.push_back(this);
+  nInstances++;
 }
 
 bench::InstrCounter::~InstrCounter()
 {
-  depth--;
-  if (depth == 0) {
+  nInstances--;
+  if (nInstances == 0) {
     close(eventFd);
   }
-  instances.erase(find(instances.begin(), instances.end(), this));
+}
+
+void bench::InstrCounter::reset()
+{
+  _startCount = -1;
+  _totalInstrCount = 0;
 }
 
 void bench::InstrCounter::start()
 {
   ioctl(eventFd, PERF_EVENT_IOC_DISABLE, 0);
   ASS(!running());
-  // substract the overhead from all the running instances
-  for (InstrCounter* inst : instances) {
-    if (inst->running()) {
-      inst->_totalInstrCount -= instrOverhead;
-    }
+  _lastOverHead = totalOverHead;  // record the last value of the overhead
+  totalOverHead += instrOverhead; // record the overhead introduced to other counters
+  if (read(eventFd, &_startCount, sizeof(long long)) == -1) {
+    std::cerr << "Error reading the instruction counter" << std::endl;
   }
-  (void)! read(eventFd, &_startCount, sizeof(long long));
-  std::cout << "The start count is " << _startCount << std::endl;
   ioctl(eventFd, PERF_EVENT_IOC_ENABLE, 0);
 }
 
@@ -86,14 +92,11 @@ void bench::InstrCounter::stop()
   ioctl(eventFd, PERF_EVENT_IOC_DISABLE, 0);
   ASS(running());
   // substract the overhead from all the running instances
-  for (InstrCounter* inst : instances) {
-    if (inst->running()) {
-      inst->_totalInstrCount -= instrOverhead;
-    }
-  }
   long long endCount = 0;
-  (void)! read(eventFd, &endCount, sizeof(long long));
+  read(eventFd, &endCount, sizeof(long long));
   _totalInstrCount += endCount - _startCount;
+  _totalInstrCount += _lastOverHead - totalOverHead; // correct the overhead introduced by other counters
+  totalOverHead += instrOverhead; // record the overhead introduced to other counters
   _startCount = -1;
   ioctl(eventFd, PERF_EVENT_IOC_ENABLE, 0);
 }
@@ -102,29 +105,22 @@ void bench::InstrCounter::startAndHold()
 {
   ioctl(eventFd, PERF_EVENT_IOC_DISABLE, 0);
   ASS(!running());
-  // substract the overhead from all the running instances
-  for (InstrCounter* inst : instances) {
-    if (inst->running()) {
-      inst->_totalInstrCount -= instrOverhead;
-    }
-  }
-  (void)! read(eventFd, &_startCount, sizeof(long long));
+  _lastOverHead = totalOverHead;
+  totalOverHead += instrOverhead;
+  read(eventFd, &_startCount, sizeof(long long));
 }
 
 void bench::InstrCounter::stopAndHold()
 {
   ioctl(eventFd, PERF_EVENT_IOC_DISABLE, 0);
   ASS(running());
-  // substract the overhead from all the running instances
-  for (InstrCounter* inst : instances) {
-    if (inst->running()) {
-      inst->_totalInstrCount -= instrOverhead;
-    }
-  }
   long long endCount = 0;
-  (void)! read(eventFd, &endCount, sizeof(long long));
+  read(eventFd, &endCount, sizeof(long long));
   _totalInstrCount += endCount - _startCount;
   _startCount = -1;
+
+  _totalInstrCount += endCount - _startCount;
+  _totalInstrCount += _lastOverHead - totalOverHead; // correct the overhead introduced by other counters
 }
 
 void bench::InstrCounter::resume()

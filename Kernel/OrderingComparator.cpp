@@ -21,8 +21,6 @@
 #include "OrderingComparator.hpp"
 #include "Benchmarking/BenchTOD.hpp"
 
-static bench::TODCounter _counter;
-
 using namespace std;
 
 namespace Kernel {
@@ -51,17 +49,11 @@ void* OrderingComparator::next()
 
   for (;;) {
     // TODO preprocess to measure
-    _counter.startPreProcess();
+    bench::TODCounter::startPreProcess();
     processCurrentNode();
-    _counter.stopPreProcess();
+    bench::TODCounter::stopPreProcess();
 
     auto node = _curr->node();
-    /*
-    if(!node->useful) {
-      node->useful = true;
-      used_nodes_counter++;
-    }
-    */
     ASS(node->ready);
 
     if (node->tag == Node::T_DATA) {
@@ -75,54 +67,63 @@ void* OrderingComparator::next()
 
     Ordering::Result comp = Ordering::INCOMPARABLE;
     if (node->tag == Node::T_TERM) {
-      _counter.startComparison();
+      bench::TODCounter::startOrderingCheck();
       // TODO measure the number of comparisons + time
       comp = _ord.compareUnidirectional(
         AppliedTerm(node->lhs, _appl, true),
         AppliedTerm(node->rhs, _appl, true));
-      _counter.stopComparison();
-    } else {
-      _counter.startPositivityCheck();
-      // TODO measure the positivity check
-      ASS_EQ(node->tag, Node::T_POLY);
-
-      const auto& kbo = static_cast<const KBO&>(_ord);
-      auto weight = node->poly->constant;
-      ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
-        AppliedTerm tt(TermList::var(var), _appl, true);
-
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-          // since the counts are sorted in descending order,
-          // this can only mean we will fail
-          if (varDiffs[v.var()]<0) {
-            goto loop_end;
-          }
-        }
-        int64_t w = kbo.computeWeight(tt);
-        weight += coeff*w;
-        // due to descending order of counts,
-        // this also means failure
-        if (coeff<0 && weight<0) {
-          goto loop_end;
-        }
-      }
-
-      if (weight > 0) {
-        comp = Ordering::GREATER;
-      } else if (weight == 0) {
-        comp = Ordering::EQUAL;
-      }
-loop_end:
-      _counter.stopPositivityCheck();
+      bench::TODCounter::stopOrderingCheck();
+    }
+    else {
+      bench::TODCounter::startPositivityCheck();
+      positivityCheck(node, comp);
+      bench::TODCounter::stopPositivityCheck();
     }
     _prev = _curr;
     _curr = &node->getBranch(comp);
   }
   return nullptr;
+}
+
+void OrderingComparator::positivityCheck(OrderingComparator::Node* node, Ordering::Result& comp)
+{
+  {
+    // TODO measure the positivity check
+    ASS_EQ(node->tag, Node::T_POLY);
+
+    const auto& kbo = static_cast<const KBO&>(_ord);
+    auto weight = node->poly->constant;
+    ZIArray<int> varDiffs;
+    for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
+      AppliedTerm tt(TermList::var(var), _appl, true);
+
+      VariableIterator vit(tt.term);
+      while (vit.hasNext()) {
+        auto v = vit.next();
+        varDiffs[v.var()] += coeff;
+        // since the counts are sorted in descending order,
+        // this can only mean we will fail
+        if (varDiffs[v.var()] < 0) {
+          goto loop_end;
+        }
+      }
+      int64_t w = kbo.computeWeight(tt);
+      weight += coeff * w;
+      // due to descending order of counts,
+      // this also means failure
+      if (coeff < 0 && weight < 0) {
+        goto loop_end;
+      }
+    }
+
+    if (weight > 0) {
+      comp = Ordering::GREATER;
+    }
+    else if (weight == 0) {
+      comp = Ordering::EQUAL;
+    }
+  loop_end:;
+  }
 }
 
 void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void* data)
@@ -523,13 +524,13 @@ OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch other)
 // Node
 
 OrderingComparator::Node::Node(void* data, Branch alternative)
-  : tag(T_DATA), data(data), alternative(alternative) {}
+  : tag(T_DATA), data(data), alternative(alternative) {bench::TODCounter::bumpCreatedNodes();}
 
 OrderingComparator::Node::Node(TermList lhs, TermList rhs)
-  : tag(T_TERM), lhs(lhs), rhs(rhs) {}
+  : tag(T_TERM), lhs(lhs), rhs(rhs) {bench::TODCounter::bumpCreatedNodes();}
 
 OrderingComparator::Node::Node(const Polynomial* p)
-  : tag(T_POLY), poly(p) {}
+  : tag(T_POLY), poly(p) {bench::TODCounter::bumpCreatedNodes();}
 
 OrderingComparator::Node::~Node()
 {
@@ -683,11 +684,6 @@ bool OrderingComparator::fourierMotzkin(LinearConstraints linCons)
     linCons = newLinCons;
   }
   return true;
-}
-
-void OrderingComparator::printCounter()
-{
-  _counter.print();
 }
 
 const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)

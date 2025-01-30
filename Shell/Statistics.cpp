@@ -29,6 +29,7 @@
 
 #include "Options.hpp"
 #include "Statistics.hpp"
+#include "Benchmarking/BenchTOD.hpp"
 
 
 using namespace std;
@@ -464,6 +465,17 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 
+  SEPARATOR;
+  HEADING("Term-Ordering Diagram", todQueries);
+  COND_OUT("Nodes created", todNodesCreated);
+  COND_OUT("Nodes used   ", todNodesUsed);
+  COND_OUT("Preprocesses ", todPreprocesses);
+  COND_OUT("Queries", todQueries);
+  COND_OUT("Instruction on Forward Demodulation   ", bench::TODCounter::getTotalFwDemodulationCount())
+  COND_OUT("Instructions on TOD queries           ", bench::TODCounter::getInstrTodQuery());
+  COND_OUT("Instructions on TOD positivity checks ", bench::TODCounter::getInstrPositivityCheckCount());
+  COND_OUT("Instructions on TOD comparisons       ", bench::TODCounter::getInstrOrederinCheck());
+  SEPARATOR;
   }
 
   addCommentSignForSZS(out);
@@ -533,7 +545,7 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Blocked clause elimination";
   case TWEE:
     return "Twee Goal Transformation";
-  case ANSWER_LITERAL: 
+  case ANSWER_LITERAL:
     return "Answer literal addition";
   case PREPROCESS_2:
     return "Preprocessing 2";
@@ -561,7 +573,7 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Finalization";
   case UNKNOWN_PHASE:
     return "Unknown";
-  case PREPROCESSING: 
+  case PREPROCESSING:
     return "BP Preprocessing ";
   case SOLVING:
     return "Solving with Conflict Resolution";
@@ -578,5 +590,3 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Invalid ExecutionPhase value";
   }
 }
-
-

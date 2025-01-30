@@ -280,6 +280,14 @@ public:
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 
+  /** Term-Ordering Diagrams */
+  unsigned todNodesCreated = 0;
+  unsigned todNodesUsed = 0;
+  unsigned todPreprocesses = 0;
+  unsigned todQueries = 0;
+  unsigned todOrderingChecks = 0;
+  unsigned todPositivityChecks = 0;
+
   /** termination reason */
   enum TerminationReason {
     /** refutation found */

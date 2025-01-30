@@ -1,6 +1,7 @@
 # ignore CMake/Doxygen output
 cmake-build
 build/
+dbuild/
 doc/
 
 # ignore TPTP directories/symlinks

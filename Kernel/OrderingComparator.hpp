@@ -37,6 +37,8 @@ namespace Kernel {
  */
 struct OrderingComparator
 {
+protected:
+  struct Node;
 public:
   OrderingComparator(const Ordering& ord);
   virtual ~OrderingComparator();
@@ -53,7 +55,6 @@ public:
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
-  static void printCounter();
 
 private:
   /** Processes current node until it is either (i) a term or poly node whose result
@@ -63,6 +64,7 @@ private:
   void processCurrentNode();
   void processVarNode();
   void processPolyNode();
+  void positivityCheck(OrderingComparator::Node* node, Ordering::Result& comp);
 
 protected:
   /** Implements one step of a definitional expansion

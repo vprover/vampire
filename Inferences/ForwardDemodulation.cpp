@@ -46,6 +46,8 @@
 
 #include "ForwardDemodulation.hpp"
 
+#include "Benchmarking/BenchTOD.hpp"
+
 namespace Inferences {
 
 using namespace Lib;
@@ -100,6 +102,7 @@ void ForwardDemodulation::detach()
 template <bool combinatorySupSupport>
 bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
+  bench::TODCounter::startFwDemodulation();
   TIME_TRACE("forward demodulation");
 
   Ordering& ordering = _salg->getOrdering();
@@ -167,7 +170,13 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         DemodulatorData* dd = nullptr;
         qr.data->comparator->init(appl);
-        while ((dd = static_cast<DemodulatorData*>(qr.data->comparator->next()))) {
+        while (true) {
+          bench::TODCounter::startTODQuery();
+          if (!(dd = static_cast<DemodulatorData*>(qr.data->comparator->next()))) {
+            bench::TODCounter::stopTODQuery();
+            break;
+          }
+          bench::TODCounter::stopTODQuery();
 
           ASS_EQ(dd->clause->length(),1);
           ASS_EQ(lhs.sort(),dd->term.sort());
@@ -207,6 +216,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           if(EqHelper::isEqTautology(resLit)) {
             env.statistics->forwardDemodulationsToEqTaut++;
             premises = pvi( getSingletonIterator(dd->clause));
+            bench::TODCounter::stopFwDemodulation();
             return true;
           }
 
@@ -226,6 +236,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, dd->clause));
           if(env.options->proofExtra() == Options::ProofExtra::FULL)
             env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
+          bench::TODCounter::stopFwDemodulation();
           return true;
         }
 
@@ -269,7 +280,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       }
     }
   }
-
+  bench::TODCounter::stopFwDemodulation();
   return false;
 }
 

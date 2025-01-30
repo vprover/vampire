@@ -6,7 +6,7 @@
 #include <chrono>
 
 namespace bench {
-  class InstrCounter {
+  struct InstrCounter {
   public:
     InstrCounter();
     ~InstrCounter();
@@ -24,9 +24,10 @@ namespace bench {
     inline bool running() { return _startCount != -1; }
     long long _startCount = -1;
     long long _totalInstrCount = 0;
+    long long _lastOverHead = 0;
   };
 
-  class TimeCounter {
+  struct TimeCounter {
   public:
     TimeCounter();
     ~TimeCounter();
