@@ -110,6 +110,10 @@ namespace Kernel {
     auto numeral() const 
     { return numeral().unwrap<typename NumTraits::ConstantType>(); }
 
+    template<class NumTraits>
+    bool numTraitsIs() const 
+    { return numeral().is<typename NumTraits::ConstantType>(); }
+
     auto nContextTerms() const 
     { return alascaLiteral().apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
 

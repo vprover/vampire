@@ -59,6 +59,7 @@ struct IntegerFourierMotzkinConf
       Premise2 const& prem2, unsigned varBank2,
       AbstractingUnifier& uwa) const
   {
+    if (!prem0.numTraitsIs<NumTraits>()) { return {}; }
     auto sigma2 = [&](auto t)  { return uwa.subs().apply(t, varBank2); };
     return applyRule__(prem0, varBank0,
                        prem1, varBank1,
