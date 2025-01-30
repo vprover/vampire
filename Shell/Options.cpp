@@ -227,7 +227,7 @@ void Options::init()
 
     _randomStrategySeed = UnsignedOptionValue("random_strategy_seed","",0);
     _randomStrategySeed.description="Sets the seed for generating random strategies."
-      "This option necessary because --random_seed <value> will be included as fixed value in the generated random strategy,"
+      " This option is necessary because --random_seed <value> will be included as a fixed value in the generated random strategy,"
       " hence won't have any effect on the random strategy generation. Set to non-0 for this to have effect; the default 0 still calls a random_device.";
     _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
     _randomStrategySeed.setExperimental();
@@ -2326,8 +2326,9 @@ void Options::init()
     _questionAnsweringAvoidThese.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
     _questionAnsweringAvoidThese.tag(OptionTag::OTHER);
 
-    _randomSeed = UnsignedOptionValue("random_seed","",0 /* this should be the value of Random::_seed from Random.cpp */);
-    _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed.";
+    _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
+    _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed."
+      " Use the non-default value 0 to have vampire query a random_device for always different behaviour.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
