@@ -20,12 +20,8 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
-#include "Lib/Exception.hpp"
-#include "Shell/Options.hpp"
+#include "Kernel/ALASCA/State.hpp"
 
-#define UNSTABILITY_ABSTRACTION 0
 
 namespace Inferences {
 namespace ALASCA {
@@ -33,7 +29,6 @@ namespace ALASCA {
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-// TODO use this abstraction rule also in normal alasca not only in the integer case
 
 template<class NumTraits>
 class Abstraction
@@ -50,14 +45,10 @@ class Abstraction
 
       Literal* deref() const { return (*current)[idx]; }
       Option<TermList> derefTermList() const { return {}; }
-      bool isUnderFloor() const { return false; }
       bool isShielded() const { return false; }
       bool inBounds() const { return idx < current->size(); }
-      // bool canPush() const { return true; }
+      bool isUnderFloorOrSum() const { return false; }
       bool canPush() const { return deref()->numTermArguments() > 0; }
-#if UNSTABILITY_ABSTRACTION
-      bool isUnstable() const { return false; }
-#endif // UNSTABILITY_ABSTRACTION
     };
 
     struct LiteralEntry {
@@ -67,33 +58,23 @@ class Abstraction
 
       TermList deref() const { return current->termArg(idx); }
       Option<TermList> derefTermList() const { return some(deref()); }
-      bool isUnderFloor() const { return false; }
       bool isShielded() const { return shielded; }
-#if UNSTABILITY_ABSTRACTION
-      bool isUnstable() const { return false; }
-#endif // UNSTABILITY_ABSTRACTION
       bool inBounds() const { return idx < current->numTermArguments(); }
-      // bool canPush() const { return current->numTermArguments() > 0; }
+      bool isUnderFloorOrSum() const { return false; }
       bool canPush() const { return deref().isTerm() && deref().term()->numTermArguments() > 0; }
     };
 
     struct TermEntry {
       Term* current;
       unsigned idx;
-      bool underFloor;
       bool shielded;
-#if UNSTABILITY_ABSTRACTION
-      bool unstable;
-#endif // UNSTABILITY_ABSTRACTION
+      bool underFloorOrSum;
 
       TermList deref() const { return current->termArg(idx); }
       Option<TermList> derefTermList() const { return some(deref()); }
-      bool isUnderFloor() const { return underFloor; }
       bool inBounds() const { return idx < current->numTermArguments(); }
-#if UNSTABILITY_ABSTRACTION
-      bool isUnstable() const { return unstable; }
-#endif // UNSTABILITY_ABSTRACTION
       bool isShielded() const { return shielded; }
+      bool isUnderFloorOrSum() const { return underFloorOrSum; }
       bool canPush() const { return deref().isTerm() && deref().term()->numTermArguments() > 0; }
     };
 
@@ -166,33 +147,13 @@ class Abstraction
       );
     };
 
-// private:
-//     unsigned arity(TermList t) const { return t.isTerm() ? t.term()->numTermArguments() : 0; }
-//     unsigned arity(Literal* l) const { return l->numTermArguments(); }
-// public:
-//     unsigned currentArity() const { return derefCurrent([&](auto t) { return arity(t); }); }
-
     Option<TermList> currentTerm() const { return top([](auto t) { return t.derefTermList(); }); }
 
-    void popToFloor() {
-      while (!(ASig::isFloor(currentTerm().unwrap()) &&  top([](auto x) { return !x.isUnderFloor(); }))) {
+    void popToUninterpreted() {
+      while ( top([](auto& t) { return t.isUnderFloorOrSum(); })) {
         pop();
       }
     }
-
-    bool isUnshieldedUnderFloor() const 
-    { return top([&](auto& t) { return t.isUnderFloor(); }); }
-
-#if UNSTABILITY_ABSTRACTION
-    void popToUnstable() { 
-      // ASSERTION_VIOLATION
-      // ASS(top([](auto x) { return x.derefIsUnstable(); }))
-      while (top([](auto x) { return x.isUnstable(); })) {
-        pop();
-      }
-    }
-    bool isUnstable() const { return top([](auto x) { return x.isUnstable(); }); }
-#endif // UNSTABILITY_ABSTRACTION
 
     Clause* abstract() const {
       auto newVar = TermList::var(1 + clause.current->iterLits()
@@ -253,19 +214,13 @@ class Abstraction
     void push(unsigned i) { 
       if (auto cur = currentTerm()) {
         auto curT = cur->term();
-        auto unshieldedUnderFloor = 
-            ASig::isFloor(curT)                             ? true
-          : (ASig::isLinMul(curT) || ASig::isAdd(curT)) ? top([](auto& x) { return x.isUnderFloor(); })
-           /* uninterpretd */                                   : false;
         termIdx->push(TermEntry { 
             .current = curT, 
             .idx = i, 
-            .underFloor = unshieldedUnderFloor, 
             .shielded = top([](auto& t) { return t.isShielded(); }) || ASig::isUninterpreted(curT),
-#if UNSTABILITY_ABSTRACTION
-            .unstable = top([](auto& t) { return t.isUnstable(); })  
-                    || (top([](auto& t) { return t.isShielded(); }) && ASig::isAdd(curT)),
-#endif // UNSTABILITY_ABSTRACTION
+            .underFloorOrSum = ASig::isFloor(curT) 
+            || ASig::isAdd(curT) 
+            || (ASig::isLinMul(curT) &&  top([](auto& t) { return t.isUnderFloorOrSum(); })),
         });
       } else {
         ASS(litIdx.isNone())
@@ -295,15 +250,10 @@ public:
   bool simplify(Clause* premise, Path& path, Set<TermList>& topLevelVars) {
     auto baseDepth = path.depth();
     while (path.nextStep(baseDepth)) {
-#if UNSTABILITY_ABSTRACTION
-      if (topLevelVars.contains(path.currentTerm().unwrap()) && path.isUnstable()) {
-        // unstably shielded var
-        path.popToUnstable();
-        return true;
-      }
-#endif // UNSTABILITY_ABSTRACTION
-      if (path.isUnshieldedUnderFloor() && path.currentTerm().unwrap().isVar()) {
-        path.popToFloor();
+      if (path.currentTerm().unwrap().isVar() 
+          && path.top([](auto& t) { return t.isUnderFloorOrSum() && t.isShielded(); })
+          ) {
+        path.popToUninterpreted();
         return true;
       }
     }

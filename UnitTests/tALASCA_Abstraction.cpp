@@ -78,36 +78,41 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<ToSgi<Abstraction<RealTraits>>>(testA
 // Basic tests
 //////////////////////////////////////
 
-#define UNSTABILITY_ABSTRACTION 0
-
-#if UNSTABILITY_ABSTRACTION 
 TEST_GENERATION(stabilizing_1,
     Generation::SymmetricTest()
-      .inputs  ({ clause({ 0 != x + f(f2(x,y) - f2(x, a))  }) })
+      .inputs  ({ clause({ 0 != x + f(x + f2(x,y) - f2(x, a))  }) })
       .premiseRedundant(true)
       .expected(exactly(
-            clause({  0 != -z + f2(x,y) - f2(x, a),  0 != x + f(z) })
+            clause({  0 != -z + f2(x,y) - f2(x, a) + x,  0 != x + f(z) })
       ))
     )
 
 TEST_GENERATION(stabilizing_2,
     Generation::SymmetricTest()
-      .inputs  ({ clause({ x + a > 0, 0 != f(f2(x,y) - f2(x, a))  }) })
+      .inputs  ({ clause({ x + a > 0, 0 != f(x + f2(x,y) - f2(x, a))  }) })
       .premiseRedundant(true)
       .expected(exactly(
-            clause({  0 != -z + f2(x,y) - f2(x, a),  x + a > 0, 0 != f(z) })
+            clause({  0 != -z + f2(x,y) - f2(x, a) + x,  x + a > 0, 0 != f(z) })
       ))
     )
 
 TEST_GENERATION(stabilizing_3,
     Generation::SymmetricTest()
-      .inputs  ({ clause({ 0 != x + f(f(f2(x,y) - f2(x, a)) - f(x))  }) })
+      .inputs  ({ clause({ x + f(f(f2(x,y) - f2(x, a) - 3 * x) - f(x)) > 0  }) })
       .premiseRedundant(true)
       .expected(exactly(
-            clause({ 0 != -z + f(f2(x,y) - f2(x, a)) - f(x), 0 != x + f(z)  })
+            clause({ 0 != -z + f2(x,y) - f2(x, a) - 3 * x,  x + f(f(z) - f(x)) > 0  })
       ))
     )
-#endif // UNSTABILITY_ABSTRACTION
+
+TEST_GENERATION(stabilizing_4,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ x + f(f(f2(x,y) - f2(x, a) - 3 * floor(frac(1,2) * floor(x) + a)) - f(x))  > 0 }) })
+      .premiseRedundant(true)
+      .expected(exactly(
+            clause({ 0 != -z + f2(x,y) - f2(x, a) - 3 * floor(frac(1,2) * floor(x) + a), x + f(f(z) - f(x)) > 0  })
+      ))
+    )
 
 TEST_GENERATION(coherence_1,
     Generation::SymmetricTest()
@@ -132,15 +137,51 @@ TEST_GENERATION(coherence_3,
       .inputs  ({ clause({ p(floor(2 * y + a) + b)  }) })
       .premiseRedundant(true)
       .expected(exactly(
-            clause({  0 != -z + floor(2 * y + a),  p(z + b) })
+            clause({  0 != -z + floor(2 * y + a) + b,  p(z) })
       ))
     )
 
 TEST_GENERATION(coherence_4,
     Generation::SymmetricTest()
       .inputs  ({ clause({ p(2 * x + a + b)  }) })
-      .premiseRedundant(false)
+      .premiseRedundant(true)
       .expected(exactly(
-          /* nothing */
+            clause({  0 != -z + 2 * x + a + b,  p(z) })
       ))
     )
+
+TEST_GENERATION(non_application_1,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ p(3 * x)  }) })
+      .premiseRedundant(false)
+      .expected(exactly( /* nothing */))
+    )
+
+TEST_GENERATION(non_application_2,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ p(f(3 * x))  }) })
+      .premiseRedundant(false)
+      .expected(exactly( /* nothing */))
+    )
+
+TEST_GENERATION(non_application_3,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ f(3 * x) > 0  }) })
+      .premiseRedundant(false)
+      .expected(exactly( /* nothing */))
+    )
+
+TEST_GENERATION(non_application_4,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ 3 * x > 0  }) })
+      .premiseRedundant(false)
+      .expected(exactly( /* nothing */))
+    )
+
+TEST_GENERATION(non_application_5,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ 0 != (f(0) + x) - f(x)  }) })
+      .premiseRedundant(false)
+      .expected(exactly( /* nothing */))
+    )
+
