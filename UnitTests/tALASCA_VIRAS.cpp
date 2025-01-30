@@ -405,7 +405,6 @@ NOT_APPLICABLE_TEST(1, P(x))
 NOT_APPLICABLE_TEST(2, f(x) + a > 0)
 NOT_APPLICABLE_TEST(4, (x * y) > 0)
 NOT_APPLICABLE_TEST(5, (x * x) > 0)
-NOT_APPLICABLE_TEST(6, isInt(x))
 
 TEST_GENERATION(lira_01,
     Generation::SymmetricTest()
