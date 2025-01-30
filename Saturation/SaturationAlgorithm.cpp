@@ -1428,6 +1428,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create generating inference engine
   CompositeGIE *gie = new CompositeGIE();
 
+  bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
+
   if(opt.functionDefinitionIntroduction()) {
     gie->addFront(new DefinitionIntroduction);
   }
@@ -1444,11 +1446,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (prb.hasEquality()) {
-    if (!env.options->alasca()) { // in alasca we have a special equality factoring rule
+    if (!alascaTakesOver) { // in alasca we have a special equality factoring rule
       gie->addFront(new EqualityFactoring());
     }
     gie->addFront(new EqualityResolution());
-    if(env.options->superposition() && !env.options->alasca()){ // in alasca we have a special equality factoring rule
+    if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
       gie->addFront(new Superposition());
     }
   }
@@ -1484,7 +1486,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   gie->addFront(new Factoring());
-  if (opt.binaryResolution() && !opt.alasca()) {
+  if (opt.binaryResolution() && !alascaTakesOver) { // in alasca we have a special resolution rule
     gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
@@ -1550,11 +1552,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  auto ise = createISE(prb, opt, ordering);
-  if (env.options->alasca() && prb.hasAlascaArithmetic()) {
+  auto ise = createISE(prb, opt, ordering, alascaTakesOver);
+  if (alascaTakesOver) {
     auto shared = Kernel::AlascaState::create(
         InequalityNormalizer::global(),
-        &ordering, 
+        &ordering,
         env.options->unificationWithAbstraction(),
         env.options->unificationWithAbstractionFixedPointIteration()
         );
@@ -1563,42 +1565,45 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared));
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
-    // TODO add parameter for this
-    ise->addFront(new ALASCA::FloorElimination(shared)); 
+    // TODO add an option for this
+    ise->addFront(new ALASCA::FloorElimination(shared));
     if (env.options->alascaAbstraction()) {
-      ise->addFront(new ALASCA::Abstraction<RealTraits>(shared)); 
-      ise->addFront(new ALASCA::Abstraction<RatTraits>(shared)); 
+      ise->addFront(new ALASCA::Abstraction<RealTraits>(shared));
+      ise->addFront(new ALASCA::Abstraction<RatTraits>(shared));
     }
 
-    if (env.options->alascaStrongNormalization())
-      ise->addFront(new ALASCA::InequalityPredicateNormalization(shared)); 
-    
+    if (env.options->alascaStrongNormalization()) {
+      ise->addFront(new ALASCA::InequalityPredicateNormalization(shared));
+    }
+
     // TODO properly create an option for that, make it a simplifying rule
     ise->addFront(new ALASCA::TautologyDeletion(shared));
-    ise->addFront(new ALASCA::Normalization(shared)); 
+    ise->addFront(new ALASCA::Normalization(shared));
     // TODO check when the other one is better
-    if (env.options->viras())
+    if (env.options->viras()) {
       sgi->push(new ALASCA::VirasQuantifierElimination(shared));
-    else
+    } else {
       sgi->push(new ALASCA::VariableElimination(shared, /* simpl */ true ));
-    sgi->push(new ALASCA::TermFactoring(shared)); 
+    }
+    sgi->push(new ALASCA::TermFactoring(shared));
     sgi->push(new ALASCA::InequalityFactoring(shared));
-    sgi->push(new ALASCA::EqFactoring(shared)); 
-    sgi->push(new ALASCA::FourierMotzkin(shared)); 
-    sgi->push(new ALASCA::FloorFourierMotzkin<RatTraits>(shared)); 
-    sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared)); 
-    sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared)); 
-    sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared)); 
-    if (env.options->superposition())
-      sgi->push(new ALASCA::Superposition(shared)); 
-    if (env.options->binaryResolution())
-      sgi->push(new ALASCA::BinaryResolution(shared)); 
-    sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared)); 
-    sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared)); 
-    sgi->push(new ALASCA::Coherence<RealTraits>(shared)); 
-    sgi->push(new ALASCA::FloorBounds(shared)); 
+    sgi->push(new ALASCA::EqFactoring(shared));
+    sgi->push(new ALASCA::FourierMotzkin(shared));
+    sgi->push(new ALASCA::FloorFourierMotzkin<RatTraits>(shared));
+    sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared));
+    sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
+    sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
+    if (env.options->superposition()) {
+      sgi->push(new ALASCA::Superposition(shared));
+    }
+    if (env.options->binaryResolution()) {
+      sgi->push(new ALASCA::BinaryResolution(shared));
+    }
+    sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared));
+    sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared));
+    sgi->push(new ALASCA::Coherence<RealTraits>(shared));
+    sgi->push(new ALASCA::FloorBounds(shared));
   }
-
 
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF) {
@@ -1717,7 +1722,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
+CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering, bool alascaTakesOver)
 {
   CompositeISE* res =new CompositeISE();
 
@@ -1791,12 +1796,12 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       res->addFront(&(new Cancellation(ordering))->asISE());
     }
 
-    if (env.options->alasca()) {
+    if (alascaTakesOver) {
       // all alasca rules are added later
     } else switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::OFF:
         break;
-      case Options::EvaluationMode::SIMPLE: 
+      case Options::EvaluationMode::SIMPLE:
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
       case Options::EvaluationMode::POLYNOMIAL_FORCE:
@@ -1805,7 +1810,6 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       case Options::EvaluationMode::POLYNOMIAL_CAUTIOUS:
         break;
     }
-
 
     if (env.options->pushUnaryMinus()) {
       res->addFront(new PushUnaryMinus());

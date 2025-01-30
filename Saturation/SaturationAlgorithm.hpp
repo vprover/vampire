@@ -241,7 +241,8 @@ protected:
   unsigned _generatedClauseCount;
   unsigned _activationLimit;
 private:
-  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering,
+     bool alascaTakesOver);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit
   unsigned _softTimeLimit = 0;
