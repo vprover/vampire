@@ -389,6 +389,24 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
   }
 }
 
+// TODO make member function of robsubs
+bool AbstractingUnifier::occurs(TermSpec const& var, TermSpec const& term) const {
+  Recycled<Stack<TermSpec>> todo;
+  todo->push(term);
+  while (todo->isNonEmpty()) {
+    auto t = todo->pop();
+    auto& dt = subs().derefBound(t);
+    if (dt.isVar()) {
+      if (dt == var) {
+        return true;
+      }
+    } else {
+      todo->loadFromIterator(dt.allArgs());
+    }
+  }
+  return false;
+}
+
 Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa) {
   ASS(t1.isTerm() || t2.isTerm())
 
@@ -413,19 +431,6 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
   auto i1 = interpreted(t1);
   auto i2 = interpreted(t2);
 
-  // TODO do we want/need this?
-  auto occ = [&au](auto& v, auto& t) {
-    ASS(v.isVar())
-    ASS(t.isTerm())
-    // we know due to the uwa algorithm that v occurs in t
-    if (uncanellableOccursCheck(au, v.varSpec(), t)) {
-      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
-    } else {
-      // this means all
-      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(v, t, t.sort()))));
-    }
-  };
-
   if (i1 || i2) {
     using Mode = Options::UnificationWithAbstraction;
     auto sort = i1 ? t1.sort() : t2.sort();
@@ -443,6 +448,10 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
     ASS_EQ(uwa, Mode::ALASCA_MAIN_FLOOR);
     return res;
   } else {
+    auto occ = [&](auto& t1, auto& t2) { 
+      ASS(au.occurs(t1, t2))
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
+    };
     if (t1.isVar()) return occ(t1, t2);
     if (t2.isVar()) return occ(t2, t1);
     return {};
@@ -1363,24 +1372,6 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
           toDo->push(std::move(pair));
         }
     };
-
-    auto occurs = [this](auto& var, auto& term) {
-      Recycled<Stack<TermSpec>> todo;
-      todo->push(term);
-      while (todo->isNonEmpty()) {
-        auto t = todo->pop();
-        auto& dt = subs().derefBound(t);
-        if (dt.isVar()) {
-          if (dt == var) {
-            return true;
-          }
-        } else {
-          todo->loadFromIterator(dt.allArgs());
-        }
-      }
-      return false;
-    };
-
 
     while (toDo->isNonEmpty()) {
       DEBUG_UNIFY(2, "todo:   ", toDo);

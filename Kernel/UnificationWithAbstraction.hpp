@@ -158,6 +158,7 @@ class AbstractingUnifier
   friend class RobSubstitution;
   AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
+  bool occurs(TermSpec const& var, TermSpec const& term) const;
   AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle()) {}
   void setAo(AbstractionOracle ao)
   { _uwa = std::move(ao); }
