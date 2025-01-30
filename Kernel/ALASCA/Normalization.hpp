@@ -83,9 +83,6 @@ namespace Kernel {
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
 
-    bool isIsInt() const
-    { return Kernel::isIsInt(symbol()); }
-
     auto asTuple() const { return std::tie(_symbol, _term);  }
 
     IMPL_COMPARISONS_FROM_TUPLE(AlascaLiteral)
@@ -279,6 +276,17 @@ namespace Kernel {
             l = *lit->nthArgument(1);
             r = *lit->nthArgument(0);
             pred = AlascaPredicate::GREATER;
+            break;
+
+          case NumTraits::isIntI: /* l > r ==> r < l */
+            if (isInt) {
+              l = NumTraits::constantTl(0);
+              r = NumTraits::constantTl(0);
+            } else {
+              l = NumTraits::floor(*lit->nthArgument(0));
+              r = *lit->nthArgument(0);
+            }
+            pred = lit->isPositive() ? AlascaPredicate::EQ : AlascaPredicate::NEQ;
             break;
 
           default: 

@@ -198,7 +198,8 @@ class AlascaPreprocessor
     };
     auto change = false;
     Recycled<Stack<Literal*>> res;
-    for (auto l : clause->iterLits()) {
+    for (auto l_ : clause->iterLits()) {
+      auto l = _norm->normalizedLiteral(l_);
       auto ll = integerConversion(l);
       change |= ll != l;
       if (!_useFloor) {

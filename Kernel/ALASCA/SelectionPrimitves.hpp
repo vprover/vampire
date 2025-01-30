@@ -149,10 +149,6 @@ namespace Kernel {
     { return alascaLiteral().apply([](auto& lit)
                                { return lit.isInequality(); }); }
 
-    bool isIsInt() const
-    { return alascaLiteral().apply([](auto& lit)
-                               { return lit.isIsInt(); }); }
-
     TermList selectedAtom() const
     { return alascaLiteral()
           .apply([this](auto& lit) 

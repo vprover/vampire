@@ -48,7 +48,6 @@ Literal* createLiteral(AlascaPredicate self, TermList t)
   }
   ASSERTION_VIOLATION
 }
-bool isIsInt(AlascaPredicate const& self);
 
 inline std::ostream& operator<<(std::ostream& out, AlascaPredicate const& self)
 { 
