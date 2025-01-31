@@ -309,8 +309,8 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
-VST_OBJ= Saturation/AWPassiveClauseContainer.o\
-         Saturation/PredicateSplitPassiveClauseContainer.o\
+VST_OBJ= Saturation/AWPassiveClauseContainers.o\
+         Saturation/PredicateSplitPassiveClauseContainers.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\

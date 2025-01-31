@@ -27,10 +27,6 @@ public:
   LPOComparator(const Ordering& ord) : OrderingComparator(ord) {}
 
   void processTermNode() override;
-
-private:
-  static void majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail);
-  static void alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2, Branch success, Branch fail);
 };
 
 }
