@@ -107,6 +107,14 @@ class FloorBounds
             greater0(sum(s, ceil(t), numeral(-1))),
             eq0(sum(floor(s), ceil(t), numeral(-1))))
         : assertionViolation<Clause*>()
+          ,
+          // +⌊s⌋ + t >~ 0 
+          // ===============
+          // +s + t >~ 0
+        resClause(premise, 
+          pred == AlascaPredicate::GREATER_EQ ? greater0(sum(s, t))
+        : pred == AlascaPredicate::GREATER    ? geq0(sum(s, t))
+        : assertionViolation<Literal*>())
         );
   }
 
@@ -133,6 +141,11 @@ class FloorBounds
                                greater0(sum(minus(s), ceil(t), numeral(-1))),
                                eq0(sum(minus(floor(s)), ceil(t), numeral(-1))))
           : assertionViolation<Clause*>()
+          ,
+          // -⌊s⌋ + t >~ 0 
+          // ===============
+          // −s + t + 1 > 0
+          resClause(premise, greater0(sum(minus(s), t, numeral(1))))
           );
   }
 
