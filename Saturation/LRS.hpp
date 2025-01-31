@@ -30,23 +30,14 @@ class LRS
 : public Otter
 {
 public:
-  LRS(Problem& prb, const Options& opt)
-  : Otter(prb, opt), _limitsEverActive(false) {}
-
+  using Otter::Otter;
 
 protected:
-
-  //overrides SaturationAlgorithm::isComplete
-  bool isComplete();
-
-  //overrides SaturationAlgorithm::onUnprocessedSelected
-  void onUnprocessedSelected(Clause* c);
+  void poppedFromUnprocessed(Clause* c) override;
 
   bool shouldUpdateLimits();
 
   long long estimatedReachableCount();
-
-  bool _limitsEverActive;
 };
 
 };

@@ -505,7 +505,7 @@ set(VAMPIRE_DECISION_PROCEDURES_SOURCES
 source_group(decision_procedures_source_files FILES ${VAMPIRE_DECISION_PROCEDURES_SOURCES})
 
 set(VAMPIRE_SATURATION_SOURCES
-    Saturation/AWPassiveClauseContainer.cpp
+    Saturation/AWPassiveClauseContainers.cpp
     Saturation/ManCSPassiveClauseContainer.cpp
     Saturation/ClauseContainer.cpp
     Saturation/ConsequenceFinder.cpp
@@ -518,8 +518,8 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/SaturationAlgorithm.cpp
     Saturation/Splitter.cpp
     Saturation/SymElOutput.cpp
-    Saturation/PredicateSplitPassiveClauseContainer.cpp
-    Saturation/AWPassiveClauseContainer.hpp
+    Saturation/PredicateSplitPassiveClauseContainers.cpp
+    Saturation/AWPassiveClauseContainers.hpp
     Saturation/ClauseContainer.hpp
     Saturation/ConsequenceFinder.hpp
     Saturation/Discount.hpp
@@ -531,7 +531,8 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/SaturationAlgorithm.hpp
     Saturation/Splitter.hpp
     Saturation/SymElOutput.hpp
-    Saturation/PredicateSplitPassiveClauseContainer.hpp
+    Saturation/PredicateSplitPassiveClauseContainers.hpp
+    Saturation/AbstractPassiveClauseContainers.hpp
     )
 source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
