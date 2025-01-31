@@ -107,6 +107,10 @@ namespace Kernel {
               { return AnyConstantType(lit.term().summandAt(_term).numeral); }); }
 
     template<class NumTraits>
+    bool numTraitsIs() const 
+    { return numeral().is<typename NumTraits::ConstantType>(); }
+
+    template<class NumTraits>
     auto numeral() const 
     { return numeral().unwrap<typename NumTraits::ConstantType>(); }
 
