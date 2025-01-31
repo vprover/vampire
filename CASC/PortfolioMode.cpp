@@ -580,7 +580,7 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
   TIME_TRACE("run slice");
 
   int sliceTime = getSliceTime(sliceCode);
-  if (sliceTime > timeLimitInDeciseconds 
+  if (sliceTime > timeLimitInDeciseconds
     || !sliceTime) // no limit set, i.e. "infinity"
   {
     sliceTime = timeLimitInDeciseconds;
@@ -592,7 +592,7 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
     Options opt = *env.options;
 
     // opt.randomSeed() would normally be inherited from the parent
-    // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;    
+    // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;
     if (env.options->randomizeSeedForPortfolioWorkers()) {
       // but here we want each worker to have their own seed
       opt.setRandomSeed(std::random_device()());
