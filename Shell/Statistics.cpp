@@ -307,7 +307,6 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
   COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
-  COND_OUT("Biggest generated clause", biggestGeneratedClause);
   SEPARATOR;
 
 
