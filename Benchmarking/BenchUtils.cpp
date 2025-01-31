@@ -41,7 +41,10 @@ int setup_perf_event() {
     return fd;
 }
 
-bench::InstrCounter::InstrCounter()
+bench::InstrCounter::InstrCounter() :
+  _startCount(-1),
+  _totalInstrCount(0),
+  _lastOverHead(0)
 {
   int currPid = getpid();
   if (currPid != pid) {

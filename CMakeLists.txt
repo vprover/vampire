@@ -764,6 +764,7 @@ source_group(unit_tests FILES ${UNIT_TESTS})
 
 set(BENCHMARKING
     Benchmarking/BenchTOD.hpp
+    Benchmarking/BenchTOD.cpp
     Benchmarking/BenchUtils.hpp
     Benchmarking/BenchUtils.cpp
     )
