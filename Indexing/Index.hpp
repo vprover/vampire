@@ -16,7 +16,7 @@
 #define __Indexing_Index__
 
 #include "Forwards.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 
 #include "Lib/Event.hpp"
 #include "Kernel/Clause.hpp"
@@ -27,6 +27,7 @@
 #include "ResultSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Allocator.hpp"
+#include "Kernel/OrderingComparator.hpp"
 
 /**
  * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.
@@ -56,7 +57,7 @@ public:
   Clause* clause = nullptr;
 
   friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
-  { return out << "{ " << outputPtr(self.clause) << ", " << outputPtr(self.literal) << " }"; }
+  { return out << "{ " << Output::ptr(self.clause) << ", " << Output::ptr(self.literal) << " }"; }
 };
 
 template<class Value>
@@ -107,7 +108,7 @@ struct TermLiteralClause
   { return out << "("
                << self.term << ", "
                << self.literal
-               << outputPtr(self.clause)
+               << Output::ptr(self.clause)
                << ")"; }
 };
 
@@ -116,8 +117,10 @@ struct TermLiteralClause
 struct DemodulatorData
 {
   DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
-    : term(term), rhs(rhs), clause(clause), preordered(preordered)
+    : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator(ord.createComparator())
   {
+    // insert pointer to owner as non-null value representing success
+    comparator->insert({ { term, rhs, Ordering::GREATER } }, this);
 #if VDEBUG
     ASS(term.containsAllVariablesOf(rhs));
     ASS(!preordered || ord.compare(term,rhs)==Ordering::GREATER);
@@ -143,7 +146,7 @@ struct DemodulatorData
   IMPL_COMPARISONS_FROM_TUPLE(DemodulatorData)
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorData const& self)
-  { return out << "(" << self.term << " = " << self.rhs << outputPtr(self.clause) << ")"; }
+  { return out << "(" << self.term << " = " << self.rhs << Output::ptr(self.clause) << ")"; }
 };
 
 template<class T>

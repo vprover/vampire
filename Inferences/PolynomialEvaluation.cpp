@@ -173,9 +173,6 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
       default:
         return none<PolyNf>();
     }
-  } catch (MachineArithmeticException&) {
-    return none<PolyNf>();
-
   } catch (DivByZeroException&) {
     return none<PolyNf>();
   }
@@ -253,7 +250,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
       for (unsigned i = 0; i < in.nSummands(); i++) {
         auto monom  = in.summandAt(i);
         auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
-        if (simpl.numeral == Number::zeroC) {
+        if (simpl.numeral == Number::constant(0)) {
           /* we don't add it */
         } else {
           out.push(simpl);
@@ -276,7 +273,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
           numeral = numeral + out[i+1].numeral;
           i++;
         }
-        if (numeral != Number::zeroC) 
+        if (numeral != Number::constant(0)) 
           out[offs++] = Monom(numeral, factors);
       }
       out.truncate(offs);
@@ -286,7 +283,8 @@ Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
     auto poly = Polynom(std::move(out));
     poly.integrity();
     return poly;
-  } catch (ArithmeticException&) { 
+  } catch (DivByZeroException&) { 
+    // TODO can we remove this?
     return in.replaceTerms(simplifiedArgs);
   }
 }

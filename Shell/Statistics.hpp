@@ -20,11 +20,7 @@
 #include <ostream>
 
 #include "Forwards.hpp"
-
-#include "Lib/ScopedPtr.hpp"
-
-#include "Lib/Allocator.hpp"
-#include "Lib/Option.hpp"
+#include "Debug/Assertion.hpp"
 
 extern const char *VERSION_STRING;
 
@@ -239,7 +235,7 @@ public:
   unsigned taAcyclicityGeneratedDisequalities;
 
   // Saturation
-  unsigned activations;
+  unsigned activations = 0; // This is not a mere stat, it is also used for LRS estimation!
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */
@@ -288,12 +284,8 @@ public:
   enum TerminationReason {
     /** refutation found */
     REFUTATION,
-    /** SAT SATISFIABLE */
-    SAT_SATISFIABLE,
     /** satisfiability detected (saturated set built) */
     SATISFIABLE,
-    /** sat solver Unsatisfiable */
-    SAT_UNSATISFIABLE,
     /** saturation terminated but an incomplete strategy was used */
     REFUTATION_NOT_FOUND,
     /** inappropriate strategy **/
@@ -302,6 +294,8 @@ public:
     UNKNOWN,
     /** time limit reached */
     TIME_LIMIT,
+    /** instruction limit reached */
+    INSTRUCTION_LIMIT,
     /** memory limit reached */
     MEMORY_LIMIT,
     /** activation limit reached */
@@ -312,12 +306,8 @@ public:
     switch (self) {
       case REFUTATION:
         return out << "REFUTATION";
-      case SAT_SATISFIABLE:
-        return out << "SAT_SATISFIABLE";
       case SATISFIABLE:
         return out << "SATISFIABLE";
-      case SAT_UNSATISFIABLE:
-        return out << "SAT_UNSATISFIABLE";
       case REFUTATION_NOT_FOUND:
         return out << "REFUTATION_NOT_FOUND";
       case INAPPROPRIATE:
@@ -326,6 +316,8 @@ public:
         return out << "UNKNOWN";
       case TIME_LIMIT:
         return out << "TIME_LIMIT";
+      case INSTRUCTION_LIMIT:
+        return out << "INSTRUCTION_LIMIT";
       case MEMORY_LIMIT:
         return out << "MEMORY_LIMIT";
       case ACTIVATION_LIMIT:

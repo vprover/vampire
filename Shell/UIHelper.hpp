@@ -41,7 +41,7 @@ private:
     std::string _id;
     UnitList::FIFO _units;
     ESList* _externals = 0;
-    SMTLIBLogic _smtLibLogic = SMT_UNDEFINED;
+    SMTLIBLogic _smtLibLogic = SMTLIBLogic::UNDEFINED;
     bool _hasConjecture = false;
   };
   static Stack<LoadedPiece> _loadedPieces;

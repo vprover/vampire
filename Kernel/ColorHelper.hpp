@@ -18,14 +18,9 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-
-#include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 
 namespace Kernel {
-
-using namespace Lib;
-using namespace Saturation;
 
 class ColorHelper {
 public:
@@ -49,22 +44,6 @@ public:
   static bool compatible(Color c1, Color c2) {
     return combine(c1,c2)!=COLOR_INVALID;
   }
-
-  static bool isTransparent(bool predicate, unsigned functor);
-  static bool hasColoredPredicates(Clause* c);
-  static Clause* skolemizeColoredConstants(Clause* c);
-  static Clause* skolemizeColoredTerms(Clause* c);
-
-  static void tryUnblock(Clause* c, SaturationAlgorithm* salg);
-
-private:
-  typedef DHMap<Term*, Term*> TermMap;
-
-  static void ensureSkolemReplacement(Term* t, TermMap& map);
-  static void collectSkolemReplacements(Clause* c, TermMap& map);
-
-  static Term* applyReplacement(Term* t, TermMap& map);
-  static void collectColoredConstants(Clause* c, Stack<Term*>& acc);
 };
 
 }

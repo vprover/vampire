@@ -29,7 +29,7 @@
 #ifndef __Term__
 #define __Term__
 
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
@@ -46,7 +46,7 @@
 #include "Lib/Recycled.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 21
+#define TERM_DIST_VAR_BITS 22
 // maximum number that fits in a TERM_DIST_VAR_BITS-bit unsigned integer
 #define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
@@ -92,6 +92,18 @@ enum ArgumentOrderVals {
   AO_INCOMPARABLE=4,
 };
 
+inline std::ostream& operator<<(std::ostream& out, ArgumentOrderVals const& self)
+{ 
+  switch(self) {
+    case AO_UNKNOWN: return out << "UNKNOWN";
+    case AO_GREATER: return out << "GREATER";
+    case AO_LESS: return out << "LESS";
+    case AO_EQUAL: return out << "EQUAL";
+    case AO_INCOMPARABLE: return out << "INCOMPARABLE";
+  }
+  ASSERTION_VIOLATION
+}
+
 enum class TermKind : unsigned {
   LITERAL,
   TERM,
@@ -107,7 +119,6 @@ struct SymbolId {
   friend bool operator<(SymbolId const& l, SymbolId const& r) 
   { return std::tie(l.functor, l.kind) < std::tie(r.functor, r.kind); }
 };
-
 
 /**
  * Class containing either a pointer to a compound term or
@@ -182,7 +193,7 @@ public:
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
   unsigned defaultHash2() const { return content(); }
 
-  std::string toString(bool topLevel = true) const;
+  std::string toString(bool needsPar = false) const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
@@ -315,9 +326,7 @@ private:
     TAG_BITS_END = TAG_BITS_START + 2,
     POLARITY_BITS_START = TAG_BITS_END,
     POLARITY_BITS_END = POLARITY_BITS_START + 1,
-    COMMUTATIVE_BITS_START = POLARITY_BITS_END,
-    COMMUTATIVE_BITS_END = COMMUTATIVE_BITS_START + 1,
-    SHARED_BITS_START = COMMUTATIVE_BITS_END,
+    SHARED_BITS_START = POLARITY_BITS_END,
     SHARED_BITS_END = SHARED_BITS_START + 1,
     LITERAL_BITS_START = SHARED_BITS_END,
     LITERAL_BITS_END = LITERAL_BITS_START + 1,
@@ -344,7 +353,6 @@ private:
   // getters and setters
   BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
   BITFIELD64_GET_AND_SET(bool, polarity, Polarity, POLARITY)
-  BITFIELD64_GET_AND_SET(bool, commutative, Commutative, COMMUTATIVE)
   BITFIELD64_GET_AND_SET(bool, shared, Shared, SHARED)
   BITFIELD64_GET_AND_SET(bool, literal, Literal, LITERAL)
   BITFIELD64_GET_AND_SET(bool, sort, Sort, SORT)
@@ -676,27 +684,6 @@ public:
   bool shared() const
   { return _args[0]._shared(); } // shared
 
-  /**
-   * True if the term's function/predicate symbol is commutative/symmetric.
-   * @pre the term must be complex
-   */
-  bool commutative() const
-  {
-    return _args[0]._commutative();
-  } // commutative
-
-  // destructively swap arguments of a (binary) commutative term
-  // the term is assumed to be non-shared
-  void argSwap() {
-    ASS(commutative() && !shared());
-    ASS(arity() == 2);
-
-    TermList* ts1 = args();
-    TermList* ts2 = ts1->next();
-    using std::swap;//ADL
-    swap(ts1->_content, ts2->_content);
-  }
-
   /** Return the weight. Applicable only to shared terms */
   unsigned weight() const
   {
@@ -842,7 +829,6 @@ public:
     if(t->functor()!=functor()) {
       return false;
     }
-    ASS(!commutative());
     return true;
   }
 
@@ -1062,12 +1048,11 @@ public:
    * Create a literal.
    * @since 16/05/2007 Manchester
    */
-  Literal(unsigned functor,unsigned arity,bool polarity,bool commutative) throw()
+  Literal(unsigned functor,unsigned arity,bool polarity) throw()
   {
     _functor = functor;
     _arity = arity;
     _args[0]._setPolarity(polarity);
-    _args[0]._setCommutative(commutative);
     _args[0]._setSort(false);
     _args[0]._setLiteral(true);
   }
@@ -1089,8 +1074,34 @@ public:
   /** set polarity to true or false */
   void setPolarity(bool positive)
   { _args[0]._setPolarity(positive); }
-  static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args);
-  static Literal* create(unsigned predicate, bool polarity, std::initializer_list<TermList>, bool commutative = false);
+
+  TermList eqArgSort() const;
+  
+  // prevent bugs through implicit bool <-> unsigned conversions
+  template<class Iter> static Literal* createFromIter(unsigned predicate, unsigned polarity, Iter iter) = delete;
+  template<class Iter> static Literal* createFromIter(    bool predicate, unsigned polarity, Iter iter) = delete;
+  template<class Iter> static Literal* createFromIter(    bool predicate,     bool polarity, Iter iter) = delete;
+
+  template<class Iter>
+  static Literal* createFromIter(unsigned predicate, bool polarity, Iter iter) {
+    RStack<TermList> args;
+    while (iter.hasNext()) {
+      args->push(iter.next());
+    }
+    return Literal::create(predicate, args->size(), polarity, args->begin());
+  }
+
+  template<class Iter>
+  static Literal* createFromIter(Literal* lit, Iter iter) {
+    if (lit->isEquality()) {
+      return  Literal::createEquality(lit->polarity(), iter.tryNext().unwrap(), iter.tryNext().unwrap(), lit->eqArgSort());
+    } else {
+      return Literal::createFromIter(lit->functor(), bool(lit->polarity()), std::move(iter));
+    }
+  }
+
+  static Literal* create(unsigned predicate, unsigned arity, bool polarity, TermList* args);
+  static Literal* create(unsigned predicate, bool polarity, std::initializer_list<TermList>);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
@@ -1104,17 +1115,16 @@ public:
   template<bool flip = false>
   unsigned hash() const
   {
-    return Literal::literalHash(functor(), polarity() ^ flip, 
+    return Literal::literalHash(functor(), polarity() ^ flip,
         [&](auto i) -> TermList const& { return *nthArgument(i); }, arity(),
-        someIf(isTwoVarEquality(), [&](){ return twoVarEqSort(); }),
-        commutative());
+        someIf(isTwoVarEquality(), [&](){ return twoVarEqSort(); }));
   }
 
   template<class GetArg>
-  static unsigned literalEquals(const Literal* lit, unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort, bool commutative) {
+  static unsigned literalEquals(const Literal* lit, unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort) {
     if (functor != lit->functor() || polarity != lit->polarity()) return false;
 
-    if (commutative) {
+    if (functor == 0) { // i.e., isEquality
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
       ASS(rightArgOrder(*lit->nthArgument(0), *lit->nthArgument(1)))
@@ -1133,8 +1143,8 @@ public:
   static bool rightArgOrder(TermList const& lhs, TermList const& rhs);
 
   template<class GetArg>
-  static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort, bool commutative) {
-    if (commutative) {
+  static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort) {
+    if (functor == 0) { // i.e., isEquality
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
       return HashUtils::combine(
@@ -1157,6 +1167,18 @@ public:
   /** If l is positive, return l; otherwise return its complementary literal. */
   static Literal* positiveLiteral(Literal* l) {
     return l->isPositive() ? l : complementaryLiteral(l);
+  }
+
+  // destructively swap arguments of an equation
+  // the term is assumed to be non-shared
+  void argSwap() {
+    ASS(isEquality() && !shared());
+    ASS(arity() == 2);
+
+    TermList* ts1 = args();
+    TermList* ts2 = ts1->next();
+    using std::swap;//ADL
+    swap(ts1->_content, ts2->_content);
   }
 
   /** true if positive */
@@ -1232,7 +1254,7 @@ public:
 
 private:
   template<class GetArg>
-  static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg args, Option<TermList> twoVarEqSort = Option<TermList>());
+  static Literal* create(unsigned predicate, unsigned arity, bool polarity, GetArg args, Option<TermList> twoVarEqSort = Option<TermList>());
 }; // class Literal
 
 // TODO used in some proofExtra output

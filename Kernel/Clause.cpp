@@ -20,7 +20,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
@@ -96,7 +96,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
   if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
     traverseParentsPost(
         [&](unsigned depth, Unit* unit) {
-          std::cout << "backward trace " <<  number() << ": " << repeatOutput("| ", depth) << unit->toString() << std::endl;
+          std::cout << "backward trace " <<  number() << ": " << Output::repeat("| ", depth) << unit->toString() << std::endl;
       });
   }
 
@@ -219,8 +219,8 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    if ((env.options->proofExtra()==Options::ProofExtra::FULL) && env.proofExtra) {
-      env.proofExtra->remove(cl);
+    if (env.options->proofExtra() == Options::ProofExtra::FULL) {
+      env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();
     while (cl->_inference.hasNext(it)) {
@@ -303,7 +303,7 @@ bool Clause::isHorn()
 /**
  * Return iterator over clause variables
  */
-VirtualIterator<unsigned> Clause::getVariableIterator()
+VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
   return pvi( getUniquePersistentIterator(
       getMappingIterator(
@@ -366,6 +366,22 @@ std::string Clause::toNiceString() const
   return result;
 }
 
+std::ostream& operator<<(std::ostream& out, Clause const& self)
+{ 
+  if (self.size() == 0) {
+    return out << "$false";
+  } else {
+    out << *self[0];
+    for (unsigned i = 1; i < self.size(); i++){
+      out << " | " << *self[i];
+    }
+    if (self.splits() && !self.splits()->isEmpty()) {
+      out << "{" << *self.splits() << "}";
+    }
+  }
+  return out;
+}
+
 /**
  * Convert the clause to the std::string representation
  * Includes splitting, age, weight, selected and inference
@@ -383,7 +399,7 @@ std::string Clause::toString() const
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
-  if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
     result += std::string(" {");
       
@@ -525,9 +541,13 @@ unsigned Clause::getNumeralWeight() const {
         continue;
       }
       IntegerConstantType intVal;
+      auto intWeight = [](IntegerConstantType const& i) {
+        return (i.abs().log2() - IntegerConstantType(1)).cvt<int>()
+          .orElse([&]() { return std::numeric_limits<int>::max(); });
+      };
 
       if (theory->tryInterpretConstant(t, intVal)) {
-        int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
+        int w = intWeight(intVal);
         if (w > 0) {
           res += w;
         }
@@ -546,8 +566,8 @@ unsigned Clause::getNumeralWeight() const {
       if (!haveRat) {
         continue;
       }
-      int wN = BitUtils::log2(Int::safeAbs(ratVal.numerator().toInner())) - 1;
-      int wD = BitUtils::log2(Int::safeAbs(ratVal.denominator().toInner())) - 1;
+      int wN = intWeight(ratVal.numerator());
+      int wD = intWeight(ratVal.denominator());
       int v = wN + wD;
       if (v > 0) {
         res += v;

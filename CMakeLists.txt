@@ -5,12 +5,17 @@ cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
 include(CheckIPOSupported)
-include(CheckPIESupported)
+
+# version
+set(VAMPIRE_VERSION_NUMBER 4.9)
 
 # require the compiler to use C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# make __FILENAME__ macro as relative path used instead of absoulte source path __FILE__
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
 # configure compilers
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
@@ -19,21 +24,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-fno-threadsafe-statics)
   # ...or RTTI
   add_compile_options(-fno-rtti)
-  # enable standards-compliant standard library with sized operator delete
-  add_compile_options(-fsized-deallocation)
 endif()
 
 # compile command database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# variables for binary name, set later
-set(VAMPIRE_BINARY vampire)
-set(VAMPIRE_BINARY_BUILD)
-set(VAMPIRE_BINARY_STATIC)
-set(VAMPIRE_BINARY_Z3)
-set(VAMPIRE_BINARY_HASH)
-set(VAMPIRE_BINARY_BRANCH)
-set(VAMPIRE_BINARY_REV_COUNT)
+# we use threads, make sure we link the thread-support stuff
+find_package(Threads REQUIRED)
+link_libraries(Threads::Threads)
 
 # set build type if not set
 if(NOT CMAKE_BUILD_TYPE)
@@ -46,7 +44,6 @@ option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries i
 if (NOT BUILD_SHARED_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
   set(CMAKE_EXE_LINKER_FLAGS -static)
-  set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
@@ -72,6 +69,7 @@ else()
     message(STATUS "(if you need IPO, set DEBUG_IPO=ON to investigate)")
   endif()
 endif()
+
 
 ################################################################
 # define all vampire sources,
@@ -119,7 +117,7 @@ set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
-    Debug/Output.hpp
+    Lib/Output.hpp
     )
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
@@ -170,6 +168,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Numbering.hpp
     Lib/PairUtils.hpp
     Lib/Portability.hpp
+    Lib/ProofExtra.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
     Lib/Recycled.hpp
@@ -201,7 +200,6 @@ source_group(lib_sys_source_files FILES ${VAMPIRE_LIB_SYS_SOURCES})
 set(VAMPIRE_KERNEL_SOURCES
     Kernel/Clause.cpp
     Kernel/ClauseQueue.cpp
-    Kernel/ColorHelper.cpp
     Kernel/ELiteralSelector.cpp
     Kernel/EqHelper.cpp
     Kernel/FlatTerm.cpp
@@ -225,7 +223,9 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
+    Kernel/OrderingComparator.cpp
     Kernel/Ordering_Equality.cpp
+    Kernel/PartialOrdering.cpp
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RobSubstitution.cpp
@@ -239,6 +239,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.cpp
     Kernel/Term.cpp
     Kernel/TermIterators.cpp
+    Kernel/TermPartialOrdering.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
     Kernel/Signature.cpp
@@ -272,6 +273,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcher.hpp
     Kernel/MLVariant.hpp
     Kernel/Ordering.hpp
+    Kernel/OrderingComparator.hpp
+    Kernel/PartialOrdering.hpp
     Kernel/Problem.hpp
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
@@ -287,6 +290,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.hpp
     Kernel/Term.hpp
     Kernel/TermIterators.hpp
+    Kernel/TermPartialOrdering.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
     Kernel/Signature.hpp
@@ -333,6 +337,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/CasesSimp.hpp
     Inferences/Cases.cpp
     Inferences/Cases.hpp
+    Inferences/ProofExtra.hpp
+    Inferences/ProofExtra.cpp
     Shell/LambdaElimination.cpp
     Shell/LambdaElimination.hpp
     )
@@ -382,6 +388,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionDemodulation.cpp
     Inferences/BackwardSubsumptionAndResolution.cpp
     Inferences/BinaryResolution.cpp
+    Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/Condensation.cpp
     Inferences/DemodulationHelper.cpp
     Inferences/DistinctEqualitySimplifier.cpp
@@ -420,6 +427,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionAndResolution.hpp
     Inferences/BinaryResolution.hpp
+    Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
     Inferences/Condensation.hpp
     Inferences/DemodulationHelper.hpp
     Inferences/DistinctEqualitySimplifier.hpp
@@ -497,7 +505,7 @@ set(VAMPIRE_DECISION_PROCEDURES_SOURCES
 source_group(decision_procedures_source_files FILES ${VAMPIRE_DECISION_PROCEDURES_SOURCES})
 
 set(VAMPIRE_SATURATION_SOURCES
-    Saturation/AWPassiveClauseContainer.cpp
+    Saturation/AWPassiveClauseContainers.cpp
     Saturation/ManCSPassiveClauseContainer.cpp
     Saturation/ClauseContainer.cpp
     Saturation/ConsequenceFinder.cpp
@@ -510,8 +518,8 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/SaturationAlgorithm.cpp
     Saturation/Splitter.cpp
     Saturation/SymElOutput.cpp
-    Saturation/PredicateSplitPassiveClauseContainer.cpp
-    Saturation/AWPassiveClauseContainer.hpp
+    Saturation/PredicateSplitPassiveClauseContainers.cpp
+    Saturation/AWPassiveClauseContainers.hpp
     Saturation/ClauseContainer.hpp
     Saturation/ConsequenceFinder.hpp
     Saturation/Discount.hpp
@@ -523,7 +531,8 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/SaturationAlgorithm.hpp
     Saturation/Splitter.hpp
     Saturation/SymElOutput.hpp
-    Saturation/PredicateSplitPassiveClauseContainer.hpp
+    Saturation/PredicateSplitPassiveClauseContainers.hpp
+    Saturation/AbstractPassiveClauseContainers.hpp
     )
 source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
@@ -805,6 +814,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_compile_definitions(VDEBUG=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
+  add_compile_definitions(NDEBUG)
 endif()
 
 # enable for time profiling
@@ -813,6 +823,25 @@ add_compile_definitions(VTIME_PROFILING=0)
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
+  
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
+
+################################################################
+# gmp stuff
+################################################################
+
+find_package(GMP)
+if (GMP_FOUND)
+  message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
+  add_compile_definitions(VMINI_GMP=0)
+  include_directories(${GMP_INCLUDE_DIRS})
+  link_libraries(${GMP_LIBRARIES})
+else()
+  message(STATUS "Compiling mini-gmp from source. If you want faster arithmetic install gmp on your system.")
+  add_compile_definitions(VMINI_GMP=1)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mini-gmp-6.3.0)
+endif()
+
 
 ################################################################
 # z3 stuff
@@ -838,32 +867,10 @@ if (NOT Z3_FOUND)
 else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
   include_directories(${Z3_CXX_INCLUDE_DIRS})
-  if(NOT BUILD_SHARED_LIBS AND Z3_FOUND AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    # https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
-    message(STATUS "Adding workaround for gcc static linking against pthread")
-    link_libraries(${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
-  else()
-    link_libraries(${Z3_LIBRARIES})
-  endif()
-
-  # Z3 needs threads now
-  if (APPLE)
-    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
-    set(CMAKE_HAVE_THREADS_LIBRARY 1)
-    set(CMAKE_USE_WIN32_THREADS_INIT 0)
-    set(CMAKE_USE_PTHREADS_INIT 1)
-    set(THREADS_PREFER_PTHREAD_FLAG ON)
-  else ()
-    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-    find_package(Threads REQUIRED)
-    link_libraries(Threads::Threads)
-  endif ()
-
+  link_libraries(${Z3_LIBRARIES})
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   add_compile_definitions(VZ3=1)
-  set(VAMPIRE_BINARY_Z3 _z3)
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
 
@@ -930,8 +937,6 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.9)
-
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -940,62 +945,24 @@ execute_process(
     )
 
 if (GIT_IS_REPOSITORY STREQUAL true)
-
-  execute_process(
-    COMMAND git log -1 --format=%h\ on\ %ci
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_DESCRIPTION
-    OUTPUT_STRIP_TRAILING_WHITESPACE
+  # VAMPIRE_VERSION_NUMBER and CMAKE_BUILD_TYPE used by version.cpp.in through
+  # ConfigureGitVersionCpp.cmake
+  add_custom_target(update_git_version ALL
+    COMMAND cmake -DVAMPIRE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+                  -DVAMPIRE_VERSION_NUMBER=${VAMPIRE_VERSION_NUMBER}
+                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                  -P ${CMAKE_SOURCE_DIR}/ConfigureGitVersionCpp.cmake
+    BYPRODUCTS version.cpp
+    VERBATIM
     )
-
-  execute_process(
-    COMMAND git rev-parse --abbrev-ref HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_BRANCH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-  execute_process(
-    COMMAND git rev-list HEAD --count
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_REV_COUNT
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-  execute_process(
-    COMMAND git log -1 --format=%h
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_HASH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-  set(VAMPIRE_BINARY_HASH "_${GIT_COMMIT_HASH}")
-  set(VAMPIRE_BINARY_BRANCH "_${GIT_BRANCH}")
-  set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
-endif()
-
-################################################################
-# binary name
-################################################################
-if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  set(VAMPIRE_BINARY_BUILD _dbg)
-elseif(CMAKE_BUILD_TYPE STREQUAL Release)
-  set(VAMPIRE_BINARY_BUILD _rel)
 else()
-  set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
+  configure_file(version.cpp.in version.cpp)
 endif()
-set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
-message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 
 ################################################################
 # epilogue
 ################################################################
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
-set_target_properties(vampire PROPERTIES
-  OUTPUT_NAME ${VAMPIRE_BINARY}
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-configure_file(version.cpp.in version.cpp)
 
 # enable IPO
 if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
@@ -1003,24 +970,6 @@ if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
   set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
   set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
 endif()
-
-# do not generate position-independent code:
-# 1. it has some overhead
-# 2. it's used for ASLR, which isn't a huge concern for us and messes with our backtrace support
-check_pie_supported(OUTPUT_VARIABLE PIE_ERROR LANGUAGES CXX)
-if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
-  message(STATUS "disabling position-independent code not supported, stack traces may be broken")
-  message(STATUS "${PIE_ERROR}")
-endif()
-
-# FIXME this guard should not be necessary but is currently because of how we do static linking above
-if(BUILD_SHARED_LIBS)
-  set_property(TARGET vampire PROPERTY POSITION_INDEPENDENT_CODE false)
-  if(COMPILE_TESTS)
-    set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
-  endif()
-endif()
-
 
 ################################################################
 # subsat (standalone version of the SAT solver used for subsumption and subsumption resolution)
@@ -1030,8 +979,4 @@ add_executable(subsat
     EXCLUDE_FROM_ALL  # only build when explicitly requested
     SATSubsumption/subsat/subsat_main.cpp
     $<TARGET_OBJECTS:obj>
-)
-
-set_target_properties(subsat PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

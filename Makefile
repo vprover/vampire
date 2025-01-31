@@ -23,22 +23,15 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-COMPILE_ONLY = -fno-pie
+COMMON_FLAGS = -DVTIME_PROFILING=0
 
-OS = $(shell uname)
-ifeq ($(OS),Darwin)
-LINK_ONLY = -Wl,-no_pie
-else
-LINK_ONLY = -no-pie
-endif
+DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
+REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
 
-DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
-# DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O3 -DVTIME_PROFILING=0 -DVDEBUG=0 -D NDEBUG # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
-MINISAT_DBG_FLAGS = -D DEBUG
-MINISAT_REL_FLAGS = -D NDEBUG
+MINISAT_DBG_FLAGS = -DDEBUG
+MINISAT_REL_FLAGS = -DNDEBUG
 MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
@@ -84,17 +77,16 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I.
+INCLUDES= -I. -I/opt/local/include
 Z3FLAG= -DVZ3=0
 Z3LIB=
-ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++ 
-ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
-else
+ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
+INCLUDES= -I. -I/opt/local/include -Iz3/src/api -Iz3/src/api/c++
+# ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
+# Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
+# else
 Z3LIB= -Lz3/build -lz3
-endif
-
+# endif
 Z3FLAG= -DVZ3=1
 endif
 
@@ -119,7 +111,7 @@ endif
 
 OS = $(shell uname)
 ifeq ($(OS),Darwin)
-STATIC = -static-libgcc -static-libstdc++ 
+STATIC = -static-libgcc -static-libstdc++
 else
 STATIC = -static
 endif
@@ -175,7 +167,6 @@ VLS_OBJ= Lib/Sys/Multiprocessing.o
 
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
-        Kernel/ColorHelper.o\
         Kernel/EqHelper.o\
         Kernel/FlatTerm.o\
         Kernel/Formula.o\
@@ -202,7 +193,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
+        Kernel/OrderingComparator.o\
         Kernel/Ordering_Equality.o\
+        Kernel/PartialOrdering.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
@@ -214,9 +207,10 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
-	Kernel/PolynomialNormalizer.o\
-	Kernel/Polynomial.o\
+        Kernel/PolynomialNormalizer.o\
+        Kernel/Polynomial.o\
         Kernel/TermIterators.o\
+        Kernel/TermPartialOrdering.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
         Kernel/Signature.o\
@@ -246,6 +240,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionAndResolution.o\
          Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
+         Inferences/CodeTreeForwardSubsumptionAndResolution.o\
          Inferences/Condensation.o\
          Inferences/DemodulationHelper.o\
          Inferences/DistinctEqualitySimplifier.o\
@@ -297,6 +292,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
+         Inferences/ProofExtra.o\
          SATSubsumption/SATSubsumptionAndResolution.o\
          SATSubsumption/subsat/constraint.o\
          SATSubsumption/subsat/log.o\
@@ -313,8 +309,8 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
-VST_OBJ= Saturation/AWPassiveClauseContainer.o\
-         Saturation/PredicateSplitPassiveClauseContainer.o\
+VST_OBJ= Saturation/AWPassiveClauseContainers.o\
+         Saturation/PredicateSplitPassiveClauseContainers.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
@@ -528,15 +524,15 @@ obj/%X: | obj
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 	mkdir -p `dirname $@`
-	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
-	$(CC) $(CCFLAGS) $(COMPILE_ONLY) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
+	$(CC) $(CCFLAGS) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -MMD -MF $(CONF_ID)/$*.d
 
 ################################################################
 # targets for executables
@@ -548,7 +544,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(LINK_ONLY) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
@@ -586,7 +582,7 @@ compile_commands:
 
 compile_commands/%.o: compile_commands
 	mkdir -p $(dir $@)
-	echo $(CXX) $(CXXFLAGS) -c $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d > $@
+	echo $(CXX) $(CXXFLAGS) -c $*.cpp -MMD -MF $(CONF_ID)/$*.d > $@
 
 compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '[' > $@

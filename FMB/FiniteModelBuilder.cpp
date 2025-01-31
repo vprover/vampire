@@ -40,7 +40,6 @@
 #include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
-#include "Lib/Sort.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/ArrayMap.hpp"
@@ -169,7 +168,7 @@ bool FiniteModelBuilder::reset(){
     cout << "offset for " << f << " is " << offsets << " (arity is " << env.signature->functionArity(f) << ") " << endl;
 #endif
 
-    DArray<unsigned> f_signature = _sortedSignature->functionSignatures[f];
+    auto const& f_signature = _sortedSignature->functionSignatures[f];
     ASS(f_signature.size() == env.signature->functionArity(f)+1);
 
     unsigned add = _sortModelSizes[f_signature[0]];
@@ -196,7 +195,7 @@ bool FiniteModelBuilder::reset(){
  
 #endif
 
-    DArray<unsigned> p_signature = _sortedSignature->predicateSignatures[p];
+    auto const& p_signature = _sortedSignature->predicateSignatures[p];
     ASS(p_signature.size()==env.signature->predicateArity(p));
     unsigned add=1;
     for(unsigned i=0;i<p_signature.size();i++){
@@ -298,11 +297,11 @@ bool FiniteModelBuilder::reset(){
 // Compare function symbols by their usage in the problem
 struct FMBSymmetryFunctionComparator
 {
-  static Comparison compare(unsigned f1, unsigned f2)
+  static bool compare(unsigned f1, unsigned f2)
   {
     unsigned c1 = env.signature->getFunction(f1)->usageCnt();
     unsigned c2 = env.signature->getFunction(f2)->usageCnt();
-    return Int::compare(c2,c1);
+    return c2 < c1;
   }
 };
 
@@ -764,8 +763,8 @@ void FiniteModelBuilder::init()
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
         Stack<unsigned> sortedFunctions = _sortedSignature->sortedFunctions[s];
-        sort<FMBSymmetryFunctionComparator>(sortedConstants.begin(),sortedConstants.end());
-        sort<FMBSymmetryFunctionComparator>(sortedFunctions.begin(),sortedFunctions.end());
+        sort(sortedConstants.begin(),sortedConstants.end(), FMBSymmetryFunctionComparator::compare);
+        sort(sortedFunctions.begin(),sortedFunctions.end(), FMBSymmetryFunctionComparator::compare);
       }
     }
   }
@@ -1913,7 +1912,8 @@ void FiniteModelBuilder::onModelFound()
     vampireSortSizes[vSort] = size;
   }
 
-  FiniteModelMultiSorted model(vampireSortSizes);
+  // TODO can we get rid of this clone() and pass a reference instead(?)
+  FiniteModelMultiSorted model(vampireSortSizes.clone());
 
   //Record interpretation of constants and functions
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -2603,7 +2603,7 @@ void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
   if(env.statistics) {
     env.statistics->print(std::cout);
   }
-  Debug::Tracer::printStack(std::cout);
+  Debug::Tracer::printStack();
   System::terminateImmediately(1);
 }
 

@@ -70,6 +70,7 @@ class CodeTreeSubsumptionIndex
 : public Index
 {
 public:
+  ClauseCodeTree* getClauseCodeTree() { return &_ct; }
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:

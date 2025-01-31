@@ -55,7 +55,10 @@ enum LimitType {
 };
 
 // ensures that exactly one of the timer thread and the parent process tries to exit
-static std::mutex EXIT_LOCK;
+// (the recursive bit allows us to be overprotective
+// and call disableLimitEnforcement more than once (from the main thread)
+// without the consequence of locking ourselves)
+static std::recursive_mutex EXIT_LOCK;
 
 // called by timer_thread to exit the entire process
 // functions called here should be thread-safe
@@ -66,11 +69,14 @@ static std::mutex EXIT_LOCK;
   // for debugging crashes of limitReached: it is good to know what was called by vampire proper just before the interrupt
   // Debug::Tracer::printStack(cout);
 
-  const char* REACHED[2] = {"Time limit reached!\n","Instruction limit reached!\n"};
+  const char* REACHED[2] = {"Time limit reached! \n","Instruction limit reached! \n"}; // deliberate spaces before \n, so that it's a different string than in UIHelper::outputResult
   const char* STATUS[2] = {"% SZS status Timeout for ","% SZS status InstrOut for "};
+  Shell::Statistics::TerminationReason REASON[2] = {Shell::Statistics::TIME_LIMIT,Shell::Statistics::INSTRUCTION_LIMIT};
 
   // if we get this lock we can assume that the parent won't also try to exit
   EXIT_LOCK.lock();
+
+  env.statistics->terminationReason = REASON[whichLimit];
 
   // NB unsynchronised output:
   // probably OK as we don't output anything in other parts of Vampire during search
@@ -119,8 +125,6 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
     if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
       Timer::updateInstructionCount();
       if (env.options->instructionLimit() && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)env.options->instructionLimit()) {
-        // in principle could have a race on terminationReason, seems unlikely/harmless in practice
-        env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
         limitReached(INSTRUCTION_LIMIT);
       }
     }
@@ -138,9 +142,9 @@ namespace Timer {
 void reinitialise() {
   // might (probably have) locked this in the parent process, release it for the child
   //
-  // I am not sure of the semantics of placement-new for std::mutex,
+  // I am not sure of the semantics of placement-new for std::recursive_mutex,
   // but nobody else seems to be either - if you know, tell me! - Michael
-  ::new (&EXIT_LOCK) std::mutex;
+  ::new (&EXIT_LOCK) std::recursive_mutex;
 
   START_TIME = std::chrono::steady_clock::now();
 

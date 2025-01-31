@@ -18,9 +18,9 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Allocator.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Shell/UIHelper.hpp"
@@ -52,6 +52,7 @@ Statistics::Statistics()
     functionDefinitions(0),
     selectedBySine(0),
     sineIterations(0),
+    blockedClauses(0),
     factoring(0),
     resolution(0),
     urResolution(0),
@@ -185,7 +186,7 @@ Statistics::Statistics()
 {
 } // Statistics::Statistics
 
-void Statistics::explainRefutationNotFound(ostream& out)
+void Statistics::explainRefutationNotFound(std::ostream& out)
 {
   // should be a one-liner for each case!
   if (discardedNonRedundantClauses) {
@@ -205,7 +206,7 @@ void Statistics::explainRefutationNotFound(ostream& out)
   }
 }
 
-void Statistics::print(ostream& out)
+void Statistics::print(std::ostream& out)
 {
   if (env.options->statistics() != Options::Statistics::NONE) {
 
@@ -234,6 +235,9 @@ void Statistics::print(ostream& out)
   case Statistics::TIME_LIMIT:
     out << "Time limit";
     break;
+  case Statistics::INSTRUCTION_LIMIT:
+    out << "Instruction limit";
+    break;
   case Statistics::MEMORY_LIMIT:
     out << "Memory limit";
     break;
@@ -245,12 +249,6 @@ void Statistics::print(ostream& out)
     break;
   case Statistics::SATISFIABLE:
     out << "Satisfiable";
-    break;
-  case Statistics::SAT_SATISFIABLE:
-    out << "SAT Satisfiable";
-    break;
-  case Statistics::SAT_UNSATISFIABLE: 
-    out << "SAT Unsatisfiable";
     break;
   case Statistics::UNKNOWN:
     out << "Unknown";
@@ -273,10 +271,11 @@ void Statistics::print(ostream& out)
   HEADING("Input",inputClauses+inputFormulas);
   COND_OUT("Input clauses", inputClauses);
   COND_OUT("Input formulas", inputFormulas);
+  SEPARATOR;
 
   HEADING("Preprocessing",formulaNames+purePredicates+trivialPredicates+
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
-    sineIterations+splitInequalities);
+    sineIterations+blockedClauses+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
@@ -285,6 +284,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Function definitions", functionDefinitions);
   COND_OUT("Selected by SInE selection", selectedBySine);
   COND_OUT("SInE iterations", sineIterations);
+  COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Split inequalities", splitInequalities);
   SEPARATOR;
 
@@ -297,7 +297,6 @@ void Statistics::print(ostream& out)
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
-  COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
@@ -469,13 +468,18 @@ void Statistics::print(ostream& out)
 
   }
 
-  COND_OUT("Memory used [KB]", Lib::getUsedMemory()/1024);
-
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
   Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
-  
+
+  long peakMemKB = Lib::peakMemoryUsageKB();
+  if (peakMemKB) {
+    addCommentSignForSZS(out);
+    out << "Peak memory usage: " << (peakMemKB >> 10) << " MB";
+    out << endl;
+  }
+
   Timer::updateInstructionCount();
   unsigned instr = Timer::elapsedMegaInstructions();
   if (instr) {
@@ -483,7 +487,7 @@ void Statistics::print(ostream& out)
     out << "Instructions burned: " << instr << " (million)";
     out << endl;
   }
-  
+
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 

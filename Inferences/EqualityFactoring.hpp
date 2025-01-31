@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 #include "Shell/Options.hpp"
 
 namespace Inferences {
@@ -44,7 +45,7 @@ private:
   bool _uwaFixedPointIteration;
 };
 
-
+using EqualityFactoringExtra = TwoLiteralRewriteInferenceExtra;
 };
 
 #endif /* __EqualityFactoring__ */

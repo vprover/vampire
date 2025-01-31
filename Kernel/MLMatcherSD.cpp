@@ -805,7 +805,7 @@ void MLMatcherSD::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, 
     LiteralList::Iterator ait(s_altsArr[i]);
     while(ait.hasNext()) {
       currAltCnt++;
-      if(ait.next()->commutative()) {
+      if(ait.next()->isEquality()) {
         currAltCnt++;
       }
     }

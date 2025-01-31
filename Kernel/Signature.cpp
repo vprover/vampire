@@ -12,10 +12,10 @@
  * Implements class Signature for handling signatures
  */
 
+#include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/DistinctGroupExpansion.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Signature.hpp"
@@ -28,11 +28,9 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 
 /**
  * Standard constructor.
- * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
-                          bool overflownConstant)
+Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interpreted, bool preventQuoting, bool super)
   : _name(nm),
     _arity(arity),
     _typeArgsArity(0),
@@ -48,10 +46,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _equalityProxy(0),
     _wasFlipped(0),
     _color(COLOR_TRANSPARENT),
-    _stringConstant(stringConstant ? 1: 0),
-    _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
-    _overflownConstant(overflownConstant ? 1 : 0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),
     _inGoal(0),
@@ -65,10 +60,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
 {
-  ASS(!stringConstant || arity==0);
-
-  if (!stringConstant && !numericConstant && !overflownConstant &&
-       symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -266,152 +258,6 @@ Signature::~Signature ()
 } // Signature::~Signature
 
 /**
- * Add an integer constant to the signature. If defaultSort is true, treat it as
- * a term of the default sort, otherwise as an interepreted integer value.
- * @since 03/05/2013 train Manchester-London
- * @author Andrei Voronkov
- */
-unsigned Signature::addIntegerConstant(const std::string& number,bool defaultSort)
-{
-  IntegerConstantType value(number);
-  if (!defaultSort) {
-    return addIntegerConstant(value);
-  }
-
-  // default sort should be used
-  std::string name = value.toString();
-  std::string symbolKey = name + "_n";
-  unsigned result;
-  if (_funNames.find(symbolKey,result)) {
-    return result;
-  }
-
-  result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
-  /*
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  if(defaultSort){ 
-     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
-  }
-  */
-  _funs.push(sym);
-  _funNames.insert(symbolKey,result);
-  return result;
-} // Signature::addIntegerConstant
-
-/**
- * Add an integer constant to the signature.
- * @todo something smarter, so that we don't need to convert all values to string
- */
-unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
-{
-  std::string key = value.toString() + "_n";
-  unsigned result;
-  if (_funNames.find(key, result)) {
-    return result;
-  }
-  _integers++;
-  result = _funs.length();
-  Symbol* sym = new IntegerSymbol(value);
-  _funs.push(sym);
-  _funNames.insert(key,result);
-  /*
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  */
-  return result;
-} // addIntegerConstant
-
-/**
- * Add a rational constant to the signature. If defaultSort is true, treat it as
- * a term of the default sort, otherwise as an interepreted rational value.
- * @since 03/05/2013 London
- * @author Andrei Voronkov
- */
-unsigned Signature::addRationalConstant(const std::string& numerator, const std::string& denominator,bool defaultSort)
-{
-  RationalConstantType value(numerator, denominator);
-  if (!defaultSort) {
-    return addRationalConstant(value);
-  }
-
-  std::string name = value.toString();
-  std::string key = name + "_q";
-  unsigned result;
-  if (_funNames.find(key,result)) {
-    return result;
-  }
-  result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
-  /*
-  if(defaultSort){ 
-    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
-  }
-  sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
-  */
-  _funs.push(sym);
-  _funNames.insert(key,result);
-  return result;
-} // addRatonalConstant
-
-unsigned Signature::addRationalConstant(const RationalConstantType& value)
-{
-  std::string key = value.toString() + "_q";
-  unsigned result;
-  if (_funNames.find(key, result)) {
-    return result;
-  }
-  _rationals++;
-  result = _funs.length();
-  _funs.push(new RationalSymbol(value));
-  _funNames.insert(key, result);
-  return result;
-} // Signature::addRationalConstant
-
-/**
- * Add a real constant to the signature. If defaultSort is true, treat it as
- * a term of the default sort, otherwise as an interepreted real value.
- * @since 03/05/2013 London
- * @author Andrei Voronkov
- */
-unsigned Signature::addRealConstant(const std::string& number,bool defaultSort)
-{
-  RealConstantType value(number);
-  if (!defaultSort) {
-    return addRealConstant(value);
-  }
-  std::string key = value.toString() + "_r";
-  unsigned result;
-  if (_funNames.find(key,result)) {
-    return result;
-  }
-  result = _funs.length();
-  Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
-  /*
-  if(defaultSort){ 
-    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
-  }
-  sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
-  */
-  _funs.push(sym);
-  _funNames.insert(key,result);
-  return result;
-} // addRealConstant
-
-unsigned Signature::addRealConstant(const RealConstantType& value)
-{
-  std::string key = value.toString() + "_r";
-  unsigned result;
-  if (_funNames.find(key, result)) {
-    return result;
-  }
-  _reals++;
-  result = _funs.length();
-  _funs.push(new RealSymbol(value));
-  _funNames.insert(key, result);
-  return result;
-}
-
-/**
  * Add interpreted function
  */
 unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const std::string& name)
@@ -429,7 +275,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
     return res;
   }
 
-  std::string symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
+  auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
   ASS_REP(!_funNames.find(symbolKey), name);
 
   unsigned fnNum = _funs.length();
@@ -463,7 +309,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
     return res;
   }
 
-  std::string symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
+  auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
 
   // cout << "symbolKey " << symbolKey << endl;
 
@@ -608,15 +454,13 @@ unsigned Signature::getPredicateNumber(const std::string& name, unsigned arity) 
  * @param name name of the symbol
  * @param arity arity of the symbol
  * @param added will be set to true if the function did not exist
- * @param overflowConstant
  * @since 07/05/2007 Manchester
  */
 unsigned Signature::addFunction (const std::string& name,
 				 unsigned arity,
-				 bool& added,
-				 bool overflowConstant)
+				 bool& added)
 {
-  std::string symbolKey = key(name,arity);
+  auto symbolKey = key(name,arity);
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     added = false;
@@ -637,7 +481,11 @@ unsigned Signature::addFunction (const std::string& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
+  bool super = (name == "$tType");
+  _funs.push(new Symbol(name, arity, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ super, 
+                                super));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -650,16 +498,21 @@ unsigned Signature::addFunction (const std::string& name,
  */
 unsigned Signature::addStringConstant(const std::string& name)
 {
-  std::string symbolKey = name + "_c";
+  auto symbolKey = SymbolKey(name);
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     return result;
   }
 
   _strings++;
+  // TODO shouldn't we also quote inside of name?
   std::string quotedName = "\"" + name + "\"";
   result = _funs.length();
-  Symbol* sym = new Symbol(quotedName,0,false,true);
+  Symbol* sym = new Symbol(quotedName,
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ true, 
+        /*             super */ false);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
@@ -795,7 +648,7 @@ unsigned Signature::addTypeCon (const std::string& name,
          unsigned arity,
          bool& added)
 {
-  std::string symbolKey = key(name,arity);
+  auto symbolKey = key(name,arity);
   unsigned result;
   if (_typeConNames.find(symbolKey,result)) {
     added = false;
@@ -804,7 +657,7 @@ unsigned Signature::addTypeCon (const std::string& name,
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  _typeCons.push(new Symbol(name,arity));
+  _typeCons.push(new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* super */ false));
   _typeConNames.insert(symbolKey,result);
   added = true;
   return result;
@@ -827,7 +680,7 @@ unsigned Signature::addPredicate (const std::string& name,
 				  unsigned arity,
 				  bool& added)
 {
-  std::string symbolKey = key(name,arity);
+  auto symbolKey = key(name,arity);
   unsigned result;
   if (_predNames.find(symbolKey,result)) {
     added = false;
@@ -848,7 +701,10 @@ unsigned Signature::addPredicate (const std::string& name,
   }
 
   result = _preds.length();
-  _preds.push(new Symbol(name,arity));
+  _preds.push(new Symbol(name, arity, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ false, 
+        /*             super */ false));
   _predNames.insert(symbolKey,result);
   added = true;
   return result;
@@ -1017,9 +873,9 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
  * @since 27/02/2006 Redmond
  * @author Andrei Voronkov
  */
-std::string Signature::key(const std::string& name,int arity)
+Signature::SymbolKey Signature::key(const std::string& name,int arity)
 {
-  return name + '_' + Int::toString(arity);
+  return SymbolKey(std::make_pair(name,unsigned(arity)));
 } // Signature::key
 
 

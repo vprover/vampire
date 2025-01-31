@@ -38,6 +38,7 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/TypedTermList.hpp"
+#include "Lib/Reflection.hpp"
 #include <type_traits>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -76,17 +77,18 @@ namespace Kernel {
 class FuncId 
 {
   unsigned _num;
-  // const TermList* _typeArgs; // private field not used
+  const TermList* _typeArgs;
   
 public: 
   explicit FuncId(unsigned num, const TermList* typeArgs);
   static FuncId symbolOf(Term* term);
   unsigned numTermArguments();
+  TermList typeArg(unsigned i) const { return *(_typeArgs - i); }
+  unsigned numTypeArgs() const { return env.signature->getFunction(_num)->numTypeArguments(); }
 
-  friend struct std::hash<FuncId>;
-  friend bool operator==(FuncId const& lhs, FuncId const& rhs);
-  friend bool operator!=(FuncId const& lhs, FuncId const& rhs);
   friend std::ostream& operator<<(std::ostream& out, const FuncId& self);
+  auto iterTypeArgs() const 
+  { return range(0, numTypeArgs()).map([&](auto i) { return typeArg(i); }); }
 
   Signature::Symbol* symbol() const;
 
@@ -97,16 +99,13 @@ public:
 
   template<class Number>
   Option<typename Number::ConstantType> tryNumeral() const;
+  
+  auto asTuple() const { return std::tuple(_num, iterContOps(iterTypeArgs())); }
+  IMPL_COMPARISONS_FROM_TUPLE(FuncId)
+  IMPL_HASH_FROM_TUPLE(FuncId)
 };
 
 } // namespace Kernel
-
-
-template<> struct std::hash<Kernel::FuncId> 
-{
-  size_t operator()(Kernel::FuncId const& f) const 
-  { return std::hash<unsigned>{}(f._num); }
-};
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -621,7 +620,7 @@ Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
 template<> struct std::hash<Kernel::FuncTerm> 
 {
   size_t operator()(Kernel::FuncTerm const& f) const 
-  { return Lib::HashUtils::combine(std::hash<Kernel::FuncId>{}(f._fun), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
+  { return Lib::HashUtils::combine(f._fun.defaultHash(), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
 };
 
 /////////////////////////////////////////////////////////
@@ -1050,7 +1049,7 @@ TermList Polynom<Number>::denormalize(TermList* results) const
       return c;
     } else {
       auto mon = monom.factors->denormalize(t);
-      if (monom.numeral == Number::oneC) {
+      if (monom.numeral == Number::constant(1)) {
         return mon;
       } else if (monom.numeral == Number::constant(-1)) {
         return Number::minus(mon);

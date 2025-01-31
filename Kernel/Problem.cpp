@@ -38,8 +38,9 @@ using namespace Kernel;
  *
  * The new object takes ownership of the list @c units.
  */
+
 Problem::Problem(UnitList* units, ESList* externals)
-: _units(0), _externals(externals), _fnDefHandler(new FunctionDefinitionHandler()), _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED), _property(0)
+: _units(0), _externals(externals), _fnDefHandler(new FunctionDefinitionHandler()), _smtlibLogic(SMTLIBLogic::UNDEFINED), _property(0)
 {
   initValues();
 

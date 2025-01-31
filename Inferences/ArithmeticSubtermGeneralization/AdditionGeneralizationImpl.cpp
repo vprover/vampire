@@ -68,7 +68,7 @@ public:
   bool isBot() const 
   { return _cancellable.isEmpty(); }
 
-  friend ostream& operator<<(ostream& out, MonomSet const& self)
+  friend std::ostream& operator<<(std::ostream& out, MonomSet const& self)
   { return out << self._cancellable; }
 };
 
@@ -132,7 +132,8 @@ struct Generalize
       return perfect(poly->replaceTerms(generalizedArgs));
     }
 
-    auto& toCancel = gen.downcast<NumTraits>().unwrap().summands();
+    Option<MonomSet<NumTraits>&> genP = gen.downcast<NumTraits>();
+    auto& toCancel = genP.unwrap().summands();
 
 
     Stack<Monom> out(poly->nSummands() - toCancel.size());

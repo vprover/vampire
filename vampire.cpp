@@ -540,35 +540,11 @@ void dispatchByMode(Problem* problem)
 
   case Options::Mode::CASC:
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-    env.options->setSchedule(Options::Schedule::CASC);
-    env.options->setInputSyntax(Options::InputSyntax::TPTP);
-    env.options->setOutputMode(Options::Output::SZS);
-    env.options->setProof(Options::Proof::TPTP);
-    env.options->setOutputAxiomNames(true);
-    env.options->setNormalize(true);
-    env.options->setRandomizeSeedForPortfolioWorkers(false);
-
-    if (CASC::PortfolioMode::perform(problem)) {
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    if (env.options->intent() == Options::Intent::UNSAT) {
+      env.options->setSchedule(Options::Schedule::CASC);
+    } else {
+      env.options->setSchedule(Options::Schedule::CASC_SAT);
     }
-    break;
-
-  case Options::Mode::CASC_HOL: {
-    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-    env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
-    env.options->setInputSyntax(Options::InputSyntax::TPTP);
-    env.options->setOutputMode(Options::Output::SZS);
-    env.options->setProof(Options::Proof::TPTP);
-    env.options->setOutputAxiomNames(true);
-
-    if (CASC::PortfolioMode::perform(problem)) {
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-    }
-    break;
-  }
-  case Options::Mode::CASC_SAT:
-    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-    env.options->setSchedule(Options::Schedule::CASC_SAT);
     env.options->setInputSyntax(Options::InputSyntax::TPTP);
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
@@ -738,7 +714,6 @@ void interactiveMetamode()
  */
 int main(int argc, char* argv[])
 {
-  System::registerArgv0(argv[0]);
   System::setSignalHandlers();
 
   try {
@@ -747,6 +722,10 @@ int main(int argc, char* argv[])
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
     cl.interpret(opts);
+
+#if VDEBUG
+    std::cerr << "% WARNING: debug build, do not use in anger\n";
+#endif
 
     if(opts.encodeStrategy()){
       cout << opts.generateEncodedOptions() << "\n";
