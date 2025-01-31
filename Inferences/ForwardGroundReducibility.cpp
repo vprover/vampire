@@ -85,8 +85,6 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
   static DHSet<TermList> attempted;
   DHMap<std::pair<TermList,TermList>,OrderingComparator::VarOrderExtractor> extractors;
 
-  // TODO investigate source of nondeterminism here
-
   // we need consistent order of results so we use an STL set
   std::set<std::tuple<TermList,TermList,Clause*>> results;
 
@@ -210,7 +208,7 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
         }
       }
     }
-    if (cl->store()==Clause::SELECTED) {
+    if (_exhaustive && cl->store()==Clause::SELECTED) {
       tpo = skip();
       fail = true;
     } else {

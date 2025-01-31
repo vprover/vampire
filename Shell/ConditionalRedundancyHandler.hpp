@@ -106,6 +106,9 @@ public:
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     bool eqIsResult, ResultSubstitution* subs) const = 0;
 
+  virtual bool checkSuperposition2(
+    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const = 0;
+
   virtual bool insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
@@ -147,6 +150,10 @@ public:
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     bool eqIsResult, ResultSubstitution* subs) const override;
+
+  /** Returns false if superposition should be skipped. */
+  bool checkSuperposition2(
+    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const override;
 
   bool insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
@@ -217,8 +224,7 @@ public:
 
   using Branch = OrderingComparator::Branch;
 
-private:
-  bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
+  static bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
 
   struct Iterator {
     Iterator(OrderingComparator& comp) : _comp(comp) {}

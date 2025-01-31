@@ -35,7 +35,8 @@ class ForwardGroundReducibility
 public:
   ForwardGroundReducibility(const Options& opts)
     : _redundancyCheck(opts.demodulationRedundancyCheck()!=Options::DemodulationRedundancyCheck::OFF),
-      _encompassing(opts.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS) {}
+      _encompassing(opts.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS),
+      _exhaustive(opts.conditionalRedundancySubsumption()) {}
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -57,6 +58,7 @@ private:
   DemodulationLHSIndex* _index;
   bool _redundancyCheck;
   bool _encompassing;
+  bool _exhaustive;
 };
 
 };

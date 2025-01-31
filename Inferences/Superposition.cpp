@@ -356,11 +356,11 @@ Clause* Superposition::performSuperposition(
   }
 
   const auto& condRedHandler = _salg->condRedHandler();
-  if (!unifier->usesUwa()) {
-    if (!condRedHandler.checkSuperposition(eqClause, eqLit, eqLHS, rwClause, rwLit, rwTerm, eqIsResult, subst.ptr())) {
-      return 0;
-    }
-  }
+  // if (!unifier->usesUwa()) {
+  //   if (!condRedHandler.checkSuperposition(eqClause, eqLit, eqLHS, rwClause, rwLit, rwTerm, eqIsResult, subst.ptr())) {
+  //     return 0;
+  //   }
+  // }
 
   const Ordering& ordering = _salg->getOrdering();
 
@@ -376,9 +376,9 @@ Clause* Superposition::performSuperposition(
   if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
-  Stack<std::pair<TermList,TermList>> ordCons;
+  OrderingConstraints ordCons;
   if (comp == Ordering::INCOMPARABLE) {
-    ordCons.push({ rwTermS, tgtTermS });
+    ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
   }
 
   if(rwLitS->isEquality()) {
@@ -392,7 +392,7 @@ Clause* Superposition::performSuperposition(
         return 0;
       }
       if (comp == Ordering::INCOMPARABLE) {
-        ordCons.push({ rwLitS->termArg(1), rwLitS->termArg(0) });
+        ordCons.push({ rwLitS->termArg(1), rwLitS->termArg(0), Ordering::GREATER });
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
       auto comp = ordering.getEqualityArgumentOrder(rwLitS);
@@ -400,7 +400,7 @@ Clause* Superposition::performSuperposition(
         return 0;
       }
       if (comp == Ordering::INCOMPARABLE) {
-        ordCons.push({ rwLitS->termArg(0), rwLitS->termArg(1) });
+        ordCons.push({ rwLitS->termArg(0), rwLitS->termArg(1), Ordering::GREATER });
       }
     }
   }
@@ -442,7 +442,8 @@ Clause* Superposition::performSuperposition(
 
     Stack<std::pair<OrderingComparator&, const SubstApplicator*>> lefts;
     for (const auto& con : ordCons) {
-      lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.first,con.second,/*ground=*/true), &idAppl });
+      ASS_EQ(con.rel, Ordering::GREATER);
+      lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.lhs,con.rhs,/*ground=*/true), &idAppl });
     }
     // ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
     // ConditionalRedundancySubsumption3<false> subs(ordering, lefts, rights);
@@ -450,6 +451,12 @@ Clause* Superposition::performSuperposition(
     auto res = subsCP.check();
     if (res) {
       env.statistics->skippedSuperposition++;
+      return 0;
+    }
+  }
+
+  if (!unifier->usesUwa()) {
+    if (!condRedHandler.checkSuperposition2(eqClause, rwClause, eqIsResult, subst.ptr(), ordCons)) {
       return 0;
     }
   }

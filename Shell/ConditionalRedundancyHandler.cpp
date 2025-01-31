@@ -163,7 +163,7 @@ public:
 #if DEBUG_ORDERING
     es->comps.push(ptr);
 #endif
-    es->comparator = ord->createComparator();
+    es->comparator = ord->createComparator(false, true);
     es->comparator->insert(ptr->ordCons, (void*)0x1);
     code.push(CodeOp::getSuccess(es));
 
@@ -229,6 +229,101 @@ public:
     }
     matcher.reset();
 
+    return false;
+  }
+
+  bool checkWithOrdering(const Ordering* ord, ResultSubstitution* subst, bool result, const OrderingConstraints& ordCons)
+  {
+    if (_varSorts.isEmpty()) {
+      return true;
+    }
+    if (isEmpty()) {
+      return true;
+    }
+    if (ordCons.isEmpty() || ordCons.size()>2) {
+      return true;
+    }
+    auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
+
+    static SubstMatcher matcher;
+    struct Applicator : public SubstApplicator {
+      TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
+    } applicator;
+
+    struct IdApplicator : SubstApplicator {
+      TermList operator()(unsigned v) const override { return TermList::var(v); }
+    } idAppl;
+
+    if (ordCons.size()==1) {
+      env.statistics->generalizedInductionApplication++;
+      ConditionalRedundancySubsumption3<false>::Iterator sit(
+        *OrderingComparator::createForSingleComparison(*ord, ordCons[0].lhs, ordCons[0].rhs, true));
+      sit.init(TermPartialOrdering::getEmpty(*ord), &idAppl);
+
+      while (sit.hasNext()) {
+        auto [res,tpo] = sit.next();
+        if (res != Ordering::GREATER) {
+          continue;
+        }
+
+        bool found = false;
+        matcher.init(this, ts);
+        Entries* es;
+        while ((es = matcher.next()))
+        {
+          ASS(es->comparator);
+          if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
+            found = true;
+            break;
+          }
+        }
+        matcher.reset();
+        if (!found) {
+          return true;
+        }
+      }
+    } else {
+      env.statistics->generalizedInductionApplicationInProof++;
+      ASS_EQ(ordCons.size(),2);
+      ConditionalRedundancySubsumption3<false>::Iterator sit(
+        *OrderingComparator::createForSingleComparison(*ord, ordCons[0].lhs, ordCons[0].rhs, true));
+      ConditionalRedundancySubsumption3<false>::Iterator sit2(
+        *OrderingComparator::createForSingleComparison(*ord, ordCons[1].lhs, ordCons[1].rhs, true));
+
+      sit.init(TermPartialOrdering::getEmpty(*ord), &idAppl);
+
+      while (sit.hasNext()) {
+        auto [res,tpo] = sit.next();
+        if (res != Ordering::GREATER) {
+          continue;
+        }
+
+        sit2.init(tpo, &idAppl);
+
+        while (sit2.hasNext()) {
+          auto [res2,tpo2] = sit2.next();
+          if (res2 != Ordering::GREATER) {
+            continue;
+          }
+
+          bool found = false;
+          matcher.init(this, ts);
+          Entries* es;
+          while ((es = matcher.next()))
+          {
+            ASS(es->comparator);
+            if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo2)) {
+              found = true;
+              break;
+            }
+          }
+          matcher.reset();
+          if (!found) {
+            return true;
+          }
+        }
+      }
+    }
     return false;
   }
 
@@ -971,6 +1066,166 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   }
 
   return true;
+}
+
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition2(
+  Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const
+{
+  if constexpr (!enabled) {
+    return true;
+  }
+
+  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
+  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
+
+  // if (eqClDataPtr && !(*eqClDataPtr)->checkWithOrdering(_ord, subs, eqIsResult, ordCons)) {
+  //   env.statistics->skippedSuperposition++;
+  //   return false;
+  // }
+
+  // if (rwClDataPtr && !(*rwClDataPtr)->checkWithOrdering(_ord, subs, !eqIsResult, ordCons)) {
+  //   env.statistics->skippedSuperposition++;
+  //   return false;
+  // }
+
+  if (ordCons.isEmpty() || ordCons.size()>2) {
+    return true;
+  }
+
+  if (eqClDataPtr && ((*eqClDataPtr)->_varSorts.isEmpty() || (*eqClDataPtr)->isEmpty())) {
+    eqClDataPtr = nullptr;
+  }
+  if (rwClDataPtr && ((*rwClDataPtr)->_varSorts.isEmpty() || (*rwClDataPtr)->isEmpty())) {
+    rwClDataPtr = nullptr;
+  }
+  if (!eqClDataPtr && !rwClDataPtr) {
+    return true;
+  }
+  TermStack eqTs;
+  if (eqClDataPtr) {
+    eqTs = (*eqClDataPtr)->getInstances([&](unsigned v) { return subs->applyTo(TermList::var(v),eqIsResult); });
+  }
+  TermStack rwTs;
+  if (rwClDataPtr) {
+    rwTs = (*rwClDataPtr)->getInstances([&](unsigned v) { return subs->applyTo(TermList::var(v),!eqIsResult); });
+  }
+
+  static ConstraintIndex::SubstMatcher matcher;
+  struct Applicator : public SubstApplicator {
+    TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
+  } applicator;
+
+  struct IdApplicator : SubstApplicator {
+    TermList operator()(unsigned v) const override { return TermList::var(v); }
+  } idAppl;
+
+  if (ordCons.size()==1) {
+    env.statistics->generalizedInductionApplication++;
+    ConditionalRedundancySubsumption3<false>::Iterator sit(
+      *OrderingComparator::createForSingleComparison(*_ord, ordCons[0].lhs, ordCons[0].rhs, true));
+    sit.init(TermPartialOrdering::getEmpty(*_ord), &idAppl);
+
+    while (sit.hasNext()) {
+      auto [res,tpo] = sit.next();
+      if (res != Ordering::GREATER) {
+        continue;
+      }
+
+      bool found = false;
+      Entries* es;
+      if (eqClDataPtr) {
+        matcher.init(*eqClDataPtr, eqTs);
+        while ((es = matcher.next()))
+        {
+          ASS(es->comparator);
+          if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
+            found = true;
+            break;
+          }
+        }
+        matcher.reset();
+      }
+      if (found) {
+        continue;
+      }
+      if (rwClDataPtr) {
+        matcher.init(*rwClDataPtr, rwTs);
+        while ((es = matcher.next()))
+        {
+          ASS(es->comparator);
+          if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
+            found = true;
+            break;
+          }
+        }
+        matcher.reset();
+      }
+      if (!found) {
+        return true;
+      }
+    }
+  } else {
+    env.statistics->generalizedInductionApplicationInProof++;
+    ASS_EQ(ordCons.size(),2);
+    ConditionalRedundancySubsumption3<false>::Iterator sit(
+      *OrderingComparator::createForSingleComparison(*_ord, ordCons[0].lhs, ordCons[0].rhs, true));
+    ConditionalRedundancySubsumption3<false>::Iterator sit2(
+      *OrderingComparator::createForSingleComparison(*_ord, ordCons[1].lhs, ordCons[1].rhs, true));
+
+    sit.init(TermPartialOrdering::getEmpty(*_ord), &idAppl);
+
+    while (sit.hasNext()) {
+      auto [res,tpo] = sit.next();
+      if (res != Ordering::GREATER) {
+        continue;
+      }
+
+      sit2.init(tpo, &idAppl);
+
+      while (sit2.hasNext()) {
+        auto [res2,tpo2] = sit2.next();
+        if (res2 != Ordering::GREATER) {
+          continue;
+        }
+
+        bool found = false;
+        Entries* es;
+        if (eqClDataPtr) {
+          matcher.init(*eqClDataPtr, eqTs);
+          while ((es = matcher.next()))
+          {
+            ASS(es->comparator);
+            if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo2)) {
+              found = true;
+              break;
+            }
+          }
+          matcher.reset();
+        }
+        if (found) {
+          continue;
+        }
+        if (rwClDataPtr) {
+          matcher.init(*rwClDataPtr, rwTs);
+          while ((es = matcher.next()))
+          {
+            ASS(es->comparator);
+            if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
+              found = true;
+              break;
+            }
+          }
+          matcher.reset();
+        }
+        if (!found) {
+          return true;
+        }
+      }
+    }
+  }
+  env.statistics->skippedSuperposition++;
+  return false;
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
