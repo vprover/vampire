@@ -107,10 +107,11 @@ class FloorBounds
             greater0(sum(s, ceil(t), numeral(-1))),
             eq0(sum(floor(s), ceil(t), numeral(-1))))
         : assertionViolation<Clause*>()
-          ,
-          // +⌊s⌋ + t >~ 0 
-          // ===============
-          // +s + t >~ 0
+        ,
+        // TODO TRYOUT RULE: put into paper
+        // +⌊s⌋ + t >~ 0 
+        // ===============
+        // +s + t >~ 0
         resClause(premise, 
           pred == AlascaPredicate::GREATER_EQ ? greater0(sum(s, t))
         : pred == AlascaPredicate::GREATER    ? geq0(sum(s, t))
@@ -128,20 +129,39 @@ class FloorBounds
     ASS(isInequality(pred))
 
     return iterItems(
+          // //       -⌊s⌋ + t >= 0        
+          // // ============================
+          // // −s + ⌊t⌋ > 0 ∨ -⌊s⌋ + ⌊t⌋ ≈ 0
+          //   pred == AlascaPredicate::GREATER_EQ ? resClause(premise, 
+          //                      greater0(sum(minus(s), floor(t))),
+          //                      eq0(sum(minus(floor(s)), floor(t))))
+          //
+          // //             -⌊s⌋ + t > 0
+          // // =====================================
+          // // −⌊s⌋ + ⌈t⌉ − 1 ≈ 0 ∨ −s + ⌈t⌉ − 1 > 0
+          // : pred == AlascaPredicate::GREATER ?  resClause(premise, 
+          //                      greater0(sum(minus(s), ceil(t), numeral(-1))),
+          //                      eq0(sum(minus(floor(s)), ceil(t), numeral(-1))))
+          // : assertionViolation<Clause*>()
+
+          // TODO TRYOUT RULE: put into paper
           //       -⌊s⌋ + t >= 0        
           // ============================
           // −s + ⌊t⌋ > 0 ∨ -⌊s⌋ + ⌊t⌋ ≈ 0
             pred == AlascaPredicate::GREATER_EQ ? resClause(premise, 
-                               greater0(sum(minus(s), floor(t))),
-                               eq0(sum(minus(floor(s)), floor(t))))
+                               greater0(sum(minus(s), floor(t))))
+
+          // TODO TRYOUT RULE: put into paper
           //             -⌊s⌋ + t > 0
           // =====================================
           // −⌊s⌋ + ⌈t⌉ − 1 ≈ 0 ∨ −s + ⌈t⌉ − 1 > 0
           : pred == AlascaPredicate::GREATER ?  resClause(premise, 
-                               greater0(sum(minus(s), ceil(t), numeral(-1))),
-                               eq0(sum(minus(floor(s)), ceil(t), numeral(-1))))
+                               greater0(sum(minus(s), ceil(t))))
           : assertionViolation<Clause*>()
+
+
           ,
+          // TODO TRYOUT RULE: put into paper
           // -⌊s⌋ + t >~ 0 
           // ===============
           // −s + t + 1 > 0
