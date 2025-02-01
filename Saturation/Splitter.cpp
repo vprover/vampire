@@ -74,7 +74,7 @@ void SplittingBranchSelector::init()
     case Options::SatSolver::Z3:
       {
         _solverIsSMT = true;
-        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
+        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
           SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
@@ -1494,37 +1494,6 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
-  }
-}
-
-void Splitter::onRedundantInference(std::function<Clause*()> fn, Clause* premise0, Clause* premise1, SplitSet* blockingSet)
-{
-  ASS(blockingSet);
-
-  if (blockingSet->isEmpty()) {
-    // nothing to do
-    return;
-  }
-
-  auto unionAll = premise0->splits()->getUnion(premise1->splits());
-  SplitSet* diff = blockingSet->subtract(unionAll);
-
-  ASS(allSplitLevelsActive(diff));
-
-  auto dit = diff->iter();
-  while (dit.hasNext()) {
-    SplitLevel slev=dit.next();
-    _db[slev]->addRedundantInference(fn);
-  }
-}
-
-void Splitter::addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e)
-{
-  auto sit = splits->iter();
-  while (sit.hasNext()) {
-    SplitLevel slev=sit.next();
-    e->obtain();
-    _db[slev]->conditionalRedundancyEntries.push(e);
   }
 }
 

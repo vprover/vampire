@@ -45,6 +45,7 @@
 #include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Superposition.hpp"
 
@@ -136,10 +137,10 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2, 
+  auto itb3 = getMapAndFlattenIterator(itb2,
       [this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(
-              arg, 
+              arg,
               _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
 
   //Perform backward superposition
@@ -172,12 +173,6 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
   }
   if(getOptions().showBlocked()) {
     std::cout<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
-  }
-  if(getOptions().colorUnblocking()) {
-    SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
-    ASS(salg);
-    ColorHelper::tryUnblock(rwClause, salg);
-    ColorHelper::tryUnblock(eqClause, salg);
   }
   env.statistics->inferencesSkippedDueToColors++;
   return false;
@@ -252,7 +247,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   }
 
   //we assume that there will be at least one rewrite in the rwLit
-  if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + eqRHS.weight(), numPositiveLiteralsLowerBound, inf)) {
+  if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + eqRHS.weight(), numPositiveLiteralsLowerBound, inf)) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped early");
     return false;
@@ -265,7 +260,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   if(rwrBalance>=0) {
     //there must be at least one rewriting, possibly more
     unsigned approxWeight = rwLit->weight()+rwrBalance;
-    if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numPositiveLiteralsLowerBound, inf)) {
+    if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numPositiveLiteralsLowerBound, inf)) {
       env.statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval");
       return false;
@@ -276,7 +271,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   if(rwrCnt>1) {
     ASS_GE(rwrCnt, 1);
     unsigned approxWeight = rwLit->weight()+(rwrBalance*rwrCnt);
-    if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numPositiveLiteralsLowerBound, inf)) {
+    if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + approxWeight, numPositiveLiteralsLowerBound, inf)) {
       env.statistics->discardedNonRedundantClauses++;
       RSTAT_CTR_INC("superpositions weight skipped after rewriter weight retrieval with occurrence counting");
       return false;
@@ -286,7 +281,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   unsigned rwLitSWeight = subst->getApplicationWeight(rwLit, !eqIsResult);
 
   unsigned finalLitWeight = rwLitSWeight+(rwrBalance*rwrCnt);
-  if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numPositiveLiteralsLowerBound, inf)) {
+  if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numPositiveLiteralsLowerBound, inf)) {
     env.statistics->discardedNonRedundantClauses++;
     RSTAT_CTR_INC("superpositions weight skipped after rewrited literal weight retrieval");
     return false;
@@ -310,9 +305,8 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
-  TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
-
+  auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
+  TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit);
 
   if(eqLHS.isVar()) {
     if(!checkSuperpositionFromVariable(eqClause, eqLit, eqLHS)) {
@@ -340,8 +334,17 @@ Clause* Superposition::performSuperposition(
   Inference::Destroyer inf_destroyer(inf);
 
   auto passiveClauseContainer = _salg->getPassiveClauseContainer();
-  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
-  if(needsToFulfilWeightLimit) {
+  bool andThatsIt = false;
+  bool hasAgeLimitStrike = passiveClauseContainer && passiveClauseContainer->mayBeAbleToDiscriminateClausesUnderConstructionOnLimits()
+                        && passiveClauseContainer->exceedsAgeLimit(numPositiveLiteralsLowerBound, inf, andThatsIt);
+
+  if(hasAgeLimitStrike && andThatsIt) { // we are dealing with purely age-limited container (no need for weight-related investigations)
+    env.statistics->discardedNonRedundantClauses++;
+    RSTAT_CTR_INC("superpositions skipped for (pure) age limit before building clause");
+    return 0;
+  }
+
+  if(hasAgeLimitStrike) {
     if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, passiveClauseContainer, numPositiveLiteralsLowerBound, inf)) {
       return 0;
     }
@@ -349,25 +352,7 @@ Clause* Superposition::performSuperposition(
 
   const auto& condRedHandler = _salg->condRedHandler();
   if (!unifier->usesUwa()) {
-    SplitSet* blockingSet;
-    if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr(), blockingSet)) {
-      auto splitter = _salg->getSplitter();
-      if (splitter) {
-        splitter->onRedundantInference([this,rwClause,rwLit,rwTerm,eqClause,eqLit,eqLHS]() -> Clause* {
-          if (rwClause->store()==Clause::NONE) {
-            return 0;
-          }
-          if (eqClause->store()==Clause::NONE) {
-            return 0;
-          }
-          auto unifier = AbstractingUnifier::unify(
-            TermList(rwTerm), 0, TermList(eqLHS), 1, AbstractionOracle(Options::UnificationWithAbstraction::OFF), false);
-          ASS(unifier);
-          auto subs = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
-
-          return performSuperposition(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, &unifier.unwrap(), true);
-        }, rwClause, eqClause, blockingSet);
-      }
+    if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
   }
@@ -450,9 +435,9 @@ Clause* Superposition::performSuperposition(
         return nullptr;
       }
 
-      if(needsToFulfilWeightLimit) {
+      if(hasAgeLimitStrike) {
         weight+=currAfter->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+        if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
           RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
           env.statistics->discardedNonRedundantClauses++;
           return nullptr;
@@ -486,9 +471,9 @@ Clause* Superposition::performSuperposition(
         if(EqHelper::isEqTautology(currAfter)) {
           return nullptr;
         }
-        if(needsToFulfilWeightLimit) {
+        if(hasAgeLimitStrike) {
           weight+=currAfter->weight();
-          if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+          if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
             RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
             env.statistics->discardedNonRedundantClauses++;
             return nullptr;
@@ -520,7 +505,7 @@ Clause* Superposition::performSuperposition(
     res->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
   }
 
-  if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+  if(hasAgeLimitStrike && passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
     env.statistics->discardedNonRedundantClauses++;
     return nullptr;
@@ -547,32 +532,13 @@ Clause* Superposition::performSuperposition(
   inf_destroyer.disable(); // ownership passed to the the clause below
   auto clause = Clause::fromStack(*res, inf);
 
-  // If proof extra is on let's compute the positions we have performed
-  // superposition on 
-  if(env.options->proofExtra()==Options::ProofExtra::FULL){
-
-    // First find which literal it is in the clause, as selection has occured already
-    // this should remain the same...?
-    std::string rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
-    std::string eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
-
-    std::string rwPos="_";
-    ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
-    std::string eqPos = "("+eqPlace+").2";
-    rwPos = "("+rwPlace+")."+rwPos;
-
-    std::string eqClauseNum = Lib::Int::toString(eqClause->number());
-    std::string rwClauseNum = Lib::Int::toString(rwClause->number());
-
-    std::string extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
-        eqPos+" in "+eqClauseNum+" and "+
-        rwPos+" in "+rwClauseNum;
-
-    if (!env.proofExtra) {
-      env.proofExtra = new DHMap<const Unit*,std::string>();
-    }
-    env.proofExtra->insert(clause,extra);
-  }
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(clause, new SuperpositionExtra(
+      rwLit,
+      eqLit,
+      eqLHS,
+      rwTerm
+    ));
 
   return clause;
 }

@@ -488,7 +488,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   ASS(theory->isInterpretedConstant(n)); 
   IntegerConstantType nc;
   ALWAYS(theory->tryInterpretConstant(n,nc));
-  ASS(nc.toInner()>0);
+  ASS(nc > 0);
 #endif
 
 // ![Y] : (divides(n,Y) <=> ?[Z] : multiply(Z,n) = Y)
@@ -1144,7 +1144,7 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
       auto k = j-ta->nTypeArgs();
       if (c->argSort(j) == AtomicSort::boolSort()) {
         addsFOOL = true;
-        Literal* lit = Literal::create(c->destructorFunctor(k), dargTerms.size(), true, false, dargTerms.begin());
+        Literal* lit = Literal::create(c->destructorFunctor(k), dargTerms.size(), true, dargTerms.begin());
         Term* t = Term::createFormula(new AtomicFormula(lit));
         argTerms.push(TermList(t));
       } else {
@@ -1272,7 +1272,7 @@ void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
 
     for (unsigned c = 0; c < cases.size(); c++) {
       args.push(cases[c]);
-      Literal* lit = Literal::create(constructor->discriminator(), args.size(), c == i, false, args.begin());
+      Literal* lit = Literal::create(constructor->discriminator(), args.size(), c == i, args.begin());
       args.pop();
       addTheoryClauseFromLits({lit}, InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM,CHEAP);
     }
@@ -1307,7 +1307,7 @@ void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta)
   args.push(TermList(ta->nTypeArgs(),false));
   args.push(TermList(ta->nTypeArgs(),false));
 
-  Literal* sub = Literal::create(pred, ta->nTypeArgs()+2, false, false, args.begin());
+  Literal* sub = Literal::create(pred, ta->nTypeArgs()+2, false, args.begin());
   addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM,CHEAP);
 }
 
@@ -1336,18 +1336,18 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
     TermStack subargs = typeVars;
     subargs.push(y);
     subargs.push(right);
-    Literal* sub = Literal::create(subtermPredicate, c->numTypeArguments()+2, true, false, subargs.begin());
+    Literal* sub = Literal::create(subtermPredicate, c->numTypeArguments()+2, true, subargs.begin());
     addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM,CHEAP);
 
     // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
     TermStack trans1args = typeVars;
     trans1args.push(z);
     trans1args.push(y);
-    Literal* trans1 = Literal::create(subtermPredicate, c->numTypeArguments()+2, false, false, trans1args.begin());
+    Literal* trans1 = Literal::create(subtermPredicate, c->numTypeArguments()+2, false, trans1args.begin());
     TermStack trans2args = typeVars;
     trans2args.push(z);
     trans2args.push(right);
-    Literal* trans2 = Literal::create(subtermPredicate, c->numTypeArguments()+2, true, false, trans2args.begin());
+    Literal* trans2 = Literal::create(subtermPredicate, c->numTypeArguments()+2, true, trans2args.begin());
     addTheoryClauseFromLits({trans1,trans2}, InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM,CHEAP);
 
     added = true;

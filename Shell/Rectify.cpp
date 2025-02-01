@@ -331,8 +331,7 @@ Literal* Rectify::rectify (Literal* l)
         /* from */ [&](auto i) { return *l->nthArgument(i); },
         /* to */ [&](auto i) -> TermList& { return (*args)[i]; },
         /* cnt */ l->arity());
-    return !changed ? l : Literal::create(l->functor(), l->arity(), l->polarity(), l->commutative(), 
-                       args->begin());
+    return !changed ? l : Literal::create(l->functor(), l->arity(), l->polarity(), args->begin());
   }
 } // Rectify::rectify (Literal*)
 

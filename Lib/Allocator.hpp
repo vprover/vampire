@@ -35,6 +35,7 @@
 namespace Lib {
 // attempt to set a memory limit for this process by system call
 void setMemoryLimit(size_t bytes);
+long peakMemoryUsageKB();
 }
 
 #ifdef INDIVIDUAL_ALLOCATIONS

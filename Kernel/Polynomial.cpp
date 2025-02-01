@@ -11,6 +11,7 @@
 
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Lib/Output.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -47,7 +48,7 @@ std::ostream& operator<<(std::ostream& out, const Variable& self)
 // impl FuncId
 /////////////////////////////////////////////////////////
 
-FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num) /*, _typeArgs(typeArgs)*/ {}
+FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num), _typeArgs(typeArgs) {}
 
 FuncId FuncId::symbolOf(Term* term) 
 { return FuncId(term->functor(), term->typeArgs()); }
@@ -55,14 +56,14 @@ FuncId FuncId::symbolOf(Term* term)
 unsigned FuncId::numTermArguments() 
 { return symbol()->numTermArguments(); }
 
-bool operator==(FuncId const& lhs, FuncId const& rhs) 
-{ return lhs._num == rhs._num; }
-
-bool operator!=(FuncId const& lhs, FuncId const& rhs) 
-{ return !(lhs == rhs); }
-
 std::ostream& operator<<(std::ostream& out, const FuncId& self) 
-{ return out << self.symbol()->name(); }
+{ 
+  if (self.numTypeArgs() == 0) {
+    return out << self.symbol()->name(); 
+  } else {
+    return out << self.symbol()->name() << "<" << Output::interleaved(", ", self.iterTypeArgs())  << ">"; 
+  }
+}
 
 Signature::Symbol* FuncId::symbol() const 
 { return env.signature->getFunction(_num); }

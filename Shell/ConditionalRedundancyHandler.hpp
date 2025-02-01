@@ -95,14 +95,14 @@ struct ConditionalRedundancyEntry {
 class ConditionalRedundancyHandler
 {
 public:
-  static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
+  static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord);
   static void destroyClauseData(Clause* cl);
 
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
-    bool eqIsResult, ResultSubstitution* subs, SplitSet*& blockingSplits) const = 0;
+    bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
@@ -110,10 +110,9 @@ public:
 
   virtual bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
-    ResultSubstitution* subs, SplitSet*& blockingSplits) const = 0;
+    ResultSubstitution* subs) const = 0;
 
-  virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs,
-    SplitSet*& blockingSplits) const = 0;
+  virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const = 0;
 
   void checkEquations(Clause* cl) const;
 
@@ -131,15 +130,15 @@ class ConditionalRedundancyHandlerImpl
   : public ConditionalRedundancyHandler
 {
 public:
-  ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
+  ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord)
     : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
-      _ord(ord), _splitter(splitter) {}
+      _ord(ord) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
-    bool eqIsResult, ResultSubstitution* subs, SplitSet*& blockingSplits) const override;
+    bool eqIsResult, ResultSubstitution* subs) const override;
 
   void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
@@ -148,10 +147,10 @@ public:
   /** Returns false if resolution should be skipped. */
   bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
-    ResultSubstitution* subs, SplitSet*& blockingSplits) const override;
+    ResultSubstitution* subs) const override;
 
   /** Returns false if inference should be skipped. */
-  bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs, SplitSet*& blockingSplits) const override;
+  bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const override;
 
   bool isSuperpositionPremiseRedundant(
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,

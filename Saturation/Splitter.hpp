@@ -190,8 +190,6 @@ public:
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
-  void onRedundantInference(std::function<Clause*()> fn, Clause* premise0, Clause* premise1, SplitSet* blockingSet);
-  void addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);

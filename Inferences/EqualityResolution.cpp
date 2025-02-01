@@ -117,8 +117,7 @@ struct EqualityResolution::ResultFn
     }
 
     if (!absUnif->usesUwa()) {
-      SplitSet* blockingSet;
-      if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs(), blockingSet)) {
+      if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs())) {
         env.statistics->skippedEqualityResolution++;
         return nullptr;
       }
@@ -128,7 +127,10 @@ struct EqualityResolution::ResultFn
 
     env.statistics->equalityResolution++;
 
-    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+      env.proofExtra.insert(cl, new EqualityResolutionExtra(lit));
+    return cl;
   }
 private:
   bool _afterCheck;

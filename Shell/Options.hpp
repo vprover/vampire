@@ -45,6 +45,7 @@
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
@@ -60,50 +61,6 @@ using namespace Lib;
 using namespace Kernel;
 
 class Property;
-
-/**
- * Let us define a similarity measure for strings, used to compare option names
- *
- * This is a Levenshtein (edit) distance and therefore gives the number
- * of edits needed to change s1 into s2
- *
- * TODO does not really belong here!
- *
- * @author Giles
- */
-static size_t distance(const std::string &s1, const std::string &s2)
-{
-  const size_t m(s1.size());
-  const size_t n(s2.size());
-
-  if( m==0 ) return n;
-  if( n==0 ) return m;
-
-  DArray<size_t> costs = DArray<size_t>(n+1);
-
-  for( size_t k=0; k<=n; k++ ) costs[k] = k;
-
-  size_t i = 0;
-  for ( std::string::const_iterator it1 = s1.begin(); it1 != s1.end(); ++it1, ++i )
-  {
-    costs[0] = i+1;
-    size_t corner = i;
-
-    size_t j = 0;
-    for ( std::string::const_iterator it2 = s2.begin(); it2 != s2.end(); ++it2, ++j )
-    {
-      size_t upper = costs[j+1];
-      if( *it1 == *it2 ){costs[j+1] = corner;}
-      else{
-        size_t t(upper<corner?upper:corner);
-        costs[j+1] = (costs[j]<t?costs[j]:t)+1;
-      }
-      corner = upper;
-    }
-  }
-
-  return costs[n];
-}
 
 /**
  * Class that represents Vampire's options.
@@ -287,9 +244,11 @@ public:
   };
 
   enum class DemodulationRedundancyCheck : unsigned int {
-    OFF,
-    ENCOMPASS,
-    ON
+    OFF,       // no check
+    ORDERING,  // solely ordering-based check
+    ENCOMPASS, // (1) positive unit equations (PUE) are smaller than non-PUE clauses,
+               // (2) more general PUE are smaller than less general PUE, and
+               // (3) equally general PUEs are ordered based on term ordering.
   };
 
   enum class TheoryAxiomLevel : unsigned int {
@@ -382,8 +341,6 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
-    CASC_HOL,
-    CASC_SAT,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     MODEL_CHECK,
@@ -400,16 +357,16 @@ public:
     VAMPIRE
   };
 
+  enum class Intent : unsigned int {
+    UNSAT, // preferentially look for refutations, proofs, arguments of unsatisfiability etc.
+    SAT    // preferentially look for (finite) models, saturations, etc.
+  };
+
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
-    CASC_2023,
-    CASC_2019,
     CASC_SAT,
     CASC_SAT_2024,
-    CASC_SAT_2023,
-    CASC_SAT_2019,
-    CASC_HOL_2020,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
@@ -706,12 +663,6 @@ public:
     OFF,
   };
 
-  enum class AgeWeightRatioShape {
-    CONSTANT,
-    DECAY,
-    CONVERGE
-  };
-
   enum class KboWeightGenerationScheme : unsigned int {
     CONST = 0,
     RANDOM = 1,
@@ -758,6 +709,11 @@ public:
     SK = 1,
     SKI = 2,
     OFF = 3
+  };
+
+  enum class ProblemExportSyntax : unsigned int {
+    SMTLIB = 0,
+    API_CALLS = 1,
   };
 
     //==========================================================
@@ -1970,6 +1926,7 @@ public:
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   void setMode(Mode mode) { _mode.actualValue = mode; }
+  Intent intent() const { return _intent.actualValue; }
   Schedule schedule() const { return _schedule.actualValue; }
   std::string scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
@@ -2023,6 +1980,7 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  ProblemExportSyntax problemExportSyntax() const { return _problemExportSyntax.actualValue; }
   std::string const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
   std::string const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
@@ -2098,6 +2056,7 @@ public:
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
+  int lrsRetroactiveDeletes() const { return _lrsRetroactiveDeletes.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
@@ -2149,8 +2108,6 @@ public:
   std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
-	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
-	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2208,6 +2165,7 @@ public:
   bool generalSplitting() const { return _generalSplitting.actualValue; }
 #if VTIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
+  std::string const& timeStatisticsFocus() const { return _timeStatisticsFocus.actualValue; }
 #endif // VTIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2366,22 +2324,7 @@ private:
         }
     }
   
-    Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const{
-
-      Stack<std::string> similar_names;
-
-      VirtualIterator<AbstractOptionValue*> options = _lookup.values();
-      while(options.hasNext()){
-        AbstractOptionValue* opt = options.next();
-        std::string opt_name = is_short ? opt->shortName : opt->longName;
-        size_t dif = 2;
-        if(!is_short) dif += name.size()/4;
-        if(name.size()!=0 && distance(name,opt_name) < dif)
-          similar_names.push(opt_name);
-      }
-
-      return similar_names;
-    }
+    Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const;
 
     //==========================================================
     // Variables holding option values
@@ -2412,8 +2355,6 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
-	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
-	UnsignedOptionValue _ageWeightRatioShapeFrequency;
 
   BoolOptionValue _useTheorySplitQueues;
   StringOptionValue _theorySplitQueueRatios;
@@ -2555,6 +2496,7 @@ private:
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
+  BoolOptionValue _lrsRetroactiveDeletes;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
@@ -2567,6 +2509,7 @@ private:
   BoolOptionValue _interactive;
 
   ChoiceOptionValue<Mode> _mode;
+  ChoiceOptionValue<Intent> _intent;
   ChoiceOptionValue<Schedule> _schedule;
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
@@ -2637,6 +2580,7 @@ private:
 #endif // VAMPIRE_CLAUSE_TRACING
 #if VZ3
   BoolOptionValue _showZ3;
+  ChoiceOptionValue<ProblemExportSyntax> _problemExportSyntax;
   StringOptionValue _exportAvatarProblem;
   StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
@@ -2701,7 +2645,10 @@ private:
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
+#if VTIME_PROFILING
   BoolOptionValue _timeStatistics;
+  StringOptionValue _timeStatisticsFocus;
+#endif // VTIME_PROFILING
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;

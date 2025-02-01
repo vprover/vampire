@@ -1,2 +1,2 @@
 // version.cpp is automatically generated from version.cpp.in, see CMakeLists.txt for details
-const char* VERSION_STRING = "Vampire ${VAMPIRE_VERSION_NUMBER} (commit ${GIT_COMMIT_DESCRIPTION})";
+const char* VERSION_STRING = "Vampire ${VAMPIRE_VERSION_NUMBER} (${CMAKE_BUILD_TYPE} build, commit ${GIT_COMMIT_DESCRIPTION})";

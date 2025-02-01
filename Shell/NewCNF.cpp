@@ -866,7 +866,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
   Term* freshApplication;
 
   if (isPredicate) {
-    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, false, arguments.begin());
+    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, arguments.begin());
     freshApplication = name;
     Formula* nameFormula = new AtomicFormula(name);
 
@@ -968,7 +968,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     if(_beingClausified->derivedFromGoal()){
       sym->markInGoal();
     }
-    res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
+    res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, fnArgs.begin())));
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, 0, domainSorts.begin(), rangeSort);
     Signature::Symbol *sym = env.signature->getFunction(fun);
@@ -1205,7 +1205,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 
   predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
 
-  return Literal::create(pred, length, true, false, predArgs.begin());
+  return Literal::create(pred, length, true, predArgs.begin());
 }
 
 /**

@@ -99,15 +99,13 @@ class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
-class Matcher;
-typedef VirtualIterator<Matcher*> MatchIterator;
-
 class LiteralSelector;
 
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
 struct OrderingComparator;
 typedef std::unique_ptr<OrderingComparator> OrderingComparatorUP;
+class PartialOrdering;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;

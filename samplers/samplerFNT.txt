@@ -60,16 +60,12 @@ sa!=fmb s=-11 > $ls ~cat on:1
 $ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
 
 # age_weight_ratio
-sa!=fmb > awr ~u2r -10;4;:
+sa!=fmb > $awr ~cat A:1,AW:99
+sa!=fmb $awr=A > awr ~set 1:0
+sa!=fmb $awr=AW > awr ~u2r -10;4;:
 
 # random_awr
 sa!=fmb > rawr ~cat on:4,off:1
-
-# age_weight_ratio_shape
-sa!=fmb > awrs ~cat constant:8,decay:1,converge:1
-
-# age_weight_ratio_shape_frequency
-sa!=fmb  awrs!=constant > awrsf ~ui 1,500
 
 # nongoal_weight_coefficient
 sa!=fmb > $nwc ~cat 1:2,666:1
@@ -99,9 +95,6 @@ plsq=on > plsqr ~u2r -5;7;,
 
 # simultaneous_superposition
 sa!=fmb sup=on > sims ~cat on:50,off:1
-
-# code_tree_subsumption
-sa!=fmb > cts ~cat on:3,off:1
 
 # forward_subsumption
 sa!=fmb > fs ~cat on:500,off:31
@@ -360,8 +353,8 @@ sa=fmb fmbes=sbeam > fmbksg ~cat off:2,on:1
 
 # fmb_start_size - setting this to values > 1 is making things "finite model incomplete" (but could save time for some problems)
 sa=fmb > $fmbss ~cat 1:5,666:1
-sa=fmb $fmbss=1 > fmbss ~cat 1:1
-sa=fmb $fmbss=666 > fmbss ~sgd 0.1,1
+$fmbss=1 > fmbss ~cat 1:1
+$fmbss=666 > fmbss ~sgd 0.1,1
 
 # fmb_symmetry_symbol_order
 sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1

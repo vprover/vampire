@@ -9,86 +9,88 @@
  */
 /**
  * @file PartialOrdering.hpp
- * Defines class PartialOrdering.
  */
 
 #ifndef __PartialOrdering__
 #define __PartialOrdering__
 
-#include "Forwards.hpp"
-
-#include "Lib/DHMap.hpp"
-#include "Lib/VirtualIterator.hpp"
-
-#include "Ordering.hpp"
+#include <string>
+#include <vector>
 
 namespace Kernel {
 
-using namespace Lib;
-
-using PoComp = Ordering::Result;
-
-// enum class PoComp {
-//   INC=0,
-//   EQ=1,
-//   GT=2,
-//   LT=3,
-// };
-
-// PoComp reverse(PoComp comp);
-// std::string toString(PoComp comp);
-
-struct Edge {
-  unsigned x;
-  unsigned y;
-  PoComp c;
-
-  std::tuple<unsigned,unsigned,PoComp> asTuple() const
-  { return std::make_tuple(x, y, c); }
-
-  IMPL_COMPARISONS_FROM_TUPLE(Edge);
-  IMPL_HASH_FROM_TUPLE(Edge);
+/** This corresponds to the values we can handle between two elements.
+ *  Note that incomparability is also possible, namely ≱ (NGEQ),
+ *  ≰ (NLEQ) and their conjunction (INCOMPARABLE). */
+enum class PoComp : uint8_t {
+  UNKNOWN,
+  GREATER,
+  EQUAL,
+  LESS,
+  NGEQ,
+  NLEQ,
+  INCOMPARABLE,
 };
 
-template<typename T> 
+bool checkCompatibility(PoComp old, PoComp curr, PoComp& res);
+std::string pocompToInfix(PoComp c);
+
+/**
+ * Partial ordering between elements of some set.
+ *
+ * We initially have an empty relation, and we extend this by
+ * maintaining a triangular array where each entry is a @b PoComp
+ * value. After each extension we compute the transitive closure
+ * of the current relation. Assuming this was done for the previous
+ * relation, it is enough to compute what has become "connected"
+ * through the newly added value. In certain cases, this extension
+ * fails as the new relation would be contradictory. This state
+ * is represented by a null partial ordering.
+ *
+ * The set elements are denoted by IDs inside the class, which is
+ * given by order of appearance, as explained below. The set
+ * elements are abstracted via these IDs to increase sharing among
+ * partial ordering objects. Hence, operations modifying the
+ * objects are performed through static methods, and we get shared
+ * heap-allocated objects, or null if the operation fails.
+ */
 class PartialOrdering
 {
 public:
-  PartialOrdering();
-  PartialOrdering(const PartialOrdering& other);
-  ~PartialOrdering();
+  /** Get relation between two elements with IDs @b x and @b y. */
+  PoComp get(size_t x, size_t y) const;
 
-  PartialOrdering& operator=(const PartialOrdering& other);
+  /** Get empty partial ordering. */
+  static const PartialOrdering* getEmpty();
+  /** Add new element to partial ordering. The ID of this
+   *  element is set to @b _size-1 of the new partial ordering. */
+  static const PartialOrdering* extend(const PartialOrdering* po);
+  /** Tries to set relation between two elements with IDs @b x and @b y,
+   *  and performs transitive closure over the entire set so far.
+   *  If this fails, returns null, otherwise returns a non-null object. */
+  static const PartialOrdering* set(const PartialOrdering* po, size_t x, size_t y, PoComp v);
 
-  bool is_total() const;
-  size_t size() const { return _size; }
-  const List<Edge>* transitive_reduction() const { return _tr; }
-  PoComp get(const T& x, const T& y) const;
-  bool set(const T& x, const T& y, PoComp v);
-  const T& get_rep(const T& e) const;
-
-  std::string to_string() const;
-  std::string to_string_raw() const;
-
-  VirtualIterator<std::tuple<T,T,PoComp>> iter_relations() const;
-  bool subseteq(const PartialOrdering& other) const;
+  friend std::ostream& operator<<(std::ostream& str, const PartialOrdering& po);
 
 private:
-  size_t idx_of_elem(const T& e) const;
-  size_t idx_of_elem_ext(const T& e);
-  PoComp idx_of(size_t idx_x, size_t idx_y) const;
-  void set_idx_of(size_t idx_x, size_t idx_y, PoComp v);
-  void set_idx_of_safe(size_t idx_x, size_t idx_y, PoComp v);
+  PartialOrdering() = default;
+  ~PartialOrdering() = default;
+  PartialOrdering(const PartialOrdering&) = default;
+  PartialOrdering& operator=(const PartialOrdering&) = delete;
 
-  void set_inferred(size_t idx_x, size_t idx_y, PoComp result);
-  void set_inferred_loop(size_t idx_x, size_t idx_y, PoComp gt, PoComp lt);
-  void set_inferred_loop_eq(size_t idx_x, size_t idx_y);
+  void extend();
 
-  DHMap<T,size_t> _nodes;
-  DHMap<size_t,T> _inverse;
-  size_t _size;
-  PoComp* _array;
-  List<Edge>* _tr; // transitive reduction
+  PoComp getUnsafe(size_t x, size_t y) const;
+  bool setRel(size_t x, size_t y, PoComp v, bool& changed);
+  bool setRelSafe(size_t x, size_t y, PoComp v, bool& changed);
+
+  bool setInferred(size_t x, size_t y, PoComp result);
+  bool setInferredHelper(size_t x, size_t y, PoComp rel);
+  bool setInferredHelperInc(size_t x, size_t y, PoComp wkn);
+  bool setInferredHelperEq(size_t x, size_t y);
+
+  size_t _size = 0;
+  std::vector<PoComp> _array;
 };
 
 };

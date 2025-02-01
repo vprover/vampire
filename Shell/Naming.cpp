@@ -1129,7 +1129,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     }
 
     predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
-    return Literal::create(pred, arity, true, false, allVars.begin());
+    return Literal::create(pred, arity, true, allVars.begin());
   } else {
     unsigned fun = env.signature->addNameFunction(typeVars.size());
     TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());

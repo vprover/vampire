@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, reopened, synchronize]
+  push:
+    branches: [master]
 
 jobs:
   build:
@@ -37,7 +39,5 @@ jobs:
     - name: Run Unit Tests
       working-directory: ${{runner.workspace}}/vampire/build
       run: ctest --output-on-failure
-    - name: Find Vampire Binary
-      run: cp build/bin/vampire_* vampire
     - name: Run Sanity Checks
-      run: checks/sanity vampire
+      run: checks/sanity build/vampire

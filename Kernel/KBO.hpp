@@ -22,6 +22,8 @@
 #include "Lib/DArray.hpp"
 
 #include "Ordering.hpp"
+#include "Debug/Tracer.hpp"
+#include <memory>
 
 #define SPECIAL_WEIGHT_IDENT_VAR            "$var"
 #define SPECIAL_WEIGHT_IDENT_INTRODUCED     "$introduced"
@@ -59,7 +61,7 @@ struct KboSpecialWeights<PredSigTraits>
   inline bool tryAssign(const std::string& name, unsigned weight) 
   { return false; }
 
-  inline static KboSpecialWeights dflt() 
+  inline static KboSpecialWeights dflt()
   { return { }; }
 
   bool tryGetWeight(unsigned functor, unsigned& weight) const;
@@ -74,6 +76,7 @@ struct KboSpecialWeights<FuncSigTraits>
   KboWeight _numInt;
   KboWeight _numRat;
   KboWeight _numReal;
+
   inline bool tryAssign(const std::string& name, unsigned weight) 
   {
     if (name == SPECIAL_WEIGHT_IDENT_VAR     ) { _variableWeight = weight; return true; } 
@@ -127,6 +130,8 @@ class KBO
 : public PrecedenceOrdering
 {
 public:
+  KBO(KBO&&) = default;
+  KBO& operator=(KBO&&) = default;
   KBO(Problem& prb, const Options& opt);
   KBO(
       // KBO params
@@ -145,9 +150,8 @@ public:
       // other
       bool reverseLCM);
 
-  static KBO testKBO();
+  static KBO testKBO(bool rand = false);
 
-  virtual ~KBO();
   void showConcrete(std::ostream&) const override;
   template<class HandleError>
   void checkAdmissibility(HandleError handle) const;
@@ -157,15 +161,15 @@ public:
   Result compare(TermList tl1, TermList tl2) const override;
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
-  bool isGreater(AppliedTerm t1, AppliedTerm t2) const override;
-  OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const override;
+  Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const override;
+  OrderingComparatorUP createComparator() const override;
 
 protected:
-  Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const;
   unsigned computeWeight(AppliedTerm tt) const;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
+  friend struct OrderingComparator;
   friend class KBOComparator;
 
   // int functionSymbolWeight(unsigned fun) const;
@@ -193,11 +197,18 @@ private:
    */
   class State
   {
+    int _weightDiff;
+    /** The variable counters */
+    DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+    /** Number of variables, that occur more times in the first literal */
+    int _posNum;
+    /** Number of variables, that occur more times in the second literal */
+    int _negNum;
+    /** First comparison result */
+    Result _lexResult;
   public:
     /** Initialise the state */
-    State(KBO* kbo)
-      : _kbo(*kbo)
-    {}
+    State() {}
 
     void init()
     {
@@ -215,28 +226,28 @@ private:
      * comparison between the two terms, i.e. we can get any value
      * of @b Result.
      */
-    Result traverseLexBidir(AppliedTerm t1, AppliedTerm t2);
+    Result traverseLexBidir(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
     /**
      * Optimised, unidirectional version of @b traverseLexBidir
      * where we only care about @b GREATER and @b EQUAL, otherwise
      * it returns as early as possible with @b INCOMPARABLE.
      */
-    Result traverseLexUnidir(AppliedTerm t1, AppliedTerm t2);
+    Result traverseLexUnidir(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
     /**
      * Performs a non-lexicographic (i.e. non-lockstep) traversal
      * of two terms in case their top symbols are not the same.
      */
     template<bool unidirectional>
-    Result traverseNonLex(AppliedTerm t1, AppliedTerm t2);
+    Result traverseNonLex(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
 
-    template<int coef, bool varsOnly> void traverse(AppliedTerm tt);
+    template<int coef, bool varsOnly> void traverse(KBO const& kbo, AppliedTerm tt);
 
-    Result result(AppliedTerm t1, AppliedTerm t2);
+    Result result(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
   protected:
     template<int coef> void recordVariable(unsigned var);
 
     bool checkVars() const { return _negNum <= 0; }
-    Result innerResult(TermList t1, TermList t2);
+    Result innerResult(KBO const& kbo, TermList t1, TermList t2);
     Result applyVariableCondition(Result res)
     {
       if(_posNum>0 && (res==LESS || res==EQUAL)) {
@@ -249,24 +260,13 @@ private:
 
     friend class KBOComparator;
 
-    int _weightDiff;
-    /** The variable counters */
-    DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
-    /** Number of variables, that occur more times in the first literal */
-    int _posNum;
-    /** Number of variables, that occur more times in the second literal */
-    int _negNum;
-    /** First comparison result */
-    Result _lexResult;
-    /** The ordering used */
-    KBO& _kbo;
   }; // class KBO::State
 
   /**
    * State used for comparing terms and literals
    */
-  mutable State* _state;
+  mutable std::unique_ptr<State> _state;
 };
 
-}
+} // namespace Kernel
 #endif
