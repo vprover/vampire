@@ -21,7 +21,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/SharedSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -38,7 +37,6 @@
 #include "Indexing/SubstitutionTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Saturation/Splitter.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/ConditionalRedundancyHandler.hpp"

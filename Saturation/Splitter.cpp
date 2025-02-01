@@ -619,7 +619,7 @@ std::string Splitter::splPrefix = "";
 
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
-  _clausesAdded(false), _haveBranchRefutation(false), _activationTimestamp(0)
+  _clausesAdded(false), _haveBranchRefutation(false)
 {
   if(env.options->proof()==Options::Proof::TPTP){
     unsigned spl = env.signature->addFreshFunction(0,"spl");
@@ -803,7 +803,6 @@ void Splitter::onAllProcessed()
   toRemove.reset();  
 
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
-  _activationTimestamp++;
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     std::cout << "[AVATAR] recomputeModel: + ";
@@ -1497,6 +1496,16 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
 }
 
+void Splitter::addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e)
+{
+  auto sit = splits->iter();
+  while (sit.hasNext()) {
+    SplitLevel slev=sit.next();
+    e->obtain();
+    _db[slev]->conditionalRedundancyEntries.push(e);
+  }
+}
+
 bool Splitter::allSplitLevelsActive(SplitSet* s)
 {
   auto sit = s->iter();
@@ -1509,15 +1518,6 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
     }
   }
   return true;
-}
-
-bool Splitter::allSplitLevelsActivatedBefore(SplitSet* splits, unsigned timestamp) const
-{
-  return splits->iter().all([this,timestamp](SplitLevel lev) {
-    ASS_REP(lev<_db.size(), lev);
-    ASS_REP(_db[lev]!=0, lev);
-    return _db[lev]->active && _db[lev]->active_ts <= timestamp;
-  });
 }
 
 void Splitter::onNewClause(Clause* cl)
@@ -1669,7 +1669,6 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     ASS(sr);
     ASS(!sr->active);
     sr->active = true;
-    sr->active_ts = _activationTimestamp;
     
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       ASS(sr->children.isEmpty());
@@ -1774,16 +1773,6 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 
     ASS(sr->active);
     sr->active = false;
-
-    // note: this has to be done after the above deactivation
-    while (sr->redInfs.isNonEmpty()) {
-      // TODO make sure each function is called only once
-      auto fn = sr->redInfs.pop();
-      auto cl = fn();
-      if (cl) {
-        _sa->addNewClause(cl);
-      }
-    }
   }
 }
 

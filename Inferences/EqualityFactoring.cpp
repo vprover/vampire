@@ -30,7 +30,6 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Saturation/Splitter.hpp"
 
 #include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Statistics.hpp"

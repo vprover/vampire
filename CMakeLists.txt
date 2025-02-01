@@ -249,7 +249,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Clause.hpp
     Kernel/ClauseQueue.hpp
     Kernel/ColorHelper.hpp
-    Kernel/ConfluenceTree.hpp
     Kernel/Connective.hpp
     Kernel/ELiteralSelector.hpp
     Kernel/EqHelper.hpp
@@ -308,8 +307,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    Kernel/PartialOrdering.cpp
-    Kernel/PartialOrdering.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
