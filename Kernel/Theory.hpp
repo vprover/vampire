@@ -60,24 +60,16 @@ struct QR { T quot; T rem; };
   MK_CAST_OP(Type, !=,ToCast)                                                             \
 
 #define MK_SIGN_OPS                                                                       \
+  Sign sign()       const;                                                                \
   bool isZero()     const { return sign() == Sign::Zero; }                                \
   bool isNegative() const { return sign() == Sign::Neg;  }                                \
   bool isPositive() const { return sign() == Sign::Pos;  }                                \
 
 
-/**
- * Exception to be thrown when the requested operation cannot be performed,
- * e.g. because of overflow of a native type.
- */
-class ArithmeticException : public Exception {
-protected:
-  ArithmeticException(std::string msg) : Exception(msg) {}
-};
-
-class DivByZeroException         : public ArithmeticException 
+class DivByZeroException : public Exception 
 { 
 public:
-  DivByZeroException() : ArithmeticException("divided by zero"){} 
+  DivByZeroException() : Exception("divided by zero"){} 
 };
 
 enum class Sign : uint8_t {
@@ -147,7 +139,6 @@ public:
 
   IntegerConstantType() { mpz_init(_val); }
   explicit IntegerConstantType(int v) : IntegerConstantType() { mpz_set_si(_val, v); }
-  explicit IntegerConstantType(const std::string& str);
 
   IntegerConstantType(IntegerConstantType     && o) : IntegerConstantType() { mpz_swap(_val, o._val); }
   IntegerConstantType(IntegerConstantType const& o) : IntegerConstantType() {  mpz_set(_val, o._val); }
@@ -158,6 +149,9 @@ public:
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
   IntegerConstantType operator-(const IntegerConstantType& num) const;
+  IntegerConstantType operator^(unsigned long num) const;
+
+  static Option<IntegerConstantType> parse(std::string const&);
 
   IntegerConstantType operator-() const;
   IntegerConstantType operator*(const IntegerConstantType& num) const;
@@ -203,11 +197,9 @@ public:
   Option<T> cvt() const { return someIf(MpzToMachineInt<T>::fits(_val), [&]() { return MpzToMachineInt<T>::cvt(_val); }); }
 
   template<class T> 
-  T truncate() { return MpzToMachineInt<T>::truncate(_val); }
+  T truncate() const { return MpzToMachineInt<T>::truncate(_val); }
 
   void rshiftBits(mp_bitcnt_t cnt) { mpz_tdiv_q_2exp(_val, _val, cnt); }
-
-  Sign sign() const;
 
   MK_SIGN_OPS
 
@@ -216,6 +208,8 @@ public:
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
+  auto defaultHash () const { return DefaultHash ::hash(truncate<unsigned long>()); }
+  auto defaultHash2() const { return DefaultHash2::hash(truncate<unsigned long>()); }
 
   friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
   friend struct RationalConstantType;
@@ -237,12 +231,31 @@ struct RationalConstantType {
 
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
+
+
   RationalConstantType() {}
 
   explicit RationalConstantType(int n);
   explicit RationalConstantType(IntegerConstantType num);
   RationalConstantType(int num, int den);
   RationalConstantType(IntegerConstantType num, IntegerConstantType den);
+
+  static Option<RationalConstantType> parse(std::string const& number)
+  {
+    size_t i = number.find_first_of("/");
+    if (i == std::string::npos) {
+      return IntegerConstantType::parse(number)
+        .map([](auto x) { return RationalConstantType(std::move(x)); });
+    } else {
+      return IntegerConstantType::parse(number.substr(0,i))
+        .map([&](auto a) {
+            return IntegerConstantType::parse(number.substr(i + 1))
+               .map([&](auto b) {
+                   return RationalConstantType(std::move(a),std::move(b));
+               });
+            }).flatten();
+    }
+  }
 
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
@@ -276,8 +289,6 @@ struct RationalConstantType {
   const InnerType& denominator() const { return _den; }
   size_t hash() const;
 
-  Sign sign() const;
-
   MK_SIGN_OPS
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
@@ -287,6 +298,9 @@ struct RationalConstantType {
   MK_CAST_OPS(RationalConstantType, int)
   MK_CAST_OPS(RationalConstantType, IntegerConstantType)
   MK_CAST_OP(RationalConstantType, /, int)
+
+  auto defaultHash () const { return HashUtils::combine(_num.defaultHash(), _den.defaultHash()); }
+  auto defaultHash2() const { return HashUtils::combine(_num.defaultHash2(), _den.defaultHash2()); }
 
 private:
   void cannonize();
@@ -308,12 +322,13 @@ public:
   RealConstantType(const RealConstantType&) = default;
   RealConstantType& operator=(const RealConstantType&) = default;
 
-  explicit RealConstantType(const std::string& number);
+  static Option<RealConstantType> parse(std::string const&);
   explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
   RealConstantType(IntegerConstantType num) : RationalConstantType(num) {}
   RealConstantType(int num, int den) : RationalConstantType(num, den) {}
   explicit RealConstantType(int number) : RealConstantType(RationalConstantType(number)) {}
   RealConstantType(typename RationalConstantType::InnerType  num, typename RationalConstantType::InnerType den) : RealConstantType(RationalConstantType(num, den)) {}
+
 
 #define BIN_OP_FROM_RAT(op) \
   RealConstantType operator op(const RealConstantType& num) const \
@@ -330,8 +345,6 @@ public:
   IntegerConstantType floor() const { return this->RationalConstantType::floor(); }
   IntegerConstantType ceiling() const { return this->RationalConstantType::ceiling(); }
   IntegerConstantType truncate() const { return this->RationalConstantType::truncate(); }
-
-  Sign sign() const;
 
   MK_SIGN_OPS
 
@@ -350,8 +363,6 @@ public:
   MK_CAST_OPS(RealConstantType, IntegerConstantType)
   MK_CAST_OP(RealConstantType, /, int)
 
-private:
-  static bool parseDouble(const std::string& num, RationalConstantType& res);
 };
 
 inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
@@ -644,8 +655,6 @@ public:
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
 
-  Term* representIntegerConstant(std::string str);
-  Term* representRealConstant(std::string str);
 private:
   Theory();
   static OperatorType* getConversionOperationType(Interpretation i);
@@ -760,7 +769,7 @@ extern Theory* theory;
 
 std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self);
 
-}
+} // namespace Kernel
 
 template<>
 struct std::hash<Kernel::IntegerConstantType>

@@ -51,3 +51,18 @@ void Lib::setMemoryLimit(size_t limit) {
   // TODO should we warn here?
 #endif
 }
+
+long Lib::peakMemoryUsageKB() {
+#ifdef HAVE_RLIMIT
+  struct rusage usage;
+  if (getrusage(RUSAGE_SELF, &usage) == 0) {
+#if defined(__APPLE__) && defined(__MACH__)
+    return (usage.ru_maxrss >> 10); // at least more recent MacOses report in bytes
+#else
+    return usage.ru_maxrss;
+#endif
+  }
+#endif
+
+  return 0;
+}

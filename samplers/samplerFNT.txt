@@ -1,17 +1,12 @@
 # MACRO DEFINITIONS
 
-# set $has_z3 to false, if you want to sample without it
+# set $has_z3 to false, if you want to sample without it (here it currently affects whether fmbes=smt will possibly get sampled)
 > $has_z3 ~cat true:1
 
 # PREPROCESSING
 
 # blocked_clause_elimination
 > bce ~cat off:5,on:1
-
-# equality_proxy
-intent=unsat > ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
-# mono_ep
-ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
 > erd ~cat on:10,off:1
@@ -44,72 +39,33 @@ $ins=NZ > ins ~sgd 0.4,1
 # twee_goal_transformation
 > tgt ~cat off:10,ground:6,full:5
 
-# set_of_support
-intent=unsat > sos ~cat off:80,on:17,all:10
-
-# sine_selection
-intent=unsat > ss ~cat off:1182,included:135,axioms:392
-
-# sine_depth
-intent=unsat ss!=off > sd ~cat 0:45,1:13,2:12,3:5,4:4,5:4,7:3,10:2,12:1,15:1
-
-# sine_generality_threshold
-intent=unsat ss!=off > sgt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
-
-# sine_tolerance
-intent=unsat ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
-
 # unused_predicate_definition_removal
 > updr ~cat on:16,off:1
 
 # SATURATION
 
 # saturation_algorithms
-intent=unsat > sa ~cat fmb:10,lrs:600,discount:572,otter:236
-intent=sat > sa ~cat fmb:22,otter:60,discount:28
-
-# lrs_first_time_check
-> $lftc ~cat N:5,Y:1
-sa=lrs $lftc=Y > lftc ~ui 5,95
+> sa ~cat fmb:22,otter:60,discount:28
 
 # literal selection
 > $s_pos ~cat Y:4,N:1
-intent=unsat $s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
-intent=unsat $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
-
-intent=sat sa!=fmb $s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50
-intent=sat sa!=fmb $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50
+sa!=fmb $s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50
+sa!=fmb $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50
 
 # lookahaed_delay
 > $ls ~cat off:1
 sa!=fmb s=11 > $ls ~cat on:1
 sa!=fmb s=-11 > $ls ~cat on:1
-sa!=fmb s=1011 > $ls ~cat on:1
-sa!=fmb s=-1011 > $ls ~cat on:1
 
-sa!=fmb $ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
+$ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
 
 # age_weight_ratio
-sa!=fmb > $awr ~cat A:1,W:1,AW:98
+sa!=fmb > $awr ~cat A:1,AW:99
 sa!=fmb $awr=A > awr ~set 1:0
-sa!=fmb $awr=W > awr ~set 0:1
 sa!=fmb $awr=AW > awr ~u2r -10;4;:
 
 # random_awr
 sa!=fmb > rawr ~cat on:4,off:1
-
-# lrs_weight_limit_only
-sa=lrs > lwlo ~cat off:5,on:1
-
-# lrs_retroactive_deletes
-sa=lrs > lrd ~cat off:1,on:1
-
-# lrs_estimate_correction_coef
-# > $lecc ~cat 1:1
-# sa=lrs > $lecc ~cat 1:10,666:1
-# sa=lrs $lecc=1 > lecc ~cat 1.0:1
-# sa=lrs $lecc!=1 > lecc ~uf 0.5,2.0
-# TODO: leaving out weird timing dependent options
 
 # nongoal_weight_coefficient
 sa!=fmb > $nwc ~cat 1:2,666:1
@@ -121,7 +77,7 @@ sa!=fmb $nwc!=1 > nwc ~uf 0.5,15.0
 sa!=fmb nwc!=1 > rnwc ~cat off:5,on:1
 
 # literal_maximality_aftercheck
-sa!=fmb > lma ~cat off:500,on:83
+sa!=fmb  > lma ~cat off:500,on:83
 
 # POSITIVE LITERAL SPLIT QUEUE
 sa!=fmb > plsq ~cat off:4,on:1
@@ -137,17 +93,8 @@ plsq=on > plsqr ~u2r -5;7;,
 
 # INFERENCES
 
-# superposition (don't turn this off at home!)
-intent=unsat > sup ~cat on:100,off:1
-
 # simultaneous_superposition
 sa!=fmb sup=on > sims ~cat on:50,off:1
-
-# superposition_from_variables
-intent=unsat sup=on > sfv ~cat on:38,off:1
-
-# code_tree_subsumption
-sa!=fmb > cts ~cat on:3,off:1
 
 # forward_subsumption
 sa!=fmb > fs ~cat on:500,off:31
@@ -202,8 +149,7 @@ sa!=fmb > fd ~cat all:500,off:41,preordered:168
 > $drc ~cat 0:1
 fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
-intent=unsat $drc=1 > drc ~cat encompass:500,ordering:500,off:354
-intent=sat sa!=fmb $drc=1 > drc ~cat ordering:643,encompass:554
+sa!=fmb $drc=1 > drc ~cat on:643,encompass:554,off:520
 
 # demodulation_precompiled_comparison
 sa!=fmb $drc=1 > dpc ~cat on:1,off:1
@@ -211,14 +157,14 @@ sa!=fmb $drc=1 > dpc ~cat on:1,off:1
 # demodulation_only_equational
 sa!=fmb $drc=1 > doe ~cat on:1,off:1
 
-# forward_literal_rewriting
-intent=unsat > flr ~cat off:8,on:1
-
 # function_definition_introduction
 sa!=fmb > fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
 
 # inner_rewriting
 sa!=fmb > irw ~cat off:165,on:6
+
+# binary_resolution
+sa!=fmb urr=on > br ~cat on:10,off:1
 
 # SINE LEVELS and shit
 
@@ -253,8 +199,7 @@ sa!=fmb to=kbo > kmz ~cat off:200,on:1
 sa!=fmb to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv_arity:5,inv_frequency:8,frequency:2
 
 # literal_comparison_mode
-intent=unsat > lcm ~cat standard:500,reverse:66,predicate:51
-intent=sat sa!=fmb > lcm ~cat standard:500,reverse:66,predicate:51
+sa!=fmb > lcm ~cat standard:500,predicate:51
 
 # sine_to_pred_levels
 sa!=fmb lcm=standard > s2pl ~cat off:50,on:2,no:3
@@ -282,16 +227,16 @@ sa!=fmb > av ~cat on:15,off:4
 sa!=fmb > crc ~cat on:3,off:5
 
 # conditional_redundancy_ordering_constraints
-sa!=fmb crc=on > croc ~cat on:1,off:1
+crc=on > croc ~cat on:1,off:1
 
 # conditional_redundancy_avatar_constraints
-sa!=fmb av=on crc=on > crac ~cat on:1,off:1
+av=on crc=on > crac ~cat on:1,off:1
 
 # conditional_redundancy_literal_constraints
-sa!=fmb crc=on > crlc ~cat on:1,off:1
+crc=on > crlc ~cat on:1,off:1
 
 # sat_solver
-sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,z3:3
+sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,z3:1
 
 # avatar_add_complementary
 sa!=fmb av=on > aac ~cat none:147,ground:600
@@ -344,18 +289,14 @@ sa!=fmb av=on > nicw ~cat off:600,on:76
 # split_at_activation
 sa!=fmb av=on > sac ~cat off:3,on:1
 
-# Michael's clause cleaving TODO
-# intent=sat av=on > cm ~cat on:1
+# Michael's clause cleaving
+# av=on > cm ~cat on:1
 
-# BACK TO INFERENCES
+# BACK TO PREPROCESSING
 
 # unit_resulting_resolution
 sa!=fmb av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
 sa!=fmb av=off > urr ~cat off:1200,ec_only:162,on:340
-
-# binary_resolution
-intent=unsat > br ~cat on:8,off:1
-intent=sat sa!=fmb urr=on > br ~cat on:10,off:1
 
 # AVATAR SPLIT QUEUE
 
@@ -363,26 +304,26 @@ intent=sat sa!=fmb urr=on > br ~cat on:10,off:1
 sa!=fmb av=on > avsq ~cat off:5,on:1
 
 # avatar_split_queue_layered_arrangement
-sa!=fmb avsq=on > avsql ~cat off:4,on:1
+avsq=on > avsql ~cat off:4,on:1
 
 # avatar_split_queue_cutoffs
-sa!=fmb avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
 
 # avatar_split_queue_ratios
-sa!=fmb avsq=on > avsqr ~u2r -5;3;,
+avsq=on > avsqr ~u2r -5;3;,
 
 # GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
 # global_subsumption
 sa!=fmb > gs ~cat off:5,on:1
 
 # global_subsumption_explicit_minim
-sa!=fmb gs=on > gsem ~cat randomized:50,on:5,off:17
+gs=on > gsem ~cat randomized:50,on:5,off:17
 
 # global_subsumption_sat_solver_power
-sa!=fmb gs=on > gsssp ~cat propagation_only:20,full:1
+gs=on > gsssp ~cat propagation_only:20,full:1
 
 # global_subsumption_avatar_assumptions
-sa!=fmb gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
+gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 # MISC
 
@@ -390,7 +331,7 @@ sa!=fmb gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 # FMB options
 
-# fmb_enumeration_strategy (TODO: in the multi-sorted setting, sbeam makes only sense with intent=sat)
+# fmb_enumeration_strategy
 $has_z3=true  sa=fmb > fmbes ~cat sbeam:1,smt:1,contour:1
 $has_z3!=true sa=fmb > fmbes ~cat sbeam:1,contour:1
 
@@ -411,17 +352,12 @@ fmbdsb=on > fmbdsbt ~cat 1:5,2:2,3:1
 sa=fmb fmbes=sbeam > fmbksg ~cat off:2,on:1
 
 # fmb_start_size - setting this to values > 1 is making things "finite model incomplete" (but could save time for some problems)
-intent=sat sa=fmb > $fmbss ~cat 1:5,666:1
-intent=sat sa=fmb $fmbss=1 > fmbss ~cat 1:1
-intent=sat sa=fmb $fmbss=666 > fmbss ~sgd 0.1,1
+sa=fmb > $fmbss ~cat 1:5,666:1
+$fmbss=1 > fmbss ~cat 1:1
+$fmbss=666 > fmbss ~sgd 0.1,1
 
 # fmb_symmetry_symbol_order
 sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1
 
 # fmb_symmetry_ratio
 sa=fmb > fmbsr ~uf 1.0,2.5
-
-# MISSING:
-# Any theory reasoning options (including term algebras and sa=z3)
-# Any induction options
-# Any higher-order options (Higher-order options section)

@@ -1509,7 +1509,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
       TermList arg = SubstHelper::apply(type->arg(i), typeSubst);
       domain_sorts.push_back(self.getz3sort(arg));
     }
-    auto codomain = functor.isPredicate ? self._context->bool_sort() : self.getz3sort(type->result());
+    auto codomain = functor.isPredicate ? self._context->bool_sort() : self.getz3sort(SubstHelper::apply(type->result(), typeSubst));
     auto decl = self.z3_declare_fun(namebuf, domain_sorts, codomain);
     self._toZ3.insert(functor, decl);
     return decl;
@@ -1585,20 +1585,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
           if(symb->termAlgebraCons()) {
             auto ctor = findConstructor(trm);
             return ctor();
-          }
-          // TODO do we really have overflownConstants ?? not in evaluation(s) at least
-          if (symb->overflownConstant()) {
-            // too large for native representation, but z3 should cope
-            auto s = symb->fnType()->result();
-            if (s == IntTraits::sort()) {
-              return _context->int_val(symb->name().c_str());
-            } else if (s == RatTraits::sort()) {
-              return _context->real_val(symb->name().c_str());
-            } else if (s == RealTraits::sort()) {
-              return _context->real_val(symb->name().c_str());
-            } else {
-              ; // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
-            }
           }
 
           // If not value then create constant symbol
