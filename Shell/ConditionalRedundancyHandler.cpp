@@ -193,6 +193,9 @@ private:
         // }
 
         // collect statistics
+        if (e->ordCons.isNonEmpty()) {
+          env.statistics->skippedInferencesDueToOrderingConstraints++;
+        }
         if (!e->lits->isEmpty()) {
           env.statistics->skippedInferencesDueToLiteralConstraints++;
         }
@@ -204,7 +207,6 @@ private:
       }
     }
     matcher.reset();
-
     return false;
   }
 
@@ -235,7 +237,6 @@ private:
     }
 
     for (auto& ordCon : ordCons) {
-      ASS(!ordCon.rel);
       ASS(checkVars(ts,ordCon.lhs));
       ASS(checkVars(ts,ordCon.rhs));
       ASS(ordCon.lhs.containsAllVariablesOf(ordCon.rhs));
@@ -249,7 +250,7 @@ private:
       ASS(checkVars(ts,lit));
     });
 #endif
-  
+
     e->lits = LiteralSet::getFromIterator(lits->iter().map([&r](Literal* lit) {
       return r.apply(lit);
     }));
@@ -260,7 +261,7 @@ private:
     if (!splits->isEmpty()) {
       splitter->addConditionalRedundancyEntry(splits, e);
     }
-  
+
     return e;
   }
 
@@ -300,7 +301,7 @@ private:
   };
 
   struct VariantMatcher
-  : public RemovingMatcher
+  : public RemovingMatcher<true>
   {
   public:
     void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
