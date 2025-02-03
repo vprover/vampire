@@ -1310,7 +1310,7 @@ static void AVATARSplitClause(std::ostream &out, Unit *derived) {
   UnitIterator parents = derived->getParents();
   ALWAYS(parents.hasNext())
   Clause *parent = parents.next()->asClause();
-  SATClause *sat = env.proofExtra.get<SplitClauseExtra>(derived).clause;
+  SATClause *sat = env.proofExtra.get<SATClauseExtra>(derived).clause;
 
   std::unordered_map<unsigned, Clause *> components;
   while(parents.hasNext()) {

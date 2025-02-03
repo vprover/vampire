@@ -1551,9 +1551,7 @@ struct InferenceStore::SMTCheckPrinter
 
   void print()
   {
-    out << "(declare-sort I 0)\n";
-    out << "(declare-const inhabit I)\n";
-    UIHelper::outputSymbolDeclarations(out);
+    SMTCheck::outputSignature(out);
     ProofPrinter::print();
   }
 

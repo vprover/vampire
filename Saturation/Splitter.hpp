@@ -50,9 +50,9 @@ using namespace Indexing;
 
 typedef Stack<SplitLevel> SplitLevelStack;
 
-struct SplitClauseExtra : public InferenceExtra {
+struct SATClauseExtra : public InferenceExtra {
   SATClause *clause;
-  SplitClauseExtra(SATClause *clause) : clause(clause) {}
+  SATClauseExtra(SATClause *clause) : clause(clause) {}
   void output(std::ostream &out) const override;
 };
 

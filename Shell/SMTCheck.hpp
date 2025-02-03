@@ -20,7 +20,7 @@
 namespace Shell {
 namespace SMTCheck {
 
-void outputTypeDecl(std::ostream &out, const std::string &name, Kernel::OperatorType *type);
+void outputSignature(std::ostream &out);
 void outputStep(std::ostream &out, Kernel::Unit *u);
 
 }
