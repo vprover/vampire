@@ -62,7 +62,7 @@ public:
   /** After calling @b init, repeated calls to @b next results in all
    *  user-defined (non-null) data that has true corresponding ordering
    *  constraints, or in null when no further such data can be retreived. */
-  void* next(POStruct* po_struct = nullptr);
+  void* next();
 
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
@@ -72,6 +72,8 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
 private:
+  Result positivityCheck() const;
+
   /** Processes current node until it is either (i) a term or poly node whose result
    *  cannot be inferred from earlier comparisons, or (ii) a data node.
    *  We maintain the invariant that the subgraph containing only processed nodes
@@ -272,18 +274,14 @@ public:
 
   struct SomeIterator {
     SomeIterator(OrderingComparator& comp, const SubstApplicator* appl, const TermPartialOrdering* tpo)
-      : _comp(comp), _appl(appl), _tpo(tpo)
-    {
-      _path.push(&_comp._source);
-    }
+      : _comp(comp), _appl(appl), _tpo(tpo) {}
 
     bool check(bool& backtracked);
 
     OrderingComparator& _comp;
     const SubstApplicator* _appl;
     const TermPartialOrdering* _tpo;
-    Stack<Branch*> _path;
-    Stack<unsigned> _btStack;
+    Recycled<Stack<Branch*>> _btStack;
   };
 
   struct Iterator2 {

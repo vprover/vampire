@@ -161,7 +161,7 @@ public:
   Result compare(TermList tl1, TermList tl2) const override;
 
   Result compare(AppliedTerm t1, AppliedTerm t2, const TermPartialOrdering* tpo = nullptr) const override;
-  Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2, POStruct* po_struct = nullptr) const override;
+  Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const override;
   OrderingComparatorUP createComparator(bool onlyVars = false, bool ground = false, const TermPartialOrdering* head = nullptr) const override;
 
 protected:
@@ -206,19 +206,17 @@ private:
     int _negNum;
     /** First comparison result */
     Result _lexResult;
-    POStruct* _po_struct;
   public:
     /** Initialise the state */
     State() {}
 
-    void init(POStruct* po_struct = nullptr)
+    void init()
     {
       _weightDiff=0;
       _posNum=0;
       _negNum=0;
       _lexResult=EQUAL;
       _varDiffs.reset();
-      _po_struct=po_struct;
     }
 
     /**

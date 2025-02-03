@@ -191,7 +191,9 @@ bool ForwardGroundReducibility::perform(Clause* cl, ClauseIterator& replacements
 
           if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
             TermList other = EqHelper::getOtherEqualitySide(clit, trm);
-            auto redComp = ordering.compareUnidirectional(other, rhsApplied, &po_struct);
+            // TODO implement this like in ground joinability
+            INVALID_OPERATION("implement this");
+            auto redComp = ordering.compareUnidirectional(other, rhsApplied);
             if (redComp != Ordering::GREATER) {
               continue;
             }

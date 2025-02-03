@@ -1090,17 +1090,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
 
-  // if (eqClDataPtr && !(*eqClDataPtr)->checkWithOrdering(_ord, subs, eqIsResult, ordCons)) {
-  //   env.statistics->skippedSuperposition++;
-  //   return false;
-  // }
-
-  // if (rwClDataPtr && !(*rwClDataPtr)->checkWithOrdering(_ord, subs, !eqIsResult, ordCons)) {
-  //   env.statistics->skippedSuperposition++;
-  //   return false;
-  // }
-
-  if (ordCons.isEmpty() || ordCons.size()>2) {
+  if (ordCons.size()>2) {
     return true;
   }
 
@@ -1161,7 +1151,16 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return false;
   };
 
-  if (ordCons.size()==1) {
+  if (ordCons.isEmpty()) {
+
+    env.statistics->structInduction++;
+    auto tpo = TermPartialOrdering::getEmpty(*_ord);
+    if (!checkFn(eqClDataPtr, eqTs, tpo) && !checkFn(rwClDataPtr, rwTs, tpo)) {
+      return true;
+    }
+
+  } else if (ordCons.size()==1) {
+
     env.statistics->generalizedInductionApplication++;
     OrderingComparator::GreaterIterator git(*_ord, ordCons[0].lhs, ordCons[0].rhs);
 
@@ -1184,6 +1183,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
       return true;
     }
   } else {
+
     env.statistics->generalizedInductionApplicationInProof++;
     ASS_EQ(ordCons.size(),2);
     OrderingComparator::GreaterIterator git(*_ord, ordCons[0].lhs, ordCons[0].rhs);

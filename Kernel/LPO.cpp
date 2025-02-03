@@ -96,7 +96,7 @@ Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartia
   return clpo(tl1, tl2);
 }
 
-Ordering::Result LPO::compareUnidirectional(AppliedTerm lhs, AppliedTerm rhs, POStruct* po_struct) const
+Ordering::Result LPO::compareUnidirectional(AppliedTerm lhs, AppliedTerm rhs) const
 {
   return lpo(lhs,rhs);
 }

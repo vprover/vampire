@@ -47,7 +47,7 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
   Result compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartialOrdering* tpo = nullptr) const override;
-  Result compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2, POStruct* po_struct = nullptr) const override;
+  Result compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) const override;
   OrderingComparatorUP createComparator(bool onlyVars = false, bool ground = false, const TermPartialOrdering* head = nullptr) const override;
 
   void showConcrete(std::ostream&) const override;

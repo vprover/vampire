@@ -64,7 +64,7 @@ void OrderingComparator::init(const SubstApplicator* appl)
   _appl = appl;
 }
 
-void* OrderingComparator::next(POStruct* po_struct)
+void* OrderingComparator::next()
 {
   ASS(_appl);
   ASS(_curr);
@@ -86,48 +86,13 @@ void* OrderingComparator::next(POStruct* po_struct)
       return node->data;
     }
 
-    Ordering::Result comp = Ordering::INCOMPARABLE;
-    if (node->tag == Node::T_TERM) {
+    Ordering::Result comp =
+      (node->tag == Node::T_TERM)
+      ? _ord.compareUnidirectional(
+          AppliedTerm(node->lhs, _appl, true),
+          AppliedTerm(node->rhs, _appl, true))
+      : positivityCheck();
 
-      comp = _ord.compareUnidirectional(
-        AppliedTerm(node->lhs, _appl, true),
-        AppliedTerm(node->rhs, _appl, true), po_struct);
-
-    } else {
-      ASS_EQ(node->tag, Node::T_POLY);
-
-      const auto& kbo = static_cast<const KBO&>(_ord);
-      auto weight = node->poly->constant;
-      ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
-        AppliedTerm tt(TermList::var(var), _appl, true);
-
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-          // since the counts are sorted in descending order,
-          // this can only mean we will fail
-          if (varDiffs[v.var()]<0) {
-            goto loop_end;
-          }
-        }
-        int64_t w = kbo.computeWeight(tt);
-        weight += coeff*w;
-        // due to descending order of counts,
-        // this also means failure
-        if (coeff<0 && weight<0) {
-          goto loop_end;
-        }
-      }
-
-      if (weight > 0) {
-        comp = Ordering::GREATER;
-      } else if (weight == 0) {
-        comp = Ordering::EQUAL;
-      }
-    }
-loop_end:
     _prev = _curr;
     _curr = &node->getBranch(comp);
   }
@@ -174,6 +139,45 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
   }
 
   _sink = newFail;
+}
+
+Ordering::Result OrderingComparator::positivityCheck() const
+{
+  auto node = _curr->node();
+  ASS(node->ready);
+  ASS_EQ(node->tag, Node::T_POLY);
+
+  const auto& kbo = static_cast<const KBO&>(_ord);
+  auto weight = node->poly->constant;
+  ZIArray<int> varDiffs;
+  for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
+    AppliedTerm tt(TermList::var(var), _appl, true);
+
+    VariableIterator vit(tt.term);
+    while (vit.hasNext()) {
+      auto v = vit.next();
+      varDiffs[v.var()] += coeff;
+      // since the counts are sorted in descending order,
+      // this can only mean we will fail
+      if (varDiffs[v.var()]<0) {
+        return Ordering::INCOMPARABLE;
+      }
+    }
+    int64_t w = kbo.computeWeight(tt);
+    weight += coeff*w;
+    // due to descending order of counts,
+    // this also means failure
+    if (coeff<0 && weight<0) {
+      return Ordering::INCOMPARABLE;
+    }
+  }
+
+  if (weight > 0) {
+    return Ordering::GREATER;
+  } else if (weight == 0) {
+    return Ordering::EQUAL;
+  }
+  return Ordering::INCOMPARABLE;
 }
 
 bool OrderingComparator::checkAndCompress()
@@ -510,13 +514,11 @@ bool OrderingComparator::Iterator::hasNext()
 bool OrderingComparator::SomeIterator::check(bool& backtracked)
 {
   backtracked = false;
+  _comp.init(_appl);
+
   using Node = OrderingComparator::Node;
 
-  while (_path.isNonEmpty()) {
-    auto& curr = _path.top();
-
-    _comp._prev = (_path.size()==1) ? nullptr : _path[_path.size()-2];
-    _comp._curr = curr;
+  for (;;) {
     _comp.processCurrentNode();
 
     auto node = _comp._curr->node();
@@ -525,13 +527,14 @@ bool OrderingComparator::SomeIterator::check(bool& backtracked)
     if (node->tag == Node::T_DATA) {
       if (!node->data) {
         // try to backtrack
+        if (_tpo == TermPartialOrdering::getEmpty(_comp._ord)) {
+          return false;
+        }
         bool btd = false;
-        while (_btStack.isNonEmpty()) {
-          auto index = _btStack.pop();
-          ASS(index);
-          _path.truncate(index);
+        while (_btStack->isNonEmpty()) {
+          auto branch = _btStack->pop();
 
-          auto node = _path.top()->node();
+          auto node = branch->node();
           ASS(node->ready);
           ASS_NEQ(node->tag, Node::T_DATA);
 
@@ -542,7 +545,8 @@ bool OrderingComparator::SomeIterator::check(bool& backtracked)
             OrderingComparator::Iterator2 it(_comp._ord, lhs, rhs, _tpo);
             auto val = it.get();
             if (val != Ordering::INCOMPARABLE) {
-              _path.push(&node->getBranch(val));
+              _comp._prev = branch;
+              _comp._curr = &node->getBranch(val);
               btd = true;
               backtracked = true;
               break;
@@ -590,53 +594,18 @@ bool OrderingComparator::SomeIterator::check(bool& backtracked)
       return true;
     }
 
-    Ordering::Result res = Ordering::INCOMPARABLE;
-    if (node->tag == Node::T_TERM) {
+    Ordering::Result res =
+      (node->tag == Node::T_TERM)
+      ? _comp._ord.compareUnidirectional(
+          AppliedTerm(node->lhs, _appl, true),
+          AppliedTerm(node->rhs, _appl, true))
+      : _comp.positivityCheck();
 
-      res = _comp._ord.compareUnidirectional(
-        AppliedTerm(node->lhs, _appl, true),
-        AppliedTerm(node->rhs, _appl, true));
-
-    } else {
-      ASS_EQ(node->tag, Node::T_POLY);
-
-      const auto& kbo = static_cast<const KBO&>(_comp._ord);
-      auto weight = node->poly->constant;
-      ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
-        AppliedTerm tt(TermList::var(var), _appl, true);
-
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-          // since the counts are sorted in descending order,
-          // this can only mean we will fail
-          if (varDiffs[v.var()]<0) {
-            goto loop_end;
-          }
-        }
-        int64_t w = kbo.computeWeight(tt);
-        weight += coeff*w;
-        // due to descending order of counts,
-        // this also means failure
-        if (coeff<0 && weight<0) {
-          goto loop_end;
-        }
-      }
-
-      if (weight > 0) {
-        res = Ordering::GREATER;
-      } else if (weight == 0) {
-        res = Ordering::EQUAL;
-      }
-    }
-loop_end:
-    _comp._prev = _comp._curr;
     if (res == Ordering::INCOMPARABLE) {
-      _btStack.push(_path.size());
+      _btStack->push(_comp._curr);
     }
-    _path.push(&node->getBranch(res));
+    _comp._prev = _comp._curr;
+    _comp._curr = &node->getBranch(res);
   }
   return false;
 }

@@ -100,7 +100,7 @@ public:
    * This is useful in simplifications such as demodulation where
    * only the result being greater matters and in runtime specialized
    * ordering checks (see OrderingComparator). */
-  virtual Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2, POStruct* po_struct = nullptr) const
+  virtual Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const
   { return compare(t1, t2); }
 
   /** Creates optimised object for ordering checks. @see OrderingComparator. */
