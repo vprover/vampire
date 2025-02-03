@@ -28,9 +28,9 @@
 
 using namespace Kernel;
 using Indexing::Splitter;
+using SortMap = DHMap<unsigned, TermList>;
 
-// get N parents of a unit
-// TODO merge with Dedukti version
+// get first N parents of a unit
 template<unsigned N, typename T>
 std::array<T *, N> getParents(T *unit) {
   std::array<T *, N> parents;
@@ -43,46 +43,52 @@ std::array<T *, N> getParents(T *unit) {
   return parents;
 }
 
+struct Name {
+  std::string_view name;
+  Name(std::string_view name) : name(name) {}
+};
 
-static void outputName(std::ostream &out, const std::string &name) {
-  out << '|' << name << '|';
+static std::ostream &operator<<(std::ostream &out, Name name) {
+  return out << '|' << name.name << '|';
 }
 
-static void outputVar(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, unsigned var) {
-  if(conclSorts.findPtr(var))
-    out << "v" << var;
-  else
-    out << "inhabit";
-}
+struct Args {
+  TermList *start;
+  SortMap &conclSorts;
+};
 
-static void outputArgs(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, TermList *start) {
-  ASS(start->isNonEmpty())
+static std::ostream &operator<<(std::ostream &out, Args args) {
+  if(args.start->isEmpty())
+    return out;
 
   Stack<TermList *> todo;
-  TermList *current = start;
+  TermList *current = args.start;
   while(true) {
     out << " ";
     if(current->isVar()) {
-      outputVar(out, conclSorts, current->var());
+      unsigned var = current->var();
+      if(args.conclSorts.findPtr(var))
+        out << "v" << var;
+      else
+        out << "inhabit";
       current = current->next();
     }
     else if(current->isTerm()) {
       Term *term = current->term();
       if(term->arity()) {
-        out << "(";
-        outputName(out, term->functionName());
+        out << "(" << Name(term->functionName());
         todo.push(current->next());
         current = term->args();
       }
       else {
-        outputName(out, term->functionName());
+        out << Name(term->functionName());
         current = current->next();
       }
     }
 
     while(current->isEmpty()) {
       if(todo.isEmpty())
-        return;
+        return out;
 
       current = todo.pop();
       out << ")";
@@ -90,44 +96,38 @@ static void outputArgs(std::ostream &out, DHMap<unsigned, TermList> &conclSorts,
   }
 }
 
-static void outputTerm(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, TermList tl) {
-  if(tl.isVar()) {
-    outputVar(out, conclSorts, tl.var());
-    return;
-  }
+struct Lit {
+  Literal *literal;
+  SortMap &conclSorts;
+};
 
-  else if(tl.isTerm()) {
-    Term *term = tl.term();
-    if(term->arity())
-      out << "(";
-    outputName(out, term->functionName());
-    if(term->arity())
-      outputArgs(out, conclSorts, term->args());
-    if(term->arity())
-      out << ")";
-  }
-}
-
-static void outputLiteral(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Literal *literal) {
+static std::ostream &operator<<(std::ostream &out, Lit lit) {
+  Literal *literal = lit.literal;
   if(!literal->polarity())
     out << "(not ";
   if(literal->arity())
     out << "(";
-  outputName(out, literal->predicateName());
-  if(literal->arity()) {
-    outputArgs(out, conclSorts, literal->args());
+  out << Name(literal->predicateName()) << Args {literal->args(), lit.conclSorts};
+  if(literal->arity())
     out << ")";
-  }
   if(!literal->polarity())
     out << ")";
+  return out;
 }
 
-static void outputSplit(std::ostream &out, unsigned split, bool flip = false) {
-  SATLiteral sat = Splitter::getLiteralFromName(split);
-  out
-    << (flip != sat.polarity() ? "" : "(not ")
+template<bool flip = false>
+struct Split {
+  unsigned level;
+  Split(unsigned level) : level(level) {}
+};
+
+template<bool flip>
+static std::ostream &operator<<(std::ostream &out, Split<flip> split) {
+  SATLiteral sat = Splitter::getLiteralFromName(split.level);
+  return out
+    << (flip == sat.polarity() ? "(not " : "")
     << "sp" << sat.var()
-    << (flip != sat.polarity() ? "" : ")");
+    << (flip == sat.polarity() ? ")" : "");
 }
 
 struct Identity {
@@ -148,44 +148,36 @@ struct DoRobSubst {
 };
 
 template<typename Transform>
-static void outputPremise(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *cl, Transform transform) {
+static void outputPremise(std::ostream &out, SortMap &conclSorts, Clause *cl, Transform transform) {
   out << "(assert (or";
-  for(Literal *l : cl->iterLits()) {
-    out << " ";
-    outputLiteral(out, conclSorts, transform(l));
+  for(Literal *l : *cl) {
+    out << " " << Lit {transform(l), conclSorts};
   }
   if(cl->splits()) {
     SplitSet &clSplits = *cl->splits();
     for(unsigned i = 0; i < clSplits.size(); i++) {
-      out << " ";
-      outputSplit(out, clSplits[i]);
+      out << " " << Split(clSplits[i]);
     }
   }
   out << "))\n";
 }
 
-static void outputPremise(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *cl) {
+static void outputPremise(std::ostream &out, SortMap &conclSorts, Clause *cl) {
   outputPremise(out, conclSorts, cl, Identity());
 }
 
-static void outputConclusion(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *cl) {
-  for(Literal *l : cl->iterLits()) {
-    out << "(assert ";
-    outputLiteral(out, conclSorts, Literal::complementaryLiteral(l));
-    out << ")\n";
-  }
+static void outputConclusion(std::ostream &out, SortMap &conclSorts, Clause *cl) {
+  for(Literal *l : *cl)
+    out << "(assert " << Lit {Literal::complementaryLiteral(l), conclSorts} << ")\n";
 
   if(cl->splits()) {
     SplitSet &clSplits = *cl->splits();
-    for(unsigned i = 0; i < clSplits.size(); i++) {
-      out << "(assert ";
-      outputSplit(out, clSplits[i], true);
-      out << ")\n";
-    }
+    for(unsigned i = 0; i < clSplits.size(); i++)
+      out << "(assert " << Split<true>(clSplits[i]) << ")\n";
   }
 }
 
-static DHMap<unsigned, TermList> outputSkolems(std::ostream &out, Unit *u) {
+static SortMap outputSkolemsAndGetSorts(std::ostream &out, Unit *u) {
   DHMap<unsigned, TermList> sorts;
   SortHelper::collectVariableSorts(u, sorts);
   auto it = sorts.items();
@@ -226,7 +218,7 @@ static void outputSplits(std::ostream &out, Unit *u) {
     out << "(declare-const sp" << Splitter::getLiteralFromName(split).var() << " Bool)\n";
 }
 
-static void outputTrivial(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
+static void trivial(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
   UnitIterator parents = concl->getParents();
   while(parents.hasNext()) {
     Unit *parent = parents.next();
@@ -236,7 +228,7 @@ static void outputTrivial(std::ostream &out, DHMap<unsigned, TermList> &conclSor
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void outputResolution(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
+static void resolution(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
   auto [left, right] = getParents<2>(concl);
   const auto &br = env.proofExtra.get<Inferences::BinaryResolutionExtra>(concl);
 
@@ -258,7 +250,7 @@ static void outputResolution(std::ostream &out, DHMap<unsigned, TermList> &concl
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void outputSubsumptionResolution(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
+static void subsumptionResolution(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
   auto [left, right] = getParents<2>(concl);
   auto sr = env.proofExtra.get<Inferences::LiteralInferenceExtra>(concl);
   Literal *m = sr.selectedLiteral;
@@ -273,7 +265,7 @@ static void outputSubsumptionResolution(std::ostream &out, DHMap<unsigned, TermL
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void outputSuperposition(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
+static void superposition(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
   auto [left, right] = getParents<2>(concl);
   auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(concl);
 
@@ -305,31 +297,34 @@ static void outputSuperposition(std::ostream &out, DHMap<unsigned, TermList> &co
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static bool isDemodulatorFor(Literal *demodulator, TermList target) {
+// check whether `demodulator` l = r rewrites left-to-right in the context of C[t] -> C[s]
+// TODO copied from Dedukti, merge at some point
+static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermList target, Clause *result) {
   ASS(demodulator->isEquality())
   ASS(demodulator->isPositive())
 
+  // TODO this is waaay overkill, but it's very hard to work out which way a demodulator was used
+  // consult MH about how best to do this
   SimpleSubstitution subst;
-  if(!MatchingUtils::matchTerms((*demodulator)[0], target, subst))
+  if(!MatchingUtils::matchTerms(demodulator->termArg(0), target, subst))
     return false;
+  TermList rhsSubst = SubstHelper::apply(demodulator->termArg(1), subst);
 
-  Ordering &ordering = *Ordering::tryGetGlobalOrdering();
-  return ordering.compare(
-    SubstHelper::apply((*demodulator)[0], subst),
-    SubstHelper::apply((*demodulator)[1], subst)
-  ) == Ordering::GREATER;
+  for(Literal *l : rewritten->iterLits())
+    if(!result->contains(l) && !result->contains(EqHelper::replace(l, target, rhsSubst)))
+      return false;
+
+  return true;
 }
 
-static void outputDemodulation(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
+static void demodulation(std::ostream &out, DHMap<unsigned, TermList> &conclSorts, Clause *concl) {
   auto [left, right] = getParents<2>(concl);
   auto rw = env.proofExtra.get<Inferences::RewriteInferenceExtra>(concl);
 
   SimpleSubstitution subst;
   Literal *rightLit = (*right)[0];
   TermList target = rw.rewritten;
-  TermList from = isDemodulatorFor(rightLit, target)
-    ? (*rightLit)[0]
-    : (*rightLit)[1];
+  TermList from = rightLit->termArg(!isL2RDemodulatorFor(rightLit, left, target, concl));
   ASS(rightLit->isEquality())
   ASS(rightLit->isPositive())
   ASS(rightLit->termArg(0) == from || rightLit->termArg(1) == from)
@@ -344,9 +339,7 @@ namespace Shell {
 namespace SMTCheck {
 
 void outputTypeDecl(std::ostream &out, const std::string &name, OperatorType *type) {
-  out << "(declare-fun ";
-  outputName(out, name);
-
+  out << "(declare-fun " << Name(name);
   TermList range = type->result();
 
   // we don't support polymorphism yet
@@ -371,24 +364,24 @@ void outputStep(std::ostream &out, Unit *u) {
   out << "(push)\n";
 
   bool sorry = false;
-  auto conclSorts = outputSkolems(out, u);
+  auto conclSorts = outputSkolemsAndGetSorts(out, u);
   outputSplits(out, u);
   switch(rule) {
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
-    outputTrivial(out, conclSorts, u->asClause());
+    trivial(out, conclSorts, u->asClause());
     break;
   case InferenceRule::RESOLUTION:
-    outputResolution(out, conclSorts, u->asClause());
+    resolution(out, conclSorts, u->asClause());
     break;
   case InferenceRule::SUBSUMPTION_RESOLUTION:
-    outputSubsumptionResolution(out, conclSorts, u->asClause());
+    subsumptionResolution(out, conclSorts, u->asClause());
     break;
   case InferenceRule::SUPERPOSITION:
-    outputSuperposition(out, conclSorts, u->asClause());
+    superposition(out, conclSorts, u->asClause());
     break;
   case InferenceRule::FORWARD_DEMODULATION:
   case InferenceRule::BACKWARD_DEMODULATION:
-    outputDemodulation(out, conclSorts, u->asClause());
+    demodulation(out, conclSorts, u->asClause());
     break;
   default:
     sorry = true;
