@@ -139,6 +139,9 @@ public:
 
   bool insert(const Ordering* ord, const TermStack& ts, ConditionalRedundancyEntry* ptr)
   {
+    // if (iterTraits(ts.iter()).map([](TermList t) { return t.weight(); }).sum() > ts.size()*5) {
+    //   return true;
+    // }
     CodeStack code;
 #define LINEARIZE 1
 #if LINEARIZE
@@ -158,12 +161,16 @@ public:
       ptr->ordCons.push({ TermList::var(x), TermList::var(y), Ordering::EQUAL });
     }
     compiler.updateCodeTree(this);
+    // if (ptr->ordCons.isEmpty()) {
+    //   delete ptr;
+    //   return true;
+    // }
 
     auto es = new Entries();
 #if DEBUG_ORDERING
     es->comps.push(ptr);
 #endif
-    es->comparator = ord->createComparator(false, true);
+    es->comparator = ord->createComparator();
     es->comparator->insert(ptr->ordCons, (void*)0x1);
     code.push(CodeOp::getSuccess(es));
 
@@ -1076,6 +1083,10 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return true;
   }
 
+  if constexpr (!ordC) {
+    return true;
+  }
+
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
 
@@ -1139,7 +1150,9 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
         while ((es = matcher.next()))
         {
           ASS(es->comparator);
-          if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
+          OrderingComparator::SomeIterator someIt(*es->comparator, &applicator, tpo);
+          if (someIt.check()) {
+          // if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
             found = true;
             break;
           }
@@ -1154,7 +1167,9 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
         while ((es = matcher.next()))
         {
           ASS(es->comparator);
-          if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
+          OrderingComparator::SomeIterator someIt(*es->comparator, &applicator, tpo);
+          if (someIt.check()) {
+          // if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
             found = true;
             break;
           }
@@ -1196,7 +1211,9 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
           while ((es = matcher.next()))
           {
             ASS(es->comparator);
-            if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo2)) {
+            OrderingComparator::SomeIterator someIt(*es->comparator, &applicator, tpo2);
+            if (someIt.check()) {
+            // if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo2)) {
               found = true;
               break;
             }
@@ -1211,7 +1228,9 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
           while ((es = matcher.next()))
           {
             ASS(es->comparator);
-            if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
+            OrderingComparator::SomeIterator someIt(*es->comparator, &applicator, tpo2);
+            if (someIt.check()) {
+            // if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo2)) {
               found = true;
               break;
             }

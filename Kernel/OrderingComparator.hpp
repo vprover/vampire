@@ -269,6 +269,33 @@ public:
     Stack<std::tuple<Branch*,Branch*,const TermPartialOrdering*,bool>> todo;
     std::pair<Result,const TermPartialOrdering*> res;
   };
+
+  struct SomeIterator {
+    SomeIterator(OrderingComparator& comp, const SubstApplicator* appl, const TermPartialOrdering* tpo)
+      : _comp(comp), _appl(appl), _tpo(tpo)
+    {
+      _path.push(&_comp._source);
+    }
+
+    bool check();
+
+    OrderingComparator& _comp;
+    const SubstApplicator* _appl;
+    const TermPartialOrdering* _tpo;
+    Stack<Branch*> _path;
+    Stack<unsigned> _btStack;
+  };
+
+  struct Iterator2 {
+    Iterator2(const Ordering& ord, TermList lhs, TermList rhs, const TermPartialOrdering* tpo);
+
+    Result get();
+
+    enum Res { GT = 0x1, EQ = 0x2, LT = 0x3, };
+
+    OrderingComparator* _comp;
+    const TermPartialOrdering* _tpo;
+  };
 };
 
 } // namespace Kernel
