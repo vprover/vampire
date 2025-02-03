@@ -698,7 +698,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   OperatorType* type = function ? sym->fnType() :
                (typeCon ? sym->typeConType() : sym->predType());
 
-  if (type->isAllDefault() && (env.options->proof() != Options::Proof::DEDUKTI && env.options->proof() != Options::Proof::SMTCHECK)) {//TODO required
+  if (type->isAllDefault() && (env.options->proof() != Options::Proof::DEDUKTI)) {//TODO required
     return;
   }
 
@@ -717,11 +717,6 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
       Dedukti::outputTypeDecl(out, symName.c_str(), type);
       return;
     }
-    else if(env.options->proof() == Options::Proof::SMTCHECK) {
-      SMTCheck::outputTypeDecl(std::cout, symName.c_str(), type);
-      return;
-    }
-
     out << (env.getMainProblem()->isHigherOrder() ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred"))
         << "_def_" << symNumber << ", type, "
