@@ -69,41 +69,34 @@ bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res, bool flag
     res = Result::EQUAL;
     return true;
   }
-  if (flag && !(_nodes.find(lhs) && _nodes.find(rhs))) {
-    return false;
-  }
   PoComp val;
   bool reversed = false;
   // If one or two of the terms is not in the partial ordering,
   // we try to relate them through terms in the relation
-  if (!_nodes.find(lhs) && !_nodes.find(rhs))
-  {
-    val = getTwoExternal(lhs, rhs);
+  auto px = _nodes.getPtr(lhs);
+  auto py = _nodes.getPtr(rhs);
+  if (flag && (!px || !py)) {
+    return false;
   }
-  else if (!_nodes.find(lhs))
-  {
-    ASS(_nodes.find(rhs));
-    size_t y = getId(rhs);
-    val = getOneExternal(lhs, y);
-  }
-  else if (!_nodes.find(rhs))
-  {
-    ASS(_nodes.find(lhs));
-    size_t x = getId(lhs);
-    val = getOneExternal(rhs, x);
-    reversed = true;
-  }
-  // Otherwise we relate them directly assuming that
-  // the relation is already transitively closed.
-  else
-  {
-    size_t x = getId(lhs);
-    size_t y = getId(rhs);
-    reversed = x > y;
-    if (reversed) {
-      swap(x,y);
+  if (!px) {
+    if (!py) {
+      val = getTwoExternal(lhs, rhs);
+    } else {
+      val = getOneExternal(lhs, *py);
     }
-    val = _po->get(x,y);
+  } else {
+    if (!py) {
+      val = getOneExternal(rhs, *px);
+      reversed = true;
+    } else {
+      size_t x = *px;
+      size_t y = *py;
+      reversed = x > y;
+      if (reversed) {
+        swap(x,y);
+      }
+      val = _po->get(x,y);
+    }
   }
   if (val == PoComp::UNKNOWN) {
     return false;

@@ -277,7 +277,7 @@ public:
       _path.push(&_comp._source);
     }
 
-    bool check();
+    bool check(bool& backtracked);
 
     OrderingComparator& _comp;
     const SubstApplicator* _appl;
@@ -295,6 +295,26 @@ public:
 
     OrderingComparator* _comp;
     const TermPartialOrdering* _tpo;
+  };
+
+  struct PolyIterator {
+    PolyIterator(const Ordering& ord, const Polynomial* poly, const TermPartialOrdering* tpo);
+
+    Result get();
+
+    const Polynomial* _poly;
+    const TermPartialOrdering* _tpo;
+  };
+
+  struct GreaterIterator {
+    GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs);
+
+    bool hasNext();
+    const TermPartialOrdering* next() { return _tpo; }
+
+    OrderingComparator& _comp;
+    const TermPartialOrdering* _tpo;
+    Stack<Branch*> _path;
   };
 };
 
