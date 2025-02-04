@@ -58,7 +58,7 @@ PoComp resultToPoComp(Result r, bool reversed) {
 
 // TermPartialOrdering
 
-bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res, bool flag) const
+bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res) const
 {
   // comparable terms should be handled by caller
   ASS_EQ(_ord.compare(lhs,rhs),Ordering::INCOMPARABLE);
@@ -75,9 +75,6 @@ bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res, bool flag
   // we try to relate them through terms in the relation
   auto px = _nodes.getPtr(lhs);
   auto py = _nodes.getPtr(rhs);
-  if (flag && (!px || !py)) {
-    return false;
-  }
   if (!px) {
     if (!py) {
       val = getTwoExternal(lhs, rhs);
@@ -117,15 +114,6 @@ bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res, bool flag
     res = poCompToResult(val);
     return true;
   }
-}
-
-Ordering::Result TermPartialOrdering::get(TermList lhs, TermList rhs) const
-{
-  Result res;
-  if (!get(lhs, rhs, res, true)) {
-    return Ordering::INCOMPARABLE;
-  }
-  return res;
 }
 
 const TermPartialOrdering* TermPartialOrdering::getEmpty(const Ordering& ord)

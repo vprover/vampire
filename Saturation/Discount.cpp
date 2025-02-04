@@ -26,10 +26,10 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Saturation;
 
-void Discount::onActiveAdded(Clause* cl)
+
+ClauseContainer* Discount::getSimplifyingClauseContainer()
 {
-  SaturationAlgorithm::onActiveAdded(cl);
-  _simplCont.add(cl);
+  return _active;
 }
 
 bool Discount::handleClauseBeforeActivation(Clause* cl)

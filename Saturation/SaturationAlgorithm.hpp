@@ -95,7 +95,7 @@ public:
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
 
-  ClauseContainer* getSimplifyingClauseContainer() { return &_simplCont; }
+  virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
   ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
     return _extensionality;
@@ -149,7 +149,7 @@ protected:
   void activate(Clause* c);
   void removeSelected(Clause*);
   virtual void onSOSClauseAdded(Clause* c) {}
-  virtual void onActiveAdded(Clause* c);
+  void onActiveAdded(Clause* c);
   virtual void onActiveRemoved(Clause* c);
   virtual void onPassiveAdded(Clause* c);
   virtual void onPassiveRemoved(Clause* c);
@@ -190,7 +190,6 @@ protected:
   std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
-  FakeContainer _simplCont;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;

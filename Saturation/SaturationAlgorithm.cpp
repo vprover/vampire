@@ -212,8 +212,8 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0),
-    _splitter(0), _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
+    _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _conditionalRedundancyHandler(), _generatedClauseCount(0),
     _activationLimit(0)
@@ -354,9 +354,6 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
  */
 void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
-  if(c->store()==Clause::ACTIVE) {
-    _simplCont.remove(c);
-  }
   ASS(c->store()==Clause::ACTIVE);
   c->setStore(Clause::NONE);
   // at this point the c object may be deleted

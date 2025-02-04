@@ -178,66 +178,6 @@ Ordering::Result OrderingComparator::positivityCheck() const
   return Ordering::INCOMPARABLE;
 }
 
-bool OrderingComparator::checkAndCompress()
-{
-  bool res = true;
-
-  Stack<Branch*> path;
-  path.push(&_source);
-  while (path.isNonEmpty()) {
-    if (path.size()==1) {
-      _prev = nullptr;
-    } else {
-      _prev = path[path.size()-2];
-    }
-    _curr = path.top();
-    processCurrentNode();
-
-    auto node = _curr->node();
-    if (node->tag != Node::T_DATA) {
-      path.push(&node->gtBranch);
-      continue;
-    }
-    if (!node->data) {
-      res = false;
-    }
-    while (path.isNonEmpty()) {
-      auto curr = path.pop();
-      if (path.isEmpty()) {
-        continue;
-      }
-
-      auto prev = path.top()->node();
-      ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
-      // if there is a previous node and we were either in the gt or eq
-      // branches, just go to next branch in order, otherwise backtrack
-      if (curr == &prev->gtBranch) {
-        path.push(&prev->eqBranch);
-        break;
-      }
-      if (curr == &prev->eqBranch) {
-        path.push(&prev->ngeBranch);
-        break;
-      }
-      // all subtrees traversed, let's compress if possible
-      ASS_EQ(curr, &prev->ngeBranch);
-      if (prev->gtBranch.node()->tag != Node::T_DATA ||
-          prev->eqBranch.node()->tag != Node::T_DATA ||
-          prev->ngeBranch.node()->tag != Node::T_DATA)
-      {
-        continue;
-      }
-      if (prev->gtBranch.node()->data != prev->eqBranch.node()->data ||
-          prev->eqBranch.node()->data != prev->ngeBranch.node()->data)
-      {
-        continue;
-      }
-      *path.top() = Branch(prev->gtBranch.node()->data, _sink);
-    }
-  }
-  return res;
-}
-
 OrderingComparator::Iterator::Iterator(
   const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs)
   : comp(OrderingComparator::createForSingleComparison(ord,lhs,rhs,/*ground=*/true))

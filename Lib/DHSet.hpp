@@ -164,8 +164,6 @@ public:
   class Iterator
   {
   public:
-    DECL_ELEMENT_TYPE(Val);
-
     Iterator(const DHSet& parent) : _mit(parent._map) {}
 
     bool hasNext() { return _mit.hasNext(); }

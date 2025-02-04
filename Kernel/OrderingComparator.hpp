@@ -26,9 +26,6 @@ namespace Shell {
 
 namespace Kernel {
 
-class KBOComparator;
-class LPOComparator;
-
 /**
  * Class implementing term ordering diagrams which handle the following
  * problem. Given pairs (C_1,d_1),...,(C_n,d_n) where C_i are conjunctions
@@ -59,8 +56,6 @@ public:
 
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
-
-  bool checkAndCompress();
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 

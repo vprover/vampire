@@ -55,8 +55,7 @@ class TermPartialOrdering
 public:
   /** Gets relation between two terms. If they are related, returns true
    *  and set the relation in @b res. Otherwise returns false. */
-  bool get(TermList lhs, TermList rhs, Result& res, bool flag = false) const;
-  Result get(TermList lhs, TermList rhs) const;
+  bool get(TermList lhs, TermList rhs, Result& res) const;
 
   /** Get empty relation. */
   static const TermPartialOrdering* getEmpty(const Ordering& ord);

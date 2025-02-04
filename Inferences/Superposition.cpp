@@ -451,11 +451,8 @@ Clause* Superposition::performSuperposition(
   // }
 
   if (!unifier->usesUwa()) {
-    if (!condRedHandler.insertSuperposition(
-      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr()))
-    {
-      return 0;
-    }
+    condRedHandler.insertSuperposition(
+      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);

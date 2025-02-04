@@ -437,8 +437,7 @@ void NonVariableIterator::right()
  */
 Term* NonVariableNonTypeIterator::next()
 {
-  auto [t, pos] = _stack.pop();
-  _currPos = pos;
+  Term* t = _stack.pop();
   TermList* ts;
   _added = 0;
   unsigned taArity;
@@ -474,9 +473,7 @@ Term* NonVariableNonTypeIterator::next()
   for(unsigned i = taArity; i < arity; i++){
     ts = t->nthArgument(i);
     if (ts->isTerm()) {
-      auto argPos = pos;
-      argPos.push(i);
-      _stack.push({ const_cast<Term*>(ts->term()), argPos });
+      _stack.push(const_cast<Term*>(ts->term()));
       _added++;
     }
   }

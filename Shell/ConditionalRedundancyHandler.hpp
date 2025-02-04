@@ -86,9 +86,6 @@ struct ConditionalRedundancyEntry
 };
 
 struct Entries {
-#if DEBUG_ORDERING
-  Stack<ConditionalRedundancyEntry*> comps;
-#endif
   OrderingComparatorUP comparator;
 };
 
@@ -109,7 +106,7 @@ public:
   virtual bool checkSuperposition2(
     Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const = 0;
 
-  virtual bool insertSuperposition(
+  virtual void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
@@ -118,11 +115,7 @@ public:
 
   virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const = 0;
 
-  virtual void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const = 0;
-
   virtual void checkEquations(Clause* cl) const = 0;
-
-  static void transfer(Clause* from, Clause* to);
 
 protected:
   class ConstraintIndex;
@@ -153,7 +146,7 @@ public:
   bool checkSuperposition2(
     Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const override;
 
-  bool insertSuperposition(
+  void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const override;
 
@@ -167,8 +160,6 @@ public:
   bool isSuperpositionPremiseRedundant(
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
     const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
-
-  void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const override;
 
   void checkEquations(Clause* cl) const override;
 

@@ -661,21 +661,9 @@ public:
   : _stack(8),
     _added(0)
   {
-    _stack.push({ term, Stack<unsigned>() });
+    _stack.push(term);
     if (!includeSelf) {
       NonVariableNonTypeIterator::next();
-    }
-  }
-  NonVariableNonTypeIterator(TermList t0, TermList t1)
-  : _stack(8),
-    _added(0)
-  {
-    // reverse order so that t0 is traversed first
-    if (t1.isTerm()) {
-      _stack.push({ t1.term(), { 1 } });
-    }
-    if (t0.isTerm()) {
-      _stack.push({ t0.term(), { 0 } });
     }
   }
   // NonVariableIterator(TermList ts);
@@ -683,12 +671,10 @@ public:
   /** true if there exists at least one subterm */
   bool hasNext() { return !_stack.isEmpty(); }
   Term* next();
-  Stack<unsigned> currPos() const { return _currPos; }
   void right();
 private:
   /** available non-variable subterms */
-  Stack<std::pair<Term*,Stack<unsigned>>> _stack;
-  Stack<unsigned> _currPos;
+  Stack<Term*> _stack;
   /** the number of non-variable subterms added at the last iteration, used by right() */
   int _added;
 }; // NonVariableIterator
