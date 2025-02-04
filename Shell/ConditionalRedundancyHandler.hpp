@@ -56,11 +56,11 @@ namespace Shell {
 using namespace Lib;
 using namespace Indexing;
 
-using OrderingConstraints = Stack<TermOrderingConstraint>;
 using LiteralSet = SharedSet<Literal*>;
 
-struct ConditionalRedundancyEntry
-{
+using OrderingConstraints = Stack<TermOrderingConstraint>;
+
+struct ConditionalRedundancyEntry {
   OrderingConstraints ordCons;
   const LiteralSet* lits;
   SplitSet* splits;
@@ -87,6 +87,7 @@ struct ConditionalRedundancyEntry
 
 struct Entries {
   OrderingComparatorUP comparator;
+  Stack<ConditionalRedundancyEntry*> entries;
 };
 
 class ConditionalRedundancyHandler
@@ -110,8 +111,6 @@ public:
 
   virtual bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const = 0;
-
-  virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const = 0;
 
   virtual void checkEquations(Clause* cl) const = 0;
 
@@ -149,9 +148,6 @@ public:
   /** Returns false if resolution should be skipped. */
   bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const override;
-
-  /** Returns false if inference should be skipped. */
-  bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const override;
 
   bool isSuperpositionPremiseRedundant(
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,

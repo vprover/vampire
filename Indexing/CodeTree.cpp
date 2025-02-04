@@ -1158,7 +1158,8 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
   }
 }
 
-void CodeTree::RemovingMatcher::init(CodeOp* entry_, LitInfo* linfos_,
+template<bool checkRange>
+void CodeTree::RemovingMatcher<checkRange>::init(CodeOp* entry_, LitInfo* linfos_,
     size_t linfoCnt_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   fresh=true;
@@ -1173,11 +1174,13 @@ void CodeTree::RemovingMatcher::init(CodeOp* entry_, LitInfo* linfos_,
   matchingClauses=tree->_clauseCodeTree;
   bindings.ensure(tree->_maxVarCnt);
   btStack.reset();
+  range.reset();
 
   curLInfo=0;
 }
 
-bool CodeTree::RemovingMatcher::next()
+template<bool checkRange>
+bool CodeTree::RemovingMatcher<checkRange>::next()
 {
   if(fresh) {
     fresh=false;
@@ -1253,7 +1256,8 @@ bool CodeTree::RemovingMatcher::next()
   }
 }
 
-bool CodeTree::RemovingMatcher::backtrack()
+template<bool checkRange>
+bool CodeTree::RemovingMatcher<checkRange>::backtrack()
 {
   if(btStack.isEmpty()) {
     curLInfo++;
@@ -1267,7 +1271,8 @@ bool CodeTree::RemovingMatcher::backtrack()
   return true;
 }
 
-bool CodeTree::RemovingMatcher::prepareLiteral()
+template<bool checkRange>
+bool CodeTree::RemovingMatcher<checkRange>::prepareLiteral()
 {
   firstsInBlocks->truncate(initFIBDepth);
   if(curLInfo>=linfoCnt) {
@@ -1279,7 +1284,8 @@ bool CodeTree::RemovingMatcher::prepareLiteral()
   return true;
 }
 
-inline bool CodeTree::RemovingMatcher::doSearchStruct()
+template<bool checkRange>
+inline bool CodeTree::RemovingMatcher<checkRange>::doSearchStruct()
 {
   ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
@@ -1293,7 +1299,8 @@ inline bool CodeTree::RemovingMatcher::doSearchStruct()
   return true;
 }
 
-inline bool CodeTree::RemovingMatcher::doCheckFun()
+template<bool checkRange>
+inline bool CodeTree::RemovingMatcher<checkRange>::doCheckFun()
 {
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
@@ -1307,7 +1314,8 @@ inline bool CodeTree::RemovingMatcher::doCheckFun()
   return true;
 }
 
-inline bool CodeTree::RemovingMatcher::doAssignVar()
+template<bool checkRange>
+inline bool CodeTree::RemovingMatcher<checkRange>::doAssignVar()
 {
   ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
@@ -1318,11 +1326,17 @@ inline bool CodeTree::RemovingMatcher::doAssignVar()
     return false;
   }
   bindings[var]=fte->_number();
+  if constexpr (checkRange) {
+    if (!range.insert(fte->_number())) {
+      return false;
+    }
+  }
   tp++;
   return true;
 }
 
-inline bool CodeTree::RemovingMatcher::doCheckVar()
+template<bool checkRange>
+inline bool CodeTree::RemovingMatcher<checkRange>::doCheckVar()
 {
   ASS_EQ(op->_instruction(), CHECK_VAR);
 
@@ -1336,7 +1350,8 @@ inline bool CodeTree::RemovingMatcher::doCheckVar()
   return true;
 }
 
-
+template struct CodeTree::RemovingMatcher<false>;
+template struct CodeTree::RemovingMatcher<true>;
 
 //////////////// retrieval ////////////////////
 
