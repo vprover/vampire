@@ -39,7 +39,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 

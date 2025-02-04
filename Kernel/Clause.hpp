@@ -70,7 +70,7 @@ public:
     NONE = 3u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
-    SELECTED = 4u,
+    SELECTED = 4u
   };
 
 

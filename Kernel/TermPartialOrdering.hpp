@@ -40,14 +40,6 @@ struct TermOrderingConstraint {
   { return out << con.lhs << " " << con.rhs << " " << con.rel; }
 };
 
-struct POStruct {
-  POStruct(const TermPartialOrdering* tpo)
-    : tpo(tpo), cons() {}
-
-  const TermPartialOrdering* tpo;
-  Stack<TermOrderingConstraint> cons;
-};
-
 /**
  * Class that represents a partial ordering between terms.
  * Uses @b PartialOrdering and is built similarly to increase
@@ -70,9 +62,6 @@ public:
   static const TermPartialOrdering* getEmpty(const Ordering& ord);
   /** Set relation between two terms given by a term ordering constraint. */
   static const TermPartialOrdering* set(const TermPartialOrdering* tpo, TermOrderingConstraint con);
-
-  static Result solveVarVar(POStruct* po_struct, AppliedTerm s, AppliedTerm t);
-  static Result solveTermVar(POStruct* po_struct, AppliedTerm s, AppliedTerm t);
 
   // Returns if PO contains full incomparability yet.
   // Useful to discard branches when reasoning over ground terms.

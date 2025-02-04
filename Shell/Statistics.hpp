@@ -192,10 +192,6 @@ public:
   unsigned globalSubsumption;
   /** number of interpreted simplifications */
   unsigned interpretedSimplifications;
-  unsigned forwardGroundJoinability;
-  unsigned forwardGroundReducibility;
-  unsigned groundRedundantClauses;
-  unsigned groundRedundantEquationOrientations;
 
   /** how often did asg not simplify correctly. */
   unsigned asgViolations;

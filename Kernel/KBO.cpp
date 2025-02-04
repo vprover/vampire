@@ -259,14 +259,6 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
       ASS(tt->isEmpty());
 
       if (!checkVars()) {
-        // if (_po_struct) {
-        //   auto res = TermPartialOrdering::solveLinearConstraint(
-        //     _po_struct, _weightDiff, _varDiffs);
-        //   if (res == Result::GREATER || res == Result::EQUAL) {
-        //     // TODO probably _lexResult needs to be modified
-        //     continue;
-        //   }
-        // }
         return INCOMPARABLE;
       }
       continue;
@@ -350,10 +342,7 @@ Ordering::Result KBO::State::traverseNonLex(KBO const& kbo, AppliedTerm tl1, App
   traverse<-1,unidirectional>(kbo, tl2);
 
   if constexpr (unidirectional) {
-    if (checkVars()) {
-      return GREATER;
-    }
-    return INCOMPARABLE;
+    return checkVars() ? GREATER : INCOMPARABLE;
   } else {
     return result(kbo, tl1, tl2);
   }
@@ -778,7 +767,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartialOrdering* tpo) const
+Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 {
   if(tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -885,9 +874,9 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) co
   return res;
 }
 
-OrderingComparatorUP KBO::createComparator(bool onlyVars, bool ground, const TermPartialOrdering* head) const
+OrderingComparatorUP KBO::createComparator(bool ground) const
 {
-  return make_unique<KBOComparator>(*this, onlyVars, ground, head);
+  return make_unique<KBOComparator>(*this, ground);
 }
 
 int KBO::symbolWeight(const Term* t) const

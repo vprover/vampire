@@ -84,7 +84,7 @@ Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartialOrdering* tpo) const
+Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 {
   if(tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -354,9 +354,9 @@ Ordering::Result LPO::lpoIterative(AppliedTerm a1, AppliedTerm a2) const
   return comp;
 }
 
-OrderingComparatorUP LPO::createComparator(bool onlyVars, bool ground, const TermPartialOrdering* head) const
+OrderingComparatorUP LPO::createComparator(bool ground) const
 {
-  return make_unique<LPOComparator>(*this, onlyVars, ground, head);
+  return make_unique<LPOComparator>(*this, ground);
 }
 
 void LPO::showConcrete(std::ostream&) const 
