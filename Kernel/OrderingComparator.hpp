@@ -37,9 +37,9 @@ namespace Kernel {
 struct OrderingComparator
 {
 public:
-  static OrderingComparator* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs, bool ground);
+  static OrderingComparator* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs);
 
-  OrderingComparator(const Ordering& ord, bool ground);
+  OrderingComparator(const Ordering& ord);
   virtual ~OrderingComparator();
 
   /** Has to be called each time a new retrieval is started. */
@@ -196,15 +196,12 @@ protected:
   Branch* _curr;
   Branch* _prev;
   const SubstApplicator* _appl;
-  bool _ground;
   bool _threeValued = false;
 
   struct TermNodeIterator {
     TermNodeIterator(const Ordering& ord, TermList lhs, TermList rhs, const TermPartialOrdering* tpo);
 
     Result get();
-
-    enum Res { GT = 0x1, EQ = 0x2, LT = 0x3, };
 
     OrderingComparator* _comp;
     const TermPartialOrdering* _tpo;

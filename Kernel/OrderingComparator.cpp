@@ -26,28 +26,27 @@ namespace Kernel {
 
 // OrderingComparator
 
-OrderingComparator* OrderingComparator::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs, bool ground)
+static Ordering::Result kGtPtr = Ordering::GREATER;
+static Ordering::Result kEqPtr = Ordering::EQUAL;
+
+OrderingComparator* OrderingComparator::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs)
 {
-  static Map<tuple<TermList,TermList,bool>,OrderingComparator*> cache; // TODO this leaks now
+  static Map<std::pair<TermList,TermList>,OrderingComparator*> cache; // TODO this leaks now
 
   OrderingComparator** ptr;
-  if (cache.getValuePtr({ lhs, rhs, ground }, ptr, nullptr)) {
-    *ptr = ord.createComparator(ground).release();
+  if (cache.getValuePtr({ lhs, rhs }, ptr, nullptr)) {
+    *ptr = ord.createComparator().release();
     (*ptr)->_threeValued = true;
     (*ptr)->_source = Branch(lhs, rhs);
-    (*ptr)->_source.node()->gtBranch = Branch((void*)0x1, (*ptr)->_sink);
-    (*ptr)->_source.node()->eqBranch = Branch((void*)0x2, (*ptr)->_sink);
-    if (ground) {
-      (*ptr)->_source.node()->ngeBranch = Branch((void*)0x3, (*ptr)->_sink);
-    } else {
-      (*ptr)->_source.node()->ngeBranch = (*ptr)->_sink;
-    }
+    (*ptr)->_source.node()->gtBranch = Branch(&kGtPtr, (*ptr)->_sink);
+    (*ptr)->_source.node()->eqBranch = Branch(&kEqPtr, (*ptr)->_sink);
+    (*ptr)->_source.node()->ngeBranch = (*ptr)->_sink;
   }
   return *ptr;
 }
 
-OrderingComparator::OrderingComparator(const Ordering& ord, bool ground)
-: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr), _ground(ground)
+OrderingComparator::OrderingComparator(const Ordering& ord)
+: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr)
 {
   _sink.node()->ready = true;
 }
@@ -65,7 +64,6 @@ void* OrderingComparator::next()
 {
   ASS(_appl);
   ASS(_curr);
-  ASS(!_ground);
 
   for (;;) {
     processCurrentNode();
@@ -275,8 +273,15 @@ void OrderingComparator::processCurrentNode()
       if (node->refcnt > 1) {
         *_curr = Branch(node->data, node->alternative);
       }
-      _curr->node()->trace = getCurrentTrace();
-      _curr->node()->ready = true;
+      auto trace = getCurrentTrace();
+      // this only happens when we try to enumerate all
+      // branches of the diagram, including invalid ones
+      if (!trace) {
+        *_curr = _sink;
+      } else {
+        _curr->node()->trace = trace;
+        _curr->node()->ready = true;
+      }
       return;
     }
     if (node->tag == Node::T_POLY) {
@@ -311,10 +316,8 @@ void OrderingComparator::processVarNode()
   auto node = _curr->node();
   auto trace = getCurrentTrace();
 
-  // If this happens this branch is invalid.
-  // Since normal execution cannot reach it,
-  // we can put a "success" here to make things
-  // easier in subsumption/simplification.
+  // this only happens when we try to enumerate all
+  // branches of the diagram, including invalid ones
   if (!trace) {
     *_curr = _sink;
     return;
@@ -349,6 +352,8 @@ void OrderingComparator::processPolyNode()
   auto trace = getCurrentTrace();
   auto prevPoly = getPrevPoly();
 
+  // this only happens when we try to enumerate all
+  // branches of the diagram, including invalid ones
   if (!trace) {
     *_curr = _sink;
     return;
@@ -475,11 +480,7 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
         res = Ordering::GREATER;
       } else {
         ASS_EQ(_curr, &_prev->node()->ngeBranch);
-        if (_ground) {
-          res = Ordering::LESS;
-        } else {
-          res = Ordering::INCOMPARABLE;
-        }
+        res = Ordering::INCOMPARABLE;
       }
       return Trace::set(_prev->node()->trace, { lhs, rhs, res });
     }
@@ -656,7 +657,7 @@ const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int co
 
 OrderingComparator::TermNodeIterator::TermNodeIterator(
   const Ordering& ord, TermList lhs, TermList rhs, const TermPartialOrdering* tpo)
-  : _comp(OrderingComparator::createForSingleComparison(ord,lhs,rhs,/*ground=*/false)), _tpo(tpo)
+  : _comp(OrderingComparator::createForSingleComparison(ord,lhs,rhs)), _tpo(tpo)
 {
 }
 
@@ -672,12 +673,9 @@ Ordering::Result OrderingComparator::TermNodeIterator::get()
     ASS(node->ready);
 
     if (node->tag == Node::T_DATA) {
-      if (node->data == (void*)GT) {
-        return Ordering::GREATER;
-      } else if (node->data == (void*)EQ) {
-        return Ordering::EQUAL;
+      if (node->data) {
+        return *static_cast<Result*>(node->data);
       }
-      ASS(!node->data);
       return Ordering::INCOMPARABLE;
     }
 
@@ -778,7 +776,7 @@ Ordering::Result OrderingComparator::PolyNodeIterator::get()
 }
 
 OrderingComparator::GreaterIterator::GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs)
-  : _comp(*OrderingComparator::createForSingleComparison(ord, lhs, rhs, true))
+  : _comp(*OrderingComparator::createForSingleComparison(ord, lhs, rhs))
 {
   _path.push(&_comp._source);
 }
@@ -819,10 +817,8 @@ bool OrderingComparator::GreaterIterator::hasNext()
       }
     }
     ASS(_comp._threeValued);
-    if (node->data == (void*)0x1 && node->trace) {
-      // TODO try to eliminate _ground completely
-      // ASS(node->trace);
-      // ASS(!node->trace->hasIncomp());
+    if (node->data && *static_cast<Result*>(node->data) == Ordering::GREATER) {
+      ASS(node->trace);
       _tpo = node->trace;
       return true;
     }

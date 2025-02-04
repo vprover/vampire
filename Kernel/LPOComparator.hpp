@@ -24,7 +24,7 @@ class LPOComparator
 : public OrderingComparator
 {
 public:
-  LPOComparator(const Ordering& ord, bool ground) : OrderingComparator(ord, ground) {}
+  LPOComparator(const Ordering& ord) : OrderingComparator(ord) {}
 
   void processTermNode() override;
 

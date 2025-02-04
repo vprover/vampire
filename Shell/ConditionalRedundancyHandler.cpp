@@ -508,6 +508,12 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   while (git.hasNext()) {
     auto tpo = git.next();
 
+    // this will fail as we have already
+    // failed in normal execution, stop
+    if (tpo == TermPartialOrdering::getEmpty(*_ord)) {
+      return true;
+    }
+
     if (!seen.insert(tpo)) {
       // already checked this tpo, success
       continue;

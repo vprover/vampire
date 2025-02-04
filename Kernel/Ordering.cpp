@@ -216,9 +216,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-OrderingComparatorUP Ordering::createComparator(bool ground) const
+OrderingComparatorUP Ordering::createComparator() const
 {
-  return std::make_unique<OrderingComparator>(*this, ground);
+  return std::make_unique<OrderingComparator>(*this);
 }
 
 //////////////////////////////////////////////////
