@@ -551,17 +551,13 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition2(
-  Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const
+  Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, TermList rwTermS, TermList tgtTermS) const
 {
   if constexpr (!enabled) {
     return true;
   }
 
   if constexpr (!ordC) {
-    return true;
-  }
-
-  if (ordCons.size()!=1) {
     return true;
   }
 
@@ -620,7 +616,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   };
 
   DHSet<const TermPartialOrdering*> seen;
-  OrderingComparator::GreaterIterator git(*_ord, ordCons[0].lhs, ordCons[0].rhs);
+  OrderingComparator::GreaterIterator git(*_ord, rwTermS, tgtTermS);
 
   while (git.hasNext()) {
     auto tpo = git.next();
@@ -678,7 +674,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   // }
 
   ASS(backtracked);
-  env.statistics->skippedInferencesDueToOrderingConstraints++;
+  env.statistics->skippedInferencesDueToImpliedOrderingConstraints++;
   env.statistics->skippedSuperposition++;
   return false;
 }

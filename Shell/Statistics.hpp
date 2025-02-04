@@ -157,6 +157,7 @@ public:
   unsigned skippedEqualityFactoring;
   unsigned skippedFactoring;
   unsigned skippedInferencesDueToOrderingConstraints;
+  unsigned skippedInferencesDueToImpliedOrderingConstraints;
   unsigned skippedInferencesDueToAvatarConstraints;
   unsigned skippedInferencesDueToLiteralConstraints;
   // Simplifying inferences

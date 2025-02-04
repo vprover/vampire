@@ -370,13 +370,8 @@ Clause* Superposition::performSuperposition(
   if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
-  OrderingConstraints ordCons;
-  if (comp == Ordering::INCOMPARABLE) {
-    ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
-  }
-
-  if (!unifier->usesUwa()) {
-    if (!condRedHandler.checkSuperposition2(eqClause, rwClause, eqIsResult, subst.ptr(), ordCons)) {
+  if (comp == Ordering::INCOMPARABLE && !unifier->usesUwa()) {
+    if (!condRedHandler.checkSuperposition2(eqClause, rwClause, eqIsResult, subst.ptr(), rwTermS, tgtTermS)) {
       return 0;
     }
   }
@@ -389,18 +384,12 @@ Clause* Superposition::performSuperposition(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      auto comp = ordering.getEqualityArgumentOrder(rwLitS);
-      if(Ordering::isGreaterOrEqual(comp)) {
+      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
-      }
-      if (comp == Ordering::INCOMPARABLE) {
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      auto comp = ordering.getEqualityArgumentOrder(rwLitS);
-      if(Ordering::isGreaterOrEqual(Ordering::reverse(comp))) {
+      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
-      }
-      if (comp == Ordering::INCOMPARABLE) {
       }
     }
   }

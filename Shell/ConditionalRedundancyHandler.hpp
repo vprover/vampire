@@ -103,7 +103,7 @@ public:
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual bool checkSuperposition2(
-    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const = 0;
+    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, TermList rwTermS, TermList tgtTermS) const = 0;
 
   virtual void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
@@ -139,7 +139,7 @@ public:
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition2(
-    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const override;
+    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, TermList rwTermS, TermList tgtTermS) const override;
 
   void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
