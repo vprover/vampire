@@ -162,21 +162,6 @@ private:
   Splitter* _splitter;
 };
 
-struct ConditionalRedundancyIterator {
-  ConditionalRedundancyIterator(OrderingComparator& comp) : _comp(comp) {}
-
-  void init(const TermPartialOrdering* tpo, const SubstApplicator* appl);
-
-  bool hasNext();
-  std::pair<Result, const TermPartialOrdering*> next() { return _res; }
-
-  OrderingComparator& _comp;
-  const SubstApplicator* _appl;
-  const TermPartialOrdering* _tpo;
-  Stack<std::tuple<OrderingComparator::Branch*,const TermPartialOrdering*,std::unique_ptr<OrderingComparator::Iterator>>> _path;
-  std::pair<Result, const TermPartialOrdering*> _res;
-};
-
 };
 
 #endif // __ConditionalRedundancyHandler__

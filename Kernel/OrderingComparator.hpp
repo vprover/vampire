@@ -20,10 +20,6 @@
 
 #include "Ordering.hpp"
 
-namespace Shell {
-  struct ConditionalRedundancyIterator;
-}
-
 namespace Kernel {
 
 /**
@@ -192,8 +188,6 @@ protected:
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
   friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
 
-  friend struct Shell::ConditionalRedundancyIterator;
-
   const Ordering& _ord;
   Branch _source;
   Branch _sink;
@@ -204,19 +198,6 @@ protected:
   bool _threeValued = false;
 
 public:
-  struct Iterator {
-    Iterator(const Ordering& ord, const TermPartialOrdering* trace, TermList lhs, TermList rhs);
-
-    bool hasNext();
-    std::pair<Result,const TermPartialOrdering*> next() { return res; }
-
-    enum Res { GT = 0x1, EQ = 0x2, LT = 0x3, };
-
-    OrderingComparator* comp;
-    Stack<std::tuple<Branch*,Branch*,const TermPartialOrdering*,bool>> todo;
-    std::pair<Result,const TermPartialOrdering*> res;
-  };
-
   struct SomeIterator {
     SomeIterator(OrderingComparator& comp, const SubstApplicator* appl, const TermPartialOrdering* tpo)
       : _comp(comp), _appl(appl), _tpo(tpo) {}
