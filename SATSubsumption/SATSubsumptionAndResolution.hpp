@@ -299,9 +299,9 @@ private:
   /* Variables */
 
   /// @brief the base clause (side premise)
-  Kernel::Clause *_L;
+  Kernel::Clause *_sidePremise;
   /// @brief the instance clause (main premise)
-  Kernel::Clause *_M;
+  Kernel::Clause *_mainPremise;
   /// @brief the number of literals in the base clause (side premise)
   unsigned _m;
   /// @brief the number of literals in the instance clause (main premise)
@@ -371,7 +371,7 @@ private:
   /**
    * Adds the clauses for the subsumption problem to the sat solver
    *
-   * @pre _L and _M must be set in the checker
+   * @pre _sidePremise and _mainPremise must be set in the checker
    * @pre the Match set is already filled
    * @return false if no solution is possible and true if there may exist a solution.
    */
@@ -392,7 +392,7 @@ private:
    * Adds the clauses for the subsumption resolution problem to the sat solver
    *
    * @remark The BindingsManager is not required to be set up in this method.
-   * @pre _L and _M must be set in the checker
+   * @pre _sidePremise and _mainPremise must be set in the checker
    * @pre the Match set is already filled
    * @return false if no solution is possible and true if there may exist a solution.
    */
@@ -444,7 +444,7 @@ private:
 public:
   using clock = std::chrono::steady_clock;
 
-  SATSubsumptionAndResolution() : _L(nullptr), _M(nullptr),
+  SATSubsumptionAndResolution() : _sidePremise(nullptr), _mainPremise(nullptr),
                                  _m(0), _n(0)
   { }
 

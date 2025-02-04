@@ -170,8 +170,8 @@ void SATSubsumptionAndResolution::loadProblem(Clause* L,
   cout << "----------------------------------------------" << endl;
   cout << "Setting up problem " << L->toString() << " " << M->toString() << endl;
 #endif
-  _L = L;
-  _M = M;
+  _sidePremise = L;
+  _mainPremise = M;
   _m = L->length();
   _n = M->length();
 
@@ -187,20 +187,20 @@ void SATSubsumptionAndResolution::loadProblem(Clause* L,
 
 /**
  * @brief Heuristically determine whether it is impossible to find a subsumption
- * between _L and _M.
+ * between _sidePremise and _mainPremise.
  *
- * The idea is to check whether the multiset of predicates in _L is a subset of
- * the multiset of predicates in _M. If it is not, then it is impossible to find
+ * The idea is to check whether the multiset of predicates in _sidePremise is a subset of
+ * the multiset of predicates in _mainPremise. If it is not, then it is impossible to find
  * a subsumption.
  *
  * @return true if subsumption is impossible, false if we don't know
  */
 bool SATSubsumptionAndResolution::pruneSubsumption()
 {
-  ASS(_L)
-  ASS(_M)
+  ASS(_sidePremise)
+  ASS(_mainPremise)
 
-  if (_L->length() > _M->length()) {
+  if (_sidePremise->length() > _mainPremise->length()) {
     // if #(L) > #(M) than it is impossible that σ(L) is a sub-multiset of M
     _subsumptionImpossible = true;
     return true;
@@ -219,25 +219,25 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
 
   // Our relative zero for counting is the timestamp.
   // We need to reset the vector only if the counts could overflow.
-  if (isAdditionOverflow<prune_t>(timestamp, _M->length())) {
+  if (isAdditionOverflow<prune_t>(timestamp, _mainPremise->length())) {
     // when timestamp wraps around, we reset the vector to 0.
     std::fill(headerMultiset.begin(), headerMultiset.end(), 0);
     timestamp = 0;
   }
 
   prune_t const zero = timestamp;
-  timestamp += _M->length();
+  timestamp += _mainPremise->length();
   ASS(std::all_of(headerMultiset.begin(), headerMultiset.end(), [&](prune_t x) { return x <= zero; }))
 
   // fill in the multiset of functors in M
-  for (unsigned i = 0; i < _M->length(); i++) {
-    unsigned const hdr = (*_M)[i]->header();
+  for (unsigned i = 0; i < _mainPremise->length(); i++) {
+    unsigned const hdr = (*_mainPremise)[i]->header();
     headerMultiset[hdr] = std::max(headerMultiset[hdr], zero) + 1;
   }
 
   // check if the multiset of functors in L is a subset of the multiset of functors in M
-  for (unsigned j = 0; j < _L->length(); j++) {
-    unsigned const hdr = (*_L)[j]->header();
+  for (unsigned j = 0; j < _sidePremise->length(); j++) {
+    unsigned const hdr = (*_sidePremise)[j]->header();
     // we need to do the check before decrementing to avoid wraparound and keep the invariant valid
     if (headerMultiset[hdr] <= zero) {
       _subsumptionImpossible = true;
@@ -260,21 +260,21 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
 
 /**
  * @brief Heuristically determine whether it is impossible to apply subsumption
- * resolution between _L and _M.
+ * resolution between _sidePremise and _mainPremise.
  *
- * The idea is to check whether the set of predicates in _L is a subset of the
- * set of predicates in _M. If it is not, then it is impossible to find a
+ * The idea is to check whether the set of predicates in _sidePremise is a subset of the
+ * set of predicates in _mainPremise. If it is not, then it is impossible to find a
  * subsumption resolution.
  *
- * TODO: functorSet is initialized from _M which is the same for the whole forward loop.
+ * TODO: functorSet is initialized from _mainPremise which is the same for the whole forward loop.
  *       we could re-use it for multiple pruning checks instead of filling it everytime.
  *
  * @return true if subsumption resolution is impossible, false if we don't know
  */
 bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
 {
-  ASS(_L)
-  ASS(_M)
+  ASS(_sidePremise)
+  ASS(_mainPremise)
 
   auto& functorSet = _pruneStorage;
   auto& timestamp = _pruneTimestamp;
@@ -290,11 +290,11 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   }
   ASS(std::all_of(functorSet.begin(), functorSet.end(), [&](prune_t x) { return x < timestamp; }));
 
-  for (unsigned i = 0; i < _M->length(); i++)
-    functorSet[(*_M)[i]->functor()] = timestamp;
+  for (unsigned i = 0; i < _mainPremise->length(); i++)
+    functorSet[(*_mainPremise)[i]->functor()] = timestamp;
 
-  for (unsigned j = 0; j < _L->length(); j++)
-    if (functorSet[(*_L)[j]->functor()] != timestamp)
+  for (unsigned j = 0; j < _sidePremise->length(); j++)
+    if (functorSet[(*_sidePremise)[j]->functor()] != timestamp)
       return true;
 
   return false;
@@ -309,11 +309,11 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder* binder,
   ASS(binder || isNullary)
   ASS(i < _m)
   ASS(j < _n)
-  ASS_EQ((*_L)[i]->functor(), (*_M)[j]->functor())
-  ASS_EQ((*_L)[i]->polarity() == (*_M)[j]->polarity(), polarity)
+  ASS_EQ((*_sidePremise)[i]->functor(), (*_mainPremise)[j]->functor())
+  ASS_EQ((*_sidePremise)[i]->polarity() == (*_mainPremise)[j]->polarity(), polarity)
   subsat::Var satVar = _solver.new_variable();
 #if PRINT_CLAUSES_SUBS
-  cout << satVar << " -> (" << (*_L)[i]->toString() << " " << (*_M)[j]->toString() << " " << (polarity ? "+" : "-") << ")" << endl;
+  cout << satVar << " -> (" << (*_sidePremise)[i]->toString() << " " << (*_mainPremise)[j]->toString() << " " << (polarity ? "+" : "-") << ")" << endl;
 #endif
   _matchSet.addMatch(i, j, polarity, satVar);
   if (!isNullary)
@@ -328,8 +328,8 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal* l_i,
 {
   ASS(l_i)
   ASS(m_j)
-  ASS_EQ((*_L)[i], l_i)
-  ASS_EQ((*_M)[j], m_j)
+  ASS_EQ((*_sidePremise)[i], l_i)
+  ASS_EQ((*_mainPremise)[j], m_j)
   ASS_EQ(l_i->functor(), m_j->functor())
   ASS_EQ(l_i->polarity() == m_j->polarity(), polarity)
 
@@ -353,8 +353,8 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal* l_i,
 
 bool SATSubsumptionAndResolution::fillMatchesS()
 {
-  ASS(_L)
-  ASS(_M)
+  ASS(_sidePremise)
+  ASS(_mainPremise)
   ASS_G(_m, 0)
   ASS_G(_n, 0)
   ASS_EQ(_matchSet._m, _m)
@@ -364,11 +364,11 @@ bool SATSubsumptionAndResolution::fillMatchesS()
 
   // number of matches found is equal to the number of variables in the SAT solver
   for (unsigned i = 0; i < _m; ++i) {
-    l_i = _L->literals()[i];
+    l_i = _sidePremise->literals()[i];
     bool foundMatch = false;
 
     for (unsigned j = 0; j < _n; ++j) {
-      m_j = _M->literals()[j];
+      m_j = _mainPremise->literals()[j];
       if (l_i->functor() != m_j->functor() || l_i->polarity() != m_j->polarity()) {
         continue;
       }
@@ -395,8 +395,8 @@ bool SATSubsumptionAndResolution::fillMatchesS()
 
 void SATSubsumptionAndResolution::fillMatchesSR(unsigned litToRemove)
 {
-  ASS(_L)
-  ASS(_M)
+  ASS(_sidePremise)
+  ASS(_mainPremise)
   ASS_G(_m, 0)
   ASS_G(_n, 0)
   ASS_EQ(_matchSet._m, _m)
@@ -409,7 +409,7 @@ void SATSubsumptionAndResolution::fillMatchesSR(unsigned litToRemove)
   Literal* firstOnlyNegativeMatch = nullptr;
 
   for (unsigned i = 0; i < _m; ++i) {
-    Literal* l_i = _L->literals()[i];
+    Literal* l_i = _sidePremise->literals()[i];
 
     // does lᵢ have a positive match in M?
     bool literalHasPositiveMatch = false;
@@ -417,7 +417,7 @@ void SATSubsumptionAndResolution::fillMatchesSR(unsigned litToRemove)
     bool literalHasNegativeMatch = false;
 
     for (unsigned j = 0; j < _n; ++j) {
-      Literal* m_j = _M->literals()[j];
+      Literal* m_j = _mainPremise->literals()[j];
       if (l_i->functor() != m_j->functor())
         continue;
       if (l_i->arity() == 0) {
@@ -478,10 +478,10 @@ void SATSubsumptionAndResolution::fillMatchesSR(unsigned litToRemove)
 
 bool SATSubsumptionAndResolution::cnfForSubsumption()
 {
-  ASS(_L)
-  ASS(_M)
-  ASS_GE(_matchSet.allMatches().size(), _L->length())
-  ASS_G(_L->length(), 0)
+  ASS(_sidePremise)
+  ASS(_mainPremise)
+  ASS_GE(_matchSet.allMatches().size(), _sidePremise->length())
+  ASS_G(_sidePremise->length(), 0)
   ASS(!_subsumptionImpossible)
 
   _matchSet.indexMatrix();
@@ -571,10 +571,10 @@ static std::vector<pair<unsigned, subsat::Var>> atMostOneVars;
  */
 bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 {
-  ASS(_L)
-  ASS(_M)
+  ASS(_sidePremise)
+  ASS(_mainPremise)
   // This should be pruned when filling the match set.
-  ASS_GE(_matchSet.allMatches().size(), _L->length())
+  ASS_GE(_matchSet.allMatches().size(), _sidePremise->length())
 
   atMostOneVars.clear();
   _matchSet.indexMatrix();
@@ -774,14 +774,14 @@ Clause* SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause* 
 
 Clause* SATSubsumptionAndResolution::generateConclusion()
 {
-  ASS(_L)
-  ASS(_M)
+  ASS(_sidePremise)
+  ASS(_mainPremise)
   ASS(_m > 0)
   ASS(_n > 0)
   ASS_EQ(_matchSet._m, _m)
   ASS_EQ(_matchSet._n, _n)
   ASS(_model.size() > 0)
-  ASS_GE(_matchSet.allMatches().size(), _L->length())
+  ASS_GE(_matchSet.allMatches().size(), _sidePremise->length())
 
   // Provided the solution of the sat solver, we can create the conclusion clause
 #if VDEBUG
@@ -823,9 +823,9 @@ Clause* SATSubsumptionAndResolution::generateConclusion()
       }
     }
   }
-  ASS_EQ(_n, _M->size())
+  ASS_EQ(_n, _mainPremise->size())
   ASS(toRemove != INVALID)
-  return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_M, (*_M)[toRemove], _L);
+  return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_mainPremise, (*_mainPremise)[toRemove], _sidePremise);
 } // SATSubsumptionResolution::generateConclusion
 
 bool SATSubsumptionAndResolution::checkSubsumption(Clause* L,
@@ -857,7 +857,7 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause* L,
   else if (pruneSubsumption() || !fillMatchesS())
     return false;
 
-  ASS_GE(_matchSet.allMatches().size(), _L->length())
+  ASS_GE(_matchSet.allMatches().size(), _sidePremise->length())
 
   // Create the constraints for the sat solver
   if (!cnfForSubsumption())
@@ -879,15 +879,15 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
   ASS(L)
   ASS(M)
   if (usePreviousSetUp) {
-    ASS(_L == L)
-    ASS(_M == M)
+    ASS(_sidePremise == L)
+    ASS(_mainPremise == M)
     if (_srImpossible) {
 #if PRINT_CLAUSES_SUBS
       cout << "SR impossible" << endl;
 #endif
       return nullptr;
     }
-    ASS_GE(_matchSet.allMatches().size(), _L->length())
+    ASS_GE(_matchSet.allMatches().size(), _sidePremise->length())
     // do not clear the variables and bindings
     _solver.clear_constraints();
   }
