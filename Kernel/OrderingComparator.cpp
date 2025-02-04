@@ -20,8 +20,6 @@
 
 #include "OrderingComparator.hpp"
 
-#include <deque>
-
 using namespace std;
 
 namespace Kernel {
@@ -96,6 +94,107 @@ void* OrderingComparator::next()
   }
   return nullptr;
 }
+
+bool OrderingComparator::check(const SubstApplicator* appl, const TermPartialOrdering* tpo, bool& backtracked)
+{
+  ASS_NEQ(tpo, TermPartialOrdering::getEmpty(_ord));
+  backtracked = false;
+  init(appl);
+
+  Stack<Branch*> btStack;
+  btStack.reset();
+
+  using Node = OrderingComparator::Node;
+
+  for (;;) {
+    processCurrentNode();
+
+    auto node = _curr->node();
+    ASS(node->ready);
+
+    if (node->tag == Node::T_DATA) {
+      if (!node->data) {
+        // try to backtrack
+        bool btd = false;
+        while (btStack.isNonEmpty()) {
+          auto branch = btStack.pop();
+
+          auto node = branch->node();
+          ASS(node->ready);
+          ASS_NEQ(node->tag, Node::T_DATA);
+
+          if (node->tag == Node::T_TERM) {
+            auto lhs = AppliedTerm(node->lhs, _appl, true).apply();
+            auto rhs = AppliedTerm(node->rhs, _appl, true).apply();
+
+            TermNodeIterator it(_ord, lhs, rhs, tpo);
+            auto val = it.get();
+            if (val != Ordering::INCOMPARABLE) {
+              _prev = branch;
+              _curr = &node->getBranch(val);
+              btd = true;
+              backtracked = true;
+              break;
+            }
+          }/*  else {
+            ASS_EQ(node->tag, Node::T_POLY);
+            const auto& kbo = static_cast<const KBO&>(_comp._ord);
+            auto weight = node->poly->constant;
+            ZIArray<int> varDiffs;
+            for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
+              AppliedTerm tt(TermList::var(var), _appl, true);
+
+              VariableIterator vit(tt.term);
+              while (vit.hasNext()) {
+                auto v = vit.next();
+                varDiffs[v.var()] += coeff;
+              }
+              int64_t w = kbo.computeWeight(tt);
+              weight += coeff*w;
+            }
+            Stack<VarCoeffPair> nonzeros;
+            for (unsigned i = 0; i < varDiffs.size(); i++) {
+              if (varDiffs[i]==0) {
+                continue;
+              }
+              nonzeros.push({ i, varDiffs[i] });
+            }
+            auto poly = Polynomial::get(weight, nonzeros);
+
+            PolyIterator polyIt(_comp._ord, poly, _tpo);
+            auto val = polyIt.get();
+            if (val != Ordering::INCOMPARABLE) {
+              _path.push(&node->getBranch(val));
+              btd = true;
+              backtracked = true;
+              break;
+            }
+          } */
+        }
+        if (!btd) {
+          return false;
+        }
+        continue;
+      }
+      return true;
+    }
+
+    Ordering::Result res =
+      (node->tag == Node::T_TERM)
+      ? _ord.compareUnidirectional(
+          AppliedTerm(node->lhs, _appl, true),
+          AppliedTerm(node->rhs, _appl, true))
+      : positivityCheck();
+
+    if (res == Ordering::INCOMPARABLE) {
+      btStack.push(_curr);
+    }
+    _prev = _curr;
+    _curr = &node->getBranch(res);
+  }
+  return false;
+}
+
 
 void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void* data)
 {
@@ -571,112 +670,13 @@ const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int co
 
 // Iterators
 
-bool OrderingComparator::SomeIterator::check(bool& backtracked)
-{
-  backtracked = false;
-  _comp.init(_appl);
-
-  using Node = OrderingComparator::Node;
-
-  for (;;) {
-    _comp.processCurrentNode();
-
-    auto node = _comp._curr->node();
-    ASS(node->ready);
-
-    if (node->tag == Node::T_DATA) {
-      if (!node->data) {
-        // try to backtrack
-        if (_tpo == TermPartialOrdering::getEmpty(_comp._ord)) {
-          return false;
-        }
-        bool btd = false;
-        while (_btStack->isNonEmpty()) {
-          auto branch = _btStack->pop();
-
-          auto node = branch->node();
-          ASS(node->ready);
-          ASS_NEQ(node->tag, Node::T_DATA);
-
-          if (node->tag == Node::T_TERM) {
-            auto lhs = AppliedTerm(node->lhs, _appl, true).apply();
-            auto rhs = AppliedTerm(node->rhs, _appl, true).apply();
-
-            OrderingComparator::Iterator2 it(_comp._ord, lhs, rhs, _tpo);
-            auto val = it.get();
-            if (val != Ordering::INCOMPARABLE) {
-              _comp._prev = branch;
-              _comp._curr = &node->getBranch(val);
-              btd = true;
-              backtracked = true;
-              break;
-            }
-          }/*  else {
-            ASS_EQ(node->tag, Node::T_POLY);
-            const auto& kbo = static_cast<const KBO&>(_comp._ord);
-            auto weight = node->poly->constant;
-            ZIArray<int> varDiffs;
-            for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
-              AppliedTerm tt(TermList::var(var), _appl, true);
-
-              VariableIterator vit(tt.term);
-              while (vit.hasNext()) {
-                auto v = vit.next();
-                varDiffs[v.var()] += coeff;
-              }
-              int64_t w = kbo.computeWeight(tt);
-              weight += coeff*w;
-            }
-            Stack<VarCoeffPair> nonzeros;
-            for (unsigned i = 0; i < varDiffs.size(); i++) {
-              if (varDiffs[i]==0) {
-                continue;
-              }
-              nonzeros.push({ i, varDiffs[i] });
-            }
-            auto poly = Polynomial::get(weight, nonzeros);
-
-            PolyIterator polyIt(_comp._ord, poly, _tpo);
-            auto val = polyIt.get();
-            if (val != Ordering::INCOMPARABLE) {
-              _path.push(&node->getBranch(val));
-              btd = true;
-              backtracked = true;
-              break;
-            }
-          } */
-        }
-        if (!btd) {
-          return false;
-        }
-        continue;
-      }
-      return true;
-    }
-
-    Ordering::Result res =
-      (node->tag == Node::T_TERM)
-      ? _comp._ord.compareUnidirectional(
-          AppliedTerm(node->lhs, _appl, true),
-          AppliedTerm(node->rhs, _appl, true))
-      : _comp.positivityCheck();
-
-    if (res == Ordering::INCOMPARABLE) {
-      _btStack->push(_comp._curr);
-    }
-    _comp._prev = _comp._curr;
-    _comp._curr = &node->getBranch(res);
-  }
-  return false;
-}
-
-OrderingComparator::Iterator2::Iterator2(
+OrderingComparator::TermNodeIterator::TermNodeIterator(
   const Ordering& ord, TermList lhs, TermList rhs, const TermPartialOrdering* tpo)
   : _comp(OrderingComparator::createForSingleComparison(ord,lhs,rhs,/*ground=*/false)), _tpo(tpo)
 {
 }
 
-Ordering::Result OrderingComparator::Iterator2::get()
+Ordering::Result OrderingComparator::TermNodeIterator::get()
 {
   using Node = OrderingComparator::Node;
 
@@ -748,13 +748,13 @@ Ordering::Result OrderingComparator::Iterator2::get()
   ASSERTION_VIOLATION;
 }
 
-OrderingComparator::PolyIterator::PolyIterator(
+OrderingComparator::PolyNodeIterator::PolyNodeIterator(
   const Ordering& ord, const Polynomial* poly, const TermPartialOrdering* tpo)
   : _poly(poly), _tpo(tpo)
 {
 }
 
-Ordering::Result OrderingComparator::PolyIterator::get()
+Ordering::Result OrderingComparator::PolyNodeIterator::get()
 {
   // int firstNegIndex = -1;
   // // stores how much is left in each positive

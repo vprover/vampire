@@ -493,9 +493,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     while ((es = matcher.next()))
     {
       ASS(es->comparator);
-      OrderingComparator::SomeIterator someIt(*es->comparator, &applicator, tpo);
       bool btd;
-      if (someIt.check(btd)) {
+      if (es->comparator->check(&applicator, tpo, btd)) {
         if (btd) {
           backtracked = true;
         }

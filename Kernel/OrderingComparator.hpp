@@ -50,6 +50,8 @@ public:
    *  constraints, or in null when no further such data can be retreived. */
   void* next();
 
+  bool check(const SubstApplicator* appl, const TermPartialOrdering* tpo, bool& backtracked);
+
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
 
@@ -197,21 +199,8 @@ protected:
   bool _ground;
   bool _threeValued = false;
 
-public:
-  struct SomeIterator {
-    SomeIterator(OrderingComparator& comp, const SubstApplicator* appl, const TermPartialOrdering* tpo)
-      : _comp(comp), _appl(appl), _tpo(tpo) {}
-
-    bool check(bool& backtracked);
-
-    OrderingComparator& _comp;
-    const SubstApplicator* _appl;
-    const TermPartialOrdering* _tpo;
-    Recycled<Stack<Branch*>> _btStack;
-  };
-
-  struct Iterator2 {
-    Iterator2(const Ordering& ord, TermList lhs, TermList rhs, const TermPartialOrdering* tpo);
+  struct TermNodeIterator {
+    TermNodeIterator(const Ordering& ord, TermList lhs, TermList rhs, const TermPartialOrdering* tpo);
 
     Result get();
 
@@ -221,8 +210,8 @@ public:
     const TermPartialOrdering* _tpo;
   };
 
-  struct PolyIterator {
-    PolyIterator(const Ordering& ord, const Polynomial* poly, const TermPartialOrdering* tpo);
+  struct PolyNodeIterator {
+    PolyNodeIterator(const Ordering& ord, const Polynomial* poly, const TermPartialOrdering* tpo);
 
     Result get();
 
@@ -230,6 +219,7 @@ public:
     const TermPartialOrdering* _tpo;
   };
 
+public:
   struct GreaterIterator {
     GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs);
 
