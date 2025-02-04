@@ -32,7 +32,6 @@ public:
     : SaturationAlgorithm(prb, opt) {}
 
   void onActiveAdded(Clause* cl) override;
-  void onGroundRedundantAdded(Clause* cl) override;
 
 protected:
 

@@ -71,8 +71,6 @@ public:
     /** clause is selected from the passive container
      * and is not added to the active one yet */
     SELECTED = 4u,
-    /** redundant clauses that we still use as simplifiers */
-    RETAINED_REDUNDANT = 5u,
   };
 
 
@@ -371,15 +369,6 @@ public:
 
   bool computable();
 
-  void setTod(void* tod) { _tod = tod; }
-  void* getTod() const { return _tod; }
-
-  void markRedundant() { _redundant = true; }
-  bool isRedundant() const { return _redundant; }
-
-  void setInfTod(void* infTod) { _infTod = infTod; }
-  void* getInfTod() const { return _infTod; }
-
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -412,10 +401,6 @@ protected:
   InverseLookup<Literal>* _literalPositions;
 
   int _numActiveSplits;
-
-  void* _tod;
-  bool _redundant;
-  void* _infTod;
 
   size_t _auxTimestamp;
   void* _auxData;

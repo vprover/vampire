@@ -350,11 +350,6 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if (rwClause->isRedundant() || eqClause->isRedundant()) {
-    env.statistics->skippedSuperposition++;
-    return 0;
-  }
-
   const auto& condRedHandler = _salg->condRedHandler();
   // if (!unifier->usesUwa()) {
   //   if (!condRedHandler.checkSuperposition(eqClause, eqLit, eqLHS, rwClause, rwLit, rwTerm, eqIsResult, subst.ptr())) {
@@ -405,61 +400,55 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if (getOptions().conditionalRedundancySubsumption()) {
+  // if (getOptions().conditionalRedundancySubsumption()) {
 
-    struct Applicator : SubstApplicator {
-      TermList operator()(unsigned v) const override {
-        // return _cache.getOrInit(v, [&](){ return _subst->apply(TermList::var(v), _result); });
-        return _subst->apply(TermList::var(v), _result);
-      }
-      void reset(ResultSubstitution* subst, bool result) {
-        _subst = subst;
-        _result = result;
-        // _cache.reset();
-      }
-      ResultSubstitution* _subst;
-      bool _result;
-      // mutable Map<unsigned,TermList> _cache;
-    };
+    // struct Applicator : SubstApplicator {
+    //   TermList operator()(unsigned v) const override {
+    //     // return _cache.getOrInit(v, [&](){ return _subst->apply(TermList::var(v), _result); });
+    //     return _subst->apply(TermList::var(v), _result);
+    //   }
+    //   void reset(ResultSubstitution* subst, bool result) {
+    //     _subst = subst;
+    //     _result = result;
+    //     // _cache.reset();
+    //   }
+    //   ResultSubstitution* _subst;
+    //   bool _result;
+    //   // mutable Map<unsigned,TermList> _cache;
+    // };
 
-    static Applicator rwAppl;
-    static Applicator eqAppl;
-    rwAppl.reset(subst.ptr(), !eqIsResult);
-    eqAppl.reset(subst.ptr(), eqIsResult);
+    // static Applicator rwAppl;
+    // static Applicator eqAppl;
+    // rwAppl.reset(subst.ptr(), !eqIsResult);
+    // eqAppl.reset(subst.ptr(), eqIsResult);
 
-    Stack<std::pair<OrderingComparator&, const SubstApplicator*>> rights;
-    auto rwTod = static_cast<OrderingComparator*>(rwClause->getTod());
-    if (rwTod) {
-      rights.push({ *rwTod, &rwAppl });
-    }
-    auto eqTod = static_cast<OrderingComparator*>(eqClause->getTod());
-    if (eqTod) {
-      rights.push({ *eqTod, &eqAppl });
-    }
-    struct IdApplicator : SubstApplicator {
-      TermList operator()(unsigned v) const override { return TermList::var(v); }
-    } idAppl;
+    // Stack<std::pair<OrderingComparator&, const SubstApplicator*>> rights;
+    // auto rwTod = static_cast<OrderingComparator*>(rwClause->getTod());
+    // if (rwTod) {
+    //   rights.push({ *rwTod, &rwAppl });
+    // }
+    // auto eqTod = static_cast<OrderingComparator*>(eqClause->getTod());
+    // if (eqTod) {
+    //   rights.push({ *eqTod, &eqAppl });
+    // }
+    // struct IdApplicator : SubstApplicator {
+    //   TermList operator()(unsigned v) const override { return TermList::var(v); }
+    // } idAppl;
 
-    Stack<std::pair<OrderingComparator&, const SubstApplicator*>> lefts;
-    for (const auto& con : ordCons) {
-      ASS_EQ(con.rel, Ordering::GREATER);
-      lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.lhs,con.rhs,/*ground=*/true), &idAppl });
-    }
+    // Stack<std::pair<OrderingComparator&, const SubstApplicator*>> lefts;
+    // for (const auto& con : ordCons) {
+    //   ASS_EQ(con.rel, Ordering::GREATER);
+    //   lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.lhs,con.rhs,/*ground=*/true), &idAppl });
+    // }
     // ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
     // ConditionalRedundancySubsumption3<false> subs(ordering, lefts, rights);
-    ConditionalRedundancySubsumption3<true> subsCP(ordering, rights, lefts);
-    auto res = subsCP.check();
-    if (res) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
-  }
-
-  if (!unifier->usesUwa()) {
-    if (!condRedHandler.checkSuperposition2(eqClause, rwClause, eqIsResult, subst.ptr(), ordCons)) {
-      return 0;
-    }
-  }
+    // ConditionalRedundancySubsumption3<true> subsCP(ordering, rights, lefts);
+    // auto res = subsCP.check();
+    // if (res) {
+    //   env.statistics->skippedSuperposition++;
+    //   return 0;
+    // }
+  // }
 
   if (!unifier->usesUwa()) {
     if (!condRedHandler.insertSuperposition(

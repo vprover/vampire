@@ -78,9 +78,6 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _numActiveSplits(0),
-    _tod(nullptr),
-    _redundant(false),
-    _infTod(nullptr),
     _auxTimestamp(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
@@ -779,8 +776,6 @@ std::ostream& operator<<(std::ostream& out, Clause::Store const& store)
     case Clause::UNPROCESSED: return out << "UNPROCESSED";
     case Clause::NONE:        return out << "NONE";
     case Clause::SELECTED:    return out << "SELECTED";
-    case Clause::RETAINED_REDUNDANT:
-                              return out << "RETAINED_REDUNDANT";
   }
   ASSERTION_VIOLATION;
 }

@@ -123,10 +123,6 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if (qr.data->clause->store()==Clause::RETAINED_REDUNDANT) {
-      return BwSimplificationRecord(0);
-    }
-
     if(_cl==qr.data->clause || _removed->find(qr.data->clause)) {
       //the retreived clause was already replaced during this
       //backward demodulation

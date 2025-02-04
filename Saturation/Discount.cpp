@@ -32,17 +32,11 @@ void Discount::onActiveAdded(Clause* cl)
   _simplCont.add(cl);
 }
 
-void Discount::onGroundRedundantAdded(Clause* cl)
-{
-  SaturationAlgorithm::onGroundRedundantAdded(cl);
-  _simplCont.add(cl);
-}
-
 bool Discount::handleClauseBeforeActivation(Clause* cl)
 {
   ASS(cl->store()==Clause::SELECTED);
 
-  if (!forwardSimplify(cl)/*  || !forwardGroundSimplify(cl) */) {
+  if (!forwardSimplify(cl)) {
     cl->setStore(Clause::NONE);
     return false;
   }

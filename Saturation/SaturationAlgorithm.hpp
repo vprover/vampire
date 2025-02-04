@@ -76,7 +76,6 @@ public:
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
-  void addForwardGroundSimplifierToFront(ForwardGroundSimplificationEngine* fwGrSimplifier);
   void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
@@ -145,7 +144,6 @@ protected:
   void newClausesToUnprocessed();
   void addUnprocessedClause(Clause* cl);
   bool forwardSimplify(Clause* c);
-  bool forwardGroundSimplify(Clause* c);
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
   void activate(Clause* c);
@@ -155,7 +153,6 @@ protected:
   virtual void onActiveRemoved(Clause* c);
   virtual void onPassiveAdded(Clause* c);
   virtual void onPassiveRemoved(Clause* c);
-  virtual void onGroundRedundantAdded(Clause* c);
   void onPassiveSelected(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
@@ -200,9 +197,6 @@ protected:
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
-
-  typedef List<ForwardGroundSimplificationEngine*> FwGrSimplList;
-  FwGrSimplList* _fwGrSimplifiers;
 
   //Simplification occurs at the same point in the loop
   //as forward and backward simplification, but does not involve

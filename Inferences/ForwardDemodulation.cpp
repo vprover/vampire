@@ -110,9 +110,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   static DHSet<TermList> attempted;
   attempted.reset();
 
-  auto infTod = static_cast<OrderingComparator*>(cl->getInfTod());
-  ASS(!infTod || cl->store()==Clause::UNPROCESSED);
-
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
@@ -231,7 +228,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-        replacement->setInfTod(infTod);
         if(env.options->proofExtra() == Options::ProofExtra::FULL)
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
         return true;

@@ -212,10 +212,10 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _fwGrSimplifiers(0), _simplifiers(0), _bwSimplifiers(0),
+    _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0),
     _splitter(0), _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
-    _generatedClauseCount(0),
+    _conditionalRedundancyHandler(), _generatedClauseCount(0),
     _activationLimit(0)
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
@@ -403,13 +403,6 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
   // at this point the c object can be deleted
-}
-
-void SaturationAlgorithm::onGroundRedundantAdded(Clause* c)
-{
-  if (env.options->showAll()) {
-    std::cout << "[SA] ground redundant: " << c->toString() << std::endl;
-  }
 }
 
 /**
@@ -821,7 +814,6 @@ void SaturationAlgorithm::newClausesToUnprocessed()
         break;
       case Clause::SELECTED:
       case Clause::ACTIVE:
-      case Clause::RETAINED_REDUNDANT:
 #if VDEBUG
         cout << "FAIL: " << cl->toString() << endl;
         // such clauses should not appear as new ones
@@ -988,35 +980,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     }
   }
 
-  return true;
-}
-
-bool SaturationAlgorithm::forwardGroundSimplify(Clause* cl)
-{
-  TIME_TRACE("forward ground simplification");
-
-  /**
-   * we assume here that @b forwardSimplify was called
-   * before and did all the weird stuff that needed to be done.
-   * */
-
-  FwGrSimplList::Iterator fsit(_fwGrSimplifiers);
-  while (fsit.hasNext()) {
-    ForwardGroundSimplificationEngine *fse = fsit.next();
-    auto replacements = ClauseIterator::getEmpty();
-    auto premises = ClauseIterator::getEmpty();
-
-    if (fse->perform(cl, replacements, premises)) {
-      Stack<Clause*> replacementStack;
-      while (replacements.hasNext()) {
-        auto rp = replacements.next();
-        addNewClause(rp);
-      }
-      onClauseReduction(cl, replacementStack.begin(), replacementStack.size(), premises);
-      onGroundRedundantAdded(cl);
-      return false;
-    }
-  }
   return true;
 }
 
@@ -1227,12 +1190,7 @@ void SaturationAlgorithm::doUnprocessedLoop()
 
       ASS(!isRefutation(c));
 
-      if (forwardSimplify(c)/*  && forwardGroundSimplify(c) */) {
-        auto infTod = static_cast<OrderingComparator*>(c->getInfTod());
-        if (infTod) {
-          delete infTod;
-          c->setInfTod(nullptr);
-        }
+      if (forwardSimplify(c)) {
         onClauseRetained(c);
         addToPassive(c);
         ASS_EQ(c->store(), Clause::PASSIVE);
@@ -1335,33 +1293,6 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
-  FwGrSimplList::Iterator fsit(_fwGrSimplifiers);
-  while (fsit.hasNext()) {
-    ForwardGroundSimplificationEngine *fse = fsit.next();
-    auto replacements = ClauseIterator::getEmpty();
-    auto premises = ClauseIterator::getEmpty();
-
-    bool replacementsHasCl = false;
-    if (fse->perform(cl, replacements, premises)) {
-      Stack<Clause*> replacementStack;
-      while (replacements.hasNext()) {
-        auto rp = replacements.next();
-        if (rp == cl) {
-          replacementsHasCl = true;
-          continue;
-        }
-        addNewClause(rp);
-      }
-      if (!replacementsHasCl) {
-        onClauseReduction(cl, replacementStack.begin(), replacementStack.size(), premises);
-        onGroundRedundantAdded(cl);
-        cl->setStore(Clause::RETAINED_REDUNDANT);
-        return;
-      }
-      doUnprocessedLoop();
-    }
-  }
-
   activate(cl);
 }
 
@@ -1439,12 +1370,6 @@ void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngin
 {
   FwSimplList::push(fwSimplifier, _fwSimplifiers);
   fwSimplifier->attach(this);
-}
-
-void SaturationAlgorithm::addForwardGroundSimplifierToFront(ForwardGroundSimplificationEngine* fwGrSimplifier)
-{
-  FwGrSimplList::push(fwGrSimplifier, _fwGrSimplifiers);
-  fwGrSimplifier->attach(this);
 }
 
 void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
