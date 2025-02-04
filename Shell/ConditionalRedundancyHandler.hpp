@@ -131,7 +131,7 @@ public:
   ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
     : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
-      _splitter(splitter), _ord(ord) {}
+      _ord(ord), _splitter(splitter) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
@@ -158,8 +158,8 @@ public:
 private:
   bool _redundancyCheck;
   bool _encompassing;
-  Splitter* _splitter;
   const Ordering* _ord;
+  Splitter* _splitter;
 };
 
 struct ConditionalRedundancyIterator {

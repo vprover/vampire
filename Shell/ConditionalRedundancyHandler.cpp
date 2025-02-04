@@ -105,26 +105,6 @@ public:
 
   void insert(const Ordering* ord, const TermStack& ts, ConditionalRedundancyEntry* ptr)
   {
-    CodeStack code;
-#define LINEARIZE 1
-#if LINEARIZE
-    Compiler<false, true> compiler(code);
-#else
-    TermCompiler compiler(code);
-#endif
-    for (const auto& t : ts) {
-      if (t.isVar()) {
-        compiler.handleVar(t.var());
-        continue;
-      }
-      ASS(t.isTerm());
-      compiler.handleTerm(t.term());
-    }
-    for (const auto& [x,y] : compiler.eqCons) {
-      ptr->ordCons.push({ TermList::var(x), TermList::var(y), Ordering::EQUAL });
-    }
-    compiler.updateCodeTree(this);
-
     // first try to insert it into an existing container
     if (!isEmpty()) {
       VariantMatcher vm;
@@ -143,6 +123,18 @@ public:
       }
       ft->destroy();
     }
+
+    CodeStack code;
+    TermCompiler compiler(code);
+    for (const auto& t : ts) {
+      if (t.isVar()) {
+        compiler.handleVar(t.var());
+        continue;
+      }
+      ASS(t.isTerm());
+      compiler.handleTerm(t.term());
+    }
+    compiler.updateCodeTree(this);
 
     auto es = new Entries();
     es->comparator = ord->createComparator();
@@ -500,7 +492,8 @@ DHMap<Clause*,typename ConditionalRedundancyHandler::ConstraintIndex*> Condition
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
-  Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const
+  Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
+  bool eqIsResult, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
     return true;
@@ -857,8 +850,6 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperposi
   Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
   const SubstApplicator* eqApplicator, Ordering::Result& tord) const
 {
-  ASS(enabled);
-
   // if check is turned off, we always report redundant
   if (!_redundancyCheck) {
     return true;

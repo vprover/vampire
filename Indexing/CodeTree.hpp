@@ -368,7 +368,7 @@ public:
 
   typedef DHMap<unsigned,unsigned> VarMap;
 
-  template<bool forLits, bool linearize = false>
+  template<bool forLits>
   struct Compiler
   {
     Compiler(CodeStack& code);
@@ -385,7 +385,6 @@ public:
     unsigned nextGlobalVarNum;
     VarMap varMap;
     VarMap globalVarMap;
-    Stack<std::pair<unsigned,unsigned>> eqCons;
   };
 
   using LitCompiler = Compiler<true>;
