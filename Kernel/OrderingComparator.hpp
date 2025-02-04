@@ -50,7 +50,7 @@ public:
    *  constraints, or in null when no further such data can be retreived. */
   void* next();
 
-  bool check(const SubstApplicator* appl, const TermPartialOrdering* tpo, bool& backtracked);
+  bool check(const SubstApplicator* appl, const TermPartialOrdering* tpo);
 
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);

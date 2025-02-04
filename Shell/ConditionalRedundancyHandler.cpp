@@ -481,9 +481,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
   } applicator;
 
-  bool backtracked = false;
-
-  auto checkFn = [&backtracked](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
+  auto checkFn = [](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
   {
     if (!index) {
       return false;
@@ -493,11 +491,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     while ((es = matcher.next()))
     {
       ASS(es->comparator);
-      bool btd;
-      if (es->comparator->check(&applicator, tpo, btd)) {
-        if (btd) {
-          backtracked = true;
-        }
+      if (es->comparator->check(&applicator, tpo)) {
         matcher.reset();
         // success
         return true;
@@ -530,43 +524,6 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return true;
   }
 
-  // struct IdApplicator : SubstApplicator {
-  //   TermList operator()(unsigned v) const override { return TermList::var(v); }
-  // } idAppl;
-  // env.statistics->generalizedInductionApplicationInProof++;
-  // ASS_EQ(ordCons.size(),2);
-  // OrderingComparator::GreaterIterator git(*_ord, ordCons[0].lhs, ordCons[0].rhs);
-  // ConditionalRedundancyIterator sit2(
-  //   *OrderingComparator::createForSingleComparison(*_ord, ordCons[1].lhs, ordCons[1].rhs, true));
-
-  // while (git.hasNext()) {
-  //   auto tpo = git.next();
-  //   sit2.init(tpo, &idAppl);
-
-  //   while (sit2.hasNext()) {
-  //     auto [res2,tpo2] = sit2.next();
-  //     if (res2 != Ordering::GREATER) {
-  //       continue;
-  //     }
-
-  //     if (!seen.insert(tpo2)) {
-  //       // already checked this tpo, success
-  //       continue;
-  //     }
-
-  //     // if success, continue
-  //     if (checkFn(eqClDataPtr, eqTs, tpo2)) {
-  //       continue;
-  //     }
-  //     if (checkFn(rwClDataPtr, rwTs, tpo2)) {
-  //       continue;
-  //     }
-  //     // if failure, return
-  //     return true;
-  //   }
-  // }
-
-  ASS(backtracked);
   env.statistics->skippedInferencesDueToImpliedOrderingConstraints++;
   env.statistics->skippedSuperposition++;
   return false;
