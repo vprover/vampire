@@ -153,7 +153,7 @@ const TermPartialOrdering* TermPartialOrdering::set(const TermPartialOrdering* t
 PoComp TermPartialOrdering::getOneExternal(TermList t, size_t idx) const
 {
   PoComp res = PoComp::UNKNOWN;
-  decltype(_nodes)::Iterator it(_nodes);
+  decltype(_nodes)::ConstIterator it(_nodes);
   while (it.hasNext()) {
     auto& e = it.next();
     if (e.value()==idx) {
@@ -220,7 +220,7 @@ PoComp TermPartialOrdering::getTwoExternal(TermList t1, TermList t2) const
   Stack<pair<size_t,Ordering::Result>> t1_rel; // ∃x. t1 rel x
   Stack<pair<size_t,Ordering::Result>> t2_rel; // ∃x. x rel t2
 
-  decltype(_nodes)::Iterator it(_nodes);
+  decltype(_nodes)::ConstIterator it(_nodes);
   while (it.hasNext()) {
     auto& e = it.next();
     auto comp1 = _ord.compare(t1,e.key());

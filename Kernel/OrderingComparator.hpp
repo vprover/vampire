@@ -20,14 +20,7 @@
 
 #include "Ordering.hpp"
 
-namespace Inferences {
-  class ForwardGroundJoinability;
-  class ForwardGroundReducibility;
-}
-
 namespace Shell {
-  class ConditionalRedundancySubsumption;
-  class ConditionalRedundancySubsumption2;
   template<bool contrapositive> class ConditionalRedundancySubsumption3;
 }
 
@@ -204,10 +197,6 @@ protected:
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
   friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
 
-  friend class Inferences::ForwardGroundJoinability;
-  friend class Inferences::ForwardGroundReducibility;
-  friend class Shell::ConditionalRedundancySubsumption;
-  friend class Shell::ConditionalRedundancySubsumption2;
   template<bool contrapositive> friend class Shell::ConditionalRedundancySubsumption3;
 
   const Ordering& _ord;

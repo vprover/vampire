@@ -61,8 +61,6 @@
 #include "Inferences/Factoring.hpp"
 #include "Inferences/FunctionDefinitionRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
-#include "Inferences/ForwardGroundJoinability.hpp"
-#include "Inferences/ForwardGroundReducibility.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/InvalidAnswerLiteralRemovals.hpp"
@@ -70,7 +68,6 @@
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
-#include "Inferences/RenamingSuperposition.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
@@ -1366,8 +1363,6 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   }
 
   activate(cl);
-
-  _conditionalRedundancyHandler->checkSubsumption(cl);
 }
 
 /**
@@ -1525,7 +1520,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (env.options->superposition()) {
       gie->addFront(new Superposition());
     }
-    // gie->addFront(new RenamingSuperposition());
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
     gie->addFront(new EqualityResolution());
@@ -1661,14 +1655,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
       res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
-    }
-  }
-  if (prb.hasEquality()) {
-    if (opt.forwardGroundReducibility()) {
-      res->addForwardGroundSimplifierToFront(new ForwardGroundReducibility(opt));
-    }
-    if (opt.forwardGroundJoinability()) {
-      res->addForwardGroundSimplifierToFront(new ForwardGroundJoinability(opt));
     }
   }
   if (prb.hasEquality()) {

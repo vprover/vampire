@@ -1727,18 +1727,6 @@ void Options::init()
     _forwardSubsumptionDemodulationMaxMatches.onlyUsefulWith(_forwardSubsumptionDemodulation.is(equal(true)));
     _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
 
-    _forwardGroundJoinability = BoolOptionValue("forward_ground_joinability","fgj",false);
-    _forwardGroundJoinability.description="Perform forward ground joinability.";
-    _lookup.insert(&_forwardGroundJoinability);
-    _forwardGroundJoinability.onlyUsefulWith(ProperSaturationAlgorithm());
-    _forwardGroundJoinability.tag(OptionTag::INFERENCES);
-
-    _forwardGroundReducibility = BoolOptionValue("forward_ground_reducibility","fgr",false);
-    _forwardGroundReducibility.description="Perform forward ground reducibility.";
-    _lookup.insert(&_forwardGroundReducibility);
-    _forwardGroundReducibility.onlyUsefulWith(ProperSaturationAlgorithm());
-    _forwardGroundReducibility.tag(OptionTag::INFERENCES);
-
     _conditionalRedundancySubsumption = BoolOptionValue("conditional_redundancy_subsumption","crs",false);
     _conditionalRedundancySubsumption.description="Perform weird new redundancy check.";
     _lookup.insert(&_conditionalRedundancySubsumption);

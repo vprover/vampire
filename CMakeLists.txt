@@ -399,8 +399,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/FastCondensation.cpp
     Inferences/FOOLParamodulation.cpp
     Inferences/ForwardDemodulation.cpp
-    Inferences/ForwardGroundJoinability.cpp
-    Inferences/ForwardGroundReducibility.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
@@ -421,7 +419,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GaussianVariableElimination.cpp
     Kernel/Rebalancing.cpp
     Kernel/Rebalancing/Inverters.cpp
-    Inferences/RenamingSuperposition.cpp
     Inferences/Superposition.cpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
@@ -441,8 +438,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/FastCondensation.hpp
     Inferences/FOOLParamodulation.hpp
     Inferences/ForwardDemodulation.hpp
-    Inferences/ForwardGroundJoinability.hpp
-    Inferences/ForwardGroundReducibility.hpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
     Inferences/FunctionDefinitionRewriting.hpp
@@ -462,7 +457,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing.hpp
     Kernel/Rebalancing/Inverters.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
-    Inferences/RenamingSuperposition.hpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp
@@ -765,7 +759,6 @@ set(UNIT_TESTS
     UnitTests/tTermAlgebra.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
-    UnitTests/tForwardGroundJoinability.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 

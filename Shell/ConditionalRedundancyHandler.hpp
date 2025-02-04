@@ -122,8 +122,6 @@ public:
 
   virtual void checkEquations(Clause* cl) const = 0;
 
-  virtual void checkSubsumption(Clause* cl) const = 0;
-
   static void transfer(Clause* from, Clause* to);
 
 protected:
@@ -174,44 +172,11 @@ public:
 
   void checkEquations(Clause* cl) const override;
 
-  void checkSubsumption(Clause* cl) const override;
-
 private:
   bool _redundancyCheck;
   bool _encompassing;
   Splitter* _splitter;
   const Ordering* _ord;
-};
-
-class ConditionalRedundancySubsumption {
-public:
-  ConditionalRedundancySubsumption(OrderingComparator& subsumer, OrderingComparator& subsumed, bool ground);
-  bool check();
-
-private:
-  void pushNext();
-
-  OrderingComparator& subsumer;
-  OrderingComparator& subsumed;
-  Stack<std::tuple<OrderingComparator::Branch*,OrderingComparator::Branch*,OrderingComparator::Branch*>> path;
-  bool ground;
-};
-
-class ConditionalRedundancySubsumption2 {
-public:
-  ConditionalRedundancySubsumption2(const Ordering& ord, OrderingComparator& left,
-    Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights);
-  bool check();
-
-  using Branch = OrderingComparator::Branch;
-
-private:
-  bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
-
-  const Ordering& ord;
-  OrderingComparator& left;
-  Stack<std::pair<OrderingComparator&, const SubstApplicator*>>& rights;
-  unsigned cnt = 0;
 };
 
 template<bool contrapositive>
