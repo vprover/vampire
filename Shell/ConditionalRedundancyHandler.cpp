@@ -49,16 +49,6 @@ bool checkVars(const TermStack& ts, T s)
   return true;
 }
 
-std::ostream& operator<<(std::ostream& str, const ConditionalRedundancyEntry& e)
-{
-  if (!e.active) {
-    str << "not active";
-  } else {
-    str << *e.splits << "; " << *e.lits << "; ";
-  }
-  return str;
-}
-
 class ConditionalRedundancyHandler::ConstraintIndex
   : public CodeTree
 {
@@ -311,115 +301,7 @@ public:
   }
 };
 
-template<bool contrapositive>
-ConditionalRedundancySubsumption3<contrapositive>::ConditionalRedundancySubsumption3(
-  const Ordering& ord, Stack<CompSubstPair>& lefts, Stack<CompSubstPair>& rights)
-  : ord(ord), lefts(lefts), rights(rights)
-{
-#if VDEBUG
-  for (const auto& [tod,appl] : lefts) {
-    ASS(tod._ground);
-  }
-  for (const auto& [tod,appl] : rights) {
-    ASS(tod._ground);
-  }
-#endif
-}
-
-#define SUBSUMPTION3_LIMIT 500
-
-template<bool contrapositive>
-bool ConditionalRedundancySubsumption3<contrapositive>::check()
-{
-  Stack<Iterator> iterators;
-  for (const auto& [comp,appl] : lefts) {
-    iterators.push(Iterator(comp));
-  }
-  unsigned i = 0;
-  if (lefts.isNonEmpty()) {
-    iterators[i].init(TermPartialOrdering::getEmpty(ord), lefts[i].second);
-  } else {
-    bool found = false;
-    for (auto& [tod, appl] : rights) {
-      if (checkRight(tod, appl, TermPartialOrdering::getEmpty(ord))) {
-        found = true;
-        break;
-      }
-    }
-    return found;
-  }
-  while (true) {
-    auto& it = iterators[i];
-    const TermPartialOrdering* curr = nullptr;
-    // try to get a next success
-    while (it.hasNext()) {
-      auto [val,tpo] = it.next();
-      if constexpr (contrapositive) {
-        if (val == Ordering::GREATER) {
-          continue;
-        }
-      } else {
-        if (val != Ordering::GREATER) {
-          continue;
-        }
-      }
-      curr = tpo;
-      break;
-    }
-    // if there are no more successes, backtrack
-    if (!curr) {
-      // cannot backtrack, exit
-      if (i == 0) {
-        break;
-      }
-      i--;
-      continue;
-    }
-
-    // if there is a next item, go to it
-    if (i+1 < lefts.size()) {
-      i++;
-      iterators[i].init(curr, lefts[i].second);
-      continue;
-    }
-
-    // if there is no next, check rights
-    bool found = false;
-    for (auto& [tod, appl] : rights) {
-      if (checkRight(tod, appl, curr)) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template<bool contrapositive>
-bool ConditionalRedundancySubsumption3<contrapositive>::checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo)
-{
-  Iterator it(tod);
-  it.init(tpo, appl);
-  while (it.hasNext()) {
-    auto [val,trace] = it.next();
-    if constexpr (contrapositive) {
-      if (val == Ordering::GREATER) {
-        return false;
-      }
-    } else {
-      if (val != Ordering::GREATER) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-template<bool contrapositive>
-void ConditionalRedundancySubsumption3<contrapositive>::Iterator::init(const TermPartialOrdering* tpo, const SubstApplicator* appl)
+void ConditionalRedundancyIterator::init(const TermPartialOrdering* tpo, const SubstApplicator* appl)
 {
   _tpo = tpo;
   _appl = appl;
@@ -427,8 +309,7 @@ void ConditionalRedundancySubsumption3<contrapositive>::Iterator::init(const Ter
   _path.push({ &_comp._source, tpo, unique_ptr<OrderingComparator::Iterator>() });
 }
 
-template<bool contrapositive>
-bool ConditionalRedundancySubsumption3<contrapositive>::Iterator::hasNext()
+bool ConditionalRedundancyIterator::hasNext()
 {
   using Node = OrderingComparator::Node;
 
@@ -519,9 +400,6 @@ bool ConditionalRedundancySubsumption3<contrapositive>::Iterator::hasNext()
   return false;
 }
 
-template class ConditionalRedundancySubsumption3<false>;
-template class ConditionalRedundancySubsumption3<true>;
-
 // ConditionalRedundancyHandler
 
 ConditionalRedundancyHandler* ConditionalRedundancyHandler::create(const Options& opts, const Ordering* ord, Splitter* splitter)
@@ -592,13 +470,11 @@ DHMap<Clause*,typename ConditionalRedundancyHandler::ConstraintIndex*> Condition
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
-  Clause* eqClause, Literal* eqLit, TermList eqLHS, Clause* rwClause, Literal* rwLit, TermList rwTerm,
-  bool eqIsResult, ResultSubstitution* subs) const
+  Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
     return true;
   }
-
 
   auto rwLits = LiteralSet::getEmpty();
   if constexpr (litC) {
@@ -655,12 +531,12 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return true;
   }
 
-  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
-  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
-
-  if (ordCons.size()>2) {
+  if (ordCons.size()!=1) {
     return true;
   }
+
+  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
+  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
 
   if (eqClDataPtr && ((*eqClDataPtr)->_varSorts.isEmpty() || (*eqClDataPtr)->isEmpty())) {
     eqClDataPtr = nullptr;
@@ -685,11 +561,6 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
   } applicator;
 
-  struct IdApplicator : SubstApplicator {
-    TermList operator()(unsigned v) const override { return TermList::var(v); }
-  } idAppl;
-
-  DHSet<const TermPartialOrdering*> seen;
   bool backtracked = false;
 
   auto checkFn = [&backtracked](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
@@ -705,7 +576,6 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
       OrderingComparator::SomeIterator someIt(*es->comparator, &applicator, tpo);
       bool btd;
       if (someIt.check(btd)) {
-      // if (ConditionalRedundancySubsumption3<false>::checkRight(*es->comparator, &applicator, tpo)) {
         if (btd) {
           backtracked = true;
         }
@@ -719,75 +589,66 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return false;
   };
 
-  if (ordCons.isEmpty()) {
+  DHSet<const TermPartialOrdering*> seen;
+  OrderingComparator::GreaterIterator git(*_ord, ordCons[0].lhs, ordCons[0].rhs);
 
-    env.statistics->structInduction++;
-    auto tpo = TermPartialOrdering::getEmpty(*_ord);
-    if (!checkFn(eqClDataPtr, eqTs, tpo) && !checkFn(rwClDataPtr, rwTs, tpo)) {
-      return true;
+  while (git.hasNext()) {
+    auto tpo = git.next();
+
+    if (!seen.insert(tpo)) {
+      // already checked this tpo, success
+      continue;
     }
 
-  } else if (ordCons.size()==1) {
-
-    env.statistics->generalizedInductionApplication++;
-    OrderingComparator::GreaterIterator git(*_ord, ordCons[0].lhs, ordCons[0].rhs);
-
-    while (git.hasNext()) {
-      auto tpo = git.next();
-
-      if (!seen.insert(tpo)) {
-        // already checked this tpo, success
-        continue;
-      }
-
-      // if success, continue
-      if (checkFn(eqClDataPtr, eqTs, tpo)) {
-        continue;
-      }
-      if (checkFn(rwClDataPtr, rwTs, tpo)) {
-        continue;
-      }
-      // if failure, return
-      return true;
+    // if success, continue
+    if (checkFn(eqClDataPtr, eqTs, tpo)) {
+      continue;
     }
-  } else {
-
-    env.statistics->generalizedInductionApplicationInProof++;
-    ASS_EQ(ordCons.size(),2);
-    OrderingComparator::GreaterIterator git(*_ord, ordCons[0].lhs, ordCons[0].rhs);
-    ConditionalRedundancySubsumption3<false>::Iterator sit2(
-      *OrderingComparator::createForSingleComparison(*_ord, ordCons[1].lhs, ordCons[1].rhs, true));
-
-    while (git.hasNext()) {
-      auto tpo = git.next();
-      sit2.init(tpo, &idAppl);
-
-      while (sit2.hasNext()) {
-        auto [res2,tpo2] = sit2.next();
-        if (res2 != Ordering::GREATER) {
-          continue;
-        }
-
-        if (!seen.insert(tpo2)) {
-          // already checked this tpo, success
-          continue;
-        }
-
-        // if success, continue
-        if (checkFn(eqClDataPtr, eqTs, tpo2)) {
-          continue;
-        }
-        if (checkFn(rwClDataPtr, rwTs, tpo2)) {
-          continue;
-        }
-        // if failure, return
-        return true;
-      }
+    if (checkFn(rwClDataPtr, rwTs, tpo)) {
+      continue;
     }
+    // if failure, return
+    return true;
   }
-  if (backtracked) {
-    env.statistics->skippedInferencesDueToOrderingConstraints++;
-  }
+
+  // struct IdApplicator : SubstApplicator {
+  //   TermList operator()(unsigned v) const override { return TermList::var(v); }
+  // } idAppl;
+  // env.statistics->generalizedInductionApplicationInProof++;
+  // ASS_EQ(ordCons.size(),2);
+  // OrderingComparator::GreaterIterator git(*_ord, ordCons[0].lhs, ordCons[0].rhs);
+  // ConditionalRedundancyIterator sit2(
+  //   *OrderingComparator::createForSingleComparison(*_ord, ordCons[1].lhs, ordCons[1].rhs, true));
+
+  // while (git.hasNext()) {
+  //   auto tpo = git.next();
+  //   sit2.init(tpo, &idAppl);
+
+  //   while (sit2.hasNext()) {
+  //     auto [res2,tpo2] = sit2.next();
+  //     if (res2 != Ordering::GREATER) {
+  //       continue;
+  //     }
+
+  //     if (!seen.insert(tpo2)) {
+  //       // already checked this tpo, success
+  //       continue;
+  //     }
+
+  //     // if success, continue
+  //     if (checkFn(eqClDataPtr, eqTs, tpo2)) {
+  //       continue;
+  //     }
+  //     if (checkFn(rwClDataPtr, rwTs, tpo2)) {
+  //       continue;
+  //     }
+  //     // if failure, return
+  //     return true;
+  //   }
+  // }
+
+  ASS(backtracked);
+  env.statistics->skippedInferencesDueToOrderingConstraints++;
   env.statistics->skippedSuperposition++;
   return false;
 }

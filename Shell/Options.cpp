@@ -1727,12 +1727,6 @@ void Options::init()
     _forwardSubsumptionDemodulationMaxMatches.onlyUsefulWith(_forwardSubsumptionDemodulation.is(equal(true)));
     _forwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
 
-    _conditionalRedundancySubsumption = BoolOptionValue("conditional_redundancy_subsumption","crs",false);
-    _conditionalRedundancySubsumption.description="Perform weird new redundancy check.";
-    _lookup.insert(&_conditionalRedundancySubsumption);
-    _conditionalRedundancySubsumption.onlyUsefulWith(ProperSaturationAlgorithm());
-    _conditionalRedundancySubsumption.tag(OptionTag::INFERENCES);
-
     _simultaneousSuperposition = BoolOptionValue("simultaneous_superposition","sims",true);
     _simultaneousSuperposition.description="Rewrite the whole RHS clause during superposition, not just the target literal.";
     _lookup.insert(&_simultaneousSuperposition);
@@ -1766,6 +1760,13 @@ void Options::init()
     _lookup.insert(&_conditionalRedundancyOrderingConstraints);
     _conditionalRedundancyOrderingConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
     _conditionalRedundancyOrderingConstraints.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancySubsumption = BoolOptionValue("conditional_redundancy_subsumption","crs",false);
+    _conditionalRedundancySubsumption.description="Perform weird new redundancy check.";
+    _lookup.insert(&_conditionalRedundancySubsumption);
+    _conditionalRedundancySubsumption.onlyUsefulWith(_conditionalRedundancyOrderingConstraints.is(equal(true)));
+    _conditionalRedundancySubsumption.onlyUsefulWith(ProperSaturationAlgorithm());
+    _conditionalRedundancySubsumption.tag(OptionTag::INFERENCES);
 
     _conditionalRedundancyAvatarConstraints = BoolOptionValue("conditional_redundancy_avatar_constraints","crac",false);
     _conditionalRedundancyAvatarConstraints.description=

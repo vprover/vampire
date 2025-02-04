@@ -2029,7 +2029,6 @@ public:
   bool forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
-  bool conditionalRedundancySubsumption() const { return _conditionalRedundancySubsumption.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
@@ -2038,6 +2037,7 @@ public:
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
   bool conditionalRedundancyCheck() const { return _conditionalRedundancyCheck.actualValue; }
   bool conditionalRedundancyOrderingConstraints() const { return _conditionalRedundancyOrderingConstraints.actualValue; }
+  bool conditionalRedundancySubsumption() const { return _conditionalRedundancySubsumption.actualValue; }
   bool conditionalRedundancyAvatarConstraints() const { return _conditionalRedundancyAvatarConstraints.actualValue; }
   bool conditionalRedundancyLiteralConstraints() const { return _conditionalRedundancyLiteralConstraints.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
@@ -2431,7 +2431,6 @@ private:
   BoolOptionValue _forwardSubsumptionResolution;
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
-  BoolOptionValue _conditionalRedundancySubsumption;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
@@ -2450,6 +2449,7 @@ private:
   BoolOptionValue _equationalTautologyRemoval;
   BoolOptionValue _conditionalRedundancyCheck;
   BoolOptionValue _conditionalRedundancyOrderingConstraints;
+  BoolOptionValue _conditionalRedundancySubsumption;
   BoolOptionValue _conditionalRedundancyAvatarConstraints;
   BoolOptionValue _conditionalRedundancyLiteralConstraints;
 

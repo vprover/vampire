@@ -99,9 +99,7 @@ public:
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    Clause* rwClause, Literal* rwLit, TermList rwTerm,
-    bool eqIsResult, ResultSubstitution* subs) const = 0;
+    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual bool checkSuperposition2(
     Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, const OrderingConstraints& ordCons) const = 0;
@@ -138,9 +136,7 @@ public:
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    Clause* rwClause, Literal* rwLit, TermList rwTerm,
-    bool eqIsResult, ResultSubstitution* subs) const override;
+    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition2(
@@ -170,37 +166,19 @@ private:
   const Ordering* _ord;
 };
 
-template<bool contrapositive>
-class ConditionalRedundancySubsumption3 {
-public:
-  using CompSubstPair = std::pair<OrderingComparator&, const SubstApplicator*>;
+struct ConditionalRedundancyIterator {
+  ConditionalRedundancyIterator(OrderingComparator& comp) : _comp(comp) {}
 
-  ConditionalRedundancySubsumption3(const Ordering& ord, Stack<CompSubstPair>& lefts, Stack<CompSubstPair>& rights);
-  bool check();
+  void init(const TermPartialOrdering* tpo, const SubstApplicator* appl);
 
-  using Branch = OrderingComparator::Branch;
+  bool hasNext();
+  std::pair<Result, const TermPartialOrdering*> next() { return _res; }
 
-  static bool checkRight(OrderingComparator& tod, const SubstApplicator* appl, const TermPartialOrdering* tpo);
-
-  struct Iterator {
-    Iterator(OrderingComparator& comp) : _comp(comp) {}
-
-    void init(const TermPartialOrdering* tpo, const SubstApplicator* appl);
-
-    bool hasNext();
-    std::pair<Result, const TermPartialOrdering*> next() { return _res; }
-
-    OrderingComparator& _comp;
-    const SubstApplicator* _appl;
-    const TermPartialOrdering* _tpo;
-    Stack<std::tuple<Branch*,const TermPartialOrdering*,std::unique_ptr<OrderingComparator::Iterator>>> _path;
-    std::pair<Result, const TermPartialOrdering*> _res;
-  };
-
-  const Ordering& ord;
-  Stack<CompSubstPair>& lefts;
-  Stack<CompSubstPair>& rights;
-  unsigned cnt = 0;
+  OrderingComparator& _comp;
+  const SubstApplicator* _appl;
+  const TermPartialOrdering* _tpo;
+  Stack<std::tuple<OrderingComparator::Branch*,const TermPartialOrdering*,std::unique_ptr<OrderingComparator::Iterator>>> _path;
+  std::pair<Result, const TermPartialOrdering*> _res;
 };
 
 };

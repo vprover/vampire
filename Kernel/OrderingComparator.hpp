@@ -21,7 +21,7 @@
 #include "Ordering.hpp"
 
 namespace Shell {
-  template<bool contrapositive> class ConditionalRedundancySubsumption3;
+  struct ConditionalRedundancyIterator;
 }
 
 namespace Kernel {
@@ -192,7 +192,7 @@ protected:
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
   friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
 
-  template<bool contrapositive> friend class Shell::ConditionalRedundancySubsumption3;
+  friend struct Shell::ConditionalRedundancyIterator;
 
   const Ordering& _ord;
   Branch _source;

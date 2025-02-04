@@ -351,17 +351,16 @@ Clause* Superposition::performSuperposition(
   }
 
   const auto& condRedHandler = _salg->condRedHandler();
-  // if (!unifier->usesUwa()) {
-  //   if (!condRedHandler.checkSuperposition(eqClause, eqLit, eqLHS, rwClause, rwLit, rwTerm, eqIsResult, subst.ptr())) {
-  //     return 0;
-  //   }
-  // }
+  if (!unifier->usesUwa()) {
+    if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+      return 0;
+    }
+  }
 
   const Ordering& ordering = _salg->getOrdering();
 
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
-  Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
@@ -376,6 +375,14 @@ Clause* Superposition::performSuperposition(
     ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
   }
 
+  if (!unifier->usesUwa()) {
+    if (!condRedHandler.checkSuperposition2(eqClause, rwClause, eqIsResult, subst.ptr(), ordCons)) {
+      return 0;
+    }
+  }
+
+  Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
+
   if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
     TermList arg0=*rwLitS->nthArgument(0);
@@ -387,7 +394,6 @@ Clause* Superposition::performSuperposition(
         return 0;
       }
       if (comp == Ordering::INCOMPARABLE) {
-        ordCons.push({ rwLitS->termArg(1), rwLitS->termArg(0), Ordering::GREATER });
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
       auto comp = ordering.getEqualityArgumentOrder(rwLitS);
@@ -395,60 +401,9 @@ Clause* Superposition::performSuperposition(
         return 0;
       }
       if (comp == Ordering::INCOMPARABLE) {
-        ordCons.push({ rwLitS->termArg(0), rwLitS->termArg(1), Ordering::GREATER });
       }
     }
   }
-
-  // if (getOptions().conditionalRedundancySubsumption()) {
-
-    // struct Applicator : SubstApplicator {
-    //   TermList operator()(unsigned v) const override {
-    //     // return _cache.getOrInit(v, [&](){ return _subst->apply(TermList::var(v), _result); });
-    //     return _subst->apply(TermList::var(v), _result);
-    //   }
-    //   void reset(ResultSubstitution* subst, bool result) {
-    //     _subst = subst;
-    //     _result = result;
-    //     // _cache.reset();
-    //   }
-    //   ResultSubstitution* _subst;
-    //   bool _result;
-    //   // mutable Map<unsigned,TermList> _cache;
-    // };
-
-    // static Applicator rwAppl;
-    // static Applicator eqAppl;
-    // rwAppl.reset(subst.ptr(), !eqIsResult);
-    // eqAppl.reset(subst.ptr(), eqIsResult);
-
-    // Stack<std::pair<OrderingComparator&, const SubstApplicator*>> rights;
-    // auto rwTod = static_cast<OrderingComparator*>(rwClause->getTod());
-    // if (rwTod) {
-    //   rights.push({ *rwTod, &rwAppl });
-    // }
-    // auto eqTod = static_cast<OrderingComparator*>(eqClause->getTod());
-    // if (eqTod) {
-    //   rights.push({ *eqTod, &eqAppl });
-    // }
-    // struct IdApplicator : SubstApplicator {
-    //   TermList operator()(unsigned v) const override { return TermList::var(v); }
-    // } idAppl;
-
-    // Stack<std::pair<OrderingComparator&, const SubstApplicator*>> lefts;
-    // for (const auto& con : ordCons) {
-    //   ASS_EQ(con.rel, Ordering::GREATER);
-    //   lefts.push({ *OrderingComparator::createForSingleComparison(ordering,con.lhs,con.rhs,/*ground=*/true), &idAppl });
-    // }
-    // ConditionalRedundancySubsumption2 subs(ordering, *infTod, rights);
-    // ConditionalRedundancySubsumption3<false> subs(ordering, lefts, rights);
-    // ConditionalRedundancySubsumption3<true> subsCP(ordering, rights, lefts);
-    // auto res = subsCP.check();
-    // if (res) {
-    //   env.statistics->skippedSuperposition++;
-    //   return 0;
-    // }
-  // }
 
   if (!unifier->usesUwa()) {
     condRedHandler.insertSuperposition(

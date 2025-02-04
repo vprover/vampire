@@ -103,7 +103,7 @@ struct AppliedTerm
     return false;
   }
 
-  TermList apply();
+  TermList apply() const;
 };
 
 class SubstHelper
@@ -659,12 +659,9 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
 
 };
 
-inline TermList AppliedTerm::apply() {
-  if (aboveVar) {
-    term = SubstHelper::apply(term, *applicator);
-    aboveVar = false;
-  }
-  return term;
+inline TermList AppliedTerm::apply() const {
+  return aboveVar ? SubstHelper::apply(term, *applicator) 
+                  : term;
 }
 
 #endif /* __SubstHelper__ */
