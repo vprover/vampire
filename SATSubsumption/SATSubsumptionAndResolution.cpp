@@ -148,32 +148,32 @@ bool SATSubsumptionAndResolution::MatchSet::hasNegativeMatchJ(unsigned j)
 /*       SATSubsumptionAndResolution::SATSubsumptionAndResolution           */
 /****************************************************************************/
 
-void SATSubsumptionAndResolution::loadProblem(Clause* L,
-                                              Clause* M)
+void SATSubsumptionAndResolution::loadProblem(Clause* sidePremise,
+                                              Clause* mainPremise)
 {
-  ASS(L)
-  ASS(M)
+  ASS(sidePremise)
+  ASS(mainPremise)
 #if VDEBUG
-  // Check that two literals are not the same in L and M
+  // Check that two literals are not the same in sidePremise and mainPremise
   static DHSet<Literal*> lits;
   lits.reset();
-  for (unsigned i = 0; i < L->length(); i++)
-    if (!lits.insert((*L)[i]))
+  for (unsigned i = 0; i < sidePremise->length(); i++)
+    if (!lits.insert((*sidePremise)[i]))
       ASS(false)
   lits.reset();
-  for (unsigned i = 0; i < M->length(); i++)
-    if (!lits.insert((*M)[i]))
+  for (unsigned i = 0; i < mainPremise->length(); i++)
+    if (!lits.insert((*mainPremise)[i]))
       ASS(false)
 #endif
 
 #if PRINT_CLAUSES_SUBS
   cout << "----------------------------------------------" << endl;
-  cout << "Setting up problem " << L->toString() << " " << M->toString() << endl;
+  cout << "Setting up problem " << sidePremise->toString() << " " << mainPremise->toString() << endl;
 #endif
-  _sidePremise = L;
-  _mainPremise = M;
-  _m = L->length();
-  _n = M->length();
+  _sidePremise = sidePremise;
+  _mainPremise = mainPremise;
+  _m = sidePremise->length();
+  _n = mainPremise->length();
 
   _matchSet.clear();
   _matchSet.resize(_m, _n);
@@ -755,21 +755,21 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   return !solver.inconsistent();
 } // cnfForSubsumptionResolution
 
-Clause* SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause* M,
+Clause* SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause* mainPremise,
   Literal* m_j,
-  Clause* L)
+  Clause* sidePremise)
 {
   RStack<Literal*> resLits;
 
-  int mlen = M->length();
+  int mlen = mainPremise->length();
   for (int i = 0; i < mlen; i++) {
-    Literal* curr = (*M)[i];
+    Literal* curr = (*mainPremise)[i];
     if (curr == m_j)
       continue;
     resLits->push(curr);
   }
 
-  return Clause::fromStack(*resLits,SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, M, L));
+  return Clause::fromStack(*resLits,SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, mainPremise, sidePremise));
 }
 
 Clause* SATSubsumptionAndResolution::generateConclusion()
@@ -828,14 +828,14 @@ Clause* SATSubsumptionAndResolution::generateConclusion()
   return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_mainPremise, (*_mainPremise)[toRemove], _sidePremise);
 } // SATSubsumptionResolution::generateConclusion
 
-bool SATSubsumptionAndResolution::checkSubsumption(Clause* L,
-                                                   Clause* M,
+bool SATSubsumptionAndResolution::checkSubsumption(Clause* sidePremise,
+                                                   Clause* mainPremise,
                                                    bool setSR)
 {
-  ASS(L)
-  ASS(M)
+  ASS(sidePremise)
+  ASS(mainPremise)
 
-  loadProblem(L, M);
+  loadProblem(sidePremise, mainPremise);
 
   // Fill the matches
   if (setSR) {
@@ -872,15 +872,15 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause* L,
   return subsumed;
 } // SATSubsumptionAndResolution::checkSubsumption
 
-Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
-                                                                Clause* M,
+Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* sidePremise,
+                                                                Clause* mainPremise,
                                                                 bool usePreviousSetUp)
 {
-  ASS(L)
-  ASS(M)
+  ASS(sidePremise)
+  ASS(mainPremise)
   if (usePreviousSetUp) {
-    ASS(_sidePremise == L)
-    ASS(_mainPremise == M)
+    ASS(_sidePremise == sidePremise)
+    ASS(_mainPremise == mainPremise)
     if (_srImpossible) {
 #if PRINT_CLAUSES_SUBS
       cout << "SR impossible" << endl;
@@ -892,7 +892,7 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
     _solver.clear_constraints();
   }
   else {
-    loadProblem(L, M);
+    loadProblem(sidePremise, mainPremise);
     if (pruneSubsumptionResolution()) {
 #if PRINT_CLAUSES_SUBS
       cout << "SR pruned" << endl;
@@ -945,9 +945,9 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
   return conclusion;
 } // SATSubsumptionAndResolution::checkSubsumptionResolution
 
-bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWithLiteral(Kernel::Clause* L, Kernel::Clause* M, unsigned resolutionLiteral)
+bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWithLiteral(Kernel::Clause* sidePremise, Kernel::Clause* mainPremise, unsigned resolutionLiteral)
 {
-  loadProblem(L, M);
+  loadProblem(sidePremise, mainPremise);
   if (pruneSubsumptionResolution()) {
     return false;
   }
