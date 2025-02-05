@@ -15,6 +15,17 @@ TEST_FUN(EmptyInstruction)
   ASS_EQ(c0.getTotalInstrCount(), 0);
 }
 
+TEST_FUN(NonEmptyInstruction)
+{
+  bench::InstrCounter c0;
+  bench::InstrCounter c1;
+
+  c0.start();
+  ASS_EQ(c0.getTotalInstrCount(), 0);
+  c0.stop();
+  ASS_NEQ(c0.getTotalInstrCount(), 0);
+}
+
 TEST_FUN(EmbeddedEmptyInstruction)
 {
   bench::InstrCounter c0;
@@ -28,17 +39,22 @@ TEST_FUN(EmbeddedEmptyInstruction)
   ASS_EQ(c1.getTotalInstrCount(), 0);
 }
 
-TEST_FUN(CrissCrossEmptyInstruction)
+TEST_FUN(Embedded3EmptyInstruction)
 {
   bench::InstrCounter c0;
   bench::InstrCounter c1;
+  bench::InstrCounter c2;
 
-  c0.start();
+  c2.start();
   c1.start();
+  c0.start();
   c0.stop();
   c1.stop();
+  c2.stop();
+
   ASS_EQ(c0.getTotalInstrCount(), 0);
   ASS_EQ(c1.getTotalInstrCount(), 0);
+  ASS_EQ(c2.getTotalInstrCount(), 0);
 }
 
 // We use volatile such that the expression is not optimized away
@@ -58,6 +74,27 @@ TEST_FUN(EmbeddedInstruction)
   ASS_EQ(c0.getTotalInstrCount(), c1.getTotalInstrCount());
   ASS_NEQ(c0.getTotalInstrCount(), 0);
   ASS_NEQ(c1.getTotalInstrCount(), 0);
+}
+
+TEST_FUN(Embedded3Instruction)
+{
+  bench::InstrCounter c0;
+  bench::InstrCounter c1;
+  bench::InstrCounter c2;
+
+  c0.start();
+  c1.start();
+  c2.start();
+  // Do somehting.
+  ASS_EQ(c0.getTotalInstrCount(), 0);
+  c2.stop();
+  c1.stop();
+  c0.stop();
+  ASS_EQ(c0.getTotalInstrCount(), c1.getTotalInstrCount());
+  ASS_EQ(c0.getTotalInstrCount(), c2.getTotalInstrCount());
+  ASS_NEQ(c0.getTotalInstrCount(), 0);
+  ASS_NEQ(c1.getTotalInstrCount(), 0);
+  ASS_NEQ(c2.getTotalInstrCount(), 0);
 }
 
 TEST_FUN(InvisibleInsideCounter)
@@ -82,20 +119,4 @@ TEST_FUN(InvisibleInsideCounter)
   c0.stop();
 
   ASS_EQ(c0.getTotalInstrCount(), firstCount);
-}
-
-TEST_FUN(CrissCross)
-{
-  bench::InstrCounter c0;
-  bench::InstrCounter c1;
-
-  c0.start();
-  c1.start();
-  ASS_EQ(c0.getTotalInstrCount(), 0);
-  ASS_EQ(c1.getTotalInstrCount(), 0);
-  c0.stop();
-  c1.stop();
-  ASS_EQ(c0.getTotalInstrCount(), c1.getTotalInstrCount());
-  ASS_NEQ(c0.getTotalInstrCount(), 0);
-  ASS_NEQ(c1.getTotalInstrCount(), 0);
 }

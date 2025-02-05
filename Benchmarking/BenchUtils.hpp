@@ -10,12 +10,8 @@ namespace bench {
   public:
     InstrCounter();
     ~InstrCounter();
-    void start() __attribute__((optimize(0)));
-    void stop() __attribute__((optimize(0)));
-
-    void startAndHold() __attribute__((optimize(0)));
-    void stopAndHold() __attribute__((optimize(0)));
-    void resume() __attribute__((optimize(0)));
+    void start();
+    void stop();
 
     long long getTotalInstrCount();
     void reset();

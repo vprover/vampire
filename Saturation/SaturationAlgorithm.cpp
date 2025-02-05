@@ -113,6 +113,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include <iostream>
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -266,6 +268,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
  */
 SaturationAlgorithm::~SaturationAlgorithm()
 {
+  std::cout << "Number of deleted nodes " << env.statistics->todNodesDeleted << std::endl;
   ASS_EQ(s_instance,this);
 
   s_instance = 0;

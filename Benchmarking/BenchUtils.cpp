@@ -12,7 +12,8 @@
 #include <algorithm>
 
 static unsigned nInstances = 0;
-static long long instrOverhead = 0;
+static long long innerOverhead = 0;
+static long long outerOverhead = 0;
 static long long totalOverHead = 0;
 static int eventFd = -1;
 static int pid = -1;
@@ -38,7 +39,22 @@ int setup_perf_event() {
     if (fd == -1) {
         std::cerr << "Error opening perf_event: " << strerror(errno) << std::endl;
     }
+    ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
     return fd;
+}
+
+static void calibrate() {
+  bench::InstrCounter c0;
+  bench::InstrCounter c1;
+  // Calibration of the counting
+  // We count the number of instruction it takes to start and stop the counter
+  // This is done to minimize the impact of the measuring device on the measurement.
+  c1.start();
+  c0.start();
+  c0.stop();
+  c1.stop();
+  innerOverhead = c0.getTotalInstrCount();
+  outerOverhead = c1.getTotalInstrCount() - innerOverhead;
 }
 
 bench::InstrCounter::InstrCounter() :
@@ -52,14 +68,13 @@ bench::InstrCounter::InstrCounter() :
     eventFd = setup_perf_event();
   }
   if (nInstances == 0) {
+    nInstances++;
     ioctl(eventFd, PERF_EVENT_IOC_RESET, 0);
-    // Calibration of the counting
-    // We count the number of instruction it takes to start and stop the counter
-    // This is done to minimize the impact of the measuring device on the measurement.
-    start();
-    stop();
-    instrOverhead = getTotalInstrCount();
-    reset();
+
+    calibrate();
+    // std::cout << "Instruction inner overhead = " << innerOverhead <<std::endl;
+    // std::cout << "Instruction outer overhead = " << outerOverhead <<std::endl;
+    return;
   }
   nInstances++;
 }
@@ -80,55 +95,19 @@ void bench::InstrCounter::reset()
 
 void bench::InstrCounter::start()
 {
-  ioctl(eventFd, PERF_EVENT_IOC_DISABLE, 0);
-  ASS(!running());
+  totalOverHead += outerOverhead; // record the overhead introduced to other counters
   _lastOverHead = totalOverHead;  // record the last value of the overhead
-  totalOverHead += instrOverhead; // record the overhead introduced to other counters
-  if (read(eventFd, &_startCount, sizeof(long long)) == -1) {
-    std::cerr << "Error reading the instruction counter" << std::endl;
-  }
-  ioctl(eventFd, PERF_EVENT_IOC_ENABLE, 0);
+  read(eventFd, &_startCount, sizeof(long long));
 }
 
 void bench::InstrCounter::stop()
 {
-  ioctl(eventFd, PERF_EVENT_IOC_DISABLE, 0);
-  ASS(running());
-  // substract the overhead from all the running instances
   long long endCount = 0;
-  read(eventFd, &endCount, sizeof(long long));
-  _totalInstrCount += endCount - _startCount;
   _totalInstrCount += _lastOverHead - totalOverHead; // correct the overhead introduced by other counters
-  totalOverHead += instrOverhead; // record the overhead introduced to other counters
-  _startCount = -1;
-  ioctl(eventFd, PERF_EVENT_IOC_ENABLE, 0);
-}
-
-void bench::InstrCounter::startAndHold()
-{
-  ioctl(eventFd, PERF_EVENT_IOC_DISABLE, 0);
-  ASS(!running());
-  _lastOverHead = totalOverHead;
-  totalOverHead += instrOverhead;
-  read(eventFd, &_startCount, sizeof(long long));
-}
-
-void bench::InstrCounter::stopAndHold()
-{
-  ioctl(eventFd, PERF_EVENT_IOC_DISABLE, 0);
-  ASS(running());
-  long long endCount = 0;
+  _totalInstrCount -= innerOverhead;;                // correct the overhead measured by the counter iteself
   read(eventFd, &endCount, sizeof(long long));
-  _totalInstrCount += endCount - _startCount;
+  _totalInstrCount += endCount - _startCount;        // increase the counter with the time recorded
   _startCount = -1;
-
-  _totalInstrCount += endCount - _startCount;
-  _totalInstrCount += _lastOverHead - totalOverHead; // correct the overhead introduced by other counters
-}
-
-void bench::InstrCounter::resume()
-{
-  ioctl(eventFd, PERF_EVENT_IOC_ENABLE, 0);
 }
 
 long long bench::InstrCounter::getTotalInstrCount()

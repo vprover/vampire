@@ -42,16 +42,18 @@ void OrderingComparator::init(const SubstApplicator* appl)
   _appl = appl;
 }
 
+static bool preprocessDelete = false;
 void* OrderingComparator::next()
 {
   ASS(_appl);
   ASS(_curr);
 
   for (;;) {
-    // TODO preprocess to measure
-    bench::TODCounter::startPreProcess();
+    ASS(!preprocessDelete);
+    preprocessDelete = true;
     processCurrentNode();
-    bench::TODCounter::stopPreProcess();
+    preprocessDelete = false;
+
 
     auto node = _curr->node();
     ASS(node->ready);
@@ -139,6 +141,19 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
   curr->node()->ready = false;
 
   if (comps.isNonEmpty()) {
+    switch (curr->node()->tag)
+    {
+    case Node::T_TERM :
+      env.statistics->todTermNodesAtEnd--;
+      break;
+    case Node::T_POLY :
+      env.statistics->todPolyNodesAtEnd--;
+      break;
+    case Node::T_DATA :
+      env.statistics->todDataNodesAtEnd--;
+    }
+    env.statistics->todTermNodesAtEnd++;
+    env.statistics->todTermNodesCreated++;
     curr->node()->tag = Node::T_TERM;
     curr->node()->lhs = comps[0].lhs;
     curr->node()->rhs = comps[0].rhs;
@@ -160,6 +175,19 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
     }
     *curr = Branch(data, newFail);
   } else {
+    switch (curr->node()->tag)
+    {
+    case Node::T_TERM :
+      env.statistics->todTermNodesAtEnd--;
+      break;
+    case Node::T_POLY :
+      env.statistics->todPolyNodesAtEnd--;
+      break;
+    case Node::T_DATA :
+      env.statistics->todDataNodesAtEnd--;
+    }
+    env.statistics->todDataNodesAtEnd++;
+    env.statistics->todDataNodesCreated++;
     curr->node()->tag = Node::T_DATA;
     curr->node()->data = data;
     curr->node()->alternative = newFail;
@@ -173,6 +201,7 @@ void OrderingComparator::processCurrentNode()
   ASS(_curr->node());
   while (!_curr->node()->ready)
   {
+    bench::TODCounter::startPreProcess();
     auto node = _curr->node();
 
     if (node->tag == Node::T_DATA) {
@@ -186,11 +215,14 @@ void OrderingComparator::processCurrentNode()
       _curr->node()->prevPoly = getPrevPoly();
       // TODO count this one too
       _curr->node()->ready = true;
+      bench::TODCounter::bumpUsedNodes();
+      bench::TODCounter::stopPreProcess();
       return;
     }
     if (node->tag == Node::T_POLY) {
       // TODO measure this?
       processPolyNode();
+      bench::TODCounter::stopPreProcess();
       continue;
     }
 
@@ -205,14 +237,17 @@ void OrderingComparator::processCurrentNode()
       } else {
         *_curr = node->eqBranch;
       }
+      bench::TODCounter::stopPreProcess();
       continue;
     }
     // If we have a variable, we cannot expand further.
     if (node->lhs.isVar() || node->rhs.isVar()) {
       processVarNode();
+      bench::TODCounter::stopPreProcess();
       continue;
     }
     processTermNode();
+    bench::TODCounter::stopPreProcess();
   }
 }
 
@@ -240,6 +275,7 @@ void OrderingComparator::processVarNode()
     _curr->node()->ngeBranch = node->ngeBranch;
   }
   // TODO count this one too
+  bench::TODCounter::bumpUsedNodes();
   _curr->node()->ready = true;
   _curr->node()->prevPoly = getPrevPoly();
   _curr->node()->trace = trace;
@@ -402,6 +438,7 @@ void OrderingComparator::processPolyNode()
   _curr->node()->trace = trace;
   _curr->node()->prevPoly = prevPoly;
   // TODO measure this as processed
+  bench::TODCounter::bumpUsedNodes();
   _curr->node()->ready = true;
 }
 
@@ -525,13 +562,22 @@ OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch other)
 // Node
 
 OrderingComparator::Node::Node(void* data, Branch alternative)
-  : tag(T_DATA), data(data), alternative(alternative) {bench::TODCounter::bumpCreatedNodes();}
+  : tag(T_DATA), data(data), alternative(alternative) {
+    bench::TODCounter::bumpCreatedNodes();
+    bench::TODCounter::bumpDataNodes();
+  }
 
 OrderingComparator::Node::Node(TermList lhs, TermList rhs)
-  : tag(T_TERM), lhs(lhs), rhs(rhs) {bench::TODCounter::bumpCreatedNodes();}
+  : tag(T_TERM), lhs(lhs), rhs(rhs) {
+    bench::TODCounter::bumpCreatedNodes();
+    bench::TODCounter::bumpTermNodes();
+  }
 
 OrderingComparator::Node::Node(const Polynomial* p)
-  : tag(T_POLY), poly(p) {bench::TODCounter::bumpCreatedNodes();}
+  : tag(T_POLY), poly(p) {
+    bench::TODCounter::bumpCreatedNodes();
+    bench::TODCounter::bumpPolyNodes();
+  }
 
 OrderingComparator::Node::~Node()
 {
@@ -551,6 +597,20 @@ void OrderingComparator::Node::decRefCnt()
   ASS(refcnt>=0);
   refcnt--;
   if (refcnt==0) {
+    if (preprocessDelete) {
+      bench::TODCounter::bumpDeletedNodes();
+      switch (tag)
+      {
+      case Node::T_TERM :
+        env.statistics->todTermNodesAtEnd--;
+        break;
+      case Node::T_POLY :
+        env.statistics->todPolyNodesAtEnd--;
+        break;
+      case Node::T_DATA :
+        env.statistics->todDataNodesAtEnd--;
+      }
+    }
     delete this;
   }
 }

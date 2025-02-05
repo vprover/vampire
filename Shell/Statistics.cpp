@@ -469,14 +469,30 @@ void Statistics::print(std::ostream& out)
 
   SEPARATOR;
   HEADING("Term-Ordering Diagram", todQueries);
-  COND_OUT("Nodes created", todNodesCreated);
-  COND_OUT("Nodes used   ", todNodesUsed);
-  COND_OUT("Preprocesses ", todPreprocesses);
-  COND_OUT("Queries", todQueries);
-  COND_OUT("Instruction on Forward Demodulation   ", bench::TODCounter::getTotalFwDemodulationCount())
-  COND_OUT("Instructions on TOD queries           ", bench::TODCounter::getInstrTodQuery());
-  COND_OUT("Instructions on TOD positivity checks ", bench::TODCounter::getInstrPositivityCheckCount());
-  COND_OUT("Instructions on TOD comparisons       ", bench::TODCounter::getInstrOrederinCheck());
+  COND_OUT("Time on Fw Demodulation       (μs)", bench::TODCounter::getFwDemodulationTime()  /1000);
+  COND_OUT("Time on TOD queries           (μs)", bench::TODCounter::getTodQueryTime()        /1000);
+  COND_OUT("Time on TOD positivity checks (μs)", bench::TODCounter::getPositivityCheckTime() /1000);
+  COND_OUT("Time on TOD ordering checks   (μs)", bench::TODCounter::getOrderingCheckTime()   /1000);
+  COND_OUT("Variance Fw Demodulation  (μs^2)  ", bench::TODCounter::getVarianceFwemodulation()           /1000000)
+  COND_OUT("Instructions on Fw Demodulation       (milion)", bench::TODCounter::getFwDemodulationCount() /1000000);
+  COND_OUT("Instructions on TOD queries           (milion)", bench::TODCounter::getTodQueryTime()        /1000000);
+  COND_OUT("Instructions on TOD positivity checks (milion)", bench::TODCounter::getPositivityCheckTime() /1000000);
+  COND_OUT("Instructions on TOD ordering checks   (milion)", bench::TODCounter::getOrderingCheckTime()   /1000000);
+  COND_OUT("Instructions on TOD Preprocess        (milion)", bench::TODCounter::getPreProcessTime()      /1000000);
+  COND_OUT("Forward demodulations   ", forwardDemodulations);
+  COND_OUT("TOD queries             ", todQueries);
+  COND_OUT("Positivity checks       ", todPositivityChecks);
+  COND_OUT("Ordering checks         ", todOrderingChecks);
+  COND_OUT("Preprocesses            ", todPreprocesses);
+  COND_OUT("Nodes created           ", todNodesCreated);
+  COND_OUT("Nodes deleted           ", todNodesDeleted);
+  COND_OUT("Nodes used              ", todNodesUsed);
+  COND_OUT("Term nodes created      ", todTermNodesCreated);
+  COND_OUT("Data nodes created      ", todDataNodesCreated);
+  COND_OUT("Poly nodes created      ", todPolyNodesCreated);
+  COND_OUT("Term nodes at the end   ", todTermNodesAtEnd);
+  COND_OUT("Data nodes at the end   ", todDataNodesAtEnd);
+  COND_OUT("Poly nodes at the end   ", todPolyNodesAtEnd);
   SEPARATOR;
   }
 

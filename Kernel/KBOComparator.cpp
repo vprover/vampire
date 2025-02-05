@@ -12,6 +12,7 @@
 #include "SubstHelper.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "KBOComparator.hpp"
 
@@ -66,6 +67,19 @@ void KBOComparator::processTermNode()
   bool weightAdded = (w < 0 || varInbalance);
   if (weightAdded) {
     // we mutate the original node
+    switch (curr->node()->tag)
+    {
+    case Node::T_TERM :
+      env.statistics->todTermNodesAtEnd--;
+      break;
+    case Node::T_POLY :
+      env.statistics->todPolyNodesAtEnd--;
+      break;
+    case Node::T_DATA :
+      env.statistics->todDataNodesAtEnd--;
+    }
+    env.statistics->todPolyNodesAtEnd++;
+    env.statistics->todPolyNodesCreated++;
     curr->node()->tag = Node::T_POLY;
     curr->node()->poly = Polynomial::get(w, nonzeros);
     curr->node()->gtBranch = gtBranch;

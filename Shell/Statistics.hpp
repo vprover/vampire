@@ -282,11 +282,18 @@ public:
 
   /** Term-Ordering Diagrams */
   unsigned todNodesCreated = 0;
+  unsigned todNodesDeleted = 0;
   unsigned todNodesUsed = 0;
   unsigned todPreprocesses = 0;
   unsigned todQueries = 0;
   unsigned todOrderingChecks = 0;
   unsigned todPositivityChecks = 0;
+  unsigned todTermNodesCreated = 0;
+  unsigned todTermNodesAtEnd = 0;
+  unsigned todDataNodesCreated = 0;
+  unsigned todDataNodesAtEnd = 0;
+  unsigned todPolyNodesCreated = 0;
+  unsigned todPolyNodesAtEnd = 0;
 
   /** termination reason */
   enum TerminationReason {

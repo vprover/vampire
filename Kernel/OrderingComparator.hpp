@@ -17,7 +17,6 @@
 #include "Forwards.hpp"
 
 #include "TermPartialOrdering.hpp"
-#include "Benchmarking/BenchTOD.hpp"
 
 #include "Ordering.hpp"
 
