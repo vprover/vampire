@@ -45,27 +45,269 @@ std::array<T *, N> getParents(T *unit)
   return parents;
 }
 
-struct Name {
-  const std::string &name;
-  bool builtin = false;
-  Name(const std::string &name) : name(name) {}
-  Name(Term *t) : Name(t->functionName()) {}
-  Name(Literal *l) : Name(l->predicateName())
-  {
-    builtin = l->isEquality();
-  }
+struct FunctionName {
+  FunctionName(Signature::Symbol *symbol) : symbol(symbol) {}
+  FunctionName(Term *t) : FunctionName(env.signature->getFunction(t->functor())) {}
+  Signature::Symbol *symbol;
 };
 
-static std::ostream &operator<<(std::ostream &out, Name name)
-{
-  if (name.builtin)
-    return out << name.name;
-  return out << "|_" << name.name << '|';
+
+static std::ostream &operator<<(std::ostream &out, FunctionName name) {
+  auto f = name.symbol;
+  if(!f->interpreted())
+    return out << "|_" << f->name() << '|';
+  if(f->integerConstant())
+    return out << f->integerValue();
+  if(f->rationalConstant() || f->realConstant()) {
+    auto rat = f->rationalConstant() ? f->rationalValue() : f->realValue();
+    return out << "(/ " << rat.numerator() << ' ' << rat.denominator() << ')';
+  }
+  auto *interpreted = static_cast<Signature::InterpretedSymbol *>(f);
+  switch(interpreted->getInterpretation()) {
+  case Theory::EQUAL:
+  case Theory::INT_IS_INT:
+  case Theory::INT_IS_RAT:
+  case Theory::INT_IS_REAL:
+  case Theory::INT_GREATER:
+  case Theory::INT_GREATER_EQUAL:
+  case Theory::INT_LESS:
+  case Theory::INT_LESS_EQUAL:
+  case Theory::INT_DIVIDES:
+  case Theory::RAT_IS_INT:
+  case Theory::RAT_IS_RAT:
+  case Theory::RAT_IS_REAL:
+  case Theory::RAT_GREATER:
+  case Theory::RAT_GREATER_EQUAL:
+  case Theory::RAT_LESS:
+  case Theory::RAT_LESS_EQUAL:
+  case Theory::REAL_IS_INT:
+  case Theory::REAL_IS_RAT:
+  case Theory::REAL_IS_REAL:
+  case Theory::REAL_GREATER:
+  case Theory::REAL_GREATER_EQUAL:
+  case Theory::REAL_LESS:
+  case Theory::REAL_LESS_EQUAL:
+    // should be predicates, not functions
+    ASSERTION_VIOLATION
+  case Theory::INT_SUCCESSOR:
+    NOT_IMPLEMENTED;
+  case Theory::INT_UNARY_MINUS:
+  case Theory::RAT_UNARY_MINUS:
+  case Theory::REAL_UNARY_MINUS:
+    return out << '-';
+  case Theory::INT_PLUS:
+  case Theory::RAT_PLUS:
+  case Theory::REAL_PLUS:
+    return out << '+';
+  case Theory::INT_MINUS:
+  case Theory::RAT_MINUS:
+  case Theory::REAL_MINUS:
+    return out << '-';
+  case Theory::INT_MULTIPLY:
+  case Theory::RAT_MULTIPLY:
+  case Theory::REAL_MULTIPLY:
+    return out << '*';
+  case Theory::INT_QUOTIENT_E:
+  case Theory::INT_QUOTIENT_T:
+  case Theory::INT_QUOTIENT_F:
+  case Theory::RAT_QUOTIENT:
+  case Theory::RAT_QUOTIENT_E:
+  case Theory::RAT_QUOTIENT_T:
+  case Theory::RAT_QUOTIENT_F:
+  case Theory::REAL_QUOTIENT:
+  case Theory::REAL_QUOTIENT_E:
+  case Theory::REAL_QUOTIENT_T:
+  case Theory::REAL_QUOTIENT_F:
+    NOT_IMPLEMENTED;
+  case Theory::INT_REMAINDER_E:
+  case Theory::INT_REMAINDER_T:
+  case Theory::INT_REMAINDER_F:
+  case Theory::RAT_REMAINDER_E:
+  case Theory::RAT_REMAINDER_T:
+  case Theory::RAT_REMAINDER_F:
+  case Theory::REAL_REMAINDER_E:
+  case Theory::REAL_REMAINDER_T:
+  case Theory::REAL_REMAINDER_F:
+    NOT_IMPLEMENTED;
+  case Theory::INT_FLOOR:
+  case Theory::RAT_FLOOR:
+  case Theory::REAL_FLOOR:
+    NOT_IMPLEMENTED;
+  case Theory::INT_CEILING:
+  case Theory::RAT_CEILING:
+  case Theory::REAL_CEILING:
+    NOT_IMPLEMENTED;
+  case Theory::INT_TRUNCATE:
+  case Theory::RAT_TRUNCATE:
+  case Theory::REAL_TRUNCATE:
+    NOT_IMPLEMENTED;
+  case Theory::INT_ROUND:
+  case Theory::RAT_ROUND:
+  case Theory::REAL_ROUND:
+    NOT_IMPLEMENTED;
+  case Theory::INT_ABS:
+    NOT_IMPLEMENTED;
+  case Theory::INT_TO_INT:
+  case Theory::INT_TO_RAT:
+  case Theory::INT_TO_REAL:
+  case Theory::RAT_TO_INT:
+  case Theory::RAT_TO_RAT:
+  case Theory::RAT_TO_REAL:
+  case Theory::REAL_TO_INT:
+  case Theory::REAL_TO_RAT:
+  case Theory::REAL_TO_REAL:
+    NOT_IMPLEMENTED;
+  case Theory::ARRAY_SELECT:
+  case Theory::ARRAY_BOOL_SELECT:
+  case Theory::ARRAY_STORE:
+    NOT_IMPLEMENTED;
+  case Theory::INVALID_INTERPRETATION:
+    ASSERTION_VIOLATION
+  }
+}
+
+struct PredicateName {
+  PredicateName(Signature::Symbol *symbol) : symbol(symbol) {}
+  PredicateName(Literal *l) : PredicateName(env.signature->getPredicate(l->functor())) {}
+  Signature::Symbol *symbol;
+};
+
+static std::ostream &operator<<(std::ostream &out, PredicateName name) {
+  auto p = name.symbol;
+  if(!p->interpreted())
+    return out << "|_" << p->name() << '|';
+  auto *interpreted = static_cast<Signature::InterpretedSymbol *>(p);
+  switch(interpreted->getInterpretation()) {
+  case Theory::EQUAL:
+    return out << '=';
+  case Theory::INT_IS_INT:
+  case Theory::INT_IS_RAT:
+  case Theory::INT_IS_REAL:
+  case Theory::RAT_IS_INT:
+  case Theory::RAT_IS_RAT:
+  case Theory::RAT_IS_REAL:
+  case Theory::REAL_IS_INT:
+  case Theory::REAL_IS_RAT:
+  case Theory::REAL_IS_REAL:
+    NOT_IMPLEMENTED;
+  case Theory::INT_GREATER:
+  case Theory::RAT_GREATER:
+  case Theory::REAL_GREATER:
+    return out << '>';
+  case Theory::INT_GREATER_EQUAL:
+  case Theory::RAT_GREATER_EQUAL:
+  case Theory::REAL_GREATER_EQUAL:
+    return out << ">=";
+  case Theory::INT_LESS:
+  case Theory::RAT_LESS:
+  case Theory::REAL_LESS:
+    return out << '<';
+  case Theory::INT_LESS_EQUAL:
+  case Theory::RAT_LESS_EQUAL:
+  case Theory::REAL_LESS_EQUAL:
+    return out << "<=";
+  case Theory::INT_DIVIDES:
+    NOT_IMPLEMENTED;
+
+  case Theory::INT_SUCCESSOR:
+  case Theory::INT_UNARY_MINUS:
+  case Theory::INT_PLUS:
+  case Theory::INT_MINUS:
+  case Theory::INT_MULTIPLY:
+  case Theory::INT_QUOTIENT_E:
+  case Theory::INT_QUOTIENT_T:
+  case Theory::INT_QUOTIENT_F:
+  case Theory::INT_REMAINDER_E:
+  case Theory::INT_REMAINDER_T:
+  case Theory::INT_REMAINDER_F:
+  case Theory::INT_FLOOR:
+  case Theory::INT_CEILING:
+  case Theory::INT_TRUNCATE:
+  case Theory::INT_ROUND:
+  case Theory::INT_ABS:
+  case Theory::RAT_UNARY_MINUS:
+  case Theory::RAT_PLUS:
+  case Theory::RAT_MINUS:
+  case Theory::RAT_MULTIPLY:
+  case Theory::RAT_QUOTIENT:
+  case Theory::RAT_QUOTIENT_E:
+  case Theory::RAT_QUOTIENT_T:
+  case Theory::RAT_QUOTIENT_F:
+  case Theory::RAT_REMAINDER_E:
+  case Theory::RAT_REMAINDER_T:
+  case Theory::RAT_REMAINDER_F:
+  case Theory::RAT_FLOOR:
+  case Theory::RAT_CEILING:
+  case Theory::RAT_TRUNCATE:
+  case Theory::RAT_ROUND:
+  case Theory::REAL_UNARY_MINUS:
+  case Theory::REAL_PLUS:
+  case Theory::REAL_MINUS:
+  case Theory::REAL_MULTIPLY:
+  case Theory::REAL_QUOTIENT:
+  case Theory::REAL_QUOTIENT_E:
+  case Theory::REAL_QUOTIENT_T:
+  case Theory::REAL_QUOTIENT_F:
+  case Theory::REAL_REMAINDER_E:
+  case Theory::REAL_REMAINDER_T:
+  case Theory::REAL_REMAINDER_F:
+  case Theory::REAL_FLOOR:
+  case Theory::REAL_CEILING:
+  case Theory::REAL_TRUNCATE:
+  case Theory::REAL_ROUND:
+  case Theory::INT_TO_INT:
+  case Theory::INT_TO_RAT:
+  case Theory::INT_TO_REAL:
+  case Theory::RAT_TO_INT:
+  case Theory::RAT_TO_RAT:
+  case Theory::RAT_TO_REAL:
+  case Theory::REAL_TO_INT:
+  case Theory::REAL_TO_RAT:
+  case Theory::REAL_TO_REAL:
+  case Theory::ARRAY_SELECT:
+  case Theory::ARRAY_BOOL_SELECT:
+  case Theory::ARRAY_STORE:
+    // should be predicates, not functions
+    ASSERTION_VIOLATION
+  case Theory::INVALID_INTERPRETATION:
+    ASSERTION_VIOLATION
+  }
+}
+
+struct Blank {};
+static std::ostream &operator<<(std::ostream &out, Blank) { return out; }
+struct Inhabit {};
+static std::ostream &operator<<(std::ostream &out, Inhabit) { return out << "inhabit_"; }
+
+template<typename Prefix = Blank>
+struct SortName {
+  SortName(unsigned functor) : functor(functor) {}
+  SortName(AtomicSort *s) : functor(s->functor()) {}
+  unsigned functor;
+};
+
+template<typename Prefix>
+static std::ostream &operator<<(std::ostream &out, SortName<Prefix> name) {
+  Prefix prefix;
+  switch(name.functor) {
+  case Signature::DEFAULT_SORT_CON:
+    return out << prefix << "iota";
+  case Signature::BOOL_SRT_CON:
+    return out << prefix << "Bool";
+  case Signature::INTEGER_SRT_CON:
+    return out << prefix << "Int";
+  // SMT-LIB doesn't have rationals
+  case Signature::RATIONAL_SRT_CON:
+  case Signature::REAL_SRT_CON:
+    return out << prefix << "Real";
+  }
+  return out << '|' << prefix << '_' << env.signature->getTypeCon(name.functor)->name() << '|';
 }
 
 struct Args {
   TermList *start;
   SortMap &conclSorts;
+  SortMap &otherSorts;
 };
 
 static std::ostream &operator<<(std::ostream &out, Args args)
@@ -82,18 +324,18 @@ static std::ostream &operator<<(std::ostream &out, Args args)
       if (args.conclSorts.findPtr(var))
         out << "v" << var;
       else
-        out << "inhabit";
+        out << SortName<Inhabit>(static_cast<AtomicSort *>(args.otherSorts.get(var).term()));
       current = current->next();
     }
     else if (current->isTerm()) {
       Term *term = current->term();
       if (term->arity()) {
-        out << "(" << Name(term);
+        out << "(" << FunctionName(term);
         todo.push(current->next());
         current = term->args();
       }
       else {
-        out << Name(term);
+        out << FunctionName(term);
         current = current->next();
       }
     }
@@ -111,6 +353,7 @@ static std::ostream &operator<<(std::ostream &out, Args args)
 struct Lit {
   Literal *literal;
   SortMap &conclSorts;
+  SortMap &otherSorts;
 };
 
 static std::ostream &operator<<(std::ostream &out, Lit lit)
@@ -120,13 +363,25 @@ static std::ostream &operator<<(std::ostream &out, Lit lit)
     out << "(not ";
   if (literal->arity())
     out << "(";
-  out << Name(literal) << Args{literal->args(), lit.conclSorts};
+  out << PredicateName(literal) << Args{literal->args(), lit.conclSorts, lit.otherSorts};
   if (literal->arity())
     out << ")";
   if (!literal->polarity())
     out << ")";
   return out;
 }
+
+struct Sort {
+  TermList sort;
+};
+
+static std::ostream &operator<<(std::ostream &out, Sort print) {
+  AtomicSort *sort = static_cast<AtomicSort *>(print.sort.term());
+  // don't support type constructors yet
+  ASS_EQ(sort->arity(), 0)
+  return out << SortName(sort);
+}
+
 
 template <bool flip = false>
 struct Split {
@@ -219,7 +474,10 @@ static void outputPremise(std::ostream &out, SortMap &conclSorts, Clause *cl, Tr
 {
   out << "(assert (or";
   for (Literal *l : *cl) {
-    out << " " << Lit{transform(l), conclSorts};
+    l = transform(l);
+    SortMap otherSorts;
+    SortHelper::collectVariableSorts(l, otherSorts);
+    out << " " << Lit{l, conclSorts, otherSorts};
   }
   if (cl->splits()) {
     SplitSet &clSplits = *cl->splits();
@@ -232,8 +490,9 @@ static void outputPremise(std::ostream &out, SortMap &conclSorts, Clause *cl, Tr
 
 static void outputConclusion(std::ostream &out, SortMap &conclSorts, Clause *cl)
 {
+  SortMap otherSorts;
   for (Literal *l : *cl)
-    out << "(assert " << Lit{Literal::complementaryLiteral(l), conclSorts} << ")\n";
+    out << "(assert " << Lit{Literal::complementaryLiteral(l), conclSorts, otherSorts} << ")\n";
 
   if (cl->splits()) {
     SplitSet &clSplits = *cl->splits();
@@ -381,9 +640,12 @@ static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
   outputPremise(out, conclSorts, split);
   for (Unit *u : iterTraits(parents)) {
     Clause *component = env.proofExtra.get<Indexing::SplitDefinitionExtra>(u).component;
+    // TODO dubious: need substitution
+    SortMap otherSorts;
+    SortHelper::collectVariableSorts(component, otherSorts);
     out << "(assert (= " << Split {component->splits()->sval()} << " (or";
     for(Literal *l : *component)
-      out << ' ' << Lit {l, conclSorts};
+      out << ' ' << Lit {l, conclSorts, otherSorts};
     out << ")))\n";
   }
 
@@ -421,8 +683,7 @@ static SortMap outputSkolemsAndGetSorts(std::ostream &out, Unit *u)
   auto it = sorts.items();
   while (it.hasNext()) {
     auto [var, sort] = it.next();
-    ASS_EQ(sort, AtomicSort::defaultSort())
-    out << "(declare-const v" << var << " I)\n";
+    out << "(declare-const v" << var << " " << Sort {sort} << ")\n";
   }
   return sorts;
 }
@@ -462,41 +723,52 @@ namespace SMTCheck {
 
 void outputSignature(std::ostream &out)
 {
-  out << "(declare-sort I 0)\n";
-  out << "(declare-const inhabit I)\n";
+  out << "(declare-sort iota 0)\n";
+  out << "(declare-const inhabit_iota iota)\n";
+  out << "(declare-const inhabit_Int Real)\n";
+  out << "(declare-const inhabit_Real Real)\n";
 
-  // TODO non-fof sorts
   Signature &sig = *env.signature;
+  for(unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
+    Signature::Symbol *type = sig.getTypeCon(i);
+    out << "(declare-sort " << SortName(i);
+    OperatorType *typeType = type->typeConType();
+    // we don't support polymorphism yet
+    ASS_EQ(typeType->numTypeArguments(), 0)
+    out << " 0)\n";
+    out << "(declare-const " << SortName<Inhabit>(i) << ' ' << SortName(i) << ")\n";
+  }
+
   for(unsigned i = 0; i < sig.functions(); i++) {
     Signature::Symbol *fun = sig.getFunction(i);
-    out << "(declare-fun " << Name(fun->name());
+    if(fun->interpreted())
+      continue;
+
+    out << "(declare-fun " << FunctionName(fun);
     OperatorType *type = fun->fnType();
     TermList range = type->result();
 
     // we don't support polymorphism yet
     ASS_EQ(type->numTypeArguments(), 0)
-    // we don't support many-sorted logic yet
-    ASS(type->isAllDefault())
-    // we don't support many-sorted logic yet
-    ASS(range == AtomicSort::defaultSort())
     out << " (";
     for (unsigned i = 0; i < type->arity(); i++)
-      out << (i == 0 ? "" : " ") << "I";
-    out << ") I)\n";
+      out << (i == 0 ? "" : " ") << Sort {type->arg(i)};
+    out << ") " << Sort {range} << ")\n";
   }
 
   for(unsigned i = 1; i < sig.predicates(); i++) {
     Signature::Symbol *pred = sig.getPredicate(i);
-    out << "(declare-fun " << Name(pred->name());
+    if(pred->interpreted())
+      continue;
+
+    out << "(declare-fun " << PredicateName(pred);
     OperatorType *type = pred->predType();
 
     // we don't support polymorphism yet
     ASS_EQ(type->numTypeArguments(), 0)
-    // we don't support many-sorted logic yet
-    ASS(type->isAllDefault())
     out << " (";
     for (unsigned i = 0; i < type->arity(); i++)
-      out << (i == 0 ? "" : " ") << "I";
+      out << (i == 0 ? "" : " ") << Sort {type->arg(i)};
     out << ") Bool)\n";
   }
 }
@@ -524,6 +796,57 @@ void outputStep(std::ostream &out, Unit *u)
   switch (rule) {
     case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
+    case InferenceRule::EVALUATION:
+    case InferenceRule::THA_COMMUTATIVITY:
+    case InferenceRule::THA_ASSOCIATIVITY:
+    case InferenceRule::THA_RIGHT_IDENTINTY:
+    case InferenceRule::THA_LEFT_IDENTINTY:
+    case InferenceRule::THA_INVERSE_OP_OP_INVERSES:
+    case InferenceRule::THA_INVERSE_OP_UNIT:
+    case InferenceRule::THA_INVERSE_ASSOC:
+    case InferenceRule::THA_NONREFLEX:
+    case InferenceRule::THA_TRANSITIVITY:
+    case InferenceRule::THA_ORDER_TOTALALITY:
+    case InferenceRule::THA_ORDER_MONOTONICITY:
+    case InferenceRule::THA_PLUS_ONE_GREATER:
+    case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
+    case InferenceRule::THA_MINUS_MINUS_X:
+    case InferenceRule::THA_TIMES_ZERO:
+    case InferenceRule::THA_DISTRIBUTIVITY:
+    case InferenceRule::THA_DIVISIBILITY:
+    case InferenceRule::THA_MODULO_MULTIPLY:
+    case InferenceRule::THA_MODULO_POSITIVE:
+    case InferenceRule::THA_MODULO_SMALL:
+    case InferenceRule::THA_DIVIDES_MULTIPLY:
+    case InferenceRule::THA_NONDIVIDES_SKOLEM:
+    case InferenceRule::THA_ABS_EQUALS:
+    case InferenceRule::THA_ABS_MINUS_EQUALS:
+    case InferenceRule::THA_QUOTIENT_NON_ZERO:
+    case InferenceRule::THA_QUOTIENT_MULTIPLY:
+    case InferenceRule::THA_EXTRA_INTEGER_ORDERING:
+    case InferenceRule::THA_FLOOR_SMALL:
+    case InferenceRule::THA_FLOOR_BIG:
+    case InferenceRule::THA_CEILING_BIG:
+    case InferenceRule::THA_CEILING_SMALL:
+    case InferenceRule::THA_TRUNC1:
+    case InferenceRule::THA_TRUNC2:
+    case InferenceRule::THA_TRUNC3:
+    case InferenceRule::THA_TRUNC4:
+    case InferenceRule::THA_ARRAY_EXTENSIONALITY:
+    case InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY:
+    case InferenceRule::THA_BOOLEAN_ARRAY_WRITE1:
+    case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:
+    case InferenceRule::THA_ARRAY_WRITE1:
+    case InferenceRule::THA_ARRAY_WRITE2:
+    case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
+    case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
+    case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
+    case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
+    case InferenceRule::TERM_ALGEBRA_DISTINCTNESS_AXIOM:
+    case InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM:
+    case InferenceRule::TERM_ALGEBRA_INJECTIVITY_AXIOM:
+    case InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE:
+    case InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE:
       trivial(out, conclSorts, u->asClause());
       break;
     case InferenceRule::RESOLUTION:
