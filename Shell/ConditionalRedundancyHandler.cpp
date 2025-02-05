@@ -328,34 +328,38 @@ public:
 ConditionalRedundancyHandler* ConditionalRedundancyHandler::create(const Options& opts, const Ordering* ord, Splitter* splitter)
 {
   if (!opts.conditionalRedundancyCheck()) {
-    return new ConditionalRedundancyHandlerImpl</*enabled*/false,false,false,false>(opts,ord,splitter);
+    return new ConditionalRedundancyHandlerImpl</*enabled*/false,false,false,false,false>(opts,ord,splitter);
   }
   auto ordC = opts.conditionalRedundancyOrderingConstraints();
   // check for av=on here as otherwise we would have to null-check splits inside the handler
-  auto avatarC = opts.splitting() && opts.conditionalRedundancyAvatarConstraints();
-  auto litC = opts.conditionalRedundancyLiteralConstraints();
+  // auto avatarC = opts.splitting() && opts.conditionalRedundancyAvatarConstraints();
+  // auto litC = opts.conditionalRedundancyLiteralConstraints();
+  auto ordS = opts.conditionalRedundancySubsumption();
   if (ordC) {
-    if (avatarC) {
-      if (litC) {
-        return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
-      }
-      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
+    // if (avatarC) {
+    //   if (litC) {
+    //     return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
+    //   }
+    //   return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
+    // }
+    // if (litC) {
+    //   return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
+    // }
+    if (ordS) {
+      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*ordS*/true,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);  
     }
-    if (litC) {
-      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
-    }
-    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
+    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*ordS*/false,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
   }
-  if (avatarC) {
-    if (litC) {
-      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
-    }
-    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
-  }
-  if (litC) {
-    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
-  }
-  return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
+  // if (avatarC) {
+  //   if (litC) {
+  //     return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
+  //   }
+  //   return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
+  // }
+  // if (litC) {
+  //   return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
+  // }
+  return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*ordS*/false,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
 }
 
 void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
@@ -391,8 +395,8 @@ DHMap<Clause*,typename ConditionalRedundancyHandler::ConstraintIndex*> Condition
 
 // ConditionalRedundancyHandlerImpl
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
+template<bool enabled, bool ordC, bool ordS, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, ordS, avatarC, litC>::checkSuperposition(
   Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
   bool eqIsResult, ResultSubstitution* subs) const
 {
@@ -443,8 +447,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   return true;
 }
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition2(
+template<bool enabled, bool ordC, bool ordS, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, ordS, avatarC, litC>::checkSuperposition2(
   Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, TermList rwTermS, TermList tgtTermS) const
 {
   if constexpr (!enabled) {
@@ -452,6 +456,10 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   }
 
   if constexpr (!ordC) {
+    return true;
+  }
+
+  if constexpr (!ordS) {
     return true;
   }
 
@@ -524,8 +532,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   return false;
 }
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
+template<bool enabled, bool ordC, bool ordS, bool avatarC, bool litC>
+void ConditionalRedundancyHandlerImpl<enabled, ordC, ordS, avatarC, litC>::insertSuperposition(
   Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
   Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const
 {
@@ -605,8 +613,8 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   (*rwClDataPtr)->insert(_ord, subs, !eqIsResult, _splitter, std::move(ordCons), lits, splits);
 }
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolution(
+template<bool enabled, bool ordC, bool ordS, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, ordS, avatarC, litC>::handleResolution(
   Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
@@ -697,8 +705,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
  * This function is similar to @b DemodulationHelper::isPremiseRedundant.
  * However, here we do not assume that the rewriting equation is unit, which necessitates some additional checks.
  */
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperpositionPremiseRedundant(
+template<bool enabled, bool ordC, bool ordS, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, ordS, avatarC, litC>::isSuperpositionPremiseRedundant(
   Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
   const SubstApplicator* eqApplicator, Ordering::Result& tord) const
 {
@@ -732,8 +740,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperposi
   // TODO perform ordering check for rest of rwCl
 }
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(Clause* cl) const
+template<bool enabled, bool ordC, bool ordS, bool avatarC, bool litC>
+void ConditionalRedundancyHandlerImpl<enabled, ordC, ordS, avatarC, litC>::checkEquations(Clause* cl) const
 {
   if (!enabled || !ordC) {
     return;

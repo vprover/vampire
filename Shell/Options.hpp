@@ -2038,8 +2038,8 @@ public:
   bool conditionalRedundancyCheck() const { return _conditionalRedundancyCheck.actualValue; }
   bool conditionalRedundancyOrderingConstraints() const { return _conditionalRedundancyOrderingConstraints.actualValue; }
   bool conditionalRedundancySubsumption() const { return _conditionalRedundancySubsumption.actualValue; }
-  bool conditionalRedundancyAvatarConstraints() const { return _conditionalRedundancyAvatarConstraints.actualValue; }
-  bool conditionalRedundancyLiteralConstraints() const { return _conditionalRedundancyLiteralConstraints.actualValue; }
+  // bool conditionalRedundancyAvatarConstraints() const { return _conditionalRedundancyAvatarConstraints.actualValue; }
+  // bool conditionalRedundancyLiteralConstraints() const { return _conditionalRedundancyLiteralConstraints.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -2450,8 +2450,8 @@ private:
   BoolOptionValue _conditionalRedundancyCheck;
   BoolOptionValue _conditionalRedundancyOrderingConstraints;
   BoolOptionValue _conditionalRedundancySubsumption;
-  BoolOptionValue _conditionalRedundancyAvatarConstraints;
-  BoolOptionValue _conditionalRedundancyLiteralConstraints;
+  // BoolOptionValue _conditionalRedundancyAvatarConstraints;
+  // BoolOptionValue _conditionalRedundancyLiteralConstraints;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;

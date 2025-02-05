@@ -123,7 +123,7 @@ protected:
   static DHMap<Clause*,ConstraintIndex*> clauseData;
 };
 
-template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>
+template<bool enabled, bool orderingConstraints, bool orderingSubsumption, bool avatarConstraints, bool literalConstraints>
 class ConditionalRedundancyHandlerImpl
   : public ConditionalRedundancyHandler
 {
