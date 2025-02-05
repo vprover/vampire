@@ -426,7 +426,7 @@ public:
 
   /**
    * If there is a value stored under the @b key, remove
-   * it and return true. Otherwise, return false.
+   * it and return it. Otherwise, return an empty option.
    */
   Option<std::pair<Key,Val>> remove(Key const& key)
   {
