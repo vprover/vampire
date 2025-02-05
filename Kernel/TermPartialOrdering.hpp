@@ -62,10 +62,6 @@ public:
   /** Set relation between two terms given by a term ordering constraint. */
   static const TermPartialOrdering* set(const TermPartialOrdering* tpo, TermOrderingConstraint con);
 
-  // Returns if PO contains full incomparability yet.
-  // Useful to discard branches when reasoning over ground terms.
-  bool hasIncomp() const;
-
   friend std::ostream& operator<<(std::ostream& str, const TermPartialOrdering& tpo);
 
 private:

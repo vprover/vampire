@@ -72,10 +72,6 @@ public:
    *  If this fails, returns null, otherwise returns a non-null object. */
   static const PartialOrdering* set(const PartialOrdering* po, size_t x, size_t y, PoComp v);
 
-  // Returns if PO contains full incomparability yet.
-  // Useful to discard branches when reasoning over ground terms.
-  bool hasIncomp() const { return _hasIncomp; }
-
   friend std::ostream& operator<<(std::ostream& str, const PartialOrdering& po);
 
   static unsigned hash(const PartialOrdering* po) {
@@ -115,7 +111,6 @@ private:
 
   size_t _size = 0;
   std::vector<PoComp> _array;
-  bool _hasIncomp = false;
 
   static Set<PartialOrdering*, PartialOrdering> kStore;
 };

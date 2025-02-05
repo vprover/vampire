@@ -304,11 +304,6 @@ bool TermPartialOrdering::set(TermOrderingConstraint con)
   return true;
 }
 
-bool TermPartialOrdering::hasIncomp() const
-{
-  return _po->hasIncomp();
-}
-
 size_t TermPartialOrdering::getId(TermList t) const
 {
   ASS(_nodes.find(t));
