@@ -93,7 +93,7 @@ void* OrderingComparator::next()
   return nullptr;
 }
 
-bool OrderingComparator::check(const SubstApplicator* appl, const TermPartialOrdering* tpo)
+bool OrderingComparator::check(const SubstApplicator* appl, const PrevPoly& prevPoly, const TermPartialOrdering* tpo)
 {
   ASS_NEQ(tpo, TermPartialOrdering::getEmpty(_ord));
   init(appl);
@@ -129,22 +129,19 @@ bool OrderingComparator::check(const SubstApplicator* appl, const TermPartialOrd
 
     if (res == Ordering::INCOMPARABLE) {
       if (node->tag == Node::T_TERM) {
-        auto lhs = AppliedTerm(node->lhs, _appl, true).apply();
-        auto rhs = AppliedTerm(node->rhs, _appl, true).apply();
-
-        TermNodeIterator it(_ord, lhs, rhs, tpo);
-        auto val = it.get();
+        TermNodeIterator termIt(_ord, appl, node->lhs, node->rhs, prevPoly, tpo);
+        auto val = termIt.get();
         if (val != Ordering::INCOMPARABLE) {
           btStack.push(_curr);
           res = val;
         }
-      }/*  else {
+      } else {
         ASS_EQ(node->tag, Node::T_POLY);
-        const auto& kbo = static_cast<const KBO&>(_comp._ord);
+        const auto& kbo = static_cast<const KBO&>(_ord);
         auto weight = node->poly->constant;
         ZIArray<int> varDiffs;
         for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
-          AppliedTerm tt(TermList::var(var), _appl, true);
+          AppliedTerm tt(TermList::var(var), appl, true);
 
           VariableIterator vit(tt.term);
           while (vit.hasNext()) {
@@ -161,16 +158,14 @@ bool OrderingComparator::check(const SubstApplicator* appl, const TermPartialOrd
           }
           nonzeros.push({ i, varDiffs[i] });
         }
-        auto poly = Polynomial::get(weight, nonzeros);
 
-        PolyIterator polyIt(_comp._ord, poly, _tpo);
+        PolyNodeIterator polyIt(Polynomial::get(weight, nonzeros), prevPoly, tpo);
         auto val = polyIt.get();
         if (val != Ordering::INCOMPARABLE) {
-          _path.push(&node->getBranch(val));
-          btd = true;
-          break;
+          btStack.push(_curr);
+          res = val;
         }
-      } */
+      }
     }
     _prev = _curr;
     _curr = &node->getBranch(res);
@@ -280,6 +275,7 @@ void OrderingComparator::processCurrentNode()
         *_curr = _sink;
       } else {
         _curr->node()->trace = trace;
+        _curr->node()->prevPoly = getPrevPoly();
         _curr->node()->ready = true;
       }
       return;
@@ -344,6 +340,7 @@ void OrderingComparator::processVarNode()
   }
   _curr->node()->ready = true;
   _curr->node()->trace = trace;
+  _curr->node()->prevPoly = getPrevPoly();
 }
 
 void OrderingComparator::processPolyNode()
@@ -448,6 +445,7 @@ void OrderingComparator::processPolyNode()
     _curr->node()->poly = poly;
   }
   _curr->node()->trace = trace;
+  _curr->node()->prevPoly = prevPoly;
   _curr->node()->ready = true;
 }
 
@@ -656,8 +654,13 @@ const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int co
 // Iterators
 
 OrderingComparator::TermNodeIterator::TermNodeIterator(
-  const Ordering& ord, TermList lhs, TermList rhs, const TermPartialOrdering* tpo)
-  : _comp(OrderingComparator::createForSingleComparison(ord,lhs,rhs)), _tpo(tpo)
+  const Ordering& ord, const SubstApplicator* appl,
+    TermList lhs, TermList rhs,
+    const PrevPoly& prevPoly, const TermPartialOrdering* tpo)
+  : _ord(ord),
+    _comp(OrderingComparator::createForSingleComparison(
+      ord,AppliedTerm(lhs,appl,true).apply(),AppliedTerm(rhs,appl,true).apply())),
+    _prevPoly(prevPoly), _tpo(tpo)
 {
 }
 
@@ -687,41 +690,15 @@ Ordering::Result OrderingComparator::TermNodeIterator::get()
         comp = val;
       }
 
-    }/*  else {
+    } else {
       ASS_EQ(node->tag, Node::T_POLY);
 
-      const auto& kbo = static_cast<const KBO&>(_ord);
-      auto weight = node->poly->constant;
-      ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
-        AppliedTerm tt(TermList::var(var), _appl, true);
-
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-          // since the counts are sorted in descending order,
-          // this can only mean we will fail
-          if (varDiffs[v.var()]<0) {
-            goto loop_end;
-          }
-        }
-        int64_t w = kbo.computeWeight(tt);
-        weight += coeff*w;
-        // due to descending order of counts,
-        // this also means failure
-        if (coeff<0 && weight<0) {
-          goto loop_end;
-        }
+      PolyNodeIterator polyIt(node->poly, _prevPoly, _tpo);
+      auto val = polyIt.get();
+      if (val != Ordering::INCOMPARABLE) {
+        comp = val;
       }
-
-      if (weight > 0) {
-        comp = Ordering::GREATER;
-      } else if (weight == 0) {
-        comp = Ordering::EQUAL;
-      }
-    } */
-// loop_end:
+    }
     _comp->_prev = _comp->_curr;
     _comp->_curr = &node->getBranch(comp);
   }
@@ -729,49 +706,74 @@ Ordering::Result OrderingComparator::TermNodeIterator::get()
 }
 
 OrderingComparator::PolyNodeIterator::PolyNodeIterator(
-  const Ordering& ord, const Polynomial* poly, const TermPartialOrdering* tpo)
-  : _poly(poly), _tpo(tpo)
+  const Polynomial* poly, const PrevPoly& prevPoly, const TermPartialOrdering* tpo)
+  : _poly(poly), _prevPoly(prevPoly), _tpo(tpo)
 {
 }
 
 Ordering::Result OrderingComparator::PolyNodeIterator::get()
 {
-  // int firstNegIndex = -1;
-  // // stores how much is left in each positive
-  // Stack<unsigned> posLeft;
-  // // stores what we already bound for positives
-  // Stack<Stack<pair<unsigned,unsigned>>> posBound;
+  // check if we have seen this polynomial
+  // on the path leading here
+  auto polyIt = _prevPoly;
+  while (polyIt.first) {
+    ASS_EQ(polyIt.first->tag, Node::T_POLY);
+    switch (polyIt.second) {
+      case Ordering::GREATER: {
+        if (polyIt.first->poly == _poly) {
+          return Ordering::GREATER;
+        }
+        break;
+      }
+      case Ordering::EQUAL: {
+        if (polyIt.first->poly == _poly) {
+          return Ordering::EQUAL;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+    polyIt = polyIt.first->prevPoly;
+  }
 
-  // for (unsigned i = 0; i < _poly->varCoeffPairs.size(); i++) {
-  //   auto [var, coeff] = _poly->varCoeffPairs[i];
-  //   ASS_NEQ(coeff,0);
-  //   if (coeff > 0) {
-  //     posLeft.push(coeff);
-  //     posBound.push(Stack<pair<unsigned,unsigned>>());
-  //     continue;
-  //   }
-  //   if (firstNegIndex == -1) {
-  //     firstNegIndex = i;
-  //   }
-  //   for (unsigned j = 0; j < firstNegIndex; j++) {
-  //     auto [var2, coeff2] = _poly->varCoeffPairs[j];
-  //     Ordering::Result val;
-  //     if (!_tpo->get(TermList::var(var2), TermList::var(var), val)) {
-  //       continue;
-  //     }
-  //     switch (val) {
-  //       case Ordering::GREATER:
-  //       case Ordering::EQUAL:
-  //         auto diff = abs(coeff+posLeft[j]);
+  unsigned pos = 0;
+  unsigned neg = 0;
 
-  //         if ()
-  //         auto newCoeff = coeff + posLeft[j])
-  //         break;
-  //       default:
-  //         break;
-  //     }
-  //   }
-  // }
+  auto vcs = _poly->varCoeffPairs;
+
+  for (unsigned i = 0; i < vcs.size();) {
+    auto& [var, coeff] = vcs[i];
+    for (unsigned j = i+1; j < vcs.size();) {
+      auto& [var2, coeff2] = vcs[j];
+      Ordering::Result res;
+      if (_tpo->get(TermList::var(var), TermList::var(var2), res) && res == Ordering::EQUAL) {
+        coeff += coeff2;
+        swap(vcs[j],vcs.top());
+        vcs.pop();
+        continue;
+      }
+      j++;
+    }
+    if (coeff == 0) {
+      swap(vcs[i],vcs.top());
+      vcs.pop();
+      continue;
+    } else if (coeff > 0) {
+      pos++;
+    } else {
+      neg++;
+    }
+    i++;
+  }
+
+  auto constant = _poly->constant;
+  if (constant == 0 && pos == 0 && neg == 0) {
+    return Ordering::EQUAL;
+  }
+  if (constant >= 0 && neg == 0) {
+    return Ordering::GREATER;
+  }
   return Ordering::INCOMPARABLE;
 }
 
@@ -819,7 +821,8 @@ bool OrderingComparator::GreaterIterator::hasNext()
     ASS(_comp._threeValued);
     if (node->data && *static_cast<Result*>(node->data) == Ordering::GREATER) {
       ASS(node->trace);
-      _tpo = node->trace;
+      _res.first = node->prevPoly;
+      _res.second = node->trace;
       return true;
     }
   }

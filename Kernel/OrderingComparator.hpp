@@ -37,6 +37,9 @@ namespace Kernel {
 struct OrderingComparator
 {
 public:
+  struct Node;
+  using PrevPoly = std::pair<Node*,Ordering::Result>;
+
   static OrderingComparator* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs);
 
   OrderingComparator(const Ordering& ord);
@@ -50,7 +53,7 @@ public:
    *  constraints, or in null when no further such data can be retreived. */
   void* next();
 
-  bool check(const SubstApplicator* appl, const TermPartialOrdering* tpo);
+  bool check(const SubstApplicator* appl, const PrevPoly& prevPoly, const TermPartialOrdering* tpo);
 
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
@@ -81,10 +84,9 @@ protected:
   using Trace = TermPartialOrdering;
   const Trace* getCurrentTrace();
 
-  struct Node;
   struct Polynomial;
 
-  std::pair<Node*, Result> getPrevPoly();
+  PrevPoly getPrevPoly();
 
   /** A branch is essentially a shared pointer for a node,
    *  except the node takes care of its own lifecycle. */
@@ -107,6 +109,7 @@ protected:
     Node* _node = nullptr;
   };
 
+public:
   /** A node is a structure that either
    * (i)   contains user-defined data, or
    * (ii)  represents a term comparison, or
@@ -166,8 +169,9 @@ protected:
     const Trace* trace = nullptr;
     // points to the previous node containing a polynomial and branch
     // that was taken, otherwise null if no such node exists.
-    std::pair<Node*, Result> prevPoly = { nullptr, Result::INCOMPARABLE };
+    PrevPoly prevPoly = { nullptr, Result::INCOMPARABLE };
   };
+protected:
 
   using VarCoeffPair = std::pair<unsigned,int>;
 
@@ -199,20 +203,24 @@ protected:
   bool _threeValued = false;
 
   struct TermNodeIterator {
-    TermNodeIterator(const Ordering& ord, TermList lhs, TermList rhs, const TermPartialOrdering* tpo);
+    TermNodeIterator(const Ordering& ord, const SubstApplicator* appl,
+      TermList lhs, TermList rhs, const PrevPoly& prevPoly, const TermPartialOrdering* tpo);
 
     Result get();
 
+    const Ordering& _ord;
     OrderingComparator* _comp;
+    const PrevPoly& _prevPoly;
     const TermPartialOrdering* _tpo;
   };
 
   struct PolyNodeIterator {
-    PolyNodeIterator(const Ordering& ord, const Polynomial* poly, const TermPartialOrdering* tpo);
+    PolyNodeIterator(const Polynomial* poly, const PrevPoly& prevPoly, const TermPartialOrdering* tpo);
 
     Result get();
 
     const Polynomial* _poly;
+    const PrevPoly& _prevPoly;
     const TermPartialOrdering* _tpo;
   };
 
@@ -221,10 +229,10 @@ public:
     GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs);
 
     bool hasNext();
-    const TermPartialOrdering* next() { return _tpo; }
+    std::pair<PrevPoly, const TermPartialOrdering*> next() { return _res; }
 
     OrderingComparator& _comp;
-    const TermPartialOrdering* _tpo;
+    std::pair<PrevPoly, const TermPartialOrdering*> _res;
     Stack<Branch*> _path;
   };
 };

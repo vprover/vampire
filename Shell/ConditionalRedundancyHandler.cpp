@@ -481,7 +481,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
   } applicator;
 
-  auto checkFn = [](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
+  auto checkFn = [](ConstraintIndex** index, const TermStack& ts,
+    const OrderingComparator::PrevPoly& prevPoly, const TermPartialOrdering* tpo)
   {
     if (!index) {
       return false;
@@ -491,7 +492,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     while ((es = matcher.next()))
     {
       ASS(es->comparator);
-      if (es->comparator->check(&applicator, tpo)) {
+      if (es->comparator->check(&applicator, prevPoly, tpo)) {
         matcher.reset();
         // success
         return true;
@@ -502,28 +503,16 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return false;
   };
 
-  DHSet<const TermPartialOrdering*> seen;
   OrderingComparator::GreaterIterator git(*_ord, rwTermS, tgtTermS);
 
   while (git.hasNext()) {
-    auto tpo = git.next();
-
-    // this will fail as we have already
-    // failed in normal execution, stop
-    if (tpo == TermPartialOrdering::getEmpty(*_ord)) {
-      return true;
-    }
-
-    if (!seen.insert(tpo)) {
-      // already checked this tpo, success
-      continue;
-    }
+    auto [prevPoly, tpo] = git.next();
 
     // if success, continue
-    if (checkFn(eqClDataPtr, eqTs, tpo)) {
+    if (checkFn(eqClDataPtr, eqTs, prevPoly, tpo)) {
       continue;
     }
-    if (checkFn(rwClDataPtr, rwTs, tpo)) {
+    if (checkFn(rwClDataPtr, rwTs, prevPoly, tpo)) {
       continue;
     }
     // if failure, return
