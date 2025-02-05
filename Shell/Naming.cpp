@@ -106,7 +106,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
-      FormulaTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
+      FormulaClauseTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {

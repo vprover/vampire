@@ -67,7 +67,7 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   }
 
   FormulaUnit* res = new FormulaUnit(g,
-      FormulaTransformation(InferenceRule::FLATTEN,unit));
+      FormulaClauseTransformation(InferenceRule::FLATTEN,unit));
   if (env.options->showPreprocessing()) {
     std::cout << "[PP] flatten in: " << unit->toString() << std::endl;
     std::cout << "[PP] flatten out: " << res->toString() << std::endl;

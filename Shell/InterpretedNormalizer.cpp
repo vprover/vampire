@@ -502,7 +502,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
   }
 
   Clause* res = Clause::fromStack(lits,
-      FormulaTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
+      FormulaClauseTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
   // DBG(*cl, " ==> ", *res)
   return res;
 }
