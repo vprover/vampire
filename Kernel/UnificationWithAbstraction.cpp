@@ -1183,8 +1183,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
 
 Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const
 {
-  using Uwa = Shell::Options::UnificationWithAbstraction;
-  ASS(_mode != Uwa::OFF)
+  ASS(_mode != Shell::Options::UnificationWithAbstraction::OFF)
 
   if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
     return funcExt(au, t1, t2);
@@ -1192,8 +1191,8 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
   } else if (_mode == Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR) {
     return uwa_floor(*au, t1, t2, _mode);
 
-  } else if (_mode == Shell::Options::UnificationWithAbstraction::ALASCA_MAIN 
-      || _mode == Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT 
+  } else if (_mode == Shell::Options::UnificationWithAbstraction::ALASCA_MAIN
+      || _mode == Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT
       || _mode == Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP
       ) {
     return alasca(*au, t1, t2, _mode);
@@ -1201,7 +1200,7 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
   } else {
     auto abs = canAbstract(au, t1, t2);
     return someIf(abs, [&](){
-        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2, 
+        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2,
                 t1.isTerm() ? TermSpec(SortHelper::getResultSort(t1.term.term()), t1.index)
                             : TermSpec(SortHelper::getResultSort(t2.term.term()), t2.index)
                 )));
