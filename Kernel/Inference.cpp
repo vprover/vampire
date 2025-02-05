@@ -398,7 +398,7 @@ Inference::Inference(const FormulaTransformation& ft) {
   init1(ft.rule,ft.premise);
 
   ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
-  // ASS(!ft.premise->isClause()); // TODO: should this assertion be here? it would keeps us from preprocessing clauses in InterpretedNormalizer
+  ASS(!ft.premise->isClause());
 
   _included = ft.premise->included();
 }
