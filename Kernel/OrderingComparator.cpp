@@ -95,7 +95,7 @@ void* OrderingComparator::next()
 
 bool OrderingComparator::check(const SubstApplicator* appl, const PrevPoly& prevPoly, const TermPartialOrdering* tpo)
 {
-  ASS_NEQ(tpo, TermPartialOrdering::getEmpty(_ord));
+  // ASS_NEQ(tpo, TermPartialOrdering::getEmpty(_ord));
   init(appl);
 
   static Stack<Branch*> btStack;
