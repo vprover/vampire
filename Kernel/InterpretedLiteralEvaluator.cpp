@@ -721,22 +721,28 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::INT_QUOTIENT_E:
+      if (arg2 == 0) return false;
       res = arg1.quotientE(arg2); // should be equivalent to arg1/arg2
       return true;
     case Theory::INT_QUOTIENT_T:
+      if (arg2 == 0) return false;
       res = arg1.quotientT(arg2);
       return true;
     case Theory::INT_QUOTIENT_F:
+      if (arg2 == 0) return false;
       res = arg1.quotientF(arg2);
       return true;
     // The remainder is left - (quotient * right)
     case Theory::INT_REMAINDER_E:
+      if (arg2 == 0) return false;
       res = arg1.remainderE(arg2);
       return true;
     case Theory::INT_REMAINDER_T:
+      if (arg2 == 0) return false;
       res = arg1 - (arg1.quotientT(arg2)*arg2);
       return true;
     case Theory::INT_REMAINDER_F:
+      if (arg2 == 0) return false;
       res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
@@ -814,7 +820,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::RAT_QUOTIENT:
-      if (arg2 == RationalConstantType(0)) return false;
+      if (arg2 == 0) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -903,7 +909,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::REAL_QUOTIENT:
-      if (arg2 == RealConstantType(0)) return false;
+      if (arg2 == 0) return false;
       res = arg1/arg2;
       return true;
     default:
