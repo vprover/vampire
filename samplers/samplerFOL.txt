@@ -284,11 +284,14 @@ sa!=fmb > crc ~cat on:3,off:5
 # conditional_redundancy_ordering_constraints
 sa!=fmb crc=on > croc ~cat on:1,off:1
 
+# conditional_redundancy_subsumption
+sa!=fmb crc=on croc=on > crs ~cat on:1,off:1
+
 # conditional_redundancy_avatar_constraints
-sa!=fmb av=on crc=on > crac ~cat on:1,off:1
+#sa!=fmb av=on crc=on > crac ~cat on:1,off:1
 
 # conditional_redundancy_literal_constraints
-sa!=fmb crc=on > crlc ~cat on:1,off:1
+#sa!=fmb crc=on > crlc ~cat on:1,off:1
 
 # sat_solver
 sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,z3:3
