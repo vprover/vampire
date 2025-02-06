@@ -21,6 +21,7 @@
  */
 
 #include "Forwards.hpp"
+#include "Inferences/InferenceEngine.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
@@ -31,6 +32,7 @@
 #include "Lib/STL.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
 #include "Test/SyntaxSugar.hpp"
+#include <type_traits>
 
 namespace Test {
 
@@ -208,13 +210,33 @@ template<class Rule>
 class GenerationTester
 {
 protected:
-  Rule _rule;
+  std::unique_ptr<NewGeneratingInference> _rule;
 
 public:
 
-  GenerationTester(Rule rule) 
-    : _rule(std::move(rule)) 
+  GenerationTester(std::unique_ptr<NewGeneratingInference> rule) : _rule(std::move(rule)) {}
+
+
+  template<class T>
+  GenerationTester(T rule) 
+    : GenerationTester(makePtr(move_to_heap(std::move(rule))))
   {  }
+
+  static std::unique_ptr<NewGeneratingInference> makePtr(NewGeneratingInference* inf) { return std::unique_ptr<NewGeneratingInference>(inf); }
+  static std::unique_ptr<NewGeneratingInference> makePtr(SimplifyingGeneratingInference* inf) 
+  { return NewGeneratingInference::fromSGI(inf); }
+
+  // template<class T,
+  //   std::enable_if_t<std::is_base_of_v<NewGeneratingInference, Rule>, bool> = 0>
+  // GenerationTester(T rule) 
+  //   : _rule(std::unique_ptr<NewGeneratingInference>(static_cast<NewGeneratingInference*>(move_to_heap(std::move(rule))))) 
+  // {  }
+  //
+  // template<class T,
+  //   std::enable_if_t<std::is_base_of_v<SimplifyingGeneratingInference, Rule>, bool> = 0>
+  // GenerationTester(T rule) 
+  //   : _rule(std::unique_ptr<NewGeneratingInference>(NewGeneratingInference::fromSGI(move_to_heap(std::move(rule))))) 
+  // {  }
 
   virtual Clause* normalize(Kernel::Clause* c)
   { return c; }
@@ -231,7 +253,7 @@ class AsymmetricTest
   using Clause = Kernel::Clause;
   using OptionMap = Stack<std::pair<std::string,std::string>>;
   using Condition = std::function<bool(std::string&, std::string&)>;
-  Option<SimplifyingGeneratingInference*> _rule;
+  Option<NewGeneratingInference*> _rule;
   Clause* _input;
   Option<StackMatcher> _expected;
   Stack<Clause*> _context;
@@ -270,12 +292,17 @@ public:
   BUILDER_METHOD(StackMatcher, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(bool, selfApplications)
-  BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
+  BUILDER_METHOD(NewGeneratingInference*, rule)
   BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
   BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   BUILDER_METHOD(OptionMap, options)
   BUILDER_METHOD(Stack<Condition>, preConditions)
   BUILDER_METHOD(Stack<Condition>, postConditions)
+
+  auto rule(SimplifyingGeneratingInference* sgi) {
+    _rule = some(NewGeneratingInference::fromSGI(sgi).release());
+    return *this;
+  }
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
@@ -302,8 +329,8 @@ public:
     }
     MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
-    SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.InferenceEngine::attach(&alg);
+    auto& rule = *_rule.unwrapOrElse([&](){ return simpl._rule.get(); });
+    rule.attach(&alg);
     Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
       indices.push(i());
@@ -335,19 +362,25 @@ public:
       container.add(_input);
     }
 
-    auto res = rule.generateSimplify(_input);
+    auto res = rule.apply(_input);
 
     // run checks
     auto sExp = this->_expected.unwrap();
-    auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
-
-    if (!sExp.matches(sRes, simpl)) {
-      testFail(sRes, sExp);
+    Set<Clause*> redundant;
+    Stack<Clause*> generated;
+    for (auto r : iterTraits(res)) {
+      redundant.loadFromIterator(r.redundant);
+      generated.loadFromIterator(r.generated);
     }
 
-    if (_premiseRedundant != res.premiseRedundant) {
+    if (!sExp.matches(generated, simpl)) {
+      testFail(generated, sExp);
+    }
+
+    auto premiseRedundant = redundant.contains(_input);
+    if (_premiseRedundant != premiseRedundant) {
       auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
-      testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
+      testFail( wrapStr(premiseRedundant), wrapStr(_premiseRedundant));
     }
 
 
@@ -376,7 +409,7 @@ public:
 class SymmetricTest
 {
   using Clause = Kernel::Clause;
-  Option<SimplifyingGeneratingInference*> _rule;
+  Option<NewGeneratingInference*> _rule;
   Stack<Clause*> _inputs;
   Option<StackMatcher> _expected;
   bool _premiseRedundant;
@@ -407,8 +440,13 @@ public:
   _BUILDER_METHOD(StackMatcher, expected)
   _BUILDER_METHOD(bool, premiseRedundant)
   _BUILDER_METHOD(bool, selfApplications)
-  _BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
+  _BUILDER_METHOD(NewGeneratingInference*, rule)
   _BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+
+  auto rule(SimplifyingGeneratingInference* sgi) {
+    _rule = some(NewGeneratingInference::fromSGI(sgi).release());
+    return *this;
+  }
 
 
   template<class Rule>
@@ -425,7 +463,7 @@ public:
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl, Clause* input, Stack<Clause*> context) {
-    SimplifyingGeneratingInference* rule = _rule.unwrapOrElse([&](){ return &simpl._rule; });
+    auto rule = _rule.unwrapOrElse([&](){ return simpl._rule.get(); });
     AsymmetricTest()
       .input(input)
       .context(context)

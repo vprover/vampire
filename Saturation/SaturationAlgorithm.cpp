@@ -1579,6 +1579,15 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   };
 
+  // TODO rename
+  auto pushNewRule = [&](auto rule) {
+    if (res->_newSaturation) {
+      res->_rules.push(std::unique_ptr<NewGeneratingInference>(move_to_heap(std::move(rule))));
+    } else {
+      sgi->push(NewGeneratingInference::toSGI(std::move(rule)));
+    }
+  };
+
   pushRule(std::move(gie));
 
   auto& ordering = res->getOrdering();
@@ -1641,20 +1650,20 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       pushRule(ALASCA::SubtermFactoring(shared)); 
     pushRule(ALASCA::InequalityFactoring(shared));
     pushRule(ALASCA::EqFactoring(shared));
-    pushRule(ALASCA::FourierMotzkin(shared));
-    pushRule(ALASCA::FloorFourierMotzkin<RatTraits>(shared));
-    pushRule(ALASCA::FloorFourierMotzkin<RealTraits>(shared));
-    pushRule(ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
-    pushRule(ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
+    pushNewRule(ALASCA::FourierMotzkin(shared));
+    pushNewRule(ALASCA::FloorFourierMotzkin<RatTraits>(shared));
+    pushNewRule(ALASCA::FloorFourierMotzkin<RealTraits>(shared));
+    pushNewRule(ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
+    pushNewRule(ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
     if (env.options->superposition()) {
-      pushRule(ALASCA::Superposition(shared));
+      pushNewRule(ALASCA::Superposition(shared));
     }
     if (env.options->binaryResolution()) {
-      pushRule(ALASCA::BinaryResolution(shared));
+      pushNewRule(ALASCA::BinaryResolution(shared));
     }
     pushRule(ALASCA::CoherenceNormalization<RatTraits>(shared));
     pushRule(ALASCA::CoherenceNormalization<RealTraits>(shared));
-    pushRule(ALASCA::Coherence<RealTraits>(shared));
+    pushNewRule(ALASCA::Coherence<RealTraits>(shared));
     pushRule(ALASCA::FloorBounds(shared));
   }
 

@@ -42,7 +42,7 @@ void attachToInner(Inner& inner, SaturationAlgorithm* salg) { }
   
 template<class Rule>
 struct BinInf
-: public GeneratingInferenceEngine
+: public NewGeneratingInference
 {
   using Lhs = typename Rule::Lhs;
   using Rhs = typename Rule::Rhs;
@@ -63,15 +63,13 @@ public:
     , _lhs(nullptr)
     , _rhs(nullptr)
   {  }
-
-      
     
   void attach(SaturationAlgorithm* salg) final override
   { 
     ASS(!_rhs);
     ASS(!_lhs);
 
-    GeneratingInferenceEngine::attach(salg);
+    NewGeneratingInference::attach(salg);
 
     _lhs=static_cast<decltype(_lhs)> (_salg->getIndexManager()->request(Lhs::indexType()));
     _rhs=static_cast<decltype(_rhs)>(_salg->getIndexManager()->request(Rhs::indexType()));
@@ -88,7 +86,7 @@ public:
     _rhs = nullptr;
     _salg->getIndexManager()->release(Lhs::indexType());
     _salg->getIndexManager()->release(Rhs::indexType());
-    GeneratingInferenceEngine::detach();
+    NewGeneratingInference::detach();
   }
 
 
@@ -102,14 +100,14 @@ public:
   }
 #endif
 
-  ClauseIterator generateClauses(Clause* premise) final override
+  VirtualIterator<Result> apply(Clause* premise) final override
   {
     ASS(_lhs)
     ASS(_rhs)
     ASS(_shared)
 
     // TODO get rid of stack
-    Stack<Clause*> out;
+    Stack<Result> out;
 
     auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
     ASS(sigma.isEmpty())
@@ -123,11 +121,21 @@ public:
         auto& rhs   = *rhs_sigma.data;
         DEBUG(0, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
         DEBUG(0, "  sigma: ", sigma)
-        for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma))) {
-          DEBUG(0, "    result: ", *res)
-          out.push(res);
+        RStack<Clause*> rs;
+        rs->loadFromIterator(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma));
+        if (rs.size() > 0) {
+          for (auto cl : *rs) {
+            DEBUG(0, "    result: ", *cl)
+          }
+          DEBUG(0, "")
+        } else {
+          DEBUG(0, "<nothing>")
         }
-        DEBUG(0, "")
+        out.push(Result { 
+            .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
+            .generated = pvi(arrayIter(std::move(rs))),
+            .redundant = VirtualIterator<Clause*>::getEmpty(),
+            });
       }
     }
 
@@ -138,13 +146,21 @@ public:
       for (auto lhs_sigma : _lhs->template find<VarBanks>(&sigma, rhs.key())) {
         auto& lhs   = *lhs_sigma.data;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-          DEBUG(0, "  lhs: ", lhs, " (", lhs.clause()->number(), ")")
-          DEBUG(0, "  sigma: ", sigma)
-          for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::internal, rhs, VarBanks::query, sigma))) {
-            DEBUG(0, "    result: ", *res)
-            out.push(res);
+          RStack<Clause*> rs;
+          rs->loadFromIterator(_rule.applyRule(lhs, VarBanks::internal, rhs, VarBanks::query, sigma));
+          if (rs.size() > 0) {
+            for (auto cl : *rs) {
+              DEBUG(0, "    result: ", *cl)
+            }
+            DEBUG(0, "")
+          } else {
+            DEBUG(0, "<nothing>")
           }
-          DEBUG(0, "")
+          out.push(Result { 
+              .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
+              .generated = pvi(arrayIter(std::move(rs))),
+              .redundant = VirtualIterator<Clause*>::getEmpty(),
+              });
         }
       }
     }
@@ -156,7 +172,7 @@ public:
 
 template<class Rule>
 struct TriInf
-: public GeneratingInferenceEngine
+: public NewGeneratingInference
 {
   using Premise0 = typename Rule::Premise0;
   using Premise1 = typename Rule::Premise1;
@@ -193,7 +209,7 @@ public:
     ASS(!_prem1);
     ASS(!_prem2);
 
-    GeneratingInferenceEngine::attach(salg);
+    NewGeneratingInference::attach(salg);
 
     _prem0=static_cast<decltype(_prem0)> (_salg->getIndexManager()->request(Premise0::indexType()));
     _prem1=static_cast<decltype(_prem1)>(_salg->getIndexManager()->request(Premise1::indexType()));
@@ -212,7 +228,7 @@ public:
     _salg->getIndexManager()->release(Premise0::indexType());
     _salg->getIndexManager()->release(Premise1::indexType());
     _salg->getIndexManager()->release(Premise2::indexType());
-    GeneratingInferenceEngine::detach();
+    NewGeneratingInference::detach();
   }
 
 
@@ -235,7 +251,7 @@ public:
   template<unsigned p>
   using Prem = TL::Get<p, TL::List<Premise0, Premise1, Premise2>>;
 
-  ClauseIterator generateClauses(Clause* premise) final override
+  VirtualIterator<Result> apply(Clause* premise) final override
   {
     ASS(_prem0)
     ASS(_prem1)
@@ -243,8 +259,28 @@ public:
     ASS(_shared)
 
     // TODO get rid of stack
-    Stack<Clause*> out;
+    Stack<Result> out;
     auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+
+    auto applyRule = [&](auto& prem0, auto& prem1, auto& prem2) {
+      RStack<Clause*> rs;
+      rs->loadFromIterator(_rule.applyRule(prem0, bank(0), 
+                                           prem1, bank(1), 
+                                           prem2, bank(2), sigma));
+      if (rs.size() > 0) {
+        for (auto cl : *rs) {
+          DEBUG(0, "    result: ", *cl)
+        }
+        DEBUG(0, "")
+      } else {
+        DEBUG(0, "<nothing>")
+      }
+      out.push(Result { 
+          .hypotheses = pvi(iterItems(prem0.clause(), prem1.clause(), prem2.clause())),
+          .generated = pvi(arrayIter(std::move(rs))),
+          .redundant = VirtualIterator<Clause*>::getEmpty(),
+          });
+    };
 
     for (auto const& prem0 : Premise0::iter(*_shared, premise)) {
       DEBUG(0, "prem0: ", prem0)
@@ -254,12 +290,7 @@ public:
         for (auto prem2_sigma : _prem2->template find<QueryBank<0, 2>>(&sigma, prem0.key())) {
           auto& prem2   = *prem2_sigma.data;
           DEBUG(0, "    prem2: ", prem2)
-          for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
-                                                        prem1, bank(1), 
-                                                        prem2, bank(2), sigma))) {
-            DEBUG(0, "      result: ", *res)
-            out.push(res);
-          }
+          applyRule(prem0, prem1, prem2);
         }
         DEBUG(0, "")
       }
@@ -277,13 +308,7 @@ public:
           for (auto prem2_sigma : _prem2->template find<QueryBank<0, 2>>(&sigma, prem0.key())) {
             auto& prem2   = *prem2_sigma.data;
             DEBUG(0, "    prem2: ", prem2)
-            for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
-                                                          prem1, bank(1), 
-                                                          prem2, bank(2), sigma))) {
-              DEBUG(0, "      result: ", *res)
-              out.push(res);
-            }
-            DEBUG(0, "")
+            applyRule(prem0, prem1, prem2);
           }
         }
       }
@@ -299,13 +324,7 @@ public:
           for (auto prem1_sigma : _prem1->template find<QueryBank<0, 1>>(&sigma, prem0.key())) {
             auto& prem1   = *prem1_sigma.data;
             DEBUG(0, "    prem1: ", prem1)
-            for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
-                                                          prem1, bank(1), 
-                                                          prem2, bank(2), sigma))) {
-              DEBUG(0, "      result: ", *res)
-              out.push(res);
-            }
-            DEBUG(0, "")
+            applyRule(prem0, prem1, prem2);
           }
         // }
       }

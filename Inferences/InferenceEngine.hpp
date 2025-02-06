@@ -88,6 +88,7 @@ public:
 protected:
   SaturationAlgorithm* _salg;
 };
+class SimplifyingGeneratingInference;
 
 /* an inference engine that generates and makes clauses redundant at the same time */ 
 class NewGeneratingInference
@@ -111,6 +112,9 @@ public:
   template<class T>
   static std::unique_ptr<NewGeneratingInference> fromSGI(T c);
 
+  template<class T>
+  static SimplifyingGeneratingInference* toSGI(T c);
+
   /**
    * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
    * as well as the information wether the premise was made redundant.
@@ -119,7 +123,6 @@ public:
 };
 
 
-/* an inference engine that generates and makes clauses redundant at the same time */ 
 template<class T>
 class NewGeneratingInferenceFromSGI
 : public NewGeneratingInference
@@ -129,15 +132,16 @@ public:
 
   NewGeneratingInferenceFromSGI(T sgi) : _inner(std::move(sgi)) {}
 
-  void attach(SaturationAlgorithm* salg) final override { _inner.attach(salg); }
-  void detach() final override { _inner.detach(); }
+private:
+  SimplifyingGeneratingInference& deref(SimplifyingGeneratingInference* _inner) { return *_inner; }
+  SimplifyingGeneratingInference& deref(SimplifyingGeneratingInference & _inner) { return  _inner; }
+  SimplifyingGeneratingInference& deref() { return deref(_inner); }
 
-  /**
-   * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
-   * as well as the information wether the premise was made redundant.
-   */
-  virtual VirtualIterator<Result> apply(Clause* premise)  {
-    auto r = _inner.generateSimplify(premise);
+  void attach(SaturationAlgorithm* salg) final override { deref().attach(salg); }
+  void detach() final override { deref().detach(); }
+
+  virtual VirtualIterator<Result> apply(Clause* premise) final override {
+    auto r = deref().generateSimplify(premise);
     return pvi(iterTraits(r.clauses)
         .map([premise,redundant = r.premiseRedundant](auto cl) { return Result {
           .hypotheses = pvi(iterTraits(cl->inference().parents())
@@ -152,7 +156,6 @@ template<class T>
 std::unique_ptr<NewGeneratingInference> NewGeneratingInference::fromSGI(T sgi) {
   return std::unique_ptr<NewGeneratingInference>(static_cast<NewGeneratingInference*>(new NewGeneratingInferenceFromSGI<T>(std::move(sgi))));
 }
-
 
 /** A generating inference that might make its major premise redundant. */
 class SimplifyingGeneratingInference
@@ -176,6 +179,34 @@ public:
    */
   virtual ClauseGenerationResult generateSimplify(Clause* premise)  = 0;
 };
+
+// TODO document, note that this ignores the redundancy information from the wrapped NewGeneratingInference
+template<class T>
+class NewGeneratingInferenceToSGI
+: public SimplifyingGeneratingInference
+{
+  T _inner;
+public:
+
+  NewGeneratingInferenceToSGI(T sgi) : _inner(std::move(sgi)) {}
+
+  void attach(SaturationAlgorithm* salg) final override { _inner.attach(salg); }
+  void detach() final override { _inner.detach(); }
+
+  ClauseGenerationResult generateSimplify(Clause* premise) final override {
+    return ClauseGenerationResult {
+      .clauses = pvi(iterTraits(_inner.apply(premise))
+        .flatMap([](auto r) { return r.generated; })),
+      .premiseRedundant = false,
+    };
+  }
+};
+
+
+template<class T>
+SimplifyingGeneratingInference* NewGeneratingInference::toSGI(T sgi) 
+{ return new NewGeneratingInferenceToSGI<T>(std::move(sgi)); }
+
 
 class GeneratingInferenceEngine
 : public SimplifyingGeneratingInference

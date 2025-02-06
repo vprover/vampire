@@ -7,6 +7,7 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+#include "Inferences/InferenceEngine.hpp"
 #include "Test/AlascaTestUtils.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
@@ -25,6 +26,7 @@
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
 #include "Lib/Output.hpp"
+#include <type_traits>
 
 using namespace std;
 using namespace Kernel;
