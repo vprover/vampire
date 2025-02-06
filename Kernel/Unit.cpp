@@ -79,9 +79,9 @@ void Unit::doClauseTracing() {
   if (traceFwd != -1) {
 
     bool doTrace = false;
-    auto infit = inference().iterator();
-    while (inference().hasNext(infit)) {
-      if (inference().next(infit)->number() == unsigned(traceFwd)) {
+    auto infit = inference().parents();
+    while (infit.hasNext()) {
+      if (infit.next()->number() == unsigned(traceFwd)) {
         doTrace = true;
         break;
       }
@@ -191,9 +191,9 @@ std::string Unit::inferenceAsString() const
   std::string result = (std::string)"[" + inf.name();
   bool first = true;
 
-  auto it = inf.iterator();
-  while (inf.hasNext(it)) {
-    Unit* parent = inf.next(it);
+  auto it = inf.parents();
+  while (it.hasNext()) {
+    Unit* parent = it.next();
     result += first ? ' ' : ',';
     first = false;
     result += Int::toString(parent->number());
@@ -226,9 +226,9 @@ UnitIterator Unit::getParents() const
 {
   // The unit itself stores the inference
   UnitList* res = 0;
-  Inference::Iterator iit = _inference.iterator();
-  while(_inference.hasNext(iit)) {
-    Unit* premUnit = _inference.next(iit);
+  auto iit = _inference.parents();
+  while(iit.hasNext()) {
+    Unit* premUnit = iit.next();
     UnitList::push(premUnit, res);
   }
   res = UnitList::reverse(res); // we want items in the same order
@@ -249,12 +249,12 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
     if (collecting) {
       Inference& inf = current->inference();
       seenInputInference |= (inf.rule() == InferenceRule::INPUT);
-      Inference::Iterator iit = inf.iterator();
-      if (inf.hasNext(iit)) {
+      auto iit = inf.parents();
+      if (iit.hasNext()) {
         UnitInputType uit = UnitInputType::AXIOM; // we compute a maximum, so start from the smallest element
         bool isPureTheoryDescendant = true; // see also Inference::initMany
-        while(inf.hasNext(iit)) {
-          Unit* premUnit = inf.next(iit);
+        while (iit.hasNext()) {
+          Unit* premUnit = iit.next();
           uit = getInputType(uit,premUnit->inputType());
           isPureTheoryDescendant &= premUnit->isPureTheoryDescendant();
         }
@@ -322,9 +322,9 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
       todo.push(make_pair(current,true)); // to collect stuff when children done
       Inference& inf = current->inference();
       inf.minimizePremises(); // here we do the minimization
-      Inference::Iterator iit = inf.iterator();
-      while(inf.hasNext(iit)) {
-        Unit* premUnit = inf.next(iit);
+      auto iit = inf.parents();
+      while(iit.hasNext()) {
+        Unit* premUnit = iit.next();
         todo.push(make_pair(premUnit,false));
       }
     }

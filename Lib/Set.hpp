@@ -99,6 +99,7 @@ public:
   template<typename U>
   friend void std::swap(Set<U>& lhs, Set<U>& rhs);
   
+  bool keepRecycled() const { return _capacity > 0; }
 
   Set(Set&& other) : Set()
   { std::swap(other, *this); }
@@ -165,6 +166,14 @@ public:
     }
     return false;
   } // Set::contains
+
+  template<class Iter>
+  void loadFromIterator(Iter iter) 
+  {
+    while (iter.hasNext()) {
+      insert(iter.next());
+    }
+  }
 
   /**
    * Checks whether a value with a given hashCode is in the map. 
@@ -247,6 +256,7 @@ public:
   Val insert(Val val, unsigned code)
   { bool dummy; return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { return Hash::equals(v, val); }, dummy); } // Set::insert
 
+  // TODO rename to loadFromIterator to be consistent with Stack and friends
   /** Insert all elements from @b it iterator in the set */
   template<class It>
   void insertFromIterator(It it)
@@ -477,6 +487,7 @@ public:
 
   IterTraits<Iterator> iter() const
   { return iterTraits(Iterator(*this)); }
+
 
 }; // class Set
 

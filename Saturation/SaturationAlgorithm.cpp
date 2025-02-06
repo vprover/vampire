@@ -294,6 +294,9 @@ SaturationAlgorithm::~SaturationAlgorithm()
   _active->detach();
   _passive->detach();
 
+  for (auto& rule : _rules) {
+    rule->detach();
+  }
   if (_generator) {
     _generator->detach();
   }
@@ -1097,7 +1100,7 @@ void SaturationAlgorithm::removeSelected(Clause* cl)
  */
 void SaturationAlgorithm::activate(Clause* cl)
 {
-      TIME_TRACE("activation")
+  TIME_TRACE("activation")
 
   {
     TIME_TRACE("redundancy check")
@@ -1114,8 +1117,6 @@ void SaturationAlgorithm::activate(Clause* cl)
       }
     }
   }
-
-  _clauseActivationInProgress = true;
 
   if (!cl->numSelected()) {
     TIME_TRACE("clause selection")
@@ -1137,45 +1138,81 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   _conditionalRedundancyHandler->checkEquations(cl);
 
-  auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
-  auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
+  auto addGeneratedClauses = [&](auto toAdd)  {
+    while (toAdd.hasNext()) {
+      Clause *genCl = toAdd.next();
+      addNewClause(genCl);
 
-  while (toAdd.hasNext()) {
-    Clause *genCl = toAdd.next();
-    addNewClause(genCl);
-
-    Inference::Iterator iit = genCl->inference().iterator();
-    while (genCl->inference().hasNext(iit)) {
-      Unit *premUnit = genCl->inference().next(iit);
-      // Now we can get generated clauses having parents that are not clauses
-      // Indeed, from induction we can have generated clauses whose parents do
-      // not include the activated clause
-      if (premUnit->isClause()) {
-        Clause *premCl = static_cast<Clause *>(premUnit);
-        onParenthood(genCl, premCl);
+      Inference::Iterator iit = genCl->inference().iterator();
+      while (genCl->inference().hasNext(iit)) {
+        Unit *premUnit = genCl->inference().next(iit);
+        // Now we can get generated clauses having parents that are not clauses
+        // Indeed, from induction we can have generated clauses whose parents do
+        // not include the activated clause
+        if (premUnit->isClause()) {
+          Clause *premCl = static_cast<Clause *>(premUnit);
+          onParenthood(genCl, premCl);
+        }
       }
     }
-  }
+  };
 
-  _clauseActivationInProgress = false;
 
-  // now we remove clauses that could not be removed during the clause activation process
-  if (env.options->randomTraversals()) {
-    TIME_TRACE(TimeTrace::SHUFFLING);
+  auto doPostponedRemovals = [&]()  {
 
-    Shuffling::shuffleArray(_postponedClauseRemovals.begin(), _postponedClauseRemovals.size());
-  }
-  while (_postponedClauseRemovals.isNonEmpty()) {
-    Clause* cl = _postponedClauseRemovals.pop();
-    if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE) {
-      continue;
+    // now we remove clauses that could not be removed during the clause activation process
+    if (env.options->randomTraversals()) {
+      TIME_TRACE(TimeTrace::SHUFFLING);
+
+      Shuffling::shuffleArray(_postponedClauseRemovals.begin(), _postponedClauseRemovals.size());
     }
-    TIME_TRACE("clause removal")
-    removeActiveOrPassiveClause(cl);
-  }
+    while (_postponedClauseRemovals.isNonEmpty()) {
+      Clause* cl = _postponedClauseRemovals.pop();
+      if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE) {
+        continue;
+      }
+      TIME_TRACE("clause removal")
+      removeActiveOrPassiveClause(cl);
+    }
 
-  if (generated.premiseRedundant) {
-    _active->remove(cl);
+
+  };
+
+  if (_newSaturation) {
+
+    _clauseActivationInProgress = true;
+
+    // TODO
+    Recycled<Set<Clause*>> redundant;
+    for (auto res : arrayIter(_rules)
+        .flatMap([=](auto& r) { return r->apply(cl); })) {
+      if (iterTraits(res.hypotheses)
+            .any([&](auto hyp) { return redundant->contains(hyp); })) {
+        /* skipped inference because of redundancy */
+      } else {
+        redundant->loadFromIterator(res.redundant);
+        addGeneratedClauses(res.generated);
+      }
+    }
+
+    _clauseActivationInProgress = false;
+    ASS(_postponedClauseRemovals.isEmpty());
+    // doPostponedRemovals();
+    for (auto cl : redundant->iter()) {
+      removeActiveOrPassiveClause(cl);
+    }
+  } else {
+
+    _clauseActivationInProgress = true;
+
+    auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
+    addGeneratedClauses(TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses));
+
+    _clauseActivationInProgress = false;
+    doPostponedRemovals();
+    if (generated.premiseRedundant) {
+      _active->remove(cl);
+    }
   }
 
   return;
@@ -1341,6 +1378,9 @@ void SaturationAlgorithm::setGeneratingInferenceEngine(SimplifyingGeneratingInfe
   ASS(!_generator);
   _generator = generator;
   _generator->attach(this);
+  for (auto& rule : _rules) {
+    rule->attach(this);
+  }
 }
 
 /**
@@ -1427,133 +1467,142 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create generating inference engine
-  CompositeGIE *gie = new CompositeGIE();
+  CompositeGIE gie = CompositeGIE();
 
   bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
 
   if(opt.functionDefinitionIntroduction()) {
-    gie->addFront(new DefinitionIntroduction);
+    gie.addFront(new DefinitionIntroduction);
   }
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
-    gie->addFront(new Induction());
+    gie.addFront(new Induction());
   }
 
   if (opt.instantiation() != Options::Instantiation::OFF) {
     res->_instantiation = new Instantiation();
     // res->_instantiation->init();
-    gie->addFront(res->_instantiation);
+    gie.addFront(res->_instantiation);
   }
 
   if (prb.hasEquality()) {
     if (!alascaTakesOver) { // in alasca we have a special equality factoring rule
-      gie->addFront(new EqualityFactoring());
+      gie.addFront(new EqualityFactoring());
     }
-    gie->addFront(new EqualityResolution());
+    gie.addFront(new EqualityResolution());
     if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
-      gie->addFront(new Superposition());
+      gie.addFront(new Superposition());
     }
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
-    gie->addFront(new EqualityResolution());
+    gie.addFront(new EqualityResolution());
   }
 
   if (opt.combinatorySup()) {
-    gie->addFront(new ArgCong());
-    gie->addFront(new NegativeExt()); // TODO add option
+    gie.addFront(new ArgCong());
+    gie.addFront(new NegativeExt()); // TODO add option
     if (opt.narrow() != Options::Narrow::OFF) {
-      gie->addFront(new Narrow());
+      gie.addFront(new Narrow());
     }
     if (!opt.pragmatic()) {
-      gie->addFront(new SubVarSup());
+      gie.addFront(new SubVarSup());
     }
   }
 
   if(prb.hasFOOL() &&
     prb.isHigherOrder() && env.options->booleanEqTrick()){
-  //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
-    gie->addFront(new BoolEqToDiseq());
+  //  gie.addFront(new ProxyElimination::NOTRemovalGIE());
+    gie.addFront(new BoolEqToDiseq());
   }
 
   if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
      prb.isHigherOrder() && !opt.lambdaFreeHol()){
-    gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
-    gie->addFront(new ElimLeibniz());
+    gie.addFront(new PrimitiveInstantiation()); //TODO only add in some cases
+    gie.addFront(new ElimLeibniz());
   }
 
   if (env.options->choiceReasoning()) {
-    gie->addFront(new Choice());
+    gie.addFront(new Choice());
   }
 
-  gie->addFront(new Factoring());
+  gie.addFront(new Factoring());
   if (opt.binaryResolution() && !alascaTakesOver) { // in alasca we have a special resolution rule
-    gie->addFront(new BinaryResolution());
+    gie.addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
-    gie->addFront(new URResolution(opt.unitResultingResolution() == Options::URResolution::FULL));
+    gie.addFront(new URResolution(opt.unitResultingResolution() == Options::URResolution::FULL));
   }
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
-    gie->addFront(new ExtensionalityResolution());
+    gie.addFront(new ExtensionalityResolution());
   }
   if (opt.FOOLParamodulation()) {
-    gie->addFront(new FOOLParamodulation());
+    gie.addFront(new FOOLParamodulation());
   }
   if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
-    gie->addFront(new Cases());
+    gie.addFront(new Cases());
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      gie->addFront(new LazyClausificationGIE());
+      gie.addFront(new LazyClausificationGIE());
     }
   }
 
   if (opt.injectivityReasoning()) {
-    gie->addFront(new Injectivity());
+    gie.addFront(new Injectivity());
   }
   if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
-      gie->addFront(new AcyclicityGIE());
+      gie.addFront(new AcyclicityGIE());
     }
     else if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULELIGHT) {
-      gie->addFront(new AcyclicityGIE1());
+      gie.addFront(new AcyclicityGIE1());
     }
     if (opt.termAlgebraInferences()) {
-      gie->addFront(new InjectivityGIE());
+      gie.addFront(new InjectivityGIE());
     }
   }
   if (env.options->functionDefinitionRewriting()) {
-    gie->addFront(new FunctionDefinitionRewriting());
+    gie.addFront(new FunctionDefinitionRewriting());
     res->addForwardSimplifierToFront(new FunctionDefinitionDemodulation());
   }
 
   CompositeSGI *sgi = new CompositeSGI();
-  sgi->push(gie);
+  auto pushRule = [&](auto rule) {
+    if (res->_newSaturation) {
+      res->_rules.push(NewGeneratingInference::fromSGI(std::move(rule)));
+    } else {
+      sgi->push(move_to_heap(std::move(rule)));
+    }
+  };
+
+  pushRule(std::move(gie));
 
   auto& ordering = res->getOrdering();
 
   if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
-    sgi->push(new PolynomialEvaluationRule(ordering));
+    pushRule(PolynomialEvaluationRule(ordering));
   }
 
   if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new Cancellation(ordering));
+    pushRule(Cancellation(ordering));
   }
 
   if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination()));
+    pushRule(LfpRule<GaussianVariableElimination>(GaussianVariableElimination()));
   }
 
   if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    for (auto gen : allArithmeticSubtermGeneralizations()) {
-      sgi->push(gen);
-    }
+    forArithmeticSubtermGeneralizations([&](auto rule) {
+      pushRule(std::move(rule));
+    });
   }
 
   auto ise = createISE(prb, opt, ordering, alascaTakesOver);
+
   if (alascaTakesOver) {
     auto shared = Kernel::AlascaState::create(
         InequalityNormalizer::global(),
@@ -1582,39 +1631,40 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new ALASCA::Normalization(shared));
     // TODO check when the other one is better
     if (env.options->viras()) {
-      sgi->push(new ALASCA::VirasQuantifierElimination(shared));
+      pushRule(ALASCA::VirasQuantifierElimination(shared));
     } else {
-      sgi->push(new ALASCA::VariableElimination(shared, /* simpl */ true ));
+      pushRule(ALASCA::VariableElimination(shared, /* simpl */ true ));
     }
     // TODO remove term distinction between term and subterm factoring (?)
-    sgi->push(new ALASCA::TermFactoring(shared)); 
+    pushRule(ALASCA::TermFactoring(shared)); 
     if (env.options->alascaSubtermFactoring())
-      sgi->push(new ALASCA::SubtermFactoring(shared)); 
-    sgi->push(new ALASCA::InequalityFactoring(shared));
-    sgi->push(new ALASCA::EqFactoring(shared));
-    sgi->push(new ALASCA::FourierMotzkin(shared));
-    sgi->push(new ALASCA::FloorFourierMotzkin<RatTraits>(shared));
-    sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared));
-    sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
-    sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
+      pushRule(ALASCA::SubtermFactoring(shared)); 
+    pushRule(ALASCA::InequalityFactoring(shared));
+    pushRule(ALASCA::EqFactoring(shared));
+    pushRule(ALASCA::FourierMotzkin(shared));
+    pushRule(ALASCA::FloorFourierMotzkin<RatTraits>(shared));
+    pushRule(ALASCA::FloorFourierMotzkin<RealTraits>(shared));
+    pushRule(ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
+    pushRule(ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
     if (env.options->superposition()) {
-      sgi->push(new ALASCA::Superposition(shared));
+      pushRule(ALASCA::Superposition(shared));
     }
     if (env.options->binaryResolution()) {
-      sgi->push(new ALASCA::BinaryResolution(shared));
+      pushRule(ALASCA::BinaryResolution(shared));
     }
-    sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared));
-    sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared));
-    sgi->push(new ALASCA::Coherence<RealTraits>(shared));
-    sgi->push(new ALASCA::FloorBounds(shared));
+    pushRule(ALASCA::CoherenceNormalization<RatTraits>(shared));
+    pushRule(ALASCA::CoherenceNormalization<RealTraits>(shared));
+    pushRule(ALASCA::Coherence<RealTraits>(shared));
+    pushRule(ALASCA::FloorBounds(shared));
   }
 
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF) {
-    sgi->push(new TheoryInstAndSimp());
+    pushRule(TheoryInstAndSimp());
   }
 #endif
 
+  
   res->setGeneratingInferenceEngine(sgi);
 
   res->setImmediateSimplificationEngine(ise);
@@ -1787,9 +1837,9 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
   }
   if (prb.hasInterpretedOperations() || prb.hasNumerals()) {
     if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
-      for (auto gen : allArithmeticSubtermGeneralizations()) {
-        res->addFront(&gen->asISE());
-      }
+      forArithmeticSubtermGeneralizations([&](auto rule) {
+        res->addFront(&move_to_heap(std::move(rule))->asISE());
+      });
     }
 
     if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::FORCE) {

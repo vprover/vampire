@@ -122,7 +122,7 @@ Inference::Inference(const FromSatRefutation& fsr) {
  * Return an iterator for an inference with zero premises.
  * @since 04/01/2008 Torrevieja
  */
-Inference::Iterator Inference::iterator() const
+Inference::Iterator Inference::rawIterator() const
 {
   Iterator it;
   switch(_kind) {
@@ -545,10 +545,10 @@ void Inference::minimizePremises()
 
 void Inference::computeTheoryRunningSums()
 {
-  Inference::Iterator parentIt = iterator();
+  auto parentIt = parents();
 
   // inference without parents
-  if (!hasNext(parentIt))
+  if (!parentIt.hasNext())
   {
     th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
     all_ancestors = 1.0;
@@ -559,7 +559,7 @@ void Inference::computeTheoryRunningSums()
     if (isSimplifyingInferenceRule(_rule))
     {
       // all simplifying inferences save the main premise as first premise
-      Unit* mainPremise = next(parentIt);
+      Unit* mainPremise = parentIt.next();
       th_ancestors = mainPremise->inference().th_ancestors;
       all_ancestors = mainPremise->inference().all_ancestors;
     }
@@ -568,9 +568,9 @@ void Inference::computeTheoryRunningSums()
     {
       th_ancestors = 0.0;
       all_ancestors = 0.0; // there is going to be at least one, eventually
-      while (hasNext(parentIt))
+      while (parentIt.hasNext())
       {
-        Unit *parent = next(parentIt);
+        Unit *parent = parentIt.next();
         th_ancestors += parent->inference().th_ancestors;
         all_ancestors += parent->inference().all_ancestors;
       }

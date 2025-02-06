@@ -166,10 +166,10 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 
   while(units.isNonEmpty()) {
     Unit* u=units.pop();
-    Inference::Iterator iit=u->inference().iterator();
+    auto iit = u->inference().parents();
 //    if(u->inference()->rule()==Inference::INPUT ||
 //	    u->inference()->rule()==Inference::NEGATED_CONJECTURE) {
-    if(!u->inference().hasNext(iit)) {
+    if(!iit.hasNext()) {
       Color uCol;
       if(u->isClause()) {
 	uCol=static_cast<Clause*>(u)->color();
@@ -187,8 +187,8 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 #endif
       }
     } else {
-      while(u->inference().hasNext(iit)) {
-        Unit* premUnit=u->inference().next(iit);
+      while(iit.hasNext()) {
+        Unit* premUnit = iit.next();
         units.push(premUnit);
       }
     }

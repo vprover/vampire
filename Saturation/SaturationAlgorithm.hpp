@@ -191,6 +191,8 @@ protected:
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 
+  bool _newSaturation = true; // TODO create option
+  Stack<std::unique_ptr<NewGeneratingInference>> _rules;
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
 

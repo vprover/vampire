@@ -1848,8 +1848,8 @@ class IterContOps {
 public:
   IterContOps(Iter iter) : _iter(std::move(iter)) {}
 
-  auto defaultHash() const { return DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return DefaultHash::hash(x); })); }
-  auto defaultHash2() const { return DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return DefaultHash2::hash(x); })); }
+  auto defaultHash() const { return Lib::DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return Lib::DefaultHash::hash(x); })); }
+  auto defaultHash2() const { return Lib::DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return Lib::DefaultHash2::hash(x); })); }
 
   static int cmp(IterContOps const& lhs, IterContOps const& rhs) {
     auto l = lhs._iter;

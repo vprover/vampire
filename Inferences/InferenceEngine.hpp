@@ -17,6 +17,7 @@
 #define __InferenceEngine__
 
 #include "Forwards.hpp"
+#include "Lib/STL.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/Stack.hpp"
 
@@ -88,6 +89,71 @@ protected:
   SaturationAlgorithm* _salg;
 };
 
+/* an inference engine that generates and makes clauses redundant at the same time */ 
+class NewGeneratingInference
+: public InferenceEngine
+{
+public:
+
+  /** result of applying the inference */
+  struct Result {
+    ClauseIterator hypotheses;
+    ClauseIterator generated;
+    ClauseIterator redundant;
+    static Result nothing() {
+      return Result { 
+        .generated = ClauseIterator::getEmpty(),
+        .redundant = ClauseIterator::getEmpty(),
+      };
+    }
+  };
+
+  template<class T>
+  static std::unique_ptr<NewGeneratingInference> fromSGI(T c);
+
+  /**
+   * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
+   * as well as the information wether the premise was made redundant.
+   */
+  virtual VirtualIterator<Result> apply(Clause* premise) = 0;
+};
+
+
+/* an inference engine that generates and makes clauses redundant at the same time */ 
+template<class T>
+class NewGeneratingInferenceFromSGI
+: public NewGeneratingInference
+{
+  T _inner;
+public:
+
+  NewGeneratingInferenceFromSGI(T sgi) : _inner(std::move(sgi)) {}
+
+  void attach(SaturationAlgorithm* salg) final override { _inner.attach(salg); }
+  void detach() final override { _inner.detach(); }
+
+  /**
+   * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
+   * as well as the information wether the premise was made redundant.
+   */
+  virtual VirtualIterator<Result> apply(Clause* premise)  {
+    auto r = _inner.generateSimplify(premise);
+    return pvi(iterTraits(r.clauses)
+        .map([premise,redundant = r.premiseRedundant](auto cl) { return Result {
+          .hypotheses = pvi(iterTraits(cl->inference().parents())
+                                  .filterMap([](auto unit) { return SOME_IF(unit->isClause(), static_cast<Clause*>(unit)); })),
+          .generated = pvi(iterItems(cl)),
+          .redundant = pvi(SOME_IF(redundant, premise).intoIter()),
+        }; }));
+  }
+};
+
+template<class T>
+std::unique_ptr<NewGeneratingInference> NewGeneratingInference::fromSGI(T sgi) {
+  return std::unique_ptr<NewGeneratingInference>(static_cast<NewGeneratingInference*>(new NewGeneratingInferenceFromSGI<T>(std::move(sgi))));
+}
+
+
 /** A generating inference that might make its major premise redundant. */
 class SimplifyingGeneratingInference
 : public InferenceEngine
@@ -104,15 +170,12 @@ public:
       return ClauseGenerationResult { .clauses = ClauseIterator::getEmpty(), .premiseRedundant = false, };
     }
   };
-
-
   /**
    * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
    * as well as the information wether the premise was made redundant.
    */
   virtual ClauseGenerationResult generateSimplify(Clause* premise)  = 0;
 };
-
 
 class GeneratingInferenceEngine
 : public SimplifyingGeneratingInference
@@ -350,6 +413,9 @@ class CompositeGIE
 {
 public:
   CompositeGIE() : _inners(0) {}
+  CompositeGIE(CompositeGIE&& other) : CompositeGIE() { swap(other); }
+  CompositeGIE& operator=(CompositeGIE&& other) { swap(other); return *this; }
+  void swap(CompositeGIE& other) { std::swap(_inners, other._inners); }
   virtual ~CompositeGIE();
   void addFront(GeneratingInferenceEngine* fse);
   ClauseIterator generateClauses(Clause* premise) override;

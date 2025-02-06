@@ -58,7 +58,14 @@ public:
   SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
 };
 
-Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations();
+template<class F>
+void forArithmeticSubtermGeneralizations(F fun)
+{ 
+  fun(VariableMultiplicationGeneralization());
+  fun(VariablePowerGeneralization());
+  fun(NumeralMultiplicationGeneralization());
+  fun(AdditionGeneralization());
+}
 
 
 } // namespace Inferences

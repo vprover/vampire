@@ -355,8 +355,8 @@ protected:
       //cout << "HERE with " << us->toString() << endl;
       Inference* inf = &us->inference();
       while(inf->rule() == InferenceRule::EVALUATION){
-        Inference::Iterator piit = inf->iterator();
-        inf = &inf->next(piit)->inference();
+        auto piit = inf->parents();
+        inf = &piit.next()->inference();
       }
       Stack<Inference*> current;
       current.push(inf);
@@ -367,13 +367,13 @@ protected:
         Stack<Inference*>::Iterator it(current);
         while(it.hasNext()){
           Inference* inf = it.next();
-          Inference::Iterator iit=inf->iterator();
-          while(inf->hasNext(iit)) {
-            Unit* premUnit=inf->next(iit);
+          auto iit = inf->parents();
+          while(iit.hasNext()) {
+            Unit* premUnit = iit.next();
             Inference* premInf = &premUnit->inference();
             while(premInf->rule() == InferenceRule::EVALUATION){
-              Inference::Iterator piit = premInf->iterator();
-              premUnit = premInf->next(piit);
+              auto piit = premInf->parents();
+              premUnit = piit.next();
               premInf = &premUnit->inference();
             }
 

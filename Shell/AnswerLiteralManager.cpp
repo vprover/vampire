@@ -302,9 +302,9 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
 static bool pushFirstPremiseToAnswerIfFromResolver(Inference& inf, Stack<Clause*>& answer)
 {
   if (inf.rule() == InferenceRule::UNIT_RESULTING_RESOLUTION) {
-    auto it = inf.iterator();
-    ASS(inf.hasNext(it));
-    Clause* firstParent = inf.next(it)->asClause();
+    auto it = inf.parents();
+    ASS(it.hasNext());
+    Clause* firstParent = it.next()->asClause();
     // cout << firstParent->toNiceString() << endl;
     if (isProperAnswerClause(firstParent)) {
       answer.push(firstParent);
@@ -323,14 +323,14 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answ
     return true;
   } else if (inf.rule() == InferenceRule::AVATAR_REFUTATION) {
     bool added = false;
-    auto it = inf.iterator();
-    while (inf.hasNext(it)) {
-      Unit* prem = inf.next(it);
+    auto it = inf.parents();
+    while (it.hasNext()) {
+      Unit* prem = it.next();
       Inference& inf2 = prem->inference();
       if (inf2.rule() == InferenceRule::AVATAR_CONTRADICTION_CLAUSE) {
-        auto it2 = inf2.iterator();
-        Unit* anEmpty = inf2.next(it2);
-        ASS(!inf2.hasNext(it2));
+        auto it2 = inf2.parents();
+        Unit* anEmpty = it2.next();
+        ASS(!it2.hasNext());
         Inference& inf3 = anEmpty->inference();
         added |= pushFirstPremiseToAnswerIfFromResolver(inf3,answer);
       }
@@ -483,9 +483,9 @@ void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premise
       ASS(curr->isClause());
       premiseClauses.push(curr->asClause());
     }
-    auto it = inf.iterator();
-    while(inf.hasNext(it)) {
-      Unit* premise = inf.next(it);
+    auto it = inf.parents();
+    while(it.hasNext()) {
+      Unit* premise = it.next();
       toDo.push(premise);
     }
   }

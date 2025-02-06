@@ -186,9 +186,9 @@ private:
   void _traverseParents(Unit& self, unsigned& depth, Pre& pre, Post& post) {
     pre(unsigned(depth), &self);
     depth++;
-    auto infit = self.inference().iterator();
-    while (self.inference().hasNext(infit)) {
-      auto parent = self.inference().next(infit);
+    auto infit = self.inference().parents();
+    while (infit.hasNext()) {
+      auto parent = infit.next();
       _traverseParents(*parent, depth, pre, post);
     }
     depth--;

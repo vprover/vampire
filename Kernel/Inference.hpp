@@ -20,6 +20,7 @@
 #include <cstdlib>
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Reflection.hpp"
 #include "Forwards.hpp"
 
 #include <type_traits>
@@ -810,6 +811,7 @@ public:
    * A class that iterates over parents.
    * @since 04/01/2008 Torrevieja
    */
+  // TODO rename to RawIterator
   struct Iterator {
     /** The content, can be anything (interpretation depends on Kind) */
     union {
@@ -818,9 +820,22 @@ public:
     };
   };
 
-  Iterator iterator() const;
+  Iterator rawIterator() const;
+  [[deprecated("use parents instead")]]
+  Iterator iterator() const { return rawIterator(); }
   bool hasNext(Iterator& it) const;
   Unit* next(Iterator& it) const;
+
+  struct Iter {
+    Inference const& inf;
+    Iterator self;
+    DECL_ELEMENT_TYPE(Unit*);
+    Unit* next() { return inf.next(self); }
+    bool hasNext() { return inf.hasNext(self); }
+  };
+
+  auto parents() const 
+  { return Iter { *this, rawIterator(), }; }
 
   /*
   * The supporting heap allocated objects are deleted

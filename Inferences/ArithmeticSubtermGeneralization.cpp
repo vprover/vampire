@@ -360,14 +360,5 @@ SimplifyingGeneratingInference1::Result VariablePowerGeneralization::simplify(Cl
 
 VariablePowerGeneralization::~VariablePowerGeneralization()  {}
 
-Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations()
-{ 
-  return Stack<SimplifyingGeneratingInference1*> {
-      new VariableMultiplicationGeneralization(),
-      new VariablePowerGeneralization(),
-      new NumeralMultiplicationGeneralization(),
-      new AdditionGeneralization()
-  };
-}
 
 } // Inferences

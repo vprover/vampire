@@ -482,6 +482,8 @@ auto someIf(bool condition, F create) -> Option<decltype(create())>
 { return condition ? Option<decltype(create())>(create()) 
                    : Option<decltype(create())>(); }
 
+#define SOME_IF(cond, val) someIf(cond, [&]() { return val; })
+
 
 template<class T> constexpr Option<T> some(T const& t) { return Option<T>(t);            }
 template<class T> constexpr Option<T> some(T      & t) { return Option<T>(t);            }
