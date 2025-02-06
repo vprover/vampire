@@ -178,6 +178,9 @@ protected:
 
   static unsigned _lastParsingNumber;
 
+  /** outputs this unit and its parents depending on vampire's clause tracing options */
+  void doClauseTracing();
+
 private:
   template<class Pre, class Post>
   void _traverseParents(Unit& self, unsigned& depth, Pre& pre, Post& post) {
@@ -205,6 +208,7 @@ protected:
 
   template<class Post>
   void traverseParentsPost(Post post) { traverseParents([](auto...) {}, post); }
+
 
 }; // class Unit
 
