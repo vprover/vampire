@@ -394,20 +394,19 @@ Inference::Inference(const TheoryAxiom& ta) {
   ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
 }
 
-Inference::Inference(const FormulaTransformation& ft) {
+Inference::Inference(const FormulaClauseTransformation& ft) {
   init1(ft.rule,ft.premise);
 
-  ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
+  ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
 
   _included = ft.premise->included();
 }
 
-Inference::Inference(const FormulaTransformationMany& ft) {
+Inference::Inference(const FormulaClauseTransformationMany& ft) {
   initMany(ft.rule,ft.premises);
 
-  ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
+  ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
   ASS_NEQ(ft.premises,UnitList::empty());
-  ASS(!ft.premises->head()->isClause()); // TODO: assert also for all others?
 
   _included = ft.premises->head()->included();
 }
@@ -1017,8 +1016,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "cases simplifying";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
-  case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 
-  case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST: 
+  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION: 
+  case InferenceRule::INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST: 
   case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:
   case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
   case InferenceRule::GENERIC_GENERATING_INFERNCE:

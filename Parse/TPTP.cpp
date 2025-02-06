@@ -3650,7 +3650,7 @@ void TPTP::endFof()
         g->vars(),
         g->sorts(),
         new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
-        unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION,unit));
+        unit = new FormulaUnit(f,FormulaClauseTransformation(InferenceRule::ANSWER_LITERAL_INJECTION,unit));
     }
     else {
       VList* vs = freeVariables(f);
@@ -3662,7 +3662,7 @@ void TPTP::endFof()
         f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
-			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
+			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
       if (_isQuestion) {
         _questionVariableNames.insert(unit->number(),new Map<int,std::string>(std::move(_curQuestionVarNames)));
       }
@@ -3705,7 +3705,7 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
   }
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
-      FormulaTransformation(InferenceRule::CLAIM_DEFINITION,unit));
+      FormulaClauseTransformation(InferenceRule::CLAIM_DEFINITION,unit));
 }
 
 /**

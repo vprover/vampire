@@ -620,3 +620,10 @@ TEST_FRAC(bug_09,
       .out = { { p(b*(-x + a * a) + (b*x) + -(b * (a*a))) } },
       .strong = false,
     })
+
+TEST_FRAC(test_bin_minus, 
+    TestCase {
+      .in  =    p(a + binMinus(b, a)),
+      .out = { { p(b) } },
+      .strong = false,
+    })

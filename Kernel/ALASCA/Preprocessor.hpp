@@ -217,7 +217,7 @@ class AlascaPreprocessor
       res->push(ll);
     }
     if (change) {
-      return Clause::fromStack(*res, Inference(FormulaTransformation(INF_RULE, clause)));
+      return Clause::fromStack(*res, Inference(FormulaClauseTransformation(INF_RULE, clause)));
     } else {
       return clause;
     }
@@ -338,7 +338,7 @@ class QuotientEPreproc
       res->push(ll);
     }
     if (change) {
-      return Clause::fromStack(*res, Inference(FormulaTransformation(INF_RULE, clause)));
+      return Clause::fromStack(*res, Inference(FormulaClauseTransformation(INF_RULE, clause)));
     } else {
       return clause;
     }
@@ -354,7 +354,7 @@ class QuotientEPreproc
   FormulaUnit* proc(FormulaUnit* unit) 
   { 
     auto trans = TermTrans(*this);
-    auto inf = Inference(FormulaTransformation(INF_RULE, unit));
+    auto inf = Inference(FormulaClauseTransformation(INF_RULE, unit));
     return new FormulaUnit(TermTransformingFormulaTransformer(trans).transform(unit->formula()), inf); 
   }
   Unit* proc(Unit* unit) {
