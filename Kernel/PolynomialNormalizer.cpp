@@ -314,6 +314,11 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts, bool& 
         case NumTraits::addI:
           ASS(ts != nullptr);
           return normalizeAdd<NumTraits>(ts[0], ts[1]);
+        case NumTraits::binMinusI:{
+          ASS(ts != nullptr);
+          auto rhs = normalizeMinus<NumTraits>(ts[1], simplified);
+          return normalizeAdd<NumTraits>(ts[0], rhs);
+        }
         case NumTraits::minusI:
           ASS(ts != nullptr);
           return normalizeMinus<NumTraits>(ts[0], simplified);
