@@ -2793,11 +2793,11 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
           continue;
         }
 
-        if (parseAsSpecConstant(id)) {
+        if (parseAsUserDefinedSymbol(id,exp,false/*isSort*/)) {
           continue;
         }
 
-        if (parseAsUserDefinedSymbol(id,exp,false/*isSort*/)) {
+        if (parseAsSpecConstant(id)) {
           continue;
         }
 

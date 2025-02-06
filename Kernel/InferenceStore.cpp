@@ -259,6 +259,15 @@ protected:
         out << prem->number();
         first=false;
       }
+
+      if(env.options->proofExtra() == Options::ProofExtra::FULL) {
+        auto *extra = env.proofExtra.find(cs);
+        if(extra)
+          out
+            << (first ? ' ' : ',')
+            << *extra;
+      }
+
       out << "]" << endl;
     }
   }
