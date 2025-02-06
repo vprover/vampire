@@ -113,6 +113,23 @@ public:
     ASS(sigma.isEmpty())
 
     using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
+    auto applyRuleAndLog = [&](auto& lhs, auto& lbank, auto& rhs, auto& rbank) {
+      RStack<Clause*> rs;
+      rs->loadFromIterator(_rule.applyRule(lhs, lbank, rhs, rbank, sigma));
+      if (rs.size() > 0) {
+        for (auto cl : *rs) {
+          DEBUG(0, "    result: ", *cl)
+        }
+        DEBUG(0, "")
+      } else {
+        DEBUG(0, "<nothing>")
+      }
+      out.push(Result { 
+          .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
+          .generated = pvi(arrayIter(std::move(rs))),
+          .redundant = VirtualIterator<Clause*>::getEmpty(),
+          });
+    };
 
     DEBUG(0, _rule.name())
     for (auto const& lhs : Lhs::iter(*_shared, premise)) {
@@ -121,21 +138,8 @@ public:
         auto& rhs   = *rhs_sigma.data;
         DEBUG(0, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
         DEBUG(0, "  sigma: ", sigma)
-        RStack<Clause*> rs;
-        rs->loadFromIterator(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma));
-        if (rs.size() > 0) {
-          for (auto cl : *rs) {
-            DEBUG(0, "    result: ", *cl)
-          }
-          DEBUG(0, "")
-        } else {
-          DEBUG(0, "<nothing>")
-        }
-        out.push(Result { 
-            .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
-            .generated = pvi(arrayIter(std::move(rs))),
-            .redundant = VirtualIterator<Clause*>::getEmpty(),
-            });
+
+        applyRuleAndLog(lhs, VarBanks::query, rhs, VarBanks::internal);
       }
     }
 
@@ -146,21 +150,7 @@ public:
       for (auto lhs_sigma : _lhs->template find<VarBanks>(&sigma, rhs.key())) {
         auto& lhs   = *lhs_sigma.data;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-          RStack<Clause*> rs;
-          rs->loadFromIterator(_rule.applyRule(lhs, VarBanks::internal, rhs, VarBanks::query, sigma));
-          if (rs.size() > 0) {
-            for (auto cl : *rs) {
-              DEBUG(0, "    result: ", *cl)
-            }
-            DEBUG(0, "")
-          } else {
-            DEBUG(0, "<nothing>")
-          }
-          out.push(Result { 
-              .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
-              .generated = pvi(arrayIter(std::move(rs))),
-              .redundant = VirtualIterator<Clause*>::getEmpty(),
-              });
+          applyRuleAndLog(lhs, VarBanks::internal, rhs, VarBanks::query);
         }
       }
     }
@@ -251,6 +241,8 @@ public:
   template<unsigned p>
   using Prem = TL::Get<p, TL::List<Premise0, Premise1, Premise2>>;
 
+  
+
   VirtualIterator<Result> apply(Clause* premise) final override
   {
     ASS(_prem0)
@@ -262,7 +254,7 @@ public:
     Stack<Result> out;
     auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
 
-    auto applyRule = [&](auto& prem0, auto& prem1, auto& prem2) {
+    auto applyRuleAndLog = [&](auto& prem0, auto& prem1, auto& prem2) {
       RStack<Clause*> rs;
       rs->loadFromIterator(_rule.applyRule(prem0, bank(0), 
                                            prem1, bank(1), 
@@ -290,7 +282,7 @@ public:
         for (auto prem2_sigma : _prem2->template find<QueryBank<0, 2>>(&sigma, prem0.key())) {
           auto& prem2   = *prem2_sigma.data;
           DEBUG(0, "    prem2: ", prem2)
-          applyRule(prem0, prem1, prem2);
+          applyRuleAndLog(prem0, prem1, prem2);
         }
         DEBUG(0, "")
       }
@@ -308,7 +300,7 @@ public:
           for (auto prem2_sigma : _prem2->template find<QueryBank<0, 2>>(&sigma, prem0.key())) {
             auto& prem2   = *prem2_sigma.data;
             DEBUG(0, "    prem2: ", prem2)
-            applyRule(prem0, prem1, prem2);
+            applyRuleAndLog(prem0, prem1, prem2);
           }
         }
       }
@@ -324,7 +316,7 @@ public:
           for (auto prem1_sigma : _prem1->template find<QueryBank<0, 1>>(&sigma, prem0.key())) {
             auto& prem1   = *prem1_sigma.data;
             DEBUG(0, "    prem1: ", prem1)
-            applyRule(prem0, prem1, prem2);
+            applyRuleAndLog(prem0, prem1, prem2);
           }
         // }
       }
