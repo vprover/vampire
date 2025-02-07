@@ -63,7 +63,7 @@ Unit::Unit(Kind kind, Inference inf)
 } // Unit::Unit
   //
 
-void Unit::doClauseTracing() {
+void Unit::doUnitTracing() {
 #if VAMPIRE_CLAUSE_TRACING
   // TODO make unsigned
   if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {

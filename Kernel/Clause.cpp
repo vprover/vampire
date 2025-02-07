@@ -91,7 +91,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     (*this)[i] = lits[i];
   }
 
-  doClauseTracing();
+  doUnitTracing();
 }
 
 /**
