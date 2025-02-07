@@ -172,6 +172,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         AppliedTerm rhsApplied(qr.data->rhs,appl,true);
         bool preordered = qr.data->preordered;
 
+        ASS_EQ(ordering.compare(trm,rhsApplied),Ordering::reverse(ordering.compare(rhsApplied,trm)));
+
         if (_precompiledComparison) {
 #if VDEBUG
           auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
