@@ -152,6 +152,9 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
+  // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
+  normalizeInterpreted();
+
   // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
 
