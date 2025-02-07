@@ -39,6 +39,7 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "SortHelper.hpp"
 
 #include <cmath>
 
@@ -388,8 +389,27 @@ std::ostream& operator<<(std::ostream& out, Clause const& self)
  */
 std::string Clause::toString() const
 {
+  std::string quantifier = "";
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
+    DHMap<unsigned,TermList> varSortMap;
+    SortHelper::collectVariableSorts(const_cast<Clause*>(this),varSortMap);
+    auto vars = Stack<unsigned>::fromIterator(varSortMap.domain());
+    vars.sort();
+    unsigned numVars = vars.size();
+    if (numVars) {
+      quantifier += "![";
+      for (auto var : vars) {
+        quantifier += TermList(var,false).toString() + ":" + varSortMap.get(var).toString();
+        if (--numVars) {
+          quantifier += ", ";
+        }
+      }
+      quantifier += "]: ";
+    }
+  }
+
   // print id and literals of clause
-  std::string result = Int::toString(_number) + ". " + literalsOnlyToString();
+  std::string result = Int::toString(_number) + ". "+ quantifier + literalsOnlyToString();
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
@@ -402,11 +422,11 @@ std::string Clause::toString() const
   if(env.options->proofExtra() != Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
     result += std::string(" {");
-      
+
     result += std::string("a:") + Int::toString(age());
     unsigned weight = (_weight ? _weight : computeWeight());
     result += std::string(",w:") + Int::toString(weight);
-    
+
     unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
     if(weightForClauseSelection!=weight){
       result += std::string(",wCS:") + Int::toString(weightForClauseSelection);
