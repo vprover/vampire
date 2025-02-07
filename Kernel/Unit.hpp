@@ -179,7 +179,7 @@ protected:
   static unsigned _lastParsingNumber;
 
   /** outputs this unit and its parents depending on vampire's clause tracing options */
-  void doClauseTracing();
+  void doUnitTracing();
 
 private:
   template<class Pre, class Post>
