@@ -50,7 +50,7 @@ namespace bench {
 #endif
 #endif
 
-  void TODCounter::startFwDemodulation() {
+void TODCounter::startFwDemodulation() {
 #if BENCH_TOD_FW_DEMODULATION
 #if BENCH_TOD_TIME
     demodulationTimer.start();

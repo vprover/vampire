@@ -294,6 +294,10 @@ public:
   unsigned todDataNodesAtEnd = 0;
   unsigned todPolyNodesCreated = 0;
   unsigned todPolyNodesAtEnd = 0;
+  unsigned todTODInserted = 0;
+  unsigned todTODDeleted = 0;
+  unsigned todDemodulatorInserted = 0;
+  unsigned todDemodulatorDeleted = 0;
 
   /** termination reason */
   enum TerminationReason {

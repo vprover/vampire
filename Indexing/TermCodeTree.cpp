@@ -13,7 +13,7 @@
  */
 
 #include <utility>
- 
+
 #include "Lib/BitUtils.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
@@ -74,6 +74,9 @@ void TermCodeTree<Data>::insert(Data* data)
     ft->destroy();
   }
 
+  if constexpr (is_indexed_data_normalized<Data>::value) {
+    env.statistics->todTODInserted++;
+  }
   static CodeStack code;
   code.reset();
 
@@ -90,7 +93,7 @@ void TermCodeTree<Data>::insert(Data* data)
   }
 
   code.push(CodeOp::getSuccess(data));
-  incorporate(code);  
+  incorporate(code);
   //@b incorporate should empty the code stack
   ASS(code.isEmpty());
 }
@@ -106,7 +109,7 @@ void TermCodeTree<Data>::remove(const Data& data)
 
   FlatTerm* ft=FlatTerm::create(data.term);
   rtm.init(ft, this, &firstsInBlocks);
-  
+
   Data* dptr = nullptr;
   for(;;) {
     if (!rtm.next()) {
@@ -121,6 +124,9 @@ void TermCodeTree<Data>::remove(const Data& data)
   }
 
   if (dptr->canBeDeleted()) {
+    if constexpr (is_indexed_data_normalized<Data>::value) {
+      env.statistics->todTODDeleted++;
+    }
     rtm.op->makeFail();
     ASS(dptr);
     delete dptr;
@@ -136,7 +142,7 @@ void TermCodeTree<Data>::RemovingTermMatcher::init(FlatTerm* ft_,
 					     TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
-  
+
   firstsInBlocks->push(entry);
 
   ft=ft_;
@@ -185,7 +191,7 @@ Data* TermCodeTree<Data>::TermMatcher::next()
     //all possible matches are exhausted
     return 0;
   }
-  
+
   _matched=execute();
   if (!_matched) {
     return 0;

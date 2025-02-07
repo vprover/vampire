@@ -10,6 +10,7 @@
 #include <asm/unistd.h>
 #include <vector>
 #include <algorithm>
+#include <climits>
 
 static unsigned nInstances = 0;
 static long long innerOverhead = 0;
@@ -87,9 +88,25 @@ bench::InstrCounter::~InstrCounter()
   }
 }
 
+static volatile long long instructionLimit = LLONG_MAX;
+
+void bench::InstrCounter::setInstructionLimit(long long limit)
+{
+  if (limit == 0)
+    return;
+  limit *= 1000000;
+  instructionLimit = limit;
+}
+
+bool bench::InstrCounter::limitReached()
+{
+  long long endCount = 0;
+  read(eventFd, &endCount, sizeof(long long));
+  return endCount - totalOverHead > instructionLimit;
+}
+
 void bench::InstrCounter::reset()
 {
-  _startCount = -1;
   _totalInstrCount = 0;
 }
 
@@ -107,7 +124,6 @@ void bench::InstrCounter::stop()
   _totalInstrCount -= innerOverhead;;                // correct the overhead measured by the counter iteself
   read(eventFd, &endCount, sizeof(long long));
   _totalInstrCount += endCount - _startCount;        // increase the counter with the time recorded
-  _startCount = -1;
 }
 
 long long bench::InstrCounter::getTotalInstrCount()
@@ -141,4 +157,22 @@ void bench::TimeCounter::stop()
 long long bench::TimeCounter::getTotalTime()
 {
   return _totalTime;
+}
+
+
+bench::InstrCounter vampireCounter;
+
+void bench::startVampire()
+{
+  vampireCounter.start();
+}
+
+void bench::stopVampire()
+{
+  vampireCounter.stop();
+}
+
+long long bench::getVampireCount()
+{
+  return vampireCounter.getTotalInstrCount();
 }

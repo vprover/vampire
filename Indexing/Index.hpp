@@ -23,6 +23,8 @@
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 
+#include "Shell/Statistics.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/OrderingComparator.hpp"
 #include "Kernel/Term.hpp"
@@ -43,7 +45,7 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
-struct LiteralClause 
+struct LiteralClause
 {
   Literal* const& key() const
   { return literal; }
@@ -85,15 +87,15 @@ struct TermWithValue {
   { return out << self.asTuple(); }
 };
 
-class TermWithoutValue : public TermWithValue<std::tuple<>> 
+class TermWithoutValue : public TermWithValue<std::tuple<>>
 {
 public:
-  TermWithoutValue(TypedTermList t) 
-    : TermWithValue(t, std::make_tuple()) 
+  TermWithoutValue(TypedTermList t)
+    : TermWithValue(t, std::make_tuple())
   { }
 };
 
-struct TermLiteralClause 
+struct TermLiteralClause
 {
   TypedTermList term;
   Literal* literal = nullptr;
@@ -185,6 +187,7 @@ struct DemodulatorDataContainer {
     if (term!=other.term || term.sort()!=other.term.sort()) {
       return false;
     }
+    env.statistics->todDemodulatorInserted++;
     dds.loadFromIterator(other.dds.iter());
     Stack<TermOrderingConstraint> ordCons;
     if (!other.dds[0]->preordered) {
@@ -200,6 +203,7 @@ struct DemodulatorDataContainer {
     if (term!=other.term || term.sort()!=other.term.sort()) {
       return false;
     }
+    env.statistics->todDemodulatorDeleted++;
     ALWAYS(iterTraits(other.dds.iter()).all([this](DemodulatorData* toRemove){
       decltype(dds)::Iterator it(dds);
       unsigned removedOccs = 0;
@@ -245,13 +249,13 @@ struct QueryRes
   Data const* data;
 
   QueryRes() {}
-  QueryRes(Unifier unifier, Data const* data) 
+  QueryRes(Unifier unifier, Data const* data)
     : unifier(std::move(unifier))
     , data(std::move(data)) {}
 
   friend std::ostream& operator<<(std::ostream& out, QueryRes const& self)
-  { 
-    return out 
+  {
+    return out
       << "{ data: " << self.data()
       << ", unifier: " << self.unifier
       << "}";
@@ -259,7 +263,7 @@ struct QueryRes
 };
 
 template<class Unifier, class Data>
-QueryRes<Unifier, Data> queryRes(Unifier unifier, Data const* d) 
+QueryRes<Unifier, Data> queryRes(Unifier unifier, Data const* d)
 { return QueryRes<Unifier, Data>(std::move(unifier), std::move(d)); }
 
 class Index

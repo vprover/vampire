@@ -10,6 +10,8 @@ namespace bench {
   public:
     InstrCounter();
     ~InstrCounter();
+    static void setInstructionLimit(long long limit);
+    static bool limitReached();
     void start();
     void stop();
 
@@ -34,4 +36,8 @@ namespace bench {
     long long _startTime = 0;
     long long _totalTime = 0;
   };
+
+  void startVampire();
+  void stopVampire();
+  long long getVampireCount();
 }

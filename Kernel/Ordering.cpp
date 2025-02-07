@@ -32,6 +32,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
 #include "Shell/Shuffling.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "LPO.hpp"
 #include "KBO.hpp"
@@ -39,7 +40,7 @@
 #include "OrderingComparator.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
-#include "Kernel/NumTraits.hpp" 
+#include "Kernel/NumTraits.hpp"
 #include "Shell/Shuffling.hpp"
 #include "NumTraits.hpp"
 
@@ -218,6 +219,7 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 
 OrderingComparatorUP Ordering::createComparator() const
 {
+  env.statistics->todTODInserted++;
   return std::make_unique<OrderingComparator>(*this);
 }
 
@@ -426,7 +428,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
 /**
  * Compare precedences of two type constructor symbols
  * At the moment, completely non-optimised
- */ 
+ */
 Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const
 {
   auto size = _typeConPrecedences.size();
@@ -449,11 +451,11 @@ struct SymbolComparator {
     if(_symType == SymbolType::FUNC){
       return env.signature->getFunction(s);
     } else if (_symType == SymbolType::PRED){
-      return env.signature->getPredicate(s);      
+      return env.signature->getPredicate(s);
     } else {
-      return env.signature->getTypeCon(s);            
+      return env.signature->getTypeCon(s);
     }
-  }  
+  }
 };
 
 template<typename InnerComparator>
@@ -467,8 +469,8 @@ struct BoostWrapper : public SymbolComparator
     Comparison res = EQUAL;
     auto sym1 = getSymbol(s1);
     auto sym2 = getSymbol(s2);
-    bool u1 = sym1->inUnit(); 
-    bool u2 = sym2->inUnit(); 
+    bool u1 = sym1->inUnit();
+    bool u2 = sym2->inUnit();
     bool g1 = sym1->inGoal();
     bool g2 = sym2->inGoal();
     bool i1 = sym1->introduced();
@@ -544,7 +546,7 @@ struct ArityComparator : public SymbolComparator
       res = Lib::revert(res);
     }
     if(res==EQUAL) {
-      // fallback to Inner 
+      // fallback to Inner
       res = InnerComparator(_symType).compare(u1,u2);
     }
     return res;
@@ -598,7 +600,7 @@ static void loadPermutationFromString(DArray<unsigned>& p, const std::string& st
 }
 
 bool isPermutation(const DArray<int>& xs) {
-  DArray<int> cnts(xs.size()); 
+  DArray<int> cnts(xs.size());
   cnts.init(xs.size(), 0);
   for (unsigned i = 0; i < xs.size(); i++) {
     cnts[xs[i]] += 1;
@@ -614,10 +616,10 @@ bool isPermutation(const DArray<int>& xs) {
 /**
  * Create a PrecedenceOrdering object.
  */
-PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec, 
-                                       const DArray<int>& typeConPrec,   
-                                       const DArray<int>& predPrec, 
-                                       const DArray<int>& predLevels, 
+PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
+                                       const DArray<int>& typeConPrec,
+                                       const DArray<int>& predPrec,
+                                       const DArray<int>& predLevels,
                                        bool reverseLCM)
   : _predicates(predPrec.size()),
     _functions(funcPrec.size()),
@@ -642,7 +644,7 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
 PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec)
 : PrecedenceOrdering(
     funcPrecFromOpts(prb,opt),
-    typeConPrecFromOpts(prb,opt),    
+    typeConPrecFromOpts(prb,opt),
     predPrec,
     predLevelsFromOptsAndPrec(prb,opt,predPrec),
     opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
@@ -861,7 +863,7 @@ void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
 #endif // VDEBUG
 }
 
-void PrecedenceOrdering::show(std::ostream& out) const 
+void PrecedenceOrdering::show(std::ostream& out) const
 {
   auto _show = [&](const char* precKind, unsigned cntFunctors, auto getSymbol, auto compareFunctors)
     {
@@ -881,18 +883,18 @@ void PrecedenceOrdering::show(std::ostream& out) const
       out << "%" << std::endl;
     };
 
-  _show("type constructor", 
-      env.signature->typeCons(), 
+  _show("type constructor",
+      env.signature->typeCons(),
       [](unsigned f) { return env.signature->getTypeCon(f); },
       [&](unsigned l, unsigned r){ return intoComparison(compareTypeConPrecedences(l,r)); });
 
-  _show("function", 
+  _show("function",
       env.signature->functions(),
       [](unsigned f) { return env.signature->getFunction(f); },
       [&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }
       );
 
-  _show("predicate", 
+  _show("predicate",
       env.signature->predicates(),
       [](unsigned f) { return env.signature->getPredicate(f); },
       [&](unsigned l, unsigned r) { return intoComparison(comparePredicatePrecedences(l,r)); });
@@ -919,7 +921,7 @@ void PrecedenceOrdering::show(std::ostream& out) const
   showConcrete(out);
 }
 
-DArray<int> PrecedenceOrdering::testLevels() 
+DArray<int> PrecedenceOrdering::testLevels()
 {
   DArray<int> levels(env.signature->predicates());
   for (unsigned i = 0; i < levels.size(); i++) {

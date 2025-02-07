@@ -210,6 +210,7 @@ void Statistics::explainRefutationNotFound(std::ostream& out)
 void Statistics::print(std::ostream& out)
 {
   if (env.options->statistics() != Options::Statistics::NONE) {
+    bench::stopVampire();
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
@@ -474,13 +475,18 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Time on TOD positivity checks (μs)", bench::TODCounter::getPositivityCheckTime() /1000);
   COND_OUT("Time on TOD ordering checks   (μs)", bench::TODCounter::getOrderingCheckTime()   /1000);
   COND_OUT("Variance Fw Demodulation  (μs^2)  ", bench::TODCounter::getVarianceFwemodulation()           /1000000)
-  COND_OUT("Instructions on Fw Demodulation       (milion)", bench::TODCounter::getFwDemodulationCount() /1000000);
-  COND_OUT("Instructions on TOD queries           (milion)", bench::TODCounter::getTodQueryTime()        /1000000);
-  COND_OUT("Instructions on TOD positivity checks (milion)", bench::TODCounter::getPositivityCheckTime() /1000000);
-  COND_OUT("Instructions on TOD ordering checks   (milion)", bench::TODCounter::getOrderingCheckTime()   /1000000);
-  COND_OUT("Instructions on TOD Preprocess        (milion)", bench::TODCounter::getPreProcessTime()      /1000000);
+  COND_OUT("Instructions on Vampire               (x10^6)", bench::getVampireCount()                     /1000000);
+  COND_OUT("Instructions on Fw Demodulation       (x10^6)", bench::TODCounter::getFwDemodulationCount()  /1000000);
+  COND_OUT("Instructions on TOD queries           (x10^6)", bench::TODCounter::getTodQueryCount()        /1000000);
+  COND_OUT("Instructions on TOD positivity checks (x10^6)", bench::TODCounter::getPositivityCheckCount() /1000000);
+  COND_OUT("Instructions on TOD ordering checks   (x10^6)", bench::TODCounter::getOrderingCheckCount()   /1000000);
+  COND_OUT("Instructions on TOD Preprocess        (x10^6)", bench::TODCounter::getPreProcessCount()      /1000000);
   COND_OUT("Forward demodulations   ", forwardDemodulations);
+  COND_OUT("TOD inserted            ", todTODInserted);
+  COND_OUT("TOD deleted             ", todTODDeleted);
   COND_OUT("TOD queries             ", todQueries);
+  COND_OUT("Demodulator inserted    ", todDemodulatorInserted);
+  COND_OUT("Demodulator deleted     ", todDemodulatorDeleted);
   COND_OUT("Positivity checks       ", todPositivityChecks);
   COND_OUT("Ordering checks         ", todOrderingChecks);
   COND_OUT("Preprocesses            ", todPreprocesses);

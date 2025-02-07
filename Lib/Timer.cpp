@@ -20,12 +20,14 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "System.hpp"
+#include "Benchmarking/BenchUtils.hpp"
+#include "Benchmarking/BenchTOD.hpp"
 
 #include "Timer.hpp"
 
 using namespace std::chrono_literals;
 // tradeoff: faster ticks means more overhead but more accurate LRS/timeout
-const auto TICK_INTERVAL = 1ms;
+const auto TICK_INTERVAL = 1000ns;
 
 // can measure instructions
 #if VAMPIRE_PERF_EXISTS
@@ -110,19 +112,26 @@ static std::recursive_mutex EXIT_LOCK;
 }
 
 static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
+static const bool hijackInstructionLimit = BENCH_TOD_PERFORMANCES;
 
 // TODO could maybe be more efficient if we special-case the no-instruction-limit case:
 // then, we could simply sleep until the time limit
 [[noreturn]] void timer_thread()
 {
   unsigned limit = env.options->timeLimitInDeciseconds();
+  bench::InstrCounter::setInstructionLimit(env.options->instructionLimit());
   while(true) {
     if(limit && Timer::elapsedDeciseconds() >= limit) {
       limitReached(TIME_LIMIT);
     }
 
 #if VAMPIRE_PERF_EXISTS
-    if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
+    if (hijackInstructionLimit) {
+      if (bench::InstrCounter::limitReached()) {
+        limitReached(INSTRUCTION_LIMIT);
+      }
+    }
+    else if (env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
       Timer::updateInstructionCount();
       if (env.options->instructionLimit() && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)env.options->instructionLimit()) {
         limitReached(INSTRUCTION_LIMIT);
