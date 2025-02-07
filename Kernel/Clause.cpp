@@ -92,34 +92,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     (*this)[i] = lits[i];
   }
 
-#if VAMPIRE_CLAUSE_TRACING
-  // TODO make unsigned
-  if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
-    traverseParentsPost(
-        [&](unsigned depth, Unit* unit) {
-          std::cout << "backward trace " <<  number() << ": " << Output::repeat("| ", depth) << unit->toString() << std::endl;
-      });
-  }
-
-  // forward tracing
-  // TODO make unsigned
-  static int traceFwd = env.options->traceForward();
-  if (traceFwd != -1) {
-
-    bool doTrace = false;
-    auto infit = inference().iterator();
-    while (inference().hasNext(infit)) {
-      if (inference().next(infit)->number() == unsigned(traceFwd)) {
-        doTrace = true;
-        break;
-      }
-    }
-    if (doTrace) {
-      std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
-    }
-  }
-
-#endif // VAMPIRE_CLAUSE_TRACING
+  doUnitTracing();
 }
 
 /**
