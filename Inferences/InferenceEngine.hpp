@@ -96,6 +96,8 @@ class NewGeneratingInference
 {
 public:
 
+  virtual const char* name() const = 0;
+
   /** result of applying the inference */
   struct Result {
     ClauseIterator hypotheses;
@@ -139,6 +141,8 @@ private:
 
   void attach(SaturationAlgorithm* salg) final override { deref().attach(salg); }
   void detach() final override { deref().detach(); }
+
+  virtual const char * name() const override { return "NewGeneratingInferenceFromSGI"; }
 
   virtual VirtualIterator<Result> apply(Clause* premise) final override {
     auto r = deref().generateSimplify(premise);

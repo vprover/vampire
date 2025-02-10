@@ -119,6 +119,9 @@ private:
   { return res; }
 
 public:
+
+  const char * name() const override { return _rule.name(); }
+
   VirtualIterator<Result> apply(Clause* premise) final override
   {
     ASS(_lhs)
@@ -136,14 +139,16 @@ public:
       RStack<Clause*> rs;
       if (auto result = toResult(_rule.applyRule(lhs, lbank, rhs, rbank, sigma), lhs, rhs)) {
         rs->loadFromIterator(result->generated);
-        if (rs.size() > 0) {
-          for (auto cl : *rs) {
-            DEBUG(0, "    result: ", *cl)
+        DEBUG_CODE(
+          if (rs.size() > 0) {
+            for (auto cl : *rs) {
+              DEBUG(0, "    result: ", *cl,  " (number: ", cl->number(), ")")
+            }
+            DEBUG(0, "")
+          } else {
+            DEBUG(0, "<nothing>")
           }
-          DEBUG(0, "")
-        } else {
-          DEBUG(0, "<nothing>")
-        }
+        )
         result->generated = pvi(arrayIter(std::move(rs)));
         out.push(std::move(*result));
       }
@@ -167,6 +172,8 @@ public:
       DEBUG(0, "rhs: ", rhs, " (", rhs.clause()->number(), ")")
       for (auto lhs_sigma : _lhs->template find<VarBanks>(&sigma, rhs.key())) {
         auto& lhs   = *lhs_sigma.data;
+        DEBUG(0, "  lhs: ", rhs, " (", lhs.clause()->number(), ")")
+        DEBUG(0, "  sigma: ", sigma)
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           applyRuleAndLog(lhs, VarBanks::internal, rhs, VarBanks::query);
         }
@@ -210,6 +217,8 @@ public:
     , _prem1(nullptr)
     , _prem2(nullptr)
   {  }
+
+  const char * name() const override { return _rule.name(); }
 
   void attach(SaturationAlgorithm* salg) final override
   { 

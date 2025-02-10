@@ -38,6 +38,9 @@ struct IntegerFourierMotzkinConf
   // TODO rewrites in the second-maximal term of this
   using Premise2 = typename Coherence<NumTraits>::Lhs;
 
+
+  static const char* name() { return "integer fourier motzkin"; }
+
   auto applyRule(
       Premise0 const& prem0, unsigned varBank0,
       Premise1 const& prem1, unsigned varBank1,
