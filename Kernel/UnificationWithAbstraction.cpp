@@ -1160,7 +1160,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
             },
             [&]() { return AbstractionResult(EqualIf().constr(constraint0(sum(diff.summands())))); }); 
       }); },
-      [&]() { return someIf(diff.hasTopVars(), [&]() { return AbstractionResult(EqualIf().constr(constraint0(sum(diff.summands())))); }); },
+      // [&]() { return someIf(diff.hasTopVars(), [&]() { return AbstractionResult(EqualIf().constr(constraint0(sum(diff.summands())))); }); },
       [&]() { 
           /* no top vars */
           if (auto buckets = diff.buckets()) {
@@ -1405,23 +1405,23 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
           { 
             return (c.lhs().deepEqCheck(lhs) && c.rhs().deepEqCheck(rhs)) 
                 || (c.lhs().deepEqCheck(rhs) && c.rhs().deepEqCheck(lhs)); };
-          if (progress 
-              || conditions.constr().size() != 1 
-              || conditions.unify().size() != 0
-              || !deepEqCheck(conditions.constr()[0], t1, t2)
-              ) {
-            progress = true;
-          }
-          for (auto& x : conditions.unify()) {
-            auto pair = std::make_pair(x.lhs(), x.rhs());
-            ASS_NEQ(pair, cur)
-            pushTodo(pair);
-            DEBUG_UNIFY(3, "uwa adding unify : ", pair)
-          }
-          for (auto& x: conditions.constr()) {
-            _constr->add(std::move(x), bd());
-            DEBUG_UNIFY(3, "uwa adding constr: ", x)
-          }
+          // if ( conditions.constr().size() == 1 
+          //      && conditions.unify().size() == 0
+          //      && deepEqCheck(conditions.constr()[0], t1, t2)) {
+          //   progress = true;
+          //   /* don't add unnecessary constraint */
+          // } else {
+            for (auto& x : conditions.unify()) {
+              auto pair = std::make_pair(x.lhs(), x.rhs());
+              ASS_NEQ(pair, cur)
+              pushTodo(pair);
+              DEBUG_UNIFY(3, "uwa adding unify : ", pair)
+            }
+            for (auto& x: conditions.constr()) {
+              _constr->add(std::move(x), bd());
+              DEBUG_UNIFY(3, "uwa adding constr: ", x)
+            }
+          // }
         }
         absRes.take();
 
