@@ -257,7 +257,7 @@ class AsymmetricTest
   Clause* _input;
   Option<StackMatcher> _expected;
   Stack<Clause*> _context;
-  bool _premiseRedundant;
+  Option<bool> _premiseRedundant;
   Stack<std::function<Indexing::Index*()>> _indices;
   std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   bool _selfApplications;
@@ -290,6 +290,7 @@ public:
   BUILDER_METHOD(Clause*, input)
   BUILDER_METHOD(ClauseStack, context)
   BUILDER_METHOD(StackMatcher, expected)
+  BUILDER_METHOD(Option<bool>, premiseRedundant)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(bool, selfApplications)
   BUILDER_METHOD(NewGeneratingInference*, rule)
@@ -327,7 +328,9 @@ public:
     for (const auto& kv : _options) {
       env.options->set(kv.first, kv.second);
     }
-    MockedSaturationAlgorithm alg(p, *env.options);
+    
+    auto& alg = *SaturationAlgorithm::createFromOptions(p, *env.options);
+    // MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
     auto& rule = *_rule.unwrapOrElse([&](){ return simpl._rule.get(); });
     rule.attach(&alg);
@@ -377,10 +380,12 @@ public:
       testFail(generated, sExp);
     }
 
-    auto premiseRedundant = redundant.contains(_input);
-    if (_premiseRedundant != premiseRedundant) {
-      auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
-      testFail( wrapStr(premiseRedundant), wrapStr(_premiseRedundant));
+    if (_premiseRedundant.isSome()) {
+      auto premiseRedundant = redundant.contains(_input);
+      if (*_premiseRedundant != premiseRedundant) {
+        auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
+        testFail( wrapStr(premiseRedundant), wrapStr(_premiseRedundant));
+      }
     }
 
 
@@ -399,10 +404,12 @@ public:
       container.remove(c);
     }
 
-    // // tear down saturation algorithm
-    rule.InferenceEngine::detach();
+    // tear down saturation algorithm
+    rule.detach();
 
     Ordering::unsetGlobalOrdering();
+    delete &alg;
+    SaturationAlgorithm::unsetGlobalInstance();
   }
 };
 
@@ -412,7 +419,7 @@ class SymmetricTest
   Option<NewGeneratingInference*> _rule;
   Stack<Clause*> _inputs;
   Option<StackMatcher> _expected;
-  bool _premiseRedundant;
+  Option<bool> _premiseRedundant;
   bool _selfApplications;
   Stack<std::function<Indexing::Index*()>> _indices;
 
@@ -427,7 +434,7 @@ class SymmetricTest
 
 public:
 
-  SymmetricTest() : _rule(), _expected(), _premiseRedundant(false), _selfApplications(true) {}
+  SymmetricTest() : _rule(), _expected(), _premiseRedundant(), _selfApplications(true) {}
 
 #define _BUILDER_METHOD(type, field)                                                      \
   SymmetricTest field(type field)                                                         \
@@ -439,6 +446,7 @@ public:
   _BUILDER_METHOD(Stack<Clause*>, inputs)
   _BUILDER_METHOD(StackMatcher, expected)
   _BUILDER_METHOD(bool, premiseRedundant)
+  _BUILDER_METHOD(Option<bool>, premiseRedundant)
   _BUILDER_METHOD(bool, selfApplications)
   _BUILDER_METHOD(NewGeneratingInference*, rule)
   _BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)

@@ -124,6 +124,9 @@ public:
    * to the object; otherwise return zero.
    */
   static SaturationAlgorithm* tryGetInstance() { return s_instance; }
+#if VDEBUG
+  static void unsetGlobalInstance() { s_instance = nullptr; }
+#endif
   static void tryUpdateFinalClauseCount();
 
   Splitter* getSplitter() { return _splitter; }

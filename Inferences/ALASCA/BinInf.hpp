@@ -71,6 +71,9 @@ public:
     ASS(!_lhs);
 
     NewGeneratingInference::attach(salg);
+    ASS(salg)
+    ASS(_salg)
+    ASS(_salg->getIndexManager())
 
     _lhs=static_cast<decltype(_lhs)> (_salg->getIndexManager()->request(Lhs::indexType()));
     _rhs=static_cast<decltype(_rhs)>(_salg->getIndexManager()->request(Rhs::indexType()));
