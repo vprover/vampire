@@ -217,7 +217,7 @@ public:
       ))
     );
     auto inf = rhsRedundant 
-      ?  Inference(SimplifyingInference2(Kernel::InferenceRule::ALASCA_COHERENCE, rhs.clause(), lhs.clause()))
+      ?  Inference(SimplifyingInference2(Kernel::InferenceRule::ALASCA_COHERENCE_DEMOD, rhs.clause(), lhs.clause()))
       :  Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_COHERENCE, lhs.clause(), rhs.clause()));
     auto res = Clause::fromIterator( rLits, inf);
 

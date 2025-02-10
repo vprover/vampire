@@ -155,7 +155,7 @@ Option<NewGeneratingInference::Result> SuperpositionConf::applyRule(
                    && cnst->size() == 0
                    ;
   auto inf = rhsRedundant 
-    ? Inference(SimplifyingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, rhs.clause(), lhs.clause()))
+    ? Inference(SimplifyingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION_DEMOD, rhs.clause(), lhs.clause()))
     : Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, lhs.clause(), rhs.clause()));
   
   auto out = Clause::fromStack(concl, inf);
