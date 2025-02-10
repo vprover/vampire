@@ -23,6 +23,7 @@
 #include "Term.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/BiMap.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/Environment.hpp"
@@ -139,7 +140,6 @@ struct TermSpec {
   unsigned functor() const { return term.term()->functor(); }
 
   TermList toTerm(Kernel::RobSubstitution& s) const;
-
 
   bool isSort() const
   { return this->term.term()->isSort(); }
@@ -315,6 +315,7 @@ public:
 
   bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
+  bool isRenamingOn(int index) const;
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
   bool isUnbound(VarSpec v) const;
@@ -455,8 +456,8 @@ private:
   RobSubstitution(const RobSubstitution& obj) = delete;
   RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
-  template<class T, class H1, class H2>
-  void bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b);
+  template<class T, class DHMap>
+  void bind(DHMap& map, const VarSpec& v, T b);
   void bind(const VarSpec& v, TermSpec b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   bool match(TermSpec base, TermSpec instance);

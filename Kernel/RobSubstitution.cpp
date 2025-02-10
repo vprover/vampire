@@ -156,8 +156,8 @@ TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
   }
 }
 
-template<class T, class H1, class H2>
-void RobSubstitution::bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b)
+template<class T, class DHMap>
+void RobSubstitution::bind(DHMap& map, const VarSpec& v, T b)
 {
   if(bdIsRecording()) {
     ASS(map.find(v).isNone());
@@ -228,6 +228,24 @@ void RobSubstitution::bind(const VarSpec& v, TermSpec b)
   bind(_bindings, v, std::move(b));
 }
 
+
+// TODO test this
+bool RobSubstitution::isRenamingOn(int index) const
+{
+  // TODO recycled
+  // BiMap<VarSpec, VarSpec, DefaultHash, DefaultHash> renaming;
+  Recycled<Set<VarSpec>> mapped;
+  for (auto [key, bound_] : iterTraits(_bindings.items())) {
+    if (key.index == index) {
+      auto bound = derefBound(bound_);
+      if (bound.isTerm() || mapped->contains(bound.varSpec())) 
+        return false;
+      mapped->insert(bound.varSpec());
+    }
+  }
+  return true;
+}
+
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
   ASS_NEQ(var,to);
@@ -240,7 +258,7 @@ bool RobSubstitution::occurs(VarSpec const& toFind, TermSpec const& ts)
 
    Recycled<DHSet<TermSpec>> encountered;
    Recycled<Stack<TermSpec>> todo;
-   todo->push(std::move(ts));
+   todo->push(std::move(ts)); 
 
    while (todo->isNonEmpty()){
      auto ts = todo->pop();

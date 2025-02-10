@@ -156,14 +156,7 @@ struct SuperpositionConf
   };
 
 
-  auto applyRule(
-      Lhs const& lhs, unsigned lhsVarBank,
-      Rhs const& rhs, unsigned rhsVarBank,
-      AbstractingUnifier& uwa
-      ) const 
-  { return applyRule_(lhs,lhsVarBank, rhs, rhsVarBank, uwa).intoIter(); }
-
-  Option<Clause*> applyRule_(
+  Option<NewGeneratingInference::Result> applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa

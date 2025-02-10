@@ -40,7 +40,7 @@ namespace ALASCA {
 // • s1σ /⪯ tσ
 // • s1 is not a variable
 // • s2 is not a variable
-Option<Clause*> SuperpositionConf::applyRule_(
+Option<NewGeneratingInference::Result> SuperpositionConf::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
     AbstractingUnifier& uwa
@@ -53,7 +53,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
   auto s1 = lhs.biggerSide();
 #endif
   auto s2 = rhs.toRewrite();
-  auto nothing = [&]() { return Option<Clause*>(); };
+  auto nothing = [&]() { return Option<NewGeneratingInference::Result>(); };
   ASS(!(s1.isVar() && lhs.isFracNum()))
   ASS(!s2.isVar())
 
@@ -149,10 +149,24 @@ Option<Clause*> SuperpositionConf::applyRule_(
   // adding Cnst
   concl.loadFromIterator(cnst->iterFifo());
 
-  Inference inf(GeneratingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, lhs.clause(), rhs.clause()));
+  auto rhsRedundant = lhs.clause()->size() == 1
+                   && uwa.subs().isRenamingOn(rhsVarBank)
+                   && lhs.clause() != rhs.clause()
+                   && cnst->size() == 0
+                   ;
+  auto inf = rhsRedundant 
+    ? Inference(SimplifyingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, rhs.clause(), lhs.clause()))
+    : Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, lhs.clause(), rhs.clause()));
+  
   auto out = Clause::fromStack(concl, inf);
   DEBUG(1, "out: ", *out);
-  return Option<Clause*>(out);
+
+  return some(NewGeneratingInference::Result {
+      .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
+      .generated = pvi(iterItems(out)),
+      .redundant = pvi(ifElseIter(rhsRedundant, [&]() { return iterItems<Clause*>(rhs.clause()); }
+                                              , [&]() { return iterItems<Clause*>(); })),
+  });
 }
 
 } // namespace ALASCA 

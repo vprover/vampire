@@ -17,45 +17,53 @@
 
 #include "Lib/Map.hpp"
 
-namespace Lib{
+namespace Lib {
 
 /**
  * A bidirectional hash map, implemented using two @c Map s under the hood. 
  * The methods behave the same as their counterparts in @c Map, with the exception that BiMap
  * asserts that every key, as well as every value is unique in this map (which is necessary to do a bijective mapping.) */
 template<class A, class B, class HashA, class HashB>
-class BiMap : Map<A,B, HashA>, Map<B, A, HashB> {
-  using Into = Map<A,B,HashA>;
-  using From = Map<B,A,HashB>;
+class BiMap : Map<A,B, HashA>
+{
+  using Self = Map<A,B,HashA>;
+  using Inv = Map<B,A,HashB>;
+  Inv _inv;
 public:
-  BiMap() : Into(), From() {}
+
+  BiMap() : Self() {}
+
+  decltype(auto) getInv(B const& val)       { return _inv.get(val); }
+  decltype(auto) getInv(B const& val) const { return _inv.get(val); }
+  decltype(auto) tryGetInv(B const& val)       { return _inv.tryGet(val); }
+  decltype(auto) tryGetInv(B const& val) const { return _inv.tryGet(val); }
+  decltype(auto) findInv(B const& val) const { return _inv.find(val); }
+
+  // /** @see Map::get */
+  // using Inv::get;
 
   /** @see Map::get */
-  using From::get;
+  using Self::get;
 
-  /** @see Map::get */
-  using Into::get;
-
-  /** @see Map::tryGet */
-  using From::tryGet;
+  // /** @see Map::tryGet */
+  // using Inv::tryGet;
 
   /** @see Map::tryGet */
-  using Into::tryGet;
+  using Self::tryGet;
+
+  // /** @see Map::find */
+  // using Inv::find;
 
   /** @see Map::find */
-  using From::find;
+  using Self::find;
 
-  /** @see Map::find */
-  using Into::find;
-
- 
   /** @see Map::getOrInit */
   template<class InitFn>
   B& getOrInit(A key, InitFn init) 
   {
-    return Into::getOrInit(key, [&]() {
+    return Self::getOrInit(key, [&]() {
         auto val = init();
-        From::insert(val, key);
+        _inv.insert(val, key);
         return val;
     });
   } 
@@ -63,8 +71,8 @@ public:
   /** @see Map::clear */
   void clear() 
   {
-    From::clear();
-    Into::clear();
+    _inv.clear();
+    Self::clear();
   }
 
   /** 
@@ -75,23 +83,24 @@ public:
   {
     ASS(!find(key))
     ASS(!find(val))
-    From::insert(val, key);
-    Into::insert(key, val);
+    _inv.insert(val, key);
+    Self::insert(key, val);
   }
 
 
   /** 
    * @see Map::size 
    */
-  inline unsigned size()
+  inline unsigned size() const
   {
-    ASS_EQ(From::size(), Into::size());
-    return From::size();
+    ASS_EQ(_inv.size(), Self::size());
+    return _inv.size();
   }
 
   friend std::ostream& operator<<(std::ostream& out, BiMap const& self) 
-  { return out << static_cast<Into const&>(self); }
+  { return out << static_cast<Self const&>(self); }
 };
+
 
 } // namespace Lib
 

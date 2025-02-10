@@ -22,18 +22,11 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
-#include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
 #include "Lib/STL.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
-#include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/Reflection.hpp"
-#include "Shell/Options.hpp"
 #include "Lib/BacktrackableCollections.hpp"
-#include "Lib/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
@@ -153,13 +146,12 @@ public:
   // rhs: D \/ L[⌊k s + t⌋]
   // ====================
   // C \/ D \/ L[⌊k s + t - i(j s + u)⌋ + i(j s + u)]
-  auto applyRule(
+  Option<NewGeneratingInference::Result> applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const 
   {
-
 
     auto j = lhs.j();
     ASS(j > 0)
@@ -206,20 +198,35 @@ public:
     auto js_u = add(mul(j, lhs.s()), lhs.u());
     auto js_uσ = sigmaL(js_u);
 
-    return someIf(i != 0, [&]() {
-        return Clause::fromIterator(
-          concatIters(
-            lhs.contextLiterals().map([=](auto l) { return sigmaL(l); }),
-            rhs.contextLiterals().map([=](auto l) { return sigmaR(l); }),
-            arrayIter(*cnstr).map([](auto& literal) { return literal; }),
-            iterItems(EqHelper::replace(Lσ, toRewriteσ, 
-                // TermList::var(0)
-                add(floor(add(ks_tσ, mul(-i, js_uσ))), mul(i, js_uσ))
-            ))
-          ), 
-          Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_COHERENCE, lhs.clause(), rhs.clause()))
-          );
-        }).intoIter();
+    if (i == 0) {
+      return {};
+    }
+
+    auto rhsRedundant = lhs.clause()->size() == 1
+                     && uwa.subs().isRenamingOn(rhsVarBank)
+                     && lhs.clause() != rhs.clause()
+                     && cnstr->size() == 0 // TODO this should be lifted
+                     ;
+
+    auto rLits = concatIters(
+      lhs.contextLiterals().map([=](auto l) { return sigmaL(l); }),
+      rhs.contextLiterals().map([=](auto l) { return sigmaR(l); }),
+      arrayIter(*cnstr).map([](auto& literal) { return literal; }),
+      iterItems(EqHelper::replace(Lσ, toRewriteσ, 
+          add(floor(add(ks_tσ, mul(-i, js_uσ))), mul(i, js_uσ))
+      ))
+    );
+    auto inf = rhsRedundant 
+      ?  Inference(SimplifyingInference2(Kernel::InferenceRule::ALASCA_COHERENCE, rhs.clause(), lhs.clause()))
+      :  Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_COHERENCE, lhs.clause(), rhs.clause()));
+    auto res = Clause::fromIterator( rLits, inf);
+
+    return some(NewGeneratingInference::Result {
+      .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
+      .generated = pvi(iterItems(res)),
+      .redundant = pvi(ifElseIter(rhsRedundant, [&]() { return iterItems<Clause*>(rhs.clause()); }
+                                              , [&]() { return iterItems<Clause*>(); })),
+    });
   }
 };
 

@@ -991,7 +991,7 @@ SATSolver::Status Z3Interfacing::solve()
     auto core = z3_unsat_core();
     for (auto phi : core) {
       _assumptionLookup
-             .tryGet(phi)
+             .tryGetInv(phi)
              .andThen([this](SATLiteral l)
                  { _failedAssumptionBuffer.push(l); });
     }

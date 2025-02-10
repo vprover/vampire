@@ -23,6 +23,7 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/TypeList.hpp"
 
@@ -100,6 +101,21 @@ public:
   }
 #endif
 
+private:
+  template<class Iter>
+  [[deprecated("return a proper Result instead from applyRule")]]
+  static Option<Result> toResult(Iter iter, Lhs const& lhs, Rhs const& rhs) {
+    return some(Result { 
+      .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
+      .generated = pvi(std::move(iter)),
+      .redundant = VirtualIterator<Clause*>::getEmpty(),
+    });
+  }
+
+  static Option<Result> toResult(Option<Result> res, Lhs const& lhs, Rhs const& rhs)
+  { return res; }
+
+public:
   VirtualIterator<Result> apply(Clause* premise) final override
   {
     ASS(_lhs)
@@ -115,20 +131,19 @@ public:
     using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
     auto applyRuleAndLog = [&](auto& lhs, auto& lbank, auto& rhs, auto& rbank) {
       RStack<Clause*> rs;
-      rs->loadFromIterator(_rule.applyRule(lhs, lbank, rhs, rbank, sigma));
-      if (rs.size() > 0) {
-        for (auto cl : *rs) {
-          DEBUG(0, "    result: ", *cl)
+      if (auto result = toResult(_rule.applyRule(lhs, lbank, rhs, rbank, sigma), lhs, rhs)) {
+        rs->loadFromIterator(result->generated);
+        if (rs.size() > 0) {
+          for (auto cl : *rs) {
+            DEBUG(0, "    result: ", *cl)
+          }
+          DEBUG(0, "")
+        } else {
+          DEBUG(0, "<nothing>")
         }
-        DEBUG(0, "")
-      } else {
-        DEBUG(0, "<nothing>")
+        result->generated = pvi(arrayIter(std::move(rs)));
+        out.push(std::move(*result));
       }
-      out.push(Result { 
-          .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
-          .generated = pvi(arrayIter(std::move(rs))),
-          .redundant = VirtualIterator<Clause*>::getEmpty(),
-          });
     };
 
     DEBUG(0, _rule.name())
