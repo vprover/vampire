@@ -2248,6 +2248,24 @@ INDEX_TEST(bug_linear_mul_2,
       },
     })
 
+INDEX_TEST(some_potential_bug,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR,
+      .fixedPointIteration = true,
+      .insert = {
+        f(floor(a + x)),
+      },
+      .query = f(b),
+      .expected = { 
+          TermUnificationResultSpec 
+          { .querySigma  = f(b),
+            .resultSigma = f(floor(a + x)),
+            .constraints = constraints(-floor(a + x) + b != 0) }, 
+      },
+    })
+
 ROB_UNIFY_TEST(alasca_main_int_bug01,
     SUGAR(Int),
     Options::UnificationWithAbstraction::ALASCA_MAIN,
@@ -2429,7 +2447,7 @@ ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_14,
     TermUnificationResultSpec { 
       .querySigma  = f(a + b),
       .resultSigma = f(b + a),
-      .constraints = Stack<Literal*>{},
+      .constraints = noConstraints(),
       // .alascaSimpl = true,
     })
 
@@ -2452,4 +2470,18 @@ ROB_UNIFY_TEST_FAIL(floor_test_16,
     /* fixedPointIteration */ false,
     a - floor(-a),
     num(0))
+
+
+ROB_UNIFY_TEST(floor_test_17,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR,
+    /* fixedPointIteration */ true,
+    x + y,
+    num(0), 
+    TermUnificationResultSpec { 
+      .querySigma  = num(0),
+      .resultSigma = num(0),
+      .constraints = noConstraints(),
+      .alascaSimpl = true,
+    })
 

@@ -1565,7 +1565,7 @@ public:
 
   template<class F>
   auto inspect(F f)
-  { return map([f = std::move(f)](auto x) { f(x); return x; }); }
+  { return map([f = std::move(f)](OWN_ELEMENT_TYPE x) -> OWN_ELEMENT_TYPE { f(x); return x; }); }
 
   template<class F>
   IterTraits<FilteredIterator<Iter, F>> filter(F f)
