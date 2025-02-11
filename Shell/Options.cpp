@@ -2395,7 +2395,11 @@ void Options::init()
                                           "precedence","inv_precedence","frequency","inv_frequency"});
     _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overridden by the function_weights option if used.";
     _kboWeightGenerationScheme.setExperimental();
-    _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboWeightGenerationScheme.onlyUsefulWith(
+        Or( _termOrdering.is(equal(TermOrdering::  KBO))
+          , _termOrdering.is(equal(TermOrdering:: QKBO))
+          , _termOrdering.is(equal(TermOrdering::LAKBO))
+          ));
     _kboWeightGenerationScheme.tag(OptionTag::SATURATION);
     _lookup.insert(&_kboWeightGenerationScheme);
 
