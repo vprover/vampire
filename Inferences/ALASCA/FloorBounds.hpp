@@ -92,7 +92,6 @@ class FloorBounds
     auto pred = premise.alascaPredicate().unwrap();
     ASS(isInequality(pred))
 
-
     return iterItems(
         // +⌊s⌋ >=  -t       x - ⌊x⌋ >= 0
         // ================================
@@ -113,8 +112,8 @@ class FloorBounds
         // ===============
         // +s + t >~ 0
         resClause(premise, 
-          pred == AlascaPredicate::GREATER_EQ ? greater0(sum(s, t))
-        : pred == AlascaPredicate::GREATER    ? geq0(sum(s, t))
+          pred == AlascaPredicate::GREATER_EQ ? geq0(sum(s, t))
+        : pred == AlascaPredicate::GREATER    ? greater0(sum(s, t))
         : assertionViolation<Literal*>())
         );
   }
@@ -192,6 +191,7 @@ public:
 
   ClauseIterator generateClauses(Clause* premise) final override
   {
+
     return pvi(concatIters(
           generateClauses<Superposition::Lhs>(premise),
           generateClauses<FourierMotzkin::Lhs>(premise),
