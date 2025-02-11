@@ -340,6 +340,9 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
               if (diff.size() == 0) return;
               unsigned i1 = 0;
               unsigned i2 = 1;
+              for (auto i : range(1, diff.size())) {
+                ASS_REP(cmp(diff[i - 1].first, diff[i].first) <= 0, Output::cat(diff[i - 1].first, " > ", diff[i].first))
+              }
               while (i2 < diff.size()) {
                 ASS(i1 < i2);
                 auto c = cmp(diff[i1].first, diff[i2].first);

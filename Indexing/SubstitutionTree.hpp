@@ -523,15 +523,7 @@ public:
       {
       public:
         inline static Comparison compare(TermList::Top& l, Node* r)
-        { 
-          if(l.var()) {
-            return r->term().isVar() ? Int::compare(*l.var(), r->term().var())
-                                     : LESS;
-          } else {
-            return r->term().isVar() ? GREATER
-                                     : Int::compare(l.functor()->functor, r->term().term()->functor());
-          }
-        }
+        { return l.compare(r->term().top()); }
       };
       typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
       NodeSkipList _nodes;
