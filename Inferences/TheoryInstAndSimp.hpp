@@ -135,7 +135,7 @@ private:
   Splitter* _splitter;
   Options::TheoryInstSimp const _mode;
   bool const _thiTautologyDeletion;
-  SAT2FO _naming;
+  std::unique_ptr<SAT2FO> _naming;
   std::unique_ptr<Z3Interfacing> _solver;
   Map<SortId, bool> _supportedSorts;
   bool _generalisation;

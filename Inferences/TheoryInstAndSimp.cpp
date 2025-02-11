@@ -92,8 +92,8 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTauto
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
-  , _naming()
-  , _solver(new Z3Interfacing(_naming, showZ3, /* unsatCoresForAssumptions = */ generalisation, exportSmtlib, problemExportSyntax))
+  , _naming(std::make_unique<SAT2FO>())
+  , _solver(new Z3Interfacing(*_naming, showZ3, /* unsatCoresForAssumptions = */ generalisation, exportSmtlib, problemExportSyntax))
   , _generalisation(generalisation)
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")
@@ -557,7 +557,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       auto gen = GeneralisationTree(sk.term(), TermList(val), _generalizationConstants);
       gens.push(gen);
       gen.foreachDef([&](GeneralisationTree gen, Literal* l){
-          auto named = _naming.toSAT(l);
+          auto named = _naming->toSAT(l);
           theoryLits.push(named);
           definitionLiterals.insert(named, gen.constant());
       });
@@ -629,7 +629,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
 
     lit = SubstHelper::apply(lit,subst);
 
-    skolemized.push(_naming.toSAT(lit));
+    skolemized.push(_naming->toSAT(lit));
   }
 
   return SkolemizedLiterals {
@@ -646,7 +646,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
         theoryLiterals.iterFifo(),
         guards.iterFifo()
         ));
-  DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
+  DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming->toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
   SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
