@@ -148,7 +148,9 @@ class FloorBounds
           // ============================
           // −s + ⌊t⌋ > 0 ∨ -⌊s⌋ + ⌊t⌋ ≈ 0
             pred == AlascaPredicate::GREATER_EQ ? resClause(premise, 
-                               greater0(sum(minus(s), floor(t))))
+                               greater0(sum(minus(s), floor(t))),
+                               eq0(sum(minus(floor(s)), floor(t)))
+                               )
 
           // TODO TRYOUT RULE: put into paper
           //             -⌊s⌋ + t > 0
