@@ -888,6 +888,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "alasca coherence normalization";
   case InferenceRule::ALASCA_COHERENCE_DEMOD:
     return "alasca coherence demodulation";
+  case InferenceRule::ALASCA_FOURIER_MOTZKIN_DEMOD:
+    return "alasca fourier motzkin demodulation";
   case InferenceRule::ALASCA_SUPERPOSITION_DEMOD:
     return "alasca superposition demodulation";
   case InferenceRule::ALASCA_SUPERPOSITION:

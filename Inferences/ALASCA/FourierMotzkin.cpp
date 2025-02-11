@@ -13,6 +13,7 @@
  */
 
 #include "FourierMotzkin.hpp"
+#include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -23,7 +24,7 @@ namespace Inferences {
 namespace ALASCA {
 
 
-Option<Clause*> FourierMotzkinConf::applyRule_(
+Option<NewGeneratingInference::Result> FourierMotzkinConf::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
     AbstractingUnifier& uwa
@@ -42,11 +43,11 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
 
 
 
-#define check_side_condition(cond, cond_code)                                                       \
-    if (!(cond_code)) {                                                                             \
-      DEBUG_FM(1, "side condition not fulfiled: " cond)                                                   \
-      return Option<Clause*>();                                                                     \
-    }                                                                                               \
+#define check_side_condition(cond, cond_code)                                             \
+    if (!(cond_code)) {                                                                   \
+      DEBUG_FM(1, "side condition not fulfiled: " cond)                                   \
+      return Option<NewGeneratingInference::Result>();                                    \
+    }                                                                                     \
 
     check_side_condition("literals are of the same sort",
         lhs.numTraits() == rhs.numTraits()) // <- we must make this check because variables are unsorted
@@ -166,10 +167,25 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
 
     out.loadFromIterator(cnst->iterFifo());
 
-    Inference inf(GeneratingInference2(Kernel::InferenceRule::ALASCA_FOURIER_MOTZKIN, lhs.clause(), rhs.clause()));
+    auto rhsRedundant = false;
+    // auto rhsRedundant = lhs.clause()->size() == 1
+    //                  && uwa.subs().isRenamingOn(rhsVarBank)
+    //                  && lhs.clause() != rhs.clause()
+    //                  && cnst->size() == 0
+    //                  ;
+
+    auto inf = rhsRedundant 
+      ? Inference(SimplifyingInference2(Kernel::InferenceRule::ALASCA_FOURIER_MOTZKIN_DEMOD, rhs.clause(), lhs.clause()))
+      : Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_FOURIER_MOTZKIN, lhs.clause(), rhs.clause()));
+
     auto cl = Clause::fromStack(out, inf);
     DEBUG_FM(1, "out: ", *cl);
-    return Option<Clause*>(cl);
+    return some(NewGeneratingInference::Result {
+        .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
+        .generated = pvi(iterItems(cl)),
+        .redundant = pvi(ifElseIter(rhsRedundant, [&]() { return iterItems<Clause*>(rhs.clause()); }
+                                                , [&]() { return iterItems<Clause*>(); })),
+    });
   });
 }
 

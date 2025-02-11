@@ -222,6 +222,7 @@ enum class InferenceRule : unsigned char {
   /** subsumption resolution simplification rule */
   SUBSUMPTION_RESOLUTION,
   ALASCA_SUPERPOSITION_DEMOD,
+  ALASCA_FOURIER_MOTZKIN_DEMOD,
   ALASCA_COHERENCE_DEMOD,
   /** forward demodulation inference */
   FORWARD_DEMODULATION,
