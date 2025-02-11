@@ -14,6 +14,8 @@
 #ifndef SAT_SUBSUMPTION_RESOLUTION_HPP
 #define SAT_SUBSUMPTION_RESOLUTION_HPP
 
+#include <cstdint>
+
 #include "Kernel/Clause.hpp"
 #include "Lib/Slice.hpp"
 
@@ -125,7 +127,7 @@ private:
     /// After shifting 4 bits to the right (>> (2 * (j % 4)))
     /// 0b 00 00 00 10
     /// We know that m_2 does not have a positive match, but has a negative match
-    std::vector<uint8_t> _jStates;
+    std::vector<std::uint8_t> _jStates;
 
     /// @brief number of literals in L
     unsigned _m;
