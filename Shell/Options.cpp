@@ -1662,14 +1662,14 @@ void Options::init()
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
-    _demodulationPrecompiledComparison = BoolOptionValue("demodulation_precompiled_comparison","dpc",false);
-    _demodulationPrecompiledComparison.description=
-       "Precompiles ordering constraints on unorientable demodulators which results in less overhead when actually comparing.";
-    _lookup.insert(&_demodulationPrecompiledComparison);
-    _demodulationPrecompiledComparison.tag(OptionTag::INFERENCES);
-    _demodulationPrecompiledComparison.onlyUsefulWith(ProperSaturationAlgorithm());
-    _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
-    _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
+    _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",false);
+    _forwardDemodulationTermOrderingDiagrams.description=
+       "Use term ordering diagrams (TODs) to runtime specialize post-ordering checks in forward demodulation.";
+    _lookup.insert(&_forwardDemodulationTermOrderingDiagrams);
+    _forwardDemodulationTermOrderingDiagrams.tag(OptionTag::INFERENCES);
+    _forwardDemodulationTermOrderingDiagrams.onlyUsefulWith(ProperSaturationAlgorithm());
+    _forwardDemodulationTermOrderingDiagrams.onlyUsefulWith(_forwardDemodulation.is(notEqual(Demodulation::OFF)));
+    _forwardDemodulationTermOrderingDiagrams.addProblemConstraint(hasEquality());
 
     _demodulationOnlyEquational = BoolOptionValue("demodulation_only_equational","doe",false);
     _demodulationOnlyEquational.description=

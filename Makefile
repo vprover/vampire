@@ -178,7 +178,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
         Kernel/QKbo.o\
-        Kernel/KBOComparator.o\
         Kernel/SKIKBO.o\
         Kernel/ALASCA/Signature.o\
         Kernel/ALASCA/SelectionPrimitves.o\
@@ -187,7 +186,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
         Kernel/LPO.o\
-        Kernel/LPOComparator.o\
         Kernel/MainLoop.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
@@ -198,7 +196,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
-        Kernel/OrderingComparator.o\
         Kernel/Ordering_Equality.o\
         Kernel/PartialOrdering.o\
         Kernel/Problem.o\
@@ -215,6 +212,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/PolynomialNormalizer.o\
         Kernel/Polynomial.o\
         Kernel/TermIterators.o\
+        Kernel/TermOrderingDiagram.o\
+        Kernel/TermOrderingDiagramKBO.o\
+        Kernel/TermOrderingDiagramLPO.o\
         Kernel/TermPartialOrdering.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
