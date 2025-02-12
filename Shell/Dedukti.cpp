@@ -89,6 +89,10 @@ forall : (a : Set -> (((El a) -> Prop) -> Prop)).
 exists : (a : Set -> (((El a) -> Prop) -> Prop)).
 [a, p] Prf (exists a p) --> (r : Prop -> ((x : (El a) -> ((Prf (p x)) -> (Prf r))) -> (Prf r))).
 
+(; polymorphic quantifier ;)
+forall_poly : (Set -> Prop) -> Prop.
+[p] Prf (forall_poly p) --> a : Set -> Prf (p a).
+
 (; Classic ;)
 def cPrf : (Prop -> Type) := (p : Prop => (Prf (not (not p)))).
 def cand : (Prop -> (Prop -> Prop)) := (p : Prop => (q : Prop => (and (not (not p)) (not (not q))))).
@@ -104,6 +108,7 @@ def cons : (Prop -> (prop_clause -> prop_clause)).
 def clause : Type.
 def cl : (prop_clause -> clause).
 def bind : (A : Set -> (((El A) -> clause) -> clause)).
+def bind_poly : (Set -> clause) -> clause.
 def Prf_prop_clause : (prop_clause -> Type).
 
 [] Prf_prop_clause ec --> (Prf false).
@@ -111,6 +116,7 @@ def Prf_prop_clause : (prop_clause -> Type).
 def Prf_clause : (clause -> Type).
 [c] Prf_clause (cl c) --> (Prf_prop_clause c).
 [A, f] Prf_clause (bind A f) --> (x : (El A) -> (Prf_clause (f x))).
+[f] Prf_clause (bind_poly f) --> (alpha : Set -> (Prf_clause (f alpha))).
 
 def av_clause : Type.
 def acl : clause -> av_clause.
@@ -272,9 +278,14 @@ static std::ostream &operator<<(std::ostream &out, DkVar<Care> dk) {
   // frequently encountered when doing replacements
   if(dk.code == -1)
     return out << "z";
-  // if we don't care, say simply "inhabit"
+  // if we don't care...
   else if(dk.code == -2)
-    return out << "(inhabit " << DkTerm(dk.sort, AtomicSort::superSort()) << ")";
+    // ...and it's a sort, say simply "iota"
+    if(dk.sort == AtomicSort::superSort())
+      return out << "iota";
+    // ...and it's a term, say "inhabit" indexed by the sort
+    else
+      return out << "(inhabit " << DkTerm(dk.sort, AtomicSort::superSort(), dk.care) << ")";
   else
     return out << dk.code;
 }
@@ -393,7 +404,7 @@ static std::ostream &operator<<(std::ostream &out, DkLit<Care, Transform> dk) {
   if(dk.literal->isEquality()) {
     TermList sort = SortHelper::getEqualityArgumentSort(after);
     return out
-      << "(eq " << DkTerm(sort, AtomicSort::superSort()) << ' '
+      << "(eq " << DkTerm(sort, AtomicSort::superSort(), dk.care) << ' '
       << DkTerm(dk.transform(dk.literal->termArg(0)), sort, dk.care) << " "
       << DkTerm(dk.transform(dk.literal->termArg(1)), sort, dk.care) << ")";
   }
@@ -475,24 +486,53 @@ static std::ostream &operator<<(std::ostream &out, DkSplit dk) {
   return out << cp.open_if(!dk.split.polarity(), "(not ") << "sp" << dk.split.var();
 }
 
-// compute an ordered set of the variables in `cl`
-static std::set<unsigned> variables(Clause *cl) {
-  std::set<unsigned> vars;
-  for(unsigned v : iterTraits(cl->getVariableIterator()))
-    vars.insert(v);
-  return vars;
-}
+struct VarsWithSorts {
+  std::set<unsigned> sortVars;
+  std::map<unsigned, TermList> termVars;
 
-// compute an ordered set of the variables in `cl`
-static std::map<unsigned, TermList> variablesWithSorts(Clause *cl) {
-  std::map<unsigned, TermList> vars;
-  DHMap<unsigned, TermList> sorts;
-  SortHelper::collectVariableSorts(cl, sorts);
-  for(auto [v, sort] : iterTraits(sorts.items()))
-    vars.insert({v, sort});
-  return vars;
-}
+  VarsWithSorts() = default;
+  VarsWithSorts(Clause *cl) {
+    DHMap<unsigned, TermList> sorts;
+    SortHelper::collectVariableSorts(cl, sorts);
+    for(auto [v, sort] : iterTraits(sorts.items()))
+      if(sort == AtomicSort::superSort())
+        sortVars.insert(v);
+      else {
+        termVars.insert({v, sort});
+        for(TermList v : iterTraits(VariableIterator(sort)))
+          sortVars.insert(v.var());
+      }
+  }
 
+  struct end {};
+  struct iterator {
+    const VarsWithSorts &parent;
+    std::set<unsigned>::iterator sortIter;
+    std::map<unsigned, TermList>::iterator termIter;
+
+    std::pair<unsigned, TermList> operator*() {
+      if(sortIter != parent.sortVars.end())
+        return {*sortIter, AtomicSort::superSort()};
+      else
+        return *termIter;
+    }
+
+    bool operator!=(end) {
+      return sortIter != parent.sortVars.end() || termIter != parent.termVars.end();
+    }
+
+    void operator++() {
+      if(sortIter != parent.sortVars.end())
+        sortIter++;
+      else
+        termIter++;
+    }
+  };
+
+  iterator begin() { return {*this, sortVars.begin(), termVars.begin()}; }
+  end end() { return {}; }
+  bool containsVar(unsigned var) { return sortVars.count(var) || termVars.count(var); }
+};
 
 // dedukti-print a clause
 struct DkClause {
@@ -512,10 +552,14 @@ static std::ostream &operator<<(std::ostream &out, DkClause dk) {
     out << cp.open(" (acl");
   }
 
-  for(auto [var, sort] : variablesWithSorts(dk.clause))
-    out
-      << cp.open(" (bind ") << DkTerm(sort, AtomicSort::superSort()) << ' '
-      << cp.open() << var << " : El " << DkTerm(sort, AtomicSort::superSort()) << " =>";
+  for(auto [var, sort] : VarsWithSorts(dk.clause)) {
+    if(sort == AtomicSort::superSort())
+      out << cp.open(" (bind_poly ") << cp.open() << var << " : Set =>";
+    else
+      out
+        << cp.open(" (bind ") << DkTerm(sort, AtomicSort::superSort()) << ' '
+        << cp.open() << var << " : El " << DkTerm(sort, AtomicSort::superSort()) << " =>";
+  }
   out << cp.open(" (cl");
   for(Literal *literal : dk.clause->iterLits())
     out << cp.open(" (cons ") << DkLit(literal);
@@ -568,9 +612,14 @@ static std::ostream &operator<<(std::ostream &out, DkFormula dk) {
         else if(SortHelper::tryGetVariableSort(var, f->qarg(), sort));
           // sort computed
         else
-          // ...eh. Not likely to work, but worth a try.
-          sort = AtomicSort::defaultSort();
+          // this actually does happen with e.g. ![X, Y: X]: Y = Y
+          sort = AtomicSort::superSort();
 
+        // special case ![X: $tType]: ...
+        if(sort == AtomicSort::superSort()) {
+          out << cp.open() << "forall_poly " << cp.open() << var << " : Set => ";
+          continue;
+        }
         out
           << cp.open() << binder << ' '
           << DkTerm(sort, AtomicSort::superSort()) << ' '
@@ -672,9 +721,12 @@ static void applySubstToClause(RobSubstitution &subst, int bank, Clause *clause,
 }
 
 // bind all variables and literals present in `clause`
-static void bindClause(std::ostream &out, Clause *clause, std::map<unsigned, TermList> &variables) {
+static void bindClause(std::ostream &out, Clause *clause, VarsWithSorts &variables) {
   for(auto [v, sort] : variables)
-    out << " " << v << " : El " << DkTerm(sort, AtomicSort::superSort()) << " => ";
+    if(sort == AtomicSort::superSort())
+      out << " " << v << " : Set => ";
+    else
+      out << " " << v << " : El " << DkTerm(sort, AtomicSort::superSort()) << " => ";
   for(Literal *l : clause->iterLits())
     out << "" << l << " : (Prf " << DkLit(l) << " -> Prf false) => ";
 }
@@ -685,7 +737,7 @@ struct ClausalInference {
   // the retrieved proof-extra
   const Extra &extra;
   // variables in `derived`
-  std::map<unsigned, TermList> derivedVars;
+  VarsWithSorts derivedVars;
   UnitIterator parentIt;
 
   template<typename E = Extra>
@@ -700,28 +752,28 @@ struct ClausalInference {
 
   ClausalInference(std::ostream &out, Clause *derived) :
     extra(getExtra(derived)),
-    derivedVars(variablesWithSorts(derived)),
+    derivedVars(VarsWithSorts(derived)),
     parentIt(derived->getParents())
   {
     deductionPrefix(out, derived);
     bindClause(out, derived, derivedVars);
   }
 
-  bool cares(unsigned var) { return derivedVars.count(var); }
+  bool cares(unsigned var) { return derivedVars.containsVar(var); }
 };
 
 // for inferences with only one parent
 template<typename Extra>
 struct UnaryClausalInference : public ClausalInference<Extra> {
   Clause *parent = nullptr;
-  std::map<unsigned, TermList> parentVars;
+  VarsWithSorts parentVars;
 
   UnaryClausalInference(std::ostream &out, Clause *derived) :
     ClausalInference<Extra>(out, derived)
   {
     ALWAYS(this->parentIt.hasNext())
     parent = this->parentIt.next()->asClause();
-    parentVars = variablesWithSorts(parent);
+    parentVars = VarsWithSorts(parent);
     parentWithSplits(out, parent);
   }
 };
@@ -742,7 +794,7 @@ struct VariadicClausalInference : public UnaryClausalInference<Extra> {
 template<typename Extra>
 struct BinaryClausalInference : public UnaryClausalInference<Extra> {
   Clause *left = nullptr, *right = nullptr;
-  std::map<unsigned, TermList> &leftVars, rightVars;
+  VarsWithSorts &leftVars, rightVars;
   BinaryClausalInference(std::ostream &out, Clause *derived) :
     UnaryClausalInference<Extra>(out, derived),
     left(this->parent),
@@ -750,7 +802,7 @@ struct BinaryClausalInference : public UnaryClausalInference<Extra> {
   {
     ALWAYS(this->parentIt.hasNext())
     right = this->parentIt.next()->asClause();
-    rightVars = variablesWithSorts(right);
+    rightVars = VarsWithSorts(right);
   }
 };
 
@@ -1022,9 +1074,9 @@ static void definitionUnfolding(std::ostream &out, Clause *derived) {
   for(Literal *l : inf.parent->iterLits()) {
 restart:
     out << " (t_" << l << " : Prf " << DkLit(l, inf) << " =>";
-    NonVariableIterator subterms(l);
+    NonVariableNonTypeIterator subterms(l);
     while(subterms.hasNext()) {
-      Term *candidate = subterms.next().term();
+      Term *candidate = subterms.next();
       if(auto found = rewrites.find(candidate->functor()); found != rewrites.end()) {
         auto [_, i] = *found;
         Clause *def = inf.others[i];
@@ -1033,13 +1085,14 @@ restart:
         TermList rhs = EqHelper::getOtherEqualitySide(eq, lhs);
         TermList sort = SortHelper::getEqualityArgumentSort(eq);
         SimpleSubstitution subst;
+        //std::cout << lhs << " onto " << *candidate << "??" << std::endl;
         ALWAYS(MatchingUtils::matchTerms(TermList(lhs), TermList(candidate), subst))
         TermList lhsSubst(SubstHelper::apply(lhs, subst));
         TermList rhsSubst = SubstHelper::apply(rhs, subst);
         TermList sortSubst = SubstHelper::apply(sort, subst);
         parentWithSplits(out, def);
 
-        auto defVars = variablesWithSorts(def);
+        auto defVars = VarsWithSorts(def);
         for(auto [v, sort] : defVars)
           out << " " << DkTerm(subst.apply(v), sortSubst, inf);
         out << " (e_" << eq << " : Prf " << DkLit(eq, inf, DoSubstitution(subst)) << " => ";
@@ -1105,7 +1158,7 @@ static void trivialInequalityRemoval(std::ostream &out, Clause *derived) {
       TermList sort = SortHelper::getEqualityArgumentSort(l);
       out
         << " (p : Prf (" << DkLit(l, inf) << ") => p (refl "
-        << DkTerm(sort, AtomicSort::superSort()) << ' '
+        << DkTerm(sort, AtomicSort::superSort(), inf) << ' '
         << DkTerm(l->termArg(0), sort, inf)
         << "))";
     }
@@ -1220,7 +1273,7 @@ static void AVATARDefinition(std::ostream &out, Unit *def) {
   out << "def sp" << split.var() << " : Prop :=";
 
   CloseParens cp(out);
-  auto vars = variablesWithSorts(component);
+  auto vars = VarsWithSorts(component);
   for(auto [var, sort] : vars)
     out
       << "forall " << DkTerm(sort, AtomicSort::superSort()) << ' '
@@ -1239,7 +1292,7 @@ static void AVATARComponent(std::ostream &out, Clause *component) {
   unsigned componentName = component->splits()->sval();
   SATLiteral split = Splitter::getLiteralFromName(componentName);
   // variables in numerical order
-  auto componentVars = variablesWithSorts(component);
+  auto componentVars = VarsWithSorts(component);
 
   bindClause(out, component, componentVars);
   CloseParens cp(out);
@@ -1332,7 +1385,7 @@ static void AVATARSplitClause(std::ostream &out, Unit *derived) {
 
     SATLiteral split = Splitter::getLiteralFromName(found->splits()->sval());
     out << " nnsp" << split.var();
-    for(auto [foundVar, foundSort] : variablesWithSorts(found)) {
+    for(auto [foundVar, foundSort] : VarsWithSorts(found)) {
       out
         << cp.open(" (") << subst.apply(foundVar).var()
         << " : El " << DkTerm(SubstHelper::apply(foundSort, subst), AtomicSort::superSort())
@@ -1366,7 +1419,7 @@ static void AVATARSplitClause(std::ostream &out, Unit *derived) {
     }
   }
 
-  for(unsigned parentVar : variables(parent))
+  for(auto [parentVar, _] : VarsWithSorts(parent))
     out << " " << parentVar;
   for(Literal *l : parent->iterLits()) {
     out << ' ';
