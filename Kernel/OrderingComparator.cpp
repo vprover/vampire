@@ -77,22 +77,22 @@ void* OrderingComparator::next()
       for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
         AppliedTerm tt(TermList::var(var), _appl, true);
 
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-          // since the counts are sorted in descending order,
-          // this can only mean we will fail
-          if (varDiffs[v.var()]<0) {
+        if (tt.term.isVar()) {
+          varDiffs[tt.term.var()] += coeff;
+          weight += coeff * kbo._funcWeights._specialWeights._variableWeight;
+          if (varDiffs[tt.term.var()]<0) {
             goto loop_end;
           }
-        }
-        int64_t w = kbo.computeWeight(tt);
-        weight += coeff*w;
-        // due to descending order of counts,
-        // this also means failure
-        if (coeff<0 && weight<0) {
-          goto loop_end;
+        } else {
+          auto linexp = kbo.computeWeight(tt.term.term());
+          weight += coeff * linexp->constant;
+          for (const auto& [varInner, coeffInner] : linexp->varCoeffPairs) {
+            varDiffs[varInner] += coeff * coeffInner;
+            weight += coeff * coeffInner * kbo._funcWeights._specialWeights._variableWeight;
+            if (varDiffs[varInner]<0) {
+              goto loop_end;
+            }
+          }
         }
       }
 
@@ -271,7 +271,7 @@ void OrderingComparator::processPolyNode()
     *_curr = node->ngeBranch;
     return;
   }
-  auto poly = Polynomial::get(constant, vcs);
+  auto poly = LinearExpression::get(constant, vcs);
 
   // if refcnt > 1 we have to copy the node,
   // otherwise we can mutate the original
@@ -339,7 +339,7 @@ OrderingComparator::Branch::Branch(TermList lhs, TermList rhs)
   setNode(new Node(lhs, rhs));
 }
 
-OrderingComparator::Branch::Branch(const Polynomial* p)
+OrderingComparator::Branch::Branch(const LinearExpression* p)
 {
   setNode(new Node(p));
 }
@@ -389,7 +389,7 @@ OrderingComparator::Node::Node(void* data, Branch alternative)
 OrderingComparator::Node::Node(TermList lhs, TermList rhs)
   : tag(T_TERM), lhs(lhs), rhs(rhs) {}
 
-OrderingComparator::Node::Node(const Polynomial* p)
+OrderingComparator::Node::Node(const LinearExpression* p)
   : tag(T_POLY), poly(p) {}
 
 OrderingComparator::Node::~Node()
@@ -427,30 +427,6 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result
   ASSERTION_VIOLATION;
 }
 
-// Polynomial
-
-const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)
-{
-  static Set<Polynomial*, DerefPtrHash<DefaultHash>> polys;
-
-  sort(varCoeffPairs.begin(),varCoeffPairs.end(),[](const auto& vc1, const auto& vc2) {
-    auto vc1pos = vc1.second>0;
-    auto vc2pos = vc2.second>0;
-    return (vc1pos && !vc2pos) || (vc1pos == vc2pos && vc1.first<vc2.first);
-  });
-
-  Polynomial poly{ constant, varCoeffPairs };
-  // The code below depends on the fact that the first argument
-  // is only called when poly is not used anymore, otherwise the
-  // move would give undefined behaviour.
-  bool unused;
-  return polys.rawFindOrInsert(
-    [&](){ return new Polynomial(std::move(poly)); },
-    poly.defaultHash(),
-    [&](Polynomial* p) { return *p == poly; },
-    unused);
-}
-
 // Printing
 
 std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node::Tag& t)
@@ -474,29 +450,6 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node
     case Tag::T_TERM: return out << node.lhs << " " << node.rhs;
   }
   ASSERTION_VIOLATION;
-}
-
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Polynomial& poly)
-{
-  bool first = true;
-  for (const auto& [var, coeff] : poly.varCoeffPairs) {
-    if (coeff > 0) {
-      out << (first ? "" : " + ");
-    } else {
-      out << (first ? "- " : " - ");
-    }
-    first = false;
-    auto abscoeff = std::abs(coeff);
-    if (abscoeff!=1) {
-      out << abscoeff << " * ";
-    }
-    out << TermList::var(var);
-  }
-  if (poly.constant) {
-    out << (poly.constant<0 ? " - " : " + ");
-    out << std::abs(poly.constant);
-  }
-  return out;
 }
 
 std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)

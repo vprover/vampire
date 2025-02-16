@@ -1584,7 +1584,7 @@ Term::Term(const Term& t) throw()
     _hasInterpretedConstants(0),
     _isTwoVarEquality(0),
     _weight(0),
-    _kboWeight(-1),
+    _kboLinExp(nullptr),
 #if VDEBUG
     _kboInstance(nullptr),
 #endif
@@ -1618,7 +1618,7 @@ Term::Term() throw()
    _hasInterpretedConstants(0),
    _isTwoVarEquality(0),
    _weight(0),
-   _kboWeight(-1),
+   _kboLinExp(nullptr),
 #if VDEBUG
    _kboInstance(nullptr),
 #endif

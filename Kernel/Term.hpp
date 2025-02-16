@@ -697,20 +697,20 @@ public:
     return _maxRedLen;    
   }
 
-  int kboWeight(const void* kboInstance) const
+  const void* kboLinExp(const void* kboInstance) const
   {
-    ASS(_kboInstance || _kboWeight == -1);
+    ASS(_kboInstance || _kboLinExp == nullptr);
     ASS(!_kboInstance || _kboInstance == kboInstance);
-    return _kboWeight;
+    return _kboLinExp;
   }
 
-  void setKboWeight(int w, const void* kboInstance)
+  void setKboLinExp(const void* e, const void* kboInstance)
   {
 #if VDEBUG
     ASS(!_kboInstance);
     _kboInstance = kboInstance;
 #endif
-    _kboWeight = w;
+    _kboLinExp = e;
   }
 
   /** Mark term as shared */
@@ -926,11 +926,10 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol, i.e. sum of symbol and variable occurrences. */
   unsigned _weight;
-  /** Cached weight of the term for KBO, otherwise -1 and invalid. Note that
-   * KBO symbol weights are not necessarily 1, so this can differ from @b _weight. */
-  int _kboWeight;
+  /** Cached linear expression of the term for KBO, otherwise null and invalid. */
+  const void* _kboLinExp;
 #if VDEBUG
-  /** KBO instance that uses the cached value @b _kboWeight. */
+  /** KBO instance that uses the cached value @b _kboLinExp. */
   const void* _kboInstance;
 #endif
   /** length of maximum reduction length */

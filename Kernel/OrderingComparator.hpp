@@ -22,6 +22,8 @@
 
 namespace Kernel {
 
+struct LinearExpression;
+
 /**
  * Class implementing term ordering diagrams which handle the following
  * problem. Given pairs (C_1,d_1),...,(C_n,d_n) where C_i are conjunctions
@@ -76,7 +78,6 @@ protected:
   const Trace* getCurrentTrace();
 
   struct Node;
-  struct Polynomial;
 
   /** A branch is essentially a shared pointer for a node,
    *  except the node takes care of its own lifecycle. */
@@ -84,7 +85,7 @@ protected:
     Branch() = default;
     Branch(void* data, Branch alt);
     Branch(TermList lhs, TermList rhs);
-    Branch(const Polynomial* p);
+    Branch(const LinearExpression* p);
 
     ~Branch();
 
@@ -113,7 +114,7 @@ protected:
 
     explicit Node(void* data, Branch alternative);
     explicit Node(TermList lhs, TermList rhs);
-    explicit Node(const Polynomial* p);
+    explicit Node(const LinearExpression* p);
 
     ~Node();
 
@@ -135,7 +136,7 @@ protected:
     union {
       void* data = nullptr;
       TermList lhs;
-      const Polynomial* poly;
+      const LinearExpression* poly;
     };
     union {
       Branch alternative;
@@ -150,26 +151,8 @@ protected:
     const Trace* trace = nullptr;
   };
 
-  using VarCoeffPair = std::pair<unsigned,int>;
-
-  struct Polynomial {
-    static const Polynomial* get(int constant, const Stack<VarCoeffPair>& varCoeffPairs);
-
-    auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
-
-    IMPL_HASH_FROM_TUPLE(Polynomial);
-    IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
-
-    int constant;
-    // variable-coefficient pairs sorted by sign
-    // (positive first), and then by variable
-    // e.g. X1 + 2 ⋅ X4 - 5 ⋅ X0 - X3
-    Stack<VarCoeffPair> varCoeffPairs;
-  };
-
   friend std::ostream& operator<<(std::ostream& out, const Node::Tag& t);
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
-  friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
 
   const Ordering& _ord;
   Branch _source;

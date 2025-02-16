@@ -173,11 +173,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         bool preordered = qr.data->preordered;
 
         ASS_EQ(ordering.compare(trm,rhsApplied),Ordering::reverse(ordering.compare(rhsApplied,trm)));
+#if VDEBUG
+        auto dcomp = ordering.compare(trm,rhsApplied);
+#endif
 
         if (_precompiledComparison) {
-#if VDEBUG
-          auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
-#endif
           qr.data->comparator->init(appl);
           if (!preordered && (_preorderedOnly || !qr.data->comparator->next())) {
             ASS_NEQ(dcomp,Ordering::GREATER);
@@ -186,8 +186,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           ASS_EQ(dcomp,Ordering::GREATER);
         } else {
           if (!preordered && (_preorderedOnly || ordering.compareUnidirectional(trm,rhsApplied)!=Ordering::GREATER)) {
+            ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
           }
+          ASS_EQ(dcomp,Ordering::GREATER);
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy

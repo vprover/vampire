@@ -67,7 +67,7 @@ void KBOComparator::processTermNode()
   if (weightAdded) {
     // we mutate the original node
     curr->node()->tag = Node::T_POLY;
-    curr->node()->poly = Polynomial::get(w, nonzeros);
+    curr->node()->poly = LinearExpression::get(w, nonzeros);
     curr->node()->gtBranch = gtBranch;
     curr->node()->ngeBranch = ngeBranch;
     curr = &curr->node()->eqBranch;

@@ -122,6 +122,27 @@ private:
   template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random);
 };
 
+using VarCoeffPair = std::pair<unsigned,int>;
+
+class KBO;
+
+struct LinearExpression {
+  static const LinearExpression* get(int constant = 0, const Stack<VarCoeffPair>& varCoeffPairs = Stack<VarCoeffPair>());
+
+  auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
+
+  IMPL_HASH_FROM_TUPLE(LinearExpression);
+  IMPL_COMPARISONS_FROM_TUPLE(LinearExpression);
+
+  friend std::ostream& operator<<(std::ostream& out, const LinearExpression& poly);
+
+  int constant;
+  // variable-coefficient pairs sorted by sign
+  // (positive first), and then by variable
+  // e.g. X1 + 2 ⋅ X4 - 5 ⋅ X0 - X3
+  Stack<VarCoeffPair> varCoeffPairs;
+};
+
 /**
  * Class for instances of the Knuth-Bendix orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
@@ -165,12 +186,14 @@ public:
   OrderingComparatorUP createComparator() const override;
 
 protected:
-  unsigned computeWeight(AppliedTerm tt) const;
+  const LinearExpression* computeWeight(Term* t) const;
+  Result positivityCheck(AppliedTerm t1, AppliedTerm t2) const;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   friend struct OrderingComparator;
   friend class KBOComparator;
+  friend struct LinearExpression;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;
@@ -233,20 +256,13 @@ private:
      * it returns as early as possible with @b INCOMPARABLE.
      */
     Result traverseLexUnidir(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
-    /**
-     * Performs a non-lexicographic (i.e. non-lockstep) traversal
-     * of two terms in case their top symbols are not the same.
-     */
-    template<bool unidirectional>
-    Result traverseNonLex(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
 
-    template<int coef, bool varsOnly> void traverse(KBO const& kbo, AppliedTerm tt);
+    template<int coef> void traverse(KBO const& kbo, AppliedTerm tt);
 
     Result result(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
   protected:
     template<int coef> void recordVariable(unsigned var);
 
-    bool checkVars() const { return _negNum <= 0; }
     Result innerResult(KBO const& kbo, TermList t1, TermList t2);
     Result applyVariableCondition(Result res)
     {
