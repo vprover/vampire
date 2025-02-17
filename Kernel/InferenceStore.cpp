@@ -845,7 +845,6 @@ struct InferenceStore::DeduktiProofPrinter
 
   void print()
   {
-    Dedukti::outputPrelude(out);
     UIHelper::outputSymbolDeclarations(out);
     ProofPrinter::print();
   }

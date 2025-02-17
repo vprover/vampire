@@ -1270,15 +1270,18 @@ static void AVATARDefinition(std::ostream &out, Unit *def) {
   Clause *component = env.proofExtra.get<SplitDefinitionExtra>(def).component;
   unsigned componentName = component->splits()->sval();
   SATLiteral split = Splitter::getLiteralFromName(componentName);
-  out << "def sp" << split.var() << " : Prop :=";
+  out << "def sp" << split.var() << " : Prop := ";
 
   CloseParens cp(out);
   auto vars = VarsWithSorts(component);
   for(auto [var, sort] : vars)
-    out
-      << "forall " << DkTerm(sort, AtomicSort::superSort()) << ' '
-      << cp.open() << var << " : El " << DkTerm(sort, AtomicSort::superSort())
-      << " =>";
+    if(sort == AtomicSort::superSort())
+      out << "forall_poly " << cp.open() << var << " : Set =>";
+    else
+      out
+        << "forall " << DkTerm(sort, AtomicSort::superSort()) << ' '
+        << cp.open() << var << " : El " << DkTerm(sort, AtomicSort::superSort())
+        << " =>";
   for(Literal *literal : component->iterLits())
     out << cp.open(" (imp ") << "(not " << DkLit(literal) << ")";
   out << " false";
@@ -1386,10 +1389,13 @@ static void AVATARSplitClause(std::ostream &out, Unit *derived) {
     SATLiteral split = Splitter::getLiteralFromName(found->splits()->sval());
     out << " nnsp" << split.var();
     for(auto [foundVar, foundSort] : VarsWithSorts(found)) {
-      out
-        << cp.open(" (") << subst.apply(foundVar).var()
-        << " : El " << DkTerm(SubstHelper::apply(foundSort, subst), AtomicSort::superSort())
-        << " =>";
+      if(foundSort == AtomicSort::superSort())
+        out << cp.open(" (") << subst.apply(foundVar).var() << ": Set =>";
+      else
+        out
+          << cp.open(" (") << subst.apply(foundVar).var()
+          << " : El " << DkTerm(SubstHelper::apply(foundSort, subst), AtomicSort::superSort())
+          << " =>";
       ALWAYS(parent2SplitVars.bind(subst.apply(foundVar).var(), TermList(foundVar, false)))
     }
     for(Literal *l : found->iterLits()) {
