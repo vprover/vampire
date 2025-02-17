@@ -743,13 +743,6 @@ struct ClausalInference {
   template<typename E = Extra>
   static E &getExtra(Clause *derived) { return env.proofExtra.get<Extra>(derived); }
 
-  // specialisation for clausal inferences that don't need proof-extra
-  template<>
-  static std::nullptr_t &getExtra<std::nullptr_t>(Clause *derived) {
-    static std::nullptr_t EXTRA;
-    return EXTRA;
-  }
-
   ClausalInference(std::ostream &out, Clause *derived) :
     extra(getExtra(derived)),
     derivedVars(VarsWithSorts(derived)),
@@ -761,6 +754,15 @@ struct ClausalInference {
 
   bool cares(unsigned var) { return derivedVars.containsVar(var); }
 };
+
+// specialisation for clausal inferences that don't need proof-extra
+// (gcc insists it happens at a namespace scope)
+template<>
+template<>
+std::nullptr_t &ClausalInference<std::nullptr_t>::getExtra<std::nullptr_t>(Clause *derived) {
+  static std::nullptr_t EXTRA;
+  return EXTRA;
+}
 
 // for inferences with only one parent
 template<typename Extra>
