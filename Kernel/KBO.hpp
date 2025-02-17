@@ -188,6 +188,8 @@ public:
 protected:
   const LinearExpression* computeWeight(Term* t) const;
   Result positivityCheck(AppliedTerm t1, AppliedTerm t2) const;
+  template<int sign>
+  bool positivityCheck2(int& weight, ZIArray<int>& varDiffs, const LinearExpression* linexp, AppliedTerm parent) const;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
@@ -222,7 +224,7 @@ private:
   {
     int _weightDiff;
     /** The variable counters */
-    DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+    ZIArray<int> _varDiffs;
     /** Number of variables, that occur more times in the first literal */
     int _posNum;
     /** Number of variables, that occur more times in the second literal */
@@ -230,10 +232,7 @@ private:
     /** First comparison result */
     Result _lexResult;
   public:
-    /** Initialise the state */
-    State() {}
-
-    void init()
+    void reset()
     {
       _weightDiff=0;
       _posNum=0;
@@ -241,6 +240,8 @@ private:
       _lexResult=EQUAL;
       _varDiffs.reset();
     }
+
+    bool keepRecycled() const { return true; }
 
     /**
      * Lexicographic traversal of two terms with same top symbol,
@@ -277,11 +278,6 @@ private:
     friend class KBOComparator;
 
   }; // class KBO::State
-
-  /**
-   * State used for comparing terms and literals
-   */
-  mutable std::unique_ptr<State> _state;
 };
 
 } // namespace Kernel

@@ -27,33 +27,29 @@ void KBOComparator::processTermNode()
 
   // weight and variable balances first
 
-  // we only care about the non-zero weights and counts
+  static KBO::State state;
+  state.reset();
+
+  auto node = _curr->node();
+  state.traverse<1>(kbo, node->lhs);
+  state.traverse<-1>(kbo, node->rhs);
+
+  auto w = state._weightDiff;
+
   bool varInbalance = false;
-  auto state = kbo._state.get();
-#if VDEBUG
-  // we make sure kbo._state is not used while we're using it
-  auto __state = std::move(kbo._state);
-#endif
-  auto w = state->_weightDiff;
-  decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
+  // we only care about the non-zero weights and counts
   Stack<VarCoeffPair> nonzeros;
-  while (vit.hasNext()) {
-    unsigned v;
-    int cnt;
-    vit.next(v,cnt);
+  for (unsigned i = 0; i < state._varDiffs.size(); i++) {
+    auto cnt = state._varDiffs[i];
     if (cnt!=0) {
-      nonzeros.push({ v, cnt });
+      nonzeros.push({ i, cnt });
       w-=cnt; // we have to remove the variable weights from w
     }
     if (cnt<0) {
       varInbalance = true;
     }
   }
-#if VDEBUG
-  kbo._state = std::move(__state);
-#endif
 
-  auto node = _curr->node();
   ASS(node->lhs.isTerm() && node->rhs.isTerm());
   auto lhs = node->lhs.term();
   auto rhs = node->rhs.term();

@@ -107,19 +107,18 @@ void KBO::State::recordVariable(unsigned var)
 {
   static_assert(coef==1 || coef==-1);
 
-  int* pnum;
-  _varDiffs.getValuePtr(var,pnum,0);
-  (*pnum)+=coef;
+  auto& ref = _varDiffs[var];
+  ref += coef;
   if constexpr (coef==1) {
-    if(*pnum==0) {
+    if(ref==0) {
       _negNum--;
-    } else if(*pnum==1) {
+    } else if(ref==1) {
       _posNum++;
     }
   } else {
-    if(*pnum==0) {
+    if(ref==0) {
       _posNum--;
-    } else if(*pnum==-1) {
+    } else if(ref==-1) {
       _negNum++;
     }
   }
@@ -527,7 +526,6 @@ KBO::KBO(
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
 #endif
-  , _state(new State())
 { 
   checkAdmissibility(throwError);
 }
@@ -644,7 +642,6 @@ KBO::KBO(Problem& prb, const Options& opts)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
 #endif
- , _state(new State())
 {
   if (opts.kboMaxZero()) {
     zeroWeightForMaximalFunc();
@@ -671,36 +668,25 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
   unsigned p1 = l1->functor();
   unsigned p2 = l2->functor();
 
-  Result res;
-  ASS(_state);
+  static State state;
+  state.reset();
 
-  State* state = _state.get();
-#if VDEBUG
-  //this is to make sure _state isn't used while we're using it
-  auto __state = std::move(_state);
-#endif
-  state->init();
-  if(p1!=p2) {
-    TermList* ts;
-    ts=l1->args();
-    while(!ts->isEmpty()) {
-      state->traverse<1>(*this, AppliedTerm(*ts));
-      ts=ts->next();
-    }
-    ts=l2->args();
-    while(!ts->isEmpty()) {
-      state->traverse<-1>(*this, AppliedTerm(*ts));
-      ts=ts->next();
-    }
-    res=state->result(*this, AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
-  } else {
-    res=state->traverseLexBidir(*this, AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
+  if(p1==p2) {
+    return state.traverseLexBidir(*this, AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
   }
 
-#if VDEBUG
-  _state = std::move(__state);
-#endif
-  return res;
+  TermList* ts;
+  ts=l1->args();
+  while(!ts->isEmpty()) {
+    state.traverse<1>(*this, AppliedTerm(*ts));
+    ts=ts->next();
+  }
+  ts=l2->args();
+  while(!ts->isEmpty()) {
+    state.traverse<-1>(*this, AppliedTerm(*ts));
+    ts=ts->next();
+  }
+  return state.result(*this, AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
 } // KBO::comparePredicates()
 
 Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
@@ -726,26 +712,16 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
   Term* t1=tl1.term.term();
   Term* t2=tl2.term.term();
 
-  ASS(_state);
-  State* state = _state.get();
-#if VDEBUG
-  //this is to make sure _state isn't used while we're using it
-  auto __state = std::move(_state);
-#endif
+  static State state;
+  state.reset();
 
-  state->init();
-  Result res;
   if(t1->functor()==t2->functor()) {
-    res = state->traverseLexBidir(*this, tl1, tl2);
-  } else {
-    state->traverse<1>(*this, tl1);
-    state->traverse<-1>(*this, tl2);
-    res = state->result(*this, tl1, tl2);
+    return state.traverseLexBidir(*this, tl1, tl2);
   }
-#if VDEBUG
-  _state = std::move(__state);
-#endif
-  return res;
+
+  state.traverse<1>(*this, tl1);
+  state.traverse<-1>(*this, tl2);
+  return state.result(*this, tl1, tl2);
 }
 
 Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) const
@@ -785,20 +761,9 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) co
     case Ordering::GREATER:
       return GREATER;
     case Ordering::EQUAL: {
-      ASS(_state);
-      State* state = _state.get();
-#if VDEBUG
-      //this is to make sure _state isn't used while we're using it
-      auto __state = std::move(_state);
-#endif
-
-      state->init();
-      auto res = state->traverseLexUnidir(*this, tl1, tl2);
-#if VDEBUG
-      _state = std::move(__state);
-#endif
-      return res;
-      break;
+      static State state;
+      state.reset();
+      return state.traverseLexUnidir(*this, tl1, tl2);
     }
     default:
       ASSERTION_VIOLATION;
@@ -901,44 +866,9 @@ Result KBO::positivityCheck(AppliedTerm t1, AppliedTerm t2) const
   static ZIArray<int> varDiffs;
   varDiffs.reset();
 
-  auto linexp = computeWeight(t1.term.term());
-  weight += linexp->constant;
-  for (const auto& [var, coeff] : linexp->varCoeffPairs) {
-    AppliedTerm varT(TermList::var(var), t1);
-    if (varT.term.isVar()) {
-      varDiffs[varT.term.var()] += coeff;
-      weight += coeff * _funcWeights._specialWeights._variableWeight;
-    } else {
-      auto varLinExp = computeWeight(varT.term.term());
-      weight += coeff * varLinExp->constant;
-      for (const auto& [varInner, coeffInner] : varLinExp->varCoeffPairs) {
-        weight += coeff * coeffInner * _funcWeights._specialWeights._variableWeight;
-        varDiffs[varInner] += coeff * coeffInner;
-      }
-    }
-  }
-
-  linexp = computeWeight(t2.term.term());
-  weight -= linexp->constant;
-  for (const auto& [var, coeff] : linexp->varCoeffPairs) {
-    AppliedTerm varT(TermList::var(var), t2);
-    if (varT.term.isVar()) {
-      varDiffs[varT.term.var()] -= coeff;
-      weight -= coeff * _funcWeights._specialWeights._variableWeight;
-      if (varDiffs[varT.term.var()]<0 || weight<0) {
-        return INCOMPARABLE;
-      }
-    } else {
-      auto varLinExp = computeWeight(varT.term.term());
-      weight -= coeff * varLinExp->constant;
-      for (const auto& [varInner, coeffInner] : varLinExp->varCoeffPairs) {
-        varDiffs[varInner] -= coeff * coeffInner;
-        weight -= coeff * coeffInner * _funcWeights._specialWeights._variableWeight;
-        if (varDiffs[varInner]<0 || weight<0) {
-          return INCOMPARABLE;
-        }
-      }
-    }
+  ALWAYS(positivityCheck2</*sign=*/1>(weight, varDiffs, computeWeight(t1.term.term()), t1));
+  if (!positivityCheck2</*sign=*/-1>(weight, varDiffs, computeWeight(t2.term.term()), t2)) {
+    return INCOMPARABLE;
   }
 
   if (weight > 0) {
@@ -947,6 +877,35 @@ Result KBO::positivityCheck(AppliedTerm t1, AppliedTerm t2) const
     return EQUAL;
   }
   return INCOMPARABLE;
+}
+
+template<int sign>
+bool KBO::positivityCheck2(int& weight, ZIArray<int>& varDiffs, const LinearExpression* linexp, AppliedTerm parent) const
+{
+  static_assert(sign==1 || sign==-1);
+
+  weight += sign * linexp->constant;
+  for (const auto& [var, coeff] : linexp->varCoeffPairs) {
+    AppliedTerm tt(TermList::var(var), parent);
+    if (tt.term.isVar()) {
+      varDiffs[tt.term.var()] += sign * coeff;
+      weight += sign * coeff * _funcWeights._specialWeights._variableWeight;
+      if (varDiffs[tt.term.var()]<0) {
+        return false;
+      }
+    } else {
+      auto varLinExp = computeWeight(tt.term.term());
+      weight += sign * coeff * varLinExp->constant;
+      for (const auto& [varInner, coeffInner] : varLinExp->varCoeffPairs) {
+        weight += sign * coeff * coeffInner * _funcWeights._specialWeights._variableWeight;
+        varDiffs[varInner] += sign * coeff * coeffInner;
+        if (varDiffs[varInner]<0) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 template<class SigTraits>
@@ -1176,17 +1135,7 @@ const LinearExpression* LinearExpression::get(int constant, const Stack<VarCoeff
   // move would give undefined behaviour.
   bool unused;
   return polys.rawFindOrInsert(
-    [&](){
-      static unsigned cnt = 0;
-      if (cnt++ % 1000 == 0) {
-        cout << cnt << endl;
-      }
-      static unsigned maxsize = 0;
-      if (poly.varCoeffPairs.size()>maxsize) {
-        maxsize = poly.varCoeffPairs.size();
-        cout << poly << endl;
-      }
-      return new LinearExpression(std::move(poly)); },
+    [&](){ return new LinearExpression(std::move(poly)); },
     poly.defaultHash(),
     [&](LinearExpression* p) { return *p == poly; },
     unused);
