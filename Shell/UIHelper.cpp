@@ -626,6 +626,8 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
  */
 void UIHelper::outputSymbolDeclarations(std::ostream& out)
 {
+  if(env.options->proof() == Options::Proof::DEDUKTI)
+    Dedukti::outputPrelude(out);
   Signature& sig = *env.signature;
 
   unsigned typeCons = sig.typeCons();
@@ -711,7 +713,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
     if(env.options->proof() == Options::Proof::DEDUKTI) {
-      Dedukti::outputTypeDecl(std::cout, symName.c_str(), type);
+      Dedukti::outputTypeDecl(out, symName.c_str(), type);
       return;
     }
 
