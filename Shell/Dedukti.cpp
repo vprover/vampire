@@ -740,8 +740,7 @@ struct ClausalInference {
   VarsWithSorts derivedVars;
   UnitIterator parentIt;
 
-  template<typename E = Extra>
-  static E &getExtra(Clause *derived) { return env.proofExtra.get<Extra>(derived); }
+  static Extra &getExtra(Clause *derived) { return env.proofExtra.get<Extra>(derived); }
 
   ClausalInference(std::ostream &out, Clause *derived) :
     extra(getExtra(derived)),
@@ -758,8 +757,7 @@ struct ClausalInference {
 // specialisation for clausal inferences that don't need proof-extra
 // (gcc insists it happens at a namespace scope)
 template<>
-template<>
-std::nullptr_t &ClausalInference<std::nullptr_t>::getExtra<std::nullptr_t>(Clause *derived) {
+std::nullptr_t &ClausalInference<std::nullptr_t>::getExtra(Clause *derived) {
   static std::nullptr_t EXTRA;
   return EXTRA;
 }
