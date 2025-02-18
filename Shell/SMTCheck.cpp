@@ -15,7 +15,10 @@
 #include <unordered_set>
 
 #include "Debug/Assertion.hpp"
+#include "Inferences/EqualityResolution.hpp"
+#include "Inferences/Factoring.hpp"
 #include "Inferences/Superposition.hpp"
+#include "Lib/Exception.hpp"
 #include "SMTCheck.hpp"
 
 #include "Inferences/BinaryResolution.hpp"
@@ -49,21 +52,7 @@ struct FunctionName {
   FunctionName(Signature::Symbol *symbol) : symbol(symbol) {}
   FunctionName(Term *t) : FunctionName(env.signature->getFunction(t->functor())) {}
   Signature::Symbol *symbol;
-
-  unsigned extraParens() {
-    if(!symbol->interpreted())
-      return 0;
-    auto *interpreted = static_cast<Signature::InterpretedSymbol *>(symbol);
-    switch(interpreted->getInterpretation()) {
-    case Theory::RAT_FLOOR:
-    case Theory::REAL_FLOOR:
-      return 1;
-    default:
-      return 0;
-    }
-  }
 };
-
 
 static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   auto f = name.symbol;
@@ -120,14 +109,15 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::RAT_MULTIPLY:
   case Theory::REAL_MULTIPLY:
     return out << '*';
+  case Theory::RAT_QUOTIENT:
+  case Theory::REAL_QUOTIENT:
+    return out << '/';
   case Theory::INT_QUOTIENT_E:
   case Theory::INT_QUOTIENT_T:
   case Theory::INT_QUOTIENT_F:
-  case Theory::RAT_QUOTIENT:
   case Theory::RAT_QUOTIENT_E:
   case Theory::RAT_QUOTIENT_T:
   case Theory::RAT_QUOTIENT_F:
-  case Theory::REAL_QUOTIENT:
   case Theory::REAL_QUOTIENT_E:
   case Theory::REAL_QUOTIENT_T:
   case Theory::REAL_QUOTIENT_F:
@@ -142,15 +132,7 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::REAL_REMAINDER_T:
   case Theory::REAL_REMAINDER_F:
     NOT_IMPLEMENTED;
-  case Theory::INT_FLOOR:
     return out << "";
-  case Theory::RAT_FLOOR:
-  case Theory::REAL_FLOOR:
-    return out << "to_real (to_int";
-  case Theory::INT_CEILING:
-  case Theory::RAT_CEILING:
-  case Theory::REAL_CEILING:
-    NOT_IMPLEMENTED;
   case Theory::INT_TRUNCATE:
   case Theory::RAT_TRUNCATE:
   case Theory::REAL_TRUNCATE:
@@ -161,17 +143,27 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
     NOT_IMPLEMENTED;
   case Theory::INT_ABS:
     NOT_IMPLEMENTED;
-  case Theory::INT_TO_INT:
   case Theory::RAT_TO_INT:
   case Theory::REAL_TO_INT:
     return out << "to_int";
   case Theory::INT_TO_RAT:
-  case Theory::RAT_TO_RAT:
-  case Theory::REAL_TO_RAT:
   case Theory::INT_TO_REAL:
-  case Theory::RAT_TO_REAL:
-  case Theory::REAL_TO_REAL:
     return out << "to_real";
+  // should be handled specially at the term level
+  case Theory::INT_TO_INT:
+  case Theory::RAT_TO_RAT:
+  case Theory::RAT_TO_REAL:
+  case Theory::REAL_TO_RAT:
+  case Theory::REAL_TO_REAL:
+  case Theory::RAT_FLOOR:
+  case Theory::REAL_FLOOR:
+  case Theory::RAT_CEILING:
+  case Theory::REAL_CEILING:
+    ASSERTION_VIOLATION
+  // weird, not sure what these would do
+  case Theory::INT_FLOOR:
+  case Theory::INT_CEILING:
+    ASSERTION_VIOLATION
   case Theory::ARRAY_SELECT:
   case Theory::ARRAY_BOOL_SELECT:
   case Theory::ARRAY_STORE:
@@ -195,17 +187,19 @@ static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   switch(interpreted->getInterpretation()) {
   case Theory::EQUAL:
     return out << '=';
-  case Theory::INT_IS_INT:
   case Theory::RAT_IS_INT:
   case Theory::REAL_IS_INT:
     return out << "is_int";
+  case Theory::REAL_IS_RAT:
+    return out << "is_rat";
+  case Theory::INT_IS_INT:
   case Theory::INT_IS_RAT:
   case Theory::RAT_IS_RAT:
-  case Theory::REAL_IS_RAT:
   case Theory::INT_IS_REAL:
   case Theory::RAT_IS_REAL:
   case Theory::REAL_IS_REAL:
-    return out << "is_real";
+    // should be special-cased at the term level
+    ASSERTION_VIOLATION
   case Theory::INT_GREATER:
   case Theory::RAT_GREATER:
   case Theory::REAL_GREATER:
@@ -348,19 +342,57 @@ static std::ostream &operator<<(std::ostream &out, Args args)
       Term *term = current->term();
       FunctionName name(term);
       if (term->arity()) {
-        out << "(" << name;
-        todo.push(current->next());
+        if(name.symbol->interpreted()) {
+          auto interpreted = static_cast<Signature::InterpretedSymbol *>(name.symbol);
+          switch(interpreted->getInterpretation()) {
+          // identity functions, skip
+          case Theory::INT_TO_INT:
+          case Theory::RAT_TO_RAT:
+          case Theory::RAT_TO_REAL:
+          case Theory::REAL_TO_RAT:
+          case Theory::REAL_TO_REAL:
+            // disgusting hack: use recursion to break the paren-closing invariant,
+            out << Args { term->args(), args.conclSorts, args.otherSorts };
+            // treat `current` like a variable,
+            current = current->next();
+            // and go to the part where we check the rest of the arguments
+            goto carry_on;
+          // polyfill with compound term
+          case Theory::RAT_FLOOR:
+          case Theory::REAL_FLOOR:
+            out << "(to_real (to_int";
+            todo.push(current->next());
+            // extra close-paren
+            todo.push(&empty);
+            break;
+          case Theory::RAT_CEILING:
+          case Theory::REAL_CEILING:
+            out << "(- (to_real (to_int (-";
+            todo.push(current->next());
+            // extra close-parens
+            todo.push(&empty);
+            todo.push(&empty);
+            todo.push(&empty);
+            break;
+          default:
+            out << "(" << name;
+            todo.push(current->next());
+            break;
+          }
+        }
+        else {
+          out << "(" << name;
+          todo.push(current->next());
+        }
         current = term->args();
       }
       else {
         out << name;
         current = current->next();
       }
-      unsigned extraParens = name.extraParens();
-      while(extraParens--)
-        todo.push(&empty);
     }
 
+carry_on:
     while (current->isEmpty()) {
       if (todo.isEmpty())
         return out;
@@ -380,13 +412,32 @@ struct Lit {
 static std::ostream &operator<<(std::ostream &out, Lit lit)
 {
   Literal *literal = lit.literal;
+  PredicateName name(literal);
   if (!literal->polarity())
     out << "(not ";
   if (literal->arity())
     out << "(";
-  out << PredicateName(literal) << Args{literal->args(), lit.conclSorts, lit.otherSorts};
+
+  if(name.symbol->interpreted()) {
+    auto interpreted = static_cast<Signature::InterpretedSymbol *>(name.symbol);
+    switch(interpreted->getInterpretation()) {
+    case Theory::INT_IS_INT:
+    case Theory::INT_IS_RAT:
+    case Theory::INT_IS_REAL:
+    case Theory::RAT_IS_RAT:
+    case Theory::RAT_IS_REAL:
+    case Theory::REAL_IS_REAL:
+      out << "true";
+      goto finish;
+    default:
+      break;
+    }
+  }
+  out << name << Args{literal->args(), lit.conclSorts, lit.otherSorts};
   if (literal->arity())
     out << ")";
+
+finish:
   if (!literal->polarity())
     out << ")";
   return out;
@@ -418,59 +469,6 @@ static std::ostream &operator<<(std::ostream &out, Split<flip> split)
       << (flip == sat.polarity() ? "(not " : "")
       << "sp" << sat.var()
       << (flip == sat.polarity() ? ")" : "");
-}
-
-struct PrintFormula {
-  Formula *formula;
-};
-
-// TODO un-recurse
-static std::ostream &operator<<(std::ostream &out, PrintFormula print) {
-  Formula *f = print.formula;
-  switch(print.formula->connective()) {
-    case LITERAL:
-      NOT_IMPLEMENTED;
-    case AND:
-    case OR: {
-      out << '(' << (f->connective() == AND ? "and" : "or");
-      for(Formula *child : iterTraits(f->args()->iter()))
-        out << " " << PrintFormula {child};
-      return out << ')';
-    }
-    case IMP:
-    case IFF: {
-      const char *op = f->connective() == IMP ? "=" : "not (=";
-      return out << '(' << op << ' ' << PrintFormula {f->left()} << ' ' << PrintFormula {f->right()} << ')';
-    }
-    case XOR:
-      return out << "(not (= " << PrintFormula {f->left()} << ' ' << PrintFormula {f->right()} << "))";
-    case NOT:
-      return out << "(not " << PrintFormula {f->uarg()} << ')';
-    case FORALL:
-    case EXISTS: {
-      /*
-      const char *binder = f->connective() == FORALL ? "forall" : "exists";
-      VList *vars = f->vars();
-      VList::Iterator vit(vars);
-      while(vit.hasNext())
-        out << cp.open() << binder << cp.open(" iota (") << vit.next() << " : El iota => ";
-      out << DkFormula(f->qarg());
-      return out;
-    */
-      NOT_IMPLEMENTED;
-    }
-    case BOOL_TERM:
-      ASSERTION_VIOLATION
-    case FALSE:
-      return out << "false";
-    case TRUE:
-      return out << "true";
-    case NAME:
-      NOT_IMPLEMENTED;
-    case NOCONN:
-      ASSERTION_VIOLATION
-      break;
-  }
 }
 
 struct Identity {
@@ -569,6 +567,43 @@ static void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause
 
   outputPremise(out, conclSorts, left->asClause());
   outputPremise(out, conclSorts, right->asClause(), DoSimpleSubst(subst));
+  outputConclusion(out, conclSorts, concl->asClause());
+}
+
+static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl) {
+  auto [premise] = getParents<1>(concl);
+  const auto &fact = env.proofExtra.get<Inferences::FactoringExtra>(concl);
+
+  RobSubstitution subst;
+  Literal *selected = fact.selectedLiteral.selectedLiteral;
+  Literal *other = fact.otherLiteral;
+  ASS_EQ(selected->polarity(), other->polarity())
+  ASS_EQ(selected->functor(), other->functor())
+  ALWAYS(subst.unify(TermList(selected), 0, TermList(other), 0));
+
+  for (unsigned i = 0; i < premise->length(); i++)
+    if ((*premise)[i] != other)
+      subst.apply((*premise)[i], 0);
+
+  outputPremise(out, conclSorts, premise->asClause(), DoRobSubst<0>(subst));
+  outputConclusion(out, conclSorts, concl->asClause());
+}
+
+static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *concl) {
+  auto [premise] = getParents<1>(concl);
+  const auto &res = env.proofExtra.get<Inferences::EqualityResolutionExtra>(concl);
+
+  RobSubstitution subst;
+  Literal *selected = res.selectedLiteral;
+  ASS(selected->isEquality())
+  ASS(selected->isNegative())
+  TermList s = selected->termArg(0), t = selected->termArg(1);
+  ALWAYS(subst.unify(s, 0, t, 0));
+  for (unsigned i = 0; i < premise->length(); i++)
+    if ((*premise)[i] != selected)
+      subst.apply((*premise)[i], 0);
+
+  outputPremise(out, conclSorts, premise->asClause(), DoRobSubst<0>(subst));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
@@ -746,16 +781,19 @@ void outputSignature(std::ostream &out)
 {
   out << "(declare-sort iota 0)\n";
   out << "(declare-const inhabit_iota iota)\n";
-  out << "(declare-const inhabit_Int Real)\n";
+  out << "(declare-const inhabit_Int Int)\n";
   out << "(declare-const inhabit_Real Real)\n";
+  out << "(declare-fun is_rat (Real) Bool)\n";
 
   Signature &sig = *env.signature;
   for(unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
-    Signature::Symbol *type = sig.getTypeCon(i);
     out << "(declare-sort " << SortName(i);
+#if VDEBUG
+    Signature::Symbol *type = sig.getTypeCon(i);
     OperatorType *typeType = type->typeConType();
     // we don't support polymorphism yet
     ASS_EQ(typeType->numTypeArguments(), 0)
+#endif
     out << " 0)\n";
     out << "(declare-const " << SortName<Inhabit>(i) << ' ' << SortName(i) << ")\n";
   }
@@ -802,6 +840,8 @@ void outputStep(std::ostream &out, Unit *u)
       rule == InferenceRule::INPUT || rule == InferenceRule::NEGATED_CONJECTURE
       // can't check the axiom of choice
       || rule == InferenceRule::CHOICE_AXIOM
+      // can't check distinctness axioms
+      || rule == InferenceRule::DISTINCTNESS_AXIOM
       // can't check definition introduction
       || rule == InferenceRule::AVATAR_DEFINITION || rule == InferenceRule::AVATAR_COMPONENT
       // nothing to check here
@@ -875,6 +915,12 @@ void outputStep(std::ostream &out, Unit *u)
       break;
     case InferenceRule::SUBSUMPTION_RESOLUTION:
       subsumptionResolution(out, conclSorts, u->asClause());
+      break;
+    case InferenceRule::FACTORING:
+      factoring(out, conclSorts, u->asClause());
+      break;
+    case InferenceRule::EQUALITY_RESOLUTION:
+      equalityResolution(out, conclSorts, u->asClause());
       break;
     case InferenceRule::SUPERPOSITION:
       superposition(out, conclSorts, u->asClause());
