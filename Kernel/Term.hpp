@@ -280,8 +280,6 @@ public:
   friend bool operator<(const TermList& lhs, const TermList& rhs);
 
 private:
-  std::string asArgsToString() const;
-
   // the actual content of a TermList
   // this packs several things in:
   // 1. a Term *
