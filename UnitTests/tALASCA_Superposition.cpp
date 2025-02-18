@@ -724,3 +724,34 @@ TEST_GENERATION(is_int_skip_app,
       ))
     )
  
+ 
+TEST_GENERATION(demodulation_bug_1,
+    Generation::SymmetricTest()
+      .indices(alascaSuperpositionIndices())
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR)))
+      .selfApplications(false)
+      .inputs  ({ 
+           clause({ p(g(a))})
+         , clause({ f(x) - g(y) == 0  })
+        })
+      .redundant({ })
+      .expected(exactly(
+          clause({ p(f(y)) })
+          // nothing
+      ))
+    )
+ 
+ 
+TEST_GENERATION(demodulation_bug_2,
+    Generation::SymmetricTest()
+      .indices(alascaSuperpositionIndices())
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR)))
+      .selfApplications(true)
+      .inputs  ({ 
+           clause({ p(f(a))})
+         , clause({ isInt(f(x) + f(y)) })
+        })
+      .redundant({ })
+      .expected(exactly( /* nothing */ ))
+    )
+ 

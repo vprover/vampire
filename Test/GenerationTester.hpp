@@ -258,6 +258,7 @@ class AsymmetricTest
   Option<StackMatcher> _expected;
   Stack<Clause*> _context;
   Option<bool> _premiseRedundant;
+  Option<Stack<unsigned>> _redundant;
   Stack<std::function<Indexing::Index*()>> _indices;
   std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   bool _selfApplications;
@@ -292,6 +293,8 @@ public:
   BUILDER_METHOD(StackMatcher, expected)
   BUILDER_METHOD(Option<bool>, premiseRedundant)
   BUILDER_METHOD(bool, premiseRedundant)
+  BUILDER_METHOD(Option<Stack<unsigned>>, redundant)
+  BUILDER_METHOD(std::initializer_list<unsigned>, redundant)
   BUILDER_METHOD(bool, selfApplications)
   BUILDER_METHOD(NewGeneratingInference*, rule)
   BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
@@ -380,12 +383,34 @@ public:
       testFail(generated, sExp);
     }
 
+    ASS_EQ(_premiseRedundant.isSome(), _redundant.isSome())
     if (_premiseRedundant.isSome()) {
       auto premiseRedundant = redundant.contains(_input);
       if (*_premiseRedundant != premiseRedundant) {
         auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
-        testFail( wrapStr(premiseRedundant), wrapStr(_premiseRedundant));
+        testFail( wrapStr(premiseRedundant), wrapStr(*_premiseRedundant));
       }
+
+      for (auto i : *_redundant) {
+        if(!redundant.contains(_context[i])) {
+          testFail(
+              Output::toString("redundant: ", iterTraits(redundant.iter()).map([](auto x) { return Output::toString(*x); }).output(", ")), 
+              Output::toString("redundant: ", _context[i], " (and maybe more)"));
+        }
+      }
+
+      for (auto c : iterTraits(redundant.iter())) {
+        if (c == _input) {
+          ASS(premiseRedundant)
+        } else {
+          if(!arrayIter(*_redundant).any([&](auto i) { return _context[i] == c; })) {
+            testFail(
+                Output::toString("too many redundant clauses: ", *c, " (and maybe more)"),
+                Output::toString("redundant:", arrayIter(*_redundant).map([&](auto i) { return Output::toString(*_context[i]); }).output(", ")));
+          }
+        }
+      }
+
     }
 
 
@@ -419,7 +444,8 @@ class SymmetricTest
   Option<NewGeneratingInference*> _rule;
   Stack<Clause*> _inputs;
   Option<StackMatcher> _expected;
-  Option<bool> _premiseRedundant;
+  // Option<bool> _premiseRedundant;
+  Option<Stack<unsigned>> _redundant;
   bool _selfApplications;
   Stack<std::function<Indexing::Index*()>> _indices;
 
@@ -434,7 +460,7 @@ class SymmetricTest
 
 public:
 
-  SymmetricTest() : _rule(), _expected(), _premiseRedundant(), _selfApplications(true) {}
+  SymmetricTest() : _rule(), _expected(), _selfApplications(true) {}
 
 #define _BUILDER_METHOD(type, field)                                                      \
   SymmetricTest field(type field)                                                         \
@@ -445,8 +471,10 @@ public:
 
   _BUILDER_METHOD(Stack<Clause*>, inputs)
   _BUILDER_METHOD(StackMatcher, expected)
-  _BUILDER_METHOD(bool, premiseRedundant)
-  _BUILDER_METHOD(Option<bool>, premiseRedundant)
+  // _BUILDER_METHOD(bool, premiseRedundant)
+  // _BUILDER_METHOD(Option<bool>, premiseRedundant)
+  _BUILDER_METHOD(std::initializer_list<unsigned>, redundant)
+  // _BUILDER_METHOD(Option<Stack<unsigned>>, redundant)
   _BUILDER_METHOD(bool, selfApplications)
   _BUILDER_METHOD(NewGeneratingInference*, rule)
   _BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
@@ -463,20 +491,36 @@ public:
       Stack<Clause*> context;
       auto input = _inputs[i];
       for (unsigned j = 0; j < _inputs.size(); j++) 
-        if (i != j) 
+        if (i != j)  
           context.push(_inputs[j]);
-      run(simpl, input, context);
+      Option<bool> premiseRedundant;
+      Option<Stack<unsigned>> redundant;
+      if (_redundant) {
+        premiseRedundant = some(false);
+        redundant = some(Stack<unsigned>());
+        for (auto j : *_redundant) {
+          if (j == i) {
+            *premiseRedundant = true;
+          } else if (j < i) {
+            redundant->push(j);
+          } else {
+            redundant->push(j - 1);
+          }
+        }
+      }
+      run(simpl, input, context, std::move(premiseRedundant), std::move(redundant));
     }
   }
 
   template<class Rule>
-  void run(GenerationTester<Rule>& simpl, Clause* input, Stack<Clause*> context) {
+  void run(GenerationTester<Rule>& simpl, Clause* input, Stack<Clause*> context, Option<bool> premiseRedundant, Option<Stack<unsigned>> redundant) {
     auto rule = _rule.unwrapOrElse([&](){ return simpl._rule.get(); });
     AsymmetricTest()
       .input(input)
       .context(context)
       .expected(_expected.unwrap())
-      .premiseRedundant(_premiseRedundant)
+      .premiseRedundant(std::move(premiseRedundant))
+      .redundant(std::move(redundant))
       .selfApplications(_selfApplications)
       .rule(rule)
       .indices(_indices)

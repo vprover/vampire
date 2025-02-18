@@ -98,3 +98,23 @@ TEST_GENERATION(basic05,
       .expected(exactly(
           clause({ f(f(2 * f(x)) - f(0)) + f(x) > 0 })
       )))
+
+
+  // TODO make sure we don't generate duplicates somehow
+TEST_GENERATION(misc_01,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({  f(x) + f(y) + f(z) == floor(f(x) + f(y) + f(z))  }) })
+      .expected(exactly( 
+            clause({  f(x) + 2 * f(y) == floor(f(x) + 2 * f(y))  }) 
+          , clause({  f(x) + 2 * f(y) == floor(f(x) + 2 * f(y))  }) 
+          , clause({  f(x) + 2 * f(y) == floor(f(x) + 2 * f(y))  }) 
+          )))
+
+TEST_GENERATION(misc_02,
+    Generation::SymmetricTest()
+      .inputs  ({
+            clause({  f(x) + 2 * f(y) == floor(f(x) + 2 * f(y))  }) 
+        })
+      .expected(exactly( 
+            clause({  3 * f(x) == floor(3 * f(x))  }) 
+          )))

@@ -69,7 +69,7 @@ TEST_GENERATION(ported_lra_test_basic01,
       .expected(exactly(
             clause({})
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 TEST_GENERATION(ported_lra_test_basic02,
     Generation::SymmetricTest()
@@ -77,7 +77,7 @@ TEST_GENERATION(ported_lra_test_basic02,
       .expected(exactly(
             clause({ a + b > 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_basic03,
@@ -86,7 +86,7 @@ TEST_GENERATION(ported_lra_test_basic03,
       .expected(exactly(
         clause({a + b > 0, f(y) + c > 0 }) 
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_basic04,
@@ -95,7 +95,7 @@ TEST_GENERATION(ported_lra_test_basic04,
       .expected(exactly(
             clause({ a + b >= 0, b + c >= 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_basic05_pos,
@@ -104,7 +104,7 @@ TEST_GENERATION(ported_lra_test_basic05_pos,
       .expected(exactly(
             clause({ a + b >= 0, a - c >= 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -115,7 +115,7 @@ TEST_GENERATION(ported_lra_test_basic05_neg,
           clause({ (a + b) >= 0, (-b + -c) > 0 }), 
           clause({ (a + -c) >= 0, (b + c) > 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
   // TODO make optimized version that always selects the "better one" from phi[x] vs phi[-x]
   // ported_lra_test_basic05_neg,
@@ -130,14 +130,14 @@ TEST_GENERATION(ported_lra_test_shielded01,
     Generation::SymmetricTest()
       .inputs ({  clause({x + a > 0, - x + b > 0, f(x) + c > 0 }) })
       .expected(exactly())
-      .premiseRedundant(false)
+      .redundant({})
     )
 
 TEST_GENERATION(ported_lra_test_shielded02,
     Generation::SymmetricTest()
       .inputs ({  clause({ x + a > 0, - x + b > 0, P(x) }) })
       .expected(exactly())
-      .premiseRedundant(false)
+      .redundant({})
     )
 
 /////////////////////////////////////////////////////////
@@ -151,7 +151,7 @@ TEST_GENERATION(ported_lra_test_eq01a,
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_eq01b,
@@ -161,7 +161,7 @@ TEST_GENERATION(ported_lra_test_eq01b,
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_eq02a,
@@ -171,7 +171,7 @@ TEST_GENERATION(ported_lra_test_eq02a,
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_eq02b,
@@ -181,7 +181,7 @@ TEST_GENERATION(ported_lra_test_eq02b,
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -205,7 +205,7 @@ TEST_GENERATION(ported_lra_test_eq03a,
                   // = clause({ -b + a     > 0,                 P(y) })
                 , clause({ -b + a > 0, P(y) })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -217,7 +217,7 @@ TEST_GENERATION(ported_lra_test_eq03a_neg,
                   clause({             P(y) })
                 , clause({ b + a >= 0, P(y) }) // TODO can we somehow detect redundncies like this?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 /////////////////////////////////////////////////////////
@@ -232,7 +232,7 @@ TEST_GENERATION(ported_lra_test_neq1a,
              clause({ 0 != a - b })
            , clause({ 0 != a - b }) // TODO optimization
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_neq1b,
@@ -242,7 +242,7 @@ TEST_GENERATION(ported_lra_test_neq1b,
             clause({ 0 != a - b })
           , clause({ 0 != a - b }) // TODO optimization
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_neq1c,
@@ -252,7 +252,7 @@ TEST_GENERATION(ported_lra_test_neq1c,
             clause({ 0 != a - b })
           , clause({ 0 != a - b }) // TODO opimization
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -263,7 +263,7 @@ TEST_GENERATION(ported_lra_test_neq1d,
             clause({ 0 != a - b })
           , clause({ 0 != a - b }) // TODO opimization
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_neq2,
@@ -273,7 +273,7 @@ TEST_GENERATION(ported_lra_test_neq2,
             clause({ 0 != frac(1,2) * a - b })
           , clause({ 0 != frac(1,2) * a - b }) // TODO opimization
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -284,7 +284,7 @@ TEST_GENERATION(ported_lra_test_misc02,
                  clause({ 0 != -15 * y +  f2(y,z)  }), // TODO optimization for this case
                  clause({ 0 !=  15 * y + -f2(y,z)  })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_bug02a,
@@ -293,7 +293,7 @@ TEST_GENERATION(ported_lra_test_bug02a,
       .expected(exactly(
             clause({ -c + 1 == 0             })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_bug03,
@@ -303,7 +303,7 @@ TEST_GENERATION(ported_lra_test_bug03,
       .expected(exactly(
             clause({  })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(ported_lra_test_bug04,
@@ -311,7 +311,7 @@ TEST_GENERATION(ported_lra_test_bug04,
       // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
       .inputs ({         clause({ -x + y >= 0, x + -z >= 0, -f(y) + f(z) > 0 })})
       .expected(exactly( clause({ y             - z >= 0, f(z) - f(y) > 0}) ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 // TEST_GENERATION(ported_lra_test_bug05,
@@ -347,7 +347,7 @@ TEST_GENERATION(ported_lra_test_bug04,
 //           //  1 + frac(6,15) * y + frac(-17,15) * b + frac(-19,4) * g(z) + frac(-1,4) * c * y  + frac(-1,4) * (d * f(z)) >= 0,
 //           //     }) 
 //           ))
-//       .premiseRedundant(true)
+//       .redundant({0})
 //     )
 
 
@@ -360,7 +360,7 @@ TEST_GENERATION(to_optimize_2,
                  , clause({ 0 != a - b  }) 
         // TODO optimization for this case to only one of the two results
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(to_optimize_3,
@@ -372,7 +372,7 @@ TEST_GENERATION(to_optimize_3,
                  , clause({ 0 != a - c, 0 != b - c              })
         // TODO optimization for this case to only one of the three results
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(to_optimize_4,
@@ -385,7 +385,7 @@ TEST_GENERATION(to_optimize_4,
                  , clause({ 0 != a - d, 0 != b - d, 0 != c - d              })
         // TODO optimization for this case to only one of the four results
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -398,7 +398,7 @@ TEST_GENERATION(to_optimize_4,
       Generation::SymmetricTest()                                                         \
         .inputs ({         clause({ x > 0, lit })})                                       \
         .expected(exactly())                                                              \
-        .premiseRedundant(false)                                                          \
+        .redundant({})                                                          \
       )                                                                                   \
 
 NOT_APPLICABLE_TEST(1, P(x))
@@ -411,7 +411,7 @@ TEST_GENERATION(lira_01,
       // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
       .inputs ({         clause({ floor(a) + frac(1,3) - x > 0, x  -  floor(a) - frac(2,3) > 0 , b - ceil(x) + x > 0 })})
       .expected(exactly( clause({ b > frac(2,3) }) ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -419,14 +419,14 @@ TEST_GENERATION(lia_01_1,
     Generation::SymmetricTest()
       .inputs ({         clause({ 3 * floor(x) - 1 == 0 })})
       .expected(withoutDuplicates(exactly( clause({ }) )))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(lia_01_2,
     Generation::SymmetricTest()
       .inputs ({         clause({ 3 * floor(x) - 1 != 0 })})
       .expected(withoutDuplicates(exactly()))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(lia_02,
@@ -449,7 +449,7 @@ TEST_GENERATION(lia_02,
              // clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })[1/3]
              //          ^^^^^^^^^^^^^^^^^^^^^----> redundant
             )))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 #define liraQuot(l,r) floor((l) / (r))
@@ -476,7 +476,7 @@ TEST_GENERATION(lia_03,
           // clause({ liraRem(x, 3)  - 1 != 0, x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })[x // -infty]
           // redundant <---------------------------------------------^^^^^^^^^^^^^^^^^^^^
            )))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(test_misc_01,
@@ -485,14 +485,14 @@ TEST_GENERATION(test_misc_01,
       .expected(withoutDuplicates(exactly( 
              clause({  })
            )))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(test_misc_02,
     Generation::SymmetricTest()
       .inputs ({         clause({ x + f(x) > 0 })})
       .expected(withoutDuplicates(exactly( )))
-      .premiseRedundant(false)
+      .redundant({})
     )
 
 TEST_FUN(viras_internal) {

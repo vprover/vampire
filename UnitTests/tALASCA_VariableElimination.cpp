@@ -65,7 +65,7 @@ TEST_GENERATION(basic01,
       .expected(exactly(
             clause({})
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
@@ -73,7 +73,7 @@ TEST_GENERATION(basic02,
       .expected(exactly(
             clause({ a + b > 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(basic03,
@@ -82,7 +82,7 @@ TEST_GENERATION(basic03,
       .expected(exactly(
         clause({a + b > 0, f(y) + c > 0 }) 
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(basic04,
@@ -91,7 +91,7 @@ TEST_GENERATION(basic04,
       .expected(exactly(
             clause({ a + b >= 0, b + c >= 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(basic05,
@@ -100,7 +100,7 @@ TEST_GENERATION(basic05,
       .expected(exactly(
             clause({ a + b >= 0, a - c >= 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -112,14 +112,14 @@ TEST_GENERATION(shielded01,
     Generation::SymmetricTest()
       .inputs ({  clause({x + a > 0, - x + b > 0, f(x) + c > 0 }) })
       .expected(exactly())
-      .premiseRedundant(false)
+      .redundant({})
     )
 
 TEST_GENERATION(shielded02,
     Generation::SymmetricTest()
       .inputs ({  clause({ x + a > 0, - x + b > 0, P(x) }) })
       .expected(exactly())
-      .premiseRedundant(false)
+      .redundant({})
     )
 
 /////////////////////////////////////////////////////////
@@ -133,7 +133,7 @@ TEST_GENERATION(eq01a,
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(eq01b,
@@ -143,7 +143,7 @@ TEST_GENERATION(eq01b,
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(eq02a,
@@ -153,7 +153,7 @@ TEST_GENERATION(eq02a,
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(eq02b,
@@ -163,7 +163,7 @@ TEST_GENERATION(eq02b,
             clause({ a + b >= 0, P(y) }),
             clause({ P(y) }) // TODO can we detect redundancies of that kind?
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -174,7 +174,7 @@ TEST_GENERATION(eq03a,
             clause({ P(y) }), // TODO can we detect redundancies of that kind?
             clause({ a - b >= 0, P(y) })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(eq03b,
@@ -184,7 +184,7 @@ TEST_GENERATION(eq03b,
             clause({ P(y) }), // TODO can we detect redundancies of that kind?
             clause({ a - b >= 0, P(y) })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(eq04a,
@@ -194,7 +194,7 @@ TEST_GENERATION(eq04a,
             clause({ a + b >= 0, a - c >= 0 }),
             clause({ a + b >= 0, b + c >= 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(eq04b,
@@ -204,7 +204,7 @@ TEST_GENERATION(eq04b,
             clause({ a + b >= 0, a - c >= 0 }),
             clause({ a + b >= 0, b + c >= 0 })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 /////////////////////////////////////////////////////////
@@ -218,7 +218,7 @@ TEST_GENERATION(neq1a,
       .expected(exactly(
             clause({ 0 != a - b })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(neq1b,
@@ -227,7 +227,7 @@ TEST_GENERATION(neq1b,
       .expected(exactly(
             clause({ 0 != a - b })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(neq1c,
@@ -236,7 +236,7 @@ TEST_GENERATION(neq1c,
       .expected(exactly(
             clause({ 0 != a - b })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 
@@ -246,7 +246,7 @@ TEST_GENERATION(neq1d,
       .expected(exactly(
             clause({ 0 != a - b })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(neq2,
@@ -255,7 +255,7 @@ TEST_GENERATION(neq2,
       .expected(exactly(
             clause({ 0 != frac(1,2) * a - b })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
   // TODO
@@ -273,7 +273,7 @@ TEST_GENERATION(misc01,
             clause({ 0 !=  10 * z + frac(-1, 3) * f2(y,z) }), 
             clause({ 0 != -10 * z + frac( 1, 3) * f2(y,z) })
       )))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 // 81627. 0.0 != ((30.0 * X0) + lG159(X1,X2)) | 0.0 != ((2.0 * X0) + X1) <- (49) [inequality normalization 81626]
@@ -286,7 +286,7 @@ TEST_GENERATION(misc02,
       .expected(exactly(anyOf(
                  clause({ 0 != frac(-1,2) * y + frac(1,30) * f2(y,z) })
       )))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 /////////////////////////////////////////////////////////
@@ -306,7 +306,7 @@ TEST_GENERATION(misc02,
 //             clause({ 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }),
 //             // clause({ a + b >= 0, b + c >= 0 })
 //       ))
-//       .premiseRedundant(true)
+//       .redundant({0})
 //     )
 //
 // TEST_GENERATION(bug01b,
@@ -318,7 +318,7 @@ TEST_GENERATION(misc02,
 //             clause({ 0 == -x + y + -1 , 0 != y + -c , 0 != x + -b }),
 //          // clause({ a + b >= 0, b + c >= 0 })
 //       ))
-//       .premiseRedundant(true)
+//       .redundant({0})
 //     )
 //
 // TEST_GENERATION(bug01c,
@@ -330,7 +330,7 @@ TEST_GENERATION(misc02,
 //             clause({ -x + y + -1 >= 0 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 })
 //             // clause({ a + b >= 0, b + c >= 0 })
 //       ))
-//       .premiseRedundant(true)
+//       .redundant({0})
 //     )
 //
 // TEST_GENERATION(bug01d,
@@ -342,7 +342,7 @@ TEST_GENERATION(misc02,
 //             clause({ x + -y + 1 >= 0 , y + -c > 0 , -y +  c > 0, x + -b > 0, -x + b > 0 })
 //             // clause({ a + b >= 0, b + c >= 0 })
 //       ))
-//       .premiseRedundant(true)
+//       .redundant({0})
 //     )
 
 
@@ -357,7 +357,7 @@ TEST_GENERATION(bug02a,
             clause({ c + -1 >= 0             }), // TODO potential optimization for this
             clause({ 1 + -c >= 0             })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(bug03,
@@ -366,7 +366,7 @@ TEST_GENERATION(bug03,
       .expected(exactly(
             clause({ 0 != 1 + 3 * f(x) + x + -1 - x + -3 * f(x) })
       ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(bug04,
@@ -374,7 +374,7 @@ TEST_GENERATION(bug04,
       // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
       .inputs ({         clause({ -x + y >= 0, x + -z >= 0, -f(y) + f(z) > 0 })})
       .expected(exactly( clause({ y             - z >= 0, f(z) - f(y) > 0}) ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 TEST_GENERATION(bug05,
@@ -412,7 +412,7 @@ TEST_GENERATION(bug05,
            1 + frac(6,15) * y + frac(-17,15) * b + frac(1,5) * e + frac(-4,5) * f(z) + frac(-7,5) * b >= 0,
            1 + frac(6,15) * y + frac(-17,15) * b + frac(-19,4) * g(z) + frac(-1,4) * c * y  + frac(-1,4) * (d * f(z)) >= 0,
               }) ))
-      .premiseRedundant(true)
+      .redundant({0})
     )
 
 

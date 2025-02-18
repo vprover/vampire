@@ -71,7 +71,7 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<CoherenceNormalization<RealTraits>>()
 TEST_GENERATION(basic_success01,
     Generation::SymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(1,2)  }) })
-      .premiseRedundant(false)
+      .redundant({})
       .expected(exactly(
             clause({  })
       ))
@@ -80,7 +80,7 @@ TEST_GENERATION(basic_success01,
 TEST_GENERATION(basic_success02,
     Generation::SymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(-1,2)  }) })
-      .premiseRedundant(false)
+      .redundant({})
       .expected(exactly(
             clause({  })
       ))
@@ -89,7 +89,7 @@ TEST_GENERATION(basic_success02,
 TEST_GENERATION(basic_success03,
     Generation::SymmetricTest()
       .inputs  ({ clause({ 5 * floor(x) == num(4)  }) })
-      .premiseRedundant(false)
+      .redundant({})
       .expected(exactly(
             clause({  })
       ))
@@ -98,7 +98,7 @@ TEST_GENERATION(basic_success03,
 TEST_GENERATION(basic_success04,
     Generation::SymmetricTest()
       .inputs  ({ clause({ 0 == b, 5 * floor(x) == num(4)  }) })
-      .premiseRedundant(false)
+      .redundant({})
       .expected(exactly(
             clause({ 0 == b })
       ))
@@ -107,7 +107,7 @@ TEST_GENERATION(basic_success04,
 TEST_GENERATION(basic_fail01,
     Generation::SymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(1,1)  }) })
-      .premiseRedundant(false)
+      .redundant({})
       .expected(exactly(
             /* nothing */
       ))
@@ -116,7 +116,7 @@ TEST_GENERATION(basic_fail01,
 TEST_GENERATION(basic_fail02,
     Generation::SymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(1,1) + b  }) })
-      .premiseRedundant(false)
+      .redundant({})
       .expected(exactly(
             clause({ 0 == -floor(b) + b })
       ))
@@ -125,7 +125,7 @@ TEST_GENERATION(basic_fail02,
 TEST_GENERATION(basic_fail03,
     Generation::SymmetricTest()
       .inputs  ({ clause({ 2 *floor(a) == num(4)  }) })
-      .premiseRedundant(false)
+      .redundant({})
       .expected(exactly(
             /* nothing */
       ))
@@ -134,7 +134,7 @@ TEST_GENERATION(basic_fail03,
 TEST_GENERATION(basic_fail04,
     Generation::SymmetricTest()
       .inputs  ({ clause({ floor(a) + floor(b) == frac(1,1)  }) })
-      .premiseRedundant(false)
+      .redundant({})
       .expected(exactly(
             /* nothing */
       ))

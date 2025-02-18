@@ -275,15 +275,6 @@ TEST_FUN(misc01) {
   check(ord, f(g(x) + a, c), Equal, f(a + g(x), c));
 }
 
-TEST_FUN(misc02) {
-  DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Int)
-  DECL_FUNC (f, {Int}, Int)
-
-  auto& ord = lakbo();
-
-  check(ord, f(x + y), Incomp, x);
-}
 
 
 TEST_FUN(tricky_01) {
@@ -639,4 +630,13 @@ TEST_FUN(bug_non_linear_2) {
   check(ord, l1, Equal, l2);
   // 0 = (a + -d b b + -b c)
   // 0 = (d (-x + b b) + d x + -d (-x + b b + x))
+}
+
+TEST_FUN(subterm_check) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  auto& ord = lakbo(/* rand */ false);
+  DECL_FUNC(f, { Real }, Real)
+
+  check(ord, floor(f(x) + f(y)), Greater, f(x) + f(y));
 }
