@@ -586,57 +586,6 @@ std::string Term::headToString() const
 }
 
 /**
- * In combination with Term::headToString prepares
- * std::string representation of a term.
- * (this) has to come from arguments of a term of non-zero arity,
- * possibly a special one.
- * Will close the term printed with ')'
- */
-std::string TermList::asArgsToString() const
-{
-  std::string res;
-
-  Stack<const TermList*> stack(64);
-
-  stack.push(this);
-
-  while (stack.isNonEmpty()) {
-    const TermList* ts = stack.pop();
-    if (! ts) { // comma
-      res += ',';
-      continue;
-    }
-    if (ts->isEmpty()) {
-      res += ')';
-      continue;
-    }
-    const TermList* tail = ts->next();
-    stack.push(tail);
-    if (! tail->isEmpty()) {
-      stack.push(0);
-    }
-    if (ts->isVar()) {
-      res += Term::variableToString(*ts);
-      continue;
-    }
-    const Term* t = ts->term();
-
-    if(t->isSort() && static_cast<AtomicSort*>(const_cast<Term*>(t))->isArrowSort()){
-      res += t->toString();
-      continue;
-    }
-
-    res += t->headToString();
-
-    if (t->arity()) {
-      stack.push(t->args());
-    }
-  }
-
-  return res;
-}
-
-/**
  * Write as a std::string the head of the term list.
  * @since 27/02/2008 Manchester
  */
@@ -678,6 +627,7 @@ std::string Term::toString(bool topLevel) const
 
     printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
+
 
 #if NICE_THEORY_OUTPUT
   auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
@@ -761,7 +711,7 @@ std::string Literal::toString() const
 {
   if (isEquality()) {
     const TermList* lhs = args();
-    std::string s = lhs->toString();
+    std::string s = lhs->toString(/*topLevel= */ true);
     if (isPositive()) {
       s += " = ";
     }
@@ -769,7 +719,7 @@ std::string Literal::toString() const
       s += " != ";
     }
 
-    std::string res = s + lhs->next()->toString();
+    std::string res = s + lhs->next()->toString(/*topLevel= */ true);
     if (env.getMainProblem() == nullptr || env.getMainProblem()->isHigherOrder() || 
        (SortHelper::getEqualityArgumentSort(this) == AtomicSort::boolSort())){
       res = "("+res+")";
@@ -808,15 +758,16 @@ std::string Literal::toString() const
   std::string s = polarity() ? "" : "~";
   unsigned proj;
   if (Theory::tuples()->findProjection(functor(), true, proj)) {
-    return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
+    return Output::toString(s, "$proj(", proj, ", ", anyArgIter(this).output(","), ")");
   }
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
   if (_arity) {
-    s += '(' + args()->asArgsToString(); // will also print the ')'
+    return Output::toString(s, "(", anyArgIter(this).output(","), ")");
+  } else {
+    return s;
   }
-  return s;
 } // Literal::toString
 
 
