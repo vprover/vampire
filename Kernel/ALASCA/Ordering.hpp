@@ -272,11 +272,18 @@ struct LAKBO {
   auto skeleton(TermList t) const 
   { return skeleton(norm().normalize(t)); }
 
+private:
+  static bool subterm(TermList s, TermList t) { return t.containsSubterm(s); }
+  static bool subterm(PolyNf s, PolyNf t) { return t.denormalize().containsSubterm(s.denormalize()); }
+public:
+
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const 
   DEBUG_FN_RESULT(2, Output::cat("comapre", std::tie(t0, t1), " = "),
   {
     if (t0 == t1) return Ordering::Result::EQUAL;
+    else if (subterm(t0, t1)) return Ordering::Result::LESS;
+    else if (subterm(t1, t0)) return Ordering::Result::GREATER;
     auto s0 = skeleton(t0);
     auto s1 = skeleton(t1);
     DEBUG_ALASCA_ORD(1, "skel(", t0, ") = ", s0)
