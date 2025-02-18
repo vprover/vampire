@@ -640,6 +640,7 @@ static std::ostream &operator<<(std::ostream &out, DkFormula dk) {
       ASSERTION_VIOLATION
       break;
   }
+  return out; // otherwise "control reaches end of non-void function"
 }
 
 // dedukti-print either a clause or a formula

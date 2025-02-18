@@ -376,6 +376,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
          Shell/Lexer.o\
+         Shell/Dedukti.o\
          Shell/Preprocess.o\
          version.o
 
