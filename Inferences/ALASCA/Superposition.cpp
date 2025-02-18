@@ -153,11 +153,13 @@ Option<NewGeneratingInference::Result> SuperpositionConf::applyRule(
                    && uwa.subs().isRenamingOn(rhsVarBank)
                    && lhs.clause() != rhs.clause()
                    && cnst->size() == 0
+                   && _shared->greater(TermList(s1σ), tσ)
                    ;
+
   auto inf = rhsRedundant 
     ? Inference(SimplifyingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION_DEMOD, rhs.clause(), lhs.clause()))
     : Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, lhs.clause(), rhs.clause()));
-  
+
   auto out = Clause::fromStack(concl, inf);
   DEBUG(1, "out: ", *out);
 
