@@ -53,7 +53,9 @@ struct CoherenceConf
           .map([](auto monom) { return std::make_pair(monom.factors->denormalize(), monom.numeral); }));
     return SharedSum(move_to_heap(std::move(rstack)));
   }
+  std::shared_ptr<AlascaState> _shared;
 public:
+  CoherenceConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
 
   static const char* name() { return "alasca coherence"; }
 
@@ -195,8 +197,9 @@ public:
     auto floor = [](auto... as){ return ASig::floor(as...); };
     auto mul = [](auto n, auto t){ return ASig::linMul(n, t); };
     auto cnstr = uwa.computeConstraintLiterals();
-    auto js_u = add(mul(j, lhs.s()), lhs.u());
-    auto js_uσ = sigmaL(js_u);
+    auto sσ = sigmaL(lhs.s());
+    auto uσ = sigmaL(lhs.u());
+    auto js_uσ = add(mul(j, sσ), uσ);
 
     if (i == 0) {
       return {};
@@ -205,6 +208,7 @@ public:
     auto rhsRedundant = lhs.clause()->size() == 1
                      && uwa.subs().isRenamingOn(rhsVarBank)
                      && lhs.clause() != rhs.clause()
+                     && (lhs.js_u->size() == 1 || _shared->greater(sσ, uσ))
                      && cnstr->size() == 0 // TODO this should be lifted
                      ;
 
@@ -233,7 +237,7 @@ public:
 template<class NumTraits>
 struct Coherence : public BinInf<CoherenceConf<NumTraits>> {
   Coherence(std::shared_ptr<AlascaState> shared) 
-    : BinInf<CoherenceConf<NumTraits>>(shared, {}) 
+    : BinInf<CoherenceConf<NumTraits>>(shared, CoherenceConf<NumTraits>(shared)) 
     {}
 };
 
