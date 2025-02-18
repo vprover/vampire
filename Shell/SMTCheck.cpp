@@ -18,6 +18,7 @@
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/Superposition.hpp"
+#include "Kernel/Theory.hpp"
 #include "Lib/Exception.hpp"
 #include "SMTCheck.hpp"
 
@@ -379,6 +380,20 @@ static std::ostream &operator<<(std::ostream &out, Args args)
             todo.push(current->next());
             break;
           }
+        }
+        else if(name.symbol->linMul()) {
+          out << "(* ";
+          if(auto attempt = env.signature->tryLinMul<IntegerConstantType>(term->functor()); attempt.isSome()) {
+            auto factor = attempt.unwrap();
+            out << factor;
+          }
+          else if(auto attempt = env.signature->tryLinMul<RealConstantType>(term->functor()); attempt.isSome()) {
+            auto factor = attempt.unwrap();
+            out << "(/ " << factor.numerator() << ".0 " << factor.denominator() << ".0)";
+          }
+          else
+            NOT_IMPLEMENTED;
+          todo.push(current->next());
         }
         else {
           out << "(" << name;
@@ -858,6 +873,7 @@ void outputStep(std::ostream &out, Unit *u)
     case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
     case InferenceRule::EVALUATION:
+    case InferenceRule::ALASCA_NORMALIZATION:
     case InferenceRule::THA_COMMUTATIVITY:
     case InferenceRule::THA_ASSOCIATIVITY:
     case InferenceRule::THA_RIGHT_IDENTINTY:
@@ -869,6 +885,7 @@ void outputStep(std::ostream &out, Unit *u)
     case InferenceRule::THA_TRANSITIVITY:
     case InferenceRule::THA_ORDER_TOTALALITY:
     case InferenceRule::THA_ORDER_MONOTONICITY:
+    case InferenceRule::THA_ALASCA:
     case InferenceRule::THA_PLUS_ONE_GREATER:
     case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
     case InferenceRule::THA_MINUS_MINUS_X:
