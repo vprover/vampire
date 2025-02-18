@@ -49,6 +49,19 @@ struct FunctionName {
   FunctionName(Signature::Symbol *symbol) : symbol(symbol) {}
   FunctionName(Term *t) : FunctionName(env.signature->getFunction(t->functor())) {}
   Signature::Symbol *symbol;
+
+  unsigned extraParens() {
+    if(!symbol->interpreted())
+      return 0;
+    auto *interpreted = static_cast<Signature::InterpretedSymbol *>(symbol);
+    switch(interpreted->getInterpretation()) {
+    case Theory::RAT_FLOOR:
+    case Theory::REAL_FLOOR:
+      return 1;
+    default:
+      return 0;
+    }
+  }
 };
 
 
@@ -60,7 +73,7 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
     return out << f->integerValue();
   if(f->rationalConstant() || f->realConstant()) {
     auto rat = f->rationalConstant() ? f->rationalValue() : f->realValue();
-    return out << "(/ " << rat.numerator() << ' ' << rat.denominator() << ')';
+    return out << "(/ " << rat.numerator() << ".0 " << rat.denominator() << ".0)";
   }
   auto *interpreted = static_cast<Signature::InterpretedSymbol *>(f);
   switch(interpreted->getInterpretation()) {
@@ -130,9 +143,10 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::REAL_REMAINDER_F:
     NOT_IMPLEMENTED;
   case Theory::INT_FLOOR:
+    return out << "";
   case Theory::RAT_FLOOR:
   case Theory::REAL_FLOOR:
-    NOT_IMPLEMENTED;
+    return out << "to_real (to_int";
   case Theory::INT_CEILING:
   case Theory::RAT_CEILING:
   case Theory::REAL_CEILING:
@@ -148,15 +162,16 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::INT_ABS:
     NOT_IMPLEMENTED;
   case Theory::INT_TO_INT:
-  case Theory::INT_TO_RAT:
-  case Theory::INT_TO_REAL:
   case Theory::RAT_TO_INT:
-  case Theory::RAT_TO_RAT:
-  case Theory::RAT_TO_REAL:
   case Theory::REAL_TO_INT:
+    return out << "to_int";
+  case Theory::INT_TO_RAT:
+  case Theory::RAT_TO_RAT:
   case Theory::REAL_TO_RAT:
+  case Theory::INT_TO_REAL:
+  case Theory::RAT_TO_REAL:
   case Theory::REAL_TO_REAL:
-    NOT_IMPLEMENTED;
+    return out << "to_real";
   case Theory::ARRAY_SELECT:
   case Theory::ARRAY_BOOL_SELECT:
   case Theory::ARRAY_STORE:
@@ -181,15 +196,16 @@ static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   case Theory::EQUAL:
     return out << '=';
   case Theory::INT_IS_INT:
-  case Theory::INT_IS_RAT:
-  case Theory::INT_IS_REAL:
   case Theory::RAT_IS_INT:
-  case Theory::RAT_IS_RAT:
-  case Theory::RAT_IS_REAL:
   case Theory::REAL_IS_INT:
+    return out << "is_int";
+  case Theory::INT_IS_RAT:
+  case Theory::RAT_IS_RAT:
   case Theory::REAL_IS_RAT:
+  case Theory::INT_IS_REAL:
+  case Theory::RAT_IS_REAL:
   case Theory::REAL_IS_REAL:
-    NOT_IMPLEMENTED;
+    return out << "is_real";
   case Theory::INT_GREATER:
   case Theory::RAT_GREATER:
   case Theory::REAL_GREATER:
@@ -316,6 +332,7 @@ static std::ostream &operator<<(std::ostream &out, Args args)
     return out;
 
   Stack<TermList *> todo;
+  TermList empty;
   TermList *current = args.start;
   while (true) {
     out << " ";
@@ -329,15 +346,19 @@ static std::ostream &operator<<(std::ostream &out, Args args)
     }
     else if (current->isTerm()) {
       Term *term = current->term();
+      FunctionName name(term);
       if (term->arity()) {
-        out << "(" << FunctionName(term);
+        out << "(" << name;
         todo.push(current->next());
         current = term->args();
       }
       else {
-        out << FunctionName(term);
+        out << name;
         current = current->next();
       }
+      unsigned extraParens = name.extraParens();
+      while(extraParens--)
+        todo.push(&empty);
     }
 
     while (current->isEmpty()) {
