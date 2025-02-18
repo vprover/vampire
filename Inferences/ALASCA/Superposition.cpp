@@ -152,7 +152,7 @@ Option<NewGeneratingInference::Result> SuperpositionConf::applyRule(
   auto rhsRedundant = lhs.clause()->size() == 1
                    && uwa.subs().isRenamingOn(rhsVarBank)
                    && lhs.clause() != rhs.clause()
-                   && cnst->size() == 0
+                   // && cnst->size() == 0
                    && _shared->greater(TermList(s1σ), tσ)
                    ;
 

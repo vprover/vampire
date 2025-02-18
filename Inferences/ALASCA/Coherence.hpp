@@ -209,7 +209,6 @@ public:
                      && uwa.subs().isRenamingOn(rhsVarBank)
                      && lhs.clause() != rhs.clause()
                      && (lhs.js_u->size() == 1 || _shared->greater(sσ, uσ))
-                     && cnstr->size() == 0 // TODO this should be lifted
                      ;
 
     auto rLits = concatIters(

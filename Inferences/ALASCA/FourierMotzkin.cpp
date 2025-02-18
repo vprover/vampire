@@ -171,6 +171,7 @@ Option<NewGeneratingInference::Result> FourierMotzkinConf::applyRule(
     // auto rhsRedundant = lhs.clause()->size() == 1
     //                  && uwa.subs().isRenamingOn(rhsVarBank)
     //                  && lhs.clause() != rhs.clause()
+    //                  && _shared->greater(s1σ, NumTraits::sum(arrayIter(t1σ)))
     //                  && cnst->size() == 0
     //                  ;
 
@@ -179,6 +180,14 @@ Option<NewGeneratingInference::Result> FourierMotzkinConf::applyRule(
       : Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_FOURIER_MOTZKIN, lhs.clause(), rhs.clause()));
 
     auto cl = Clause::fromStack(out, inf);
+
+    // if (rhsRedundant) {
+    //   DBGE(lhs)
+    //   DBGE(rhs)
+    //   DBG("=========================")
+    //   DBGE(*cl)
+    //   DBG("")
+    // }
     DEBUG_FM(1, "out: ", *cl);
     return some(NewGeneratingInference::Result {
         .hypotheses = pvi(iterItems(lhs.clause(), rhs.clause())),
