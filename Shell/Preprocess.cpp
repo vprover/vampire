@@ -79,14 +79,12 @@ void Preprocess::preprocess(Problem& prb)
   InequalityNormalizer::initGlobal(InequalityNormalizer());
   AlascaPreprocessor alasca(InequalityNormalizer::global());
   auto normalizeInterpreted = [&]() {
-
-
     if (env.options->alascaIntegerConversion()) {
       alasca.integerConversion(prb);
     } else if (env.options->alasca()) {
       /* alasca preprocessing is done in the saturation loop using immediate simplifications */
     } else {
-      InterpretedNormalizer(nullptr).apply(prb);
+      InterpretedNormalizer().apply(prb);
     }
   };
 
