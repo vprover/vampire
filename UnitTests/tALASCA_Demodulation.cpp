@@ -8,25 +8,13 @@
  * and in the source directory
  */
 
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Indexing/TermSharing.hpp"
 #include "Inferences/ALASCA/FwdDemodulation.hpp"
 #include "Inferences/ALASCA/BwdDemodulation.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
 #include "Test/FwdBwdSimplificationTester.hpp"
 #include "Test/AlascaTestUtils.hpp"
-#include "Kernel/KBO.hpp"
-#include "Indexing/TermSubstitutionTree.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
 
 // TODO rename FwdBwdSimplificationTester to SimplificationTester and SimplificationTester to  ImmediatesSimplificationTester
 

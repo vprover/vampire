@@ -20,15 +20,10 @@
  * because it's rather unstable.
  */
 
+#include "Inferences/InferenceEngine.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
-#include "Lib/Coproduct.hpp"
 #include "Test/ClausePattern.hpp"
-#include "Saturation/Otter.hpp"
-#include "Kernel/Problem.hpp"
-#include "Shell/Options.hpp"
-#include "Test/MockedSaturationAlgorithm.hpp"
-#include "Test/SyntaxSugar.hpp"
 #include "Test/BuilderPattern.hpp"
 
 namespace Test {
@@ -110,8 +105,8 @@ public:
   BUILDER_METHOD(TestCase, Stack<Clause*>, toSimplify  )
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, expected)
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, justifications)
-  BUILDER_METHOD(TestCase, ForwardSimplificationEngine* , fwd)
-  BUILDER_METHOD(TestCase, BackwardSimplificationEngine*, bwd)
+  BUILDER_METHOD(TestCase, Inferences::ForwardSimplificationEngine* , fwd)
+  BUILDER_METHOD(TestCase, Inferences::BackwardSimplificationEngine*, bwd)
   BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, fwdIdx)
   BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, bwdIdx)
 
@@ -120,7 +115,7 @@ public:
     // set up clause container and indexing strucure
     auto container =  PlainClauseContainer();
 
-    ForwardSimplificationEngine& fwd = *this->fwd().unwrap();
+    auto& fwd = *this->fwd().unwrap();
 
     auto indices = this->fwdIdx().unwrapOr(Stack<Indexing::Index*>());
     fwd.setTestIndices(indices);
@@ -180,7 +175,7 @@ public:
     // set up clause container and indexing strucure
     auto container =  PlainClauseContainer();
 
-    BackwardSimplificationEngine& bwd = *this->bwd().unwrap();
+    auto& bwd = *this->bwd().unwrap();
 
     auto indices = this->bwdIdx().unwrapOr(Stack<Indexing::Index*>());
     bwd.setTestIndices(indices);

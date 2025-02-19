@@ -21,6 +21,7 @@
 #include "Test/ClausePattern.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Test/UnitTesting.hpp"
 
 namespace Test {
 
