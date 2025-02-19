@@ -49,6 +49,19 @@ std::array<T *, N> getParents(T *unit)
   return parents;
 }
 
+template<bool real>
+struct SMTNumeral {
+  const IntegerConstantType &constant;
+};
+
+template<bool real>
+static std::ostream &operator<<(std::ostream &out, SMTNumeral<real> num) {
+  if(num.constant.sign() == Sign::Neg)
+    return out << "(- " << num.constant.abs() << (real ? ".0" : "") << ")";
+  else
+    return out << num.constant << (real ? ".0" : "");
+}
+
 struct FunctionName {
   FunctionName(Signature::Symbol *symbol) : symbol(symbol) {}
   FunctionName(Term *t) : FunctionName(env.signature->getFunction(t->functor())) {}
@@ -60,10 +73,10 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   if(!f->interpreted())
     return out << "|_" << f->name() << '|';
   if(f->integerConstant())
-    return out << f->integerValue();
+    return out << SMTNumeral<false> {f->integerValue()};
   if(f->rationalConstant() || f->realConstant()) {
     auto rat = f->rationalConstant() ? f->rationalValue() : f->realValue();
-    return out << "(/ " << rat.numerator() << ".0 " << rat.denominator() << ".0)";
+    return out << "(/ " << SMTNumeral<true> {rat.numerator()} << ' ' << SMTNumeral<true> {rat.denominator()} << ")";
   }
   auto *interpreted = static_cast<Signature::InterpretedSymbol *>(f);
   switch(interpreted->getInterpretation()) {
@@ -384,15 +397,19 @@ static std::ostream &operator<<(std::ostream &out, Args args)
         else if(name.symbol->linMul()) {
           out << "(* ";
           if(auto attempt = env.signature->tryLinMul<IntegerConstantType>(term->functor()); attempt.isSome()) {
-            auto factor = attempt.unwrap();
+            auto factor = SMTNumeral<false> {attempt.unwrap()};
             out << factor;
+          }
+          else if(auto attempt = env.signature->tryLinMul<RationalConstantType>(term->functor()); attempt.isSome()) {
+            auto factor = attempt.unwrap();
+            out << "(/ " << SMTNumeral<true> {factor.numerator()} << " " << SMTNumeral<true> {factor.denominator()} << ")";
           }
           else if(auto attempt = env.signature->tryLinMul<RealConstantType>(term->functor()); attempt.isSome()) {
             auto factor = attempt.unwrap();
-            out << "(/ " << factor.numerator() << ".0 " << factor.denominator() << ".0)";
+            out << "(/ " << SMTNumeral<true> {factor.numerator()} << " " << SMTNumeral<true> {factor.denominator()} << ")";
           }
           else
-            NOT_IMPLEMENTED;
+            ASSERTION_VIOLATION
           todo.push(current->next());
         }
         else {
@@ -551,11 +568,13 @@ static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
   auto [left, right] = getParents<2>(concl);
   const auto &br = env.proofExtra.get<Inferences::BinaryResolutionExtra>(concl);
 
-  RobSubstitution subst;
+  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
   Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
   Literal *selectedRight = br.otherLiteral;
+  for(unsigned i = 0; i < selectedLeft->arity(); i++)
+    ALWAYS(uwa.unify((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
   ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
-  ALWAYS(subst.unify(TermList(selectedLeft), 0, TermList(selectedRight), 1));
+  RobSubstitution &subst = uwa.subs();
 
   for (unsigned i = 0; i < left->length(); i++)
     if ((*left)[i] != selectedLeft)
@@ -794,6 +813,7 @@ namespace SMTCheck {
 
 void outputSignature(std::ostream &out)
 {
+  out << "(set-logic ALL)\n";
   out << "(declare-sort iota 0)\n";
   out << "(declare-const inhabit_iota iota)\n";
   out << "(declare-const inhabit_Int Int)\n";
@@ -815,7 +835,7 @@ void outputSignature(std::ostream &out)
 
   for(unsigned i = 0; i < sig.functions(); i++) {
     Signature::Symbol *fun = sig.getFunction(i);
-    if(fun->interpreted())
+    if(fun->interpreted() || fun->linMul())
       continue;
 
     out << "(declare-fun " << FunctionName(fun);
