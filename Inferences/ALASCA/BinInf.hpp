@@ -121,7 +121,7 @@ public:
       DEBUG(0, "lhs: ", lhs, " (", lhs.clause()->number(), ")")
       for (auto rhs_sigma : _rhs->template find<VarBanks>(&sigma, lhs.key())) {
         auto& rhs   = *rhs_sigma.data;
-        DEBUG(0, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
+      DEBUG(0, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
         DEBUG(0, "  sigma: ", sigma)
         for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma))) {
           DEBUG(0, "    result: ", *res)
@@ -344,6 +344,11 @@ public:
   USE_ALLOCATOR(BinSimpl);
 
   BinSimpl(BinSimpl&&) = default;
+
+  BinSimpl(std::shared_ptr<AlascaState> shared)
+    : BinSimpl(shared, Rule(shared))
+  {  }
+
   BinSimpl(std::shared_ptr<AlascaState> shared, Rule rule)
     : _shared(std::move(shared))
     , _rule(std::move(rule))
@@ -351,15 +356,14 @@ public:
     , _condition(nullptr)
   {  }
 
-
   void attach(SaturationAlgorithm* s) final override
   { 
     ASS(!_condition);
     ASS(!_toSimpl);
-    InferenceEngine::attach(s);
+    ForwardSimplificationEngine::attach(s);
 
     _toSimpl=static_cast<decltype(_toSimpl)>(salg()->getIndexManager()->request(  ToSimpl::indexType()));
-    _condition=static_cast<decltype(_condition)>(salg()->_salg->getIndexManager()->request(Condition::indexType()));
+    _condition=static_cast<decltype(_condition)>(salg()->getIndexManager()->request(Condition::indexType()));
 
     _toSimpl->setShared(_shared);
     _condition->setShared(_shared);
@@ -373,7 +377,7 @@ public:
     _condition = nullptr;
     salg()->getIndexManager()->release(ToSimpl::indexType());
     salg()->getIndexManager()->release(Condition::indexType());
-    InferenceEngine::detach();
+    ForwardSimplificationEngine::detach();
   }
 
 
@@ -385,31 +389,37 @@ public:
     _condition = (decltype(_condition)) indices[1]; 
     _condition->setShared(_shared);
   }
+  static auto testToSimplIdx() { return new AlascaIndex<ToSimpl>(); }
+  static auto testConditionIdx() { return new AlascaIndex<Condition>(); }
 #endif
 
   /* forward */ 
-  virtual bool perform(Clause* toSimpl, Clause*& concl, ClauseIterator& conditions) {
+  virtual bool perform(Clause* toSimpl, Clause*& concl, ClauseIterator& conditions) final override {
     for (auto simpl : ToSimpl::iter(*_shared, toSimpl)) {
-      for (auto& [cond, sigma] : _condition->generalizations(simpl.key(), /* retrieveSubstitution */ true)) {
-        if (auto res = _rule.applyRule(simpl, cond, sigma)) {
+      for (auto sigma_cond : _condition->generalizations(simpl.key(), /* retrieveSubstitution */ true)) {
+        auto& sigma = sigma_cond.unifier;
+        auto& cond = *sigma_cond.data;
+        if (auto res = _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundResult(t); })) {
           concl = *res;
           conditions = pvi(getSingletonIterator(cond.clause()));
           return true;
         }
       }
     }
+    return false;
   }
 
   /* backward */ 
-  virtual void perform(Clause* condClause, BwSimplificationRecordIterator& simplifications) {
+  virtual void perform(Clause* condClause, BwSimplificationRecordIterator& simplifications) final override {
     simplifications = pvi(Condition::iter(*_shared, condClause)
       .flatMap([condClause,this](auto cond) {
-          return _condition->instances(cond.key(), /* retrieveSubstitution */ true)
-            .filterMap([this,cond](auto simpl_sigma) {
-                auto [simpl, sigma] = simpl_sigma;
-                return _rule.applyRule(simpl, cond, sigma)
+          return _toSimpl->instances(cond.key(), /* retrieveSubstitution */ true)
+            .filterMap([this,cond](auto sigma_simpl) {
+                auto& sigma = sigma_simpl.unifier;
+                auto& simpl = *sigma_simpl.data;
+                return _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundQuery(t); })
                   .map([&](Clause* concl) {
-                      return BwSimplificationRecord(simpl, concl);
+                      return BwSimplificationRecord(simpl.clause(), concl);
                   });
             });
       }));

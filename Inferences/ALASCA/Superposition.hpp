@@ -16,6 +16,7 @@
 #ifndef __ALASCA_Inferences_Superposition__
 #define __ALASCA_Inferences_Superposition__
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Indexing/IndexManager.hpp"
@@ -177,6 +178,24 @@ struct Superposition
   Superposition(std::shared_ptr<AlascaState> shared, Args... args) : BinInf<SuperpositionConf>(shared, SuperpositionConf(shared, args...)) {}
 };
 
+struct SuperpositionDemodConf
+{
+  std::shared_ptr<AlascaState> _shared;
+
+  SuperpositionDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
+
+  static const char* name() { return "alasca superposition demodulation"; }
+
+  using Condition = SuperpositionConf::Lhs;
+  using ToSimpl = SuperpositionConf::Rhs;
+
+  template<class Sigma>
+  Option<Clause*> apply(
+      Condition const& cont,
+      ToSimpl const& simpl,
+      Sigma sigma
+      ) const { return {}; }
+};
 #undef DEBUG
 } // namespaceALASCA 
 } // namespace Inferences

@@ -535,7 +535,7 @@ IterFromTryNext<Iter> iterFromTryNext(Iter iter)
 template<typename Inner, typename Functor>
 MappingIterator<Inner,Functor,ResultOf<Functor, ELEMENT_TYPE(Inner)>> getMappingIterator(Inner it, Functor f)
 {
-  return MappingIterator<Inner,Functor, ResultOf<Functor, ELEMENT_TYPE(Inner)>>(std::move(it), std::move(f));
+  return MappingIterator<Inner,Functor, decltype(f(it.next()))>(std::move(it), std::move(f));
 }
 
 /**

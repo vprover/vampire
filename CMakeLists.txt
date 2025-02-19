@@ -783,6 +783,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_SubtermFactoring.cpp
     UnitTests/tALASCA_Demodulation.cpp
+    UnitTests/tALASCA_Superposition_Demodulation.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_LaKbo.cpp
     UnitTests/tPushUnaryMinus.cpp
