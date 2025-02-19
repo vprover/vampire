@@ -12,6 +12,7 @@
  * Routines for producing a ground SMT proof-check script
  */
 
+#include <array>
 #include <unordered_set>
 
 #include "Debug/Assertion.hpp"
