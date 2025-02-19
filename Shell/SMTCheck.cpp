@@ -23,6 +23,9 @@
 #include "Lib/Exception.hpp"
 #include "SMTCheck.hpp"
 
+#include "Inferences/ALASCA/BinInf.hpp"
+#include "Inferences/ALASCA/FourierMotzkin.hpp"
+#include "Inferences/ALASCA/Superposition.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
@@ -767,6 +770,41 @@ static void satRefutation(std::ostream &out, SortMap &conclSorts, Unit *concl) {
   }
 }
 
+static void alascaFourierMotzkin(std::ostream &out, SortMap &conclSorts, Clause *concl) {
+  auto [left, right] = getParents<2>(concl);
+  const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<ALASCA::FourierMotzkin>>(concl);
+
+  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
+  TypedTermList selectedLeft = fm.left;
+  TypedTermList selectedRight = fm.right;
+  ALWAYS(uwa.unify(selectedLeft, 0, selectedRight, 1))
+  RobSubstitution &subst = uwa.subs();
+
+  // TODO no output variable bank shenanigans here, I am suspicious
+
+  outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
+  outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
+  outputConclusion(out, conclSorts, concl->asClause());
+}
+
+static void alascaSuperposition(std::ostream &out, SortMap &conclSorts, Clause *concl) {
+  auto [left, right] = getParents<2>(concl);
+  const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<ALASCA::SuperpositionConf>>(concl);
+
+  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
+  TypedTermList selectedLeft = fm.left;
+  TypedTermList selectedRight = fm.right;
+  ALWAYS(uwa.unify(selectedLeft, 0, selectedRight, 1))
+  RobSubstitution &subst = uwa.subs();
+
+  // TODO no output variable bank shenanigans here, I am suspicious
+
+  outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
+  outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
+  outputConclusion(out, conclSorts, concl->asClause());
+
+}
+
 static SortMap outputSkolemsAndGetSorts(std::ostream &out, Unit *u)
 {
   SortMap sorts;
@@ -972,6 +1010,12 @@ void outputStep(std::ostream &out, Unit *u)
       break;
     case InferenceRule::AVATAR_REFUTATION:
       satRefutation(out, conclSorts, u);
+      break;
+    case InferenceRule::ALASCA_FOURIER_MOTZKIN:
+      alascaFourierMotzkin(out, conclSorts, u->asClause());
+      break;
+    case InferenceRule::ALASCA_SUPERPOSITION:
+      alascaSuperposition(out, conclSorts, u->asClause());
       break;
     default:
       sorry = true;
