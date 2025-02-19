@@ -154,6 +154,7 @@ public:
 
 };
 
+
 template<class Rule>
 struct TriInf
 : public GeneratingInferenceEngine
@@ -315,6 +316,106 @@ public:
   }
 
 };
+
+/* rule of the shape
+ *
+ * Condition[key]       ToSimpl[key\sigma]
+ * =======================================
+ *           Concl[key\sigma]
+ *
+ * where ToSimpl is becoming redundant
+ */
+template<class Rule>
+struct BinSimpl
+: public BackwardSimplificationEngine
+, public ForwardSimplificationEngine
+{
+  using ToSimpl = typename Rule::ToSimpl;
+  using Condition = typename Rule::Condition;
+  using Key = KeyType<ToSimpl>;
+  static_assert(std::is_same_v<KeyType<ToSimpl>, KeyType<Condition>>);
+private:
+  std::shared_ptr<AlascaState> _shared;
+  Rule _rule;
+  AlascaIndex<ToSimpl>* _toSimpl;
+  AlascaIndex<Condition>* _condition;
+  auto salg() const { return ForwardSimplificationEngine::_salg; }
+public:
+  USE_ALLOCATOR(BinSimpl);
+
+  BinSimpl(BinSimpl&&) = default;
+  BinSimpl(std::shared_ptr<AlascaState> shared, Rule rule)
+    : _shared(std::move(shared))
+    , _rule(std::move(rule))
+    , _toSimpl(nullptr)
+    , _condition(nullptr)
+  {  }
+
+
+  void attach(SaturationAlgorithm* s) final override
+  { 
+    ASS(!_condition);
+    ASS(!_toSimpl);
+    InferenceEngine::attach(s);
+
+    _toSimpl=static_cast<decltype(_toSimpl)>(salg()->getIndexManager()->request(  ToSimpl::indexType()));
+    _condition=static_cast<decltype(_condition)>(salg()->_salg->getIndexManager()->request(Condition::indexType()));
+
+    _toSimpl->setShared(_shared);
+    _condition->setShared(_shared);
+
+    attachToInner(_rule, s);
+  }
+
+  void detach() final override {
+    ASS(salg());
+    _toSimpl = nullptr;
+    _condition = nullptr;
+    salg()->getIndexManager()->release(ToSimpl::indexType());
+    salg()->getIndexManager()->release(Condition::indexType());
+    InferenceEngine::detach();
+  }
+
+
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
+  {
+    _toSimpl = (decltype(_toSimpl)) indices[0]; 
+    _toSimpl->setShared(_shared);
+    _condition = (decltype(_condition)) indices[1]; 
+    _condition->setShared(_shared);
+  }
+#endif
+
+  /* forward */ 
+  virtual bool perform(Clause* toSimpl, Clause*& concl, ClauseIterator& conditions) {
+    for (auto simpl : ToSimpl::iter(*_shared, toSimpl)) {
+      for (auto& [cond, sigma] : _condition->generalizations(simpl.key(), /* retrieveSubstitution */ true)) {
+        if (auto res = _rule.applyRule(simpl, cond, sigma)) {
+          concl = *res;
+          conditions = pvi(getSingletonIterator(cond.clause()));
+          return true;
+        }
+      }
+    }
+  }
+
+  /* backward */ 
+  virtual void perform(Clause* condClause, BwSimplificationRecordIterator& simplifications) {
+    simplifications = pvi(Condition::iter(*_shared, condClause)
+      .flatMap([condClause,this](auto cond) {
+          return _condition->instances(cond.key(), /* retrieveSubstitution */ true)
+            .filterMap([this,cond](auto simpl_sigma) {
+                auto [simpl, sigma] = simpl_sigma;
+                return _rule.applyRule(simpl, cond, sigma)
+                  .map([&](Clause* concl) {
+                      return BwSimplificationRecord(simpl, concl);
+                  });
+            });
+      }));
+  }
+};  
+
 
 #undef DEBUG
 } // namespaceALASCA 
