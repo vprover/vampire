@@ -44,10 +44,10 @@ template<class Rule>
 struct BinInfExtra : public InferenceExtra {
   using Lhs = typename Rule::Lhs;
   using Rhs = typename Rule::Rhs;
-  using Key = KeyType<Lhs>;
-  Key left, right;
+  Lhs left;
+  Rhs right;
 
-  BinInfExtra(Key left, Key right) : left(left), right(right) {}
+  BinInfExtra(Lhs left, Rhs right) : left(left), right(right) {}
 
   void output(std::ostream &out) const override {
     out << "left=(" << left << "),right=(" << right << ")";
@@ -141,7 +141,7 @@ public:
           DEBUG(0, "    result: ", *res)
           out.push(res);
           if(env.options->proofExtra() == Options::ProofExtra::FULL)
-            env.proofExtra.insert(res, new BinInfExtra<Rule>(lhs.key(), rhs.key()));
+            env.proofExtra.insert(res, new BinInfExtra<Rule>(lhs, rhs));
         }
         DEBUG(0, "")
       }
@@ -160,7 +160,7 @@ public:
             DEBUG(0, "    result: ", *res)
             out.push(res);
             if(env.options->proofExtra() == Options::ProofExtra::FULL)
-              env.proofExtra.insert(res, new BinInfExtra<Rule>(lhs.key(), rhs.key()));
+              env.proofExtra.insert(res, new BinInfExtra<Rule>(lhs, rhs));
           }
           DEBUG(0, "")
         }

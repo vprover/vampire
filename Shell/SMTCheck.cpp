@@ -127,10 +127,10 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::RAT_MULTIPLY:
   case Theory::REAL_MULTIPLY:
     return out << '*';
+  case Theory::INT_QUOTIENT_E:
   case Theory::RAT_QUOTIENT:
   case Theory::REAL_QUOTIENT:
     return out << '/';
-  case Theory::INT_QUOTIENT_E:
   case Theory::INT_QUOTIENT_T:
   case Theory::INT_QUOTIENT_F:
   case Theory::RAT_QUOTIENT_E:
@@ -141,6 +141,7 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::REAL_QUOTIENT_F:
     NOT_IMPLEMENTED;
   case Theory::INT_REMAINDER_E:
+    return out << "mod";
   case Theory::INT_REMAINDER_T:
   case Theory::INT_REMAINDER_F:
   case Theory::RAT_REMAINDER_E:
@@ -150,7 +151,6 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::REAL_REMAINDER_T:
   case Theory::REAL_REMAINDER_F:
     NOT_IMPLEMENTED;
-    return out << "";
   case Theory::INT_TRUNCATE:
   case Theory::RAT_TRUNCATE:
   case Theory::REAL_TRUNCATE:
@@ -423,7 +423,12 @@ static std::ostream &operator<<(std::ostream &out, Args args)
         current = term->args();
       }
       else {
-        out << name;
+        if(env.signature->isFoolConstantSymbol(false, term->functor()))
+          out << "false";
+        else if(env.signature->isFoolConstantSymbol(true, term->functor()))
+          out << "true";
+        else
+          out << name;
         current = current->next();
       }
     }
@@ -775,12 +780,15 @@ static void alascaFourierMotzkin(std::ostream &out, SortMap &conclSorts, Clause 
   const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<ALASCA::FourierMotzkin>>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  TypedTermList selectedLeft = fm.left;
-  TypedTermList selectedRight = fm.right;
-  ALWAYS(uwa.unify(selectedLeft, 0, selectedRight, 1))
+  ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
   RobSubstitution &subst = uwa.subs();
 
-  // TODO no output variable bank shenanigans here, I am suspicious
+  subst.apply(fm.left.literal(), 0);
+  subst.apply(fm.right.literal(), 1);
+  for (unsigned i = 0; i < left->length(); i++)
+    subst.apply((*left)[i], 0);
+  for (unsigned i = 0; i < right->length(); i++)
+    subst.apply((*right)[i], 1);
 
   outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
   outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
@@ -792,12 +800,15 @@ static void alascaSuperposition(std::ostream &out, SortMap &conclSorts, Clause *
   const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<ALASCA::SuperpositionConf>>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  TypedTermList selectedLeft = fm.left;
-  TypedTermList selectedRight = fm.right;
-  ALWAYS(uwa.unify(selectedLeft, 0, selectedRight, 1))
+  ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
   RobSubstitution &subst = uwa.subs();
 
-  // TODO no output variable bank shenanigans here, I am suspicious
+  subst.apply(fm.left.literal(), 0);
+  subst.apply(fm.right.literal(), 1);
+  for (unsigned i = 0; i < left->length(); i++)
+    subst.apply((*left)[i], 0);
+  for (unsigned i = 0; i < right->length(); i++)
+    subst.apply((*right)[i], 1);
 
   outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
   outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
@@ -857,6 +868,8 @@ void outputSignature(std::ostream &out)
   out << "(declare-const inhabit_iota iota)\n";
   out << "(declare-const inhabit_Int Int)\n";
   out << "(declare-const inhabit_Real Real)\n";
+  // bit cursed but OK
+  out << "(declare-const inhabit_Bool Bool)\n";
   out << "(declare-fun is_rat (Real) Bool)\n";
 
   Signature &sig = *env.signature;
@@ -933,6 +946,10 @@ void outputStep(std::ostream &out, Unit *u)
     case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
     case InferenceRule::EVALUATION:
     case InferenceRule::ALASCA_NORMALIZATION:
+    //TODO below are trivial but would have to (declare-datatypes ...)
+    //case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
+    //case InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
+    //case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
     case InferenceRule::THA_COMMUTATIVITY:
     case InferenceRule::THA_ASSOCIATIVITY:
     case InferenceRule::THA_RIGHT_IDENTINTY:
