@@ -63,19 +63,23 @@ public:
   auto instances(TypedTermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
+#define INSERT_FIND_ASSERTION 0
+
   virtual void handleClause(Clause* c, bool adding) final override
   {
     TIME_TRACE(_maintainanceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
-#if VDEBUG
-        auto k = appl.key();
+#if INSERT_FIND_ASSERTION
+        DEBUG_CODE( auto k = appl.key(); )
 #endif
         _index.insert(std::move(appl));
+#if INSERT_FIND_ASSERTION
         DEBUG_CODE(
         auto state = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
-        )
         ASS_REP(find<RetrievalAlgorithms::DefaultVarBanks>(&state, k).hasNext(), Output::cat("key: ", Output::ptr(k), "\nindex: ", Output::multiline(_index)))
+        )
+#endif 
       } else {
         _index.remove(std::move(appl));
       }
