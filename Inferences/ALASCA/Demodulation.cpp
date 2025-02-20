@@ -10,11 +10,9 @@
 
 #include "Demodulation.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Inferences/ALASCA/Superposition.hpp"
 
 namespace Inferences {
 namespace ALASCA {
-
-
-
 } // namespace ALASCA
 } // namespace Inferences

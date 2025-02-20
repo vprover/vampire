@@ -45,6 +45,7 @@
 #include "Inferences/ALASCA/EqFactoring.hpp"
 #include "Inferences/ALASCA/InequalityFactoring.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
+#include "Inferences/ALASCA/Demodulation.hpp"
 #include "Inferences/ALASCA/BinaryResolution.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
 #include "Inferences/ALASCA/FloorBounds.hpp"
