@@ -1300,13 +1300,6 @@ void Options::init()
     _viras.setExperimental();
     _viras.onlyUsefulWith(_alasca.is(equal(true)));
 
-    _alascaDemodulation  = BoolOptionValue("alasca_demodulation","alasca_demod",false);
-    _alascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
-    _lookup.insert(&_alascaDemodulation);
-    _alascaDemodulation.tag(OptionTag::INFERENCES);
-    _alascaDemodulation.setExperimental();
-    _alascaDemodulation.onlyUsefulWith(_alasca.is(equal(true)));
-
     _alascaStrongNormalization  = BoolOptionValue("alasca_strong_normalziation","alasca_sn",false);
     _alascaStrongNormalization.description=
             "enables stronger normalizations for inequalities: \n"
@@ -1338,6 +1331,24 @@ void Options::init()
     _alascaAbstraction.setExperimental();
     _alascaAbstraction.onlyUsefulWith(_alasca.is(equal(true)));
 
+    _alascaDemodulationFwd = BoolOptionValue("alasca_demodulation_fwd","alascadf",true);
+    _alascaDemodulationFwd.description=
+            "Enables the alascas demodulation rules for forward simplifications."
+            "\n";
+    _lookup.insert(&_alascaDemodulationFwd);
+    _alascaDemodulationFwd.tag(OptionTag::INFERENCES);
+    _alascaDemodulationFwd.setExperimental();
+    _alascaDemodulationFwd.onlyUsefulWith(_alasca.is(equal(true)));
+
+
+    _alascaDemodulationBwd = BoolOptionValue("alasca_demodulation_bwd","alascadb",true);
+    _alascaDemodulationBwd.description =
+            "Enables the alascas demodulation rules for backward simplifications."
+            "\n";
+    _lookup.insert(&_alascaDemodulationBwd);
+    _alascaDemodulationBwd.tag(OptionTag::INFERENCES);
+    _alascaDemodulationBwd.setExperimental();
+    _alascaDemodulationBwd.onlyUsefulWith(_alasca.is(equal(true)));
 
     _alascaSubtermFactoring  = BoolOptionValue("alasca_subterm_factoring","alasca-stf",true);
     _alascaSubtermFactoring.description=

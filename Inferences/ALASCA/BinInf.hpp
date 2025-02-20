@@ -430,7 +430,7 @@ public:
     auto _alreadySimplified = std::make_unique<Set<Clause*>>();
     auto alreadySimplified = _alreadySimplified.get();
 
-    simplifications = pvi(Condition::iter(*_shared, condClause)
+    auto result = Condition::iter(*_shared, condClause)
       .flatMap([this,alreadySimplified](auto cond) {
           return _toSimpl->instances(cond.key(), /* retrieveSubstitution */ true)
             .filterMap([this,cond,alreadySimplified](auto sigma_simpl) -> Option<BwSimplificationRecord> {
@@ -449,7 +449,19 @@ public:
 
             });
       })
-      .store(std::move(_alreadySimplified)));
+      .store(std::move(_alreadySimplified));
+    
+    /* TODO due to some mess (*) in saturation algorithm we have to convert everything to 
+     * a stack and then into an iterator again. This should be resolved in staturation 
+     * algorithm and a proper iterator should be returned here. and in other backward 
+     * simplifications.
+     * (*) the mess is that in saturation algorithm is that it removes from the passive index 
+     * while we are still iterating, which is obviously not allowed as the backward simpl iterator 
+     * must iterate over the passive set.
+     */
+    RStack<BwSimplificationRecord> resultStack;
+    resultStack->loadFromIterator(std::move(result));
+    simplifications =  pvi(arrayIter(std::move(resultStack)));
   }
 };  
 

@@ -2294,7 +2294,8 @@ public:
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
   bool alasca() const { return _alasca.actualValue; }
   bool viras() const { return _viras.actualValue; }
-  bool alascaDemodulation() const { return _alascaDemodulation.actualValue; }
+  bool alascaDemodulationFwd() const { return _alascaDemodulationFwd.actualValue; }
+  bool alascaDemodulationBwd() const { return _alascaDemodulationBwd.actualValue; }
   bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
   bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
   bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
@@ -2741,7 +2742,8 @@ private:
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   BoolOptionValue _alasca;
   BoolOptionValue _viras;
-  BoolOptionValue _alascaDemodulation;
+  BoolOptionValue _alascaDemodulationBwd;
+  BoolOptionValue _alascaDemodulationFwd;
   BoolOptionValue _alascaStrongNormalization;
   BoolOptionValue _alascaIntegerConversion;
   BoolOptionValue _alascaAbstraction;

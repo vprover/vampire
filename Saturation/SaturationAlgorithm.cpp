@@ -1561,9 +1561,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         env.options->unificationWithAbstraction(),
         env.options->unificationWithAbstractionFixedPointIteration()
         );
-    if (env.options->alascaDemodulation()) {
-      res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(shared));
-      res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared));
+    if (env.options->alascaDemodulationFwd()) {
+      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
+    }
+    if (env.options->alascaDemodulationBwd()) {
+      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
     // TODO add an option for this
