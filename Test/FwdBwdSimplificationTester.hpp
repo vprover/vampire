@@ -80,15 +80,21 @@ class TestCase
   }
 
 public:
+  using NormFun = std::function<Clause*(Clause*)>;
 
   BUILDER_METHOD(TestCase, Stack<Clause*>, simplifyWith)
   BUILDER_METHOD(TestCase, Stack<Clause*>, toSimplify  )
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, expected)
+  BUILDER_METHOD(TestCase, NormFun, normalize)
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, justifications)
   BUILDER_METHOD(TestCase, Inferences::ForwardSimplificationEngine* , fwd)
   BUILDER_METHOD(TestCase, Inferences::BackwardSimplificationEngine*, bwd)
   BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, fwdIdx)
   BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, bwdIdx)
+
+
+  TestCase expectNotApplicable() && 
+  { return expected({}).justifications({}); }
 
   void runFwd() 
   {
@@ -97,14 +103,34 @@ public:
 
     auto& fwd = *this->fwd().unwrap();
 
+    // run checks
+    auto expected = this->expected().unwrap();
+    auto expJust = this->justifications().unwrapOrElse([&]()
+        { return iterTraits(this->simplifyWith().unwrap().iterFifo())
+                    .map([](Clause* cl) -> ClausePattern { return cl; } )
+                    .template collect<Stack>(); });
+
+    // add the clauses to the index
+    auto simplifyWith = this->simplifyWith().unwrap();
+    auto toSimpl = toSimplify().unwrap();
+
+    auto norm = [this](auto x) {
+      if (this->normalize()) { return (*this->normalize())(x); }
+      else                   { return x; }
+    };
+
+    for (Clause*& c : simplifyWith) { c = norm(c); }
+    for (Clause*& c : toSimpl) { c = norm(c); }
+    for (ClausePattern& c : concatIters(arrayIter(expected), arrayIter(expJust))) {
+      c = c.mapClauses([&](auto c) { return norm(c); });
+    }
+
     auto indices = this->fwdIdx().unwrapOr(Stack<Indexing::Index*>());
     fwd.setTestIndices(indices);
     for (auto i : indices) {
       i->attachContainer(&container);
     }
 
-    // add the clauses to the index
-    auto simplifyWith = this->simplifyWith().unwrap();
     for (auto c : simplifyWith) {
       container.add(c);
     }
@@ -112,7 +138,6 @@ public:
     // simplify all the clauses in toSimplify
     Stack<Clause*> results;
     Stack<Clause*> justifications;
-    auto toSimpl = toSimplify().unwrap();
     for (auto toSimpl : toSimpl) {
       Clause* replacement = nullptr;
       ClauseIterator premises;
@@ -125,7 +150,7 @@ public:
 
       if (succ) {
         if (replacement) {
-          results.push(replacement);
+          results.push(norm(replacement));
         }
         justifications.loadFromIterator(premises);
       }
@@ -133,13 +158,6 @@ public:
     justifications.sort();
     justifications.dedup();
     // dedup(justifications);
-
-    // run checks
-    auto expected = this->expected().unwrap();
-    auto expJust = this->justifications().unwrapOrElse([&]()
-        { return iterTraits(this->simplifyWith().unwrap().iterFifo())
-                    .map([](Clause* cl) -> ClausePattern { return cl; } )
-                    .template collect<Stack>(); });
 
     if (!TestUtils::permEq(expected, results, [&](auto exp, auto res) { return exp.matches(*this, res); })) {
       testFail("fwd", results, expected);
@@ -157,6 +175,28 @@ public:
 
     auto& bwd = *this->bwd().unwrap();
 
+    // run checks
+    auto expected = this->expected().unwrap();
+    auto expJust = this->justifications().unwrapOrElse([&]()
+        { return iterTraits(this->simplifyWith().unwrap().iterFifo())
+                    .map([](Clause* cl) -> ClausePattern { return cl; } )
+                    .template collect<Stack>(); });
+
+    // add the clauses to the index
+    auto simplifyWith = this->simplifyWith().unwrap();
+    auto toSimpl = toSimplify().unwrap();
+
+    auto norm = [this](auto x) {
+      if (this->normalize()) { return (*this->normalize())(x); }
+      else                   { return x; }
+    };
+
+    for (Clause*& c : simplifyWith) { c = norm(c); }
+    for (Clause*& c : toSimpl) { c = norm(c); }
+    for (ClausePattern& c : concatIters(arrayIter(expected), arrayIter(expJust))) {
+      c = c.mapClauses([&](auto c) { return norm(c); });
+    }
+
     auto indices = this->bwdIdx().unwrapOr(Stack<Indexing::Index*>());
     bwd.setTestIndices(indices);
     for (auto i : indices) {
@@ -164,14 +204,12 @@ public:
     }
 
     // add the clauses to the index
-    auto toSimpl = toSimplify().unwrap();
     for (auto c : toSimpl) {
       container.add(c);
     }
 
-    // simplify using every clause in simplifyWith.unwrap()
-    Stack<Clause*> results; //= toSimplify().unwrap();
-    auto simplifyWith = this->simplifyWith().unwrap();
+    // simplify using every clause in simplifyWith
+    Stack<Clause*> results;
     for (auto cl : simplifyWith) {
       Inferences::BwSimplificationRecordIterator simpls;
       try {
@@ -180,13 +218,11 @@ public:
         testFail("bwd", e); 
       }
       for (auto simpl : iterTraits(simpls)) {
-        results.push(simpl.replacement);
+        results.push(norm(simpl.replacement));
       }
     }
 
     // run checks
-    auto expected = this->expected().unwrap();
-
     if (!TestUtils::permEq(expected, results, [&](auto exp, auto res) { return exp.matches(*this, res); })) {
       testFail("bwd", results, expected);
     }

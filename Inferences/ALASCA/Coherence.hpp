@@ -160,7 +160,7 @@ public:
   };
 
   using Numeral = typename NumTraits::ConstantType;
-  static IntegerConstantType computeI(Numeral j, Numeral k) {
+  static Numeral computeI(Numeral j, Numeral k) {
     ASS(j > 0)
 
     auto c = j.denominator().gcd(k.denominator());
@@ -186,7 +186,7 @@ public:
     DEBUG_COHERENCE(1, "i = ", i)
     DEBUG_COHERENCE(1, "k - i j = ", k - i * j)
 
-    return i;
+    return Numeral(i);
   }
 
   // lhs: C \/ ⌊...⌋ = j s + u

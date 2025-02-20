@@ -9,6 +9,7 @@
  */
 
 #include "Inferences/ALASCA/Demodulation.hpp"
+#include "Inferences/ALASCA/Normalization.hpp"
 #include "Test/SyntaxSugar.hpp"
 
 #include "Test/SyntaxSugar.hpp"
@@ -46,12 +47,15 @@ using namespace Inferences::ALASCA;
 
 template<class Rule>
 inline auto ALASCA_Demod_TestCase()  {
-  auto rule = move_to_heap(BinSimpl<Rule>(testAlascaState()));
+  auto state = testAlascaState();
+  auto rule = move_to_heap(BinSimpl<Rule>(state));
+  ALASCA::Normalization norm(state);
   return FwdBwdSimplification::TestCase()
     .fwd(rule)
     .bwd(rule)
     .fwdIdx({ rule->testToSimplIdx(), rule->testConditionIdx() })
-    .bwdIdx({ rule->testToSimplIdx(), rule->testConditionIdx() });
+    .bwdIdx({ rule->testToSimplIdx(), rule->testConditionIdx() })
+    .normalize([norm = std::move(norm)](auto c) mutable { return norm.simplify(c); });
 }
 
 // ±ks + t ≈ 0          C[sσ]
@@ -129,8 +133,7 @@ TEST_SIMPLIFICATION(basic08,
     ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == g(a, x) - x      }   ) })
       .toSimplify  ({    clause(   { p(g(y,b))             }   ) })
-      .expected(      { /* nothing */ })
-      .justifications({ /* nothing */ }) 
+      .expectNotApplicable()
     )
 
 TEST_SIMPLIFICATION(basic09,
@@ -145,8 +148,7 @@ TEST_SIMPLIFICATION(ordering01,
     ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(x) + g(x,x) }   ) })
       .toSimplify  ({    clause(   { 0 == g(a,a)    }   ) })
-      .expected(    {                /* nothing */        })
-      .justifications({              /* nothing */        }) 
+      .expectNotApplicable()
     )
 
 // checking `sσ ≻ terms(t)σ`
@@ -154,8 +156,7 @@ TEST_SIMPLIFICATION(ordering02,
     ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(x) + g(y,y) }       ) })
       .toSimplify  ({    clause(   { 0 == g(a,a) + f(x) + a }   ) })
-      .expected(    {                /* nothing */        })
-      .justifications({              /* nothing */        }) 
+      .expectNotApplicable()
     )
 
 // checking `sσ ≻ terms(t)σ`
@@ -226,17 +227,17 @@ TEST_SIMPLIFICATION(demod_basic_03,
     ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
       .simplifyWith({    clause(   { isInt(f(x))  }   ) })
       .toSimplify  ({    clause(   { floor(f(a)) == a }   ) })
-      .expected(    {                                })
+      .expectNotApplicable()
     )
 
 TEST_SIMPLIFICATION(demod_basic_04,
     ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
       .simplifyWith({    clause(   { isInt(f(a))  }   ) })
       .toSimplify  ({    clause(   { floor(f(x)) != x }   ) })
-      .expected(    {                                })
+      .expectNotApplicable()
     )
 
-// checking `sσ ≻ tσ`
+// checking `sσ ≻ uσ`
 TEST_SIMPLIFICATION(demod_basic_05,
     ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
       .simplifyWith({    clause(   { isInt(f(x) + x)  }   ) })
@@ -244,10 +245,10 @@ TEST_SIMPLIFICATION(demod_basic_05,
       .expected    ({    clause(   { p(      f(a) + a ) }   ) })
     )
 
-// checking `sσ ≻ tσ`
+// checking `sσ ≻ uσ`
 TEST_SIMPLIFICATION(demod_basic_06,
     ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
       .simplifyWith({    clause(   { isInt(f(x) + f(y))  }   ) })
       .toSimplify  ({    clause(   { p(floor(f(a) + f(b))) }   ) })
-      .expected    ({                                         })
+      .expectNotApplicable()
     )
