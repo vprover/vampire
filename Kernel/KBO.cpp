@@ -162,6 +162,9 @@ void KBO::State::traverse(KBO const& kbo, AppliedTerm tt)
   }
 }
 
+template void KBO::State::traverse<1>(KBO const&, AppliedTerm);
+template void KBO::State::traverse<-1>(KBO const&, AppliedTerm);
+
 Ordering::Result KBO::State::traverseLexBidir(KBO const& kbo, AppliedTerm tl1, AppliedTerm tl2)
 {
   ASS(tl1.term.isTerm() && tl2.term.isTerm());
