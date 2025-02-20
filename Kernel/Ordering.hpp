@@ -136,6 +136,8 @@ public:
   static bool trySetGlobalOrdering(OrderingSP ordering);
   static bool unsetGlobalOrdering();
   static Ordering* tryGetGlobalOrdering();
+  /* if this is true some optimizations can be enabled */
+  virtual bool isAlascaLiteralOrdering() const { return false; }
 
   Result getEqualityArgumentOrder(Literal* eq) const;
 protected:

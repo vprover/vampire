@@ -85,12 +85,14 @@ TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned va
     if(_derefBindings.find(tvar, val)) {
       return val;
     }
-    //only bound values can be passed to this function
-    ALWAYS(_bindings.find(tvar, varBinding));
-
-    if(varBinding.isFinal()) {
-      ALWAYS(_derefBindings.insert(tvar, varBinding.t));
-      return varBinding.t;
+    if(_bindings.find(tvar, varBinding)) {
+      if(varBinding.isFinal()) {
+        ALWAYS(_derefBindings.insert(tvar, varBinding.t));
+        return varBinding.t;
+      }
+    } else {
+      /* we behave like identity function on unbound vars */
+      return TermList::var(var);
     }
   }
   static Stack<DerefTask> toDo;

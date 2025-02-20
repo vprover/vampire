@@ -90,10 +90,14 @@ struct SubstitutionTree<LeafData_>::GenMatcher::Applicator
   {
     TermList* cacheEntry;
     if(_cache.getValuePtr(var,cacheEntry)) {
-      ASS(_resultNormalizer->contains(var));
-      unsigned nvar=_resultNormalizer->get(var);
-      ASS(_parent->_bindings.find(nvar));
-      *cacheEntry=_parent->_bindings.get(nvar);
+      if(!_resultNormalizer->contains(var)) {
+        /* unbound variable. behave like identity subtitution for those */
+        *cacheEntry = TermList::var(var);
+      } else {
+        unsigned nvar=_resultNormalizer->get(var);
+        ASS(_parent->_bindings.find(nvar));
+        *cacheEntry=_parent->_bindings.get(nvar);
+      }
     }
     return *cacheEntry;
   }
@@ -121,6 +125,7 @@ public:
       delete _applicator;
     }
   }
+
 
   TermList applyToBoundResult(TermList t) final override
   { return SubstHelper::apply(t, *getApplicator()); }

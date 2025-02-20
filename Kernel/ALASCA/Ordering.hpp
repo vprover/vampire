@@ -401,6 +401,8 @@ public:
 
   virtual ~LiteralOrdering() {}
 
+  virtual bool isAlascaLiteralOrdering() const final override { return true; }
+
   Result compare(Literal* l1, Literal* l2) const override {
     auto atoms1 = atoms(l1);
     auto atoms2 = atoms(l2);

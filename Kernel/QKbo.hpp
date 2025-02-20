@@ -96,6 +96,7 @@ private:
   { return [this](auto const& l, auto const& r) { return this->compare(l, r); }; }
 
 public:
+  virtual bool isAlascaLiteralOrdering() const final override { return true; }
   template<class NumTraits>
   Recycled<MultiSet<TermList>> nfEquality(Literal* l) const
   {

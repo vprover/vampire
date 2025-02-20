@@ -123,7 +123,7 @@ public:
         testFail("fwd", e); 
       }
 
-      if (succ ) {
+      if (succ) {
         if (replacement) {
           results.push(replacement);
         }

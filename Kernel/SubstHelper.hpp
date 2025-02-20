@@ -450,6 +450,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     TermList tl=*tt;
     if(tl.isOrdinaryVar()) {
       TermList tDest=applicator.apply(tl.var());
+      ASS(!tDest.isEmpty())
       args->push(tDest);
       if(tDest!=tl) {
         modified->setTop(true);

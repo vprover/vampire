@@ -16,9 +16,11 @@
 #ifndef __ALASCA_Inferences_BinInf__
 #define __ALASCA_Inferences_BinInf__
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Lib/Reflection.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
@@ -319,9 +321,9 @@ public:
 
 /* rule of the shape
  *
- * Condition[key]       ToSimpl[key\sigma]
+ * Condition[key]       ToSimpl[key σ]
  * =======================================
- *           Concl[key\sigma]
+ *           Concl[key σ]
  *
  * where ToSimpl is becoming redundant
  */
@@ -337,6 +339,8 @@ struct BinSimpl
 private:
   std::shared_ptr<AlascaState> _shared;
   Rule _rule;
+  static_assert(std::is_same_v<ToSimpl  , ELEMENT_TYPE(decltype(ToSimpl::iter(assertionViolation<AlascaState&>(), assertionViolation<Clause*>())))>);
+  static_assert(std::is_same_v<Condition, ELEMENT_TYPE(decltype(Condition::iter(assertionViolation<AlascaState&>(), assertionViolation<Clause*>())))>);
   AlascaIndex<ToSimpl>* _toSimpl;
   AlascaIndex<Condition>* _condition;
   auto salg() const { return ForwardSimplificationEngine::_salg; }
@@ -393,6 +397,7 @@ public:
   static auto testConditionIdx() { return new AlascaIndex<Condition>(); }
 #endif
 
+
   /* forward */ 
   virtual bool perform(Clause* toSimpl, Clause*& concl, ClauseIterator& conditions) final override {
     for (auto simpl : ToSimpl::iter(*_shared, toSimpl)) {
@@ -411,18 +416,40 @@ public:
 
   /* backward */ 
   virtual void perform(Clause* condClause, BwSimplificationRecordIterator& simplifications) final override {
+
+    /* in some simplification diamond rewrites can happen.
+     * examples: clause p(f(a), f(b)) and f(x) = x
+     *
+     *   p(f(a), f(b)) -> p(a, f(b))
+     *       |               |
+     *       v               v
+     *   p(f(a), b)    -> p(a, b)
+     *
+     * we can block this by simplifying every clause only once with f(x) = x
+     */
+    auto _alreadySimplified = std::make_unique<Set<Clause*>>();
+    auto alreadySimplified = _alreadySimplified.get();
+
     simplifications = pvi(Condition::iter(*_shared, condClause)
-      .flatMap([condClause,this](auto cond) {
+      .flatMap([this,alreadySimplified](auto cond) {
           return _toSimpl->instances(cond.key(), /* retrieveSubstitution */ true)
-            .filterMap([this,cond](auto sigma_simpl) {
+            .filterMap([this,cond,alreadySimplified](auto sigma_simpl) -> Option<BwSimplificationRecord> {
                 auto& sigma = sigma_simpl.unifier;
                 auto& simpl = *sigma_simpl.data;
-                return _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundQuery(t); })
-                  .map([&](Clause* concl) {
-                      return BwSimplificationRecord(simpl.clause(), concl);
-                  });
+
+                if (alreadySimplified->contains(simpl.clause())) {
+                  return {};
+                }
+                if (auto concl = _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundQuery(t); })) {
+                  alreadySimplified->insert(simpl.clause());
+                  return some(BwSimplificationRecord(simpl.clause(), *concl));
+                } else {
+                  return {};
+                }
+
             });
-      }));
+      })
+      .store(std::move(_alreadySimplified)));
   }
 };  
 

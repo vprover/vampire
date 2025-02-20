@@ -886,6 +886,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "alasca coherence";
   case InferenceRule::ALASCA_COHERENCE_NORMALIZATION:
     return "alasca coherence normalization";
+  case InferenceRule::ALASCA_COHERENCE_DEMOD:
+    return "alasca coherence demodulation";
+  case InferenceRule::ALASCA_SUPERPOSITION_DEMOD:
+    return "alasca superposition demodulation";
   case InferenceRule::ALASCA_SUPERPOSITION:
     return "alasca superposition";
   case InferenceRule::ALASCA_LITERAL_FACTORING:

@@ -16,8 +16,6 @@
 #include "Test/FwdBwdSimplificationTester.hpp"
 #include "Test/AlascaTestUtils.hpp"
 
-// TODO rename FwdBwdSimplificationTester to SimplificationTester and SimplificationTester to  ImmediatesSimplificationTester
-
 using namespace std;
 using namespace Kernel;
 using namespace Inferences;
