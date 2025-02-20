@@ -143,16 +143,6 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case ALASCA_FWD_DEMODULATION_SUBST_TREE:
-    res = new AlascaIndex<ALASCA::Demodulation::Lhs>();
-    isGenerating = false;
-    break;
-
-  case ALASCA_BWD_DEMODULATION_SUBST_TREE:
-    res = new AlascaIndex<ALASCA::Demodulation::Rhs>();
-    isGenerating = false;
-    break;
-
   case ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE:
     res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Lhs>();
     isGenerating = true;

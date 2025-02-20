@@ -136,6 +136,7 @@ struct SuperpositionConf
            if (term.isVar()) {
              return VirtualIterator<Out>::getEmpty();
            } else {
+             // TODO get rid of vi and new here.
              return pvi(iterTraits(vi(new NonVariableNonTypeIterator(term.term(), includeSelf)))
                  // .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || AlascaState::globalState->isAtomic(t); })
                  .filter([](auto& t) { return AlascaState::globalState->isAtomic(t); })

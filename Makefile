@@ -287,8 +287,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ALASCA/VIRAS.o\
          Inferences/ALASCA/Superposition.o\
          Inferences/ALASCA/Demodulation.o\
-         Inferences/ALASCA/FwdDemodulation.o\
-         Inferences/ALASCA/BwdDemodulation.o\
          Inferences/ALASCA/FourierMotzkin.o\
          Inferences/ALASCA/TermFactoring.o\
          Inferences/TautologyDeletionISE.o\
