@@ -163,6 +163,16 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case ALASCA_COHERENCE_DEMOD_CONDITION_SUBST_TREE: 
+    res = new AlascaIndex<Inferences::ALASCA::SuperpositionDemodConf::Condition>();
+    isGenerating = false;
+    break;
+
+  case ALASCA_COHERENCE_DEMOD_TO_SIMPL_SUBST_TREE: 
+    res = new AlascaIndex<Inferences::ALASCA::SuperpositionDemodConf::ToSimpl>();
+    isGenerating = false;
+    break;
+
   case ALASCA_SUPERPOSITION_DEMOD_CONDITION_SUBST_TREE: 
     res = new AlascaIndex<Inferences::ALASCA::SuperpositionDemodConf::Condition>();
     isGenerating = false;

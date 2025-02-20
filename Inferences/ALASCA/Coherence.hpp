@@ -26,6 +26,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
+#include "Kernel/Theory.hpp"
 #include "Lib/STL.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Backtrackable.hpp"
@@ -50,6 +51,7 @@ struct CoherenceConf
 {
   using ASig = AlascaSignature<NumTraits>;
   using N = typename NumTraits::ConstantType;
+public:
   using SharedSum =  std::shared_ptr<RStack<std::pair<TermList, N>>>;
   static SharedSum toSum(AlascaState& shared, TermList t) {
     RStack<std::pair<TermList, N>> rstack; 
@@ -60,7 +62,6 @@ struct CoherenceConf
           .map([](auto monom) { return std::make_pair(monom.factors->denormalize(), monom.numeral); }));
     return SharedSum(move_to_heap(std::move(rstack)));
   }
-public:
 
   static const char* name() { return "alasca coherence"; }
 
@@ -121,7 +122,7 @@ public:
 
     auto contextLiterals() const { return self.contextLiterals(); }
     auto clause() const { return self.clause(); }
-    auto asTuple() const { return std::tie(self, toRewrite, sIdx); }
+    auto asTuple() const { return std::tie(self,  /* ks_t redundant */ toRewrite, sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Rhs);
 
     // TODO get rid of the need for a typed term list in this case
@@ -129,25 +130,64 @@ public:
     static const char* name() { return "alasca coherence rhs"; }
     static IndexType indexType() { return Indexing::ALASCA_COHERENCE_RHS_SUBST_TREE; }
 
+    static auto iterApplicableSummandsUnderFloor(AlascaState& shared, TermList toRewrite)
+    {
+      return iterTraits(ASig::ifFloor(toRewrite,
+        [&shared](auto ks_t_term) { 
+          auto ks_t = toSum(shared, ks_t_term);
+          return range(0, (*ks_t)->size())
+                .map([ks_t](unsigned sIdx) { return std::make_pair(ks_t, sIdx); })
+                .filter([](auto pair) { return !(*pair.first)[pair.second].first.isVar(); }); 
+        })
+        .intoIter()).flatten()
+       ; 
+    }
+
     static auto iter(AlascaState& shared, Clause* cl)
     {
       return iterTraits(ALASCA::Superposition::Rhs::iter(shared, cl))
-        .filterMap([&shared](auto rhs) { 
+        .flatMap([&shared](auto rhs) { 
             auto toRewrite = rhs.key();
-            return ASig::ifFloor(toRewrite,
-              [&shared, rhs, toRewrite](auto ks_t_term) { 
-                auto ks_t = toSum(shared, ks_t_term);
-                return range(0, (*ks_t)->size())
-                      .map([rhs,ks_t,toRewrite](unsigned sIdx) { return Rhs { rhs, toRewrite, ks_t, sIdx }; })
-                      .filter([](auto x) { return !x.key().isVar(); }); 
-              }); 
-            })
-        .flatten();
+            return iterApplicableSummandsUnderFloor(shared, toRewrite)
+              .map([rhs,toRewrite](auto pair) {
+                  return Rhs { rhs, toRewrite, pair.first, pair.second, };
+                  });
+              });
     }
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
     { return out << self.self << "@" << self.toRewrite << "@" << TermList(self.key()); }
   };
+
+  using Numeral = typename NumTraits::ConstantType;
+  static IntegerConstantType computeI(Numeral j, Numeral k) {
+    ASS(j > 0)
+
+    auto c = j.denominator().gcd(k.denominator());
+
+    // fx = den(x) / c
+    ASS(c.divides(j.denominator()))
+    ASS(c.divides(k.denominator()))
+    auto fj = j.denominator().intDivide(c);
+    auto fk = k.denominator().intDivide(c);
+
+    // v ≡ (num(j)fk)^{−1} mod c
+    auto v = (j.numerator() * fk).inverseModulo(c);
+
+    // z = ⌊k (1 - v num(j)fk)/num(j) ⌋
+    auto z = (k * (1 - v * j.numerator() * fk) / Numeral(j.numerator())).floor();
+
+    // i = fj (num(k)v + c z)
+    auto i = fj * (k.numerator() * v + c * z);
+
+
+    DEBUG_COHERENCE(1, "k = ", k)
+    DEBUG_COHERENCE(1, "j = ", j)
+    DEBUG_COHERENCE(1, "i = ", i)
+    DEBUG_COHERENCE(1, "k - i j = ", k - i * j)
+
+    return i;
+  }
 
   // lhs: C \/ ⌊...⌋ = j s + u
   // rhs: D \/ L[⌊k s + t⌋]
@@ -162,33 +202,11 @@ public:
 
 
     auto j = lhs.j();
-    ASS(j > 0)
     auto k = (**rhs.ks_t)[rhs.sIdx].second;
-
-    auto c = j.denominator().gcd(k.denominator());
-
-    // fx = den(x) / c
-    ASS(c.divides(j.denominator()))
-    ASS(c.divides(k.denominator()))
-    auto fj = j.denominator().intDivide(c);
-    auto fk = k.denominator().intDivide(c);
-
-    // v ≡ (num(j)fk)^{−1} mod c
-    auto v = (j.numerator() * fk).inverseModulo(c);
-
-    // z = ⌊k (1 - v num(j)fk)/num(j) ⌋
-    auto z = (k * (1 - v * j.numerator() * fk) / j.numerator()).floor();
-
-    // i = fj (num(k)v + c z)
-    auto i = fj * (k.numerator() * v + c * z);
-    DEBUG_COHERENCE(1, "k = ", k)
-    DEBUG_COHERENCE(1, "j = ", j)
-    DEBUG_COHERENCE(1, "i = ", i)
-    DEBUG_COHERENCE(1, "k - i j = ", k - i * j)
+    auto i = computeI(j, k);
 
     auto sigmaL = [&](auto t) { return uwa.subs().apply(t, lhsVarBank); };
     auto sigmaR = [&](auto t) { return uwa.subs().apply(t, rhsVarBank); };
-
 
     auto Lσ         = sigmaR(rhs.self.literal());
     auto toRewriteσ = sigmaR(rhs.toRewrite);

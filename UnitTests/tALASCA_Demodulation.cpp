@@ -45,7 +45,7 @@ using namespace Inferences::ALASCA;
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
 template<class Rule>
-inline auto ALASCA_Superposition_Demod_TestCase()  {
+inline auto ALASCA_Demod_TestCase()  {
   auto rule = move_to_heap(BinSimpl<Rule>(testAlascaState()));
   return FwdBwdSimplification::TestCase()
     .fwd(rule)
@@ -66,14 +66,14 @@ inline auto ALASCA_Superposition_Demod_TestCase()  {
 //////////////////////////////////////
 
 TEST_SIMPLIFICATION(basic01,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(a) - a  }   ) })
       .toSimplify  ({    clause(   { p(f(a))        }   ) })
       .expected(    {    clause(   { p(  a )        }   ) })
     )
 
 TEST_SIMPLIFICATION(basic01b,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == -f(a) + a  }   ) })
       .toSimplify  ({    clause(   { p(f(a))         }   ) })
       .expected(    {    clause(   { p(  a )         }   ) })
@@ -81,7 +81,7 @@ TEST_SIMPLIFICATION(basic01b,
 
 
 TEST_SIMPLIFICATION(basic02,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(a) - a   }   )
                     ,    clause(   { 0 == g(b,a) - b }   ) })
       .toSimplify  ({    clause(   { r(f(a), f(b))   }   ) })
@@ -90,28 +90,28 @@ TEST_SIMPLIFICATION(basic02,
     )
 
 TEST_SIMPLIFICATION(basic03,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(x) - x      }   ) })
       .toSimplify  ({    clause(   { r(f(a), f(b))      }   ) })
       .expected(    {    clause(   { r(f(a),   b )      }   ) })
     )
 
 TEST_SIMPLIFICATION(basic04,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(x) - x }   ) })
       .toSimplify  ({    clause(   { p(f(a))       }   ) , clause(   { p(f(b)) }   ) })
       .expected(    {    clause(   { p(  a )       }   ) , clause(   { p(  b ) }   ) })
     )
 
 TEST_SIMPLIFICATION(basic05,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(a) - a }   ), clause(   { 0 == f(b) - b }   ) })
       .toSimplify  ({    clause(   { p(f(a)) }         ), clause(   { p(f(b)) }         ) })
       .expected(    {    clause(   { p(  a ) }         ), clause(   { p(  b ) }         ) })
     )
 
 TEST_SIMPLIFICATION(basic06,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(a) - a }   ), clause(   { 0 == f(b) - b }   ) })
       .toSimplify  ({    clause(   { p(f(a)) }         ), clause(   { p(f(f(a))) }         ) })
       .expected(    {    clause(   { p(  a ) }         ), clause(   { p(  f(a) ) }         ) })
@@ -119,14 +119,14 @@ TEST_SIMPLIFICATION(basic06,
     )
 
 TEST_SIMPLIFICATION(basic07,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == g(a, x) - x      }   ) })
       .toSimplify  ({    clause(   { p(g(a,b))             }   ) })
       .expected(    {    clause(   { p(    b )             }   ) })
     )
 
 TEST_SIMPLIFICATION(basic08,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == g(a, x) - x      }   ) })
       .toSimplify  ({    clause(   { p(g(y,b))             }   ) })
       .expected(      { /* nothing */ })
@@ -134,7 +134,7 @@ TEST_SIMPLIFICATION(basic08,
     )
 
 TEST_SIMPLIFICATION(basic09,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == frac(1,3) * f(g(a,a)) - a  }   ) })
       .toSimplify  ({    clause(   { p( f(g(a,a)))                   }   ) })
       .expected(    {    clause(   { p(3 * a)                        }   ) })
@@ -142,7 +142,7 @@ TEST_SIMPLIFICATION(basic09,
 
 // checking `C[sσ] ≻ (±ks + t ≈ 0)σ`
 TEST_SIMPLIFICATION(ordering01,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(x) + g(x,x) }   ) })
       .toSimplify  ({    clause(   { 0 == g(a,a)    }   ) })
       .expected(    {                /* nothing */        })
@@ -151,7 +151,7 @@ TEST_SIMPLIFICATION(ordering01,
 
 // checking `sσ ≻ terms(t)σ`
 TEST_SIMPLIFICATION(ordering02,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == f(x) + g(y,y) }       ) })
       .toSimplify  ({    clause(   { 0 == g(a,a) + f(x) + a }   ) })
       .expected(    {                /* nothing */        })
@@ -160,21 +160,21 @@ TEST_SIMPLIFICATION(ordering02,
 
 // checking `sσ ≻ terms(t)σ`
 TEST_SIMPLIFICATION(sum01,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == x + g(x,x) + a }       ) })
       .toSimplify  ({    clause(   { p(g(f(f(a)),f(f(a))))  }   ) })
       .expected(    {    clause(   { p(    - a - f(f(a)) )  }   ) })
     )
 
 TEST_SIMPLIFICATION(sum02,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == x + g(x,x) }       ) })
       .toSimplify  ({    clause(   { p(g(f(f(a)),f(f(a))))  }   ) })
       .expected(    {    clause(   { p(    - f(f(a))     )  }   ) })
     )
 
 TEST_SIMPLIFICATION(sum03,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == a + g(x,x) }       ) })
       .toSimplify  ({    clause(   { p(g(f(f(a)),f(f(a))))  }   ) })
       .expected(    {    clause(   { p(    - a           )  }   ) })
@@ -182,7 +182,7 @@ TEST_SIMPLIFICATION(sum03,
 
 
 TEST_SIMPLIFICATION(bug01,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == g(x, y) - y  }   ) })
       .toSimplify  ({    clause(   { p(g(z,a))         }   ) })
       .expected(    {    clause(   { p(    a )         }   ) })
@@ -190,7 +190,7 @@ TEST_SIMPLIFICATION(bug01,
 
 
 TEST_SIMPLIFICATION(misc01,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == a  }   ) })
       .toSimplify  ({    clause(   { ~p0(), a == b }   ) })
       .expected(    {    clause(   { ~p0(), b == 0 }   ) })
@@ -198,9 +198,56 @@ TEST_SIMPLIFICATION(misc01,
 
 
 TEST_SIMPLIFICATION(misc02,
-    ALASCA_Superposition_Demod_TestCase<SuperpositionDemodConf>()
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == b  }   ) })
       .toSimplify  ({    clause(   { ~p0(), a == b }   ) })
       .expected(    {    clause(   { ~p0(), a == 0 }   ) })
     )
 
+
+TEST_SIMPLIFICATION(demod_basic_01,
+    ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
+      .simplifyWith({    clause(   { isInt(f(x))  }   ) })
+      .toSimplify  ({    clause(   { p(floor(f(a))) }   ) })
+      .expected(    {    clause(   { p(f(a)) }   ) })
+    )
+
+
+TEST_SIMPLIFICATION(demod_basic_02,
+    ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
+      .simplifyWith({    clause(   { isInt(f(x))  }   ) })
+      .toSimplify  ({    clause(   { floor(f(a)) != a }   ) })
+      .expected(    {    clause(   { f(a) != a }   ) })
+    )
+
+
+// checking `C[sσ] ≻ isInt(s + t)σ`
+TEST_SIMPLIFICATION(demod_basic_03,
+    ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
+      .simplifyWith({    clause(   { isInt(f(x))  }   ) })
+      .toSimplify  ({    clause(   { floor(f(a)) == a }   ) })
+      .expected(    {                                })
+    )
+
+TEST_SIMPLIFICATION(demod_basic_04,
+    ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
+      .simplifyWith({    clause(   { isInt(f(a))  }   ) })
+      .toSimplify  ({    clause(   { floor(f(x)) != x }   ) })
+      .expected(    {                                })
+    )
+
+// checking `sσ ≻ tσ`
+TEST_SIMPLIFICATION(demod_basic_05,
+    ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
+      .simplifyWith({    clause(   { isInt(f(x) + x)  }   ) })
+      .toSimplify  ({    clause(   { p(floor(f(a) + a)) }   ) })
+      .expected    ({    clause(   { p(      f(a) + a ) }   ) })
+    )
+
+// checking `sσ ≻ tσ`
+TEST_SIMPLIFICATION(demod_basic_06,
+    ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
+      .simplifyWith({    clause(   { isInt(f(x) + f(y))  }   ) })
+      .toSimplify  ({    clause(   { p(floor(f(a) + f(b))) }   ) })
+      .expected    ({                                         })
+    )
