@@ -88,7 +88,11 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   // (no randomness in parsing, for the peace of mind - parsing was done by the master process!)
   // the main reason being that we want to stay in sync with what vampire mode does
   // cf getPreprocessedProblem in vampire.cpp
-  Lib::Random::setSeed(opt.randomSeed());
+  if (opt.randomSeed() != 0) {
+    Lib::Random::setSeed(opt.randomSeed());
+  } else {
+    Lib::Random::resetSeed();
+  }
 
   try
   {

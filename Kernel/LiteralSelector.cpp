@@ -202,27 +202,29 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
   }
 
   unsigned eligible=1;
-  int maxPriority=getSelectionPriority((*c)[0]);
-  bool modified=false;
+  { /* we order the clause so that the literals with highest `getSelectionPriority` are in the front, and eligible is the number of literals with that selection priority */ 
+    int maxPriority=getSelectionPriority((*c)[0]);
+    bool modified=false;
 
-  for (unsigned i = 1; i < eligibleInp; i++) {
-    int priority = getSelectionPriority((*c)[i]);
-    if (priority == maxPriority) {
-      if (eligible != i) {
-        swap((*c)[i], (*c)[eligible]);
+    for (unsigned i = 1; i < eligibleInp; i++) {
+      int priority = getSelectionPriority((*c)[i]);
+      if (priority == maxPriority) {
+        if (eligible != i) {
+          swap((*c)[i], (*c)[eligible]);
+          modified = true;
+        }
+        eligible++;
+      } else if (priority > maxPriority) {
+        maxPriority = priority;
+        eligible = 1;
+        swap((*c)[i], (*c)[0]);
         modified = true;
       }
-      eligible++;
-    } else if (priority > maxPriority) {
-      maxPriority = priority;
-      eligible = 1;
-      swap((*c)[i], (*c)[0]);
-      modified = true;
     }
-  }
-  ASS_LE(eligible,eligibleInp);
-  if(modified) {
-    c->notifyLiteralReorder();
+    ASS_LE(eligible,eligibleInp);
+    if(modified) {
+      c->notifyLiteralReorder();
+    }
   }
 
   if(eligible==1) {

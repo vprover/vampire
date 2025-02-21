@@ -65,7 +65,7 @@ using namespace SAT;
 using SortId = SAT::Z3Interfacing::SortId;
 
 TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
-    opts.theoryInstAndSimp(), 
+    opts.theoryInstAndSimp(),
     opts.thiTautologyDeletion(), 
     opts.showZ3(),  
     opts.thiGeneralise(),
@@ -88,7 +88,7 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Shell::Options::ProblemExportSyntax problemExportSyntax) 
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
@@ -968,9 +968,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 }
 
-std::ostream& operator<<(std::ostream& out, Solution const& self) 
-{ return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
 
-}
+} // namespace Inferences
+
+std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self) 
+{ return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
 
 #endif

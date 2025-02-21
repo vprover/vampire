@@ -325,7 +325,7 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
   if(f==newForm) {
     return unit;
   }
-  return new FormulaUnit(newForm, FormulaTransformation(_rule, unit));
+  return new FormulaUnit(newForm, FormulaClauseTransformation(_rule, unit));
 }
 
 

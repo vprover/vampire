@@ -14,7 +14,6 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
-#define DEBUG_INSERT(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 #define DEBUG_REMOVE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 #include <utility>
 
@@ -198,12 +197,8 @@ start:
   pnode=inode->childByTop(term.top(),true);
 
   if (*pnode == 0) {
-    BindingMap::Iterator svit(svBindings);
     BinaryHeap<Binding, BindingComparator<LeafData_>> remainingBindings;
-    while (svit.hasNext()) {
-      unsigned var;
-      TermList term;
-      svit.next(var, term);
+    for (auto [var, term] : iterTraits(svBindings.items())) {
       remainingBindings.insert(Binding(var, term));
     }
     while (!remainingBindings.isEmpty()) {

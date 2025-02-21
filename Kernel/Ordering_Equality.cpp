@@ -44,7 +44,8 @@ Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2) const
     return compare(s1,t1);
   }
 
-  switch(compare(s1,t1)) {
+  auto cmp = compare(s1,t1);
+  switch(cmp) {
   case GREATER:
     return compare_s1Gt1(s1,s2,t1,t2);
   case INCOMPARABLE:
@@ -178,4 +179,4 @@ Ordering::Result Ordering::compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,Ter
   }
 }
 
-}
+} // namespace Kernel

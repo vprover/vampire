@@ -225,6 +225,15 @@ void Options::init()
     _sampleStrategy.setExperimental();
     _sampleStrategy.tag(OptionTag::DEVELOPMENT);
 
+    _randomStrategySeed = UnsignedOptionValue("random_strategy_seed","",0);
+    _randomStrategySeed.description="Sets the seed for generating random strategies."
+      " This option is necessary because --random_seed <value> will be included as a fixed value in the generated random strategy,"
+      " hence won't have any effect on the random strategy generation. Set to non-0 for this to have effect; the default 0 still calls a random_device.";
+    _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
+    _randomStrategySeed.setExperimental();
+    _lookup.insert(&_randomStrategySeed);
+    _randomStrategySeed.tag(OptionTag::INPUT);
+
     _forbiddenOptions = StringOptionValue("forbidden_options","","");
     _forbiddenOptions.description=
     "If some of the specified options are set to a forbidden state, vampire will fail to start, or in portfolio modes it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>";
@@ -292,7 +301,7 @@ void Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck"});
     _proof.description=
       "Specifies whether proof (or similar e.g. model/saturation) will be output and in which format:\n"
       "- off gives no proof output\n"
@@ -1169,6 +1178,7 @@ void Options::init()
     _theoryInstAndSimp.addProblemConstraint(hasTheories());
     _lookup.insert(&_theoryInstAndSimp);
 
+
     _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
     _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice. "
     "\n"
@@ -1196,8 +1206,8 @@ void Options::init()
 #endif
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
-                                     UnificationWithAbstraction::OFF,
-                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2"});
+                                      UnificationWithAbstraction::OFF,
+                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1208,6 +1218,8 @@ void Options::init()
       "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
       "- all: always apply\n"
       "- ground: only if both s and t are ground\n"
+      "- alasca_one_interp, alasca_can_abstract, alasca_main: strategies used for the real-arithmetic version of alasca. these are described in  the LPAR2023 paper  \"Refining Unification with Abstraction\""
+      "- alasca_main_floor: an extension of the alasca_main strategy to work with mixed integer-real arithmetic. this option is experimental\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
@@ -1221,6 +1233,7 @@ void Options::init()
     _useACeval = BoolOptionValue("use_ac_eval","uace",true);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
     _useACeval.tag(OptionTag::THEORIES);
+    _useACeval.onlyUsefulWith(_alasca.is(equal(false)));
     _lookup.insert(&_useACeval);
 
     _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
@@ -1259,6 +1272,72 @@ void Options::init()
     _pushUnaryMinus.addProblemConstraint(hasTheories());
     _pushUnaryMinus.tag(OptionTag::THEORIES);
 
+    auto addRecommendationConstraint = [](auto& opt, auto constr) { };
+
+    _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",false);
+    _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n";
+    _lookup.insert(&_alasca);
+    _alasca.tag(OptionTag::INFERENCES);
+    _alasca.setExperimental();
+    addRecommendationConstraint(_alasca, Or(
+           _termOrdering.is(equal(TermOrdering::QKBO)),
+           _termOrdering.is(equal(TermOrdering::LAKBO)),
+           _termOrdering.is(equal(TermOrdering::ALL_INCOMPARABLE))
+           ));
+    addRecommendationConstraint(_alasca, _cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+    addRecommendationConstraint(_alasca, _highSchool.is(equal(false)));
+    addRecommendationConstraint(_alasca, _unificationWithAbstraction.is(Or(
+              equal(UnificationWithAbstraction::ALASCA_CAN_ABSTRACT)
+            , equal(UnificationWithAbstraction::ALASCA_MAIN)
+            , equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)
+            , equal(UnificationWithAbstraction::ALASCA_ONE_INTERP)
+            )));
+
+    _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
+    _viras.description= "Enables the VIRAS quantifier elimination to be used in ALASCA. The VIRAS method is explained in the LPAR2024 paper \"VIRAS: Conflict-Driven Quantifier Elimination for Integer-Real Arithmetic\"\n";
+    _lookup.insert(&_viras);
+    _viras.tag(OptionTag::INFERENCES);
+    _viras.setExperimental();
+    _viras.onlyUsefulWith(_alasca.is(equal(true)));
+
+    _alascaDemodulation  = BoolOptionValue("alasca_demodulation","alasca_demod",false);
+    _alascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
+    _lookup.insert(&_alascaDemodulation);
+    _alascaDemodulation.tag(OptionTag::INFERENCES);
+    _alascaDemodulation.setExperimental();
+    _alascaDemodulation.onlyUsefulWith(_alasca.is(equal(true)));
+
+    _alascaStrongNormalization  = BoolOptionValue("alasca_strong_normalziation","alasca_sn",false);
+    _alascaStrongNormalization.description=
+            "enables stronger normalizations for inequalities: \n"
+            "s >= 0 ==> s > 0 \\/  s == 0\n"
+            "s != 0 ==> s > 0 \\/ -s  > 0\n"
+            "\n";
+    _lookup.insert(&_alascaStrongNormalization);
+    _alascaStrongNormalization.tag(OptionTag::INFERENCES);
+    _alascaStrongNormalization.onlyUsefulWith(_alasca.is(equal(true)));
+
+
+    _alascaIntegerConversion  = BoolOptionValue("alasca_integer_conversion","alascai",false);
+    _alascaIntegerConversion.description=
+            "enables converting integer problems into LIRA problems where there is only the sort of reals by"
+            "replacing integer variables with floor functions and transforming the signature appropriately"
+            "\n";
+    _lookup.insert(&_alascaIntegerConversion);
+    _alascaIntegerConversion.setExperimental();
+    _alascaIntegerConversion.tag(OptionTag::INFERENCES);
+    _alascaIntegerConversion.onlyUsefulWith(_alasca.is(equal(true)));
+    addRecommendationConstraint(_alascaIntegerConversion, _unificationWithAbstraction.is(equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)));
+
+    _alascaAbstraction  = BoolOptionValue("alasca_abstraction","alascaa",false);
+    _alascaAbstraction.description=
+            "Enables the alasca abstraction rule. This is an experimental rule not yet finished."
+            "\n";
+    _lookup.insert(&_alascaAbstraction);
+    _alascaAbstraction.tag(OptionTag::INFERENCES);
+    _alascaAbstraction.setExperimental();
+    _alascaAbstraction.onlyUsefulWith(_alasca.is(equal(true)));
+
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
        ArithmeticSimplificationMode::OFF);
@@ -1296,7 +1375,7 @@ void Options::init()
 
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
-                                                        {"simple","force","cautious"});
+                                                        {"off","simple","force","cautious"});
     _evaluationMode.description=
     "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
                                  \
@@ -2044,6 +2123,8 @@ void Options::init()
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
                                                   then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
+    _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
+                                                  then(_termOrdering.is(notEqual(TermOrdering::ALL_INCOMPARABLE))));
 
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
@@ -2161,6 +2242,7 @@ void Options::init()
     _satSolver.tag(OptionTag::SAT);
 
 #if VZ3
+
     _satFallbackForSMT = BoolOptionValue("sat_fallback_for_smt","sffsmt",false);
     _satFallbackForSMT.description="If using z3 run a sat solver alongside to use if the smt"
        " solver returns unknown at any point";
@@ -2246,7 +2328,8 @@ void Options::init()
     _questionAnsweringAvoidThese.tag(OptionTag::OTHER);
 
     _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
-    _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed.";
+    _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed."
+      " Use the non-default value 0 to have vampire query a random_device for always different behaviour.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
@@ -2256,10 +2339,20 @@ void Options::init()
     _activationLimit.tag(OptionTag::SATURATION);
 
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
-                                                    {"kbo","lpo"});
-    _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
+                                                    {"kbo","lpo","qkbo", "lakbo", "incomp"});
+    _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
+      "\n"
+      "possible values:\n"
+      "- kbo: Knuth-Bendix Ordering\n"
+      "- lpo: Lexicographical Path Ordering\n"
+      "- qkbo: QKBO ordering as described in the TACAS 2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n"
+      "- lakbo: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
+      ;
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());
     _termOrdering.tag(OptionTag::SATURATION);
+    _termOrdering.addHardConstraint(
+        If(Or(equal(TermOrdering::QKBO), equal(TermOrdering::LAKBO)))
+          .then(_alasca.is(equal(true)))); // <- alasca must be enabled, because the orderings rely on AlascaState to be set
     _lookup.insert(&_termOrdering);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
@@ -3019,7 +3112,9 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
   }
 
   // our local randomizing engine (randomly seeded)
-  std::mt19937 rng((std::random_device())());
+  auto rng = _randomStrategySeed.actualValue == 0
+    ? std::mt19937((std::random_device())())
+    : std::mt19937(_randomStrategySeed.actualValue);
   // map of local variables (fake options)
   DHMap<std::string,std::string> fakes;
 

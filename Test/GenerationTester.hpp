@@ -69,6 +69,12 @@ public:
       });
   }
 
+  template<class F>
+  ContainsStackMatcher mapClauses(F fun) const {
+    return ContainsStackMatcher(arrayIter(_patterns)
+        .map([&](auto& c) { return c.mapClauses(fun); })
+        .template collect<Stack>()); }
+
   friend std::ostream& operator<<(std::ostream& out, ContainsStackMatcher const& self)
   { return out << "contains: " << self._patterns; }
 };
@@ -83,6 +89,12 @@ class ExactlyStackMatcher {
 public:
   ExactlyStackMatcher(Stack<ClausePattern> self) : _patterns(self) {}
 
+  template<class F>
+  ExactlyStackMatcher mapClauses(F fun) const {
+    return ExactlyStackMatcher(arrayIter(_patterns)
+        .map([&](auto& c) { return c.mapClauses(fun); })
+        .template collect<Stack>()); }
+
   template<class Rule>
   bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
   { return TestUtils::permEq(_patterns, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); }); }
@@ -95,6 +107,10 @@ class TodoStackMatcher {
 
 public:
   TodoStackMatcher() {}
+
+  template<class F>
+  TodoStackMatcher mapClauses(F fun) const 
+  { return TodoStackMatcher(); }
 
   template<class Rule>
   bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
@@ -110,8 +126,11 @@ class WithoutDuplicatesMatcher {
 public:
   WithoutDuplicatesMatcher(std::shared_ptr<StackMatcher> m) : _inner(std::move(m)) {}
 
+  template<class F>
+  WithoutDuplicatesMatcher mapClauses(F fun) const;
+
   template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) ;
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl);
 
   friend std::ostream& operator<<(std::ostream& out, WithoutDuplicatesMatcher const& self)
   { return out << "without duplicates: " << *self._inner; }
@@ -123,10 +142,15 @@ using AnyStackMatcher = Coproduct< ContainsStackMatcher
                                  , ExactlyStackMatcher
                                  , TodoStackMatcher>;
 
-class StackMatcher: public AnyStackMatcher {
+class StackMatcher
+  : public AnyStackMatcher {
 public:
   StackMatcher(std::initializer_list<ClausePattern> clauses) : StackMatcher(ExactlyStackMatcher(Stack<ClausePattern>(clauses))) {}
   template<class C> StackMatcher(C c) : AnyStackMatcher(std::move(c)) {}
+
+  template<class F>
+  StackMatcher mapClauses(F fun) const 
+  { return apply([&](auto x) { return StackMatcher(x.mapClauses(fun)); }); }
 
   template<class Rule>
   bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
@@ -136,12 +160,26 @@ public:
   { return self.apply([&](auto& inner) -> decltype(auto) { return out << inner; }); }
 };
 
+template<class F>
+WithoutDuplicatesMatcher WithoutDuplicatesMatcher::mapClauses(F fun) const 
+{ return make_shared(_inner->mapClauses(fun)); }
+
 
 template<class Rule>
 bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl)
-{ sRes.sort();
-  sRes.dedup();
-  return _inner->matches(std::move(sRes), simpl); 
+{ 
+  Stack<Stack<Literal*>> clauses;
+  for (auto c : sRes) {
+    clauses.push(c->iterLits().collect<Stack<Literal*>>().sorted());
+  }
+  clauses.sort();
+  clauses.dedup();
+  Stack<Kernel::Clause*> newRes;
+  for (auto& c : clauses) {
+    newRes.push(Clause::fromStack(c, Inference(FromInput(UnitInputType::ASSUMPTION))));
+  }
+
+  return _inner->matches(std::move(newRes), simpl); 
 }
 
 template<class... As>
@@ -153,6 +191,7 @@ inline StackMatcher EXPECTED_TODO()
 
 inline StackMatcher withoutDuplicates(StackMatcher inner) 
 { return WithoutDuplicatesMatcher(std::shared_ptr<StackMatcher>(move_to_heap(std::move(inner)))); }
+
 
 template<class... As>
 StackMatcher contains(As... as) 
@@ -330,6 +369,7 @@ public:
     // // tear down saturation algorithm
     rule.InferenceEngine::detach();
 
+    Ordering::unsetGlobalOrdering();
   }
 };
 
