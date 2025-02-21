@@ -66,6 +66,20 @@ static std::ostream &operator<<(std::ostream &out, SMTNumeral<real> num) {
     return out << num.constant << (real ? ".0" : "");
 }
 
+struct Escaped {
+  const std::string &name;
+};
+
+static std::ostream &operator<<(std::ostream &out, Escaped escaped) {
+  out << "|_";
+  for(char c : escaped.name)
+    if(c == '|')
+      out << '#';
+    else
+      out << c;
+  return out << '|';
+}
+
 struct FunctionName {
   FunctionName(Signature::Symbol *symbol) : symbol(symbol) {}
   FunctionName(Term *t) : FunctionName(env.signature->getFunction(t->functor())) {}
@@ -75,7 +89,7 @@ struct FunctionName {
 static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   auto f = name.symbol;
   if(!f->interpreted())
-    return out << "|_" << f->name() << '|';
+    return out << Escaped {f->name()};
   if(f->integerConstant())
     return out << SMTNumeral<false> {f->integerValue()};
   if(f->rationalConstant() || f->realConstant()) {
@@ -200,7 +214,7 @@ struct PredicateName {
 static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   auto p = name.symbol;
   if(!p->interpreted())
-    return out << "|_" << p->name() << '|';
+    return out << Escaped {p->name()};
   auto *interpreted = static_cast<Signature::InterpretedSymbol *>(p);
   switch(interpreted->getInterpretation()) {
   case Theory::EQUAL:
