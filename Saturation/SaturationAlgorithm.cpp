@@ -1562,9 +1562,13 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         );
     if (env.options->alascaDemodulationFwd()) {
       res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
+      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
+      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
     }
     if (env.options->alascaDemodulationBwd()) {
       res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
+      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
+      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
     // TODO add an option for this

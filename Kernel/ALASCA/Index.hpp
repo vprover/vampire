@@ -63,12 +63,14 @@ public:
   auto instances(TypedTermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
-#define INSERT_FIND_ASSERTION 0
+#define INSERT_FIND_ASSERTION 1
 
   virtual void handleClause(Clause* c, bool adding) final override
   {
     TIME_TRACE(_maintainanceStr.c_str())
+    auto mode = adding ? "adding" : "removing";
     for (auto appl : T::iter(*_shared, c)) {
+      DBG(T::name(), " ", this, " ", mode, ": ", appl)
       if (adding) {
 #if INSERT_FIND_ASSERTION
         DEBUG_CODE( auto k = appl.key(); )
@@ -86,6 +88,8 @@ public:
     }
   }
 
+  friend std::ostream& operator<<(std::ostream& out, AlascaIndex const& self)
+  { return out << self._index; }
 private:
   GenSubstitutionTree<T> _index;
   std::shared_ptr<Kernel::AlascaState> _shared;

@@ -341,7 +341,7 @@ struct NumTraits;
     static bool isNumeral(TermOrFunctor t, ConstantType n) { return tryNumeral(t) == some(n); }     \
     template<class Term, class F>                                                         \
     static auto ifNumeral(Term t, F fun) -> Option<std::invoke_result_t<F, ConstantType const&>> \
-    { return tryNumeral(t).map([&](ConstantType const& n) { return fun(n); }); }      \
+    { return tryNumeral(t).map([&](ConstantType const& n) { return fun(n); }); }          \
     static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }          \
                                                                                           \
     static const char* name() {return #CamelCase;}                                        \
@@ -360,6 +360,11 @@ struct NumTraits;
 IMPL_NUM_TRAITS(Rational, rational, RATIONAL, RAT )
 IMPL_NUM_TRAITS(Real    , real    , REAL    , REAL)
 IMPL_NUM_TRAITS(Integer , int     , INTEGER , INT )
+
+#define FOR_NUM_TRAITS_PREFIX(macro)                                                      \
+  macro(Int)                                                                              \
+  macro(Real)                                                                             \
+  macro(Rat)                                                                              \
 
 #define FOR_NUM_TRAITS(macro)                                                             \
   macro(Kernel::NumTraits<Kernel:: IntegerConstantType>)                                  \

@@ -13,6 +13,7 @@
  */
 
 #include "Indexing/Index.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Lib/Exception.hpp"
 
 #include "Kernel/Grounder.hpp"
@@ -163,15 +164,19 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case ALASCA_COHERENCE_DEMOD_CONDITION_SUBST_TREE: 
-    res = new AlascaIndex<Inferences::ALASCA::SuperpositionDemodConf::Condition>();
-    isGenerating = false;
-    break;
+#define FOR_NUM(Num)                                                                      \
+  case ALASCA_COHERENCE_DEMOD_CONDITION_SUBST_TREE_ ## Num:                               \
+    res = new AlascaIndex<Inferences::ALASCA::CoherenceDemodConf<Num ## Traits>::Condition>(); \
+    isGenerating = false;                                                                 \
+    break;                                                                                \
+                                                                                          \
+  case ALASCA_COHERENCE_DEMOD_TO_SIMPL_SUBST_TREE_ ## Num:                                \
+    res = new AlascaIndex<Inferences::ALASCA::CoherenceDemodConf<Num ## Traits>::ToSimpl>(); \
+    isGenerating = false;                                                                 \
+    break;                                                                                \
 
-  case ALASCA_COHERENCE_DEMOD_TO_SIMPL_SUBST_TREE: 
-    res = new AlascaIndex<Inferences::ALASCA::SuperpositionDemodConf::ToSimpl>();
-    isGenerating = false;
-    break;
+    FOR_NUM_TRAITS_PREFIX(FOR_NUM)
+#undef FOR_NUM
 
   case ALASCA_SUPERPOSITION_DEMOD_CONDITION_SUBST_TREE: 
     res = new AlascaIndex<Inferences::ALASCA::SuperpositionDemodConf::Condition>();

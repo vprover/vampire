@@ -179,7 +179,15 @@ struct CoherenceDemodConf
                               return Condition { .self = std::move(lhs), }; }); }); }
 
     static const char* name() { return "coherence demod condition"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_DEMOD_CONDITION_SUBST_TREE; }
+
+#define FOR_NUM(Num)                                                                      \
+    static IndexType indexType(Num ## Traits) { return Indexing::ALASCA_COHERENCE_DEMOD_CONDITION_SUBST_TREE_ ## Num; }
+    FOR_NUM_TRAITS_PREFIX(FOR_NUM)
+#undef FOR_NUM
+
+    static IndexType indexType() { return indexType(NumTraits{}); }
+
+
   };
 
   // a clause of the form D \/ L[⌊k s + t⌋]
@@ -220,7 +228,14 @@ struct CoherenceDemodConf
     }
 
     static const char* name() { return "coherence demod toSimpl"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_DEMOD_TO_SIMPL_SUBST_TREE; }
+
+#define FOR_NUM(Num)                                                                      \
+    static IndexType indexType(Num ## Traits) { return Indexing::ALASCA_COHERENCE_DEMOD_TO_SIMPL_SUBST_TREE_ ## Num; }
+    FOR_NUM_TRAITS_PREFIX(FOR_NUM)
+#undef FOR_NUM
+
+    static IndexType indexType() { return indexType(NumTraits{}); }
+
   };
   using ASig = AlascaSignature<NumTraits>;
 
