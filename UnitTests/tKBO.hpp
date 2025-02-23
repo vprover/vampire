@@ -8,12 +8,6 @@
  * and in the source directory
  */
 
-inline DArray<int> predLevels() {
-  DArray<int> out(env.signature->predicates());
-  out.init(out.size(), 1);
-  return out;
-}
-
 using namespace Kernel;
 
 template<class SigTraits>
@@ -28,7 +22,7 @@ inline KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboS
     out[i] = w == NULL ? df.symbolWeight(i) : *w;
   }
   return  {
-    ._weights = out,
+    ._weights = out.clone(),
     ._introducedSymbolWeight = introducedSymbolWeight,
     ._specialWeights         = ws,
   };

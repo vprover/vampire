@@ -68,13 +68,13 @@ bool ForwardDeletionByRule::perform(Clause* cl, Clause*& replacement, ClauseIter
       }
 
       TermList rhs=qr.data->rhs;
-      if (!ord.isGreater(TermList(lhs),rhs)) {
+      if (ord.compareUnidirectional(TermList(lhs),rhs)!=Ordering::GREATER) {
         continue;
       }
       premises = pvi(getSingletonIterator(qr.data->clause));
       if (info.rhs.isNonEmpty()) {
         auto rhsS = qr.unifier->applyToBoundResult(rhs);
-        if (!ord.isGreater(info.rhs,rhsS)) {
+        if (ord.compareUnidirectional(info.rhs,rhsS)!=Ordering::GREATER) {
           continue;
         }
         // std::cout << *lhs << " " << info.rhs << " " << rhs << " " << rhsS << std::endl;
@@ -159,7 +159,7 @@ struct BackwardDeletionByRuleResultFn
       rhsS=qr.unifier->applyToBoundQuery(rhs);
     }
 
-    if(!_ordering.isGreater(lhsS,rhsS)) {
+    if(_ordering.compareUnidirectional(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(nullptr);
     }
 

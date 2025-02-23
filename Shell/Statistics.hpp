@@ -245,7 +245,7 @@ public:
   unsigned taAcyclicityGeneratedDisequalities;
 
   // Saturation
-  unsigned activations;
+  unsigned activations = 0; // This is not a mere stat, it is also used for LRS estimation!
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */
@@ -304,6 +304,8 @@ public:
     UNKNOWN,
     /** time limit reached */
     TIME_LIMIT,
+    /** instruction limit reached */
+    INSTRUCTION_LIMIT,
     /** memory limit reached */
     MEMORY_LIMIT,
     /** activation limit reached */
@@ -324,6 +326,8 @@ public:
         return out << "UNKNOWN";
       case TIME_LIMIT:
         return out << "TIME_LIMIT";
+      case INSTRUCTION_LIMIT:
+        return out << "INSTRUCTION_LIMIT";
       case MEMORY_LIMIT:
         return out << "MEMORY_LIMIT";
       case ACTIVATION_LIMIT:

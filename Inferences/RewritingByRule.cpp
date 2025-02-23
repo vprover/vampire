@@ -168,7 +168,7 @@ Clause* DemodulationByRule::simplify(Clause* c)
         continue;
       }
       TermList lhs(st);
-      if (!ord.isGreater(lhs,rhs)) {
+      if (ord.compareUnidirectional(lhs,rhs)!=Ordering::GREATER) {
         continue;
       }
       if (lit->isEquality() && (lit->termArg(0) == lhs || lit->termArg(1) == lhs)) {

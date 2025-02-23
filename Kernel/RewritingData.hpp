@@ -117,7 +117,7 @@ public:
         continue;
       }
       lhs = f(TermList(lhs)).term();
-      if (rwTerm && !_ord.isGreater(TermList(rwTerm), TermList(lhs))) {
+      if (rwTerm && _ord.compareUnidirectional(TermList(rwTerm), TermList(lhs))!=Ordering::GREATER) {
         continue;
       }
       if (!other) {

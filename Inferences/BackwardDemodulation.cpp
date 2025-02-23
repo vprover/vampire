@@ -145,7 +145,7 @@ struct BackwardDemodulation::ResultFn
 
     TermList lhsS=qr.data->term;
 
-    if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
+    if (_ordering.compareUnidirectional(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
     }
 
@@ -186,21 +186,22 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    auto res = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl));
+    env.statistics->backwardDemodulations++;
+    _removed->insert(qr.data->clause);
+    Clause *replacement = Clause::fromStack(
+      *resLits,
+      SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)
+    );
     if (_diamondBreaking) {
       TIME_TRACE("diamond-breaking");
       if (qr.data->clause->rewritingData()) {
-        res->setRewritingData(new RewritingData(_ordering));
-        res->rewritingData()->copyRewriteRules(qr.data->clause->rewritingData());
+        replacement->setRewritingData(new RewritingData(_ordering));
+        replacement->rewritingData()->copyRewriteRules(qr.data->clause->rewritingData());
       }
     }
-
-    env.statistics->backwardDemodulations++;
-    _removed->insert(qr.data->clause);
-
-    return BwSimplificationRecord(
-      qr.data->clause,
-      res);
+    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+      env.proofExtra.insert(replacement, new BackwardDemodulationExtra(lhs, lhsS));
+    return BwSimplificationRecord(qr.data->clause, replacement);
   }
 private:
   Literal* _eqLit;

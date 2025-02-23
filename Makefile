@@ -77,11 +77,11 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I.
+INCLUDES= -I. -I/opt/local/include
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
-INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++
+INCLUDES= -I. -I/opt/local/include -Iz3/src/api -Iz3/src/api/c++
 # ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 # Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 # else
@@ -167,7 +167,6 @@ VLS_OBJ= Lib/Sys/Multiprocessing.o
 
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
-        Kernel/ColorHelper.o\
         Kernel/EqHelper.o\
         Kernel/FlatTerm.o\
         Kernel/Formula.o\
@@ -194,7 +193,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
+        Kernel/OrderingComparator.o\
         Kernel/Ordering_Equality.o\
+        Kernel/PartialOrdering.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RewritingData.o\
@@ -207,9 +208,10 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
-	Kernel/PolynomialNormalizer.o\
-	Kernel/Polynomial.o\
+        Kernel/PolynomialNormalizer.o\
+        Kernel/Polynomial.o\
         Kernel/TermIterators.o\
+        Kernel/TermPartialOrdering.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
         Kernel/Signature.o\
@@ -239,6 +241,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionAndResolution.o\
          Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
+         Inferences/CodeTreeForwardSubsumptionAndResolution.o\
          Inferences/Condensation.o\
          Inferences/DemodulationHelper.o\
          Inferences/DistinctEqualitySimplifier.o\
@@ -292,6 +295,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
+         Inferences/ProofExtra.o\
          SATSubsumption/SATSubsumptionAndResolution.o\
          SATSubsumption/subsat/constraint.o\
          SATSubsumption/subsat/log.o\
@@ -308,8 +312,8 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
-VST_OBJ= Saturation/AWPassiveClauseContainer.o\
-         Saturation/PredicateSplitPassiveClauseContainer.o\
+VST_OBJ= Saturation/AWPassiveClauseContainers.o\
+         Saturation/PredicateSplitPassiveClauseContainers.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
@@ -543,7 +547,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

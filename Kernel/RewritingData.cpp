@@ -23,7 +23,7 @@ namespace Kernel {
 
 bool RewritingData::addRewrite(Term* t, TermList into, Term* rwTerm)
 {
-  ASS(!rwTerm || _ord.isGreater(TermList(rwTerm),TermList(t)) || ((Term*)nullptr)->isLiteral());
+  ASS(!rwTerm || _ord.compareUnidirectional(TermList(rwTerm),TermList(t))==Ordering::GREATER || ((Term*)nullptr)->isLiteral());
   RuleInfo info;
   info.rhs = into;
   // info.rwTerm = rwTerm;
@@ -161,7 +161,7 @@ bool RewritingData::blockNewTerms(Term* rwTerm, Literal* rwLit)
       tit.right();
       continue;
     }
-    if (!_ord.isGreater(TermList(rwTerm), TermList(st))) {
+    if (_ord.compareUnidirectional(TermList(rwTerm), TermList(st))!=Ordering::GREATER) {
       continue;
     }
     // if (!_ord.isGreater(TermList(st), TermList(rwTerm))) {
@@ -280,7 +280,7 @@ bool RewritingData::validate(Term* lhs, RuleInfo& info)
       //   greater = false;
       //   break;
       // }
-      if (_ord.isGreater(arg,TermList(lhs))) {
+      if (_ord.compareUnidirectional(arg,TermList(lhs))==Ordering::GREATER) {
         smaller = true;
         break;
       }

@@ -19,8 +19,10 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Indexing/LiteralIndex.hpp"
 
 namespace Inferences
 {
@@ -42,17 +44,26 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
 
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
+                                Clause* resultCl, Literal* resultLit, 
+                                AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg, bool diamondBreaking);
+
+  template<class ComputeConstraints>
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
+                                Clause* resultCl, Literal* resultLit, 
+                                ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts,
+                                bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0,
+                                ConditionalRedundancyHandler const* condRedHandler = 0, bool diamondBreaking = false);
+
   ClauseIterator generateClauses(Clause* premise);
 
 private:
-  Clause* generateClause(
-    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
-    ResultSubstitutionSP subs, AbstractingUnifier* absUnif, bool diamondBreaking = false);
-
   BinaryResolutionIndex* _index;
   bool _unificationWithAbstraction;
   bool _hasEquality;
 };
+
+using BinaryResolutionExtra = TwoLiteralInferenceExtra;
 
 };
 

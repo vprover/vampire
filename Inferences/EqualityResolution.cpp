@@ -128,17 +128,17 @@ struct EqualityResolution::ResultFn
 
     env.statistics->equalityResolution++;
 
-    auto res = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
     if (env.options->diamondBreakingSuperposition()) {
       TIME_TRACE("diamond-breaking");
       // ScopedPtr<RewritingData> rwData(new RewritingData(*_ord));
       auto rwData = new RewritingData(*_ord);
-      res->setRewritingData(rwData);
+      cl->setRewritingData(rwData);
       if (!rwData->addRewriteRules(_cl,[&absUnif](TermList t) {
         return absUnif->subs().apply(t,0);
       })) {
         env.statistics->skippedEqualityResolution++;
-        res->destroy();
+        cl->destroy();
         return 0;
       }
       // auto resultSubst = ResultSubstitution::fromSubstitution(&subst, 0, 0);
@@ -148,7 +148,9 @@ struct EqualityResolution::ResultFn
       //   return 0;
       // }
     }
-    return res;
+    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+      env.proofExtra.insert(cl, new EqualityResolutionExtra(lit));
+    return cl;
   }
 private:
   bool _afterCheck;

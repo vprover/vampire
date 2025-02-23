@@ -55,7 +55,6 @@ Clause* Condensation::simplify(Clause* cl)
   static DArray<Literal*> newLits(32);
   //
   static DArray<LiteralList*> alts(32);
-  //static OCMatchIterator matcher;
 
   LiteralMiniIndex cmi(cl);
 

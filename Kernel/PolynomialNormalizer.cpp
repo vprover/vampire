@@ -11,7 +11,7 @@
 #include "PolynomialNormalizer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Kernel {
 
@@ -363,7 +363,12 @@ TermList PolyNf::denormalize() const
     .function(
         [&](PolyNf orig, TermList* results) -> TermList
         { return orig.match(
-            [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
+            [&](Perfect<FuncTerm> t) { 
+            return TermList(Term::createFromIter(t->function().id(), 
+                concatIters(
+                  t->function().iterTypeArgs(),
+                  range(0, t->numTermArguments()).map([&](auto i){ return results[i]; })
+                ))); },
             [&](Variable          v) { return TermList::var(v.id()); },
             [&](AnyPoly           p) { return p.denormalize(results); }
             ); })

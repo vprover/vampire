@@ -53,7 +53,7 @@ Literal* replaceDefinition(Literal* lit)
     for (unsigned i = 0; i < lit->arity(); i++) {
       args.push(*lit->nthArgument(i));
     }
-    return Literal::create(orig_fn, lit->arity(), lit->polarity(), false, args.begin());
+    return Literal::create(orig_fn, lit->arity(), lit->polarity(), args.begin());
   } else if (env.signature->isFnDefPred(lit->functor())) {
     ASS(env.signature->isFnDefPred(lit->functor()));
     auto lhs = lit->termArg(0);

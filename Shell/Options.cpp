@@ -122,8 +122,6 @@ void Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
-                                        "casc_hol",
-                                        "casc_sat",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -153,23 +151,24 @@ void Options::init()
 
     auto UsingPortfolioTechnology = [this] {
       // Consider extending this list when adding a new Casc-like mode
-      return Or(_mode.is(equal(Mode::CASC_HOL)),
-                _mode.is(equal(Mode::CASC)),
-                _mode.is(equal(Mode::CASC_SAT)),
+      return Or(_mode.is(equal(Mode::CASC)),
                 _mode.is(equal(Mode::SMTCOMP)),
                 _mode.is(equal(Mode::PORTFOLIO)));
     };
 
+    _intent = ChoiceOptionValue<Intent>("intent","intent",Intent::UNSAT,{"unsat","sat"});
+    _intent.description = "Discribes what the system should be striving to show."
+      " By default a prover tries to show `unsat` and find a refutation (a proof of the negated conjecture)."
+      " Discovering a finite saturations while using a complete strategy and thus testifying satisfiability is a nice bonus in that case."
+      " On the other hand, with the intent `sat` the main focus is on finding models."
+      " (Please use `--mode casc --intent sat` to achieve what was previously triggered via `--mode CASC_SAT`).";
+    _lookup.insert(&_intent);
+
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
          "casc_2024",
-         "casc_2023",
-         "casc_2019",
          "casc_sat",
          "casc_sat_2024",
-         "casc_sat_2023",
-         "casc_sat_2019",
-         "casc_hol_2020",
          "file",
          "induction",
          "integer_induction",
@@ -374,6 +373,12 @@ void Options::init()
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
     _timeStatistics.tag(OptionTag::OUTPUT);
+
+    _timeStatisticsFocus = StringOptionValue("time_statistics_focus","tstat_focus","");
+    _timeStatisticsFocus.description="focus on some special subtree of the time statistics";
+    _lookup.insert(&_timeStatisticsFocus);
+    _timeStatisticsFocus.tag(OptionTag::OUTPUT);
+    _timeStatisticsFocus.onlyUsefulWith(_timeStatistics.is(equal(true)));
 #endif // VTIME_PROFILING
 
 //*********************** Input  ***********************
@@ -492,6 +497,13 @@ void Options::init()
     _tweeGoalTransformation.setExperimental();
     _lookup.insert(&_tweeGoalTransformation);
 
+    _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", true);
+    _codeTreeSubsumption.description =
+      "Use code tree implementation of forward subsumption and subsumption resolution.";
+    _codeTreeSubsumption.tag(OptionTag::INFERENCES);
+    _codeTreeSubsumption.setExperimental();
+    _lookup.insert(&_codeTreeSubsumption);
+
     _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
     _generalSplitting.description=
     "Splits clauses in order to reduce number of different variables in each clause. "
@@ -544,7 +556,10 @@ void Options::init()
 
     _sineGeneralityThreshold = UnsignedOptionValue("sine_generality_threshold","sgt",0);
     _sineGeneralityThreshold.description=
-    "Generality of a symbol is the number of input formulas in which a symbol appears. If the generality of a symbol is smaller than the threshold, it is always added into the D-relation with formulas in which it appears.";
+    "Generality of a symbol is the number of input formulas in which a symbol appears."
+    " If the generality of a symbol is smaller than the threshold, it is always included into the D-relation with formulas in which it appears."
+    " Note that with the default value (0) this actually never happens."
+    " (And with 1, there would be no difference, because the 1 is used up on the occurence in the already included unit.)";
     _lookup.insert(&_sineGeneralityThreshold);
     _sineGeneralityThreshold.tag(OptionTag::PREPROCESSING);
     // Captures that if the value is not default then sineSelection must be on
@@ -558,7 +573,8 @@ void Options::init()
 
     _sineTolerance = FloatOptionValue("sine_tolerance","st",1.0);
     _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')."
-    " Has special value of -1.0, but otherwise must be greater or equal 1.0.";
+    " Has special value of -1.0 (which effectively codes +infinity), but otherwise must be greater or equal 1.0."
+    " For each unit, only its least general symbol (let's call its generality g_min) and its symbols with generality up to g_min*tolerance trigger the unit to be included.";
     _lookup.insert(&_sineTolerance);
     _sineTolerance.tag(OptionTag::PREPROCESSING);
     _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));
@@ -685,6 +701,12 @@ void Options::init()
     _showZ3.description="Print the clauses being added to Z3";
     _lookup.insert(&_showZ3);
     _showZ3.tag(OptionTag::DEVELOPMENT);
+
+    _problemExportSyntax = ChoiceOptionValue<ProblemExportSyntax>("export_syntax","",ProblemExportSyntax::SMTLIB, {"smtlib", "api_calls",});
+    _problemExportSyntax.description="Set the syntax for exporting z3 problems.";
+    _lookup.insert(&_problemExportSyntax);
+    _problemExportSyntax.tag(OptionTag::DEVELOPMENT);
+    _problemExportSyntax.reliesOn(Or(_exportAvatarProblem.is(notEqual(std::string(""))), _exportThiProblem.is(notEqual(std::string("")))));
 
     _exportAvatarProblem = StringOptionValue("export_avatar","","");
     _exportAvatarProblem.description="Export the avatar problems to solve in smtlib syntax.";
@@ -917,24 +939,11 @@ void Options::init()
 
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
-    "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "
-    "there will be w selected based on weight.";
+    "Ratio in which clauses are being selected for activation i.e. A:W means that for every A clauses selected based on age "
+    "there will be W selected based on weight. (At most one of A and W can be zero, which means that that queue won't be used at all.)";
     _lookup.insert(&_ageWeightRatio);
     _ageWeightRatio.tag(OptionTag::SATURATION);
     _ageWeightRatio.onlyUsefulWith2(ProperSaturationAlgorithm());
-
-    _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
-    _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
-    _ageWeightRatioShape.onlyUsefulWith(_ageWeightRatio.is(isNotDefaultRatio()));
-    _lookup.insert(&_ageWeightRatioShape);
-    _ageWeightRatioShape.tag(OptionTag::SATURATION);
-
-    _ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
-    _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
-    _ageWeightRatioShapeFrequency.onlyUsefulWith(_ageWeightRatioShape.is(notEqual(AgeWeightRatioShape::CONSTANT)));
-    _ageWeightRatioShapeFrequency.addHardConstraint(greaterThan(0u));
-    _lookup.insert(&_ageWeightRatioShapeFrequency);
-    _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
     _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
     _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
@@ -1109,6 +1118,13 @@ void Options::init()
     _lrsWeightLimitOnly.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
     _lookup.insert(&_lrsWeightLimitOnly);
     _lrsWeightLimitOnly.tag(OptionTag::LRS);
+
+    _lrsRetroactiveDeletes = BoolOptionValue("lrs_retroactive_deletes","lrd",false);
+    _lrsRetroactiveDeletes.description = "Not only deleted new clauses that exceed current estimated limits in passive,"
+    " but also visit active and passive and delete clauses that exceed the new limit or would only generate children exceeding the limit.";
+    _lrsRetroactiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _lookup.insert(&_lrsRetroactiveDeletes);
+    _lrsRetroactiveDeletes.tag(OptionTag::LRS);
 
     _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
@@ -1549,7 +1565,8 @@ void Options::init()
     _condensation.tag(OptionTag::INFERENCES);
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",DemodulationRedundancyCheck::ON,{"off","encompass","on"});
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",
+       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"});
     _demodulationRedundancyCheck.description=
        "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -1557,8 +1574,8 @@ void Options::init()
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
        "where t > t1 and s = t > C (RHS replaced)\n"
-       "With `on`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
+       "With `ordering`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `off`, we skip the checks, save time, but become incomplete.";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
@@ -2360,13 +2377,6 @@ void Options::init()
     //*********************** Vinter???  *******************************
     //******************************************************************
 
-    _colorUnblocking = BoolOptionValue("color_unblocking","",false);
-    _colorUnblocking.description="";
-    _lookup.insert(&_colorUnblocking);
-    _colorUnblocking.setExperimental();
-    _colorUnblocking.tag(OptionTag::OTHER);
-
-
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
                                                           {"new_heur",
 #if VZ3
@@ -2574,7 +2584,7 @@ std::string Options::includeFileName (const std::string& relativeName)
  * @since 27/11/2003 Manchester, changed using new XML routines and iterator
  *        of options
  */
-void Options::output (ostream& str) const
+void Options::output (std::ostream& str) const
 {
   if(printAllTheoryAxioms()){
     cout << "Sorry, not implemented yet!" << endl;
@@ -2703,7 +2713,7 @@ void Options::output (ostream& str) const
     //str << "======= End of options =======\n";
   }
 
-} // Options::output (ostream& str) const
+} // Options::output (std::ostream& str) const
 
 template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
@@ -3086,7 +3096,10 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
     std::string args = pieces[2];
     pieces.reset();
 
-    if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
+    if (sampler == "~set") {
+      ASS_NEQ(args,"");
+      strategySamplingAssign(optname,args,fakes);
+    } else if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
       StringUtils::splitStr(args.c_str(),',',pieces);
 
       unsigned total = 0;
@@ -3417,6 +3430,7 @@ std::string Options::generateEncodedOptions() const
 
     //things we don't want to output (showHelp etc won't get to here anyway)
     forbidden.insert(&_mode);
+    forbidden.insert(&_intent);
     forbidden.insert(&_testId); // is this old version of decode?
     forbidden.insert(&_include);
     forbidden.insert(&_printProofToFile);
@@ -3641,7 +3655,7 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
 }
 
 template<class A>
-std::vector<A> parseCommaSeparatedList(std::string const& str) 
+std::vector<A> parseCommaSeparatedList(std::string const& str)
 {
   std::stringstream stream(str);
   std::vector<A> parsed;
@@ -3812,4 +3826,21 @@ std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
   }
 
   return cutoffs;
+}
+
+Stack<std::string> Options::getSimilarOptionNames(std::string name, bool is_short) const {
+
+  Stack<std::string> similar_names;
+
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){
+    AbstractOptionValue* opt = options.next();
+    std::string opt_name = is_short ? opt->shortName : opt->longName;
+    size_t dif = 2;
+    if(!is_short) dif += name.size()/4;
+    if(name.size()!=0 && StringUtils::distance(name,opt_name) < dif)
+      similar_names.push(opt_name);
+  }
+
+  return similar_names;
 }

@@ -175,21 +175,23 @@ struct EqualityFactoring::ResultFn
 
     env.statistics->equalityFactoring++;
 
-    auto resCl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
     if (env.options->diamondBreakingSuperposition()) {
       TIME_TRACE("diamond-breaking");
       // ScopedPtr<RewritingData> rwData(new RewritingData(_ordering));
       auto rwData = new RewritingData(_ordering);
-      resCl->setRewritingData(rwData);
+      cl->setRewritingData(rwData);
       if (!rwData->addRewriteRules(_cl,[&absUnif](TermList t) {
         return absUnif.subs().apply(t,0);
       })) {
         env.statistics->skippedEqualityFactoring++;
-        resCl->destroy();
+        cl->destroy();
         return 0;
       }
     }
-    return resCl;
+    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+      env.proofExtra.insert(cl, new EqualityFactoringExtra(sLit, fLit, sLHS, fRHS));
+    return cl;
   }
 private:
   EqualityFactoring& _self;
