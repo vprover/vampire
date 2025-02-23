@@ -70,7 +70,6 @@ public:
     TIME_TRACE(_maintainanceStr.c_str())
     auto mode = adding ? "adding" : "removing";
     for (auto appl : T::iter(*_shared, c)) {
-      DBG(T::name(), " ", this, " ", mode, ": ", appl)
       if (adding) {
 #if INSERT_FIND_ASSERTION
         DEBUG_CODE( auto k = appl.key(); )
