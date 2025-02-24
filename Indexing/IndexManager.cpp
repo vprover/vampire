@@ -175,7 +175,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;                                                                 \
     break;                                                                                \
 
-    FOR_NUM_TRAITS_PREFIX(FOR_NUM)
+    FOR_NUM_TRAITS_FRAC_PREFIX(FOR_NUM)
 #undef FOR_NUM
 
   case ALASCA_SUPERPOSITION_DEMOD_CONDITION_SUBST_TREE: 

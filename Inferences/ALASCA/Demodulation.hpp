@@ -182,7 +182,7 @@ struct CoherenceDemodConf
 
 #define FOR_NUM(Num)                                                                      \
     static IndexType indexType(Num ## Traits) { return Indexing::ALASCA_COHERENCE_DEMOD_CONDITION_SUBST_TREE_ ## Num; }
-    FOR_NUM_TRAITS_PREFIX(FOR_NUM)
+    FOR_NUM_TRAITS_FRAC_PREFIX(FOR_NUM)
 #undef FOR_NUM
 
     static IndexType indexType() { return indexType(NumTraits{}); }
@@ -231,7 +231,7 @@ struct CoherenceDemodConf
 
 #define FOR_NUM(Num)                                                                      \
     static IndexType indexType(Num ## Traits) { return Indexing::ALASCA_COHERENCE_DEMOD_TO_SIMPL_SUBST_TREE_ ## Num; }
-    FOR_NUM_TRAITS_PREFIX(FOR_NUM)
+    FOR_NUM_TRAITS_FRAC_PREFIX(FOR_NUM)
 #undef FOR_NUM
 
     static IndexType indexType() { return indexType(NumTraits{}); }

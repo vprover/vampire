@@ -361,6 +361,10 @@ IMPL_NUM_TRAITS(Rational, rational, RATIONAL, RAT )
 IMPL_NUM_TRAITS(Real    , real    , REAL    , REAL)
 IMPL_NUM_TRAITS(Integer , int     , INTEGER , INT )
 
+#define FOR_NUM_TRAITS_FRAC_PREFIX(macro)                                                 \
+  macro(Real)                                                                             \
+  macro(Rat)                                                                              \
+
 #define FOR_NUM_TRAITS_PREFIX(macro)                                                      \
   macro(Int)                                                                              \
   macro(Real)                                                                             \
