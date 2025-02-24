@@ -44,7 +44,7 @@ struct SuperpositionDemodConf
   static const char* name() { return "alasca superposition demodulation"; }
 
   struct Condition {
-    Term* bigger;
+    TypedTermList bigger;
     TermList smaller;
     Clause* cl;
 
@@ -63,8 +63,7 @@ struct SuperpositionDemodConf
         , []() { return iterItems<Condition>(); }
         , [&]() { return SuperpositionConf::Lhs::iter(shared, cl)
                           .map([](auto lhs) { 
-                              ASS_REP(lhs.biggerSide().isTerm(), "rewriting a variable to something does not make any sense") 
-                              return Condition { .bigger = lhs.biggerSide().term(), .smaller = lhs.smallerSide(), .cl = lhs.clause()  }; }); }); }
+                              return Condition { .bigger = lhs.biggerSide(), .smaller = lhs.smallerSide(), .cl = lhs.clause()  }; }); }); }
 
     static const char* name() { return "superposition demod condition"; }
     static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_DEMOD_CONDITION_SUBST_TREE; }
@@ -111,13 +110,14 @@ struct SuperpositionDemodConf
   {
     DEBUG(1, "cond:   ", cond)
     DEBUG(1, "simpl:  ", simpl)
-    auto s = cond.biggerSide();
-    auto t = cond.smallerSide();
     auto sσ = simpl.key();
+    DEBUG_CODE(
+      auto s = cond.biggerSide();
+      ASS_EQ(sigma(TermList(s)), sσ)
+    )
+    auto t = cond.smallerSide();
     auto tσ = sigma(t);
 
-
-    ASS_EQ(sigma(TermList(s)), sσ)
 
     check_side_condition("sσ ≻ tσ", 
         _shared->greater(TermList(sσ), tσ))
@@ -261,9 +261,11 @@ struct CoherenceDemodConf
     check_side_condition("i != 0", i != 0)
 
     auto toRewriteσ = simpl.toRewrite; // <- ⌊sσ + u⌋
-    auto s = cond.key();
     auto sσ = simpl.key();
-    ASS_EQ(sσ, sigma(s))
+    DEBUG_CODE(
+      auto s = cond.key();
+      ASS_EQ(sσ, sigma(s))
+    )
 
 
     // auto ks_t = rhs.toRewrite.term()->termArg(0);

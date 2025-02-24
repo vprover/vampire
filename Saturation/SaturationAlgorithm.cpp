@@ -1656,6 +1656,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (prb.hasEquality()) {
+    // TODO disable normal demodulation if alsca demodulation is enabled (?)
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:

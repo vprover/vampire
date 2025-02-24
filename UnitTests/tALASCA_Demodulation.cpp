@@ -25,21 +25,21 @@ using namespace Test;
 using namespace Indexing;
 using namespace Inferences::ALASCA;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////// TEST CASES 
-/////////////////////////////////////
-
-#define SUGAR(Num)                                                                                  \
-  NUMBER_SUGAR(Num)                                                                                 \
-  DECL_DEFAULT_VARS                                                                                 \
-  DECL_CONST(a, Num)                                                                                \
-  DECL_CONST(b, Num)                                                                                \
-  DECL_CONST(c, Num)                                                                                \
-  DECL_FUNC(f, {Num}, Num)                                                                          \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                     \
-  DECL_PRED(p, {Num})                                                                               \
-  DECL_PRED(p0, {})                                                                                 \
-  DECL_PRED(r, {Num,Num})                                                                           \
+#define SUGAR(Num)                                                                        \
+  NUMBER_SUGAR(Num)                                                                       \
+  DECL_DEFAULT_VARS                                                                       \
+  DECL_CONST(a, Num)                                                                      \
+  DECL_CONST(b, Num)                                                                      \
+  DECL_CONST(c, Num)                                                                      \
+  DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(g, {Num, Num}, Num)                                                           \
+  DECL_PRED(p, {Num})                                                                     \
+  DECL_PRED(p0, {})                                                                       \
+  DECL_PRED(r, {Num,Num})                                                                 \
+  DECL_SORT(s)                                                                            \
+  DECL_CONST(aU, s)                                                                       \
+  DECL_CONST(bU, s)                                                                       \
+  DECL_PRED(pU, {s})                                                                      \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat) mkAlascaSyntaxSugar(Rat ## Traits{});
 
@@ -58,16 +58,9 @@ inline auto ALASCA_Demod_TestCase()  {
     .normalize([norm = std::move(norm)](auto c) mutable { return norm.simplify(c); });
 }
 
-// ±ks + t ≈ 0          C[sσ]
-// ============================
-//         C[sσ -> (∓ (1/k) t)σ]
-// where
-// • sσ is strictly max. in terms(s + t)σ 
-// • C[sσ] ≻ (±ks + t ≈ 0)σ
-
-/////////////////////////////////////////////////////////
-// Basic tests
-//////////////////////////////////////
+/////////////////////////////////
+// superposition demod tests
+/////////////////////////////////
 
 TEST_SIMPLIFICATION(basic01,
     ALASCA_Demod_TestCase<SuperpositionDemodConf>()
@@ -197,7 +190,6 @@ TEST_SIMPLIFICATION(misc01,
       .expected(    {    clause(   { ~p0(), b == 0 }   ) })
     )
 
-
 TEST_SIMPLIFICATION(misc02,
     ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { 0 == b  }   ) })
@@ -205,6 +197,16 @@ TEST_SIMPLIFICATION(misc02,
       .expected(    {    clause(   { ~p0(), a == 0 }   ) })
     )
 
+TEST_SIMPLIFICATION(bug02,
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
+      .simplifyWith({    clause(   { x == aU  }   ) })
+      .toSimplify  ({    clause(   { pU(bU) }   ) })
+      .expected(    {    clause(   { pU(aU) }   ) })
+    )
+
+/////////////////////////////////
+// coherence demod tests
+/////////////////////////////////
 
 TEST_SIMPLIFICATION(demod_basic_01,
     ALASCA_Demod_TestCase<CoherenceDemodConf<RatTraits>>()
