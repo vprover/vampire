@@ -401,7 +401,7 @@ public:
   /* forward */ 
   virtual bool perform(Clause* toSimpl, Clause*& concl, ClauseIterator& conditions) final override {
     for (auto simpl : ToSimpl::iter(*_shared, toSimpl)) {
-      for (auto sigma_cond : _condition->generalizations(simpl.key(), /* retrieveSubstitution */ true)) {
+      for (auto sigma_cond : _condition->generalizations(simpl, /* retrieveSubstitution */ true)) {
         auto& sigma = sigma_cond.unifier;
         auto& cond = *sigma_cond.data;
         if (auto res = _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundResult(t); })) {
@@ -432,7 +432,7 @@ public:
 
     auto result = Condition::iter(*_shared, condClause)
       .flatMap([this,alreadySimplified](auto cond) {
-          return _toSimpl->instances(cond.key(), /* retrieveSubstitution */ true)
+          return _toSimpl->instances(cond, /* retrieveSubstitution */ true)
             .filterMap([this,cond,alreadySimplified](auto sigma_simpl) -> Option<BwSimplificationRecord> {
                 auto& sigma = sigma_simpl.unifier;
                 auto& simpl = *sigma_simpl.data;

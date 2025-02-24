@@ -35,11 +35,23 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+inline auto __firstFreshVar(Option<unsigned>& cache, Clause* cl) {
+  return cache.unwrapOrInit([&]() {
+    if (auto m =  cl->iterLits()
+      .flatMap([](auto lit ) { return vi(new VariableIterator(lit)); })
+      .map([](auto x) { return x.var(); })
+      .max()) {
+      return *m + 1;
+    } else {
+      return unsigned(0);
+    }
+  });
+}
+
 struct SuperpositionDemodConf
 {
   std::shared_ptr<AlascaState> _shared;
-
-  SuperpositionDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
+SuperpositionDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
 
   static const char* name() { return "alasca superposition demodulation"; }
 
@@ -64,6 +76,7 @@ struct SuperpositionDemodConf
         , [&]() { return SuperpositionConf::Lhs::iter(shared, cl)
                           .map([](auto lhs) { 
                               return Condition { .bigger = lhs.biggerSide(), .smaller = lhs.smallerSide(), .cl = lhs.clause()  }; }); }); }
+    // TODO optimization: filter out cases smaller contains a variable not contained in bigger.
 
     static const char* name() { return "superposition demod condition"; }
     static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_DEMOD_CONDITION_SUBST_TREE; }
@@ -73,9 +86,12 @@ struct SuperpositionDemodConf
     Term* term;
     Clause* cl;
     Clause* clause() const { return cl; }
+    mutable Option<unsigned> _firstFreshVar = {};
     TypedTermList key() const { return term; };
     auto asTuple() const { return std::tie(term, cl); };
     IMPL_COMPARISONS_FROM_TUPLE(ToSimpl);
+
+    unsigned firstFreshVar() const { return __firstFreshVar(_firstFreshVar, cl); }
 
     friend std::ostream& operator<<(std::ostream& out, ToSimpl const& self)
     { return out << *self.clause() << "[ " << *self.term << " ]"; }
@@ -118,7 +134,6 @@ struct SuperpositionDemodConf
     auto t = cond.smallerSide();
     auto tσ = sigma(t);
 
-
     check_side_condition("sσ ≻ tσ", 
         _shared->greater(TermList(sσ), tσ))
 
@@ -139,7 +154,8 @@ struct SuperpositionDemodConf
 
     auto cl =  Clause::fromIterator(
             iterTraits(simpl.clause()->iterLits())
-              .map([&](auto lit) { return EqHelper::replace(lit, sσ, tσ); }),
+              .map([&](auto lit) { 
+                return EqHelper::replace(lit, sσ, tσ); }),
             Inference(SimplifyingInference2(
                 Kernel::InferenceRule::ALASCA_SUPERPOSITION_DEMOD, 
                 simpl.clause(), cond.clause()))
@@ -196,8 +212,12 @@ struct CoherenceDemodConf
     Term* toRewrite; // <- the term ⌊k s + t⌋
     typename CoherenceConf<NumTraits>::SharedSum ks_t; // <- the term k s + t
     unsigned sIdx; // <- the index of `s` in the sum `k s + t`
+    mutable Option<unsigned> _firstFreshVar = {};
 
     Clause* clause() const { return cl; }
+    unsigned firstFreshVar() const { return __firstFreshVar(_firstFreshVar, cl); }
+
+    auto allVariables() { return allVariablesOfClause(clause()); }
     
     TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, NumTraits::sort()); }
     auto asTuple() const { return std::tie(cl, /* ks_t redundant */ toRewrite, sIdx); }

@@ -73,6 +73,22 @@ constexpr unsigned subsTreeNormInternalBank(unsigned n)
 { return 3 * n + 2; }
 
 
+template<class T, class = void>
+constexpr bool has_firstFreshVar = false;
+
+template<class T>
+constexpr bool has_firstFreshVar<T, 
+  std::void_t<decltype(
+    std::declval<T const&>()
+      .firstFreshVar()
+      )>> = true;
+
+template<class LeafData, std::enable_if_t<!has_firstFreshVar<LeafData>, bool> = true>
+Option<unsigned> firstFreshVar(LeafData const& ld) { return {}; }
+
+template<class LeafData, std::enable_if_t< has_firstFreshVar<LeafData>, bool> = true>
+Option<unsigned> firstFreshVar(LeafData const& ld) { return some(ld.firstFreshVar()); }
+
 using namespace Lib;
 using namespace Kernel;
 
@@ -626,7 +642,7 @@ public:
     {
       return _root == nullptr 
         ? false
-        : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false).hasNext();
+        : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false, Option<unsigned>()).hasNext();
     }
 
     template<class Query>
@@ -699,11 +715,12 @@ public:
 
 
       template<class TermOrLit>
-      void init(TermOrLit query, unsigned nextSpecVar)
+      void init(TermOrLit query, unsigned nextSpecVar, Option<unsigned> firstFreshVarOfInst)
       {
         _boundVars.reset();
         // _specVars->reset(); <- does not need to be reset as we only write before we read 
         _bindings.reset();
+        _firstFreshVarOfInst = firstFreshVarOfInst;
 
         _maxVar = weight(query) - 1;
         if(_specVars.size()<nextSpecVar) {
@@ -720,8 +737,8 @@ public:
        * 	special variables.
        */
       template<class TermOrLit>
-      GenMatcher(TermOrLit query, unsigned nextSpecVar)
-      { init(query,nextSpecVar); }
+      GenMatcher(TermOrLit query, unsigned nextSpecVar, Option<unsigned> firstFreshVarOfInst)
+      { init(query,nextSpecVar,firstFreshVarOfInst); }
 
       USE_ALLOCATOR(GenMatcher);
 
@@ -778,6 +795,8 @@ public:
        * be at least @b _maxVar+1
        */
       ArrayMap<TermList> _bindings;
+      // TODO document
+      Option<unsigned> _firstFreshVarOfInst;
     };
 
     /**
@@ -841,10 +860,10 @@ public:
       }
 
       template<class TermOrLit>
-      void init(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed) {
+      void init(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, Option<unsigned> nextFreshVarOfInst) {
         _retrieveSubstitution = retrieveSubstitution;
         _inLeaf = root->isLeaf();
-        _subst.init(query, parent->_nextVar);
+        _subst.init(query, parent->_nextVar, nextFreshVarOfInst);
         _ldIterator = _inLeaf ? static_cast<Leaf*>(root)->allChildren() : LDIterator::getEmpty();
         _root = root;
 
@@ -856,13 +875,21 @@ public:
       }
 
       /**
+       * With this iterator we find generalizations of a query literal or term `q`; that means we find a subsitution `σ` and a term `r` such that `rσ = q`.
+       * Therefore this substituion is only defined on the variables occuring in `q`. 
+       * This means applying σ to a term that contains other variables than `q` is undefined by defailt. 
+       * In some use cases we want to be able to apply the substitution to other variables still. Consider for example demodulation where `r` is a subterm 
+       * of a literal `r ~ s`, and we want to compute `sσ` to check the side condition `rσ > sσ`. In order to support use cases like this we can pass a 
+       * `firstFreshVarOfInst` value. If this value is present the subsitution will not crash on unbound variables, but instead introduce fresh variables 
+       * (with ids >= `firstFreshVarOfInst`). All variables `>= firstFreshVarOfInst` should not be contained in the context the query term `q` is coming from.
+       *
        * If @b reversed If true, parameters of supplied binary literal are
        * 	reversed. (useful for retrieval commutative terms)
        */
       template<class TermOrLit>
-      FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed)
-      : _subst(query, parent->_nextVar)
-      { init(parent, root, query, retrieveSubstitution, reversed); }
+      FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, Option<unsigned> firstFreshVarOfInst)
+      : _subst(query, parent->_nextVar, firstFreshVarOfInst)
+      { init(parent, root, query, retrieveSubstitution, reversed, firstFreshVarOfInst); }
 
       QueryRes<ResultSubstitutionSP, LeafData> next();
       bool hasNext();
@@ -977,7 +1004,7 @@ public:
       bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
 
       void backtrack();
-      ResultSubstitutionSP getSubstitution(Renaming* resultDenormalizer);
+      ResultSubstitutionSP getSubstitution(Renaming* resultDenormalizer, LeafData_ const*);
 
       int getBSCnt()
       {
@@ -1000,7 +1027,7 @@ public:
 
       class Substitution;
 
-      TermList derefQueryBinding(unsigned var);
+      TermList derefQueryBinding(unsigned var, LeafData const* context);
 
       bool isBound(TermList var)
       {

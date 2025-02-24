@@ -57,11 +57,13 @@ public:
       .timeTraced(_lookupStr.c_str()); }
 
 
-  auto generalizations(TypedTermList key, bool retrieveSubstitutions = true)
-  { return iterTraits(_index.getGeneralizations(key, retrieveSubstitutions)); }
+  template<class T2>
+  auto generalizations(T2 const& key, bool retrieveSubstitutions = true)
+  { return iterTraits(_index.getGeneralizations(key.key(), retrieveSubstitutions, firstFreshVar(key))); }
 
-  auto instances(TypedTermList key, bool retrieveSubstitutions = true)
-  { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
+  template<class T2>
+  auto instances(T2 const& key, bool retrieveSubstitutions = true)
+  { return iterTraits(_index.getInstances(key.key(), retrieveSubstitutions)); }
 
 // #define INSERT_FIND_ASSERTION(...) __VA_ARGS__
 #define INSERT_FIND_ASSERTION(...) {}

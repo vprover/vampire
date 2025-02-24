@@ -80,11 +80,15 @@ private:
   { return out << Output::multiline(self.self._inner, self.indent); }
 
 public:
+
   VirtualIterator<Indexing::QueryRes<ResultSubstitutionSP, LeafData_>> getInstances(TypedTermList t, bool retrieveSubstitutions) final override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions, Option<unsigned> nextFreshVarOfInst)
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, nextFreshVarOfInst)); }
+
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions) final override
-  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, Option<unsigned>())); }
 
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override

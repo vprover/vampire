@@ -19,10 +19,11 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
+#include <type_traits>
+#include <utility>
 
 namespace Indexing
 {
-
 
 template<class LeafData_>
 std::ostream& operator<< (std::ostream& out, typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec ts )
@@ -36,8 +37,10 @@ class SubstitutionTree<LeafData_>::InstMatcher::Substitution
 public:
   USE_ALLOCATOR(SubstitutionTree::InstMatcher::Substitution);
   
-  Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
-  : _parent(parent), _resultDenormalizer(resultDenormalizer)
+  Substitution(InstMatcher* parent, Renaming* resultDenormalizer, LeafData_ const* ld)
+  : _parent(parent)
+  , _resultDenormalizer(resultDenormalizer)
+  , _ld(ld)
   {}
   ~Substitution()
   {
@@ -50,7 +53,7 @@ public:
 
   TermList apply(unsigned var)
   {
-    TermList normalized=_parent->derefQueryBinding(var);
+    TermList normalized=_parent->derefQueryBinding(var, _ld);
     ASS_REP(!normalized.isTerm() || normalized.term()->shared(), normalized);
     return _resultDenormalizer->apply(normalized);
   }
@@ -63,18 +66,18 @@ public:
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;
+  LeafData_ const* _ld;
 };
 
 
 template<class LeafData_>
-ResultSubstitutionSP SubstitutionTree<LeafData_>::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
+ResultSubstitutionSP SubstitutionTree<LeafData_>::InstMatcher::getSubstitution(Renaming* resultDenormalizer, LeafData_ const* ld)
 {
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultDenormalizer));
+  return ResultSubstitutionSP(new Substitution(this, resultDenormalizer, ld));
 }
 
 template<class LeafData_>
-TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned var)
+TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned var, LeafData_ const* context)
 {
   TermList tvar0(var, false);
   TermList tvar=tvar0;
@@ -91,8 +94,9 @@ TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned va
         return varBinding.t;
       }
     } else {
-      /* we behave like identity function on unbound vars */
-      return TermList::var(var);
+      /* unbound var */
+      ASS(firstFreshVar(*context))
+      return TermList::var(var + *firstFreshVar(*context));
     }
   }
   static Stack<DerefTask> toDo;
@@ -355,7 +359,7 @@ QueryRes<ResultSubstitutionSP, LeafData_> SubstitutionTree<LeafData_>::FastInsta
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryRes(_subst.getSubstitution(&_resultDenormalizer), ld);
+    return QueryRes(_subst.getSubstitution(&_resultDenormalizer, ld), ld);
   } else {
     return QueryRes(ResultSubstitutionSP(), ld);
   }

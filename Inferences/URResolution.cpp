@@ -133,6 +133,7 @@ struct URResolution::Item
    */
   void resolveLiteral(unsigned idx, QueryRes<ResultSubstitutionSP, LiteralClause>& unif, Clause* premise, bool useQuerySubstitution)
   {
+
     Literal* rlit = _lits[idx];
     _lits[idx] = 0;
     _premises[idx] = premise;

@@ -210,7 +210,7 @@ TEST_SIMPLIFICATION(bug03,
     ALASCA_Demod_TestCase<SuperpositionDemodConf>()
       .simplifyWith({    clause(   { f(x) == y  }   ) })
       .toSimplify  ({    clause(   { f(y) != 0 }   ) })
-      .expected(    {  /* nothing */              })
+      .expectNotApplicable()
     )
 
 /////////////////////////////////

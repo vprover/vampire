@@ -65,7 +65,10 @@ public:
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification<RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions, Option<unsigned>())); }
+
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions, Option<unsigned> nextFreshVarOfInst)
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions, nextFreshVarOfInst)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return pvi(getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions)); }
