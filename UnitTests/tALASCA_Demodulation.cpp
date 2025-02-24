@@ -39,6 +39,7 @@ using namespace Inferences::ALASCA;
   DECL_SORT(s)                                                                            \
   DECL_CONST(aU, s)                                                                       \
   DECL_CONST(bU, s)                                                                       \
+  DECL_FUNC(fU, {s}, s)                                                                       \
   DECL_PRED(pU, {s})                                                                      \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat) mkAlascaSyntaxSugar(Rat ## Traits{});
@@ -202,6 +203,14 @@ TEST_SIMPLIFICATION(bug02,
       .simplifyWith({    clause(   { x == aU  }   ) })
       .toSimplify  ({    clause(   { pU(bU) }   ) })
       .expected(    {    clause(   { pU(aU) }   ) })
+    )
+
+// checking `sσ ≻ tσ` being aware of variable banks. can lead to invalid terms
+TEST_SIMPLIFICATION(bug03,
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
+      .simplifyWith({    clause(   { f(x) == y  }   ) })
+      .toSimplify  ({    clause(   { f(y) != 0 }   ) })
+      .expected(    {  /* nothing */              })
     )
 
 /////////////////////////////////
