@@ -1048,10 +1048,6 @@ TermSpec sum(RobSubstitution& subs, Iter iter) {
       .unwrapOrElse([&]() { return TermSpec(ASig::numeralTl(ASig::constant(0)), 0); }); 
 }
 
-template<class F, class... Fs>
-auto optionIfThenElse(F f, Fs... fs) 
-{ return (f() || ... || fs); }
-
 template<class NumTraits>
 AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n_, Options::UnificationWithAbstraction uwa) {
   TIME_TRACE("unification with abstraction ALASCA+F")

@@ -51,6 +51,7 @@
 #define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
 namespace Kernel {
+  class AlascaTermAppl;
   std::ostream& operator<<(std::ostream& out, Term const& self);
   std::ostream& operator<<(std::ostream& out, TermList const& self);
   std::ostream& operator<<(std::ostream& out, Literal const& self);
@@ -487,6 +488,7 @@ public:
 
 
   Term() throw();
+  ~Term();
   explicit Term(const Term& t) throw();
   static Term* create(unsigned function, unsigned arity, const TermList* args);
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
@@ -946,6 +948,8 @@ protected:
      * the sort of the top-level variables */
     TermList _sort;
   };
+  // pre-computed AnyAlascaSum representation of this term
+  AlascaTermAppl* _alascaNormalForm = nullptr;
 
   /** The list of arguments of size type arity + term arity + 1. The first
    *  argument stores the term weight and the mask (the last two bits are 0).
@@ -976,6 +980,9 @@ public:
   private:
     TermList* _next;
   }; // Term::Iterator
+
+  AlascaTermAppl* getAlascaNormalform() { return _alascaNormalForm; }
+  void setAlascaNormalform(AlascaTermAppl* nf) { _alascaNormalForm = nf; }
 }; // class Term
 
 
