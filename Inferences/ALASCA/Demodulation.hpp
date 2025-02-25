@@ -12,6 +12,7 @@
 #define __ALASCA_Inferences_Demodulation__
 
 #include "Forwards.hpp"
+#include "Inferences/ALASCA/FourierMotzkin.hpp"
 #include "Kernel/ALASCA.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
@@ -51,7 +52,7 @@ inline auto __firstFreshVar(Option<unsigned>& cache, Clause* cl) {
 struct SuperpositionDemodConf
 {
   std::shared_ptr<AlascaState> _shared;
-SuperpositionDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
+  SuperpositionDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
 
   static const char* name() { return "alasca superposition demodulation"; }
 
@@ -165,6 +166,21 @@ SuperpositionDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) { 
     return some(cl);
   }
 };
+
+// TODO FM demod
+// +- s + t1 > 0           -+ sσ + t2 > 0 \/ C
+// ==========================================
+//             t1σ + t2 > 0 \/ C
+//
+// where
+// - sσ ≻ t1σ
+// - -+ sσ + t2 > 0 \/ C ≻ (+- s + t1 > 0)σ
+
+// TODO INT FM demod
+// ???
+
+// TODO inequality subsumption
+//
 
 template<class NumTraits>
 struct CoherenceDemodConf
