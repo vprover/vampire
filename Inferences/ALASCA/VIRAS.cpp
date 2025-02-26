@@ -108,7 +108,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
       noteShielded(l);
     } else {
       toElim->push(l);
-      traverseLiraVars(norm->term().denormalize(),
+      traverseLiraVars(norm->term().toTerm(),
           [&](TermList t) {
             if (t.isVar()) {
               candidateVars->insert(t.var());

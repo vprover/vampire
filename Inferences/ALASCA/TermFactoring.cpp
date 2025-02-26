@@ -146,8 +146,8 @@ Option<Clause*> TermFactoring::applyRule(
   //         .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
   //         .all([&](auto i) {
   //           auto ki_ti = sel1.alascaLiteral<NumTraits>().term().summandAt(i);
-  //           auto tiσ = sigma(ki_ti.factors->denormalize());
-  //           t_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
+  //           auto tiσ = sigma(ki_ti.atom());
+  //           t_sigma.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
   //           return _shared->notLess(s1_sigma, tiσ)
   //               && _shared->notLess(s2_sigma, tiσ);
   //         }))
@@ -159,8 +159,8 @@ Option<Clause*> TermFactoring::applyRule(
           .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
           .map([&](auto i) {
             auto ki_ti = sel1.alascaLiteral<NumTraits>().term().summandAt(i);
-            auto tiσ = sigma(ki_ti.factors->denormalize());
-            return NumTraits::mulSimpl(ki_ti.numeral, tiσ);
+            auto tiσ = sigma(ki_ti.atom());
+            return NumTraits::mulSimpl(ki_ti.numeral(), tiσ);
           });
 
   auto resSum = NumTraits::sum(concatIters(iterItems(resTerm), t_sigma));
