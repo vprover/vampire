@@ -40,9 +40,9 @@ struct Application
     return ALASCA::Superposition::Rhs::activePositions(shared, cl)
       .flatMap([&](auto sel_lit) {
           return coproductIter(sel_lit.map(
-             [](SelectedSummand& x) { return iterItems(x.selectedAtom()); },
-             [](SelectedUninterpretedEquality& x) {  return iterItems(x.biggerSide()); },
-             [](SelectedUninterpretedPredicate& x) { return termArgIter(x.literal()); }
+             [](SelectedSummand& x) { return iterItems(TypedTermList(x.selectedAtom(), x.sort())); },
+             [](SelectedUninterpretedEquality& x) {  return iterItems(TypedTermList(x.biggerSide(), x.literal()->eqArgSort())); },
+             [](SelectedUninterpretedPredicate& x) { return termArgIterTyped(x.literal()); }
           ))
           .flatMap([&](auto activePos) {
             return shared.iterInterpretedSubterms(activePos)
