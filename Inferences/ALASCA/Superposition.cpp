@@ -84,13 +84,14 @@ Option<Clause*> SuperpositionConf::applyRule_(
     }
   };
 
-  check_side_condition(
-      "s1 and s2 are of unifyable sorts", 
-      unifySorts(
+  auto sort = unifySorts(
         SortHelper::getEqualityArgumentSort(lhs.literal()), 
         SortHelper::getResultSort(s2.term())
-        ).isSome()
-      )
+      );
+
+  check_side_condition(
+      "s1 and s2 are of unifyable sorts", 
+      sort.isSome())
 
   auto L1σ = sigma(lhs.literal(), lhsVarBank);
   check_side_condition(
@@ -128,7 +129,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
       "s2σ ⊴ ti ∈ active(L[s2]σ)", 
       _shared->activePositions(L2σ)
         .any([&](auto ti) 
-             { return _shared->subtermEqModT(s2σ, ti); }))
+             { return _shared->subtermEqModT(TypedTermList(s2σ, sort), TypedTermList(ti, sort)); }))
 
   check_side_condition(
       "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well
