@@ -63,10 +63,10 @@ public:
   template<class NumTraits>
   struct FoundVariable 
   {
-    FoundVariable(Perfect<MonomFactors<NumTraits>> var) : var(var), posIneq(), negIneq(), eq(), neq() {}
+    FoundVariable(TermList var) : var(var), posIneq(), negIneq(), eq(), neq() {}
     FoundVariable(FoundVariable&&) = default;
     FoundVariable& operator=(FoundVariable&&) = default;
-    Perfect<MonomFactors<NumTraits>> var;
+    TermList var;
     Stack<FoundVarInLiteral<NumTraits>> posIneq;
     Stack<FoundVarInLiteral<NumTraits>> negIneq;
     Stack<FoundVarInLiteral<NumTraits>> eq;
