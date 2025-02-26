@@ -259,7 +259,7 @@ public:
   ArraySet(size_t size) : ArrayMap<EmptyStruct>(size) {}
 
   template<class It>
-  void insertFromIterator(It it)
+  void loadFromIterator(It it)
   {
     while(it.hasNext()) {
       insert(it.next());

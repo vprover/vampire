@@ -249,13 +249,13 @@ public:
 
   /** Insert all elements from @b it iterator in the set */
   template<class It>
-  void insertFromIterator(It it)
+  void loadFromIterator(It it)
   {
     while(it.hasNext()) {
       insert(it.next());
     }
   }
-	
+
   /** Return the number of (non-deleted) elements */
   inline unsigned size() const
   {

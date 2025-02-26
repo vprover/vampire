@@ -78,12 +78,12 @@ void Instantiation::init(){
     Set<Term*>* realSet = new Set<Term*>();
    
 
-    intSet->insertFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToIntTermFn())));
-    intSet->insertFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToIntTermFn())));
-    ratSet->insertFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToRatTermFn())));
-    ratSet->insertFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToRatTermFn())));
-    realSet->insertFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToRealTermFn())));
-    realSet->insertFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToRealTermFn())));
+    intSet->loadFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToIntTermFn())));
+    intSet->loadFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToIntTermFn())));
+    ratSet->loadFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToRatTermFn())));
+    ratSet->loadFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToRatTermFn())));
+    realSet->loadFromIterator(pvi(getMappingIterator(getRangeIterator(0u,10u),IntToRealTermFn())));
+    realSet->loadFromIterator(pvi(getMappingIterator(getMappingIterator(getRangeIterator(0u,10u),InvertNumber()),IntToRealTermFn())));
 
     sorted_candidates.insert(Sorts::SRT_INTEGER,intSet);
     sorted_candidates.insert(Sorts::SRT_RATIONAL,ratSet);
