@@ -61,6 +61,7 @@ namespace Kernel {
     {  }
 
     bool isNumeral() const { return ASig::one() == _term; }
+    Option<bool> tryNumeral() const;
 
     AlascaMonom(int numeral, TermList term) : AlascaMonom(Numeral(numeral), term) {}
 
