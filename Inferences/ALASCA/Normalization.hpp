@@ -49,11 +49,11 @@ class FloorElimination
   std::shared_ptr<AlascaState> _shared;
 
   template<class NumTraits>
-  bool deleteableSum(Monom<NumTraits> const& l, Monom<NumTraits> const& r_) const { 
+  bool deleteableSum(AlascaMonom<NumTraits> const& l, AlascaMonom<NumTraits> const& r_) const { 
     auto r = r_.tryNumeral();
     return r.isSome() 
-        && NumTraits::isFloor(l.factors->denormalize()) 
-        && !(*r / l.numeral).isInt();
+        && NumTraits::isFloor(l.atom()) 
+        && !(*r / l.numeral()).isInt();
   }
 
   bool deleteableLiteral(AnyAlascaLiteral const& l) const 

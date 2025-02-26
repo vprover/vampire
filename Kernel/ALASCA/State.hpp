@@ -96,7 +96,7 @@ namespace Kernel {
     {
         // TODO optimize less denormalization
         auto monomAt = [=](auto i) 
-             { return lit.term().summandAt(i).factors->denormalize(); }; 
+             { return lit.term().summandAt(i).atom(); }; 
 
         return iterTraits(OrderingUtils::maxElems(
                   lit.term().nSummands(),
@@ -187,7 +187,7 @@ namespace Kernel {
             return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
                 return maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
                          .map([l](auto i) {
-                             return l.term().summandAt(i).factors->denormalize();
+                             return l.term().summandAt(i).atom();
                          });
             })));
           },
@@ -202,11 +202,11 @@ namespace Kernel {
     }
 
 
-    bool subtermEqModT(TermList sub, TermList sup)
+    bool subtermEqModT(TypedTermList sub, TypedTermList sup)
     {
       ASS(isAtomic(sub))
-      return norm().normalize(sup).denormalize()
-        .containsSubterm(norm().normalize(sub).denormalize());
+      return norm().normalize(sup).toTerm()
+        .containsSubterm(norm().normalize(sub).toTerm());
     }
 
 
@@ -242,10 +242,11 @@ namespace Kernel {
         });
     }
 
-    auto iterInterpretedSubterms(TermList t) {
-      return iterTraits(_normalizer->normalize(t)
-        .iterSubterms())
-        .filterMap([](PolyNf t) { return t.template as<AnyPoly>().toOwned(); });
+    // TODO rename to iterSumSubterms
+    auto iterInterpretedSubterms(TypedTermList t) {
+      return _normalizer->normalize(t)
+        .iterSubterms()
+        .filterMap([](auto t) { return t.asNonTrivialSum(); });
     }
 
     auto isUninterpreted(Literal* l) const 

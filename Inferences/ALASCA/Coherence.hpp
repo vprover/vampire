@@ -52,14 +52,15 @@ struct CoherenceConf
   using ASig = AlascaSignature<NumTraits>;
   using N = typename NumTraits::ConstantType;
 public:
+  // TODO do we still need this at all?
   using SharedSum =  std::shared_ptr<RStack<std::pair<TermList, N>>>;
   static SharedSum toSum(AlascaState& shared, TermList t) {
     RStack<std::pair<TermList, N>> rstack; 
     rstack->loadFromIterator( 
-        shared.norm().normalize(t)
-          .template wrapPoly<NumTraits>()
-          ->iterSummands()
-          .map([](auto monom) { return std::make_pair(monom.factors->denormalize(), monom.numeral); }));
+        shared.norm().normalize(TypedTermList(t, NumTraits::sort()))
+          .asSum<NumTraits>().unwrap()
+          .iterSummands()
+          .map([](auto monom) { return std::make_pair(monom.atom(), monom.numeral()); }));
     return SharedSum(move_to_heap(std::move(rstack)));
   }
 

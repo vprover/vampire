@@ -94,8 +94,8 @@ Option<Clause*> InequalityFactoring::applyRule(
   CHECK_CONDITION("s1σ /⪯ terms(t1)σ",
       l1.contextTerms<NumTraits>() 
         .all([&](auto ki_ti) {
-          auto tiσ = sigma(ki_ti.factors->denormalize());
-          t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
+          auto tiσ = sigma(ki_ti.atom());
+          t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
           return _shared->notLeq(s1_sigma, tiσ);
         }));
 
@@ -104,8 +104,8 @@ Option<Clause*> InequalityFactoring::applyRule(
   CHECK_CONDITION("s2σ /⪯ terms(t2)σ",
       l2.contextTerms<NumTraits>() 
         .all([&](auto ki_ti) {
-          auto tiσ = sigma(ki_ti.factors->denormalize());
-          t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
+          auto tiσ = sigma(ki_ti.atom());
+          t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
           return _shared->notLeq(s2_sigma, tiσ);
         }));
 
@@ -148,8 +148,8 @@ Option<Clause*> InequalityFactoring::applyRule(
   auto pivotSum = 
   //   ^^^^^^^^--> `(k t1 − j t2)σ`
     NumTraits::sum(concatIters(
-          l1.contextTerms<NumTraits>().map([&](auto t) { return  sigma(( k * t).denormalize()); }),
-          l2.contextTerms<NumTraits>().map([&](auto t) { return  sigma((-j * t).denormalize()); })));
+          l1.contextTerms<NumTraits>().map([&](auto t) { return  sigma(( k * t).toTerm()); }),
+          l2.contextTerms<NumTraits>().map([&](auto t) { return  sigma((-j * t).toTerm()); })));
     
 
   // • (>3) = if (>1, >2) = (>=, >) then (>=) 
