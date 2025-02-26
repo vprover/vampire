@@ -259,11 +259,12 @@ struct NormalizedLinearComparatorByWeight : public LiteralComparator
 	      static_cast<Literal*>(t2)->polarity());
     }
 
-    if(t1->commutative()) {
-      ASS(t2->commutative());
-      ASS(t1->isLiteral());
-      ASS_EQ(t1->arity(),2);
-
+    // MR: this looked suspicious to me, but MS says...
+    //
+    // t1 and t2 are assumed to be distinct initially,
+    // so this is an attempt to alpha-normalize them,
+    // before some further comparisons
+    if(t1->isLiteral() && t1->functor() == 0) {
       t1=Renaming::normalize(static_cast<Literal*>(t1));
       t2=Renaming::normalize(static_cast<Literal*>(t2));
 

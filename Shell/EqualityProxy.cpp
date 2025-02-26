@@ -225,8 +225,8 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
       continue;
     }
     getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType());
-    lits.push(Literal::create(i, arity, false, false, vars1.begin()));
-    lits.push(Literal::create(i, arity, true, false, vars2.begin()));
+    lits.push(Literal::create(i, arity, false, vars1.begin()));
+    lits.push(Literal::create(i, arity, true, vars2.begin()));
 
     Clause* cl = createEqProxyAxiom(lits);
     UnitList::push(cl,units);
@@ -317,7 +317,7 @@ unsigned EqualityProxy::getProxyPredicate()
   args.push(var1);
   args.push(var2);
 
-  Literal* proxyLit = Literal::create(newPred, 3, true, false, args.begin());
+  Literal* proxyLit = Literal::create(newPred, 3, true, args.begin());
   Literal* eqLit = Literal::createEquality(true,var1,var2,sort);
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
@@ -354,6 +354,6 @@ Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList 
 {
   unsigned pred = getProxyPredicate();
   TermList args[] = {sort, arg0, arg1};
-  return Literal::create(pred, 3, polarity, false, args);
+  return Literal::create(pred, 3, polarity, args);
 } // EqualityProxy::makeProxyLiteral
 

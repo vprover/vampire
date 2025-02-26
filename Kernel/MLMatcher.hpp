@@ -19,6 +19,8 @@
 #include "Forwards.hpp"
 #include "Clause.hpp"
 
+#include <unordered_map>
+
 namespace Kernel {
 
 using namespace Lib;

@@ -99,7 +99,7 @@ public:
   {
     static Stack<Literal*> st;
     st.reset();
-    st.loadFromIterator(litit);
+    st.loadFromIterator(std::move(litit));
     return fromStack(st, inf);
   }
 
@@ -129,6 +129,11 @@ public:
    * Caller should not manipulate literals, with the exception of
    * clause construction and literal selection. */
   Literal** literals() { return _literals; }
+  // support use of clauses as an iterator
+  Literal **begin() { return _literals; }
+  Literal *const *begin() const { return _literals; }
+  Literal **end() { return _literals + _length; }
+  Literal *const *end() const { return _literals + _length; }
 
   /** True if the clause is empty */
   bool isEmpty() const { return _length == 0; }
@@ -139,6 +144,8 @@ public:
   std::string toString() const;
   std::string toTPTPString() const;
   std::string toNiceString() const;
+
+  friend std::ostream& operator<<(std::ostream& out, Clause const& self);
 
   /** Return the clause store */
   Store store() const { return _store; }
@@ -245,7 +252,7 @@ public:
   bool isPropositional();
   bool isHorn();
 
-  VirtualIterator<unsigned> getVariableIterator();
+  VirtualIterator<unsigned> getVariableIterator() const;
 
   bool contains(Literal* lit);
 #if VDEBUG

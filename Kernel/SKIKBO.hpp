@@ -63,9 +63,6 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  Result compare(AppliedTerm tl1, AppliedTerm tl2) const override { NOT_IMPLEMENTED; }
-  bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override { NOT_IMPLEMENTED; }
-  bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const override;
 
   static unsigned maximumReductionLength(Term* t);
   static TermList reduce(TermStack& args, TermList& head);
