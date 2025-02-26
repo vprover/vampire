@@ -169,7 +169,7 @@ namespace Kernel {
         ); }
 
     auto iterSummands() const { return coproductIter(_self.map(
-        [](Appl* const& x) { return x->iterSummands(); },
+        [](Appl* const& x) { return x->iterSummands().map([](auto& monom) { return monom; }); },
         [](Var   const& x) { return iterItems(AlascaMonom<NumTraits>(1, x.toTerm())); }
         )); }
 

@@ -1335,6 +1335,7 @@ class CoproductIter
   Coproduct<Is...> _inner;
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(TypeList::Get<0, TypeList::List<Is...>>));
+  static_assert((std::is_same_v<OWN_ELEMENT_TYPE, ELEMENT_TYPE(Is)> && ...));
   DEFAULT_CONSTRUCTORS(CoproductIter)
 
   CoproductIter(Coproduct<Is...> i) : _inner(Coproduct<Is...>(std::move(i))) {}
@@ -1346,22 +1347,22 @@ public:
 
   bool hasNext()
   { 
-    Coproduct<Is...> & inner = _inner;;
+    Coproduct<Is...> & inner = _inner;
     return inner.apply([](auto& x) { return x.hasNext();}); }
 
   OWN_ELEMENT_TYPE next()
   { 
-    Coproduct<Is...> & inner = _inner;;
-    return inner.apply([](auto&& x) { return x.next();}); }
+    Coproduct<Is...> & inner = _inner;
+    return inner.apply([](auto& x) -> OWN_ELEMENT_TYPE { return x.next();}); }
 
   bool knowsSize() const 
   { 
-    Coproduct<Is...> const& inner = _inner;;
+    Coproduct<Is...> const& inner = _inner;
     return inner.apply([](auto& x) { return x.knowsSize();}); }
 
   size_t size() const
   { 
-    Coproduct<Is...> const& inner = _inner;;
+    Coproduct<Is...> const& inner = _inner;
     return inner.apply([](auto& x) { return x.size();}); }
 };
 

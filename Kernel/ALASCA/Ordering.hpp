@@ -110,7 +110,7 @@ struct LAKBO {
     if (t0.nSummands() == 1 && t1.nSummands() == 1) {
       return cmpSameSkeleton(t0.summandAt(0), t1.summandAt(0));
     } else {
-      auto set = [](auto p) { return p.iterSummands().map([](auto& x) { return x; }).template collect<MultiSet>(); };
+      auto set = [](auto p) { return p.iterSummands().template collect<MultiSet>(); };
       return OrderingUtils::mulExt(set(t0), set(t1), [&](auto& l, auto& r) { return compare(l, r); });
     }
   }
