@@ -260,7 +260,8 @@ Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const
 
 Option<TermList> QKbo::abstr(TermList t) const 
 {
-  t = this->norm().normalize(t).denormalize();
+  if (t.isVar()) return some(t);
+  t = this->norm().normalize(t.term()).toTerm();
   using Out = Option<TermList>;
   if (t.isVar()) {
     return Option<TermList>(t);
@@ -279,12 +280,12 @@ Option<TermList> QKbo::abstr(TermList t) const
           /* t = k * t' */
           || ( asig(n).isLinMul(f) )
           ) {
-          auto norm = this->norm().normalize(TypedTermList(term)).wrapPoly<NumTraits>();
+          auto norm = this->norm().normalize(TypedTermList(term)).asNonTrivalSum<NumTraits>().unwrap();
           RStack<TermList> abstracted_;
           auto& abstracted = *abstracted_;
-          abstracted.reserve(norm->nSummands());
-          for (auto monom : norm->iterSummands()) {
-            auto a = abstr(monom.factors->denormalize());
+          abstracted.reserve(norm.nSummands());
+          for (auto monom : norm.iterSummands()) {
+            auto a = abstr(monom.atom());
             if (a.isNone()) {
               return noAbstraction();
             } else {
