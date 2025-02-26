@@ -208,11 +208,6 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
 
   auto Csize = premise->size() - Ksize - I.size() - J.size() - L.size();
 
-  auto withoutX = [x](auto foundVarInLiteral) 
-    { return foundVarInLiteral.literal.term().iterSummands()
-                              .filter([&](auto monom) { return monom.factors != x; }); };
-
-
   Stack<Literal*> common(Csize + I.size() * J.size() + I.size() * L.size() + J.size() * L.size());
 
   { /* adding C */
@@ -306,7 +301,6 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
             I = std::move(I), 
             J = std::move(J), 
             L = std::move(L), 
-            withoutX, 
             premise, 
             Ksize,
             sum, minus, b](auto& par) {
