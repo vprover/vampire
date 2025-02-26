@@ -16,15 +16,17 @@
 #include "Kernel/TermIterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/STL.hpp"
-// TODO remove(?)
 
 #define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 namespace Kernel {
 
 
-#define OUTPUT_OP_FROM_TO_TERM(Type) \
-  friend std::ostream& operator<<(std::ostream& out, Type const& self) { return out << self.toTerm(); }
+#define OPS_FROM_TO_TERM(Type) \
+  auto asTuple() const { return std::tuple(toTerm()); } \
+  IMPL_EQ_FROM_COMPARE(Type) \
+  IMPL_HASH_FROM_TUPLE(Type) \
+  friend std::ostream& operator<<(std::ostream& out, Type const& self) { return out << self.toTerm(); } \
 
   /* T can be either TermList or TermSpec */
   class AlascaTermApplUF {
@@ -33,23 +35,35 @@ namespace Kernel {
   public:
     TermList toTerm() const { return _self; }
     static AlascaTermApplUF normalize(Term* t);
-    OUTPUT_OP_FROM_TO_TERM(AlascaTermApplUF);
+    OPS_FROM_TO_TERM(AlascaTermApplUF);
   };
 
 
   template<class NumTraits>
-  struct AlascaMonom {
+  class AlascaMonom {
     using Numeral = typename NumTraits::ConstantType;
     using ASig = AlascaSignature<NumTraits>;
-    Numeral numeral;
-    TermList term;
+    Numeral _numeral;
+    TermList _term;
+  public:
+    AlascaMonom(Numeral numeral, TermList term) 
+      : _numeral(std::move(numeral))
+      , _term(std::move(term)) {  }
+    AlascaMonom(int numeral, TermList term) : AlascaMonom(Numeral(numeral), term) {}
 
-  private:
     template<class N>
     friend class AlascaTermApplNum;
-    TermList toTerm() const { return ASig::linMul(numeral, term); }
-    OUTPUT_OP_FROM_TO_TERM(AlascaMonom);
+    TermList toTerm() const { return ASig::linMul(_numeral, _term); }
+
+
+    auto asTuple() const { return std::tie(_term, _numeral); }
+    IMPL_COMPARISONS_FROM_TUPLE(AlascaMonom)
+    IMPL_HASH_FROM_TUPLE(AlascaMonom)
+    friend std::ostream& operator<<(std::ostream& out, AlascaMonom const& self) 
+    { return out << self._numeral << " " << self._term; }
   };
+
+
 
 
   /* T can be either TermList or TermSpec */
@@ -63,8 +77,9 @@ namespace Kernel {
     AlascaTermApplNum(Stack<AlascaMonom<NumTraits>> self) : _sum(std::move(self)) {}
   public:
     static AlascaTermApplNum normalize(Term* t);
+    auto iterSummands() const { return arrayIter(_sum); }
     TermList toTerm() const { return _self.unwrapOrInit([&]() -> TermList { return NumTraits::sum(arrayIter(_sum).map([](auto& m) { return m.toTerm(); })); }); }
-    OUTPUT_OP_FROM_TO_TERM(AlascaTermApplNum);
+    OPS_FROM_TO_TERM(AlascaTermApplNum);
   };
 
   class AlascaTermVar {
@@ -73,7 +88,7 @@ namespace Kernel {
   public:
     static AlascaTermVar normalize(TypedTermList t) { return AlascaTermVar(t); }
     TermList toTerm() const { return _self; }
-    OUTPUT_OP_FROM_TO_TERM(AlascaTermVar);
+    OPS_FROM_TO_TERM(AlascaTermVar);
   };
 
 
@@ -92,7 +107,7 @@ namespace Kernel {
     static AlascaTermAppl normalizeNum(Term* t) 
     { return AlascaTermAppl(Inner(AlascaTermApplNum<NumTraits>::normalize(t))); }
     TermList toTerm() const { return _self.apply([](auto& self) { return self.toTerm(); }); }
-    OUTPUT_OP_FROM_TO_TERM(AlascaTermAppl);
+    OPS_FROM_TO_TERM(AlascaTermAppl);
   };
 
   /* an alasca term of numerals sort NumTraits */
@@ -106,19 +121,25 @@ namespace Kernel {
     using Inner = Coproduct<Var, Appl*>;
     Inner _self;
 
+
     AlascaTermNum(Inner inner) : _self(std::move(inner)) {}
-    static auto iterSummands(Appl*& x)  { return ; }
-    static auto iterSummands(Var& x)  { return ; }
   public:
+    using Numeral = typename NumTraits::ConstantType;
+
+    // TODO
+    friend AlascaTermNum operator*(Numeral n, AlascaTermNum const&);
+
+    friend AlascaTermNum operator*(int n, AlascaTermNum const& t) { return Numeral(-1) * t; }
+    AlascaTermNum operator-() const { return -1 * *this; }
 
     unsigned nSummands() const { return _self.match(
         [](Appl* const& x) { return x->nSummands(); },
         [](Var   const& x) { return unsigned(1); }
         ); }
 
-    unsigned iterSummands() const { return coproductIter(_self.map(
+    auto iterSummands() const { return coproductIter(_self.map(
         [](Appl* const& x) { return x->iterSummands(); },
-        [](Var   const& x) { return iterItems(AlascaMonom<NumTraits> { .term = x.toTerm(), .numeral = 1 }); }
+        [](Var   const& x) { return iterItems(AlascaMonom<NumTraits>(1, x.toTerm())); }
         )); }
 
     TermList toTerm() const { return _self.match(
@@ -126,9 +147,9 @@ namespace Kernel {
         [](Var   const& x) { return x.toTerm(); }
         ); }
 
-    AlascaMonom<NumTraits> summandAt() const { return _self.match(
-        [](Appl* const& x) { return x->monomAt(x); },
-        [](Var   const& x) { return AlascaMonom<NumTraits> { .term = x.toTerm(), .numeral = 1 }; }
+    AlascaMonom<NumTraits> summandAt(unsigned i) const { return _self.match(
+        [&](Appl* const& x) { return x->monomAt(i); },
+        [&](Var   const& x) { ASS_EQ(i, 0); return AlascaMonom<NumTraits>(1, x.toTerm()); }
         ); }
 
     void integrity() { DEBUG_CODE(
@@ -146,7 +167,7 @@ namespace Kernel {
       }
     ) }
 
-    OUTPUT_OP_FROM_TO_TERM(AlascaTermNum);
+    OPS_FROM_TO_TERM(AlascaTermNum);
   };
 
   // TODO rename to AlascaTerm
@@ -186,7 +207,7 @@ namespace Kernel {
     template<class NumTraits>
     Option<AlascaTermNum<NumTraits>> downcast() const;
 
-    OUTPUT_OP_FROM_TO_TERM(AnyAlascaTerm);
+    OPS_FROM_TO_TERM(AnyAlascaTerm);
   };
 
   inline AlascaTermApplUF AlascaTermApplUF::normalize(Term* t) {
