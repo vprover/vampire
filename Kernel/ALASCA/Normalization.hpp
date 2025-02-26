@@ -37,19 +37,19 @@ namespace Kernel {
     using NumTraits = NumTraits_;
     using Numeral = typename NumTraits_::ConstantType;
   private:
-    Perfect<Polynom<NumTraits>> _term;
+    AlascaTermNum<NumTraits> _term;
     AlascaPredicate _symbol;
     // friend struct std::hash<AlascaLiteral>;
 
   public:
 
-    AlascaLiteral(Perfect<Polynom<NumTraits>> term, AlascaPredicate symbol)
-      : _term(term), _symbol(symbol) 
-    { _term->integrity(); }
+    AlascaLiteral(AlascaTermNum<NumTraits> term, AlascaPredicate symbol)
+      : _term(std::move(term)), _symbol(symbol) 
+    { _term.integrity(); }
 
     /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
-    Polynom<NumTraits> const& term() const
-    { return *_term; }
+    AlascaTermNum<NumTraits> const& term() const
+    { return _term; }
 
     AlascaPredicate symbol() const
     { return _symbol; }
@@ -73,7 +73,7 @@ namespace Kernel {
             case AlascaPredicate::EQ:  
             case AlascaPredicate::NEQ: return _term;
             case AlascaPredicate::GREATER: 
-            case AlascaPredicate::GREATER_EQ: return -_term; // perfect(-(*_term))
+            case AlascaPredicate::GREATER_EQ: return -_term; 
           }
           ASSERTION_VIOLATION
       }();
@@ -81,7 +81,7 @@ namespace Kernel {
     }
 
     Literal* denormalize() const
-    { return createLiteral<NumTraits>(symbol(), term().denormalize()) ; }
+    { return createLiteral<NumTraits>(symbol(), term().toTerm()) ; }
 
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
@@ -114,7 +114,7 @@ namespace Kernel {
     AlascaLiteral<NumTraits> _self;
 
   public:
-    InequalityLiteral(Perfect<Polynom<NumTraits>> term, bool strict) 
+    InequalityLiteral(AlascaTermNum<NumTraits> term, bool strict) 
       : InequalityLiteral(AlascaLiteral<NumTraits>(term, strict ? AlascaPredicate::GREATER : AlascaPredicate::GREATER_EQ))
     {}
 
@@ -125,7 +125,7 @@ namespace Kernel {
     { ASS(self.isInequality()) }
 
     /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
-    Polynom<NumTraits> const& term() const
+    AlascaTermNum<NumTraits> const& term() const
     { return _self.term(); }
 
     /* 
@@ -169,17 +169,9 @@ namespace Kernel {
       return globalNormalizer;
     }
 
-    PolyNf normalize(TypedTermList term) const
-    { 
-      TIME_TRACE("alasca normalize term")
-      auto norm = PolyNf::normalize(term);
-      auto out = _eval.evaluate(norm); 
-      return out || norm;
-    }
-
-    PolyNf normalize(TermList t) const
-    { return t.isTerm() ? normalize(t.term())
-                        : PolyNf(Variable(t.var())); }
+    // TODO remove InequalityNormalizer (?)
+    AnyAlascaTerm normalize(TypedTermList term) const
+    { return AnyAlascaTerm::normalize(term); }
 
   private:
     template<class Numeral>
@@ -202,23 +194,20 @@ namespace Kernel {
     { return l.gcd(r); }
 
     template<class NumTraits>
-    static auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> Perfect<Polynom<NumTraits>>
+    static auto normalizeFactors(AlascaTermNum<NumTraits> in) -> AlascaTermNum<NumTraits>
     {
-      if (in->nSummands() == 0) {
+      auto gcd = in.iterSummands()
+        .map([](auto s) { return s.numeral().abs(); })
+        .fold([](auto l, auto r) { return qGcd(l,r); });
+      if (gcd.isNone()) {
         return in;
       }
-      auto gcd = in->iterSummands()
-        .map([](auto s) { return s.numeral.abs(); })
-        .fold([](auto l, auto r) { return qGcd(l,r); })
-        .unwrap();
-      ASS_REP(gcd >= 0, gcd)
-      if (gcd == 1 || gcd == 0) {
+      ASS_REP(*gcd >= 0, *gcd)
+      if (*gcd == 1 || *gcd == 0) {
         return in;
       } else {
-        auto  out = perfect(Polynom<NumTraits>(in->iterSummands()
-              .map([=](auto s) { return Monom<NumTraits>(intDivide(gcd, s.numeral), s.factors); })
-              .template collect<Stack>()));
-        return out;
+        return AlascaTermNum<NumTraits>::fromCorrectlySortedIter(in.iterSummands()
+            .map([=](auto s) { return AlascaMonom<NumTraits>(intDivide(*gcd, s.numeral()), s.atom()); }));
       }
     }
 
@@ -315,15 +304,15 @@ namespace Kernel {
 
         ASS(!isInt || pred != AlascaPredicate::GREATER_EQ)
 
-        auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, ASig::sort())).wrapPoly<NumTraits>());
+        auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, ASig::sort())).asSum<NumTraits>().unwrap());
         switch(pred) {
           case AlascaPredicate::EQ:
           case AlascaPredicate::NEQ:
             // normalizing s == t <-> -s == -t
-            if (factorsNormalized->nSummands() > 0) {
+            if (factorsNormalized.iterSummands().hasNext()) {
               // TODO choose the numeral as the pivot if there is one
-              if (factorsNormalized->summandAt(0).numeral < 0) {
-                factorsNormalized = perfect(-*factorsNormalized);
+              if (factorsNormalized.iterSummands().next().numeral() < 0) {
+                factorsNormalized = -factorsNormalized;
               }
             }
           case AlascaPredicate::GREATER:
@@ -397,13 +386,13 @@ namespace Kernel {
   private: 
     Literal* normalizeUninterpreted(Literal* lit) const
     {
-      // TODO RStack
-      Stack<TermList> args(lit->arity());
-      args.loadFromIterator(typeArgIter(lit));
-      for (auto orig : termArgIter(lit)) {
-        args.push(normalize(orig).denormalize());
-      }
-      auto out = Literal::create(lit, args.begin());
+      RStack<TermList> args;
+      args->loadFromIterator(concatIters(
+            typeArgIter(lit),
+            termArgIterTyped(lit)
+              .map([&](auto arg) { return normalize(arg).toTerm(); })
+          ));
+      auto out = Literal::create(lit, args->begin());
       DEBUG_NORM(0, *lit, " ==> ", *out)
       return out;
     }
