@@ -22,6 +22,10 @@
 
 namespace Kernel {
 
+
+#define OUTPUT_OP_FROM_TO_TERM(Type) \
+  friend std::ostream& operator<<(std::ostream& out, Type const& self) { return out << self.toTerm(); }
+
   /* T can be either TermList or TermSpec */
   class AlascaTermApplUF {
     TermList _self;
@@ -29,6 +33,7 @@ namespace Kernel {
   public:
     TermList toTerm() const { return _self; }
     static AlascaTermApplUF normalize(Term* t);
+    OUTPUT_OP_FROM_TO_TERM(AlascaTermApplUF);
   };
 
 
@@ -43,6 +48,7 @@ namespace Kernel {
     template<class N>
     friend class AlascaTermApplNum;
     TermList toTerm() const { return ASig::linMul(numeral, term); }
+    OUTPUT_OP_FROM_TO_TERM(AlascaMonom);
   };
 
 
@@ -58,6 +64,7 @@ namespace Kernel {
   public:
     static AlascaTermApplNum normalize(Term* t);
     TermList toTerm() const { return _self.unwrapOrInit([&]() -> TermList { return NumTraits::sum(arrayIter(_sum).map([](auto& m) { return m.toTerm(); })); }); }
+    OUTPUT_OP_FROM_TO_TERM(AlascaTermApplNum);
   };
 
   class AlascaTermVar {
@@ -66,6 +73,7 @@ namespace Kernel {
   public:
     static AlascaTermVar normalize(TypedTermList t) { return AlascaTermVar(t); }
     TermList toTerm() const { return _self; }
+    OUTPUT_OP_FROM_TO_TERM(AlascaTermVar);
   };
 
 
@@ -84,6 +92,7 @@ namespace Kernel {
     static AlascaTermAppl normalizeNum(Term* t) 
     { return AlascaTermAppl(Inner(AlascaTermApplNum<NumTraits>::normalize(t))); }
     TermList toTerm() const { return _self.apply([](auto& self) { return self.toTerm(); }); }
+    OUTPUT_OP_FROM_TO_TERM(AlascaTermAppl);
   };
 
   /* an alasca term of numerals sort NumTraits */
@@ -136,8 +145,11 @@ namespace Kernel {
         ASS(x.numeral != 0)
       }
     ) }
+
+    OUTPUT_OP_FROM_TO_TERM(AlascaTermNum);
   };
 
+  // TODO rename to AlascaTerm
   class AnyAlascaTerm 
   { 
     using Inner = Coproduct< AlascaTermVar
@@ -173,6 +185,8 @@ namespace Kernel {
     
     template<class NumTraits>
     Option<AlascaTermNum<NumTraits>> downcast() const;
+
+    OUTPUT_OP_FROM_TO_TERM(AnyAlascaTerm);
   };
 
   inline AlascaTermApplUF AlascaTermApplUF::normalize(Term* t) {
