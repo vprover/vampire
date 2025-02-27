@@ -58,9 +58,10 @@ namespace Kernel {
     AlascaMonom(Numeral numeral, TermList term) 
       : _numeral(std::move(numeral))
       , _term(std::move(term)) 
-    {  
-      ASS(ASig::one() == _term || !ASig::isNumeral(_term))
-    }
+    {  }
+
+    void integrity() const 
+    { ASS(ASig::one() == _term || !ASig::isNumeral(_term)) }
 
     AlascaMonom(Numeral numeral) 
       : AlascaMonom(numeral, NumTraits::one()) 
@@ -241,6 +242,7 @@ namespace Kernel {
       }
       for (auto x : iterSummands()) {
         ASS(x.numeral() != 0)
+        x.integrity();
       }
     ) }
 
