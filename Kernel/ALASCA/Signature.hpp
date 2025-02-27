@@ -135,6 +135,7 @@ struct AlascaSignature : public NumTraits {
   template<class Iter>
   static TermList sum(Iter iter) {
     return iterTraits(std::move(iter))
+      .map([](auto x) -> TermList { return TermList(x); }) /* converting TypedTermList into TermList */
       .fold([](auto l, auto r) { return AlascaSignature::add(l, r); })
       .unwrapOrElse([&]() { return AlascaSignature::zero(); });
   }

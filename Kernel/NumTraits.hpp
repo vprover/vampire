@@ -202,16 +202,12 @@ struct NumTraits;
                                                                                           \
     template<class Iter>                                                                  \
     static TermList sum(Iter iter) {                                                      \
-      if (iter.hasNext()) {                                                               \
-        auto out = iter.next();                                                           \
-        while (iter.hasNext()) {                                                          \
-          out = NumTraits::add(iter.next(), out);                                         \
-        }                                                                                 \
-        return out;                                                                       \
-      } else {                                                                            \
-        return NumTraits::zero();                                                         \
-      }                                                                                   \
-    };                                                                                    \
+      return iterTraits(std::move(iter))                                                  \
+        /* converting TypedTermList into TermList */                                      \
+        .map([](auto x) -> TermList { return TermList(x); })                              \
+        .fold([](auto l, auto r) { return NumTraits::add(l, r); })                        \
+        .unwrapOrElse([&]() { return NumTraits::zero(); });                               \
+    }                                                                                     \
                                                                                           \
     template<class Iter>                                                                  \
     static TermList product(Iter iter) {                                                  \
