@@ -1604,7 +1604,6 @@ Term::Term(const Term& t) throw()
 
 
 Term::~Term() {
-  if (_alascaNormalForm) delete _alascaNormalForm ;
 }
 
 
