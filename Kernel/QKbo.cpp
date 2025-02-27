@@ -280,7 +280,7 @@ Option<TermList> QKbo::abstr(TermList t) const
           /* t = k * t' */
           || ( asig(n).isLinMul(f) )
           ) {
-          auto norm = this->norm().normalize(TypedTermList(term)).asNonTrivalSum<NumTraits>().unwrap();
+          auto norm = this->norm().normalize(TypedTermList(term)).asSum<NumTraits>().unwrap();
           RStack<TermList> abstracted_;
           auto& abstracted = *abstracted_;
           abstracted.reserve(norm.nSummands());

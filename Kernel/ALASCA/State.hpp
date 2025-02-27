@@ -242,13 +242,6 @@ namespace Kernel {
         });
     }
 
-    // TODO rename to iterSumSubterms
-    auto iterInterpretedSubterms(TypedTermList t) {
-      return _normalizer->normalize(t)
-        .iterSubterms()
-        .filterMap([](auto t) { return t.asNonTrivialSum(); });
-    }
-
     auto isUninterpreted(Literal* l) const 
     { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 

@@ -125,11 +125,26 @@ struct LAKBO {
   Ordering::Result cmpSameSkeleton(AlascaTermNumAny const& t0, AnyAlascaTerm const& t1) const 
   { return t0.apply([&](auto& t0) { return cmpSameSkeleton(t0, t1); }); }
 
+  static Option<AlascaTermNumAny> asNonTrivialSum(AnyAlascaTerm const& t) { 
+    return t.asSum()
+      .andThen([](auto x) -> Option<AlascaTermNumAny> {
+        if(x.apply([](auto& x) {
+          return x.nSummands() != 0 || (x.nSummands() == 1 && x.monomAt(0).numeral() != 0);
+        })) {
+          return some(x);
+        } else {
+          return {};
+        }
+    });
+  }
+
   Ordering::Result cmpSameSkeleton(AnyAlascaTerm const& t0, AnyAlascaTerm const& t1) const {
     if (t0 == t1) return Ordering::Result::EQUAL;
-    if (auto p0 = t0.asNonTrivialSum()) {
+    // TODO make this nicer
+    
+    if (auto p0 = asNonTrivialSum(t0)) {
       return cmpSameSkeleton(*p0, t1);
-    } else if (auto p1 = t1.asNonTrivialSum()) {
+    } else if (auto p1 = asNonTrivialSum(t1)) {
       return Ordering::reverse(cmpSameSkeleton(*p1, t0));
 
     } else if (t0.toTerm().isVar() || t1.toTerm().isVar()) {
@@ -156,6 +171,7 @@ struct LAKBO {
       }
     }
   }
+
 
   Option<TermList> skeleton(Variable const& t) const {
     // TODO theory
@@ -239,7 +255,7 @@ struct LAKBO {
 
   Option<TermList> skeleton(AnyAlascaTerm const& t) const 
   { 
-    if (auto sum = t.asNonTrivialSum()) {
+    if (auto sum = asNonTrivialSum(t)) {
       return skeleton(*sum);
     } else {
       return skeleton(t.toTerm().term());

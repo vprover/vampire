@@ -45,7 +45,9 @@ struct Application
              [](SelectedUninterpretedPredicate& x) { return termArgIterTyped(x.literal()); }
           ))
           .flatMap([&](TypedTermList activePos) {
-            return shared.iterInterpretedSubterms(activePos)
+            return AnyAlascaTerm::normalize(activePos).iterSubterms()
+               .filterMap([](auto t) { return t.asSum(); })
+               .filter([](auto& s) { return s.apply([](auto& s) { return s.nSummands() >= 2; }); })
                .flatMap([=](auto t_anyNum) {
                    return coproductIter(t_anyNum.applyCo([=](auto t) {
                        return range(0, t.nSummands() - 1)
@@ -60,8 +62,7 @@ struct Application
                                                               && appl.term1().term()->functor() == appl.term2().term()->functor()
                                                               ;  })
                                 ;
-                          })
-                          ;
+                          });
                    })); 
                });
               }) ;
