@@ -480,11 +480,17 @@ namespace Kernel {
             done.push(Monom(cur.numeral() * *k));
           }
         } else if (auto itp = theory->tryInterpretFunction(t->functor())) {
+          // TODO de-recursify (?)
           switch(*itp) {
             case NumTraits::addI:
               DEBUG_NORM("add")
               todo->push(Monom(cur.numeral(), t->termArg(0)));
               todo->push(Monom(cur.numeral(), t->termArg(1)));
+              break;
+            case NumTraits::binMinusI:
+              DEBUG_NORM("minus")
+              todo->push(Monom( cur.numeral(), t->termArg(0)));
+              todo->push(Monom(-cur.numeral(), t->termArg(1)));
               break;
             case NumTraits::mulI: {
               /* pulling out all linear parts of the multiplication
@@ -502,37 +508,38 @@ namespace Kernel {
               }
             }
               break;
-            //  case NumTraits::mulI: {
-            //   /* pulling out all linear parts of the multiplication
-            //    * (x * 2 * (a * 3)) ==> 6 * (x * a) */
-            //   RStack<TermList> mulArgs;
-            //   mulArgs->push(t->termArg(0));
-            //   mulArgs->push(t->termArg(1));
-            //   auto n = Numeral(1);
-            //   RStack<TermList> mulRes;
-            //   while (mulArgs->isNonEmpty()) {
-            //     auto a = mulArgs->pop();
-            //     if (a.isTerm() && a.term()->functor() == t->functor()) {
-            //       mulArgs->push(t->termArg(0));
-            //       mulArgs->push(t->termArg(1));
-            //     } else {
-            //       auto r = AnyAlascaTerm::normalize(TypedTermList(a, NumTraits::sort())).toTerm();
-            //       if (auto k = NumTraits::tryNumeral(r)) {
-            //         n *= *k;
-            //       } else if (auto k = NumTraits::tryLinMul(r)) {
-            //         n *= *k;
-            //         mulRes->push(r.term()->termArg(0));
-            //       } else {
-            //         mulRes->push(r);
-            //       }
-            //     }
-            //   }
-            //   todo->push(Monom(cur.numeral() * n, NumTraits::product(arrayIter(*mulRes))));
-            // }
-            //   break;
-            case NumTraits::floorI:
+            case NumTraits::floorI: {
               DEBUG_NORM("floor")
-              ASSERTION_VIOLATION
+              auto norm = AnyAlascaTerm::normalize(TypedTermList(t->termArg(0), NumTraits::sort()))
+                .asSum<NumTraits>()
+                .unwrap();
+              RStack<Monom> inner;
+              for (auto m : norm.iterSummands()) {
+                auto atomInt = m.isNumeral() || NumTraits::isFloor(m.atom());
+                if (atomInt) {
+                  auto kF = m.numeral().floor();
+                  auto kR = m.numeral() - kF;
+                  if (kF != 0) {
+                    done.push(Monom(kF * cur.numeral(), m.atom()));
+                  }
+                  if (kR != 0) {
+                    inner->push(Monom(kR, m.atom()));
+                  }
+                } else {
+                  inner->push(m);
+                }
+              }
+              if (inner.size() == 0) {
+
+              } else if (inner.size() == 1 && inner[0].isNumeral()) {
+                ASS_EQ(inner[0].tryNumeral()->floor(), 0)
+              } else {
+                done.push(Monom(cur.numeral(), NumTraits::floor(NumTraits::sum(
+                          arrayIter(*inner)
+                          .map([](auto& m) { return m.toTerm(); })
+                          ))));
+              }
+            }
               break;
             case NumTraits::minusI:
               DEBUG_NORM("minus")

@@ -153,6 +153,7 @@ public:
 
   static Option<IntegerConstantType> parse(std::string const&);
 
+  IntegerConstantType floor() const { return *this; }
   IntegerConstantType operator-() const;
   IntegerConstantType operator*(const IntegerConstantType& num) const;
   IntegerConstantType& operator++() { mpz_add_ui(_val,_val,1); return *this; }
