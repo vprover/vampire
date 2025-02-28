@@ -22,7 +22,7 @@
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
-#define DEBUG_ALASCA_ORD(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
+#define DEBUG_ALASCA_ORD(lvl, ...) if (lvl < 3) { DBG(__VA_ARGS__) }
 
 namespace Kernel {
 
@@ -206,7 +206,7 @@ struct LAKBO {
   template<class NumTraits>
   Option<TermList> skeleton(AlascaMonom<NumTraits> const& t) const 
   DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
-  { return skeleton(t.atom()); }
+  { return skeleton(TypedTermList(t.atom(), NumTraits::sort())); }
   )
 
   template<class NumTraits>
@@ -257,6 +257,8 @@ struct LAKBO {
   { 
     if (auto sum = asNonTrivialSum(t)) {
       return skeleton(*sum);
+    } else if (t.toTerm().isVar()) {
+      return some(TermList(t.toTerm()));
     } else {
       return skeleton(t.toTerm().term());
     }
@@ -264,8 +266,8 @@ struct LAKBO {
 
   // TODO atoms of equalities normalizing!!!
 
-  auto skeleton(TermList t) const
-  { return t.isVar() ? some(t) : skeleton(norm().normalize(TypedTermList(t.term()))); }
+  Option<TermList> skeleton(TypedTermList t) const
+  { return skeleton(norm().normalize(t)); }
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const 
@@ -450,6 +452,8 @@ private:
     }
   }
 };
+#undef DEBUG_FN_RESULT
+#undef DEBUG_RESULT
 
 } // namespace Kernel
 
