@@ -22,7 +22,7 @@
 #include "Lib/VirtualIterator.hpp"
 
 
-#define DEBUG(lvl, ...) if (lvl < 2) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 #define DEBUG_NORM(...) if (0) { DBG(__VA_ARGS__) }
 
 #define DEBUG_RESULT(lvl, msg, ...)                                                       \
@@ -187,7 +187,7 @@ namespace Kernel {
   public:
     static AlascaTermNum fromVar(TypedTermList v)  
     { 
-      ASS_EQ(v, NumTraits::sort())
+      ASS_EQ(v.sort(), NumTraits::sort())
       ASS(v.isVar())
       return AlascaTermNum(__AlascaTermVar::normalize(v)); 
     }
