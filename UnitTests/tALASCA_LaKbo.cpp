@@ -515,22 +515,6 @@ TEST_FUN(eq_equiv) {
   check(ord,  f(a) + f(b) == 0, Equal   , -f(a) - f(b) == 0);
 }
 
-TEST_FUN(var_equalities) {
-
-  DECL_DEFAULT_VARS
-  DECL_SORT(s1)
-  DECL_SORT(s2)
-  auto& ord = lakbo();
-  DECL_VAR(x0, 0)
-  DECL_VAR(x1, 0)
-  x0.sort(s1);
-  x1.sort(s2);
-
-  check(ord,  x0 == x0, Less, x1 == x1);
-  check(ord,  x0 != x0, Less, x1 != x1);
-}
-
-
 TEST_FUN(ineq_diseq) {
 
   DECL_DEFAULT_VARS

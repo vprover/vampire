@@ -22,7 +22,7 @@
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
-#define DEBUG_ALASCA_ORD(lvl, ...) if (lvl < 3) { DBG(__VA_ARGS__) }
+#define DEBUG_ALASCA_ORD(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 namespace Kernel {
 
@@ -129,11 +129,11 @@ struct LAKBO {
     return t.asSum()
       .andThen([](auto x) -> Option<AlascaTermNumAny> {
         if(x.apply([](auto& x) {
-          return x.nSummands() != 0 || (x.nSummands() == 1 && x.monomAt(0).numeral() != 0);
+          return x.nSummands() == 1 && x.monomAt(0).numeral() == 1;
         })) {
-          return some(x);
-        } else {
           return {};
+        } else {
+          return some(x);
         }
     });
   }
@@ -173,11 +173,6 @@ struct LAKBO {
   }
 
 
-  Option<TermList> skeleton(Variable const& t) const {
-    // TODO theory
-    return some(TermList::var(t.id()));
-  }
-
   Option<TermList> skeleton(AlascaTermNumAny const& t) const 
   { return t.apply([&](auto& t) { return skeleton(t); }); }
 
@@ -196,8 +191,9 @@ struct LAKBO {
 
 #define DEBUG_RESULT(lvl, msg, ...)                                                       \
      auto impl = [&]() { __VA_ARGS__ };                                                   \
+     DEBUG_ALASCA_ORD(lvl, msg, "???");                                                   \
      auto res = impl();                                                                   \
-     DEBUG_ALASCA_ORD(lvl, msg, res);                                                      \
+     DEBUG_ALASCA_ORD(lvl, msg, res);                                                     \
      return res;                                                                          \
 
 #define DEBUG_FN_RESULT(lvl, msg, ...)                                                    \
@@ -213,6 +209,9 @@ struct LAKBO {
   Option<TermList> skeleton(AlascaTermNum<NumTraits> const& t) const 
   DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
   {
+    if (t.nSummands() == 0) {
+      return some(NumTraits::one());
+    }
     if (auto summands = trySkeleton(t.iterSummands())) {
       auto maxIter = OrderingUtils::maxElems(summands->size(), 
           [&](auto t0, auto t1) { return _kbo.compare((*summands)[t0], (*summands)[t1]);  }, 
