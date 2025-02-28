@@ -621,6 +621,34 @@ TEST_FRAC(bug_09,
       .strong = false,
     })
 
+TEST_FRAC(div_zero_1, 
+    TestCase {
+      .in  =    p(a / 0),
+      .out = { { p(a / 0) } },
+      .strong = false,
+    })
+
+TEST_FRAC(div_zero_2, 
+    TestCase {
+      .in  =    p(num(0) / 0),
+      .out = { { p(num(0) / 0) } },
+      .strong = false,
+    })
+
+TEST_FRAC(div_0, 
+    TestCase {
+      .in  =    p(1 / a),
+      .out = { { p(1 / a) } },
+      .strong = false,
+    })
+
+TEST_FRAC(div_1, 
+    TestCase {
+      .in  =    p(1 / num(2)),
+      .out = { { p(frac(1,2)) } },
+      .strong = false,
+    })
+
 TEST_FRAC(test_bin_minus, 
     TestCase {
       .in  =    p(a + binMinus(b, a)),

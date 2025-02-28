@@ -223,6 +223,11 @@ namespace Kernel {
 
     DECL_LIN_MUL_OPS(AlascaTermNum)
 
+    Option<Numeral> tryNumeral() const 
+    { if (nSummands() == 0) return some(Numeral(0)); 
+      else if (nSummands() == 1) return monomAt(0).tryNumeral();
+      else return {}; }
+
     unsigned nSummands() const { return _self.match(
         [&](Appl* const& x) { return unwrapAppl().nSummands(); },
         [&](Var   const& x) { return unsigned(1); }
@@ -441,6 +446,40 @@ namespace Kernel {
     return __normalizeMul<NumTraits>(n, orig_, orig_->functor());
   }
 
+  // TODO rename
+  template<class PushTodo, class PushDone>
+  bool handleFractionalInterpretation(IntTraits, Interpretation itp, Term* t, 
+    PushTodo todo, 
+    PushDone done) { return false; }
+
+
+  // TODO rename
+  template<class NumTraits, class PushTodo, class PushDone>
+  bool handleFractionalInterpretation(NumTraits, Interpretation itp, Term* t, 
+    PushTodo pushTodo, 
+    PushDone pushDone) {
+
+    using Numeral = typename NumTraits::ConstantType;
+    switch (itp) {
+      case NumTraits::divI: {
+        auto rec = [](auto t) { return AnyAlascaTerm::normalize(TypedTermList(TermList(t), NumTraits::sort())); };
+        auto t1 = rec(t->termArg(1));
+        if (auto r = t1.template asSum<NumTraits>()->tryNumeral()) {
+          if (*r != 0) {
+            pushTodo(1 / *r, t->termArg(0));
+            return true;
+          }
+        }
+        pushDone(Numeral(1), NumTraits::div(
+              rec(t->termArg(0)).toTerm(),
+              t1.toTerm()));
+        return true;
+      }
+      default:
+        return false;
+    }
+  }
+
   template<class NumTraits>
   __AlascaTermApplNum<NumTraits> __AlascaTermApplNum<NumTraits>::normalize(Term* orig_) {
     auto orig = TermList(orig_);
@@ -546,7 +585,12 @@ namespace Kernel {
               todo->push(Monom(-cur.numeral(), t->termArg(0)));
               break;
             default:
-              uninterpretedCase(std::move(cur));
+              if (!handleFractionalInterpretation(NumTraits{}, *itp, t, 
+                    [&](auto n, auto t) { todo->push(Monom(n * cur.numeral(), t)); },
+                    [&](auto n, auto t) { done.push(Monom(n * cur.numeral(), t)); }
+                   )) {
+                uninterpretedCase(std::move(cur));
+              } 
               break;
           }
         } else {
@@ -584,6 +628,7 @@ namespace Kernel {
       }
       done.pop(done.size() - sz);
     }
+    // TODO make done now have any capacity slack but be exactly the size of the stack
 
     return __AlascaTermApplNum<NumTraits>(std::move(done));
   }
