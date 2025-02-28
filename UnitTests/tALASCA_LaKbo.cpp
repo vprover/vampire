@@ -282,7 +282,7 @@ TEST_FUN(misc02) {
 
   auto& ord = lakbo();
 
-  check(ord, f(x + y), Incomp, x);
+  check(ord, f(x + y), Greater, x);
 }
 
 
