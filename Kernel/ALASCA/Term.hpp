@@ -183,7 +183,7 @@ namespace Kernel {
     template<class C> AlascaTermNum(C inner) : _self(std::move(inner)) {}
     friend struct AlascaTermImpl;
     friend class AnyAlascaTerm;
-    auto unwrapAppl() const { return _self.unwrap<AlascaTermCache*>()->_self.template unwrap<__AlascaTermApplNum<NumTraits>>(); }
+    auto& unwrapAppl() const { return _self.unwrap<AlascaTermCache*>()->_self.template unwrap<__AlascaTermApplNum<NumTraits>>(); }
   public:
     static AlascaTermNum fromVar(TypedTermList v)  
     { 
