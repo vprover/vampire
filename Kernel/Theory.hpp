@@ -595,6 +595,7 @@ public:
   // bool isInterpretedPartialFunction(unsigned func);
   bool isZero(TermList t);
 
+  Option<Interpretation> tryInterpretFunction(unsigned func);
   Interpretation interpretFunction(unsigned func);
   Interpretation interpretFunction(Term* t);
   Interpretation interpretFunction(TermList t);

@@ -272,9 +272,11 @@ struct NumTraits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , One , 1)                                      \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, Zero, 0)                                      \
                                                                                           \
-    template<class T>                                                                     \
-    static Option<ConstantType const&> tryLinMul(T t)                                     \
-    { return ifLinMul(t, [](auto& c, auto t) -> auto& { return c; }); }                   \
+    static Option<ConstantType const&> tryLinMul(Term* t)                                 \
+    { return tryLinMul(t->functor()); }                                                   \
+                                                                                          \
+    static Option<ConstantType const&> tryLinMul(TermList t)                              \
+    { return t.isVar() ? Option<ConstantType const&>() : tryLinMul(t.term()); }           \
                                                                                           \
     static Option<ConstantType const&> tryLinMul(unsigned f)                              \
     { return env.signature->tryLinMul<ConstantType>(f); }                                 \

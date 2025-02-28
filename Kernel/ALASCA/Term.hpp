@@ -11,6 +11,7 @@
 #ifndef __ALASCA_Term__
 #define __ALASCA_Term__
 
+#include "Debug/Assertion.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
@@ -20,7 +21,18 @@
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/VirtualIterator.hpp"
 
-#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
+
+#define DEBUG(lvl, ...) if (lvl < 2) { DBG(__VA_ARGS__) }
+#define DEBUG_NORM(...) if (0) { DBG(__VA_ARGS__) }
+
+#define DEBUG_RESULT(lvl, msg, ...)                                                       \
+     auto impl = [&]() { __VA_ARGS__ };                                                   \
+     auto res = impl();                                                                   \
+     DEBUG(lvl, msg, res);                                                      \
+     return res;                                                                          \
+
+#define DEBUG_FN_RESULT(lvl, msg, ...)                                                    \
+  { DEBUG_RESULT(lvl, msg, __VA_ARGS__) }
 
 #define DECL_LIN_MUL_OPS(Type) \
     friend Type operator/(Type const& t, Numeral n) { return n.inverse() * t; } \
@@ -77,11 +89,17 @@ namespace Kernel {
     DECL_LIN_MUL_OPS(AlascaMonom)
 
     Numeral const& numeral() const { return _numeral; }
-    TermList const& atom() const { return _term; }
+    TermList atom() const { return _term; }
 
     template<class N>
     friend class __AlascaTermApplNum;
-    TypedTermList toTerm() const { return TypedTermList(ASig::linMul(_numeral, _term), NumTraits::sort()); }
+    TypedTermList toTerm() const { 
+      return TypedTermList(
+            _numeral == 1 ? _term 
+          : isNumeral() == 1 ? NumTraits::constantTl(_numeral) 
+          : ASig::linMul(_numeral, _term)
+          , NumTraits::sort()); 
+    }
 
     auto asTuple() const { return std::tie(_term, _numeral); }
     IMPL_COMPARISONS_FROM_TUPLE(AlascaMonom)
@@ -243,6 +261,7 @@ namespace Kernel {
       for (auto x : iterSummands()) {
         ASS(x.numeral() != 0)
         x.integrity();
+
       }
     ) }
 
@@ -386,42 +405,149 @@ namespace Kernel {
   }
 
   template<class NumTraits>
-  __AlascaTermApplNum<NumTraits> __AlascaTermApplNum<NumTraits>::normalize(Term* t) {
-    using ASig = AlascaSignature<NumTraits>;
+  Option<TermList> __normalizeMul(typename NumTraits::ConstantType& n, TermList t, unsigned f);
+
+  template<class NumTraits>
+  Option<TermList> __normalizeMul(typename NumTraits::ConstantType& n, Term * t, unsigned f) {
+    if (t->functor() == f) {
+      auto t0 = __normalizeMul<NumTraits>(n, t->termArg(0), f);
+      auto t1 = __normalizeMul<NumTraits>(n, t->termArg(1), f);
+      return t0.isSome() && t1.isSome() ?  some(TermList(Term::create(f, { *t0, *t1 })))
+           : t0.isSome() ? t0
+           : t1.isSome() ? t1
+           : Option<TermList>();
+    } else if (auto k = NumTraits::tryNumeral(t)) {
+      n *= *k;
+      return Option<TermList>();
+    } else if  (auto k = NumTraits::tryLinMul(t)) {
+      n *= *k;
+      return __normalizeMul<NumTraits>(n, t->termArg(0), f);
+    } else if  (NumTraits::isMinus(t)) {
+      n = -n;
+      return __normalizeMul<NumTraits>(n, t->termArg(0), f);
+    } else {
+      return some(TermList(AnyAlascaTerm::normalize(TypedTermList(TermList(t), NumTraits::sort())).toTerm()));
+    }
+  }
+
+
+  template<class NumTraits>
+  Option<TermList> __normalizeMul(typename NumTraits::ConstantType& n, TermList t, unsigned f)
+  { return t.isVar() ? some(t) : __normalizeMul<NumTraits>(n, t.term(), f); }
+
+
+  template<class NumTraits>
+  Option<TermList> __normalizeMul(typename NumTraits::ConstantType& n, Term * orig_) {
+    return __normalizeMul<NumTraits>(n, orig_, orig_->functor());
+  }
+
+  template<class NumTraits>
+  __AlascaTermApplNum<NumTraits> __AlascaTermApplNum<NumTraits>::normalize(Term* orig_) {
+    auto orig = TermList(orig_);
 
     using Monom = AlascaMonom<NumTraits>;
     Stack<Monom> done;
     RStack<Monom> todo;
-    todo->push(Monom(1, TermList(t)));
-    while (todo->isNonEmpty()) {
-      auto next = todo->pop();
+    todo->push(Monom(1, orig));
 
-      optionIfThenElse(
-          [&]() { return ASig::ifAdd(t, [&](auto l, auto r) {
-            todo->push(Monom(next.numeral(), l));
-            todo->push(Monom(next.numeral(), r));
-            return 0;
-            }); },
-          [&]() { return ASig::ifLinMul(t, [&](auto k, auto t) {
-            todo->push(Monom(next.numeral() * k, t));
-            return 0;
-            }); },
-          [&]() { return ASig::ifNumeral(t, [&](auto k) {
-            todo->push(Monom(next.numeral() * k));
-            return 0;
-            }); },
-          [&]() { 
-            if (next.numeral() != 0) {
-              auto inner = AnyAlascaTerm::normalize(TypedTermList(next.atom(), NumTraits::sort()))
-                        .template asSum<NumTraits>()
-                        .unwrap();
-              for (auto m : inner.iterSummands()) {
-                done.push(next.numeral() * m);
+    auto uninterpretedCase = [&](Monom cur) {
+        DEBUG_NORM("uninterpreted")
+        if (cur.numeral() != 0) {
+          // TOOD we do the smae thing here as in UF::normalize
+          done.push(Monom(cur.numeral(),
+                  TermList(Term::createFromIter(cur.atom().term()->functor(), concatIters(
+                            typeArgIter(cur.atom().term()),
+                            termArgIterTyped(cur.atom().term())
+                              .map([](auto t) { return AnyAlascaTerm::normalize(t).toTerm(); })))
+                 )));
+        }
+    };
+    while (todo->isNonEmpty()) {
+      DEBUG_NORM("todo: ", todo, " done: ", done)
+      auto cur = todo->pop();
+      if (cur.atom().isVar()) {
+        if (cur.numeral() != 0) {
+          done.push(cur);
+        }
+      } else {
+        Term* t = cur.atom().term();
+        if (auto k = NumTraits::tryLinMul(t->functor())) {
+          DEBUG_NORM("linMul")
+          todo->push(Monom(cur.numeral() * *k, t->termArg(0)));
+        } else if (auto k = NumTraits::tryNumeral(t->functor())) {
+          DEBUG_NORM("num")
+          if (cur.numeral() != 0) {
+            done.push(Monom(cur.numeral() * *k));
+          }
+        } else if (auto itp = theory->tryInterpretFunction(t->functor())) {
+          switch(*itp) {
+            case NumTraits::addI:
+              DEBUG_NORM("add")
+              todo->push(Monom(cur.numeral(), t->termArg(0)));
+              todo->push(Monom(cur.numeral(), t->termArg(1)));
+              break;
+            case NumTraits::mulI: {
+              /* pulling out all linear parts of the multiplication
+               * (x * 2 * (a * 3)) ==> 6 (x * a) */
+
+              auto n = cur.numeral();
+              auto normT = __normalizeMul<NumTraits>(n, t);
+              if (normT.isSome() && NumTraits::isAdd(*normT)) {
+                todo->push(Monom(n, normT->term()->termArg(0)));
+                todo->push(Monom(n, normT->term()->termArg(1)));
+              } else if (normT) {
+                done.push(Monom(n, *normT));
+              } else {
+                done.push(Monom(n));
               }
             }
-            return 0;
-          });
+              break;
+            //  case NumTraits::mulI: {
+            //   /* pulling out all linear parts of the multiplication
+            //    * (x * 2 * (a * 3)) ==> 6 * (x * a) */
+            //   RStack<TermList> mulArgs;
+            //   mulArgs->push(t->termArg(0));
+            //   mulArgs->push(t->termArg(1));
+            //   auto n = Numeral(1);
+            //   RStack<TermList> mulRes;
+            //   while (mulArgs->isNonEmpty()) {
+            //     auto a = mulArgs->pop();
+            //     if (a.isTerm() && a.term()->functor() == t->functor()) {
+            //       mulArgs->push(t->termArg(0));
+            //       mulArgs->push(t->termArg(1));
+            //     } else {
+            //       auto r = AnyAlascaTerm::normalize(TypedTermList(a, NumTraits::sort())).toTerm();
+            //       if (auto k = NumTraits::tryNumeral(r)) {
+            //         n *= *k;
+            //       } else if (auto k = NumTraits::tryLinMul(r)) {
+            //         n *= *k;
+            //         mulRes->push(r.term()->termArg(0));
+            //       } else {
+            //         mulRes->push(r);
+            //       }
+            //     }
+            //   }
+            //   todo->push(Monom(cur.numeral() * n, NumTraits::product(arrayIter(*mulRes))));
+            // }
+            //   break;
+            case NumTraits::floorI:
+              DEBUG_NORM("floor")
+              ASSERTION_VIOLATION
+              break;
+            case NumTraits::minusI:
+              DEBUG_NORM("minus")
+              todo->push(Monom(-cur.numeral(), t->termArg(0)));
+              break;
+            default:
+              uninterpretedCase(std::move(cur));
+              break;
+          }
+        } else {
+          uninterpretedCase(std::move(cur));
+        }
+      }
     }
+    DEBUG_NORM("done: ", done)
 
     /* summing up */
     if (done.size() != 0) {
@@ -429,8 +555,9 @@ namespace Kernel {
       auto sz = 0;
       auto i = 0;
       while (i < done.size()) {
-        ASS_L(sz, i)
-        if (done[sz].atom() == done[i].atom()) {
+        if (i == sz) {
+          i++;
+        } else if (done[sz].atom() == done[i].atom()) {
           done[sz]._numeral += done[i].numeral();
           i++;
         } else {
@@ -459,7 +586,10 @@ namespace Kernel {
   { return AlascaTermCache(Inner(__AlascaTermApplNum<NumTraits>::normalize(t))); }
 
 
-  inline AnyAlascaTerm AnyAlascaTerm::normalize(TypedTermList t) {
+  inline AnyAlascaTerm AnyAlascaTerm::normalize(TypedTermList t) 
+  DEBUG_FN_RESULT(1, Output::cat("normalize(", t, ") = "), 
+  {
+    DBG_INDENT
     if (t.isVar()) {
       return AnyAlascaTerm(Inner(__AlascaTermVar::normalize(t)));
     } else {
@@ -467,8 +597,7 @@ namespace Kernel {
         auto term = t.term();
         auto computeNormalization = [&]() {
           auto sort = t.sort();
-          return 
-            forAnyNumTraits([&](auto n) -> Option<AlascaTermCache> {
+          return forAnyNumTraits([&](auto n) -> Option<AlascaTermCache> {
                 if (n.sort() != sort) return {};
                 return some(AlascaTermCache(AlascaTermCache::normalizeNum<decltype(n)>(term)));
             })
@@ -479,10 +608,14 @@ namespace Kernel {
       return AnyAlascaTerm(Inner(t.term()->getAlascaTermCache()));
     }
   }
+  )
 
 
 } // namespace Kernel
 
+#undef DEBUG_FN_RESULT
+#undef DEBUG_NORM
+#undef DEBUG_RESULT
 #undef DEBUG
 #undef DECL_LIN_MUL_OPS
  
