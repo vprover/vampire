@@ -201,6 +201,7 @@ class SyntaxSugarGlobals
   void setAllNumTraits() 
   {
     createNumeral = [](int i) {return NumTraits::constantTl(i);};
+    parseNumeral = [](std::string i) {return NumTraits::constantTl(NumTraits::ConstantType::parse(i).unwrap());};
 
     add = NumTraits::add;
     mul = NumTraits::mul;
@@ -267,6 +268,7 @@ public:
 
   std::function<TermList(int, int)> createFraction;
   std::function<TermList(int)> createNumeral;
+  std::function<TermList(std::string)> parseNumeral;
 
   std::function<TermList(TermList, TermList)> add;
   std::function<TermList(TermList, TermList)> mul;
@@ -439,6 +441,9 @@ inline TermSugar frac(int a, int b)
 
 inline TermSugar num(int a)
 { return syntaxSugarGlobals().createNumeral(a); }
+
+inline TermSugar num(std::string a)
+{ return syntaxSugarGlobals().parseNumeral(a); }
 
 inline TermSugar fool(bool b)
 { return TermSugar(b); }

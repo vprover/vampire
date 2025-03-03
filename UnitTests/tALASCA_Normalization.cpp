@@ -655,3 +655,10 @@ TEST_FRAC(test_bin_minus,
       .out = { { p(b) } },
       .strong = false,
     })
+
+TEST_FRAC(floor_18, 
+    TestCase {
+      .in  =    p(1 * (0 + -floor(-num("2147483650")) + -1) + 1 * (-0 + -floor(-num("2147483649 ")) + 0 + -1)),
+      .out = { { p(num("4294967297")) } },
+      .strong = false,
+    })

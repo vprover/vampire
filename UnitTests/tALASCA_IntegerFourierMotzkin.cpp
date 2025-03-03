@@ -221,3 +221,15 @@ TEST_GENERATION(bug03,
       ))
     )
 
+
+TEST_GENERATION(bug04,
+    Generation::SymmetricTest()
+      .indices(idxIntegerFourierMotzkin())
+      .inputs  ({ clause({ num("2147483650") + a > 0 }) 
+               ,  clause({  num("2147483649") + -a > 0  }) 
+               ,  clause({  isInt(a) }) })
+      .expected(exactly(
+          // clause({ 0 == a + -1 + f3(a,b,c) })
+      ))
+    )
+

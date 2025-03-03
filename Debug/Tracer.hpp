@@ -84,7 +84,7 @@ template<class... A> void printDbg(const char* file, int line, const A&... msg)
 #endif
 
 #  define DBG(...) { Debug::printDbg(__REL_FILE__, __LINE__, __VA_ARGS__); }
-#  define DBG_INDENT Debug::DebugIndentGuard {};
+#  define DBG_INDENT Debug::DebugIndentGuard __indentGuard__ ## __LINE__  {};
 #  define WARN(...) { DBG("WARNING: ", __VA_ARGS__); }
 #  define DBGE(x) DBG(#x, " = ", x)
 #else // ! VDEBUG

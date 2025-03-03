@@ -24,6 +24,7 @@
 
 #define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 #define DEBUG_NORM(...) if (0) { DBG(__VA_ARGS__) }
+#define INTEGRITY_CHECKS(...)  DEBUG_CODE(if (0) { __VA_ARGS__ })
 
 #define DEBUG_RESULT(lvl, msg, ...)                                                       \
      auto impl = [&]() { __VA_ARGS__ };                                                   \
@@ -41,6 +42,7 @@
     Type operator-() const { return -1 * *this; } \
 
 namespace Kernel {
+  // TODO cache literal norm
 
 #define OPS_FROM_TO_TERM(Type) \
   auto asTuple() const { return std::tuple(toTerm()); } \
@@ -73,7 +75,7 @@ namespace Kernel {
     {  }
 
     void integrity() const 
-    { ASS(ASig::one() == _term || !ASig::isNumeral(_term)) }
+    { ASS_REP(ASig::one() == _term || !ASig::isNumeral(_term), _term) }
 
     AlascaMonom(Numeral numeral) 
       : AlascaMonom(numeral, NumTraits::one()) 
@@ -210,7 +212,9 @@ namespace Kernel {
         }
       };
       auto out = create();
+      INTEGRITY_CHECKS(
       out.integrity();
+      )
       return out;
     }
     using Numeral = typename NumTraits::ConstantType;
@@ -313,9 +317,11 @@ namespace Kernel {
     Inner _self;
 
     AnyAlascaTerm(Inner inner) : _self(std::move(inner)) {}
+    static AlascaTermCache computeNormalization(Term* t, TermList sort);
   public:
 
     static AnyAlascaTerm normalize(TypedTermList t);
+
     template<class NumTraits>
     static AnyAlascaTerm from(AlascaTermNum<NumTraits> t) 
     { return AnyAlascaTerm(t._self); }
@@ -417,21 +423,30 @@ namespace Kernel {
     if (t->functor() == f) {
       auto t0 = __normalizeMul<NumTraits>(n, t->termArg(0), f);
       auto t1 = __normalizeMul<NumTraits>(n, t->termArg(1), f);
-      return t0.isSome() && t1.isSome() ?  some(TermList(Term::create(f, { *t0, *t1 })))
+      auto out = t0.isSome() && t1.isSome() 
+           ? some(TermList(Term::create(f, { *t0, *t1 })))
            : t0.isSome() ? t0
            : t1.isSome() ? t1
            : Option<TermList>();
-    } else if (auto k = NumTraits::tryNumeral(t)) {
-      n *= *k;
-      return Option<TermList>();
-    } else if  (auto k = NumTraits::tryLinMul(t)) {
-      n *= *k;
-      return __normalizeMul<NumTraits>(n, t->termArg(0), f);
-    } else if  (NumTraits::isMinus(t)) {
-      n = -n;
-      return __normalizeMul<NumTraits>(n, t->termArg(0), f);
+      return out;
     } else {
-      return some(TermList(AnyAlascaTerm::normalize(TypedTermList(TermList(t), NumTraits::sort())).toTerm()));
+      auto norm = AnyAlascaTerm::normalize(TypedTermList(TermList(t), NumTraits::sort()))
+        .asSum<NumTraits>()
+        .unwrap();
+      if (norm.nSummands() == 0) {
+        n = NumTraits::constant(0);
+        return {};
+      } else if (norm.nSummands() >= 2) {
+        return Option<TermList>(norm.toTerm());
+      } else if (auto num = norm.tryNumeral()) {
+        n *= *num;
+        return {};
+      } else {
+        ASS_EQ(norm.nSummands(), 1)
+        auto m = norm.summandAt(0);
+        n *= m.numeral();
+        return some(m.atom());
+      }
     }
   }
 
@@ -599,6 +614,11 @@ namespace Kernel {
       }
     }
     DEBUG_NORM("done: ", done)
+    INTEGRITY_CHECKS(
+      for (auto m : done) {
+        m.integrity();
+      }
+    )
 
     /* summing up */
     if (done.size() != 0) {
@@ -638,29 +658,29 @@ namespace Kernel {
   { return AlascaTermCache(Inner(__AlascaTermApplNum<NumTraits>::normalize(t))); }
 
 
-  inline AnyAlascaTerm AnyAlascaTerm::normalize(TypedTermList t) 
-  DEBUG_FN_RESULT(1, Output::cat("normalize(", t, ") = "), 
+  inline AlascaTermCache AnyAlascaTerm::computeNormalization(Term* term, TermList sort) 
+  DEBUG_FN_RESULT(1, Output::cat("computeNormalization(", *term, ": ", sort, ") = "), 
   {
-    DBG_INDENT
+    return forAnyNumTraits([&](auto n) -> Option<AlascaTermCache> {
+          if (n.sort() != sort) return {};
+          return some(AlascaTermCache(AlascaTermCache::normalizeNum<decltype(n)>(term)));
+      })
+      .unwrapOrElse([&]() { return AlascaTermCache::normalizeUF(term); });
+  }
+  )
+
+
+  inline AnyAlascaTerm AnyAlascaTerm::normalize(TypedTermList t) 
+  {
     if (t.isVar()) {
       return AnyAlascaTerm(Inner(__AlascaTermVar::normalize(t)));
     } else {
       if (t.term()->getAlascaTermCache() == nullptr) {
-        auto term = t.term();
-        auto computeNormalization = [&]() {
-          auto sort = t.sort();
-          return forAnyNumTraits([&](auto n) -> Option<AlascaTermCache> {
-                if (n.sort() != sort) return {};
-                return some(AlascaTermCache(AlascaTermCache::normalizeNum<decltype(n)>(term)));
-            })
-            .unwrapOrElse([&]() { return AlascaTermCache::normalizeUF(term); });
-        };
-        t.term()->setAlascaTermCache(move_to_heap(computeNormalization()));
+        t.term()->setAlascaTermCache(move_to_heap(computeNormalization(t.term(), t.sort())));
       }
       return AnyAlascaTerm(Inner(t.term()->getAlascaTermCache()));
     }
   }
-  )
 
 
 } // namespace Kernel
