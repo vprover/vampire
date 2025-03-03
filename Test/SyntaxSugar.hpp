@@ -23,6 +23,7 @@
 #include<functional>
 
 #include "Forwards.hpp"
+#include "Kernel/Theory.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
@@ -34,6 +35,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/OperatorType.hpp"
+#include "Lib/Int.hpp"
 #include "Shell/TermAlgebra.hpp"
 #include "Shell/FunctionDefinitionHandler.hpp"
 
@@ -201,7 +203,7 @@ class SyntaxSugarGlobals
   void setAllNumTraits() 
   {
     createNumeral = [](int i) {return NumTraits::constantTl(i);};
-    parseNumeral = [](std::string i) {return NumTraits::constantTl(NumTraits::ConstantType::parse(i).unwrap());};
+    parseNumeral = [](std::string i) { return NumTraits::constantTl(typename NumTraits::ConstantType(IntegerConstantType::parse(i).unwrap()));};
 
     add = NumTraits::add;
     mul = NumTraits::mul;

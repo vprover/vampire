@@ -18,6 +18,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/STL.hpp"
+#include "Lib/SmallArray.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -38,7 +39,7 @@
 #define DECL_LIN_MUL_OPS(Type) \
     friend Type operator/(Type const& t, Numeral n) { return n.inverse() * t; } \
     friend Type operator/(Type const& t, int n) { return t / Numeral(n); } \
-    friend Type operator*(int n, Type const& t) { return Numeral(-1) * t; } \
+    friend Type operator*(int n, Type const& t) { return Numeral(n) * t; } \
     Type operator-() const { return -1 * *this; } \
 
 namespace Kernel {
@@ -53,9 +54,10 @@ namespace Kernel {
   struct __AlascaTermApplUF {
     TypedTermList _self;
     __AlascaTermApplUF(TypedTermList t) : _self(t) { }
+    // __AlascaTermApplUF(__AlascaTermApplUF&&) = default;
     TypedTermList toTerm(AlascaTermCache const* cache) const { 
       if (_self.isTerm()) {
-        ASS_REP(_self.term()->getAlascaTermCache() == cache, Output::cat(_self, " ", _self.term()->getAlascaTermCache()))
+        ASS_REP(_self.term()->getAlascaTermCache() == cache, Output::cat(_self, " ", Output::ptr(_self.term()->getAlascaTermCache())))
       }
       return _self; 
     }
@@ -120,20 +122,24 @@ namespace Kernel {
   class __AlascaTermApplNum {
     mutable Option<TypedTermList> _self;
     using Numeral = typename AlascaSignature<NumTraits>::Numeral;
-    // TODO small size optimization
-    Stack<AlascaMonom<NumTraits>> _sum;
+    SmallArray<AlascaMonom<NumTraits>, 1> _sum;
 
-    __AlascaTermApplNum(Stack<AlascaMonom<NumTraits>> self) : _sum(std::move(self)) 
-    {}
+    __AlascaTermApplNum(decltype(_sum) sum) : _sum(std::move(sum)) {}
   public:
+    __AlascaTermApplNum(__AlascaTermApplNum&&) = default;
+    __AlascaTermApplNum& operator=(__AlascaTermApplNum&&) = default;
     template<class Iter>
     static __AlascaTermApplNum fromCorrectlySortedIter(Iter iter) 
-    { return __AlascaTermApplNum(iter.template collect<Stack>()); }
+    { return __AlascaTermApplNum(decltype(_sum)::fromIterator(std::move(iter))); }
 
     unsigned nSummands() const { return _sum.size(); }
     auto& monomAt(unsigned i) const { return _sum[i]; }
     static AlascaTermCache const* computeNormalizationNum(Term* t);
-    auto iterSummands() const { return arrayIter(_sum); }
+    auto iterSummands() const { 
+      return arrayIter(_sum);
+      // return range(0, _sum.size()) 
+      //   .map([&](auto i) { return _sum[i]; });
+    }
 
     TypedTermList toTerm(AlascaTermCache const* self) const
     { return _self.unwrapOrInit([&]() -> TypedTermList { 
@@ -167,17 +173,20 @@ namespace Kernel {
       , __AlascaTermApplNum<RealTraits>
       >;
     Inner _self;
-    template<class C>
-    AlascaTermCache(C inner) : _self(std::move(inner)) {}
+    AlascaTermCache( __AlascaTermApplUF              inner) : _self(std::move(inner)) {}
+    AlascaTermCache( __AlascaTermApplNum< IntTraits> inner) : _self(std::move(inner)) {}
+    AlascaTermCache( __AlascaTermApplNum< RatTraits> inner) : _self(std::move(inner)) {}
+    AlascaTermCache( __AlascaTermApplNum<RealTraits> inner) : _self(std::move(inner)) {}
     template<class NumTraits>
     friend class AlascaTermNum;
   public:
+    AlascaTermCache(AlascaTermCache &&) = default;
     friend struct AlascaTermImpl;
 
     static AlascaTermCache const* computeNormalizationUF(Term* t)
     { 
       auto ufNorm = __AlascaTermApplUF::normalizeUF(t);
-      auto out = new AlascaTermCache(Inner(ufNorm)); 
+      auto out = new AlascaTermCache(ufNorm); 
       ASS(ufNorm._self.isTerm())
       ufNorm._self.term()->setAlascaTermCache(out);
       return out;
@@ -665,10 +674,7 @@ namespace Kernel {
       }
       done.pop(done.size() - sz);
     }
-    // TODO make done now have any capacity slack but be exactly the size of the stack
-
-    auto out = new AlascaTermCache(__AlascaTermApplNum<NumTraits>(std::move(done)));
-    return  out;
+    return new AlascaTermCache(__AlascaTermApplNum<NumTraits>::fromCorrectlySortedIter(arrayIter(done)));
   }
 
   template<class NumTraits>
