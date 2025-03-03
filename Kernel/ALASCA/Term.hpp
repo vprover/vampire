@@ -50,7 +50,6 @@ namespace Kernel {
   IMPL_HASH_FROM_TUPLE(Type) \
   friend std::ostream& operator<<(std::ostream& out, Type const& self) { return out << self.toTerm(); } \
 
-  /* T can be either TermList or TermSpec */
   struct __AlascaTermApplUF {
     TypedTermList _self;
     __AlascaTermApplUF(TypedTermList t) : _self(t) {}
