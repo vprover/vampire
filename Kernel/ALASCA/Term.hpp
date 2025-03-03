@@ -59,7 +59,7 @@ namespace Kernel {
       }
       return _self; 
     }
-    static __AlascaTermApplUF normalize(Term* t);
+    static __AlascaTermApplUF normalizeUF(Term* t);
     // OPS_FROM_TO_TERM(__AlascaTermApplUF);
   };
 
@@ -118,13 +118,13 @@ namespace Kernel {
   /* T can be either TermList or TermSpec */
   template<class NumTraits>
   class __AlascaTermApplNum {
-    // TODO set the normalized cache of this term appropriately, so it doesn't have to be re-normalized
     mutable Option<TypedTermList> _self;
     using Numeral = typename AlascaSignature<NumTraits>::Numeral;
     // TODO small size optimization
     Stack<AlascaMonom<NumTraits>> _sum;
 
-    __AlascaTermApplNum(Stack<AlascaMonom<NumTraits>> self) : _sum(std::move(self)) {}
+    __AlascaTermApplNum(Stack<AlascaMonom<NumTraits>> self) : _sum(std::move(self)) 
+    {}
   public:
     template<class Iter>
     static __AlascaTermApplNum fromCorrectlySortedIter(Iter iter) 
@@ -132,12 +132,11 @@ namespace Kernel {
 
     unsigned nSummands() const { return _sum.size(); }
     auto& monomAt(unsigned i) const { return _sum[i]; }
-    static __AlascaTermApplNum normalize(Term* t);
+    static __AlascaTermApplNum normalizeNum(Term* t);
     auto iterSummands() const { return arrayIter(_sum); }
 
     TypedTermList toTerm(AlascaTermCache const* self) const
     { return _self.unwrapOrInit([&]() -> TypedTermList { 
-      // ASS_EQ(&self->_self.unwrap<__AlascaTermApplNum<NumTraits>>(), this)
       auto term = NumTraits::sum(arrayIter(_sum).map([](auto& m) { return TermList(m.toTerm()); }));
       if (term.isTerm()) {
         term.term()->setAlascaTermCache(self);
@@ -175,9 +174,9 @@ namespace Kernel {
   public:
     friend struct AlascaTermImpl;
 
-    static AlascaTermCache const* normalizeUF(Term* t)
+    static AlascaTermCache const* computeNormalizationUF(Term* t)
     { 
-      auto ufNorm = __AlascaTermApplUF::normalize(t);
+      auto ufNorm = __AlascaTermApplUF::normalizeUF(t);
       auto out = new AlascaTermCache(Inner(ufNorm)); 
       ASS(ufNorm._self.isTerm())
       ufNorm._self.term()->setAlascaTermCache(out);
@@ -185,7 +184,7 @@ namespace Kernel {
     }
 
     template<class NumTraits>
-    static AlascaTermCache const* normalizeNum(Term* t);
+    static AlascaTermCache const* computeNormalizationNum(Term* t);
 
     TypedTermList toTerm() const { return _self.apply([&](auto& self) { return self.toTerm(this); }); }
     OPS_FROM_TO_TERM(AlascaTermCache);
@@ -222,15 +221,11 @@ namespace Kernel {
     {
       ASS(iter.knowsSize()) 
       auto create = [&]() {
-        // auto constAlascaTermCache = [](auto... args) {
-        //   return static_cast<AlascaTermCache const*>()
-        // };
         if (iter.size() == 1) {
           auto v = iter.next();
           if (v.atom().isVar() && v.numeral() == 1) {
             return fromVar(TypedTermList(v.atom(), NumTraits::sort()));
           } else {
-            // TODO should we set the term cache here?
             return AlascaTermNum(new AlascaTermCache(__AlascaTermApplNum<NumTraits>::fromCorrectlySortedIter(iterItems(std::move(v)))));
           }
         } else {
@@ -244,8 +239,6 @@ namespace Kernel {
       return out;
     }
     using Numeral = typename NumTraits::ConstantType;
-
-    // TODO
 
     friend AlascaTermNum operator*(Numeral const& n, AlascaTermNum const& self) 
     { return AlascaTermNum::fromCorrectlySortedIter(self.iterSummands()
@@ -381,10 +374,9 @@ namespace Lib {
 
     AnyAlascaTermStruct self(Context = {}) const { return _self.apply([](auto& x) { return self(x); }); }
 
-    static AnyAlascaTermStruct self(TypedTermList const& self); //{ return AnyAlascaTerm::normalize(self); }
-      // TODO more efficient?
+    static AnyAlascaTermStruct self(TypedTermList const& self);
     template<class NumTraits>
-    static AnyAlascaTermStruct self(AlascaTermNum<NumTraits> const& self); // { return AnyAlascaTerm::from(self); };
+    static AnyAlascaTermStruct self(AlascaTermNum<NumTraits> const& self);
 
     bool hasNext(Context = {}) const { return _idx < nChildren(); }
     AnyAlascaTermStruct next(Context = {}) { return childAt(_idx++); }
@@ -435,7 +427,7 @@ namespace Kernel {
   // }
 
 
-  inline __AlascaTermApplUF __AlascaTermApplUF::normalize(Term* t) {
+  inline __AlascaTermApplUF __AlascaTermApplUF::normalizeUF(Term* t) {
     return __AlascaTermApplUF(TypedTermList(Term::createFromIter(t->functor(), concatIters(
           typeArgIter(t),
           termArgIterTyped(t)
@@ -488,16 +480,14 @@ namespace Kernel {
     return __normalizeMul<NumTraits>(n, orig_, orig_->functor());
   }
 
-  // TODO rename
   template<class PushTodo, class PushDone>
-  bool handleFractionalInterpretation(IntTraits, Interpretation itp, Term* t, 
+  bool normalizeFractionalInterpretation(IntTraits, Interpretation itp, Term* t, 
     PushTodo todo, 
     PushDone done) { return false; }
 
 
-  // TODO rename
   template<class NumTraits, class PushTodo, class PushDone>
-  bool handleFractionalInterpretation(NumTraits, Interpretation itp, Term* t, 
+  bool normalizeFractionalInterpretation(NumTraits, Interpretation itp, Term* t, 
     PushTodo pushTodo, 
     PushDone pushDone) {
 
@@ -523,7 +513,7 @@ namespace Kernel {
   }
 
   template<class NumTraits>
-  __AlascaTermApplNum<NumTraits> __AlascaTermApplNum<NumTraits>::normalize(Term* orig_) {
+  __AlascaTermApplNum<NumTraits> __AlascaTermApplNum<NumTraits>::normalizeNum(Term* orig_) {
     auto orig = TermList(orig_);
 
     using Monom = AlascaMonom<NumTraits>;
@@ -627,7 +617,7 @@ namespace Kernel {
               todo->push(Monom(-cur.numeral(), t->termArg(0)));
               break;
             default:
-              if (!handleFractionalInterpretation(NumTraits{}, *itp, t, 
+              if (!normalizeFractionalInterpretation(NumTraits{}, *itp, t, 
                     [&](auto n, auto t) { todo->push(Monom(n * cur.numeral(), t)); },
                     [&](auto n, auto t) { done.push(Monom(n * cur.numeral(), t)); }
                    )) {
@@ -680,10 +670,9 @@ namespace Kernel {
     return __AlascaTermApplNum<NumTraits>(std::move(done));
   }
 
-  // TODO rename to compute*
   template<class NumTraits>
-  AlascaTermCache const* AlascaTermCache::normalizeNum(Term* t) 
-  { return new AlascaTermCache(Inner(__AlascaTermApplNum<NumTraits>::normalize(t))); }
+  AlascaTermCache const* AlascaTermCache::computeNormalizationNum(Term* t) 
+  { return new AlascaTermCache(Inner(__AlascaTermApplNum<NumTraits>::normalizeNum(t))); }
 
 
   inline AlascaTermCache const* AnyAlascaTerm::computeNormalization(Term* term, TermList sort) 
@@ -691,9 +680,9 @@ namespace Kernel {
   {
     return forAnyNumTraits([&](auto n) -> Option<AlascaTermCache const*> {
           if (n.sort() != sort) return {};
-          return some(AlascaTermCache::normalizeNum<decltype(n)>(term));
+          return some(AlascaTermCache::computeNormalizationNum<decltype(n)>(term));
       })
-      .unwrapOrElse([&]() { return AlascaTermCache::normalizeUF(term); });
+      .unwrapOrElse([&]() { return AlascaTermCache::computeNormalizationUF(term); });
   }
   )
 
