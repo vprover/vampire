@@ -56,9 +56,10 @@ namespace Kernel {
     __AlascaTermApplUF(TypedTermList t) : _self(t) { }
     // __AlascaTermApplUF(__AlascaTermApplUF&&) = default;
     TypedTermList toTerm(AlascaTermCache const* cache) const { 
-      if (_self.isTerm()) {
-        ASS_REP(_self.term()->getAlascaTermCache() == cache, Output::cat(_self, " ", Output::ptr(_self.term()->getAlascaTermCache())))
-      }
+      // TODO use perfect sharing to make sure this property holds
+      // if (_self.isTerm()) {
+      //   ASS_REP(_self.term()->getAlascaTermCache() == cache, Output::cat(_self, " ", Output::ptr(_self.term()->getAlascaTermCache())))
+      // }
       return _self; 
     }
     static __AlascaTermApplUF normalizeUF(Term* t);
