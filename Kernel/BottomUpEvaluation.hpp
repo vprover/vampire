@@ -635,14 +635,14 @@ struct GenericSubtermIter {
     while (true) {
       if (_self->top().hasNext(_context)) {
         auto& top = _self->top();
-        auto topSelf = top.self();
+        auto topSelf = top.self(_context);
         _self->push(BottomUpChildIter<A>(top.next(_context), _context));
         if (!_bottomUp) 
           return topSelf;
       } else {
         auto popped = _self->pop();
         if (_bottomUp) {
-          return popped.self();
+          return popped.self(_context);
         }
       }
     }
