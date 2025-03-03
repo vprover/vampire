@@ -132,7 +132,7 @@ namespace Kernel {
 
     unsigned nSummands() const { return _sum.size(); }
     auto& monomAt(unsigned i) const { return _sum[i]; }
-    static __AlascaTermApplNum normalizeNum(Term* t);
+    static AlascaTermCache const* computeNormalizationNum(Term* t);
     auto iterSummands() const { return arrayIter(_sum); }
 
     TypedTermList toTerm(AlascaTermCache const* self) const
@@ -513,7 +513,7 @@ namespace Kernel {
   }
 
   template<class NumTraits>
-  __AlascaTermApplNum<NumTraits> __AlascaTermApplNum<NumTraits>::normalizeNum(Term* orig_) {
+  AlascaTermCache const* __AlascaTermApplNum<NumTraits>::computeNormalizationNum(Term* orig_) {
     auto orig = TermList(orig_);
 
     using Monom = AlascaMonom<NumTraits>;
@@ -667,12 +667,13 @@ namespace Kernel {
     }
     // TODO make done now have any capacity slack but be exactly the size of the stack
 
-    return __AlascaTermApplNum<NumTraits>(std::move(done));
+    auto out = new AlascaTermCache(__AlascaTermApplNum<NumTraits>(std::move(done)));
+    return  out;
   }
 
   template<class NumTraits>
   AlascaTermCache const* AlascaTermCache::computeNormalizationNum(Term* t) 
-  { return new AlascaTermCache(Inner(__AlascaTermApplNum<NumTraits>::normalizeNum(t))); }
+  { return __AlascaTermApplNum<NumTraits>::computeNormalizationNum(t); }
 
 
   inline AlascaTermCache const* AnyAlascaTerm::computeNormalization(Term* term, TermList sort) 
