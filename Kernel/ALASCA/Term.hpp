@@ -649,8 +649,8 @@ namespace Kernel {
     /* summing up */
     if (done.size() != 0) {
       done.sort([](auto& l, auto& r) { return l.atom() < r.atom(); });
-      auto sz = 0;
-      auto i = 0;
+      unsigned sz = 0;
+      unsigned i = 0;
       while (i < done.size()) {
         if (i == sz) {
           i++;
