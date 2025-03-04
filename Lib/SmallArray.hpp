@@ -75,8 +75,8 @@ public:
     auto swapStackHeap = [](auto& onStack, auto& onHeap) { 
       auto thisHeap = onHeap._conts.heap;
       unsigned i = 0; 
-      while (i < onStack.size()) {
-        onHeap._conts.stack[i++] = onStack[i];
+      for (; i < onStack.size(); i++) {
+        onHeap._conts.stack[i] = onStack[i];
       }
       onStack._conts.heap = thisHeap;
       std::swap(onHeap._size, onStack._size);
