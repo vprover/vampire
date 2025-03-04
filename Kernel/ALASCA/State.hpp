@@ -179,24 +179,26 @@ namespace Kernel {
     { return maxEqIndices(lit.literal(), sel)
         .map([lit](auto i) { return SelectedUninterpretedEquality(lit, i); }); }
 
-    auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TermList>>
+    // TODO use ifElseIter
+    auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TypedTermList>>
     {
       return iterTraits(norm().tryNormalizeInterpreted(l)
         .match(
-          [=](AnyAlascaLiteral l) -> VirtualIterator<TermList> {
+          [=](AnyAlascaLiteral l) -> VirtualIterator<TypedTermList> {
             return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
                 return maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
                          .map([l](auto i) {
-                             return l.term().summandAt(i).atom();
+                             return TypedTermList(l.term().summandAt(i).atom(), l.numTraits().sort());
                          });
             })));
           },
           [=]() {
             if (l->isEquality()) {
+              auto sort = l->eqArgSort();
               return pvi(maxEqIndices(l, SelectionCriterion::NOT_LEQ)
-                .map([=](auto i) { return l->termArg(i); }));
+                .map([=](auto i) { return TypedTermList(l->termArg(i), sort); }));
             } else {
-                return pvi(termArgIter(l));
+                return pvi(termArgIterTyped(l));
             }
           }));
     }

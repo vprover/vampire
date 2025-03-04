@@ -615,3 +615,22 @@ TEST_FUN(bug_non_linear_2) {
   auto l2 = 0 == b*(a*a);
   check(ord, l1, Equal, l2);
 }
+
+TEST_FUN(bug04) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  auto& ord = lakbo(/* rand */ false);
+  DECL_VAR(X0, 0)
+  DECL_VAR(X1, 1)
+  DECL_SORT(S2)
+  DECL_SORT(S11)
+  DECL_SORT(S12)
+  DECL_CONST(sLF132, S2)
+  DECL_FUNC(f15, { S11, S2 }, Real)
+  DECL_FUNC(f17, { S12, Real }, S11)
+  DECL_CONST(f18, S12)
+
+  auto l1 = 0 == (X1 + -f15(f17(f18,X1),sLF132));
+  auto l2 = sLF132 == X0;
+  check(ord, l1, Incomp, l2);
+}

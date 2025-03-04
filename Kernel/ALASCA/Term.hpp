@@ -24,31 +24,32 @@
 
 
 #define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
-#define DEBUG_NORM(...) if (0) { DBG(__VA_ARGS__) }
+#define DEBUG_NORM_DETAILS(...) if (0) { DBG(__VA_ARGS__) }
 #define INTEGRITY_CHECKS(...)  DEBUG_CODE(if (0) { __VA_ARGS__ })
 
 #define DEBUG_RESULT(lvl, msg, ...)                                                       \
      auto impl = [&]() { __VA_ARGS__ };                                                   \
-     auto res = impl();                                                                   \
-     DEBUG(lvl, msg, res);                                                      \
+     DEBUG(lvl, msg, "???");                                                              \
+     auto res = [&]() { DBG_INDENT; return impl(); }();                                     \
+     DEBUG(lvl, msg, res);                                                                \
      return res;                                                                          \
 
 #define DEBUG_FN_RESULT(lvl, msg, ...)                                                    \
   { DEBUG_RESULT(lvl, msg, __VA_ARGS__) }
 
-#define DECL_LIN_MUL_OPS(Type) \
-    friend Type operator/(Type const& t, Numeral n) { return n.inverse() * t; } \
-    friend Type operator/(Type const& t, int n) { return t / Numeral(n); } \
-    friend Type operator*(int n, Type const& t) { return Numeral(n) * t; } \
-    Type operator-() const { return -1 * *this; } \
+#define DECL_LIN_MUL_OPS(Type)                                                            \
+    friend Type operator/(Type const& t, Numeral n) { return n.inverse() * t; }           \
+    friend Type operator/(Type const& t, int n) { return t / Numeral(n); }                \
+    friend Type operator*(int n, Type const& t) { return Numeral(n) * t; }                \
+    Type operator-() const { return -1 * *this; }                                         \
 
 namespace Kernel {
   // TODO cache literal norm
 
-#define OPS_FROM_TO_TERM(Type) \
-  auto asTuple() const { return std::tuple(toTerm()); } \
-  IMPL_COMPARISONS_FROM_TUPLE(Type) \
-  IMPL_HASH_FROM_TUPLE(Type) \
+#define OPS_FROM_TO_TERM(Type)                                                            \
+  auto asTuple() const { return std::tuple(toTerm()); }                                   \
+  IMPL_COMPARISONS_FROM_TUPLE(Type)                                                       \
+  IMPL_HASH_FROM_TUPLE(Type)                                                              \
   friend std::ostream& operator<<(std::ostream& out, Type const& self) { return out << self.toTerm(); } \
 
   struct __AlascaTermApplUF {
@@ -151,7 +152,6 @@ namespace Kernel {
       return TypedTermList(term, NumTraits::sort()); }); 
   }
 
-    // OPS_FROM_TO_TERM(__AlascaTermApplNum);
   };
 
   class __AlascaTermVar {
@@ -161,7 +161,6 @@ namespace Kernel {
     TermList sort() const { return _self.sort(); }
     static __AlascaTermVar normalize(TypedTermList t) { return __AlascaTermVar(t); }
     TypedTermList toTerm() const { return _self; }
-    // OPS_FROM_TO_TERM(__AlascaTermVar);
   };
 
 
@@ -325,7 +324,7 @@ namespace Kernel {
 
     static Option<AlascaTermNumAny> asSum(__AlascaTermApplUF const& t, AlascaTermCache const* self) 
     { 
-      forEachNumTraits([&](auto n) { ASS_NEQ(t.toTerm(self).sort(), n.sort()) });
+      forEachNumTraits([&](auto n) { ASS_REP(t.toTerm(self).sort() != n.sort(), t.toTerm(self)) });
       return {};
     }
 
@@ -532,7 +531,7 @@ namespace Kernel {
     todo->push(Monom(1, orig));
 
     auto uninterpretedCase = [&](Monom cur) {
-        DEBUG_NORM("uninterpreted")
+        DEBUG_NORM_DETAILS("uninterpreted")
         if (cur.numeral() != 0) {
           // TOOD we do the smae thing here as in UF::normalize
           done.push(Monom(cur.numeral(),
@@ -544,7 +543,7 @@ namespace Kernel {
         }
     };
     while (todo->isNonEmpty()) {
-      DEBUG_NORM("todo: ", todo, " done: ", done)
+      DEBUG_NORM_DETAILS("todo: ", todo, " done: ", done)
       auto cur = todo->pop();
       if (cur.atom().isVar()) {
         if (cur.numeral() != 0) {
@@ -553,10 +552,10 @@ namespace Kernel {
       } else {
         Term* t = cur.atom().term();
         if (auto k = NumTraits::tryLinMul(t->functor())) {
-          DEBUG_NORM("linMul")
+          DEBUG_NORM_DETAILS("linMul")
           todo->push(Monom(cur.numeral() * *k, t->termArg(0)));
         } else if (auto k = NumTraits::tryNumeral(t->functor())) {
-          DEBUG_NORM("num")
+          DEBUG_NORM_DETAILS("num")
           if (cur.numeral() != 0) {
             done.push(Monom(cur.numeral() * *k));
           }
@@ -564,12 +563,12 @@ namespace Kernel {
           // TODO de-recursify (?)
           switch(*itp) {
             case NumTraits::addI:
-              DEBUG_NORM("add")
+              DEBUG_NORM_DETAILS("add")
               todo->push(Monom(cur.numeral(), t->termArg(0)));
               todo->push(Monom(cur.numeral(), t->termArg(1)));
               break;
             case NumTraits::binMinusI:
-              DEBUG_NORM("minus")
+              DEBUG_NORM_DETAILS("minus")
               todo->push(Monom( cur.numeral(), t->termArg(0)));
               todo->push(Monom(-cur.numeral(), t->termArg(1)));
               break;
@@ -590,7 +589,7 @@ namespace Kernel {
             }
               break;
             case NumTraits::floorI: {
-              DEBUG_NORM("floor")
+              DEBUG_NORM_DETAILS("floor")
               auto norm = AnyAlascaTerm::normalize(TypedTermList(t->termArg(0), NumTraits::sort()))
                 .asSum<NumTraits>()
                 .unwrap();
@@ -623,7 +622,7 @@ namespace Kernel {
             }
               break;
             case NumTraits::minusI:
-              DEBUG_NORM("minus")
+              DEBUG_NORM_DETAILS("minus")
               todo->push(Monom(-cur.numeral(), t->termArg(0)));
               break;
             default:
@@ -640,7 +639,7 @@ namespace Kernel {
         }
       }
     }
-    DEBUG_NORM("done: ", done)
+    DEBUG_NORM_DETAILS("done: ", done)
     INTEGRITY_CHECKS(
       for (auto m : done) {
         m.integrity();
@@ -678,6 +677,7 @@ namespace Kernel {
     return new AlascaTermCache(__AlascaTermApplNum<NumTraits>::fromCorrectlySortedIter(arrayIter(done)));
   }
 
+  // TODO get rid of this aux function
   template<class NumTraits>
   AlascaTermCache const* AlascaTermCache::computeNormalizationNum(Term* t) 
   { return __AlascaTermApplNum<NumTraits>::computeNormalizationNum(t); }

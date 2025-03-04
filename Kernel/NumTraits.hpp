@@ -343,6 +343,8 @@ struct NumTraits;
     static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }          \
                                                                                           \
     static const char* name() {return #CamelCase;}                                        \
+    friend std::ostream& operator<<(std::ostream& out, NumTraits const& self)             \
+    { return out << name(); }                                                            \
   };                                                                                      \
 
 #define __NUM_TRAITS_IF_FRAC(sort, ...) __NUM_TRAITS_IF_FRAC_ ## sort (__VA_ARGS__)

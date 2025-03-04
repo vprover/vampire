@@ -54,6 +54,8 @@ namespace Kernel {
     AlascaPredicate symbol() const
     { return _symbol; }
 
+    NumTraits numTraits() const { return NumTraits{}; }
+
     friend std::ostream& operator<<(std::ostream& out, AlascaLiteral const& self) 
     { return out << self._term << " " << self._symbol << " 0"; }
 
