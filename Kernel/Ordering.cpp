@@ -368,28 +368,27 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
     return EQUAL;
 
   if (_qkboPrecedence) {
-
     // one is less than everything else
     if (fun1 == IntTraits::oneF()) { return LESS; }
-    if (fun1 == RatTraits::oneF()) { return LESS; }
-    if (fun1 == RealTraits::oneF()) { return LESS; }
+    if (fun2 == IntTraits::oneF()) { return GREATER; }
 
-    if (fun2 == IntTraits::oneF()) { return GREATER; } 
+    if (fun1 == RatTraits::oneF()) { return LESS; }
     if (fun2 == RatTraits::oneF()) { return GREATER; }
+
+    if (fun1 == RealTraits::oneF()) { return LESS; }
     if (fun2 == RealTraits::oneF()) { return GREATER; }
 
-
   } else {
-
     // unary minus is the biggest
-    if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
-    if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
-    if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
-
+    // CAREFUL: changing the relative order might cause non-well-foundedness
+    if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; }
     if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
-    if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
-    if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
 
+    if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+
+    if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
   }
 
   // $$false is the smallest

@@ -27,39 +27,30 @@ struct BuilderInitializer<Stack<A>>
 { using Type = std::initializer_list<A>; };
 
 
-#define BUILDER_METHOD(Self, ty, field)                                                                       \
-private:                                                                                                      \
-  Option<ty> _##field;                                                                                        \
-                                                                                                              \
-  Option<ty> field() const                                                                                    \
-  {                                                                                                           \
-    return _##field.isSome()                                                                                  \
-         ? _##field                                                                                           \
-         : getDefault<__##field##_default>();                                                                 \
-  }                                                                                                           \
-                                                                                                              \
-public:                                                                                                       \
-  Self field(typename BuilderInitializer<ty>::Type field)                                                     \
-  {                                                                                                           \
-    _##field = Option<ty>(std::move(field));                                                                  \
-    return std::move(*this);                                                                                  \
-  }                                                                                                           \
-  struct __ ## field ## _default { using Type = ty; };                                                        \
-                                                                                                              \
-                                                                                                              \
-
-#define BUILDER_SET_DEFAULT(CLASS, field, val)                                                               \
-  template<> struct Test::DefaultValue<CLASS::__##field##_default>                          \
-  {                                                                                                           \
-    using Type = typename CLASS::__##field##_default::Type;                                 \
-    static Option<Type> value()                                                                               \
-    { return Option<Type>(val); }                                                                             \
-  }                                                                                                           \
+#define BUILDER_METHOD(Self, ty, field)                                                   \
+private:                                                                                  \
+  Option<ty> _##field;                                                                    \
+                                                                                          \
+  Option<ty> field() const                                                                \
+  {                                                                                       \
+    return _##field.isSome()                                                              \
+         ? _##field                                                                       \
+         : getDefault<__##field##_default>();                                             \
+  }                                                                                       \
+                                                                                          \
+public:                                                                                   \
+  Self field(typename BuilderInitializer<ty>::Type field)                                 \
+  {                                                                                       \
+    _##field = Option<ty>(std::move(field));                                              \
+    return std::move(*this);                                                              \
+  }                                                                                       \
+  struct __ ## field ## _default { using Type = ty; };                                    \
+                                                                                          \
+                                                                                          \
 
 template<class Field>
 Option<typename Field::Type> getDefault()
 { return DefaultValue<Field>::value(); }
-
 
 } // namespace Test
 

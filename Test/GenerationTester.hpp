@@ -258,24 +258,27 @@ public:
 
   AsymmetricTest() : _rule(), _input(NULL), _expected(), _premiseRedundant(false), _selfApplications(true), _options() {}
 
-#define BUILDER_METHOD(type, field)                                                       \
-  AsymmetricTest field(type field)                                                        \
+  using Self = AsymmetricTest;
+#define __BUILDER_METHOD(type, field)                                                     \
+  Self field(type field)                                                                  \
   {                                                                                       \
     this->_##field = decltype(_##field)(std::move(field));                                \
     return *this;                                                                         \
   }                                                                                       \
 
-  BUILDER_METHOD(Clause*, input)
-  BUILDER_METHOD(ClauseStack, context)
-  BUILDER_METHOD(StackMatcher, expected)
-  BUILDER_METHOD(bool, premiseRedundant)
-  BUILDER_METHOD(bool, selfApplications)
-  BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
-  BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
-  BUILDER_METHOD(OptionMap, options)
-  BUILDER_METHOD(Stack<Condition>, preConditions)
-  BUILDER_METHOD(Stack<Condition>, postConditions)
+  __BUILDER_METHOD(Clause*, input)
+  __BUILDER_METHOD(ClauseStack, context)
+  __BUILDER_METHOD(StackMatcher, expected)
+  __BUILDER_METHOD(bool, premiseRedundant)
+  __BUILDER_METHOD(bool, selfApplications)
+  __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
+  __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+  __BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
+  __BUILDER_METHOD(OptionMap, options)
+  __BUILDER_METHOD(Stack<Condition>, preConditions)
+  __BUILDER_METHOD(Stack<Condition>, postConditions)
+
+#undef __BUILDER_METHOD
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
@@ -396,19 +399,21 @@ public:
 
   SymmetricTest() : _rule(), _expected(), _premiseRedundant(false), _selfApplications(true) {}
 
-#define _BUILDER_METHOD(type, field)                                                      \
+#define __BUILDER_METHOD(type, field)                                                     \
   SymmetricTest field(type field)                                                         \
   {                                                                                       \
     this->_##field = decltype(_##field)(std::move(field));                                \
     return *this;                                                                         \
   }                                                                                       \
 
-  _BUILDER_METHOD(Stack<Clause*>, inputs)
-  _BUILDER_METHOD(StackMatcher, expected)
-  _BUILDER_METHOD(bool, premiseRedundant)
-  _BUILDER_METHOD(bool, selfApplications)
-  _BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  _BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+  __BUILDER_METHOD(Stack<Clause*>, inputs)
+  __BUILDER_METHOD(StackMatcher, expected)
+  __BUILDER_METHOD(bool, premiseRedundant)
+  __BUILDER_METHOD(bool, selfApplications)
+  __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
+  __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+
+#undef __BUILDER_METHOD
 
 
   template<class Rule>
