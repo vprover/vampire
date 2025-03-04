@@ -168,7 +168,7 @@ class AlascaPreprocessor
       }
       auto res_sort = intConv(ty->result());
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshFunction(sym->arity(), sym->name().c_str());
+        unsigned nf = env.signature->addFreshFunction(sym->arity(), sym->name().c_str(), "R");
         auto nsym = env.signature->getFunction(nf);
         auto nty = OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments());
         nsym->setType(nty);
@@ -252,7 +252,7 @@ public:
             auto t = TermList(Term::createFromIter(func.value(), range(0, sym->arity()).map([](auto x) { return TermList::var(x); })));
             // TODO use something else than NonspecificInferenceMany
             auto inf = Inference(NonspecificInferenceMany(INF_RULE, nullptr));
-            auto cl = Clause::fromLiterals({R::eq(true, R::floor(t), t)}, inf);
+            auto cl = Clause::fromLiterals({ R::eq(true, R::floor(t), t) }, inf);
             UnitList::push(cl, prb.units());
           }
         }
