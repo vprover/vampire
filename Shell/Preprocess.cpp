@@ -156,7 +156,9 @@ void Preprocess::preprocess(Problem& prb)
   prb.getProperty();
   TheoryAxioms theoryAxioms(prb, [&](Unit* unit) { 
       Stack<Clause*> out;
-      if (useNewCnf) {
+      if (unit->isClause()) {
+        out.push(static_cast<Clause*>(unit));
+      } else if (useNewCnf) {
         ncnf.clausify(unit, out);
       } else {
         cnf.clausify(unit, out);
