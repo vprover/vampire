@@ -59,11 +59,11 @@ class FloorElimination
   bool deleteableLiteral(AnyAlascaLiteral const& l) const 
   { return l.apply([&](auto l) { return deleteableLiteral(l); }); }
 
-  bool deleteableLiteral(AlascaLiteral<IntTraits> const& l) const 
+  bool deleteableLiteral(AlascaLiteralItp<IntTraits> const& l) const 
   { return false; }
 
   template<class NumTraits>
-  bool deleteableLiteral(AlascaLiteral<NumTraits> const& l) const { 
+  bool deleteableLiteral(AlascaLiteralItp<NumTraits> const& l) const { 
     return l.symbol() == AlascaPredicate::EQ 
         && l.term().nSummands() == 2 
         && (  deleteableSum(l.term().summandAt(0), l.term().summandAt(1))

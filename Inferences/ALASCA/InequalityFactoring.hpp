@@ -46,8 +46,8 @@ public:
 
   template<class NumTraits>
   ClauseIterator generateClauses(Clause* premise, 
-    Literal* lit1, AlascaLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
-    Literal* lit2, AlascaLiteral<NumTraits> l2, Monom<NumTraits> k_s2);
+    Literal* lit1, AlascaLiteralItp<NumTraits> l1, Monom<NumTraits> j_s1,
+    Literal* lit2, AlascaLiteralItp<NumTraits> l2, Monom<NumTraits> k_s2);
 
   template<class NumTraits>
   Option<Clause*> applyRule(SelectedSummand const& l1, SelectedSummand const& l2);
@@ -56,8 +56,8 @@ public:
   template<class NumTraits>
   ClauseIterator generateClauses(
       Clause* premise,
-      Literal* lit1, AlascaLiteral<NumTraits> L1,
-      Literal* lit2, AlascaLiteral<NumTraits> L2
+      Literal* lit1, AlascaLiteralItp<NumTraits> L1,
+      Literal* lit2, AlascaLiteralItp<NumTraits> L2
     );
 
   ClauseIterator generateClauses(Clause* premise) final override;

@@ -157,11 +157,11 @@ public:
       });
   }
 
-  std::tuple<IntegerConstantType, AlascaTermNum<IntTraits>> divNf(AlascaTermNum<IntTraits> t) const
+  std::tuple<IntegerConstantType, AlascaTermItp<IntTraits>> divNf(AlascaTermItp<IntTraits> t) const
   { return std::make_tuple(IntegerConstantType(1), t); }
 
   template<class NumTraits>
-  std::tuple<IntegerConstantType, AlascaTermNum<NumTraits>> divNf(AlascaTermNum<NumTraits> t) const
+  std::tuple<IntegerConstantType, AlascaTermItp<NumTraits>> divNf(AlascaTermItp<NumTraits> t) const
   {
     auto l = t.iterSummands()
       .map([](auto s) { return s.numeral().denominator(); })
@@ -185,7 +185,7 @@ public:
   bool hasSubstitutionProperty(SignedAtoms const& l) const;
 
   template<class NumTraits>
-  Recycled<WeightedMultiSet<SignedTerm>> rmNum(std::tuple<IntegerConstantType, AlascaTermNum<NumTraits>> t) const
+  Recycled<WeightedMultiSet<SignedTerm>> rmNum(std::tuple<IntegerConstantType, AlascaTermItp<NumTraits>> t) const
   {
     Recycled<WeightedMultiSet<SignedTerm>> out;
 

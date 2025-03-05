@@ -51,13 +51,13 @@ public:
     FoundVarInLiteral(
       unsigned idx,
       typename NumTraits::ConstantType numeral,
-      AlascaLiteral<NumTraits> literal) : idx(idx)
+      AlascaLiteralItp<NumTraits> literal) : idx(idx)
           , numeral(numeral)
           , literal(literal) {}
 
     unsigned idx;
     typename NumTraits::ConstantType numeral;
-    AlascaLiteral<NumTraits> literal;
+    AlascaLiteralItp<NumTraits> literal;
   };
 
   template<class NumTraits>

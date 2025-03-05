@@ -175,7 +175,7 @@ namespace Kernel {
     AlascaTermCache( __AlascaTermApplNum< RatTraits> inner) : _self(std::move(inner)) {}
     AlascaTermCache( __AlascaTermApplNum<RealTraits> inner) : _self(std::move(inner)) {}
     template<class NumTraits>
-    friend class AlascaTermNum;
+    friend class AlascaTermItp;
   public:
     AlascaTermCache(AlascaTermCache &&) = default;
     friend struct AlascaTermImpl;
@@ -201,29 +201,29 @@ namespace Kernel {
   
   /* an alasca term of numerals sort NumTraits */
   template<class NumTraits>
-  class AlascaTermNum {
+  class AlascaTermItp {
     using Var = __AlascaTermVar;
     using Appl = AlascaTermCache const*;
     // the internal representation is either a `Var` a variable together with a sort annotation, or an applcation term `Appl`
     // Appl terms are cached for each Term*, thus they are present as a Pointer (Appl*), while variables cannot be cached, 
     // thus they are plain owned data
     AlascaTermRepr _self;
-    template<class C> AlascaTermNum(C inner) : _self(std::move(inner)) {}
-    AlascaTermNum(AlascaTermCache* inner) 
+    template<class C> AlascaTermItp(C inner) : _self(std::move(inner)) {}
+    AlascaTermItp(AlascaTermCache* inner) 
       : _self(static_cast<AlascaTermCache const*>(inner)) {}
     friend struct AlascaTermImpl;
     friend class AnyAlascaTerm;
     auto& unwrapAppl() const { return _self.unwrap<AlascaTermCache const*>()->_self.template unwrap<__AlascaTermApplNum<NumTraits>>(); }
   public:
-    static AlascaTermNum fromVar(TypedTermList v)  
+    static AlascaTermItp fromVar(TypedTermList v)  
     { 
       ASS_EQ(v.sort(), NumTraits::sort())
       ASS(v.isVar())
-      return AlascaTermNum(__AlascaTermVar::normalize(v)); 
+      return AlascaTermItp(__AlascaTermVar::normalize(v)); 
     }
 
     template<class Iter>
-    static AlascaTermNum fromCorrectlySortedIter(Iter iter)
+    static AlascaTermItp fromCorrectlySortedIter(Iter iter)
     {
       ASS(iter.knowsSize()) 
       auto create = [&]() {
@@ -232,10 +232,10 @@ namespace Kernel {
           if (v.atom().isVar() && v.numeral() == 1) {
             return fromVar(TypedTermList(v.atom(), NumTraits::sort()));
           } else {
-            return AlascaTermNum(new AlascaTermCache(__AlascaTermApplNum<NumTraits>::fromCorrectlySortedIter(iterItems(std::move(v)))));
+            return AlascaTermItp(new AlascaTermCache(__AlascaTermApplNum<NumTraits>::fromCorrectlySortedIter(iterItems(std::move(v)))));
           }
         } else {
-          return AlascaTermNum(new AlascaTermCache(__AlascaTermApplNum<NumTraits>::fromCorrectlySortedIter(std::move(iter))));
+          return AlascaTermItp(new AlascaTermCache(__AlascaTermApplNum<NumTraits>::fromCorrectlySortedIter(std::move(iter))));
         }
       };
       auto out = create();
@@ -246,11 +246,11 @@ namespace Kernel {
     }
     using Numeral = typename NumTraits::ConstantType;
 
-    friend AlascaTermNum operator*(Numeral const& n, AlascaTermNum const& self) 
-    { return AlascaTermNum::fromCorrectlySortedIter(self.iterSummands()
+    friend AlascaTermItp operator*(Numeral const& n, AlascaTermItp const& self) 
+    { return AlascaTermItp::fromCorrectlySortedIter(self.iterSummands()
           .map([&](auto m) { return n * m; })); }
 
-    DECL_LIN_MUL_OPS(AlascaTermNum)
+    DECL_LIN_MUL_OPS(AlascaTermItp)
 
     Option<Numeral> tryNumeral() const 
     { if (nSummands() == 0) return some(Numeral(0)); 
@@ -299,13 +299,13 @@ namespace Kernel {
       }
     ) }
 
-    OPS_FROM_TO_TERM(AlascaTermNum);
+    OPS_FROM_TO_TERM(AlascaTermItp);
   };
 
-  using AlascaTermNumAny  = Coproduct<
-        AlascaTermNum<IntTraits>
-      , AlascaTermNum<RealTraits>
-      , AlascaTermNum<RatTraits>
+  using AlascaTermItpAny  = Coproduct<
+        AlascaTermItp<IntTraits>
+      , AlascaTermItp<RealTraits>
+      , AlascaTermItp<RatTraits>
       >;
 
   namespace Impl {
@@ -316,23 +316,23 @@ namespace Kernel {
   struct AlascaTermImpl {
 
     template<class NumTraits>
-    static Option<AlascaTermNumAny> asSum(__AlascaTermApplNum<NumTraits> const&, AlascaTermCache const* self) 
-    { return some(AlascaTermNumAny(AlascaTermNum<NumTraits>(self))); }
+    static Option<AlascaTermItpAny> asSum(__AlascaTermApplNum<NumTraits> const&, AlascaTermCache const* self) 
+    { return some(AlascaTermItpAny(AlascaTermItp<NumTraits>(self))); }
 
-    static Option<AlascaTermNumAny> asSum(__AlascaTermApplUF const& t, AlascaTermCache const* self) 
+    static Option<AlascaTermItpAny> asSum(__AlascaTermApplUF const& t, AlascaTermCache const* self) 
     { 
       forEachNumTraits([&](auto n) { ASS_REP(t.toTerm(self).sort() != n.sort(), t.toTerm(self)) });
       return {};
     }
 
-    static Option<AlascaTermNumAny> asSum(AlascaTermCache const* const& t) 
+    static Option<AlascaTermItpAny> asSum(AlascaTermCache const* const& t) 
     { return t->_self.apply([&](auto& x) { return asSum(x, t); }); }
 
-    static Option<AlascaTermNumAny> asSum(__AlascaTermVar const& t) 
+    static Option<AlascaTermItpAny> asSum(__AlascaTermVar const& t) 
     { 
       return tryNumTraits([&](auto n){
           return someIf(n.sort() == t.sort(), 
-              [&]() { return AlascaTermNumAny(AlascaTermNum<decltype(n)>::fromVar(t.toTerm())); });
+              [&]() { return AlascaTermItpAny(AlascaTermItp<decltype(n)>::fromVar(t.toTerm())); });
       });
     }
   };
@@ -354,9 +354,9 @@ namespace Lib {
   struct BottomUpChildIter<AnyAlascaTermStruct> {
     using Context = std::tuple<>;
     using Inner = Coproduct<TypedTermList
-          , AlascaTermNum< IntTraits>
-          , AlascaTermNum< RatTraits>
-          , AlascaTermNum<RealTraits>
+          , AlascaTermItp< IntTraits>
+          , AlascaTermItp< RatTraits>
+          , AlascaTermItp<RealTraits>
           >;
 
     Inner _self;
@@ -366,14 +366,14 @@ namespace Lib {
 
     static unsigned nChildren(TypedTermList const& self) { return self.isVar() ? 0 : self.term()->arity();  }
     template<class NumTraits>
-    static unsigned nChildren(AlascaTermNum<NumTraits> const& self) { return self.nSummands(); }
+    static unsigned nChildren(AlascaTermItp<NumTraits> const& self) { return self.nSummands(); }
 
     unsigned nChildren(Context = {}) const { return _self.apply([](auto& x) { return nChildren(x); }); }
 
     static TypedTermList childAt(unsigned i, TypedTermList const& self)
     { return TypedTermList(*self.term()->nthArgument(0), SortHelper::getArgSort(self.term(), i)); }
     template<class NumTraits>
-    static TypedTermList childAt(unsigned i, AlascaTermNum<NumTraits> const& self)
+    static TypedTermList childAt(unsigned i, AlascaTermItp<NumTraits> const& self)
     { return TypedTermList(self.monomAt(i).atom(), NumTraits::sort()); }
 
     AnyAlascaTermStruct childAt(unsigned i, Context = {}) const; // { return _self.apply([&](auto& x) { return AnyAlascaTerm::normalize(childAt(i, x)); }); }
@@ -382,7 +382,7 @@ namespace Lib {
 
     static AnyAlascaTermStruct self(TypedTermList const& self);
     template<class NumTraits>
-    static AnyAlascaTermStruct self(AlascaTermNum<NumTraits> const& self);
+    static AnyAlascaTermStruct self(AlascaTermItp<NumTraits> const& self);
 
     bool hasNext(Context = {}) const { return _idx < nChildren(); }
     AnyAlascaTermStruct next(Context = {}) { return childAt(_idx++); }
@@ -403,23 +403,23 @@ namespace Kernel {
     static AnyAlascaTerm normalize(TypedTermList t);
 
     template<class NumTraits>
-    static AnyAlascaTerm from(AlascaTermNum<NumTraits> t) 
+    static AnyAlascaTerm from(AlascaTermItp<NumTraits> t) 
     { return AnyAlascaTerm(t._self); }
 
     TypedTermList toTerm() const
     { return _self._self.match([&](auto& ptr  ) { return ptr->toTerm(); }
                         ,[&](auto& owned) { return owned.toTerm(); }); }
     
-    Option<AlascaTermNumAny> asSum() const 
+    Option<AlascaTermItpAny> asSum() const 
     { return _self._self.apply([](auto& x) { return AlascaTermImpl::asSum(x); }); }
     
     auto iterSubterms() const
     { return iterTraits(GenericSubtermIter(this->_self, /* bottomUp */ false))
                  .map([](auto t) { return AnyAlascaTerm(t); }); }
 
-    template<class NumTraits> Option<AlascaTermNum<NumTraits>> asSum() const 
+    template<class NumTraits> Option<AlascaTermItp<NumTraits>> asSum() const 
     { return asSum().andThen([](auto x) {
-          return x.template as<AlascaTermNum<NumTraits>>().toOwned(); }); }
+          return x.template as<AlascaTermItp<NumTraits>>().toOwned(); }); }
 
     OPS_FROM_TO_TERM(AnyAlascaTerm);
   };
@@ -724,7 +724,7 @@ namespace Lib {
   // TODO more efficient?
   inline  AnyAlascaTermStruct BottomUpChildIter<AnyAlascaTermStruct>::self(TypedTermList const& self) { return AnyAlascaTerm::normalize(self)._self; }
   template<class NumTraits>
-  AnyAlascaTermStruct BottomUpChildIter<AnyAlascaTermStruct>::self(AlascaTermNum<NumTraits> const& self) { return AnyAlascaTerm::from(self)._self; };
+  AnyAlascaTermStruct BottomUpChildIter<AnyAlascaTermStruct>::self(AlascaTermItp<NumTraits> const& self) { return AnyAlascaTerm::from(self)._self; };
 
 
 }

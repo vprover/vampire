@@ -24,7 +24,7 @@ namespace ALASCA {
 struct Application 
 {
   TermList _activePos;
-  AlascaTermNumAny _sum;
+  AlascaTermItpAny _sum;
   unsigned i;
   unsigned j;
   

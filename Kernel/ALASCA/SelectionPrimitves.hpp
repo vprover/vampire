@@ -122,7 +122,7 @@ namespace Kernel {
 
     template<class NumTraits>
     auto const& alascaLiteral() const
-    { return alascaLiteral().template unwrap<AlascaLiteral<NumTraits>>(); }
+    { return alascaLiteral().template unwrap<AlascaLiteralItp<NumTraits>>(); }
 
     template<class NumTraits>
     auto contextTerms() const 
@@ -133,10 +133,10 @@ namespace Kernel {
                 .map([&](unsigned i) { return lit.term().summandAt(i); });
     }
 
-    TermList notSelectedTerm(AlascaLiteral<IntTraits> const& lit) const { ASSERTION_VIOLATION }
+    TermList notSelectedTerm(AlascaLiteralItp<IntTraits> const& lit) const { ASSERTION_VIOLATION }
 
     template<class NumTraits>
-    TermList notSelectedTerm(AlascaLiteral<NumTraits> const& lit) const { 
+    TermList notSelectedTerm(AlascaLiteralItp<NumTraits> const& lit) const { 
       return TermList(AlascaSignature<NumTraits>::sum(range(0, lit.term().nSummands()) 
                 .filter([&](unsigned i) { return i != _term; })
                 .map([&](unsigned i) { return lit.term().summandAt(i) / numeral<NumTraits>().abs(); })

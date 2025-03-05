@@ -92,7 +92,7 @@ namespace Kernel {
     { return OrderingUtils::notLeq(ordering->compare(lhs, rhs)); }
 
     template<class NumTraits>
-    auto maxSummandIndices(AlascaLiteral<NumTraits> const& lit, SelectionCriterion selection)
+    auto maxSummandIndices(AlascaLiteralItp<NumTraits> const& lit, SelectionCriterion selection)
     {
         // TODO optimize less denormalization
         auto monomAt = [=](auto i) 

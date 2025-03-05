@@ -105,7 +105,7 @@ struct LAKBO {
 
 
   template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(AlascaTermNum<NumTraits> const& t0, AlascaTermNum<NumTraits> const& t1) const 
+  Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AlascaTermItp<NumTraits> const& t1) const 
   { 
     if (t0.nSummands() == 1 && t1.nSummands() == 1) {
       return cmpSameSkeleton(t0.summandAt(0), t1.summandAt(0));
@@ -116,18 +116,18 @@ struct LAKBO {
   }
 
   template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(AlascaTermNum<NumTraits> const& t0, AnyAlascaTerm const& t1) const 
+  Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AnyAlascaTerm const& t1) const 
   { return cmpSameSkeleton(t0, t1.asSum<NumTraits>().unwrap()); }
 
   Ordering::Result cmpSameSkeleton(TypedTermList t0, TypedTermList t1) const 
   { return cmpSameSkeleton(norm().normalize(t0), norm().normalize(t1)); }
 
-  Ordering::Result cmpSameSkeleton(AlascaTermNumAny const& t0, AnyAlascaTerm const& t1) const 
+  Ordering::Result cmpSameSkeleton(AlascaTermItpAny const& t0, AnyAlascaTerm const& t1) const 
   { return t0.apply([&](auto& t0) { return cmpSameSkeleton(t0, t1); }); }
 
-  static Option<AlascaTermNumAny> asNonTrivialSum(AnyAlascaTerm const& t) { 
+  static Option<AlascaTermItpAny> asNonTrivialSum(AnyAlascaTerm const& t) { 
     return t.asSum()
-      .andThen([](auto x) -> Option<AlascaTermNumAny> {
+      .andThen([](auto x) -> Option<AlascaTermItpAny> {
         if(x.apply([](auto& x) {
           return x.nSummands() == 1 && x.monomAt(0).numeral() == 1;
         })) {
@@ -173,7 +173,7 @@ struct LAKBO {
   }
 
 
-  Option<TermList> skeleton(AlascaTermNumAny const& t) const 
+  Option<TermList> skeleton(AlascaTermItpAny const& t) const 
   { return t.apply([&](auto& t) { return skeleton(t); }); }
 
   template<class Iter>
@@ -206,7 +206,7 @@ struct LAKBO {
   )
 
   template<class NumTraits>
-  Option<TermList> skeleton(AlascaTermNum<NumTraits> const& t) const 
+  Option<TermList> skeleton(AlascaTermItp<NumTraits> const& t) const 
   DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
   {
     if (t.nSummands() == 0) {
@@ -360,7 +360,7 @@ class LiteralOrdering
   { return l.apply([&](auto l) { return atoms(l); }); }
 
   template<class NumTraits>
-  MultiSet<Atom> atoms(AlascaLiteral<NumTraits> const& l1) const {
+  MultiSet<Atom> atoms(AlascaLiteralItp<NumTraits> const& l1) const {
     return l1.term().iterSummands()
       .map([&](auto monom) { return std::make_tuple(
             AnyAlascaTerm::normalize(TypedTermList(monom.atom(), NumTraits::sort())), 

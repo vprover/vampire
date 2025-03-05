@@ -32,23 +32,22 @@ namespace Kernel {
    * or   term == 0 or term != 0              or term > 0 (for Integers)
    */
   template<class NumTraits_>
-  class AlascaLiteral {
+  class AlascaLiteralItp {
   public:
     using NumTraits = NumTraits_;
     using Numeral = typename NumTraits_::ConstantType;
   private:
-    AlascaTermNum<NumTraits> _term;
+    AlascaTermItp<NumTraits> _term;
     AlascaPredicate _symbol;
-    // friend struct std::hash<AlascaLiteral>;
 
   public:
 
-    AlascaLiteral(AlascaTermNum<NumTraits> term, AlascaPredicate symbol)
+    AlascaLiteralItp(AlascaTermItp<NumTraits> term, AlascaPredicate symbol)
       : _term(std::move(term)), _symbol(symbol) 
     { _term.integrity(); }
 
     /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
-    AlascaTermNum<NumTraits> const& term() const
+    AlascaTermItp<NumTraits> const& term() const
     { return _term; }
 
     AlascaPredicate symbol() const
@@ -56,10 +55,10 @@ namespace Kernel {
 
     NumTraits numTraits() const { return NumTraits{}; }
 
-    friend std::ostream& operator<<(std::ostream& out, AlascaLiteral const& self) 
+    friend std::ostream& operator<<(std::ostream& out, AlascaLiteralItp const& self) 
     { return out << self._term << " " << self._symbol << " 0"; }
 
-    AlascaLiteral negation() const
+    AlascaLiteralItp negation() const
     {
       auto newSym = [&](){
           switch(_symbol) {
@@ -79,7 +78,7 @@ namespace Kernel {
           }
           ASSERTION_VIOLATION
       }();
-      return AlascaLiteral(newTerm, newSym);
+      return AlascaLiteralItp(newTerm, newSym);
     }
 
     Literal* denormalize() const
@@ -90,8 +89,8 @@ namespace Kernel {
 
     auto asTuple() const { return std::tie(_symbol, _term);  }
 
-    IMPL_COMPARISONS_FROM_TUPLE(AlascaLiteral)
-    IMPL_HASH_FROM_TUPLE(AlascaLiteral)
+    IMPL_COMPARISONS_FROM_TUPLE(AlascaLiteralItp)
+    IMPL_HASH_FROM_TUPLE(AlascaLiteralItp)
   };
 
 
@@ -100,9 +99,9 @@ namespace Kernel {
                                    , RealConstantType
                                    >;
 
-  using AnyAlascaLiteral = Coproduct< AlascaLiteral< IntTraits>
-                                 , AlascaLiteral< RatTraits>
-                                 , AlascaLiteral<RealTraits>
+  using AnyAlascaLiteral = Coproduct< AlascaLiteralItp< IntTraits>
+                                 , AlascaLiteralItp< RatTraits>
+                                 , AlascaLiteralItp<RealTraits>
                                  >;
 
   /** 
@@ -113,21 +112,21 @@ namespace Kernel {
    */
   template<class NumTraits>
   class InequalityLiteral {
-    AlascaLiteral<NumTraits> _self;
+    AlascaLiteralItp<NumTraits> _self;
 
   public:
-    InequalityLiteral(AlascaTermNum<NumTraits> term, bool strict) 
-      : InequalityLiteral(AlascaLiteral<NumTraits>(term, strict ? AlascaPredicate::GREATER : AlascaPredicate::GREATER_EQ))
+    InequalityLiteral(AlascaTermItp<NumTraits> term, bool strict) 
+      : InequalityLiteral(AlascaLiteralItp<NumTraits>(term, strict ? AlascaPredicate::GREATER : AlascaPredicate::GREATER_EQ))
     {}
 
-    AlascaLiteral<NumTraits> const& inner() const { return _self; }
+    AlascaLiteralItp<NumTraits> const& inner() const { return _self; }
 
-    explicit InequalityLiteral(AlascaLiteral<NumTraits> self) 
+    explicit InequalityLiteral(AlascaLiteralItp<NumTraits> self) 
       : _self(std::move(self)) 
     { ASS(self.isInequality()) }
 
     /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
-    AlascaTermNum<NumTraits> const& term() const
+    AlascaTermItp<NumTraits> const& term() const
     { return _self.term(); }
 
     /* 
@@ -151,7 +150,7 @@ namespace Kernel {
                                         >;
 
   template<class NumTraits>
-  static Option<InequalityLiteral<NumTraits>> tryInequalityLiteral(AlascaLiteral<NumTraits> lit) 
+  static Option<InequalityLiteral<NumTraits>> tryInequalityLiteral(AlascaLiteralItp<NumTraits> lit) 
   { return someIf(lit.isInequality(), [&](){ return InequalityLiteral(std::move(lit)); }); }
 
   class InequalityNormalizer 
@@ -196,7 +195,7 @@ namespace Kernel {
     { return l.gcd(r); }
 
     template<class NumTraits>
-    static auto normalizeFactors(AlascaTermNum<NumTraits> in) -> AlascaTermNum<NumTraits>
+    static auto normalizeFactors(AlascaTermItp<NumTraits> in) -> AlascaTermItp<NumTraits>
     {
       auto gcd = in.iterSummands()
         .map([](auto s) { return s.numeral().abs(); })
@@ -208,7 +207,7 @@ namespace Kernel {
       if (*gcd == 1 || *gcd == 0) {
         return in;
       } else {
-        return AlascaTermNum<NumTraits>::fromCorrectlySortedIter(in.iterSummands()
+        return AlascaTermItp<NumTraits>::fromCorrectlySortedIter(in.iterSummands()
             .map([=](auto s) { return AlascaMonom<NumTraits>(intDivide(*gcd, s.numeral()), s.atom()); }));
       }
     }
@@ -216,12 +215,12 @@ namespace Kernel {
   public:
 
     template<class NumTraits> 
-    Option<AlascaLiteral<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
+    Option<AlascaLiteralItp<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
     {
       DEBUG_NORM(0, "in: ", *lit, " (", NumTraits::name(), ")")
       using ASig = AlascaSignature<NumTraits>;
 
-      auto impl = [&]() -> Option<AlascaLiteral<NumTraits>> {
+      auto impl = [&]() -> Option<AlascaLiteralItp<NumTraits>> {
 
         constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
 
@@ -322,14 +321,14 @@ namespace Kernel {
             break;
         }
 
-        return some(AlascaLiteral<NumTraits>(factorsNormalized, pred));
+        return some(AlascaLiteralItp<NumTraits>(factorsNormalized, pred));
       };
       auto out = impl();
       DEBUG_NORM(0, "out: ", out);
       return out;
     }
     template<class NumTraits> 
-    Option<AlascaLiteral<NumTraits>> normalize(Literal* l)
+    Option<AlascaLiteralItp<NumTraits>> normalize(Literal* l)
     { return tryNormalizeInterpreted<NumTraits>(l); }
 
     Option<AnyAlascaLiteral> tryNormalizeInterpreted(Literal* lit) const
