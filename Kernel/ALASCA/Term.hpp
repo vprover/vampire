@@ -101,8 +101,7 @@ namespace Kernel {
     Numeral const& numeral() const { return _numeral; }
     TermList atom() const { return _term; }
 
-    template<class N>
-    friend class __AlascaTermApplNum;
+    friend class AlascaTermCache;
     TypedTermList toTerm() const { 
       return TypedTermList(
             _numeral == 1 ? _term 
@@ -121,7 +120,7 @@ namespace Kernel {
 
   /* T can be either TermList or TermSpec */
   template<class NumTraits>
-  class __AlascaTermApplNum {
+  struct __AlascaTermApplNum {
     mutable Option<TypedTermList> _self;
     using Numeral = typename AlascaSignature<NumTraits>::Numeral;
     SmallArray<AlascaMonom<NumTraits>, 1> _sum;
@@ -136,7 +135,6 @@ namespace Kernel {
 
     unsigned nSummands() const { return _sum.size(); }
     auto& monomAt(unsigned i) const { return _sum[i]; }
-    static AlascaTermCache const* computeNormalizationNum(Term* t);
     auto iterSummands() const { 
       return arrayIter(_sum);
       // return range(0, _sum.size()) 
@@ -154,10 +152,9 @@ namespace Kernel {
 
   };
 
-  class __AlascaTermVar {
+  struct __AlascaTermVar {
     TypedTermList _self;
     __AlascaTermVar(TypedTermList t) : _self(t) { ASS(_self.isVar()) }
-  public:
     TermList sort() const { return _self.sort(); }
     static __AlascaTermVar normalize(TypedTermList t) { return __AlascaTermVar(t); }
     TypedTermList toTerm() const { return _self; }
@@ -166,7 +163,7 @@ namespace Kernel {
 
   class AlascaTermCache {
     template<class NumTraits>
-    friend class __AlascaTermApplNum;
+    friend struct __AlascaTermApplNum;
     using Inner = Coproduct<__AlascaTermApplUF
       , __AlascaTermApplNum<IntTraits>
       , __AlascaTermApplNum<RatTraits>
@@ -522,7 +519,7 @@ namespace Kernel {
   }
 
   template<class NumTraits>
-  AlascaTermCache const* __AlascaTermApplNum<NumTraits>::computeNormalizationNum(Term* orig_) {
+  AlascaTermCache const* AlascaTermCache::computeNormalizationNum(Term* orig_) {
     auto orig = TermList(orig_);
 
     using Monom = AlascaMonom<NumTraits>;
@@ -676,12 +673,6 @@ namespace Kernel {
     }
     return new AlascaTermCache(__AlascaTermApplNum<NumTraits>::fromCorrectlySortedIter(arrayIter(done)));
   }
-
-  // TODO get rid of this aux function
-  template<class NumTraits>
-  AlascaTermCache const* AlascaTermCache::computeNormalizationNum(Term* t) 
-  { return __AlascaTermApplNum<NumTraits>::computeNormalizationNum(t); }
-
 
   inline AlascaTermCache const* AnyAlascaTerm::computeNormalization(Term* term, TermList sort) 
   DEBUG_FN_RESULT(1, Output::cat("computeNormalization(", *term, ": ", sort, ") = "), 
