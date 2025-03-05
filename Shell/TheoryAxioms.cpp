@@ -400,8 +400,8 @@ struct AlascaAxioms {
   template<class NumTraits>
   static void addNonLinearAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax) {
     AXIOM_CONTEXT
-    addAx({num.eq(true, add(x,add(y,z)), add(add(x,y),z))});
-    addAx({num.eq(true, add(x,y), add(x,y))});
+    addAx({num.eq(true, mul(x,mul(y,z)), mul(mul(x,y),z))});
+    addAx({num.eq(true, mul(x,y), mul(x,y))});
     addAx({num.eq(true, mul(x, add(y,z)), add(mul(x, y),mul(x, z)))});
     //      x >  0 /\  y <  z -> x * y < x * z
     // <=> ~x >  0 \/ ~y <  z \/ x * y < x * z
