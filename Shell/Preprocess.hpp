@@ -18,6 +18,8 @@
 
 #include "Kernel/Unit.hpp"
 #include "Forwards.hpp"
+#include "CNF.hpp"
+#include "NewCNF.hpp"
 
 namespace Shell {
 
@@ -50,9 +52,8 @@ private:
   void naming(Problem& prb);
   Unit* preprocess3(Unit* u, bool appify /*higher order stuff*/);
   void preprocess3(Problem& prb);
-  void clausify(Problem& prb);
-
-  void newCnf(Problem& prb);
+  void clausify(CNF& cnf, Problem& prb);
+  void newCnf(NewCNF& cnf, Problem& prb);
 
   /** Options used in the normalisation */
   const Options& _options;

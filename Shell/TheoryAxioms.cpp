@@ -55,13 +55,25 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
   if(opt_level != Options::TheoryAxiomLevel::ON && level != CHEAP){ return; }
 
   if (env.options->showTheoryAxioms()) {
-    cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
+    if (unit->isClause()) {
+      auto clause = static_cast<Clause*>(unit);
+      Set<TypedTermList> vars;
+      for (auto l : clause->iterLits()) {
+        VariableIterator iter(l);
+        while (iter.hasNext()) {
+          auto v = iter.next();
+          vars.insert(TypedTermList(v, SortHelper::getVariableSort(v, l)));
+        }
+      }
+      cout << "% Theory clause: ! [ " << vars.iter().map([](auto v) { return Output::catOwned(TermList(v), ": ", v.sort()); }).output(", ") << " ] : " << unit->toString() << "\n";
+    } else {
+      cout << "% Theory formula: " << unit->toString() << "\n";
+    }
   }
 
-  if(!unit->isClause()){
-    _prb.reportFormulasAdded();
+  for (auto c : _cnf(unit)) {
+     UnitList::push(c, _prb.units());
   }
-  UnitList::push(unit, _prb.units());
 } // addAndOutputTheoryUnit
 
 /**
