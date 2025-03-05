@@ -154,6 +154,7 @@ void Preprocess::preprocess(Problem& prb)
   // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
 
+<<<<<<< Updated upstream
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
@@ -163,6 +164,22 @@ void Preprocess::preprocess(Problem& prb)
       TheoryAxioms(prb).apply();
     }
   }
+=======
+  NewCNF ncnf(env.options->naming());
+  CNF cnf;
+  prb.getProperty();
+  TheoryAxioms theoryAxioms(prb, [&](Unit* unit) { 
+      Stack<Clause*> out;
+      if (unit->isClause()) {
+        out.push(static_cast<Clause*>(unit));
+      } else if (useNewCnf) {
+        ncnf.clausify(unit, out);
+      } else {
+        cnf.clausify(unit, out);
+      }
+      return out;
+   });
+>>>>>>> Stashed changes
 
   if (_options.alascaIntegerConversion()) {
     if (env.options->showPreprocessing())
