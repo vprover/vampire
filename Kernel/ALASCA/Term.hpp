@@ -30,8 +30,8 @@
 #define DEBUG_RESULT(lvl, msg, ...)                                                       \
      auto impl = [&]() { __VA_ARGS__ };                                                   \
      DEBUG(lvl, msg, "???");                                                              \
-     auto res = [&]() { DBG_INDENT; return impl(); }();                                     \
-     DEBUG(lvl, msg, res);                                                                \
+     auto res = [&]() { DBG_INDENT; return impl(); }();                                   \
+     DEBUG(lvl, msg, Output::ptr(res));                                                   \
      return res;                                                                          \
 
 #define DEBUG_FN_RESULT(lvl, msg, ...)                                                    \
