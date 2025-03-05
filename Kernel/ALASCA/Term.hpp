@@ -694,7 +694,7 @@ namespace Kernel {
       if (t.term()->getAlascaTermCache() == nullptr) {
         t.term()->setAlascaTermCache(computeNormalization(t.term(), t.sort()));
       }
-      return AnyAlascaTerm(t.term()->getAlascaTermCache());
+      return AnyAlascaTerm((AlascaTermCache const*)t.term()->getAlascaTermCache());
     }
   }
 

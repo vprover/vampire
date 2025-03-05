@@ -949,7 +949,7 @@ protected:
     TermList _sort;
   };
   // pre-computed AnyAlascaSum representation of this term
-  AlascaTermCache const* _alascaTermCache = nullptr;
+  void const* _alascaTermCache = nullptr;
 
   /** The list of arguments of size type arity + term arity + 1. The first
    *  argument stores the term weight and the mask (the last two bits are 0).
@@ -981,8 +981,8 @@ public:
     TermList* _next;
   }; // Term::Iterator
 
-  AlascaTermCache const* getAlascaTermCache() const { return _alascaTermCache; }
-  void setAlascaTermCache(AlascaTermCache const* nf) { _alascaTermCache = nf; }
+  void const* getAlascaTermCache() const { return _alascaTermCache; }
+  void setAlascaTermCache(void const* nf) { _alascaTermCache = nf; }
 }; // class Term
 
 

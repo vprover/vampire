@@ -81,6 +81,7 @@ namespace Kernel {
       return AlascaLiteralItp(newTerm, newSym);
     }
 
+    // TODO rename
     Literal* denormalize() const
     { return createLiteral<NumTraits>(symbol(), term().toTerm()) ; }
 
@@ -215,10 +216,12 @@ namespace Kernel {
   public:
 
     template<class NumTraits> 
-    Option<AlascaLiteralItp<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
+    Option<AlascaLiteralItp<NumTraits>> computeNormalizedItp(Literal* lit) const
     {
       DEBUG_NORM(0, "in: ", *lit, " (", NumTraits::name(), ")")
       using ASig = AlascaSignature<NumTraits>;
+
+
 
       auto impl = [&]() -> Option<AlascaLiteralItp<NumTraits>> {
 
@@ -327,31 +330,60 @@ namespace Kernel {
       DEBUG_NORM(0, "out: ", out);
       return out;
     }
+
+    template<class NumTraits> 
+    Option<AlascaLiteralItp<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
+    { return tryNormalizeInterpreted(lit)
+        .andThen([&](auto x) { return x.template as<AlascaLiteralItp<NumTraits>>().toOwned(); }); }
+
     template<class NumTraits> 
     Option<AlascaLiteralItp<NumTraits>> normalize(Literal* l)
     { return tryNormalizeInterpreted<NumTraits>(l); }
 
-    Option<AnyAlascaLiteral> tryNormalizeInterpreted(Literal* lit) const
-    {
-      using Out = AnyAlascaLiteral;
-      auto wrapCoproduct = [](auto&& norm) {
-        return std::move(norm).map([](auto x) { return Out(x); });
-      };
-      return             wrapCoproduct(tryNormalizeInterpreted< IntTraits>(lit))
-        || [&](){ return wrapCoproduct(tryNormalizeInterpreted< RatTraits>(lit)); } 
-        || [&](){ return wrapCoproduct(tryNormalizeInterpreted<RealTraits>(lit)); } 
-        || Option<Out>();
+    // using AlascaLiteralCache = Option<AnyAlascaLiteral>;
+    using AlascaLiteralCache = Coproduct<AnyAlascaLiteral, Literal*>;
+
+    AlascaLiteralCache computeNormalized(Literal* lit) const  {
+      auto itp = tryNumTraits([&](auto n) {
+          return computeNormalizedItp<decltype(n)>(lit)
+            .map([](auto norm) { return AnyAlascaLiteral(std::move(norm)); });
+      });
+      if (itp) {
+        return AlascaLiteralCache(*itp);
+      } else {
+        /* uninterpreted */
+        RStack<TermList> args;
+        args->loadFromIterator(concatIters(
+              typeArgIter(lit),
+              termArgIterTyped(lit)
+                .map([&](auto arg) { return normalize(arg).toTerm(); })
+            ));
+        return AlascaLiteralCache(Literal::create(lit, args->begin()));
+      }
     }
 
+
+    AlascaLiteralCache const* normalize(Literal* lit) const 
+    {
+      auto cache = lit->getAlascaTermCache();
+      if (cache == nullptr) {
+        auto res = computeNormalized(lit);
+        DEBUG_NORM(0, *lit, " ==> ", res)
+        lit->setAlascaTermCache((void const*) move_to_heap(std::move(res)));
+      }
+      return (AlascaLiteralCache const*) lit->getAlascaTermCache();
+
+    }
+
+    Option<AnyAlascaLiteral> tryNormalizeInterpreted(Literal* lit) const
+    { return normalize(lit)->as<AnyAlascaLiteral>().toOwned(); }
+
+    // TODO create toTerm function for AlascaLiteralUF
     Literal* normalizedLiteral(Literal* lit) const
     {
-      auto interpreted = tryNumTraits([&](auto numTraits) { 
-          return tryNormalizeInterpreted<decltype(numTraits)>(lit)
-            .map([](auto lit) { return lit.denormalize(); });
-        }); 
-      auto out = interpreted.isSome() ? *interpreted : normalizeUninterpreted(lit);
-      DEBUG_NORM(0, *lit, " ==> ", *out)
-      return out;
+      return normalize(lit)
+         ->match([](auto& itp) -> Literal* { return itp.apply([](auto& x) { return x.denormalize(); }); }, 
+                 [](auto& lit) -> Literal* { return lit; });
     }
 
     bool equivalent(TermList lhs, TermList rhs) 
