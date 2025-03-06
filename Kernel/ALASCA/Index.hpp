@@ -12,6 +12,7 @@
 #define __ALASCA_AlascaIndex__
 
 
+#include "Debug/Tracer.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 #include "Kernel/ALASCA.hpp"
 
@@ -22,6 +23,7 @@
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Kernel/TypedTermList.hpp"
+#include <type_traits>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -85,6 +87,19 @@ public:
         _index.remove(std::move(appl));
       }
     }
+  }
+
+  void outputContents() { return outputContents((KeyType<T>*)nullptr); }
+
+  void outputContents(Literal**) { }
+  void outputContents(TypedTermList*) {
+    DEBUG("contents of ", T::name(), ": ")
+    DBG_INDENT
+    auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+    for (auto x : find<Indexing::RetrievalAlgorithms::DefaultVarBanks>(&sigma, TypedTermList(TermList::var(0), TermList::var(1)))) {
+      DEBUG(x)
+    }
+    DEBUG("end of contents of ", T::name())
   }
 
   friend std::ostream& operator<<(std::ostream& out, AlascaIndex const& self)

@@ -53,15 +53,9 @@ struct CoherenceConf
   using N = typename NumTraits::ConstantType;
 public:
   // TODO do we still need this at all?
-  using SharedSum =  std::shared_ptr<RStack<std::pair<TermList, N>>>;
-  static SharedSum toSum(AlascaState& shared, TermList t) {
-    RStack<std::pair<TermList, N>> rstack; 
-    rstack->loadFromIterator( 
-        shared.norm().normalize(TypedTermList(t, NumTraits::sort()))
-          .asSum<NumTraits>().unwrap()
-          .iterSummands()
-          .map([](auto monom) { return std::make_pair(monom.atom(), monom.numeral()); }));
-    return SharedSum(move_to_heap(std::move(rstack)));
+  static AlascaTermItp<NumTraits> toSum(AlascaState& shared, TermList t) {
+    return shared.norm().normalize(TypedTermList(t, NumTraits::sort()))
+      .asSum<NumTraits>().unwrap();
   }
 
   static const char* name() { return "alasca coherence"; }
@@ -70,19 +64,20 @@ public:
   struct Lhs
   {
     ALASCA::SuperpositionConf::Lhs self;
-    SharedSum js_u; // <- the them `j s + u`
+    AlascaTermItp<NumTraits> js_u; // <- the them `j s + u`
     unsigned sIdx; // <- the index of `s` in the sum `j s + u`
 
+
     auto contextLiterals() const { return self.contextLiterals(); }
-    auto rawJ() const { return (**js_u)[sIdx].second; }
-    auto s() const { return (**js_u)[sIdx].first; }
+    auto rawJ() const { return js_u[sIdx].numeral(); }
+    auto s() const { return js_u[sIdx].atom(); }
     auto j() const { return rawJ().abs(); }
     auto u() const { 
       auto mulByFactor = [&](auto n) { return rawJ().isPositive() ? n : -n;  };
       return ASig::sum(
-        range(0, (**js_u).size())
+        range(0, js_u.nSummands())
           .filter([&](auto i) { return i != sIdx; })
-          .map([&](auto i) -> TermList { return TermList(ASig::linMul(mulByFactor((**js_u)[i].second), (**js_u)[i].first)); })
+          .map([&](auto i) -> TermList { return TermList(ASig::linMul(mulByFactor(js_u[i].numeral()), js_u[i].atom())); })
         ); 
     }
     auto clause() const { return self.clause(); }
@@ -90,9 +85,14 @@ public:
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
 
     // TODO get rid of the need for a typed term list in this case
-    TypedTermList key() const { return TypedTermList((**js_u)[sIdx].first, ASig::sort()); }
-    static const char* name() { return "alasca coherence lhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_LHS_SUBST_TREE; }
+    TypedTermList key() const { return TypedTermList(s(), ASig::sort()); }
+    static std::string name() { return Output::toString("alasca coherence lhs ", NumTraits::name()); }
+    static IndexType indexType() { return indexType(NumTraits{}); }
+#define FOR_NUM(Num)                                                                      \
+    static IndexType indexType(Num ## Traits) { return Indexing::ALASCA_COHERENCE_LHS_SUBST_TREE_ ## Num; }
+
+    FOR_NUM_TRAITS_FRAC_PREFIX(FOR_NUM)
+#undef FOR_NUM
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -102,6 +102,7 @@ public:
         .map([&shared](auto lhs) {
           auto js_u = toSum(shared, lhs.smallerSide());
           return shared.maxSummandIndices(js_u, SelectionCriterion::NOT_LEQ)
+            .inspect([js_u](auto idx) { ASS_REP(idx < js_u.nSummands(), Output::cat(js_u, " [", idx, "]") ) })
             .map([js_u,lhs](auto sIdx) { return Lhs { lhs, js_u, sIdx }; });
         })
         .flatten()
@@ -110,7 +111,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
-    { return out << "isInt(" << self.j() << TermList(self.key()) << " + " << self.u() << ")"; }
+    { return out << "isInt(" << self.j() << " " << self.s() << " + " << self.u() << ")"; }
   };
 
   // a clause of the form D \/ L[⌊k s + t⌋]
@@ -118,7 +119,7 @@ public:
   {
     ALASCA::Superposition::Rhs self;
     TermList toRewrite; // <- the term ⌊k s + t⌋
-    SharedSum ks_t; // <- the term k s + t
+    AlascaTermItp<NumTraits> ks_t; // <- the term k s + t
     unsigned sIdx; // <- the index of `s` in the sum `k s + t`
 
     auto contextLiterals() const { return self.contextLiterals(); }
@@ -127,18 +128,27 @@ public:
     IMPL_COMPARISONS_FROM_TUPLE(Rhs);
 
     // TODO get rid of the need for a typed term list in this case
-    TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, ASig::sort()); }
+    TypedTermList key() const { return TypedTermList(ks_t[sIdx].atom(), ASig::sort()); }
     static const char* name() { return "alasca coherence rhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_RHS_SUBST_TREE; }
+    static IndexType indexType() { return indexType(NumTraits{}); }
+#define FOR_NUM(Num)                                                                      \
+    static IndexType indexType(Num ## Traits) { return Indexing::ALASCA_COHERENCE_RHS_SUBST_TREE_ ## Num; }
+
+    FOR_NUM_TRAITS_FRAC_PREFIX(FOR_NUM)
+#undef FOR_NUM
+
 
     static auto iterApplicableSummandsUnderFloor(AlascaState& shared, TermList toRewrite)
     {
       return iterTraits(ASig::ifFloor(toRewrite,
         [&shared](auto ks_t_term) { 
           auto ks_t = toSum(shared, ks_t_term);
-          return range(0, (*ks_t)->size())
+          return range(0, ks_t.nSummands())
                 .map([ks_t](unsigned sIdx) { return std::make_pair(ks_t, sIdx); })
-                .filter([](auto pair) { return !(*pair.first)[pair.second].first.isVar(); }); 
+                .filter([](auto& pair) { 
+                    auto& [sum, i] = pair;
+                    return !sum[i].atom().isVar(); 
+                }); 
         })
         .intoIter()).flatten()
        ; 
@@ -203,7 +213,7 @@ public:
 
 
     auto j = lhs.j();
-    auto k = (**rhs.ks_t)[rhs.sIdx].second;
+    auto k = rhs.ks_t[rhs.sIdx].numeral();
     auto i = computeI(j, k);
 
     auto sigmaL = [&](auto t) { return uwa.subs().apply(t, lhsVarBank); };
@@ -213,7 +223,6 @@ public:
     auto toRewriteσ = sigmaR(rhs.toRewrite);
     ASS(rhs.self.literal()->containsSubterm(rhs.toRewrite))
     ASS(Lσ->containsSubterm(toRewriteσ))
-    // auto ks_t = rhs.toRewrite.term()->termArg(0);
     auto ks_tσ = toRewriteσ.term()->termArg(0);
 
     // TODO side condition checks after unification!!

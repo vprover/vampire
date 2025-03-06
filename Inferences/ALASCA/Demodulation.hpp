@@ -226,7 +226,7 @@ struct CoherenceDemodConf
   struct ToSimpl {
     Clause* cl;
     Term* toRewrite; // <- the term ⌊k s + t⌋
-    typename CoherenceConf<NumTraits>::SharedSum ks_t; // <- the term k s + t
+    AlascaTermItp<NumTraits> ks_t; // <- the term k s + t
     unsigned sIdx; // <- the index of `s` in the sum `k s + t`
     mutable Option<unsigned> _firstFreshVar = {};
 
@@ -235,7 +235,7 @@ struct CoherenceDemodConf
 
     auto allVariables() { return allVariablesOfClause(clause()); }
     
-    TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, NumTraits::sort()); }
+    TypedTermList key() const { return TypedTermList(ks_t[sIdx].atom(), NumTraits::sort()); }
     auto asTuple() const { return std::tie(cl, /* ks_t redundant */ toRewrite, sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(ToSimpl);
 
@@ -291,7 +291,7 @@ struct CoherenceDemodConf
       ) const 
   {
     auto j = cond.self.j();
-    auto k = (**simpl.ks_t)[simpl.sIdx].second;
+    auto k = simpl.ks_t[simpl.sIdx].numeral();
     auto i = CoherenceConf<NumTraits>::computeI(j, k);
 
     check_side_condition("i != 0", i != 0)

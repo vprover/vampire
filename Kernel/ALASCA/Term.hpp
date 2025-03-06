@@ -284,6 +284,9 @@ namespace Kernel {
         [&](Var  const& x) { return AlascaMonom<NumTraits>(1, x.toTerm()); }
         ); }
 
+    // TODO use this instead monomAt all the time
+    auto operator[](unsigned i) const { return monomAt(i); }
+
     auto iterSummands() const { return coproductIter(_self.map(
         [&](Appl const& x) { return unwrapAppl().iterSummands().map([](auto& monom) { return monom; }); },
         [&](Var  const& x) { return iterItems(monomAt(0)); }

@@ -93,20 +93,24 @@ namespace Kernel {
 
     template<class NumTraits>
     auto maxSummandIndices(AlascaLiteralItp<NumTraits> const& lit, SelectionCriterion selection)
+    { return maxSummandIndices(lit.term(), selection); }
+
+    template<class NumTraits>
+    auto maxSummandIndices(AlascaTermItp<NumTraits> const& term, SelectionCriterion selection)
     {
         // TODO optimize less denormalization
         auto monomAt = [=](auto i) 
-             { return lit.term().summandAt(i).atom(); }; 
+             { return term.summandAt(i).atom(); }; 
 
         return iterTraits(OrderingUtils::maxElems(
-                  lit.term().nSummands(),
+                  term.nSummands(),
                   [=](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
                   [=](unsigned i)
                   { return monomAt(i); },
                   selection))
-                 .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !lit.term().summandAt(i).isNumeral()
-                                            : selection == SelectionCriterion::NOT_LESS ? !lit.term().summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
+                 .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !term.summandAt(i).isNumeral()
+                                            : selection == SelectionCriterion::NOT_LESS ? !term.summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
                                             : true; });
     }
 

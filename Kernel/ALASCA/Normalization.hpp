@@ -32,7 +32,8 @@ namespace Kernel {
    * or   term == 0 or term != 0              or term > 0 (for Integers)
    */
   template<class NumTraits_>
-  class AlascaLiteralItp {
+  class AlascaLiteralItp 
+  {
   public:
     using NumTraits = NumTraits_;
     using Numeral = typename NumTraits_::ConstantType;

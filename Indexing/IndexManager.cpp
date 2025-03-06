@@ -174,6 +174,17 @@ Index* IndexManager::create(IndexType t)
     res = new AlascaIndex<Inferences::ALASCA::CoherenceDemodConf<Num ## Traits>::ToSimpl>(); \
     isGenerating = false;                                                                 \
     break;                                                                                \
+                                                                                          \
+  case ALASCA_COHERENCE_LHS_SUBST_TREE_ ## Num:                                           \
+    res = new AlascaIndex<Inferences::ALASCA::Coherence<Num ## Traits>::Lhs>();              \
+    isGenerating = true;                                                                  \
+    break;                                                                                \
+                                                                                          \
+  case ALASCA_COHERENCE_RHS_SUBST_TREE_ ## Num:                                           \
+    res = new AlascaIndex<Inferences::ALASCA::Coherence<Num ## Traits>::Rhs>();              \
+    isGenerating = true;                                                                  \
+    break;                                                                                \
+
 
     FOR_NUM_TRAITS_FRAC_PREFIX(FOR_NUM)
 #undef FOR_NUM
@@ -195,16 +206,6 @@ Index* IndexManager::create(IndexType t)
 
   case ALASCA_SUPERPOSITION_RHS_SUBST_TREE:
     res = new AlascaIndex<Inferences::ALASCA::Superposition::Rhs>();
-    isGenerating = true;
-    break;
-
-  case ALASCA_COHERENCE_LHS_SUBST_TREE:
-    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Lhs>();
-    isGenerating = true;
-    break;
-
-  case ALASCA_COHERENCE_RHS_SUBST_TREE:
-    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Rhs>();
     isGenerating = true;
     break;
 
