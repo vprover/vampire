@@ -672,10 +672,10 @@ public:
   IMPL_COMPARISONS_FROM_COMPARE(Coproduct)
 
   unsigned defaultHash() const
-  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return DefaultHash::hash(x); })); }
+  { return Lib::HashUtils::combine( DefaultHash ::hash(tag()), this->apply([](auto const& x){ return DefaultHash::hash(x); })); }
 
   unsigned defaultHash2() const
-  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return DefaultHash2::hash(x); })); }
+  { return Lib::HashUtils::combine( DefaultHash2::hash(tag()), this->apply([](auto const& x){ return DefaultHash2::hash(x); })); }
 
   inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<As...>

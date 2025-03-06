@@ -36,10 +36,10 @@ struct PerfectIdComparison ;
  *
  * T is required to be comparable with `bool operator==(const T&, const T&)`, and hashable with `std::hash<T>`.
  */
-template<class T, class DfltComparison = PerfectIdComparison>
+template<class T, class DfltComparison = PerfectIdComparison, class Hash = StlHash>
 class Perfect 
 {
-  using IdMap = Map<const T*, Perfect, DerefPtrHash<StlHash>>;
+  using IdMap = Map<const T*, Perfect, DerefPtrHash<Hash>>;
 
   unsigned _id;
   const T* _ptr;
@@ -68,7 +68,7 @@ public:
   /** default constructor. for this T must be default-constructible itself. */
   Perfect() : Perfect(T()) {}
 
-  template<class U, class C> friend bool operator==(Perfect<U, C> const& l, Perfect<U, C> const& r);
+  template<class U, class C, class H> friend bool operator==(Perfect<U, C, H> const& l, Perfect<U, C, H> const& r);
 
   /** dereferencing the smart pointer */
   T const* operator->() const& { return _ptr; }
@@ -77,7 +77,7 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const Perfect& self) 
   { return out << *self; }
 
-  friend struct std::hash<Perfect<T, DfltComparison>>;
+  friend struct std::hash<Perfect<T, DfltComparison, Hash>>;
 
   friend struct PerfectPtrComparison;
   friend struct PerfectIdComparison;
@@ -87,31 +87,31 @@ public:
   IMPL_COMPARISONS_FROM_COMPARE(Perfect);
   IMPL_EQ_FROM_COMPARE(Perfect);
 
-  unsigned defaultHash () const { return DfltComparison::template defaultHash<DefaultHash >(*this); }
-  unsigned defaultHash2() const { return DfltComparison::template defaultHash<DefaultHash2>(*this); }
+  unsigned defaultHash () const { return DfltComparison::template applyHash<DefaultHash >(*this); }
+  unsigned defaultHash2() const { return DfltComparison::template applyHash<DefaultHash2>(*this); }
 
 }; // class Perfect
 
 
 /** instantiating the cache */
-template<class T, class Cmp> typename Perfect<T, Cmp>::IdMap Perfect<T, Cmp>::_ids;
+template<class T, class Cmp, class Hash> typename Perfect<T, Cmp, Hash>::IdMap Perfect<T, Cmp, Hash>::_ids;
 
 struct PerfectPtrComparison 
 {
-  template<class T, class Cmp>
-  static Lib::Comparison compare(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs)
+  template<class T, class Cmp, class Hash>
+  static Lib::Comparison compare(const Perfect<T, Cmp, Hash>& lhs, const Perfect<T, Cmp, Hash>& rhs)
   { return DefaultComparator::compare((size_t)lhs._ptr, (size_t)rhs._ptr); }
 
-  template<class T, class Cmp>
-  static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) 
+  template<class T, class Cmp, class Hash>
+  static bool equals(const Perfect<T, Cmp, Hash>& lhs, const Perfect<T, Cmp, Hash>& rhs) 
   { return compare(lhs, rhs) == Comparison::EQUAL; }
 
-  template<class T, class Cmp>
-  static size_t hash(Lib::Perfect<T, Cmp> const& self) 
+  template<class T, class Cmp, class Hash>
+  static size_t hash(Lib::Perfect<T, Cmp, Hash> const& self) 
   { return std::hash<size_t>{}((size_t)self._ptr); }
 
-  template<class DH, class T, class Cmp> 
-  static size_t defaultHash(Lib::Perfect<T, Cmp> const& self) 
+  template<class DH, class T, class Cmp, class Hash> 
+  static size_t applyHas(Lib::Perfect<T, Cmp, Hash> const& self) 
   { return DH::hash((size_t)self._ptr); }
 };
 
@@ -119,28 +119,28 @@ struct PerfectPtrComparison
 struct PerfectIdComparison 
 {
 
-  template<class T, class Cmp>
-  static Lib::Comparison compare(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs)
+  template<class T, class Cmp, class Hash>
+  static Lib::Comparison compare(const Perfect<T, Cmp, Hash>& lhs, const Perfect<T, Cmp, Hash>& rhs)
   { return DefaultComparator::compare(lhs._id, rhs._id); }
 
-  template<class T, class Cmp>
-  static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) 
+  template<class T, class Cmp, class Hash>
+  static bool equals(const Perfect<T, Cmp, Hash>& lhs, const Perfect<T, Cmp, Hash>& rhs) 
   { return compare(lhs, rhs) == Comparison::EQUAL; }
 
-  template<class T, class Cmp>
-  static size_t hash(Lib::Perfect<T, Cmp> const& self) 
+  template<class T, class Cmp, class Hash>
+  static size_t hash(Lib::Perfect<T, Cmp, Hash> const& self) 
   { return std::hash<unsigned>{}(self._id); }
 
-  template<class DH, class T, class Cmp> 
-  static size_t defaultHash(Lib::Perfect<T, Cmp> const& self) 
+  template<class DH, class T, class Cmp, class Hash> 
+  static size_t applyHash(Lib::Perfect<T, Cmp, Hash> const& self) 
   { return DH::hash(self._id); }
 };
 
 
 /** function to create a Perfect<T> ergonomically (with the help of type deduction) */
-template<class T, class Cmp = PerfectIdComparison> 
-Perfect<T, Cmp> perfect(T t) 
-{ return Perfect<T, Cmp>(std::move(t)); } } // namespace Lib
+template<class T, class Cmp = PerfectIdComparison, class Hash = StlHash>
+Perfect<T, Cmp, Hash> perfect(T t) 
+{ return Perfect<T, Cmp, Hash>(std::move(t)); } } // namespace Lib
 
 template<class A, class B, class Cmp> 
 auto operator*(A const& l, Perfect<B, Cmp> const& r) 
@@ -159,16 +159,16 @@ auto operator-(Perfect<A> const& x)
 { return perfect(-(*x)); }
 
 
-template<class T, class Cmp> struct std::hash<Lib::Perfect<T, Cmp>> 
+template<class T, class Cmp, class Hash> struct std::hash<Lib::Perfect<T, Cmp, Hash>> 
 {
-  size_t operator()(Lib::Perfect<T, Cmp> const& self) const 
+  size_t operator()(Lib::Perfect<T, Cmp, Hash> const& self) const 
   { return Cmp::hash(self); }
 };
 
 
-template<class T, class Cmp> struct std::less<Lib::Perfect<T, Cmp>> 
+template<class T, class Cmp, class Hash> struct std::less<Lib::Perfect<T, Cmp, Hash>> 
 {
-  bool operator()(Lib::Perfect<T, Cmp> const& lhs, Lib::Perfect<T, Cmp> const& rhs) const 
+  bool operator()(Lib::Perfect<T, Cmp, Hash> const& lhs, Lib::Perfect<T, Cmp, Hash> const& rhs) const 
   { return Cmp{}(lhs, rhs); }
 };
 

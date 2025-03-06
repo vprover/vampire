@@ -69,7 +69,7 @@
   friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }            \
 
 #define IMPL_HASH_FROM_TUPLE(Class)                                                       \
-  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                   \
+  unsigned defaultHash () const { return DefaultHash ::hash(asTuple()); }                 \
   unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                 \
 
 //The obvious way to define this macro would be

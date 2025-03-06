@@ -39,6 +39,7 @@ namespace Kernel {
   private:
     AlascaTermItp<NumTraits> _term;
     AlascaPredicate _symbol;
+    mutable Option<Literal*> _literal;
 
   public:
 
@@ -81,7 +82,7 @@ namespace Kernel {
       return AlascaLiteralItp(newTerm, newSym);
     }
 
-    // TODO rename
+    // TODO rename & make cached version
     Literal* denormalize() const
     { return createLiteral<NumTraits>(symbol(), term().toTerm()) ; }
 

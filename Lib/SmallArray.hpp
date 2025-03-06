@@ -9,6 +9,8 @@
  */
 
 #include "Lib/Coproduct.hpp"
+#include "Lib/Metaiterators.hpp"
+
 #include <utility>
 namespace Lib {
 
@@ -108,6 +110,15 @@ public:
       std::free(_conts.heap);
   }
 
+  
+
+  auto iter() const { return arrayIter(*this); }
+  auto iter()       { return arrayIter(*this); }
+
+  using Self = SmallArray;
+  auto asTuple() const { return std::make_tuple(size(), iterContOps(iter())); }
+  IMPL_COMPARISONS_FROM_TUPLE(Self);
+  IMPL_HASH_FROM_TUPLE(Self);
 };
 
 } // namespace Lib
