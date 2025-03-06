@@ -136,7 +136,6 @@ namespace Kernel {
       return AlascaLiteralItp(AlascaLiteralCache(__AlascaLiteralItp(newTerm, newSym)).perfectShared());
     }
 
-    // TODO make cached version
     Literal* toLiteral() const
     { 
       return self()._literal.unwrapOrInit([&]() {
