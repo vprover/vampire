@@ -45,6 +45,7 @@
     Type operator-() const { return -1 * *this; }                                         \
 
 namespace Kernel {
+  class AlascaTermCache;
   // TODO cache literal norm
 
 #define OPS_FROM_TO_TERM(Type)                                                            \
@@ -58,7 +59,7 @@ namespace Kernel {
     __AlascaTermApplUF(TypedTermList t) : _self(t) { }
     TypedTermList toTerm(AlascaTermCache const* cache) const { 
       if (_self.isTerm()) {
-        ASS_REP(_self.term()->getAlascaTermCache() == cache, Output::cat(_self, " ", Output::ptr((AlascaTermCache const*)_self.term()->getAlascaTermCache())))
+        ASS_REP(_self.term()->getAlascaTermCache<AlascaTermCache>() == cache, Output::cat(_self, " ", Output::ptr(_self.term()->getAlascaTermCache<AlascaTermCache>())))
       }
       return _self; 
     }
@@ -173,6 +174,7 @@ namespace Kernel {
       , __AlascaTermApplNum<RealTraits>
       >;
     Inner _self;
+    // TODO tidy
     AlascaTermCache( __AlascaTermApplUF              inner) : _self(std::move(inner)) {}
     AlascaTermCache( __AlascaTermApplNum< IntTraits> inner) : _self(std::move(inner)) {}
     AlascaTermCache( __AlascaTermApplNum< RatTraits> inner) : _self(std::move(inner)) {}
@@ -284,7 +286,7 @@ namespace Kernel {
         [&](Var  const& x) { return AlascaMonom<NumTraits>(1, x.toTerm()); }
         ); }
 
-    // TODO use this instead monomAt all the time
+    // TODO use this instead monomAt all the time (?)
     auto operator[](unsigned i) const { return monomAt(i); }
 
     auto iterSummands() const { return coproductIter(_self.map(
@@ -577,7 +579,6 @@ namespace Kernel {
             done.push(Monom(cur.numeral() * *k));
           }
         } else if (auto itp = theory->tryInterpretFunction(t->functor())) {
-          // TODO de-recursify (?)
           switch(*itp) {
             case NumTraits::addI:
               DEBUG_NORM_DETAILS("add")
@@ -711,10 +712,10 @@ namespace Kernel {
     if (t.isVar()) {
       return AnyAlascaTerm(__AlascaTermVar::normalize(t));
     } else {
-      if (t.term()->getAlascaTermCache() == nullptr) {
+      if (t.term()->getAlascaTermCache<AlascaTermCache>() == nullptr) {
         t.term()->setAlascaTermCache(computeNormalization(t.term(), t.sort()));
       }
-      return AnyAlascaTerm((AlascaTermCache const*)t.term()->getAlascaTermCache());
+      return AnyAlascaTerm(t.term()->getAlascaTermCache<AlascaTermCache>());
     }
   }
 

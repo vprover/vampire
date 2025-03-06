@@ -22,7 +22,7 @@
 namespace Kernel {
 
   using Inferences::PolynomialEvaluation;
-  using Kernel::AnyAlascaLiteral;
+  using Kernel::AlascaLiteralItpAny;
 
   struct AlascaState;
   using UwaSubstitution = Coproduct<RobSubstitution, Indexing::ResultSubstitutionSP>; 
@@ -30,7 +30,7 @@ namespace Kernel {
   struct SelectedLiteral {
     Clause* cl;
     unsigned litIdx;
-    Option<AnyAlascaLiteral> interpreted;
+    Option<AlascaLiteralItpAny> interpreted;
 
     SelectedLiteral(Clause* cl, unsigned litIdx, AlascaState& shared);
 
@@ -117,7 +117,7 @@ namespace Kernel {
     auto nContextTerms() const 
     { return alascaLiteral().apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
 
-    AnyAlascaLiteral const& alascaLiteral() const
+    AlascaLiteralItpAny const& alascaLiteral() const
     { return interpreted.unwrap(); }
 
     template<class NumTraits>

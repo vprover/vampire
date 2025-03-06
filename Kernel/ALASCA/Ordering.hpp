@@ -356,7 +356,7 @@ class LiteralOrdering
     } ASSERTION_VIOLATION
   }
 
-  MultiSet<Atom> atoms(AnyAlascaLiteral const& l) const 
+  MultiSet<Atom> atoms(AlascaLiteralItpAny const& l) const 
   { return l.apply([&](auto l) { return atoms(l); }); }
 
   template<class NumTraits>

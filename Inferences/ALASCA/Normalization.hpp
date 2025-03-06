@@ -56,7 +56,7 @@ class FloorElimination
         && !(*r / l.numeral()).isInt();
   }
 
-  bool deleteableLiteral(AnyAlascaLiteral const& l) const 
+  bool deleteableLiteral(AlascaLiteralItpAny const& l) const 
   { return l.apply([&](auto l) { return deleteableLiteral(l); }); }
 
   bool deleteableLiteral(AlascaLiteralItp<IntTraits> const& l) const 

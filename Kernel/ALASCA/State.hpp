@@ -188,7 +188,7 @@ namespace Kernel {
     {
       return iterTraits(norm().tryNormalizeInterpreted(l)
         .match(
-          [=](AnyAlascaLiteral l) -> VirtualIterator<TypedTermList> {
+          [=](AlascaLiteralItpAny l) -> VirtualIterator<TypedTermList> {
             return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
                 return maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
                          .map([l](auto i) {

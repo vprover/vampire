@@ -32,38 +32,90 @@ namespace Kernel {
    * or   term == 0 or term != 0              or term > 0 (for Integers)
    */
   template<class NumTraits_>
-  class AlascaLiteralItp 
+  struct __AlascaLiteralItp 
   {
-  public:
     using NumTraits = NumTraits_;
     using Numeral = typename NumTraits_::ConstantType;
-  private:
     AlascaTermItp<NumTraits> _term;
     AlascaPredicate _symbol;
+    // TODO
     mutable Option<Literal*> _literal;
 
-  public:
-
-    AlascaLiteralItp(AlascaTermItp<NumTraits> term, AlascaPredicate symbol)
+    __AlascaLiteralItp(AlascaTermItp<NumTraits> term, AlascaPredicate symbol)
       : _term(std::move(term)), _symbol(symbol) 
     { _term.integrity(); }
 
+    friend std::ostream& operator<<(std::ostream& out, __AlascaLiteralItp const& self) 
+    { return out << self._term << " " << self._symbol << " 0"; }
+
+    auto asTuple() const { return std::tie(_symbol, _term);  }
+    IMPL_COMPARISONS_FROM_TUPLE(__AlascaLiteralItp)
+    IMPL_HASH_FROM_TUPLE(__AlascaLiteralItp)
+  };
+
+  using AlascaLiteralCacheData = Coproduct<Literal*
+    , __AlascaLiteralItp<IntTraits>
+    , __AlascaLiteralItp<RatTraits>
+    , __AlascaLiteralItp<RealTraits>>;
+  struct AlascaLiteralCache 
+    : public AlascaLiteralCacheData {
+
+    template<class C> 
+    AlascaLiteralCache(C arg) : AlascaLiteralCacheData(std::move(arg)) {}
+
+    template<class T, class C, class H>
+    friend class Lib::Perfect;
+    AlascaLiteralCache const* perfectShared() &&
+    { return &*Perfect<AlascaLiteralCache, PerfectPtrComparison, DefaultHash>(std::move(*this)); }
+
+  private:
+    void* operator new(std::size_t size) { return ::operator new(size); }
+  };
+
+  class AlascaLiteralUF {
+    AlascaLiteralCache const* _self;
+  public:
+    explicit AlascaLiteralUF(AlascaLiteralCache const* self) : _self(self) {  }
+    Literal* toLiteral() const { return _self->unwrap<Literal*>(); }
+    friend std::ostream& operator<<(std::ostream& out, AlascaLiteralUF const& self)
+    { return out << self._self; }
+  };
+
+  /** 
+   * Represents an inequality literal normalized for the rule FourierMotzkin.
+   * this means it is a literal of the form
+   *      term == 0 or term != 0 or term >= 0 or term > 0 (for Reals and Rationals)
+   * or   term == 0 or term != 0              or term > 0 (for Integers)
+   */
+  template<class NumTraits_>
+  class AlascaLiteralItp 
+  {
+    AlascaLiteralCache const* _self;
+  public:
+    using NumTraits = NumTraits_;
+    using Numeral = typename NumTraits_::ConstantType;
+    AlascaLiteralItp(AlascaLiteralCache const* self) : _self(self) {}
+  private:
+    __AlascaLiteralItp<NumTraits>const& self() const { return _self->template unwrap<__AlascaLiteralItp<NumTraits>>(); }
+
+  public:
+
     /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
     AlascaTermItp<NumTraits> const& term() const
-    { return _term; }
+    { return self()._term; }
 
     AlascaPredicate symbol() const
-    { return _symbol; }
+    { return self()._symbol; }
 
     NumTraits numTraits() const { return NumTraits{}; }
 
     friend std::ostream& operator<<(std::ostream& out, AlascaLiteralItp const& self) 
-    { return out << self._term << " " << self._symbol << " 0"; }
+    { return out << self.self(); }
 
     AlascaLiteralItp negation() const
     {
       auto newSym = [&](){
-          switch(_symbol) {
+          switch(self()._symbol) {
             case AlascaPredicate::EQ:  return AlascaPredicate::NEQ;
             case AlascaPredicate::NEQ: return AlascaPredicate::EQ;
             case AlascaPredicate::GREATER: return AlascaPredicate::GREATER_EQ;
@@ -72,40 +124,84 @@ namespace Kernel {
           ASSERTION_VIOLATION
       }();
       auto newTerm = [&](){
-          switch(_symbol) {
+          switch(self()._symbol) {
             case AlascaPredicate::EQ:  
-            case AlascaPredicate::NEQ: return _term;
+            case AlascaPredicate::NEQ: return self()._term;
             case AlascaPredicate::GREATER: 
-            case AlascaPredicate::GREATER_EQ: return -_term; 
+            case AlascaPredicate::GREATER_EQ: return -self()._term; 
           }
           ASSERTION_VIOLATION
       }();
-      return AlascaLiteralItp(newTerm, newSym);
+      return AlascaLiteralItp(AlascaLiteralCache(__AlascaLiteralItp(newTerm, newSym)).perfectShared());
     }
 
-    // TODO rename & make cached version
-    Literal* denormalize() const
+    // TODO make cached version
+    Literal* toLiteral() const
     { return createLiteral<NumTraits>(symbol(), term().toTerm()) ; }
+
+    // TODO remove
+    Literal* denormalize() const
+    { return toLiteral(); }
 
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
 
-    auto asTuple() const { return std::tie(_symbol, _term);  }
+    // TODO perfect sharing use
+    auto asTuple() const { return std::tie(self()._symbol, self()._term);  }
 
     IMPL_COMPARISONS_FROM_TUPLE(AlascaLiteralItp)
     IMPL_HASH_FROM_TUPLE(AlascaLiteralItp)
   };
+
+  using AlascaLiteralItpAny = Coproduct< 
+                                   AlascaLiteralItp< IntTraits>
+                                 , AlascaLiteralItp< RatTraits>
+                                 , AlascaLiteralItp<RealTraits>
+                                 >;
+
+  class AlascaLiteral {
+    Coproduct<AlascaLiteralUF, 
+      AlascaLiteralItp<IntTraits>, 
+      AlascaLiteralItp<RatTraits>, 
+      AlascaLiteralItp<RealTraits>> _self;
+
+
+    template<class NumTraits>
+    static auto cvt(__AlascaLiteralItp<NumTraits> const&, AlascaLiteralCache const* cache)
+    { return AlascaLiteralItp<NumTraits>(cache); }
+
+    static auto cvt(Literal* const&, AlascaLiteralCache const* cache)
+    { return AlascaLiteralUF(cache); }
+
+
+    static decltype(_self) cvt(AlascaLiteralCache const* cache)
+    { return cache->applyCo([cache](auto& x) { return cvt(x, cache); }); }
+  public:
+    AlascaLiteral(AlascaLiteralCache const* self) : _self(cvt(self)) {}
+
+    template<class F>
+    auto apply(F f) const -> decltype(auto) { return _self.apply(f); }
+
+    // template<class T>
+    // auto as() const -> decltype(auto) { return _self.template as<T>(); }
+    
+    template<class NumTraits>
+    static Option<AlascaLiteralItpAny> asItp(AlascaLiteralItp<NumTraits> const& n) { return some(AlascaLiteralItpAny(n)); }
+    static Option<AlascaLiteralItpAny> asItp(AlascaLiteralUF             const& n) { return {}; }
+    auto asItp() const -> Option<AlascaLiteralItpAny>
+    { return apply([](auto& x) { return asItp(x); }); }
+
+    Literal* toLiteral() const 
+    { return apply([](auto x) { return x.toLiteral(); }); }
+  };
+
+
 
 
   using AnyConstantType = Coproduct< IntegerConstantType
                                    , RationalConstantType
                                    , RealConstantType
                                    >;
-
-  using AnyAlascaLiteral = Coproduct< AlascaLiteralItp< IntTraits>
-                                 , AlascaLiteralItp< RatTraits>
-                                 , AlascaLiteralItp<RealTraits>
-                                 >;
 
   /** 
    * Represents an inequality literal normalized for the rule FourierMotzkin.
@@ -155,7 +251,6 @@ namespace Kernel {
   template<class NumTraits>
   static Option<InequalityLiteral<NumTraits>> tryInequalityLiteral(AlascaLiteralItp<NumTraits> lit) 
   { return someIf(lit.isInequality(), [&](){ return InequalityLiteral(std::move(lit)); }); }
-
   class InequalityNormalizer 
   {
     Inferences::PolynomialEvaluation _eval;
@@ -218,14 +313,14 @@ namespace Kernel {
   public:
 
     template<class NumTraits> 
-    Option<AlascaLiteralItp<NumTraits>> computeNormalizedItp(Literal* lit) const
+    Option<__AlascaLiteralItp<NumTraits>> computeNormalizedItp(Literal* lit) const
     {
       DEBUG_NORM(0, "in: ", *lit, " (", NumTraits::name(), ")")
       using ASig = AlascaSignature<NumTraits>;
 
 
 
-      auto impl = [&]() -> Option<AlascaLiteralItp<NumTraits>> {
+      auto impl = [&]() -> Option<__AlascaLiteralItp<NumTraits>> {
 
         constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
 
@@ -326,7 +421,7 @@ namespace Kernel {
             break;
         }
 
-        return some(AlascaLiteralItp<NumTraits>(factorsNormalized, pred));
+        return some(__AlascaLiteralItp<NumTraits>(factorsNormalized, pred));
       };
       auto out = impl();
       DEBUG_NORM(0, "out: ", out);
@@ -342,51 +437,44 @@ namespace Kernel {
     Option<AlascaLiteralItp<NumTraits>> normalize(Literal* l)
     { return tryNormalizeInterpreted<NumTraits>(l); }
 
-    // using AlascaLiteralCache = Option<AnyAlascaLiteral>;
-    using AlascaLiteralCache = Coproduct<AnyAlascaLiteral, Literal*>;
 
     AlascaLiteralCache computeNormalized(Literal* lit) const  {
       auto itp = tryNumTraits([&](auto n) {
           return computeNormalizedItp<decltype(n)>(lit)
-            .map([](auto norm) { return AnyAlascaLiteral(std::move(norm)); });
+            .map([](auto norm) { return AlascaLiteralCache(std::move(norm)); });
       });
       if (itp) {
-        return AlascaLiteralCache(*itp);
+        return *itp;
       } else {
         /* uninterpreted */
-        RStack<TermList> args;
-        args->loadFromIterator(concatIters(
-              typeArgIter(lit),
-              termArgIterTyped(lit)
+        return AlascaLiteralCache(Literal::createFromIter(lit, 
+              concatIters(
+                typeArgIter(lit),
+                termArgIterTyped(lit)
                 .map([&](auto arg) { return normalize(arg).toTerm(); })
-            ));
-        return AlascaLiteralCache(Literal::create(lit, args->begin()));
+                )));
       }
     }
 
 
-    AlascaLiteralCache const* normalize(Literal* lit) const 
+    AlascaLiteral normalize(Literal* lit) const 
     {
-      auto cache = lit->getAlascaTermCache();
+      auto cache = lit->getAlascaTermCache<AlascaLiteralCache>();
       if (cache == nullptr) {
         auto res = computeNormalized(lit);
         DEBUG_NORM(0, *lit, " ==> ", res)
-        lit->setAlascaTermCache((void const*) move_to_heap(std::move(res)));
+        lit->setAlascaTermCache(std::move(res).perfectShared());
       }
-      return (AlascaLiteralCache const*) lit->getAlascaTermCache();
+      return AlascaLiteral(lit->getAlascaTermCache<AlascaLiteralCache>());
 
     }
 
-    Option<AnyAlascaLiteral> tryNormalizeInterpreted(Literal* lit) const
-    { return normalize(lit)->as<AnyAlascaLiteral>().toOwned(); }
+    Option<AlascaLiteralItpAny> tryNormalizeInterpreted(Literal* lit) const
+    { return normalize(lit).asItp().toOwned(); }
 
     // TODO create toTerm function for AlascaLiteralUF
     Literal* normalizedLiteral(Literal* lit) const
-    {
-      return normalize(lit)
-         ->match([](auto& itp) -> Literal* { return itp.apply([](auto& x) { return x.denormalize(); }); }, 
-                 [](auto& lit) -> Literal* { return lit; });
-    }
+    { return normalize(lit).toLiteral(); }
 
     bool equivalent(TermList lhs, TermList rhs) 
     { 
