@@ -68,6 +68,7 @@ namespace Kernel {
     AlascaLiteralCache const* perfectShared() &&
     { return &*Perfect<AlascaLiteralCache, PerfectPtrComparison, DefaultHash>(std::move(*this)); }
 
+    DEBUG_CODE(static const char* cacheId() { return "AlascaLiteralCache"; })
   private:
     void* operator new(std::size_t size) { return ::operator new(size); }
   };
@@ -137,7 +138,13 @@ namespace Kernel {
 
     // TODO make cached version
     Literal* toLiteral() const
-    { return createLiteral<NumTraits>(symbol(), term().toTerm()) ; }
+    { 
+      return self()._literal.unwrapOrInit([&]() {
+        auto lit = createLiteral<NumTraits>(symbol(), term().toTerm());
+        lit->setAlascaTermCache(_self);
+        return lit;
+      });
+    }
 
     // TODO remove
     Literal* denormalize() const

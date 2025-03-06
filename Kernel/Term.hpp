@@ -983,20 +983,21 @@ public:
 
   template<class C>
   C const* getAlascaTermCache() const { 
-    // TODO
-    // DEBUG_CODE(
-    //   if (_alascaTermCache != nullptr) {
-    //     ASS_EQ(_alascaTermCacheTypeName, C::cacheId())
-    //   }
-    // )
+    DEBUG_CODE(
+      if (_alascaTermCache != nullptr) {
+        ASS_EQ(_alascaTermCacheTypeName, C::cacheId())
+      }
+    )
     return (C const*) _alascaTermCache; 
   }
   template<class C>
   void setAlascaTermCache(C const* nf) { 
-    // TODO
-    // DEBUG_CODE(
-    //     _alascaTermCacheTypeName = C::cacheId();
-    // )
+    DEBUG_CODE(
+      _alascaTermCacheTypeName = C::cacheId();
+      if (_alascaTermCache != nullptr) {
+        ASS(_alascaTermCache == nf)
+      }
+    )
     _alascaTermCache = nf; 
   }
 }; // class Term

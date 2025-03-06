@@ -187,6 +187,7 @@ namespace Kernel {
 
     void* operator new(std::size_t size) { return ::operator new(size); }
   public:
+    DEBUG_CODE(static const char* cacheId() { return "AlascaTermCache"; })
 
     AlascaTermCache const* perfectShared() &&
     { return &*Perfect<AlascaTermCache, PerfectPtrComparison, DefaultHash>(std::move(*this)); }
