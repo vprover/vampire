@@ -53,7 +53,10 @@ namespace Kernel {
 class Variable 
 {
   unsigned _num;
+  auto asTuple() const { return std::make_tuple(_num); }
 public: 
+  IMPL_HASH_FROM_TUPLE(Variable);
+  IMPL_COMPARISONS_FROM_TUPLE(Variable);
   Variable();
   explicit Variable(unsigned num);
   unsigned id() const;
@@ -61,9 +64,6 @@ public:
   void integrity() const {  }
   friend struct std::hash<Variable>;
   friend std::ostream& operator<<(std::ostream& out, const Variable& self);
-  auto asTuple() const { return std::make_tuple(_num); }
-  IMPL_HASH_FROM_TUPLE(Variable);
-  IMPL_COMPARISONS_FROM_TUPLE(Variable);
 };
 
 } // namespace Kernel
@@ -166,9 +166,12 @@ struct Monom
   Numeral numeral;
   Perfect<MonomFactors<Number>> factors;
 
+  auto asTuple() const { return std::tie(numeral, factors); }
+  IMPL_COMPARISONS_FROM_TUPLE(Monom)
+  IMPL_HASH_FROM_TUPLE(Monom)
+
   Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
   Monom(Perfect<MonomFactors<Number>> factors) : Monom(Numeral(1), std::move(factors)) {}
-  // Monom(Numeral numeral, PolyNf t); //: Monom(numeral, perfect(MonomFactors(t))) {}
   Monom(Numeral numeral) : Monom(numeral, perfect(MonomFactors<Number>::one())) {}
   Monom(int num) : Monom(Numeral(num)) {}
   Monom(int n1, int n2) : Monom(Numeral(n1, n2)) {}
@@ -208,8 +211,10 @@ class FuncTerm
 {
   FuncId _fun;
   Stack<PolyNf> _args;
+  auto asTuple() const { return std::tie(_fun, _args); }
 public:
-  USE_ALLOCATOR(FuncTerm)
+  IMPL_COMPARISONS_FROM_TUPLE(FuncTerm)
+  IMPL_HASH_FROM_TUPLE(FuncTerm)
 
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
@@ -231,10 +236,7 @@ public:
   auto iterArgs() const  { return iterTraits(_args.iterFifo()); }
 
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
-  friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs);
-  friend bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs);
   friend struct std::hash<FuncTerm>;
-
 };
 
 using AnyPolySuper = Coproduct< 
@@ -303,7 +305,10 @@ template<class A> A const& deref(Perfect<A> const& x) { return *x; }
  */
 class PolyNf : public PolyNfSuper
 {
+  auto asTuple() const { return std::tie(static_cast<PolyNfSuper const&>(*this)); }
 public:
+  IMPL_COMPARISONS_FROM_TUPLE(PolyNf)
+  IMPL_HASH_FROM_TUPLE(PolyNf)
 
   PolyNf(Perfect<FuncTerm> t);
   PolyNf(Variable               t);
@@ -377,10 +382,6 @@ public:
   void integrity() const {  apply([](auto const& x) -> void { deref(x).integrity(); }); }
 
   friend struct std::hash<PolyNf>;
-  friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
-  friend bool operator!=(PolyNf const& lhs, PolyNf const& rhs);
-  friend bool operator<(const PolyNf& lhs, const PolyNf& rhs);
-  friend bool operator<=(const PolyNf& lhs, const PolyNf& rhs);
   friend std::ostream& operator<<(std::ostream& out, const PolyNf& self);
 };
 
@@ -397,6 +398,11 @@ struct MonomFactor
 {
   PolyNf term;
   int power;
+
+
+  auto asTuple() const { return std::tie(term, power); }
+  IMPL_COMPARISONS_FROM_TUPLE(MonomFactor)
+  IMPL_HASH_FROM_TUPLE(MonomFactor)
 
   MonomFactor(PolyNf term, int power);
 
@@ -426,8 +432,10 @@ class MonomFactors
   Stack<MonomFactor> _factors;
   friend struct std::hash<MonomFactors>;
 
+  auto asTuple() const { return std::tie(_factors); }
 public:
-  USE_ALLOCATOR(MonomFactors)
+  IMPL_COMPARISONS_FROM_TUPLE(MonomFactors)
+  IMPL_HASH_FROM_TUPLE(MonomFactors)
 
   /** 
    * constructs a new MonomFactors. 
@@ -496,17 +504,12 @@ public:
   MonomFactors(MonomFactors&&) = default;
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
-  template<class N> friend bool operator==(const MonomFactors<N>& l, const MonomFactors<N>& r);
-  template<class N> friend bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r);
-
   /** helper function for PolyNf::denormalize() */
   TermList denormalize(TermList* results) const;
 
   TermList denormalize() const;
   Stack<MonomFactor>& raw();
 };
-
-template<class N> bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r) { return !(l == r); }
 
 template<class Number>
 class Polynom 
@@ -519,9 +522,11 @@ class Polynom
 
   Stack<Monom> _summands;
 
+  auto asTuple() const { return std::tie(_summands); }
 public:
+  IMPL_COMPARISONS_FROM_TUPLE(Polynom)
+  IMPL_HASH_FROM_TUPLE(Polynom)
   using NumTraits = Number;
-  USE_ALLOCATOR(Polynom)
 
   /** 
    * constructs a new Polynom with a list of summands 
@@ -600,8 +605,6 @@ public:
 
   template<class F> Polynom mapVars(F f) const;
 
-  template<class N> friend bool operator==(const Polynom<N>& l, const Polynom<N>& r);
-  template<class N> friend bool operator!=(const Polynom<N>& l, const Polynom<N>& r);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
 
   friend Polynom operator*(Numeral n, Polynom const& self) 
@@ -612,8 +615,6 @@ public:
   friend Polynom operator-(Polynom const& self) 
   { return Numeral(-1) * self; }
 };  
-
-template<class N> bool operator!=(const Polynom<N>& l, const Polynom<N>& r) { return !(l == r); }
 
 /** an iterator over a literal's arguments. The arguments are mapped to their corresponding PolNf s */
 class IterArgsPnf
@@ -730,18 +731,6 @@ TermList Monom<Number>::denormalize()  const
   return PolyNf(AnyPoly(perfect(Polynom<Number>(*this)))).denormalize(); 
 }
 
-
-template<class Number>
-bool operator<(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
-{ return std::tie(l.factors, l.numeral) < std::tie(r.factors, r.numeral); }
-
-template<class Number>
-bool operator==(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
-{ return std::tie(l.factors, l.numeral) == std::tie(r.factors, r.numeral); }
-
-template<class Number>
-bool operator!=(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
-{ return !(l == r); }
 
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const Kernel::Monom<Number>& self)
@@ -956,18 +945,6 @@ PolyNf::SubtermIter MonomFactor<Number>::iterSubterms() const
 { return term.iterSubterms(); }
 
 template<class Number>
-bool operator<(MonomFactor<Number> const& l, MonomFactor<Number> const& r)
-{ return std::tie(l.term, l.power) < std::tie(r.term, r.power); }
-
-template<class Number>
-bool operator==(MonomFactor<Number> const& l, MonomFactor<Number> const& r)
-{ return std::tie(l.term, l.power) == std::tie(r.term, r.power); }
-
-template<class Number>
-bool operator!=(MonomFactor<Number> const& l, MonomFactor<Number> const& r)
-{ return !(l == r); }
-
-template<class Number>
 std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
   out << self.term; 
   if (self.power != 1) 
@@ -1124,12 +1101,6 @@ std::ostream& operator<<(std::ostream& out, const MonomFactors<Number>& self)
   return out;
 }
 
-
-template<class Number>
-bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) {
-  return l._factors == r._factors;
-}
-
 template<class Number>
 TermList MonomFactors<Number>::denormalize()  const
 {
@@ -1270,11 +1241,6 @@ template<class Number>
 Polynom<Number>::Polynom(Numeral constant) 
   : Polynom(Monom(constant, perfect(MonomFactors::one()))) 
 {  }
-
-
-template<class Number>
-bool operator==(const Polynom<Number>& lhs, const Polynom<Number>& rhs)
-{ return std::tie(lhs._summands) == std::tie(rhs._summands); }
 
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {

@@ -36,7 +36,7 @@ struct PerfectIdComparison ;
  *
  * T is required to be comparable with `bool operator==(const T&, const T&)`, and hashable with `std::hash<T>`.
  */
-template<class T, class DfltComparison = PerfectIdComparison, class Hash = StlHash>
+template<class T, class DfltComparison = PerfectIdComparison, class Hash = DefaultHash>
 class Perfect 
 {
   using IdMap = Map<const T*, Perfect, DerefPtrHash<Hash>>;
@@ -138,7 +138,7 @@ struct PerfectIdComparison
 
 
 /** function to create a Perfect<T> ergonomically (with the help of type deduction) */
-template<class T, class Cmp = PerfectIdComparison, class Hash = StlHash>
+template<class T, class Cmp = PerfectIdComparison, class Hash = DefaultHash>
 Perfect<T, Cmp, Hash> perfect(T t) 
 { return Perfect<T, Cmp, Hash>(std::move(t)); } } // namespace Lib
 
