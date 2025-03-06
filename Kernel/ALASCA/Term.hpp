@@ -162,6 +162,10 @@ namespace Kernel {
     TermList sort() const { return _self.sort(); }
     static __AlascaTermVar normalize(TypedTermList t) { return __AlascaTermVar(t); }
     TypedTermList toTerm() const { return _self; }
+    using Self = __AlascaTermVar;
+    auto asTuple() const { return std::tie(_self); }
+    IMPL_COMPARISONS_FROM_TUPLE(Self)
+    IMPL_HASH_FROM_TUPLE(Self)
   };
 
 
@@ -322,7 +326,13 @@ namespace Kernel {
       }
     ) }
 
-    OPS_FROM_TO_TERM(AlascaTermItp);
+    using Self = AlascaTermItp;
+    auto asTuple() const { return std::tie(_self); }
+
+    IMPL_COMPARISONS_FROM_TUPLE(Self)
+    IMPL_HASH_FROM_TUPLE(Self)
+    friend std::ostream& operator<<(std::ostream& out, Self const& self) 
+    { return out << self.toTerm(); }
   };
 
   using AlascaTermItpAny  = Coproduct<

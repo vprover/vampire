@@ -152,8 +152,7 @@ namespace Kernel {
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
 
-    // TODO perfect sharing use
-    auto asTuple() const { return std::tie(self()._symbol, self()._term);  }
+    auto asTuple() const { return size_t(_self);  }
 
     IMPL_COMPARISONS_FROM_TUPLE(AlascaLiteralItp)
     IMPL_HASH_FROM_TUPLE(AlascaLiteralItp)

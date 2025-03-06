@@ -995,7 +995,7 @@ public:
     DEBUG_CODE(
       _alascaTermCacheTypeName = C::cacheId();
       if (_alascaTermCache != nullptr) {
-        ASS(_alascaTermCache == nf)
+        ASS_REP((C const*)_alascaTermCache == nf, C::cacheId())
       }
     )
     _alascaTermCache = nf; 
