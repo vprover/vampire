@@ -123,7 +123,7 @@ struct TupleHash
 {
   template<typename... T>
   static unsigned hash(std::tuple<T...> const& s) 
-  { return std::apply([](auto... args) { return HashUtils::combine(InnerHash::hash(args)...); }, s); }
+  { return std::apply([](auto&... args) { return HashUtils::combine(InnerHash::hash(args)...); }, s); }
 };
 
 /**
