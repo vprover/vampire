@@ -56,7 +56,7 @@ struct RenderPolyNf {
   template<class NumTraits>
   PolyNf operator()(Polynom<NumTraits> x) const
   {
-    std::sort(x.raw().begin(), x.raw().end());
+    x.raw().sort([](auto& l, auto& r) { return l.factors < r.factors; });
     x.integrity();
     return PolyNf(perfect(std::move(x)));
   }
