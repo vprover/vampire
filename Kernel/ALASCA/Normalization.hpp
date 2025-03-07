@@ -430,14 +430,19 @@ namespace Kernel {
         auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, ASig::sort())).asSum<NumTraits>().unwrap());
         switch(pred) {
           case AlascaPredicate::EQ:
-          case AlascaPredicate::NEQ:
+          case AlascaPredicate::NEQ: {
             // normalizing s == t <-> -s == -t
-            if (factorsNormalized.iterSummands().hasNext()) {
-              // TODO choose the numeral as the pivot if there is one
-              if (factorsNormalized.iterSummands().next().numeral() < 0) {
+            // we select a pivot term in the sum depending on which 
+            // we are applying the transformation or not.
+            // the preferred pivot is a plain numeral as this is ground, 
+            // thus stable wrt substitutions.
+            auto pivot = factorsNormalized.iterSummands()
+              .find([](auto& s) { return s.atom() == ASig::one(); })
+              .orElse([&]() { return factorsNormalized.iterSummands().tryNext(); });
+            if (pivot.isSome() && pivot->numeral() < 0) {
                 factorsNormalized = -factorsNormalized;
-              }
             }
+          }
           case AlascaPredicate::GREATER:
           case AlascaPredicate::GREATER_EQ:
             break;
