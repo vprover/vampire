@@ -28,9 +28,13 @@ using namespace Lib;
 using namespace Kernel;
 
 class TheoryAxioms {
+  using CnfFunc = std::function<Stack<Clause*>(Unit*)>;
+  Problem& _prb;
+  CnfFunc _cnf;
 public:
-  TheoryAxioms(Problem& prb) :
-    _prb(prb)
+  TheoryAxioms(Problem& prb, CnfFunc cnf)
+  : _prb(prb)
+  , _cnf(cnf)
   {} 
 
 static unsigned const CHEAP = 0;
@@ -49,7 +53,6 @@ static unsigned const EXPENSIVE = 1;
 
 private:
 
-  Problem& _prb;
 
   void addCommutativity(Interpretation op);
   void addAssociativity(Interpretation op);
@@ -114,6 +117,7 @@ private:
 
   void addTheoryClauseFromLits(std::initializer_list<Literal*> lits, InferenceRule rule, unsigned level);
   void addAndOutputTheoryUnit(Unit* unit, unsigned level);
+
 };
 
 }

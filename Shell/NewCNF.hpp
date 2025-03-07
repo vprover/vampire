@@ -25,6 +25,8 @@
 #include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
+#include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
 
 #undef LOGGING
 #define LOGGING 0
@@ -65,6 +67,13 @@ public:
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
   void clausify(FormulaUnit* unit, Stack<Clause*>& output);
+  void clausify(Unit* unit, Stack<Clause*>& output) {
+    if (unit->isClause()) {
+      output.push(static_cast<Clause*>(unit));
+    } else {
+      clausify(static_cast<FormulaUnit*>(unit), output);
+    }
+  }
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;

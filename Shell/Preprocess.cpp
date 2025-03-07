@@ -23,8 +23,6 @@
 
 #include "GoalGuessing.hpp"
 #include "AnswerLiteralManager.hpp"
-#include "CNF.hpp"
-#include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
@@ -85,7 +83,6 @@ void Preprocess::preprocess(Problem& prb)
       InterpretedNormalizer().apply(prb);
     }
   };
-
 
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
@@ -148,10 +145,11 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
-  // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
-    normalizeInterpreted();
+  // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
+  normalizeInterpreted();
+
+  bool useNewCnf = prb.mayHaveFormulas() && _options.newCNF() &&
+     !prb.hasPolymorphicSym() && !prb.isHigherOrder();
 
   NewCNF ncnf(env.options->naming());
   CNF cnf;
@@ -175,7 +173,6 @@ void Preprocess::preprocess(Problem& prb)
     QuotientEPreproc().proc(prb);
   }
 
-
   if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
@@ -184,7 +181,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "FOOL elimination" << std::endl;
 
-      TheoryAxioms(prb).applyFOOL();
+      theoryAxioms.applyFOOL();
       FOOLElimination().apply(prb);
     }
   }
@@ -294,12 +291,11 @@ void Preprocess::preprocess(Problem& prb)
     Shuffling::shuffle(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() &&
-     !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
+  if (useNewCnf) {
     if (env.options->showPreprocessing())
       std::cout << "newCnf" << std::endl;
 
-    newCnf(prb);
+    newCnf(ncnf, prb);
   } else {
     if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
       ASS(prb.hasPolymorphicSym() || prb.isHigherOrder());
@@ -327,11 +323,9 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "clausify" << std::endl;
 
-      clausify(prb);
+      clausify(cnf, prb);
     }
   }
-
-  prb.getProperty();
 
 
   if (prb.mayHaveFunctionDefinitions()) {
@@ -448,6 +442,27 @@ void Preprocess::preprocess(Problem& prb)
        tf.apply(prb);
      }
    }
+
+   if (env.options->alascaIntegerConversion()) {
+     alasca.integerConversion(prb);
+   }
+
+   normalizeInterpreted();
+
+  // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()) {
+
+    // Add theory axioms if needed
+    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
+      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env.options->showPreprocessing())
+        std::cout << "adding theory axioms" << std::endl;
+
+      theoryAxioms.apply();
+    }
+  }
+
+
 
    if (_options.blockedClauseElimination()) {
      env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
@@ -615,7 +630,7 @@ void Preprocess::naming(Problem& prb)
 /**
  * Perform the NewCNF algorithm on problem @c prb which is in ENNF
  */
-void Preprocess::newCnf(Problem& prb)
+void Preprocess::newCnf(NewCNF& newCnf, Problem& prb)
 {
   env.statistics->phase=Statistics::NEW_CNF;
 
@@ -627,7 +642,6 @@ void Preprocess::newCnf(Problem& prb)
   bool modified = false;
 
   UnitList::DelIterator us(prb.units());
-  NewCNF cnf(env.options->naming());
   Stack<Clause*> clauses(32);
   while (us.hasNext()) {
     Unit* u = us.next();
@@ -643,7 +657,7 @@ void Preprocess::newCnf(Problem& prb)
     }
     modified = true;
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    cnf.clausify(fu,clauses);
+    newCnf.clausify(fu,clauses);
     while (! clauses.isEmpty()) {
       Clause* cl = clauses.pop();
       if (cl->isEmpty()) {
@@ -728,7 +742,7 @@ void Preprocess::preprocess3 (Problem& prb)
   }
 } // Preprocess::preprocess3
 
-void Preprocess::clausify(Problem& prb)
+void Preprocess::clausify(CNF& cnf, Problem& prb)
 {
   env.statistics->phase=Statistics::CLAUSIFICATION;
 
@@ -738,7 +752,6 @@ void Preprocess::clausify(Problem& prb)
   bool modified = false;
 
   UnitList::DelIterator us(prb.units());
-  CNF cnf;
   Stack<Clause*> clauses(32);
   while (us.hasNext()) {
     Unit* u = us.next();
