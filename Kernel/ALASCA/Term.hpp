@@ -202,6 +202,7 @@ namespace Kernel {
 
     void* operator new(std::size_t size) { return ::operator new(size); }
   public:
+    void operator delete(void* ptr, std::size_t size) noexcept { ::operator delete(ptr); }
     Option<TypedTermList> asVar() const { return _self.apply([&](auto& x) { return x.asVar(); }); }
     DEBUG_CODE(static const char* cacheId() { return "AlascaTermCache"; })
 
