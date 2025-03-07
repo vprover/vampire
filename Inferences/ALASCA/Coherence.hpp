@@ -102,7 +102,6 @@ public:
         .map([&shared](auto lhs) {
           auto js_u = toSum(shared, lhs.smallerSide());
           return shared.maxSummandIndices(js_u, SelectionCriterion::NOT_LEQ)
-            .inspect([js_u](auto idx) { ASS_REP(idx < js_u.nSummands(), Output::cat(js_u, " [", idx, "]") ) })
             .map([js_u,lhs](auto sIdx) { return Lhs { lhs, js_u, sIdx }; });
         })
         .flatten()
