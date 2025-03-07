@@ -150,11 +150,10 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
-  // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
-  normalizeInterpreted();
-
   // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+    // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
+    normalizeInterpreted();
 
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
@@ -446,8 +445,6 @@ void Preprocess::preprocess(Problem& prb)
        tf.apply(prb);
      }
    }
-
-   normalizeInterpreted();
 
    if (_options.blockedClauseElimination()) {
      env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
