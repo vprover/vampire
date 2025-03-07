@@ -54,7 +54,6 @@ namespace Kernel {
     using Numeral = typename NumTraits_::ConstantType;
     AlascaTermItp<NumTraits> _term;
     AlascaPredicate _symbol;
-    // TODO
     mutable Option<Literal*> _literal;
 
     __AlascaLiteralItp(AlascaTermItp<NumTraits> term, AlascaPredicate symbol)
@@ -166,10 +165,6 @@ namespace Kernel {
     }
 
     Literal* toLiteral() const { return _self->toLiteral(); }
-
-    // TODO remove
-    Literal* denormalize() const
-    { return toLiteral(); }
 
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
