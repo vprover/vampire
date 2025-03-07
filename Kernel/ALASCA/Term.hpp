@@ -204,7 +204,9 @@ namespace Kernel {
   public:
     void operator delete(void* ptr, std::size_t size) noexcept { ::operator delete(ptr); }
     Option<TypedTermList> asVar() const { return _self.apply([&](auto& x) { return x.asVar(); }); }
-    DEBUG_CODE(static const char* cacheId() { return "AlascaTermCache"; })
+#if VDEBUG
+    static const char* cacheId() { return "AlascaTermCache"; }
+#endif // VDEBUG
 
     AlascaTermCache const* perfectShared() &&
     { return &*Perfect<AlascaTermCache, PerfectPtrComparison, DefaultHash>(std::move(*this)); }

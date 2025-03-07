@@ -94,7 +94,9 @@ namespace Kernel {
     AlascaLiteralCache const* perfectShared() &&
     { return &*Perfect<AlascaLiteralCache, PerfectPtrComparison, DefaultHash>(std::move(*this)); }
 
-    DEBUG_CODE(static const char* cacheId() { return "AlascaLiteralCache"; })
+#if VDEBUG
+    static const char* cacheId() { return "AlascaLiteralCache"; }
+#endif // VDEBUG
     void operator delete(void* ptr, std::size_t size) noexcept { ::operator delete(ptr); }
   private:
     void* operator new(std::size_t size) { return ::operator new(size); }
