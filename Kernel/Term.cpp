@@ -1739,7 +1739,8 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   } else {
     ASS(lhs.isVar())
     ASS(rhs.isVar())
-    return lhs.var() < rhs.var();
+    return std::make_tuple(lhs.var(), lhs.isSpecialVar()) 
+         < std::make_tuple(rhs.var(), rhs.isSpecialVar());
   }
 }
 
