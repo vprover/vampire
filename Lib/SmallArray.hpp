@@ -26,8 +26,6 @@ class SmallArray {
 
   bool onHeap() const { return _size > Capacity; }
 
-public:
-
   explicit SmallArray(unsigned size) 
     : _conts(Inner())
     , _size(size) 
@@ -36,6 +34,9 @@ public:
       _conts.heap = static_cast<T*>(std::malloc(size * sizeof(T)));
     }
   }
+
+public:
+
 
   T const* begin() const { return _size == 0 ? nullptr : onHeap() ?  _conts.heap : &_conts.stack[0]; }
   T      * begin()       { return _size == 0 ? nullptr : onHeap() ?  _conts.heap : &_conts.stack[0]; }
@@ -100,6 +101,14 @@ public:
     }
   }
 
+  explicit SmallArray(SmallArray const& other)
+    : SmallArray(other.size())
+  {
+    auto ptr = begin();
+    for (unsigned i = 0; i < other.size(); i++) {
+      new(&ptr[i]) T(other[i]);
+    }
+  }
   SmallArray(SmallArray&& other) : SmallArray(unsigned(0))  { swap(other); }
   SmallArray& operator=(SmallArray&& other) { swap(other); return *this; }
   ~SmallArray() {

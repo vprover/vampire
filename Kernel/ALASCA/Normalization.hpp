@@ -205,8 +205,6 @@ namespace Kernel {
     template<class F>
     auto apply(F f) const -> decltype(auto) { return _self.apply(f); }
 
-    // template<class T>
-    // auto as() const -> decltype(auto) { return _self.template as<T>(); }
     
     template<class NumTraits>
     static Option<AlascaLiteralItpAny> asItp(AlascaLiteralItp<NumTraits> const& n) { return some(AlascaLiteralItpAny(n)); }
@@ -279,6 +277,7 @@ namespace Kernel {
   template<class NumTraits>
   static Option<InequalityLiteral<NumTraits>> tryInequalityLiteral(AlascaLiteralItp<NumTraits> lit) 
   { return someIf(lit.isInequality(), [&](){ return InequalityLiteral(std::move(lit)); }); }
+
   class InequalityNormalizer 
   {
     // TODO get rid of this global state
@@ -465,7 +464,7 @@ namespace Kernel {
         .andThen([&](auto x) { return x.template as<AlascaLiteralItp<NumTraits>>().toOwned(); }); }
 
     template<class NumTraits> 
-    Option<AlascaLiteralItp<NumTraits>> normalize(Literal* l)
+    Option<AlascaLiteralItp<NumTraits>> normalize(Literal* l) const
     { return tryNormalizeInterpreted<NumTraits>(l); }
 
 
