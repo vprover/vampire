@@ -25,6 +25,22 @@
 #define DEBUG_NORM(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 namespace Kernel {
 
+  class __AlascaLiteralUF
+  {
+    Literal* _self;
+  public:
+    explicit __AlascaLiteralUF(Literal* self) : _self(self) {  }
+    template<class C>
+    Literal* toLiteral(C const* cache) const { return _self; }
+    friend std::ostream& operator<<(std::ostream& out, __AlascaLiteralUF const& self)
+    { return out << self._self; }
+    using Self = __AlascaLiteralUF;
+    auto asTuple() const { return _self; }
+    IMPL_COMPARISONS_FROM_TUPLE(Self);
+    IMPL_HASH_FROM_TUPLE(Self);
+  };
+
+
   /** 
    * Represents an inequality literal normalized for the rule FourierMotzkin.
    * this means it is a literal of the form
@@ -48,20 +64,33 @@ namespace Kernel {
     friend std::ostream& operator<<(std::ostream& out, __AlascaLiteralItp const& self) 
     { return out << self._term << " " << self._symbol << " 0"; }
 
-    auto asTuple() const { return std::tie(_symbol, _term);  }
+    template<class C>
+    Literal* toLiteral(C const* cache) const {
+      return _literal.unwrapOrInit([&]() {
+        auto lit = createLiteral<NumTraits>(_symbol, _term.toTerm());
+        lit->setAlascaTermCache(cache);
+        return lit;
+      });
+    }
+
+    auto asTuple() const { return std::make_tuple(unsigned(_symbol), _term);  }
     IMPL_COMPARISONS_FROM_TUPLE(__AlascaLiteralItp)
     IMPL_HASH_FROM_TUPLE(__AlascaLiteralItp)
   };
 
-  using AlascaLiteralCacheData = Coproduct<Literal*
+  using AlascaLiteralCacheData = Coproduct<
+      __AlascaLiteralUF
     , __AlascaLiteralItp<IntTraits>
     , __AlascaLiteralItp<RatTraits>
     , __AlascaLiteralItp<RealTraits>>;
+
   struct AlascaLiteralCache 
     : public AlascaLiteralCacheData {
 
     template<class C> 
     AlascaLiteralCache(C arg) : AlascaLiteralCacheData(std::move(arg)) {}
+
+    Literal* toLiteral() const { return apply([&](auto& l) { return l.toLiteral(this); }); }
 
     template<class T, class C, class H>
     friend class Lib::Perfect;
@@ -77,7 +106,7 @@ namespace Kernel {
     AlascaLiteralCache const* _self;
   public:
     explicit AlascaLiteralUF(AlascaLiteralCache const* self) : _self(self) {  }
-    Literal* toLiteral() const { return _self->unwrap<Literal*>(); }
+    Literal* toLiteral() const { return _self->unwrap<__AlascaLiteralUF>().toLiteral(_self); }
     friend std::ostream& operator<<(std::ostream& out, AlascaLiteralUF const& self)
     { return out << self._self; }
   };
@@ -136,14 +165,7 @@ namespace Kernel {
       return AlascaLiteralItp(AlascaLiteralCache(__AlascaLiteralItp(newTerm, newSym)).perfectShared());
     }
 
-    Literal* toLiteral() const
-    { 
-      return self()._literal.unwrapOrInit([&]() {
-        auto lit = createLiteral<NumTraits>(symbol(), term().toTerm());
-        lit->setAlascaTermCache(_self);
-        return lit;
-      });
-    }
+    Literal* toLiteral() const { return _self->toLiteral(); }
 
     // TODO remove
     Literal* denormalize() const
@@ -175,7 +197,7 @@ namespace Kernel {
     static auto cvt(__AlascaLiteralItp<NumTraits> const&, AlascaLiteralCache const* cache)
     { return AlascaLiteralItp<NumTraits>(cache); }
 
-    static auto cvt(Literal* const&, AlascaLiteralCache const* cache)
+    static auto cvt(__AlascaLiteralUF const&, AlascaLiteralCache const* cache)
     { return AlascaLiteralUF(cache); }
 
 
@@ -452,12 +474,12 @@ namespace Kernel {
         return *itp;
       } else {
         /* uninterpreted */
-        return AlascaLiteralCache(Literal::createFromIter(lit, 
+        return AlascaLiteralCache(__AlascaLiteralUF(Literal::createFromIter(lit, 
               concatIters(
                 typeArgIter(lit),
                 termArgIterTyped(lit)
                 .map([&](auto arg) { return normalize(arg).toTerm(); })
-                )));
+                ))));
       }
     }
 
@@ -509,21 +531,6 @@ namespace Kernel {
 
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
     { return normalize(lhs) == normalize(rhs); }
-
-
-  private: 
-    Literal* normalizeUninterpreted(Literal* lit) const
-    {
-      RStack<TermList> args;
-      args->loadFromIterator(concatIters(
-            typeArgIter(lit),
-            termArgIterTyped(lit)
-              .map([&](auto arg) { return normalize(arg).toTerm(); })
-          ));
-      auto out = Literal::create(lit, args->begin());
-      DEBUG_NORM(0, *lit, " ==> ", *out)
-      return out;
-    }
   };
 
 

@@ -68,6 +68,7 @@ namespace Kernel {
     auto asTuple() const { return std::make_tuple(_self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
+    Option<TypedTermList> asVar() const  { ASS(_self.isVar()) return {}; }
   };
 
 
@@ -140,6 +141,18 @@ namespace Kernel {
     unsigned nSummands() const { return _sum.size(); }
     auto& monomAt(unsigned i) const { return _sum[i]; }
     auto iterSummands() const { return arrayIter(_sum); }
+    Option<TypedTermList> asTrivial() const { 
+      return someIf(nSummands() == 1 && monomAt(0).numeral() == 1, 
+          [&]() { return TypedTermList(monomAt(0).atom(), NumTraits::sort()); });
+    }
+    Option<TypedTermList> asVar() const { 
+      if (auto out = asTrivial()) {
+        if (out->isVar()) {
+          return out;
+        }
+      }
+      return {};
+    }
 
     TypedTermList toTerm(AlascaTermCache const* self) const
     { return _self.unwrapOrInit([&]() -> TypedTermList { 
@@ -166,6 +179,8 @@ namespace Kernel {
     auto asTuple() const { return std::tie(_self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self)
     IMPL_HASH_FROM_TUPLE(Self)
+    friend std::ostream& operator<<(std::ostream& out, __AlascaTermVar const& self)
+    { return out << self._self; }
   };
 
 
@@ -191,6 +206,7 @@ namespace Kernel {
 
     void* operator new(std::size_t size) { return ::operator new(size); }
   public:
+    Option<TypedTermList> asVar() const { return _self.apply([&](auto& x) { return x.asVar(); }); }
     DEBUG_CODE(static const char* cacheId() { return "AlascaTermCache"; })
 
     AlascaTermCache const* perfectShared() &&
@@ -220,7 +236,23 @@ namespace Kernel {
     IMPL_HASH_FROM_TUPLE(Self);
   };
 
-  using AlascaTermRepr = Coproduct<AlascaTermCache const* , __AlascaTermVar>;
+  struct AlascaTermRepr : public Coproduct<AlascaTermCache const* , __AlascaTermVar> {
+    AlascaTermRepr(AlascaTermCache const* c) : Coproduct<AlascaTermCache const* , __AlascaTermVar>(std::move(c)) {}
+    AlascaTermRepr(__AlascaTermVar c) : Coproduct<AlascaTermCache const* , __AlascaTermVar>(std::move(c)) {}
+    auto asTuple() const {
+      // This is used in order to make sure that the unit cached sum X0 is the same 
+      // thing as the non-cached variable X0
+      using Out = Coproduct<AlascaTermCache const* , __AlascaTermVar>;
+      if (auto cache = as<AlascaTermCache const*>()) {
+        if (auto var = cache.unwrap()->asVar()) {
+          return Out(__AlascaTermVar(*var));
+        }
+      } 
+      return Out(*this);
+    }
+    IMPL_COMPARISONS_FROM_TUPLE(AlascaTermRepr);
+    IMPL_HASH_FROM_TUPLE(AlascaTermRepr);
+  };
 
   
   /* an alasca term of numerals sort NumTraits */
