@@ -148,23 +148,11 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
-  // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
-  normalizeInterpreted();
-
   // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+    // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
+    normalizeInterpreted();
 
-<<<<<<< Updated upstream
-    // Add theory axioms if needed
-    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
-      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-      if (env.options->showPreprocessing())
-        std::cout << "adding theory axioms" << std::endl;
-
-      TheoryAxioms(prb).apply();
-    }
-  }
-=======
   NewCNF ncnf(env.options->naming());
   CNF cnf;
   prb.getProperty();
@@ -179,7 +167,6 @@ void Preprocess::preprocess(Problem& prb)
       }
       return out;
    });
->>>>>>> Stashed changes
 
   if (_options.alascaIntegerConversion()) {
     if (env.options->showPreprocessing())
@@ -461,12 +448,6 @@ void Preprocess::preprocess(Problem& prb)
        tf.apply(prb);
      }
    }
-
-   if (env.options->alascaIntegerConversion()) {
-     alasca.integerConversion(prb);
-   }
-
-   normalizeInterpreted();
 
    if (_options.blockedClauseElimination()) {
      env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
