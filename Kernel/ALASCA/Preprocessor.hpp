@@ -37,8 +37,7 @@ class AlascaPreprocessor
 
   Literal* integerConversion(Literal* l)
   {
-    auto lit = _norm->normalizedLiteral(l);
-    // AlascaState::globalState->normalizer->normalizedLiteral()
+    auto lit = _norm->normalize(l).toLiteral();
     auto impl = [&]() { 
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
@@ -199,7 +198,7 @@ class AlascaPreprocessor
     auto change = false;
     Recycled<Stack<Literal*>> res;
     for (auto l_ : clause->iterLits()) {
-      auto l = _norm->normalizedLiteral(l_);
+      auto l = _norm->normalize(l_).toLiteral();
       auto ll = integerConversion(l);
       change |= ll != l;
       if (!_useFloor) {

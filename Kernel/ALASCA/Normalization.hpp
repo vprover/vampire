@@ -19,8 +19,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/STL.hpp"
-// TODO remove(?)
-#include "Inferences/PolynomialEvaluation.hpp"
 
 #define DEBUG_NORM(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 namespace Kernel {
@@ -104,6 +102,7 @@ namespace Kernel {
   class AlascaLiteralUF {
     AlascaLiteralCache const* _self;
   public:
+    AlascaLiteralCache const* toCache() const { return _self; }
     explicit AlascaLiteralUF(AlascaLiteralCache const* self) : _self(self) {  }
     Literal* toLiteral() const { return _self->unwrap<__AlascaLiteralUF>().toLiteral(_self); }
     friend std::ostream& operator<<(std::ostream& out, AlascaLiteralUF const& self)
@@ -128,6 +127,7 @@ namespace Kernel {
     __AlascaLiteralItp<NumTraits>const& self() const { return _self->template unwrap<__AlascaLiteralItp<NumTraits>>(); }
 
   public:
+    AlascaLiteralCache const* toCache() const { return _self; }
 
     /* returns the lhs of the inequality lhs >= 0 (or lhs > 0) */
     AlascaTermItp<NumTraits> const& term() const
@@ -182,7 +182,8 @@ namespace Kernel {
                                  >;
 
   class AlascaLiteral {
-    Coproduct<AlascaLiteralUF, 
+    Coproduct<
+      AlascaLiteralUF, 
       AlascaLiteralItp<IntTraits>, 
       AlascaLiteralItp<RatTraits>, 
       AlascaLiteralItp<RealTraits>> _self;
@@ -215,6 +216,11 @@ namespace Kernel {
 
     Literal* toLiteral() const 
     { return apply([](auto x) { return x.toLiteral(); }); }
+
+    using Self = AlascaLiteral;
+    auto asTuple() const { return apply([](auto x) { return x.toCache(); }); }
+    IMPL_COMPARISONS_FROM_TUPLE(Self);
+    IMPL_HASH_FROM_TUPLE(Self);
   };
 
 
@@ -275,8 +281,6 @@ namespace Kernel {
   { return someIf(lit.isInequality(), [&](){ return InequalityLiteral(std::move(lit)); }); }
   class InequalityNormalizer 
   {
-    Inferences::PolynomialEvaluation _eval;
-
     // TODO get rid of this global state
     static std::shared_ptr<InequalityNormalizer> globalNormalizer;
 
@@ -499,10 +503,6 @@ namespace Kernel {
     Option<AlascaLiteralItpAny> tryNormalizeInterpreted(Literal* lit) const
     { return normalize(lit).asItp().toOwned(); }
 
-    // TODO create toTerm function for AlascaLiteralUF
-    Literal* normalizedLiteral(Literal* lit) const
-    { return normalize(lit).toLiteral(); }
-
     bool equivalent(TermList lhs, TermList rhs) 
     { 
       if (lhs.isVar() && rhs.isVar()) {
@@ -523,11 +523,7 @@ namespace Kernel {
     }
 
     bool equivalent(Literal* lhs, Literal* rhs) 
-    { 
-       auto s1 = normalizedLiteral(lhs);
-       auto s2 = normalizedLiteral(rhs);
-       return s1 == s2;
-     }
+    { return normalize(lhs) == normalize(rhs); }
 
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
     { return normalize(lhs) == normalize(rhs); }

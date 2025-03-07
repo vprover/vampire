@@ -21,7 +21,6 @@
 
 namespace Kernel {
 
-  using Inferences::PolynomialEvaluation;
   using Kernel::AlascaLiteralItpAny;
 
   struct AlascaState;
