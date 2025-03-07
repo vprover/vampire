@@ -65,7 +65,7 @@ private:
   void addTotalOrderAxioms(Interpretation less);
   void addMonotonicity(Interpretation less, Interpretation addition);
   void addPlusOneGreater(Interpretation plus, TermList oneElement, Interpretation less);
-  void addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
+  void addAdditionAndOrderingAxioms(TermList sort, Interpretation plus, Interpretation unaryMinus,
 				    TermList zeroElement, TermList oneElement,
 				    Interpretation less);
   void addAdditionOrderingAndMultiplicationAxioms(Interpretation plus, Interpretation unaryMinus,
@@ -81,6 +81,8 @@ private:
   void addIntegerAbsAxioms(Interpretation abs, Interpretation less,
                            Interpretation unaryMinus, TermList zeroElement);
   void addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n);
+  friend struct AlascaAxioms;
+  void addAlascaAxioms();
 
   /**
    * TODO: we should have polymorphic array axioms only!

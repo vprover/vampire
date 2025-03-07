@@ -8,7 +8,6 @@
  * and in the source directory
  */
 
-
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Output.hpp"
@@ -16,6 +15,9 @@
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Kernel {
+
+PolyNf PolyNf::normalize(TypedTermList t, bool& simplified)
+{ return normalizeTerm(t, simplified); }
 
 PolyNf PolyNf::normalize(TypedTermList t)  
 { return normalizeTerm(t); }
@@ -31,19 +33,6 @@ Variable::Variable(unsigned num) : _num(num) {}
 unsigned Variable::id() const 
 { return _num; }
 
-
-bool operator==(Variable lhs, Variable rhs) 
-{ return lhs._num == rhs._num; }
-
-bool operator!=(Variable lhs, Variable rhs) 
-{ return !(lhs == rhs); }
-
-bool operator<(Variable const& lhs, Variable const& rhs)
-{ return lhs._num < rhs._num; }
-
-std::ostream& operator<<(std::ostream& out, const Variable& self) 
-{ return out << "X" << self._num; }
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // impl FuncId
 /////////////////////////////////////////////////////////
@@ -53,12 +42,18 @@ FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num), _typeArgs(ty
 FuncId FuncId::symbolOf(Term* term) 
 { return FuncId(term->functor(), term->typeArgs()); }
 
-unsigned FuncId::numTermArguments() 
+unsigned FuncId::numTermArguments() const
 { return symbol()->numTermArguments(); }
 
-std::ostream& operator<<(std::ostream& out, const FuncId& self) 
+unsigned FuncId::numTypeArguments() const
+{ return symbol()->numTypeArguments(); }
+
+TermList FuncId::typeArg(unsigned i) const
+{ return *(_typeArgs - i); }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::FuncId& self) 
 { 
-  if (self.numTypeArgs() == 0) {
+  if (self.numTypeArguments() == 0) {
     return out << self.symbol()->name(); 
   } else {
     return out << self.symbol()->name() << "<" << Output::interleaved(", ", self.iterTypeArgs())  << ">"; 
@@ -82,6 +77,36 @@ Option<Theory::Interpretation> FuncId::tryInterpret() const
   return isInterpreted() ? some<Theory::Interpretation>(interpretation())
                          : none<Theory::Interpretation>();
 }
+
+///////////////////// output operators
+std::ostream& operator<<(std::ostream& out, const Kernel::Variable& self) 
+{ return out << "X" << self._num; }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::PolyNf& self)
+{ return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::FuncTerm& self) 
+{ 
+  out << self._fun;
+  auto& stack = self._args;
+  auto iter = stack.iterFifo();
+
+  if (iter.hasNext()) {
+    out << "(" << iter.next();
+    while (iter.hasNext()) {
+      out << ", " << iter.next();
+    }
+    out << ")";
+  }
+
+  return out;
+}
+
+
+std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
+{ return self.apply([&](auto& t) -> decltype(auto) { return out << *t; }); }
+
+
 } // namespace Kernel
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,23 +140,8 @@ FuncId FuncTerm::function() const
 PolyNf const& FuncTerm::arg(unsigned i) const 
 { return _args[i]; }
 
-std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
-{ 
-  out << self._fun;
-  auto& stack = self._args;
-  auto iter = stack.iterFifo();
-
-  if (iter.hasNext()) {
-    out << "(" << iter.next();
-    while (iter.hasNext()) {
-      out << ", " << iter.next();
-    }
-    out << ")";
-  }
-
-  return out;
-}
-
+void FuncTerm::integrity() const 
+{ for ( auto const& x : _args) x.integrity(); }
 
 /////////////////////////////////////////////////////////
 // impl AnyPoly 
@@ -153,9 +163,8 @@ unsigned AnyPoly::nSummands() const
 unsigned AnyPoly::nFactors(unsigned i) const 
 { return apply([&](auto& t) -> decltype(auto) { return t->nFactors(i); }); }
 
-std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
-{ return self.apply([&](auto& t) -> decltype(auto) { return out << *t; }); }
-
+void AnyPoly::integrity() const 
+{ apply([](auto const& x) { x->integrity(); }); }
 
 /////////////////////////////////////////////////////////
 // impl PolyNf 
@@ -172,14 +181,11 @@ bool operator==(PolyNf const& lhs, PolyNf const& rhs)
 bool operator!=(PolyNf const& lhs, PolyNf const& rhs) 
 { return !(lhs == rhs); }
 
-std::ostream& operator<<(std::ostream& out, const PolyNf& self)
-{ return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
-
 Option<Variable> PolyNf::tryVar() const 
 { return as<Variable>().toOwned(); }
 
-IterTraits<PolyNf::SubtermIter> PolyNf::iterSubterms() const 
-{ return iterTraits(SubtermIter(*this)); }
+PolyNf::SubtermIter PolyNf::iterSubterms() const 
+{ return SubtermIter(*this); }
 
 bool operator<(const PolyNf& lhs, const PolyNf& rhs) 
 { return std::less<PolyNfSuper>{}(lhs,rhs); }
@@ -206,7 +212,6 @@ bool PolyNf::SubtermIter::hasNext() const
 { 
   return !_stack.isEmpty(); 
 }
-
 
 /////////////////////////////////////////////////////////
 // impl IterArgsPnf

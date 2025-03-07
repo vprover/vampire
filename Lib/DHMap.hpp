@@ -262,15 +262,6 @@ public:
 
   }
 
-  // /**
-  //  * If there is no value stored under @b key in the map,
-  //  * insert pair (key,value) and return true. Otherwise,
-  //  * return false.
-  //  * This function copies copies @b val.
-  //  */
-  // bool insert(Key key, const Val& val)
-  // { return emplace(key, Val(val)); }
-
   /**
    * If there is no value stored under @b key in the map,
    * insert pair (key,value). Return value stored under @b key.
@@ -435,18 +426,18 @@ public:
 
   /**
    * If there is a value stored under the @b key, remove
-   * it and return true. Otherwise, return false.
+   * it and return it. Otherwise, return an empty option.
    */
-  bool remove(Key const& key)
+  Option<std::pair<Key,Val>> remove(Key const& key)
   {
     Entry* e=findEntry(key);
     if(!e) {
-      return false;
+      return {};
     }
     e->_info.deleted=1;
     _size--;
     _deleted++;
-    return true;
+    return some(std::pair<Key,Val>(move_if_value<Key>(e->_key), move_if_value<Val>(e->_val)));
   }
 
 
@@ -529,7 +520,6 @@ private:
     int newCapacity=DHMapTableCapacities[_capacityIndex+1];
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
 
-    //std::cout << (_size+_deleted) << std::endl;
 
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
@@ -554,7 +544,6 @@ private:
       }
       (ep++)->~Entry();
     }
-    //std::cout << "copied" << std::endl;
     if(oldCapacity) {
       DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
     }

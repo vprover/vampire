@@ -92,7 +92,7 @@ TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGene
       /* showZ3 */ false,
       withGeneralization,
       /* export smtlib */ "", 
-      Shell::Options::ProblemExportSyntax::SMTLIB
+      Options::ProblemExportSyntax::SMTLIB
       );
 }
 

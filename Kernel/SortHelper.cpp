@@ -1029,4 +1029,3 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
   }
   return true;
 } // areSortsValid 
-

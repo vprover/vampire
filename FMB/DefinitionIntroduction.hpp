@@ -18,6 +18,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Kernel/Clause.hpp"
 
 #include "Lib/Environment.hpp"

@@ -18,6 +18,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Int.hpp"
 #include "Kernel/Ordering.hpp" 

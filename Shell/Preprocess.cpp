@@ -35,6 +35,7 @@
 #include "FunctionDefinitionHandler.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
+#include "Kernel/ALASCA/Preprocessor.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "Shuffling.hpp"
@@ -75,6 +76,19 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
+  InequalityNormalizer::initGlobal(InequalityNormalizer());
+  AlascaPreprocessor alasca(InequalityNormalizer::global());
+  auto normalizeInterpreted = [&]() {
+    if (env.options->alascaIntegerConversion()) {
+      alasca.integerConversion(prb);
+    } else if (env.options->alasca()) {
+      /* alasca preprocessing is done in the saturation loop using immediate simplifications */
+    } else {
+      InterpretedNormalizer().apply(prb);
+    }
+  };
+
+
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
@@ -136,10 +150,10 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
-  // If there are interpreted operations
+  // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
-    InterpretedNormalizer().apply(prb);
+    // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
+    normalizeInterpreted();
 
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
@@ -150,6 +164,14 @@ void Preprocess::preprocess(Problem& prb)
       TheoryAxioms(prb).apply();
     }
   }
+
+  if (_options.alascaIntegerConversion()) {
+    if (env.options->showPreprocessing())
+      std::cout << "eliminating euclidean quotient and remainder" << std::endl;
+
+    QuotientEPreproc().proc(prb);
+  }
+
 
   if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
@@ -180,11 +202,6 @@ void Preprocess::preprocess(Problem& prb)
 
   if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
     LambdaElimination::addProxyAxioms(prb);
-  }
-
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
-    InterpretedNormalizer().apply(prb);
   }
 
   // Expansion of distinct groups happens before other preprocessing
@@ -312,6 +329,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   prb.getProperty();
+
 
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;

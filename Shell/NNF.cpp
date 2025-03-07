@@ -42,7 +42,7 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
     return unit;
   }
 
-  FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::ENNF,unit));
+  FormulaUnit* res = new FormulaUnit(g,FormulaClauseTransformation(InferenceRule::ENNF,unit));
 
   if (env.options->showPreprocessing()) {
     std::cout << "[PP] ennf in: " << unit->toString() << std::endl;
@@ -69,7 +69,7 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,FormulaTransformation(InferenceRule::NNF,unit));
+  return new FormulaUnit(g,FormulaClauseTransformation(InferenceRule::NNF,unit));
 } // NNF::nnf
 
 

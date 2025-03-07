@@ -35,9 +35,11 @@
 #ifndef __Options__
 #define __Options__
 
+#include <iterator>
 #include <type_traits>
 #include <cstring>
 #include <memory>
+#include "Lib/StringUtils.hpp"
 
 #include "Forwards.hpp"
 
@@ -53,7 +55,13 @@
 
 #include "Property.hpp"
 
-#define VAMPIRE_CLAUSE_TRACING VDEBUG
+#ifndef VAMPIRE_CLAUSE_TRACING
+#  if VDEBUG
+#    define VAMPIRE_CLAUSE_TRACING 1
+#  else 
+#    define VAMPIRE_CLAUSE_TRACING 0
+#  endif
+#endif // ndef VAMPIRE_CLAUSE_TRACINGE
 
 namespace Shell {
 
@@ -130,7 +138,7 @@ public:
      */
     const std::string& problemName () const { return _problemName.actualValue; }
     void setProblemName(std::string str) { _problemName.actualValue = str; }
-    
+
     void setInputFile(const std::string& newVal){ _inputFile.set(newVal); }
     std::string includeFileName (const std::string& relativeName);
 
@@ -189,9 +197,28 @@ public:
     ALL,
     GROUND,
     FUNC_EXT,
-    AC1,
-    AC2,
+    ALASCA_ONE_INTERP,
+    ALASCA_CAN_ABSTRACT,
+    ALASCA_MAIN,
+    ALASCA_MAIN_FLOOR,
   };
+  friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
+  { 
+    switch (self) {
+      case UnificationWithAbstraction::OFF:               return out << "off";
+      case UnificationWithAbstraction::INTERP_ONLY:       return out << "interp_only";
+      case UnificationWithAbstraction::ONE_INTERP:        return out << "one_interp";
+      case UnificationWithAbstraction::CONSTANT:          return out << "constant";
+      case UnificationWithAbstraction::ALL:               return out << "all";
+      case UnificationWithAbstraction::GROUND:            return out << "ground";
+      case UnificationWithAbstraction::FUNC_EXT:          return out << "func_ext";
+      case UnificationWithAbstraction::ALASCA_ONE_INTERP:   return out << "alasca_one_interp";
+      case UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: return out << "alasca_can_abstract";
+      case UnificationWithAbstraction::ALASCA_MAIN:         return out << "alasca_main";
+      case UnificationWithAbstraction::ALASCA_MAIN_FLOOR:   return out << "alasca_floor";
+    }
+    ASSERTION_VIOLATION
+  }
 
   enum class Induction : unsigned int {
     NONE,
@@ -492,7 +519,10 @@ public:
 
   enum class TermOrdering : unsigned int {
     KBO = 0,
-    LPO = 1
+    LPO = 1,
+    QKBO = 2,
+    LAKBO = 3,
+    ALL_INCOMPARABLE = 4,
   };
 
   enum class SymbolPrecedence : unsigned int {
@@ -534,7 +564,8 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    PROPERTY = 4
+    PROPERTY = 4,
+    SMT2_PROOFCHECK = 5,
   };
 
   /** Values for --equality_proxy */
@@ -652,6 +683,7 @@ public:
   };
 
   enum class EvaluationMode : unsigned int {
+    OFF,
     SIMPLE,
     POLYNOMIAL_FORCE,
     POLYNOMIAL_CAUTIOUS,
@@ -1733,6 +1765,32 @@ bool _hard;
       std::string msg(){ return " only useful with equality"; }
     };
 
+    struct NegatedOptionProblemConstraint : OptionProblemConstraint {
+      OptionProblemConstraintUP  _inner;
+      USE_ALLOCATOR(NegatedOptionProblemConstraint);
+
+      bool check(Property*p){
+        return !_inner->check(p);
+      }
+      std::string msg(){ return "not (" + _inner->msg() + ")"; }
+    };
+      
+    friend OptionProblemConstraintUP operator~(OptionProblemConstraintUP x) {
+      return OptionProblemConstraintUP({std::move(x)});
+    }
+
+
+    struct HasPolymorphism : OptionProblemConstraint{
+      USE_ALLOCATOR(HasHigherOrder);
+
+      bool check(Property*p){
+        ASS(p)
+        return (p->hasPolymorphicSym());
+      }
+      std::string msg(){ return " only useful with polymorphic problems"; }
+    };
+
+
     struct HasHigherOrder : OptionProblemConstraint{
       bool check(Property*p){
         ASS(p)
@@ -1808,6 +1866,7 @@ bool _hard;
       return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
+    static OptionProblemConstraintUP hasPolymorphism(){ return OptionProblemConstraintUP(new HasPolymorphism); }
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP mayHaveNonUnits(){ return OptionProblemConstraintUP(new MayHaveNonUnits); }
@@ -2007,9 +2066,9 @@ public:
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
-  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
-  bool fixUWA() const { return _fixUWA.actualValue; }
-  bool useACeval() const { return _useACeval.actualValue;}
+  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
+  // TODO make alasca independent of normal eveluation
+  bool useACeval() const { return alasca() ? false : _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
@@ -2231,8 +2290,14 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
-  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_CAUTIOUS : _evaluationMode.actualValue; }
+  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_FORCE : _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
+  bool alasca() const { return _alasca.actualValue; }
+  bool viras() const { return _viras.actualValue; }
+  bool alascaDemodulation() const { return _alascaDemodulation.actualValue; }
+  bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
+  bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
+  bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
@@ -2539,6 +2604,7 @@ private:
   StringOptionValue _questionAnsweringAvoidThese;
 
   UnsignedOptionValue _randomSeed;
+  UnsignedOptionValue _randomStrategySeed;
 
   StringOptionValue _sampleStrategy;
 
@@ -2591,7 +2657,6 @@ private:
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction;
   BoolOptionValue _unificationWithAbstractionFixedPointIteration;
-  BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   FloatOptionValue _lrsEstimateCorrectionCoef;
@@ -2673,6 +2738,12 @@ private:
   BoolOptionValue _pushUnaryMinus;
   BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
+  BoolOptionValue _alasca;
+  BoolOptionValue _viras;
+  BoolOptionValue _alascaDemodulation;
+  BoolOptionValue _alascaStrongNormalization;
+  BoolOptionValue _alascaIntegerConversion;
+  BoolOptionValue _alascaAbstraction;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
