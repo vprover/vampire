@@ -56,7 +56,7 @@ public:
 
 
   MainLoopResult run();
-  static MainLoop* createFromOptions(Problem& prb, const Options& opt);
+  static MainLoop* createFromOptions(Problem& prb, Options& opt);
 
   /**
    * A struct that is thrown as an exception when a refutation is found

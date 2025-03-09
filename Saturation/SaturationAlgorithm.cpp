@@ -1397,8 +1397,18 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
  */
-SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager *indexMgr)
+SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, Options& opt, IndexManager *indexMgr)
 {
+  bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
+
+  if (opt.unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
+    if (alascaTakesOver) {
+      opt.setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
+    } else {
+      opt.setUWA(Shell::Options::UnificationWithAbstraction::OFF);
+    }
+  }
+
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
   case Shell::Options::SaturationAlgorithm::DISCOUNT:
@@ -1427,8 +1437,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   // create generating inference engine
   CompositeGIE *gie = new CompositeGIE();
-
-  bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
 
   if(opt.functionDefinitionIntroduction()) {
     gie->addFront(new DefinitionIntroduction);

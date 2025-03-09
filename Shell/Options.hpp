@@ -190,6 +190,7 @@ public:
     NEW,    // <-+
   };
   enum class UnificationWithAbstraction : unsigned int {
+    AUTO,
     OFF,
     INTERP_ONLY,
     ONE_INTERP,
@@ -203,8 +204,9 @@ public:
     ALASCA_MAIN_FLOOR,
   };
   friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
-  { 
+  {
     switch (self) {
+      case UnificationWithAbstraction::AUTO:              return out << "auto";
       case UnificationWithAbstraction::OFF:               return out << "off";
       case UnificationWithAbstraction::INTERP_ONLY:       return out << "interp_only";
       case UnificationWithAbstraction::ONE_INTERP:        return out << "one_interp";
@@ -518,11 +520,12 @@ public:
   };
 
   enum class TermOrdering : unsigned int {
-    KBO = 0,
-    LPO = 1,
+    AUTO_KBO = 0,
+    KBO = 1,
     QKBO = 2,
     LAKBO = 3,
-    ALL_INCOMPARABLE = 4,
+    LPO = 4,
+    ALL_INCOMPARABLE = 5,
   };
 
   enum class SymbolPrecedence : unsigned int {

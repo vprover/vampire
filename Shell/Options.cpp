@@ -1206,12 +1206,13 @@ void Options::init()
 #endif
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
-                                      UnificationWithAbstraction::OFF,
-                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
+                                      UnificationWithAbstraction::AUTO,
+                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
       "use case is in theory reasoning. The possible values are:"
+      "- auto: boils down to off for non-theory problems, and to alasca_main, whenever alasca (on by default) kicks in\n"
       "- off: do not introduce a constraint\n"
       "- interpreted_only: only if s and t have interpreted top symbols\n"
       "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
@@ -1230,7 +1231,7 @@ void Options::init()
     _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
-    _useACeval = BoolOptionValue("use_ac_eval","uace",true);
+    _useACeval = BoolOptionValue("use_ac_eval","uace",false);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
     _useACeval.tag(OptionTag::THEORIES);
     _useACeval.onlyUsefulWith(_alasca.is(equal(false)));
@@ -1268,11 +1269,10 @@ void Options::init()
 
     auto addRecommendationConstraint = [](auto& opt, auto constr) { };
 
-    _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",false);
+    _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",true);
     _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n";
     _lookup.insert(&_alasca);
     _alasca.tag(OptionTag::INFERENCES);
-    _alasca.setExperimental();
     addRecommendationConstraint(_alasca, Or(
            _termOrdering.is(equal(TermOrdering::QKBO)),
            _termOrdering.is(equal(TermOrdering::LAKBO)),
@@ -2331,14 +2331,15 @@ void Options::init()
     _lookup.insert(&_activationLimit);
     _activationLimit.tag(OptionTag::SATURATION);
 
-    _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
-                                                    {"kbo","lpo","qkbo", "lakbo", "incomp"});
+    _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::AUTO_KBO,
+                                                    {"auto_kbo","kbo","qkbo","lakbo","lpo","incomp"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
       "\n"
       "possible values:\n"
+      "- auto_kbo: boils down to kbo for non-theory problems and to qkbo, whenever alasca (on by default) kicks in\n"
       "- kbo: Knuth-Bendix Ordering\n"
-      "- lpo: Lexicographical Path Ordering\n"
       "- qkbo: QKBO ordering as described in the TACAS 2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n"
+      "- lpo: Lexicographical Path Ordering\n"
       "- lakbo: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
       ;
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());

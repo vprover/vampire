@@ -58,7 +58,7 @@ class Splitter;
 class SaturationAlgorithm : public MainLoop
 {
 public:
-  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
+  static SaturationAlgorithm* createFromOptions(Problem& prb, Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
   virtual ~SaturationAlgorithm();
