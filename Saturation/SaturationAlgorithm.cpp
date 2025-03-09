@@ -1403,7 +1403,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, Option
 
   if (opt.unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
     if (alascaTakesOver) {
-      opt.setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
+      if (opt.alascaIntegerConversion()) {
+        opt.setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
+      } else {
+        opt.setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
+      }
     } else {
       opt.setUWA(Shell::Options::UnificationWithAbstraction::OFF);
     }

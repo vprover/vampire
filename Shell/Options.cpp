@@ -1212,7 +1212,7 @@ void Options::init()
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
       "use case is in theory reasoning. The possible values are:"
-      "- auto: boils down to off for non-theory problems, and to alasca_main, whenever alasca (on by default) kicks in\n"
+      "- auto: boils down to off for non-theory problems, and to alasca_main whenever alasca (on by default) kicks in (except under alasca_integer_conversion, when it becomes alasca_main_floor)\n"
       "- off: do not introduce a constraint\n"
       "- interpreted_only: only if s and t have interpreted top symbols\n"
       "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
