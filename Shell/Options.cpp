@@ -1823,7 +1823,7 @@ void Options::init()
       "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
     _lookup.insert(&_conditionalRedundancyCheck);
     _conditionalRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _conditionalRedundancyCheck.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)));
+    _conditionalRedundancyCheck.addHardConstraint(If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF))));
     _conditionalRedundancyCheck.tag(OptionTag::INFERENCES);
 
     _conditionalRedundancyOrderingConstraints = BoolOptionValue("conditional_redundancy_ordering_constraints","croc",false);
