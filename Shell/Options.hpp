@@ -2066,9 +2066,9 @@ public:
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
-  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
+  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
   // TODO make alasca independent of normal eveluation
-  bool useACeval() const { return alasca() ? false : _useACeval.actualValue;}
+  bool useACeval() const { return _useACeval.actualValue; }
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
