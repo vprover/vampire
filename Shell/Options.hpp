@@ -2290,17 +2290,17 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
-  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_FORCE : _evaluationMode.actualValue; }
-  ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
+  EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
+  ArithmeticSimplificationMode gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
   bool alasca() const { return _alasca.actualValue; }
   bool viras() const { return _viras.actualValue; }
   bool alascaDemodulation() const { return _alascaDemodulation.actualValue; }
   bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
   bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
   bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
-  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
-  ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
-  ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
+  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue; }
+  ArithmeticSimplificationMode cancellation() const { return _cancellation.actualValue; }
+  ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return _arithmeticSubtermGeneralizations.actualValue; }
 
   //Higher-order Options
 
@@ -2736,7 +2736,6 @@ private:
   // arithmeitc reasoning options
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _pushUnaryMinus;
-  BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   BoolOptionValue _alasca;
   BoolOptionValue _viras;

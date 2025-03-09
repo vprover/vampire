@@ -195,7 +195,7 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
    */
 
   // a (temporary) helper lambda that will go away as soon as we have new schedules from spider
-  auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) { 
+  auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) {
     // Always try these
     addScheduleExtra(sOrig,sWithExtras,"si=on:rtra=on:rawr=on:rp=on"); // shuffling options
     addScheduleExtra(sOrig,sWithExtras,"sp=frequency");                // frequency sp; this is in casc19 but not smt18
@@ -210,8 +210,8 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
     // If contains integers, rationals and reals
     if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-      addScheduleExtra(sOrig,sWithExtras,"hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21)
-      addScheduleExtra(sOrig,sWithExtras,"gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+      addScheduleExtra(sOrig,sWithExtras,"gve=cautious:asg=cautious:canc=cautious:ev=cautious:pum=on"); // Sets a sensible set of Joe's arithmetic rules (TACAS-21)
+      addScheduleExtra(sOrig,sWithExtras,"gve=force:asg=force:canc=force:ev=force:pum=on");             // More drastic set of rules
       addScheduleExtra(sOrig,sWithExtras,"sos=theory:sstl=5");  // theory sos with non-default limit
       addScheduleExtra(sOrig,sWithExtras,"thsq=on");            // theory split queues, default
       addScheduleExtra(sOrig,sWithExtras,"thsq=on:thsqd=16");   // theory split queues, other ratio

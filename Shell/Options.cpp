@@ -1254,12 +1254,6 @@ void Options::init()
     _cancellation.addProblemConstraint(hasTheories());
     _cancellation.tag(OptionTag::THEORIES);
 
-    _highSchool = BoolOptionValue("high_school", "hsm", false);
-    _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
-    _lookup.insert(&_highSchool);
-    _highSchool.addProblemConstraint(hasTheories());
-    _highSchool.tag(OptionTag::THEORIES);
-
     _pushUnaryMinus = BoolOptionValue(
        "push_unary_minus", "pum",
        false);
@@ -1285,7 +1279,6 @@ void Options::init()
            _termOrdering.is(equal(TermOrdering::ALL_INCOMPARABLE))
            ));
     addRecommendationConstraint(_alasca, _cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
-    addRecommendationConstraint(_alasca, _highSchool.is(equal(false)));
     addRecommendationConstraint(_alasca, _unificationWithAbstraction.is(Or(
               equal(UnificationWithAbstraction::ALASCA_CAN_ABSTRACT)
             , equal(UnificationWithAbstraction::ALASCA_MAIN)
