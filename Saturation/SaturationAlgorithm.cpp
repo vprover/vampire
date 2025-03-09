@@ -1397,21 +1397,9 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
  */
-SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, Options& opt, IndexManager *indexMgr)
+SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager *indexMgr)
 {
   bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
-
-  if (opt.unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
-    if (alascaTakesOver) {
-      if (opt.alascaIntegerConversion()) {
-        opt.setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
-      } else {
-        opt.setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
-      }
-    } else {
-      opt.setUWA(Shell::Options::UnificationWithAbstraction::OFF);
-    }
-  }
 
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {

@@ -24,10 +24,10 @@ using namespace Shell;
 
 class ProvingHelper {
 public:
-  static void runVampireSaturation(Problem& prb, Options& opt);
-  static void runVampire(Problem& prb, Options& opt);
+  static void runVampireSaturation(Problem& prb, const Options& opt);
+  static void runVampire(Problem& prb, const Options& opt);
 private:
-  static void runVampireSaturationImpl(Problem& prb, Options& opt);
+  static void runVampireSaturationImpl(Problem& prb, const Options& opt);
 };
 
 }

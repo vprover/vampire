@@ -140,17 +140,8 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     return new SKIKBO(prb, opt, env.options->lambdaFreeHol());
   }
 
-  Options::TermOrdering to = env.options->termOrdering();
-  if (to == Options::TermOrdering::AUTO_KBO) {
-    if (opt.alasca() && prb.hasAlascaArithmetic()) {
-      to = Options::TermOrdering::QKBO;
-    } else {
-      to = Options::TermOrdering::KBO;
-    }
-  }
-
   Ordering* out;
-  switch (to) {
+  switch (opt.termOrdering()) {
   case Options::TermOrdering::KBO:
     out = new KBO(prb, opt);
     break;

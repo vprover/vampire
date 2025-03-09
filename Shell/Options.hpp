@@ -95,6 +95,9 @@ public:
     void readOptionsString (std::string testId,bool assign=true);
     std::string generateEncodedOptions() const;
 
+    // compile away auto-values; called after preprocessing, when Problem's prop reflect precise state of affairs
+    void resolveAwayAutoValues(const Problem&);
+
     // deal with completeness
     bool complete(const Problem&) const;
 

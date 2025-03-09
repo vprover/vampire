@@ -3556,6 +3556,39 @@ std::string Options::generateEncodedOptions() const
 
 
 /**
+ * Some options have auto-values, which should be resolved away
+ * after preprocessing and before we enter saturation.
+ *
+ * @since 9/03/2025 Prague
+ */
+void Options::resolveAwayAutoValues(const Problem& prb)
+{
+  if (termOrdering() == TermOrdering::AUTO_KBO) {
+    if (alasca() && prb.hasAlascaArithmetic()) {
+      _termOrdering.actualValue = Options::TermOrdering::QKBO;
+
+      // TODO: integer/mixed integer-real should use:
+      // -alasca on -to lakbo -viras on -uwa alasca_main_floor -alascai on
+    } else {
+      _termOrdering.actualValue = Options::TermOrdering::KBO;
+    }
+  }
+
+  if (unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
+    if (alasca() && prb.hasAlascaArithmetic() &&
+      !conditionalRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constaint
+      if (alascaIntegerConversion()) {
+        setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
+      } else {
+        setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
+      }
+    } else {
+      setUWA(Shell::Options::UnificationWithAbstraction::OFF);
+    }
+  }
+}
+
+/**
  * True if the options are complete.
  * @since 23/07/2011 Manchester
  */
