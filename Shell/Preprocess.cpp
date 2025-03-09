@@ -76,19 +76,6 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
-  InequalityNormalizer::initGlobal(InequalityNormalizer());
-  AlascaPreprocessor alasca(InequalityNormalizer::global());
-  auto normalizeInterpreted = [&]() {
-    if (env.options->alascaIntegerConversion()) {
-      alasca.integerConversion(prb);
-    } else if (env.options->alasca()) {
-      /* alasca preprocessing is done in the saturation loop using immediate simplifications */
-    } else {
-      InterpretedNormalizer().apply(prb);
-    }
-  };
-
-
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
@@ -152,11 +139,13 @@ void Preprocess::preprocess(Problem& prb)
 
   // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
-    normalizeInterpreted();
+    if (_options.theoryAxioms() != Options::TheoryAxiomLevel::OFF // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
+      || !_options.alasca()) { // NOTE: Alasca wouldn't need this, but then not all axioms would necessarily be added
+      InterpretedNormalizer().apply(prb);
+    }
 
     // Add theory axioms if needed
-    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
+    if(_options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
       if (env.options->showPreprocessing())
         std::cout << "adding theory axioms" << std::endl;
@@ -444,6 +433,14 @@ void Preprocess::preprocess(Problem& prb)
        TheoryFlattening tf;
        tf.apply(prb);
      }
+   }
+
+   if (env.options->alascaIntegerConversion()) {
+     if (env.options->showPreprocessing())
+        std::cout << "performing integer coversion" << std::endl;
+
+     AlascaPreprocessor alasca(InequalityNormalizer::global());
+     alasca.integerConversion(prb);
    }
 
    if (_options.blockedClauseElimination()) {
