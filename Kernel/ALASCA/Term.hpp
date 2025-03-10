@@ -55,7 +55,16 @@ namespace Kernel {
 
   struct __AlascaTermUF {
     TypedTermList _self;
-    __AlascaTermUF(TypedTermList t) : _self(t) { }
+    __AlascaTermUF(TypedTermList t) 
+      : _self(t) 
+    { 
+      DEBUG_CODE(forEachNumTraits([&](auto n) {
+          ASS(!n.isLinMul(t))
+          ASS(!n.isNumeral(t))
+          ASS(!n.isMul(t))
+          ASS(!n.isAdd(t))
+      });)
+    }
     TypedTermList toTerm(AlascaTermCache const* cache) const { 
       if (_self.isTerm()) {
         ASS_REP(_self.term()->getAlascaTermCache<AlascaTermCache>() == cache, Output::cat(_self, " ", Output::ptr(_self.term()->getAlascaTermCache<AlascaTermCache>())))
@@ -68,6 +77,8 @@ namespace Kernel {
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
     Option<TypedTermList> asVar() const  { ASS(_self.isVar()) return {}; }
+    friend std::ostream& operator<<(std::ostream& out, Self const& self)
+    { return out << TermList(self._self); }
   };
 
 
@@ -117,7 +128,13 @@ namespace Kernel {
     IMPL_COMPARISONS_FROM_TUPLE(Self)
     IMPL_HASH_FROM_TUPLE(Self)
     friend std::ostream& operator<<(std::ostream& out, AlascaMonom const& self) 
-    { return out << self._numeral << " " << self._term; }
+    { 
+      if (self._numeral == 1) {
+        return out << self._term;
+      } else {
+        return out << self._numeral << " " << self._term; 
+      }
+    }
   };
 
 
@@ -161,11 +178,21 @@ namespace Kernel {
       }
       return TypedTermList(term, NumTraits::sort()); }); 
     }
-
     using Self = __AlascaTermItp;
     auto asTuple() const { return std::tie(_sum); }
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
+
+    friend std::ostream& operator<<(std::ostream& out, Self const& self)
+    { 
+      if (self._sum.size() == 0) {
+        return out << "0";
+      } else {
+        return out << arrayIter(self._sum)
+          .map([](auto& m) { return Output::cat(m); })
+          .output(" + ");
+      }
+    }
   };
 
   struct __AlascaTermVar {
@@ -231,7 +258,7 @@ namespace Kernel {
     auto asTuple() const { return std::tie(_self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     friend std::ostream& operator<<(std::ostream& out, Self const& self)
-    { return out << self.toTerm(); }
+    { return out << self._self; }
     IMPL_HASH_FROM_TUPLE(Self);
   };
 

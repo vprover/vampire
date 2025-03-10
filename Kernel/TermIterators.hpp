@@ -852,7 +852,7 @@ static const auto termArgIter = [](Term const* term)
 static const auto termArgIterTyped = [](Term const* term) 
   { return range((unsigned)0, term->numTermArguments())
       .map([=](auto i)
-           { return TypedTermList(term->termArg(i), SortHelper::getArgSort(term, i)); }); };
+           { return TypedTermList(term->termArg(i), SortHelper::getTermArgSort(term, i)); }); };
 
 /** iterator over all type arguments of @code term */
 static const auto typeArgIter = [](Term const* term) 
