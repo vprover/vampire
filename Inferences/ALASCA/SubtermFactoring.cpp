@@ -24,33 +24,35 @@ namespace ALASCA {
 struct Application 
 {
   TermList _activePos;
-  AnyPoly _sum;
+  AlascaTermItpAny _sum;
   unsigned i;
   unsigned j;
   
   friend std::ostream& operator<<(std::ostream& out, Application const& self)
   { return out << self._activePos << " @ unify(" << self.term1() << ", " << self.term2()  << ")"; }
 
-  TermList termAt(unsigned i) const { return _sum.apply([&](auto& s) { return s->summandAt(i).factors->denormalize(); }); }
-  TermList term1() const { return termAt(i); }
-  TermList term2() const { return termAt(j); }
+  TermList atomAt(unsigned i) const { return _sum.apply([&](auto& s) { return s.summandAt(i).atom(); }); }
+  TermList term1() const { return atomAt(i); }
+  TermList term2() const { return atomAt(j); }
 
   static auto iter(AlascaState& shared, Clause* cl)
   {
     return ALASCA::Superposition::Rhs::activePositions(shared, cl)
       .flatMap([&](auto sel_lit) {
           return coproductIter(sel_lit.map(
-             [](SelectedSummand& x) { return iterItems(x.selectedAtom()); },
-             [](SelectedUninterpretedEquality& x) {  return iterItems(x.biggerSide()); },
-             [](SelectedUninterpretedPredicate& x) { return termArgIter(x.literal()); }
+             [](SelectedSummand& x) { return iterItems(TypedTermList(x.selectedAtom(), x.sort())); },
+             [](SelectedUninterpretedEquality& x) {  return iterItems(TypedTermList(x.biggerSide(), x.literal()->eqArgSort())); },
+             [](SelectedUninterpretedPredicate& x) { return termArgIterTyped(x.literal()); }
           ))
-          .flatMap([&](auto activePos) {
-            return shared.iterInterpretedSubterms(activePos)
+          .flatMap([&](TypedTermList activePos) {
+            return AnyAlascaTerm::normalize(activePos).iterSubterms()
+               .filterMap([](auto t) { return t.asSum(); })
+               .filter([](auto& s) { return s.apply([](auto& s) { return s.nSummands() >= 2; }); })
                .flatMap([=](auto t_anyNum) {
                    return coproductIter(t_anyNum.applyCo([=](auto t) {
-                       return range(0, t->nSummands() - 1)
+                       return range(0, t.nSummands() - 1)
                           .flatMap([=](auto i) {
-                              return range(i + 1, t->nSummands())
+                              return range(i + 1, t.nSummands())
                                 .map([=](auto j) {
                                    return Application { ._activePos = activePos, ._sum = t_anyNum, .i = i, .j = j, };
                                 })
@@ -60,8 +62,7 @@ struct Application
                                                               && appl.term1().term()->functor() == appl.term2().term()->functor()
                                                               ;  })
                                 ;
-                          })
-                          ;
+                          });
                    })); 
                });
               }) ;

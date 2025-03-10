@@ -67,7 +67,7 @@ public:
 
   template<class Iterator>
   inline
-  void insertFromIterator(Iterator it)
+  void loadFromIterator(Iterator it)
   {
     while(it.hasNext()) {
       insert(it.next());

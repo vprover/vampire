@@ -125,12 +125,6 @@ FuncTerm::FuncTerm(FuncId f, PolyNf* args)
   , _args(Stack<PolyNf>::fromIterator(arrayIter(args, f.numTermArguments()))) 
 { }
 
-bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 
-{ return lhs._fun == rhs._fun && lhs._args == rhs._args; }
-
-bool operator!=(FuncTerm const& lhs, FuncTerm const& rhs) 
-{ return !(lhs == rhs); }
-
 unsigned FuncTerm::numTermArguments() const 
 { return _args.size(); }
 
@@ -175,23 +169,11 @@ PolyNf::PolyNf(Variable          t) : Coproduct(t) {}
 PolyNf::PolyNf(AnyPoly           t) : Coproduct(t) {}
 
 
-bool operator==(PolyNf const& lhs, PolyNf const& rhs) 
-{ return static_cast<PolyNfSuper const&>(lhs) == static_cast<PolyNfSuper const&>(rhs); }
-
-bool operator!=(PolyNf const& lhs, PolyNf const& rhs) 
-{ return !(lhs == rhs); }
-
 Option<Variable> PolyNf::tryVar() const 
 { return as<Variable>().toOwned(); }
 
 PolyNf::SubtermIter PolyNf::iterSubterms() const 
 { return SubtermIter(*this); }
-
-bool operator<(const PolyNf& lhs, const PolyNf& rhs) 
-{ return std::less<PolyNfSuper>{}(lhs,rhs); }
-
-bool operator<=(const PolyNf& lhs, const PolyNf& rhs) 
-{ return lhs < rhs || lhs == rhs; }
 
 PolyNf::SubtermIter::SubtermIter(PolyNf p) 
   : _stack(decltype(_stack){ BottomUpChildIter<PolyNf>(p) }) 

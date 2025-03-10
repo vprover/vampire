@@ -47,6 +47,8 @@ Option<Clause*> SuperpositionConf::applyRule_(
     ) const 
 {
   TIME_TRACE("alasca superposition application")
+  DEBUG(1, "lhs: ", lhs);
+  DEBUG(1, "rhs: ", rhs);
 
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())
 #if VDEBUG
@@ -84,13 +86,14 @@ Option<Clause*> SuperpositionConf::applyRule_(
     }
   };
 
-  check_side_condition(
-      "s1 and s2 are of unifyable sorts", 
-      unifySorts(
+  auto sort = unifySorts(
         SortHelper::getEqualityArgumentSort(lhs.literal()), 
         SortHelper::getResultSort(s2.term())
-        ).isSome()
-      )
+      );
+
+  check_side_condition(
+      "s1 and s2 are of unifyable sorts", 
+      sort.isSome())
 
   auto L1σ = sigma(lhs.literal(), lhsVarBank);
   check_side_condition(

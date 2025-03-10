@@ -616,6 +616,42 @@ struct BottomUpChildIter<Kernel::PolyNf>
   { return out << self._self; }
 };
 
+
+template<class A>
+struct GenericSubtermIter {
+  bool _bottomUp = true;
+  RStack<BottomUpChildIter<A>> _self;
+  typename BottomUpChildIter<A>::Context _context;
+
+  GenericSubtermIter(A self, bool _bottomUp, typename BottomUpChildIter<A>::Context context = {}) 
+    : _self() 
+    , _context(std::move(context))
+  { _self->push(BottomUpChildIter<A>(std::move(self), std::move(context))); }
+
+  DECL_ELEMENT_TYPE(A);
+  bool hasNext() { return _self->isNonEmpty(); }
+  OWN_ELEMENT_TYPE next()  {
+    ASS(_self->isNonEmpty())
+    while (true) {
+      if (_self->top().hasNext(_context)) {
+        auto& top = _self->top();
+        auto topSelf = top.self(_context);
+        _self->push(BottomUpChildIter<A>(top.next(_context), _context));
+        if (!_bottomUp) 
+          return topSelf;
+      } else {
+        auto popped = _self->pop();
+        if (_bottomUp) {
+          return popped.self(_context);
+        }
+      }
+    }
+  }
+};
+
+template<class A>
+GenericSubtermIter(A, bool) -> GenericSubtermIter<A>;
+
 } // namespace Lib
 
 #endif // __LIB__BOTTOM_UP_EVALUATION_HPP__

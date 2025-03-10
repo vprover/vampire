@@ -111,8 +111,8 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
         "s₁σ /⪯ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = sigma(ti.factors->denormalize(), lhsVarBank);
-             t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
+             auto tiσ = sigma(ti.atom(), lhsVarBank);
+             t1σ.push(NumTraits::mulSimpl(ti.numeral(), tiσ));
              return _shared->notLeq(s1σ, tiσ);
            }))
 
@@ -120,8 +120,8 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
         "s₂σ /⪯ t₂σ ",
         rhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = sigma(ti.factors->denormalize(), rhsVarBank);
-             t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
+             auto tiσ = sigma(ti.atom(), rhsVarBank);
+             t2σ.push(NumTraits::mulSimpl(ti.numeral(), tiσ));
              return _shared->notLeq(s2σ, tiσ);
            }))
 

@@ -107,11 +107,11 @@ public:
     out->init(
       NumTraits::sum(
           iterTraits(norm.term().iterSummands())
-            .filter([](auto x) { return x.numeral >= Num(0);  })
-            .map([](auto x) { return x.denormalize(); })),
+            .filter([](auto x) { return x.numeral() >= Num(0);  })
+            .map([](auto x) { return x.toTerm(); })),
       NumTraits::sum(iterTraits(norm.term().iterSummands())
-          .filter([](auto x) { return x.numeral <= Num(0);  })
-          .map([](auto x) { return (-x).denormalize(); })));
+          .filter([](auto x) { return x.numeral() <= Num(0);  })
+          .map([](auto x) { return (-x).toTerm(); })));
     return out;
 
   }
@@ -157,14 +157,14 @@ public:
       });
   }
 
-  std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
+  std::tuple<IntegerConstantType, AlascaTermItp<IntTraits>> divNf(AlascaTermItp<IntTraits> t) const
   { return std::make_tuple(IntegerConstantType(1), t); }
 
   template<class NumTraits>
-  std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> divNf(Perfect<Polynom<NumTraits>> t) const
+  std::tuple<IntegerConstantType, AlascaTermItp<NumTraits>> divNf(AlascaTermItp<NumTraits> t) const
   {
-    auto l = t->iterSummands()
-      .map([](auto s) { return s.numeral.denominator(); })
+    auto l = t.iterSummands()
+      .map([](auto s) { return s.numeral().denominator(); })
       .fold(IntegerConstantType(1), [&](auto acc, auto next)
                { return acc.lcm(next); });
     return std::make_tuple(l.abs(), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
@@ -173,7 +173,7 @@ public:
   template<class NumTraits>
   Option<Recycled<SignedAtoms>> signedAtoms(TermList t) const
   {
-    auto n = norm().normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
+    auto n = norm().normalize(TypedTermList(t, NumTraits::sort())).asSum<NumTraits>().unwrap();
     auto atoms = rmNum(divNf(n));
     if (hasSubstitutionProperty(*atoms)) {
       return Option<decltype(atoms)>(std::move(atoms));
@@ -185,14 +185,14 @@ public:
   bool hasSubstitutionProperty(SignedAtoms const& l) const;
 
   template<class NumTraits>
-  Recycled<WeightedMultiSet<SignedTerm>> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
+  Recycled<WeightedMultiSet<SignedTerm>> rmNum(std::tuple<IntegerConstantType, AlascaTermItp<NumTraits>> t) const
   {
     Recycled<WeightedMultiSet<SignedTerm>> out;
 
     out->elems.raw().loadFromIterator(
-        std::get<1>(t)->iterSummands()
+        std::get<1>(t).iterSummands()
               .map([](auto s) {
-                auto count  = ifOfType<IntegerConstantType>(s.numeral,
+                auto count  = ifOfType<IntegerConstantType>(s.numeral(),
                                [&](IntegerConstantType num) { return num; },
                                 /* decltype(num) in { RatTraits, RealTraits } */
                                [&](auto num) {
@@ -200,12 +200,12 @@ public:
                                  return num.numerator();
                                }).abs();
                 if (count == IntegerConstantType(0)) {
-                  ASS(s.numeral.sign() == Sign::Zero)
+                  ASS(s.numeral().sign() == Sign::Zero)
                   count = IntegerConstantType(1);
                 }
                 SignedTerm term = {
-                  .sign = s.numeral.sign(),
-                  .term = s.factors->denormalize(),
+                  .sign = s.numeral().sign(),
+                  .term = s.atom(),
                 };
                 return std::make_tuple(term, count);
               })

@@ -621,9 +621,44 @@ TEST_FRAC(bug_09,
       .strong = false,
     })
 
+TEST_FRAC(div_zero_1, 
+    TestCase {
+      .in  =    p(a / 0),
+      .out = { { p(a / 0) } },
+      .strong = false,
+    })
+
+TEST_FRAC(div_zero_2, 
+    TestCase {
+      .in  =    p(num(0) / 0),
+      .out = { { p(num(0) / 0) } },
+      .strong = false,
+    })
+
+TEST_FRAC(div_0, 
+    TestCase {
+      .in  =    p(1 / a),
+      .out = { { p(1 / a) } },
+      .strong = false,
+    })
+
+TEST_FRAC(div_1, 
+    TestCase {
+      .in  =    p(1 / num(2)),
+      .out = { { p(frac(1,2)) } },
+      .strong = false,
+    })
+
 TEST_FRAC(test_bin_minus, 
     TestCase {
       .in  =    p(a + binMinus(b, a)),
       .out = { { p(b) } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_18, 
+    TestCase {
+      .in  =    p(1 * (0 + -floor(-num("2147483650")) + -1) + 1 * (-0 + -floor(-num("2147483649 ")) + 0 + -1)),
+      .out = { { p(num("4294967297")) } },
       .strong = false,
     })

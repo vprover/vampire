@@ -18,6 +18,7 @@
 #include "Lib/Output.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "ALASCA/Normalization.hpp"
 #include "Lib/StringUtils.hpp"
 
 #include "SubstHelper.hpp"
@@ -1600,6 +1601,11 @@ Term::Term(const Term& t) throw()
   _args[0]._setOrder(AO_UNKNOWN);
   _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
+
+
+Term::~Term() {
+}
+
 
 /** create a new literal and copy from l its content */
 Literal::Literal(const Literal& l) throw()

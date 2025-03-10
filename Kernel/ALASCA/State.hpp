@@ -92,21 +92,25 @@ namespace Kernel {
     { return OrderingUtils::notLeq(ordering->compare(lhs, rhs)); }
 
     template<class NumTraits>
-    auto maxSummandIndices(AlascaLiteral<NumTraits> const& lit, SelectionCriterion selection)
+    auto maxSummandIndices(AlascaLiteralItp<NumTraits> const& lit, SelectionCriterion selection)
+    { return maxSummandIndices(lit.term(), selection); }
+
+    template<class NumTraits>
+    auto maxSummandIndices(AlascaTermItp<NumTraits> const& term, SelectionCriterion selection)
     {
         // TODO optimize less denormalization
         auto monomAt = [=](auto i) 
-             { return lit.term().summandAt(i).factors->denormalize(); }; 
+             { return term.summandAt(i).atom(); }; 
 
         return iterTraits(OrderingUtils::maxElems(
-                  lit.term().nSummands(),
+                  term.nSummands(),
                   [=](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
                   [=](unsigned i)
                   { return monomAt(i); },
                   selection))
-                 .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !lit.term().summandAt(i).isNumeral()
-                                            : selection == SelectionCriterion::NOT_LESS ? !lit.term().summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
+                 .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !term.summandAt(i).isNumeral()
+                                            : selection == SelectionCriterion::NOT_LESS ? !term.summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
                                             : true; });
     }
 
@@ -179,34 +183,36 @@ namespace Kernel {
     { return maxEqIndices(lit.literal(), sel)
         .map([lit](auto i) { return SelectedUninterpretedEquality(lit, i); }); }
 
-    auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TermList>>
+    // TODO use ifElseIter
+    auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TypedTermList>>
     {
       return iterTraits(norm().tryNormalizeInterpreted(l)
         .match(
-          [=](AnyAlascaLiteral l) -> VirtualIterator<TermList> {
+          [=](AlascaLiteralItpAny l) -> VirtualIterator<TypedTermList> {
             return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
                 return maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
                          .map([l](auto i) {
-                             return l.term().summandAt(i).factors->denormalize();
+                             return TypedTermList(l.term().summandAt(i).atom(), l.numTraits().sort());
                          });
             })));
           },
           [=]() {
             if (l->isEquality()) {
+              auto sort = l->eqArgSort();
               return pvi(maxEqIndices(l, SelectionCriterion::NOT_LEQ)
-                .map([=](auto i) { return l->termArg(i); }));
+                .map([=](auto i) { return TypedTermList(l->termArg(i), sort); }));
             } else {
-                return pvi(termArgIter(l));
+                return pvi(termArgIterTyped(l));
             }
           }));
     }
 
 
-    bool subtermEqModT(TermList sub, TermList sup)
+    bool subtermEqModT(TypedTermList sub, TypedTermList sup)
     {
       ASS(isAtomic(sub))
-      return norm().normalize(sup).denormalize()
-        .containsSubterm(norm().normalize(sub).denormalize());
+      return norm().normalize(sup).toTerm()
+        .containsSubterm(norm().normalize(sub).toTerm());
     }
 
 
@@ -240,12 +246,6 @@ namespace Kernel {
               return pvi(getSingletonIterator(Out(SelectedUninterpretedPredicate(sel_lit))));
             }
         });
-    }
-
-    auto iterInterpretedSubterms(TermList t) {
-      return iterTraits(_normalizer->normalize(t)
-        .iterSubterms())
-        .filterMap([](PolyNf t) { return t.template as<AnyPoly>().toOwned(); });
     }
 
     auto isUninterpreted(Literal* l) const 

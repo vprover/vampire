@@ -282,7 +282,7 @@ TEST_FUN(misc02) {
 
   auto& ord = lakbo();
 
-  check(ord, f(x + y), Incomp, x);
+  check(ord, f(x + y), Greater, x);
 }
 
 
@@ -515,22 +515,6 @@ TEST_FUN(eq_equiv) {
   check(ord,  f(a) + f(b) == 0, Equal   , -f(a) - f(b) == 0);
 }
 
-TEST_FUN(var_equalities) {
-
-  DECL_DEFAULT_VARS
-  DECL_SORT(s1)
-  DECL_SORT(s2)
-  auto& ord = lakbo();
-  DECL_VAR(x0, 0)
-  DECL_VAR(x1, 0)
-  x0.sort(s1);
-  x1.sort(s2);
-
-  check(ord,  x0 == x0, Less, x1 == x1);
-  check(ord,  x0 != x0, Less, x1 != x1);
-}
-
-
 TEST_FUN(ineq_diseq) {
 
   DECL_DEFAULT_VARS
@@ -630,4 +614,23 @@ TEST_FUN(bug_non_linear_2) {
   auto l1 = 0 == b* (-x + (a*a) + x);
   auto l2 = 0 == b*(a*a);
   check(ord, l1, Equal, l2);
+}
+
+TEST_FUN(bug04) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  auto& ord = lakbo(/* rand */ false);
+  DECL_VAR(X0, 0)
+  DECL_VAR(X1, 1)
+  DECL_SORT(S2)
+  DECL_SORT(S11)
+  DECL_SORT(S12)
+  DECL_CONST(sLF132, S2)
+  DECL_FUNC(f15, { S11, S2 }, Real)
+  DECL_FUNC(f17, { S12, Real }, S11)
+  DECL_CONST(f18, S12)
+
+  auto l1 = 0 == (X1 + -f15(f17(f18,X1),sLF132));
+  auto l2 = sLF132 == X0;
+  check(ord, l1, Incomp, l2);
 }

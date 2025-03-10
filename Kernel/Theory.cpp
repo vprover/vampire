@@ -1483,15 +1483,21 @@ bool Theory::isInterpretedFunction(TermList t)
   return t.isTerm() && isInterpretedFunction(t.term());
 }
 
-Interpretation Theory::interpretFunction(unsigned func)
+Option<Interpretation> Theory::tryInterpretFunction(unsigned func)
 {
-  ASS(isInterpretedFunction(func));
+  if (!isInterpretedFunction(func)) {
+    return {};
+  }
 
   Signature::InterpretedSymbol* sym =
       static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(func));
 
-  return sym->getInterpretation();
+  return some(sym->getInterpretation());
 }
+
+
+Interpretation Theory::interpretFunction(unsigned func)
+{ return tryInterpretFunction(func).unwrap(); }
 
 /**
  * Assuming @b t is an interpreted function, return its interpretation

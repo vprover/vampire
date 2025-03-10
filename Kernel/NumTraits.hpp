@@ -202,16 +202,12 @@ struct NumTraits;
                                                                                           \
     template<class Iter>                                                                  \
     static TermList sum(Iter iter) {                                                      \
-      if (iter.hasNext()) {                                                               \
-        auto out = iter.next();                                                           \
-        while (iter.hasNext()) {                                                          \
-          out = NumTraits::add(iter.next(), out);                                         \
-        }                                                                                 \
-        return out;                                                                       \
-      } else {                                                                            \
-        return NumTraits::zero();                                                         \
-      }                                                                                   \
-    };                                                                                    \
+      return iterTraits(std::move(iter))                                                  \
+        /* converting TypedTermList into TermList */                                      \
+        .map([](auto x) -> TermList { return TermList(x); })                              \
+        .fold([](auto l, auto r) { return NumTraits::add(l, r); })                        \
+        .unwrapOrElse([&]() { return NumTraits::zero(); });                               \
+    }                                                                                     \
                                                                                           \
     template<class Iter>                                                                  \
     static TermList product(Iter iter) {                                                  \
@@ -276,9 +272,11 @@ struct NumTraits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , One , 1)                                      \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, Zero, 0)                                      \
                                                                                           \
-    template<class T>                                                                     \
-    static Option<ConstantType const&> tryLinMul(T t)                                     \
-    { return ifLinMul(t, [](auto& c, auto t) -> auto& { return c; }); }                   \
+    static Option<ConstantType const&> tryLinMul(Term* t)                                 \
+    { return tryLinMul(t->functor()); }                                                   \
+                                                                                          \
+    static Option<ConstantType const&> tryLinMul(TermList t)                              \
+    { return t.isVar() ? Option<ConstantType const&>() : tryLinMul(t.term()); }           \
                                                                                           \
     static Option<ConstantType const&> tryLinMul(unsigned f)                              \
     { return env.signature->tryLinMul<ConstantType>(f); }                                 \
@@ -345,6 +343,8 @@ struct NumTraits;
     static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }          \
                                                                                           \
     static const char* name() {return #CamelCase;}                                        \
+    friend std::ostream& operator<<(std::ostream& out, NumTraits const& self)             \
+    { return out << name(); }                                                            \
   };                                                                                      \
 
 #define __NUM_TRAITS_IF_FRAC(sort, ...) __NUM_TRAITS_IF_FRAC_ ## sort (__VA_ARGS__)

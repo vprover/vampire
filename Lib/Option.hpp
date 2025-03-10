@@ -513,6 +513,11 @@ template<class T>
 Option<T> operator&&(Option<T> t, Option<T> c)
 { return std::move(t).andThen([&](){ return std::move(c); }); }
 
+template<class F, class... Fs>
+auto optionIfThenElse(F f, Fs... fs) 
+{ return (f() || ... || fs); }
+
+
 } // namespace Lib
 
 #endif // __OPTIONAL_H__

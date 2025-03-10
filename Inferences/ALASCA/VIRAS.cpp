@@ -92,8 +92,8 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
 
   Recycled<DHSet<unsigned>> topLevelVars;
   for (auto l : premise->iterLits()) {
-    Option<AlascaLiteral<NumTraits>> norm = _shared->norm().tryNormalizeInterpreted(l)
-      .flatMap([](auto l) { return l.template as<AlascaLiteral<NumTraits>>().toOwned(); })
+    Option<AlascaLiteralItp<NumTraits>> norm = _shared->norm().tryNormalizeInterpreted(l)
+      .flatMap([](auto l) { return l.template as<AlascaLiteralItp<NumTraits>>().toOwned(); })
       .filter([](auto l) { switch(l.symbol()) {
           case AlascaPredicate::EQ:
           case AlascaPredicate::NEQ:
@@ -108,7 +108,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
       noteShielded(l);
     } else {
       toElim->push(l);
-      traverseLiraVars(norm->term().denormalize(),
+      traverseLiraVars(norm->term().toTerm(),
           [&](TermList t) {
             if (t.isVar()) {
               candidateVars->insert(t.var());

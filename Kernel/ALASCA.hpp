@@ -23,8 +23,6 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Lib/STL.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
-
 #include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/ALASCA/State.hpp"

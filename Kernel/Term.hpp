@@ -487,6 +487,7 @@ public:
 
 
   Term() throw();
+  ~Term();
   explicit Term(const Term& t) throw();
   static Term* create(unsigned function, unsigned arity, const TermList* args);
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
@@ -946,6 +947,9 @@ protected:
      * the sort of the top-level variables */
     TermList _sort;
   };
+  // pre-computed AnyAlascaSum representation of this term
+  void const* _alascaTermCache = nullptr;
+  std::string _alascaTermCacheTypeName;
 
   /** The list of arguments of size type arity + term arity + 1. The first
    *  argument stores the term weight and the mask (the last two bits are 0).
@@ -976,6 +980,26 @@ public:
   private:
     TermList* _next;
   }; // Term::Iterator
+
+  template<class C>
+  C const* getAlascaTermCache() const { 
+    DEBUG_CODE(
+      if (_alascaTermCache != nullptr) {
+        ASS_EQ(_alascaTermCacheTypeName, C::cacheId())
+      }
+    )
+    return (C const*) _alascaTermCache; 
+  }
+  template<class C>
+  void setAlascaTermCache(C const* nf) { 
+    DEBUG_CODE(
+      _alascaTermCacheTypeName = C::cacheId();
+      if (_alascaTermCache != nullptr) {
+        ASS_REP((C const*)_alascaTermCache == nf, C::cacheId())
+      }
+    )
+    _alascaTermCache = nf; 
+  }
 }; // class Term
 
 

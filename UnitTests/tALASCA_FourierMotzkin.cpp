@@ -1098,6 +1098,16 @@ TEST_GENERATION_WITH_SUGAR(bug06,
                        ))
     )
 
+
+TEST_GENERATION_WITH_SUGAR(bug08,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .indices(idxFourierMotzkin())
+      .inputs  ({ clause({ f(floor(num(1)) + floor(1 + num(3))) > 0  })
+                })
+      .expected(exactly(/* nothing */ ))
+    )
+
 #define _SUM(L,R) (L + R)
 
 TEST_GENERATION_WITH_SUGAR(bug07,

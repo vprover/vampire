@@ -47,9 +47,9 @@ void VariableElimination::setTestIndices(Stack<Indexing::Index*> const&)
 
 Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshieldedVar(Clause* premise) const
 {
-  Stack<Variable> vars; // contains the same data as the keys in the map. just there to deterministically iterate over map entries.
-  Map<Variable, AnyFoundVariable, StlHash> unshielded;
-  Set<Variable, StlHash> shielded;
+  Stack<TermList> vars; // contains the same data as the keys in the map. just there to deterministically iterate over map entries.
+  Map<TermList, AnyFoundVariable> unshielded;
+  Set<TermList> shielded;
   for (unsigned i = 0; i < premise->size(); i++) {
     auto lit = (*premise)[i];
     auto norm = _shared->norm().tryNormalizeInterpreted(lit);
@@ -59,16 +59,15 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
         using NumTraits = typename std::remove_reference<decltype(lit)>::type::NumTraits;
         for (auto s : lit.term().iterSummands()) {
           // lit = t1 + ... + s + ... + tn <> 0 
-          auto k = s.numeral;
-          auto var = s.factors->tryVar();
-          if (var.isSome()) {
-            auto v = var.unwrap();
+          auto k = s.numeral();
+          if (s.atom().isVar()) {
+            auto v = s.atom();
     
             // lit = t1 + ... + k * v + ... + tn <> 0  
             if (!shielded.contains(v)) {
               auto& found = unshielded.getOrInit(v, [&]() { 
                                            vars.push(v);
-                                           return AnyFoundVariable(FoundVariable<NumTraits>(s.factors)); 
+                                           return AnyFoundVariable(FoundVariable<NumTraits>(v)); 
                                          })
                                        .template unwrap<FoundVariable<NumTraits>>();
               auto entry = FoundVarInLiteral<NumTraits>(i, k, lit);
@@ -86,20 +85,13 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
           } else {
 
             // lit = t1 + ... + k * f(...) + ... + tn <> 0  
-            for (auto t : s.factors->iterSubterms()) {
-              t.tryVar()
-               .andThen([&](auto var) 
-                   { shielded.insert(var); });
-            }
+            //                  ^^^^^^^^^^-> s
+            shielded.loadFromIterator(VariableIterator(s.atom()));
           }
         }
       });
     } else {
-      VariableIterator vars(lit);
-      while (vars.hasNext()) {
-        auto v = Variable(vars.next().var());
-        shielded.insert(v);
-      }
+      shielded.loadFromIterator(VariableIterator(lit));
     }
   }
   auto out = Option<AnyFoundVariable>();
@@ -216,11 +208,6 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
 
   auto Csize = premise->size() - Ksize - I.size() - J.size() - L.size();
 
-  auto withoutX = [x](auto foundVarInLiteral) 
-    { return foundVarInLiteral.literal.term().iterSummands()
-                              .filter([&](auto monom) { return monom.factors != x; }); };
-
-
   Stack<Literal*> common(Csize + I.size() * J.size() + I.size() * L.size() + J.size() * L.size());
 
   { /* adding C */
@@ -247,7 +234,7 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
 
   auto b = [x](auto& i) {
     return iterTraits(i.literal.term().iterSummands())
-      .filter([&](auto monom) { return monom.factors != x; })
+      .filter([&](auto monom) { return monom.atom() != x; })
       .map([&](auto t) { return (t / i.numeral.abs()); })
       .map([&](auto t) { return (i.literal.symbol() == AlascaPredicate::EQ || i.literal.symbol() == AlascaPredicate::NEQ) && i.numeral.isNegative()
                                 ? -t : t; });
@@ -255,8 +242,8 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
 
   auto sum = [](auto l, auto r) {
     return NumTraits::sum(
-      l.map([](auto monom){ return monom.denormalize(); }),
-      r.map([](auto monom){ return monom.denormalize(); })); };
+      l.map([](auto monom){ return monom.toTerm(); }),
+      r.map([](auto monom){ return monom.toTerm(); })); };
 
   auto minus = [](auto i) { return i.map([](auto monom) { return Numeral(-1) * monom; }); };
 
@@ -314,7 +301,6 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
             I = std::move(I), 
             J = std::move(J), 
             L = std::move(L), 
-            withoutX, 
             premise, 
             Ksize,
             sum, minus, b](auto& par) {

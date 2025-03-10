@@ -255,7 +255,7 @@ PolyNf PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bo
   using Polynom = Polynom<Number>;
 
   // then we sort them by their monom, in order to add up the coefficients efficiently
-  std::sort(summands.begin(), summands.end());
+  summands.sort([](auto& l, auto& r) { return l.factors < r.factors; });
 
   // add up the coefficients (in place)
   {
@@ -364,10 +364,9 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, boo
     args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
   }
 
-  std::sort(args.begin(), args.end());
+  args.sort([](auto& l, auto& r) { return l.term < r.term; });
 
   auto offs = 0;
-  bool needsSorting = false;
 
   for (unsigned i = 0; i < args.size(); i++) {
     auto& arg = args[i];
@@ -391,9 +390,6 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, boo
   }
   args.truncate(offs);
 
-  if (needsSorting) {
-    std::sort(args.begin(), args.end());
-  }
 
   if (numeral == Numeral(0) && removeZeros) {
     return Monom::zero();

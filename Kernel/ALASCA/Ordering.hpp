@@ -13,6 +13,7 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
+#include "Kernel/TermIterators.hpp"
 #include "Lib/DArray.hpp"
 #include "Kernel/ALASCA.hpp"
 
@@ -76,6 +77,11 @@ struct AlascaOrderingUtils {
 };
 
 
+template<class F>
+bool isFloor(F f) {
+  return forAnyNumTraits([&](auto n) { return n.isFloor(f); }); 
+}
+
 struct LAKBO {
   KBO _kbo;
   std::shared_ptr<InequalityNormalizer> _norm;
@@ -88,88 +94,87 @@ struct LAKBO {
   void show(std::ostream& out) const { return _kbo.show(out); }
 
   template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(MonomFactors<NumTraits> const& t0, MonomFactors<NumTraits> const& t1) const 
+  Ordering::Result cmpSameSkeleton(AlascaMonom<NumTraits> const& t0, AlascaMonom<NumTraits> const& t1) const 
   { 
-    auto iterFlat = [](MonomFactors<NumTraits> const& m) {
-      return m.iter()
-        .flatMap([](auto& x) { return 
-            range(0, x.power)
-              .map([&](auto) -> auto& { return x.term; }); });
-    };
-    return AlascaOrderingUtils::lexIter(
-        iterFlat(t0).zip(iterFlat(t1))
-          .map([&](auto pair) { return cmpSameSkeleton(pair.first, pair.second); })
-        );
-  }
-
-  template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(Monom<NumTraits> const& t0, Monom<NumTraits> const& t1) const 
-  { 
+    auto normAtom = [](auto t) { return AnyAlascaTerm::normalize(TypedTermList(t.atom(), NumTraits::sort())); };
     return AlascaOrderingUtils::lexLazy(
-        [&](){ return cmpSameSkeleton(*t0.factors, *t1.factors); },
-        [&](){ return AlascaOrderingUtils::cmpQ(t0.numeral, t1.numeral); }
+        [&](){ return cmpSameSkeleton(normAtom(t1), normAtom(t1)); },
+        [&](){ return AlascaOrderingUtils::cmpQ(t0.numeral(), t1.numeral()); }
     );
   }
 
 
   template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(Polynom<NumTraits> const& t0, Polynom<NumTraits> const& t1) const 
+  Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AlascaTermItp<NumTraits> const& t1) const 
   { 
     if (t0.nSummands() == 1 && t1.nSummands() == 1) {
       return cmpSameSkeleton(t0.summandAt(0), t1.summandAt(0));
     } else {
-      auto set = [](auto p) { return p.iterSummands().map([](auto& x) { return x; }).template collect<MultiSet>(); };
+      auto set = [](auto p) { return p.iterSummands().template collect<MultiSet>(); };
       return OrderingUtils::mulExt(set(t0), set(t1), [&](auto& l, auto& r) { return compare(l, r); });
     }
   }
 
   template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(Polynom<NumTraits> const& t0, PolyNf const& t1) const 
-  { return cmpSameSkeleton(t0, *t1.template wrapPoly<NumTraits>()); }
+  Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AnyAlascaTerm const& t1) const 
+  { return cmpSameSkeleton(t0, t1.asSum<NumTraits>().unwrap()); }
 
-  Ordering::Result cmpSameSkeleton(TermList t0, TermList t1) const 
+  Ordering::Result cmpSameSkeleton(TypedTermList t0, TypedTermList t1) const 
   { return cmpSameSkeleton(norm().normalize(t0), norm().normalize(t1)); }
 
-  Ordering::Result cmpSameSkeleton(AnyPoly const& t0, PolyNf const& t1) const 
-  { return t0.apply([&](auto& t0) { return cmpSameSkeleton(*t0, t1); }); }
+  Ordering::Result cmpSameSkeleton(AlascaTermItpAny const& t0, AnyAlascaTerm const& t1) const 
+  { return t0.apply([&](auto& t0) { return cmpSameSkeleton(t0, t1); }); }
 
-  Ordering::Result cmpSameSkeleton(PolyNf const& t0, PolyNf const& t1) const {
+  static Option<AlascaTermItpAny> asNonTrivialSum(AnyAlascaTerm const& t) { 
+    return t.asSum()
+      .andThen([](auto x) -> Option<AlascaTermItpAny> {
+        if(x.apply([](auto& x) {
+          return x.nSummands() == 1 && x.monomAt(0).numeral() == 1;
+        })) {
+          return {};
+        } else {
+          return some(x);
+        }
+    });
+  }
+
+  Ordering::Result cmpSameSkeleton(AnyAlascaTerm const& t0, AnyAlascaTerm const& t1) const {
     if (t0 == t1) return Ordering::Result::EQUAL;
-    if (auto p0 = t0.template as<AnyPoly>()) {
+    // TODO make this nicer
+    
+    if (auto p0 = asNonTrivialSum(t0)) {
       return cmpSameSkeleton(*p0, t1);
-    } else if (auto p1 = t1.template as<AnyPoly>()) {
+    } else if (auto p1 = asNonTrivialSum(t1)) {
       return Ordering::reverse(cmpSameSkeleton(*p1, t0));
 
-    } else if (t0.is<Variable>() || t1.is<Variable>()) {
+    } else if (t0.toTerm().isVar() || t1.toTerm().isVar()) {
       return Ordering::Result::INCOMPARABLE;
 
     } else {
-      ASS(t0.is<Perfect<FuncTerm>>() && t1.is<Perfect<FuncTerm>>())
-      auto f0 = t0.as<Perfect<FuncTerm>>().unwrap();
-      auto f1 = t1.as<Perfect<FuncTerm>>().unwrap();
-      auto floor0 = f0->function().isFloor();
-      auto floor1 = f1->function().isFloor();
+      ASS(t0.toTerm().isTerm() && t1.toTerm().isTerm())
+      auto f0 = t0.toTerm().term();
+      auto f1 = t1.toTerm().term();
+      auto sort = SortHelper::getResultSort(f0);
+      ASS_EQ(sort, SortHelper::getResultSort(f1))
+      auto floor0 = isFloor(f0->functor());
+      auto floor1 = isFloor(f1->functor());
       if (floor0 && floor1) {
-        return cmpSameSkeleton(f0->arg(0), f1->arg(0));
+        return cmpSameSkeleton(TypedTermList(f0->termArg(0), sort), TypedTermList(f1->termArg(0), sort));
       } else if (!floor0 && floor1) {
         return Ordering::Result::LESS;
       } else if (floor0 && !floor1) {
         return Ordering::Result::GREATER;
       } else {
         ASS(!floor0 && !floor1)
-        return AlascaOrderingUtils::lexIter(f0->iterArgs().zip(f1->iterArgs())
+        return AlascaOrderingUtils::lexIter(anyArgIterTyped(f0).zip(anyArgIterTyped(f1))
             .map([&](auto pair) { return cmpSameSkeleton(pair.first, pair.second); }));
       }
     }
   }
 
-  Option<TermList> skeleton(Variable const& t) const {
-    // TODO theory
-    return some(TermList::var(t.id()));
-  }
 
-  Option<TermList> skeleton(AnyPoly const& t) const 
-  { return t.apply([&](auto& t) { return skeleton(*t); }); }
+  Option<TermList> skeleton(AlascaTermItpAny const& t) const 
+  { return t.apply([&](auto& t) { return skeleton(t); }); }
 
   template<class Iter>
   Option<RStack<TermList>> trySkeleton(Iter iter) const {
@@ -186,44 +191,27 @@ struct LAKBO {
 
 #define DEBUG_RESULT(lvl, msg, ...)                                                       \
      auto impl = [&]() { __VA_ARGS__ };                                                   \
+     DEBUG_ALASCA_ORD(lvl, msg, "???");                                                   \
      auto res = impl();                                                                   \
-     DEBUG_ALASCA_ORD(lvl, msg, res);                                                      \
+     DEBUG_ALASCA_ORD(lvl, msg, res);                                                     \
      return res;                                                                          \
 
 #define DEBUG_FN_RESULT(lvl, msg, ...)                                                    \
   { DEBUG_RESULT(lvl, msg, __VA_ARGS__) }
 
   template<class NumTraits>
-  Option<TermList> skeleton(Monom<NumTraits> const& t) const 
+  Option<TermList> skeleton(AlascaMonom<NumTraits> const& t) const 
   DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
-  { return skeleton(*t.factors); }
+  { return skeleton(TypedTermList(t.atom(), NumTraits::sort())); }
   )
 
   template<class NumTraits>
-  Option<TermList> skeleton(MonomFactors<NumTraits> const& t) const 
-  DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
-  { return trySkeleton(t.iter())
-      .map([](auto skels) { return NumTraits::product(arrayIter(*skels)); }); }
-  )
-
-  template<class NumTraits>
-  Option<TermList> skeleton(MonomFactor<NumTraits> const& t) const 
-  DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
-  { 
-    return skeleton(t.term)
-      .map([&](auto skel) { 
-          ASS(t.power >= 0) 
-          return t.power == 1 
-               ? skel
-               : NumTraits::product(range(0, t.power).map([skel](auto) { return skel; }));
-          });
-  }
-  )
-
-  template<class NumTraits>
-  Option<TermList> skeleton(Polynom<NumTraits> const& t) const 
+  Option<TermList> skeleton(AlascaTermItp<NumTraits> const& t) const 
   DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
   {
+    if (t.nSummands() == 0) {
+      return some(NumTraits::one());
+    }
     if (auto summands = trySkeleton(t.iterSummands())) {
       auto maxIter = OrderingUtils::maxElems(summands->size(), 
           [&](auto t0, auto t1) { return _kbo.compare((*summands)[t0], (*summands)[t1]);  }, 
@@ -248,28 +236,36 @@ struct LAKBO {
   }
   )
 
-  Option<TermList> skeleton(Perfect<FuncTerm> const& t) const {
-    return trySkeleton(t->iterArgs())
+  Option<TermList> skeleton(Term* t) const {
+    return trySkeleton(termArgIterTyped(t))
       .map([&](auto args) {
-          if (t->function().isFloor()) {
+          if (isFloor(t->functor())) {
             return args[0];
           } else {
             return TermList(Term::createFromIter(
-                  t->function().id(),
+                  t->functor(),
                   concatIters(
-                    t->function().iterTypeArgs(),
+                    typeArgIter(t),
                     arrayIter(*args)
                     )));
           }
       });
   }
 
-  Option<TermList> skeleton(PolyNf const& t) const 
-  { return t.apply([&](auto& x) { return skeleton(x); }); }
+  Option<TermList> skeleton(AnyAlascaTerm const& t) const 
+  { 
+    if (auto sum = asNonTrivialSum(t)) {
+      return skeleton(*sum);
+    } else if (t.toTerm().isVar()) {
+      return some(TermList(t.toTerm()));
+    } else {
+      return skeleton(t.toTerm().term());
+    }
+  }
 
   // TODO atoms of equalities normalizing!!!
 
-  auto skeleton(TermList t) const 
+  Option<TermList> skeleton(TypedTermList t) const
   { return skeleton(norm().normalize(t)); }
 
   template<class Term>
@@ -293,13 +289,20 @@ struct LAKBO {
   }
   )
 
-  Ordering::Result compare(TermList t0, TermList t1) const {
-    if (t0.isTerm() && t1.isTerm()) { ASS_EQ(t0.term()->isSort(), t1.term()->isSort()) }
-    if ((t0.isTerm() && t0.term()->isSort()) 
-      ||(t1.isTerm() && t1.term()->isSort())) {
-      return _kbo.compare(t0, t1);
+  Ordering::Result compare(TermList t1, TermList t2) const {
+    if (t1.isTerm() && t2.isTerm()) { ASS_EQ(t1.term()->isSort(), t2.term()->isSort()) }
+    if ((t1.isTerm() && t1.term()->isSort()) 
+      ||(t2.isTerm() && t2.term()->isSort())) {
+      return _kbo.compare(t1, t2);
+    } else if (t1.isVar() && t2.isVar()) {
+      return t1 == t2 ? Result::EQUAL : Result::INCOMPARABLE;
+    } else if (t1.isVar() && !t2.isVar()) {
+      return t2.containsSubterm(t1) ? Result::LESS : Result::INCOMPARABLE;
+    } else if (t2.isVar() && !t1.isVar()) {
+      return t1.containsSubterm(t2) ? Result::GREATER : Result::INCOMPARABLE;
     } else {
-      return compare(norm().normalize(t0), norm().normalize(t1));
+      ASS(t1.isTerm() && t2.isTerm())
+      return compare(norm().normalize(t1.term()), norm().normalize(t2.term()));
     }
   }
 
@@ -340,7 +343,7 @@ class LiteralOrdering
   using AnyNumeral = Coproduct<IntegerConstantType, RationalConstantType, RealConstantType, std::tuple<>>;
   //                                                                      No Numeral <------^^^^^^^^^^^^
 
-  using Atom = std::tuple<PolyNf, unsigned , AnyNumeral>;
+  using Atom = std::tuple<AnyAlascaTerm, unsigned , AnyNumeral>;
 
   unsigned lvl(AlascaPredicate p) const {
     switch(p) {
@@ -353,13 +356,16 @@ class LiteralOrdering
     } ASSERTION_VIOLATION
   }
 
-  MultiSet<Atom> atoms(AnyAlascaLiteral const& l) const 
+  MultiSet<Atom> atoms(AlascaLiteralItpAny const& l) const 
   { return l.apply([&](auto l) { return atoms(l); }); }
 
   template<class NumTraits>
-  MultiSet<Atom> atoms(AlascaLiteral<NumTraits> const& l1) const {
+  MultiSet<Atom> atoms(AlascaLiteralItp<NumTraits> const& l1) const {
     return l1.term().iterSummands()
-      .map([&](auto monom) { return std::make_tuple(PolyNf(monom.factors), lvl(l1.symbol()), AnyNumeral(monom.numeral)); })
+      .map([&](auto monom) { return std::make_tuple(
+            AnyAlascaTerm::normalize(TypedTermList(monom.atom(), NumTraits::sort())), 
+            lvl(l1.symbol()), 
+            AnyNumeral(monom.numeral())); })
       .template collect<MultiSet>();
   }
 
@@ -368,7 +374,7 @@ class LiteralOrdering
       return some(atoms(*alasca));
     } else if (l->isEquality()) {
       auto sym = l->isPositive() ? AlascaPredicate::EQ : AlascaPredicate::NEQ;
-      return some(iterItems(l->termArg(0), l->termArg(1))
+      return some(termArgIterTyped(l)
         .map([&](auto t) { return std::make_tuple(_termOrdering.norm().normalize(t), lvl(sym), AnyNumeral(std::make_tuple())); })
         .template collect<MultiSet>());
     } else {
@@ -445,6 +451,8 @@ private:
     }
   }
 };
+#undef DEBUG_FN_RESULT
+#undef DEBUG_RESULT
 
 } // namespace Kernel
 

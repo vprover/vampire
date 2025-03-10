@@ -21,8 +21,7 @@
 
 namespace Kernel {
 
-  using Inferences::PolynomialEvaluation;
-  using Kernel::AnyAlascaLiteral;
+  using Kernel::AlascaLiteralItpAny;
 
   struct AlascaState;
   using UwaSubstitution = Coproduct<RobSubstitution, Indexing::ResultSubstitutionSP>; 
@@ -30,7 +29,7 @@ namespace Kernel {
   struct SelectedLiteral {
     Clause* cl;
     unsigned litIdx;
-    Option<AnyAlascaLiteral> interpreted;
+    Option<AlascaLiteralItpAny> interpreted;
 
     SelectedLiteral(Clause* cl, unsigned litIdx, AlascaState& shared);
 
@@ -104,7 +103,7 @@ namespace Kernel {
     auto numeral() const 
     { return alascaLiteral()
           .apply([this](auto& lit) 
-              { return AnyConstantType(lit.term().summandAt(_term).numeral); }); }
+              { return AnyConstantType(lit.term().summandAt(_term).numeral()); }); }
 
     template<class NumTraits>
     auto numeral() const 
@@ -117,12 +116,12 @@ namespace Kernel {
     auto nContextTerms() const 
     { return alascaLiteral().apply([](auto& lit) { return lit.term().nSummands() - 1; }); }
 
-    AnyAlascaLiteral const& alascaLiteral() const
+    AlascaLiteralItpAny const& alascaLiteral() const
     { return interpreted.unwrap(); }
 
     template<class NumTraits>
     auto const& alascaLiteral() const
-    { return alascaLiteral().template unwrap<AlascaLiteral<NumTraits>>(); }
+    { return alascaLiteral().template unwrap<AlascaLiteralItp<NumTraits>>(); }
 
     template<class NumTraits>
     auto contextTerms() const 
@@ -133,14 +132,14 @@ namespace Kernel {
                 .map([&](unsigned i) { return lit.term().summandAt(i); });
     }
 
-    TermList notSelectedTerm(AlascaLiteral<IntTraits> const& lit) const { ASSERTION_VIOLATION }
+    TermList notSelectedTerm(AlascaLiteralItp<IntTraits> const& lit) const { ASSERTION_VIOLATION }
 
     template<class NumTraits>
-    TermList notSelectedTerm(AlascaLiteral<NumTraits> const& lit) const { 
+    TermList notSelectedTerm(AlascaLiteralItp<NumTraits> const& lit) const { 
       return TermList(AlascaSignature<NumTraits>::sum(range(0, lit.term().nSummands()) 
                 .filter([&](unsigned i) { return i != _term; })
                 .map([&](unsigned i) { return lit.term().summandAt(i) / numeral<NumTraits>().abs(); })
-                .map([&](auto t) { return t.denormalize(); })
+                .map([&](auto t) { return t.toTerm(); })
             ));
     }
 
@@ -156,7 +155,7 @@ namespace Kernel {
     TermList selectedAtom() const
     { return alascaLiteral()
           .apply([this](auto& lit) 
-              { return lit.term().summandAt(_term).factors->denormalize(); }); }
+              { return lit.term().summandAt(_term).atom(); }); }
 
     auto sign() const 
     { return numeral().apply([](auto const& self) { return self.sign(); }); }
@@ -221,8 +220,10 @@ namespace Kernel {
     TermList biggerSide() const 
     { return IntTraits::mulSimpl(numeral<IntTraits>(), selectedAtom()); }
 
+    // TODO return an iterator over atoms here instead to make superposition more efficient (?)
     TermList smallerSide() const 
-    { return IntTraits::sum(contextTerms<IntTraits>().map([](auto t) { return (-t).denormalize(); })); }
+    { return IntTraits::sum(contextTerms<IntTraits>().map([](auto t) { return (-t).toTerm(); })); }
+
   };
 
   class SelectedEquality 
@@ -273,6 +274,7 @@ namespace Kernel {
           [](SelectedUninterpretedEquality const& x) { return x.biggerSide(); }), 
         SortHelper::getEqualityArgumentSort(literal())); }
 
+    // TODO turn this into an iterator to not bulid the term if not necessary (?)
     TermList smallerSide() const 
     { return _inner.match(
         [&](SelectedSummand               const& sel) 
@@ -284,7 +286,7 @@ namespace Kernel {
                    using NumTraits = decltype(numTraits);
                    auto k = sel.numeral<NumTraits>();
                    return ASig::sum(sel.contextTerms<NumTraits>()
-                        .map([&](auto monom) { return (monom / (-k)).denormalize();  }));
+                        .map([&](auto monom) { return (monom / (-k)).toTerm();  }));
                 });
             });
         },
@@ -326,6 +328,8 @@ namespace Kernel {
   using SelectionCriterion = OrderingUtils::SelectionCriterion;
 
 } // namespace Kernel
+  //
+// TODO optimize normalizations of sorts; we do not normalize them
  
 #endif // __ALASCA_SelectionPrimitives__
 
