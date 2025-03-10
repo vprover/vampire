@@ -36,8 +36,8 @@ struct AlascaOrderingUtils {
     while (iter.hasNext()) {
       auto res = iter.next();
       switch(res) {
-        case Ordering::Result::GREATER: 
-        case Ordering::Result::LESS: 
+        case Ordering::Result::GREATER:
+        case Ordering::Result::LESS:
         case Ordering::Result::INCOMPARABLE:
           return res;
         case Ordering::Result::EQUAL:
@@ -48,30 +48,30 @@ struct AlascaOrderingUtils {
   }
 
   template<class... As>
-  static auto lex(As... as) 
+  static auto lex(As... as)
   { return lex(iterItems(as...)); }
 
   template<class... As>
-  static auto lexLazy(As... as) 
+  static auto lexLazy(As... as)
   { return lexIter(concatIters(iterItems(as).eval()...)); }
 
   template<class N>
-  static Ordering::Result cmpN(N c1, N c2) 
+  static Ordering::Result cmpN(N c1, N c2)
   { return c1 < c2 ? Ordering::Result::LESS
          : c2 < c1 ? Ordering::Result::GREATER
                    : Ordering::Result::EQUAL; }
 
   template<class Q>
-  static Ordering::Result cmpQ(Q c1, Q c2) 
+  static Ordering::Result cmpQ(Q c1, Q c2)
   { return lexLazy( [&](){ return cmpN(c1 < 0              , c2 < 0              ); }
                   , [&](){ return cmpN(c1.denominator()    , c2.denominator()    ); }
                   , [&](){ return cmpN(c1.numerator().abs(), c2.numerator().abs()); } ); }
 
-  static Ordering::Result cmpQ(IntegerConstantType c1, IntegerConstantType c2) 
+  static Ordering::Result cmpQ(IntegerConstantType c1, IntegerConstantType c2)
   { return lexLazy( [&](){ return cmpN(c1 < 0  , c2 < 0  ); }
                   , [&](){ return cmpN(c1.abs(), c2.abs()); } ); }
 
-  static Ordering::Result cmpQ(std::tuple<> c1, std::tuple<> c2) 
+  static Ordering::Result cmpQ(std::tuple<> c1, std::tuple<> c2)
   { return Ordering::Result::EQUAL; }
 
 };
@@ -79,12 +79,13 @@ struct AlascaOrderingUtils {
 
 template<class F>
 bool isFloor(F f) {
-  return forAnyNumTraits([&](auto n) { return n.isFloor(f); }); 
+  return forAnyNumTraits([&](auto n) { return n.isFloor(f); });
 }
 
 struct LAKBO {
   KBO _kbo;
   std::shared_ptr<InequalityNormalizer> _norm;
+  mutable Map<AnyAlascaTerm, Option<TermList>> _skeletons;
 
   LAKBO(KBO kbo, std::shared_ptr<InequalityNormalizer> norm) : _kbo(std::move(kbo)), _norm(std::move(norm)) {}
   LAKBO(Problem& prb, const Options& opt) : LAKBO(KBO(prb, opt), InequalityNormalizer::global()) {}
@@ -94,8 +95,8 @@ struct LAKBO {
   void show(std::ostream& out) const { return _kbo.show(out); }
 
   template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(AlascaMonom<NumTraits> const& t0, AlascaMonom<NumTraits> const& t1) const 
-  { 
+  Ordering::Result cmpSameSkeleton(AlascaMonom<NumTraits> const& t0, AlascaMonom<NumTraits> const& t1) const
+  {
     auto normAtom = [](auto t) { return AnyAlascaTerm::normalize(TypedTermList(t.atom(), NumTraits::sort())); };
     return AlascaOrderingUtils::lexLazy(
         [&](){ return cmpSameSkeleton(normAtom(t1), normAtom(t1)); },
@@ -105,8 +106,8 @@ struct LAKBO {
 
 
   template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AlascaTermItp<NumTraits> const& t1) const 
-  { 
+  Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AlascaTermItp<NumTraits> const& t1) const
+  {
     if (t0.nSummands() == 1 && t1.nSummands() == 1) {
       return cmpSameSkeleton(t0.summandAt(0), t1.summandAt(0));
     } else {
@@ -116,16 +117,16 @@ struct LAKBO {
   }
 
   template<class NumTraits>
-  Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AnyAlascaTerm const& t1) const 
+  Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AnyAlascaTerm const& t1) const
   { return cmpSameSkeleton(t0, t1.asSum<NumTraits>().unwrap()); }
 
-  Ordering::Result cmpSameSkeleton(TypedTermList t0, TypedTermList t1) const 
+  Ordering::Result cmpSameSkeleton(TypedTermList t0, TypedTermList t1) const
   { return cmpSameSkeleton(norm().normalize(t0), norm().normalize(t1)); }
 
-  Ordering::Result cmpSameSkeleton(AlascaTermItpAny const& t0, AnyAlascaTerm const& t1) const 
+  Ordering::Result cmpSameSkeleton(AlascaTermItpAny const& t0, AnyAlascaTerm const& t1) const
   { return t0.apply([&](auto& t0) { return cmpSameSkeleton(t0, t1); }); }
 
-  static Option<AlascaTermItpAny> asNonTrivialSum(AnyAlascaTerm const& t) { 
+  static Option<AlascaTermItpAny> asNonTrivialSum(AnyAlascaTerm const& t) {
     return t.asSum()
       .andThen([](auto x) -> Option<AlascaTermItpAny> {
         if(x.apply([](auto& x) {
@@ -141,7 +142,7 @@ struct LAKBO {
   Ordering::Result cmpSameSkeleton(AnyAlascaTerm const& t0, AnyAlascaTerm const& t1) const {
     if (t0 == t1) return Ordering::Result::EQUAL;
     // TODO make this nicer
-    
+
     if (auto p0 = asNonTrivialSum(t0)) {
       return cmpSameSkeleton(*p0, t1);
     } else if (auto p1 = asNonTrivialSum(t1)) {
@@ -172,9 +173,8 @@ struct LAKBO {
     }
   }
 
-
-  Option<TermList> skeleton(AlascaTermItpAny const& t) const 
-  { return t.apply([&](auto& t) { return skeleton(t); }); }
+  Option<TermList> computeSkeletonItp(AlascaTermItpAny const& t) const
+  { return t.apply([&](auto& t) { return computeSkeletonItp(t); }); }
 
   template<class Iter>
   Option<RStack<TermList>> trySkeleton(Iter iter) const {
@@ -200,30 +200,24 @@ struct LAKBO {
   { DEBUG_RESULT(lvl, msg, __VA_ARGS__) }
 
   template<class NumTraits>
-  Option<TermList> skeleton(AlascaMonom<NumTraits> const& t) const 
-  DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
-  { return skeleton(TypedTermList(t.atom(), NumTraits::sort())); }
-  )
-
-  template<class NumTraits>
-  Option<TermList> skeleton(AlascaTermItp<NumTraits> const& t) const 
-  DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
+  Option<TermList> computeSkeletonItp(AlascaTermItp<NumTraits> const& t) const
+  DEBUG_FN_RESULT(2, Output::cat("computeSkeletonItp(", t, ") = "),
   {
     if (t.nSummands() == 0) {
       return some(NumTraits::one());
     }
     if (auto summands = trySkeleton(t.iterSummands())) {
-      auto maxIter = OrderingUtils::maxElems(summands->size(), 
-          [&](auto t0, auto t1) { return _kbo.compare((*summands)[t0], (*summands)[t1]);  }, 
-          [&](auto i) { return (*summands)[i]; }, 
-          SelectionCriterion::NOT_LESS, 
+      auto maxIter = OrderingUtils::maxElems(summands->size(),
+          [&](auto t0, auto t1) { return _kbo.compare((*summands)[t0], (*summands)[t1]);  },
+          [&](auto i) { return (*summands)[i]; },
+          SelectionCriterion::NOT_LESS,
           /* dedup */ true);
       if (!maxIter.hasNext()) {
         return Option<TermList>{};
       } else {
         auto max = maxIter.next();
         if (maxIter.hasNext()) {
-          // no unique max 
+          // no unique max
           // TODO theory (?)
           return Option<TermList>{};
         } else {
@@ -236,7 +230,7 @@ struct LAKBO {
   }
   )
 
-  Option<TermList> skeleton(Term* t) const {
+  Option<TermList> computeSkeletonUF(Term* t) const {
     return trySkeleton(termArgIterTyped(t))
       .map([&](auto args) {
           if (isFloor(t->functor())) {
@@ -252,24 +246,49 @@ struct LAKBO {
       });
   }
 
-  Option<TermList> skeleton(AnyAlascaTerm const& t) const 
-  { 
+  Option<TermList> computeSkeleton(AnyAlascaTerm const& t) const
+  {
     if (auto sum = asNonTrivialSum(t)) {
-      return skeleton(*sum);
+      return computeSkeletonItp(*sum);
     } else if (t.toTerm().isVar()) {
       return some(TermList(t.toTerm()));
     } else {
-      return skeleton(t.toTerm().term());
+      return computeSkeletonUF(t.toTerm().term());
     }
   }
 
   // TODO atoms of equalities normalizing!!!
 
+  Option<TermList> skeleton(AnyAlascaTerm t) const
+  {
+    if (auto v = t.asVar()) {
+      return some(TermList(t.toTerm()));
+    } else if (auto r = _skeletons.tryGet(t)) {
+      return *r;
+    } else {
+      auto res = computeSkeleton(t);
+      _skeletons.insert(t, res);
+      return res;
+    }
+  }
+
+
+  template<class NumTraits>
+  Option<TermList> skeleton(AlascaMonom<NumTraits> const& t) const
+  { return skeleton(TypedTermList(t.atom(), NumTraits::sort())); }
+
   Option<TermList> skeleton(TypedTermList t) const
   { return skeleton(norm().normalize(t)); }
 
+  Ordering::Result compare(AnyAlascaTerm const& t0, AnyAlascaTerm const& t1) const
+  { return genericCompare(t0, t1); }
+
+  template<class NumTraits>
+  Ordering::Result compare(AlascaMonom<NumTraits> const& t0, AlascaMonom<NumTraits> const& t1) const
+  { return genericCompare(t0, t1); }
+
   template<class Term>
-  Ordering::Result compare(Term const& t0, Term const& t1) const 
+  Ordering::Result genericCompare(Term const& t0, Term const& t1) const
   DEBUG_FN_RESULT(2, Output::cat("comapre", std::tie(t0, t1), " = "),
   {
     if (t0 == t1) return Ordering::Result::EQUAL;
@@ -280,8 +299,7 @@ struct LAKBO {
     if (s0.isSome() && s1.isSome()) {
       return AlascaOrderingUtils::lexLazy(
           [&](){ return _kbo.compare(*s0, *s1); },
-          [&](){ return cmpSameSkeleton(t0, t1); }
-          );
+          [&](){ return cmpSameSkeleton(t0, t1); });
     } else {
       //TODO
       return Ordering::Result::INCOMPARABLE;
@@ -289,9 +307,12 @@ struct LAKBO {
   }
   )
 
+  Ordering::Result compare(TypedTermList const& t0, TypedTermList const& t1) const
+  { return genericCompare(AnyAlascaTerm::normalize(t0), AnyAlascaTerm::normalize(t1)); }
+
   Ordering::Result compare(TermList t1, TermList t2) const {
     if (t1.isTerm() && t2.isTerm()) { ASS_EQ(t1.term()->isSort(), t2.term()->isSort()) }
-    if ((t1.isTerm() && t1.term()->isSort()) 
+    if ((t1.isTerm() && t1.term()->isSort())
       ||(t2.isTerm() && t2.term()->isSort())) {
       return _kbo.compare(t1, t2);
     } else if (t1.isVar() && t2.isVar()) {
@@ -330,7 +351,7 @@ class LiteralOrdering
     }
   }
 
-  static Ordering::Result cmpPolarity(Literal* l0, Literal* l1) 
+  static Ordering::Result cmpPolarity(Literal* l0, Literal* l1)
   { return cmpPolarity(l0->isPositive(), l1->isPositive()); }
 
   static Ordering::Result cmpPolarity(bool p0, bool p1) {
@@ -356,15 +377,15 @@ class LiteralOrdering
     } ASSERTION_VIOLATION
   }
 
-  MultiSet<Atom> atoms(AlascaLiteralItpAny const& l) const 
+  MultiSet<Atom> atoms(AlascaLiteralItpAny const& l) const
   { return l.apply([&](auto l) { return atoms(l); }); }
 
   template<class NumTraits>
   MultiSet<Atom> atoms(AlascaLiteralItp<NumTraits> const& l1) const {
     return l1.term().iterSummands()
       .map([&](auto monom) { return std::make_tuple(
-            AnyAlascaTerm::normalize(TypedTermList(monom.atom(), NumTraits::sort())), 
-            lvl(l1.symbol()), 
+            AnyAlascaTerm::normalize(TypedTermList(monom.atom(), NumTraits::sort())),
+            lvl(l1.symbol()),
             AnyNumeral(monom.numeral())); })
       .template collect<MultiSet>();
   }
@@ -386,7 +407,7 @@ class LiteralOrdering
     return AlascaOrderingUtils::lexLazy(
             [&](){ return _termOrdering.compare(std::get<0>(a1), std::get<0>(a2)); },
             [&](){ return AlascaOrderingUtils::cmpN(std::get<1>(a1), std::get<1>(a2)); },
-            [&](){ 
+            [&](){
                   auto& n1 = std::get<2>(a1);
                   auto& n2 = std::get<2>(a2);
                   ASS_EQ(n1.tag(), n2.tag())
@@ -400,9 +421,9 @@ public:
 
   LiteralOrdering(LiteralOrdering&& kbo) = default;
   LiteralOrdering& operator=(LiteralOrdering&& kbo) = default;
-  LiteralOrdering(TermOrdering inner) 
+  LiteralOrdering(TermOrdering inner)
     : _termOrdering(std::move(inner)) { }
-  LiteralOrdering(Problem& prb, const Options& opt) 
+  LiteralOrdering(Problem& prb, const Options& opt)
     : LiteralOrdering(TermOrdering(prb, opt)) { }
 
   virtual ~LiteralOrdering() {}
@@ -430,10 +451,10 @@ public:
     }
   }
 
-  Result compare(TermList t1, TermList t2) const final override 
+  Result compare(TermList t1, TermList t2) const final override
   { return _termOrdering.compare(t1, t2); }
 
-  void show(std::ostream& out) const final override 
+  void show(std::ostream& out) const final override
   { _termOrdering.show(out); }
 
 private:

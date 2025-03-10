@@ -70,7 +70,7 @@ namespace Kernel {
     auto asTuple() const { return std::make_tuple(_self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
-    Option<TypedTermList> asVar() const  { ASS(_self.isVar()) return {}; }
+    Option<TypedTermList> asVar() const  { ASS(!_self.isVar()) return {}; }
     friend std::ostream& operator<<(std::ostream& out, Self const& self)
     { return out << TermList(self._self); }
   };
@@ -195,6 +195,7 @@ namespace Kernel {
     TermList sort() const { return _self.sort(); }
     static __AlascaTermVar normalize(TypedTermList t) { return __AlascaTermVar(t); }
     TypedTermList toTerm() const { return _self; }
+    Option<TypedTermList> asVar() const { return some(_self); }
     using Self = __AlascaTermVar;
     auto asTuple() const { return std::tie(_self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self)
@@ -270,8 +271,16 @@ namespace Kernel {
       } 
       return Out(*this);
     }
+
+
+    Option<TypedTermList> asVar() const { 
+      return match([&](auto& x) { return x->asVar(); },
+                   [&](auto& x) { return x.asVar(); }); }
     IMPL_COMPARISONS_FROM_TUPLE(AlascaTermRepr);
     IMPL_HASH_FROM_TUPLE(AlascaTermRepr);
+
+    friend std::ostream& operator<<(std::ostream& out, AlascaTermRepr const& self)
+    { self.applyWithIdx([&](auto& t, auto N) { out << Output::ptr(t); }); return out; }
   };
 
   
@@ -505,11 +514,14 @@ namespace Kernel {
     { return asSum().andThen([](auto x) {
           return x.template as<AlascaTermItp<NumTraits>>().toOwned(); }); }
 
+    auto asVar() const { return _self._self.asVar(); }
 
     using Self = AnyAlascaTerm;
     auto asTuple() const { return std::make_tuple(_self._self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
+    friend std::ostream& operator<<(std::ostream& out, AnyAlascaTerm const& self)
+    { return out << self._self._self; }
   };
 
 } // namespace Kernel

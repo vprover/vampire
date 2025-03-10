@@ -76,6 +76,8 @@ public:
     {
       return (this->posIneq.size() != 0 && this->negIneq.size() == 0 && this->eq.size() == 0 && this->neq.size() == 0)
           || (this->posIneq.size() == 0 && this->negIneq.size() != 0 && this->eq.size() == 0 && this->neq.size() == 0); }
+    friend std::ostream& operator<<(std::ostream& out, FoundVariable const& self)
+    { return out << "FoundVariable"; }
   };
 
 

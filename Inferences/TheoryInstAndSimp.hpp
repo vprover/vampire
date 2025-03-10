@@ -119,6 +119,8 @@ private:
       SortedConstantCache() : _used(0), _constants() {}
       void reset();
       Term* freshConstant(const char* prefix, SortId sort);
+      friend std::ostream& operator<<(std::ostream& out, SortedConstantCache const& self)
+      { return out << "SortedConstantCache"; }
     };
 
     const char* _prefix;
