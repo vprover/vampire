@@ -47,12 +47,6 @@
 namespace Kernel {
   class AlascaTermCache;
 
-#define OPS_FROM_TO_TERM(Type)                                                            \
-  auto asTuple() const { return std::tuple(toTerm()); }                                   \
-  IMPL_COMPARISONS_FROM_TUPLE(Type)                                                       \
-  IMPL_HASH_FROM_TUPLE(Type)                                                              \
-  friend std::ostream& operator<<(std::ostream& out, Type const& self) { return out << self.toTerm(); } \
-
   struct __AlascaTermUF {
     TypedTermList _self;
     __AlascaTermUF(TypedTermList t) 
@@ -511,7 +505,11 @@ namespace Kernel {
     { return asSum().andThen([](auto x) {
           return x.template as<AlascaTermItp<NumTraits>>().toOwned(); }); }
 
-    OPS_FROM_TO_TERM(AnyAlascaTerm);
+
+    using Self = AnyAlascaTerm;
+    auto asTuple() const { return std::make_tuple(_self._self); }
+    IMPL_COMPARISONS_FROM_TUPLE(Self);
+    IMPL_HASH_FROM_TUPLE(Self);
   };
 
 } // namespace Kernel
