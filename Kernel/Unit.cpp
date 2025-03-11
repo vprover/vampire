@@ -88,6 +88,13 @@ void Unit::doUnitTracing() {
     }
     if (doTrace) {
       std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
+      if (isSimplifyingInferenceRule(inference().rule())) {
+        auto infit = inference().iterator();
+        if (inference().next(infit)->number() == unsigned(traceFwd)) {
+          /* the clause was simplified away, we continue tracing its replacement */
+          traceFwd = number();
+        }
+      }
     }
   }
 #endif // VAMPIRE_CLAUSE_TRACING
