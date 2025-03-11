@@ -148,6 +148,9 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   case Options::TermOrdering::QKBO:
     out = NEW_ORD(QKbo, prb, opt);
     break;
+  case Options::TermOrdering::SKEL:
+    out = NEW_ORD(Kernel::SkelOrd<Kernel::KBO>, prb, opt);
+    break;
   case Options::TermOrdering::LAKBO:
     out = NEW_ORD(Kernel::LiteralOrdering<Kernel::LAKBO>, prb, opt);
     break;

@@ -522,7 +522,8 @@ public:
     LPO = 1,
     QKBO = 2,
     LAKBO = 3,
-    ALL_INCOMPARABLE = 4,
+    SKEL = 4,
+    ALL_INCOMPARABLE = 5,
   };
 
   enum class SymbolPrecedence : unsigned int {

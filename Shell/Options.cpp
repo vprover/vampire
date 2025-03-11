@@ -2360,7 +2360,7 @@ void Options::init()
     _activationLimit.tag(OptionTag::SATURATION);
 
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
-                                                    {"kbo","lpo","qkbo", "lakbo", "incomp"});
+                                                    {"kbo","lpo","qkbo", "lakbo", "skel", "incomp"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
       "\n"
       "possible values:\n"
@@ -2368,6 +2368,7 @@ void Options::init()
       "- lpo: Lexicographical Path Ordering\n"
       "- qkbo: QKBO ordering as described in the TACAS 2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n"
       "- lakbo: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
+      "- skel: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
       ;
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());
     _termOrdering.tag(OptionTag::SATURATION);
