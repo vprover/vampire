@@ -411,7 +411,7 @@ struct AlascaAxioms {
    
  
   template<class NumTraits>
-  static void addNonLinearAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax) {
+  static void addNonLinearAxioms(NumTraits num, Problem& prb, Property& prop, TheoryAxioms& ax) {
     AXIOM_CONTEXT
     addAx({num.eq(true, mul(x,mul(y,z)), mul(mul(x,y),z))});
     addAx({num.eq(true, mul(x,y), mul(y,x))});
@@ -427,7 +427,9 @@ struct AlascaAxioms {
     // <=>  x >= 0 \/  y - z >= 0 \/ x * y - x * z > 0
     addAx({ geq(x), geq(add(y, minus(z))), greater(add(mul(x,y), minus(mul(x,z)))) });
 
-    addAx({ num.eq(true, floor(mul(floor(x), floor(y))), mul(floor(x), floor(y))) });
+    if (prop.hasInterpretedOperation(num.floorI)) {
+      addAx({ num.eq(true, floor(mul(floor(x), floor(y))), mul(floor(x), floor(y))) });
+    }
   }
 
   template<class NumTraits>
@@ -435,7 +437,7 @@ struct AlascaAxioms {
   {
     Property* prop = prb.getProperty();
     if (prop->isNonLinear<typename NumTraits::ConstantType>()) {
-      addNonLinearAxioms(num, prb, ax);
+      addNonLinearAxioms(num, prb, *prop, ax);
     }
   }
 };
