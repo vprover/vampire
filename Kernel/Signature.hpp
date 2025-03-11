@@ -539,10 +539,12 @@ class Signature
    */
   unsigned addStringConstant(const std::string& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addFreshFunction2(unsigned arity, const char* prefix, const char* suffix = "");
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0, bool computable = false);
   unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
+  unsigned addFreshPredicate2(unsigned arity, const char* prefix, const char* suffix = "");
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
   unsigned addNameFunction(unsigned arity);

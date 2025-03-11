@@ -743,6 +743,27 @@ unsigned Signature::addNameFunction(unsigned arity)
  * prefixI_suffix. The new function will be marked as skip for the purpose of equality
  * elimination.
  */
+unsigned Signature::addFreshFunction2(unsigned arity, const char* prefix, const char* suffix)
+{
+  bool added;
+  unsigned result = addFunction(Output::toString(prefix, suffix), arity, added);
+  auto i = 0;
+  while(!added) {
+    result = addFunction(Output::toString(prefix, i++, suffix), arity, added);
+  }
+  Symbol* sym = getFunction(result);
+  sym->markIntroduced();
+  sym->markSkip();
+  return result;
+} // addFreshFunction
+
+
+/**
+ * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
+ * the function name will be prefixI, where I is an integer, otherwise it will be
+ * prefixI_suffix. The new function will be marked as skip for the purpose of equality
+ * elimination.
+ */
 unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const char* suffix)
 {
   std::string pref(prefix);
@@ -790,6 +811,27 @@ unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix, const ch
   sym->markSkip();
   return result;
 } // addFreshFunction
+
+/**
+ * Add fresh predicate of a given arity and with a given prefix. If suffix is non-zero,
+ * the predicate name will be prefixI, where I is an integer, otherwise it will be
+ * prefixI_suffix. The new predicate will be marked as skip for the purpose of equality
+ * elimination.
+ */
+unsigned Signature::addFreshPredicate2(unsigned arity, const char* prefix, const char* suffix)
+{
+  bool added = false;
+  unsigned result = addPredicate(Output::toString(prefix, suffix), arity, added);
+  auto i = 0;
+  while(!added) {
+    result = addPredicate(Output::toString(prefix, i++, suffix), arity, added);
+  }
+  Symbol* sym = getPredicate(result);
+  sym->markIntroduced();
+  sym->markSkip();
+  return result;
+} // addFreshPredicate
+
 
 /**
  * Add fresh predicate of a given arity and with a given prefix. If suffix is non-zero,
