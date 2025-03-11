@@ -397,7 +397,7 @@ struct AlascaAxioms {
     auto z = TermList::var(2);                                                            \
     auto addAx = [&](std::initializer_list<Literal*> clause) {                            \
       ax.addTheoryClauseFromLits(clause,                                                  \
-          InferenceRule::THA_ALASCA, TheoryAxioms::EXPENSIVE);                             \
+          InferenceRule::THA_ALASCA, TheoryAxioms::EXPENSIVE);                            \
     };                                                                                    \
     auto add = [&](auto l, auto r) -> TermList { return num.add(l,r); };                  \
     auto mul = [&](auto l, auto r) -> TermList { return num.mul(l,r); };                  \
@@ -406,6 +406,7 @@ struct AlascaAxioms {
     auto geq     = [&](TermList x) { return num.geq    (true, x, numeral(0)); };          \
     auto minus   = [&](auto x) -> TermList { return num.minus(x); };                      \
     auto floor   = [&](auto x) -> TermList { return num.floor(x); };                      \
+    auto isInt   = [&](auto x) -> Literal* { return num.isInt(x); };                      \
   )
    
  
@@ -425,6 +426,8 @@ struct AlascaAxioms {
     // <=>  x >= 0 \/  y >= z \/ x * y > x * z
     // <=>  x >= 0 \/  y - z >= 0 \/ x * y - x * z > 0
     addAx({ geq(x), geq(add(y, minus(z))), greater(add(mul(x,y), minus(mul(x,z)))) });
+
+    addAx({ num.eq(true, floor(mul(floor(x), floor(y))), mul(floor(x), floor(y))) });
   }
 
   template<class NumTraits>
