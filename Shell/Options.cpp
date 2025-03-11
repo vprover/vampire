@@ -1267,7 +1267,13 @@ void Options::init()
     _pushUnaryMinus.addProblemConstraint(hasTheories());
     _pushUnaryMinus.tag(OptionTag::THEORIES);
 
-    auto addRecommendationConstraint = [](auto& opt, auto constr) { };
+    auto addRecommendationConstraint = [](auto& opt, auto constr) {
+      // MS: TODO: implement meaninful soft warnings / reminsders to the effect
+      // -- this option should best be combined with those values of those other options
+      // -- however, note that with alasca on by default but silently disable when runnining on non-arith problems
+      //    the warnings should only appear when alasca really kicks in, i.e.
+      //    only when "env.options->alasca() && prb.hasAlascaArithmetic()"
+    };
 
     _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",true);
     _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n";
