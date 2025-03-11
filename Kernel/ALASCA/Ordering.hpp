@@ -831,9 +831,6 @@ public:
       return Ordering::LESS;
 
     } else if (atoms1.isSome() && atoms2.isSome()) {
-      DBGE(atoms1)
-      DBGE(atoms2)
-      DBG("")
 
       return AlascaOrderingUtils::lexLazy(
             [&](){ return OrderingUtils::mulExt(*atoms1, *atoms2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
