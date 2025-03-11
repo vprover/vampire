@@ -110,6 +110,10 @@ namespace Kernel {
     Literal* toLiteral() const { return _self->unwrap<__AlascaLiteralUF>().toLiteral(_self); }
     friend std::ostream& operator<<(std::ostream& out, AlascaLiteralUF const& self)
     { return out << self._self; }
+    auto asTuple() const { return _self; }
+    using Self = AlascaLiteralUF;
+    IMPL_COMPARISONS_FROM_TUPLE(Self);
+    IMPL_HASH_FROM_TUPLE(Self);
   };
 
   /** 
@@ -208,6 +212,9 @@ namespace Kernel {
     template<class F>
     auto apply(F f) const -> decltype(auto) { return _self.apply(f); }
 
+    template<class T>
+    auto unwrap() const -> decltype(auto) { return _self.template unwrap<T>(); }
+
     
     template<class NumTraits>
     static Option<AlascaLiteralItpAny> asItp(AlascaLiteralItp<NumTraits> const& n) { return some(AlascaLiteralItpAny(n)); }
@@ -222,6 +229,8 @@ namespace Kernel {
     auto asTuple() const { return apply([](auto x) { return x.toCache(); }); }
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
+    friend std::ostream& operator<<(std::ostream& out, AlascaLiteral const& self)
+    { return out << self._self; }
   };
 
 
@@ -297,7 +306,7 @@ namespace Kernel {
     }
 
     // TODO remove InequalityNormalizer (?)
-    AnyAlascaTerm normalize(TypedTermList term) const
+    static AnyAlascaTerm normalize(TypedTermList term)
     { return AnyAlascaTerm::normalize(term); }
 
   private:
@@ -341,7 +350,7 @@ namespace Kernel {
   public:
 
     template<class NumTraits> 
-    Option<__AlascaLiteralItp<NumTraits>> computeNormalizedItp(Literal* lit) const
+    static Option<__AlascaLiteralItp<NumTraits>> computeNormalizedItp(Literal* lit)
     {
       DEBUG_NORM(0, "in: ", *lit, " (", NumTraits::name(), ")")
       using ASig = AlascaSignature<NumTraits>;
@@ -462,16 +471,16 @@ namespace Kernel {
     }
 
     template<class NumTraits> 
-    Option<AlascaLiteralItp<NumTraits>> tryNormalizeInterpreted(Literal* lit) const
+    static Option<AlascaLiteralItp<NumTraits>> tryNormalizeInterpreted(Literal* lit)
     { return tryNormalizeInterpreted(lit)
         .andThen([&](auto x) { return x.template as<AlascaLiteralItp<NumTraits>>().toOwned(); }); }
 
     template<class NumTraits> 
-    Option<AlascaLiteralItp<NumTraits>> normalize(Literal* l) const
+    static Option<AlascaLiteralItp<NumTraits>> normalize(Literal* l)
     { return tryNormalizeInterpreted<NumTraits>(l); }
 
 
-    AlascaLiteralCache computeNormalized(Literal* lit) const  {
+    static AlascaLiteralCache computeNormalized(Literal* lit) {
       auto itp = tryNumTraits([&](auto n) {
           return computeNormalizedItp<decltype(n)>(lit)
             .map([](auto norm) { return AlascaLiteralCache(std::move(norm)); });
@@ -490,7 +499,7 @@ namespace Kernel {
     }
 
 
-    AlascaLiteral normalize(Literal* lit) const 
+    static AlascaLiteral normalize(Literal* lit)
     {
       auto cache = lit->getAlascaTermCache<AlascaLiteralCache>();
       if (cache == nullptr) {
@@ -502,7 +511,7 @@ namespace Kernel {
 
     }
 
-    Option<AlascaLiteralItpAny> tryNormalizeInterpreted(Literal* lit) const
+    static Option<AlascaLiteralItpAny> tryNormalizeInterpreted(Literal* lit)
     { return normalize(lit).asItp().toOwned(); }
 
     bool equivalent(TermList lhs, TermList rhs) 

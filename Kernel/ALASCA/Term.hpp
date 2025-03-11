@@ -492,6 +492,8 @@ namespace Kernel {
     AnyAlascaTerm(C inner) : _self(std::move(inner)) {}
     static AlascaTermCache const* computeNormalization(Term* t, TermList sort);
   public:
+    template<class NumTraits>
+    explicit AnyAlascaTerm(AlascaTermItp<NumTraits> self) : _self(self._self) {}
 
     static AnyAlascaTerm normalize(TypedTermList t);
 
