@@ -18,6 +18,7 @@
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/Theory.hpp"
 
 #define DEBUG_TRANSLATION(...) // DBG(__VA_ARGS__)
 
@@ -95,6 +96,18 @@ class AlascaPreprocessor
       .apply(t);
   }
 
+#define TRANSLATE_ARRAY(PredicateOrFunction, fnPredType, itp)                             \
+  {                                                                                       \
+        if (theory->isInterpreted ## PredicateOrFunction(f, itp)) {                       \
+          auto sym = env.signature->get ## PredicateOrFunction(f);                        \
+          auto arraySort = theory->getArraySort(sym->fnPredType(), itp);                  \
+          ASS(arraySort.isTerm())                                                         \
+          ASS(env.signature->isArrayCon(arraySort.term()->functor()))                     \
+          auto newArraySort = integerConversion(TypedTermList(arraySort, AtomicSort::superSort())); \
+          return env.signature->addInterpreted ## PredicateOrFunction(itp, theory->getArrayOperatorType(newArraySort, itp), sym->name()); \
+        }                                                                                 \
+  }
+
   unsigned integerPredicateConversion(unsigned f)
   {
 
@@ -106,6 +119,8 @@ class AlascaPreprocessor
       if (Z::isGreater(f)) return R::greaterF();
       if (Z::isGeq(f)) return R::geqF();
       // TODO divides
+
+      TRANSLATE_ARRAY(Predicate, predType, Theory::ARRAY_BOOL_SELECT)
 
       auto sym = env.signature->getPredicate(f);
       auto ty = sym->predType();
@@ -151,6 +166,9 @@ class AlascaPreprocessor
       ASS_NOT(Theory::INT_ROUND)
       ASS_NOT(Theory::INT_ABS)
 #undef ASS_NOT
+
+      TRANSLATE_ARRAY(Function, fnType, Theory::ARRAY_SELECT)
+      TRANSLATE_ARRAY(Function, fnType, Theory::ARRAY_STORE)
 
       auto sorts_changed = false;
       auto intConv= [&](auto x) { 

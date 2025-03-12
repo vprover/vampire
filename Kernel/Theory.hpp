@@ -546,6 +546,7 @@ public:
   static bool isInequality(Interpretation i);
   static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
 
+  static TermList getArraySort(OperatorType* signature, Interpretation i);
   static OperatorType* getArrayOperatorType(TermList arraySort, Interpretation i);
 
   static bool hasSingleSort(Interpretation i);
