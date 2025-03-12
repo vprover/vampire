@@ -158,10 +158,14 @@ void Preprocess::preprocess(Problem& prb)
       Stack<Clause*> out;
       if (unit->isClause()) {
         out.push(static_cast<Clause*>(unit));
-      } else if (useNewCnf) {
-        ncnf.clausify(unit, out);
       } else {
-        cnf.clausify(unit, out);
+        auto fu = static_cast<FormulaUnit*>(unit);
+        fu = Flattening::flatten(NNF::ennf(fu));
+        if (useNewCnf) {
+          ncnf.clausify(fu, out);
+        } else {
+          cnf.clausify(preprocess3(fu, prb.isHigherOrder()), out);
+        }
       }
       return out;
    });
