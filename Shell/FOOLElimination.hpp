@@ -38,8 +38,8 @@ public:
   /** Check if the unit contains expressions that are not syntactically first-order */
   static bool needsElimination(FormulaUnit* unit);
 
-private:
   FormulaUnit* apply(FormulaUnit* fu);
+private:
 
   /** The currently processed unit */
   Unit* _unit;
