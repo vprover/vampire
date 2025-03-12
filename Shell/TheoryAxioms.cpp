@@ -964,22 +964,7 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
 //axiom( (X1!=zero) --> (idiv(X0,X1)+X2==idiv(X0+(X1*X2),X1)) );
 
 
-/**
- * Add theory axioms to the @b problem that are relevant to
- * units present in the problem. The problem must have been processed
- * by the InterpretedNormalizer before using this rule
- *
- * @since 11/11/2013, Manchester: bug fixes
- * @author Andrei Voronkov
- */
-void TheoryAxioms::apply()
-{
-  if (env.options->alasca()) {
-    addAlascaAxioms();
-    return;
-  }
-  Property* prop = _prb.getProperty();
-  bool modified = false;
+void TheoryAxioms::addNonAlascaArithmeticAxioms(Property* prop, bool& modified) {
   bool haveIntPlus =
     prop->hasInterpretedOperation(Theory::INT_PLUS) ||
     prop->hasInterpretedOperation(Theory::INT_UNARY_MINUS) ||
@@ -1123,6 +1108,9 @@ void TheoryAxioms::apply()
 
     modified = true;
   }
+}
+
+void TheoryAxioms::addArrayAxioms(Property* prop, bool& modified) {
 
   DHSet<TermList>* arraySorts = env.sharing->getArraySorts();
   DHSet<TermList>::Iterator it(*arraySorts);
@@ -1135,7 +1123,6 @@ void TheoryAxioms::apply()
     Interpretation arraySelect = isBool ? Theory::ARRAY_BOOL_SELECT : Theory::ARRAY_SELECT;
     bool haveSelect = prop->hasInterpretedOperation(arraySelect,Theory::getArrayOperatorType(arraySort,arraySelect));
     bool haveStore = prop->hasInterpretedOperation(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
-
     if (haveSelect || haveStore) {
       unsigned sk = theory->getArrayExtSkolemFunction(arraySort);
       if (isBool) {
@@ -1153,6 +1140,8 @@ void TheoryAxioms::apply()
       modified = true;
     }
   }
+}
+void TheoryAxioms::addTermAlgebraAxioms(Property* prop, bool& modified) {
 
   VirtualIterator<TermAlgebra*> tas = env.signature->termAlgebrasIterator();
   while (tas.hasNext()) {
@@ -1171,6 +1160,31 @@ void TheoryAxioms::apply()
 
     modified = true;
   }
+
+
+}
+
+/**
+ * Add theory axioms to the @b problem that are relevant to
+ * units present in the problem. The problem must have been processed
+ * by the InterpretedNormalizer before using this rule
+ *
+ * @since 11/11/2013, Manchester: bug fixes
+ * @author Andrei Voronkov
+ */
+void TheoryAxioms::apply()
+{
+  Property* prop = _prb.getProperty();
+  bool modified = false;
+  if (env.options->alasca()) {
+    addAlascaAxioms();
+  } else {
+    addNonAlascaArithmeticAxioms(prop, modified);
+  } 
+
+  addArrayAxioms(prop, modified);
+
+  addTermAlgebraAxioms(prop, modified);
 
   if(modified) {
     _prb.reportEqualityAdded(false);

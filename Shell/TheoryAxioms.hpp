@@ -41,6 +41,9 @@ static unsigned const CHEAP = 0;
 static unsigned const EXPENSIVE = 1;
 
   void apply();
+  void addNonAlascaArithmeticAxioms(Property* prop, bool& modified);
+  void addTermAlgebraAxioms(Property* prop, bool& modified);
+  void addArrayAxioms(Property* prop, bool& modified);
 
   /**
    * There is a separate method for adding the FOOL domain axiom because unlike

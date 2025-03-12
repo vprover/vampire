@@ -1275,6 +1275,10 @@ std::string Theory::getInterpretationName(Interpretation interp) {
   }
 }
 
+TermList Theory::getArraySort(OperatorType* signature, Interpretation i) {
+  return signature->arg(0);
+}
+
 OperatorType* Theory::getArrayOperatorType(TermList arraySort, Interpretation i) {
   ASS(arraySort.isArraySort());
 
