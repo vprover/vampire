@@ -160,7 +160,7 @@ void Preprocess::preprocess(Problem& prb)
         out.push(static_cast<Clause*>(unit));
       } else {
         auto fu = static_cast<FormulaUnit*>(unit);
-        fu = Flattening::flatten(NNF::ennf(fu));
+        fu = Flattening::flatten(NNF::ennf(FOOLElimination().apply(fu)));
         if (useNewCnf) {
           ncnf.clausify(fu, out);
         } else {

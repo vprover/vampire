@@ -493,7 +493,7 @@ unsigned Clause::computeWeight() const
 {
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    ASS(_literals[i]->shared());
+    ASS_REP(_literals[i]->shared(), *_literals[i]);
     result += _literals[i]->weight();
   }
 
