@@ -910,7 +910,7 @@ void SaturationAlgorithm::runGnnOnInput()
 
   // these guy must survive (in memory) until the gnnPerform call
   torch::Tensor sort_features = torch::empty({_numSorts,3}, torch::kFloat32);
-  torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,10}, torch::kFloat32);
+  torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,11}, torch::kFloat32);
 
   // sorts
   {
@@ -955,6 +955,7 @@ void SaturationAlgorithm::runGnnOnInput()
       (*symbol_features_ptr++) = symb->introduced();
       (*symbol_features_ptr++) = symb->skolem();
       (*symbol_features_ptr++) = symb->interpretedNumber();
+      (*symbol_features_ptr++) = 1; // function symbol (KBO) weight
       add_arity_symbol_features(symb->arity());
 
       //cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem()
@@ -990,6 +991,7 @@ void SaturationAlgorithm::runGnnOnInput()
       (*symbol_features_ptr++) = symb->introduced();
       (*symbol_features_ptr++) = symb->skolem();
       (*symbol_features_ptr++) = symb->interpretedNumber();
+      (*symbol_features_ptr++) = _ordering->functionSymbolWeight(f);
       add_arity_symbol_features(symb->arity());
 
       //cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem()

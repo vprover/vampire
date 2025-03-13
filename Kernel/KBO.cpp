@@ -879,6 +879,11 @@ OrderingComparatorUP KBO::createComparator() const
   return make_unique<KBOComparator>(*this);
 }
 
+int KBO::functionSymbolWeight(unsigned functor) const
+{
+  return _funcWeights.symbolWeight(functor);
+}
+
 int KBO::symbolWeight(const Term* t) const
 {
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__

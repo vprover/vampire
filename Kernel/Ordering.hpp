@@ -114,6 +114,8 @@ public:
   virtual void sortArrayByTypeConPrecedence(DArray<unsigned>&) const {}
   // PrecedenceOrderings will know how to do this (general Ordering just leaves the given array intact)
 
+  virtual int functionSymbolWeight(unsigned functor) const { return 1; }; // default weight is 1 (even for LPO, for which the concept, strictly speaking, does not make sense)
+
   static bool isGreaterOrEqual(Result r) { return (r == GREATER || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;

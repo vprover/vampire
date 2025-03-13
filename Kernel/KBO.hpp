@@ -164,6 +164,8 @@ public:
   Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const override;
   OrderingComparatorUP createComparator() const override;
 
+  int functionSymbolWeight(unsigned functor) const override;
+
 protected:
   unsigned computeWeight(AppliedTerm tt) const;
 
@@ -172,7 +174,6 @@ protected:
   friend struct OrderingComparator;
   friend class KBOComparator;
 
-  // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;
 
 private:
