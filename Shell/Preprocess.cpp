@@ -92,7 +92,9 @@ void Preprocess::preprocess(Problem& prb)
 
   // resolve away auto value before accessing it
   if (_options.questionAnswering() == Options::QuestionAnsweringMode::AUTO) {
-    env.options->setQuestionAnswering(Parse::TPTP::seenQuestions() ? Options::QuestionAnsweringMode::PLAIN : Options::QuestionAnsweringMode::OFF);
+    env.options->setQuestionAnswering(
+        (Parse::TPTP::seenQuestions() && env.options->saturationAlgorithm() != Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ) ?
+          Options::QuestionAnsweringMode::PLAIN : Options::QuestionAnsweringMode::OFF);
   }
 
   if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
