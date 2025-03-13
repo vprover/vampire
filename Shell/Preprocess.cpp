@@ -60,6 +60,8 @@
 
 #include "Kernel/TermIterators.hpp"
 
+#include "Parse/TPTP.hpp"
+
 using namespace std;
 using namespace Shell;
 
@@ -86,6 +88,11 @@ void Preprocess::preprocess(Problem& prb)
       Unit* u = uit.next();
       std::cout << "[PP] input: " << u->toString() << std::endl;
     }
+  }
+
+  // resolve away auto value before accessing it
+  if (_options.questionAnswering() == Options::QuestionAnsweringMode::AUTO) {
+    env.options->setQuestionAnswering(Parse::TPTP::seenQuestions() ? Options::QuestionAnsweringMode::PLAIN : Options::QuestionAnsweringMode::OFF);
   }
 
   if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {

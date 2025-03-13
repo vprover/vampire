@@ -446,9 +446,10 @@ public:
   };
 
   enum class QuestionAnsweringMode : unsigned int {
-    PLAIN = 0,
-    SYNTHESIS = 1,
-    OFF = 2
+    AUTO = 0,
+    PLAIN = 1,
+    SYNTHESIS = 2,
+    OFF = 3
   };
 
   enum class InterpolantMode : unsigned int {

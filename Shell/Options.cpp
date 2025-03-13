@@ -2324,8 +2324,8 @@ void Options::init()
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
-    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
-                                                                  {"plain","synthesis","off"});
+    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
+                                                                  {"auto","plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
        " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
     _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(ProperSaturationAlgorithm()));

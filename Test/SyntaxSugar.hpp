@@ -174,6 +174,7 @@
     auto minus = FuncSugar(NumTraits::minusF());                                          \
     auto floor = FuncSugar(NumTraits::floorF());                                          \
     auto ceil = [&](auto t) { return minus(floor(minus(t))); };                           \
+    auto toReal = FuncSugar(NumTraits::toRealF());                                        \
     auto Sort = SortSugar(NumTraits::sort());                                             \
   )                                                                                       \
 
