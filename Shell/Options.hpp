@@ -70,14 +70,15 @@ class Property;
  */
 class Options
 {
+private:
+  // MS: I don't think we need the public to copy Options objects
+  Options(const Options& that);
+  Options& operator=(const Options& that);
 public:
-
     Options ();
     // It is important that we can safely copy Options for use in CASC mode
     void init();
     void copyValuesFrom(const Options& that);
-    Options(const Options& that);
-    Options& operator=(const Options& that);
 
     // used to print help and options
     void output (std::ostream&) const;
