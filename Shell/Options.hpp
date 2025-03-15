@@ -88,6 +88,9 @@ public:
     void readOptionsString (std::string testId,bool assign=true);
     std::string generateEncodedOptions() const;
 
+    // compile away auto-values; called BEFORE preprocessing
+    void resolveAwayAutoValues0();
+
     // deal with completeness
     bool complete(const Problem&) const;
 

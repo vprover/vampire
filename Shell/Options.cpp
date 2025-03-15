@@ -53,6 +53,8 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Options.hpp"
 #include "Property.hpp"
 
@@ -3465,6 +3467,20 @@ std::string Options::generateEncodedOptions() const
   return res.str();
 }
 
+/**
+ * Some options have auto-values,
+ * which should be resolved away BEFORE preprocessing.
+ *
+ * @since 9/03/2025 Prague
+ */
+void Options::resolveAwayAutoValues0()
+{
+  if (questionAnswering() == Options::QuestionAnsweringMode::AUTO) {
+    setQuestionAnswering(
+        (Parse::TPTP::seenQuestions() && saturationAlgorithm() != Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ) ?
+          Options::QuestionAnsweringMode::PLAIN : Options::QuestionAnsweringMode::OFF);
+  }
+}
 
 /**
  * True if the options are complete.
