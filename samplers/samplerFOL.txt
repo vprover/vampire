@@ -102,8 +102,8 @@ sa=lrs > lwlo ~cat off:5,on:1
 sa=lrs > lrd ~cat off:3,on:1
 
 # lrs_preemptive_deletes - this is the core of LRS (neural guidance doesn't like it though)
-npcc=off sa=lrs > lrd ~cat off:1,on:10
-npcc=on sa=lrs > lrd ~cat off:3,on:1
+npcc=off sa=lrs > lpd ~cat off:1,on:10
+npcc=on sa=lrs > lpd ~cat off:3,on:1
 
 # lrs_estimate_correction_coef
 # > $lecc ~cat 1:1
