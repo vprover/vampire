@@ -76,6 +76,8 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
+  env.options->resolveAwayAutoValues0();
+
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }

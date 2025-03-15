@@ -78,14 +78,15 @@ class Property;
  */
 class Options
 {
+private:
+  // MS: I don't think we need the public to copy Options objects
+  Options(const Options& that);
+  Options& operator=(const Options& that);
 public:
-
     Options ();
     // It is important that we can safely copy Options for use in CASC mode
     void init();
     void copyValuesFrom(const Options& that);
-    Options(const Options& that);
-    Options& operator=(const Options& that);
 
     // used to print help and options
     void output (std::ostream&) const;
@@ -95,6 +96,8 @@ public:
     void readOptionsString (std::string testId,bool assign=true);
     std::string generateEncodedOptions() const;
 
+    // compile away auto-values; called BEFORE preprocessing
+    void resolveAwayAutoValues0();
     // compile away auto-values; called after preprocessing, when Problem's prop reflect precise state of affairs
     void resolveAwayAutoValues(const Problem&);
 
@@ -478,9 +481,10 @@ public:
   };
 
   enum class QuestionAnsweringMode : unsigned int {
-    PLAIN = 0,
-    SYNTHESIS = 1,
-    OFF = 2
+    AUTO = 0,
+    PLAIN = 1,
+    SYNTHESIS = 2,
+    OFF = 3
   };
 
   enum class InterpolantMode : unsigned int {

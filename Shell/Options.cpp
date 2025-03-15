@@ -53,6 +53,8 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Options.hpp"
 #include "Property.hpp"
 
@@ -2306,11 +2308,12 @@ void Options::init()
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
-    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
-                                                                  {"plain","synthesis","off"});
+    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
+                                                                  {"auto","plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
        " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
-    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(ProperSaturationAlgorithm()));
+    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
+    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
@@ -3560,6 +3563,20 @@ std::string Options::generateEncodedOptions() const
   return res.str();
 }
 
+/**
+ * Some options have auto-values,
+ * which should be resolved away BEFORE preprocessing.
+ *
+ * @since 9/03/2025 Prague
+ */
+void Options::resolveAwayAutoValues0()
+{
+  if (questionAnswering() == Options::QuestionAnsweringMode::AUTO) {
+    setQuestionAnswering(
+        (Parse::TPTP::seenQuestions() && saturationAlgorithm() != Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ) ?
+          Options::QuestionAnsweringMode::PLAIN : Options::QuestionAnsweringMode::OFF);
+  }
+}
 
 /**
  * Some options have auto-values, which should be resolved away

@@ -589,7 +589,7 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
   ASS_GE(sliceTime,0);
   try
   {
-    Options opt = *env.options;
+    Options& opt = *env.options;
 
     // opt.randomSeed() would normally be inherited from the parent
     // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;
@@ -620,17 +620,15 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
 /**
  * Run a slice given by its options
  */
-void PortfolioMode::runSlice(Options& strategyOpt)
+void PortfolioMode::runSlice(Options& opt)
 {
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
 
-  Options opt = strategyOpt;
   //we have already performed the normalization (or don't care about it)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
   if (outputAllowed()) {
     addCommentSignForSZS(cout) << opt.testId() << " on " << opt.problemName() <<
