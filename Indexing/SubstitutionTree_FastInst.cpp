@@ -55,10 +55,8 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() override
+  bool isIdentityOnResultWhenQueryBound() final override
   { return true; }
-
-  
 
   virtual void output(std::ostream& out) const final override 
   { out << "InstMatcher::Substitution(<output unimplemented>)"; }

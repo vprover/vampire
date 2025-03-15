@@ -19,6 +19,7 @@
 
 #include <iostream>
 
+#include "Forwards.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -38,6 +39,7 @@ namespace Kernel {
 };
 
 namespace Parse {
+  using namespace Kernel;
 
 /**
  * Implements a TPTP parser

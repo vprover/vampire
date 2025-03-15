@@ -9,6 +9,7 @@
  */
 
 
+#include "Kernel/ALASCA/State.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
@@ -22,7 +23,9 @@
 #include "Test/TestUtils.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Kernel/KBO.hpp"
+#include <memory>
 
 using namespace std;
 using namespace Kernel;
@@ -37,12 +40,14 @@ using namespace Test;
 
 class SimplificationTester : public Test::Simplification::SimplificationTester
 {
+  std::shared_ptr<AlascaState> _state;
 public:
+  SimplificationTester() : _state(testAlascaState()) {}
 
-  // virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
-  // { return TestUtils::eqModACVar(lhs, rhs); }
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const override
+  { return AlascaTestUtil::eq(_state, lhs, rhs); }
 
-  virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
+  virtual Kernel::Clause* simplify(Kernel::Clause* in) override 
   {
     auto ord = KBO::testKBO();
     Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
@@ -67,33 +72,34 @@ public:
 
 REGISTER_SIMPL_TESTER(SimplificationTester)
 
-#define SIMPL_SUGAR_(num)                                                                                     \
-  NUMBER_SUGAR(num)                                                                                           \
-  DECL_DEFAULT_VARS                                                                                           \
-  DECL_CONST(a, num)                                                                                          \
-  DECL_PRED(p , {num})                                                                                        \
-  DECL_PRED(p1, {num})                                                                                        \
-  DECL_PRED(p2, {num})                                                                                        \
-  DECL_PRED(p3, {num})                                                                                        \
-  DECL_PRED(r , {num, num})                                                                                   \
-  DECL_FUNC(f,  {num}, num)                                                                                   \
+#define SIMPL_SUGAR_(num)                                                                 \
+  NUMBER_SUGAR(num)                                                                       \
+  mkAlascaSyntaxSugar(num ## Traits{});                                                   \
+  DECL_DEFAULT_VARS                                                                       \
+  DECL_CONST(a, num)                                                                      \
+  DECL_PRED(p , {num})                                                                    \
+  DECL_PRED(p1, {num})                                                                    \
+  DECL_PRED(p2, {num})                                                                    \
+  DECL_PRED(p3, {num})                                                                    \
+  DECL_PRED(r , {num, num})                                                               \
+  DECL_FUNC(f,  {num}, num)                                                               \
 
-#define TEST_SIMPLIFY_FRACTIONAL(name, ...)                                                                   \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)                               \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), SIMPL_SUGAR_(Rat ), __VA_ARGS__)                               \
+#define TEST_SIMPLIFY_FRACTIONAL(name, ...)                                               \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)           \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), SIMPL_SUGAR_(Rat ), __VA_ARGS__)           \
 
-#define TEST_SIMPLIFY_RATIONAL(name, ...)                                                                     \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), SIMPL_SUGAR_(Rat ), __VA_ARGS__)                               \
+#define TEST_SIMPLIFY_RATIONAL(name, ...)                                                 \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), SIMPL_SUGAR_(Rat ), __VA_ARGS__)           \
 
-#define TEST_SIMPLIFY_INTEGER(name, ...)                                                                      \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Int ), SIMPL_SUGAR_(Int ), __VA_ARGS__)                               \
+#define TEST_SIMPLIFY_INTEGER(name, ...)                                                  \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Int ), SIMPL_SUGAR_(Int ), __VA_ARGS__)           \
 
-#define TEST_SIMPLIFY_REAL(name, ...)                                                                         \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)                               \
+#define TEST_SIMPLIFY_REAL(name, ...)                                                     \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)           \
 
-#define TEST_SIMPLIFY_NUMBER(name, ...)                                                                       \
-    TEST_SIMPLIFY_FRACTIONAL(name, __VA_ARGS__)                                                               \
-    TEST_SIMPLIFY_INTEGER(name, __VA_ARGS__)                                                                  \
+#define TEST_SIMPLIFY_NUMBER(name, ...)                                                   \
+    TEST_SIMPLIFY_FRACTIONAL(name, __VA_ARGS__)                                           \
+    TEST_SIMPLIFY_INTEGER(name, __VA_ARGS__)                                              \
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES

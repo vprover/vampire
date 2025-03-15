@@ -721,22 +721,28 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::INT_QUOTIENT_E:
+      if (arg2 == 0) return false;
       res = arg1.quotientE(arg2); // should be equivalent to arg1/arg2
       return true;
     case Theory::INT_QUOTIENT_T:
+      if (arg2 == 0) return false;
       res = arg1.quotientT(arg2);
       return true;
     case Theory::INT_QUOTIENT_F:
+      if (arg2 == 0) return false;
       res = arg1.quotientF(arg2);
       return true;
     // The remainder is left - (quotient * right)
     case Theory::INT_REMAINDER_E:
+      if (arg2 == 0) return false;
       res = arg1.remainderE(arg2);
       return true;
     case Theory::INT_REMAINDER_T:
+      if (arg2 == 0) return false;
       res = arg1 - (arg1.quotientT(arg2)*arg2);
       return true;
     case Theory::INT_REMAINDER_F:
+      if (arg2 == 0) return false;
       res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
@@ -814,7 +820,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::RAT_QUOTIENT:
-      if (arg2 == RationalConstantType(0)) return false;
+      if (arg2 == 0) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -903,7 +909,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::REAL_QUOTIENT:
-      if (arg2 == RealConstantType(0)) return false;
+      if (arg2 == 0) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -993,17 +999,14 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
 
-  if(env.options->useACeval()){
-
-  // Special AC evaluators are added to be tried first for Plus and Multiply
-
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>()); 
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
-
+  if(env.options->useACeval() && !env.options->alasca()){
+    // Special AC evaluators are added to be tried first for Plus and Multiply
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
   }
 
   _funEvaluators.ensure(0);

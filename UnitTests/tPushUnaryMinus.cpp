@@ -39,7 +39,7 @@ class PumSimplTester : public Test::Simplification::SimplificationTester
 {
 public:
 
-  virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 
+  virtual Kernel::Clause* simplify(Kernel::Clause* in) override 
   {
     PushUnaryMinus pum;
     return pum.simplify(in);

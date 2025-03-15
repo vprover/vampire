@@ -314,4 +314,4 @@ std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self)
 std::ostream& operator<<(std::ostream& out, TermAlgebra const& self) 
 { return out << "term_algebra " << self.sort().toString(); }
 
-}
+} // namespace Shell

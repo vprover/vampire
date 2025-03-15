@@ -31,10 +31,13 @@
 #include <iostream>
 
 #if VMINI_GMP
-#include "mini-gmp.c"
-#include "mini-mpq.c"
+#  pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wsign-compare"
+#    include "mini-gmp.c"
+#    include "mini-mpq.c"
+#  pragma GCC diagnostic pop
 #else
-#include <gmpxx.h>
+#  include <gmpxx.h>
 #endif
 
 std::string to_string(mpz_t const& self) {

@@ -182,7 +182,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     out = SubstHelper::apply(out, subst);
   }
 
-  return new FormulaUnit(out, FormulaTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL_INJECTION, unit));
+  return new FormulaUnit(out, FormulaClauseTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL_INJECTION, unit));
 }
 
 TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)

@@ -85,3 +85,50 @@ TEST_FUN(example_02__compute_size) {
 
   ASS_EQ(size, 6)
 }
+
+TEST_FUN(example_03__compute_size_with_context) {
+  /* syntax sugar imports */
+  DECL_DEFAULT_VARS
+  DECL_SORT(s)
+  DECL_POLY_FUNC(f, 1, {s}, s)
+
+
+  TypedTermList input    = f(s, x);
+  auto evalSize = 
+    [](bool skipTypeArgs) {
+      return [skipTypeArgs](TypedTermList toEval, unsigned* evaluatedChildren) -> unsigned {
+            if (toEval.isVar()) {
+              return 1;
+            } else {
+              unsigned arity = skipTypeArgs ? toEval.term()->numTermArguments()
+                                            : toEval.term()->arity();
+              ASS(arity == 0 || evaluatedChildren);
+
+              unsigned out = 1;
+              for (unsigned i = 0; i < arity; i++) {
+                out += evaluatedChildren[i];
+              }
+              return out;
+            }
+          };
+    };
+
+  auto sizeWithTypeArgs =  BottomUpEvaluation<TypedTermList, unsigned>()
+      .function(evalSize(false))
+      .context(TermListContext {.ignoreTypeArgs = false})
+      .apply(input);
+
+  auto sizeWithoutTypeArgs =  BottomUpEvaluation<TypedTermList, unsigned>()
+      .function(evalSize(true))
+      .context(TermListContext {.ignoreTypeArgs = true})
+      .apply(input);
+
+  auto sizeWithoutTypeArgs2 =  BottomUpEvaluation<TypedTermList, unsigned>()
+      .function(evalSize(true))
+      /* .context(TermListContext {.ignoreTypeArgs = true}) <- default */ 
+      .apply(input);
+
+  ASS_EQ(sizeWithTypeArgs, 3)
+  ASS_EQ(sizeWithoutTypeArgs, 2)
+  ASS_EQ(sizeWithoutTypeArgs, sizeWithoutTypeArgs2)
+}

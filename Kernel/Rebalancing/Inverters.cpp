@@ -8,6 +8,7 @@
  * and in the source directory
  */
 #include "Inverters.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 
 namespace Kernel {
 namespace Rebalancing {
@@ -39,11 +40,32 @@ template <class Number> bool nonZero(const TermList &t);
 bool dtorIsPredicate(Signature::Symbol const& ctor, unsigned index) 
 { return ctor.fnType()->arg(index) == AtomicSort::boolSort(); }
 
+Option<TermList> tryInvertLinMul(InversionContext const& ctxt, IntTraits n) {
+    return asig(n)
+      .ifLinMul(&ctxt.topTerm(), [&](auto& c, auto t) { 
+          return someIf(c == -1, [&]() { return asig(n).linMul(-1, ctxt.toWrap()); })
+              || someIf(c ==  1, [&]() { return                    ctxt.toWrap() ; }); 
+      })
+      .flatten();
+}
+template<class NumTraits>
+Option<TermList> tryInvertLinMul(InversionContext const& ctxt, NumTraits n) {
+    return asig(n)
+      .ifLinMul(&ctxt.topTerm(), [&](auto& c, auto t) { 
+          return someIf(c != 0, [&]() { return asig(n).linMul(1/c, ctxt.toWrap()); }); 
+      })
+      .flatten();
+}
+
+Option<TermList> tryInvertLinMul(InversionContext const& ctxt) 
+{ return tryNumTraits([&](auto n) { return tryInvertLinMul(ctxt, n); }); }
+
 bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   auto &t = ctxt.topTerm();
   auto fun = t.functor();
 
   DEBUG("canInvert ", ctxt.topTerm().toString(), "@", ctxt.topIdx())
+  if (tryInvertLinMul(ctxt)) return true;
   if (theory->isInterpretedFunction(fun)) {
     auto inter = theory->interpretFunction(fun);
     switch (inter) {
@@ -87,12 +109,12 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
 
 TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
   ASS(canInvertTop(ctxt))
-  // DBG("inverting: ", ctxt.topTerm().toString())
   auto &t = ctxt.topTerm();
   auto index = ctxt.topIdx();
   auto toWrap = ctxt.toWrap();
   auto fun = t.functor();
   DEBUG("inverting ", ctxt.topTerm().toString())
+  if (auto x = tryInvertLinMul(ctxt)) return *x;
   if(theory->isInterpretedFunction(fun)) {
     switch (theory->interpretFunction(fun)) {
 
@@ -178,9 +200,12 @@ bool canInvertMulInt(const InversionContext &ctxt) {
   return tryInvertMulInt(ctxt, _inv);
 }
 
-template <class Number> bool nonZero(const TermList &t) {
-  typename Number::ConstantType c;
-  return theory->tryInterpretConstant(t, c) && Number::constant(0) != c;
+template <class NumTraits> bool nonZero(const TermList &t) {
+  NumTraits n{};
+  auto n1 = n.tryNumeral(t);
+  auto n2 = asig(n).tryNumeral(t);
+  return ( n1.isSome() && *n1 != 0 ) 
+      || ( n2.isSome() && *n2 != 0 );
 }
 
 

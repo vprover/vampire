@@ -21,32 +21,49 @@
 
 #include "InferenceEngine.hpp"
 
-
 namespace Inferences 
 {
 
 using SortId = TermList;
+
+// TODO clean up the  messy work split between PolynomialEvaluation, PolynomialEvaluationRule, PolynomialNormalizer and InequalityNormalizer
 class PolynomialEvaluation
-: public SimplifyingGeneratingLiteralSimplification
 {
 public:
-  PolynomialEvaluation(Ordering& ordering);
-  virtual ~PolynomialEvaluation();
 
+  template<class NumTraits>
+  static PolyNf simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
+  TermList evaluateToTerm(Term* in) const;
+  TermList evaluateToTerm(TermList in) const { return in.isVar() ? in : evaluateToTerm(in.term()); }
+  Option<Inferences::SimplifyingGeneratingLiteralSimplification::Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
+  Option<PolyNf> evaluate(PolyNf normalized) const;
 private:
-
-  Result simplifyLiteral(Literal*) override;
 
   Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
   Option<PolyNf> evaluate(Term* in) const;
-  Option<PolyNf> evaluate(PolyNf in) const;
   Option<PolyNf> evaluate(TypedTermList in) const;
 
-  Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
+
+  mutable Memo::Hashed<PolyNf, PolyNf, StlHash> _memo;
 };
 
+
+class PolynomialEvaluationRule
+: public SimplifyingGeneratingLiteralSimplification
+{
+public:
+
+  PolynomialEvaluationRule(Ordering& ordering);
+  virtual ~PolynomialEvaluationRule();
+
+private:
+  Result simplifyLiteral(Literal*) override;
+  // TODO make this one the same as in AlascaState
+  PolynomialEvaluation _inner;
+  const bool _alwaysEvaluate;
+};
 
 } // namespace Inferences 
 

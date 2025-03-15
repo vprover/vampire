@@ -23,6 +23,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Recycled.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Reflection.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
@@ -1637,6 +1638,13 @@ public:
     return i;
   }
 
+  auto output() const
+  { return Output::interleaved(", ", *this); }
+
+  template<class Seperator>
+  auto output(Seperator const& sep) const
+  { return Output::interleaved(sep, *this); }
+
   Option<Elem> min()
   { return minBy(std::less<Elem>{}); }
 
@@ -1666,7 +1674,7 @@ public:
 
   template<class OtherIter>
   auto zip(OtherIter other)
-  { return map([other = std::move(other)](Elem x) mutable { return std::make_pair(std::move(x), other.next()); }); }
+  { return map([other = std::move(other)](Elem x) mutable { ALWAYS(other.hasNext()); return std::make_pair(std::move(x), other.next()); }); }
 
   auto zipWithIndex()
   { return map([idx = 0](Elem x) mutable { return std::make_pair(std::move(x), idx++); }); }
@@ -1777,7 +1785,7 @@ template<class Array> auto arrayIter(Array      & a) { return arrayIter(        
 
 template<class Item, class... Items>
 auto iterItems(Item item, Items... items) 
-{ return arrayIter(Stack<Item>{std::move(item), std::move(items)...}); }
+{ return arrayIter(Stack<Item>{Item(std::move(item)), Item(std::move(items))...}); }
 
 template<class Item>
 auto iterItems()
@@ -1831,6 +1839,8 @@ template<class Inner>
 auto getPersistentIterator(Inner it)
 { return pvi(arrayIter(iterTraits(it).template collect<Stack>())); }
 
+/* wrapper around an iterator that implements ==, <, > and hash functions.
+ * <,> are implemented as lexicographic comparison of the iterator elements */
 template<class Iter>
 class IterContOps {
   Iter const _iter;
@@ -1867,5 +1877,14 @@ public:
 
 template<class Iter>
 auto iterContOps(Iter iter) { return IterContOps<Iter>(std::move(iter)); }
+
+template<class A, class Iter>
+Iter assertIter(Iter iter) {
+  static_assert(std::is_same_v<A   ,ELEMENT_TYPE(Iter)> 
+             && std::is_same_v<A   , decltype(iter.next())>
+             && std::is_same_v<bool, decltype(iter.hasNext())>
+             );
+  return iter;
+}
 
 #endif /* __Metaiterators__ */

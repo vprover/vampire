@@ -14,6 +14,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Ordering.hpp"
 

@@ -92,9 +92,13 @@ Problem* preprocessProblem(Problem* prb)
 {
   // Here officially starts preprocessing of vampireMode
   // and that's the moment we want to set the random seed (no randomness in parsing, for the peace of mind)
-  // the main reason being that we want to stay in sync with what profolio mode will do
+  // the main reason being that we want to stay in sync with what portfolio mode will do
   // cf ProvingHelper::runVampire
-  Lib::Random::setSeed(env.options->randomSeed());
+  if (env.options->randomSeed() != 0) {
+    Lib::Random::setSeed(env.options->randomSeed());
+  } else {
+    Lib::Random::resetSeed();
+  }
 
   TIME_TRACE(TimeTrace::PREPROCESSING);
 

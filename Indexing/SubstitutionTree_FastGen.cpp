@@ -114,6 +114,7 @@ public:
   : _parent(parent), _resultNormalizer(resultNormalizer),
   _applicator(0)
   {}
+
   ~Substitution()
   {
     if(_applicator) {
@@ -121,10 +122,10 @@ public:
     }
   }
 
-  TermList applyToBoundResult(TermList t) override
+  TermList applyToBoundResult(TermList t) final override
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  Literal* applyToBoundResult(Literal* lit) override
+  Literal* applyToBoundResult(Literal* lit) final override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
   bool isIdentityOnQueryWhenResultBound() override
