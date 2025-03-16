@@ -145,6 +145,9 @@ public:
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
     const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
 
+  const LiteralSet* getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
+  const SplitSet* getRemainingSplits(Clause* cl, Clause* other) const;
+
   void checkEquations(Clause* cl) const override;
 
 private:

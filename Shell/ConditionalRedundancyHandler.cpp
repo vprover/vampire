@@ -81,24 +81,6 @@ public:
     insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
   }
 
-  bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert, Splitter* splitter,
-    OrderingConstraints&& ordCons, const LiteralSet* lits, const SplitSet* splits)
-  {
-    ASS(lits);
-    // TODO if this correct if we allow non-unit simplifications?
-    if (_varSorts.isEmpty()) {
-      return true;
-    }
-    auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    if (check(ts, ord, lits, splits)) {
-      return false;
-    }
-    if (doInsert) {
-      insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
-    }
-    return true;
-  }
-
 private:
 #if VDEBUG
   Clause* _cl;
@@ -392,19 +374,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return true;
   }
 
-  auto rwLits = LiteralSet::getEmpty();
-  if constexpr (litC) {
-    rwLits = LiteralSet::getFromIterator(rwClause->iterLits().filter([rwLit](Literal* lit) {
-      return lit != rwLit && rwLit->containsAllVariablesOf(lit);
-    }).map([subs,eqIsResult](Literal* lit) {
-      return subs->applyTo(lit,!eqIsResult);
-    }));
-  }
-
-  auto rwSplits = SplitSet::getEmpty();
-  if constexpr (avatarC) {
-    rwSplits = rwClause->splits();
-  }
+  auto rwLits = getRemainingLiterals(rwClause, rwLit, subs, !eqIsResult);
+  auto rwSplits = getRemainingSplits(rwClause, eqClause);
 
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
   if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, rwLits, rwSplits)) {
@@ -412,19 +383,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return false;
   }
 
-  auto eqLits = LiteralSet::getEmpty();
-  if constexpr (litC) {
-    eqLits = LiteralSet::getFromIterator(eqClause->iterLits().filter([eqLit](Literal* lit) {
-      return lit != eqLit && eqLit->containsAllVariablesOf(lit);
-    }).map([subs,eqIsResult](Literal* lit) {
-      return subs->applyTo(lit,eqIsResult);
-    }));
-  }
-
-  auto eqSplits = SplitSet::getEmpty();
-  if constexpr (avatarC) {
-    eqSplits = eqClause->splits();
-  }
+  auto eqLits = getRemainingLiterals(eqClause, eqLit, subs, eqIsResult);
+  auto eqSplits = getRemainingSplits(eqClause, rwClause);
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
   if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, eqLits, eqSplits)) {
@@ -462,7 +422,6 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   // create ordering constraints
   OrderingConstraints ordCons;
   if constexpr (ordC) {
-    // TODO we cannot handle them together yet
     if (eqComp != Ordering::LESS) {
       if (!rwTermS.containsAllVariablesOf(tgtTermS)) {
         return;
@@ -483,34 +442,22 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   }
 
   // create literal constraints
-  auto lits = LiteralSet::getEmpty();
-  if constexpr (litC) {
-    if (eqClause->numSelected()!=1) {
-      return;
-    }
-    lits = LiteralSet::getFromIterator(eqClause->iterLits().filter([eqLit,eqLHS](Literal* lit) {
-      return lit != eqLit && eqLHS.containsAllVariablesOf(TermList(lit));
-    }).map([subs,eqIsResult](Literal* lit) {
-      return subs->applyTo(lit,eqIsResult);
-    }));
-    if (eqClause->size()>lits->size()+1) {
-      return;
-    }
-  } else {
-    if (eqClause->length()!=1) {
-      return;
-    }
+  if (eqClause->numSelected()!=1) {
+    return;
+  }
+  ASS(eqLHS.containsAllVariablesOf(EqHelper::getOtherEqualitySide(eqLit, eqLHS)));
+  auto lits = getRemainingLiterals(eqClause, eqLit, subs, eqIsResult);
+  if (eqClause->size()>lits->size()+1) {
+    return;
   }
 
   // create AVATAR constraints
-  auto splits = SplitSet::getEmpty();
-  if constexpr (avatarC) {
-    splits = eqClause->splits()->subtract(rwClause->splits());
-  } else {
+  if constexpr (!avatarC) {
     if (!eqClause->noSplits()) {
       return;
     }
   }
+  auto splits = getRemainingSplits(eqClause, rwClause);
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
   (*rwClDataPtr)->insert(_ord, subs, !eqIsResult, _splitter, std::move(ordCons), lits, splits);
@@ -524,83 +471,48 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
     return true;
   }
 
+  auto resultLits = getRemainingLiterals(resultCl, resultLit, subs, /*result*/true);
+  auto resultSplits = getRemainingSplits(resultCl, queryCl);
+  auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/false);
+  if (dataPtr && !(*dataPtr)->check(_ord, subs, /*result*/false, resultLits, resultSplits)) {
+    env.statistics->skippedResolution++;
+    return false;
+  }
+
+  auto queryLits = getRemainingLiterals(queryCl, queryLit, subs, /*result*/false);
+  auto querySplits = getRemainingSplits(queryCl, resultCl);
+  dataPtr = getDataPtr(resultCl, /*doAllocate=*/false);
+  if (dataPtr && !(*dataPtr)->check(_ord, subs, /*result*/true, queryLits, querySplits)) {
+    env.statistics->skippedResolution++;
+    return false;
+  }
+
+  // Try insertion
   // Note that we're inserting into the data of one clause based on the *other* clause
-  {
-    bool doInsert = resultLit->isPositive();
-
-    // create literal constraints
-    auto lits = LiteralSet::getEmpty();
-    if constexpr (litC) {
-      lits = LiteralSet::getFromIterator(resultCl->iterLits().filter([resultLit](Literal* lit) {
-        return lit != resultLit && resultLit->containsAllVariablesOf(lit);
-      }).map([subs](Literal* lit) {
-        return subs->applyToResult(lit);
-      }));
-      if (resultCl->numSelected()>1 || resultCl->length()>lits->size()+1) {
-        doInsert = false;
-      }
-    } else {
-      if (resultCl->length()!=1) {
-        doInsert = false;
-      }
+  if (resultLit->isPositive()) {
+    if (resultCl->numSelected()>1 || resultCl->length()>resultLits->size()+1) {
+      return true;
     }
-
-    // create AVATAR constraints
-    auto splits = SplitSet::getEmpty();
-    if constexpr (avatarC) {
-      splits = resultCl->splits()->subtract(queryCl->splits());
-    } else {
+    if constexpr (!avatarC) {
       if (!resultCl->noSplits()) {
-        doInsert = false;
+        return true;
       }
     }
-
-    auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/doInsert);
-    if (dataPtr && !(*dataPtr)->checkAndInsert(
-      _ord, subs, /*result*/false, doInsert, _splitter, OrderingConstraints(), lits, splits))
-    {
-      env.statistics->skippedResolution++;
-      return false;
+    dataPtr = getDataPtr(queryCl, /*doAllocate=*/true);
+    (*dataPtr)->insert(_ord, subs, /*result*/false, _splitter, OrderingConstraints(), resultLits, resultSplits);
+    return true;
+  }
+  ASS(queryLit->isPositive());
+  if (queryCl->numSelected()>1 || queryCl->length()>queryLits->size()+1) {
+    return true;
+  }
+  if constexpr (!avatarC) {
+    if (!queryCl->noSplits()) {
+      return true;
     }
   }
-  {
-    bool doInsert = queryLit->isPositive();
-
-    // create literal constraints
-    auto lits = LiteralSet::getEmpty();
-    if constexpr (litC) {
-      lits = LiteralSet::getFromIterator(queryCl->iterLits().filter([queryLit](Literal* lit) {
-        return lit != queryLit && queryLit->containsAllVariablesOf(lit);
-      }).map([subs](Literal* lit) {
-        return subs->applyToQuery(lit);
-      }));
-      if (queryCl->numSelected()>1 || queryCl->length()>lits->size()+1) {
-        doInsert = false;
-      }
-    } else {
-      if (queryCl->length()!=1) {
-        doInsert = false;
-      }
-    }
-
-    // create AVATAR constraints
-    auto splits = SplitSet::getEmpty();
-    if constexpr (avatarC) {
-      splits = queryCl->splits()->subtract(resultCl->splits());
-    } else {
-      if (!queryCl->noSplits()) {
-        doInsert = false;
-      }
-    }
-
-    auto dataPtr = getDataPtr(resultCl, /*doAllocate=*/doInsert);
-    if (dataPtr && !(*dataPtr)->checkAndInsert(
-      _ord, subs, /*result*/true, doInsert, _splitter, OrderingConstraints(), lits, splits))
-    {
-      env.statistics->skippedResolution++;
-      return false;
-    }
-  }
+  dataPtr = getDataPtr(resultCl, /*doAllocate=*/true);
+  (*dataPtr)->insert(_ord, subs, /*result*/true, _splitter, OrderingConstraints(), queryLits, querySplits);
   return true;
 }
 
@@ -641,6 +553,29 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperposi
   tord = _ord->compare(tgtTerm, other);
   return tord == Ordering::LESS;
   // TODO perform ordering check for rest of rwCl
+}
+
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+const LiteralSet* ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingLiterals(
+  Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const
+{
+  if constexpr (!litC) {
+    return LiteralSet::getEmpty();
+  }
+  return LiteralSet::getFromIterator(cl->iterLits().filter([lit](Literal* other) {
+    return other != lit && lit->containsAllVariablesOf(other);
+  }).map([subs,result](Literal* other) {
+    return subs->applyTo(other, result);
+  }));
+}
+
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+const SplitSet* ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingSplits(Clause* cl, Clause* other) const
+{
+  if constexpr (!avatarC) {
+    return SplitSet::getEmpty();
+  }
+  return cl->splits()->subtract(other->splits());
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
