@@ -32,6 +32,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
+#include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
 #include "SAT/BufferedSolver.hpp"
 
@@ -254,34 +255,14 @@ bool FiniteModelBuilder::reset(){
   }
 
   // Create a new SAT solver
-  try{
-    _solver = new MinisatInterfacingNewSimp(_opt,true);
-  }catch(Minisat::OutOfMemoryException&){
-    MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
-  }
-
-  /*
-  if(_opt.satSolver() != Options::SatSolver::MINISAT){
-    cout << "Warning: overriding sat solver for FMB, using minisat" << endl;
-  }
-  */
-/*
-  switch(_opt.satSolver()){
-#if VZ3
-    case Options::SatSolver::Z3:
-        ASSERTION_VIOLATION_REP("Do not use fmb with Z3");
-#endif
-    case Options::SatSolver::MINISAT:
-        try{
-          _solver = new MinisatInterfacingNewSimp(_opt,true);
-        }catch(Minisat::OutOfMemoryException&){
-          MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
-        }
-      break;
-    default:
-      ASSERTION_VIOLATION_REP(_opt.satSolver());
-  }
-*/
+  if(env.options->satSolver() == Options::SatSolver::MINISAT)
+    try {
+      _solver = new MinisatInterfacingNewSimp(_opt, true);
+    } catch(const Minisat::OutOfMemoryException &) {
+     MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
+    }
+  else
+    _solver = new CadicalInterfacing(_opt,true);
 
   // set the number of SAT variables, this could cause an exception
   _curMaxVar = offsets-1;

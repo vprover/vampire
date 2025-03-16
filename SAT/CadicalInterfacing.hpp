@@ -129,8 +129,8 @@ private:
     return SATLiteral(std::abs(cadical), cadical < 0);
   }
 
-  int _next;
-  Status _status;
+  int _next = 1;
+  Status _status = Status::SATISFIABLE;
   std::vector<int> _assumptions;
   CaDiCaL::Solver _solver;
 };

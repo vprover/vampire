@@ -14,17 +14,10 @@
 
 #include "GroundingIndex.hpp"
 
-#include "Lib/SharedSet.hpp"
-
 #include "Kernel/Grounder.hpp"
-#include "Kernel/Inference.hpp"
-
 #include "Shell/Options.hpp"
-
 #include "SAT/MinisatInterfacing.hpp"
-#include "SAT/BufferedSolver.hpp"
-
-#include "Saturation/SaturationAlgorithm.hpp"
+#include "SAT/CadicalInterfacing.hpp"
 
 namespace Indexing
 {
@@ -33,13 +26,11 @@ using namespace std;
 
 GroundingIndex::GroundingIndex(const Options& opt)
 {
-  _solver = new MinisatInterfacing(opt,true);
+  if(opt.satSolver() == Options::SatSolver::MINISAT)
+    _solver = new MinisatInterfacing(opt, true);
+  else
+    _solver = new CadicalInterfacing(opt, true);
+
   _grounder = new Kernel::GlobalSubsumptionGrounder(*_solver);
 }
-
-void GroundingIndex::handleClause(Clause* c, bool adding)
-{
-  //We are adding clauses into the index when performing the subsumption check
-}
-
 }
