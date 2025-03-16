@@ -657,11 +657,11 @@ static std::ostream &operator<<(std::ostream &out, DkUnit dk) {
 }
 
 static void axiomName(std::ostream &out, Unit *axiom) {
-  out << "{|axiom_";
+  out << "{|axiom_" << axiom->number() << "_";
   std::string recoveredName;
   if(Parse::TPTP::findAxiomName(axiom, recoveredName))
     out << recoveredName;
-  out << axiom->number() << "|}";
+  out << "|}";
 }
 
 // def deduction : <clause> := <intro splits>
