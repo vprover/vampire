@@ -33,6 +33,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Threads REQUIRED)
 link_libraries(Threads::Threads)
 
+link_libraries(cadical)
+
 # set build type if not set
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
@@ -481,6 +483,7 @@ set(VAMPIRE_SAT_SOURCES
     SAT/SATClause.cpp
     SAT/SATInference.cpp
     SAT/SATLiteral.cpp
+    SAT/CadicalInterfacing.cpp
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
@@ -491,6 +494,7 @@ set(VAMPIRE_SAT_SOURCES
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
+    SAT/CadicalInterfacing.hpp
     SAT/Z3Interfacing.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
