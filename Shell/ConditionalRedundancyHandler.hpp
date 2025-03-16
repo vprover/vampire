@@ -141,16 +141,17 @@ public:
   bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const override;
 
-  bool isSuperpositionPremiseRedundant(
-    Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
-    const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
-
-  const LiteralSet* getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
-  const SplitSet* getRemainingSplits(Clause* cl, Clause* other) const;
-
   void checkEquations(Clause* cl) const override;
 
 private:
+  bool isSuperpositionPremiseRedundant(
+    Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
+    const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
+  const LiteralSet* getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
+  const SplitSet* getRemainingSplits(Clause* cl, Clause* other) const;
+  void tryInsert(Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons,
+    const LiteralSet* lits, SplitSet* splits) const;
+
   bool _redundancyCheck;
   bool _encompassing;
   const Ordering* _ord;

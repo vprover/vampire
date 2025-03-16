@@ -441,26 +441,11 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
     }
   }
 
-  // create literal constraints
-  if (eqClause->numSelected()!=1) {
-    return;
-  }
   ASS(eqLHS.containsAllVariablesOf(EqHelper::getOtherEqualitySide(eqLit, eqLHS)));
   auto lits = getRemainingLiterals(eqClause, eqLit, subs, eqIsResult);
-  if (eqClause->size()>lits->size()+1) {
-    return;
-  }
-
-  // create AVATAR constraints
-  if constexpr (!avatarC) {
-    if (!eqClause->noSplits()) {
-      return;
-    }
-  }
   auto splits = getRemainingSplits(eqClause, rwClause);
 
-  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
-  (*rwClDataPtr)->insert(_ord, subs, !eqIsResult, _splitter, std::move(ordCons), lits, splits);
+  tryInsert(rwClause, subs, !eqIsResult, eqClause, std::move(ordCons), lits, splits);
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
@@ -490,29 +475,11 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
   // Try insertion
   // Note that we're inserting into the data of one clause based on the *other* clause
   if (resultLit->isPositive()) {
-    if (resultCl->numSelected()>1 || resultCl->length()>resultLits->size()+1) {
-      return true;
-    }
-    if constexpr (!avatarC) {
-      if (!resultCl->noSplits()) {
-        return true;
-      }
-    }
-    dataPtr = getDataPtr(queryCl, /*doAllocate=*/true);
-    (*dataPtr)->insert(_ord, subs, /*result*/false, _splitter, OrderingConstraints(), resultLits, resultSplits);
-    return true;
+    tryInsert(queryCl, subs, /*result*/false, resultCl, OrderingConstraints(), resultLits, resultSplits);
+  } else {
+    ASS(queryLit->isPositive());
+    tryInsert(resultCl, subs, /*result*/true, queryCl, OrderingConstraints(), queryLits, querySplits);
   }
-  ASS(queryLit->isPositive());
-  if (queryCl->numSelected()>1 || queryCl->length()>queryLits->size()+1) {
-    return true;
-  }
-  if constexpr (!avatarC) {
-    if (!queryCl->noSplits()) {
-      return true;
-    }
-  }
-  dataPtr = getDataPtr(resultCl, /*doAllocate=*/true);
-  (*dataPtr)->insert(_ord, subs, /*result*/true, _splitter, OrderingConstraints(), queryLits, querySplits);
   return true;
 }
 
@@ -576,6 +543,26 @@ const SplitSet* ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::
     return SplitSet::getEmpty();
   }
   return cl->splits()->subtract(other->splits());
+}
+
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::tryInsert(
+  Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
+{
+  if constexpr (!enabled) {
+    return;
+  }
+
+  if (cl->numSelected()!=1 || cl->length()>lits->size()+1) {
+    return;
+  }
+  if constexpr (!avatarC) {
+    if (!cl->noSplits()) {
+      return;
+    }
+  }
+  auto dataPtr = getDataPtr(into, /*doAllocate=*/true);
+  (*dataPtr)->insert(_ord, subs, result, _splitter, std::move(ordCons), lits, splits);
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
