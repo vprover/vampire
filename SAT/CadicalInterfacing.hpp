@@ -18,7 +18,7 @@
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 
-#include <cadical.hpp>
+#include "cadical/src/cadical.hpp"
 
 namespace SAT{
 

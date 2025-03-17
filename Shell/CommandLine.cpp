@@ -45,9 +45,9 @@ namespace Shell {
 std::ostream& printVersion(std::ostream& out)
 {
   out << VERSION_STRING << "\n";
-  out << "SAT: " << CaDiCaL::Solver::signature() << "\n";
+  out << "CaDiCaL: " << CaDiCaL::Solver::signature() << "\n";
 #if VZ3
-  std::cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
+  std::cout << "Linked to Z3 " << Z3Interfacing::z3_full_version() << "\n";
 #endif
   // subsat::print_config(out << "\% ");
   return out;
