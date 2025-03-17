@@ -12,12 +12,14 @@
 #define __ALASCA_Term__
 
 #include "Debug/Assertion.hpp"
+#include "Shell/Statistics.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Lib/Perfect.hpp"
 #include "Lib/Reflection.hpp"
+#include "Lib/SmallStack.hpp"
 #include "Lib/STL.hpp"
 #include "Lib/SmallArray.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
@@ -138,7 +140,7 @@ namespace Kernel {
   {
     mutable Option<TypedTermList> _self;
     using Numeral = typename AlascaSignature<NumTraits>::Numeral;
-    SmallArray<AlascaMonom<NumTraits>, 1> _sum;
+    SmallArray<AlascaMonom<NumTraits>, 3> _sum;
 
     __AlascaTermItp(decltype(_sum) sum) : _sum(std::move(sum)) {}
   public:
@@ -508,8 +510,8 @@ namespace Kernel {
     Option<AlascaTermItpAny> asSum() const 
     { return _self._self.apply([](auto& x) { return AlascaTermImpl::asSum(x); }); }
     
-    auto iterSubterms() const
-    { return iterTraits(GenericSubtermIter(this->_self, /* bottomUp */ false))
+    auto iterSubterms(bool bottomUp = false) const
+    { return iterTraits(GenericSubtermIter(this->_self, bottomUp))
                  .map([](auto t) { return AnyAlascaTerm(t); }); }
 
     template<class NumTraits> Option<AlascaTermItp<NumTraits>> asSum() const 
@@ -625,14 +627,17 @@ namespace Kernel {
     auto orig = TermList(orig_);
 
     using Monom = AlascaMonom<NumTraits>;
-    Stack<Monom> done;
-    RStack<Monom> todo;
-    todo->push(Monom(1, orig));
+    Recycled<SmallStack<Monom, 5>> done_;
+    Recycled<SmallStack<Monom, 5>> todo_;
+    auto& todo = *todo_;
+    auto& done = *done_;
+
+    todo.push(Monom(1, orig));
 
     auto uninterpretedCase = [&](Monom cur) {
         DEBUG_NORM_DETAILS("uninterpreted")
         if (cur.numeral() != 0) {
-          // TOOD we do the smae thing here as in UF::normalize
+          // TODO we do the smae thing here as in UF::normalize
           done.push(Monom(cur.numeral(),
                   TermList(Term::createFromIter(cur.atom().term()->functor(), concatIters(
                             typeArgIter(cur.atom().term()),
@@ -641,9 +646,10 @@ namespace Kernel {
                  )));
         }
     };
-    while (todo->isNonEmpty()) {
+    while (todo.isNonEmpty()) {
+      env.statistics->maxSumSize = std::max(env.statistics->maxSumSize, todo.size());
       DEBUG_NORM_DETAILS("todo: ", todo, " done: ", done)
-      auto cur = todo->pop();
+      auto cur = todo.pop();
       if (cur.atom().isVar()) {
         if (cur.numeral() != 0) {
           done.push(cur);
@@ -652,7 +658,7 @@ namespace Kernel {
         Term* t = cur.atom().term();
         if (auto k = NumTraits::tryLinMul(t->functor())) {
           DEBUG_NORM_DETAILS("linMul")
-          todo->push(Monom(cur.numeral() * *k, t->termArg(0)));
+          todo.push(Monom(cur.numeral() * *k, t->termArg(0)));
         } else if (auto k = NumTraits::tryNumeral(t->functor())) {
           DEBUG_NORM_DETAILS("num")
           if (cur.numeral() != 0) {
@@ -662,13 +668,13 @@ namespace Kernel {
           switch(*itp) {
             case NumTraits::addI:
               DEBUG_NORM_DETAILS("add")
-              todo->push(Monom(cur.numeral(), t->termArg(0)));
-              todo->push(Monom(cur.numeral(), t->termArg(1)));
+              todo.push(Monom(cur.numeral(), t->termArg(0)));
+              todo.push(Monom(cur.numeral(), t->termArg(1)));
               break;
             case NumTraits::binMinusI:
               DEBUG_NORM_DETAILS("minus")
-              todo->push(Monom( cur.numeral(), t->termArg(0)));
-              todo->push(Monom(-cur.numeral(), t->termArg(1)));
+              todo.push(Monom( cur.numeral(), t->termArg(0)));
+              todo.push(Monom(-cur.numeral(), t->termArg(1)));
               break;
             case NumTraits::mulI: {
               /* pulling out all linear parts of the multiplication
@@ -677,8 +683,8 @@ namespace Kernel {
               auto n = cur.numeral();
               auto normT = __normalizeMul<NumTraits>(n, t);
               if (normT.isSome() && NumTraits::isAdd(*normT)) {
-                todo->push(Monom(n, normT->term()->termArg(0)));
-                todo->push(Monom(n, normT->term()->termArg(1)));
+                todo.push(Monom(n, normT->term()->termArg(0)));
+                todo.push(Monom(n, normT->term()->termArg(1)));
               } else if (normT) {
                 done.push(Monom(n, *normT));
               } else {
@@ -721,11 +727,11 @@ namespace Kernel {
               break;
             case NumTraits::minusI:
               DEBUG_NORM_DETAILS("minus")
-              todo->push(Monom(-cur.numeral(), t->termArg(0)));
+              todo.push(Monom(-cur.numeral(), t->termArg(0)));
               break;
             default:
               if (!normalizeFractionalInterpretation(NumTraits{}, *itp, t, 
-                    [&](auto n, auto t) { todo->push(Monom(n * cur.numeral(), t)); },
+                    [&](auto n, auto t) { todo.push(Monom(n * cur.numeral(), t)); },
                     [&](auto n, auto t) { done.push(Monom(n * cur.numeral(), t)); }
                    )) {
                 uninterpretedCase(std::move(cur));
