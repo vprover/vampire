@@ -1256,6 +1256,11 @@ void Options::init()
     _lookup.insert(&_cancellation);
     _cancellation.addProblemConstraint(hasTheories());
     _cancellation.tag(OptionTag::THEORIES);
+    _cancellation.addHardConstraint(If(equal(ArithmeticSimplificationMode::CAUTIOUS))
+        .then(And(
+              _termOrdering.is(notEqual(TermOrdering::QKBO))
+            , _termOrdering.is(notEqual(TermOrdering::LAKBO))
+            )));
 
     _pushUnaryMinus = BoolOptionValue(
        "push_unary_minus", "pum",
