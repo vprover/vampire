@@ -462,7 +462,8 @@ thsq=on > thsqd ~cat 2:1,4:1,8:7,32:5,64:2,128:1
 > asg ~cat force:1,cautious:1,off:3
 
 # cancellation
-> canc ~cat force:1,cautious:1,off:3
+> canc ~cat force:1,off:3
+to!=qkbo to!=lakbo > canc ~cat force:1,cautious:1,off:3
 
 # evaluation
 > ev ~cat off:1,simple:3,force:1,cautious:1
