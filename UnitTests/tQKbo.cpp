@@ -104,6 +104,9 @@ void check_in_different_contexts(QKbo& ord, TermList l, QKbo::Result exp, TermLi
 }
 
 QKbo& qkbo(bool rand = false) {
+  Problem p;
+  env.options->resolveAwayAutoValues0();
+  env.options->resolveAwayAutoValues(p);
   auto n = Lib::make_shared(InequalityNormalizer());
   return *new QKbo(KBO::testKBO(rand, /* qkboPrec */ true), n);
 }
