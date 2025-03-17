@@ -353,6 +353,13 @@ template<class T> T assertionViolation()
     __VA_ARGS__                                                                           \
     _Pragma("GCC diagnostic pop")                                                         \
 
+#  define IGNORE_MAYBE_UNINITIALIZED(...)                                                 \
+    _Pragma("GCC diagnostic push")                                                        \
+    _Pragma("GCC diagnostic ignored \"-Wuninitialized\"")                                 \
+    __VA_ARGS__                                                                           \
+    _Pragma("GCC diagnostic pop")                                                         \
+
+
 #elif defined(__GNUC__) || defined(__GNUG__)
 
 #  define __ALLOW_UNUSED(...)                                                             \
@@ -361,14 +368,15 @@ template<class T> T assertionViolation()
     __VA_ARGS__                                                                           \
     _Pragma("GCC diagnostic pop")                                                         \
 
-#else
-#  define __ALLOW_UNUSED(...) __VA_ARGS__
-#endif
 #  define IGNORE_MAYBE_UNINITIALIZED(...)                                                 \
     _Pragma("GCC diagnostic push")                                                        \
     _Pragma("GCC diagnostic ignored \"-Wuninitialized\"")                                 \
     _Pragma("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")                           \
     __VA_ARGS__                                                                           \
     _Pragma("GCC diagnostic pop")                                                         \
+
+#else
+#  define __ALLOW_UNUSED(...) __VA_ARGS__
+#endif
  
 #endif // __Assertion__
