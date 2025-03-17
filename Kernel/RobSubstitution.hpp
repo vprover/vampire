@@ -16,6 +16,7 @@
 #ifndef __RobSubstitution__
 #define __RobSubstitution__
 
+
 #include "Forwards.hpp"
 #include "Kernel/Polynomial.hpp"
 #include "Lib/Backtrackable.hpp"
