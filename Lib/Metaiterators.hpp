@@ -1853,6 +1853,12 @@ public:
   auto defaultHash2() const { return DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return DefaultHash2::hash(x); })); }
 
   static int cmp(IterContOps const& lhs, IterContOps const& rhs) {
+    ASS_EQ(lhs._iter.knowsSize(), rhs._iter.knowsSize())
+    if (lhs._iter.knowsSize()) {
+      if (lhs._iter.size() != rhs._iter.size()) {
+        return lhs._iter.size() < rhs._iter.size() ? -1 : 1;
+      }
+    }
     auto l = lhs._iter;
     auto r = rhs._iter;
     while (l.hasNext() && r.hasNext()) {
@@ -1866,11 +1872,36 @@ public:
     }
     return !l.hasNext() ? (r.hasNext() ? -1 : 0) : 1;
   }
+
+
+  friend bool operator==(IterContOps const& lhs, IterContOps const& rhs) {
+    ASS_EQ(lhs._iter.knowsSize(), rhs._iter.knowsSize())
+    if (lhs._iter.knowsSize()) {
+      if (lhs._iter.size() != rhs._iter.size()) {
+        return false;
+      }
+    }
+    auto l = lhs._iter;
+    auto r = rhs._iter;
+    while (l.hasNext() && r.hasNext()) {
+      auto ln = l.next();
+      auto rn = r.next();
+      if (ln != rn) {
+        return false;
+      }
+    }
+    if (lhs._iter.knowsSize()) {
+      return true;
+    } else {
+      return l.hasNext() == r.hasNext();
+    }
+  }
+
   friend bool operator<(IterContOps const& lhs, IterContOps const& rhs) 
   { return cmp(lhs, rhs) < 0; }
 
-  friend bool operator==(IterContOps const& lhs, IterContOps const& rhs)
-  { return cmp(lhs, rhs) == 0; }
+  // friend bool operator==(IterContOps const& lhs, IterContOps const& rhs)
+  // { return cmp(lhs, rhs) == 0; }
 
   friend bool operator!=(IterContOps const& lhs, IterContOps const& rhs) 
   { return !(lhs == rhs); }
