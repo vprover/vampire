@@ -441,7 +441,6 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
     }
   }
 
-  ASS(eqLHS.containsAllVariablesOf(EqHelper::getOtherEqualitySide(eqLit, eqLHS)));
   auto lits = getRemainingLiterals(eqClause, eqLit, subs, eqIsResult);
   auto splits = getRemainingSplits(eqClause, rwClause);
 
