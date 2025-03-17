@@ -619,32 +619,62 @@ struct BottomUpChildIter<Kernel::PolyNf>
 
 template<class A>
 struct GenericSubtermIter {
-  bool _bottomUp = true;
-  RStack<BottomUpChildIter<A>> _self;
+  // RStack<BottomUpChildIter<A>> _self;
+  //
+  using Co =  Coproduct<BottomUpChildIter<A>, A>;
+  RStack<Co> _self2;
   typename BottomUpChildIter<A>::Context _context;
+  bool _bottomUp = true;
 
-  GenericSubtermIter(A self, bool _bottomUp, typename BottomUpChildIter<A>::Context context = {}) 
-    : _self() 
+  GenericSubtermIter(A self, bool bottomUp, typename BottomUpChildIter<A>::Context context = {}) 
+    : _self2() 
+    // : _self() 
     , _context(std::move(context))
-  { _self->push(BottomUpChildIter<A>(std::move(self), std::move(context))); }
+    , _bottomUp(bottomUp)
+  { 
+    // _self->push(BottomUpChildIter<A>(std::move(self), std::move(context))); 
+    _self2->push(Co(std::move(self)));
+  }
 
   DECL_ELEMENT_TYPE(A);
-  bool hasNext() { return _self->isNonEmpty(); }
+  bool hasNext() { return _self2->isNonEmpty(); }
+  // bool hasNext() { return _self->isNonEmpty(); }
   OWN_ELEMENT_TYPE next()  {
-    ASS(_self->isNonEmpty())
+    // ASS(_self->isNonEmpty())
+    ASS(_self2->isNonEmpty())
     while (true) {
-      if (_self->top().hasNext(_context)) {
-        auto& top = _self->top();
-        auto topSelf = top.self(_context);
-        _self->push(BottomUpChildIter<A>(top.next(_context), _context));
-        if (!_bottomUp) 
-          return topSelf;
+
+      if (auto plain = _self2->top().template as<A>()) {
+        auto out = *plain;
+        _self2->top() = Co(BottomUpChildIter<A>(out, _context));
+        if (!_bottomUp) {
+          return out;
+        }
       } else {
-        auto popped = _self->pop();
-        if (_bottomUp) {
-          return popped.self(_context);
+        auto& iter = _self2->top().template unwrap<BottomUpChildIter<A>>();
+        if (iter.hasNext(_context)) {
+          _self2->push(Co(iter.next(_context)));
+        } else {
+          auto out = iter.self(_context); 
+          _self2->pop();
+          if (_bottomUp) {
+            return out;
+          }
         }
       }
+
+      // if (_self->top().hasNext(_context)) {
+      //   auto& top = _self->top();
+      //   auto topSelf = top.self(_context);
+      //   _self->push(BottomUpChildIter<A>(top.next(_context), _context));
+      //   if (!_bottomUp) 
+      //     return topSelf;
+      // } else {
+      //   auto popped = _self->pop();
+      //   if (_bottomUp) {
+      //     return popped.self(_context);
+      //   }
+      // }
     }
   }
 };
