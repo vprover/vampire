@@ -1282,6 +1282,7 @@ void Options::init()
     _lookup.insert(&_alasca);
     _alasca.tag(OptionTag::INFERENCES);
     addRecommendationConstraint(_alasca, Or(
+           _termOrdering.is(equal(TermOrdering::AUTO_KBO)),
            _termOrdering.is(equal(TermOrdering::QKBO)),
            _termOrdering.is(equal(TermOrdering::LAKBO)),
            _termOrdering.is(equal(TermOrdering::ALL_INCOMPARABLE))
@@ -1292,6 +1293,7 @@ void Options::init()
             , equal(UnificationWithAbstraction::ALASCA_MAIN)
             , equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)
             , equal(UnificationWithAbstraction::ALASCA_ONE_INTERP)
+            , equal(UnificationWithAbstraction::AUTO)
             )));
 
     _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
@@ -3588,10 +3590,11 @@ void Options::resolveAwayAutoValues(const Problem& prb)
 {
   if (termOrdering() == TermOrdering::AUTO_KBO) {
     if (alasca() && prb.hasAlascaArithmetic()) {
-      _termOrdering.actualValue = Options::TermOrdering::QKBO;
-
-      // TODO: integer/mixed integer-real should use:
-      // -alasca on -to lakbo -viras on -uwa alasca_main_floor -alascai on
+      if (prb.hasAlascaMixedArithmetic()) {
+        _termOrdering.actualValue = Options::TermOrdering::QKBO;
+      } else {
+        _termOrdering.actualValue = Options::TermOrdering::LAKBO;
+      }
     } else {
       _termOrdering.actualValue = Options::TermOrdering::KBO;
     }
@@ -3600,7 +3603,7 @@ void Options::resolveAwayAutoValues(const Problem& prb)
   if (unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
     if (alasca() && prb.hasAlascaArithmetic() &&
       !conditionalRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constaint
-      if (alascaIntegerConversion()) {
+      if (prb.hasAlascaMixedArithmetic()) {
         setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
       } else {
         setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
