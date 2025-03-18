@@ -3549,6 +3549,12 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+  if (prb.hasFOOL() && // careful: will this always be true after FOOLElimination?
+    _FOOLParamodulation.actualValue && _inequalitySplitting.actualValue > 0) {
+    // as currently done in the preprocessing pipeline, "ins" will destroy the abstracted normal for that "foolp" needs for completeness
+    return false;
+  }
+
   if (!unitEquality) {
     if (_selection.actualValue <= -1000 || _selection.actualValue >= 1000) return false;
     if (_literalComparisonMode.actualValue == LiteralComparisonMode::REVERSE) return false;
