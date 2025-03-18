@@ -263,6 +263,8 @@ public:
    * performed.
    */
   virtual bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) = 0;
+
+  virtual const char* name() const = 0;
 };
 
 

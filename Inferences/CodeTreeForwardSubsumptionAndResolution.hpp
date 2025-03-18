@@ -27,6 +27,7 @@ class CodeTreeForwardSubsumptionAndResolution
   : public ForwardSimplificationEngine
 {
 public:
+  virtual const char* name() const final override { return "CodeTreeForwardSubsumptionAndResolution"; }
   CodeTreeForwardSubsumptionAndResolution(bool subsumptionResolution) : _subsumptionResolution(subsumptionResolution) {}
 
   void attach(Saturation::SaturationAlgorithm *salg) override;

@@ -30,6 +30,7 @@ class InnerRewriting
 : public ForwardSimplificationEngine
 {
 public:
+  virtual const char* name() const final override { return "InnerRewriting"; }
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 };
 

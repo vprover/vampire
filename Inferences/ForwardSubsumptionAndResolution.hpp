@@ -25,6 +25,7 @@ class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
 public:
   ForwardSubsumptionAndResolution(bool subsumptionResolution = true);
+  virtual const char* name() const final override { return "ForwardSubsumptionAndResolution"; }
 
   /**
    * Attaches the inference engine to the saturation algorithm.

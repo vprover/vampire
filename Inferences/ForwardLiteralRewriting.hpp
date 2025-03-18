@@ -31,6 +31,7 @@ class ForwardLiteralRewriting
 : public ForwardSimplificationEngine
 {
 public:
+  virtual const char* name() const final override { return "ForwardLiteralRewriting"; }
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;

@@ -48,6 +48,7 @@ class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {
   public:
+  virtual const char* name() const final override { return "ForwardSubsumptionDemodulation"; }
     ForwardSubsumptionDemodulation(bool doSubsumption, bool enableOrderingOptimizations)
       : _doSubsumption(doSubsumption)
       , _enableOrderingOptimizations(enableOrderingOptimizations)

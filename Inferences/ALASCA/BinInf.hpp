@@ -337,6 +337,7 @@ struct BinSimpl
   using Key = KeyType<ToSimpl>;
   static_assert(std::is_same_v<KeyType<ToSimpl>, KeyType<Condition>>);
 private:
+  virtual const char* name() const final override { return Rule::name(); } 
   std::shared_ptr<AlascaState> _shared;
   Rule _rule;
   static_assert(std::is_same_v<ToSimpl  , ELEMENT_TYPE(decltype(ToSimpl::iter(assertionViolation<AlascaState&>(), assertionViolation<Clause*>())))>);

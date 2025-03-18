@@ -34,6 +34,7 @@ class ForwardDemodulation
 : public ForwardSimplificationEngine
 {
 public:
+  virtual const char* name() const final override { return "ForwardDemodulation"; }
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;

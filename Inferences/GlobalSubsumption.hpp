@@ -35,6 +35,7 @@ class GlobalSubsumption
 : public ForwardSimplificationEngine
 {
 public:
+  virtual const char* name() const final override { return "GlobalSubsumption"; }
   GlobalSubsumption(const Options& opts) : _index(0),
       _uprOnly(opts.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY),
       _explicitMinim(opts.globalSubsumptionExplicitMinim()!=Options::GlobalSubsumptionExplicitMinim::OFF),
