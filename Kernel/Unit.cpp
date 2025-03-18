@@ -61,9 +61,44 @@ Unit::Unit(Kind kind, Inference inf)
 {
 
 } // Unit::Unit
-  //
+
+
+auto replaceTraceFwd(InferenceRule r) {
+  switch(r) {
+    case InferenceRule::SKOLEMIZE:
+    case InferenceRule::CLOSURE:
+    case InferenceRule::RECTIFY:
+    case InferenceRule::ENNF:
+    case InferenceRule::NNF:
+    case InferenceRule::THEORY_NORMALIZATION:
+    case InferenceRule::ALASCA_INTEGER_TRANSFORMATION:
+    case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
+    case InferenceRule::SUBSUMPTION_RESOLUTION:
+    case InferenceRule::ALASCA_SUPERPOSITION_DEMOD:
+    case InferenceRule::ALASCA_COHERENCE_DEMOD:
+    case InferenceRule::FORWARD_DEMODULATION:
+    case InferenceRule::BACKWARD_DEMODULATION:
+    case InferenceRule::ALASCA_FWD_DEMODULATION:
+    case InferenceRule::ALASCA_BWD_DEMODULATION:
+    case InferenceRule::ALASCA_NORMALIZATION:
+    case InferenceRule::ALASCA_ABSTRACTION:
+    case InferenceRule::ALASCA_FLOOR_ELIMINATION:
+    case InferenceRule::EVALUATION:
+    case InferenceRule::CANCELLATION:
+    case InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION:
+    case InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION:
+    case InferenceRule::INTERPRETED_SIMPLIFICATION:
+    case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
+    case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
+      return true;
+
+    default:
+      return false;
+  }
+}
 
 void Unit::doUnitTracing() {
+
 #if VAMPIRE_CLAUSE_TRACING
   // TODO make unsigned
   if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
@@ -75,29 +110,41 @@ void Unit::doUnitTracing() {
 
   // forward tracing
   // TODO make unsigned
-  static int traceFwd = env.options->traceForward();
-  if (traceFwd != -1) {
+  // static int traceForward = env.options->traceForward();
+  auto traceForward = env.options->traceForward();
+  if (traceForward != -1) {
 
     bool doTrace = false;
     auto infit = inference().iterator();
     while (inference().hasNext(infit)) {
-      if (inference().next(infit)->number() == unsigned(traceFwd)) {
+      if (inference().next(infit)->number() == unsigned(traceForward)) {
         doTrace = true;
         break;
       }
     }
     if (doTrace) {
-      std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
-      if (isSimplifyingInferenceRule(inference().rule())) {
+      std::cout << "forward trace " << traceForward << ": " << toString() << std::endl;
+      if (replaceTraceFwd(inference().rule())) {
         auto infit = inference().iterator();
-        if (inference().next(infit)->number() == unsigned(traceFwd)) {
+        if (inference().next(infit)->number() == unsigned(traceForward)) {
           /* the clause was simplified away, we continue tracing its replacement */
-          traceFwd = number();
+          env.options->setTraceForward(number());
         }
       }
     }
   }
 #endif // VAMPIRE_CLAUSE_TRACING
+  // if (number() == 189559) {
+  if (number() == env.options->traceForward() /* TODO delete me */) {
+    std::cout << "reached: " << toString() << std::endl;
+  }
+  if (number() == 936494) {
+    std::cout << "reached: " << toString() << std::endl;
+    std::cout << "exiting" << std::endl;
+    std::cout << "maxSumSize: " << env.statistics->maxSumSize << std::endl;
+    env.statistics->print(std::cout);
+    exit(0);
+  }
 }
 
 void Unit::incRefCnt()

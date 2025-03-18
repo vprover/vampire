@@ -209,7 +209,6 @@ protected:
   template<class Post>
   void traverseParentsPost(Post post) { traverseParents([](auto...) {}, post); }
 
-
 }; // class Unit
 
 std::ostream& operator<< (std::ostream& out, const Unit& u );

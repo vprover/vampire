@@ -2036,6 +2036,7 @@ public:
 #if VAMPIRE_CLAUSE_TRACING
   int traceBackward() { return _traceBackward.actualValue; }
   int traceForward() { return _traceForward.actualValue; }
+  void setTraceForward(int v) { _traceForward.actualValue = v; }
 #endif // VAMPIRE_CLAUSE_TRACING
 
 #if VZ3
