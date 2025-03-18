@@ -1434,7 +1434,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(res->_instantiation);
   }
 
-  if (prb.hasEquality()) {
+  bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  if (mayHaveEquality) {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
     if (env.options->superposition()) {
@@ -1500,7 +1502,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.injectivityReasoning()) {
     gie->addFront(new Injectivity());
   }
-  if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
     }
@@ -1560,7 +1562,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create forward simplification engine
-  if (prb.hasEquality() && opt.innerRewriting()) {
+  if (mayHaveEquality && opt.innerRewriting()) {
     res->addForwardSimplifierToFront(new InnerRewriting());
   }
   if (opt.globalSubsumption()) {
@@ -1569,7 +1571,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
@@ -1577,7 +1579,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
     }
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
@@ -1609,7 +1611,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create backward simplification engine
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     switch (opt.backwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
@@ -1623,7 +1625,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+  if (mayHaveEquality && opt.backwardSubsumptionDemodulation()) {
     res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
 
@@ -1657,7 +1659,9 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, cons
 {
   CompositeISE* res=new CompositeISE();
 
-  if (prb.hasEquality() && opt.equationalTautologyRemoval()) {
+  bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  if (mayHaveEquality && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
   }
 
@@ -1702,10 +1706,10 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, cons
   }
 
   // Only add if there are distinct groups
-  if (prb.hasEquality() && env.signature->hasDistinctGroups()) {
+  if (mayHaveEquality && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
-  if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraInferences()) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
@@ -1742,7 +1746,7 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new PushUnaryMinus());
     }
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
