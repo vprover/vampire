@@ -478,6 +478,8 @@ public:
   IterTraits<Iterator> iter() const
   { return iterTraits(Iterator(*this)); }
 
+  bool keepRecycled() const { return _capacity != 0;
+  }
 }; // class Set
 
 
