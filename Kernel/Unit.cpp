@@ -134,17 +134,6 @@ void Unit::doUnitTracing() {
     }
   }
 #endif // VAMPIRE_CLAUSE_TRACING
-  // if (number() == 189559) {
-  if (number() == env.options->traceForward() /* TODO delete me */) {
-    std::cout << "reached: " << toString() << std::endl;
-  }
-  if (number() == 936494) {
-    std::cout << "reached: " << toString() << std::endl;
-    std::cout << "exiting" << std::endl;
-    std::cout << "maxSumSize: " << env.statistics->maxSumSize << std::endl;
-    env.statistics->print(std::cout);
-    exit(0);
-  }
 }
 
 void Unit::incRefCnt()

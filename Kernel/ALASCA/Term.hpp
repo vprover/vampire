@@ -651,7 +651,6 @@ namespace Kernel {
         }
     };
     while (todo.isNonEmpty()) {
-      env.statistics->maxSumSize = std::max(env.statistics->maxSumSize, todo.size());
       DEBUG_NORM_DETAILS("todo: ", todo, " done: ", done)
       auto cur = todo.pop();
       if (cur.atom().isVar()) {
