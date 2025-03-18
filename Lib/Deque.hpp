@@ -339,7 +339,7 @@ public:
     DECL_ELEMENT_TYPE(C);
     /** create an iterator for @b d */
     inline
-    explicit FrontToBackIterator (Deque& d)
+    explicit FrontToBackIterator (Deque const& d)
       : _pointer(d._front), _begin(d._data), _end(d._end), _afterLast(d._back)
     {
     }
@@ -383,7 +383,7 @@ public:
     DECL_ELEMENT_TYPE(C);
     /** create an iterator for @b d */
     inline
-    explicit BackToFrontIterator (Deque& d)
+    explicit BackToFrontIterator (Deque const& d)
       : _pointer(d._back), _begin(d._data), _end(d._end), _last(d._front)
     {
     }
@@ -413,6 +413,9 @@ public:
     C* _end;
     C* _last;
   };
+
+  auto iterFwd() const { return iterTraits(FrontToBackIterator(*this)); }
+  auto iterBwd() const { return iterTraits(BackToFrontIterator(*this)); }
 
 
 protected:
