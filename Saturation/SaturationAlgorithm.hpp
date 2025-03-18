@@ -58,6 +58,15 @@ class Splitter;
 class SaturationAlgorithm : public MainLoop
 {
 public:
+  /**
+   * Sometimes the problem does not have equality after preprocessing,
+   * but still needs to be treated equationally during saturation (think theory reasoning);
+   * this helper function is here to capture such cases.
+  */
+  static bool couldEqualityArise(const Problem& prb, const Options& opt) {
+    // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
+    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation());
+  }
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
