@@ -73,7 +73,7 @@ void traverseLiraVars(TermList self, F f) {
       );
 }
 
-SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
+Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(Clause* premise) {
   DEBUG(0, *premise)
     // TODO for rationals ?
   using NumTraits = RealTraits;
@@ -124,14 +124,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
     .tryNext();
 
   if (unshielded.isNone()) {
-    return ClauseGenerationResult {
-      .clauses = VirtualIterator<Clause*>::getEmpty(),
-      .premiseRedundant = false,
-    };
+    return {};
   } else {
     auto var = VampireVirasConfig::VarWrapper(TermList::var(*unshielded));
-    return ClauseGenerationResult {
-      .clauses = pvi(
+    return some(pvi(
           intoVampireIter(viras.quantifier_elimination(var, &*toElim))
             .map([premise, otherLits = std::move(otherLits)](auto litIter) {
               return Clause::fromIterator(
@@ -141,10 +137,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
                     ),
                   Inference(SimplifyingInference1(InferenceRule::ALASCA_VIRAS_QE, premise)));
             })
-          )
-        ,
-      .premiseRedundant = true,
-    };
+          ));
   }
 }
 

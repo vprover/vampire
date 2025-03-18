@@ -16,6 +16,7 @@
 #ifndef __Inferences_ALASCA_VIRAS__
 #define __Inferences_ALASCA_VIRAS__
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
@@ -32,8 +33,8 @@ using namespace Indexing;
 using namespace Saturation;
 
 class VirasQuantifierElimination
-: public SimplifyingGeneratingInference
 {
+  std::shared_ptr<AlascaState> _shared;
 public:
 
   VirasQuantifierElimination(VirasQuantifierElimination&&) = default;
@@ -41,18 +42,76 @@ public:
     : _shared(std::move(shared))
   {  }
 
+  Option<VirtualIterator<Clause*>> apply(Clause* premise);
+};
+
+
+class VirasQuantifierEliminationSGI
+: public SimplifyingGeneratingInference
+{
+  VirasQuantifierElimination _self;
+public:
+
+  VirasQuantifierEliminationSGI(VirasQuantifierEliminationSGI&&) = default;
+  explicit VirasQuantifierEliminationSGI(std::shared_ptr<AlascaState> shared) 
+    : _self(std::move(shared))
+  {  }
+
   void attach(SaturationAlgorithm* salg) final override {}
   void detach() final override {}
 
-  ClauseGenerationResult generateSimplify(Clause* premise) final override;
+  ClauseGenerationResult generateSimplify(Clause* premise) final override 
+  {
+    if (auto res = _self.apply(premise)) {
+      return ClauseGenerationResult {
+        .clauses = *res,
+        .premiseRedundant = true,
+      };
+    } else {
+      return ClauseGenerationResult {
+        .clauses = VirtualIterator<Clause*>::getEmpty(),
+        .premiseRedundant = false,
+      };
+    }
+  }
 
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {}
 #endif
+};
 
-private:
+class VirasQuantifierEliminationISE
+: public ImmediateSimplificationEngine
+{
+  VirasQuantifierElimination _self;
+public:
 
-  std::shared_ptr<AlascaState> _shared;
+  VirasQuantifierEliminationISE(VirasQuantifierEliminationISE&&) = default;
+  explicit VirasQuantifierEliminationISE(std::shared_ptr<AlascaState> shared) 
+    : _self(std::move(shared))
+  {  }
+
+  void attach(SaturationAlgorithm* salg) final override {}
+  void detach() final override {}
+
+  // TODO fix class hierarchy so we don't need this ASSERTION_VIOLATION
+  Clause* simplify(Clause* premise) final override { ASSERTION_VIOLATION_REP("should only be used with simplifyMany")  }
+  ClauseIterator simplifyMany(Clause* premise) final override 
+  {
+    if (auto result = _self.apply(premise)) {
+      if (result->hasNext()) {
+        return *result;
+      } else {
+        return pvi(iterItems<Clause*>(nullptr));
+      }
+    } else {
+      return VirtualIterator<Clause*>::getEmpty();
+    }
+  }
+
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {}
+#endif
 };
 
 } // namespace ALASCA 

@@ -1586,7 +1586,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new ALASCA::Normalization(shared));
     // TODO check when the other one is better
     if (env.options->viras()) {
-      sgi->push(new ALASCA::VirasQuantifierElimination(shared));
+      ise->addFrontMany(new ALASCA::VirasQuantifierEliminationISE(shared));
     } else {
       sgi->push(new ALASCA::VariableElimination(shared, /* simpl */ true ));
     }
