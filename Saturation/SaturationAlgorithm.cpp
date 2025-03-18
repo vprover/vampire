@@ -1574,8 +1574,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // TODO add an option for this
     ise->addFront(new ALASCA::FloorElimination(shared));
     if (env.options->alascaAbstraction()) {
-      ise->addFront(new ALASCA::Abstraction<RealTraits>(shared));
-      ise->addFront(new ALASCA::Abstraction<RatTraits>(shared));
+      ise->addFront(new ALASCA::Abstraction());
     }
 
     if (env.options->alascaStrongNormalization()) {

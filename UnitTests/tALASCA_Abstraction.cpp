@@ -67,12 +67,12 @@ using namespace Inferences::ALASCA;
 inline auto testAbstraction(Options::UnificationWithAbstraction uwa)
 { 
   auto s = testAlascaState(uwa);
-  return alascaSimplRule(s,toSgi(Abstraction<RealTraits>(s)), Normalization(s));
+  return alascaSimplRule(s,toSgi(Abstraction()), Normalization(s));
 }
 
 
 
-REGISTER_GEN_TESTER(AlascaGenerationTester<ToSgi<Abstraction<RealTraits>>>(testAbstraction(UWA_MODE)))
+REGISTER_GEN_TESTER(AlascaGenerationTester<ToSgi<Abstraction>>(testAbstraction(UWA_MODE)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
