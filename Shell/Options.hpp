@@ -1733,7 +1733,7 @@ bool _hard;
         ASS(p)
         return (p->equalityAtoms() != 0) ||
           // theories may introduce equality at various places of the pipeline!
-          HasTheories::actualCheck(p);
+          HasTheories::actualCheck(p) || p->hasFOOL();
       }
       std::string msg(){ return " only useful with equality"; }
     };
@@ -1776,8 +1776,8 @@ bool _hard;
       bool check(Property*p){
         return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
-          
-      std::string msg(){ 
+
+      std::string msg(){
         std::string m = " not with ";
         if(greater){ m+="more";}else{m+="less";}
         return m+" than "+Lib::Int::toString(atoms)+" atoms";
