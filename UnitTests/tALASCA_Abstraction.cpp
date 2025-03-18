@@ -150,6 +150,15 @@ TEST_GENERATION(coherence_4,
       ))
     )
 
+TEST_GENERATION(coherence_5,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ p(floor(x)), p(floor(x))  }) })
+      .premiseRedundant(true)
+      .expected(exactly(
+            clause({ y != floor(x), p(y), p(y) })
+      ))
+    )
+
 TEST_GENERATION(non_application_1,
     Generation::SymmetricTest()
       .inputs  ({ clause({ p(3 * x)  }) })
