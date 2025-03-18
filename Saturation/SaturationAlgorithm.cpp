@@ -21,7 +21,6 @@
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
@@ -924,6 +923,18 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
       if (fse->perform(cl, replacement, premises)) {
         if (replacement) {
           addNewClause(replacement);
+#if VAMPIRE_CLAUSE_TRACING
+        } else if (env.options->traceForward() == cl->number()) {
+          RStack<Clause*> ps;
+          ps->loadFromIterator(premises);
+          std::cout << "deleted " << env.options->traceForward() 
+            << " by " << arrayIter(*ps)
+                            .map([](auto x) { return "\n" + x->toString(); })
+                            .output(" & ")  
+            << std::endl;
+          premises = pvi(arrayIter(std::move(ps)));
+
+#endif // VAMPIRE_CLAUSE_TRACING
         }
         onClauseReduction(cl, &replacement, 1, premises);
 
