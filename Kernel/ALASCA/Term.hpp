@@ -510,9 +510,13 @@ namespace Kernel {
     Option<AlascaTermItpAny> asSum() const 
     { return _self._self.apply([](auto& x) { return AlascaTermImpl::asSum(x); }); }
     
-    auto iterSubterms(bool bottomUp = false) const
-    { return iterTraits(GenericSubtermIter(this->_self, bottomUp))
-                 .map([](auto t) { return AnyAlascaTerm(t); }); }
+    auto bottomUpIter() const
+    { return iterTraits(SubtermIterBottomUp(this->_self))
+                 .map([](AnyAlascaTermStruct t) { return AnyAlascaTerm(t); }); }
+
+    auto topDownIter() const
+    { return iterTraits(SubtermIterTopDown(this->_self))
+                 .map([](AnyAlascaTermStruct t) { return AnyAlascaTerm(t); }); }
 
     template<class NumTraits> Option<AlascaTermItp<NumTraits>> asSum() const 
     { return asSum().andThen([](auto x) {
@@ -533,7 +537,7 @@ namespace Kernel {
 namespace Kernel {
 
   // inline IterTraits<VirtualIterator<AnyAlascaTerm>> AnyAlascaTerm::iterSubterms() const {
-  //   return iterTraits(pvi(GenericSubtermIter(*this, /* bottomUp */ false)));
+  //   return iterTraits(pvi(SubtermIterBottomUp(*this, /* bottomUp */ false)));
   // }
 
 

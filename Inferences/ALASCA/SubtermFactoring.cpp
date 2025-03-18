@@ -45,7 +45,7 @@ struct Application
              [](SelectedUninterpretedPredicate& x) { return termArgIterTyped(x.literal()); }
           ))
           .flatMap([&](TypedTermList activePos) {
-            return AnyAlascaTerm::normalize(activePos).iterSubterms()
+            return AnyAlascaTerm::normalize(activePos).bottomUpIter()
                .filterMap([](auto t) { return t.asSum(); })
                .filter([](auto& s) { return s.apply([](auto& s) { return s.nSummands() >= 2; }); })
                .flatMap([=](auto t_anyNum) {

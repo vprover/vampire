@@ -616,71 +616,99 @@ struct BottomUpChildIter<Kernel::PolyNf>
   { return out << self._self; }
 };
 
-
 template<class A>
-struct GenericSubtermIter {
-  // RStack<BottomUpChildIter<A>> _self;
-  //
-  using Co =  Coproduct<BottomUpChildIter<A>, A>;
-  RStack<Co> _self2;
-  typename BottomUpChildIter<A>::Context _context;
-  bool _bottomUp = true;
+struct SubtermIterTopDown 
+{
+  using Context = typename BottomUpChildIter<A>::Context;
+  struct Inner {
+    BottomUpChildIter<A> iter;
+    bool returned;
+    Inner(A self, Context ctx) : iter(self, ctx), returned(false) {}
+  };
+  RStack<Inner> _self;
+  Context _context;
 
-  GenericSubtermIter(A self, bool bottomUp, typename BottomUpChildIter<A>::Context context = {}) 
-    : _self2() 
-    // : _self() 
+  SubtermIterTopDown(A self, typename BottomUpChildIter<A>::Context context = {}) 
+    : _self() 
     , _context(std::move(context))
-    , _bottomUp(bottomUp)
   { 
-    // _self->push(BottomUpChildIter<A>(std::move(self), std::move(context))); 
-    _self2->push(Co(std::move(self)));
+    _self->push(Inner(std::move(self), _context));
   }
 
   DECL_ELEMENT_TYPE(A);
-  bool hasNext() { return _self2->isNonEmpty(); }
-  // bool hasNext() { return _self->isNonEmpty(); }
+  bool hasNext() { return _self->isNonEmpty(); }
+
   OWN_ELEMENT_TYPE next()  {
-    // ASS(_self->isNonEmpty())
-    ASS(_self2->isNonEmpty())
+    ASS(hasNext())
     while (true) {
-
-      if (auto plain = _self2->top().template as<A>()) {
-        auto out = *plain;
-        _self2->top() = Co(BottomUpChildIter<A>(out, _context));
-        if (!_bottomUp) {
-          return out;
+      auto& top = _self->top();
+      if (!top.returned) {
+        top.returned = true;
+        auto out = top.iter.self(_context);
+        if (!top.iter.hasNext(_context)) {
+          _self->pop();
         }
+        return out;
       } else {
-        auto& iter = _self2->top().template unwrap<BottomUpChildIter<A>>();
-        if (iter.hasNext(_context)) {
-          _self2->push(Co(iter.next(_context)));
-        } else {
-          auto out = iter.self(_context); 
-          _self2->pop();
-          if (_bottomUp) {
-            return out;
-          }
+        ASS(top.iter.hasNext(_context))
+        auto next = top.iter.next(_context);
+        if (!top.iter.hasNext(_context)) {
+          _self->pop();
         }
+        _self->push(Inner(next, _context));
       }
-
-      // if (_self->top().hasNext(_context)) {
-      //   auto& top = _self->top();
-      //   auto topSelf = top.self(_context);
-      //   _self->push(BottomUpChildIter<A>(top.next(_context), _context));
-      //   if (!_bottomUp) 
-      //     return topSelf;
-      // } else {
-      //   auto popped = _self->pop();
-      //   if (_bottomUp) {
-      //     return popped.self(_context);
-      //   }
-      // }
     }
   }
 };
 
 template<class A>
-GenericSubtermIter(A, bool) -> GenericSubtermIter<A>;
+struct SubtermIterBottomUp {
+  using Context = typename BottomUpChildIter<A>::Context;
+  struct Inner {
+    BottomUpChildIter<A> iter;
+    Inner(A self, Context ctx) : iter(self, ctx) {}
+  };
+  RStack<Inner> _self;
+  Context _context;
+  bool _bottomUp = true;
+
+  SubtermIterBottomUp(A self, typename BottomUpChildIter<A>::Context context = {}) 
+    : _self() 
+    , _context(std::move(context))
+  { 
+    _self->push(Inner(std::move(self), _context));
+  }
+
+  DECL_ELEMENT_TYPE(A);
+  bool hasNext() { return _self->isNonEmpty(); }
+  OWN_ELEMENT_TYPE next()  {
+    ASS(hasNext())
+    while (true) {
+      auto& top = _self->top();
+      if (top.iter.hasNext(_context)) {
+        _self->push(Inner(top.iter.next(_context), _context));
+      } else {
+        auto out = top.iter.self(_context);
+        _self->pop();
+        return out;
+      }
+    }
+  }
+};
+
+template<class A> SubtermIterBottomUp(A) -> SubtermIterBottomUp<A>;
+template<class A> SubtermIterTopDown(A) -> SubtermIterTopDown<A>;
+// template<bool bottomUp> struct GenericSubtermIterFun;
+//
+// template<> struct GenericSubtermIterFun<true>  { 
+//   template<class A> 
+//   using type = SubtermIterBottomUp<A>; };
+// template<> struct GenericSubtermIterFun<false>  { 
+//   template<class A> 
+//   using type = SubtermIterTopDown<A>; };
+//
+// template<bool bottomUp> 
+// using GenericSubtermIter = typename GenericSubtermIterFun<bottomUp>::type;
 
 } // namespace Lib
 
