@@ -54,7 +54,6 @@ public:
 
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
-  Result comparePrecedences(const Term* t1, const Term* t2) const;
 
   Result cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
   Result cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;

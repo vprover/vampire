@@ -73,10 +73,7 @@ void KBOComparator::processTermNode()
     curr = &curr->node()->eqBranch;
   }
 
-  Ordering::Result prec = lhs->isSort()
-    ? kbo.compareTypeConPrecedences(lhs->functor(),rhs->functor())
-    : kbo.compareFunctionPrecedences(lhs->functor(),rhs->functor());
-  switch (prec)
+  switch (kbo.comparePrecedences(lhs,rhs))
   {
     case Ordering::LESS: {
       *curr = ngeBranch;

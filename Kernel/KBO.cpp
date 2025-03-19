@@ -53,17 +53,15 @@ Ordering::Result KBO::State::result(KBO const& kbo, AppliedTerm t1, AppliedTerm 
     res=_weightDiff>0 ? GREATER : LESS;
   } else if(t1.term.term()->functor()!=t2.term.term()->functor()) {
     if(t1.term.term()->isLiteral()) {
+      ASS(t2.term.term()->isLiteral());
       int prec1, prec2;
       prec1=kbo.predicatePrecedence(t1.term.term()->functor());
       prec2=kbo.predicatePrecedence(t2.term.term()->functor());
       ASS_NEQ(prec1,prec2);//precedence ordering must be total
       res=(prec1>prec2)?GREATER:LESS;
-    } else if(t1.term.term()->isSort()){
-      ASS(t2.term.term()->isSort()); //should only compare sorts with sorts
-      res=kbo.compareTypeConPrecedences(t1.term.term()->functor(), t2.term.term()->functor());
-      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
-      res=kbo.compareFunctionPrecedences(t1.term.term()->functor(), t2.term.term()->functor());
+      ASS(!t2.term.term()->isLiteral());
+      res=kbo.comparePrecedences(t1.term.term(), t2.term.term());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
   } else {
@@ -91,11 +89,8 @@ Ordering::Result KBO::State::innerResult(KBO const& kbo, TermList tl1, TermList 
     } else if(tl2.isVar()) {
       ASS_EQ(_posNum,0);
       res=GREATER;
-    } else if(tl1.term()->isSort()){
-      res=kbo.compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
-      ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
-      res=kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      res=kbo.comparePrecedences(tl1.term(), tl2.term());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     }
   }
@@ -300,10 +295,7 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
         _lexResult = INCOMPARABLE;
         continue;
       }
-      Result comp = s.term.term()->isSort()
-        ? kbo.compareTypeConPrecedences(s.term.term()->functor(),t.term.term()->functor())
-        : kbo.compareFunctionPrecedences(s.term.term()->functor(),t.term.term()->functor());
-      switch (comp)
+      switch (kbo.comparePrecedences(s.term.term(),t.term.term()))
       {
         case Ordering::LESS: {
           return INCOMPARABLE;
@@ -848,10 +840,7 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) co
     return res;
   }
   // w1==w2
-  Result comp = t1->isSort()
-    ? compareTypeConPrecedences(t1->functor(),t2->functor())
-    : compareFunctionPrecedences(t1->functor(),t2->functor());
-  switch (comp)
+  switch (comparePrecedences(t1,t2))
   {
     case Ordering::LESS: {
       res = INCOMPARABLE;
