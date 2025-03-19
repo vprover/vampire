@@ -235,7 +235,14 @@ void Clause::setStore(Store s)
     selected=this;
   }
 #endif
+#if VAMPIRE_CLAUSE_TRACING
+  auto traceForward = env.options->traceForward();
+  if (number() == traceForward && _store != s) {
+    std::cout << number() << ".setStore(" << s << ")" << std::endl;
+  }
+#endif // VAMPIRE_CLAUSE_TRACING
   _store = s;
+
   destroyIfUnnecessary();
 }
 
@@ -493,7 +500,7 @@ unsigned Clause::computeWeight() const
 {
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    ASS(_literals[i]->shared());
+    ASS_REP(_literals[i]->shared(), *_literals[i]);
     result += _literals[i]->weight();
   }
 
@@ -759,18 +766,6 @@ bool Clause::contains(Literal* lit)
     }
   }
   return false;
-}
-
-std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
-{
-  switch (store) {
-    case Clause::PASSIVE:     return out << "PASSIVE";
-    case Clause::ACTIVE:      return out << "ACTIVE";
-    case Clause::UNPROCESSED: return out << "UNPROCESSED";
-    case Clause::NONE:        return out << "NONE";
-    case Clause::SELECTED:    return out << "SELECTED";
-  }
-  ASSERTION_VIOLATION;
 }
 
 Literal* Clause::getAnswerLiteral() {
