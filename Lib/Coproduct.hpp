@@ -537,7 +537,7 @@ public:
    */                                                                                     \
   template <class F>                                                                      \
   inline auto applyCo(F f) REF -> decltype(auto) {                                        \
-    using Out = TL::Into<Coproduct, TL::Map<ApplyFuncToArg<unsigned REF>,                               \
+    using Out = TL::Into<Coproduct, TL::Map<ApplyFuncToArg<unsigned REF>,                 \
           TL::Zip<TL::Repeat<TL::Size<Ts>::val, F>, TL::List<As REF...>>>>;               \
     return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
         return Out::template variant<N.value>(                                            \
@@ -574,7 +574,7 @@ public:
    *                                                                                      \
    * \pre B must occur exactly once in As...                                              \
    */                                                                                     \
-  template <class B> inline B REF unwrap() REF                                            \
+  template <class B> inline auto unwrap() REF -> decltype(auto) \
   { return MOVE(unwrap<TL::IdxOf<B, Ts>::val>()); }                                       \
                                                                                           \
   /**                                                                                     \
@@ -597,25 +597,53 @@ public:
    *                                                                                      \
    * \pre B must occur exactly once in As...                                              \
    */                                                                                     \
-  template <class B> inline Option<B REF> as() REF                                        \
+  template<class B> auto as() REF                                        \
   { return as<TL::IdxOf<B, Ts>::val>(); }                                                 \
-                                                                                          \
-  /**                                                                                     \
-   * returns the value of this Coproduct if its variant's index is idx. otherwise an      \
-   * empty Option is returned.                                                            \
-   *                                                                                      \
-   * \pre idx must be less than the number of variants of this Coproduct                  \
-   */                                                                                     \
-  template <unsigned idx>                                                                 \
-  inline Option<TL::Get<idx, Ts> REF> as() REF                                            \
-  {                                                                                       \
-    using B = TL::Get<idx, Ts>;                                                           \
-    return is<idx>() ? Option<B REF>(MOVE(unwrap<idx>()))                                 \
-                     : Option<B REF>();                                                   \
-  }                                                                                       \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
+
+  /**
+   * returns the value of this Coproduct if its variant's index is idx. otherwise an
+   * empty Option is returned.
+   *
+   * \pre idx must be less than the number of variants of this Coproduct
+   */
+  template<unsigned idx>
+  inline Option<TL::Get<idx, Ts>> as() &&
+  {
+    using B = TL::Get<idx, Ts>;
+    return is<idx>() ? Option<B>(move_if_value<B>(unwrap<idx>()))
+                     : Option<B>();
+  }
+
+  /**
+   * returns the value of this Coproduct if its variant's index is idx. otherwise an
+   * empty Option is returned.
+   *
+   * \pre idx must be less than the number of variants of this Coproduct
+   */
+  template<unsigned idx>
+  inline Option<TL::Get<idx, Ts> const&> as() const&
+  {
+    using B = TL::Get<idx, Ts>;
+    return is<idx>() ? Option<B const&>(unwrap<idx>())
+                     : Option<B const&>();
+  }
+
+  /**
+   * returns the value of this Coproduct if its variant's index is idx. otherwise an
+   * empty Option is returned.
+   *
+   * \pre idx must be less than the number of variants of this Coproduct
+   */
+  template<unsigned idx>
+  inline Option<TL::Get<idx, Ts>&> as() &
+  {
+    using B = TL::Get<idx, Ts>;
+    return is<idx>() ? Option<B &>(unwrap<idx>())
+                     : Option<B &>();
+  }
 
   // TODO trivial one
   friend bool operator==(const Coproduct &lhs, const Coproduct &rhs)
