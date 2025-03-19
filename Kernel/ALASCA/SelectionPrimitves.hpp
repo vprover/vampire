@@ -198,6 +198,7 @@ namespace Kernel {
   };
 
 
+  // TODO 1 make this based on AlascaLiteral
   class SelectedAtom: public Coproduct<SelectedUninterpretedEquality, SelectedSummand>
   {
     using Super = Coproduct<SelectedUninterpretedEquality, SelectedSummand>;

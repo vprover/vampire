@@ -129,6 +129,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
 
   check_side_condition(
       "s2σ ⊴ ti ∈ active(L[s2]σ)", 
+      // TODO 1 differnt constraint here?
       _shared->activePositions(L2σ)
         .any([&](auto ti) 
              { return _shared->subtermEqModT(s2σ, ti); }))

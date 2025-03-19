@@ -62,12 +62,12 @@ void TermFactoring::detach()
 // • <> ∈ {>,≥,≈,/≈}
 // • s₁,s₂ /∈ Vars
 // • (k₁ s₁ + k₂ s₂ + t <> 0)σ /≺ Cσ
-// • s₁σ,s₂σ ∈ maxAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)
+// • s₁σ,s₂σ ∈ selectedAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)
 template<class NumTraits> 
 Option<Clause*> TermFactoring::applyRule(
     SelectedSummand const& sel1, 
     SelectedSummand const& sel2,
-    Stack<TermList> const& maxAtoms
+    Stack<TermList> const& selectedAtoms
     )
 {
   TIME_TRACE("alasca term factoring")
@@ -121,10 +121,11 @@ Option<Clause*> TermFactoring::applyRule(
 
 
 
-  // • s₁σ,s₂σ ∈ maxAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)
+  // TODO selection maximality condition
+  // • s₁σ,s₂σ ∈ selectedAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)
     check_side_condition(
-        "s₁σ,s₂σ ∈ maxAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)",
-        iterTraits(maxAtoms.iterFifo())
+        "s₁σ,s₂σ ∈ selectedAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)",
+        iterTraits(selectedAtoms.iterFifo())
           .all([&](auto a) {
             auto a_sigma = sigma(a);
             return _shared->notLess(s1_sigma, a_sigma) 
@@ -185,13 +186,13 @@ Option<Clause*> TermFactoring::applyRule(
 Option<Clause*> TermFactoring::applyRule(
     SelectedSummand const& l, 
     SelectedSummand const& r,
-    Stack<TermList> const& maxAtoms
+    Stack<TermList> const& selectedAtoms
     )
 { 
   ASS_EQ(l.clause(), r.clause())
   ASS_EQ(l.literal(), r.literal())
   return l.numTraits().apply([&](auto numTraits) 
-      { return applyRule<decltype(numTraits)>(l, r, maxAtoms); });
+      { return applyRule<decltype(numTraits)>(l, r, selectedAtoms); });
 }
 
 #define D(...) std::cout  << __VA_ARGS__ << std::endl;
@@ -203,7 +204,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 
   auto max = Lib::make_shared(Stack<TermList>());
   auto selected = Lib::make_shared(
-        _shared->maxAtoms(premise,
+        _shared->selectedAtoms(premise,
           SelectionCriterion::NOT_LESS,
           /* include number vars */ false)
         .inspect([&](auto& sel) { max->push(sel.atom()); })

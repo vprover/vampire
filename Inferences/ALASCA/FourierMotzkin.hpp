@@ -53,8 +53,9 @@ struct FourierMotzkinConf
     static auto iter(AlascaState& shared, Clause* cl)
     { 
       return shared.selectedSummands(cl, 
+          // TODO 1 
                         /* literal*/ SelectionCriterion::NOT_LEQ, 
-                        /* term */ SelectionCriterion::NOT_LEQ,
+                        // /* term */ SelectionCriterion::NOT_LEQ,
                         /* include number vars */ false)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
@@ -74,8 +75,9 @@ struct FourierMotzkinConf
     static auto iter(AlascaState& shared, Clause* cl) 
     { 
       return shared.selectedSummands(cl, 
+          // TODO 1
                         /* literal*/ SelectionCriterion::NOT_LESS,
-                        /* term */ SelectionCriterion::NOT_LEQ,
+                        // /* term */ SelectionCriterion::NOT_LEQ,
                         /* include number vars */ false)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })

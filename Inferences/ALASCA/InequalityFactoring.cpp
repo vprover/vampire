@@ -184,8 +184,9 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 
     auto selected = Lib::make_shared(
         _shared->selectedSummands(premise, 
+          // TODO 1 work out the selection criterion stuff
                        /* literal */ SelectionCriterion::NOT_LESS, 
-                       /* summand */ SelectionCriterion::NOT_LEQ,
+                       // /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
           .filter([](auto& s) { return s.isInequality(); })
 #if FACTOR_NEGATIVE
@@ -197,7 +198,8 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 
   auto rest = Lib::make_shared(
       _shared->selectedSummands(premise,  
-                    /* literal */ SelectionCriterion::ANY, 
+        // TODO 1
+                    // /* literal */ SelectionCriterion::ANY, 
                     /* summand */ SelectionCriterion::NOT_LEQ,
                     /* include number vars */ false)
         .filter([](auto& s) { return s.isInequality(); })

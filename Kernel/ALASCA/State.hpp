@@ -17,6 +17,7 @@
 #include "Debug/Assertion.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
+#include <utility>
 
 namespace Kernel {
   struct AlascaState 
@@ -67,7 +68,7 @@ namespace Kernel {
 
     bool isAtomic(TermList t) const { return t.isTerm() && isAtomic(t.term()); }
 
-    auto maxLits(Clause* cl, SelectionCriterion sel) {
+    auto _maxLits(Clause* cl, SelectionCriterion sel) {
       return OrderingUtils::maxElems(
           cl->size(), 
           [=](unsigned l, unsigned r) 
@@ -91,10 +92,12 @@ namespace Kernel {
     bool notLeq(LitOrTerm lhs, LitOrTerm rhs)
     { return OrderingUtils::notLeq(ordering->compare(lhs, rhs)); }
 
+    // TODO 1 
     template<class NumTraits>
     auto maxSummandIndices(AlascaLiteralItp<NumTraits> const& lit, SelectionCriterion selection)
     { return maxSummandIndices(lit.term(), selection); }
 
+    // TODO 1 
     template<class NumTraits>
     auto maxSummandIndices(AlascaTermItp<NumTraits> const& term, SelectionCriterion selection)
     {
@@ -184,28 +187,29 @@ namespace Kernel {
         .map([lit](auto i) { return SelectedUninterpretedEquality(lit, i); }); }
 
     // TODO use ifElseIter
-    auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TypedTermList>>
-    {
-      return iterTraits(norm().tryNormalizeInterpreted(l)
-        .match(
-          [=](AlascaLiteralItpAny l) -> VirtualIterator<TypedTermList> {
-            return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
-                return maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
-                         .map([l](auto i) {
-                             return TypedTermList(l.term().summandAt(i).atom(), l.numTraits().sort());
-                         });
-            })));
-          },
-          [=]() {
-            if (l->isEquality()) {
-              auto sort = l->eqArgSort();
-              return pvi(maxEqIndices(l, SelectionCriterion::NOT_LEQ)
-                .map([=](auto i) { return TypedTermList(l->termArg(i), sort); }));
-            } else {
-                return pvi(termArgIterTyped(l));
-            }
-          }));
-    }
+    // TODO 1 remove (?)
+    IterTraits<VirtualIterator<TypedTermList>> activePositions(Literal* l);
+    // {
+    //   return iterTraits(norm().tryNormalizeInterpreted(l)
+    //     .match(
+    //       [=](AlascaLiteralItpAny l) -> VirtualIterator<TypedTermList> {
+    //         return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
+    //             return maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
+    //                      .map([l](auto i) {
+    //                          return TypedTermList(l.term().summandAt(i).atom(), l.numTraits().sort());
+    //                      });
+    //         })));
+    //       },
+    //       [=]() {
+    //         if (l->isEquality()) {
+    //           auto sort = l->eqArgSort();
+    //           return pvi(maxEqIndices(l, SelectionCriterion::NOT_LEQ)
+    //             .map([=](auto i) { return TypedTermList(l->termArg(i), sort); }));
+    //         } else {
+    //             return pvi(termArgIterTyped(l));
+    //         }
+    //       }));
+    // }
 
 
     bool subtermEqModT(TypedTermList sub, TypedTermList sup)
@@ -224,35 +228,37 @@ namespace Kernel {
                      { return SelectedSummand(sel_lit, i); }); }
 
 
-    auto selectedActivePositions(
+                // TODO 1 replace this by 'selected(...)'
+IterTraits<VirtualIterator<Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>>>
+    selectedActivePositions(
         Clause* cl, SelectionCriterion selLit, 
         SelectionCriterion selSum,
-        bool includeUnshieldedNumberVariables)
-    {
-      using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
-      return maxLits(cl, selLit)
-        .flatMap([=](auto sel_lit) -> VirtualIterator<Out> {
-            auto lit = sel_lit.literal();
-            if (sel_lit.interpreted.isSome()) {
-              return pvi(maxSummands(sel_lit, selSum)
-                  .filter([=](auto x) { return includeUnshieldedNumberVariables || x.numTraits().apply([](auto x) { return !x.isFractional(); }) || !x.selectedAtom().isVar(); })
-                  .map([](auto x) { return Out(std::move(x)); }));
-
-            } else if (lit->isEquality()) {
-              return pvi(maxEqIndices(lit, selSum)
-                        .map([=](auto j) 
-                            { return Out(SelectedUninterpretedEquality(sel_lit, j)); }));
-            } else {
-              return pvi(getSingletonIterator(Out(SelectedUninterpretedPredicate(sel_lit))));
-            }
-        });
-    }
+        bool includeUnshieldedNumberVariables);
+    // {
+    //   using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
+    //   return _maxLits(cl, selLit)
+    //     .flatMap([=](auto sel_lit) -> VirtualIterator<Out> {
+    //         auto lit = sel_lit.literal();
+    //         if (sel_lit.interpreted.isSome()) {
+    //           return pvi(maxSummands(sel_lit, selSum)
+    //               .filter([=](auto x) { return includeUnshieldedNumberVariables || x.numTraits().apply([](auto x) { return !x.isFractional(); }) || !x.selectedAtom().isVar(); })
+    //               .map([](auto x) { return Out(std::move(x)); }));
+    //
+    //         } else if (lit->isEquality()) {
+    //           return pvi(maxEqIndices(lit, selSum)
+    //                     .map([=](auto j) 
+    //                         { return Out(SelectedUninterpretedEquality(sel_lit, j)); }));
+    //         } else {
+    //           return pvi(getSingletonIterator(Out(SelectedUninterpretedPredicate(sel_lit))));
+    //         }
+    //     });
+    // }
 
     auto isUninterpreted(Literal* l) const 
     { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 
     auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) {
-      return maxLits(cl, selLit)
+      return _maxLits(cl, selLit)
         .filter([&](auto& lit) { return isUninterpreted(lit.literal()); });
     }
 
@@ -307,59 +313,81 @@ namespace Kernel {
     }
 
 
-    auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) {
-      using Out = SelectedAtom;
-      auto atoms = Lib::make_shared(Stack<Out>());
-      for (unsigned i : range(0, cl->size())) {
-        auto l = SelectedLiteral(cl, i, *this);
-        if (interpretedPred(l.literal())) {
-          if (l.interpreted.isSome()) {
-            for (auto a : maxSummands(l, criterion)) {
-              atoms->push(Out(a));
-            }
-          } else {
-            // must be an equality of uninterpreted terms
-            ASS_REP(isUninterpretedEquality(l.literal()), *l.literal());
-            for (auto a : selectUninterpretedEquality(l, criterion)) {
-              atoms->push(Out(a));
-            }
-          }
-        } else {
-          atoms = Lib::make_shared(Stack<Out>());
-          break;
-        }
-      }
+    // auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) {
+    //   using Out = SelectedAtom;
+    //   auto atoms = Lib::make_shared(Stack<Out>());
+    //   for (unsigned i : range(0, cl->size())) {
+    //     auto l = SelectedLiteral(cl, i, *this);
+    //     if (interpretedPred(l.literal())) {
+    //       if (l.interpreted.isSome()) {
+    //         for (auto a : maxSummands(l, criterion)) {
+    //           atoms->push(Out(a));
+    //         }
+    //       } else {
+    //         // must be an equality of uninterpreted terms
+    //         ASS_REP(isUninterpretedEquality(l.literal()), *l.literal());
+    //         for (auto a : selectUninterpretedEquality(l, criterion)) {
+    //           atoms->push(Out(a));
+    //         }
+    //       }
+    //     } else {
+    //       atoms = Lib::make_shared(Stack<Out>());
+    //       break;
+    //     }
+    //   }
+    //
+    //   return OrderingUtils::maxElems(
+    //       atoms->size(), 
+    //       [=](unsigned l, unsigned r) 
+    //       { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
+    //       [=](unsigned i)
+    //       { return (*atoms)[i].atom(); },
+    //       criterion)
+    //     .map([=](auto i) 
+    //         { return (*atoms)[i]; })
+    //   .filter([=](auto x) 
+    //       { return !x.template is<SelectedSummand>() 
+    //             || !x.template unwrap<SelectedSummand>().selectedAtom().isVar(); });
+    // }
+    //
+    
+    // TODO make sure we deal right with unshielded vars
 
-      return OrderingUtils::maxElems(
-          atoms->size(), 
-          [=](unsigned l, unsigned r) 
-          { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
-          [=](unsigned i)
-          { return (*atoms)[i].atom(); },
-          criterion)
-        .map([=](auto i) 
-            { return (*atoms)[i]; })
-      .filter([=](auto x) 
-          { return !x.template is<SelectedSummand>() 
-                || !x.template unwrap<SelectedSummand>().selectedAtom().isVar(); });
-    }
+    Coproduct<
+      IterTraits<VirtualIterator<SelectedAtom>>,
+      IterTraits<VirtualIterator<SelectedLiteral>>> selected(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables);
+
+    auto selectedAtoms(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
+    { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<0>()
+              .intoIter())
+              .flatten(); }
+
+    auto selectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
+    { return selectedAtoms(cl, selLit, includeUnshieldedNumberVariables)
+                .filterMap([](auto l) { return std::move(l).template as<SelectedSummand>().toOwned(); }); }
+
+    auto selectedLiterals(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
+    { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<1>()
+              .intoIter())
+              .flatten(); }
 
 
-    auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
-      using Out = SelectedSummand;
-      return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-        .filterMap([](auto x) -> Option<Out> {
-            return x.match(
-                 [](SelectedSummand& x) 
-                 { return Option<Out>(std::move(x)); },
-
-                 [](SelectedUninterpretedEquality&) 
-                 { return Option<Out>(); },
-
-                 [](SelectedUninterpretedPredicate&) 
-                 { return Option<Out>(); });
-        });
-    }
+    // TODO remove
+    // auto oldSelectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
+    //   using Out = SelectedSummand;
+    //   return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
+    //     .filterMap([](auto x) -> Option<Out> {
+    //         return x.match(
+    //              [](SelectedSummand& x) 
+    //              { return Option<Out>(std::move(x)); },
+    //
+    //              [](SelectedUninterpretedEquality&) 
+    //              { return Option<Out>(); },
+    //
+    //              [](SelectedUninterpretedPredicate&) 
+    //              { return Option<Out>(); });
+    //     });
+    // }
 
   public:
 
@@ -387,6 +415,14 @@ namespace Kernel {
       return true;
     }
   };
+
+  using SelectedCoproduct = decltype(std::declval<AlascaState>().selected(
+          std::declval<Clause*>(), 
+          std::declval<SelectionCriterion>(), 
+          std::declval<bool>()
+        ));
+  using SelectedTermIter    = std::remove_reference_t<decltype(std::declval<SelectedCoproduct>().unwrap<0>())>;
+  using SelectedLiteralIter = std::remove_reference_t<decltype(std::declval<SelectedCoproduct>().unwrap<1>())>;
 
 #if VDEBUG
   std::shared_ptr<AlascaState> testAlascaState(
