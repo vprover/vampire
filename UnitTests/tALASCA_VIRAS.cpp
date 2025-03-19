@@ -47,7 +47,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
-REGISTER_GEN_TESTER(AlascaGenerationTester<VirasQuantifierElimination>())
+REGISTER_GEN_TESTER(AlascaGenerationTester<VirasQuantifierEliminationSGI>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
