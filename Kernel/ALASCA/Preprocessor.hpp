@@ -29,6 +29,8 @@ class AlascaPreprocessor
   std::shared_ptr<InequalityNormalizer> _norm;
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
+  // all the functions func_R where func is an integer function
+  Set<unsigned> _intFuncThatWsTransformedToRealFunc;
   // TODO create option for this
   bool _useFloor = false;
 
@@ -188,6 +190,7 @@ class AlascaPreprocessor
       if (sorts_changed) {
         auto name = sym->name() + "_R";
         unsigned nf = env.signature->addFreshFunction2(sym->arity(), name.c_str());
+        _intFuncThatWsTransformedToRealFunc.insert(nf);
         auto nsym = env.signature->getFunction(nf);
         auto nty = OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments());
         nsym->setType(nty);
@@ -205,13 +208,25 @@ class AlascaPreprocessor
     return f;
   }
 
+  bool isIntValued(Term* t) const { 
+   if (auto q = R::tryNumeral(t)) {
+      if (q->isInt()) {
+        return true;
+      } else {
+        return false;
+      }
+    } else {
+      return R::isFloor(t) || _intFuncThatWsTransformedToRealFunc.contains(t->functor());
+    }
+  }
+
+  bool isIntValued(TermList t) const { return t.isTerm() && isIntValued(t.term()); }
+
   Clause* integerConversion(Clause* clause)
   {
     auto notInt = [&](auto t) -> Option<Literal*> { 
-      if (auto q = R::tryNumeral(t)) {
-        if (q->isInt()) {
-          return {};
-        }
+      if (isIntValued(t)) {
+        return {};
       }
       return some(R::eq(false, t, R::floor(t))); 
     };
