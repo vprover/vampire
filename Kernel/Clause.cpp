@@ -238,8 +238,7 @@ void Clause::setStore(Store s)
 #if VAMPIRE_CLAUSE_TRACING
   auto traceForward = env.options->traceForward();
   if (number() == traceForward && _store != s) {
-    std::cout << "store := " << s << " for : " << toString() << std::endl;
-    env.options->setTraceForward(number());
+    std::cout << number() << ".setStore(" << s << ")" << std::endl;
   }
 #endif // VAMPIRE_CLAUSE_TRACING
   _store = s;
