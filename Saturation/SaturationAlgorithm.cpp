@@ -1445,7 +1445,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(res->_instantiation);
   }
 
-  if (prb.hasEquality()) {
+  bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  if (mayHaveEquality) {
     if (!alascaTakesOver) { // in alasca we have a special equality factoring rule
       gie->addFront(new EqualityFactoring());
     }
@@ -1513,7 +1515,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.injectivityReasoning()) {
     gie->addFront(new Injectivity());
   }
-  if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
     }
@@ -1626,7 +1628,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create forward simplification engine
-  if (prb.hasEquality() && opt.innerRewriting()) {
+  if (mayHaveEquality && opt.innerRewriting()) {
     res->addForwardSimplifierToFront(new InnerRewriting());
   }
   if (opt.globalSubsumption()) {
@@ -1638,7 +1640,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   bool subDemodOrdOpt = /* enables ordering optimizations of subsumption demodulation rules */
             opt.termOrdering() == Shell::Options::TermOrdering::KBO
             || opt.termOrdering() == Shell::Options::TermOrdering::LPO;
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
@@ -1646,7 +1648,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false, subDemodOrdOpt));
     }
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
@@ -1678,7 +1680,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create backward simplification engine
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     switch (opt.backwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
@@ -1692,7 +1694,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+  
+  if (mayHaveEquality && opt.backwardSubsumptionDemodulation()) {
     res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(subDemodOrdOpt));
   }
 
@@ -1726,7 +1729,9 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
 {
   CompositeISE* res =new CompositeISE();
 
-  if (prb.hasEquality() && opt.equationalTautologyRemoval()) {
+  bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  if (mayHaveEquality && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
   }
 
@@ -1771,10 +1776,10 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
   }
 
   // Only add if there are distinct groups
-  if (prb.hasEquality() && env.signature->hasDistinctGroups()) {
+  if (mayHaveEquality && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
-  if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraInferences()) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
@@ -1815,7 +1820,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       res->addFront(new PushUnaryMinus());
     }
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
