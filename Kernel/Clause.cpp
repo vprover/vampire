@@ -235,7 +235,15 @@ void Clause::setStore(Store s)
     selected=this;
   }
 #endif
+#if VAMPIRE_CLAUSE_TRACING
+  auto traceForward = env.options->traceForward();
+  if (number() == traceForward && _store != s) {
+    std::cout << "store := " << s << " for : " << toString() << std::endl;
+    env.options->setTraceForward(number());
+  }
+#endif // VAMPIRE_CLAUSE_TRACING
   _store = s;
+
   destroyIfUnnecessary();
 }
 
@@ -759,18 +767,6 @@ bool Clause::contains(Literal* lit)
     }
   }
   return false;
-}
-
-std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
-{
-  switch (store) {
-    case Clause::PASSIVE:     return out << "PASSIVE";
-    case Clause::ACTIVE:      return out << "ACTIVE";
-    case Clause::UNPROCESSED: return out << "UNPROCESSED";
-    case Clause::NONE:        return out << "NONE";
-    case Clause::SELECTED:    return out << "SELECTED";
-  }
-  ASSERTION_VIOLATION;
 }
 
 Literal* Clause::getAnswerLiteral() {
