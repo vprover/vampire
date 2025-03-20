@@ -53,6 +53,8 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Options.hpp"
 #include "Property.hpp"
 
@@ -1206,12 +1208,13 @@ void Options::init()
 #endif
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
-                                      UnificationWithAbstraction::OFF,
-                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
+                                      UnificationWithAbstraction::AUTO,
+                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
       "use case is in theory reasoning. The possible values are:"
+      "- auto: boils down to off for non-theory problems, and to alasca_main whenever alasca (on by default) kicks in (except under alasca_integer_conversion, when it becomes alasca_main_floor)\n"
       "- off: do not introduce a constraint\n"
       "- interpreted_only: only if s and t have interpreted top symbols\n"
       "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
@@ -1230,7 +1233,7 @@ void Options::init()
     _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
-    _useACeval = BoolOptionValue("use_ac_eval","uace",true);
+    _useACeval = BoolOptionValue("use_ac_eval","uace",false);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
     _useACeval.tag(OptionTag::THEORIES);
     _useACeval.onlyUsefulWith(_alasca.is(equal(false)));
@@ -1253,12 +1256,11 @@ void Options::init()
     _lookup.insert(&_cancellation);
     _cancellation.addProblemConstraint(hasTheories());
     _cancellation.tag(OptionTag::THEORIES);
-
-    _highSchool = BoolOptionValue("high_school", "hsm", false);
-    _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
-    _lookup.insert(&_highSchool);
-    _highSchool.addProblemConstraint(hasTheories());
-    _highSchool.tag(OptionTag::THEORIES);
+    _cancellation.addHardConstraint(If(equal(ArithmeticSimplificationMode::CAUTIOUS))
+        .then(And(
+              _termOrdering.is(notEqual(TermOrdering::QKBO))
+            , _termOrdering.is(notEqual(TermOrdering::LAKBO))
+            )));
 
     _pushUnaryMinus = BoolOptionValue(
        "push_unary_minus", "pum",
@@ -1272,25 +1274,31 @@ void Options::init()
     _pushUnaryMinus.addProblemConstraint(hasTheories());
     _pushUnaryMinus.tag(OptionTag::THEORIES);
 
-    auto addRecommendationConstraint = [](auto& opt, auto constr) { };
+    auto addRecommendationConstraint = [](auto& opt, auto constr) {
+      // MS: TODO: implement meaninful soft warnings / reminsders to the effect
+      // -- this option should best be combined with those values of those other options
+      // -- however, note that with alasca on by default but silently disable when runnining on non-arith problems
+      //    the warnings should only appear when alasca really kicks in, i.e.
+      //    only when "env.options->alasca() && prb.hasAlascaArithmetic()"
+    };
 
-    _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",false);
+    _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",true);
     _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n";
     _lookup.insert(&_alasca);
     _alasca.tag(OptionTag::INFERENCES);
-    _alasca.setExperimental();
     addRecommendationConstraint(_alasca, Or(
+           _termOrdering.is(equal(TermOrdering::AUTO_KBO)),
            _termOrdering.is(equal(TermOrdering::QKBO)),
            _termOrdering.is(equal(TermOrdering::LAKBO)),
            _termOrdering.is(equal(TermOrdering::ALL_INCOMPARABLE))
            ));
     addRecommendationConstraint(_alasca, _cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
-    addRecommendationConstraint(_alasca, _highSchool.is(equal(false)));
     addRecommendationConstraint(_alasca, _unificationWithAbstraction.is(Or(
               equal(UnificationWithAbstraction::ALASCA_CAN_ABSTRACT)
             , equal(UnificationWithAbstraction::ALASCA_MAIN)
             , equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)
             , equal(UnificationWithAbstraction::ALASCA_ONE_INTERP)
+            , equal(UnificationWithAbstraction::AUTO)
             )));
 
     _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
@@ -1830,7 +1838,8 @@ void Options::init()
       "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
     _lookup.insert(&_conditionalRedundancyCheck);
     _conditionalRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _conditionalRedundancyCheck.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)));
+    _conditionalRedundancyCheck.addHardConstraint(If(equal(true)).then(Or(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::AUTO)),
+                                                                          _unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)))));
     _conditionalRedundancyCheck.tag(OptionTag::INFERENCES);
 
     _conditionalRedundancyOrderingConstraints = BoolOptionValue("conditional_redundancy_ordering_constraints","croc",false);
@@ -2306,11 +2315,12 @@ void Options::init()
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
-    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
-                                                                  {"plain","synthesis","off"});
+    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
+                                                                  {"auto","plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
        " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
-    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(ProperSaturationAlgorithm()));
+    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
+    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
@@ -2338,14 +2348,15 @@ void Options::init()
     _lookup.insert(&_activationLimit);
     _activationLimit.tag(OptionTag::SATURATION);
 
-    _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
-                                                    {"kbo","lpo","qkbo", "lakbo", "incomp"});
+    _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::AUTO_KBO,
+                                                    {"auto_kbo","kbo","qkbo","lakbo","lpo","incomp"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
       "\n"
       "possible values:\n"
+      "- auto_kbo: boils down to kbo for non-theory problems and to qkbo, whenever alasca (on by default) kicks in\n"
       "- kbo: Knuth-Bendix Ordering\n"
-      "- lpo: Lexicographical Path Ordering\n"
       "- qkbo: QKBO ordering as described in the TACAS 2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n"
+      "- lpo: Lexicographical Path Ordering\n"
       "- lakbo: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
       ;
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());
@@ -3559,6 +3570,54 @@ std::string Options::generateEncodedOptions() const
   return res.str();
 }
 
+/**
+ * Some options have auto-values,
+ * which should be resolved away BEFORE preprocessing.
+ *
+ * @since 9/03/2025 Prague
+ */
+void Options::resolveAwayAutoValues0()
+{
+  if (questionAnswering() == Options::QuestionAnsweringMode::AUTO) {
+    setQuestionAnswering(
+        (Parse::TPTP::seenQuestions() && saturationAlgorithm() != Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ) ?
+          Options::QuestionAnsweringMode::PLAIN : Options::QuestionAnsweringMode::OFF);
+  }
+}
+
+/**
+ * Some options have auto-values, which should be resolved away
+ * after preprocessing and before we enter saturation.
+ *
+ * @since 9/03/2025 Prague
+ */
+void Options::resolveAwayAutoValues(const Problem& prb)
+{
+  if (termOrdering() == TermOrdering::AUTO_KBO) {
+    if (alasca() && prb.hasAlascaArithmetic()) {
+      if (prb.hasAlascaMixedArithmetic()) {
+        _termOrdering.actualValue = Options::TermOrdering::QKBO;
+      } else {
+        _termOrdering.actualValue = Options::TermOrdering::LAKBO;
+      }
+    } else {
+      _termOrdering.actualValue = Options::TermOrdering::KBO;
+    }
+  }
+
+  if (unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
+    if (alasca() && prb.hasAlascaArithmetic() &&
+      !conditionalRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constaint
+      if (prb.hasAlascaMixedArithmetic()) {
+        setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
+      } else {
+        setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
+      }
+    } else {
+      setUWA(Shell::Options::UnificationWithAbstraction::OFF);
+    }
+  }
+}
 
 /**
  * True if the options are complete.

@@ -57,27 +57,27 @@ auto intoVampireIter(VirasIter i)
 
 struct Void {};
 
-template<class F>
+template<class NumTraits, class F>
 void traverseLiraVars(TermList self, F f) {
-  VampireVirasConfig{}.
+  VampireVirasConfig<NumTraits>{}.
     matchTerm(self,
       /* var v */ [&](auto y) { f(y); return Void {}; },
       /* numeral 1 */ [&]() { return Void {}; },
-      /* k * t */ [&](auto k, auto t)  { traverseLiraVars(t, f); return Void {}; },
+      /* k * t */ [&](auto k, auto t)  { traverseLiraVars<NumTraits>(t, f); return Void {}; },
       /* l + r */ [&](auto l, auto r)  {
-        traverseLiraVars(l, f);
-        traverseLiraVars(r, f);
+        traverseLiraVars<NumTraits>(l, f);
+        traverseLiraVars<NumTraits>(r, f);
         return Void {};
       },
-      /* floor */ [&](auto t) { traverseLiraVars(t, f); return Void {}; }
+      /* floor */ [&](auto t) { traverseLiraVars<NumTraits>(t, f); return Void {}; }
       );
 }
 
-SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
+
+template<class NumTraits>
+Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierElimination::generateSimplify(NumTraits n, Clause* premise) {
   DEBUG(0, *premise)
-    // TODO for rationals ?
-  using NumTraits = RealTraits;
-  auto viras = viras::viras(VampireVirasConfig{});
+  auto viras = viras::viras(VampireVirasConfig<NumTraits>{});
   Recycled<DHSet<unsigned>> shieldedVars;
   Recycled<DHSet<unsigned>> candidateVars;
   Recycled<Stack<Literal*>> toElim;
@@ -108,7 +108,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
       noteShielded(l);
     } else {
       toElim->push(l);
-      traverseLiraVars(norm->term().denormalize(),
+      traverseLiraVars<NumTraits>(norm->term().denormalize(),
           [&](TermList t) {
             if (t.isVar()) {
               candidateVars->insert(t.var());
@@ -124,13 +124,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
     .tryNext();
 
   if (unshielded.isNone()) {
-    return ClauseGenerationResult {
-      .clauses = VirtualIterator<Clause*>::getEmpty(),
-      .premiseRedundant = false,
-    };
+    return {};
   } else {
-    auto var = VampireVirasConfig::VarWrapper(TermList::var(*unshielded));
-    return ClauseGenerationResult {
+    auto var = typename VampireVirasConfig<NumTraits>::VarWrapper(TermList::var(*unshielded));
+    return some(ClauseGenerationResult {
       .clauses = pvi(
           intoVampireIter(viras.quantifier_elimination(var, &*toElim))
             .map([premise, otherLits = std::move(otherLits)](auto litIter) {
@@ -144,7 +141,23 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
           )
         ,
       .premiseRedundant = true,
-    };
+    });
   }
+}
+
+Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierElimination::generateSimplify(IntTraits n, Clause* premise) {
+  // TODO viras for integers ? (=  cooper)
+  return {};
+}
+
+SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
+  return 
+    forAnyNumTraits([&](auto n) { return generateSimplify(n, premise); })
+    .unwrapOrElse([]() {
+      return ClauseGenerationResult {
+        .clauses = VirtualIterator<Clause*>::getEmpty(),
+        .premiseRedundant = false,
+      };
+    });
 }
 

@@ -141,7 +141,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   }
 
   Ordering* out;
-  switch (env.options->termOrdering()) {
+  switch (opt.termOrdering()) {
   case Options::TermOrdering::KBO:
     out = new KBO(prb, opt);
     break;

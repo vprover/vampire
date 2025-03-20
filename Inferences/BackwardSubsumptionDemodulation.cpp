@@ -357,8 +357,8 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 {
   Ordering const& ordering = _salg->getOrdering();
   // to see why we use this have a look at the respective line in ForwardSubsumptionDemodulation
-  static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
-                              || env.options->termOrdering () == Shell::Options::TermOrdering::LAKBO;
+  DEBUG_CODE(static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
+                              || env.options->termOrdering () == Shell::Options::TermOrdering::LAKBO;)
   Literal* eqLit = matcher.getEqualityForDemodulation();
   if (!eqLit) {
     // eqLit == nullptr means that the whole side premise can be instantiated to some subset of the candidate,

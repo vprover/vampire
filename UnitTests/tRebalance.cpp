@@ -321,6 +321,8 @@ std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
 
 template<class A>
 void test_rebalance(Literal* lit_, initializer_list<expected_t> expected) {
+  env.options->set("alasca", "off", /*longOpt=*/false);
+  env.options->set("use_ac_eval", "on", /*longOpt=*/true);
   Literal& lit = *lit_;
   ASS(lit.isEquality());
   using balancer_t = Balancer<NumberTheoryInverter>;

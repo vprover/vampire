@@ -181,7 +181,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SKIKBO.o\
         Kernel/ALASCA/Signature.o\
         Kernel/ALASCA/SelectionPrimitves.o\
-        Kernel/ALASCA/Normalization.o\
         Kernel/ALASCA/State.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\

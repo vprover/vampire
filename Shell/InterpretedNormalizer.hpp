@@ -28,7 +28,7 @@ using namespace Kernel;
 
 class InterpretedNormalizer {
 public:
-  InterpretedNormalizer(InequalityNormalizer*);
+  InterpretedNormalizer();
   ~InterpretedNormalizer();
 
   void apply(Problem& prb);
@@ -51,7 +51,6 @@ private:
   static bool isTrivialInterpretation(Interpretation itp);
 
   NLiteralTransformer* _litTransf;
-  InequalityNormalizer* _inequalityNormalizer;
 };
 
 }

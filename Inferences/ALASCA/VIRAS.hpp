@@ -51,6 +51,9 @@ public:
 #endif
 
 private:
+  Option<ClauseGenerationResult> generateSimplify(IntTraits n, Clause* premise);
+  template<class NumTraits>
+  Option<ClauseGenerationResult> generateSimplify(NumTraits n, Clause* premise);
 
   std::shared_ptr<AlascaState> _shared;
 };

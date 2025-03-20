@@ -310,7 +310,7 @@ class Signature
     template<class Number> bool numeralConstant() const
     { return numeralConstant((Number*)nullptr); }
 
-    /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
+    /** return true if an interpreted number */
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
 

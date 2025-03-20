@@ -404,9 +404,8 @@ Formula* InterpretedNormalizer::NLiteralTransformer::transform(Formula* f)
 // InterpretedNormalizer
 //
 
-InterpretedNormalizer::InterpretedNormalizer(InequalityNormalizer* norm)
+InterpretedNormalizer::InterpretedNormalizer()
 : _litTransf(new NLiteralTransformer())
-, _inequalityNormalizer(norm)
 {
 }
 
@@ -486,16 +485,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
     if(newLit != orig) {
       modified = true;
     }
-    if (_inequalityNormalizer)  {
-      auto simpl = _inequalityNormalizer->normalizedLiteral(newLit);
-      lits.push(simpl);
-      if (simpl != orig) {
-        modified = true;
-      }
-    } else {
-      lits.push(newLit);
-    }
-
+    lits.push(newLit);
   }
   if(!modified) {
     return cl;

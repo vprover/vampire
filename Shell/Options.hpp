@@ -78,14 +78,15 @@ class Property;
  */
 class Options
 {
+private:
+  // MS: I don't think we need the public to copy Options objects
+  Options(const Options& that);
+  Options& operator=(const Options& that);
 public:
-
     Options ();
     // It is important that we can safely copy Options for use in CASC mode
     void init();
     void copyValuesFrom(const Options& that);
-    Options(const Options& that);
-    Options& operator=(const Options& that);
 
     // used to print help and options
     void output (std::ostream&) const;
@@ -94,6 +95,11 @@ public:
     void readFromEncodedOptions (std::string testId);
     void readOptionsString (std::string testId,bool assign=true);
     std::string generateEncodedOptions() const;
+
+    // compile away auto-values; called BEFORE preprocessing
+    void resolveAwayAutoValues0();
+    // compile away auto-values; called after preprocessing, when Problem's prop reflect precise state of affairs
+    void resolveAwayAutoValues(const Problem&);
 
     // deal with completeness
     bool complete(const Problem&) const;
@@ -190,6 +196,7 @@ public:
     NEW,    // <-+
   };
   enum class UnificationWithAbstraction : unsigned int {
+    AUTO,
     OFF,
     INTERP_ONLY,
     ONE_INTERP,
@@ -203,8 +210,9 @@ public:
     ALASCA_MAIN_FLOOR,
   };
   friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
-  { 
+  {
     switch (self) {
+      case UnificationWithAbstraction::AUTO:              return out << "auto";
       case UnificationWithAbstraction::OFF:               return out << "off";
       case UnificationWithAbstraction::INTERP_ONLY:       return out << "interp_only";
       case UnificationWithAbstraction::ONE_INTERP:        return out << "one_interp";
@@ -473,9 +481,10 @@ public:
   };
 
   enum class QuestionAnsweringMode : unsigned int {
-    PLAIN = 0,
-    SYNTHESIS = 1,
-    OFF = 2
+    AUTO = 0,
+    PLAIN = 1,
+    SYNTHESIS = 2,
+    OFF = 3
   };
 
   enum class InterpolantMode : unsigned int {
@@ -518,11 +527,12 @@ public:
   };
 
   enum class TermOrdering : unsigned int {
-    KBO = 0,
-    LPO = 1,
+    AUTO_KBO = 0,
+    KBO = 1,
     QKBO = 2,
     LAKBO = 3,
-    ALL_INCOMPARABLE = 4,
+    LPO = 4,
+    ALL_INCOMPARABLE = 5,
   };
 
   enum class SymbolPrecedence : unsigned int {
@@ -1760,7 +1770,7 @@ bool _hard;
         ASS(p)
         return (p->equalityAtoms() != 0) ||
           // theories may introduce equality at various places of the pipeline!
-          HasTheories::actualCheck(p);
+          HasTheories::actualCheck(p) || p->hasFOOL();
       }
       std::string msg(){ return " only useful with equality"; }
     };
@@ -1829,8 +1839,8 @@ bool _hard;
       bool check(Property*p){
         return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
-          
-      std::string msg(){ 
+
+      std::string msg(){
         std::string m = " not with ";
         if(greater){ m+="more";}else{m+="less";}
         return m+" than "+Lib::Int::toString(atoms)+" atoms";
@@ -2066,9 +2076,9 @@ public:
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
-  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
+  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
   // TODO make alasca independent of normal eveluation
-  bool useACeval() const { return alasca() ? false : _useACeval.actualValue;}
+  bool useACeval() const { return _useACeval.actualValue; }
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
@@ -2290,17 +2300,17 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
-  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_FORCE : _evaluationMode.actualValue; }
-  ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
+  EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
+  ArithmeticSimplificationMode gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
   bool alasca() const { return _alasca.actualValue; }
   bool viras() const { return _viras.actualValue; }
   bool alascaDemodulation() const { return _alascaDemodulation.actualValue; }
   bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
   bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
   bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
-  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
-  ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
-  ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
+  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue; }
+  ArithmeticSimplificationMode cancellation() const { return _cancellation.actualValue; }
+  ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return _arithmeticSubtermGeneralizations.actualValue; }
 
   //Higher-order Options
 
@@ -2736,7 +2746,6 @@ private:
   // arithmeitc reasoning options
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _pushUnaryMinus;
-  BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   BoolOptionValue _alasca;
   BoolOptionValue _viras;

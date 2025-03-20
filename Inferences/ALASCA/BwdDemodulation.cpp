@@ -75,9 +75,9 @@ auto applyResultSubstitution(ResultSubstitution& subs, Literal* lit)
  */
 void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
 {
-  unsigned cnt = 0;
+  DEBUG_CODE(unsigned cnt = 0;)
   for (auto lhs : Lhs::iter(*_shared, premise)) {
-    cnt++;
+    DEBUG_CODE(cnt++;)
     Stack<BwSimplificationRecord> simpls;
     Set<Clause*> simplified;
     for (auto rhs : _index->instances(lhs.biggerSide())) {

@@ -353,6 +353,9 @@ public:
     auto res = _questionVariableNames.findPtr(questionNumber);
     return res ? *res : nullptr;
   }
+  static bool seenQuestions() {
+    return !_questionVariableNames.isEmpty();
+  }
 private:
   void parseImpl(State initialState = State::UNIT_LIST);
   /** Return the input string of characters */
