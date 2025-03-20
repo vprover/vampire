@@ -20,6 +20,7 @@
 #include <ostream>
 
 #include "Forwards.hpp"
+#include "Lib/Timer.hpp"
 #include "Debug/Assertion.hpp"
 
 extern const char *VERSION_STRING;
@@ -216,6 +217,11 @@ public:
   /** number of simplifications by PolynomialNormalizer */
   unsigned evaluationCnt;
 
+  /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
+  unsigned alascaVarElimKNonZeroCnt;
+  unsigned alascaVarElimKSum;
+  unsigned alascaVarElimKMax;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
@@ -270,7 +276,6 @@ public:
   unsigned finalActiveClauses;
   /** extensionality clauses at the end of the saturation algorithm run */
   unsigned finalExtensionalityClauses;
-
   unsigned splitClauses;
   unsigned splitComponents;
   // TODO currently not set, set it?

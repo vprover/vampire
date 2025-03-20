@@ -46,7 +46,7 @@ public:
 
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
-                                AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg, bool diamondBreaking);
+                                AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg, bool diamondBreaking = false);
 
   template<class ComputeConstraints>
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 

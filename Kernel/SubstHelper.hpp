@@ -22,6 +22,7 @@
 #include "SortHelper.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 namespace Kernel {
 

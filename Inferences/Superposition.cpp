@@ -35,6 +35,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"

@@ -20,6 +20,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -105,7 +106,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
-      FormulaTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
+      FormulaClauseTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {

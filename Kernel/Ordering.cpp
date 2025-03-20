@@ -40,6 +40,8 @@
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
+#include "Kernel/QKbo.hpp"
+#include "Kernel/ALASCA/Ordering.hpp"
 #include "Shell/Shuffling.hpp"
 #include "NumTraits.hpp"
 
@@ -76,6 +78,16 @@ bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
   return true;
 }
 
+bool Ordering::unsetGlobalOrdering()
+{
+  if(s_globalOrdering) {
+    s_globalOrdering = OrderingSP();
+    return true;
+  } else {
+    return false;
+  }
+}
+
 /**
  * If global ordering is set, return pointer to it, otherwise
  * return 0.
@@ -96,6 +108,28 @@ Ordering* Ordering::tryGetGlobalOrdering()
   }
 }
 
+struct AllIncomparableOrdering : Ordering {
+  AllIncomparableOrdering() {
+    WARN("using term ordering that makes all terms incomparable. This is meant for debugging purposes only, as it is potentially VERY slow. please be sure that you really want to do this.")
+  }
+  virtual Result compare(Literal* l1,Literal* l2) const override { return Result::INCOMPARABLE; }
+  virtual Result compare(TermList t1,TermList t2) const override { return Result::INCOMPARABLE; }
+  virtual void show(std::ostream& out) const override { out << "everything incomparable" << std::endl; }
+};
+
+#define TIME_TRACING_ORD 0
+
+#if TIME_TRACING_ORD
+#  define NEW_ORD(Ord, ...) \
+      new TimeTraceOrdering<Ord>(#Ord " (literal)", #Ord "(term)", Ord(__VA_ARGS__))
+
+#else // !TIME_TRACING_ORD
+#  define NEW_ORD(Ord, ...) \
+      new Ord(__VA_ARGS__)
+
+#endif // TIME_TRACING_ORD
+
+
 /**
  * Creates the ordering
  *
@@ -108,12 +142,21 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   }
 
   Ordering* out;
-  switch (env.options->termOrdering()) {
+  switch (opt.termOrdering()) {
   case Options::TermOrdering::KBO:
     out = new KBO(prb, opt);
     break;
+  case Options::TermOrdering::QKBO:
+    out = NEW_ORD(QKbo, prb, opt);
+    break;
+  case Options::TermOrdering::LAKBO:
+    out = NEW_ORD(Kernel::LiteralOrdering<Kernel::LAKBO>, prb, opt);
+    break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
+    break;
+  case Options::TermOrdering::ALL_INCOMPARABLE:
+    out = new AllIncomparableOrdering();
     break;
   default:
     ASSERTION_VIOLATION;
@@ -325,16 +368,29 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  // unary minus is the biggest
-  // CAREFUL: changing the relative order might cause non-well-foundedness
-  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; }
-  if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+  if (_qkboPrecedence) {
+    // one is less than everything else
+    if (fun1 == IntTraits::oneF()) { return LESS; }
+    if (fun2 == IntTraits::oneF()) { return GREATER; }
 
-  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
-  if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+    if (fun1 == RatTraits::oneF()) { return LESS; }
+    if (fun2 == RatTraits::oneF()) { return GREATER; }
 
-  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
-  if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
+    if (fun1 == RealTraits::oneF()) { return LESS; }
+    if (fun2 == RealTraits::oneF()) { return GREATER; }
+
+  } else {
+    // unary minus is the biggest
+    // CAREFUL: changing the relative order might cause non-well-foundedness
+    if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+
+    if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+
+    if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
+  }
 
   // $$false is the smallest
   if (env.signature->isFoolConstantSymbol(false,fun1)) {
@@ -620,14 +676,16 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
                                        const DArray<int>& typeConPrec,   
                                        const DArray<int>& predPrec, 
                                        const DArray<int>& predLevels, 
-                                       bool reverseLCM)
+                                       bool reverseLCM,
+                                       bool qkboPrecedence)
   : _predicates(predPrec.size()),
     _functions(funcPrec.size()),
     _predicateLevels(predLevels),
     _predicatePrecedences(predPrec),
     _functionPrecedences(funcPrec),
     _typeConPrecedences(typeConPrec),
-    _reverseLCM(reverseLCM)
+    _reverseLCM(reverseLCM),
+    _qkboPrecedence(qkboPrecedence)
 {
   ASS_EQ(env.signature->predicates(), _predicates);
   ASS_EQ(env.signature->functions(), _functions);
@@ -641,13 +699,14 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
  *
  * "Intermediate" constructor; this is needed so that we only call predPrecFromOpts once (and use it here twice).
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence)
 : PrecedenceOrdering(
     funcPrecFromOpts(prb,opt),
     typeConPrecFromOpts(prb,opt),    
     predPrec,
     predLevelsFromOptsAndPrec(prb,opt,predPrec),
-    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
+    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE,
+    qkboPrecedence
     )
 {
 }
@@ -655,14 +714,15 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const D
 /**
  * Create a PrecedenceOrdering object.
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence)
 : PrecedenceOrdering(prb,opt,
     [&]() {
        // Make sure we (re-)compute usageCnt's for all the symbols;
        // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
        prb.getProperty();
        return predPrecFromOpts(prb, opt);
-   }())
+   }(),
+   qkboPrecedence)
 {
   ASS_G(_predicates, 0);
 }

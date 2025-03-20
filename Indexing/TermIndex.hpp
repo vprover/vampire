@@ -17,6 +17,7 @@
 #define __TermIndex__
 
 #include "Index.hpp"
+#include "TermIndexingStructure.hpp"
 
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "TermIndexingStructure.hpp"

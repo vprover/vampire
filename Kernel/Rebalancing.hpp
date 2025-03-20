@@ -266,7 +266,6 @@ TermList BalanceIter<C>::lhs() const
 {
   auto out = derefPath();
   ASS_REP(out.isVar(), out);
-  // DEBUG(out)
   return out;
 }
    

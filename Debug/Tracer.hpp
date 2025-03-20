@@ -31,6 +31,16 @@ namespace Tracer {
   void printStack();
 };
 
+struct DebugConfig {
+  unsigned indent = 0;
+};
+static DebugConfig debugConfig;
+
+struct DebugIndentGuard { 
+   DebugIndentGuard() { debugConfig.indent++; } 
+  ~DebugIndentGuard() { debugConfig.indent--; } 
+};
+
 template<class... As>
 struct _printDbg {
   void operator()(const As&... msg);
@@ -58,6 +68,7 @@ template<class... A> void printDbg(const char* file, int line, const A&... msg)
     std::cout << ' ';
   }
   std::cout <<  "@" << std::setw(5) << line << ":";
+  std::cout << Lib::Output::repeat("  ", debugConfig.indent);
   _printDbg<A...>{}(msg...);
   std::cout << std::endl; 
 }
@@ -73,10 +84,12 @@ template<class... A> void printDbg(const char* file, int line, const A&... msg)
 #endif
 
 #  define DBG(...) { Debug::printDbg(__REL_FILE__, __LINE__, __VA_ARGS__); }
+#  define DBG_INDENT Debug::DebugIndentGuard {};
 #  define WARN(...) { DBG("WARNING: ", __VA_ARGS__); }
 #  define DBGE(x) DBG(#x, " = ", x)
 #else // ! VDEBUG
 #  define WARN(...) {}
+#  define DBG_INDENT {}
 #  define DBG(...) {}
 #  define DBGE(x) {}
 #endif
