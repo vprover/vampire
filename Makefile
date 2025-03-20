@@ -229,7 +229,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
-         Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
          Indexing/InductionFormulaIndex.o\

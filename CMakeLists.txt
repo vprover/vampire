@@ -506,7 +506,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.cpp
     Indexing/CodeTree.cpp
     Indexing/CodeTreeInterfaces.cpp
-    Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
     Indexing/InductionFormulaIndex.cpp
@@ -521,7 +520,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
-    Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.hpp
