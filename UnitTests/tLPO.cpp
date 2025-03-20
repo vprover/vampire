@@ -94,3 +94,20 @@ TEST_FUN(lpo_test05) {
   ASS_EQ(ord.compare(f(x,y), z),           Ordering::Result::INCOMPARABLE);
   ASS_EQ(ord.compare(g(x,y), f(f(z,z),z)), Ordering::Result::INCOMPARABLE);
 }
+
+TEST_FUN(lpo_test06) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_FUNC(f, {Int}, Int)
+  auto minusR = FuncSugar(RealTraits::minusF());
+
+  auto ord = lpo();
+
+  auto t1 = minus(f(x));
+  auto t2 = minusR(toReal(f(x)));
+  auto t3 = toReal(minus(f(x)));
+
+  compareTwoWays(ord, t3, t1);
+  compareTwoWays(ord, t3, t2);
+  compareTwoWays(ord, t1, t2);
+}
