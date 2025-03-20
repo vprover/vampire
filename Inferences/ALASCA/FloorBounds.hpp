@@ -72,7 +72,7 @@ class FloorBounds
 
   auto generateClauses(Superposition::Lhs const& premise) const
   {
-    auto s = NumTraits::ifFloor(premise.selectedAtom(), [](auto s) { return s; }).unwrap();
+    auto s = NumTraits::ifFloor(premise.selectedAtomicTerm(), [](auto s) { return s; }).unwrap();
     auto t = premise.smallerSide();
     // C \/ ⌊s⌋ = t
     // ===========

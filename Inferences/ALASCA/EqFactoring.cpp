@@ -77,16 +77,12 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto t2 = l2.smallerSide();
 
   ASS (l1.positive() && l2.positive())
-  // ASS(!s1.isVar())
-  // ASS(!s2.isVar())
-  ASS(!l1.isFracNum() || !l1.biggerSide().isVar())
-  ASS(!l2.isFracNum() || !l2.biggerSide().isVar())
 
-#define check_side_condition(cond, cond_code)                                                       \
-    if (!(cond_code)) {                                                                             \
-      DEBUG("side condition not fulfiled: ", cond)                                                  \
-      return nothing();                                                                             \
-    }                                                                                               \
+#define check_side_condition(cond, cond_code)                                             \
+    if (!(cond_code)) {                                                                   \
+      DEBUG("side condition not fulfiled: ", cond)                                        \
+      return nothing();                                                                   \
+    }                                                                                     \
 
   auto srt_ = unifySorts(
       SortHelper::getEqualityArgumentSort(l1.literal()),
@@ -123,8 +119,8 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto t1σ = sigma(t1);
   auto t2σ = sigma(t2);
 
-  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ.untyped(), t1σ))
-  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ.untyped(), t1σ))
+  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ, t1σ))
+  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ, t1σ))
 
 
   auto res = Literal::createEquality(false, t1σ, t2σ, srt);
@@ -149,7 +145,8 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
 
   auto selected = Lib::make_shared(
       _shared->selectedEqualities(premise, 
-                       /* literal */ SelectionCriterion::NOT_LESS, 
+        // TODO 1
+                       // /* literal */ SelectionCriterion::NOT_LESS, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
         .filter([](auto& s) { return s.positive(); })
@@ -158,7 +155,8 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
 
   auto rest = Lib::make_shared(
       _shared->selectedEqualities(premise, 
-                       /* literal */ SelectionCriterion::ANY, 
+        // TODO 1
+                       // /* literal */ SelectionCriterion::ANY, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
         .filter([](auto& s) { return s.positive(); })

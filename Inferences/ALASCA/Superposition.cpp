@@ -51,12 +51,8 @@ Option<Clause*> SuperpositionConf::applyRule_(
   DEBUG(1, "rhs: ", rhs);
 
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())
-#if VDEBUG
-  auto s1 = lhs.biggerSide();
-#endif
   auto s2 = TermList(rhs.toRewrite().toTerm());
   auto nothing = [&]() { return Option<Clause*>(); };
-  ASS(!(s1.isVar() && lhs.isFracNum()))
   ASS(!s2.isVar())
 
   auto cnst = uwa.computeConstraintLiterals();

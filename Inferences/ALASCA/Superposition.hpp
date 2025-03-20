@@ -53,11 +53,11 @@ struct SuperpositionConf
 
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
-    auto selectedAtomicTerm() const  { return selectedAtom(); }
-
     static auto iter(AlascaState& shared, Clause* cl)
     {
-      return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
+      return shared.selectedEqualities(cl, 
+          // TODO 1.1
+          // /* literal */ SelectionCriterion::NOT_LEQ, 
                                            /* terms   */ SelectionCriterion::NOT_LEQ,
                                            /* include number vars */ false)
              .filter([](auto x) { return x.literal()->isPositive(); })

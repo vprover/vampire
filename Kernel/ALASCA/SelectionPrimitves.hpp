@@ -231,6 +231,7 @@ namespace Kernel {
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
     friend std::ostream& operator<<(std::ostream& out, Self const& self);
+    TypedTermList selectedAtomicTerm() const;
     // TODO 1
   };
 
@@ -250,8 +251,10 @@ namespace Kernel {
     TypedTermList selectedAtom() const;
     TypedTermList selectedAtomicTerm() const;
     Numeral numeral() const;
+
     Clause* clause() const { return _clause; }
     Literal* literal() const { return (*_clause)[_lit]; }
+
     AlascaLiteralItp<NumTraits> alascaLiteral() const;
     unsigned litIdx() const { return _lit; }
     unsigned termIdx() const { return _summand; }
@@ -274,10 +277,14 @@ namespace Kernel {
                  , TypeList::List<SelectedAtomicTermUF>
                >>
   {
-    Clause* _clause;
-    unsigned _lit;
-    unsigned _summand;
 
+    Clause* clause() const;
+    Literal* literal() const;
+    unsigned litIdx() const;
+    unsigned termIdx() const;
+
+    IterTraits<VirtualIterator<Literal*>> contextLiterals() const;
+    TypedTermList selectedAtomicTerm() const;
     using Self = SelectedAtomicTerm;
     friend std::ostream& operator<<(std::ostream& out, Self const& self) 
     { self.apply([&](auto& x) { out << x; }); return out; }
@@ -296,6 +303,42 @@ namespace Kernel {
     Sign sign() const;
     Literal* literal() const;
     Clause* clause() const;
+  };
+
+  class SelectedEquality 
+    : public SelectedAtomicTerm 
+  {
+    SelectedEquality(SelectedAtomicTerm self) : SelectedAtomicTerm(std::move(self)) {}
+    static TypedTermList biggerSide(SelectedAtomicTermUF);
+    static TermList smallerSide(SelectedAtomicTermUF);
+
+    template<class C>
+    static TermList div(IntTraits, TermList const& l, C const& r) 
+    { return IntTraits::quotientF(l, IntTraits::constantTl(r)); }
+
+    template<class NumTraits, class C>
+    static TermList div(NumTraits, TermList const& l, C const& r) 
+    { return NumTraits::linMul(1 / r, l); }
+    // { return NumTraits::div(l, NumTraits::constantTl(r)); }
+
+    template<class NumTraits>
+    static TermList smallerSide(SelectedAtomicTermItp<NumTraits> const& l) 
+    { return div(NumTraits{}, l.contextTermSum(), l.numeral()); }
+  public:
+    static Option<SelectedEquality> from(SelectedAtomicTerm self) {
+      if (self.literal()->isEquality()) {
+        return some(SelectedEquality(std::move(self)));
+      } else {
+        return {};
+      }
+    }
+    bool positive() const;
+    TypedTermList key() const { return biggerSide(); }
+
+   
+    TypedTermList biggerSide() const { return apply([](auto& x) { return x.selectedAtomicTerm(); }); }
+    TermList smallerSide() const { return apply([](auto x) { return smallerSide(x); }); }
+
   };
 
   struct NewSelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
@@ -336,13 +379,13 @@ namespace Kernel {
 
   };
 
-  class SelectedEquality 
+  class OldSelectedEquality 
   {
     Coproduct<SelectedSummand, SelectedIntegerEquality, SelectedUninterpretedEquality>  _inner;
 
   public:
 
-    explicit SelectedEquality(SelectedSummand s) 
+    explicit OldSelectedEquality(SelectedSummand s) 
       : _inner(decltype(_inner)::variant<0>(std::move(s))) 
     { 
       ASS(!_inner.unwrap<0>().isInequality()) 
@@ -352,12 +395,12 @@ namespace Kernel {
     TermList selectedAtom() const
     { return biggerSide(); }
 
-    explicit SelectedEquality(SelectedIntegerEquality s) 
+    explicit OldSelectedEquality(SelectedIntegerEquality s) 
       : _inner(decltype(_inner)::variant<1>(std::move(s))) 
     { 
     }
 
-    explicit SelectedEquality(SelectedUninterpretedEquality s) 
+    explicit OldSelectedEquality(SelectedUninterpretedEquality s) 
       : _inner(decltype(_inner)(std::move(s))) {}
 
     Clause* clause() const 
@@ -412,7 +455,7 @@ namespace Kernel {
     TermList sort() const { return SortHelper::getEqualityArgumentSort(literal()); }
     TypedTermList key() const { return TypedTermList(biggerSide(), sort()); }
 
-    friend std::ostream& operator<<(std::ostream& out, SelectedEquality const& self)
+    friend std::ostream& operator<<(std::ostream& out, OldSelectedEquality const& self)
     { 
       out << self.biggerSide() << (self.positive() ? " = " : " != ") << self.smallerSide();
       for (auto l : self.contextLiterals()) {
@@ -422,7 +465,7 @@ namespace Kernel {
     }
 
     auto asTuple() const { return std::tie(_inner); }
-    IMPL_COMPARISONS_FROM_TUPLE(SelectedEquality)
+    IMPL_COMPARISONS_FROM_TUPLE(OldSelectedEquality)
   };
 
   class SelectedUninterpretedPredicate : public SelectedLiteral {

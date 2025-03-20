@@ -263,25 +263,11 @@ namespace Kernel {
     }
 
 
-    IterTraits<VirtualIterator<SelectedEquality>> selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
-    // {
-    //   using Out = SelectedEquality;
-    //   return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-    //     .filterMap([](auto x) -> Option<Out>
-    //                { return x.match(
-    //                    [](SelectedSummand& x) {
-    //                       return x.isInequality() ? Option<Out>()
-    //                           : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
-    //                           : Option<Out>(Out(std::move(x)));
-    //                    },
-    //
-    //                    [](SelectedUninterpretedEquality& x) 
-    //                    { return Option<Out>(Out(std::move(x))); },
-    //
-    //                    [](SelectedUninterpretedPredicate&) 
-    //                    { return Option<Out>(); });
-    //     });
-    // }
+    IterTraits<VirtualIterator<SelectedAtomicTerm>> selectedAtomicTerms(Clause* cl, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
+
+    auto selectedEqualities(Clause* cl, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
+    { return selectedAtomicTerms(cl, selTerm, includeUnshieldedNumberVariables)
+        .filterMap([](auto x) { return SelectedEquality::from(std::move(x)); }); }
 
 
     bool interpretedFunction(TermList t) 
@@ -364,12 +350,6 @@ namespace Kernel {
     //           .flatten(); }
 
    IterTraits<VirtualIterator<SelectedAtomicTermItpAny>> selectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables);
-
-   // TODO remove
-   IterTraits<VirtualIterator<SelectedSummand>> oldSelectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
-    ;
-    // { return selectedAtoms(cl, selLit, includeUnshieldedNumberVariables)
-    //             .filterMap([](auto l) { return std::move(l).template as<SelectedSummand>().toOwned(); }); }
 
    IterTraits<VirtualIterator<SelectedLiteral>> 
      selectedLiterals(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) ;
