@@ -14,8 +14,11 @@
 #ifndef SAT_SUBSUMPTION_RESOLUTION_HPP
 #define SAT_SUBSUMPTION_RESOLUTION_HPP
 
+#include <cstdint>
+
 #include "Kernel/Clause.hpp"
 #include "Lib/Slice.hpp"
+#include <chrono>
 
 #include "./subsat/subsat.hpp"
 
@@ -125,7 +128,7 @@ private:
     /// After shifting 4 bits to the right (>> (2 * (j % 4)))
     /// 0b 00 00 00 10
     /// We know that m_2 does not have a positive match, but has a negative match
-    std::vector<uint8_t> _jStates;
+    std::vector<std::uint8_t> _jStates;
 
     /// @brief number of literals in L
     unsigned _m;
@@ -185,8 +188,8 @@ private:
      * Resizes the match matrix to the given size and clears the matrix
      * Guarantees that the a match can be added at index ( @b m - 1, @b n - 1 )
      *
-     * @param m the new length of L
-     * @param n the new length of M
+     * @param m the new length of sidePremise
+     * @param n the new length of mainPremise
      *
      * @warning the allocated matches will remain accessible but will be no longer be reserved. It would therefore be preferable to not keep the matches after calling this function.
      */
@@ -205,8 +208,8 @@ private:
      * @pre the match must be valid (i.e. @b i < _m and @b j < _n)
      * @pre the sar variable @b var must follow the one that was added before, or be 0 if no match was added before
      *
-     * @param i the index of the literal in L
-     * @param j the index of the literal in M
+     * @param i the index of the literal in sidePremise
+     * @param j the index of the literal in mainPremise
      * @param polarity the polarity of the match
      * @param var the sat variable associated with the match
      * @return the newly added match
@@ -299,9 +302,9 @@ private:
   /* Variables */
 
   /// @brief the base clause (side premise)
-  Kernel::Clause *_L;
+  Kernel::Clause *_sidePremise;
   /// @brief the instance clause (main premise)
-  Kernel::Clause *_M;
+  Kernel::Clause *_mainPremise;
   /// @brief the number of literals in the base clause (side premise)
   unsigned _m;
   /// @brief the number of literals in the instance clause (main premise)
@@ -330,11 +333,11 @@ private:
   /**
    * Sets up the problem and cleans the match set and bindings
    *
-   * @param L the base clause
-   * @param M the instance clause
+   * @param sidePremise the base clause
+   * @param mainPremise the instance clause
    */
-  void loadProblem(Kernel::Clause *L,
-                   Kernel::Clause *M);
+  void loadProblem(Kernel::Clause *sidePremise,
+                   Kernel::Clause *mainPremise);
 
   /**
    * Heuristically predicts whether subsumption or subsumption resolution will fail.
@@ -371,7 +374,7 @@ private:
   /**
    * Adds the clauses for the subsumption problem to the sat solver
    *
-   * @pre _L and _M must be set in the checker
+   * @pre _sidePremise and _mainPremise must be set in the checker
    * @pre the Match set is already filled
    * @return false if no solution is possible and true if there may exist a solution.
    */
@@ -392,7 +395,7 @@ private:
    * Adds the clauses for the subsumption resolution problem to the sat solver
    *
    * @remark The BindingsManager is not required to be set up in this method.
-   * @pre _L and _M must be set in the checker
+   * @pre _sidePremise and _mainPremise must be set in the checker
    * @pre the Match set is already filled
    * @return false if no solution is possible and true if there may exist a solution.
    */
@@ -418,14 +421,14 @@ private:
                         bool polarity);
 
   /**
-   * Fills the match set and the bindings manager with all the possible positive bindings between the literals of L and M.
+   * Fills the match set and the bindings manager with all the possible positive bindings between the literals of sidePremise and mainPremise.
    *
    * @return false if no subsumption solution is possible, the number of sat variables allocated otherwise.
    */
   bool fillMatchesS();
 
   /**
-   * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of L and M.
+   * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of sidePremise and mainPremise.
    * If the argument litToRemove is set, it will not consider negative matches for the literals other than the one at index litToRemove.
    *
    * @return false if no subsumption resolution solution is possible, the number of sat variables allocated otherwise.
@@ -444,32 +447,32 @@ private:
 public:
   using clock = std::chrono::steady_clock;
 
-  SATSubsumptionAndResolution() : _L(nullptr), _M(nullptr),
+  SATSubsumptionAndResolution() : _sidePremise(nullptr), _mainPremise(nullptr),
                                  _m(0), _n(0)
   { }
 
   /**
    * Checks whether the instance clause is subsumed by the base clause
    *
-   * @param L the base clause (side premise)
-   * @param M the instance clause (main premise)
+   * @param sidePremise the base clause
+   * @param mainPremise the instance clause
    * @param setSR if true, the Match set will be filled with negative matches as well. It will also check whether subsumption resolution is impossible.
-   * @return true if M is subsumed by L
+   * @return true if mainPremise is subsumed by sidePremise
    *
    * @remark The @b setSR parameter is used to save time on the setup of subsumption resolution. If it is intended to check for subsumption resolution right after, it is better to set it to true and call checkSubsumptionResolution with the flag usePreviousMatchSet set to true.
    *
    * A clause L subsumes a clause M if there exists a substitution \f$\sigma\f$ such that \f$\sigma(L)\subseteq M\f$.
    * Where L and M are considered as multisets of literals.
    */
-  bool checkSubsumption(Kernel::Clause *L,
-                        Kernel::Clause *M,
+  bool checkSubsumption(Kernel::Clause *sidePremise,
+                        Kernel::Clause *mainPremise,
                         bool setSR = false);
 
   /**
-   * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
+   * Checks whether a subsumption resolution can occur between the clauses @b sidePremise and @b mainPremise . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
    *
-   * @param L the base clause (side premise)
-   * @param M the instance clause (main premise)
+   * @param sidePremise the base clause (side premise)
+   * @param mainPremise the instance clause (main premise)
    * @param usePreviousMatchSet whether to use the previous match set or not. If false, the match set will be cleared and filled again.
    * @return the conclusion of the resolution, or NULL if no resolution is possible
    *
@@ -490,36 +493,36 @@ public:
    * [p(x) V q(x) V r(x)] /\ [P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ R(d)]
    * may have several conclusion.
    */
-  Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *L,
-                                             Kernel::Clause *M,
+  Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *sidePremise,
+                                             Kernel::Clause *mainPremise,
                                              bool usePreviousMatchSet = false);
 
 
   /**
-   * @brief Checks whether a subsumption resolution can occur between the clauses @b L and @b M with the literal @b resolutionLiteral as the resolution literal.
+   * @brief Checks whether a subsumption resolution can occur between the clauses @b sidePremise and @b mainPremise with the literal @b resolutionLiteral as the resolution literal.
    *
-   * @param L the base clause (side premise)
-   * @param M the instance clause (main premise)
-   * @param resolutionLiteral the index of the resolution literal in the instance clause @b M
+   * @param sidePremise the base clause (side premise)
+   * @param mainPremise the instance clause (main premise)
+   * @param resolutionLiteral the index of the resolution literal in the instance clause @b mainPremise
    *
-   * @note The conclusion of subsumption resolution is not generated. The conclusion can be later generated using getSubsumptionResolutionConclusion( @b M, @b resolutionLiteral, @b L), provided that @b resolutionLiteral is a valid resolution literal.
+   * @note The conclusion of subsumption resolution is not generated. The conclusion can be later generated using getSubsumptionResolutionConclusion( @b mainPremise, @b resolutionLiteral, @b sidePremise), provided that @b resolutionLiteral is a valid resolution literal.
    * @note If @b resolutionLiteral is 0xFFFFFFFF, the method will check if subsumption resolution is possible with any literal. But the conclusion will not be generated.
    */
-  bool checkSubsumptionResolutionWithLiteral(Kernel::Clause *L,
-                                             Kernel::Clause *M,
+  bool checkSubsumptionResolutionWithLiteral(Kernel::Clause *sidePremise,
+                                             Kernel::Clause *mainPremise,
                                              unsigned resolutionLiteral);
 
   /**
-   * Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.
+   * Creates a clause that is the subsumption resolution of @b mainPremise and @b sidePremise on @b m_j.
    * L V L' /\ M* V @b m_j => L V L' /\ M*
    *
-   * @param M The clause to be subsumed after resolution.
+   * @param mainPremise The clause to be subsumed after resolution.
    * @param m_j The literal on which the subsumption resolution is performed.
-   * @param L The clause resolving with @b M.
+   * @param sidePremise The clause resolving with @b mainPremise.
    */
-  static Kernel::Clause *getSubsumptionResolutionConclusion(Kernel::Clause *M,
+  static Kernel::Clause *getSubsumptionResolutionConclusion(Kernel::Clause *mainPremise,
                                                             Kernel::Literal *m_j,
-                                                            Kernel::Clause *L);
+                                                            Kernel::Clause *sidePremise);
   };
 
 } // namespace SATSubsumption

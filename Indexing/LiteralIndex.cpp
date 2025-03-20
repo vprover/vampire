@@ -20,6 +20,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Lib/Environment.hpp"
 
 #include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"

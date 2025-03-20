@@ -16,6 +16,7 @@
 #define __Theory__
 
 #include <cmath>
+#include <cstdint>
 
 #include "Forwards.hpp"
 
@@ -72,7 +73,7 @@ public:
   DivByZeroException() : Exception("divided by zero"){} 
 };
 
-enum class Sign : uint8_t {
+enum class Sign : std::uint8_t {
   Zero = 0,
   Pos = 1,
   Neg = 2,
@@ -627,6 +628,8 @@ public:
   }
   bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
   bool tryInterpretConstant(unsigned functor, IntegerConstantType& res);
+
+
   Option<IntegerConstantType> tryInterpretConstant(unsigned functor);
   /**
    * Try to interpret the term list as an rational constant. If it is an

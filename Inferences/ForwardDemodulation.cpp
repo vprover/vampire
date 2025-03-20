@@ -41,6 +41,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "DemodulationHelper.hpp"
 
@@ -80,7 +81,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
-  auto opt = getOptions();
+  auto& opt = getOptions();
   _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
   _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
   _precompiledComparison = opt.demodulationPrecompiledComparison();
@@ -171,6 +172,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         AppliedTerm rhsApplied(qr.data->rhs,appl,true);
         bool preordered = qr.data->preordered;
+
+        ASS_EQ(ordering.compare(trm,rhsApplied),Ordering::reverse(ordering.compare(rhsApplied,trm)));
 
         if (_precompiledComparison) {
 #if VDEBUG

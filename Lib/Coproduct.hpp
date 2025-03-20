@@ -315,9 +315,11 @@ namespace CoproductImpl {
     RawCoproduct() = default;
 #endif // VDEBUG
 
+    IGNORE_MAYBE_UNINITIALIZED(
     template<class F>
     ResultOf<F, Constant<0>> switchN(F f) const
     { return Lib::switchN<size>(_tag, std::move(f)); }
+    )
 
 #define CONST_POLYMORPIHIC(CONST)                                                         \
     template<class B>                                                                     \
@@ -677,12 +679,12 @@ template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
 };
 template<class... As> struct SelectOutput;
 
-template<class Cons> struct SelectOutput<Cons> { using type = Coproduct<std::result_of_t<Cons()>>; };
+template<class Cons> struct SelectOutput<Cons> { using type = Coproduct<std::invoke_result_t<Cons>>; };
 
 template<class Cond, class Cons, class... Rest>
 struct SelectOutput<Cond, Cons, Rest...> {
   using type = TypeList::Into<Coproduct, 
-     TypeList::Concat< TypeList::List<std::result_of_t<Cons()>>
+     TypeList::Concat< TypeList::List<std::invoke_result_t<Cons>>
                      , typename SelectOutput<Rest...>::type::Ts 
                      >>;
 };
