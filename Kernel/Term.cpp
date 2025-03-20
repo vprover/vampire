@@ -142,7 +142,7 @@ bool TermList::sameTop(TermList ss,TermList tt)
 void TermList::Top::output(std::ostream& out) const
 {
   if (this->var()) {
-    out << TermList::var(*this->var());
+    out << TermList::var(this->var()->number, this->var()->special);
   } else {
     ASS(this->functor())
     auto f = *this->functor();
@@ -682,13 +682,13 @@ std::string Term::toString(bool topLevel) const
 #if NICE_THEORY_OUTPUT
   auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
     using NumTraits = decltype(numTraits);
-    auto uminus = [&]()  {
-    std::stringstream out;
-      auto maybePar = [&](auto t) { 
+    auto maybeParMul = [&](auto t) { 
         auto needsPar = t.isTerm() && NumTraits::isAdd(t.term()->functor());
         return t.toString(!needsPar);
       };
-      out << "-" << maybePar(termArg(0));
+    auto uminus = [&]()  {
+      std::stringstream out;
+      out << "-" << maybeParMul(termArg(0));
       return Option<std::string>(out.str());
     };
     auto binary = [&](auto sym)  {
@@ -721,6 +721,9 @@ std::string Term::toString(bool topLevel) const
         return binary(" + ");
       } else if (NumTraits::isMul(_functor)) {
         return binary(" ");
+      } else if (auto c = NumTraits::tryLinMul(_functor)) {
+        return *c == -1 ? some(Output::toString("-", maybeParMul(termArg(0))))
+                        : some(Output::toString(*c, " ", maybeParMul(termArg(0))));
       } else if (NumTraits::isFloor(_functor)) {
         return some(Output::toString("⌊", termArg(0), "⌋"));
       } else if (NumTraits::isMinus(_functor)) {
@@ -1730,7 +1733,8 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   } else {
     ASS(lhs.isVar())
     ASS(rhs.isVar())
-    return lhs.var() < rhs.var();
+    return std::make_tuple(lhs.var(), lhs.isSpecialVar()) 
+         < std::make_tuple(rhs.var(), rhs.isSpecialVar());
   }
 }
 

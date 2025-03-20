@@ -404,39 +404,41 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<i
   auto arityExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->arity(); };
   auto precedenceExtractor = [&](unsigned i) { return rawPrecedence[i]; };
   auto frequencyExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->usageCnt(); };
+  bool qkbo = env.options->termOrdering() == Options::TermOrdering::QKBO 
+           || env.options->termOrdering() == Options::TermOrdering::LAKBO ;
 
   if (!str.empty()) {
     return weightsFromFile<SigTraits>(opts);
   } else {
     switch (opts.kboWeightGenerationScheme()) {
     case Options::KboWeightGenerationScheme::CONST:
-      return KboWeightMap<SigTraits>::dflt();
+      return KboWeightMap<SigTraits>::dflt(qkbo);
     case Options::KboWeightGenerationScheme::RANDOM:
-      return KboWeightMap<SigTraits>::randomized();
+      return KboWeightMap<SigTraits>::randomized(qkbo);
     case Options::KboWeightGenerationScheme::ARITY:
       return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
-        [](auto _, auto arity) { return arity+1; });
+        [](auto _, auto arity) { return arity+1; }, qkbo);
     case Options::KboWeightGenerationScheme::INV_ARITY:
       return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
-        [](auto max, auto arity) { return max-arity+1; });
+        [](auto max, auto arity) { return max-arity+1; }, qkbo);
     case Options::KboWeightGenerationScheme::ARITY_SQUARED:
       return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
-        [](auto _, auto arity) { return arity*arity+1; });
+        [](auto _, auto arity) { return arity*arity+1; }, qkbo);
     case Options::KboWeightGenerationScheme::INV_ARITY_SQUARED:
       return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
-        [](auto max, auto arity) { return max*max-arity*arity+1; });
+        [](auto max, auto arity) { return max*max-arity*arity+1; }, qkbo);
     case Options::KboWeightGenerationScheme::PRECEDENCE:
       return KboWeightMap<SigTraits>::fromSomeUnsigned(precedenceExtractor,
-        [](auto _, auto prec) { return prec + 1; });
+        [](auto _, auto prec) { return prec + 1; }, qkbo);
     case Options::KboWeightGenerationScheme::INV_PRECEDENCE:
       return KboWeightMap<SigTraits>::fromSomeUnsigned(precedenceExtractor,
-        [](auto max, auto prec) { return max-prec+1; });
+        [](auto max, auto prec) { return max-prec+1; }, qkbo);
     case Options::KboWeightGenerationScheme::FREQUENCY:
       return KboWeightMap<SigTraits>::fromSomeUnsigned(frequencyExtractor,
-        [](auto _, auto freq) { return freq > 0 ? freq : 1; });
+        [](auto _, auto freq) { return freq > 0 ? freq : 1; }, qkbo);
     case Options::KboWeightGenerationScheme::INV_FREQUENCY:
       return KboWeightMap<SigTraits>::fromSomeUnsigned(frequencyExtractor,
-        [](auto max, auto freq) { return max > 0 ? max - freq + 1 : 1; });
+        [](auto max, auto freq) { return max > 0 ? max - freq + 1 : 1; }, qkbo);
 
     default:
       NOT_IMPLEMENTED;
@@ -526,7 +528,10 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   }
 
   unsigned introducedWeight = defaultSymbolWeight;
-  auto specialWeights = KboSpecialWeights<SigTraits>::dflt();
+  auto specialWeights = KboSpecialWeights<SigTraits>::dflt(
+         env.options->termOrdering() == Shell::Options::TermOrdering::QKBO
+      || env.options->termOrdering() == Shell::Options::TermOrdering::LAKBO
+      );
 
   ASS(!filename.empty());
 
@@ -572,8 +577,9 @@ KBO::KBO(
     DArray<int> predLevels, 
 
     // other
-    bool reverseLCM
-  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
+    bool reverseLCM,
+    bool qkbo
+  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM, qkbo)
   , _funcWeights(funcWeights)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
@@ -583,7 +589,7 @@ KBO::KBO(
   checkAdmissibility(throwError);
 }
 
-KBO KBO::testKBO(bool rand)
+KBO KBO::testKBO(bool rand, bool qkbo)
 {
   auto predLevels = []() -> DArray<int>
     { return PrecedenceOrdering::testLevels(); };
@@ -596,15 +602,16 @@ KBO KBO::testKBO(bool rand)
     return out;
   };
   return KBO(
-      rand ? KboWeightMap<FuncSigTraits>::randomized() : KboWeightMap<FuncSigTraits>::dflt(),
+      rand ? KboWeightMap<FuncSigTraits>::randomized(qkbo) : KboWeightMap<FuncSigTraits>::dflt(qkbo),
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-      rand ? KboWeightMap<PredSigTraits>::randomized() : KboWeightMap<PredSigTraits>::dflt(),
+      rand ? KboWeightMap<PredSigTraits>::randomized(qkbo) : KboWeightMap<PredSigTraits>::dflt(qkbo),
 #endif
       prec(env.signature->functions()),
       prec(env.signature->typeCons()),
       prec(env.signature->predicates()),
       predLevels(),
-      /*reverseLCM=*/false);
+      /*reverseLCM=*/false,
+      qkbo);
 }
 
 void KBO::zeroWeightForMaximalFunc() {
@@ -689,8 +696,8 @@ void KBO::checkAdmissibility(HandleError handle) const
 /**
  * Create a KBO object.
  */
-KBO::KBO(Problem& prb, const Options& opts)
- : PrecedenceOrdering(prb, opts)
+KBO::KBO(Problem& prb, const Options& opts, bool qkbo)
+ : PrecedenceOrdering(prb, opts, qkbo)
  , _funcWeights(weightsFromOpts<FuncSigTraits>(opts,_functionPrecedences))
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
@@ -930,18 +937,18 @@ unsigned KBO::computeWeight(AppliedTerm tt) const
 }
 
 template<class SigTraits>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt()
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt(bool qkbo)
 {
   return KboWeightMap {
     ._weights                = DArray<KboWeight>::initialized(SigTraits::nSymbols(), 1),
     ._introducedSymbolWeight = 1,
-    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
+    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(qkbo),
   };
 }
 
 template<class SigTraits>
 template<class Extractor, class Fml>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, Fml fml)
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, Fml fml, bool qkbo)
 {
   auto nSym = SigTraits::nSymbols();
   DArray<KboWeight> weights(nSym);
@@ -961,14 +968,14 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, 
   return KboWeightMap {
     ._weights                = weights.clone(),
     ._introducedSymbolWeight = 1,
-    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
+    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(qkbo),
   };
 }
 
 
 template<>
 template<class Random>
-KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned maxWeight, Random random)
+KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned maxWeight, Random random, bool qkbo)
 {
   using SigTraits = FuncSigTraits;
   auto nSym = SigTraits::nSymbols();
@@ -995,17 +1002,18 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
     ._weights                = weights.clone(),
     ._introducedSymbolWeight = introducedWeight,
     ._specialWeights         = KboSpecialWeights<FuncSigTraits> {
-      ._variableWeight = variableWeight,
-      ._numInt     =  numInt,
-      ._numRat     =  numRat,
-      ._numReal    =  numReal,
+    ._variableWeight         = variableWeight,
+    ._numInt                 = numInt,
+    ._numRat                 = numRat,
+    ._numReal                = numReal,
+    ._qkbo                   = qkbo,
     },
   };
 }
 
 template<class SigTraits>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::randomized()
-{ return randomized(1 << 16, [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); }); }
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::randomized(bool qkbo)
+{ return randomized(1 << 16, [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); }, qkbo); }
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 template<>
@@ -1119,6 +1127,16 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
     weight = 1;  return true;
   }
   auto sym = env.signature->getFunction(functor);
+  if (_qkbo) {
+    if ( sym->integerConstant()
+      || sym->rationalConstant()
+      || sym->realConstant()) {
+      weight = _variableWeight;
+      return true;
+    } else {
+      return false;
+    }
+  } else {
     if (sym->integerConstant())  { weight = _numInt;  return true; }
     if (sym->rationalConstant()) { weight = _numRat;  return true; }
     if (sym->realConstant())     { weight = _numReal; return true; }
@@ -1127,14 +1145,15 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
       if (theory->isInterpretedFunction(functor, RatTraits ::minusI)) { weight = 0; return true; }
       if (theory->isInterpretedFunction(functor, RealTraits::minusI)) { weight = 0; return true; }
     }
+  }
   return false;
 }
 
-template KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::dflt();
+template KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::dflt(bool qkbo);
 template KboWeight KboWeightMap<FuncSigTraits>::symbolWeight(const Term*) const;
 template KboWeight KboWeightMap<FuncSigTraits>::symbolWeight(unsigned) const;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-template KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::dflt();
+template KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::dflt(bool qkbo);
 template KboWeight KboWeightMap<PredSigTraits>::symbolWeight(unsigned) const;
 #endif
 
