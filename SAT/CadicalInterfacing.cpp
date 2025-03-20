@@ -24,9 +24,9 @@ CadicalInterfacing::CadicalInterfacing(const Shell::Options& opts, bool generate
   _status(Status::SATISFIABLE)
 {
   // TODO: consider tuning minisat's options to be set for _solver
-  // (or even forwarding them to vampire's options)  
+  // (or even forwarding them to vampire's options)
 }
-  
+
 SATSolver::Status CadicalInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   ASS(!hasAssumptions());

@@ -255,14 +255,17 @@ bool FiniteModelBuilder::reset(){
   }
 
   // Create a new SAT solver
-  if(env.options->satSolver() == Options::SatSolver::MINISAT)
+  if (env.options->satSolver() == Options::SatSolver::MINISAT)
     try {
       _solver = new MinisatInterfacingNewSimp(_opt, true);
     } catch(const Minisat::OutOfMemoryException &) {
      MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
     }
-  else
+  else if (env.options->satSolver() == Options::SatSolver::CADICAL) {
     _solver = new CadicalInterfacing(_opt,true);
+  } else {
+    USER_ERROR("Finite model builder can only use minisat or cadical as SAT solvers.");
+  }
 
   // set the number of SAT variables, this could cause an exception
   _curMaxVar = offsets-1;
