@@ -18,6 +18,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Int.hpp"
 #include "Kernel/Ordering.hpp" 
@@ -66,9 +67,6 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 
 Clause* InterpretedEvaluation::simplify(Clause* cl)
 {
-  try { 
-
-
     TIME_TRACE("interpreted evaluation");
 
     /* do not evaluate theory axioms (both internal and external theory axioms)
@@ -111,11 +109,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
 
     env.statistics->evaluationCnt++;
     return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::EVALUATION, cl));
-
-  } catch (MachineArithmeticException&) {
-    /* overflow while evaluating addition, subtraction, etc. */
-    return cl;
-  }
 }
 
 }

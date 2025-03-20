@@ -20,6 +20,7 @@
 #include <ostream>
 
 #include "Forwards.hpp"
+#include "Lib/Timer.hpp"
 #include "Debug/Assertion.hpp"
 
 extern const char *VERSION_STRING;
@@ -210,6 +211,11 @@ public:
   /** number of simplifications by PolynomialNormalizer */
   unsigned evaluationCnt;
 
+  /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
+  unsigned alascaVarElimKNonZeroCnt;
+  unsigned alascaVarElimKSum;
+  unsigned alascaVarElimKMax;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
@@ -235,7 +241,7 @@ public:
   unsigned taAcyclicityGeneratedDisequalities;
 
   // Saturation
-  unsigned activations;
+  unsigned activations = 0; // This is not a mere stat, it is also used for LRS estimation!
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */
@@ -260,7 +266,6 @@ public:
   unsigned finalActiveClauses;
   /** extensionality clauses at the end of the saturation algorithm run */
   unsigned finalExtensionalityClauses;
-
   unsigned splitClauses;
   unsigned splitComponents;
   // TODO currently not set, set it?
@@ -294,6 +299,8 @@ public:
     UNKNOWN,
     /** time limit reached */
     TIME_LIMIT,
+    /** instruction limit reached */
+    INSTRUCTION_LIMIT,
     /** memory limit reached */
     MEMORY_LIMIT,
     /** activation limit reached */
@@ -314,6 +321,8 @@ public:
         return out << "UNKNOWN";
       case TIME_LIMIT:
         return out << "TIME_LIMIT";
+      case INSTRUCTION_LIMIT:
+        return out << "INSTRUCTION_LIMIT";
       case MEMORY_LIMIT:
         return out << "MEMORY_LIMIT";
       case ACTIVATION_LIMIT:

@@ -19,7 +19,7 @@
 
 #include <iostream>
 
-#include "Kernel/RobSubstitution.hpp"
+#include "Forwards.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -30,19 +30,16 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 //#define DEBUG_SHOW_STATE
-
-using namespace Lib;
-using namespace Kernel;
 
 namespace Kernel {
   class Clause;
 };
 
 namespace Parse {
-
-class TPTP;
+  using namespace Kernel;
 
 /**
  * Implements a TPTP parser
@@ -356,6 +353,9 @@ public:
     auto res = _questionVariableNames.findPtr(questionNumber);
     return res ? *res : nullptr;
   }
+  static bool seenQuestions() {
+    return !_questionVariableNames.isEmpty();
+  }
 private:
   void parseImpl(State initialState = State::UNIT_LIST);
   /** Return the input string of characters */
@@ -565,9 +565,6 @@ private:
   UnitInputType _lastInputType;
   /** true if the last read unit is a question */
   bool _isQuestion;
-  /** true if the last read unit is fof() or cnf() due to a subtle difference
-   * between fof() and tff() in treating numeric constants */
-  bool _isFof;
   /** */
   bool _isThf;
   /** */
@@ -606,8 +603,6 @@ private:
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
   Map<unsigned,SList*> _variableSorts;
-  /** overflown arithmetical constants for which uninterpreted constants are introduced */
-  Set<std::string> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
   /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
@@ -817,11 +812,22 @@ private:
   OperatorType* constructOperatorType(Type* t, VList* vars = 0);
 
 public:
-  // make the tptp routines for dealing with overflown constants available to other parsers
-  static unsigned addIntegerConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addRationalConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addRealConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addUninterpretedConstant(const std::string& name, Set<std::string>& overflow, bool& added);
+
+  /**
+   * Add a numeral constant by reading it from the std::string name.
+   */
+  template<class Numeral>
+  static unsigned addNumeralConstant(const std::string& name)
+  {
+    if (auto n = Numeral::parse(name)) {
+      return env.signature->addNumeralConstant(*n);
+    } else {
+      throw UserErrorException("not a valid ", Numeral::getSort(), " literal: ", name);
+    }
+  } 
+
+
+  static unsigned addUninterpretedConstant(const std::string& name, bool& added);
 
   // also here, simply made public static to share the code with another use site
   static Unit* processClaimFormula(Unit* unit, Formula* f, const std::string& nm);

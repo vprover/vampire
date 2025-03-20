@@ -35,9 +35,11 @@
 #ifndef __Options__
 #define __Options__
 
+#include <iterator>
 #include <type_traits>
 #include <cstring>
 #include <memory>
+#include "Lib/StringUtils.hpp"
 
 #include "Forwards.hpp"
 
@@ -45,6 +47,7 @@
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
@@ -52,7 +55,13 @@
 
 #include "Property.hpp"
 
-#define VAMPIRE_CLAUSE_TRACING VDEBUG
+#ifndef VAMPIRE_CLAUSE_TRACING
+#  if VDEBUG
+#    define VAMPIRE_CLAUSE_TRACING 1
+#  else 
+#    define VAMPIRE_CLAUSE_TRACING 0
+#  endif
+#endif // ndef VAMPIRE_CLAUSE_TRACINGE
 
 namespace Shell {
 
@@ -62,50 +71,6 @@ using namespace Kernel;
 class Property;
 
 /**
- * Let us define a similarity measure for strings, used to compare option names
- *
- * This is a Levenshtein (edit) distance and therefore gives the number
- * of edits needed to change s1 into s2
- *
- * TODO does not really belong here!
- *
- * @author Giles
- */
-static size_t distance(const std::string &s1, const std::string &s2)
-{
-  const size_t m(s1.size());
-  const size_t n(s2.size());
-
-  if( m==0 ) return n;
-  if( n==0 ) return m;
-
-  DArray<size_t> costs = DArray<size_t>(n+1);
-
-  for( size_t k=0; k<=n; k++ ) costs[k] = k;
-
-  size_t i = 0;
-  for ( std::string::const_iterator it1 = s1.begin(); it1 != s1.end(); ++it1, ++i )
-  {
-    costs[0] = i+1;
-    size_t corner = i;
-
-    size_t j = 0;
-    for ( std::string::const_iterator it2 = s2.begin(); it2 != s2.end(); ++it2, ++j )
-    {
-      size_t upper = costs[j+1];
-      if( *it1 == *it2 ){costs[j+1] = corner;}
-      else{
-        size_t t(upper<corner?upper:corner);
-        costs[j+1] = (costs[j]<t?costs[j]:t)+1;
-      }
-      corner = upper;
-    }
-  }
-
-  return costs[n];
-}
-
-/**
  * Class that represents Vampire's options.
  * 11/11/2004 Shrigley Hall, completely reimplemented
  *
@@ -113,14 +78,15 @@ static size_t distance(const std::string &s1, const std::string &s2)
  */
 class Options
 {
+private:
+  // MS: I don't think we need the public to copy Options objects
+  Options(const Options& that);
+  Options& operator=(const Options& that);
 public:
-
     Options ();
     // It is important that we can safely copy Options for use in CASC mode
     void init();
     void copyValuesFrom(const Options& that);
-    Options(const Options& that);
-    Options& operator=(const Options& that);
 
     // used to print help and options
     void output (std::ostream&) const;
@@ -129,6 +95,11 @@ public:
     void readFromEncodedOptions (std::string testId);
     void readOptionsString (std::string testId,bool assign=true);
     std::string generateEncodedOptions() const;
+
+    // compile away auto-values; called BEFORE preprocessing
+    void resolveAwayAutoValues0();
+    // compile away auto-values; called after preprocessing, when Problem's prop reflect precise state of affairs
+    void resolveAwayAutoValues(const Problem&);
 
     // deal with completeness
     bool complete(const Problem&) const;
@@ -173,7 +144,7 @@ public:
      */
     const std::string& problemName () const { return _problemName.actualValue; }
     void setProblemName(std::string str) { _problemName.actualValue = str; }
-    
+
     void setInputFile(const std::string& newVal){ _inputFile.set(newVal); }
     std::string includeFileName (const std::string& relativeName);
 
@@ -225,6 +196,7 @@ public:
     NEW,    // <-+
   };
   enum class UnificationWithAbstraction : unsigned int {
+    AUTO,
     OFF,
     INTERP_ONLY,
     ONE_INTERP,
@@ -232,9 +204,29 @@ public:
     ALL,
     GROUND,
     FUNC_EXT,
-    AC1,
-    AC2,
+    ALASCA_ONE_INTERP,
+    ALASCA_CAN_ABSTRACT,
+    ALASCA_MAIN,
+    ALASCA_MAIN_FLOOR,
   };
+  friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
+  {
+    switch (self) {
+      case UnificationWithAbstraction::AUTO:              return out << "auto";
+      case UnificationWithAbstraction::OFF:               return out << "off";
+      case UnificationWithAbstraction::INTERP_ONLY:       return out << "interp_only";
+      case UnificationWithAbstraction::ONE_INTERP:        return out << "one_interp";
+      case UnificationWithAbstraction::CONSTANT:          return out << "constant";
+      case UnificationWithAbstraction::ALL:               return out << "all";
+      case UnificationWithAbstraction::GROUND:            return out << "ground";
+      case UnificationWithAbstraction::FUNC_EXT:          return out << "func_ext";
+      case UnificationWithAbstraction::ALASCA_ONE_INTERP:   return out << "alasca_one_interp";
+      case UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: return out << "alasca_can_abstract";
+      case UnificationWithAbstraction::ALASCA_MAIN:         return out << "alasca_main";
+      case UnificationWithAbstraction::ALASCA_MAIN_FLOOR:   return out << "alasca_floor";
+    }
+    ASSERTION_VIOLATION
+  }
 
   enum class Induction : unsigned int {
     NONE,
@@ -287,9 +279,11 @@ public:
   };
 
   enum class DemodulationRedundancyCheck : unsigned int {
-    OFF,
-    ENCOMPASS,
-    ON
+    OFF,       // no check
+    ORDERING,  // solely ordering-based check
+    ENCOMPASS, // (1) positive unit equations (PUE) are smaller than non-PUE clauses,
+               // (2) more general PUE are smaller than less general PUE, and
+               // (3) equally general PUEs are ordered based on term ordering.
   };
 
   enum class TheoryAxiomLevel : unsigned int {
@@ -382,8 +376,6 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
-    CASC_HOL,
-    CASC_SAT,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     MODEL_CHECK,
@@ -400,16 +392,16 @@ public:
     VAMPIRE
   };
 
+  enum class Intent : unsigned int {
+    UNSAT, // preferentially look for refutations, proofs, arguments of unsatisfiability etc.
+    SAT    // preferentially look for (finite) models, saturations, etc.
+  };
+
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
-    CASC_2023,
-    CASC_2019,
     CASC_SAT,
     CASC_SAT_2024,
-    CASC_SAT_2023,
-    CASC_SAT_2019,
-    CASC_HOL_2020,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
@@ -489,9 +481,10 @@ public:
   };
 
   enum class QuestionAnsweringMode : unsigned int {
-    PLAIN = 0,
-    SYNTHESIS = 1,
-    OFF = 2
+    AUTO = 0,
+    PLAIN = 1,
+    SYNTHESIS = 2,
+    OFF = 3
   };
 
   enum class InterpolantMode : unsigned int {
@@ -534,8 +527,12 @@ public:
   };
 
   enum class TermOrdering : unsigned int {
-    KBO = 0,
-    LPO = 1
+    AUTO_KBO = 0,
+    KBO = 1,
+    QKBO = 2,
+    LAKBO = 3,
+    LPO = 4,
+    ALL_INCOMPARABLE = 5,
   };
 
   enum class SymbolPrecedence : unsigned int {
@@ -577,7 +574,8 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    PROPERTY = 4
+    PROPERTY = 4,
+    SMT2_PROOFCHECK = 5,
   };
 
   /** Values for --equality_proxy */
@@ -695,6 +693,7 @@ public:
   };
 
   enum class EvaluationMode : unsigned int {
+    OFF,
     SIMPLE,
     POLYNOMIAL_FORCE,
     POLYNOMIAL_CAUTIOUS,
@@ -704,12 +703,6 @@ public:
     FORCE,
     CAUTIOUS,
     OFF,
-  };
-
-  enum class AgeWeightRatioShape {
-    CONSTANT,
-    DECAY,
-    CONVERGE
   };
 
   enum class KboWeightGenerationScheme : unsigned int {
@@ -758,6 +751,11 @@ public:
     SK = 1,
     SKI = 2,
     OFF = 3
+  };
+
+  enum class ProblemExportSyntax : unsigned int {
+    SMTLIB = 0,
+    API_CALLS = 1,
   };
 
     //==========================================================
@@ -1772,10 +1770,36 @@ bool _hard;
         ASS(p)
         return (p->equalityAtoms() != 0) ||
           // theories may introduce equality at various places of the pipeline!
-          HasTheories::actualCheck(p);
+          HasTheories::actualCheck(p) || p->hasFOOL();
       }
       std::string msg(){ return " only useful with equality"; }
     };
+
+    struct NegatedOptionProblemConstraint : OptionProblemConstraint {
+      OptionProblemConstraintUP  _inner;
+      USE_ALLOCATOR(NegatedOptionProblemConstraint);
+
+      bool check(Property*p){
+        return !_inner->check(p);
+      }
+      std::string msg(){ return "not (" + _inner->msg() + ")"; }
+    };
+      
+    friend OptionProblemConstraintUP operator~(OptionProblemConstraintUP x) {
+      return OptionProblemConstraintUP({std::move(x)});
+    }
+
+
+    struct HasPolymorphism : OptionProblemConstraint{
+      USE_ALLOCATOR(HasHigherOrder);
+
+      bool check(Property*p){
+        ASS(p)
+        return (p->hasPolymorphicSym());
+      }
+      std::string msg(){ return " only useful with polymorphic problems"; }
+    };
+
 
     struct HasHigherOrder : OptionProblemConstraint{
       bool check(Property*p){
@@ -1815,8 +1839,8 @@ bool _hard;
       bool check(Property*p){
         return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
-          
-      std::string msg(){ 
+
+      std::string msg(){
         std::string m = " not with ";
         if(greater){ m+="more";}else{m+="less";}
         return m+" than "+Lib::Int::toString(atoms)+" atoms";
@@ -1852,6 +1876,7 @@ bool _hard;
       return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
+    static OptionProblemConstraintUP hasPolymorphism(){ return OptionProblemConstraintUP(new HasPolymorphism); }
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP mayHaveNonUnits(){ return OptionProblemConstraintUP(new MayHaveNonUnits); }
@@ -1970,6 +1995,7 @@ public:
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   void setMode(Mode mode) { _mode.actualValue = mode; }
+  Intent intent() const { return _intent.actualValue; }
   Schedule schedule() const { return _schedule.actualValue; }
   std::string scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
@@ -2023,6 +2049,7 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  ProblemExportSyntax problemExportSyntax() const { return _problemExportSyntax.actualValue; }
   std::string const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
   std::string const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
@@ -2050,8 +2077,8 @@ public:
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
-  bool fixUWA() const { return _fixUWA.actualValue; }
-  bool useACeval() const { return _useACeval.actualValue;}
+  // TODO make alasca independent of normal eveluation
+  bool useACeval() const { return _useACeval.actualValue; }
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
@@ -2098,6 +2125,7 @@ public:
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
+  int lrsRetroactiveDeletes() const { return _lrsRetroactiveDeletes.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
@@ -2149,8 +2177,6 @@ public:
   std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
-	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
-	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
@@ -2208,6 +2234,7 @@ public:
   bool generalSplitting() const { return _generalSplitting.actualValue; }
 #if VTIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
+  std::string const& timeStatisticsFocus() const { return _timeStatisticsFocus.actualValue; }
 #endif // VTIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2273,11 +2300,17 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
-  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_CAUTIOUS : _evaluationMode.actualValue; }
-  ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
-  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
-  ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
-  ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
+  EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
+  ArithmeticSimplificationMode gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
+  bool alasca() const { return _alasca.actualValue; }
+  bool viras() const { return _viras.actualValue; }
+  bool alascaDemodulation() const { return _alascaDemodulation.actualValue; }
+  bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
+  bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
+  bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
+  bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue; }
+  ArithmeticSimplificationMode cancellation() const { return _cancellation.actualValue; }
+  ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return _arithmeticSubtermGeneralizations.actualValue; }
 
   //Higher-order Options
 
@@ -2366,22 +2399,7 @@ private:
         }
     }
   
-    Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const{
-
-      Stack<std::string> similar_names;
-
-      VirtualIterator<AbstractOptionValue*> options = _lookup.values();
-      while(options.hasNext()){
-        AbstractOptionValue* opt = options.next();
-        std::string opt_name = is_short ? opt->shortName : opt->longName;
-        size_t dif = 2;
-        if(!is_short) dif += name.size()/4;
-        if(name.size()!=0 && distance(name,opt_name) < dif)
-          similar_names.push(opt_name);
-      }
-
-      return similar_names;
-    }
+    Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const;
 
     //==========================================================
     // Variables holding option values
@@ -2412,8 +2430,6 @@ private:
   BoolOptionValue _encode;
 
   RatioOptionValue _ageWeightRatio;
-	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
-	UnsignedOptionValue _ageWeightRatioShapeFrequency;
 
   BoolOptionValue _useTheorySplitQueues;
   StringOptionValue _theorySplitQueueRatios;
@@ -2555,6 +2571,7 @@ private:
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
+  BoolOptionValue _lrsRetroactiveDeletes;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
@@ -2567,6 +2584,7 @@ private:
   BoolOptionValue _interactive;
 
   ChoiceOptionValue<Mode> _mode;
+  ChoiceOptionValue<Intent> _intent;
   ChoiceOptionValue<Schedule> _schedule;
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
@@ -2596,6 +2614,7 @@ private:
   StringOptionValue _questionAnsweringAvoidThese;
 
   UnsignedOptionValue _randomSeed;
+  UnsignedOptionValue _randomStrategySeed;
 
   StringOptionValue _sampleStrategy;
 
@@ -2637,6 +2656,7 @@ private:
 #endif // VAMPIRE_CLAUSE_TRACING
 #if VZ3
   BoolOptionValue _showZ3;
+  ChoiceOptionValue<ProblemExportSyntax> _problemExportSyntax;
   StringOptionValue _exportAvatarProblem;
   StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
@@ -2647,7 +2667,6 @@ private:
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction;
   BoolOptionValue _unificationWithAbstractionFixedPointIteration;
-  BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   FloatOptionValue _lrsEstimateCorrectionCoef;
@@ -2701,7 +2720,10 @@ private:
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
+#if VTIME_PROFILING
   BoolOptionValue _timeStatistics;
+  StringOptionValue _timeStatisticsFocus;
+#endif // VTIME_PROFILING
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
@@ -2724,8 +2746,13 @@ private:
   // arithmeitc reasoning options
   BoolOptionValue _inequalityNormalization;
   BoolOptionValue _pushUnaryMinus;
-  BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
+  BoolOptionValue _alasca;
+  BoolOptionValue _viras;
+  BoolOptionValue _alascaDemodulation;
+  BoolOptionValue _alascaStrongNormalization;
+  BoolOptionValue _alascaIntegerConversion;
+  BoolOptionValue _alascaAbstraction;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 

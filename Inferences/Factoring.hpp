@@ -19,23 +19,20 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 
 namespace Inferences {
-
-using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
 
 class Factoring
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Kernel::Clause* premise);
 private:
-  class UnificationsOnPositiveFn;
   class ResultsFn;
 };
 
+using FactoringExtra = TwoLiteralInferenceExtra;
 
 };
 

@@ -16,9 +16,10 @@
 #include "RobSubstitution.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/DArray.hpp"
@@ -37,9 +38,8 @@ using namespace std;
 using namespace Lib;
 
 std::ostream& operator<<(std::ostream& out, TermSpec const& self)
-{ return out << self.term << "/" << self.index; }
-
-
+{ return self.isVar() ? out << self.varSpec() 
+                      : out << self.term << "/" << self.index; }
 
 TermList TermSpec::toTerm(RobSubstitution& s) const
 { return s.apply(this->term, this->index); }
@@ -95,8 +95,8 @@ void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, i
   VirtualIterator<Renaming::Item> nit=normalizer.items();
   while(nit.hasNext()) {
     Renaming::Item itm=nit.next();
-    VarSpec normal(itm.second, normalIndex);
-    VarSpec denormalized(itm.first, denormalizedIndex);
+    VarSpec normal(TermList::var(itm.second), normalIndex);
+    VarSpec denormalized(TermList::var(itm.first), denormalizedIndex);
     ASS(!_bindings.find(denormalized));
     bindVar(denormalized,normal);
   }
@@ -120,9 +120,9 @@ bool RobSubstitution::isUnbound(VarSpec v) const
  * return a term, that has the same top functor. Otherwise
  * return an arbitrary variable.
  */
-TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar) const
+TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar, unsigned index) const
 {
-  VarSpec v(specialVar, SPECIAL_INDEX);
+  VarSpec v(TermList(specialVar, /* special */ true), index);
   for(;;) {
     auto binding = _bindings.find(v);
     if(binding.isNone()) {
@@ -203,10 +203,10 @@ VarSpec RobSubstitution::introGlueVar(TermSpec forTerm)
 
   auto old = _gluedTerms.find(forTerm);
   if (old) {
-    return VarSpec(*old, GLUE_INDEX);
+    return VarSpec(TermList::var(*old), GLUE_INDEX);
   } else {
-    auto v = VarSpec(_nextGlueAvailable++, GLUE_INDEX);
-    _gluedTerms.insert(forTerm, v.var);
+    auto v = VarSpec(TermList::var(_nextGlueAvailable++), GLUE_INDEX);
+    _gluedTerms.insert(forTerm, v.var());
     if (bdIsRecording()) {
       bdAdd(BacktrackObject::fromClosure([this, forTerm](){
         _nextGlueAvailable--;
@@ -401,33 +401,34 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
     } else {
       if (! TermList::sameTopFunctor(bts.term,its.term)) {
 	if(bts.term.isSpecialVar()) {
-	  VarSpec bvs(bts.term.var(), SPECIAL_INDEX);
+          auto bvs = bts.varSpec();
 	  auto binding = _bindings.find(bvs);
 	  if(binding) {
             binding1 = *binding;
-	    ASS_EQ(binding1.index, base.index);
+#define ASS_ONE_GROUND_OR_SAME_INDEX(t1, t2) ASS(t1.definitelyGround() || t2.definitelyGround() || t1.index == t2.index)
+	    ASS_ONE_GROUND_OR_SAME_INDEX(binding1, base);
 	    bt=&binding1.term;
 	    continue;
 	  } else {
 	    bind(bvs,its);
 	  }
 	} else if(its.term.isSpecialVar()) {
-	  VarSpec ivs(its.term.var(), SPECIAL_INDEX);
+          auto ivs = its.varSpec();
 	  auto binding = _bindings.find(ivs);
 	  if(binding) {
       binding2 = *binding;
-	    ASS_EQ(binding2.index, instance.index);
+	    ASS_ONE_GROUND_OR_SAME_INDEX(binding2, instance);
 	    it=&binding2.term;
 	    continue;
 	  } else {
 	    bind(ivs,bts);
 	  }
 	} else if(bts.term.isOrdinaryVar()) {
-	  VarSpec bvs(bts.term.var(), bts.index);
+          auto bvs = bts.varSpec();
 	  auto binding = _bindings.find(bvs);
 	  if(binding) {
       binding1 = *binding;
-	    ASS_EQ(binding1.index, instance.index);
+	    ASS_ONE_GROUND_OR_SAME_INDEX(binding1, instance);
 	    if(!TermList::equals(binding1.term, its.term))
 	    {
 	      mismatch=true;
@@ -594,7 +595,7 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
     return SubstIterator::getEmpty();
   }
 
-  if( !l1->commutative() ) {
+  if( !l1->isEquality() ) {
     return pvi( getContextualIterator(getSingletonIterator(subst),
 	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
   } else {
@@ -671,8 +672,7 @@ public:
       _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index),
       _state(FIRST), _used(true) {
     ASS_EQ(_l1->functor(), _l2->functor());
-    ASS(_l1->commutative());
-    ASS_EQ(_l1->arity(), 2);
+    ASS(_l1->isEquality());
   }
   ~AssocIterator() {
     if (_state != FINISHED && _state != FIRST) {

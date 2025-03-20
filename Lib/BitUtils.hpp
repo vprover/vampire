@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include "Debug/Assertion.hpp"
 #include "Lib/Portability.hpp"
 
 namespace Lib {
@@ -111,7 +112,9 @@ public:
     data &= mask;
 
     // actually set the bits
+    IGNORE_MAYBE_UNINITIALIZED(
     bits &= ~mask;
+    )
     bits |= data;
   }
 

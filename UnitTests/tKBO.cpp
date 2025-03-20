@@ -16,6 +16,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "tKBO.hpp"
 
+
 //////////////////////////////////////////////////////////////////////////////// 
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
 //////////////////////////////////////////////////////////////////////////////// 
@@ -36,20 +37,24 @@ KBO kbo(unsigned introducedSymbolWeight,
         }, funcs, env.signature->functions()), 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
              toWeightMap<PredSigTraits>(introducedSymbolWeight,
-               KboSpecialWeights<PredSigTraits>::dflt(), 
+               KboSpecialWeights<PredSigTraits>::dflt(/* qkbo */ false), 
                preds,
                env.signature->predicates()), 
 #endif
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
-             predLevels(),
-             /*revereseLCM*/ false);
+             PrecedenceOrdering::testLevels(),
+             /*revereseLCM*/ false,
+             /* qkbo */ false);
 }
+
 
 KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
   return kbo(1, 1, funcs, preds);
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// TEST CASES //////////////////////////////////
@@ -169,7 +174,7 @@ TEST_FUN(kbo_test09) {
   try {
     auto ord = kbo(weights(make_pair(g, 1u), make_pair(f, 0u)), weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException&) {
+  } catch (UserErrorException& e) {
     /* f is not maximal wrt precedence but has weight 0 */
   }
 }
@@ -183,7 +188,7 @@ TEST_FUN(kbo_test10) {
   try {
     auto ord = kbo(weights(make_pair(a, 0u)), weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException&) {
+  } catch (UserErrorException& e) {
     /* constant must be greater or equal to variable weight */
   }
 }
@@ -352,7 +357,7 @@ TEST_FUN(kbo_test22) {
         ), 
         weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException&) {
+  } catch (UserErrorException& e) {
     /* introduced symbol weight must be greater or equal to the variable weight */
   }
 }
@@ -382,8 +387,8 @@ TEST_FUN(kbo_test23) {
 // isGreater tests
 
 bool isGreaterSymmetric(const KBO& ord, TermList t1, TermList t2) {
-  return ord.isGreater(AppliedTerm(t1),AppliedTerm(t2))
-    && !ord.isGreater(AppliedTerm(t2),AppliedTerm(t1));
+  return ord.compareUnidirectional(AppliedTerm(t1),AppliedTerm(t2))==Ordering::GREATER
+    && ord.compareUnidirectional(AppliedTerm(t2),AppliedTerm(t1))!=Ordering::GREATER;
 }
 
 TEST_FUN(kbo_isGreater_test01) {
@@ -430,8 +435,8 @@ TEST_FUN(kbo_isGreater_test04) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS(!ord.isGreater(AppliedTerm(f(x)), AppliedTerm(g(g(g(g(g(y))))))));
-  ASS(!ord.isGreater(AppliedTerm(g(g(g(g(g(y)))))), AppliedTerm(f(x))));
+  ASS(ord.compareUnidirectional(AppliedTerm(f(x)), AppliedTerm(g(g(g(g(g(y)))))))!=Ordering::GREATER);
+  ASS(ord.compareUnidirectional(AppliedTerm(g(g(g(g(g(y)))))), AppliedTerm(f(x)))!=Ordering::GREATER);
 }
 
 TEST_FUN(kbo_isGreater_test05) {

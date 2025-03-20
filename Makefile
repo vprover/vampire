@@ -23,7 +23,7 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-COMMON_FLAGS = -DVTIME_PROFILING=0
+COMMON_FLAGS = -DVTIME_PROFILING=0 -DVMINI_GMP
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
@@ -77,11 +77,11 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I.
+INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
-INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++
+INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src -Iz3/src/api -Iz3/src/api/c++
 # ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 # Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 # else
@@ -127,8 +127,8 @@ endif
 ################################################################
 
 ifeq ($(OS),Darwin)
-CXX = clang++
-CC = clang
+CXX = g++ # (clang++ currently crashing on Viras.cpp)
+CC = gcc  # (clang)
 else
 CXX = g++
 CC = gcc
@@ -167,7 +167,6 @@ VLS_OBJ= Lib/Sys/Multiprocessing.o
 
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
-        Kernel/ColorHelper.o\
         Kernel/EqHelper.o\
         Kernel/FlatTerm.o\
         Kernel/Formula.o\
@@ -178,8 +177,12 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
+        Kernel/QKbo.o\
         Kernel/KBOComparator.o\
         Kernel/SKIKBO.o\
+        Kernel/ALASCA/Signature.o\
+        Kernel/ALASCA/SelectionPrimitves.o\
+        Kernel/ALASCA/State.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
         Kernel/LPO.o\
@@ -194,7 +197,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
+        Kernel/OrderingComparator.o\
         Kernel/Ordering_Equality.o\
+        Kernel/PartialOrdering.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
@@ -206,9 +211,10 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/SubformulaIterator.o\
         Kernel/Substitution.o\
         Kernel/Term.o\
-	Kernel/PolynomialNormalizer.o\
-	Kernel/Polynomial.o\
+        Kernel/PolynomialNormalizer.o\
+        Kernel/Polynomial.o\
         Kernel/TermIterators.o\
+        Kernel/TermPartialOrdering.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
         Kernel/Signature.o\
@@ -273,6 +279,17 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/PolynomialEvaluation.o\
          Inferences/ArithmeticSubtermGeneralization.o\
          Inferences/Superposition.o\
+         Inferences/ALASCA/Normalization.o\
+         Inferences/ALASCA/InequalityFactoring.o\
+         Inferences/ALASCA/EqFactoring.o\
+         Inferences/ALASCA/VariableElimination.o\
+         Inferences/ALASCA/VIRAS.o\
+         Inferences/ALASCA/Superposition.o\
+         Inferences/ALASCA/Demodulation.o\
+         Inferences/ALASCA/FwdDemodulation.o\
+         Inferences/ALASCA/BwdDemodulation.o\
+         Inferences/ALASCA/FourierMotzkin.o\
+         Inferences/ALASCA/TermFactoring.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
@@ -290,6 +307,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
+         Inferences/ProofExtra.o\
          SATSubsumption/SATSubsumptionAndResolution.o\
          SATSubsumption/subsat/constraint.o\
          SATSubsumption/subsat/log.o\
@@ -306,8 +324,8 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
-VST_OBJ= Saturation/AWPassiveClauseContainer.o\
-         Saturation/PredicateSplitPassiveClauseContainer.o\
+VST_OBJ= Saturation/AWPassiveClauseContainers.o\
+         Saturation/PredicateSplitPassiveClauseContainers.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
          Saturation/Discount.o\
@@ -541,7 +559,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -lgmp -lgmpxx
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

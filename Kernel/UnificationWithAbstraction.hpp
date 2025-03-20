@@ -36,8 +36,8 @@ class UnificationConstraintStack
 public:
   USE_ALLOCATOR(UnificationConstraintStack)
   UnificationConstraintStack() : _cont() {}
-  UnificationConstraintStack(UnificationConstraintStack&&) = default;
-  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
+  UnificationConstraintStack(UnificationConstraintStack&&) = delete;
+  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = delete;
 
   auto iter() const
   { return iterTraits(_cont.iter()); }
@@ -49,8 +49,7 @@ public:
   unsigned maxNumberOfConstraints() { return _cont.size(); }
 
   auto literalIter(RobSubstitution& s)
-  { return iterTraits(_cont.iter())
-              .filterMap([&](auto& c) { return c.toLiteral(s); }); }
+  { return arrayIter(_cont).filterMap([&](auto& c) { return c.toLiteral(s); }); }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
   { return out << self._cont; }
@@ -71,6 +70,7 @@ class AbstractionOracle final
   friend class AbstractingUnifier;
 public:
   AbstractionOracle(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
+  AbstractionOracle() : AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF) {}
 
   struct EqualIf { 
     Recycled<Stack<UnificationConstraint>> _unify; 
@@ -86,6 +86,14 @@ public:
 
     EqualIf unify(decltype(_unify) unify) &&
     { _unify = std::move(unify); return std::move(*this); }
+
+    template<class Iter>
+    EqualIf unifyAll(Iter iter) &&
+    { _unify->loadFromIterator(std::move(iter)); return std::move(*this); }
+
+    template<class Iter>
+    EqualIf constrAll(Iter iter) &&
+    { _constr->loadFromIterator(std::move(iter)); return std::move(*this); }
 
     template<class... As>
     EqualIf constr(UnificationConstraint constr, As... constrs) &&
@@ -150,27 +158,33 @@ class AbstractingUnifier
   friend class RobSubstitution;
   AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
-  void init(AbstractionOracle uwa) 
+  AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle()) {}
+  void setAo(AbstractionOracle ao)
+  { _uwa = std::move(ao); }
+
+  void init(AbstractionOracle ao) 
   { 
+    if (auto bd = _bd.take()) {
+      bd->backtrack();
+    }
     _subs->reset();
     _constr->reset();
-    _bd = {};
-    _uwa = std::move(uwa);
+    _uwa = std::move(ao);
   }
+  bool isEmpty() const { return _subs->isEmpty() && _constr->isEmpty() && (_bd.isNone() || _bd->isEmpty()); }
 
   static AbstractingUnifier empty(AbstractionOracle uwa) { return AbstractingUnifier(uwa); }
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
-  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+  bool unify(TermList t1, int bank1, TermList t2, int bank2);
   bool unify(TermSpec l, TermSpec r, bool& progress);
   bool fixedPointIteration();
 
   // TODO document
   Option<Recycled<Stack<unsigned>>> unifiableSymbols(SymbolId f);
 
-
-  static Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, AbstractionOracle uwa, bool fixedPointIteration)
+  static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration)
   {
     auto au = AbstractingUnifier::empty(uwa);
     if (!au.unify(t1, bank1, t2, bank2)) return {};

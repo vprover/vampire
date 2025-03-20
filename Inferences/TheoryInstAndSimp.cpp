@@ -65,11 +65,12 @@ using namespace SAT;
 using SortId = SAT::Z3Interfacing::SortId;
 
 TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
-    opts.theoryInstAndSimp(), 
+    opts.theoryInstAndSimp(),
     opts.thiTautologyDeletion(), 
     opts.showZ3(),  
     opts.thiGeneralise(),
-    opts.exportThiProblem()
+    opts.exportThiProblem(),
+    opts.problemExportSyntax()
     ) {}
 
 
@@ -87,12 +88,12 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib) 
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
-  , _solver(new Z3Interfacing(_naming, showZ3, /* unsatCoresForAssumptions = */ generalisation, exportSmtlib))
+  , _solver(new Z3Interfacing(_naming, showZ3, /* unsatCoresForAssumptions = */ generalisation, exportSmtlib, problemExportSyntax))
   , _generalisation(generalisation)
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")
@@ -768,7 +769,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
       }
       args.push(destr->termArg(0));
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
-      return Literal::create(discr, args.size(), /* polarity */ true, false, args.begin());
+      return Literal::create(discr, args.size(), /* polarity */ true, args.begin());
   };
 
 
@@ -967,14 +968,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 }
 
-std::ostream& operator<<(std::ostream& out, Solution const& self) 
+
+} // namespace Inferences
+
+std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self) 
 { return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
-
-TheoryInstAndSimp::~TheoryInstAndSimp()
-{
-  delete _solver;
-}
-
-}
 
 #endif

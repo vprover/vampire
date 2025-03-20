@@ -12,6 +12,7 @@
  * Implements class InferenceStore.
  */
 
+#include "Kernel/Theory.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
@@ -40,6 +41,7 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "SortHelper.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "InferenceStore.hpp"
 
@@ -185,7 +187,7 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 
 struct InferenceStore::ProofPrinter
 {
-  ProofPrinter(ostream& out, InferenceStore* is)
+  ProofPrinter(std::ostream& out, InferenceStore* is)
   : _is(is), out(out)
   {
     outputAxiomNames=env.options->outputAxiomNames();
@@ -257,6 +259,15 @@ protected:
         out << prem->number();
         first=false;
       }
+
+      if(env.options->proofExtra() == Options::ProofExtra::FULL) {
+        auto *extra = env.proofExtra.find(cs);
+        if(extra)
+          out
+            << (first ? ' ' : ',')
+            << *extra;
+      }
+
       out << "]" << endl;
     }
   }
@@ -309,7 +320,7 @@ protected:
 struct InferenceStore::ProofPropertyPrinter
 : public InferenceStore::ProofPrinter
 {
-  ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is)
+  ProofPropertyPrinter(std::ostream& out, InferenceStore* is) : ProofPrinter(out,is)
   {
     max_theory_clause_depth = 0;
     for(unsigned i=0;i<11;i++){ buckets.push(0); }
@@ -392,7 +403,7 @@ protected:
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
-  TPTPProofPrinter(ostream& out, InferenceStore* is)
+  TPTPProofPrinter(std::ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {
     splitPrefix = Saturation::Splitter::splPrefix;
     // Don't delay printing in TPTP proof mode
@@ -752,7 +763,7 @@ protected:
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
-  ProofCheckPrinter(ostream& out, InferenceStore* is)
+  ProofCheckPrinter(std::ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 
 protected:
@@ -784,6 +795,690 @@ protected:
       out << " ).\n";
     }
     out << "%#\n";
+  }
+
+  bool hideProofStep(InferenceRule rule)
+  {
+    switch(rule) {
+    case InferenceRule::INPUT:
+    case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
+    case InferenceRule::INEQUALITY_SPLITTING:
+    case InferenceRule::SKOLEMIZE:
+    case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
+    case InferenceRule::EQUALITY_PROXY_AXIOM1:
+    case InferenceRule::EQUALITY_PROXY_AXIOM2:
+    case InferenceRule::NEGATED_CONJECTURE:
+    case InferenceRule::RECTIFY:
+    case InferenceRule::FLATTEN:
+    case InferenceRule::ENNF:
+    case InferenceRule::NNF:
+    case InferenceRule::CLAUSIFY:
+    case InferenceRule::AVATAR_DEFINITION:
+    case InferenceRule::AVATAR_COMPONENT:
+    case InferenceRule::AVATAR_REFUTATION:
+    case InferenceRule::AVATAR_SPLIT_CLAUSE:
+    case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
+    case InferenceRule::FOOL_ELIMINATION:
+    case InferenceRule::BOOLEAN_TERM_ENCODING:
+    case InferenceRule::CHOICE_AXIOM:
+    case InferenceRule::PREDICATE_DEFINITION:
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  void print()
+  {
+    ProofPrinter::print();
+    out << "%#\n";
+  }
+};
+struct InferenceStore::Smt2ProofCheckPrinter
+: public InferenceStore::ProofPrinter
+{
+  USE_ALLOCATOR(InferenceStore::Smt2ProofCheckPrinter);
+  
+  Smt2ProofCheckPrinter(std::ostream& out, InferenceStore* is)
+  : ProofPrinter(out, is) {}
+
+protected:
+
+  static bool isBuiltInSort(std::ostream& out, unsigned sortCons) {
+    auto& sig = *env.signature;
+    auto arity = sig.typeConArity(sortCons);
+    auto args = range(0, arity)
+              .map([](auto _a) { return AtomicSort::intSort(); })
+              .template collect<Stack>();
+    auto sortInstance = TermList(AtomicSort::create(sortCons, arity, args.begin()));
+    if (env.signature->isTermAlgebraSort(sortInstance)) {
+      out << "=== warning term algebras are not yet implemented for proof checking ==" << std::endl;
+    }
+    return sig.isArrayCon(sortCons)
+      || sortInstance == AtomicSort::intSort()
+      || sortInstance == AtomicSort::realSort()
+      || sortInstance == AtomicSort::rationalSort();
+  }
+
+  static void outputSymbolDeclarations(std::ostream& out)
+  {
+    auto& sig = *env.signature;
+
+    for (unsigned i=0; i < sig.typeCons(); ++i) {
+      if (!isBuiltInSort(/* may output warning */ out, i)) {
+        out << "(declare-sort ";
+        outputQuoted(out, sig.typeConName(i));
+        out << " "
+            << sig.typeConArity(i) << ")" 
+            << std::endl;
+      }
+    }
+    for (unsigned i = 0; i < sig.functions(); ++i) {
+      if ( env.signature->isFoolConstantSymbol(true,i) 
+        || env.signature->isFoolConstantSymbol(false,i)
+        || theory->isInterpretedFunction(i)
+        || theory->isInterpretedConstant(i))  {
+        /* don't output */
+      } else {
+        out << "(declare-fun ";
+        outputFunctionName(out, i);
+        out << " (";
+        auto fty = sig.getFunction(i)->fnType();
+        for (auto a : range(0, sig.functionArity(i))) {
+          out << " ";
+          outputSort(out, fty->arg(a));
+        }
+        out << " )";
+        outputSort(out, fty->result());
+        out << ")" 
+            << std::endl;
+      }
+    }
+    for (unsigned i = 0; i < sig.predicates(); ++i) {
+      auto fty = sig.getPredicate(i)->predType();
+      // we might introduce an equality proxy for rationals, which 
+      // we cannot translate to smt2 as there are no rationals there
+      // therefore we skip that
+      auto hasRatArg = range(0, sig.predicateArity(i))
+          .any([&](auto a)
+              { return fty->arg(a) == AtomicSort::rationalSort(); });
+      if (!theory->isInterpretedPredicate(i) && !hasRatArg) {
+
+        out << "(declare-fun ";
+        outputPredicateName(out, i);
+        out << " (";
+        for (auto a : range(0, sig.predicateArity(i))) {
+          out << " ";
+          auto s = fty->arg(a);
+          outputSort(out, s);
+        }
+        out << " ) Bool)"
+            << std::endl;
+      }
+    }
+
+    out   << "(define-fun |$floor| ((x Real)) Real " << std::endl
+          << "   (to_real (to_int x)))             " << std::endl
+          <<                                            std::endl;
+
+    auto defRemainderInTermsOfQuotient = [&](auto kind, auto definition) {
+      out << "(declare-fun |$quotient_"  << kind << "0| (Int) Int)         " << std::endl
+          << "(declare-fun |$remainder_" << kind << "0| (Int) Int)         " << std::endl
+          <<                                                                    std::endl
+          << "(define-fun |$quotient_" << kind << "| ((m Int) (n Int)) Int " << std::endl
+          << "   (ite (= n 0)                                              " << std::endl
+          << "     (|$quotient_" << kind << "0| m)                         " << std::endl
+          << definition 
+          << "   )"                                                          << std::endl
+          << ")"                                                             << std::endl
+          <<                                                                    std::endl
+          << "(define-fun |$remainder_" << kind << "| ((m Int) (n Int)) Int" << std::endl
+          << "   (ite (= n 0)                                              " << std::endl
+          << "    (|$remainder_" << kind << "0| m)                         " << std::endl
+          << "    (- m (* n (|$quotient_" << kind << "| m n)))))           " << std::endl;
+    };
+
+    defRemainderInTermsOfQuotient("f",
+           // definition: floor( m/n)
+           //           = -ceil(-m/n)
+           //
+           // smtlib standard for div:
+           // Regardless of sign of m, 
+           // when n is positive, (div m n) is the floor of the rational number m/n;
+           // when n is negative, (div m n) is the ceiling of m/n.
+           "    (ite (> n 0)                            \n"
+           //       n > 0 => div(m,n) = floor(m/n)
+           "        (div m n)                           \n"
+           //       n < 0 =>  div(-m,n) =  ceil(-m/n)
+           //             => -div(-m,n) = -ceil(-m/n)
+           //             => -div(-m,n) =   floor(m/n)
+           "        (-(div (- m) n))                      \n"
+           "    )                                       \n"
+           );
+
+
+    defRemainderInTermsOfQuotient("t",
+           // definition: truncate(m/n)
+           //          = if (m/n > 0) floor(m/n)
+           //            else         ceil(m/n)
+           // smtlib standard for div:
+           // Regardless of sign of m, 
+           // when n is positive, (div m n) is the floor of the rational number m/n;
+           // when n is negative, (div m n) is the ceiling of m/n.
+           "    (ite (> n 0)                             \n"
+           "       (ite (> m 0)                             \n"
+           //            m/n > 0 => we need floor(m/n)
+           //                    => n is potitive
+           //                    => div(m, n) = floor(m/n)
+           "            (div m n)                           \n"
+           //            m/n <= 0 => we need ceiling(m/n)
+           //                     => -n is negativ
+           //                     => div(-m,-n) = floor(-m/-n)
+           "            (div (- m) (- n))                   \n"
+           "       )                                        \n"
+           "       (ite (> m 0)                             \n"
+           //            m/n < 0 => we need ceiling(m/n)
+           //                    => n is negative
+           //                    => div(m, n) = ceil(m/n)
+           "            (div m n)                           \n"
+           //            m/n > 0 => we need floor(m/n)
+           //                    => -n is positive
+           //                    => div(-m, -n) = floor(-m / -n)
+           "            (div (- m) (- n))                   \n"
+           "       )                                        \n"
+           "    )                                           \n");
+
+
+  }
+
+  static void outputVar(std::ostream& out, unsigned var)
+  { out << "x" << var; }
+
+
+#define INTERPRETATION_BY_TRANSLATION                                                     \
+           Theory::INT_QUOTIENT_T:                                                        \
+      case Theory::INT_QUOTIENT_F:                                                        \
+      case Theory::REAL_FLOOR:                                                            \
+      case Theory::RAT_FLOOR:                                                             \
+      case Theory::INT_REMAINDER_T:                                                       \
+      case Theory::INT_REMAINDER_F
+
+
+#define ALL_NUM(SUFFIX)                                                                   \
+           Theory::INT_ ## SUFFIX:                                                        \
+      case Theory::RAT_ ## SUFFIX:                                                        \
+      case Theory::REAL_ ## SUFFIX
+
+
+#define UNSUPPORTED_INTERPRETATIONS                                                       \
+           Theory::RAT_IS_RAT:                                                            \
+      case Theory::RAT_IS_REAL:                                                           \
+      case Theory::REAL_IS_RAT:                                                           \
+      case Theory::REAL_IS_REAL:                                                          \
+      case Theory::INT_DIVIDES:                                                           \
+      case Theory::INT_CEILING:                                                           \
+      case Theory::INT_TRUNCATE:                                                          \
+      case Theory::INT_ROUND:                                                             \
+      case Theory::RAT_QUOTIENT:                                                          \
+      case Theory::RAT_QUOTIENT_E:                                                        \
+      case Theory::RAT_QUOTIENT_T:                                                        \
+      case Theory::RAT_QUOTIENT_F:                                                        \
+      case Theory::RAT_REMAINDER_E:                                                       \
+      case Theory::RAT_REMAINDER_T:                                                       \
+      case Theory::RAT_REMAINDER_F:                                                       \
+      case Theory::RAT_CEILING:                                                           \
+      case Theory::RAT_TRUNCATE:                                                          \
+      case Theory::RAT_ROUND:                                                             \
+      case Theory::REAL_QUOTIENT_E:                                                       \
+      case Theory::REAL_QUOTIENT_T:                                                       \
+      case Theory::REAL_QUOTIENT_F:                                                       \
+      case Theory::REAL_REMAINDER_E:                                                      \
+      case Theory::REAL_REMAINDER_T:                                                      \
+      case Theory::REAL_REMAINDER_F:                                                      \
+      case Theory::REAL_CEILING:                                                          \
+      case Theory::REAL_TRUNCATE:                                                         \
+      case Theory::REAL_ROUND:                                                            \
+      case Theory::RAT_TO_RAT:                                                            \
+      case Theory::REAL_TO_RAT:                                                           \
+      case Theory::INT_IS_RAT:                                                            \
+      case Theory::INT_IS_REAL:                                                           \
+      case Theory::INT_TO_RAT
+
+  static void outputInterpretationName(std::ostream& out, Theory::Interpretation itp) 
+  {
+
+    switch (itp) {
+      case ALL_NUM(IS_INT):        out << "is_int";  return;
+      case ALL_NUM(TO_REAL):       out << "to_real"; return;
+      case ALL_NUM(TO_INT):        out << "to_int";  return;
+      case ALL_NUM(GREATER):       out << ">";       return;
+      case ALL_NUM(GREATER_EQUAL): out << ">=";      return;
+      case ALL_NUM(LESS):          out << "<";       return;
+      case ALL_NUM(LESS_EQUAL):    out << "<=";      return;
+      case ALL_NUM(PLUS):          out << "+";       return;
+      case ALL_NUM(MINUS):         out << "-";       return;
+      case ALL_NUM(UNARY_MINUS):   out << "-";       return;
+      case ALL_NUM(MULTIPLY):      out << "*";       return;
+      case Theory::RAT_FLOOR:      out << "|$floor|";       return;
+      case Theory::REAL_FLOOR:     out << "|$floor|";       return;
+
+      case Theory::EQUAL: out << "="; return;
+
+      case UNSUPPORTED_INTERPRETATIONS:
+         throw UserErrorException("divides function ", itp, " does not exist in SMT2");
+
+      case Theory::INT_SUCCESSOR: out << "+ 1"; return;
+      case Theory::INT_ABS: out << "abs"; return;
+
+      case Theory::INT_QUOTIENT_E: out << "div"; return;
+      case Theory::INT_REMAINDER_E: out << "mod"; return;
+
+      case Theory::INT_QUOTIENT_T:  out << "|$quotient_t|"; return;
+      case Theory::INT_REMAINDER_T: out << "|$remainder_t|"; return;
+
+      case Theory::INT_QUOTIENT_F:  out << "|$quotient_f|"; return;
+      case Theory::INT_REMAINDER_F: out << "|$remainder_f|"; return;
+
+      case Theory::INT_FLOOR: out << "to_int"; return;
+
+      case Theory::REAL_QUOTIENT: out << "/"; return;
+
+      // array functions
+      case Theory::ARRAY_BOOL_SELECT:
+      case Theory::ARRAY_SELECT: out << "select"; return;
+      case Theory::ARRAY_STORE: out << "store"; return;
+
+      case Theory::INVALID_INTERPRETATION: {ASSERTION_VIOLATION}
+    }
+    ASSERTION_VIOLATION
+
+
+  }
+
+
+  static void outputPredicateName(std::ostream& out, unsigned p) 
+  {
+    if (theory->isInterpretedPredicate(p)) {
+      outputInterpretationName(out, theory->interpretPredicate(p));
+    } else {
+      outputQuoted(out, env.signature->predicateName(p));
+    }
+  }
+
+  static void outputQuoted(std::ostream& out, std::string const& name) 
+  {
+    if (   name == "exp"
+        || name == "log"
+        || name == "cos"
+        || name == "sin"
+        || name == "tan"
+        || name == "sqrt"
+        || name == "const"
+        ) {
+        out << "_" << name;
+    } else if ( name[0] == '\'' || name[0] == '$') {
+      // add one more level of quoting
+      out << '|' << name << "|";
+    } else  {
+      out << name;
+    }
+  }
+
+  static void outputFunctionName(std::ostream& out, unsigned f) 
+  {
+    if (theory->isInterpretedFunction(f)) {
+      outputInterpretationName(out, theory->interpretFunction(f));
+    } else if (theory->isInterpretedConstant(f)) {
+      IntegerConstantType i;
+      RealConstantType r;
+      if (theory->tryInterpretConstant(f, i)) {
+        if (i < IntegerConstantType(0)) {
+          out << "(- " << i.abs() << ")";
+        } else {
+          out << i;
+        }
+
+      } else if (theory->tryInterpretConstant(f, r)) {
+        if (r < RealConstantType(0)) {
+          out << "(-";
+        }
+        if (r.denominator() != IntegerConstantType(1)) {
+          out << r.numerator().abs() << ".0";
+        } else {
+          out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
+        }
+        if (r < RealConstantType(0)) {
+          out << ")";
+        }
+
+      } else {
+        throw UserErrorException("only reals and integers are allowed in smt2");
+      }
+
+    } else if (env.signature->isFoolConstantSymbol(true, f)) {
+      out << "true";
+
+    } else if (env.signature->isFoolConstantSymbol(false, f)) {
+      out << "false";
+
+    } else {
+      auto& name = env.signature->functionName(f);
+      outputQuoted(out, name);
+    }
+  }
+
+
+#define DIRECT_SMT2_INTERPRETATION                                                        \
+            Theory::EQUAL:                                                                \
+      case ALL_NUM(IS_INT):                                                               \
+      case ALL_NUM(TO_REAL):                                                              \
+      case ALL_NUM(TO_INT):                                                               \
+      case ALL_NUM(GREATER):                                                              \
+      case ALL_NUM(GREATER_EQUAL):                                                        \
+      case ALL_NUM(LESS):                                                                 \
+      case ALL_NUM(LESS_EQUAL):                                                           \
+      case ALL_NUM(PLUS):                                                                 \
+      case ALL_NUM(MINUS):                                                                \
+      case ALL_NUM(UNARY_MINUS):                                                          \
+      case ALL_NUM(MULTIPLY):                                                             \
+      case Theory::INT_SUCCESSOR:                                                         \
+      case Theory::INT_ABS:                                                               \
+      case Theory::INT_QUOTIENT_E:                                                        \
+      case Theory::INT_REMAINDER_E:                                                       \
+      case Theory::INT_FLOOR:                                                             \
+      case Theory::REAL_QUOTIENT:                                                         \
+      case Theory::ARRAY_BOOL_SELECT:                                                     \
+      case Theory::ARRAY_SELECT:                                                          \
+      case Theory::ARRAY_STORE
+
+
+  bool isInterpretedByTranslation(Term* t)
+  {
+    if (theory->isInterpretedFunction(t)) {
+      switch (theory->interpretFunction(t)) {
+        case INTERPRETATION_BY_TRANSLATION:
+          return true;
+        default:
+          return false;
+      }
+    } else {
+      return false;
+    }
+  }
+
+  static void outputAppl(std::ostream& out, Term* t)
+  {
+
+    if (t->isSpecial()) {
+      auto f = t->specialFunctor();
+      const Term::SpecialTermData* sd = t->getSpecialData();
+      switch(f) {
+        case SpecialFunctor::FORMULA: outputFormula(out, sd->getFormula()); return;
+        case SpecialFunctor::LET: {
+          out << "(let ((";
+          VList* variables = sd->getVariables();
+          if (VList::isNonEmpty(variables)) 
+            throw UserErrorException("bindings with variables are not supperted in smt2 proofcheck");
+
+          auto binding = sd->getBinding();
+          bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
+
+          out << "?";
+          if (isPredicate) {
+            outputPredicateName(out, sd->getFunctor());
+          } else {
+            outputFunctionName(out, sd->getFunctor());
+          }
+          out << " ";
+          outputTerm(out, binding);
+          out << "))";
+          ASS_EQ(t->numTermArguments(), 1)
+          outputTerm(out, t->termArg(0));
+          out << ")";
+          return;
+        }
+
+        case SpecialFunctor::ITE: {
+          out << "(ite ";
+          outputFormula(out, sd->getCondition());
+          ASS_EQ(t->numTermArguments(), 2)
+          outputTerm(out, t->termArg(0));
+          outputTerm(out, t->termArg(1));
+          out << ")";
+          return;
+        }
+        case SpecialFunctor::TUPLE: 
+            throw UserErrorException("tuples are not supperted in smt2 proofcheck");
+
+        case SpecialFunctor::LAMBDA:
+            throw UserErrorException("lambdas are not supperted in smt2 proofcheck");
+
+        case SpecialFunctor::LET_TUPLE: 
+            throw UserErrorException("tuples lets are not supperted in smt2 proofcheck");
+
+        case SpecialFunctor::MATCH:
+            throw UserErrorException("&match are not supperted in smt2 proofcheck");
+      }
+
+
+    } else {
+      // if (isInterpretedByTranslation(t)) {
+      //   outputTranslation(out, t);
+      //
+      // } else {
+
+        if (t->numTermArguments() != 0) {
+          out << "(";
+        }
+        if (t->isLiteral()) {
+          outputPredicateName(out, t->functor());
+        } else {
+          outputFunctionName(out, t->functor());
+        }
+
+        for (unsigned i = 0; i < t->numTermArguments(); i++) {
+          out << " ";
+          outputTerm(out, t->termArg(i));
+        }
+        if (t->numTermArguments() != 0) {
+          out << ")";
+        }
+      // }
+    }
+  }
+
+
+  static void outputLiteral(std::ostream& out, Literal* lit) 
+  {
+    if (lit->isNegative()) {
+      out << "(not ";
+    }
+    outputAppl(out, lit);
+    if (lit->isNegative()) {
+      out << ")";
+    }
+  }
+  static void outputTerm(std::ostream& out, TermList t) 
+  {
+    if (t.isVar()) {
+      outputVar(out, t.var());
+    } else {
+      outputAppl(out, t.term());
+    }
+  }
+
+  static void outputFormula(std::ostream& out, Formula* f)
+  {
+    auto outputBin = [&](const char* name) {
+      out << "(" << name << " ";
+      outputFormula(out, f->left());
+      outputFormula(out, f->right());
+      out << ")";
+    };
+    auto outputCon = [&](const char* name) {
+      const FormulaList* fs = f->args();
+      ASS (FormulaList::length(fs) >= 2);
+
+      out << "(" << name;
+      
+      while (FormulaList::isNonEmpty(fs)) {
+        out << " ";
+        outputFormula(out, fs->head());
+        fs = fs->tail();
+      }
+      out << ")";
+    };
+    auto outputQuant = [&](const char* name) {
+      out << "("<< name << "(";
+      VList::Iterator vs(f->vars());
+      SList::Iterator ss(f->sorts());
+      bool hasSorts = f->sorts();
+      while (vs.hasNext()) {
+        int var = vs.next();
+        out << "(";
+        outputVar(out, var);
+        out << " ";
+        TermList sort;
+        if (hasSorts) {
+          sort = ss.next();
+        } else {
+          ALWAYS(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),sort))
+        }
+        outputSort(out, sort);
+        out << ")";
+      }
+      out << ")";
+      outputFormula(out, f->qarg());
+      out << ")";
+    };
+    switch (f->connective()) {
+      case NAME:
+        out << static_cast<const NamedFormula*>(f)->name();
+        return;
+
+      case LITERAL:
+        outputLiteral(out, f->literal());
+        return;
+
+      case NOT:
+        out << "(not ";
+        outputFormula(out, f->uarg());
+        out  << ")";
+        return;
+                 
+      case AND: outputCon("and"); return;
+      case OR : outputCon("or" ); return;
+      case IFF: outputBin("=" ); return;
+      case XOR: outputBin("distinct"); return;
+      case IMP: outputBin("=>"); return;
+      case FORALL: outputQuant("forall"); return;
+      case EXISTS: outputQuant("exists"); return;
+      case BOOL_TERM: outputTerm(out, f->getBooleanTerm()); return;
+      case TRUE: out << "true"; return;
+      case FALSE: out << "false"; return;
+      case NOCONN: ASSERTION_VIOLATION_REP(*f);
+    }
+    ASSERTION_VIOLATION_REP(*f)
+  }
+
+  static void outputSort(std::ostream& out, TermList sort)
+  { 
+    ASS(sort.isTerm())
+    if (AtomicSort::intSort() == sort) {
+      out << "Int"; 
+    } else if (AtomicSort::rationalSort() == sort) {
+      throw UserErrorException("smtlib2 does not have rational sorts");
+    } else if (AtomicSort::realSort() == sort) {
+      out << "Real";
+    } else if (AtomicSort::boolSort() == sort) {
+      out << "Bool";
+    } else {
+      auto term = sort.term();
+      if (term->arity() == 0) {
+        outputQuoted(out, env.signature->typeConName(term->functor()));
+
+      } else {
+        out << "(";
+        if (sort.isArraySort()){
+          out << "Array";
+        } else {
+          outputQuoted(out, env.signature->typeConName(term->functor()));
+        }
+        for (unsigned a = 0; a < term->arity(); a++) {
+           out << " ";
+           outputSort(out, *term->nthArgument(a));
+        }
+        out << ")";
+      }
+    }
+  }
+
+  static void output(std::ostream& out, Unit* unit)
+  {
+    using Sort = TermList;
+    DHMap<unsigned, Sort> vars;
+    SortHelper::collectVariableSorts(unit, vars);
+    decltype(vars)::Iterator iter(vars);
+    if (vars.size() != 0) {
+      out << "(forall (";
+      while (iter.hasNext()) {
+        unsigned var;
+        Sort sort;
+        iter.next(var, sort);
+        out << "(";
+        outputVar(out, var);
+        out << " ";
+        outputSort(out, sort);
+        out << ")";
+      }
+      out << ")";
+    }
+
+    if (unit->isClause()) {
+      Clause* cl=static_cast<Clause*>(unit);
+      out << "(or false " << std::endl;
+      for(auto lit : iterTraits(cl->iterLits())) {
+        out << "  ";
+        outputLiteral(out, lit);
+        out << std::endl;
+      }
+      out << "  )";
+    } else {
+      outputFormula(out, static_cast<FormulaUnit*>(unit)->formula());
+    }
+
+
+    if (vars.size() != 0) {
+      out << ")";
+    }
+  }
+
+  void printStep(Unit* concl)
+  {
+    auto prems = iterTraits(concl->getParents());
+ 
+    outputSymbolDeclarations(out);
+    out        << std::endl;
+    out        << std::endl;
+
+    for (auto prem : prems) {
+      out << ";- unit id: " << prem->number() << std::endl;
+      out << "(assert ";
+      output(out, prem);
+      out << ")" << std::endl;
+      out        << std::endl;
+    }
+
+    out << std::endl;
+    out << ";- rule: " << ruleName(concl->inference().rule()) << std::endl;
+    out << std::endl;
+    out << ";- unit id: " << concl->number() << std::endl;
+    out << "(assert (not ";
+    output(out, concl);
+    out  << "))" << std::endl;
+
+    out << "(check-sat)" << std::endl;
+    out << "%#" << std::endl;
   }
 
 
@@ -827,11 +1522,13 @@ protected:
   }
 };
 
-InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
+InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& out)
 {
   switch(env.options->proof()) {
   case Options::Proof::ON:
     return new ProofPrinter(out, this);
+  case Options::Proof::SMT2_PROOFCHECK:
+    return new Smt2ProofCheckPrinter(out, this);
   case Options::Proof::PROOFCHECK:
     return new ProofCheckPrinter(out, this);
   case Options::Proof::TPTP:
@@ -850,7 +1547,7 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
  *
  *
  */
-void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
+void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
 {
   out << "(" << endl;
 
@@ -904,7 +1601,7 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
  *
  *
  */
-void InferenceStore::outputProof(ostream& out, Unit* refutation)
+void InferenceStore::outputProof(std::ostream& out, Unit* refutation)
 {
   ProofPrinter* p = createProofPrinter(out);
   if (!p) {
@@ -919,7 +1616,7 @@ void InferenceStore::outputProof(ostream& out, Unit* refutation)
  * Output a proof of units to out
  *
  */
-void InferenceStore::outputProof(ostream& out, UnitList* units)
+void InferenceStore::outputProof(std::ostream& out, UnitList* units)
 {
   ProofPrinter* p = createProofPrinter(out);
   if (!p) {
@@ -941,4 +1638,5 @@ InferenceStore* InferenceStore::instance()
   return inst.ptr();
 }
 
+#undef ALL_NUM
 }

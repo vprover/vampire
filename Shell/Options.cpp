@@ -53,6 +53,8 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "Options.hpp"
 #include "Property.hpp"
 
@@ -122,8 +124,6 @@ void Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
-                                        "casc_hol",
-                                        "casc_sat",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -153,23 +153,24 @@ void Options::init()
 
     auto UsingPortfolioTechnology = [this] {
       // Consider extending this list when adding a new Casc-like mode
-      return Or(_mode.is(equal(Mode::CASC_HOL)),
-                _mode.is(equal(Mode::CASC)),
-                _mode.is(equal(Mode::CASC_SAT)),
+      return Or(_mode.is(equal(Mode::CASC)),
                 _mode.is(equal(Mode::SMTCOMP)),
                 _mode.is(equal(Mode::PORTFOLIO)));
     };
 
+    _intent = ChoiceOptionValue<Intent>("intent","intent",Intent::UNSAT,{"unsat","sat"});
+    _intent.description = "Discribes what the system should be striving to show."
+      " By default a prover tries to show `unsat` and find a refutation (a proof of the negated conjecture)."
+      " Discovering a finite saturations while using a complete strategy and thus testifying satisfiability is a nice bonus in that case."
+      " On the other hand, with the intent `sat` the main focus is on finding models."
+      " (Please use `--mode casc --intent sat` to achieve what was previously triggered via `--mode CASC_SAT`).";
+    _lookup.insert(&_intent);
+
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
          "casc_2024",
-         "casc_2023",
-         "casc_2019",
          "casc_sat",
          "casc_sat_2024",
-         "casc_sat_2023",
-         "casc_sat_2019",
-         "casc_hol_2020",
          "file",
          "induction",
          "integer_induction",
@@ -225,6 +226,15 @@ void Options::init()
     _sampleStrategy.reliesOn(_mode.is(equal(Mode::VAMPIRE)));
     _sampleStrategy.setExperimental();
     _sampleStrategy.tag(OptionTag::DEVELOPMENT);
+
+    _randomStrategySeed = UnsignedOptionValue("random_strategy_seed","",0);
+    _randomStrategySeed.description="Sets the seed for generating random strategies."
+      " This option is necessary because --random_seed <value> will be included as a fixed value in the generated random strategy,"
+      " hence won't have any effect on the random strategy generation. Set to non-0 for this to have effect; the default 0 still calls a random_device.";
+    _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
+    _randomStrategySeed.setExperimental();
+    _lookup.insert(&_randomStrategySeed);
+    _randomStrategySeed.tag(OptionTag::INPUT);
 
     _forbiddenOptions = StringOptionValue("forbidden_options","","");
     _forbiddenOptions.description=
@@ -293,7 +303,7 @@ void Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck"});
     _proof.description=
       "Specifies whether proof (or similar e.g. model/saturation) will be output and in which format:\n"
       "- off gives no proof output\n"
@@ -374,6 +384,12 @@ void Options::init()
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
     _timeStatistics.tag(OptionTag::OUTPUT);
+
+    _timeStatisticsFocus = StringOptionValue("time_statistics_focus","tstat_focus","");
+    _timeStatisticsFocus.description="focus on some special subtree of the time statistics";
+    _lookup.insert(&_timeStatisticsFocus);
+    _timeStatisticsFocus.tag(OptionTag::OUTPUT);
+    _timeStatisticsFocus.onlyUsefulWith(_timeStatistics.is(equal(true)));
 #endif // VTIME_PROFILING
 
 //*********************** Input  ***********************
@@ -492,7 +508,7 @@ void Options::init()
     _tweeGoalTransformation.setExperimental();
     _lookup.insert(&_tweeGoalTransformation);
 
-    _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", false);
+    _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", true);
     _codeTreeSubsumption.description =
       "Use code tree implementation of forward subsumption and subsumption resolution.";
     _codeTreeSubsumption.tag(OptionTag::INFERENCES);
@@ -551,7 +567,10 @@ void Options::init()
 
     _sineGeneralityThreshold = UnsignedOptionValue("sine_generality_threshold","sgt",0);
     _sineGeneralityThreshold.description=
-    "Generality of a symbol is the number of input formulas in which a symbol appears. If the generality of a symbol is smaller than the threshold, it is always added into the D-relation with formulas in which it appears.";
+    "Generality of a symbol is the number of input formulas in which a symbol appears."
+    " If the generality of a symbol is smaller than the threshold, it is always included into the D-relation with formulas in which it appears."
+    " Note that with the default value (0) this actually never happens."
+    " (And with 1, there would be no difference, because the 1 is used up on the occurence in the already included unit.)";
     _lookup.insert(&_sineGeneralityThreshold);
     _sineGeneralityThreshold.tag(OptionTag::PREPROCESSING);
     // Captures that if the value is not default then sineSelection must be on
@@ -565,7 +584,8 @@ void Options::init()
 
     _sineTolerance = FloatOptionValue("sine_tolerance","st",1.0);
     _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')."
-    " Has special value of -1.0, but otherwise must be greater or equal 1.0.";
+    " Has special value of -1.0 (which effectively codes +infinity), but otherwise must be greater or equal 1.0."
+    " For each unit, only its least general symbol (let's call its generality g_min) and its symbols with generality up to g_min*tolerance trigger the unit to be included.";
     _lookup.insert(&_sineTolerance);
     _sineTolerance.tag(OptionTag::PREPROCESSING);
     _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));
@@ -692,6 +712,12 @@ void Options::init()
     _showZ3.description="Print the clauses being added to Z3";
     _lookup.insert(&_showZ3);
     _showZ3.tag(OptionTag::DEVELOPMENT);
+
+    _problemExportSyntax = ChoiceOptionValue<ProblemExportSyntax>("export_syntax","",ProblemExportSyntax::SMTLIB, {"smtlib", "api_calls",});
+    _problemExportSyntax.description="Set the syntax for exporting z3 problems.";
+    _lookup.insert(&_problemExportSyntax);
+    _problemExportSyntax.tag(OptionTag::DEVELOPMENT);
+    _problemExportSyntax.reliesOn(Or(_exportAvatarProblem.is(notEqual(std::string(""))), _exportThiProblem.is(notEqual(std::string("")))));
 
     _exportAvatarProblem = StringOptionValue("export_avatar","","");
     _exportAvatarProblem.description="Export the avatar problems to solve in smtlib syntax.";
@@ -924,24 +950,11 @@ void Options::init()
 
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
-    "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "
-    "there will be w selected based on weight.";
+    "Ratio in which clauses are being selected for activation i.e. A:W means that for every A clauses selected based on age "
+    "there will be W selected based on weight. (At most one of A and W can be zero, which means that that queue won't be used at all.)";
     _lookup.insert(&_ageWeightRatio);
     _ageWeightRatio.tag(OptionTag::SATURATION);
     _ageWeightRatio.onlyUsefulWith2(ProperSaturationAlgorithm());
-
-    _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
-    _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
-    _ageWeightRatioShape.onlyUsefulWith(_ageWeightRatio.is(isNotDefaultRatio()));
-    _lookup.insert(&_ageWeightRatioShape);
-    _ageWeightRatioShape.tag(OptionTag::SATURATION);
-
-    _ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
-    _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
-    _ageWeightRatioShapeFrequency.onlyUsefulWith(_ageWeightRatioShape.is(notEqual(AgeWeightRatioShape::CONSTANT)));
-    _ageWeightRatioShapeFrequency.addHardConstraint(greaterThan(0u));
-    _lookup.insert(&_ageWeightRatioShapeFrequency);
-    _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
     _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
     _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
@@ -1117,6 +1130,13 @@ void Options::init()
     _lookup.insert(&_lrsWeightLimitOnly);
     _lrsWeightLimitOnly.tag(OptionTag::LRS);
 
+    _lrsRetroactiveDeletes = BoolOptionValue("lrs_retroactive_deletes","lrd",false);
+    _lrsRetroactiveDeletes.description = "Not only deleted new clauses that exceed current estimated limits in passive,"
+    " but also visit active and passive and delete clauses that exceed the new limit or would only generate children exceeding the limit.";
+    _lrsRetroactiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _lookup.insert(&_lrsRetroactiveDeletes);
+    _lrsRetroactiveDeletes.tag(OptionTag::LRS);
+
     _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
     "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
@@ -1160,6 +1180,7 @@ void Options::init()
     _theoryInstAndSimp.addProblemConstraint(hasTheories());
     _lookup.insert(&_theoryInstAndSimp);
 
+
     _thiGeneralise = BoolOptionValue("theory_instantiation_generalisation", "thigen", false);
     _thiGeneralise.description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice. "
     "\n"
@@ -1187,18 +1208,21 @@ void Options::init()
 #endif
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
-                                     UnificationWithAbstraction::OFF,
-                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2"});
+                                      UnificationWithAbstraction::AUTO,
+                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
       "use case is in theory reasoning. The possible values are:"
+      "- auto: boils down to off for non-theory problems, and to alasca_main whenever alasca (on by default) kicks in (except under alasca_integer_conversion, when it becomes alasca_main_floor)\n"
       "- off: do not introduce a constraint\n"
       "- interpreted_only: only if s and t have interpreted top symbols\n"
       "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
       "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
       "- all: always apply\n"
       "- ground: only if both s and t are ground\n"
+      "- alasca_one_interp, alasca_can_abstract, alasca_main: strategies used for the real-arithmetic version of alasca. these are described in  the LPAR2023 paper  \"Refining Unification with Abstraction\""
+      "- alasca_main_floor: an extension of the alasca_main strategy to work with mixed integer-real arithmetic. this option is experimental\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
@@ -1209,9 +1233,10 @@ void Options::init()
     _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
-    _useACeval = BoolOptionValue("use_ac_eval","uace",true);
+    _useACeval = BoolOptionValue("use_ac_eval","uace",false);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
     _useACeval.tag(OptionTag::THEORIES);
+    _useACeval.onlyUsefulWith(_alasca.is(equal(false)));
     _lookup.insert(&_useACeval);
 
     _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
@@ -1231,12 +1256,11 @@ void Options::init()
     _lookup.insert(&_cancellation);
     _cancellation.addProblemConstraint(hasTheories());
     _cancellation.tag(OptionTag::THEORIES);
-
-    _highSchool = BoolOptionValue("high_school", "hsm", false);
-    _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
-    _lookup.insert(&_highSchool);
-    _highSchool.addProblemConstraint(hasTheories());
-    _highSchool.tag(OptionTag::THEORIES);
+    _cancellation.addHardConstraint(If(equal(ArithmeticSimplificationMode::CAUTIOUS))
+        .then(And(
+              _termOrdering.is(notEqual(TermOrdering::QKBO))
+            , _termOrdering.is(notEqual(TermOrdering::LAKBO))
+            )));
 
     _pushUnaryMinus = BoolOptionValue(
        "push_unary_minus", "pum",
@@ -1249,6 +1273,78 @@ void Options::init()
     _lookup.insert(&_pushUnaryMinus);
     _pushUnaryMinus.addProblemConstraint(hasTheories());
     _pushUnaryMinus.tag(OptionTag::THEORIES);
+
+    auto addRecommendationConstraint = [](auto& opt, auto constr) {
+      // MS: TODO: implement meaninful soft warnings / reminsders to the effect
+      // -- this option should best be combined with those values of those other options
+      // -- however, note that with alasca on by default but silently disable when runnining on non-arith problems
+      //    the warnings should only appear when alasca really kicks in, i.e.
+      //    only when "env.options->alasca() && prb.hasAlascaArithmetic()"
+    };
+
+    _alasca = BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",true);
+    _alasca.description= "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n";
+    _lookup.insert(&_alasca);
+    _alasca.tag(OptionTag::INFERENCES);
+    addRecommendationConstraint(_alasca, Or(
+           _termOrdering.is(equal(TermOrdering::AUTO_KBO)),
+           _termOrdering.is(equal(TermOrdering::QKBO)),
+           _termOrdering.is(equal(TermOrdering::LAKBO)),
+           _termOrdering.is(equal(TermOrdering::ALL_INCOMPARABLE))
+           ));
+    addRecommendationConstraint(_alasca, _cancellation.is(equal(ArithmeticSimplificationMode::OFF)));
+    addRecommendationConstraint(_alasca, _unificationWithAbstraction.is(Or(
+              equal(UnificationWithAbstraction::ALASCA_CAN_ABSTRACT)
+            , equal(UnificationWithAbstraction::ALASCA_MAIN)
+            , equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)
+            , equal(UnificationWithAbstraction::ALASCA_ONE_INTERP)
+            , equal(UnificationWithAbstraction::AUTO)
+            )));
+
+    _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
+    _viras.description= "Enables the VIRAS quantifier elimination to be used in ALASCA. The VIRAS method is explained in the LPAR2024 paper \"VIRAS: Conflict-Driven Quantifier Elimination for Integer-Real Arithmetic\"\n";
+    _lookup.insert(&_viras);
+    _viras.tag(OptionTag::INFERENCES);
+    _viras.setExperimental();
+    _viras.onlyUsefulWith(_alasca.is(equal(true)));
+
+    _alascaDemodulation  = BoolOptionValue("alasca_demodulation","alasca_demod",false);
+    _alascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
+    _lookup.insert(&_alascaDemodulation);
+    _alascaDemodulation.tag(OptionTag::INFERENCES);
+    _alascaDemodulation.setExperimental();
+    _alascaDemodulation.onlyUsefulWith(_alasca.is(equal(true)));
+
+    _alascaStrongNormalization  = BoolOptionValue("alasca_strong_normalziation","alasca_sn",false);
+    _alascaStrongNormalization.description=
+            "enables stronger normalizations for inequalities: \n"
+            "s >= 0 ==> s > 0 \\/  s == 0\n"
+            "s != 0 ==> s > 0 \\/ -s  > 0\n"
+            "\n";
+    _lookup.insert(&_alascaStrongNormalization);
+    _alascaStrongNormalization.tag(OptionTag::INFERENCES);
+    _alascaStrongNormalization.onlyUsefulWith(_alasca.is(equal(true)));
+
+
+    _alascaIntegerConversion  = BoolOptionValue("alasca_integer_conversion","alascai",false);
+    _alascaIntegerConversion.description=
+            "enables converting integer problems into LIRA problems where there is only the sort of reals by"
+            "replacing integer variables with floor functions and transforming the signature appropriately"
+            "\n";
+    _lookup.insert(&_alascaIntegerConversion);
+    _alascaIntegerConversion.setExperimental();
+    _alascaIntegerConversion.tag(OptionTag::INFERENCES);
+    _alascaIntegerConversion.onlyUsefulWith(_alasca.is(equal(true)));
+    addRecommendationConstraint(_alascaIntegerConversion, _unificationWithAbstraction.is(equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)));
+
+    _alascaAbstraction  = BoolOptionValue("alasca_abstraction","alascaa",false);
+    _alascaAbstraction.description=
+            "Enables the alasca abstraction rule. This is an experimental rule not yet finished."
+            "\n";
+    _lookup.insert(&_alascaAbstraction);
+    _alascaAbstraction.tag(OptionTag::INFERENCES);
+    _alascaAbstraction.setExperimental();
+    _alascaAbstraction.onlyUsefulWith(_alasca.is(equal(true)));
 
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
@@ -1287,7 +1383,7 @@ void Options::init()
 
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
-                                                        {"simple","force","cautious"});
+                                                        {"off","simple","force","cautious"});
     _evaluationMode.description=
     "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
                                  \
@@ -1556,7 +1652,8 @@ void Options::init()
     _condensation.tag(OptionTag::INFERENCES);
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",DemodulationRedundancyCheck::ON,{"off","encompass","on"});
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",
+       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"});
     _demodulationRedundancyCheck.description=
        "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -1564,8 +1661,8 @@ void Options::init()
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
        "where t > t1 and s = t > C (RHS replaced)\n"
-       "With `on`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
+       "With `ordering`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `off`, we skip the checks, save time, but become incomplete.";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
@@ -1741,7 +1838,8 @@ void Options::init()
       "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
     _lookup.insert(&_conditionalRedundancyCheck);
     _conditionalRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _conditionalRedundancyCheck.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)));
+    _conditionalRedundancyCheck.addHardConstraint(If(equal(true)).then(Or(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::AUTO)),
+                                                                          _unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)))));
     _conditionalRedundancyCheck.tag(OptionTag::INFERENCES);
 
     _conditionalRedundancyOrderingConstraints = BoolOptionValue("conditional_redundancy_ordering_constraints","croc",false);
@@ -2034,6 +2132,8 @@ void Options::init()
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
                                                   then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
+    _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
+                                                  then(_termOrdering.is(notEqual(TermOrdering::ALL_INCOMPARABLE))));
 
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
@@ -2151,6 +2251,7 @@ void Options::init()
     _satSolver.tag(OptionTag::SAT);
 
 #if VZ3
+
     _satFallbackForSMT = BoolOptionValue("sat_fallback_for_smt","sffsmt",false);
     _satFallbackForSMT.description="If using z3 run a sat solver alongside to use if the smt"
        " solver returns unknown at any point";
@@ -2214,11 +2315,12 @@ void Options::init()
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
-    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
-                                                                  {"plain","synthesis","off"});
+    _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
+                                                                  {"auto","plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
        " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
-    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(ProperSaturationAlgorithm()));
+    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
+    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
@@ -2236,7 +2338,8 @@ void Options::init()
     _questionAnsweringAvoidThese.tag(OptionTag::OTHER);
 
     _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
-    _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed.";
+    _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed."
+      " Use the non-default value 0 to have vampire query a random_device for always different behaviour.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
@@ -2245,11 +2348,22 @@ void Options::init()
     _lookup.insert(&_activationLimit);
     _activationLimit.tag(OptionTag::SATURATION);
 
-    _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::KBO,
-                                                    {"kbo","lpo"});
-    _termOrdering.description="The term ordering used by Vampire to orient equations and order literals";
+    _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::AUTO_KBO,
+                                                    {"auto_kbo","kbo","qkbo","lakbo","lpo","incomp"});
+    _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
+      "\n"
+      "possible values:\n"
+      "- auto_kbo: boils down to kbo for non-theory problems and to qkbo, whenever alasca (on by default) kicks in\n"
+      "- kbo: Knuth-Bendix Ordering\n"
+      "- qkbo: QKBO ordering as described in the TACAS 2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n"
+      "- lpo: Lexicographical Path Ordering\n"
+      "- lakbo: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
+      ;
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());
     _termOrdering.tag(OptionTag::SATURATION);
+    _termOrdering.addHardConstraint(
+        If(Or(equal(TermOrdering::QKBO), equal(TermOrdering::LAKBO)))
+          .then(_alasca.is(equal(true)))); // <- alasca must be enabled, because the orderings rely on AlascaState to be set
     _lookup.insert(&_termOrdering);
 
     _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
@@ -2360,13 +2474,6 @@ void Options::init()
     //******************************************************************
     //*********************** Vinter???  *******************************
     //******************************************************************
-
-    _colorUnblocking = BoolOptionValue("color_unblocking","",false);
-    _colorUnblocking.description="";
-    _lookup.insert(&_colorUnblocking);
-    _colorUnblocking.setExperimental();
-    _colorUnblocking.tag(OptionTag::OTHER);
-
 
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
                                                           {"new_heur",
@@ -2575,7 +2682,7 @@ std::string Options::includeFileName (const std::string& relativeName)
  * @since 27/11/2003 Manchester, changed using new XML routines and iterator
  *        of options
  */
-void Options::output (ostream& str) const
+void Options::output (std::ostream& str) const
 {
   if(printAllTheoryAxioms()){
     cout << "Sorry, not implemented yet!" << endl;
@@ -2704,7 +2811,7 @@ void Options::output (ostream& str) const
     //str << "======= End of options =======\n";
   }
 
-} // Options::output (ostream& str) const
+} // Options::output (std::ostream& str) const
 
 template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
@@ -3016,7 +3123,9 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
   }
 
   // our local randomizing engine (randomly seeded)
-  std::mt19937 rng((std::random_device())());
+  auto rng = _randomStrategySeed.actualValue == 0
+    ? std::mt19937((std::random_device())())
+    : std::mt19937(_randomStrategySeed.actualValue);
   // map of local variables (fake options)
   DHMap<std::string,std::string> fakes;
 
@@ -3087,7 +3196,10 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
     std::string args = pieces[2];
     pieces.reset();
 
-    if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
+    if (sampler == "~set") {
+      ASS_NEQ(args,"");
+      strategySamplingAssign(optname,args,fakes);
+    } else if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
       StringUtils::splitStr(args.c_str(),',',pieces);
 
       unsigned total = 0;
@@ -3418,6 +3530,7 @@ std::string Options::generateEncodedOptions() const
 
     //things we don't want to output (showHelp etc won't get to here anyway)
     forbidden.insert(&_mode);
+    forbidden.insert(&_intent);
     forbidden.insert(&_testId); // is this old version of decode?
     forbidden.insert(&_include);
     forbidden.insert(&_printProofToFile);
@@ -3457,6 +3570,54 @@ std::string Options::generateEncodedOptions() const
   return res.str();
 }
 
+/**
+ * Some options have auto-values,
+ * which should be resolved away BEFORE preprocessing.
+ *
+ * @since 9/03/2025 Prague
+ */
+void Options::resolveAwayAutoValues0()
+{
+  if (questionAnswering() == Options::QuestionAnsweringMode::AUTO) {
+    setQuestionAnswering(
+        (Parse::TPTP::seenQuestions() && saturationAlgorithm() != Options::SaturationAlgorithm::FINITE_MODEL_BUILDING ) ?
+          Options::QuestionAnsweringMode::PLAIN : Options::QuestionAnsweringMode::OFF);
+  }
+}
+
+/**
+ * Some options have auto-values, which should be resolved away
+ * after preprocessing and before we enter saturation.
+ *
+ * @since 9/03/2025 Prague
+ */
+void Options::resolveAwayAutoValues(const Problem& prb)
+{
+  if (termOrdering() == TermOrdering::AUTO_KBO) {
+    if (alasca() && prb.hasAlascaArithmetic()) {
+      if (prb.hasAlascaMixedArithmetic()) {
+        _termOrdering.actualValue = Options::TermOrdering::QKBO;
+      } else {
+        _termOrdering.actualValue = Options::TermOrdering::LAKBO;
+      }
+    } else {
+      _termOrdering.actualValue = Options::TermOrdering::KBO;
+    }
+  }
+
+  if (unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
+    if (alasca() && prb.hasAlascaArithmetic() &&
+      !conditionalRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constaint
+      if (prb.hasAlascaMixedArithmetic()) {
+        setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
+      } else {
+        setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
+      }
+    } else {
+      setUWA(Shell::Options::UnificationWithAbstraction::OFF);
+    }
+  }
+}
 
 /**
  * True if the options are complete.
@@ -3642,7 +3803,7 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
 }
 
 template<class A>
-std::vector<A> parseCommaSeparatedList(std::string const& str) 
+std::vector<A> parseCommaSeparatedList(std::string const& str)
 {
   std::stringstream stream(str);
   std::vector<A> parsed;
@@ -3813,4 +3974,21 @@ std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
   }
 
   return cutoffs;
+}
+
+Stack<std::string> Options::getSimilarOptionNames(std::string name, bool is_short) const {
+
+  Stack<std::string> similar_names;
+
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){
+    AbstractOptionValue* opt = options.next();
+    std::string opt_name = is_short ? opt->shortName : opt->longName;
+    size_t dif = 2;
+    if(!is_short) dif += name.size()/4;
+    if(name.size()!=0 && StringUtils::distance(name,opt_name) < dif)
+      similar_names.push(opt_name);
+  }
+
+  return similar_names;
 }

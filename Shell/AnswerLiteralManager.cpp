@@ -182,7 +182,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     out = SubstHelper::apply(out, subst);
   }
 
-  return new FormulaUnit(out, FormulaTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL_INJECTION, unit));
+  return new FormulaUnit(out, FormulaClauseTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL_INJECTION, unit));
 }
 
 TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
@@ -368,7 +368,7 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,SList* srts,Formula*
   predSym->markAnswerPredicate();
   // don't need equality proxy for answer literals
   predSym->markSkipCongruence();
-  return Literal::create(pred, vcnt, true, false, litArgs.begin());
+  return Literal::create(pred, vcnt, true, litArgs.begin());
 }
 
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
@@ -388,7 +388,7 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
   for(unsigned i=0; i<arity; i++) {
     args.push(TermList(i, false));
   }
-  Literal* lit = Literal::create(pred, arity, true, false, args.begin());
+  Literal* lit = Literal::create(pred, arity, true, args.begin());
   res = Clause::fromIterator(getSingletonIterator(lit),NonspecificInference0(UnitInputType::AXIOM,InferenceRule::ANSWER_LITERAL_RESOLVER));
 
   _resolverClauses.insert(pred, res);
@@ -615,7 +615,7 @@ Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* t
       litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
     }
   }
-  return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), /*commutative=*/false, litArgs.begin());
+  return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), litArgs.begin());
 }
 
 Formula* SynthesisALManager::getConditionFromClause(Clause* cl) {
@@ -759,7 +759,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
         if (env.signature->isEqualityPredicate(pred)) {
           newCond = Literal::createEquality(/*polarity=*/true, args[0], args[1], sort);
         } else {
-          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, /*commutative=*/false, args.begin());
+          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, args.begin());
         }
         // Build the whole ITE term
         return TermList(Term::createITE(new AtomicFormula(newCond), transform(*(t->nthArgument(1))), transform(*(t->nthArgument(2))), sort));

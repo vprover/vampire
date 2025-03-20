@@ -20,6 +20,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -105,7 +106,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
-      FormulaTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
+      FormulaClauseTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {
@@ -1129,7 +1130,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     }
 
     predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
-    return Literal::create(pred, arity, true, false, allVars.begin());
+    return Literal::create(pred, arity, true, allVars.begin());
   } else {
     unsigned fun = env.signature->addNameFunction(typeVars.size());
     TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());

@@ -341,7 +341,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) { 
 	    return false;
 	  }
-	  RationalConstantType resNum(arg,1);
+	  RationalConstantType resNum(arg,IntegerConstantType(1));
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -351,7 +351,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  RealConstantType resNum(RationalConstantType(arg,1));
+	  RealConstantType resNum(RationalConstantType(arg,IntegerConstantType(1)));
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -361,7 +361,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  IntegerConstantType resNum = IntegerConstantType::floor(arg);
+	  IntegerConstantType resNum = arg.floor();
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -381,7 +381,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  IntegerConstantType resNum = IntegerConstantType::floor(RationalConstantType(arg));
+	  auto resNum = arg.floor();
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -401,7 +401,7 @@ public:
 	ASSERTION_VIOLATION;
       }
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
       return false;
     }
@@ -423,9 +423,9 @@ public:
 
   TypedEvaluator() {}
 
-  bool isZero(T arg) const { return number::zeroC == arg; }
+  bool isZero(T arg) const { return T(0) == arg; }
   TermList getZero() const {return number::zero(); }
-  bool isOne(T arg) const { return number::oneC == arg; }
+  bool isOne(T arg) const { return T(1) == arg; }
   bool isMinusOne(T arg) const { return typename number::ConstantType(-1) == arg; }
   TermList invert(TermList t) const { return number::minus(t); }
   bool isAddition(Interpretation interp) const { return interp == number::addI; }
@@ -534,9 +534,8 @@ public:
       res = TermList(theory->representConstant(resNum));
       return true;
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
-       DEBUG( "ArithmeticException" );
       return false;
     }
   }
@@ -571,7 +570,7 @@ public:
       }
       return PredEvalResult::trivial(res);
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
       return PredEvalResult::nop();
     }
@@ -687,14 +686,14 @@ protected:
       res = -arg;
       return true;
     case Theory::INT_ABS:
-      if (arg < 0) {
+      if (arg < IntegerConstantType(0)) {
         res = -arg;
       } else {
         res = arg;
       }
       return true;
     case Theory::INT_SUCCESSOR:
-      res = arg+1;
+      res = arg+ IntegerConstantType(1);
       return true;
     case Theory::INT_FLOOR:
     case Theory::INT_CEILING:
@@ -722,22 +721,28 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::INT_QUOTIENT_E:
+      if (arg2 == 0) return false;
       res = arg1.quotientE(arg2); // should be equivalent to arg1/arg2
       return true;
     case Theory::INT_QUOTIENT_T:
+      if (arg2 == 0) return false;
       res = arg1.quotientT(arg2);
       return true;
     case Theory::INT_QUOTIENT_F:
+      if (arg2 == 0) return false;
       res = arg1.quotientF(arg2);
       return true;
     // The remainder is left - (quotient * right)
     case Theory::INT_REMAINDER_E:
+      if (arg2 == 0) return false;
       res = arg1.remainderE(arg2);
       return true;
     case Theory::INT_REMAINDER_T:
+      if (arg2 == 0) return false;
       res = arg1 - (arg1.quotientT(arg2)*arg2);
       return true;
     case Theory::INT_REMAINDER_F:
+      if (arg2 == 0) return false;
       res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
@@ -788,13 +793,13 @@ protected:
       res = -arg;
       return true;
     case Theory::RAT_FLOOR:
-      res = arg.floor();
+      res = RationalConstantType(arg.floor());
       return true;
     case Theory::RAT_CEILING:
-      res = arg.ceiling();
+      res = RationalConstantType(arg.ceiling());
       return true;
     case Theory::RAT_TRUNCATE:
-      res = arg.truncate();
+      res = RationalConstantType(arg.truncate());
       return true;
     default:
       return false;
@@ -815,7 +820,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::RAT_QUOTIENT:
-      if (arg2 == RationalConstantType(0)) return false;
+      if (arg2 == 0) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -877,10 +882,10 @@ protected:
       res = -arg;
       return true;
     case Theory::REAL_FLOOR:
-      res = arg.floor();
+      res = RealConstantType(arg.floor());
       return true;
     case Theory::REAL_CEILING:
-      res = arg.ceiling();
+      res = RealConstantType(arg.ceiling());
       return true;
     case Theory::REAL_TRUNCATE:
       res = arg.truncate();
@@ -904,7 +909,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::REAL_QUOTIENT:
-      if (arg2 == RealConstantType(0)) return false;
+      if (arg2 == 0) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -994,17 +999,14 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
 
-  if(env.options->useACeval()){
-
-  // Special AC evaluators are added to be tried first for Plus and Multiply
-
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>()); 
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
-
+  if(env.options->useACeval() && !env.options->alasca()){
+    // Special AC evaluators are added to be tried first for Plus and Multiply
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
   }
 
   _funEvaluators.ensure(0);

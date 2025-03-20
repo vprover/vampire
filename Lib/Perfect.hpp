@@ -87,6 +87,9 @@ public:
   IMPL_COMPARISONS_FROM_COMPARE(Perfect);
   IMPL_EQ_FROM_COMPARE(Perfect);
 
+  unsigned defaultHash () const { return DfltComparison::template defaultHash<DefaultHash >(*this); }
+  unsigned defaultHash2() const { return DfltComparison::template defaultHash<DefaultHash2>(*this); }
+
 }; // class Perfect
 
 
@@ -106,6 +109,10 @@ struct PerfectPtrComparison
   template<class T, class Cmp>
   static size_t hash(Lib::Perfect<T, Cmp> const& self) 
   { return std::hash<size_t>{}((size_t)self._ptr); }
+
+  template<class DH, class T, class Cmp> 
+  static size_t defaultHash(Lib::Perfect<T, Cmp> const& self) 
+  { return DH::hash((size_t)self._ptr); }
 };
 
 
@@ -123,6 +130,10 @@ struct PerfectIdComparison
   template<class T, class Cmp>
   static size_t hash(Lib::Perfect<T, Cmp> const& self) 
   { return std::hash<unsigned>{}(self._id); }
+
+  template<class DH, class T, class Cmp> 
+  static size_t defaultHash(Lib::Perfect<T, Cmp> const& self) 
+  { return DH::hash(self._id); }
 };
 
 
@@ -130,6 +141,23 @@ struct PerfectIdComparison
 template<class T, class Cmp = PerfectIdComparison> 
 Perfect<T, Cmp> perfect(T t) 
 { return Perfect<T, Cmp>(std::move(t)); } } // namespace Lib
+
+template<class A, class B, class Cmp> 
+auto operator*(A const& l, Perfect<B, Cmp> const& r) 
+{ return perfect(l * (*r)); }
+
+template<class A, class B> 
+auto operator*(Perfect<A> const& l, B const& r) 
+{ return perfect((*l) * r); }
+
+template<class A, class B> 
+auto operator*(Perfect<A> const& l, Perfect<B> const& r) 
+{ return perfect((*l) * (*r)); }
+
+template<class A> 
+auto operator-(Perfect<A> const& x) 
+{ return perfect(-(*x)); }
+
 
 template<class T, class Cmp> struct std::hash<Lib::Perfect<T, Cmp>> 
 {

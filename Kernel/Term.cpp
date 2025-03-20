@@ -15,9 +15,10 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
@@ -108,9 +109,6 @@ void Term::destroyNonShared()
   }
 }
 
-bool TermList::ground() const
-{ return isTerm() && term()->ground(); }
-
 /**
  * Return true if the term does not contain any unshared proper term.
  *
@@ -121,6 +119,9 @@ bool TermList::isSafe() const
 {
   return isVar() || term()->shared();
 }
+
+bool TermList::ground() const 
+{ return isTerm() && term()->ground(); }
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -141,14 +142,14 @@ bool TermList::sameTop(TermList ss,TermList tt)
 void TermList::Top::output(std::ostream& out) const
 {
   if (this->var()) {
-    out << TermList::var(*this->var());
+    out << TermList::var(this->var()->number, this->var()->special);
   } else {
     ASS(this->functor())
     auto f = *this->functor();
     switch (f.kind) {
-      case TermKind::LITERAL: out << *env.signature->getPredicate(f.functor);
-      case TermKind::TERM:    out << *env.signature->getFunction(f.functor);
-      case TermKind::SORT:    out << *env.signature->getTypeCon(f.functor);
+      case TermKind::LITERAL: out << *env.signature->getPredicate(f.functor); break;
+      case TermKind::TERM:    out << *env.signature->getFunction(f.functor); break;
+      case TermKind::SORT:    out << *env.signature->getTypeCon(f.functor); break;
     }
   }
 }
@@ -678,13 +679,79 @@ std::string Term::toString(bool topLevel) const
     printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
-  std::string s = headToString();
+#if NICE_THEORY_OUTPUT
+  auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
+    using NumTraits = decltype(numTraits);
+    auto maybeParMul = [&](auto t) { 
+        auto needsPar = t.isTerm() && NumTraits::isAdd(t.term()->functor());
+        return t.toString(!needsPar);
+      };
+    auto uminus = [&]()  {
+      std::stringstream out;
+      out << "-" << maybeParMul(termArg(0));
+      return Option<std::string>(out.str());
+    };
+    auto binary = [&](auto sym)  {
+      auto needsPar = !topLevel;
+      auto maybePar = [&](auto t) { 
+        return t.toString(
+            t.isTerm() && (
+              t.term()->functor() == _functor 
+              || (NumTraits::isAdd(_functor) && NumTraits::isMul(t.term()->functor()))
+              )
+            );
+      };
+      std::stringstream out;
+      out << (needsPar ? "(" : "");
+      out << maybePar(termArg(0)) << sym << maybePar(termArg(1));
+      out << (needsPar ? ")" : "");
+      return Option<std::string>(out.str());
+    };
+    if (isLiteral()) {
+      if (NumTraits::isGreater(_functor)) {
+        return binary(">");
+      } else if (NumTraits::isGeq(_functor)) {
+        return binary(">=");
+      }
+      /* nothing */
+    } else if (isSort()) {
+      /* nothing */
+    } else {
+      if (NumTraits::isAdd(_functor)) {
+        return binary(" + ");
+      } else if (NumTraits::isMul(_functor)) {
+        return binary(" ");
+      } else if (auto c = NumTraits::tryLinMul(_functor)) {
+        return *c == -1 ? some(Output::toString("-", maybeParMul(termArg(0))))
+                        : some(Output::toString(*c, " ", maybeParMul(termArg(0))));
+      } else if (NumTraits::isFloor(_functor)) {
+        return some(Output::toString("⌊", termArg(0), "⌋"));
+      } else if (NumTraits::isMinus(_functor)) {
+        return uminus();
+      }
+    }
+    /* this means we have an uninterpteted term which will be formatted as usual */
+    return Option<std::string>();
+  });
 
-  if (_arity && printArgs) {
-    s += args()->asArgsToString(); // will also print the ')'
+  if (theoryTerm.isSome()) {
+    return theoryTerm.unwrap();
   }
-  return s;
+#endif // NICE_THEORY_OUTPUT
+
+  std::stringstream out;
+  out << headToString();
+  
+  if (_arity && printArgs) {
+    out << Output::interleaved(',', anyArgIter(this)) << ")";
+  }
+  return out.str();
 } // Term::toString
+
+TermList Literal::eqArgSort() const {
+  ASS(isEquality())
+  return SortHelper::getEqualityArgumentSort(this);
+}
 
 /**
  * Return the result of conversion of a literal into a std::string.
@@ -713,6 +780,29 @@ std::string Literal::toString() const
 
     return res;
   }
+
+#if NICE_THEORY_OUTPUT
+  auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
+    auto binary = [&](auto sym)  {
+    std::stringstream out;
+      if (!polarity()) out << "~(" ;
+      out << *nthArgument(0) << " " << sym << " " << *nthArgument(1) ;
+      if (!polarity()) out << ")" ;
+      return Option<std::string>(out.str());
+    };
+    using NumTraits = decltype(numTraits);
+    if (_functor == NumTraits::greaterF()) {
+      return binary(">");
+    } else if (_functor == NumTraits::geqF()) {
+      return binary(">=");
+    }
+    return Option<std::string>();
+  });
+  if (theoryTerm.isSome()) {
+    return theoryTerm.unwrap();
+  }
+#endif // NICE_THEORY_OUTPUT
+
 
   Stack<const TermList*> stack(64);
   std::string s = polarity() ? "" : "~";
@@ -1370,19 +1460,18 @@ bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
  *  structure if all arguments are shared.
  */
 template<class GetArg>
-Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg getArg, Option<TermList> twoVarEqSort)
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, GetArg getArg, Option<TermList> twoVarEqSort)
 {
   ASS(!twoVarEqSort || (predicate == 0 && arity == 2 && getArg(0).isVar() && getArg(1).isVar()))
-  ASS(predicate != 0 || commutative)
-  ASS(!commutative || arity == 2)
+  ASS(predicate != 0 || arity == 2)
   ASS_EQ(env.signature->predicateArity(predicate), arity);
 
   bool share = range(0, arity).all([&](auto i) { return argSafeToShare(getArg(i)); });
-  bool swapArgs = share && commutative && Indexing::TermSharing::argNormGt(getArg(0), getArg(1));
+  bool swapArgs = share && predicate == 0 && Indexing::TermSharing::argNormGt(getArg(0), getArg(1));
   auto normArg = [&](auto i) { return swapArgs ? getArg(1 - i) : getArg(i); };
 
   auto allocLiteral = [&]() {
-    Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
+    Literal* l = new(arity) Literal(predicate, arity, polarity);
     for (auto i : range(0, arity)) {
       *l->nthArgument(i) = normArg(i);
     }
@@ -1397,8 +1486,8 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
     bool created = false;
     auto shared =
       env.sharing->_literals.rawFindOrInsert(allocLiteral,
-        Literal::literalHash(predicate, polarity, normArg, arity, twoVarEqSort, commutative),
-        [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, normArg, arity, twoVarEqSort, commutative); },
+        Literal::literalHash(predicate, polarity, normArg, arity, twoVarEqSort),
+        [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, normArg, arity, twoVarEqSort); },
         created);
 
     if (created) {
@@ -1407,15 +1496,15 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
       else
         env.sharing->computeAndSetSharedLiteralData(shared);
     }
-    ASS(!commutative || rightArgOrder(*shared->nthArgument(0), *shared->nthArgument(1)))
+    ASS(predicate != 0 || rightArgOrder(*shared->nthArgument(0), *shared->nthArgument(1)))
     return shared;
   } else {
     return allocLiteral();
   }
 }
 
-Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args)
-{ return create(predicate, arity, polarity, commutative, [&](auto i) { return args[i]; }); }
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, TermList* args)
+{ return create(predicate, arity, polarity, [&](auto i) { return args[i]; }); }
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  its arguments, and set its polarity to @b polarity. Insert it
@@ -1428,7 +1517,7 @@ Literal* Literal::create(Literal* l,bool polarity)
 
   return l->isEquality()
     ? Literal::createEquality(polarity, *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l))
-    : Literal::create(l->functor(), l->arity(), polarity, l->commutative(), [&](auto i) { return *l->nthArgument(i); });
+    : Literal::create(l->functor(), l->arity(), polarity, [&](auto i) { return *l->nthArgument(i); });
 } // Literal::create
 
 /** Create a new literal, copy from @b l its predicate symbol and
@@ -1440,7 +1529,7 @@ Literal* Literal::create(Literal* l,TermList* args)
 {
   return l->isEquality()
     ? Literal::createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l))
-    : Literal::create(l->functor(), l->arity(), l->polarity(), l->commutative(), [&](auto i) { return args[i]; });
+    : Literal::create(l->functor(), l->arity(), l->polarity(), [&](auto i) { return args[i]; });
 } // Literal::create
 
 
@@ -1478,11 +1567,11 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
 #endif // VDEBUG
 
    auto getArg = [&](auto i) { ASS_L(i, 2); return i == 0 ? arg1 : arg2; };
-   return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, /* commutative */ true, getArg, someIf(arg1.isVar() && arg2.isVar(), [&](){ return sort; }));
+   return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, getArg, someIf(arg1.isVar() && arg2.isVar(), [&](){ return sort; }));
 }
 
-Literal* Literal::create(unsigned predicate, bool polarity, std::initializer_list<TermList> args, bool commutative)
-{ return Literal::create(predicate, args.size(), polarity, commutative, [&](auto i) { return args.begin()[i]; }); }
+Literal* Literal::create(unsigned predicate, bool polarity, std::initializer_list<TermList> args)
+{ return Literal::create(predicate, args.size(), polarity, [&](auto i) { return args.begin()[i]; }); }
 
 Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
 { return Literal::create(predicate, polarity, { arg }); }
@@ -1586,7 +1675,6 @@ std::string Term::headerToString() const
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
     + ", polarity: " + Int::toString(_args[0]._polarity())
-    + ", commutative: " + Int::toString(_args[0]._commutative())
     + ", shared: " + Int::toString(_args[0]._shared())
     + ", literal: " + Int::toString(_args[0]._literal())
     + ", order: " + Int::toString(_args[0]._order())
@@ -1610,7 +1698,7 @@ void TermList::assertValid() const
 
 #endif
 
-std::ostream& Kernel::operator<<(ostream& out, TermList const& tl)
+std::ostream& Kernel::operator<<(std::ostream& out, TermList const& tl)
 {
   if (tl.isEmpty()) {
     return out<<"<empty TermList>";
@@ -1621,11 +1709,11 @@ std::ostream& Kernel::operator<<(ostream& out, TermList const& tl)
   return out << *tl.term();
 }
 
-std::ostream& Kernel::operator<<(ostream& out, const Term& t)
+std::ostream& Kernel::operator<<(std::ostream& out, const Term& t)
 {
   return out<<t.toString();
 }
-std::ostream& Kernel::operator<<(ostream& out, const Literal& l)
+std::ostream& Kernel::operator<<(std::ostream& out, const Literal& l)
 {
   return out<<l.toString();
 }
@@ -1645,7 +1733,8 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   } else {
     ASS(lhs.isVar())
     ASS(rhs.isVar())
-    return lhs.var() < rhs.var();
+    return std::make_tuple(lhs.var(), lhs.isSpecialVar()) 
+         < std::make_tuple(rhs.var(), rhs.isSpecialVar());
   }
 }
 

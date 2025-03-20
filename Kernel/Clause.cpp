@@ -20,7 +20,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
@@ -39,6 +39,7 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "SortHelper.hpp"
 
 #include <cmath>
 
@@ -91,34 +92,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     (*this)[i] = lits[i];
   }
 
-#if VAMPIRE_CLAUSE_TRACING
-  // TODO make unsigned
-  if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
-    traverseParentsPost(
-        [&](unsigned depth, Unit* unit) {
-          std::cout << "backward trace " <<  number() << ": " << repeatOutput("| ", depth) << unit->toString() << std::endl;
-      });
-  }
-
-  // forward tracing
-  // TODO make unsigned
-  static int traceFwd = env.options->traceForward();
-  if (traceFwd != -1) {
-
-    bool doTrace = false;
-    auto infit = inference().iterator();
-    while (inference().hasNext(infit)) {
-      if (inference().next(infit)->number() == unsigned(traceFwd)) {
-        doTrace = true;
-        break;
-      }
-    }
-    if (doTrace) {
-      std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
-    }
-  }
-
-#endif // VAMPIRE_CLAUSE_TRACING
+  doUnitTracing();
 }
 
 /**
@@ -219,8 +193,8 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    if ((env.options->proofExtra()==Options::ProofExtra::FULL) && env.proofExtra) {
-      env.proofExtra->remove(cl);
+    if (env.options->proofExtra() == Options::ProofExtra::FULL) {
+      env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();
     while (cl->_inference.hasNext(it)) {
@@ -261,7 +235,14 @@ void Clause::setStore(Store s)
     selected=this;
   }
 #endif
+#if VAMPIRE_CLAUSE_TRACING
+  auto traceForward = env.options->traceForward();
+  if (number() == traceForward && _store != s) {
+    std::cout << number() << ".setStore(" << s << ")" << std::endl;
+  }
+#endif // VAMPIRE_CLAUSE_TRACING
   _store = s;
+
   destroyIfUnnecessary();
 }
 
@@ -303,7 +284,7 @@ bool Clause::isHorn()
 /**
  * Return iterator over clause variables
  */
-VirtualIterator<unsigned> Clause::getVariableIterator()
+VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
   return pvi( getUniquePersistentIterator(
       getMappingIterator(
@@ -366,14 +347,49 @@ std::string Clause::toNiceString() const
   return result;
 }
 
+std::ostream& operator<<(std::ostream& out, Clause const& self)
+{ 
+  if (self.size() == 0) {
+    return out << "$false";
+  } else {
+    out << *self[0];
+    for (unsigned i = 1; i < self.size(); i++){
+      out << " | " << *self[i];
+    }
+    if (self.splits() && !self.splits()->isEmpty()) {
+      out << "{" << *self.splits() << "}";
+    }
+  }
+  return out;
+}
+
 /**
  * Convert the clause to the std::string representation
  * Includes splitting, age, weight, selected and inference
  */
 std::string Clause::toString() const
 {
+  std::string quantifier = "";
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
+    DHMap<unsigned,TermList> varSortMap;
+    SortHelper::collectVariableSorts(const_cast<Clause*>(this),varSortMap);
+    auto vars = Stack<unsigned>::fromIterator(varSortMap.domain());
+    vars.sort();
+    unsigned numVars = vars.size();
+    if (numVars) {
+      quantifier += "![";
+      for (auto var : vars) {
+        quantifier += TermList(var,false).toString() + ":" + varSortMap.get(var).toString();
+        if (--numVars) {
+          quantifier += ", ";
+        }
+      }
+      quantifier += "]: ";
+    }
+  }
+
   // print id and literals of clause
-  std::string result = Int::toString(_number) + ". " + literalsOnlyToString();
+  std::string result = Int::toString(_number) + ". "+ quantifier + literalsOnlyToString();
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
@@ -383,14 +399,14 @@ std::string Clause::toString() const
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
-  if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
     result += std::string(" {");
-      
+
     result += std::string("a:") + Int::toString(age());
     unsigned weight = (_weight ? _weight : computeWeight());
     result += std::string(",w:") + Int::toString(weight);
-    
+
     unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
     if(weightForClauseSelection!=weight){
       result += std::string(",wCS:") + Int::toString(weightForClauseSelection);
@@ -484,7 +500,7 @@ unsigned Clause::computeWeight() const
 {
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    ASS(_literals[i]->shared());
+    ASS_REP(_literals[i]->shared(), *_literals[i]);
     result += _literals[i]->weight();
   }
 
@@ -525,9 +541,13 @@ unsigned Clause::getNumeralWeight() const {
         continue;
       }
       IntegerConstantType intVal;
+      auto intWeight = [](IntegerConstantType const& i) {
+        return (i.abs().log2() - IntegerConstantType(1)).cvt<int>()
+          .orElse([&]() { return std::numeric_limits<int>::max(); });
+      };
 
       if (theory->tryInterpretConstant(t, intVal)) {
-        int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
+        int w = intWeight(intVal);
         if (w > 0) {
           res += w;
         }
@@ -546,8 +566,8 @@ unsigned Clause::getNumeralWeight() const {
       if (!haveRat) {
         continue;
       }
-      int wN = BitUtils::log2(Int::safeAbs(ratVal.numerator().toInner())) - 1;
-      int wD = BitUtils::log2(Int::safeAbs(ratVal.denominator().toInner())) - 1;
+      int wN = intWeight(ratVal.numerator());
+      int wD = intWeight(ratVal.denominator());
       int v = wN + wD;
       if (v > 0) {
         res += v;
@@ -746,18 +766,6 @@ bool Clause::contains(Literal* lit)
     }
   }
   return false;
-}
-
-std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
-{
-  switch (store) {
-    case Clause::PASSIVE:     return out << "PASSIVE";
-    case Clause::ACTIVE:      return out << "ACTIVE";
-    case Clause::UNPROCESSED: return out << "UNPROCESSED";
-    case Clause::NONE:        return out << "NONE";
-    case Clause::SELECTED:    return out << "SELECTED";
-  }
-  ASSERTION_VIOLATION;
 }
 
 Literal* Clause::getAnswerLiteral() {

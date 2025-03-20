@@ -59,7 +59,39 @@ Unit::Unit(Kind kind, Inference inf)
     _inheritedColor(COLOR_INVALID),
     _inference(std::move(inf))
 {
+
 } // Unit::Unit
+  //
+
+void Unit::doUnitTracing() {
+#if VAMPIRE_CLAUSE_TRACING
+  // TODO make unsigned
+  if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
+    traverseParentsPost(
+        [&](unsigned depth, Unit* unit) {
+          std::cout << "backward trace " <<  number() << ": " << Output::repeat("| ", depth) << unit->toString() << std::endl;
+      });
+  }
+
+  // forward tracing
+  // TODO make unsigned
+  static int traceFwd = env.options->traceForward();
+  if (traceFwd != -1) {
+
+    bool doTrace = false;
+    auto infit = inference().iterator();
+    while (inference().hasNext(infit)) {
+      if (inference().next(infit)->number() == unsigned(traceFwd)) {
+        doTrace = true;
+        break;
+      }
+    }
+    if (doTrace) {
+      std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
+    }
+  }
+#endif // VAMPIRE_CLAUSE_TRACING
+}
 
 void Unit::incRefCnt()
 {
@@ -166,10 +198,15 @@ std::string Unit::inferenceAsString() const
     first = false;
     result += Int::toString(parent->number());
   }
-  // print Extra
-  std::string extra;
-  if (env.proofExtra && env.proofExtra->find(this,extra) && extra != "") {
-    result += ", " + extra;
+
+  // print extra if present
+  if(env.options->proofExtra() == Options::ProofExtra::FULL) {
+    auto *extra = env.proofExtra.find(this);
+    if(extra) {
+      if(!first)
+        result += ',';
+      result += extra->toString();
+    }
   }
 
   return result + ']';
@@ -295,7 +332,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
   return seenInputInference;
 }
 
-std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
+std::ostream& Kernel::operator<<(std::ostream& out, const Unit& u)
 {
   return out << u.toString();
 }

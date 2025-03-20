@@ -105,7 +105,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
   while(ait.hasNext()) {
     //handle multiple matches in equality!
     Literal* alit=ait.next();
-    if(alit->commutative()) {
+    if(alit->isEquality()) {
       //we must try both possibilities
       if(MatchingUtils::haveVariantArgs(baseLit,alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
@@ -339,7 +339,7 @@ MatchingData* getMatchingData(Literal* const * baseLits0, unsigned baseLen, Clau
     LiteralList::Iterator ait(altsArr[i]);
     while(ait.hasNext()) {
       currAltCnt++;
-      if(ait.next()->commutative()) {
+      if(ait.next()->isEquality()) {
 	currAltCnt++;
       }
     }

@@ -55,6 +55,7 @@ class Signature;
 
 class Term;
 class TermList;
+typedef TermList SortId;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
@@ -99,15 +100,13 @@ class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
-class Matcher;
-typedef VirtualIterator<Matcher*> MatchIterator;
-
 class LiteralSelector;
 
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
 struct OrderingComparator;
 typedef std::unique_ptr<OrderingComparator> OrderingComparatorUP;
+class PartialOrdering;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
@@ -175,6 +174,7 @@ namespace SAT
 using namespace Lib;
 
 class SATClause;
+class Z3Interfacing;
 class SATLiteral;
 class SATInference;
 class SATSolver;
@@ -183,6 +183,7 @@ typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
 typedef Stack<SATClause*> SATClauseStack;
 typedef Stack<SATLiteral> SATLiteralStack;
+
 }
 
 namespace Shell

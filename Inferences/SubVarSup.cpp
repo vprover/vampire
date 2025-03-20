@@ -22,7 +22,6 @@
 #include "Lib/DHSet.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
@@ -259,12 +258,6 @@ Clause* SubVarSup::performSubVarSup(
   //check we don't create an equational tautology (this happens during self-SubVarSup)
   if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;
-  }
-
-  // If proof extra is on let's compute the positions we have performed
-  // SubVarSup on 
-  if(env.options->proofExtra()==Options::ProofExtra::FULL){
-    //TODO update for proof extra
   }
 
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();

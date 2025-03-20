@@ -29,16 +29,19 @@ namespace Simplification {
 class SimplificationTester
 {
 public:
-  virtual Kernel::Clause* simplify(Kernel::Clause*) const = 0;
+  virtual Kernel::Clause* simplify(Kernel::Clause*) = 0;
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const 
   { return TestUtils::eqModAC(lhs, rhs); }
 };
 
+class Redundant { };
+
+// TODO use builder pattern macros from GenerationTester here
 class Success
 {
   Kernel::Clause* _input;
-  Option<ClausePattern> _expected;
+  Option<Coproduct<ClausePattern, Redundant>> _expected;
 
 public:
   Success() : _input(nullptr) {}
@@ -49,30 +52,47 @@ public:
     return *this;
   }
 
-  Success expected(ClausePattern x)
+  Success expected(Redundant x)
   {
-    _expected = Option<ClausePattern>(x); 
+    _expected = some(Coproduct<ClausePattern, Redundant>(x)); 
     return *this;
   }
 
-  void run(const SimplificationTester& simpl) {
+  Success expected(ClausePattern x)
+  {
+    _expected = some(Coproduct<ClausePattern, Redundant>(x)); 
+    return *this;
+  }
+
+  void run(SimplificationTester& simpl) {
     auto res = simpl.simplify(_input);
 
-    if (!res) {
-      std::cout  << std::endl;
-      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
-      std::cout << "[       is ]: NULL (indicates the clause is a tautology)" << std::endl;
-      std::cout << "[ expected ]: " << pretty(_expected) << std::endl;
-      exit(-1);
+    return _expected->match(
+        [&](ClausePattern& expected) {
+          if (!res) {
+            std::cout  << std::endl;
+            std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+            std::cout << "[       is ]: NULL (indicates the clause is a tautology)" << std::endl;
+            std::cout << "[ expected ]: " << pretty(expected) << std::endl;
+            exit(-1);
 
-    } else if (!_expected.unwrap().matches(simpl, res)) {
-      std::cout  << std::endl;
-      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
-      std::cout << "[       is ]: " << pretty(*res) << std::endl;
-      std::cout << "[ expected ]: " << pretty(_expected) << std::endl;
-      exit(-1);
-
-    }
+          } else if (!expected.matches(simpl, res)) {
+            std::cout  << std::endl;
+            std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+            std::cout << "[       is ]: " << pretty(*res) << std::endl;
+            std::cout << "[ expected ]: " << pretty(expected) << std::endl;
+            exit(-1);
+          }
+        },        
+        [&](Redundant&) {
+          if (res) {
+            std::cout  << std::endl;
+            std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+            std::cout << "[       is ]: " << pretty(*res) << std::endl;
+            std::cout << "[ expected ]: redundant" << std::endl;
+            exit(-1);
+          }
+        });
   }
 };
 
@@ -90,7 +110,7 @@ public:
   }
 
 
-  void run(const SimplificationTester& simpl) {
+  void run(SimplificationTester& simpl) {
     auto res = simpl.simplify(_input);
     if (res != _input ) {
       std::cout  << std::endl;
