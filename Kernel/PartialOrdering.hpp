@@ -14,6 +14,7 @@
 #ifndef __PartialOrdering__
 #define __PartialOrdering__
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -24,7 +25,7 @@ namespace Kernel {
 /** This corresponds to the values we can handle between two elements.
  *  Note that incomparability is also possible, namely ≱ (NGEQ),
  *  ≰ (NLEQ) and their conjunction (INCOMPARABLE). */
-enum class PoComp : uint8_t {
+enum class PoComp : std::uint8_t {
   UNKNOWN,
   GREATER,
   EQUAL,

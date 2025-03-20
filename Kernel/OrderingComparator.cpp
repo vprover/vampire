@@ -624,7 +624,7 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranchUnsafe(Ordering::
       // no distinction between less and incomparable
       return ngeBranch;
   }
-  ASSERTION_VIOLATION;
+  ASSERTION_VIOLATION_REP(r);
 }
 
 // Polynomial

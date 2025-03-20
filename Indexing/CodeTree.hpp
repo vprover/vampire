@@ -557,7 +557,6 @@ public:
   unsigned _maxVarCnt;
 
   CodeBlock* _entryPoint;
-
 };
 
 }

@@ -523,15 +523,7 @@ public:
       {
       public:
         inline static Comparison compare(TermList::Top& l, Node* r)
-        { 
-          if(l.var()) {
-            return r->term().isVar() ? Int::compare(*l.var(), r->term().var())
-                                     : LESS;
-          } else {
-            return r->term().isVar() ? GREATER
-                                     : Int::compare(l.functor()->functor, r->term().term()->functor());
-          }
-        }
+        { return l.compare(r->term().top()); }
       };
       typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
       NodeSkipList _nodes;
@@ -1529,6 +1521,7 @@ public:
         bool doFinalLeafCheck()
         { return !_fixedPointIteration || unifier()->fixedPointIteration(); }
 
+        // TODO make normInternal a type param
         template<class LD>
         static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, AbstractingUnifier& unif, unsigned normInternalBank)
         {

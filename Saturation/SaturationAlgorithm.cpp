@@ -11,29 +11,21 @@
  * @file SaturationAlgorithm.cpp
  * Implementing SaturationAlgorithm class.
  */
+
+#include "Debug/Assertion.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/System.hpp"
 
-#include "Indexing/LiteralIndexingStructure.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/InferenceStore.hpp"
-#include "Kernel/KBO.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/MLVariant.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Inferences/InterpretedEvaluation.hpp"
@@ -41,6 +33,24 @@
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
+#include "Inferences/ALASCA/VIRAS.hpp"
+#include "Inferences/ALASCA/FourierMotzkin.hpp"
+#include "Inferences/ALASCA/IntegerFourierMotzkin.hpp"
+#include "Inferences/ALASCA/FloorFourierMotzkin.hpp"
+#include "Inferences/ALASCA/Abstractions.hpp"
+#include "Inferences/ALASCA/Normalization.hpp"
+#include "Inferences/ALASCA/TermFactoring.hpp"
+#include "Inferences/ALASCA/InequalityPredicateNormalization.hpp"
+#include "Inferences/ALASCA/EqFactoring.hpp"
+#include "Inferences/ALASCA/InequalityFactoring.hpp"
+#include "Inferences/ALASCA/Superposition.hpp"
+#include "Inferences/ALASCA/BinaryResolution.hpp"
+#include "Inferences/ALASCA/Coherence.hpp"
+#include "Inferences/ALASCA/FloorBounds.hpp"
+#include "Inferences/ALASCA/VariableElimination.hpp"
+#include "Inferences/ALASCA/FwdDemodulation.hpp"
+#include "Inferences/ALASCA/BwdDemodulation.hpp"
+#include "Inferences/ALASCA/TautologyDeletion.hpp"
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
@@ -96,7 +106,7 @@
 #include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-#include "Shell/UIHelper.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Shell/Shuffling.hpp"
 
 #include "Splitter.hpp"
@@ -848,7 +858,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   if (!cl) {
     return;
   }
-
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
     return;
@@ -1392,6 +1401,8 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  */
 SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager *indexMgr)
 {
+  bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
+
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
   case Shell::Options::SaturationAlgorithm::DISCOUNT:
@@ -1436,10 +1447,14 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(res->_instantiation);
   }
 
-  if (prb.hasEquality()) {
-    gie->addFront(new EqualityFactoring());
+  bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  if (mayHaveEquality) {
+    if (!alascaTakesOver) { // in alasca we have a special equality factoring rule
+      gie->addFront(new EqualityFactoring());
+    }
     gie->addFront(new EqualityResolution());
-    if (env.options->superposition()) {
+    if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
       gie->addFront(new Superposition());
     }
   }
@@ -1475,7 +1490,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   gie->addFront(new Factoring());
-  if (opt.binaryResolution()) {
+  if (opt.binaryResolution() && !alascaTakesOver) { // in alasca we have a special resolution rule
     gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
@@ -1502,7 +1517,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.injectivityReasoning()) {
     gie->addFront(new Injectivity());
   }
-  if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
     }
@@ -1524,7 +1539,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   auto& ordering = res->getOrdering();
 
   if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
-    sgi->push(new PolynomialEvaluation(ordering));
+    sgi->push(new PolynomialEvaluationRule(ordering));
   }
 
   if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
@@ -1541,6 +1556,59 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
+  auto ise = createISE(prb, opt, ordering, alascaTakesOver);
+  if (alascaTakesOver) {
+    auto shared = Kernel::AlascaState::create(
+        InequalityNormalizer::global(),
+        &ordering,
+        env.options->unificationWithAbstraction(),
+        env.options->unificationWithAbstractionFixedPointIteration()
+        );
+    if (env.options->alascaDemodulation()) {
+      res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(shared));
+      res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared));
+    }
+    ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
+    // TODO add an option for this
+    ise->addFront(new ALASCA::FloorElimination(shared));
+    if (env.options->alascaAbstraction()) {
+      ise->addFront(new ALASCA::Abstraction<RealTraits>(shared));
+      ise->addFront(new ALASCA::Abstraction<RatTraits>(shared));
+    }
+
+    if (env.options->alascaStrongNormalization()) {
+      ise->addFront(new ALASCA::InequalityPredicateNormalization(shared));
+    }
+
+    // TODO properly create an option for that, make it a simplifying rule
+    ise->addFront(new ALASCA::TautologyDeletion(shared));
+    ise->addFront(new ALASCA::Normalization(shared));
+    // TODO check when the other one is better
+    if (env.options->viras()) {
+      sgi->push(new ALASCA::VirasQuantifierElimination(shared));
+    } else {
+      sgi->push(new ALASCA::VariableElimination(shared, /* simpl */ true ));
+    }
+    sgi->push(new ALASCA::TermFactoring(shared));
+    sgi->push(new ALASCA::InequalityFactoring(shared));
+    sgi->push(new ALASCA::EqFactoring(shared));
+    sgi->push(new ALASCA::FourierMotzkin(shared));
+    sgi->push(new ALASCA::FloorFourierMotzkin<RatTraits>(shared));
+    sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared));
+    sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
+    sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
+    if (env.options->superposition()) {
+      sgi->push(new ALASCA::Superposition(shared));
+    }
+    if (env.options->binaryResolution()) {
+      sgi->push(new ALASCA::BinaryResolution(shared));
+    }
+    sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared));
+    sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared));
+    sgi->push(new ALASCA::Coherence<RealTraits>(shared));
+    sgi->push(new ALASCA::FloorBounds(shared));
+  }
+
 #if VZ3
   if (opt.theoryInstAndSimp() != Shell::Options::TheoryInstSimp::OFF) {
     sgi->push(new TheoryInstAndSimp());
@@ -1549,7 +1617,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   res->setGeneratingInferenceEngine(sgi);
 
-  res->setImmediateSimplificationEngine(createISE(prb, opt, res->getOrdering()));
+  res->setImmediateSimplificationEngine(ise);
 
   // create simplification engine
 
@@ -1562,7 +1630,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create forward simplification engine
-  if (prb.hasEquality() && opt.innerRewriting()) {
+  if (mayHaveEquality && opt.innerRewriting()) {
     res->addForwardSimplifierToFront(new InnerRewriting());
   }
   if (opt.globalSubsumption()) {
@@ -1571,15 +1639,18 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
   }
-  if (prb.hasEquality()) {
+  bool subDemodOrdOpt = /* enables ordering optimizations of subsumption demodulation rules */
+            opt.termOrdering() == Shell::Options::TermOrdering::KBO
+            || opt.termOrdering() == Shell::Options::TermOrdering::LPO;
+  if (mayHaveEquality) {
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false, subDemodOrdOpt));
     }
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
@@ -1611,7 +1682,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create backward simplification engine
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     switch (opt.backwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
@@ -1625,8 +1696,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
+  
+  if (mayHaveEquality && opt.backwardSubsumptionDemodulation()) {
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(subDemodOrdOpt));
   }
 
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
@@ -1655,11 +1727,13 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
+CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering, bool alascaTakesOver)
 {
-  CompositeISE* res=new CompositeISE();
+  CompositeISE* res =new CompositeISE();
 
-  if (prb.hasEquality() && opt.equationalTautologyRemoval()) {
+  bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  if (mayHaveEquality && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
   }
 
@@ -1704,10 +1778,10 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, cons
   }
 
   // Only add if there are distinct groups
-  if (prb.hasEquality() && env.signature->hasDistinctGroups()) {
+  if (mayHaveEquality && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
-  if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraInferences()) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
@@ -1729,12 +1803,16 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(&(new Cancellation(ordering))->asISE());
     }
 
-    switch (env.options->evaluationMode()) {
+    if (alascaTakesOver) {
+      // all alasca rules are added later
+    } else switch (env.options->evaluationMode()) {
+      case Options::EvaluationMode::OFF:
+        break;
       case Options::EvaluationMode::SIMPLE:
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
       case Options::EvaluationMode::POLYNOMIAL_FORCE:
-        res->addFront(&(new PolynomialEvaluation(ordering))->asISE());
+        res->addFront(&(new PolynomialEvaluationRule(ordering))->asISE());
         break;
       case Options::EvaluationMode::POLYNOMIAL_CAUTIOUS:
         break;
@@ -1744,7 +1822,7 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new PushUnaryMinus());
     }
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
