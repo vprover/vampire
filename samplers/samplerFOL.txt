@@ -139,13 +139,13 @@ plsq=on > plsqr ~u2r -5;7;,
 # INFERENCES
 
 # superposition (don't turn this off at home!)
-intent=unsat > sup ~cat on:100,off:1
+intent=unsat sa!=fmb > sup ~cat on:100,off:1
 
 # simultaneous_superposition
 sa!=fmb sup=on > sims ~cat on:50,off:1
 
 # superposition_from_variables
-intent=unsat sup=on > sfv ~cat on:38,off:1
+intent=unsat sa!=fmb sup=on > sfv ~cat on:38,off:1
 
 # code_tree_subsumption
 sa!=fmb > cts ~cat on:3,off:1
@@ -357,7 +357,7 @@ sa!=fmb av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
 sa!=fmb av=off > urr ~cat off:1200,ec_only:162,on:340
 
 # binary_resolution
-intent=unsat > br ~cat on:8,off:1
+intent=unsat sa!=fmb > br ~cat on:8,off:1
 intent=sat sa!=fmb urr=on > br ~cat on:10,off:1
 
 # AVATAR SPLIT QUEUE
