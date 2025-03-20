@@ -16,6 +16,7 @@
 #ifndef __TheoryInstAndSimp__
 #define __TheoryInstAndSimp__
 
+#include "Lib/Allocator.hpp"
 #if VZ3
 
 #include "Forwards.hpp"
@@ -52,7 +53,7 @@ public:
   TheoryInstAndSimp(TheoryInstAndSimp&&) = default;
 
   TheoryInstAndSimp(Options& opts);
-  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Shell::Options::ProblemExportSyntax problemExportSyntax);
+  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax);
 
   void attach(SaturationAlgorithm* salg);
 

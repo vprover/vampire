@@ -91,7 +91,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
   /*
-  if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
+  if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround()
                         && prb.getProperty()->hasInterpretedOperations()){
     return new SAT::Z3MainLoop(prb,opt);
   }
