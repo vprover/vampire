@@ -4,3 +4,6 @@
 [submodule "cadical"]
 	path = cadical
 	url = https://github.com/arminbiere/cadical
+[submodule "viras"]
+	path = viras
+	url = https://github.com/joe-hauns/viras
