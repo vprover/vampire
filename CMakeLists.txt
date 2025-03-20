@@ -1013,6 +1013,16 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/cadical/src)
 add_compile_definitions(NBUILD=1)
 
+include(CheckSymbolExists)
+
+# Check if closefrom() exists in unistd.h
+check_symbol_exists(closefrom "unistd.h" HAVE_CLOSEFROM)
+
+# If closefrom() is missing, define NCLOSEFROM=1
+if(NOT HAVE_CLOSEFROM)
+    add_compile_definitions(NCLOSEFROM=1)
+endif()
+
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
