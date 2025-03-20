@@ -29,6 +29,7 @@
 #include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Saturation/ClauseContainer.hpp"
+#include "Kernel/Clause.hpp"
 #include "ResultSubstitution.hpp"
 
 /**

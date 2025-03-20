@@ -57,6 +57,14 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+void SplitClauseExtra::output(std::ostream &out) const {
+  out << "sat_clause_recorded";
+}
+
+void SplitDefinitionExtra::output(std::ostream &out) const {
+  out << component->number();
+}
+
 /////////////////////////////
 // SplittingBranchSelector
 //
@@ -962,6 +970,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
+    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+      env.proofExtra.insert(scl, new SplitClauseExtra(nsClause));
 
     nsClause->setInference(new FOConversionInference(scl));
 
@@ -1149,6 +1159,8 @@ bool Splitter::doSplitting(Clause* cl)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(scl, new SplitClauseExtra(splitClause));
 
   splitClause->setInference(new FOConversionInference(scl));
 
@@ -1243,6 +1255,9 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
           NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
+
+  if(posName == name && env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
 
   // propagate running sums:
   // - we have certain values we propagate from the parents of a clause d to d. These values are mainly used to guide saturation.

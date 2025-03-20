@@ -42,6 +42,8 @@ public:
       const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM) :
     PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   {}
+  LPO(LPO&&) = default;
+  LPO& operator=(LPO&&) = default;
   ~LPO() override = default;
 
   using PrecedenceOrdering::compare;

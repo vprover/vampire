@@ -408,9 +408,11 @@ private:
   {
     SharedSet* ss = static_cast<SharedSet*>(obj);
     
+    IGNORE_MAYBE_UNINITIALIZED(
     // calculate the same thing as in operator new
     size_t size=sizeof(SharedSet)+ss->_size*sizeof(T);
     size-=sizeof(T);
+    )
   
     DEALLOC_KNOWN(obj, size,"SharedSet");
   }

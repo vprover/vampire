@@ -19,6 +19,7 @@
 
 #include <iostream>
 
+#include "Forwards.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -38,6 +39,7 @@ namespace Kernel {
 };
 
 namespace Parse {
+  using namespace Kernel;
 
 /**
  * Implements a TPTP parser
@@ -350,6 +352,9 @@ public:
   static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
     auto res = _questionVariableNames.findPtr(questionNumber);
     return res ? *res : nullptr;
+  }
+  static bool seenQuestions() {
+    return !_questionVariableNames.isEmpty();
   }
 private:
   void parseImpl(State initialState = State::UNIT_LIST);
