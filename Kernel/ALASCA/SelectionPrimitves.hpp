@@ -246,7 +246,9 @@ namespace Kernel {
     using Numeral = typename NumTraits::ConstantType;
     bool isInequality() const;
     AlascaMonom<NumTraits> selected() const;
+    // TODO 1 remove
     TypedTermList selectedAtom() const;
+    TypedTermList selectedAtomicTerm() const;
     Numeral numeral() const;
     Clause* clause() const { return _clause; }
     Literal* literal() const { return (*_clause)[_lit]; }
@@ -288,7 +290,8 @@ namespace Kernel {
     unsigned termIdx() const;
     auto numTraits() const { return applyCo([](auto& x) { return x.numTraits(); }); }
     bool isInequality() const;
-    TypedTermList selectedAtom() const { return apply([](auto x) { return x.selectedAtom(); }); }
+    TypedTermList selectedAtomicTerm() const { return apply([](auto x) { return x.selectedAtomicTerm(); }); }
+
     IterTraits<VirtualIterator<Literal*>> contextLiterals() const;
     Sign sign() const;
     Literal* literal() const;
@@ -305,6 +308,7 @@ namespace Kernel {
     IterTraits<VirtualIterator<Literal*>> contextLiterals() const;
     Clause* clause() const;
 
+    TermList selectedAtomicTerm() const;
   };
 
 

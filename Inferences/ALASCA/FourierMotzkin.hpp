@@ -50,7 +50,7 @@ struct FourierMotzkinConf
     Lhs(Lhs&&) = default;
     Lhs& operator=(Lhs&&) = default;
     
-    TypedTermList key() const { return selectedAtom(); }
+    TypedTermList key() const { return selectedAtomicTerm(); }
 
     static auto iter(AlascaState& shared, Clause* cl)
     { 
@@ -74,7 +74,7 @@ struct FourierMotzkinConf
     Rhs(Rhs&&) = default;
     Rhs& operator=(Rhs&&) = default;
 
-    TypedTermList key() const { return selectedAtom(); }
+    TypedTermList key() const { return selectedAtomicTerm(); }
 
     static auto iter(AlascaState& shared, Clause* cl) 
     { 

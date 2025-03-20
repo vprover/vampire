@@ -56,8 +56,8 @@ public:
 
 private:
 
-                            Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
-  template<class NumTraits> Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
+                            Option<Clause*> applyRule(SelectedAtomicTermItpAny const& l, SelectedAtomicTermItpAny const& r, Stack<TermList> const& maxAtoms);
+  template<class NumTraits> Option<Clause*> applyRule(SelectedAtomicTermItp<NumTraits> const& l, SelectedAtomicTermItp<NumTraits>const& r, Stack<TermList> const& maxAtoms);
 
   std::shared_ptr<AlascaState> _shared;
 };

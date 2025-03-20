@@ -12,6 +12,7 @@
  * Implements class TermFactoring.
  */
 
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Lib/STL.hpp"
 
 #include "Lib/Metaiterators.hpp"
@@ -65,8 +66,8 @@ void TermFactoring::detach()
 // • s₁σ,s₂σ ∈ selectedAtoms((C ∨ k₁ s₁ + k₂ s₂  + t <> 0)σ)
 template<class NumTraits> 
 Option<Clause*> TermFactoring::applyRule(
-    SelectedSummand const& sel1, 
-    SelectedSummand const& sel2,
+    SelectedAtomicTermItp<NumTraits> const& sel1,
+    SelectedAtomicTermItp<NumTraits> const& sel2,
     Stack<TermList> const& selectedAtoms
     )
 {
@@ -86,8 +87,8 @@ Option<Clause*> TermFactoring::applyRule(
 
   // ASS(!(sel1.literal()->isEquality() && sel1.literal()->isNegative()))
 
-  auto k1 = sel1.numeral().template unwrap<Numeral>();
-  auto k2 = sel2.numeral().template unwrap<Numeral>();
+  auto k1 = sel1.numeral();
+  auto k2 = sel2.numeral();
   auto s1 = sel1.selectedAtom();
   auto s2 = sel2.selectedAtom();
 
@@ -156,10 +157,10 @@ Option<Clause*> TermFactoring::applyRule(
   // auto resSum = NumTraits::sum(concatIters(iterItems(resTerm), t_sigma.iterFifo()));
   // //   ^^^^^^---> ((k₁ + s₁)s₂ + t)σ
     
-  auto t_sigma = range(0, sel1.alascaLiteral<NumTraits>().term().nSummands())
+  auto t_sigma = range(0, sel1.alascaLiteral().term().nSummands())
           .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
           .map([&](auto i) {
-            auto ki_ti = sel1.alascaLiteral<NumTraits>().term().summandAt(i);
+            auto ki_ti = sel1.alascaLiteral().term().summandAt(i);
             auto tiσ = sigma(ki_ti.atom());
             return NumTraits::mulSimpl(ki_ti.numeral(), tiσ);
           });
@@ -184,15 +185,17 @@ Option<Clause*> TermFactoring::applyRule(
 }
 
 Option<Clause*> TermFactoring::applyRule(
-    SelectedSummand const& l, 
-    SelectedSummand const& r,
+    SelectedAtomicTermItpAny const& sel1_, 
+    SelectedAtomicTermItpAny const& sel2_, 
     Stack<TermList> const& selectedAtoms
     )
 { 
-  ASS_EQ(l.clause(), r.clause())
-  ASS_EQ(l.literal(), r.literal())
-  return l.numTraits().apply([&](auto numTraits) 
-      { return applyRule<decltype(numTraits)>(l, r, selectedAtoms); });
+  return sel1_.apply([&](auto sel1) -> Option<Clause*> {
+    auto sel2 = sel2_.unwrap<decltype(sel1)>();
+    ASS_EQ(sel1.clause(), sel2.clause())
+    ASS_EQ(sel1.literal(), sel2.literal())
+    return applyRule(sel1, sel2, selectedAtoms); 
+  });
 }
 
 #define D(...) std::cout  << __VA_ARGS__ << std::endl;
@@ -204,7 +207,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 
   auto max = Lib::make_shared(Stack<TermList>());
   auto selected = Lib::make_shared(
-        _shared->oldSelectedSummands(premise,
+        _shared->selectedSummands(premise,
           SelectionCriterion::NOT_LESS,
           /* include number vars */ false)
         .inspect([&](auto& sel) { max->push(sel.selectedAtomicTerm()); })

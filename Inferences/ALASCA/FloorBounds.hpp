@@ -88,7 +88,7 @@ class FloorBounds
   {
     auto premise = premise_.unwrap<SelectedAtomicTermItp<NumTraits>>();
     ASS(premise.numeral().isPositive())
-    auto s = NumTraits::ifFloor(premise.selectedAtom(), [](auto s) { return s; }).unwrap();
+    auto s = NumTraits::ifFloor(premise.selectedAtomicTerm(), [](auto s) { return s; }).unwrap();
     auto t = premise.contextTermSum();
     auto pred = premise.alascaLiteral().symbol();
     ASS(isInequality(pred))
@@ -124,7 +124,7 @@ class FloorBounds
   {
     auto premise = premise_.unwrap<SelectedAtomicTermItp<NumTraits>>();
     ASS(premise.numeral().isNegative())
-    auto s = NumTraits::ifFloor(premise.selectedAtom(), [](auto s) { return s; }).unwrap();
+    auto s = NumTraits::ifFloor(premise.selectedAtomicTerm(), [](auto s) { return s; }).unwrap();
     auto t = premise.contextTermSum();
     auto pred = premise.alascaLiteral().symbol();
     ASS(isInequality(pred))
@@ -175,7 +175,7 @@ class FloorBounds
   template<class RuleKind>
   auto generateClauses(Clause* premise) const {
     return iterTraits(RuleKind::iter(*_shared, premise))
-      .filter([](auto x) { return NumTraits::ifFloor(x.selectedAtom(), [](auto...) { return true; }); })
+      .filter([](auto x) { return NumTraits::ifFloor(x.selectedAtomicTerm(), [](auto...) { return true; }); })
       .flatMap([this](auto x) { return this->generateClauses(x); });
   }
 
