@@ -184,7 +184,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 
     auto selected = Lib::make_shared(
         _shared->selectedSummands(premise, 
-          // TODO 1 work out the selection criterion stuff
+          // TODO 1.1 work out the selection criterion stuff
                        /* literal */ SelectionCriterion::NOT_LESS, 
                        // /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)

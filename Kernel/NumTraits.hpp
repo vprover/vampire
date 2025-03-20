@@ -14,6 +14,7 @@
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "Signature.hpp"
+#include "Lib/TypeList.hpp"
 
 namespace Kernel {
 
@@ -375,9 +376,14 @@ IMPL_NUM_TRAITS(Integer , int     , INTEGER , INT )
   macro(Kernel::NumTraits<Kernel::    RealConstantType>)                                  \
   macro(Kernel::NumTraits<Kernel::RationalConstantType>)                                  \
 
+#define NUM_TRAITS_LIST IntTraits, RealTraits, RatTraits
+
 using IntTraits  = NumTraits< IntegerConstantType>;
 using RatTraits  = NumTraits<RationalConstantType>;
 using RealTraits = NumTraits<    RealConstantType>;
+
+
+using NumTraitsList = TypeList::List<IntTraits, RatTraits, RealTraits>;
 
 template<template<class> class Tmplt>
 using NumTraitsCopro = Coproduct<Tmplt<IntTraits>, Tmplt<RatTraits>, Tmplt<RealTraits>>;

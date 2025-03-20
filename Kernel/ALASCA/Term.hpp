@@ -530,6 +530,8 @@ namespace Kernel {
     IMPL_HASH_FROM_TUPLE(Self);
     friend std::ostream& operator<<(std::ostream& out, AnyAlascaTerm const& self)
     { return out << self._self._self; }
+
+    bool isAtomic() const;
   };
 
 } // namespace Kernel

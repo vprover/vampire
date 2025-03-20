@@ -188,7 +188,7 @@ namespace Kernel {
 
     // TODO use ifElseIter
     // TODO 1 remove (?)
-    IterTraits<VirtualIterator<TypedTermList>> activePositions(Literal* l);
+    // IterTraits<VirtualIterator<TypedTermList>> activePositions(Literal* l);
     // {
     //   return iterTraits(norm().tryNormalizeInterpreted(l)
     //     .match(
@@ -229,11 +229,11 @@ namespace Kernel {
 
 
                 // TODO 1 replace this by 'selected(...)'
-IterTraits<VirtualIterator<Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>>>
-    selectedActivePositions(
-        Clause* cl, SelectionCriterion selLit, 
-        SelectionCriterion selSum,
-        bool includeUnshieldedNumberVariables);
+// IterTraits<VirtualIterator<Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>>>
+//     selectedActivePositions(
+//         Clause* cl, SelectionCriterion selLit, 
+//         SelectionCriterion selSum,
+//         bool includeUnshieldedNumberVariables);
     // {
     //   using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
     //   return _maxLits(cl, selLit)
@@ -263,24 +263,25 @@ IterTraits<VirtualIterator<Coproduct<SelectedSummand, SelectedUninterpretedEqual
     }
 
 
-    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
-      using Out = SelectedEquality;
-      return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-        .filterMap([](auto x) -> Option<Out>
-                   { return x.match(
-                       [](SelectedSummand& x) {
-                          return x.isInequality() ? Option<Out>()
-                              : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
-                              : Option<Out>(Out(std::move(x)));
-                       },
-
-                       [](SelectedUninterpretedEquality& x) 
-                       { return Option<Out>(Out(std::move(x))); },
-
-                       [](SelectedUninterpretedPredicate&) 
-                       { return Option<Out>(); });
-        });
-    }
+    IterTraits<VirtualIterator<SelectedEquality>> selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
+    // {
+    //   using Out = SelectedEquality;
+    //   return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
+    //     .filterMap([](auto x) -> Option<Out>
+    //                { return x.match(
+    //                    [](SelectedSummand& x) {
+    //                       return x.isInequality() ? Option<Out>()
+    //                           : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
+    //                           : Option<Out>(Out(std::move(x)));
+    //                    },
+    //
+    //                    [](SelectedUninterpretedEquality& x) 
+    //                    { return Option<Out>(Out(std::move(x))); },
+    //
+    //                    [](SelectedUninterpretedPredicate&) 
+    //                    { return Option<Out>(); });
+    //     });
+    // }
 
 
     bool interpretedFunction(TermList t) 
@@ -314,7 +315,7 @@ IterTraits<VirtualIterator<Coproduct<SelectedSummand, SelectedUninterpretedEqual
 
 
     // auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) {
-    //   using Out = SelectedAtom;
+    //   using Out = OldSelectedAtom;
     //   auto atoms = Lib::make_shared(Stack<Out>());
     //   for (unsigned i : range(0, cl->size())) {
     //     auto l = SelectedLiteral(cl, i, *this);
@@ -353,23 +354,26 @@ IterTraits<VirtualIterator<Coproduct<SelectedSummand, SelectedUninterpretedEqual
     
     // TODO make sure we deal right with unshielded vars
 
-    Coproduct<
-      IterTraits<VirtualIterator<SelectedAtom>>,
-      IterTraits<VirtualIterator<SelectedLiteral>>> selected(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables);
+   IterTraits<VirtualIterator<NewSelectedAtom>> selected(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables);
 
-    auto selectedAtoms(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
-    { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<0>()
-              .intoIter())
-              .flatten(); }
+   IterTraits<VirtualIterator<SelectedAtomicTerm>> 
+    selectedAtoms(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
+      ;
+    // { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<0>()
+    //           .intoIter())
+    //           .flatten(); }
 
-    auto selectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
-    { return selectedAtoms(cl, selLit, includeUnshieldedNumberVariables)
-                .filterMap([](auto l) { return std::move(l).template as<SelectedSummand>().toOwned(); }); }
+   IterTraits<VirtualIterator<SelectedSummand>> 
+    selectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
+    ;
+    // { return selectedAtoms(cl, selLit, includeUnshieldedNumberVariables)
+    //             .filterMap([](auto l) { return std::move(l).template as<SelectedSummand>().toOwned(); }); }
 
-    auto selectedLiterals(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
-    { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<1>()
-              .intoIter())
-              .flatten(); }
+   IterTraits<VirtualIterator<SelectedLiteral>> 
+     selectedLiterals(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) ;
+    // { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<1>()
+    //           .intoIter())
+    //           .flatten(); }
 
 
     // TODO remove
@@ -415,14 +419,6 @@ IterTraits<VirtualIterator<Coproduct<SelectedSummand, SelectedUninterpretedEqual
       return true;
     }
   };
-
-  using SelectedCoproduct = decltype(std::declval<AlascaState>().selected(
-          std::declval<Clause*>(), 
-          std::declval<SelectionCriterion>(), 
-          std::declval<bool>()
-        ));
-  using SelectedTermIter    = std::remove_reference_t<decltype(std::declval<SelectedCoproduct>().unwrap<0>())>;
-  using SelectedLiteralIter = std::remove_reference_t<decltype(std::declval<SelectedCoproduct>().unwrap<1>())>;
 
 #if VDEBUG
   std::shared_ptr<AlascaState> testAlascaState(

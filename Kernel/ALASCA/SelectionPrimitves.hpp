@@ -14,9 +14,12 @@
 #ifndef __ALASCA_SelectionPrimitives__
 #define __ALASCA_SelectionPrimitives__
 
+#include "Debug/Assertion.hpp"
 #include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/OrderingUtils.hpp"
+#include "Lib/Reflection.hpp"
+#include "Lib/TypeList.hpp"
 #include "Kernel/Clause.hpp"
 
 namespace Kernel {
@@ -84,6 +87,7 @@ namespace Kernel {
     IMPL_COMPARISONS_FROM_TUPLE(SelectedUninterpretedEquality)
   };
 
+  // TODO 1 remove
   class SelectedSummand : public SelectedLiteral
   {
     unsigned _term;
@@ -157,6 +161,9 @@ namespace Kernel {
           .apply([this](auto& lit) 
               { return lit.term().summandAt(_term).atom(); }); }
 
+    TermList selectedAtomicTerm() const
+    { return selectedAtom(); }
+
     auto sign() const 
     { return numeral().apply([](auto const& self) { return self.sign(); }); }
 
@@ -198,16 +205,86 @@ namespace Kernel {
   };
 
 
-  // TODO 1 make this based on AlascaLiteral
-  class SelectedAtom: public Coproduct<SelectedUninterpretedEquality, SelectedSummand>
-  {
-    using Super = Coproduct<SelectedUninterpretedEquality, SelectedSummand>;
-    public:
-      SelectedAtom(SelectedUninterpretedEquality e) : Super(std::move(e)) {}
-      SelectedAtom(SelectedSummand               e) : Super(std::move(e)) {}
+  class SelectedAtomicLiteral {
+    Clause* _clause;
+    unsigned _lit;
+    using Self = SelectedAtomicLiteral;
+    auto asTuple() const { return std::tie(_clause, _lit); }
+  public:
+    IMPL_COMPARISONS_FROM_TUPLE(Self);
+    IMPL_HASH_FROM_TUPLE(Self);
+    friend std::ostream& operator<<(std::ostream& out, Self const& self);
+    // TODO 1
+    // { return ; }
+  };
 
-      TermList atom()
-      { return apply([](auto& self) { return self.selectedAtom(); }); }
+  class SelectedAtomicTermUF {
+    Clause* _clause;
+    unsigned _lit;
+    unsigned _summand;
+    using Self = SelectedAtomicTermUF;
+    auto asTuple() const { return std::tie(_clause, _lit, _summand); }
+  public:
+    IMPL_COMPARISONS_FROM_TUPLE(Self);
+    IMPL_HASH_FROM_TUPLE(Self);
+    friend std::ostream& operator<<(std::ostream& out, Self const& self);
+    // TODO 1
+  };
+
+  template<class NumTraits>
+  class SelectedAtomicTermItp {
+    Clause* _clause;
+    unsigned _lit;
+    unsigned _summand;
+    using Self = SelectedAtomicTermItp;
+    auto asTuple() const { return std::tie(_clause, _lit, _summand); }
+  public:
+    IMPL_COMPARISONS_FROM_TUPLE(Self);
+    IMPL_HASH_FROM_TUPLE(Self);
+    friend std::ostream& operator<<(std::ostream& out, Self const& self);
+    // TODO 1
+  };
+
+  struct SelectedAtomicTerm 
+    : public TypeList::ApplyT<Coproduct, 
+               TypeList::Concat<
+                   TypeList::MapT<SelectedAtomicTermItp, NumTraitsList>
+                 , TypeList::List<SelectedAtomicTermUF>
+               >>
+  {
+    Clause* _clause;
+    unsigned _lit;
+    unsigned _summand;
+
+    using Self = SelectedAtomicTerm;
+    friend std::ostream& operator<<(std::ostream& out, Self const& self) 
+    { self.apply([&](auto& x) { out << x; }); return out; }
+  };
+
+  template<class NumTraits>
+  struct SelectedAtomicTermItpAny : public NumTraitsCopro<SelectedAtomicTermItp>
+  {
+
+  };
+
+  struct NewSelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
+    // using Coproduct::Coproduct;
+    // TODO 1
+    bool inLitPlus() const;
+    IterTraits<VirtualIterator<AnyAlascaTerm>> iterBottomUp() const;
+    Literal* literal() const;
+    AlascaLiteral alascaLiteral() const;
+    IterTraits<VirtualIterator<Literal*>> contextLiterals() const;
+    Clause* clause() const;
+
+  };
+
+
+  // TODO 1.0 remove
+  struct OldSelectedAtom : public Coproduct<SelectedUninterpretedEquality, SelectedSummand>
+  {
+    TermList atom()
+    { return apply([](auto& self) { return self.selectedAtom(); }); }
   };
 
 

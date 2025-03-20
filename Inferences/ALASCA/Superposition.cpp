@@ -54,7 +54,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
 #if VDEBUG
   auto s1 = lhs.biggerSide();
 #endif
-  auto s2 = rhs.toRewrite();
+  auto s2 = TermList(rhs.toRewrite().toTerm());
   auto nothing = [&]() { return Option<Clause*>(); };
   ASS(!(s1.isVar() && lhs.isFracNum()))
   ASS(!s2.isVar())
@@ -127,12 +127,11 @@ Option<Clause*> SuperpositionConf::applyRule_(
                               : _shared->notLess(L2σ, Lσ);
            }));
 
+  // TODO 2 note in the paper
+  // TODO 1 generalize and move this to BinInf
   check_side_condition(
-      "s2σ ⊴ ti ∈ active(L[s2]σ)", 
-      // TODO 1 differnt constraint here?
-      _shared->activePositions(L2σ)
-        .any([&](auto ti) 
-             { return _shared->subtermEqModT(s2σ, ti); }))
+      rhs.postUnificationCheckName(),
+      rhs.postUnificationCheck(uwa, lhsVarBank));
 
   check_side_condition(
       "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well

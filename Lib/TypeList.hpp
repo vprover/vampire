@@ -312,7 +312,7 @@ namespace TypeList {
    *   template<class A>
    *   using apply = std::tuple<A, A>;
    * }
-   * E.g. Map<F, List<A, B, A>> ==> List<std::tuple<A, A>, std::tuple<B, B>, std::tuple<A, A>>
+   * E.g. Map<Function, List<A, B, A>> ==> List<std::tuple<A, A>, std::tuple<B, B>, std::tuple<A, A>>
    */
   template<class F, class A> struct MapImpl;
 
@@ -327,6 +327,38 @@ namespace TypeList {
   };
 
   template<class F, class As> using Map = typename MapImpl<F, As>::type;
+
+  template<template<class...> class F>
+  struct ToTypeFn {
+      template<class... As> using apply = F<As...>;
+  };
+
+  template<template<class> class F, class As> using MapT = Map<ToTypeFn<F>, As>;
+
+
+  /*
+   * applys a function F to a list of arguments
+   * struct Function {
+   *   template<class... As>
+   *   using apply = std::tuple<As...>;
+   * }
+   * E.g. Apply<Function, TypeList::List<A, A>> ==> std::tuple<A, A>
+   */
+  template<class F, class A> struct ApplyImpl;
+
+  template<class F, class... As> struct ApplyImpl<F, List<As...>>
+  {
+    using type = typename F::template apply<As...>;
+  };
+
+  // template<class F, class A, class... As> struct ApplyImpl<F, List<A, As...>>
+  // {
+  //   using type = Concat<List<typename F::template apply<A>>, typename ApplyImpl<F, List<As...>>::type>;
+  // };
+
+  template<class F, class As> using Apply = typename ApplyImpl<F, As>::type;
+
+  template<template<class> class F, class As> using ApplyT = Apply<ToTypeFn<F>, As>;
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////// COMPILE TIME TESTS

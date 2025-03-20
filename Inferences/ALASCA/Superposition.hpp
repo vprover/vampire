@@ -21,6 +21,7 @@
 
 #include "Indexing/IndexManager.hpp"
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/ALASCA/State.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/NumTraits.hpp"
@@ -66,94 +67,56 @@ struct SuperpositionConf
     static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_LHS_SUBST_TREE; }
   };
 
-  struct Rhs : public SelectedLiteral
+  class Rhs: public NewSelectedAtom
   {
+    AnyAlascaTerm _toRewrite;
+  public:
+
     static const char* name() { return "alasca superposition rhs"; }
     static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_RHS_SUBST_TREE; }
 
-    Rhs(SelectedLiteral lit, TypedTermList toRewrite, bool inLitPlus) 
-      : SelectedLiteral(std::move(lit))
+    Rhs(NewSelectedAtom self, AnyAlascaTerm toRewrite)
+      : NewSelectedAtom(std::move(std::move(self)))
       , _toRewrite(toRewrite)
-      , _inLitPlus(inLitPlus)
     {  }
 
-    TypedTermList _toRewrite;
-    bool _inLitPlus;
 
-    TypedTermList toRewrite() const { return _toRewrite; }
+    auto toRewrite() const { return _toRewrite; }
 
-    TypedTermList key() const { return toRewrite(); }
-    TermList sort() const { return toRewrite().sort(); }
+    TypedTermList key() const { return toRewrite().toTerm(); }
+    // TermList sort() const { return key().sort(); }
 
-    bool inLitPlus() const
-    { return _inLitPlus; }
 
     static auto activePositions(AlascaState& shared, Clause* cl) 
     {
-      return shared.selectedActivePositions(cl, 
-          /* literals */ SelectionCriterion::NOT_LESS, 
+      return shared.selected(cl, 
+          // /* literals */ SelectionCriterion::NOT_LESS, 
           /* terms    */ SelectionCriterion::NOT_LEQ,
           /* include number vars */ false);
     }
 
     static auto iter(AlascaState& shared, Clause* cl)
     { 
-      using Out = Rhs;
       return activePositions(shared, cl)
-        .flatMap([&](auto sel_lit) -> VirtualIterator<Out> {
-           auto tup = sel_lit.match(
-             [=](SelectedSummand& x) -> std::tuple<SelectedLiteral, TermList, bool, bool> 
-             {
-                auto inLitPlus = 
-                      x.isInequality() 
-                        // x =  `+k s + t > 0`
-                        ? x.numeral().apply([](auto n) { return n.isPositive(); })
-                        // x =  `t ~ 0`
-                        : x.literal()->isPositive();
-                auto term = x.selectedAtom();
-                return std::make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ true);
-             },
-
-             [](SelectedUninterpretedEquality& x) 
-             {  
-                auto inLitPlus = x.literal()->isPositive();
-                auto term = x.biggerSide();
-                return std::make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ true); 
-             },
-
-             [](SelectedUninterpretedPredicate& x)
-             { 
-                auto inLitPlus = x.literal()->isPositive();
-                auto term = TermList(x.literal());
-                return std::make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ false); 
-             });
-
-           auto sel = std::get<0>(tup);
-           auto term = std::get<1>(tup);
-           auto inLitPlus = std::get<2>(tup);
-           auto includeSelf = std::get<3>(tup);
-
-           if (term.isVar()) {
-             return VirtualIterator<Out>::getEmpty();
-           } else {
-             // TODO get rid of vi and new here.
-             return pvi(iterTraits(vi(new NonVariableNonTypeIterator(term.term(), includeSelf)))
-                 // .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || AlascaState::globalState->isAtomic(t); })
-                 .filter([](auto& t) { return AlascaState::globalState->isAtomic(t); })
-                 .map([=](auto t) { return Rhs(sel, t, inLitPlus); }))
-               ;
-           }
+        .flatMap([&](auto atom) {
+            return atom.iterBottomUp()
+               .filter([](AnyAlascaTerm const& t) { return t.isAtomic(); })
+               .map([atom](auto t) { return Rhs(atom, t); });
         })
-      .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite()), Output::cat(x, "\n", *x.literal(), "\n", x.toRewrite())); })
+      .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite().toTerm()), Output::cat(x, "\n", x.literal(), "\n", x.toRewrite())); })
       ;
     }
+
+    bool postUnificationCheck(AbstractingUnifier&, unsigned varBank) const;
+    const char* postUnificationCheckName()  const
+    { return "s2σ ⊴ ti ∈ active(L[s2]σ)"; }
       
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
     { 
-      out << *self.literal();
+      out << self.literal();
       for (auto l : self.contextLiterals()) {
-        out << " \\/ " << *l;
+        out << " \\/ " << l;
       }
       out << "[ " << self.toRewrite() << " ] ( inLitPlus: " << self.inLitPlus() << " )";
       return out; 

@@ -204,11 +204,11 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 
   auto max = Lib::make_shared(Stack<TermList>());
   auto selected = Lib::make_shared(
-        _shared->selectedAtoms(premise,
+        _shared->selectedSummands(premise,
           SelectionCriterion::NOT_LESS,
           /* include number vars */ false)
-        .inspect([&](auto& sel) { max->push(sel.atom()); })
-        .filterMap([](auto x) -> Option<SelectedSummand> { return x.template as<SelectedSummand>().toOwned(); })
+        .inspect([&](auto& sel) { max->push(sel.selectedAtomicTerm()); })
+        // .filterMap([](auto x) -> Option<SelectedSummand> { return x.template as<SelectedSummand>().toOwned(); })
         .template collect<Stack>());
 
   max->sort();
@@ -223,16 +223,16 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   }
 #endif
 
-  Stack<std::pair<unsigned, unsigned>> litRanges;
+  RStack<std::pair<unsigned, unsigned>> litRanges;
   unsigned last = 0;
   for (unsigned i = 1; i < selected->size(); i++) {
     if ((*selected)[last].literal() != (*selected)[i].literal()) {
-      litRanges.push(std::make_pair(last, i));
+      litRanges->push(std::make_pair(last, i));
       last = i;
     }
   }
   if (selected->size() > 0)
-    litRanges.push(std::make_pair(last, selected->size()));
+    litRanges->push(std::make_pair(last, selected->size()));
 
   return pvi(arrayIter(std::move(litRanges))
                 .flatMap([=] (auto r) {
@@ -240,8 +240,8 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
                        return range(r.first, r.second - 1)
                                 .flatMap([=](auto i) {
                                    return range(i + 1, r.second)
-                                            .filterMap([=](auto j) 
-                                              { return applyRule((*selected)[i], (*selected)[j], *max); });
+                                            .filterMap([=](auto j)
+                                            { return applyRule((*selected)[i], (*selected)[j], *max); });
                         });
                      }));
 }

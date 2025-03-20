@@ -23,13 +23,14 @@ namespace ALASCA {
 
 struct Application 
 {
-  TermList _activePos;
+  // TODO is this _atom needed?
+  NewSelectedAtom _atom;
   AlascaTermItpAny _sum;
   unsigned i;
   unsigned j;
   
   friend std::ostream& operator<<(std::ostream& out, Application const& self)
-  { return out << self._activePos << " @ unify(" << self.term1() << ", " << self.term2()  << ")"; }
+  { return out << self._atom << " @ unify(" << self.term1() << ", " << self.term2()  << ")"; }
 
   TermList atomAt(unsigned i) const { return _sum.apply([&](auto& s) { return s.summandAt(i).atom(); }); }
   TermList term1() const { return atomAt(i); }
@@ -38,14 +39,15 @@ struct Application
   static auto iter(AlascaState& shared, Clause* cl)
   {
     return ALASCA::Superposition::Rhs::activePositions(shared, cl)
-      .flatMap([&](auto sel_lit) {
-          return coproductIter(sel_lit.map(
-             [](SelectedSummand& x) { return iterItems(TypedTermList(x.selectedAtom(), x.sort())); },
-             [](SelectedUninterpretedEquality& x) {  return iterItems(TypedTermList(x.biggerSide(), x.literal()->eqArgSort())); },
-             [](SelectedUninterpretedPredicate& x) { return termArgIterTyped(x.literal()); }
-          ))
-          .flatMap([&](TypedTermList activePos) {
-            return AnyAlascaTerm::normalize(activePos).bottomUpIter()
+      .flatMap([&](auto atom) {
+          // return coproductIter(sel_lit.map(
+          //    [](SelectedSummand& x) { return iterItems(TypedTermList(x.selectedAtom(), x.sort())); },
+          //    [](SelectedUninterpretedEquality& x) {  return iterItems(TypedTermList(x.biggerSide(), x.literal()->eqArgSort())); },
+          //    [](SelectedUninterpretedPredicate& x) { return termArgIterTyped(x.literal()); }
+          // ))
+          return atom.iterBottomUp()
+          // .flatMap([&](AnyAlascaTerm activePos) {
+          //   return AnyAlascaTerm::normalize(activePos).bottomUpIter()
                .filterMap([](auto t) { return t.asSum(); })
                .filter([](auto& s) { return s.apply([](auto& s) { return s.nSummands() >= 2; }); })
                .flatMap([=](auto t_anyNum) {
@@ -54,7 +56,7 @@ struct Application
                           .flatMap([=](auto i) {
                               return range(i + 1, t.nSummands())
                                 .map([=](auto j) {
-                                   return Application { ._activePos = activePos, ._sum = t_anyNum, .i = i, .j = j, };
+                                   return Application { ._atom = atom, ._sum = t_anyNum, .i = i, .j = j, };
                                 })
                                 .inspect([](auto& a) { DEBUG(a) })
                                 .filter([](auto& appl) { return appl.term1().isTerm()
@@ -65,7 +67,7 @@ struct Application
                           });
                    })); 
                });
-              }) ;
+              // }) ;
       })
     ;
   }
