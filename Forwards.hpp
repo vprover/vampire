@@ -55,6 +55,7 @@ class Signature;
 
 class Term;
 class TermList;
+typedef TermList SortId;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
@@ -175,6 +176,7 @@ namespace SAT
 using namespace Lib;
 
 class SATClause;
+class Z3Interfacing;
 class SATLiteral;
 class SATInference;
 class SATSolver;
@@ -183,6 +185,7 @@ typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
 typedef Stack<SATClause*> SATClauseStack;
 typedef Stack<SATLiteral> SATLiteralStack;
+
 }
 
 namespace Shell

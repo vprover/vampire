@@ -84,7 +84,7 @@ public:
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
   /** Same as @b compare, for applied (substituted) terms. */
-  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs, const TermPartialOrdering* tpo = nullptr) const
+  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
   { return compare(lhs.apply(), rhs.apply()); }
 
   /** Unidirectional comparison of @b t1 and @b t2 under some
@@ -134,6 +134,7 @@ public:
   static Ordering* create(Problem& prb, const Options& opt);
 
   static bool trySetGlobalOrdering(OrderingSP ordering);
+  static bool unsetGlobalOrdering();
   static Ordering* tryGetGlobalOrdering();
 
   Result getEqualityArgumentOrder(Literal* eq) const;
@@ -175,6 +176,9 @@ public:
 
   static DArray<int> testLevels();
 
+#ifdef VDEBUG
+  bool usesQkboPrecedence() const { return _qkboPrecedence; }
+#endif
   static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
 
@@ -184,9 +188,10 @@ protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
   PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
-                     const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
-  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
-  PrecedenceOrdering(Problem& prb, const Options& opt);
+                     const DArray<int>& predPrec, const DArray<int>& predLevels, 
+                     bool reverseLCM, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence = false);
 
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
@@ -213,6 +218,7 @@ protected:
   static void checkLevelAssumptions(DArray<int> const&);
 
   bool _reverseLCM;
+  bool _qkboPrecedence;
 };
 
 

@@ -19,6 +19,7 @@
 
 #include <iosfwd>
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -74,6 +75,16 @@ public:
     /** redundant clauses that we still use as simplifiers */
     RETAINED_REDUNDANT = 5u,
   };
+
+  friend std::ostream& operator<<(std::ostream& out, Store const& self)
+  { switch (self)  {
+      case Clause::PASSIVE: return out << "passive";
+      case Clause::ACTIVE: return out << "active";
+      case Clause::UNPROCESSED: return out << "unprocessed";
+      case Clause::NONE: return out << "none";
+      case Clause::SELECTED: return out << "selected";
+      case Clause::RETAINED_REDUNDANT: return out << "retained redundant";
+    } ASSERTION_VIOLATION }
 
 
 private:

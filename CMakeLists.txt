@@ -213,6 +213,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.cpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
+    Kernel/QKbo.cpp
     Kernel/KBOComparator.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
@@ -263,6 +264,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.hpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
+    Kernel/QKbo.hpp
     Kernel/KBOComparator.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
@@ -307,6 +309,17 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
+    Kernel/ALASCA.hpp
+    Kernel/ALASCA/Signature.hpp
+    Kernel/ALASCA/Signature.cpp
+    Kernel/ALASCA/SelectionPrimitves.hpp
+    Kernel/ALASCA/SelectionPrimitves.cpp
+    Kernel/ALASCA/Normalization.hpp
+    Kernel/ALASCA/Preprocessor.hpp
+    Kernel/ALASCA/Ordering.hpp
+    Kernel/ALASCA/State.hpp
+    Kernel/ALASCA/State.cpp
+    Kernel/ALASCA/Index.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -423,6 +436,28 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing/Inverters.cpp
     Inferences/RenamingSuperposition.cpp
     Inferences/Superposition.cpp
+    Inferences/ALASCA/Normalization.cpp
+    Inferences/ALASCA/Normalization.hpp
+    Inferences/ALASCA/InequalityFactoring.cpp
+    Inferences/ALASCA/InequalityFactoring.hpp
+    Inferences/ALASCA/EqFactoring.cpp
+    Inferences/ALASCA/EqFactoring.hpp
+    Inferences/ALASCA/VariableElimination.cpp
+    Inferences/ALASCA/VariableElimination.hpp
+    Inferences/ALASCA/VIRAS.cpp
+    Inferences/ALASCA/VIRAS.hpp
+    Inferences/ALASCA/Superposition.cpp
+    Inferences/ALASCA/Superposition.hpp
+    Inferences/ALASCA/Demodulation.cpp
+    Inferences/ALASCA/Demodulation.hpp
+    Inferences/ALASCA/FwdDemodulation.cpp
+    Inferences/ALASCA/FwdDemodulation.hpp
+    Inferences/ALASCA/BwdDemodulation.cpp
+    Inferences/ALASCA/BwdDemodulation.hpp
+    Inferences/ALASCA/FourierMotzkin.cpp
+    Inferences/ALASCA/FourierMotzkin.hpp
+    Inferences/ALASCA/TermFactoring.cpp
+    Inferences/ALASCA/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -717,6 +752,10 @@ set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
 source_group(smt_subsumption_source_files FILES ${VAMPIRE_SAT_SUBSUMPTION_SOURCES})
 
 set(VAMPIRE_TESTING_SOURCES
+    Test/TermIndexTester.hpp
+    Test/BuilderPattern.hpp
+    Test/SimplificationTester.hpp
+    Test/GenerationTester.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
     Test/SyntaxSugar.hpp
@@ -732,6 +771,22 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tALASCA_FourierMotzkin.cpp
+    UnitTests/tALASCA_TautologyDeletion.cpp
+    UnitTests/tALASCA_IntegerFourierMotzkin.cpp
+    UnitTests/tALASCA_InequalityFactoring.cpp
+    UnitTests/tALASCA_Normalization.cpp
+    UnitTests/tALASCA_FloorElimination.cpp
+    UnitTests/tALASCA_CoherenceNormalization.cpp
+    UnitTests/tALASCA_Abstraction.cpp
+    UnitTests/tALASCA_Superposition.cpp
+    UnitTests/tALASCA_Coherence.cpp
+    UnitTests/tALASCA_EqFactoring.cpp
+    UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tALASCA_TermFactoring.cpp
+    UnitTests/tALASCA_Demodulation.cpp
+    UnitTests/tALASCA_VIRAS.cpp
+    UnitTests/tALASCA_LaKbo.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -747,6 +802,7 @@ set(UNIT_TESTS
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp
+    UnitTests/tQKbo.cpp
     UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
@@ -755,7 +811,6 @@ set(UNIT_TESTS
     UnitTests/tList.cpp
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
-    UnitTests/tEqualityResolution.cpp
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
@@ -819,11 +874,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_compile_definitions(VDEBUG=1)
+elseif(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
+  add_compile_definitions(VDEBUG=0)
+  add_compile_definitions(NDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
   add_compile_definitions(NDEBUG)
 endif()
 
+add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 # enable for time profiling
 add_compile_definitions(VTIME_PROFILING=0)
 
@@ -837,8 +896,9 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
 # gmp stuff
 ################################################################
 
-find_package(GMP)
-if (GMP_FOUND)
+option(MINI_GMP "compile an own version of mini-gmp instead of linking with system level gmp" ON)
+if (NOT MINI_GMP)
+  find_package(GMP REQUIRED)
   message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
   add_compile_definitions(VMINI_GMP=0)
   include_directories(${GMP_INCLUDE_DIRS})
@@ -848,7 +908,6 @@ else()
   add_compile_definitions(VMINI_GMP=1)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mini-gmp-6.3.0)
 endif()
-
 
 ################################################################
 # z3 stuff
@@ -881,6 +940,8 @@ else ()
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
 
+# add viras package source
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viras/src)
 
 ################################################################
 # build objects

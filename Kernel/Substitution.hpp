@@ -58,6 +58,7 @@ public:
 
 #if VDEBUG
   std::string toString() const;
+  unsigned size() const { return _map.size(); }
 #endif
   friend std::ostream& operator<<(std::ostream& out, Substitution const&);
 private:
