@@ -23,8 +23,9 @@ using namespace Lib;
 CadicalInterfacing::CadicalInterfacing(const Shell::Options& opts, bool generateProofs):
   _status(Status::SATISFIABLE)
 {
-  // TODO: consider tuning minisat's options to be set for _solver
-  // (or even forwarding them to vampire's options)
+  // these help a bit both for avataring and FMB
+  _solver.set("phase",0);
+  _solver.set("stabilizeonly",1);
 }
 
 SATSolver::Status CadicalInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
