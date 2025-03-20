@@ -93,98 +93,98 @@ namespace Kernel {
     { return OrderingUtils::notLeq(ordering->compare(lhs, rhs)); }
 
     // TODO 1 
-    template<class NumTraits>
-    auto maxSummandIndices(AlascaLiteralItp<NumTraits> const& lit, SelectionCriterion selection)
-    { return maxSummandIndices(lit.term(), selection); }
+    // template<class NumTraits>
+    // auto maxSummandIndices(AlascaLiteralItp<NumTraits> const& lit, SelectionCriterion selection)
+    // { return maxSummandIndices(lit.term(), selection); }
+    //
+    // // TODO 1 
+    // template<class NumTraits>
+    // auto maxSummandIndices(AlascaTermItp<NumTraits> const& term, SelectionCriterion selection)
+    // {
+    //     // TODO optimize less denormalization
+    //     auto monomAt = [=](auto i) 
+    //          { return term.summandAt(i).atom(); }; 
+    //
+    //     return iterTraits(OrderingUtils::maxElems(
+    //               term.nSummands(),
+    //               [=](unsigned l, unsigned r) 
+    //               { return ordering->compare(monomAt(l), monomAt(r)); },
+    //               [=](unsigned i)
+    //               { return monomAt(i); },
+    //               selection))
+    //              .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !term.summandAt(i).isNumeral()
+    //                                         : selection == SelectionCriterion::NOT_LESS ? !term.summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
+    //                                         : true; });
+    // }
+    //
+    //
+    // template<class T>
+    // auto maxSummandIndices(std::shared_ptr<T> const& sum, SelectionCriterion selection)
+    // { return maxSummandIndices(*sum, selection); }
+    //
+    // template<class T>
+    // auto maxSummandIndices(Recycled<T> const& sum, SelectionCriterion selection)
+    // { return maxSummandIndices(*sum, selection); }
+    //
+    // template<class Numeral>
+    // auto maxSummandIndices(Stack<std::pair<TermList, Numeral>> const& sum, SelectionCriterion selection)
+    // {
+    //     auto monomAt = [=](auto i) 
+    //          { return sum[i].first; }; 
+    //
+    //     return iterTraits(OrderingUtils::maxElems(
+    //               sum.size(),
+    //               [=](unsigned l, unsigned r) 
+    //               { return ordering->compare(monomAt(l), monomAt(r)); },
+    //               [=](unsigned i)
+    //               { return monomAt(i); },
+    //               selection));
+    // }
 
-    // TODO 1 
-    template<class NumTraits>
-    auto maxSummandIndices(AlascaTermItp<NumTraits> const& term, SelectionCriterion selection)
-    {
-        // TODO optimize less denormalization
-        auto monomAt = [=](auto i) 
-             { return term.summandAt(i).atom(); }; 
-
-        return iterTraits(OrderingUtils::maxElems(
-                  term.nSummands(),
-                  [=](unsigned l, unsigned r) 
-                  { return ordering->compare(monomAt(l), monomAt(r)); },
-                  [=](unsigned i)
-                  { return monomAt(i); },
-                  selection))
-                 .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !term.summandAt(i).isNumeral()
-                                            : selection == SelectionCriterion::NOT_LESS ? !term.summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
-                                            : true; });
-    }
 
 
-    template<class T>
-    auto maxSummandIndices(std::shared_ptr<T> const& sum, SelectionCriterion selection)
-    { return maxSummandIndices(*sum, selection); }
+    // auto maxEqIndices(Literal* lit, SelectionCriterion sel)
+    // {
+    //   Stack<unsigned> is(2);
+    //   auto iter = [](std::initializer_list<unsigned> out)  
+    //               { return arrayIter(Stack<unsigned>(out)); };
+    //   switch (sel) {
+    //     case SelectionCriterion::STRICTLY_MAX:
+    //       switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+    //         case Ordering::Result::GREATER: return iter({0});
+    //         case Ordering::Result::LESS:    return iter({1});
+    //
+    //         case Ordering::Result::EQUAL:
+    //         case Ordering::Result::INCOMPARABLE: return iter({});
+    //       }
+    //
+    //     case SelectionCriterion::ANY:
+    //       return iter({0,1});
+    //
+    //     case SelectionCriterion::NOT_LESS:
+    //       switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+    //         case Ordering::Result::GREATER: return iter({0});
+    //         case Ordering::Result::LESS:    return iter({1});
+    //
+    //         case Ordering::Result::EQUAL:
+    //         case Ordering::Result::INCOMPARABLE: return iter({0, 1});
+    //       }
+    //
+    //     case SelectionCriterion::NOT_LEQ:
+    //       switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+    //         case Ordering::Result::GREATER: return iter({0});
+    //         case Ordering::Result::LESS:    return iter({1});
+    //         case Ordering::Result::EQUAL:        return iter({});
+    //         case Ordering::Result::INCOMPARABLE: return iter({0, 1});
+    //       }
+    //   }
+    //
+    //   return arrayIter(std::move(is));
+    // }
 
-    template<class T>
-    auto maxSummandIndices(Recycled<T> const& sum, SelectionCriterion selection)
-    { return maxSummandIndices(*sum, selection); }
-
-    template<class Numeral>
-    auto maxSummandIndices(Stack<std::pair<TermList, Numeral>> const& sum, SelectionCriterion selection)
-    {
-        auto monomAt = [=](auto i) 
-             { return sum[i].first; }; 
-
-        return iterTraits(OrderingUtils::maxElems(
-                  sum.size(),
-                  [=](unsigned l, unsigned r) 
-                  { return ordering->compare(monomAt(l), monomAt(r)); },
-                  [=](unsigned i)
-                  { return monomAt(i); },
-                  selection));
-    }
-
-
-
-    auto maxEqIndices(Literal* lit, SelectionCriterion sel)
-    {
-      Stack<unsigned> is(2);
-      auto iter = [](std::initializer_list<unsigned> out)  
-                  { return arrayIter(Stack<unsigned>(out)); };
-      switch (sel) {
-        case SelectionCriterion::STRICTLY_MAX:
-          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
-            case Ordering::Result::GREATER: return iter({0});
-            case Ordering::Result::LESS:    return iter({1});
-
-            case Ordering::Result::EQUAL:
-            case Ordering::Result::INCOMPARABLE: return iter({});
-          }
-
-        case SelectionCriterion::ANY:
-          return iter({0,1});
-
-        case SelectionCriterion::NOT_LESS:
-          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
-            case Ordering::Result::GREATER: return iter({0});
-            case Ordering::Result::LESS:    return iter({1});
-
-            case Ordering::Result::EQUAL:
-            case Ordering::Result::INCOMPARABLE: return iter({0, 1});
-          }
-
-        case SelectionCriterion::NOT_LEQ:
-          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
-            case Ordering::Result::GREATER: return iter({0});
-            case Ordering::Result::LESS:    return iter({1});
-            case Ordering::Result::EQUAL:        return iter({});
-            case Ordering::Result::INCOMPARABLE: return iter({0, 1});
-          }
-      }
-
-      return arrayIter(std::move(is));
-    }
-
-    auto selectUninterpretedEquality(SelectedLiteral lit, SelectionCriterion sel)
-    { return maxEqIndices(lit.literal(), sel)
-        .map([lit](auto i) { return SelectedUninterpretedEquality(lit, i); }); }
+    // auto selectUninterpretedEquality(SelectedLiteral lit, SelectionCriterion sel)
+    // { return maxEqIndices(lit.literal(), sel)
+    //     .map([lit](auto i) { return SelectedUninterpretedEquality(lit, i); }); }
 
     // TODO use ifElseIter
     // TODO 1 remove (?)
@@ -220,12 +220,12 @@ namespace Kernel {
     }
 
 
-    auto maxSummands(SelectedLiteral sel_lit , SelectionCriterion sel) 
-    { return coproductIter(sel_lit.interpreted.unwrap()
-                .applyCo([&](auto& lit) 
-                       { return maxSummandIndices(lit, sel); }))
-                .map([=](auto i) 
-                     { return SelectedSummand(sel_lit, i); }); }
+    // auto maxSummands(SelectedLiteral sel_lit , SelectionCriterion sel) 
+    // { return coproductIter(sel_lit.interpreted.unwrap()
+    //             .applyCo([&](auto& lit) 
+    //                    { return maxSummandIndices(lit, sel); }))
+    //             .map([=](auto i) 
+    //                  { return SelectedSummand(sel_lit, i); }); }
 
 
                 // TODO 1 replace this by 'selected(...)'
