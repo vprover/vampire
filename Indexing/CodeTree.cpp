@@ -801,9 +801,6 @@ template struct CodeTree::Matcher<false>;
 
 CodeTree::CodeTree()
 : _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _entryPoint(0)
-#if LOG_LEAVES
-  , _printLeaf(0)
-#endif
 {
 }
 
@@ -904,18 +901,11 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
 std::ostream& operator<<(std::ostream& out, const CodeTree& ct)
 {
-  ct.visitAllOps([&out,&ct](const CodeTree::CodeOp* op, unsigned depth) {
+  ct.visitAllOps([&out](const CodeTree::CodeOp* op, unsigned depth) {
     for (unsigned i = 0; i < depth; i++) {
       out << "  ";
     }
-    out << *op;
-#if LOG_LEAVES
-    if (op->isSuccess() && ct._printLeaf) {
-      out << " ";
-      ct._printLeaf(out, op);
-    }
-#endif
-    out << std::endl;
+    out << *op << std::endl;
   });
   return out;
 }

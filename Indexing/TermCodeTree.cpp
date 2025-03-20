@@ -45,11 +45,6 @@ TermCodeTree<Data>::TermCodeTree()
 {
   _clauseCodeTree=false;
   _onCodeOpDestroying = onCodeOpDestroying;
-#if LOG_LEAVES
-  _printLeaf = [](std::ostream& str, const CodeOp* op) {
-    str << *op->getSuccessResult<Data>();
-  };
-#endif
 }
 
 template<class Data>
