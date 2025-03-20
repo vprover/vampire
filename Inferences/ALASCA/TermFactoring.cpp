@@ -204,7 +204,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 
   auto max = Lib::make_shared(Stack<TermList>());
   auto selected = Lib::make_shared(
-        _shared->selectedSummands(premise,
+        _shared->oldSelectedSummands(premise,
           SelectionCriterion::NOT_LESS,
           /* include number vars */ false)
         .inspect([&](auto& sel) { max->push(sel.selectedAtomicTerm()); })

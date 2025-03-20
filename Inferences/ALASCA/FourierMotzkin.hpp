@@ -52,7 +52,7 @@ struct FourierMotzkinConf
 
     static auto iter(AlascaState& shared, Clause* cl)
     { 
-      return shared.selectedSummands(cl, 
+      return shared.oldSelectedSummands(cl, 
           // TODO 1 
                         /* literal*/ SelectionCriterion::NOT_LEQ, 
                         // /* term */ SelectionCriterion::NOT_LEQ,
@@ -74,7 +74,7 @@ struct FourierMotzkinConf
 
     static auto iter(AlascaState& shared, Clause* cl) 
     { 
-      return shared.selectedSummands(cl, 
+      return shared.oldSelectedSummands(cl, 
           // TODO 1
                         /* literal*/ SelectionCriterion::NOT_LESS,
                         // /* term */ SelectionCriterion::NOT_LEQ,

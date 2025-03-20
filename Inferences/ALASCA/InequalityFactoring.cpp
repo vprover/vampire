@@ -52,8 +52,8 @@ void InequalityFactoring::detach() { }
 
 template<class NumTraits>
 Option<Clause*> InequalityFactoring::applyRule(
-    SelectedSummand const& l1,  // +j s1 + t1 >1 0
-    SelectedSummand const& l2   // +k s2 + t2 >2 0
+    SelectedAtomicTermItp<NumTraits> const& l1,  // +j s1 + t1 >1 0
+    SelectedAtomicTermItp<NumTraits> const& l2   // +k s2 + t2 >2 0
     )
 {
   using Numeral = typename NumTraits::ConstantType;
@@ -72,8 +72,8 @@ Option<Clause*> InequalityFactoring::applyRule(
 
   auto cnst  = uwa->computeConstraintLiterals();
   auto sigma = [&](auto x){ return uwa->subs().apply(x, /* varbank */ 0); };
-  auto j = l1.numeral().unwrap<Numeral>();
-  auto k = l2.numeral().unwrap<Numeral>();
+  auto j = l1.numeral();
+  auto k = l2.numeral();
   ASS_EQ(l1.clause(), l2.clause())
   auto premise = l1.clause();
 
@@ -89,24 +89,24 @@ Option<Clause*> InequalityFactoring::applyRule(
   ASS(k.isPositive())
 #endif
 
-  auto s1_sigma = sigma(s1);
-  Stack<TermList> t1_sigma;
+  auto s1σ = sigma(s1);
+  Stack<TermList> t1σ;
   CHECK_CONDITION("s1σ /⪯ terms(t1)σ",
-      l1.contextTerms<NumTraits>() 
+      l1.contextTerms() 
         .all([&](auto ki_ti) {
           auto tiσ = sigma(ki_ti.atom());
-          t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
-          return _shared->notLeq(s1_sigma, tiσ);
+          t1σ.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
+          return _shared->notLeq(TermList(s1σ), tiσ);
         }));
 
-  auto s2_sigma = sigma(s2);
-  Stack<TermList> t2_sigma;
+  auto s2σ = sigma(s2);
+  Stack<TermList> t2σ;
   CHECK_CONDITION("s2σ /⪯ terms(t2)σ",
-      l2.contextTerms<NumTraits>() 
+      l2.contextTerms() 
         .all([&](auto ki_ti) {
           auto tiσ = sigma(ki_ti.atom());
-          t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
-          return _shared->notLeq(s2_sigma, tiσ);
+          t2σ.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
+          return _shared->notLeq(TermList(s2σ), tiσ);
         }));
 
                                   //
@@ -115,7 +115,7 @@ Option<Clause*> InequalityFactoring::applyRule(
   // adding `Cσ`
   { 
     for (auto i : range(0, premise->size()) ) {
-      if (i != l1.litIdx && i != l2.litIdx) {
+      if (i != l1.litIdx() && i != l2.litIdx()) {
         concl.push(sigma((*premise)[i]));
       }
     }
@@ -148,8 +148,8 @@ Option<Clause*> InequalityFactoring::applyRule(
   auto pivotSum = 
   //   ^^^^^^^^--> `(k t1 − j t2)σ`
     NumTraits::sum(concatIters(
-          l1.contextTerms<NumTraits>().map([&](auto t) { return  sigma(( k * t).toTerm()); }),
-          l2.contextTerms<NumTraits>().map([&](auto t) { return  sigma((-j * t).toTerm()); })));
+          l1.contextTerms().map([&](auto t) { return  sigma(( k * t).toTerm()); }),
+          l2.contextTerms().map([&](auto t) { return  sigma((-j * t).toTerm()); })));
     
 
   // • (>3) = if (>1, >2) = (>=, >) then (>=) 
@@ -169,11 +169,11 @@ Option<Clause*> InequalityFactoring::applyRule(
   return Option<Clause*>(out);
 }
 
-Option<Clause*> InequalityFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)
+Option<Clause*> InequalityFactoring::applyRule(SelectedAtomicTermItpAny const& l1, SelectedAtomicTermItpAny const& l2)
 {
-  ASS_EQ(l1.clause(), l2.clause())
-  return l1.numTraits().apply([&](auto numTraits) {
-      return applyRule<decltype(numTraits)>(l1, l2);
+  return l1.apply([&](auto& l1) {
+    ASS_EQ(l1.clause(), l2.clause())
+    return applyRule(l1, l2.template unwrap<std::remove_const_t<std::remove_reference_t<decltype(l1)>>>());
   });
 }
 
@@ -184,65 +184,35 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 
     auto selected = Lib::make_shared(
         _shared->selectedSummands(premise, 
-          // TODO 1.1 work out the selection criterion stuff
-                       /* literal */ SelectionCriterion::NOT_LESS, 
-                       // /* summand */ SelectionCriterion::NOT_LEQ,
+                       /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
-          .filter([](auto& s) { return s.isInequality(); })
-#if FACTOR_NEGATIVE
-          .filter([](auto& s) { return s.sign() != Sign::Zero; })
-#else 
-          .filter([](auto& s) { return s.sign() == Sign::Pos; })
+          .filter([](auto& s) { return s.apply([](auto& s) { return 
+              s.isInequality()
+#if !FACTOR_NEGATIVE
+              && s.numeral().sign() == Sign::Pos
 #endif
+              ; 
+              }); })
           .template collect<Stack>());
 
-  auto rest = Lib::make_shared(
-      _shared->selectedSummands(premise,  
-        // TODO 1
-                    // /* literal */ SelectionCriterion::ANY, 
-                    /* summand */ SelectionCriterion::NOT_LEQ,
-                    /* include number vars */ false)
-        .filter([](auto& s) { return s.isInequality(); })
-#if FACTOR_NEGATIVE
-        .filter([](auto& s) { return s.sign() != Sign::Zero; })
-#else 
-        .filter([](auto& s) { return s.sign() == Sign::Pos; })
-#endif
-        .template collect<Stack>());
-
-  auto selIdx = Lib::make_shared(Set<std::pair<unsigned, unsigned>>());
-  auto key = [&](auto& s) { return std::make_pair(s.litIdx, s.termIdx()); };
-
-  DEBUG("selected summands:")
-  for (auto& s : *selected) {
-    selIdx->insert(key(s));
-    DEBUG("  ", s)
-  }
 
   return pvi(range(0, selected->size())
       .flatMap([=](auto i) {
-        return range(0, rest->size())
-          .filter([=](auto j) { return (*selected)[i].litIdx != (*rest)[j].litIdx; })
-          .filter([=](auto j) { return (*selected)[i].numTraits() == (*rest)[j].numTraits(); })
+        return range(i + 1, selected->size())
+          .filter([=](auto j) { return (*selected)[i].litIdx() != (*selected)[j].litIdx(); })
+          .filter([=](auto j) { return (*selected)[i].numTraits() == (*selected)[j].numTraits(); })
           .flatMap([=](auto j) {
               auto& max = (*selected)[i];
-              auto& other = (*rest)[j];
-              return ifElseIter3(
+              auto& other = (*selected)[j];
+              return ifElseIter2(
 
                   // both literals are the same. 
                   // we use a symmetry breaking index comparison
                   // TODO we could replace this == by _shared.equivalent
-                  max.literal() == other.literal() && other.litIdx < max.litIdx, 
-                  arrayIter(Stack<Clause*>{}),
+                  max.literal() == other.literal() && other.litIdx() < max.litIdx(), 
+                  iterItems<Clause*>(),
 
-                  // both are selected (= maximal)
-                  // we skip one of the applicaiton to avoid duplicate results
-                  selIdx->contains(key(other)),
-                  applyRule(other, max).intoIter(),
-
-                  // only one is selected (= maximal)
-                  concatIters(applyRule(max,other).intoIter(), 
-                    applyRule(other, max).intoIter())
+                  applyRule(other, max).intoIter()
                   ); 
                   
           });

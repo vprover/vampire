@@ -363,8 +363,10 @@ namespace Kernel {
     //           .intoIter())
     //           .flatten(); }
 
-   IterTraits<VirtualIterator<SelectedSummand>> 
-    selectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
+   IterTraits<VirtualIterator<SelectedAtomicTermItpAny>> selectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables);
+
+   // TODO remove
+   IterTraits<VirtualIterator<SelectedSummand>> oldSelectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
     ;
     // { return selectedAtoms(cl, selLit, includeUnshieldedNumberVariables)
     //             .filterMap([](auto l) { return std::move(l).template as<SelectedSummand>().toOwned(); }); }

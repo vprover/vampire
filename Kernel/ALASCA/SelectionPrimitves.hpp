@@ -18,9 +18,11 @@
 #include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/OrderingUtils.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/TypeList.hpp"
 #include "Kernel/Clause.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 namespace Kernel {
 
@@ -239,6 +241,19 @@ namespace Kernel {
     using Self = SelectedAtomicTermItp;
     auto asTuple() const { return std::tie(_clause, _lit, _summand); }
   public:
+    auto numTraits() const { return NumTraits {}; }
+    using Numeral = typename NumTraits::ConstantType;
+    bool isInequality() const;
+    AlascaMonom<NumTraits> selected() const;
+    TypedTermList selectedAtom() const;
+    Numeral numeral() const;
+    Clause* clause() const { return _clause; }
+    Literal* literal() const { return (*_clause)[_lit]; }
+    AlascaLiteralItp<NumTraits> alascaLiteral() const;
+    unsigned litIdx() const { return _lit; }
+    unsigned termIdx() const { return _summand; }
+    auto symbol() const { return alascaLiteral().symbol(); }
+    IterTraits<VirtualIterator<AlascaMonom<NumTraits>>> contextTerms() const;
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
     friend std::ostream& operator<<(std::ostream& out, Self const& self);
@@ -261,10 +276,14 @@ namespace Kernel {
     { self.apply([&](auto& x) { out << x; }); return out; }
   };
 
-  template<class NumTraits>
   struct SelectedAtomicTermItpAny : public NumTraitsCopro<SelectedAtomicTermItp>
   {
 
+    unsigned litIdx() const;
+    unsigned termIdx() const;
+    auto numTraits() const { return applyCo([](auto& x) { return x.numTraits(); }); }
+    Literal* literal() const;
+    Clause* clause() const;
   };
 
   struct NewSelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
