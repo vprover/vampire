@@ -1610,8 +1610,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new ALASCA::FourierMotzkin(shared));
     sgi->push(new ALASCA::FloorFourierMotzkin<RatTraits>(shared));
     sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared));
-    sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
     sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
+    sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
     if (env.options->superposition()) {
       sgi->push(new ALASCA::Superposition(shared));
     }
@@ -1620,8 +1620,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared));
     sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared));
+    sgi->push(new ALASCA::Coherence<RatTraits>(shared));
     sgi->push(new ALASCA::Coherence<RealTraits>(shared));
-    sgi->push(new ALASCA::FloorBounds(shared));
+    sgi->push(new ALASCA::FloorBounds<RatTraits>(shared));
+    sgi->push(new ALASCA::FloorBounds<RealTraits>(shared));
   }
 
 #if VZ3

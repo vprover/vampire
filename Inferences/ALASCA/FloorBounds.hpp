@@ -33,10 +33,10 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<class NumTraits>
 class FloorBounds 
   : public GeneratingInferenceEngine 
 {
-  using NumTraits = RealTraits;
 
   std::shared_ptr<AlascaState> _shared;
 
@@ -84,12 +84,13 @@ class FloorBounds
         );
   }
 
-  auto generateClauses(FourierMotzkin::Lhs const& premise) const 
+  auto generateClauses(FourierMotzkin::Lhs const& premise_) const 
   {
-    ASS(premise.numeral<NumTraits>().isPositive())
+    auto premise = premise_.unwrap<SelectedAtomicTermItp<NumTraits>>();
+    ASS(premise.numeral().isPositive())
     auto s = NumTraits::ifFloor(premise.selectedAtom(), [](auto s) { return s; }).unwrap();
-    auto t = premise.notSelectedTerm();
-    auto pred = premise.alascaPredicate().unwrap();
+    auto t = premise.contextTermSum();
+    auto pred = premise.alascaLiteral().symbol();
     ASS(isInequality(pred))
 
     return iterItems(
@@ -119,12 +120,13 @@ class FloorBounds
   }
 
 
-  auto generateClauses(FourierMotzkin::Rhs const& premise) const 
+  auto generateClauses(FourierMotzkin::Rhs const& premise_) const 
   {
-    ASS(premise.numeral<NumTraits>().isNegative())
+    auto premise = premise_.unwrap<SelectedAtomicTermItp<NumTraits>>();
+    ASS(premise.numeral().isNegative())
     auto s = NumTraits::ifFloor(premise.selectedAtom(), [](auto s) { return s; }).unwrap();
-    auto t = premise.notSelectedTerm();
-    auto pred = premise.alascaPredicate().unwrap();
+    auto t = premise.contextTermSum();
+    auto pred = premise.alascaLiteral().symbol();
     ASS(isInequality(pred))
 
     return iterItems(

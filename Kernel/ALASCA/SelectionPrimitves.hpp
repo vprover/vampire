@@ -18,6 +18,7 @@
 #include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/OrderingUtils.hpp"
+#include "Kernel/Theory.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/TypeList.hpp"
@@ -138,10 +139,10 @@ namespace Kernel {
                 .map([&](unsigned i) { return lit.term().summandAt(i); });
     }
 
-    TermList notSelectedTerm(AlascaLiteralItp<IntTraits> const& lit) const { ASSERTION_VIOLATION }
+    TermList contextTermSum(AlascaLiteralItp<IntTraits> const& lit) const { ASSERTION_VIOLATION }
 
     template<class NumTraits>
-    TermList notSelectedTerm(AlascaLiteralItp<NumTraits> const& lit) const { 
+    TermList contextTermSum(AlascaLiteralItp<NumTraits> const& lit) const { 
       return TermList(AlascaSignature<NumTraits>::sum(range(0, lit.term().nSummands()) 
                 .filter([&](unsigned i) { return i != _term; })
                 .map([&](unsigned i) { return lit.term().summandAt(i) / numeral<NumTraits>().abs(); })
@@ -150,9 +151,9 @@ namespace Kernel {
     }
 
     // TODO use this everywhere possible
-    auto notSelectedTerm() const 
+    auto contextTermSum() const 
     { return alascaLiteral()
-        .apply([this](auto& x) { return notSelectedTerm(x); }); }
+        .apply([this](auto& x) { return contextTermSum(x); }); }
 
     bool isInequality() const
     { return alascaLiteral().apply([](auto& lit)
@@ -252,8 +253,12 @@ namespace Kernel {
     AlascaLiteralItp<NumTraits> alascaLiteral() const;
     unsigned litIdx() const { return _lit; }
     unsigned termIdx() const { return _summand; }
-    auto symbol() const { return alascaLiteral().symbol(); }
+    IterTraits<VirtualIterator<Literal*>> contextLiterals() const;
+    // TODO 1.3 do we actually want to use this?
     IterTraits<VirtualIterator<AlascaMonom<NumTraits>>> contextTerms() const;
+    TermList contextTermSum() const;
+
+    auto symbol() const { return alascaLiteral().symbol(); }
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
     friend std::ostream& operator<<(std::ostream& out, Self const& self);
@@ -282,6 +287,10 @@ namespace Kernel {
     unsigned litIdx() const;
     unsigned termIdx() const;
     auto numTraits() const { return applyCo([](auto& x) { return x.numTraits(); }); }
+    bool isInequality() const;
+    TypedTermList selectedAtom() const { return apply([](auto x) { return x.selectedAtom(); }); }
+    IterTraits<VirtualIterator<Literal*>> contextLiterals() const;
+    Sign sign() const;
     Literal* literal() const;
     Clause* clause() const;
   };

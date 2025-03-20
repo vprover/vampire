@@ -80,16 +80,16 @@ namespace Kernel {
             { return SelectedLiteral(cl, i, *this); });
     }
 
-    template<class LitOrTerm>
-    bool greater(LitOrTerm lhs, LitOrTerm rhs)
+    template<class LitOrTerm0, class LitOrTerm1>
+    bool greater(LitOrTerm0 lhs, LitOrTerm1 rhs)
     { return ordering->compare(lhs, rhs) == Ordering::Result::GREATER; }
 
-    template<class LitOrTerm>
-    bool notLess(LitOrTerm lhs, LitOrTerm rhs)
+    template<class LitOrTerm0, class LitOrTerm1>
+    bool notLess(LitOrTerm0 lhs, LitOrTerm1 rhs)
     { return OrderingUtils::notLess(ordering->compare(lhs, rhs)); }
 
-    template<class LitOrTerm>
-    bool notLeq(LitOrTerm lhs, LitOrTerm rhs)
+    template<class LitOrTerm0, class LitOrTerm1>
+    bool notLeq(LitOrTerm0 lhs, LitOrTerm1 rhs)
     { return OrderingUtils::notLeq(ordering->compare(lhs, rhs)); }
 
     // TODO 1 

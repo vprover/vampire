@@ -59,7 +59,7 @@ struct IntegerFourierMotzkinConf
       Premise2 const& prem2, unsigned varBank2,
       AbstractingUnifier& uwa) const
   {
-    if (!prem0.numTraitsIs<NumTraits>()) { return {}; }
+    if (!prem0.numTraits().template is<NumTraits>()) { return {}; }
     auto sigma2 = [&](auto t)  { return uwa.subs().apply(t, varBank2); };
     return applyRule__(prem0, varBank0,
                        prem1, varBank1,
@@ -83,21 +83,24 @@ struct IntegerFourierMotzkinConf
   // ⌈j t0 − u⌉ + ⌈j t1 + u⌉ − 2 > 0 ∨ js + u + ⌈jt0 − u⌉ − 1 ≈ 0
   template<class C2, class MkClause>
   static Option<Clause*> applyRule__(
-      Premise0 const& prem0, unsigned varBank0,
-      Premise1 const& prem1, unsigned varBank1,
+      Premise0 const& prem0_, unsigned varBank0,
+      Premise1 const& prem1_, unsigned varBank1,
       typename NumTraits::ConstantType j,  // <- the constant j
       TermList u_s, // <- the term u\sigma
       C2 c2_s, // <- iterator over the literals C2\sigma
       AbstractingUnifier& uwa,
       MkClause mkClause)
   { 
-    ASS(prem0.numeral<NumTraits>().isPositive())
-    ASS(prem1.numeral<NumTraits>().isNegative())
+    return prem0_.apply([&](auto prem0) -> Option<Clause*> {
+    auto prem1 = prem1_.unwrap<decltype(prem0)>();
+
+    ASS(prem0.numeral().isPositive())
+    ASS(prem1.numeral().isNegative())
     auto sigma0 = [&](auto t)  { return uwa.subs().apply(t, varBank0); };
     auto sigma1 = [&](auto t)  { return uwa.subs().apply(t, varBank1); };
     auto s_s  = sigma0(prem0.selectedAtom());
-    auto t0_s = sigma0(prem0.notSelectedTerm());
-    auto t1_s = sigma1(prem1.notSelectedTerm());
+    auto t0_s = sigma0(prem0.contextTermSum());
+    auto t1_s = sigma1(prem1.contextTermSum());
     ASS(j.isPositive())
     // auto s_sigma = sigma0(prem0.selectedTerm());
 
@@ -105,8 +108,8 @@ struct IntegerFourierMotzkinConf
     auto sum = [](auto... xs) { return NumTraits::sum(iterItems(TermList(xs)...)); };
     auto mul = [](auto l, auto r) { return NumTraits::mul(NumTraits::constantTl(l), r); };
 
-    auto p0 = prem0.alascaPredicate().unwrap();
-    auto p1 = prem1.alascaPredicate().unwrap();
+    auto p0 = prem0.alascaLiteral().symbol();
+    auto p1 = prem1.alascaLiteral().symbol();
     if (p0 == p1 && p1 == AlascaPredicate::GREATER_EQ)  {
       // in this case the rule is the same as the ordinary FM
       return {};
@@ -150,6 +153,7 @@ struct IntegerFourierMotzkinConf
               NumTraits::eq(true, sum(s_s, t0_strengthened), NumTraits::constantTl(0))
             )
           )));
+    });
   }
 
   std::shared_ptr<AlascaState> _shared;

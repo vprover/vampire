@@ -40,44 +40,48 @@ struct FourierMotzkinConf
 
   static const char* name() { return "alasca fourier motzkin"; }
 
-  class Lhs : public SelectedSummand { 
+  class Lhs : public SelectedAtomicTermItpAny { 
   public: 
     static const char* name() { return "alasca fourier motzkin lhs"; }
     static IndexType indexType() { return Indexing::ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE; }
 
     explicit Lhs(Lhs const&) = default;
-    Lhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
+    Lhs(SelectedAtomicTermItpAny s) : SelectedAtomicTermItpAny(std::move(s)) {} 
     Lhs(Lhs&&) = default;
     Lhs& operator=(Lhs&&) = default;
+    
+    TypedTermList key() const { return selectedAtom(); }
 
     static auto iter(AlascaState& shared, Clause* cl)
     { 
-      return shared.oldSelectedSummands(cl, 
+      return shared.selectedSummands(cl, 
           // TODO 1 
-                        /* literal*/ SelectionCriterion::NOT_LEQ, 
-                        // /* term */ SelectionCriterion::NOT_LEQ,
+                        // /* literal*/ SelectionCriterion::NOT_LEQ, 
+                        /* term */ SelectionCriterion::NOT_LEQ,
                         /* include number vars */ false)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
               .map([&]   (auto selected)        { return Lhs(std::move(selected));     }); }
   };
 
-  class Rhs : public SelectedSummand { 
+  class Rhs : public SelectedAtomicTermItpAny { 
   public: 
     static const char* name() { return "alasca fourier motzkin rhs"; }
     static IndexType indexType() { return Indexing::ALASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE; }
 
     explicit Rhs(Rhs const&) = default;
-    Rhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
+    Rhs(SelectedAtomicTermItpAny s) : SelectedAtomicTermItpAny(std::move(s)) {} 
     Rhs(Rhs&&) = default;
     Rhs& operator=(Rhs&&) = default;
 
+    TypedTermList key() const { return selectedAtom(); }
+
     static auto iter(AlascaState& shared, Clause* cl) 
     { 
-      return shared.oldSelectedSummands(cl, 
+      return shared.selectedSummands(cl, 
           // TODO 1
-                        /* literal*/ SelectionCriterion::NOT_LESS,
-                        // /* term */ SelectionCriterion::NOT_LEQ,
+                        // /* literal*/ SelectionCriterion::NOT_LESS,
+                        /* term */ SelectionCriterion::NOT_LEQ,
                         /* include number vars */ false)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })

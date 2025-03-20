@@ -56,7 +56,6 @@ Option<Clause*> InequalityFactoring::applyRule(
     SelectedAtomicTermItp<NumTraits> const& l2   // +k s2 + t2 >2 0
     )
 {
-  using Numeral = typename NumTraits::ConstantType;
   TIME_TRACE("alasca inequality factoring application")
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)
