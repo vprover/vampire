@@ -164,6 +164,10 @@ void Options::init()
       " Discovering a finite saturations while using a complete strategy and thus testifying satisfiability is a nice bonus in that case."
       " On the other hand, with the intent `sat` the main focus is on finding models."
       " (Please use `--mode casc --intent sat` to achieve what was previously triggered via `--mode CASC_SAT`).";
+
+    // Warn about combinations of Intent::SAT and incomplete settings
+    _intent.addConstraint(If(equal(Intent::SAT)).then(_sineSelection.is(equal(SineSelection::OFF))));
+    _intent.addConstraint(If(equal(Intent::SAT)).then(_equalityProxy.is(equal(EqualityProxy::OFF))));
     _lookup.insert(&_intent);
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
@@ -796,9 +800,6 @@ void Options::init()
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
 
-    // Warn about combinations of FMB and incomplete settings
-    _saturationAlgorithm.addConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_sineSelection.is(equal(SineSelection::OFF))));
-    _saturationAlgorithm.addConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(equal(EqualityProxy::OFF))));
     // make the next hard - RSTC will make FMB crash (as RSTC correctly does not trigger hadIncompleteTransformation; still it probably does not make sense to use ep with fmb)
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(notEqual(EqualityProxy::RSTC))));
 

@@ -236,7 +236,9 @@ av=on crc=on > crac ~cat on:1,off:1
 crc=on > crlc ~cat on:1,off:1
 
 # sat_solver
-sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,z3:1
+sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,cadical:7,z3:3
+sa!=fmb $has_z3!=true av=on > sas ~cat minisat:10,cadical:7
+sa=fmb > sas ~cat minisat:7,cadical:10
 
 # avatar_add_complementary
 sa!=fmb av=on > aac ~cat none:147,ground:600
