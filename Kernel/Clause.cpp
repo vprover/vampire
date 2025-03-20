@@ -39,6 +39,7 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "SortHelper.hpp"
 
 #include "Inferences/GoalRewriting.hpp"
 
@@ -238,7 +239,14 @@ void Clause::setStore(Store s)
     selected=this;
   }
 #endif
+#if VAMPIRE_CLAUSE_TRACING
+  auto traceForward = env.options->traceForward();
+  if (number() == traceForward && _store != s) {
+    std::cout << number() << ".setStore(" << s << ")" << std::endl;
+  }
+#endif // VAMPIRE_CLAUSE_TRACING
   _store = s;
+
   destroyIfUnnecessary();
 }
 
@@ -365,8 +373,27 @@ std::ostream& operator<<(std::ostream& out, Clause const& self)
  */
 std::string Clause::toString() const
 {
+  std::string quantifier = "";
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
+    DHMap<unsigned,TermList> varSortMap;
+    SortHelper::collectVariableSorts(const_cast<Clause*>(this),varSortMap);
+    auto vars = Stack<unsigned>::fromIterator(varSortMap.domain());
+    vars.sort();
+    unsigned numVars = vars.size();
+    if (numVars) {
+      quantifier += "![";
+      for (auto var : vars) {
+        quantifier += TermList(var,false).toString() + ":" + varSortMap.get(var).toString();
+        if (--numVars) {
+          quantifier += ", ";
+        }
+      }
+      quantifier += "]: ";
+    }
+  }
+
   // print id and literals of clause
-  std::string result = Int::toString(_number) + ". " + literalsOnlyToString();
+  std::string result = Int::toString(_number) + ". "+ quantifier + literalsOnlyToString();
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
@@ -379,11 +406,11 @@ std::string Clause::toString() const
   if(env.options->proofExtra() != Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
     result += std::string(" {");
-      
+
     result += std::string("a:") + Int::toString(age());
     unsigned weight = (_weight ? _weight : computeWeight());
     result += std::string(",w:") + Int::toString(weight);
-    
+
     unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
     if(weightForClauseSelection!=weight){
       result += std::string(",wCS:") + Int::toString(weightForClauseSelection);
@@ -481,7 +508,7 @@ unsigned Clause::computeWeight() const
 {
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    ASS(_literals[i]->shared());
+    ASS_REP(_literals[i]->shared(), *_literals[i]);
     result += _literals[i]->weight();
   }
 
@@ -747,18 +774,6 @@ bool Clause::contains(Literal* lit)
     }
   }
   return false;
-}
-
-std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
-{
-  switch (store) {
-    case Clause::PASSIVE:     return out << "PASSIVE";
-    case Clause::ACTIVE:      return out << "ACTIVE";
-    case Clause::UNPROCESSED: return out << "UNPROCESSED";
-    case Clause::NONE:        return out << "NONE";
-    case Clause::SELECTED:    return out << "SELECTED";
-  }
-  ASSERTION_VIOLATION;
 }
 
 Literal* Clause::getAnswerLiteral() {
