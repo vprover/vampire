@@ -258,14 +258,18 @@ namespace Kernel {
     { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 
 
-    IterTraits<VirtualIterator<SelectedAtomicLiteral>> selectedAtomicLiterals(Clause* cl, SelectionCriterion selLit);
+    auto selectedAtomicLiterals(Clause* cl, SelectionCriterion selLit) 
+      // TODO 1.2
+    { return selected(cl, selLit, SelectionCriterion::ANY, /* includeUnshieldedNumberVariables */ false)
+      .filterMap([](auto x) { return std::move(x).template as<SelectedAtomicLiteral>(); }); }
 
-    IterTraits<VirtualIterator<SelectedAtomicTerm>> selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
+    auto selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables)
+    { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
+      .filterMap([](auto x) { return std::move(x).template as<SelectedAtomicTerm>(); }); }
 
     auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
     { return selectedAtomicTerms(cl, selLit, selTerm, includeUnshieldedNumberVariables)
         .filterMap([](auto x) { return SelectedEquality::from(std::move(x)); }); }
-
 
     bool interpretedFunction(TermList t) 
     { return t.isTerm() && interpretedFunction(t.term()); }
@@ -339,9 +343,9 @@ namespace Kernel {
 
    IterTraits<VirtualIterator<NewSelectedAtom>> selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
 
-   IterTraits<VirtualIterator<SelectedAtomicTerm>> 
-    selectedAtoms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
-      ;
+   // IterTraits<VirtualIterator<SelectedAtomicTerm>> 
+   //  selectedAtoms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
+      // ;
     // { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<0>()
     //           .intoIter())
     //           .flatten(); }
