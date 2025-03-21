@@ -257,11 +257,8 @@ namespace Kernel {
     auto isUninterpreted(Literal* l) const 
     { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 
-    // TODO 1 remove
-    auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) 
-    { return _maxLits(cl, selLit)
-        .filter([&](auto& lit) { return isUninterpreted(lit.literal()); }); }
 
+    IterTraits<VirtualIterator<SelectedAtomicLiteral>> selectedAtomicLiterals(Clause* cl, SelectionCriterion selLit);
 
     IterTraits<VirtualIterator<SelectedAtomicTerm>> selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
 

@@ -47,17 +47,17 @@ struct BinaryResolutionConf
 
   BinaryResolutionConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
 
-  struct Lhs : public SelectedLiteral
+  struct Lhs : public SelectedAtomicLiteral
   {
     static const char* name() { return "alasca binary resolution lhs"; }
 
-    Lhs(SelectedLiteral inner) : SelectedLiteral(std::move(inner)) {}
+    Lhs(SelectedAtomicLiteral inner) : SelectedAtomicLiteral(std::move(inner)) {}
 
     Literal* key() const { return literal(); }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
-      return shared.selectedUninterpretedLiterals(cl, /* literal */ SelectionCriterion::NOT_LEQ)
+      return shared.selectedAtomicLiterals(cl, /* literal */ SelectionCriterion::NOT_LEQ)
              .filter([](auto x) { return x.literal()->isPositive(); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
@@ -66,17 +66,17 @@ struct BinaryResolutionConf
   };
 
 
-  struct Rhs : public SelectedLiteral
+  struct Rhs : public SelectedAtomicLiteral
   {
     static const char* name() { return "alasca binary resolution rhs"; }
 
-    Rhs(SelectedLiteral inner) : SelectedLiteral(std::move(inner)) {}
+    Rhs(SelectedAtomicLiteral inner) : SelectedAtomicLiteral(std::move(inner)) {}
 
     Literal* key() const { return Literal::positiveLiteral(literal()); }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
-      return shared.selectedUninterpretedLiterals(cl, /* literal */ SelectionCriterion::NOT_LESS)
+      return shared.selectedAtomicLiterals(cl, /* literal */ SelectionCriterion::NOT_LESS)
              .filter([](auto x) { return !x.literal()->isPositive(); })
              .map([](auto x) { return Rhs(std::move(x)); });
     }
@@ -92,8 +92,8 @@ struct BinaryResolutionConf
   { return applyRule_(&lhs, lhsVarBank, &rhs, rhsVarBank, uwa).intoIter(); }
 
   Option<Clause*> applyRule_(
-      SelectedLiteral const* lhs, unsigned lhsVarBank,
-      SelectedLiteral const* rhs, unsigned rhsVarBank,
+      SelectedAtomicLiteral const* lhs, unsigned lhsVarBank,
+      SelectedAtomicLiteral const* rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const {
     if (lhsVarBank != subsTreeQueryBank(0)) {
