@@ -208,6 +208,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   auto selected = Lib::make_shared(
         _shared->selectedSummands(premise,
           SelectionCriterion::NOT_LESS,
+          SelectionCriterion::NOT_LESS,
           /* include number vars */ false)
         .inspect([&](auto& sel) { max->push(sel.selectedAtomicTerm()); })
         // .filterMap([](auto x) -> Option<SelectedSummand> { return x.template as<SelectedSummand>().toOwned(); })

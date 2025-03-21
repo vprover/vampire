@@ -257,16 +257,16 @@ namespace Kernel {
     auto isUninterpreted(Literal* l) const 
     { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 
-    auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) {
-      return _maxLits(cl, selLit)
-        .filter([&](auto& lit) { return isUninterpreted(lit.literal()); });
-    }
+    // TODO 1 remove
+    auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) 
+    { return _maxLits(cl, selLit)
+        .filter([&](auto& lit) { return isUninterpreted(lit.literal()); }); }
 
 
-    IterTraits<VirtualIterator<SelectedAtomicTerm>> selectedAtomicTerms(Clause* cl, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
+    IterTraits<VirtualIterator<SelectedAtomicTerm>> selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
 
-    auto selectedEqualities(Clause* cl, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
-    { return selectedAtomicTerms(cl, selTerm, includeUnshieldedNumberVariables)
+    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
+    { return selectedAtomicTerms(cl, selLit, selTerm, includeUnshieldedNumberVariables)
         .filterMap([](auto x) { return SelectedEquality::from(std::move(x)); }); }
 
 
@@ -340,19 +340,19 @@ namespace Kernel {
     
     // TODO make sure we deal right with unshielded vars
 
-   IterTraits<VirtualIterator<NewSelectedAtom>> selected(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables);
+   IterTraits<VirtualIterator<NewSelectedAtom>> selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
 
    IterTraits<VirtualIterator<SelectedAtomicTerm>> 
-    selectedAtoms(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) 
+    selectedAtoms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
       ;
     // { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<0>()
     //           .intoIter())
     //           .flatten(); }
 
-   IterTraits<VirtualIterator<SelectedAtomicTermItpAny>> selectedSummands(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables);
+   IterTraits<VirtualIterator<SelectedAtomicTermItpAny>> selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
 
    IterTraits<VirtualIterator<SelectedLiteral>> 
-     selectedLiterals(Clause* cl, SelectionCriterion selLit, bool includeUnshieldedNumberVariables) ;
+     selectedLiterals(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
     // { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<1>()
     //           .intoIter())
     //           .flatten(); }

@@ -183,6 +183,8 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 
     auto selected = Lib::make_shared(
         _shared->selectedSummands(premise, 
+  // TODO think about this, we don't want any literals but one of the two hast to be weakly maximal
+                       /* literal */ SelectionCriterion::ANY,
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
           .filter([](auto& s) { return s.apply([](auto& s) { return 

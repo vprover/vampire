@@ -124,7 +124,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
            }));
 
   // TODO 2 note in the paper
-  // TODO 1 generalize and move this to BinInf
+  // TODO 1.2 generalize and move this to BinInf
   check_side_condition(
       rhs.postUnificationCheckName(),
       rhs.postUnificationCheck(uwa, lhsVarBank));

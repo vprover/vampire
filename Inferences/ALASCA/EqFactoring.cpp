@@ -143,8 +143,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
 
   auto selected = Lib::make_shared(
       _shared->selectedEqualities(premise, 
-        // TODO 1
-                       // /* literal */ SelectionCriterion::NOT_LESS, 
+                       /* literal */ SelectionCriterion::NOT_LESS, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
         .filter([](auto& s) { return s.positive(); })
@@ -153,8 +152,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
 
   auto rest = Lib::make_shared(
       _shared->selectedEqualities(premise, 
-        // TODO 1
-                       // /* literal */ SelectionCriterion::ANY, 
+                       /* literal */ SelectionCriterion::ANY, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
         .filter([](auto& s) { return s.positive(); })
@@ -173,7 +171,6 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
 
                   // both literals are the same. 
                   // we use a symmetry breaking index comparison
-                  // TODO we could replace this == by _shared.equivalent
                   max.literal() == other.literal() && other.litIdx() < max.litIdx(), 
                   [&]() { return arrayIter(Stack<Clause*>{}); },
 

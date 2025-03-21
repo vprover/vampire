@@ -40,7 +40,6 @@ using namespace Saturation;
 struct SuperpositionConf
 {
   std::shared_ptr<AlascaState> _shared;
-  // TODO make option and test and double check (?)
   bool _simultaneousSuperposition;
 
   SuperpositionConf(std::shared_ptr<AlascaState> shared, bool simultanious = true) : _shared(shared), _simultaneousSuperposition(simultanious) {  }
@@ -55,9 +54,7 @@ struct SuperpositionConf
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
-      return shared.selectedEqualities(cl, 
-          // TODO 1.1
-          // /* literal */ SelectionCriterion::NOT_LEQ, 
+      return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
                                            /* terms   */ SelectionCriterion::NOT_LEQ,
                                            /* include number vars */ false)
              .filter([](auto x) { return x.literal()->isPositive(); })
@@ -91,7 +88,7 @@ struct SuperpositionConf
     static auto activePositions(AlascaState& shared, Clause* cl) 
     {
       return shared.selected(cl, 
-          // /* literals */ SelectionCriterion::NOT_LESS, 
+          /* literals */ SelectionCriterion::NOT_LESS, 
           /* terms    */ SelectionCriterion::NOT_LEQ,
           /* include number vars */ false);
     }
