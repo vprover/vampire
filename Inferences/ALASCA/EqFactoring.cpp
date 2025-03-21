@@ -135,8 +135,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   return Option<Clause*>(out);
 }
 
-// TODO EQ factoring for integers
-
 ClauseIterator EqFactoring::generateClauses(Clause* premise) 
 {
 

@@ -101,13 +101,11 @@ public:
         .filter([](auto& lhs) { return !ASig::isNumeral(lhs.smallerSide()); })
         .map([&shared](auto lhs) {
           auto js_u = toSum(shared, lhs.smallerSide());
+              // TODO 3 max summands here?
           return js_u.iterSummands().zipWithIndex()
               .map([lhs,js_u](auto pair) {
                 return Lhs { lhs, js_u, unsigned(pair.second) };
               });
-              // TODO max summands here?
-          // return shared.maxSummandIndices(js_u, SelectionCriterion::NOT_LEQ)
-          //   .map([js_u,lhs](auto sIdx) { return Lhs { lhs, js_u, sIdx }; });
         })
         .flatten()
         .filter([](auto& lhs) { return !lhs.s().isVar(); })

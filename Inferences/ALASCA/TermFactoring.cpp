@@ -72,7 +72,6 @@ Option<Clause*> TermFactoring::applyRule(
     )
 {
   TIME_TRACE("alasca term factoring")
-  using Numeral = typename NumTraits::ConstantType;
   DEBUG("L1: ", sel1)
   DEBUG("L2: ", sel2)
 
