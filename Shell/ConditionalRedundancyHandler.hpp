@@ -59,10 +59,10 @@ using namespace Indexing;
 using LiteralSet = SharedSet<Literal*>;
 
 struct OrderingConstraint {
-  OrderingConstraint(TermList lhs, TermList rhs) : lhs(lhs), rhs(rhs), comp() {}
+  OrderingConstraint(TermList lhs, TermList rhs) : lhs(lhs), rhs(rhs), tod() {}
   TermList lhs;
   TermList rhs;
-  OrderingComparatorUP comp;
+  TermOrderingDiagramUP tod;
 };
 
 using OrderingConstraints = Stack<OrderingConstraint>;

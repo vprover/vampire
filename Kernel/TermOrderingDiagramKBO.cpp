@@ -13,7 +13,7 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
-#include "KBOComparator.hpp"
+#include "TermOrderingDiagramKBO.hpp"
 
 namespace Kernel {
 
@@ -21,7 +21,7 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void KBOComparator::processTermNode()
+void TermOrderingDiagramKBO::processTermNode()
 {
   const auto& kbo = static_cast<const KBO&>(_ord);
 

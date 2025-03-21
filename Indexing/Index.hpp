@@ -28,7 +28,7 @@
 #include "ResultSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Allocator.hpp"
-#include "Kernel/OrderingComparator.hpp"
+#include "Kernel/TermOrderingDiagram.hpp"
 
 /**
  * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.
@@ -118,10 +118,10 @@ struct TermLiteralClause
 struct DemodulatorData
 {
   DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
-    : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator(ord.createComparator())
+    : term(term), rhs(rhs), clause(clause), preordered(preordered), tod(ord.createTermOrderingDiagram())
   {
     // insert pointer to owner as non-null value representing success
-    comparator->insert({ { term, rhs, Ordering::GREATER } }, this);
+    tod->insert({ { term, rhs, Ordering::GREATER } }, this);
 #if VDEBUG
     ASS(term.containsAllVariablesOf(rhs));
     ASS(!preordered || ord.compare(term,rhs)==Ordering::GREATER);
@@ -137,7 +137,7 @@ struct DemodulatorData
   TermList rhs;
   Clause* clause;
   bool preordered; // whether term > rhs
-  OrderingComparatorUP comparator; // owned comparator for whether term > rhs
+  TermOrderingDiagramUP tod; // TOD for checking term > rhs
 
   TypedTermList const& key() const { return term; }
 

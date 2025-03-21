@@ -8,29 +8,25 @@
  * and in the source directory
  */
 
-#ifndef __LPOComparator__
-#define __LPOComparator__
+#ifndef __TermOrderingDiagramLPO__
+#define __TermOrderingDiagramLPO__
 
 #include "Forwards.hpp"
 
-#include "OrderingComparator.hpp"
+#include "TermOrderingDiagram.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
 using namespace std;
 
-class LPOComparator
-: public OrderingComparator
+class TermOrderingDiagramLPO
+: public TermOrderingDiagram
 {
 public:
-  LPOComparator(const Ordering& ord) : OrderingComparator(ord) {}
+  TermOrderingDiagramLPO(const Ordering& ord) : TermOrderingDiagram(ord) {}
 
   void processTermNode() override;
-
-private:
-  static void majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail);
-  static void alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2, Branch success, Branch fail);
 };
 
 }

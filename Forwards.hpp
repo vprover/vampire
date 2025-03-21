@@ -104,8 +104,8 @@ class LiteralSelector;
 
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
-struct OrderingComparator;
-typedef std::unique_ptr<OrderingComparator> OrderingComparatorUP;
+struct TermOrderingDiagram;
+typedef std::unique_ptr<TermOrderingDiagram> TermOrderingDiagramUP;
 class PartialOrdering;
 
 typedef unsigned SplitLevel;
