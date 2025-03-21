@@ -78,66 +78,6 @@ namespace Kernel {
   };
 
 
-  struct SelectedLiteral {
-    Clause* cl;
-    unsigned litIdx;
-    Option<AlascaLiteralItpAny> interpreted;
-
-    SelectedLiteral(Clause* cl, unsigned litIdx, AlascaState& shared);
-
-    Literal* literal() const { return (*cl)[litIdx]; }
-    Clause* clause() const { return cl; }
-
-    Option<AlascaPredicate> alascaPredicate() const {
-      return interpreted.map([](auto& x) {
-          return x.apply([](auto& x){ return x.symbol(); });
-      });
-    }
-
-
-    auto contextLiterals() const
-    { return range(0, clause()->size())
-              .filter([&](auto i) { return i != litIdx; }) 
-              .map([&](auto i) { return (*clause())[i]; }); }
-              
-    auto asTuple() const
-    { return std::make_tuple(cl->number(), litIdx); }
-
-    IMPL_COMPARISONS_FROM_TUPLE(SelectedLiteral)
-
-    friend std::ostream& operator<<(std::ostream& out, SelectedLiteral const& self)
-    { return out << Output::interleaved("\\/", concatIters(iterItems(self.literal()), self.contextLiterals()).map([](auto l) { return Output::ptr(l); })); }
-  };
-
-
-  class SelectedUninterpretedEquality : public SelectedLiteral
-  {
-    unsigned _term;
-   public:
-    SelectedUninterpretedEquality(SelectedLiteral lit, unsigned term) 
-      : SelectedLiteral(std::move(lit))
-      , _term(term)
-    { 
-      ASS(interpreted.isNone())
-      ASS(literal()->isEquality())
-      ASS(_term <= 1)
-    }
-
-    TermList biggerSide() const
-    { return literal()->termArg(_term); }
-
-    TermList smallerSide() const
-    { return literal()->termArg(1 - _term); }
-
-    TermList selectedAtom() const
-    { return biggerSide(); }
-
-    auto asTuple() const { return std::tie(_term, (SelectedLiteral const&) *this); }
-    IMPL_COMPARISONS_FROM_TUPLE(SelectedUninterpretedEquality)
-  };
-
-
-
   class SelectedAtomicLiteral 
     : public __SelectedLiteral  
   {

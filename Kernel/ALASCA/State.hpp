@@ -68,17 +68,17 @@ namespace Kernel {
 
     bool isAtomic(TermList t) const { return t.isTerm() && isAtomic(t.term()); }
 
-    auto _maxLits(Clause* cl, SelectionCriterion sel) {
-      return OrderingUtils::maxElems(
-          cl->size(), 
-          [=](unsigned l, unsigned r) 
-          { return ordering->compare((*cl)[l], (*cl)[r]); },
-          [=](unsigned i) -> Literal&
-          { return *(*cl)[i]; },
-          sel)
-        .map([=](auto i) 
-            { return SelectedLiteral(cl, i, *this); });
-    }
+    // auto _maxLits(Clause* cl, SelectionCriterion sel) {
+    //   return OrderingUtils::maxElems(
+    //       cl->size(), 
+    //       [=](unsigned l, unsigned r) 
+    //       { return ordering->compare((*cl)[l], (*cl)[r]); },
+    //       [=](unsigned i) -> Literal&
+    //       { return *(*cl)[i]; },
+    //       sel)
+    //     .map([=](auto i) 
+    //         { return SelectedLiteral(cl, i, *this); });
+    // }
 
     template<class LitOrTerm0, class LitOrTerm1>
     bool greater(LitOrTerm0 lhs, LitOrTerm1 rhs)
@@ -347,12 +347,6 @@ namespace Kernel {
     //           .flatten(); }
 
    IterTraits<VirtualIterator<SelectedAtomicTermItpAny>> selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
-
-   IterTraits<VirtualIterator<SelectedLiteral>> 
-     selectedLiterals(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
-    // { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<1>()
-    //           .intoIter())
-    //           .flatten(); }
 
 
     // TODO remove

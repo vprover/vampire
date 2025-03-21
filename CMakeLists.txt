@@ -313,7 +313,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ALASCA/Signature.hpp
     Kernel/ALASCA/Signature.cpp
     Kernel/ALASCA/SelectionPrimitves.hpp
-    Kernel/ALASCA/SelectionPrimitves.cpp
     Kernel/ALASCA/Normalization.cpp
     Kernel/ALASCA/Normalization.hpp
     Kernel/ALASCA/Preprocessor.hpp
