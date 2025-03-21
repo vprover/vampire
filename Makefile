@@ -77,11 +77,11 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src
+INCLUDES= -I. -I/opt/local/include -Icadical/src -Imini-gmp-6.3.0 -Iviras/src
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
-INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src -Iz3/src/api -Iz3/src/api/c++
+INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src -Iz3/src/api -Iz3/src/api/c++ -I/opt/local/include -Icadical/src
 # ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 # Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 # else
@@ -229,7 +229,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
-         Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
          Indexing/InductionFormulaIndex.o\
@@ -319,6 +318,7 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
          SAT/SATLiteral.o\
+	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
 	 SAT/BufferedSolver.o\
@@ -559,7 +559,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -lgmp -lgmpxx
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -lgmp -lgmpxx -Lcadical/build -lcadical
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
