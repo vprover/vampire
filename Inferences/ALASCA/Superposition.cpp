@@ -107,21 +107,22 @@ Option<Clause*> SuperpositionConf::applyRule_(
   // •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
   //   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
   auto L2σ = sigma(rhs.literal(), rhsVarBank);
-  bool inLitPlus = rhs.inLitPlus();
-  check_side_condition(
-      inLitPlus ? "L[s2]σ /⪯ C2σ"
-                : "L[s2]σ /≺ C2σ",
-        rhs.contextLiterals()
-           .all([&](auto L) {
-             auto Lσ = sigma(L, rhsVarBank);
-             if (_simultaneousSuperposition) {
-               concl.push(EqHelper::replace(Lσ, s2σ, tσ));
-             } else {
-               concl.push(Lσ);
-             }
-             return inLitPlus ? _shared->notLeq(L2σ, Lσ)
-                              : _shared->notLess(L2σ, Lσ);
-           }));
+  // TODO 2 theory for this side condition
+  // bool inLitPlus = rhs.inLitPlus();
+  // check_side_condition(
+  //     inLitPlus ? "L[s2]σ /⪯ C2σ"
+  //               : "L[s2]σ /≺ C2σ",
+  //       rhs.contextLiterals()
+  //          .all([&](auto L) {
+  //            auto Lσ = sigma(L, rhsVarBank);
+  //            if (_simultaneousSuperposition) {
+  //              concl.push(EqHelper::replace(Lσ, s2σ, tσ));
+  //            } else {
+  //              concl.push(Lσ);
+  //            }
+  //            return inLitPlus ? _shared->notLeq(L2σ, Lσ)
+  //                             : _shared->notLess(L2σ, Lσ);
+  //          }));
 
   // TODO 2 note in the paper
   // TODO 1.2 generalize and move this to BinInf

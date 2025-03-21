@@ -502,11 +502,12 @@ class IterFromTryNext
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
   DEFAULT_CONSTRUCTORS(IterFromTryNext)
+
   IterFromTryNext(Iter iter)
     : _iter(std::move(iter)) {}
 
-
   bool hasNext() {
+    static_assert(std::is_same_v<Option<OWN_ELEMENT_TYPE>, decltype(_iter.tryNext())>);
     if (!_nextCached) { _nextCached = some(_iter.tryNext()); }
     return _nextCached->isSome();
   }
@@ -520,6 +521,40 @@ private:
   Iter _iter;
   Option<Option<OWN_ELEMENT_TYPE>> _nextCached;
 };
+
+template<typename Iter>
+class DropNthIter
+{
+  Iter _iter;
+  unsigned _timer;
+public:
+  DropNthIter(Iter iter, unsigned toDrop) : _iter(iter), _timer(toDrop + 1)
+  { ASS(!iter.knowsSize() || iter.size() > toDrop) }
+
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+
+  Option<ELEMENT_TYPE(Iter)> tryNext() {
+    if (!_iter.hasNext()) {
+      return {};
+    } else {
+      auto drop = _timer == 1;
+      if (_timer) {
+        _timer--;
+      }
+      if (drop) {
+        (void) _iter.next();
+        if (!_iter.hasNext()) {
+          return {};
+        }
+      }
+      return Option<OWN_ELEMENT_TYPE>(_iter.next());
+    }
+  }
+
+  bool knowsSize() const { return _iter.knowsSize(); }
+  auto size() const { return _iter.size() - 1; }
+};
+
 
 template<typename Iter>
 IterFromTryNext<Iter> iterFromTryNext(Iter iter)
@@ -1676,6 +1711,13 @@ public:
   template<class OtherIter>
   auto zip(OtherIter other)
   { return map([other = std::move(other)](Elem x) mutable { ALWAYS(other.hasNext()); return std::make_pair(std::move(x), other.next()); }); }
+
+
+  auto dropNth(unsigned n) 
+  { return iterTraits(iterFromTryNext(DropNthIter<Iter>(std::move(_iter), n))); }
+
+  auto cloned() 
+  { return map([](auto& x) { return x; }); }
 
   auto zipWithIndex()
   { return map([idx = 0](Elem x) mutable { return std::make_pair(std::move(x), idx++); }); }

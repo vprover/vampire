@@ -32,25 +32,23 @@ namespace Kernel {
   struct AlascaState;
   using UwaSubstitution = Coproduct<RobSubstitution, Indexing::ResultSubstitutionSP>; 
 
-  class __SelectedLiteral {
-    Clause* cl;
-    unsigned lit;
+  class __SelectedLiteral 
+  {
+    Clause* _cl;
+    unsigned _lit;
 
   public:
-    __SelectedLiteral(Clause* cl, unsigned lit) : cl(cl), lit(lit) {}
+    __SelectedLiteral(Clause* cl, unsigned lit) : _cl(cl), _lit(lit) {}
 
-    Literal* literal() const { return (*cl)[lit]; }
-    Clause* clause() const { return cl; }
-    unsigned litIdx() const { return lit; }
+    Literal* literal() const { return (*_cl)[_lit]; }
+    Clause* clause() const { return _cl; }
+    unsigned litIdx() const { return _lit; }
 
     auto contextLiterals() const
-      // TODO knownSize
-    { return range(0, clause()->size())
-              .filter([&](auto i) { return i != lit; }) 
-              .map([&](auto i) { return (*clause())[i]; }); }
+    { return clause()->iterLits().cloned().dropNth(_lit); }
               
     auto asTuple() const
-    { return std::make_tuple(cl, lit); }
+    { return std::make_tuple(_cl, _lit); }
 
     IMPL_COMPARISONS_FROM_TUPLE(__SelectedLiteral)
     IMPL_HASH_FROM_TUPLE(__SelectedLiteral)
@@ -58,9 +56,9 @@ namespace Kernel {
     template<class C>
     std::ostream& output(std::ostream& out, C const& mainLiteral) const
     { 
-      if (cl->size() == 1) {
+      if (_cl->size() == 1) {
         return out << mainLiteral;
-      } else if (cl->size() == 0) {
+      } else if (_cl->size() == 0) {
         return out << "[]";
       } else {
         return out << 
@@ -81,6 +79,10 @@ namespace Kernel {
   class SelectedAtomicLiteral 
     : public __SelectedLiteral  
   {
+  public:
+    auto iterSelectedSubterms() const 
+    { return termArgIterTyped(literal()) 
+               .flatMap([](auto t) { return AnyAlascaTerm::normalize(t).bottomUpIter(); }); }
   };
 
   class SelectedAtomicTermUF 
@@ -97,6 +99,10 @@ namespace Kernel {
 
     unsigned termIdx() const { return unsigned(_idx); }
 
+
+    auto iterSelectedSubterms() const 
+    { return selectedAtomicAlascaTerm().bottomUpIter(); }
+
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
     friend std::ostream& operator<<(std::ostream& out, Self const& self) 
@@ -105,6 +111,7 @@ namespace Kernel {
           self.literal()->isPositive() ? "=" : "!=", 
           self.smallerSide()  )); }
     TypedTermList selectedAtomicTerm() const { return biggerSide(); }
+    AnyAlascaTerm selectedAtomicAlascaTerm() const { return AnyAlascaTerm::normalize(selectedAtomicTerm()); }
     TypedTermList biggerSide() const { return TypedTermList(literal()->termArg(unsigned(_idx)), literal()->eqArgSort()); }
     TermList smallerSide() const { return literal()->termArg(unsigned(_idx)); }
   };
@@ -126,19 +133,22 @@ namespace Kernel {
     // TODO 1 remove
     TypedTermList selectedAtom() const;
     TypedTermList selectedAtomicTerm() const { return TypedTermList(selectedSummand().atom(), NumTraits::sort()); }
+    AnyAlascaTerm selectedAtomicAlascaTerm() const { return AnyAlascaTerm::normalize(selectedAtomicTerm()); }
     Numeral numeral() const { return selectedSummand().numeral(); }
     Sign sign() const { return numeral().sign(); }
+
+    auto iterSelectedSubterms() const 
+    { return selectedAtomicAlascaTerm().bottomUpIter(); }
 
     // TODO 3 cache normalization result?
     AlascaLiteralItp<NumTraits> alascaLiteral() const { return InequalityNormalizer::normalize<NumTraits>(literal()).unwrap(); }
     unsigned termIdx() const { return _summand; }
     // TODO 1.3 do we actually want to use this?
-    auto contextTerms() const {
-      auto l = alascaLiteral();
-      return concatIters(range(0, _summand), 
-                         range(_summand + 1, l.term().nSummands()))
-        .map([l](auto i) { return l.term().summandAt(i); });
-    }
+    auto contextTerms() const 
+    { return alascaLiteral().term()
+        .iterSummands()
+        .dropNth(_summand); }
+
     TermList contextTermSum() const { return NumTraits::sum(contextTerms().map([](auto x) { return x.toTerm(); })); }
 
     auto symbol() const { return alascaLiteral().symbol(); }
@@ -166,13 +176,17 @@ namespace Kernel {
 #define DELEGATE(fun) \
     auto fun() const { return apply([](auto& self) { return self.fun(); }); }
 
+#define DELEGATE_ITER(fun) \
+    auto fun() const { return coproductIter(applyCo([](auto& self) { return self.fun(); })); }
+
     DELEGATE(clause)
     DELEGATE(literal)
     DELEGATE(litIdx)
     DELEGATE(termIdx)
     DELEGATE(selectedAtomicTerm)
     DELEGATE(contextLiterals)
-
+    DELEGATE(selectedAtomicAlascaTerm)
+    DELEGATE(iterSelectedSubterms)
 
     using Self = SelectedAtomicTerm;
     friend std::ostream& operator<<(std::ostream& out, Self const& self) 
@@ -187,6 +201,7 @@ namespace Kernel {
     DELEGATE(litIdx)
     DELEGATE(contextLiterals)
 
+    DELEGATE(iterSelectedSubterms)
     DELEGATE(selectedAtomicTerm)
     DELEGATE(isInequality)
     DELEGATE(sign)
@@ -233,10 +248,9 @@ namespace Kernel {
   };
 
   struct NewSelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
-    // using Coproduct::Coproduct;
-    // TODO 1
-    bool inLitPlus() const;
-    IterTraits<VirtualIterator<AnyAlascaTerm>> iterBottomUp() const;
+
+    auto iterSelectedSubterms() const 
+    { return coproductIter(applyCo([](auto x) { return x.iterSelectedSubterms(); })); }
 
     DELEGATE(clause)
     DELEGATE(literal)

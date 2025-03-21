@@ -97,7 +97,7 @@ struct SuperpositionConf
     { 
       return activePositions(shared, cl)
         .flatMap([&](auto atom) {
-            return atom.iterBottomUp()
+            return atom.iterSelectedSubterms()
                .filter([](AnyAlascaTerm const& t) { return t.isAtomic(); })
                .map([atom](auto t) { return Rhs(atom, t); });
         })
@@ -116,7 +116,7 @@ struct SuperpositionConf
       for (auto l : self.contextLiterals()) {
         out << " \\/ " << l;
       }
-      out << "[ " << self.toRewrite() << " ] ( inLitPlus: " << self.inLitPlus() << " )";
+      out << "[ " << self.toRewrite() << " ]";
       return out; 
     }
   };

@@ -45,7 +45,7 @@ struct Application
           //    [](SelectedUninterpretedEquality& x) {  return iterItems(TypedTermList(x.biggerSide(), x.literal()->eqArgSort())); },
           //    [](SelectedUninterpretedPredicate& x) { return termArgIterTyped(x.literal()); }
           // ))
-          return atom.iterBottomUp()
+          return atom.iterSelectedSubterms()
           // .flatMap([&](AnyAlascaTerm activePos) {
           //   return AnyAlascaTerm::normalize(activePos).bottomUpIter()
                .filterMap([](auto t) { return t.asSum(); })
