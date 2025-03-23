@@ -110,6 +110,149 @@ set(VAMPIRE_MINISAT_SOURCES
     )
 source_group(minisat_source_files FILES ${VAMPIRE_MINISAT_SOURCES})
 
+set(VAMPIRE_CADICAL_SOURCES
+    cadical/contrib/craigtracer.hpp
+    cadical/src/arena.hpp
+    cadical/src/averages.hpp
+    cadical/src/bins.hpp
+    cadical/src/block.hpp
+    cadical/src/cadical.hpp
+    cadical/src/checker.hpp
+    cadical/src/clause.hpp
+    cadical/src/config.hpp
+    cadical/src/contract.hpp
+    cadical/src/cover.hpp
+    cadical/src/decompose.hpp
+    cadical/src/drattracer.hpp
+    cadical/src/elim.hpp
+    cadical/src/ema.hpp
+    cadical/src/external.hpp
+    cadical/src/file.hpp
+    cadical/src/flags.hpp
+    cadical/src/format.hpp
+    cadical/src/frattracer.hpp
+    cadical/src/heap.hpp
+    cadical/src/idruptracer.hpp
+    cadical/src/instantiate.hpp
+    cadical/src/internal.hpp
+    cadical/src/inttypes.hpp
+    cadical/src/level.hpp
+    cadical/src/lidruptracer.hpp
+    cadical/src/limit.hpp
+    cadical/src/logging.hpp
+    cadical/src/lratbuilder.hpp
+    cadical/src/lratchecker.hpp
+    cadical/src/lrattracer.hpp
+    cadical/src/message.hpp
+    cadical/src/occs.hpp
+    cadical/src/options.hpp
+    cadical/src/parse.hpp
+    cadical/src/phases.hpp
+    cadical/src/profile.hpp
+    cadical/src/proof.hpp
+    cadical/src/queue.hpp
+    cadical/src/radix.hpp
+    cadical/src/random.hpp
+    cadical/src/range.hpp
+    cadical/src/reap.hpp
+    cadical/src/reluctant.hpp
+    cadical/src/resources.hpp
+    cadical/src/score.hpp
+    cadical/src/signal.hpp
+    cadical/src/stats.hpp
+    cadical/src/terminal.hpp
+    cadical/src/testing.hpp
+    cadical/src/tracer.hpp
+    cadical/src/util.hpp
+    cadical/src/var.hpp
+    cadical/src/veripbtracer.hpp
+    cadical/src/version.hpp
+    cadical/src/vivify.hpp
+    cadical/src/watch.hpp
+
+    cadical/contrib/craigtracer.cpp
+    cadical/src/analyze.cpp
+    cadical/src/arena.cpp
+    cadical/src/assume.cpp
+    cadical/src/averages.cpp
+    cadical/src/backtrack.cpp
+    cadical/src/backward.cpp
+    cadical/src/bins.cpp
+    cadical/src/block.cpp
+    cadical/src/checker.cpp
+    cadical/src/clause.cpp
+    cadical/src/collect.cpp
+    cadical/src/compact.cpp
+    cadical/src/condition.cpp
+    cadical/src/config.cpp
+    cadical/src/constrain.cpp
+    cadical/src/contract.cpp
+    cadical/src/cover.cpp
+    cadical/src/decide.cpp
+    cadical/src/decompose.cpp
+    cadical/src/deduplicate.cpp
+    cadical/src/drattracer.cpp
+    cadical/src/elim.cpp
+    cadical/src/ema.cpp
+    cadical/src/extend.cpp
+    cadical/src/external.cpp
+    cadical/src/external_propagate.cpp
+    cadical/src/file.cpp
+    cadical/src/flags.cpp
+    cadical/src/flip.cpp
+    cadical/src/format.cpp
+    cadical/src/frattracer.cpp
+    cadical/src/gates.cpp
+    cadical/src/idruptracer.cpp
+    cadical/src/instantiate.cpp
+    cadical/src/internal.cpp
+    cadical/src/lidruptracer.cpp
+    cadical/src/limit.cpp
+    cadical/src/logging.cpp
+    cadical/src/lookahead.cpp
+    cadical/src/lratbuilder.cpp
+    cadical/src/lratchecker.cpp
+    cadical/src/lrattracer.cpp
+    cadical/src/lucky.cpp
+    cadical/src/message.cpp
+    cadical/src/minimize.cpp
+    cadical/src/occs.cpp
+    cadical/src/options.cpp
+    cadical/src/parse.cpp
+    cadical/src/phases.cpp
+    cadical/src/probe.cpp
+    cadical/src/profile.cpp
+    cadical/src/proof.cpp
+    cadical/src/propagate.cpp
+    cadical/src/queue.cpp
+    cadical/src/random.cpp
+    cadical/src/reap.cpp
+    cadical/src/reduce.cpp
+    cadical/src/rephase.cpp
+    cadical/src/report.cpp
+    cadical/src/resources.cpp
+    cadical/src/restart.cpp
+    cadical/src/restore.cpp
+    cadical/src/score.cpp
+    cadical/src/shrink.cpp
+    cadical/src/signal.cpp
+    cadical/src/solution.cpp
+    cadical/src/solver.cpp
+    cadical/src/stats.cpp
+    cadical/src/subsume.cpp
+    cadical/src/terminal.cpp
+    cadical/src/ternary.cpp
+    cadical/src/transred.cpp
+    cadical/src/util.cpp
+    cadical/src/var.cpp
+    cadical/src/veripbtracer.cpp
+    cadical/src/version.cpp
+    cadical/src/vivify.cpp
+    cadical/src/walk.cpp
+    cadical/src/watch.cpp
+)
+source_group(cadical_source_files FILES ${VAMPIRE_CADICAL_SOURCES})
+
 set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.cpp
     Debug/RuntimeStatistics.cpp
@@ -364,7 +507,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.cpp
     Indexing/CodeTree.cpp
     Indexing/CodeTreeInterfaces.cpp
-    Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
     Indexing/InductionFormulaIndex.cpp
@@ -379,7 +521,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
-    Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.hpp
@@ -517,6 +658,7 @@ set(VAMPIRE_SAT_SOURCES
     SAT/SATClause.cpp
     SAT/SATInference.cpp
     SAT/SATLiteral.cpp
+    SAT/CadicalInterfacing.cpp
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
@@ -527,6 +669,7 @@ set(VAMPIRE_SAT_SOURCES
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
+    SAT/CadicalInterfacing.hpp
     SAT/Z3Interfacing.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
@@ -841,6 +984,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_FINITEMODELBUILDING_SOURCES}
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
+    ${VAMPIRE_CADICAL_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
     ${VAMPIRE_SAT_SUBSUMPTION_SOURCES}
     Forwards.hpp
@@ -863,6 +1007,20 @@ set(VAMPIRE_SOURCES
 
 # add top level directory to the search path of compiler
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+# TODO checkout CaDiCaL automagically with VIRAS?
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/cadical/src)
+add_compile_definitions(NBUILD=1)
+
+include(CheckSymbolExists)
+
+# Check if closefrom() exists in unistd.h
+check_symbol_exists(closefrom "unistd.h" HAVE_CLOSEFROM)
+
+# If closefrom() is missing, define NCLOSEFROM=1
+if(NOT HAVE_CLOSEFROM)
+    add_compile_definitions(NCLOSEFROM=1)
+endif()
 
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)

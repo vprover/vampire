@@ -458,9 +458,10 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     MINISAT = 0
+     MINISAT = 0,
+     CADICAL = 1
 #if VZ3
-     ,Z3 = 1
+     ,Z3 = 2
 #endif
   };
 

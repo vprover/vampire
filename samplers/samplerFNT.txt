@@ -149,7 +149,7 @@ sa!=fmb > fd ~cat all:500,off:41,preordered:168
 > $drc ~cat 0:1
 fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
-sa!=fmb $drc=1 > drc ~cat on:643,encompass:554,off:520
+sa!=fmb $drc=1 > drc ~cat ordering:643,encompass:554
 
 # forward_demodulation_term_ordering_diagrams
 sa!=fmb $drc=1 > fdtod ~cat on:1,off:1
@@ -236,7 +236,9 @@ av=on crc=on > crac ~cat on:1,off:1
 crc=on > crlc ~cat on:1,off:1
 
 # sat_solver
-sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,z3:1
+sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,cadical:7,z3:3
+sa!=fmb $has_z3!=true av=on > sas ~cat minisat:10,cadical:7
+sa=fmb > sas ~cat minisat:7,cadical:10
 
 # avatar_add_complementary
 sa!=fmb av=on > aac ~cat none:147,ground:600
@@ -353,8 +355,8 @@ sa=fmb fmbes=sbeam > fmbksg ~cat off:2,on:1
 
 # fmb_start_size - setting this to values > 1 is making things "finite model incomplete" (but could save time for some problems)
 sa=fmb > $fmbss ~cat 1:5,666:1
-$fmbss=1 > fmbss ~cat 1:1
-$fmbss=666 > fmbss ~sgd 0.1,1
+sa=fmb $fmbss=1 > fmbss ~cat 1:1
+sa=fmb $fmbss=666 > fmbss ~sgd 0.1,1
 
 # fmb_symmetry_symbol_order
 sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1

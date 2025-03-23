@@ -300,7 +300,7 @@ crc=on > crlc ~cat on:1,off:1
 # SAT SOLVER
 
 # sat_solver
-av=on > sas ~cat minisat:1,z3:1
+av=on > sas ~cat minisat:1,caldical:1,z3:1
 
 # sat_fallback_for_smt
 av=on sas=z3 > sffsmt ~cat off:5,on:1
