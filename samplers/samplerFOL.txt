@@ -206,8 +206,8 @@ bd!=off > $drc ~cat 1:1
 intent=unsat sa!=fmb $drc=1 > drc ~cat encompass:500,ordering:500,off:354
 intent=sat sa!=fmb $drc=1 > drc ~cat ordering:643,encompass:554
 
-# demodulation_precompiled_comparison
-sa!=fmb $drc=1 > dpc ~cat on:1,off:1
+# forward_demodulation_term_ordering_diagrams
+sa!=fmb fd!=off > fdtod ~cat on:1,off:1
 
 # demodulation_only_equational
 sa!=fmb $drc=1 > doe ~cat on:1,off:1

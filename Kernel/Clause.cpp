@@ -348,7 +348,7 @@ std::string Clause::toNiceString() const
 }
 
 std::ostream& operator<<(std::ostream& out, Clause const& self)
-{ 
+{
   if (self.size() == 0) {
     return out << "$false";
   } else {

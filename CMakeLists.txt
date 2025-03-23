@@ -357,7 +357,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
     Kernel/QKbo.cpp
-    Kernel/KBOComparator.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
@@ -367,7 +366,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
-    Kernel/OrderingComparator.cpp
     Kernel/Ordering_Equality.cpp
     Kernel/PartialOrdering.cpp
     Kernel/Problem.cpp
@@ -383,6 +381,9 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.cpp
     Kernel/Term.cpp
     Kernel/TermIterators.cpp
+    Kernel/TermOrderingDiagram.cpp
+    Kernel/TermOrderingDiagramKBO.cpp
+    Kernel/TermOrderingDiagramLPO.cpp
     Kernel/TermPartialOrdering.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
@@ -408,7 +409,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
     Kernel/QKbo.hpp
-    Kernel/KBOComparator.hpp
+    Kernel/TermOrderingDiagramKBO.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
@@ -418,7 +419,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcher.hpp
     Kernel/MLVariant.hpp
     Kernel/Ordering.hpp
-    Kernel/OrderingComparator.hpp
     Kernel/PartialOrdering.hpp
     Kernel/Problem.hpp
     Kernel/RCClauseStack.hpp
@@ -435,6 +435,9 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.hpp
     Kernel/Term.hpp
     Kernel/TermIterators.hpp
+    Kernel/TermOrderingDiagram.hpp
+    Kernel/TermOrderingDiagramKBO.hpp
+    Kernel/TermOrderingDiagramLPO.hpp
     Kernel/TermPartialOrdering.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
@@ -442,8 +445,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Unit.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
-    Kernel/LPOComparator.cpp
-    Kernel/LPOComparator.hpp
     Kernel/Polynomial.hpp
     Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp

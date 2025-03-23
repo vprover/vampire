@@ -2113,7 +2113,7 @@ public:
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
-  bool demodulationPrecompiledComparison() const { return _demodulationPrecompiledComparison.actualValue; }
+  bool forwardDemodulationTermOrderingDiagrams() const { return _forwardDemodulationTermOrderingDiagrams.actualValue; }
   bool demodulationOnlyEquational() const { return _demodulationOnlyEquational.actualValue; }
 
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
@@ -2467,7 +2467,7 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
-  BoolOptionValue _demodulationPrecompiledComparison;
+  BoolOptionValue _forwardDemodulationTermOrderingDiagrams;
   BoolOptionValue _demodulationOnlyEquational;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
