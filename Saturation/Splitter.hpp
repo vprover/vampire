@@ -207,7 +207,7 @@ public:
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
   Unit* getDefinitionFromName(SplitLevel compName) const;
 
-  static std::string splitsToString(SplitSet* splits);
+  static std::string splitsToString(SplitSet* splits, bool flipAll = false);
   static SATLiteral getLiteralFromName(SplitLevel compName);
   static std::string getFormulaStringFromName(SplitLevel compName, bool negated = false);
 

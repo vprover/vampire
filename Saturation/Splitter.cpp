@@ -921,7 +921,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
   ASS_REP2(compCl->store()==Clause::NONE || compCl->store()==Clause::ACTIVE ||
       compCl->store()==Clause::PASSIVE || compCl->store()==Clause::UNPROCESSED, *compCl, compCl->store());
 
-  if(nameRec.active && compCl->store()==Clause::NONE) {
+  if(compCl->store()==Clause::NONE) {
     //we need to make sure the clause naming the component is present in this case, as the
     //following scenario may lead to incompleteness:
     //  component C is selected and put to unprocessed
@@ -929,8 +929,17 @@ bool Splitter::handleNonSplittable(Clause* cl)
     //  component C is made redundant by C'
     //  we name C' as C. The sat clause {C} won't lead to addition of C into FO as C is already selected.
 
-    compCl->invalidateMyReductionRecords();
-    _sa->addNewClause(compCl);
+    if (nameRec.active) {
+      compCl->invalidateMyReductionRecords();
+      _sa->addNewClause(compCl);
+    } else if (_complBehavior==Options::SplittingAddComplementary::NONE) {
+      // Under AddComplementary NONE we might be having a case where
+      // our nameRec has just been freshly introduced (and thus is not active)
+      // yet, the corresponding SAT variable is already TRUE in the current model
+      // and even the SAT clause this NonSplittable corresponds to has already been inserted
+      // so we will not add any SAT clause below and won't trigger a model update
+      return false; // so we bail out from handling this as a NonSplittable case
+    }
   }
 
   SplitSet* sset = cl->splits();
@@ -995,13 +1004,16 @@ bool Splitter::handleNonSplittable(Clause* cl)
  * Since the component names in a clauses Splitset should be interpreted as propositional variables,
  * Splitter know how to do their proper printing.
  */
-std::string Splitter::splitsToString(SplitSet* splits)
+std::string Splitter::splitsToString(SplitSet* splits, bool flipAll)
 {
   std::ostringstream res;
 
   auto it = splits->iter();
   while(it.hasNext()) {
-    res << getLiteralFromName(it.next());
+    auto lit = getLiteralFromName(it.next());
+    if (flipAll)
+      lit = lit.opposite();
+    res << lit;
     if(it.hasNext()) {
       res<<", ";
     }
@@ -1226,7 +1238,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   /**
    * retrieve or prepare a definition formula as in "4 <=> sP0(n0)"
    * the name is always taken positively (like 4) even when we are introducing a negated ground component (like ~sP0(n0))
-   * so we potentially need to a complementary literal (it's always a ground singleton in such case) for the rhs formula
+   * so we potentially need a complementary literal (it's always a ground singleton in such case) for the rhs formula
    */
   SplitLevel posName = (name&~1);
   Unit* def_u;
@@ -1346,7 +1358,7 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
   }
   ASS_L(compName,_db.size());
 
-  if(_complBehavior!=Options::SplittingAddComplementary::NONE) {
+  if(_complBehavior==Options::SplittingAddComplementary::GROUND) {
     //we insert both literal and its negation
     unsigned oppName = compName^1;
     ASS_L(oppName,_db.size());
@@ -1662,17 +1674,16 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   addSatClauseToSolver(confl,true);
 
-    if (_showSplitting) {
-      std::cout << "[AVATAR] proved ";
-      auto sit = cl->splits()->iter();
-      while(sit.hasNext()){
-        std::cout << (_db[sit.next()]->component)->toString();
-        if(sit.hasNext()){ std::cout << " | "; }
-      }
-      std::cout << endl;
+  if (_showSplitting) {
+    std::cout << "[AVATAR] proved ";
+
+    auto sit = cl->splits()->iter();
+    while(sit.hasNext()){
+      std::cout << getFormulaStringFromName(sit.next(),true);
+      if(sit.hasNext()){ std::cout << " | "; }
     }
-
-
+    std::cout << endl;
+  }
 
   env.statistics->satSplitRefutations++;
   return true;
