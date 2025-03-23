@@ -213,8 +213,8 @@ fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
 $drc=1 > drc ~cat encompass:500,ordering:500,off:354
 
-# demodulation_precompiled_comparison
-$drc=1 > dpc ~cat on:1,off:1
+# forward_demodulation_term_ordering_diagrams
+$drc=1 > fdtod ~cat on:1,off:1
 
 # demodulation_only_equational
 $drc=1 > doe ~cat on:1,off:1
