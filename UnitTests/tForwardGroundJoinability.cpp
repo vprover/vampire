@@ -14,34 +14,41 @@
 
 #include "Inferences/ForwardGroundJoinability.hpp"
 
+#define MY_SYNTAX_SUGAR          \
+  DECL_DEFAULT_VARS              \
+  DECL_VAR(u, 3)                 \
+  DECL_SORT(srt)                 \
+  DECL_FUNC (f, {srt, srt}, srt)
+
 TermIndex<DemodulatorData>* demodulationLhsIndex(const SaturationAlgorithm& salg) {
   return new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), salg.getOrdering(), salg.getOptions());
 }
 
-TEST_FUN(joinability_test_kbo) {
-  DECL_DEFAULT_VARS
-  DECL_VAR(u, 3)
-  DECL_SORT(srt)
-  DECL_FUNC (f, {srt, srt}, srt)
+ClauseStack acAxioms() {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
 
-  // set up saturation algorithm
-  auto container = PlainClauseContainer();
-  const ClauseStack context = {
+  return {
     clause({ f(x,y) == f(y,x) }),
     clause({ f(f(x,y),z) == f(x,f(y,z)) }),
     clause({ f(x,f(y,z)) == f(y,f(x,z)) }),
   };
+}
+
+void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo) {
+
+  // set up saturation algorithm
+  auto container = PlainClauseContainer();
 
   // init problem
   Problem p;
   auto ul = UnitList::empty();
-  UnitList::pushFromIterator(ClauseStack::ConstRefIterator(context), ul);
+  UnitList::pushFromIterator(ClauseStack::ConstRefIterator(axioms), ul);
   p.addUnits(ul);
   env.setMainProblem(&p);
 
   Options o;
-  o.set("term_ordering", "kbo");
-  env.options->set("term_ordering", "kbo");
+  o.set("term_ordering", useKbo ? "kbo" : "lpo");
+  env.options->set("term_ordering", useKbo ? "kbo" : "lpo");
   Test::MockedSaturationAlgorithm salg(p, o);
   const Stack<Index*>& indices = { demodulationLhsIndex(salg) };
 
@@ -53,7 +60,7 @@ TEST_FUN(joinability_test_kbo) {
   }
 
   // add the clauses to the index
-  for (auto c : context) {
+  for (auto c : axioms) {
     c->setStore(Clause::ACTIVE);
     container.add(c);
   }
@@ -61,131 +68,110 @@ TEST_FUN(joinability_test_kbo) {
   ClauseIterator replacements;
   ClauseIterator premises;
 
-  // these 3 are the only non-redundant equations from all possible AC-derived axioms
-  ASS(!fgj.perform(clause({ f(x,y) == f(y,x) }), premises));
-  ASS(!fgj.perform(clause({ f(f(x,y),z) == f(x,f(y,z)) }), premises));
-  ASS(!fgj.perform(clause({ f(x,f(y,z)) == f(y,f(x,z)) }), premises));
-
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(x,y),z) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(x,z),y) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,x),z) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,z),x) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(z,x),y) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(z,y),x) }), premises));
-
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(x,f(z,y)) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(x,z)) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(z,x)) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(x,y)) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(y,x)) }), premises));
-
-  // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(x,y),z) }), premises));
-  // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(x,z),y) }), premises));
-  // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(y,x),z) }), premises));
-  // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(y,z),x) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(z,x),y) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(z,y),x) }), premises));
-
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(x,f(y,z)) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(x,f(z,y)) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(y,f(z,x)) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(z,f(x,y)) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(z,f(y,x)) }), premises));
-
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(x,f(y,u))) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(u,f(x,f(y,z))) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(y,f(x,u))) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(u,f(y,x))) }), premises));
-  ASS(fgj.perform(clause({ f(y,f(x,f(z,u))) == f(u,f(x,f(y,z))) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(y,f(z,f(u,x))) }), premises));
-  // ...
+  ASS_EQ(fgj.perform(cl, premises), joinable);
 
   // tear down saturation algorithm
   fgj.InferenceEngine::detach();
 }
 
-TEST_FUN(joinability_test_lpo) {
-  DECL_DEFAULT_VARS
-  DECL_VAR(u, 3)
-  DECL_SORT(srt)
-  DECL_FUNC (f, {srt, srt}, srt)
-
-  // set up saturation algorithm
-  auto container = PlainClauseContainer();
-  const ClauseStack context = {
-    clause({ f(x,y) == f(y,x) }),
-    clause({ f(f(x,y),z) == f(x,f(y,z)) }),
-    clause({ f(x,f(y,z)) == f(y,f(x,z)) }),
-  };
-
-  // init problem
-  Problem p;
-  auto ul = UnitList::empty();
-  UnitList::pushFromIterator(ClauseStack::ConstRefIterator(context), ul);
-  p.addUnits(ul);
-  env.setMainProblem(&p);
-
-  Options o;
-  o.set("term_ordering", "lpo");
-  env.options->set("term_ordering", "lpo");
-  Test::MockedSaturationAlgorithm salg(p, o);
-  const Stack<Index*>& indices = { demodulationLhsIndex(salg) };
-
-  ForwardGroundJoinability fgj(o);
-  fgj.setTestIndices(indices);
-  fgj.InferenceEngine::attach(&salg);
-  for (auto i : indices) {
-    i->attachContainer(&container);
+#define TEST_AC_KBO_JOINABLE(name, cl)                         \
+  TEST_FUN(joinability_ac_kbo_joinable_##name) {               \
+    __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
+    joinabilityTest(acAxioms(), clause({ cl }), true, true);   \
   }
 
-  // add the clauses to the index
-  for (auto c : context) {
-    c->setStore(Clause::ACTIVE);
-    container.add(c);
+#define TEST_AC_KBO_NONJOINABLE(name, cl)                      \
+  TEST_FUN(joinability_ac_kbo_nonjoinable_##name) {            \
+    __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
+    joinabilityTest(acAxioms(), clause({ cl }), false, true);  \
   }
 
-  ClauseIterator replacements;
-  ClauseIterator premises;
+#define TEST_AC_LPO_JOINABLE(name, cl)                         \
+  TEST_FUN(joinability_ac_lpo_joinable_##name) {               \
+    __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
+    joinabilityTest(acAxioms(), clause({ cl }), true, false);  \
+  }
 
-  // these 3 are the only non-redundant equations from all possible AC-derived axioms
-  ASS(!fgj.perform(clause({ f(x,y) == f(y,x) }), premises));
-  ASS(!fgj.perform(clause({ f(f(x,y),z) == f(x,f(y,z)) }), premises));
-  ASS(!fgj.perform(clause({ f(x,f(y,z)) == f(y,f(x,z)) }), premises));
+#define TEST_AC_LPO_NONJOINABLE(name, cl)                      \
+  TEST_FUN(joinability_ac_lpo_nonjoinable_##name) {            \
+    __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
+    joinabilityTest(acAxioms(), clause({ cl }), false, false); \
+  }
 
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(x,y),z) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(x,z),y) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,x),z) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(y,z),x) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(z,x),y) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(f(z,y),x) }), premises));
+// KBO
 
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(x,f(z,y)) }), premises));
-  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(x,z)) }), premises));
-  ASS(fgj.perform(clause({ f(f(x,y),z) == f(y,f(z,x)) }), premises));
-  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(x,y)) }), premises));
-  // ASS(fgj.perform(clause({ f(f(x,y),z) == f(z,f(y,x)) }), premises));
+TEST_AC_KBO_NONJOINABLE(base1, f(x,y) == f(y,x));
+TEST_AC_KBO_NONJOINABLE(base2, f(f(x,y),z) == f(x,f(y,z)));
+TEST_AC_KBO_NONJOINABLE(base3, f(x,f(y,z)) == f(y,f(x,z)));
 
-  // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(x,y),z) }), premises));
-  // ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(x,z),y) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(y,x),z) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(y,z),x) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(z,x),y) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(f(z,y),x) }), premises));
+TEST_AC_KBO_JOINABLE(join1, f(f(x,y),z) == f(f(x,y),z));
+TEST_AC_KBO_JOINABLE(join2, f(f(x,y),z) == f(f(x,z),y));
+TEST_AC_KBO_JOINABLE(join3, f(f(x,y),z) == f(f(y,x),z));
+TEST_AC_KBO_JOINABLE(join4, f(f(x,y),z) == f(f(y,z),x));
+TEST_AC_KBO_JOINABLE(join5, f(f(x,y),z) == f(f(z,x),y));
+TEST_AC_KBO_JOINABLE(join6, f(f(x,y),z) == f(f(z,y),x));
 
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(x,f(y,z)) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(x,f(z,y)) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(y,f(z,x)) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(z,f(x,y)) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,z)) == f(z,f(y,x)) }), premises));
+TEST_AC_KBO_JOINABLE(join7, f(f(x,y),z) == f(x,f(z,y)));
+TEST_AC_KBO_JOINABLE(join8, f(f(x,y),z) == f(y,f(x,z)));
+TEST_AC_KBO_JOINABLE(join9, f(f(x,y),z) == f(y,f(z,x)));
+TEST_AC_KBO_JOINABLE(join10, f(f(x,y),z) == f(z,f(x,y)));
+TEST_AC_KBO_JOINABLE(join11, f(f(x,y),z) == f(z,f(y,x)));
 
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(x,f(y,u))) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(u,f(x,f(y,z))) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(y,f(x,u))) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(z,f(u,f(y,x))) }), premises));
-  ASS(fgj.perform(clause({ f(y,f(x,f(z,u))) == f(u,f(x,f(y,z))) }), premises));
-  ASS(fgj.perform(clause({ f(x,f(y,f(z,u))) == f(y,f(z,f(u,x))) }), premises));
-  // ...
+TEST_AC_KBO_JOINABLE(join12, f(x,f(y,z)) == f(f(x,y),z));
+TEST_AC_KBO_JOINABLE(join13, f(x,f(y,z)) == f(f(x,z),y));
+TEST_AC_KBO_JOINABLE(join14, f(x,f(y,z)) == f(f(y,x),z));
+TEST_AC_KBO_JOINABLE(join15, f(x,f(y,z)) == f(f(y,z),x));
+TEST_AC_KBO_JOINABLE(join16, f(x,f(y,z)) == f(f(z,x),y));
+TEST_AC_KBO_JOINABLE(join17, f(x,f(y,z)) == f(f(z,y),x));
 
-  // tear down saturation algorithm
-  fgj.InferenceEngine::detach();
-}
+TEST_AC_KBO_JOINABLE(join18, f(x,f(y,z)) == f(x,f(y,z)));
+TEST_AC_KBO_JOINABLE(join19, f(x,f(y,z)) == f(x,f(z,y)));
+TEST_AC_KBO_JOINABLE(join20, f(x,f(y,z)) == f(y,f(z,x)));
+TEST_AC_KBO_JOINABLE(join21, f(x,f(y,z)) == f(z,f(x,y)));
+TEST_AC_KBO_JOINABLE(join22, f(x,f(y,z)) == f(z,f(y,x)));
+
+TEST_AC_KBO_JOINABLE(join23, f(x,f(y,f(z,u))) == f(z,f(x,f(y,u))));
+TEST_AC_KBO_JOINABLE(join24, f(x,f(y,f(z,u))) == f(u,f(x,f(y,z))));
+TEST_AC_KBO_JOINABLE(join25, f(x,f(y,f(z,u))) == f(z,f(y,f(x,u))));
+TEST_AC_KBO_JOINABLE(join26, f(x,f(y,f(z,u))) == f(z,f(u,f(y,x))));
+TEST_AC_KBO_JOINABLE(join27, f(y,f(x,f(z,u))) == f(u,f(x,f(y,z))));
+TEST_AC_KBO_JOINABLE(join28, f(x,f(y,f(z,u))) == f(y,f(z,f(u,x))));
+
+// LPO
+
+TEST_AC_LPO_NONJOINABLE(base1, f(x,y) == f(y,x));
+TEST_AC_LPO_NONJOINABLE(base2, f(f(x,y),z) == f(x,f(y,z)));
+TEST_AC_LPO_NONJOINABLE(base3, f(x,f(y,z)) == f(y,f(x,z)));
+
+TEST_AC_LPO_JOINABLE(join1, f(f(x,y),z) == f(f(x,y),z));
+TEST_AC_LPO_JOINABLE(join2, f(f(x,y),z) == f(f(x,z),y));
+TEST_AC_LPO_JOINABLE(join3, f(f(x,y),z) == f(f(y,x),z));
+TEST_AC_LPO_JOINABLE(join4, f(f(x,y),z) == f(f(y,z),x));
+TEST_AC_LPO_JOINABLE(join5, f(f(x,y),z) == f(f(z,x),y));
+TEST_AC_LPO_JOINABLE(join6, f(f(x,y),z) == f(f(z,y),x));
+
+TEST_AC_LPO_JOINABLE(join7, f(f(x,y),z) == f(x,f(z,y)));
+TEST_AC_LPO_JOINABLE(join8, f(f(x,y),z) == f(y,f(x,z)));
+TEST_AC_LPO_JOINABLE(join9, f(f(x,y),z) == f(y,f(z,x)));
+TEST_AC_LPO_JOINABLE(join10, f(f(x,y),z) == f(z,f(x,y)));
+TEST_AC_LPO_JOINABLE(join11, f(f(x,y),z) == f(z,f(y,x)));
+
+TEST_AC_LPO_JOINABLE(join12, f(x,f(y,z)) == f(f(x,y),z));
+TEST_AC_LPO_JOINABLE(join13, f(x,f(y,z)) == f(f(x,z),y));
+TEST_AC_LPO_JOINABLE(join14, f(x,f(y,z)) == f(f(y,x),z));
+TEST_AC_LPO_JOINABLE(join15, f(x,f(y,z)) == f(f(y,z),x));
+TEST_AC_LPO_JOINABLE(join16, f(x,f(y,z)) == f(f(z,x),y));
+TEST_AC_LPO_JOINABLE(join17, f(x,f(y,z)) == f(f(z,y),x));
+
+TEST_AC_LPO_JOINABLE(join18, f(x,f(y,z)) == f(x,f(y,z)));
+TEST_AC_LPO_JOINABLE(join19, f(x,f(y,z)) == f(x,f(z,y)));
+TEST_AC_LPO_JOINABLE(join20, f(x,f(y,z)) == f(y,f(z,x)));
+TEST_AC_LPO_JOINABLE(join21, f(x,f(y,z)) == f(z,f(x,y)));
+TEST_AC_LPO_JOINABLE(join22, f(x,f(y,z)) == f(z,f(y,x)));
+
+TEST_AC_LPO_JOINABLE(join23, f(x,f(y,f(z,u))) == f(z,f(x,f(y,u))));
+TEST_AC_LPO_JOINABLE(join24, f(x,f(y,f(z,u))) == f(u,f(x,f(y,z))));
+TEST_AC_LPO_JOINABLE(join25, f(x,f(y,f(z,u))) == f(z,f(y,f(x,u))));
+TEST_AC_LPO_JOINABLE(join26, f(x,f(y,f(z,u))) == f(z,f(u,f(y,x))));
+TEST_AC_LPO_JOINABLE(join27, f(y,f(x,f(z,u))) == f(u,f(x,f(y,z))));
+TEST_AC_LPO_JOINABLE(join28, f(x,f(y,f(z,u))) == f(y,f(z,f(u,x))));
