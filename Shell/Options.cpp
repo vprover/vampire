@@ -2114,6 +2114,7 @@ void Options::init()
     _splitAtActivation.onlyUsefulWith(_splitting.is(equal(true)));
     _splitAtActivation.tag(OptionTag::AVATAR);
 
+    // TODO: consider changin this to a bool option: avatar_add_ground_complementery
     _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","aac",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"});
     _splittingAddComplementary.description="";
