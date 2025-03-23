@@ -1139,7 +1139,7 @@ bool Splitter::doSplitting(Clause* cl)
   static SATLiteralStack satClauseLits;
   satClauseLits.reset();
 
-  // Add literals for existing constraints 
+  // Add literals for existing constraints
   collectDependenceLits(cl->splits(), satClauseLits);
 
   UnitList* ps = 0;
@@ -1304,10 +1304,9 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
     // in this mode, compCl is assumed to be a child since the beginning of times
     _db[name]->children.push(compCl);
-    
     // (with _deleteDeactivated on, compCl is always inserted anew on activation)
   }
-  
+
   {
     TIME_TRACE("splitting component index maintenance");
     _componentIdx->insert(compCl);
@@ -1320,7 +1319,7 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
 {
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  ASS(forAll(arrayIter(lits, size), 
+  ASS(forAll(arrayIter(lits, size),
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
@@ -1352,9 +1351,9 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
     _db.push(0);
   }
   else {
-    ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE); 
+    ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE);
     //otherwise the complement would have been created below ...
-    // ... in the respective previous pass through this method 
+    // ... in the respective previous pass through this method
   }
   ASS_L(compName,_db.size());
 
@@ -1699,10 +1698,10 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     ASS(sr);
     ASS(!sr->active);
     sr->active = true;
-    
+
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       ASS(sr->children.isEmpty());
-      //we need to put the component clause among children, 
+      //we need to put the component clause among children,
       //so that it is backtracked when we remove the component
       sr->children.push(sr->component);
       _sa->addNewClause(sr->component);
@@ -1731,7 +1730,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
 void Splitter::removeComponents(const SplitLevelStack& toRemove)
 {
   ASS(_sa->clausesFlushed());
-  
+
   SplitSet* backtracked = SplitSet::getFromArray(toRemove.begin(), toRemove.size());
 
   // ensure all children are backtracked
@@ -1741,7 +1740,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
     ASS(sr);
-    
+
     RCClauseStack::DelIterator chit(sr->children);
     while (chit.hasNext()) {
       Clause* ccl=chit.next();
@@ -1758,7 +1757,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
         chit.del();
       }
     }
-    
+
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       sr->children.reset();
     }
@@ -1770,8 +1769,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     }
   }
 
-  // perform unfreezing  
-    
+  // perform unfreezing
+
   // pick all reduced clauses (if the record relates to most recent reduction)
   // and them add back to _sa using addNewClause - this will get put to unprocessed
   auto blit2 = backtracked->iter();
@@ -1783,20 +1782,19 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       ReductionRecord rrec=sr->reduced.pop();
       Clause* rcl=rrec.clause;
       if(rcl->validReductionRecord(rrec.timestamp)) {
-        ASS(!rcl->splits()->hasIntersection(backtracked));      
+        ASS(!rcl->splits()->hasIntersection(backtracked));
         ASS_EQ(rcl->store(), Clause::NONE);
-        
+
         rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
         _sa->addNewClause(rcl);
-              
+
         // TODO: keep statistics in release ?
         // RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
         RSTAT_CTR_INC("total_unfrozen");
-#if VDEBUG      
+#if VDEBUG
         //check that restored clause does not depend on inactive splits
         ASS(allSplitLevelsActive(rcl->splits()));
 #endif
-        
       }
       rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
     }
