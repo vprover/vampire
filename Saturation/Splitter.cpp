@@ -932,7 +932,9 @@ bool Splitter::handleNonSplittable(Clause* cl)
     if (nameRec.active) {
       compCl->invalidateMyReductionRecords();
       _sa->addNewClause(compCl);
-    } else if (_complBehavior==Options::SplittingAddComplementary::NONE) {
+    } else if (_complBehavior==Options::SplittingAddComplementary::NONE &&
+      isUsedName(compName^1) &&
+      !_db[compName^1]->active) {
       // Under AddComplementary NONE we might be having a case where
       // our nameRec has just been freshly introduced (and thus is not active)
       // yet, the corresponding SAT variable is already TRUE in the current model
@@ -1422,7 +1424,7 @@ static const int NOT_WORTH_REINTRODUCING = 0;
 void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 {
   ASS(!cl->splits());
-    
+
   cl->setSplits(splits);
 
   //update "children" field of relevant SplitRecords
@@ -1431,20 +1433,20 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   unsigned cl_weight = cl->weight();
   while(bsit.hasNext()) {
     SplitLevel slev=bsit.next();
-    _db[slev]->children.push(cl);    
+    _db[slev]->children.push(cl);
     if (cl_weight <= _db[slev]->component->weight()) {
       should_reintroduce = true;
     }
-  }  
-  
+  }
+
   /**
    * Heuristic idea -- only if the clause is lighter than at least
-   * one of the component clauses on which it depends, 
+   * one of the component clauses on which it depends,
    * it will be kept for reintroduction.
    */
   if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
     cl->setNumActiveSplits(
-      (_deleteDeactivated == Options::SplittingDeleteDeactivated::OFF || should_reintroduce) ? 
+      (_deleteDeactivated == Options::SplittingDeleteDeactivated::OFF || should_reintroduce) ?
         splits->size() : NOT_WORTH_REINTRODUCING);
   }
 }
