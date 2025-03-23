@@ -20,7 +20,19 @@
 
 #include "Ordering.hpp"
 
+namespace Inferences {
+  class ForwardGroundJoinability;
+}
+
 namespace Kernel {
+
+struct POStruct {
+  POStruct(const TermPartialOrdering* tpo)
+    : tpo(tpo), cons() {}
+
+  const TermPartialOrdering* tpo;
+  Stack<TermOrderingConstraint> cons;
+};
 
 /**
  * Class implementing term ordering diagrams which handle the following
@@ -37,7 +49,9 @@ namespace Kernel {
 struct OrderingComparator
 {
 public:
-  OrderingComparator(const Ordering& ord);
+  static OrderingComparator* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs, bool ground);
+
+  OrderingComparator(const Ordering& ord, bool ground);
   virtual ~OrderingComparator();
 
   /** Has to be called each time a new retrieval is started. */
@@ -177,6 +191,47 @@ protected:
   Branch* _curr;
   Branch* _prev;
   const SubstApplicator* _appl;
+  bool _ground;
+
+  friend class Inferences::ForwardGroundJoinability;
+
+public:
+  struct VarOrderExtractor {
+    VarOrderExtractor(OrderingComparator* comp, const SubstApplicator* appl, POStruct po_struct);
+
+    bool hasNext(bool& nodebug);
+    POStruct next() { return res; }
+
+    struct Iterator {
+      Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct);
+
+      std::pair<Result,POStruct> next();
+
+      bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
+
+      OrderingComparator* _comp;
+
+      struct BranchingPoint {
+        Stack<TermOrderingConstraint> cons;
+        Branch* branch;
+      };
+      void initCurrent(Stack<BranchingPoint>* ptr);
+
+      Map<Branch*, Stack<BranchingPoint>> _map;
+      Recycled<Stack<std::tuple<Branch*,POStruct,unsigned>>> _path;
+      POStruct _po_struct;
+      bool _retIncomp = false;
+    };
+
+    bool backtrack();
+
+    OrderingComparator* comp;
+    const SubstApplicator* appl;
+    Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<Iterator>>>> path;
+    Stack<unsigned> btStack;
+    POStruct res;
+    bool fresh = true;
+  };
 };
 
 } // namespace Kernel

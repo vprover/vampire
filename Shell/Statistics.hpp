@@ -232,6 +232,8 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
+  /** number of forward ground joinable clauses */
+  unsigned forwardGroundJoinable;
 
   /** statistics of term algebra rules */
   unsigned taDistinctnessSimplifications;

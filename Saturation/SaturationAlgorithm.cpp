@@ -71,6 +71,7 @@
 #include "Inferences/Factoring.hpp"
 #include "Inferences/FunctionDefinitionRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
+#include "Inferences/ForwardGroundJoinability.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/InvalidAnswerLiteralRemovals.hpp"
@@ -222,7 +223,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _fwSimplifiers(0), _fwGrndSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _generatedClauseCount(0),
@@ -304,6 +305,11 @@ SaturationAlgorithm::~SaturationAlgorithm()
     ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
     fse->detach();
     delete fse;
+  }
+  while (_fwGrndSimplifiers) {
+    ForwardGroundSimplificationEngine* fgse = FwGrndSimplList::pop(_fwGrndSimplifiers);
+    fgse->detach();
+    delete fgse;
   }
   while (_simplifiers) {
     SimplificationEngine* fse = SimplList::pop(_simplifiers);
@@ -1297,6 +1303,18 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
+  FwGrndSimplList::Iterator fsit(_fwGrndSimplifiers);
+  while (fsit.hasNext()) {
+    ForwardGroundSimplificationEngine *fse = fsit.next();
+    auto premises = ClauseIterator::getEmpty();
+
+    if (fse->perform(cl, premises)) {
+      onClauseReduction(cl, nullptr, 0, premises);
+      removeSelected(cl);
+      return;
+    }
+  }
+
   activate(cl);
 }
 
@@ -1374,6 +1392,12 @@ void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngin
 {
   FwSimplList::push(fwSimplifier, _fwSimplifiers);
   fwSimplifier->attach(this);
+}
+
+void SaturationAlgorithm::addForwardGroundSimplifierToFront(ForwardGroundSimplificationEngine *fwGrndSimplifier)
+{
+  FwGrndSimplList::push(fwGrndSimplifier, _fwGrndSimplifiers);
+  fwGrndSimplifier->attach(this);
 }
 
 void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
@@ -1649,6 +1673,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (mayHaveEquality) {
+    if (opt.forwardGroundJoinability()) {
+      res->addForwardGroundSimplifierToFront(new ForwardGroundJoinability(opt));
+    }
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:

@@ -231,6 +231,9 @@ bool PartialOrdering::setRel(size_t x, size_t y, PoComp v, bool& changed)
   }
   changed = (_array[idx] != new_v);
   _array[idx] = new_v;
+  if (new_v == PoComp::INCOMPARABLE) {
+    _isGround = false;
+  }
   return true;
 }
 

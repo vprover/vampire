@@ -2098,6 +2098,7 @@ public:
   bool forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
+  bool forwardGroundJoinability() const { return _forwardGroundJoinability.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
@@ -2500,6 +2501,7 @@ private:
   BoolOptionValue _forceIncompleteness;
   StringOptionValue _forcedOptions;
   ChoiceOptionValue<Demodulation> _forwardDemodulation;
+  BoolOptionValue _forwardGroundJoinability;
   BoolOptionValue _forwardLiteralRewriting;
   BoolOptionValue _forwardSubsumption;
   BoolOptionValue _forwardSubsumptionResolution;

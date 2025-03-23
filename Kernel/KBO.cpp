@@ -881,9 +881,9 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) co
   return res;
 }
 
-OrderingComparatorUP KBO::createComparator() const
+OrderingComparatorUP KBO::createComparator(bool ground) const
 {
-  return make_unique<KBOComparator>(*this);
+  return make_unique<KBOComparator>(*this, ground);
 }
 
 int KBO::symbolWeight(const Term* t) const
