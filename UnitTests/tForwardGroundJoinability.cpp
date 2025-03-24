@@ -75,34 +75,34 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
 }
 
 #define TEST_AC_KBO_JOINABLE(name, cl)                         \
-  TEST_FUN(joinability_ac_kbo_joinable_##name) {               \
+  TEST_FUN(joinable_ac_kbo_##name) {                           \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
     joinabilityTest(acAxioms(), clause({ cl }), true, true);   \
   }
 
 #define TEST_AC_KBO_NONJOINABLE(name, cl)                      \
-  TEST_FUN(joinability_ac_kbo_nonjoinable_##name) {            \
+  TEST_FUN(nonjoinable_ac_kbo_##name) {                        \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
     joinabilityTest(acAxioms(), clause({ cl }), false, true);  \
   }
 
 #define TEST_AC_LPO_JOINABLE(name, cl)                         \
-  TEST_FUN(joinability_ac_lpo_joinable_##name) {               \
+  TEST_FUN(joinable_ac_lpo_##name) {                           \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
     joinabilityTest(acAxioms(), clause({ cl }), true, false);  \
   }
 
 #define TEST_AC_LPO_NONJOINABLE(name, cl)                      \
-  TEST_FUN(joinability_ac_lpo_nonjoinable_##name) {            \
+  TEST_FUN(nonjoinable_ac_lpo_##name) {                        \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
     joinabilityTest(acAxioms(), clause({ cl }), false, false); \
   }
 
 // KBO
 
-TEST_AC_KBO_NONJOINABLE(base1, f(x,y) == f(y,x));
-TEST_AC_KBO_NONJOINABLE(base2, f(f(x,y),z) == f(x,f(y,z)));
-TEST_AC_KBO_NONJOINABLE(base3, f(x,f(y,z)) == f(y,f(x,z)));
+TEST_AC_KBO_JOINABLE(base1, f(x,y) == f(y,x));
+TEST_AC_KBO_JOINABLE(base2, f(f(x,y),z) == f(x,f(y,z)));
+TEST_AC_KBO_JOINABLE(base3, f(x,f(y,z)) == f(y,f(x,z)));
 
 TEST_AC_KBO_JOINABLE(join1, f(f(x,y),z) == f(f(x,y),z));
 TEST_AC_KBO_JOINABLE(join2, f(f(x,y),z) == f(f(x,z),y));
@@ -139,9 +139,9 @@ TEST_AC_KBO_JOINABLE(join28, f(x,f(y,f(z,u))) == f(y,f(z,f(u,x))));
 
 // LPO
 
-TEST_AC_LPO_NONJOINABLE(base1, f(x,y) == f(y,x));
-TEST_AC_LPO_NONJOINABLE(base2, f(f(x,y),z) == f(x,f(y,z)));
-TEST_AC_LPO_NONJOINABLE(base3, f(x,f(y,z)) == f(y,f(x,z)));
+TEST_AC_LPO_JOINABLE(base1, f(x,y) == f(y,x));
+TEST_AC_LPO_JOINABLE(base2, f(f(x,y),z) == f(x,f(y,z)));
+TEST_AC_LPO_JOINABLE(base3, f(x,f(y,z)) == f(y,f(x,z)));
 
 TEST_AC_LPO_JOINABLE(join1, f(f(x,y),z) == f(f(x,y),z));
 TEST_AC_LPO_JOINABLE(join2, f(f(x,y),z) == f(f(x,z),y));

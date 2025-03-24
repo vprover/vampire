@@ -56,6 +56,13 @@ struct Applicator : SubstApplicator {
 
 } // end namespace
 
+ForwardGroundJoinability::~ForwardGroundJoinability()
+{
+  while (_states.isNonEmpty()) {
+    delete _states.pop();
+  }
+}
+
 void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
 {
   ForwardGroundSimplificationEngine::attach(salg);
@@ -117,8 +124,16 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
     delete _states.pop();
   }
 
+  auto lhs = clit->termArg(0);
+  auto rhs = clit->termArg(1);
+  if (lhs == rhs) {
+    premises = ClauseIterator::getEmpty();
+    return true;
+  }
+  auto lcomp = ordering.compare(lhs,rhs);
+  ASS_NEQ(lcomp,Ordering::EQUAL);
   auto curr = new State{
-    clit->termArg(0), clit->termArg(1), true, true
+    lhs, rhs, lcomp != Ordering::LESS, lcomp != Ordering::GREATER
   };
 
   _states.push(curr);
@@ -136,10 +151,10 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
     Stack<TermOrderingConstraint> eqCons;
     if (makeEqual(curr->left, curr->right, eqCons)) {
       auto kv = checker.next(eqCons, nullptr);
-      curr = kv.first;
-      tpo = kv.second;
-      if (!curr) {
-        break;
+      if (curr != kv.first || tpo != kv.second) {
+        curr = kv.first;
+        tpo = kv.second;
+        continue;
       }
     }
 
@@ -222,7 +237,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
             auto [redComp,red_po_struct] = extIt.next();
             ASS_NEQ(redComp,Ordering::LESS);
             // Note: EQUAL should be fine when doing forward simplification
-            if (redComp == Ordering::GREATER || (redComp == Ordering::EQUAL && (!curr->L || !curr->R))) {
+            if (redComp == Ordering::GREATER || (redComp == Ordering::EQUAL/*  && (!curr->L || !curr->R) */)) {
               // success
               po_struct = red_po_struct;
               break;
@@ -323,11 +338,7 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
     }
 
     // there shouldn't be any invalid branches here
-    // ASS(node->trace && node->trace->isGround());
-    if (!node->trace || !node->trace->isGround()) {
-      pushNext();
-      continue;
-    }
+    ASS(node->trace && node->trace->isGround());
 
     if (node->tag == Tag::T_DATA) {
       ASS(node->data);

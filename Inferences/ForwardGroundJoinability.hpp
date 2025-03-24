@@ -35,6 +35,8 @@ public:
     : _redundancyCheck(opts.demodulationRedundancyCheck()!=Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS) {}
 
+  ~ForwardGroundJoinability() override;
+
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, ClauseIterator& premises) override;
