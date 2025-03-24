@@ -99,7 +99,7 @@ private:
       if (vm.next()) {
         ASS(vm.op->isSuccess());
         auto entries = vm.op->template getSuccessResult<Entries>();
-        entries->comparator->insert(ptr->ordCons, ptr);
+        entries->tod->insert(ptr->ordCons, ptr);
         entries->entries.push(ptr);
         ft->destroy();
         return;
@@ -120,8 +120,8 @@ private:
     compiler.updateCodeTree(this);
 
     auto es = new Entries();
-    es->comparator = ord->createComparator();
-    es->comparator->insert(ptr->ordCons, ptr);
+    es->tod = ord->createTermOrderingDiagram();
+    es->tod->insert(ptr->ordCons, ptr);
     es->entries.push(ptr);
     code.push(CodeOp::getSuccess(es));
 
@@ -143,10 +143,10 @@ private:
     Entries* es;
     while ((es = matcher.next()))
     {
-      ASS(es->comparator);
-      es->comparator->init(&applicator);
+      ASS(es->tod);
+      es->tod->init(&applicator);
       ConditionalRedundancyEntry* e;
-      while ((e = static_cast<ConditionalRedundancyEntry*>(es->comparator->next()))) {
+      while ((e = static_cast<ConditionalRedundancyEntry*>(es->tod->next()))) {
         if (!e->active) {
           continue;
         }

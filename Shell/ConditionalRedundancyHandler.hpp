@@ -86,7 +86,7 @@ struct ConditionalRedundancyEntry {
 };
 
 struct Entries {
-  OrderingComparatorUP comparator;
+  TermOrderingDiagramUP tod;
   Stack<ConditionalRedundancyEntry*> entries;
 };
 

@@ -8,31 +8,24 @@
  * and in the source directory
  */
 /**
- * @file MinisatInterfacingNewSimp.hpp
- * Defines class MinisatInterfacingNewSimp
+ * @file CadicalInterfacing.hpp
+ * Defines class CadicalInterfacing
  */
-#ifndef __MinisatInterfacingNewSimp__
-#define __MinisatInterfacingNewSimp__
-
-// For limitMemory
-#include <csignal>
-#include <sys/time.h>
-#include <sys/resource.h>
+#ifndef __CadicalInterfacing__
+#define __CadicalInterfacing__
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 
-#include "Minisat/simp/SimpSolver.h"
+#include "cadical/src/cadical.hpp"
 
 namespace SAT{
 
-class MinisatInterfacingNewSimp : public SATSolverWithAssumptions
+class CadicalInterfacing : public PrimitiveProofRecordingSATSolver
 {
-public:
-  static const unsigned VAR_MAX;
-
-	MinisatInterfacingNewSimp(const Shell::Options& opts, bool generateProofs=false);
+public: 
+	CadicalInterfacing(const Shell::Options& opts, bool generateProofs=false);
 
   /**
    * Can be called only when all assumptions are retracted
@@ -79,21 +72,19 @@ public:
    */
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
-  virtual void ensureVarCount(unsigned newVarCnt) override;
-  
-  virtual unsigned newVar() override;
-  
+  virtual void ensureVarCount(unsigned newVarCnt) override { _next = std::max(_next, int(newVarCnt) + 1); }
+
+  virtual unsigned newVar() override { return _next++; }
+
   virtual void suggestPolarity(unsigned var, unsigned pol) override {
-    // 0 -> true which means negated, e.g. false in the model
-    bool mpol = pol ? false : true; 
-    _solver.suggestPolarity(vampireVar2Minisat(var),mpol);
+    _solver.phase(vampire2Cadical(pol, var));
   }
-  
+
   /**
    * Add an assumption into the solver.
    */
   virtual void addAssumption(SATLiteral lit) override;
-  
+
   virtual void retractAllAssumptions() override {
     _assumptions.clear();
     _status = Status::UNKNOWN;
@@ -105,53 +96,45 @@ public:
 
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
 
-  virtual SATClause* getRefutation() override { ASSERTION_VIOLATION; }
+  /**
+   * Use minisat and solving under assumptions to minimize the given set of premises (= unsat core extraction).
+   *
+   * Assumes @b premises in conjunction with @b assumps unsat.
+   * Returns a "small" subset of premises which is still unsat under assumps.
+   */
+  static SATClauseList* minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps);
 
-  static void reportMinisatOutOfMemory();
+  /**
+   * Assuming that @b first together with @b second is inconsistent,
+   * produce (in @b result) a set of clauses over the signature of @b first,
+   * such that @b second |= @b result and
+   * @b first together with @b result is also inconsistent.
+   */
+  static void interpolateViaAssumptions(unsigned maxVar, const SATClauseStack& first, const SATClauseStack& second, SATClauseStack& result);
 
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
-  
-  Minisat::Var vampireVar2Minisat(unsigned vvar) {
-    ASS_G(vvar,0); ASS_LE(vvar,(unsigned)_solver.nVars());
-    return (vvar-1);
-  }
-  
-  unsigned minisatVar2Vampire(Minisat::Var mvar) {
-    return (unsigned)(mvar+1);
-  }
-  
-  const Minisat::Lit vampireLit2Minisat(SATLiteral vlit) {
-    return Minisat::mkLit(vampireVar2Minisat(vlit.var()),vlit.isNegative()); 
-  }
-  
-  /* sign=trun in minisat means "negated" in vampire */
-  const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
-    return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);            
-  }
-  
-private:
-  Status _status;
-  Minisat::vec<Minisat::Lit> _assumptions;  
-  Minisat::SimpSolver _solver;
 
-  //Copied from Minisat/utils/System.cc
-  static void limitMemory(uint64_t max_mem_mb)
-  {
-      // Set limit on virtual memory:
-      if (max_mem_mb != 0){
-          rlim_t new_mem_lim = (rlim_t)max_mem_mb * 1024*1024;
-          rlimit rl;
-          getrlimit(RLIMIT_AS, &rl);
-          if (rl.rlim_max == RLIM_INFINITY || new_mem_lim < rl.rlim_max){
-              rl.rlim_cur = new_mem_lim;
-              if (setrlimit(RLIMIT_AS, &rl) == -1)
-                  printf("%% WARNING! Could not set resource limit: Virtual memory.\n");
-          }
-      }
+private:
+  static int vampire2Cadical(bool polarity, unsigned atom) {
+    ASS_NEQ(atom, 0)
+    return polarity ? atom : -(int)(atom);
   }
+
+  static int vampire2Cadical(SATLiteral vampire) {
+    return vampire2Cadical(vampire.polarity(), vampire.var());
+  }
+
+  static SATLiteral cadical2Vampire(int cadical) {
+    return SATLiteral(std::abs(cadical), cadical < 0);
+  }
+
+  int _next = 1;
+  Status _status = Status::SATISFIABLE;
+  std::vector<int> _assumptions;
+  CaDiCaL::Solver _solver;
 };
 
 }//end SAT namespace
 
- #endif /*MinisatInterfacingNewSimp*/
+ #endif /*CadicalInterfacing*/
