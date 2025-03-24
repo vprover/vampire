@@ -965,13 +965,18 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 }
 
-bool TheoryInstAndSimp::isTheoryLemma(Clause* cl) {
+bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
   static TheoryInstAndSimp checker(
     Options::TheoryInstSimp::ALL,
     /* thiTautologyDeletion */ true,
     /* showZ3 */ false,
     /* generalisation*/ false,
     "", Options::ProblemExportSyntax::SMTLIB);
+
+  if (!forAll(cl->iterLits(),[](auto l){ return checker.isPure(l); })) {
+    couldNotCheck = true;
+    return true;
+  }
 
   auto invertedLiterals = iterTraits(cl->iterLits())
     .map(Literal::complementaryLiteral)

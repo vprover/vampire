@@ -428,7 +428,8 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 {
 #if VDEBUG && VZ3
   if (cl->isPureTheoryDescendant()){
-    ASS_REP(TheoryInstAndSimp::isTheoryLemma(cl),cl->toString())
+    bool couldNotCheck = false;
+    ASS_REP(TheoryInstAndSimp::isTheoryLemma(cl,couldNotCheck),cl->toString())
   }
 #endif
 
