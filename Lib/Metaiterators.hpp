@@ -1462,7 +1462,7 @@ static auto __ifElseIter(Args... args)
         }
       }
   });
-  return coproductIter(out ? *out : Out::template variant<total/2>(tupleGetApplied(Constant<total - 1>{})));
+  return coproductIter(out ? std::move(*out) : Out::template variant<total/2>(tupleGetApplied(Constant<total - 1>{})));
 }
 
 template<class... Args>
@@ -1948,6 +1948,9 @@ public:
   friend bool operator!=(IterContOps const& lhs, IterContOps const& rhs) 
   { return !(lhs == rhs); }
 };
+
+template<class A>
+using DummyIter = IterTraits<VirtualIterator<A>>;
 
 template<class Iter>
 auto iterContOps(Iter iter) { return IterContOps<Iter>(std::move(iter)); }

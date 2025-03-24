@@ -72,6 +72,7 @@ namespace Kernel {
     auto asTuple() const { return std::make_tuple(_self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
+    Option<TypedTermList> asAtomic() const  { return some(_self); }
     Option<TypedTermList> asVar() const  { ASS(!_self.isVar()) return {}; }
     friend std::ostream& operator<<(std::ostream& out, Self const& self)
     { return out << TermList(self._self); }
@@ -153,12 +154,13 @@ namespace Kernel {
     unsigned nSummands() const { return _sum.size(); }
     auto& monomAt(unsigned i) const { return _sum[i]; }
     auto iterSummands() const { return arrayIter(_sum); }
-    Option<TypedTermList> asTrivial() const { 
+    Option<TypedTermList> asAtomic() const { 
       return someIf(nSummands() == 1 && monomAt(0).numeral() == 1, 
           [&]() { return TypedTermList(monomAt(0).atom(), NumTraits::sort()); });
     }
+
     Option<TypedTermList> asVar() const { 
-      if (auto out = asTrivial()) {
+      if (auto out = asAtomic()) {
         if (out->isVar()) {
           return out;
         }
@@ -198,6 +200,7 @@ namespace Kernel {
     static __AlascaTermVar normalize(TypedTermList t) { return __AlascaTermVar(t); }
     TypedTermList toTerm() const { return _self; }
     Option<TypedTermList> asVar() const { return some(_self); }
+    Option<TypedTermList> asAtomic() const { return some(_self); }
     using Self = __AlascaTermVar;
     auto asTuple() const { return std::tie(_self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self)
@@ -228,6 +231,7 @@ namespace Kernel {
   public:
     void operator delete(void* ptr, std::size_t size) noexcept { ::operator delete(ptr); }
     Option<TypedTermList> asVar() const { return _self.apply([&](auto& x) { return x.asVar(); }); }
+    Option<TypedTermList> asAtomic() const { return _self.apply([&](auto& x) { return x.asAtomic(); }); }
 #if VDEBUG
     static const char* cacheId() { return "AlascaTermCache"; }
 #endif // VDEBUG
@@ -274,10 +278,14 @@ namespace Kernel {
       return Out(*this);
     }
 
+    Option<TypedTermList> asAtomic() const {
+      return match([&](auto& x) { return x->asAtomic(); },
+                   [&](auto& x) { return x.asAtomic(); }); }
 
     Option<TypedTermList> asVar() const { 
       return match([&](auto& x) { return x->asVar(); },
                    [&](auto& x) { return x.asVar(); }); }
+
     IMPL_COMPARISONS_FROM_TUPLE(AlascaTermRepr);
     IMPL_HASH_FROM_TUPLE(AlascaTermRepr);
 
@@ -523,6 +531,7 @@ namespace Kernel {
           return x.template as<AlascaTermItp<NumTraits>>().toOwned(); }); }
 
     auto asVar() const { return _self._self.asVar(); }
+    Option<TypedTermList> asAtomic() const { return _self._self.asAtomic(); }
 
     using Self = AnyAlascaTerm;
     auto asTuple() const { return std::make_tuple(_self._self); }
@@ -531,7 +540,7 @@ namespace Kernel {
     friend std::ostream& operator<<(std::ostream& out, AnyAlascaTerm const& self)
     { return out << self._self._self; }
 
-    bool isAtomic() const;
+    bool isAtomic() const { return asAtomic().isSome(); }
   };
 
 } // namespace Kernel

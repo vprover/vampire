@@ -15,6 +15,7 @@
 #define __ALASCA_State__
 
 #include "Debug/Assertion.hpp"
+#include "Kernel/ALASCA/Selection.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include <utility>
@@ -257,20 +258,6 @@ namespace Kernel {
     auto isUninterpreted(Literal* l) const 
     { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 
-
-    auto selectedAtomicLiterals(Clause* cl, SelectionCriterion selLit) 
-      // TODO 1.2
-    { return selected(cl, selLit, SelectionCriterion::ANY, /* includeUnshieldedNumberVariables */ false)
-      .filterMap([](auto x) { return std::move(x).template as<SelectedAtomicLiteral>(); }); }
-
-    auto selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables)
-    { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-      .filterMap([](auto x) { return std::move(x).template as<SelectedAtomicTerm>(); }); }
-
-    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
-    { return selectedAtomicTerms(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-        .filterMap([](auto x) { return SelectedEquality::from(std::move(x)); }); }
-
     bool interpretedFunction(TermList t) 
     { return t.isTerm() && interpretedFunction(t.term()); }
 
@@ -341,34 +328,27 @@ namespace Kernel {
     
     // TODO make sure we deal right with unshielded vars
 
-   IterTraits<VirtualIterator<NewSelectedAtom>> selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
+    // TODO rename NewSelectedAtom
+   auto selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
+   { return AlascaSelector::selected(cl); }
 
-   // IterTraits<VirtualIterator<SelectedAtomicTerm>> 
-   //  selectedAtoms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
-      // ;
-    // { return iterTraits(selected(cl, selLit, includeUnshieldedNumberVariables).template as<0>()
-    //           .intoIter())
-    //           .flatten(); }
+   auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
+   { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
+     .filterMap([](auto l) { return l.toSelectedAtomicTermItp(); }); }
 
-   IterTraits<VirtualIterator<SelectedAtomicTermItpAny>> selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables);
+    auto selectedAtomicLiterals(Clause* cl, SelectionCriterion selLit) 
+      // TODO 1.2
+    { return selected(cl, selLit, SelectionCriterion::ANY, /* includeUnshieldedNumberVariables */ false)
+      .filterMap([](auto x) { return std::move(x).template as<SelectedAtomicLiteral>(); }); }
 
+    auto selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables)
+    { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
+      .filterMap([](auto x) { return std::move(x).template as<SelectedAtomicTerm>(); }); }
 
-    // TODO remove
-    // auto oldSelectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
-    //   using Out = SelectedSummand;
-    //   return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-    //     .filterMap([](auto x) -> Option<Out> {
-    //         return x.match(
-    //              [](SelectedSummand& x) 
-    //              { return Option<Out>(std::move(x)); },
-    //
-    //              [](SelectedUninterpretedEquality&) 
-    //              { return Option<Out>(); },
-    //
-    //              [](SelectedUninterpretedPredicate&) 
-    //              { return Option<Out>(); });
-    //     });
-    // }
+    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
+    { return selectedAtomicTerms(cl, selLit, selTerm, includeUnshieldedNumberVariables)
+        .filterMap([](auto x) { return SelectedEquality::from(std::move(x)); }); }
+
 
   public:
 

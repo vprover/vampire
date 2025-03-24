@@ -17,6 +17,7 @@
 #include "Debug/Assertion.hpp"
 #include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/OrderingUtils.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -80,6 +81,7 @@ namespace Kernel {
     : public __SelectedLiteral  
   {
   public:
+    using __SelectedLiteral::__SelectedLiteral;
     auto iterSelectedSubterms() const 
     { return termArgIterTyped(literal()) 
                .flatMap([](auto t) { return AnyAlascaTerm::normalize(t).bottomUpIter(); }); }
@@ -124,15 +126,19 @@ namespace Kernel {
     using Self = SelectedAtomicTermItp;
     auto asTuple() const { return std::tie((__SelectedLiteral const&) *this, _summand); }
   public:
+
+    SelectedAtomicTermItp(Clause* cl, unsigned lit, unsigned summand) 
+      : __SelectedLiteral(cl, lit)
+      , _summand(summand)
+    {  }
+
     auto numTraits() const { return NumTraits {}; }
     using Numeral = typename NumTraits::ConstantType;
     bool isInequality() const { return Kernel::isInequality(alascaLiteral().symbol()); }
-    [[deprecated("bla")]]
-    AlascaMonom<NumTraits> selected() const;
-    AlascaMonom<NumTraits> selectedSummand() const;
+    AlascaMonom<NumTraits> selectedSummand() const { return alascaLiteral().term().summandAt(_summand); }
     // TODO 1 remove
-    TypedTermList selectedAtom() const;
     TypedTermList selectedAtomicTerm() const { return TypedTermList(selectedSummand().atom(), NumTraits::sort()); }
+    TypedTermList selectedAtom() const { return selectedAtomicTerm(); }
     AnyAlascaTerm selectedAtomicAlascaTerm() const { return AnyAlascaTerm::normalize(selectedAtomicTerm()); }
     Numeral numeral() const { return selectedSummand().numeral(); }
     Sign sign() const { return numeral().sign(); }
@@ -173,6 +179,7 @@ namespace Kernel {
                  , TypeList::List<SelectedAtomicTermUF>
                >>
   {
+    using Coproduct::Coproduct;
 #define DELEGATE(fun) \
     auto fun() const { return apply([](auto& self) { return self.fun(); }); }
 
@@ -195,6 +202,7 @@ namespace Kernel {
 
   struct SelectedAtomicTermItpAny : public NumTraitsCopro<SelectedAtomicTermItp>
   {
+    using NumTraitsCopro<SelectedAtomicTermItp>::Coproduct;
 
     DELEGATE(clause)
     DELEGATE(literal)
@@ -210,6 +218,9 @@ namespace Kernel {
     auto numTraits() const 
     { return applyCo([](auto& x) { return x.numTraits(); }); }
 
+    template<class NumTraits>
+    static Option<SelectedAtomicTermItpAny> from(SelectedAtomicTermItp<NumTraits> t) { return some(SelectedAtomicTermItpAny(t)); }
+    static Option<SelectedAtomicTermItpAny> from(SelectedAtomicTermUF t) { return {}; }
   };
 
   class SelectedEquality 
@@ -248,6 +259,7 @@ namespace Kernel {
   };
 
   struct NewSelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
+    using Coproduct::Coproduct;
 
     auto iterSelectedSubterms() const 
     { return coproductIter(applyCo([](auto x) { return x.iterSelectedSubterms(); })); }
@@ -256,6 +268,17 @@ namespace Kernel {
     DELEGATE(literal)
     DELEGATE(litIdx)
     DELEGATE(contextLiterals)
+
+   
+    Option<SelectedAtomicTermItpAny> toSelectedAtomicTermItp() const
+    {
+      return match([](SelectedAtomicTerm t) {
+          return t.apply([](auto a) { return SelectedAtomicTermItpAny::from(a); });
+        },
+        [](SelectedAtomicLiteral t) -> Option<SelectedAtomicTermItpAny> {
+          return {};
+        });
+    }
   };
 #undef DELEGATE
 
