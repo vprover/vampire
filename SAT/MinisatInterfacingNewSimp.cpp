@@ -18,7 +18,6 @@
 
 #include "Lib/System.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Lib/ScopedLet.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/Tracer.hpp"
@@ -76,7 +75,7 @@ unsigned MinisatInterfacingNewSimp::newVar()
   return minisatVar2Vampire(_solver.newVar());
 }
 
-SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
+SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   ASS(!hasAssumptions());
 
