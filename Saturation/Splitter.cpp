@@ -43,6 +43,7 @@
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
+#include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -77,6 +78,9 @@ void SplittingBranchSelector::init()
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
+      break;
+    case Options::SatSolver::CADICAL:
+      _solver = new CadicalInterfacing(_parent.getOptions(),true);
       break;
 #if VZ3
     case Options::SatSolver::Z3:

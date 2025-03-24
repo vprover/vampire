@@ -10,7 +10,7 @@
 
 #include "LPO.hpp"
 
-#include "LPOComparator.hpp"
+#include "TermOrderingDiagramLPO.hpp"
 
 namespace Kernel {
 
@@ -18,7 +18,7 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void LPOComparator::processTermNode()
+void TermOrderingDiagramLPO::processTermNode()
 {
   // take temporary ownership of node
   auto node = _curr->node();

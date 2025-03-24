@@ -1014,10 +1014,10 @@ SATSolver::Status Z3Interfacing::solve()
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets)
+SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   if (!_unsatCore) {
-    return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets);
+    return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit);
   }
 
   ASS(!hasAssumptions());

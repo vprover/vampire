@@ -18,19 +18,19 @@
 #include "Forwards.hpp"
 #include "Lib/Output.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/OrderingComparator.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Saturation/ClauseContainer.hpp"
 #include "Kernel/Clause.hpp"
 #include "ResultSubstitution.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
+#include "Lib/Allocator.hpp"
+#include "Kernel/TermOrderingDiagram.hpp"
 
 /**
  * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.
@@ -160,7 +160,7 @@ struct DemodulatorDataContainer {
   TypedTermList term;
   Stack<DemodulatorData*> dds;
   unsigned removedCnt = 0;
-  OrderingComparatorUP comparator;
+  TermOrderingDiagramUP tod;
 
   DemodulatorDataContainer(DemodulatorData&& dd, const Ordering& ord) : term(dd.term) {
     Stack<TermOrderingConstraint> ordCons;
@@ -169,8 +169,8 @@ struct DemodulatorDataContainer {
     }
     auto ptr = new DemodulatorData(std::move(dd));
     dds.push(ptr);
-    comparator = ord.createComparator();
-    comparator->insert(ordCons, ptr);
+    tod = ord.createTermOrderingDiagram();
+    tod->insert(ordCons, ptr);
   }
 
   ~DemodulatorDataContainer() {
@@ -191,7 +191,7 @@ struct DemodulatorDataContainer {
     if (!other.dds[0]->preordered) {
       ordCons.push({ other.dds[0]->term, other.dds[0]->rhs, Ordering::GREATER });
     }
-    comparator->insert(ordCons, other.dds[0]);
+    tod->insert(ordCons, other.dds[0]);
     other.dds.reset(); // takes ownership
     return true;
   }
@@ -225,7 +225,7 @@ struct DemodulatorDataContainer {
   bool canBeDeleted() const { return removedCnt==dds.size(); }
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorDataContainer const& self)
-  { return out << *self.comparator; }
+  { return out << *self.tod; }
 };
 
 template<class T>

@@ -84,7 +84,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   auto& opt = getOptions();
   _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
   _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _precompiledComparison = opt.demodulationPrecompiledComparison();
+  _useTermOrderingDiagrams = opt.forwardDemodulationTermOrderingDiagrams();
   _skipNonequationalLiterals = opt.demodulationOnlyEquational();
   _helper = DemodulationHelper(opt, &_salg->getOrdering());
 }
@@ -167,8 +167,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
         DemodulatorData* dd = nullptr;
-        qr.data->comparator->init(appl);
-        while ((dd = static_cast<DemodulatorData*>(qr.data->comparator->next()))) {
+        qr.data->tod->init(appl);
+        while ((dd = static_cast<DemodulatorData*>(qr.data->tod->next()))) {
 
           ASS_EQ(dd->clause->length(),1);
           ASS_EQ(lhs.sort(),dd->term.sort());

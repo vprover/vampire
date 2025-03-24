@@ -236,8 +236,8 @@ void Clause::setStore(Store s)
   }
 #endif
 #if VAMPIRE_CLAUSE_TRACING
-  auto traceForward = env.options->traceForward();
-  if (number() == traceForward && _store != s) {
+  int traceForward = env.options->traceForward();
+  if ((int)number() == traceForward && _store != s) {
     std::cout << number() << ".setStore(" << s << ")" << std::endl;
   }
 #endif // VAMPIRE_CLAUSE_TRACING
@@ -348,7 +348,7 @@ std::string Clause::toNiceString() const
 }
 
 std::ostream& operator<<(std::ostream& out, Clause const& self)
-{ 
+{
   if (self.size() == 0) {
     return out << "$false";
   } else {
