@@ -99,12 +99,12 @@ public:
    * 
    * This is useful in simplifications such as demodulation where
    * only the result being greater matters and in runtime specialized
-   * ordering checks (see OrderingComparator). */
+   * ordering checks (see TermOrderingDiagram). */
   virtual Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const
   { return compare(t1, t2); }
 
-  /** Creates optimised object for ordering checks. @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator() const;
+  /** Creates optimised object for ordering checks. @see TermOrderingDiagram. */
+  virtual TermOrderingDiagramUP createTermOrderingDiagram() const;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -134,6 +134,7 @@ public:
   static Ordering* create(Problem& prb, const Options& opt);
 
   static bool trySetGlobalOrdering(OrderingSP ordering);
+  static bool unsetGlobalOrdering();
   static Ordering* tryGetGlobalOrdering();
 
   Result getEqualityArgumentOrder(Literal* eq) const;
@@ -175,6 +176,9 @@ public:
 
   static DArray<int> testLevels();
 
+#ifdef VDEBUG
+  bool usesQkboPrecedence() const { return _qkboPrecedence; }
+#endif
   static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
 
@@ -184,9 +188,10 @@ protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
   PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
-                     const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
-  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
-  PrecedenceOrdering(Problem& prb, const Options& opt);
+                     const DArray<int>& predPrec, const DArray<int>& predLevels, 
+                     bool reverseLCM, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence = false);
 
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
@@ -213,6 +218,7 @@ protected:
   static void checkLevelAssumptions(DArray<int> const&);
 
   bool _reverseLCM;
+  bool _qkboPrecedence;
 };
 
 

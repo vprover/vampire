@@ -158,6 +158,8 @@ public:
   inline
   explicit VirtualIterator(IteratorCore<T>* core) : _core(core) { _core->_refCnt++; }
 
+  IGNORE_MAYBE_UNINITIALIZED(
+
   inline
   VirtualIterator(const VirtualIterator& obj) : _core(obj._core)
   {
@@ -176,6 +178,7 @@ public:
 	}
     }
   }
+  )
   VirtualIterator& operator=(const VirtualIterator& obj)
   {
     IteratorCore<T>* oldCore=_core;

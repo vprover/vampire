@@ -207,6 +207,7 @@ Stack<TermList> collect(unsigned functor, Term* t) {
 template<class Comparisons>
 bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
 {
+  if (lhs == rhs) { return true; }
   if (lhs.isVar() && rhs.isVar()) {
     return comp.var(lhs.var(), rhs.var());
   } else if (lhs.isTerm() && rhs.isTerm()) {
@@ -303,7 +304,7 @@ bool TestUtils::_eqModACRect(Lits const& lhs, Lits const& rhs)
   if (vl.size() != vr.size()) return false;
 
   return anyPerm(vl.size(), [&](auto& perm) {
-     AcRectComp c {vl, vr, perm};
+      AcRectComp c {vl, vr, perm};
       return permEq(lhs, rhs, [&](Literal* l, Literal* r) {
         return l->isPositive() == r->isPositive() 
             && eqModAC_(TermList(l), TermList(r), c); 

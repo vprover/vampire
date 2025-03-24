@@ -44,9 +44,6 @@ $ins=NZ > ins ~sgd 0.4,1
 # twee_goal_transformation
 > tgt ~cat off:10,ground:6,full:5
 
-# set_of_support
-intent=unsat > sos ~cat off:80,on:17,all:10
-
 # sine_selection
 intent=unsat > ss ~cat off:1182,included:135,axioms:392
 
@@ -65,8 +62,12 @@ intent=unsat ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:1
 # SATURATION
 
 # saturation_algorithms
-intent=unsat > sa ~cat fmb:10,lrs:600,discount:572,otter:236
+intent=unsat ep=off > sa ~cat fmb:10,lrs:600,discount:572,otter:236
+intent=unsat ep!=off > sa ~cat lrs:600,discount:572,otter:236
 intent=sat > sa ~cat fmb:22,otter:60,discount:28
+
+# set_of_support
+intent=unsat sa!=fmb > sos ~cat off:80,on:17,all:10
 
 # lrs_first_time_check
 > $lftc ~cat N:5,Y:1
@@ -74,8 +75,8 @@ sa=lrs $lftc=Y > lftc ~ui 5,95
 
 # literal selection
 > $s_pos ~cat Y:4,N:1
-intent=unsat $s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
-intent=unsat $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
+intent=unsat sa!=fmb $s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
+intent=unsat sa!=fmb $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
 
 intent=sat sa!=fmb $s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50
 intent=sat sa!=fmb $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50
@@ -138,13 +139,13 @@ plsq=on > plsqr ~u2r -5;7;,
 # INFERENCES
 
 # superposition (don't turn this off at home!)
-intent=unsat > sup ~cat on:100,off:1
+intent=unsat sa!=fmb > sup ~cat on:100,off:1
 
 # simultaneous_superposition
 sa!=fmb sup=on > sims ~cat on:50,off:1
 
 # superposition_from_variables
-intent=unsat sup=on > sfv ~cat on:38,off:1
+intent=unsat sa!=fmb sup=on > sfv ~cat on:38,off:1
 
 # code_tree_subsumption
 sa!=fmb > cts ~cat on:3,off:1
@@ -202,17 +203,17 @@ sa!=fmb > fd ~cat all:500,off:41,preordered:168
 > $drc ~cat 0:1
 fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
-intent=unsat $drc=1 > drc ~cat encompass:500,ordering:500,off:354
+intent=unsat sa!=fmb $drc=1 > drc ~cat encompass:500,ordering:500,off:354
 intent=sat sa!=fmb $drc=1 > drc ~cat ordering:643,encompass:554
 
-# demodulation_precompiled_comparison
-sa!=fmb $drc=1 > dpc ~cat on:1,off:1
+# forward_demodulation_term_ordering_diagrams
+sa!=fmb fd!=off > fdtod ~cat on:1,off:1
 
 # demodulation_only_equational
 sa!=fmb $drc=1 > doe ~cat on:1,off:1
 
 # forward_literal_rewriting
-intent=unsat > flr ~cat off:8,on:1
+intent=unsat sa!=fmb > flr ~cat off:8,on:1
 
 # function_definition_introduction
 sa!=fmb > fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
@@ -253,7 +254,7 @@ sa!=fmb to=kbo > kmz ~cat off:200,on:1
 sa!=fmb to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv_arity:5,inv_frequency:8,frequency:2
 
 # literal_comparison_mode
-intent=unsat > lcm ~cat standard:500,reverse:66,predicate:51
+intent=unsat sa!=fmb > lcm ~cat standard:500,reverse:66,predicate:51
 intent=sat sa!=fmb > lcm ~cat standard:500,reverse:66,predicate:51
 
 # sine_to_pred_levels
@@ -291,7 +292,9 @@ sa!=fmb av=on crc=on > crac ~cat on:1,off:1
 sa!=fmb crc=on > crlc ~cat on:1,off:1
 
 # sat_solver
-sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,z3:3
+sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,cadical:7,z3:3
+sa!=fmb $has_z3!=true av=on > sas ~cat minisat:10,cadical:7
+sa=fmb > sas ~cat minisat:7,cadical:10
 
 # avatar_add_complementary
 sa!=fmb av=on > aac ~cat none:147,ground:600
@@ -354,7 +357,7 @@ sa!=fmb av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
 sa!=fmb av=off > urr ~cat off:1200,ec_only:162,on:340
 
 # binary_resolution
-intent=unsat > br ~cat on:8,off:1
+intent=unsat sa!=fmb > br ~cat on:8,off:1
 intent=sat sa!=fmb urr=on > br ~cat on:10,off:1
 
 # AVATAR SPLIT QUEUE

@@ -110,6 +110,149 @@ set(VAMPIRE_MINISAT_SOURCES
     )
 source_group(minisat_source_files FILES ${VAMPIRE_MINISAT_SOURCES})
 
+set(VAMPIRE_CADICAL_SOURCES
+    cadical/contrib/craigtracer.hpp
+    cadical/src/arena.hpp
+    cadical/src/averages.hpp
+    cadical/src/bins.hpp
+    cadical/src/block.hpp
+    cadical/src/cadical.hpp
+    cadical/src/checker.hpp
+    cadical/src/clause.hpp
+    cadical/src/config.hpp
+    cadical/src/contract.hpp
+    cadical/src/cover.hpp
+    cadical/src/decompose.hpp
+    cadical/src/drattracer.hpp
+    cadical/src/elim.hpp
+    cadical/src/ema.hpp
+    cadical/src/external.hpp
+    cadical/src/file.hpp
+    cadical/src/flags.hpp
+    cadical/src/format.hpp
+    cadical/src/frattracer.hpp
+    cadical/src/heap.hpp
+    cadical/src/idruptracer.hpp
+    cadical/src/instantiate.hpp
+    cadical/src/internal.hpp
+    cadical/src/inttypes.hpp
+    cadical/src/level.hpp
+    cadical/src/lidruptracer.hpp
+    cadical/src/limit.hpp
+    cadical/src/logging.hpp
+    cadical/src/lratbuilder.hpp
+    cadical/src/lratchecker.hpp
+    cadical/src/lrattracer.hpp
+    cadical/src/message.hpp
+    cadical/src/occs.hpp
+    cadical/src/options.hpp
+    cadical/src/parse.hpp
+    cadical/src/phases.hpp
+    cadical/src/profile.hpp
+    cadical/src/proof.hpp
+    cadical/src/queue.hpp
+    cadical/src/radix.hpp
+    cadical/src/random.hpp
+    cadical/src/range.hpp
+    cadical/src/reap.hpp
+    cadical/src/reluctant.hpp
+    cadical/src/resources.hpp
+    cadical/src/score.hpp
+    cadical/src/signal.hpp
+    cadical/src/stats.hpp
+    cadical/src/terminal.hpp
+    cadical/src/testing.hpp
+    cadical/src/tracer.hpp
+    cadical/src/util.hpp
+    cadical/src/var.hpp
+    cadical/src/veripbtracer.hpp
+    cadical/src/version.hpp
+    cadical/src/vivify.hpp
+    cadical/src/watch.hpp
+
+    cadical/contrib/craigtracer.cpp
+    cadical/src/analyze.cpp
+    cadical/src/arena.cpp
+    cadical/src/assume.cpp
+    cadical/src/averages.cpp
+    cadical/src/backtrack.cpp
+    cadical/src/backward.cpp
+    cadical/src/bins.cpp
+    cadical/src/block.cpp
+    cadical/src/checker.cpp
+    cadical/src/clause.cpp
+    cadical/src/collect.cpp
+    cadical/src/compact.cpp
+    cadical/src/condition.cpp
+    cadical/src/config.cpp
+    cadical/src/constrain.cpp
+    cadical/src/contract.cpp
+    cadical/src/cover.cpp
+    cadical/src/decide.cpp
+    cadical/src/decompose.cpp
+    cadical/src/deduplicate.cpp
+    cadical/src/drattracer.cpp
+    cadical/src/elim.cpp
+    cadical/src/ema.cpp
+    cadical/src/extend.cpp
+    cadical/src/external.cpp
+    cadical/src/external_propagate.cpp
+    cadical/src/file.cpp
+    cadical/src/flags.cpp
+    cadical/src/flip.cpp
+    cadical/src/format.cpp
+    cadical/src/frattracer.cpp
+    cadical/src/gates.cpp
+    cadical/src/idruptracer.cpp
+    cadical/src/instantiate.cpp
+    cadical/src/internal.cpp
+    cadical/src/lidruptracer.cpp
+    cadical/src/limit.cpp
+    cadical/src/logging.cpp
+    cadical/src/lookahead.cpp
+    cadical/src/lratbuilder.cpp
+    cadical/src/lratchecker.cpp
+    cadical/src/lrattracer.cpp
+    cadical/src/lucky.cpp
+    cadical/src/message.cpp
+    cadical/src/minimize.cpp
+    cadical/src/occs.cpp
+    cadical/src/options.cpp
+    cadical/src/parse.cpp
+    cadical/src/phases.cpp
+    cadical/src/probe.cpp
+    cadical/src/profile.cpp
+    cadical/src/proof.cpp
+    cadical/src/propagate.cpp
+    cadical/src/queue.cpp
+    cadical/src/random.cpp
+    cadical/src/reap.cpp
+    cadical/src/reduce.cpp
+    cadical/src/rephase.cpp
+    cadical/src/report.cpp
+    cadical/src/resources.cpp
+    cadical/src/restart.cpp
+    cadical/src/restore.cpp
+    cadical/src/score.cpp
+    cadical/src/shrink.cpp
+    cadical/src/signal.cpp
+    cadical/src/solution.cpp
+    cadical/src/solver.cpp
+    cadical/src/stats.cpp
+    cadical/src/subsume.cpp
+    cadical/src/terminal.cpp
+    cadical/src/ternary.cpp
+    cadical/src/transred.cpp
+    cadical/src/util.cpp
+    cadical/src/var.cpp
+    cadical/src/veripbtracer.cpp
+    cadical/src/version.cpp
+    cadical/src/vivify.cpp
+    cadical/src/walk.cpp
+    cadical/src/watch.cpp
+)
+source_group(cadical_source_files FILES ${VAMPIRE_CADICAL_SOURCES})
+
 set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.cpp
     Debug/RuntimeStatistics.cpp
@@ -213,7 +356,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.cpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
-    Kernel/KBOComparator.cpp
+    Kernel/QKbo.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
@@ -223,7 +366,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
-    Kernel/OrderingComparator.cpp
     Kernel/Ordering_Equality.cpp
     Kernel/PartialOrdering.cpp
     Kernel/Problem.cpp
@@ -239,6 +381,9 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.cpp
     Kernel/Term.cpp
     Kernel/TermIterators.cpp
+    Kernel/TermOrderingDiagram.cpp
+    Kernel/TermOrderingDiagramKBO.cpp
+    Kernel/TermOrderingDiagramLPO.cpp
     Kernel/TermPartialOrdering.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
@@ -263,7 +408,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.hpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
-    Kernel/KBOComparator.hpp
+    Kernel/QKbo.hpp
+    Kernel/TermOrderingDiagramKBO.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
@@ -273,7 +419,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcher.hpp
     Kernel/MLVariant.hpp
     Kernel/Ordering.hpp
-    Kernel/OrderingComparator.hpp
     Kernel/PartialOrdering.hpp
     Kernel/Problem.hpp
     Kernel/RCClauseStack.hpp
@@ -290,6 +435,9 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.hpp
     Kernel/Term.hpp
     Kernel/TermIterators.hpp
+    Kernel/TermOrderingDiagram.hpp
+    Kernel/TermOrderingDiagramKBO.hpp
+    Kernel/TermOrderingDiagramLPO.hpp
     Kernel/TermPartialOrdering.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
@@ -297,8 +445,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Unit.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
-    Kernel/LPOComparator.cpp
-    Kernel/LPOComparator.hpp
     Kernel/Polynomial.hpp
     Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp
@@ -307,6 +453,17 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
+    Kernel/ALASCA.hpp
+    Kernel/ALASCA/Signature.hpp
+    Kernel/ALASCA/Signature.cpp
+    Kernel/ALASCA/SelectionPrimitves.hpp
+    Kernel/ALASCA/SelectionPrimitves.cpp
+    Kernel/ALASCA/Normalization.hpp
+    Kernel/ALASCA/Preprocessor.hpp
+    Kernel/ALASCA/Ordering.hpp
+    Kernel/ALASCA/State.hpp
+    Kernel/ALASCA/State.cpp
+    Kernel/ALASCA/Index.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -350,7 +507,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.cpp
     Indexing/CodeTree.cpp
     Indexing/CodeTreeInterfaces.cpp
-    Indexing/GroundingIndex.cpp
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
     Indexing/InductionFormulaIndex.cpp
@@ -365,7 +521,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
-    Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.hpp
@@ -420,6 +575,28 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing.cpp
     Kernel/Rebalancing/Inverters.cpp
     Inferences/Superposition.cpp
+    Inferences/ALASCA/Normalization.cpp
+    Inferences/ALASCA/Normalization.hpp
+    Inferences/ALASCA/InequalityFactoring.cpp
+    Inferences/ALASCA/InequalityFactoring.hpp
+    Inferences/ALASCA/EqFactoring.cpp
+    Inferences/ALASCA/EqFactoring.hpp
+    Inferences/ALASCA/VariableElimination.cpp
+    Inferences/ALASCA/VariableElimination.hpp
+    Inferences/ALASCA/VIRAS.cpp
+    Inferences/ALASCA/VIRAS.hpp
+    Inferences/ALASCA/Superposition.cpp
+    Inferences/ALASCA/Superposition.hpp
+    Inferences/ALASCA/Demodulation.cpp
+    Inferences/ALASCA/Demodulation.hpp
+    Inferences/ALASCA/FwdDemodulation.cpp
+    Inferences/ALASCA/FwdDemodulation.hpp
+    Inferences/ALASCA/BwdDemodulation.cpp
+    Inferences/ALASCA/BwdDemodulation.hpp
+    Inferences/ALASCA/FourierMotzkin.cpp
+    Inferences/ALASCA/FourierMotzkin.hpp
+    Inferences/ALASCA/TermFactoring.cpp
+    Inferences/ALASCA/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -481,6 +658,7 @@ set(VAMPIRE_SAT_SOURCES
     SAT/SATClause.cpp
     SAT/SATInference.cpp
     SAT/SATLiteral.cpp
+    SAT/CadicalInterfacing.cpp
     SAT/Z3Interfacing.cpp
 
     SAT/BufferedSolver.hpp
@@ -491,6 +669,7 @@ set(VAMPIRE_SAT_SOURCES
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
+    SAT/CadicalInterfacing.hpp
     SAT/Z3Interfacing.hpp
     )
 source_group(sat_source_files FILES ${VAMPIRE_SAT_SOURCES})
@@ -711,6 +890,10 @@ set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
 source_group(smt_subsumption_source_files FILES ${VAMPIRE_SAT_SUBSUMPTION_SOURCES})
 
 set(VAMPIRE_TESTING_SOURCES
+    Test/TermIndexTester.hpp
+    Test/BuilderPattern.hpp
+    Test/SimplificationTester.hpp
+    Test/GenerationTester.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
     Test/SyntaxSugar.hpp
@@ -726,6 +909,22 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tALASCA_FourierMotzkin.cpp
+    UnitTests/tALASCA_TautologyDeletion.cpp
+    UnitTests/tALASCA_IntegerFourierMotzkin.cpp
+    UnitTests/tALASCA_InequalityFactoring.cpp
+    UnitTests/tALASCA_Normalization.cpp
+    UnitTests/tALASCA_FloorElimination.cpp
+    UnitTests/tALASCA_CoherenceNormalization.cpp
+    UnitTests/tALASCA_Abstraction.cpp
+    UnitTests/tALASCA_Superposition.cpp
+    UnitTests/tALASCA_Coherence.cpp
+    UnitTests/tALASCA_EqFactoring.cpp
+    UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tALASCA_TermFactoring.cpp
+    UnitTests/tALASCA_Demodulation.cpp
+    UnitTests/tALASCA_VIRAS.cpp
+    UnitTests/tALASCA_LaKbo.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -741,6 +940,7 @@ set(UNIT_TESTS
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp
+    UnitTests/tQKbo.cpp
     UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
@@ -749,7 +949,6 @@ set(UNIT_TESTS
     UnitTests/tList.cpp
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
-    UnitTests/tEqualityResolution.cpp
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
@@ -785,6 +984,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_FINITEMODELBUILDING_SOURCES}
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
+    ${VAMPIRE_CADICAL_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
     ${VAMPIRE_SAT_SUBSUMPTION_SOURCES}
     Forwards.hpp
@@ -808,15 +1008,33 @@ set(VAMPIRE_SOURCES
 # add top level directory to the search path of compiler
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+# TODO checkout CaDiCaL automagically with VIRAS?
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/cadical/src)
+add_compile_definitions(NBUILD=1)
+
+include(CheckSymbolExists)
+
+# Check if closefrom() exists in unistd.h
+check_symbol_exists(closefrom "unistd.h" HAVE_CLOSEFROM)
+
+# If closefrom() is missing, define NCLOSEFROM=1
+if(NOT HAVE_CLOSEFROM)
+    add_compile_definitions(NCLOSEFROM=1)
+endif()
+
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_compile_definitions(VDEBUG=1)
+elseif(CMAKE_BUILD_TYPE STREQUAL RelWithDebInfo)
+  add_compile_definitions(VDEBUG=0)
+  add_compile_definitions(NDEBUG)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
   add_compile_definitions(NDEBUG)
 endif()
 
+add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 # enable for time profiling
 add_compile_definitions(VTIME_PROFILING=0)
 
@@ -830,8 +1048,9 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
 # gmp stuff
 ################################################################
 
-find_package(GMP)
-if (GMP_FOUND)
+option(MINI_GMP "compile an own version of mini-gmp instead of linking with system level gmp" ON)
+if (NOT MINI_GMP)
+  find_package(GMP REQUIRED)
   message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
   add_compile_definitions(VMINI_GMP=0)
   include_directories(${GMP_INCLUDE_DIRS})
@@ -841,7 +1060,6 @@ else()
   add_compile_definitions(VMINI_GMP=1)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mini-gmp-6.3.0)
 endif()
-
 
 ################################################################
 # z3 stuff
@@ -874,6 +1092,8 @@ else ()
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
 
+# add viras package source
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viras/src)
 
 ################################################################
 # build objects

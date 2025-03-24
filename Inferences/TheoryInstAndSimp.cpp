@@ -65,7 +65,7 @@ using namespace SAT;
 using SortId = SAT::Z3Interfacing::SortId;
 
 TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
-    opts.theoryInstAndSimp(), 
+    opts.theoryInstAndSimp(),
     opts.thiTautologyDeletion(), 
     opts.showZ3(),  
     opts.thiGeneralise(),
@@ -88,7 +88,7 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Shell::Options::ProblemExportSyntax problemExportSyntax) 
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
@@ -563,7 +563,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       });
     }
 
-    DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0, false);
+    DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0);
     ASS_EQ(res, SATSolver::Status::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
@@ -649,7 +649,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
-  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
+  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0);
 
   if(status == SATSolver::Status::UNSATISFIABLE) {
     DEBUG("unsat")
@@ -719,7 +719,7 @@ struct InstanceFn
         redundant = true;
       } else {
         auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
-        auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0, false);
+        auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0);
         // we have an unsat solution without guards
         redundant = status == SATSolver::Status::UNSATISFIABLE;
       }
@@ -968,9 +968,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 }
 
-std::ostream& operator<<(std::ostream& out, Solution const& self) 
-{ return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
 
-}
+} // namespace Inferences
+
+std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self) 
+{ return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
 
 #endif

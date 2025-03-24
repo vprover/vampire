@@ -18,7 +18,6 @@
 #define MODEL_COMPLETION true
 
 #include "Forwards.hpp"
-#include "Kernel/Term.hpp"
 #include "Lib/StringUtils.hpp"
 #include "z3.h"
 
@@ -106,7 +105,18 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
     }
 
     return sign == Sign::Neg ? -res : res;
-};
+}
+
+template<class Real>
+z3::expr to_z3_expr(Real const& val, z3::context& ctx) 
+{ 
+  auto num = int_to_z3_expr(val.numerator()  , [&](uint64_t i) { return ctx.real_val(i); });
+  auto den = int_to_z3_expr(val.denominator(), [&](uint64_t i) { return ctx.real_val(i); });
+  return num / den;
+}
+
+z3::expr to_z3_expr(IntegerConstantType const& val, z3::context& ctx) 
+{ return int_to_z3_expr(val, [&](uint64_t i) { return ctx.int_val(i); }); }
 
 namespace SAT
 {
@@ -1004,10 +1014,10 @@ SATSolver::Status Z3Interfacing::solve()
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets)
+SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   if (!_unsatCore) {
-    return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets);
+    return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit);
   }
 
   ASS(!hasAssumptions());
@@ -1559,22 +1569,29 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
           }
         }
 
+
+        if (!isLit) {
+          // TODO write tests for z3 interfacing and linear multiplicaiton 
+          auto linMul = tryNumTraits([&](auto n) { 
+              return asig(n).ifLinMul(trm, [&](auto& c, auto t) {
+                  return to_z3_expr(c, *_context) * args[0];
+                  });
+              });
+          if (linMul) {
+            return *linMul;
+          }
+        }
+
         //if constant treat specially
         if(trm->arity() == 0) {
           if(symb->integerConstant()){
-            return int_to_z3_expr(symb->integerValue(), [&](uint64_t i) { return _context->int_val(i); });
+            return to_z3_expr(symb->integerValue(), *_context);
           }
           if(symb->realConstant()) {
-            RealConstantType value = symb->realValue();
-            auto num = int_to_z3_expr(value.numerator()  , [&](uint64_t i) { return _context->real_val(i); });
-            auto den = int_to_z3_expr(value.denominator(), [&](uint64_t i) { return _context->real_val(i); });
-            return num / den;
+            return to_z3_expr(symb->realValue(), *_context);
           }
           if(symb->rationalConstant()) {
-            RationalConstantType value = symb->rationalValue();
-            auto num = int_to_z3_expr(value.numerator()  , [&](uint64_t i) { return _context->real_val(i); });
-            auto den = int_to_z3_expr(value.denominator(), [&](uint64_t i) { return _context->real_val(i); });
-            return num / den;
+            return to_z3_expr(symb->rationalValue(), *_context);
           }
           if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())) {
             return _context->bool_val(true);

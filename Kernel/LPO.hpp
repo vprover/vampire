@@ -42,13 +42,15 @@ public:
       const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM) :
     PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   {}
+  LPO(LPO&&) = default;
+  LPO& operator=(LPO&&) = default;
   ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
   Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
   Result compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) const override;
-  OrderingComparatorUP createComparator() const override;
+  TermOrderingDiagramUP createTermOrderingDiagram() const override;
 
   void showConcrete(std::ostream&) const override;
 
@@ -65,7 +67,7 @@ protected:
   Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
   Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
-  friend class LPOComparator;
+  friend class TermOrderingDiagramLPO;
 };
 
 }

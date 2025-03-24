@@ -41,6 +41,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "DemodulationHelper.hpp"
 
@@ -80,10 +81,10 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
-  auto opt = getOptions();
+  auto& opt = getOptions();
   _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
   _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _precompiledComparison = opt.demodulationPrecompiledComparison();
+  _useTermOrderingDiagrams = opt.forwardDemodulationTermOrderingDiagrams();
   _skipNonequationalLiterals = opt.demodulationOnlyEquational();
   _helper = DemodulationHelper(opt, &_salg->getOrdering());
 }
@@ -174,12 +175,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         ASS_EQ(ordering.compare(trm,rhsApplied),Ordering::reverse(ordering.compare(rhsApplied,trm)));
 
-        if (_precompiledComparison) {
+        if (_useTermOrderingDiagrams) {
 #if VDEBUG
           auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
 #endif
-          qr.data->comparator->init(appl);
-          if (!preordered && (_preorderedOnly || !qr.data->comparator->next())) {
+          qr.data->tod->init(appl);
+          if (!preordered && (_preorderedOnly || !qr.data->tod->next())) {
             ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
           }

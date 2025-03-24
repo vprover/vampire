@@ -22,6 +22,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/Term.hpp"
 
 #include <algorithm>
 

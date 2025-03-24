@@ -14,8 +14,6 @@
 
 #include "MinisatInterfacing.hpp"
 
-#include "Lib/ScopedLet.hpp"
-
 #include "Lib/DArray.hpp"
 
 namespace SAT
@@ -49,7 +47,7 @@ unsigned MinisatInterfacing::newVar()
   return minisatVar2Vampire(_solver.newVar());
 }
 
-SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
+SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   ASS(!hasAssumptions());
 

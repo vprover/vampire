@@ -157,13 +157,13 @@ private:
 
       // check ordering constraints
       auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator,e](auto& ordCon) {
-        if (!ordCon.comp) {
-          ordCon.comp = ord->createComparator();
+        if (!ordCon.tod) {
+          ordCon.tod = ord->createTermOrderingDiagram();
           // insert pointer to owner as non-null value representing success
-          ordCon.comp->insert({ { ordCon.lhs, ordCon.rhs, Ordering::GREATER } }, e);
+          ordCon.tod->insert({ { ordCon.lhs, ordCon.rhs, Ordering::GREATER } }, e);
         }
-        ordCon.comp->init(&applicator);
-        return ordCon.comp->next();
+        ordCon.tod->init(&applicator);
+        return ordCon.tod->next();
       });
       if (!ordCons_ok) {
         continue;
@@ -213,7 +213,7 @@ private:
     }
 
     for (auto& ordCon : ordCons) {
-      ASS(!ordCon.comp);
+      ASS(!ordCon.tod);
       ASS(checkVars(ts,ordCon.lhs));
       ASS(checkVars(ts,ordCon.rhs));
       ASS(ordCon.lhs.containsAllVariablesOf(ordCon.rhs));

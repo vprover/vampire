@@ -57,7 +57,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, 
 
     case FALSE: {
       // create an empty clause and push it in the stack
-      output.push(Clause::empty(FormulaTransformation(InferenceRule::CLAUSIFY,unit)));
+      output.push(Clause::empty(FormulaClauseTransformation(InferenceRule::CLAUSIFY,unit)));
       return;
     }
 
@@ -1510,7 +1510,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     resLits->push(l);
   }
 
-  return Clause::fromStack(*resLits,FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
+  return Clause::fromStack(*resLits,FormulaClauseTransformation(InferenceRule::CLAUSIFY,_beingClausified));
 }
 
 }
