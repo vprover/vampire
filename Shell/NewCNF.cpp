@@ -39,7 +39,7 @@ using namespace Kernel;
 
 namespace Shell {
 
-void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
+void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, Term*>* bindings)
 {
   _beingClausified = unit;
 
@@ -104,6 +104,13 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 #endif
 
   for (SPGenClause gc : _genClauses) {
+    if (bindings) {
+      BindingList::Iterator it(gc->bindings);
+      while (it.hasNext()) {
+        Binding b = it.next();
+        bindings->insert(b.first, b.second);
+      }
+    }
     toClauses(gc, output);
   }
 

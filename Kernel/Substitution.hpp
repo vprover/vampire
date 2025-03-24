@@ -55,6 +55,7 @@ public:
   template<class F> 
   void mapTerms(F f) 
   { return _map.mapValues(f); }
+  unsigned size() const { return _map.size(); }
 
 #if VDEBUG
   std::string toString() const;

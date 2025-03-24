@@ -33,7 +33,6 @@
 #include "Kernel/Theory.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/List.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -149,12 +148,24 @@ struct InductionContext {
     node->second.push(lit);
   }
 
-  // These two functions should be only called on objects where
+  // These functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
   Formula* getFormula(const std::vector<TermList>& r, bool opposite, Substitution* subst = nullptr) const;
+  Formula* getFormulaFreeVar(const std::vector<TermList>& r, bool opposite, unsigned freeVar, TermList& freeVarSub, Substitution* auxSubst, Substitution* subst = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(const std::vector<TermList>& r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
+
+  Clause* getPremise() const {
+    ASS(_cls.size() == 1);
+    return _cls.begin()->first;
+  }
+
+  Literal* getInductionLiteral() const {
+    ASS(_cls.size() == 1);
+    ASS(_cls.begin()->second.size() == 1);
+    return _cls.begin()->second[0];
+  }
 
   std::string toString() const {
     std::stringstream str;
@@ -320,7 +331,7 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
-  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
+  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHMap<unsigned, Term*>* bindings = nullptr);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
@@ -337,6 +348,7 @@ private:
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const std::vector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
 
   /**
