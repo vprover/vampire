@@ -517,6 +517,9 @@ public:
     return _nextCached.take()->unwrap();
   }
 
+  bool knowsSize() const { return _iter.knowsSize(); }
+  auto size() const { return _iter.size(); }
+
 private:
   Iter _iter;
   Option<Option<OWN_ELEMENT_TYPE>> _nextCached;
@@ -1742,9 +1745,9 @@ public:
   
   template<template<class> class Container>
   Container<Elem> collect()
-  { 
-    return Container<Elem>::fromIterator(std::move(*this)); 
-  }
+  { return Container<Elem>::fromIterator(std::move(*this)); }
+
+  Stack<Elem> collectStack() { return collect<Stack>(); }
 
   IterTraits clone() 
   { return *this; }
@@ -1895,14 +1898,16 @@ public:
   auto defaultHash2() const { return DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return DefaultHash2::hash(x); })); }
 
   static int cmp(IterContOps const& lhs, IterContOps const& rhs) {
-    ASS_EQ(lhs._iter.knowsSize(), rhs._iter.knowsSize())
-    if (lhs._iter.knowsSize()) {
-      if (lhs._iter.size() != rhs._iter.size()) {
-        return lhs._iter.size() < rhs._iter.size() ? -1 : 1;
+    auto& li = lhs._iter;
+    auto& ri = rhs._iter;
+    ASS_EQ(li.knowsSize(), ri.knowsSize())
+    if (li.knowsSize()) {
+      if (li.size() != ri.size()) {
+        return li.size() < ri.size() ? -1 : 1;
       }
     }
-    auto l = lhs._iter;
-    auto r = rhs._iter;
+    auto l = li;
+    auto r = ri;
     while (l.hasNext() && r.hasNext()) {
       auto ln = l.next();
       auto rn = r.next();
@@ -1917,14 +1922,16 @@ public:
 
 
   friend bool operator==(IterContOps const& lhs, IterContOps const& rhs) {
-    ASS_EQ(lhs._iter.knowsSize(), rhs._iter.knowsSize())
-    if (lhs._iter.knowsSize()) {
-      if (lhs._iter.size() != rhs._iter.size()) {
+    auto& li = lhs._iter;
+    auto& ri = rhs._iter;
+    ASS_EQ(li.knowsSize(), ri.knowsSize())
+    if (li.knowsSize()) {
+      if (li.size() != ri.size()) {
         return false;
       }
     }
-    auto l = lhs._iter;
-    auto r = rhs._iter;
+    auto l = li;
+    auto r = ri;
     while (l.hasNext() && r.hasNext()) {
       auto ln = l.next();
       auto rn = r.next();
@@ -1932,7 +1939,7 @@ public:
         return false;
       }
     }
-    if (lhs._iter.knowsSize()) {
+    if (li.knowsSize()) {
       return true;
     } else {
       return l.hasNext() == r.hasNext();
@@ -1947,6 +1954,9 @@ public:
 
   friend bool operator!=(IterContOps const& lhs, IterContOps const& rhs) 
   { return !(lhs == rhs); }
+
+  friend std::ostream& operator<<(std::ostream& out, IterContOps const& self)
+  { return out << "iter(" << iterTraits(self._iter).output(", ") << ")"; }
 };
 
 template<class A>

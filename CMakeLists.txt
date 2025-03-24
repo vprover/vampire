@@ -320,6 +320,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ALASCA/State.hpp
     Kernel/ALASCA/State.cpp
     Kernel/ALASCA/Index.hpp
+    Kernel/ALASCA/Selection.hpp
+    Kernel/ALASCA/Selection.cpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp

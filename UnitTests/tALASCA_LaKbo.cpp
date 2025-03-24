@@ -634,3 +634,15 @@ TEST_FUN(bug04) {
   auto l2 = sLF132 == X0;
   check(ord, l1, Incomp, l2);
 }
+
+
+
+TEST_FUN(bug05) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_FUNC(f, {Real}, Real)
+  auto& ord = lakbo(/* rand */ false);
+  check(ord, f(2 * x), Incomp, f(x));
+}
+
+

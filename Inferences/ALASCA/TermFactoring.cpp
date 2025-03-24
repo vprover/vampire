@@ -88,8 +88,8 @@ Option<Clause*> TermFactoring::applyRule(
 
   auto k1 = sel1.numeral();
   auto k2 = sel2.numeral();
-  auto s1 = sel1.selectedAtom();
-  auto s2 = sel2.selectedAtom();
+  auto s1 = sel1.selectedAtomicTerm();
+  auto s2 = sel2.selectedAtomicTerm();
 
   check_side_condition(
       "s₁, s₂ are not variables",

@@ -193,8 +193,8 @@ Ordering::Result QKbo::compare(TermList s, TermList t) const
 
   auto as = abstr(s);
   auto at = abstr(t);
-  DEBUG_QKBO(0, "abstr(s): ", as)
-  DEBUG_QKBO(0, "abstr(t): ", at)
+  DEBUG_QKBO(0, "abstr(", s, "): ", as)
+  DEBUG_QKBO(0, "abstr(", t, "): ", at)
   // TODO subterm modulo Tsigma
   if (as.isNone() || at.isNone()) {
     return Ordering::Result::INCOMPARABLE;
@@ -205,9 +205,10 @@ Ordering::Result QKbo::compare(TermList s, TermList t) const
       case Ordering::GREATER:      return Ordering::GREATER;
       case Ordering::LESS:         return Ordering::LESS;
       case Ordering::INCOMPARABLE: return Ordering::INCOMPARABLE;
-      case Ordering::EQUAL: 
+      case Ordering::EQUAL:  {
         ASS_EQ(as.unwrap(), at.unwrap())
-        return cmpNonAbstr(s,t);
+        auto out = cmpNonAbstr(s,t);
+        return out;}
       default:;
     }
     ASSERTION_VIOLATION

@@ -53,9 +53,8 @@ Option<Clause*> SuperpositionConf::applyRule_(
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())
   auto s2 = TermList(rhs.toRewrite().toTerm());
   auto nothing = [&]() { return Option<Clause*>(); };
-  ASS(!s2.isVar())
+  ASS_REP(!s2.isVar(), rhs)
 
-  auto cnst = uwa.computeConstraintLiterals();
   auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t, bank); };
 
 #define check_side_condition(cond, cond_code)                                             \
@@ -64,12 +63,6 @@ Option<Clause*> SuperpositionConf::applyRule_(
       return nothing();                                                                   \
     }                                                                                     \
 
-
-
-  Stack<Literal*> concl(lhs.clause()->size() - 1 // <- C1σ
-                      + rhs.clause()->size() - 1 // <- C2σ
-                      + 1                        // <- L[s2]σ 
-                      + cnst->size());      // <- Cnstσ
 
 
   auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
@@ -97,7 +90,6 @@ Option<Clause*> SuperpositionConf::applyRule_(
         lhs.contextLiterals()
            .all([&](auto L) {
              auto Lσ = sigma(L, lhsVarBank);
-             concl.push(Lσ);
              return _shared->notLeq(L1σ, Lσ);
            }))
 
@@ -126,9 +118,18 @@ Option<Clause*> SuperpositionConf::applyRule_(
 
   // TODO 2 note in the paper
   // TODO 1.2 generalize and move this to BinInf
-  check_side_condition(
-      rhs.postUnificationCheckName(),
-      rhs.postUnificationCheck(uwa, lhsVarBank));
+  // TODO 1.3 option for enabling this check
+  if (rhs.productive()) {
+
+    check_side_condition(
+        "s2σ ⊴ ti ∈ active(L[s2]σ)",
+        AlascaOrderingUtils::atomMaxAfterUnif(_shared->ordering, rhs, SelectionCriterion::NOT_LESS, uwa, rhsVarBank));
+
+    check_side_condition(
+        "s2σ ⊴ ti ∈ active(L[s2]σ)",
+        AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, rhs, SelectionCriterion::NOT_LEQ, uwa, rhsVarBank));
+
+  }
 
   check_side_condition(
       "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well
@@ -144,13 +145,17 @@ Option<Clause*> SuperpositionConf::applyRule_(
   auto resolvent = EqHelper::replace(L2σ, s2σ, tσ);
   //   ^^^^^^^^^--> L[t]σ
   DEBUG(3, "replacing: ", *L2σ, " [ ", s2σ, " -> ", tσ, " ] ==> ", *resolvent);
-  concl.push(resolvent);
-
-  // adding Cnst
-  concl.loadFromIterator(cnst->iterFifo());
 
   Inference inf(GeneratingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, lhs.clause(), rhs.clause()));
-  auto out = Clause::fromStack(concl, inf);
+  auto out = Clause::fromIterator(concatIters(
+          lhs.contextLiterals().map([&](auto l) { return sigma(l, lhsVarBank); }),
+          rhs.contextLiterals().map([&](auto l) { 
+            auto Lσ = sigma(l, rhsVarBank); 
+            return _simultaneousSuperposition ? EqHelper::replace(Lσ, s2σ, tσ) : Lσ;
+          }),
+          arrayIter(uwa.computeConstraintLiterals()),
+          iterItems(resolvent)
+        ), inf);
   DEBUG(1, "out: ", *out);
   return Option<Clause*>(out);
 }

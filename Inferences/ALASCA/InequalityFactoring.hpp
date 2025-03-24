@@ -50,8 +50,8 @@ public:
     Literal* lit2, AlascaLiteralItp<NumTraits> l2, Monom<NumTraits> k_s2);
 
   template<class NumTraits>
-  Option<Clause*> applyRule(SelectedAtomicTermItp<NumTraits> const& l1, SelectedAtomicTermItp<NumTraits> const& l2);
-  Option<Clause*> applyRule(SelectedAtomicTermItpAny const& l1, SelectedAtomicTermItpAny const& l2);
+  Option<Clause*> applyRule(SelectedAtomicTermItp<NumTraits> const& l1, SelectedAtomicTermItp<NumTraits> const& l2, AbstractingUnifier& uwa);
+  Option<Clause*> applyRule(SelectedAtomicTermItpAny const& l1, SelectedAtomicTermItpAny const& l2, AbstractingUnifier& uwa);
 
   template<class NumTraits>
   ClauseIterator generateClauses(

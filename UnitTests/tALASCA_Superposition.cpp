@@ -658,20 +658,20 @@ TEST_GENERATION(bug06,
       .indices(alascaSuperpositionIndices())
       .selfApplications(true)
       .inputs  ({ 
-          clause({ 0 == -8 + -a  }),
+          clause({ 0 == -8 + -f(f(a))  }),
           clause({
-    10 + -13 * x0 + -10 * x1 + -(c3 * x2) -17 * f4(x0, x3, x4, x1) >= 0,
-    3 + -6 * x1 + -(c2 * x5) -(c4 * x0) + -15 * g4(x0,x3,x4,x1) >= 0,
-    b + (-7 * x0) + (-15 * x6) + -(c1 * g4(x0,x3,x4,x1)) >= 0,
-    c +  -(c * x3) + -(f(b) * x6) + (-4 * g4(x0,x3,x4,x1)) - (a * x2) >= 0,
+    // 10 + -13 * x0 + -10 * x1 + -(c3 * x2) -17 * f4(x0, x3, x4, x1) >= 0,
+    // 3 + -6 * x1 + -(c2 * x5) -(c4 * x0) + -15 * g4(x0,x3,x4,x1) >= 0,
+    // b + (-7 * x0) + (-15 * x6) + -(c1 * g4(x0,x3,x4,x1)) >= 0,
+    c +  -(c * x3) + -(f(b) * x6) + (-4 * g4(x0,x3,x4,x1)) - (f(f(a)) * x2) >= 0,
               })
 
         })
       .expected(exactly(
           clause({
-    10 + -13 * x0 + -10 * x1 + -(c3 * x2) -17 * f4(x0, x3, x4, x1) >= 0,
-    3 + -6 * x1 + -(c2 * x5) -(c4 * x0) + -15 * g4(x0,x3,x4,x1) >= 0,
-    b + (-7 * x0) + (-15 * x6) + -(c1 * g4(x0,x3,x4,x1)) >= 0,
+    // 10 + -13 * x0 + -10 * x1 + -(c3 * x2) -17 * f4(x0, x3, x4, x1) >= 0,
+    // 3 + -6 * x1 + -(c2 * x5) -(c4 * x0) + -15 * g4(x0,x3,x4,x1) >= 0,
+    // b + (-7 * x0) + (-15 * x6) + -(c1 * g4(x0,x3,x4,x1)) >= 0,
     c +  -(c * x3) + -(f(b) * x6) + (-4 * g4(x0,x3,x4,x1)) - (-8 * x2) >= 0,
               })
       ))
@@ -727,8 +727,8 @@ TEST_GENERATION(is_int_skip_app,
   DECL_SORT(S2)                                                                           \
   DECL_SORT(S11)                                                                          \
   DECL_SORT(S12)                                                                          \
-  DECL_CONST(sLF132, S2)                                                                  \
   DECL_CONST(sLF142, S2)                                                                  \
+  DECL_CONST(sLF132, S2)                                                                  \
   DECL_FUNC(f15, { S11, S2 }, Real)                                                       \
   DECL_FUNC(f17, { S12, Real }, S11)                                                      \
   DECL_CONST(f18, S12)                                                                    \

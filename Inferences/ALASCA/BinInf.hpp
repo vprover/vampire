@@ -28,7 +28,7 @@
 #include "Shell/Options.hpp"
 #include "Lib/TypeList.hpp"
 
-#define DEBUG(lvl, ...)  if (lvl < 0) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...)  if (lvl < 4) { DBG(__VA_ARGS__) }
 namespace TL = Lib::TypeList;
 
 namespace Inferences {
@@ -123,8 +123,9 @@ public:
       DEBUG(0, "lhs: ", lhs, " (", lhs.clause()->number(), ")")
       for (auto rhs_sigma : _rhs->template find<VarBanks>(&sigma, lhs.key())) {
         auto& rhs   = *rhs_sigma.data;
-      DEBUG(0, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
+        DEBUG(0, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
         DEBUG(0, "  sigma: ", sigma)
+
         for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma))) {
           DEBUG(0, "    result: ", *res)
           out.push(res);

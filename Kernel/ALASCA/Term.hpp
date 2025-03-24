@@ -73,6 +73,7 @@ namespace Kernel {
     IMPL_COMPARISONS_FROM_TUPLE(Self);
     IMPL_HASH_FROM_TUPLE(Self);
     Option<TypedTermList> asAtomic() const  { return some(_self); }
+    bool isNumeral() const  { return false; }
     Option<TypedTermList> asVar() const  { ASS(!_self.isVar()) return {}; }
     friend std::ostream& operator<<(std::ostream& out, Self const& self)
     { return out << TermList(self._self); }
@@ -100,8 +101,11 @@ namespace Kernel {
     {  }
 
     bool isNumeral() const { return tryNumeral().isSome(); }
+
     Option<Numeral> tryNumeral() const 
     { return someIf(ASig::one() == _term, [&]() { return _numeral; }); }
+    // TODO 1 remove duplicate function
+    Option<Numeral> asNumeral() const { return tryNumeral(); }
 
     AlascaMonom(int numeral, TermList term) : AlascaMonom(Numeral(numeral), term) {}
 
@@ -154,6 +158,14 @@ namespace Kernel {
     unsigned nSummands() const { return _sum.size(); }
     auto& monomAt(unsigned i) const { return _sum[i]; }
     auto iterSummands() const { return arrayIter(_sum); }
+    bool isNumeral() const { return asNumeral().isSome(); }
+    Option<Numeral> asNumeral() const { 
+      if (nSummands() == 1) {
+        return monomAt(0).asNumeral();
+      } else {
+        return {};
+      }
+    }
     Option<TypedTermList> asAtomic() const { 
       return someIf(nSummands() == 1 && monomAt(0).numeral() == 1, 
           [&]() { return TypedTermList(monomAt(0).atom(), NumTraits::sort()); });
@@ -201,6 +213,7 @@ namespace Kernel {
     TypedTermList toTerm() const { return _self; }
     Option<TypedTermList> asVar() const { return some(_self); }
     Option<TypedTermList> asAtomic() const { return some(_self); }
+    bool isNumeral() const { return false; }
     using Self = __AlascaTermVar;
     auto asTuple() const { return std::tie(_self); }
     IMPL_COMPARISONS_FROM_TUPLE(Self)
@@ -232,6 +245,7 @@ namespace Kernel {
     void operator delete(void* ptr, std::size_t size) noexcept { ::operator delete(ptr); }
     Option<TypedTermList> asVar() const { return _self.apply([&](auto& x) { return x.asVar(); }); }
     Option<TypedTermList> asAtomic() const { return _self.apply([&](auto& x) { return x.asAtomic(); }); }
+    bool isNumeral() const { return _self.apply([&](auto& x) { return x.isNumeral(); }); }
 #if VDEBUG
     static const char* cacheId() { return "AlascaTermCache"; }
 #endif // VDEBUG
@@ -264,6 +278,7 @@ namespace Kernel {
   };
 
   struct AlascaTermRepr : public Coproduct<AlascaTermCache const* , __AlascaTermVar> {
+    AlascaTermRepr(AlascaTermRepr const&) = default;
     AlascaTermRepr(AlascaTermCache const* c) : Coproduct<AlascaTermCache const* , __AlascaTermVar>(std::move(c)) {}
     AlascaTermRepr(__AlascaTermVar c) : Coproduct<AlascaTermCache const* , __AlascaTermVar>(std::move(c)) {}
     auto asTuple() const {
@@ -277,6 +292,10 @@ namespace Kernel {
       } 
       return Out(*this);
     }
+
+    bool isNumeral() const {
+      return match([&](auto& x) { return x->isNumeral(); },
+                   [&](auto& x) { return x.isNumeral(); }); }
 
     Option<TypedTermList> asAtomic() const {
       return match([&](auto& x) { return x->asAtomic(); },
@@ -450,6 +469,7 @@ namespace Kernel {
 
     template<class C>
     AnyAlascaTermStruct(C inner) : _self(std::move(inner)) {}
+    AnyAlascaTermStruct(AnyAlascaTermStruct const&) = default;
   };
 } // namespace Kernel
 namespace Lib {
@@ -474,7 +494,7 @@ namespace Lib {
     unsigned nChildren(Context = {}) const { return _self.apply([](auto& x) { return nChildren(x); }); }
 
     static TypedTermList childAt(unsigned i, TypedTermList const& self)
-    { return TypedTermList(*self.term()->nthArgument(0), SortHelper::getArgSort(self.term(), i)); }
+    { return TypedTermList(*self.term()->nthArgument(i), SortHelper::getArgSort(self.term(), i)); }
     template<class NumTraits>
     static TypedTermList childAt(unsigned i, AlascaTermItp<NumTraits> const& self)
     { return TypedTermList(self.monomAt(i).atom(), NumTraits::sort()); }
@@ -502,6 +522,7 @@ namespace Kernel {
     AnyAlascaTerm(C inner) : _self(std::move(inner)) {}
     static AlascaTermCache const* computeNormalization(Term* t, TermList sort);
   public:
+    AnyAlascaTerm(AnyAlascaTerm const&) = default;
     template<class NumTraits>
     explicit AnyAlascaTerm(AlascaTermItp<NumTraits> self) : _self(self._self) {}
 
@@ -532,6 +553,7 @@ namespace Kernel {
 
     auto asVar() const { return _self._self.asVar(); }
     Option<TypedTermList> asAtomic() const { return _self._self.asAtomic(); }
+    bool isNumeral() const { return _self._self.isNumeral(); }
 
     using Self = AnyAlascaTerm;
     auto asTuple() const { return std::make_tuple(_self._self); }

@@ -29,6 +29,7 @@
 namespace Kernel {
 
   using Kernel::AlascaLiteralItpAny;
+  using AlascaAtom = Coproduct<TypedTermList, Literal*>;
 
   struct AlascaState;
   using UwaSubstitution = Coproduct<RobSubstitution, Indexing::ResultSubstitutionSP>; 
@@ -67,7 +68,7 @@ namespace Kernel {
               Output::cat(mainLiteral),
               "\\/",
               Output::interleaved("\\/", 
-                contextLiterals().map([](auto l) { return Output::ptr(l); })) );
+                contextLiterals().map([](auto l) { return Output::cat(*l); })) );
       }
     }
 
@@ -85,6 +86,8 @@ namespace Kernel {
     auto iterSelectedSubterms() const 
     { return termArgIterTyped(literal()) 
                .flatMap([](auto t) { return AnyAlascaTerm::normalize(t).bottomUpIter(); }); }
+    bool productive() const { return literal()->isPositive(); }
+    AlascaAtom selectedAtom() const { return AlascaAtom(literal()); }
   };
 
   class SelectedAtomicTermUF 
@@ -101,6 +104,7 @@ namespace Kernel {
 
     unsigned termIdx() const { return unsigned(_idx); }
 
+    bool productive() const { return literal()->isPositive(); }
 
     auto iterSelectedSubterms() const 
     { return selectedAtomicAlascaTerm().bottomUpIter(); }
@@ -113,9 +117,10 @@ namespace Kernel {
           self.literal()->isPositive() ? "=" : "!=", 
           self.smallerSide()  )); }
     TypedTermList selectedAtomicTerm() const { return biggerSide(); }
+    AlascaAtom selectedAtom() const { return AlascaAtom(selectedAtomicTerm()); }
     AnyAlascaTerm selectedAtomicAlascaTerm() const { return AnyAlascaTerm::normalize(selectedAtomicTerm()); }
     TypedTermList biggerSide() const { return TypedTermList(literal()->termArg(unsigned(_idx)), literal()->eqArgSort()); }
-    TermList smallerSide() const { return literal()->termArg(unsigned(_idx)); }
+    TermList smallerSide() const { return literal()->termArg(1 - unsigned(_idx)); }
   };
 
   template<class NumTraits>
@@ -138,10 +143,15 @@ namespace Kernel {
     AlascaMonom<NumTraits> selectedSummand() const { return alascaLiteral().term().summandAt(_summand); }
     // TODO 1 remove
     TypedTermList selectedAtomicTerm() const { return TypedTermList(selectedSummand().atom(), NumTraits::sort()); }
-    TypedTermList selectedAtom() const { return selectedAtomicTerm(); }
+    // TypedTermList selectedAtom() const { return selectedAtomicTerm(); }
+    Coproduct<TypedTermList, Literal*> selectedAtom() const { return Coproduct<TypedTermList, Literal*>(selectedAtomicTerm()); }
     AnyAlascaTerm selectedAtomicAlascaTerm() const { return AnyAlascaTerm::normalize(selectedAtomicTerm()); }
     Numeral numeral() const { return selectedSummand().numeral(); }
     Sign sign() const { return numeral().sign(); }
+
+    bool productive() const 
+    { return isInequality() ? selectedSummand().numeral() > 0 
+                            : literal()->isPositive(); }
 
     auto iterSelectedSubterms() const 
     { return selectedAtomicAlascaTerm().bottomUpIter(); }
@@ -187,17 +197,25 @@ namespace Kernel {
     auto fun() const { return coproductIter(applyCo([](auto& self) { return self.fun(); })); }
 
     DELEGATE(clause)
+    DELEGATE(productive)
     DELEGATE(literal)
     DELEGATE(litIdx)
     DELEGATE(termIdx)
     DELEGATE(selectedAtomicTerm)
+    DELEGATE(selectedAtom)
     DELEGATE(contextLiterals)
     DELEGATE(selectedAtomicAlascaTerm)
     DELEGATE(iterSelectedSubterms)
 
+    template<class NumTraits>
+    static bool isNumSort(SelectedAtomicTermItp<NumTraits> const&) { return true; }
+    static bool isNumSort(SelectedAtomicTermUF const&) { return false; }
+    bool isNumSort() const { return apply([](auto& a) { return isNumSort(a); }); }
+
     using Self = SelectedAtomicTerm;
     friend std::ostream& operator<<(std::ostream& out, Self const& self) 
     { self.apply([&](auto& x) { out << x; }); return out; }
+
   };
 
   struct SelectedAtomicTermItpAny : public NumTraitsCopro<SelectedAtomicTermItp>
@@ -211,6 +229,7 @@ namespace Kernel {
 
     DELEGATE(iterSelectedSubterms)
     DELEGATE(selectedAtomicTerm)
+    DELEGATE(selectedAtom)
     DELEGATE(isInequality)
     DELEGATE(sign)
     DELEGATE(termIdx)
@@ -241,7 +260,7 @@ namespace Kernel {
 
     template<class NumTraits>
     static TermList smallerSide(SelectedAtomicTermItp<NumTraits> const& l) 
-    { return div(NumTraits{}, l.contextTermSum(), l.numeral()); }
+    { return div(NumTraits{}, l.contextTermSum(), -l.numeral()); }
 
   public:
     static Option<SelectedEquality> from(SelectedAtomicTerm self) {
@@ -265,9 +284,11 @@ namespace Kernel {
     { return coproductIter(applyCo([](auto x) { return x.iterSelectedSubterms(); })); }
 
     DELEGATE(clause)
+    DELEGATE(productive)
     DELEGATE(literal)
     DELEGATE(litIdx)
     DELEGATE(contextLiterals)
+    DELEGATE(selectedAtom)
 
    
     Option<SelectedAtomicTermItpAny> toSelectedAtomicTermItp() const
@@ -278,6 +299,43 @@ namespace Kernel {
         [](SelectedAtomicLiteral t) -> Option<SelectedAtomicTermItpAny> {
           return {};
         });
+    }
+
+    static auto iter(Clause* cl) {
+      return cl->iterLits()
+          .zipWithIndex() 
+          .flatMap([cl](auto l_i) {
+            auto l = l_i.first;
+            auto i = l_i.second;
+            auto nl = InequalityNormalizer::normalize(l);
+            return ifElseIter(
+
+                /* literals  t1 + t2 + ... + tn <> 0 */
+                [&]() { return nl.asItp().isSome(); }, 
+                [&]() { 
+                  return coproductIter(nl.asItp()->applyCo([cl,i](auto itp) {
+                      return itp.term().iterSummands()
+                         .zipWithIndex()
+                         .map([cl,i](auto s_i) -> NewSelectedAtom {
+                             return  NewSelectedAtom(SelectedAtomicTerm(SelectedAtomicTermItp<decltype(itp.numTraits())>(
+                                     cl, i, s_i.second
+                                     )));
+                         });
+                  }));
+                }, 
+                
+                /* literals  (~)t1 = t2  */
+                [&]() { return nl.toLiteral()->isEquality(); },
+                [&]() {
+                  return iterItems(0, 1)
+                     .map([cl,i](auto j) { return NewSelectedAtom(SelectedAtomicTerm(SelectedAtomicTermUF(cl, i, j))); });
+                },
+
+
+                /* literals  (~)P(t1 ... tn)  */
+                [&]() { return iterItems(NewSelectedAtom(SelectedAtomicLiteral(cl, i))); }
+            );
+          });
     }
   };
 #undef DELEGATE

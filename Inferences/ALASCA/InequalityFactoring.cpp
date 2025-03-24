@@ -15,6 +15,7 @@
 
 #include "InequalityFactoring.hpp"
 #include "Debug/Assertion.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
@@ -39,6 +40,7 @@ void InequalityFactoring::detach() { }
 // ====================================================
 // (C \/ k t1 − j t2 >3 0 \/ +k s2 + t2 >2 0) σ \/ Cnst
 //
+// TODO update to selection function version
 //
 // where
 // • ⟨σ,Cnst⟩ = uwa(s1,s2)
@@ -53,7 +55,8 @@ void InequalityFactoring::detach() { }
 template<class NumTraits>
 Option<Clause*> InequalityFactoring::applyRule(
     SelectedAtomicTermItp<NumTraits> const& l1,  // +j s1 + t1 >1 0
-    SelectedAtomicTermItp<NumTraits> const& l2   // +k s2 + t2 >2 0
+    SelectedAtomicTermItp<NumTraits> const& l2,  // +k s2 + t2 >2 0
+    AbstractingUnifier& uwa
     )
 {
   TIME_TRACE("alasca inequality factoring application")
@@ -62,15 +65,11 @@ Option<Clause*> InequalityFactoring::applyRule(
 
   auto nothing = [&]() { return Option<Clause*>{}; };
 
-  auto s1 = l1.selectedAtom();
-  auto s2 = l2.selectedAtom();
-  auto uwa = _shared->unify(s1, s2);
+  auto s1 = l1.selectedAtomicTerm();
+  auto s2 = l2.selectedAtomicTerm();
 
-  CHECK_CONDITION("⟨σ,Cnst⟩ = uwa(s1,s2)",
-                  uwa.isSome())
-
-  auto cnst  = uwa->computeConstraintLiterals();
-  auto sigma = [&](auto x){ return uwa->subs().apply(x, /* varbank */ 0); };
+  auto cnst  = uwa.computeConstraintLiterals();
+  auto sigma = [&](auto x){ return uwa.subs().apply(x, /* varbank */ 0); };
   auto j = l1.numeral();
   auto k = l2.numeral();
   ASS_EQ(l1.clause(), l2.clause())
@@ -168,11 +167,11 @@ Option<Clause*> InequalityFactoring::applyRule(
   return Option<Clause*>(out);
 }
 
-Option<Clause*> InequalityFactoring::applyRule(SelectedAtomicTermItpAny const& l1, SelectedAtomicTermItpAny const& l2)
+Option<Clause*> InequalityFactoring::applyRule(SelectedAtomicTermItpAny const& l1, SelectedAtomicTermItpAny const& l2, AbstractingUnifier& uwa)
 {
   return l1.apply([&](auto& l1) {
     ASS_EQ(l1.clause(), l2.clause())
-    return applyRule(l1, l2.template unwrap<std::remove_const_t<std::remove_reference_t<decltype(l1)>>>());
+    return applyRule(l1, l2.template unwrap<std::remove_const_t<std::remove_reference_t<decltype(l1)>>>(), uwa);
   });
 }
 
@@ -197,24 +196,37 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
           .template collect<Stack>());
 
 
+
   return pvi(range(0, selected->size())
       .flatMap([=](auto i) {
         return range(i + 1, selected->size())
           .filter([=](auto j) { return (*selected)[i].litIdx() != (*selected)[j].litIdx(); })
           .filter([=](auto j) { return (*selected)[i].numTraits() == (*selected)[j].numTraits(); })
           .flatMap([=](auto j) {
-              auto& max = (*selected)[i];
-              auto& other = (*selected)[j];
-              return ifElseIter2(
-
-                  // both literals are the same. 
-                  // we use a symmetry breaking index comparison
-                  // TODO we could replace this == by _shared.equivalent
-                  max.literal() == other.literal() && other.litIdx() < max.litIdx(), 
-                  iterItems<Clause*>(),
-
-                  applyRule(other, max).intoIter()
-                  ); 
+              auto& l1 = (*selected)[i];
+              auto& l2 = (*selected)[j];
+              return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm())
+                  .intoIter())
+                  .flatMap([this, &l1, &l2](auto uwa) {
+                      auto res = _shared->ordering->compare(l1.literal(), l2.literal());
+                      return ifElseIter(
+                            res == Ordering::LESS         , [&]() { return applyRule(l2, l1, uwa).intoIter(); },
+                            res == Ordering::GREATER      , [&]() { return applyRule(l1, l2, uwa).intoIter(); },
+                            res == Ordering::EQUAL        , [&]() { return applyRule(l1, l2, uwa).intoIter(); },
+                         /* res == Ordering::INCOMP      */ [&]() { return concatIters(applyRule(l1, l2, uwa).intoIter(), applyRule(l2, l1, uwa).intoIter()); }
+                          );
+                    // return applyRule(l1, l2, uwa).intoIter();
+                  });
+              // return ifElseIter2(
+              //
+              //     // both literals are the same. 
+              //     // we use a symmetry breaking index comparison
+              //     // TODO we could replace this == by _shared.equivalent
+              //     max.literal() == other.literal() && other.litIdx() < max.litIdx(), 
+              //     iterItems<Clause*>(),
+              //
+              //     applyRule(other, max).intoIter()
+              //     ); 
                   
           });
       }));

@@ -100,3 +100,28 @@ TEST_FUN(testFlatMap2) {
 }
 
 
+#define ASS_ITER_EQ(l, r) \
+  ASS_EQ(l.template collect<Stack>(), r.template collect<Stack>())
+
+
+TEST_FUN(testDropNth) {
+
+  ASS_ITER_EQ(iterItems(    'b','c','d'),
+              iterItems('a','b','c','d').dropNth(0))
+
+  ASS_ITER_EQ(iterItems('a'    ,'c','d'),
+              iterItems('a','b','c','d').dropNth(1))
+
+  ASS_ITER_EQ(iterItems('a','b'    ,'d'),
+              iterItems('a','b','c','d').dropNth(2))
+
+  ASS_ITER_EQ(iterItems('a','b','c'    ),
+              iterItems('a','b','c','d').dropNth(3))
+
+  ASS_ITER_EQ(iterItems('a'    ,'c'    ),
+              iterItems('a','b','c','d').dropNth(1)
+                                        .dropNth(2))
+
+}
+
+

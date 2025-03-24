@@ -335,7 +335,9 @@ namespace CoproductImpl {
 
     template<class F>
     ResultOf<F, Constant<0>> switchN(F f) const
-    { return Lib::switchN<size>(_tag, std::move(f)); }
+    { 
+      ASS(_tag < size)
+      return Lib::switchN<size>(_tag, std::move(f)); }
 
 #define CONST_POLYMORPIHIC(CONST)                                                         \
     template<class B>                                                                     \
@@ -574,7 +576,7 @@ public:
    *                                                                                      \
    * \pre B must occur exactly once in As...                                              \
    */                                                                                     \
-  template <class B> inline auto unwrap() REF -> decltype(auto) \
+  template <class B> inline auto unwrap() REF -> decltype(auto)                           \
   { return MOVE(unwrap<TL::IdxOf<B, Ts>::val>()); }                                       \
                                                                                           \
   /**                                                                                     \
@@ -597,8 +599,8 @@ public:
    *                                                                                      \
    * \pre B must occur exactly once in As...                                              \
    */                                                                                     \
-  template<class B> auto as() REF                                        \
-  { return as<TL::IdxOf<B, Ts>::val>(); }                                                 \
+  template<class B> auto as() REF                                                         \
+  { return MOVE((*this)).template as<TL::IdxOf<B, Ts>::val>(); }                                   \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC

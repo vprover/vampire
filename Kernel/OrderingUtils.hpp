@@ -235,6 +235,17 @@ namespace Kernel {
       ANY,
     };
 
+    friend std::ostream& operator<<(std::ostream& out, SelectionCriterion const& self)
+    { 
+      switch(self) {
+        case SelectionCriterion::NOT_LEQ: out << "NOT_LEQ"; break;
+        case SelectionCriterion::NOT_LESS: out << "NOT_LESS"; break;
+        case SelectionCriterion::STRICTLY_MAX: out << "STRICTLY_MAX"; break;
+        case SelectionCriterion::ANY: out << "ANY"; break;
+      };
+      return out;
+    }
+
     static bool notLeq(Ordering::Result r) 
     { return r != Ordering::Result::LESS 
           && r != Ordering::Result::EQUAL; }

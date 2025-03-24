@@ -13,6 +13,7 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Lib/DArray.hpp"
 #include "Kernel/ALASCA.hpp"
@@ -73,6 +74,70 @@ struct AlascaOrderingUtils {
 
   static Ordering::Result cmpQ(std::tuple<> c1, std::tuple<> c2)
   { return Ordering::Result::EQUAL; }
+
+  static Ordering::Result compareAtom(Ordering* ord, Literal* const& a1, Literal* const& a2) 
+  { return ord->compare(a1, a2); }
+
+  static Ordering::Result compareAtom(Ordering* ord, TypedTermList const& a1, TypedTermList const& a2) 
+  { return ord->compare(a1, a2); }
+
+  static Ordering::Result compareAtom(Ordering* ord, AlascaAtom const& a1, AlascaAtom const& a2) {
+    return lexLazy(
+      [&]() { return cmpN(a1.is<Literal*>(), a2.is<Literal*>()); },
+      [&]() { 
+        return a1.apply([&](auto a1) { return compareAtom(ord, a1, a2.template unwrap<decltype(a1)>()); });
+      }
+    );
+  }
+
+  static Ordering::Result compareAtom(Ordering* ord, NewSelectedAtom const& a1, NewSelectedAtom const& a2) {
+    return lexLazy(
+        [&]() { return compareAtom(ord, a1.selectedAtom(), a2.selectedAtom()); },
+        [&]() { return a1 == a2 ? Ordering::Result::EQUAL : Ordering::Result::INCOMPARABLE; }
+        );
+  }
+
+  static bool atomMaxAfterUnif(Ordering* ord, NewSelectedAtom const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
+
+    // TODO 1.2 we must actually apply the unifier before calling `iter` I think (think of top level vars)
+    //         or is it find because they will always be shielded thus none of the atoms created by them can get maximal anyways ...?
+
+    ASS_REP(sel == SelectionCriterion::NOT_LESS || sel == SelectionCriterion::NOT_LEQ, sel);
+    auto sigma = [&](auto t) {
+      return t.applyCo([&](auto termOrLit) { return unif.subs().apply(termOrLit, varBank); });
+    }; 
+    auto sσ = sigma(atom.selectedAtom());
+
+    return NewSelectedAtom::iter(atom.clause())
+                  .filter([&](auto& t) { return t != atom; })
+                  .all([&](auto t) { 
+                      auto tσ = sigma(t.selectedAtom());
+                      auto cmp = compareAtom(ord, sσ, tσ);
+                      // DBG(sσ, " ", cmp, " ", tσ)
+                      return sel == SelectionCriterion::NOT_LEQ  ? OrderingUtils::notLeq(cmp)
+                           : sel == SelectionCriterion::NOT_LESS ? OrderingUtils::notLess(cmp)
+                           : assertionViolation<bool>();
+                      });
+  }
+
+  static bool litMaxAfterUnif(Ordering* ord, NewSelectedAtom const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
+
+    ASS_REP(sel == SelectionCriterion::NOT_LESS || sel == SelectionCriterion::NOT_LEQ, sel);
+
+    auto sigma = [&](auto x) { return unif.subs().apply(x, varBank); }; 
+    auto L1σ = sigma(atom.literal());
+
+    return atom.clause()->iterLits()
+          .dropNth(atom.litIdx())
+          .all([&](auto L2) { 
+              auto L2σ = sigma(L2);
+              auto cmp = ord->compare(L1σ, L2σ);
+              return sel == SelectionCriterion::NOT_LEQ  ? OrderingUtils::notLeq(cmp)
+                   : sel == SelectionCriterion::NOT_LESS ? OrderingUtils::notLess(cmp)
+                   : assertionViolation<bool>();
+              });
+  }
+
 
 };
 

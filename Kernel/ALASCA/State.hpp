@@ -41,6 +41,7 @@ namespace Kernel {
       , uwaFixedPointIteration(fixedPointIteration)
     {}
 
+    AlascaSelector _selector;
   public:
     std::shared_ptr<InequalityNormalizer> _normalizer;
     Ordering* const ordering;
@@ -330,7 +331,7 @@ namespace Kernel {
 
     // TODO rename NewSelectedAtom
    auto selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
-   { return AlascaSelector::selected(cl); }
+   { return _selector.selected(cl, ordering); }
 
    auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
    { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
@@ -343,7 +344,9 @@ namespace Kernel {
 
     auto selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables)
     { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-      .filterMap([](auto x) { return std::move(x).template as<SelectedAtomicTerm>(); }); }
+      .filterMap([](NewSelectedAtom x) -> Option<SelectedAtomicTerm> { 
+          return std::move(x).template as<SelectedAtomicTerm>();
+      }); }
 
     auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
     { return selectedAtomicTerms(cl, selLit, selTerm, includeUnshieldedNumberVariables)

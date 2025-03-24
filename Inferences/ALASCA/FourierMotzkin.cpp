@@ -68,8 +68,8 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
 #endif // __ALASCA_Inferences_FM_DERIVE_EQUALITIES
                        + cnst->size());      // Cnst
 
-    auto s1 = lhs.selectedAtom();
-    auto s2 = rhs.selectedAtom();
+    auto s1 = lhs.selectedAtomicTerm();
+    auto s2 = rhs.selectedAtomicTerm();
 
     ASS(!NumTraits::isFractional() || (!s1.isVar() && !s2.isVar()))
 

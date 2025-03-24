@@ -21,6 +21,7 @@
 
 #include "Indexing/IndexManager.hpp"
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/ALASCA/Ordering.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/ALASCA/State.hpp"
 #include "Kernel/EqHelper.hpp"
@@ -65,7 +66,7 @@ struct SuperpositionConf
     static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_LHS_SUBST_TREE; }
   };
 
-  class Rhs: public NewSelectedAtom
+  class Rhs : public NewSelectedAtom
   {
     AnyAlascaTerm _toRewrite;
   public:
@@ -98,27 +99,29 @@ struct SuperpositionConf
       return activePositions(shared, cl)
         .flatMap([&](auto atom) {
             return atom.iterSelectedSubterms()
-               .filter([](AnyAlascaTerm const& t) { return t.isAtomic(); })
+               .filter([](AnyAlascaTerm const& t) { return t.isAtomic() && !t.asAtomic()->isVar(); })
+               .filter([](AnyAlascaTerm const& t) { return !t.isNumeral(); })
                .map([atom](auto t) { return Rhs(atom, t); });
         })
-      .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite().toTerm()), Output::cat(x, "\n", x.literal(), "\n", x.toRewrite())); })
+      .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite().toTerm()), Output::cat(x, "\n", *x.literal(), "\n", x.toRewrite())); })
       ;
     }
 
-    bool postUnificationCheck(AbstractingUnifier&, unsigned varBank) const;
+    bool postUnificationCheck(AbstractingUnifier& unif, unsigned varBank, Ordering* ord) const 
+    {
+      // TODO 1.3 option for enabling this check
+      if (productive()) {
+        return AlascaOrderingUtils::atomMaxAfterUnif(ord, *this, /* term */ SelectionCriterion::NOT_LESS, unif, varBank);
+      } else {
+        return true;
+      }
+    }
     const char* postUnificationCheckName()  const
     { return "s2σ ⊴ ti ∈ active(L[s2]σ)"; }
       
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
-    { 
-      out << self.literal();
-      for (auto l : self.contextLiterals()) {
-        out << " \\/ " << l;
-      }
-      out << "[ " << self.toRewrite() << " ]";
-      return out; 
-    }
+    { return out << (NewSelectedAtom const&) self << "[ " << self.toRewrite() << " ]"; }
   };
 
 
