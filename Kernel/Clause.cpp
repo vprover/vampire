@@ -32,7 +32,7 @@
 
 #include "SAT/SATClause.hpp"
 
-#include "Shell/ConditionalRedundancyHandler.hpp"
+#include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
@@ -133,7 +133,7 @@ void Clause::destroyExceptInferenceObject()
     delete _literalPositions;
   }
 
-  ConditionalRedundancyHandler::destroyClauseData(this);
+  PartialRedundancyHandler::destroyClauseData(this);
 
   RSTAT_CTR_INC("clauses deleted");
 

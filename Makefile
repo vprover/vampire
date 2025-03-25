@@ -341,7 +341,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainers.o\
 
 VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/CommandLine.o\
-         Shell/ConditionalRedundancyHandler.o\
+         Shell/PartialRedundancyHandler.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
          Shell/DistinctProcessor.o\

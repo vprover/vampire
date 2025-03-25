@@ -1834,36 +1834,36 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _conditionalRedundancyCheck = BoolOptionValue("conditional_redundancy_check","crc",false);
-    _conditionalRedundancyCheck.description=
+    _partialRedundancyCheck = BoolOptionValue("partial_redundancy_check","prc",false);
+    _partialRedundancyCheck.description=
       "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
-    _lookup.insert(&_conditionalRedundancyCheck);
-    _conditionalRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _conditionalRedundancyCheck.addHardConstraint(If(equal(true)).then(Or(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::AUTO)),
+    _lookup.insert(&_partialRedundancyCheck);
+    _partialRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
+    _partialRedundancyCheck.addHardConstraint(If(equal(true)).then(Or(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::AUTO)),
                                                                           _unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)))));
-    _conditionalRedundancyCheck.tag(OptionTag::INFERENCES);
+    _partialRedundancyCheck.tag(OptionTag::INFERENCES);
 
-    _conditionalRedundancyOrderingConstraints = BoolOptionValue("conditional_redundancy_ordering_constraints","croc",false);
-    _conditionalRedundancyOrderingConstraints.description=
-      "Strengthen conditional redundancy with ordering constraints.";
-    _lookup.insert(&_conditionalRedundancyOrderingConstraints);
-    _conditionalRedundancyOrderingConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
-    _conditionalRedundancyOrderingConstraints.tag(OptionTag::INFERENCES);
+    _partialRedundancyOrderingConstraints = BoolOptionValue("partial_redundancy_ordering_constraints","proc",false);
+    _partialRedundancyOrderingConstraints.description=
+      "Strengthen partial redundancy with ordering constraints.";
+    _lookup.insert(&_partialRedundancyOrderingConstraints);
+    _partialRedundancyOrderingConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
+    _partialRedundancyOrderingConstraints.tag(OptionTag::INFERENCES);
 
-    _conditionalRedundancyAvatarConstraints = BoolOptionValue("conditional_redundancy_avatar_constraints","crac",false);
-    _conditionalRedundancyAvatarConstraints.description=
-      "Strengthen conditional redundancy with AVATAR constraints.";
-    _lookup.insert(&_conditionalRedundancyAvatarConstraints);
-    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
-    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_splitting.is(equal(true)));
-    _conditionalRedundancyAvatarConstraints.tag(OptionTag::INFERENCES);
+    _partialRedundancyAvatarConstraints = BoolOptionValue("partial_redundancy_avatar_constraints","prac",false);
+    _partialRedundancyAvatarConstraints.description=
+      "Strengthen partial redundancy with AVATAR constraints.";
+    _lookup.insert(&_partialRedundancyAvatarConstraints);
+    _partialRedundancyAvatarConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
+    _partialRedundancyAvatarConstraints.onlyUsefulWith(_splitting.is(equal(true)));
+    _partialRedundancyAvatarConstraints.tag(OptionTag::INFERENCES);
 
-    _conditionalRedundancyLiteralConstraints = BoolOptionValue("conditional_redundancy_literal_constraints","crlc",false);
-    _conditionalRedundancyLiteralConstraints.description=
-      "Strengthen conditional redundancy with literals from clauses.";
-    _lookup.insert(&_conditionalRedundancyLiteralConstraints);
-    _conditionalRedundancyLiteralConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
-    _conditionalRedundancyLiteralConstraints.tag(OptionTag::INFERENCES);
+    _partialRedundancyLiteralConstraints = BoolOptionValue("partial_redundancy_literal_constraints","prlc",false);
+    _partialRedundancyLiteralConstraints.description=
+      "Strengthen partial redundancy with literals from clauses.";
+    _lookup.insert(&_partialRedundancyLiteralConstraints);
+    _partialRedundancyLiteralConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
+    _partialRedundancyLiteralConstraints.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
@@ -3610,7 +3610,7 @@ void Options::resolveAwayAutoValues(const Problem& prb)
 
   if (unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
     if (alasca() && prb.hasAlascaArithmetic() &&
-      !conditionalRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constaint
+      !partialRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constaint
       if (prb.hasAlascaMixedArithmetic()) {
         setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
       } else {

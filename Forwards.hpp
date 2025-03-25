@@ -192,7 +192,7 @@ class Options;
 class Property;
 class Statistics;
 class FunctionDefinitionHandler;
-class ConditionalRedundancyHandler;
-struct ConditionalRedundancyEntry;
+class PartialRedundancyHandler;
+struct PartialRedundancyEntry;
 }
 #endif /* __Forwards__ */

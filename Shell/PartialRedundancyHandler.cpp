@@ -8,7 +8,7 @@
  * and in the source directory
  */
 
-#include "ConditionalRedundancyHandler.hpp"
+#include "PartialRedundancyHandler.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
@@ -49,7 +49,7 @@ bool checkVars(const TermStack& ts, T s)
   return true;
 }
 
-class ConditionalRedundancyHandler::ConstraintIndex
+class PartialRedundancyHandler::ConstraintIndex
   : public CodeTree
 {
 public:
@@ -86,7 +86,7 @@ private:
   Clause* _cl;
 #endif
 
-  void insert(const Ordering* ord, const TermStack& ts, ConditionalRedundancyEntry* ptr)
+  void insert(const Ordering* ord, const TermStack& ts, PartialRedundancyEntry* ptr)
   {
     // first try to insert it into an existing container
     if (!isEmpty()) {
@@ -98,9 +98,9 @@ private:
 
       if (vm.next()) {
         ASS(vm.op->isSuccess());
-        auto entries = vm.op->template getSuccessResult<Entries>();
-        entries->tod->insert(ptr->ordCons, ptr);
-        entries->entries.push(ptr);
+        auto container = vm.op->template getSuccessResult<EntryContainer>();
+        container->tod->insert(ptr->ordCons, ptr);
+        container->entries.push(ptr);
         ft->destroy();
         return;
       }
@@ -119,7 +119,7 @@ private:
     }
     compiler.updateCodeTree(this);
 
-    auto es = new Entries();
+    auto es = new EntryContainer();
     es->tod = ord->createTermOrderingDiagram();
     es->tod->insert(ptr->ordCons, ptr);
     es->entries.push(ptr);
@@ -140,13 +140,13 @@ private:
     } applicator;
 
     matcher.init(this, ts);
-    Entries* es;
-    while ((es = matcher.next()))
+    EntryContainer* ec;
+    while ((ec = matcher.next()))
     {
-      ASS(es->tod);
-      es->tod->init(&applicator);
-      ConditionalRedundancyEntry* e;
-      while ((e = static_cast<ConditionalRedundancyEntry*>(es->tod->next()))) {
+      ASS(ec->tod);
+      ec->tod->init(&applicator);
+      PartialRedundancyEntry* e;
+      while ((e = static_cast<PartialRedundancyEntry*>(ec->tod->next()))) {
         if (!e->active) {
           continue;
         }
@@ -206,9 +206,9 @@ private:
 
   DHMap<unsigned,TermList> _varSorts;
 
-  ConditionalRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
+  PartialRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
   {
-    auto e = new ConditionalRedundancyEntry();
+    auto e = new PartialRedundancyEntry();
     Renaming r;
     if (ordCons.isNonEmpty() || !lits->isEmpty()) {
       // normalize constraints, the same way as
@@ -241,7 +241,7 @@ private:
     e->splits = splits;
 
     if (!splits->isEmpty()) {
-      splitter->addConditionalRedundancyEntry(splits, e);
+      splitter->addPartialRedundancyEntry(splits, e);
     }
 
     return e;
@@ -265,7 +265,7 @@ private:
       ft->destroy();
     }
 
-    Entries* next()
+    EntryContainer* next()
     {
       if (finished()) {
         //all possible matches are exhausted
@@ -278,7 +278,7 @@ private:
       }
 
       ASS(op->isSuccess());
-      return op->getSuccessResult<Entries>();
+      return op->getSuccessResult<EntryContainer>();
     }
   };
 
@@ -296,7 +296,7 @@ private:
 
   static void onCodeOpDestroying(CodeOp* op) {
     if (op->isSuccess()) {
-      auto es = op->getSuccessResult<Entries>();
+      auto es = op->getSuccessResult<EntryContainer>();
       iterTraits(decltype(es->entries)::Iterator(es->entries))
         .forEach([](auto e) {
           e->release();
@@ -306,49 +306,49 @@ private:
   }
 };
 
-// ConditionalRedundancyHandler
+// PartialRedundancyHandler
 
-ConditionalRedundancyHandler* ConditionalRedundancyHandler::create(const Options& opts, const Ordering* ord, Splitter* splitter)
+PartialRedundancyHandler* PartialRedundancyHandler::create(const Options& opts, const Ordering* ord, Splitter* splitter)
 {
-  if (!opts.conditionalRedundancyCheck()) {
-    return new ConditionalRedundancyHandlerImpl</*enabled*/false,false,false,false>(opts,ord,splitter);
+  if (!opts.partialRedundancyCheck()) {
+    return new PartialRedundancyHandlerImpl</*enabled*/false,false,false,false>(opts,ord,splitter);
   }
-  auto ordC = opts.conditionalRedundancyOrderingConstraints();
+  auto ordC = opts.partialRedundancyOrderingConstraints();
   // check for av=on here as otherwise we would have to null-check splits inside the handler
-  auto avatarC = opts.splitting() && opts.conditionalRedundancyAvatarConstraints();
-  auto litC = opts.conditionalRedundancyLiteralConstraints();
+  auto avatarC = opts.splitting() && opts.partialRedundancyAvatarConstraints();
+  auto litC = opts.partialRedundancyLiteralConstraints();
   if (ordC) {
     if (avatarC) {
       if (litC) {
-        return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
+        return new PartialRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
       }
-      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
+      return new PartialRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
     }
     if (litC) {
-      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
+      return new PartialRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
     }
-    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
+    return new PartialRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
   }
   if (avatarC) {
     if (litC) {
-      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
+      return new PartialRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
     }
-    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
+    return new PartialRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
   }
   if (litC) {
-    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
+    return new PartialRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
   }
-  return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
+  return new PartialRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
 }
 
-void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
+void PartialRedundancyHandler::destroyClauseData(Clause* cl)
 {
   ConstraintIndex* ptr = nullptr;
   clauseData.pop(cl, ptr);
   delete ptr;
 }
 
-ConditionalRedundancyHandler::ConstraintIndex** ConditionalRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
+PartialRedundancyHandler::ConstraintIndex** PartialRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {
     return clauseData.findPtr(cl);
@@ -361,12 +361,12 @@ ConditionalRedundancyHandler::ConstraintIndex** ConditionalRedundancyHandler::ge
   return ptr;
 }
 
-DHMap<Clause*,typename ConditionalRedundancyHandler::ConstraintIndex*> ConditionalRedundancyHandler::clauseData;
+DHMap<Clause*,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
 
-// ConditionalRedundancyHandlerImpl
+// PartialRedundancyHandlerImpl
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
+bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
   Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
   bool eqIsResult, ResultSubstitution* subs) const
 {
@@ -396,7 +396,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
+void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
   Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
   Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const
 {
@@ -448,7 +448,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolution(
+bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolution(
   Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
@@ -487,7 +487,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
  * However, here we do not assume that the rewriting equation is unit, which necessitates some additional checks.
  */
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperpositionPremiseRedundant(
+bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperpositionPremiseRedundant(
   Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
   const SubstApplicator* eqApplicator, Ordering::Result& tord) const
 {
@@ -522,7 +522,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperposi
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-const LiteralSet* ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingLiterals(
+const LiteralSet* PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingLiterals(
   Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const
 {
   if constexpr (!litC) {
@@ -536,7 +536,7 @@ const LiteralSet* ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-const SplitSet* ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingSplits(Clause* cl, Clause* other) const
+const SplitSet* PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingSplits(Clause* cl, Clause* other) const
 {
   if constexpr (!avatarC) {
     return SplitSet::getEmpty();
@@ -545,7 +545,7 @@ const SplitSet* ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::tryInsert(
+void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::tryInsert(
   Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
 {
   if constexpr (!enabled) {
@@ -565,7 +565,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::tryInsert(
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(Clause* cl) const
+void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(Clause* cl) const
 {
   if (!enabled || !ordC) {
     return;
