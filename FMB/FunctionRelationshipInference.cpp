@@ -66,6 +66,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   env.setMainProblem(&prb);
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   opt.setSplitting(false);
+  opt.resolveAwayAutoValues0();
+  opt.resolveAwayAutoValues(prb);
 
   LabelFinder* labelFinder = new LabelFinder();
 

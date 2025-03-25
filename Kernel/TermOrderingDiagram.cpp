@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file OrderingComparator.cpp
- * Implements class OrderingComparator.
+ * @file TermOrderingDiagram.cpp
+ * Implements class TermOrderingDiagram.
  */
 
 #include "Lib/Stack.hpp"
@@ -18,24 +18,24 @@
 #include "KBO.hpp"
 #include "SubstHelper.hpp"
 
-#include "OrderingComparator.hpp"
+#include "TermOrderingDiagram.hpp"
 
 using namespace std;
 
 namespace Kernel {
 
-// OrderingComparator
+// TermOrderingDiagram
 
 static Ordering::Result kGtPtr = Ordering::GREATER;
 static Ordering::Result kEqPtr = Ordering::EQUAL;
 
-OrderingComparator* OrderingComparator::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs)
+TermOrderingDiagram* TermOrderingDiagram::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs)
 {
-  static Map<std::pair<TermList,TermList>,OrderingComparator*> cache; // TODO this leaks now
+  static Map<std::pair<TermList,TermList>,TermOrderingDiagram*> cache; // TODO this leaks now
 
-  OrderingComparator** ptr;
+  TermOrderingDiagram** ptr;
   if (cache.getValuePtr({ lhs, rhs }, ptr, nullptr)) {
-    *ptr = ord.createComparator().release();
+    *ptr = ord.createTermOrderingDiagram().release();
     (*ptr)->_threeValued = true;
     (*ptr)->_source = Branch(lhs, rhs);
     (*ptr)->_source.node()->gtBranch = Branch(&kGtPtr, (*ptr)->_sink);
@@ -45,22 +45,22 @@ OrderingComparator* OrderingComparator::createForSingleComparison(const Ordering
   return *ptr;
 }
 
-OrderingComparator::OrderingComparator(const Ordering& ord)
+TermOrderingDiagram::TermOrderingDiagram(const Ordering& ord)
 : _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr)
 {
   _sink.node()->ready = true;
 }
 
-OrderingComparator::~OrderingComparator() = default;
+TermOrderingDiagram::~TermOrderingDiagram() = default;
 
-void OrderingComparator::init(const SubstApplicator* appl)
+void TermOrderingDiagram::init(const SubstApplicator* appl)
 {
   _curr = &_source;
   _prev = nullptr;
   _appl = appl;
 }
 
-void* OrderingComparator::next()
+void* TermOrderingDiagram::next()
 {
   ASS(_appl);
   ASS(_curr);
@@ -93,7 +93,7 @@ void* OrderingComparator::next()
   return nullptr;
 }
 
-bool OrderingComparator::check(const SubstApplicator* appl, const PrevPoly& prevPoly, const TermPartialOrdering* tpo)
+bool TermOrderingDiagram::check(const SubstApplicator* appl, const PrevPoly& prevPoly, const TermPartialOrdering* tpo)
 {
   // ASS_NEQ(tpo, TermPartialOrdering::getEmpty(_ord));
   init(appl);
@@ -173,7 +173,7 @@ bool OrderingComparator::check(const SubstApplicator* appl, const PrevPoly& prev
   return false;
 }
 
-void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void* data)
+void TermOrderingDiagram::insert(const Stack<TermOrderingConstraint>& comps, void* data)
 {
   ASS(data);
   static Ordering::Result ordVals[] = { Ordering::GREATER, Ordering::EQUAL, Ordering::INCOMPARABLE };
@@ -197,7 +197,7 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
     curr = &curr->node()->getBranchUnsafe(comps[0].rel);
     for (unsigned i = 1; i < comps.size(); i++) {
       auto [lhs,rhs,rel] = comps[i];
-      *curr = OrderingComparator::Branch(lhs, rhs);
+      *curr = TermOrderingDiagram::Branch(lhs, rhs);
       for (unsigned i = 0; i < 3; i++) {
         if (ordVals[i] != rel) {
           curr->node()->getBranchUnsafe(ordVals[i]) = newFail;
@@ -215,7 +215,7 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
   _sink = newFail;
 }
 
-Ordering::Result OrderingComparator::positivityCheck() const
+Ordering::Result TermOrderingDiagram::positivityCheck() const
 {
   auto node = _curr->node();
   ASS(node->ready);
@@ -254,7 +254,7 @@ Ordering::Result OrderingComparator::positivityCheck() const
   return Ordering::INCOMPARABLE;
 }
 
-void OrderingComparator::processCurrentNode()
+void TermOrderingDiagram::processCurrentNode()
 {
   ASS(_curr->node());
   while (!_curr->node()->ready)
@@ -307,7 +307,7 @@ void OrderingComparator::processCurrentNode()
   }
 }
 
-void OrderingComparator::processVarNode()
+void TermOrderingDiagram::processVarNode()
 {
   auto node = _curr->node();
   auto trace = getCurrentTrace();
@@ -343,7 +343,7 @@ void OrderingComparator::processVarNode()
   _curr->node()->prevPoly = getPrevPoly();
 }
 
-void OrderingComparator::processPolyNode()
+void TermOrderingDiagram::processPolyNode()
 {
   auto node = _curr->node();
   auto trace = getCurrentTrace();
@@ -449,14 +449,14 @@ void OrderingComparator::processPolyNode()
   _curr->node()->ready = true;
 }
 
-void OrderingComparator::processTermNode()
+void TermOrderingDiagram::processTermNode()
 {
   ASS(_curr->node() && !_curr->node()->ready);
   _curr->node()->ready = true;
   _curr->node()->trace = Trace::getEmpty(_ord);
 }
 
-const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
+const TermOrderingDiagram::Trace* TermOrderingDiagram::getCurrentTrace()
 {
   ASS(!_curr->node()->ready);
 
@@ -490,7 +490,7 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
   ASSERTION_VIOLATION;
 }
 
-std::pair<OrderingComparator::Node*, Ordering::Result> OrderingComparator::getPrevPoly()
+std::pair<TermOrderingDiagram::Node*, Ordering::Result> TermOrderingDiagram::getPrevPoly()
 {
   auto res = make_pair((Node*)nullptr, Ordering::INCOMPARABLE);
   if (_prev) {
@@ -515,37 +515,37 @@ std::pair<OrderingComparator::Node*, Ordering::Result> OrderingComparator::getPr
 
 // Branch
 
-OrderingComparator::Branch::Branch(void* data, Branch alt)
+TermOrderingDiagram::Branch::Branch(void* data, Branch alt)
 {
   setNode(new Node(data, alt));
 }
 
-OrderingComparator::Branch::Branch(TermList lhs, TermList rhs)
+TermOrderingDiagram::Branch::Branch(TermList lhs, TermList rhs)
 {
   setNode(new Node(lhs, rhs));
 }
 
-OrderingComparator::Branch::Branch(const Polynomial* p)
+TermOrderingDiagram::Branch::Branch(const Polynomial* p)
 {
   setNode(new Node(p));
 }
 
-OrderingComparator::Branch::~Branch()
+TermOrderingDiagram::Branch::~Branch()
 {
   setNode(nullptr);
 }
 
-OrderingComparator::Branch::Branch(const Branch& other)
+TermOrderingDiagram::Branch::Branch(const Branch& other)
 {
   setNode(other._node);
 }
 
-OrderingComparator::Node* OrderingComparator::Branch::node() const
+TermOrderingDiagram::Node* TermOrderingDiagram::Branch::node() const
 {
   return _node;
 }
 
-void OrderingComparator::Branch::setNode(Node* node)
+void TermOrderingDiagram::Branch::setNode(Node* node)
 {
   if (node) {
     node->incRefCnt();
@@ -556,12 +556,12 @@ void OrderingComparator::Branch::setNode(Node* node)
   _node = node;
 }
 
-OrderingComparator::Branch::Branch(Branch&& other)
+TermOrderingDiagram::Branch::Branch(Branch&& other)
 {
   swap(_node,other._node);
 }
 
-OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch other)
+TermOrderingDiagram::Branch& TermOrderingDiagram::Branch::operator=(Branch other)
 {
   swap(_node,other._node);
   return *this;
@@ -569,16 +569,16 @@ OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch other)
 
 // Node
 
-OrderingComparator::Node::Node(void* data, Branch alternative)
+TermOrderingDiagram::Node::Node(void* data, Branch alternative)
   : tag(T_DATA), data(data), alternative(alternative) {}
 
-OrderingComparator::Node::Node(TermList lhs, TermList rhs)
+TermOrderingDiagram::Node::Node(TermList lhs, TermList rhs)
   : tag(T_TERM), lhs(lhs), rhs(rhs) {}
 
-OrderingComparator::Node::Node(const Polynomial* p)
+TermOrderingDiagram::Node::Node(const Polynomial* p)
   : tag(T_POLY), poly(p) {}
 
-OrderingComparator::Node::~Node()
+TermOrderingDiagram::Node::~Node()
 {
   if (tag==T_DATA) {
     alternative.~Branch();
@@ -586,12 +586,12 @@ OrderingComparator::Node::~Node()
   ready = false;
 }
 
-void OrderingComparator::Node::incRefCnt()
+void TermOrderingDiagram::Node::incRefCnt()
 {
   refcnt++;
 }
 
-void OrderingComparator::Node::decRefCnt()
+void TermOrderingDiagram::Node::decRefCnt()
 {
   ASS(refcnt>=0);
   refcnt--;
@@ -600,7 +600,7 @@ void OrderingComparator::Node::decRefCnt()
   }
 }
 
-OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result r)
+TermOrderingDiagram::Branch& TermOrderingDiagram::Node::getBranch(Ordering::Result r)
 {
   ASS(ready && trace);
   switch (r) {
@@ -614,7 +614,7 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result
   ASSERTION_VIOLATION;
 }
 
-OrderingComparator::Branch& OrderingComparator::Node::getBranchUnsafe(Ordering::Result r)
+TermOrderingDiagram::Branch& TermOrderingDiagram::Node::getBranchUnsafe(Ordering::Result r)
 {
   switch (r) {
     case Ordering::EQUAL: return eqBranch;
@@ -629,7 +629,7 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranchUnsafe(Ordering::
 
 // Polynomial
 
-const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)
+const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)
 {
   static Set<Polynomial*, DerefPtrHash<DefaultHash>> polys;
 
@@ -653,26 +653,26 @@ const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int co
 
 // Iterators
 
-OrderingComparator::TermNodeIterator::TermNodeIterator(
+TermOrderingDiagram::TermNodeIterator::TermNodeIterator(
   const Ordering& ord, const SubstApplicator* appl,
     TermList lhs, TermList rhs,
     const PrevPoly& prevPoly, const TermPartialOrdering* tpo)
   : _ord(ord),
-    _comp(OrderingComparator::createForSingleComparison(
+    _tod(TermOrderingDiagram::createForSingleComparison(
       ord,AppliedTerm(lhs,appl,true).apply(),AppliedTerm(rhs,appl,true).apply())),
     _prevPoly(prevPoly), _tpo(tpo)
 {
 }
 
-Ordering::Result OrderingComparator::TermNodeIterator::get()
+Ordering::Result TermOrderingDiagram::TermNodeIterator::get()
 {
-  _comp->_prev = nullptr;
-  _comp->_curr = &_comp->_source;
+  _tod->_prev = nullptr;
+  _tod->_curr = &_tod->_source;
 
   for (;;) {
-    _comp->processCurrentNode();
+    _tod->processCurrentNode();
 
-    auto node = _comp->_curr->node();
+    auto node = _tod->_curr->node();
     ASS(node->ready);
 
     if (node->tag == Node::T_DATA) {
@@ -699,19 +699,19 @@ Ordering::Result OrderingComparator::TermNodeIterator::get()
         comp = val;
       }
     }
-    _comp->_prev = _comp->_curr;
-    _comp->_curr = &node->getBranch(comp);
+    _tod->_prev = _tod->_curr;
+    _tod->_curr = &node->getBranch(comp);
   }
   ASSERTION_VIOLATION;
 }
 
-OrderingComparator::PolyNodeIterator::PolyNodeIterator(
+TermOrderingDiagram::PolyNodeIterator::PolyNodeIterator(
   const Polynomial* poly, const PrevPoly& prevPoly, const TermPartialOrdering* tpo)
   : _poly(poly), _prevPoly(prevPoly), _tpo(tpo)
 {
 }
 
-Ordering::Result OrderingComparator::PolyNodeIterator::get()
+Ordering::Result TermOrderingDiagram::PolyNodeIterator::get()
 {
   // check if we have seen this polynomial
   // on the path leading here
@@ -777,22 +777,22 @@ Ordering::Result OrderingComparator::PolyNodeIterator::get()
   return Ordering::INCOMPARABLE;
 }
 
-OrderingComparator::GreaterIterator::GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs)
-  : _comp(*OrderingComparator::createForSingleComparison(ord, lhs, rhs))
+TermOrderingDiagram::GreaterIterator::GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs)
+  : _tod(*TermOrderingDiagram::createForSingleComparison(ord, lhs, rhs))
 {
-  _path.push(&_comp._source);
+  _path.push(&_tod._source);
 }
 
-bool OrderingComparator::GreaterIterator::hasNext()
+bool TermOrderingDiagram::GreaterIterator::hasNext()
 {
   while (_path.isNonEmpty()) {
     auto& curr = _path.top();
 
-    _comp._prev = (_path.size()==1) ? nullptr : _path[_path.size()-2];
-    _comp._curr = curr;
-    _comp.processCurrentNode();
+    _tod._prev = (_path.size()==1) ? nullptr : _path[_path.size()-2];
+    _tod._curr = curr;
+    _tod.processCurrentNode();
 
-    auto node = _comp._curr->node();
+    auto node = _tod._curr->node();
     ASS(node->ready);
 
     if (node->tag != Node::T_DATA) {
@@ -810,15 +810,15 @@ bool OrderingComparator::GreaterIterator::hasNext()
 
       auto prev = _path.top()->node();
       ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
-      if (_comp._curr == &prev->getBranch(Ordering::GREATER)) {
+      if (_tod._curr == &prev->getBranch(Ordering::GREATER)) {
         _path.push(&prev->getBranch(Ordering::EQUAL));
         break;
-      } else if (_comp._curr == &prev->getBranch(Ordering::EQUAL)) {
+      } else if (_tod._curr == &prev->getBranch(Ordering::EQUAL)) {
         _path.push(&prev->getBranch(Ordering::LESS));
         break;
       }
     }
-    ASS(_comp._threeValued);
+    ASS(_tod._threeValued);
     if (node->data && *static_cast<Result*>(node->data) == Ordering::GREATER) {
       ASS(node->trace);
       _res.first = node->prevPoly;
@@ -831,9 +831,9 @@ bool OrderingComparator::GreaterIterator::hasNext()
 
 // Printing
 
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node::Tag& t)
+std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram::Node::Tag& t)
 {
-  using Tag = OrderingComparator::Node::Tag;
+  using Tag = TermOrderingDiagram::Node::Tag;
   switch (t) {
     case Tag::T_DATA: return out << "d";
     case Tag::T_TERM: return out << "t";
@@ -842,9 +842,9 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node::Tag&
   ASSERTION_VIOLATION;
 }
 
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node)
+std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram::Node& node)
 {
-  using Tag = OrderingComparator::Node::Tag;
+  using Tag = TermOrderingDiagram::Node::Tag;
   out << (Tag)node.tag << (node.ready?" ":"? ");
   switch (node.tag) {
     case Tag::T_DATA: return out << node.data;
@@ -854,7 +854,7 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node
   ASSERTION_VIOLATION;
 }
 
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Polynomial& poly)
+std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram::Polynomial& poly)
 {
   bool first = true;
   for (const auto& [var, coeff] : poly.varCoeffPairs) {
@@ -877,28 +877,28 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Polynomial
   return out;
 }
 
-std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
+std::ostream& operator<<(std::ostream& str, const TermOrderingDiagram& tod)
 {
-  Stack<std::pair<const OrderingComparator::Branch*, unsigned>> todo;
-  todo.push(std::make_pair(&comp._source,0));
+  Stack<std::pair<const TermOrderingDiagram::Branch*, unsigned>> stack;
+  stack.push(std::make_pair(&tod._source,0));
   // Note: using this set we get a more compact representation
-  DHSet<OrderingComparator::Node*> seen;
+  DHSet<TermOrderingDiagram::Node*> seen;
 
-  while (todo.isNonEmpty()) {
-    auto kv = todo.pop();
+  while (stack.isNonEmpty()) {
+    auto kv = stack.pop();
     for (unsigned i = 0; i < kv.second; i++) {
       str << ((i+1 == kv.second) ? "  |--" : "  |  ");
     }
     str << *kv.first->node() << std::endl;
     if (seen.insert(kv.first->node())) {
-      if (kv.first->node()->tag==OrderingComparator::Node::T_DATA) {
+      if (kv.first->node()->tag==TermOrderingDiagram::Node::T_DATA) {
         if (kv.first->node()->data) {
-          todo.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
+          stack.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
         }
       } else {
-        todo.push(std::make_pair(&kv.first->node()->ngeBranch,kv.second+1));
-        todo.push(std::make_pair(&kv.first->node()->eqBranch,kv.second+1));
-        todo.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
+        stack.push(std::make_pair(&kv.first->node()->ngeBranch,kv.second+1));
+        stack.push(std::make_pair(&kv.first->node()->eqBranch,kv.second+1));
+        stack.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
       }
     }
   }

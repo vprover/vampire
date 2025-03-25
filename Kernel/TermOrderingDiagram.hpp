@@ -8,11 +8,11 @@
  * and in the source directory
  */
 /**
- * @file OrderingComparator.hpp
+ * @file TermOrderingDiagram.hpp
  */
 
-#ifndef __OrderingComparator__
-#define __OrderingComparator__
+#ifndef __TermOrderingDiagram__
+#define __TermOrderingDiagram__
 
 #include "Forwards.hpp"
 
@@ -32,18 +32,18 @@ namespace Kernel {
  *
  * The diagrams are created and called from inside a specific ordering
  * object (KBO or LPO), but owned by the caller, so the destructor is virtual.
- * See @b KBOComparator and @b LPOComparator for implementation details.
+ * See @b TermOrderingDiagramKBO and @b TermOrderingDiagramLPO for implementation details.
  */
-struct OrderingComparator
+struct TermOrderingDiagram
 {
 public:
   struct Node;
   using PrevPoly = std::pair<Node*,Ordering::Result>;
 
-  static OrderingComparator* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs);
+  static TermOrderingDiagram* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs);
 
-  OrderingComparator(const Ordering& ord);
-  virtual ~OrderingComparator();
+  TermOrderingDiagram(const Ordering& ord);
+  virtual ~TermOrderingDiagram();
 
   /** Has to be called each time a new retrieval is started. */
   void init(const SubstApplicator* appl);
@@ -58,7 +58,7 @@ public:
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
 
-  friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
+  friend std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram& tod);
 
 private:
   Result positivityCheck() const;
@@ -74,7 +74,7 @@ private:
 protected:
   /** Implements one step of a definitional expansion
    *  for two terms in a specific term ordering.
-   *  See @b KBOComparator and @b LPOComparator. */
+   *  See @b TermOrderingDiagramKBO and @b TermOrderingDiagramLPO. */
   virtual void processTermNode();
 
   /** As noted above, a processed node can be reached via exactly one path,
@@ -154,10 +154,10 @@ public:
       TermList rhs;
     };
 
-    friend struct OrderingComparator;
-    friend class KBOComparator;
-    friend class LPOComparator;
-    friend std::ostream& operator<<(std::ostream&, const OrderingComparator&);
+    friend struct TermOrderingDiagram;
+    friend class TermOrderingDiagramKBO;
+    friend class TermOrderingDiagramLPO;
+    friend std::ostream& operator<<(std::ostream&, const TermOrderingDiagram&);
 
   private:
     Branch eqBranch;
@@ -209,7 +209,7 @@ protected:
     Result get();
 
     const Ordering& _ord;
-    OrderingComparator* _comp;
+    TermOrderingDiagram* _tod;
     const PrevPoly& _prevPoly;
     const TermPartialOrdering* _tpo;
   };
@@ -231,7 +231,7 @@ public:
     bool hasNext();
     std::pair<PrevPoly, const TermPartialOrdering*> next() { return _res; }
 
-    OrderingComparator& _comp;
+    TermOrderingDiagram& _tod;
     std::pair<PrevPoly, const TermPartialOrdering*> _res;
     Stack<Branch*> _path;
   };

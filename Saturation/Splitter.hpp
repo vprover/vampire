@@ -181,7 +181,7 @@ private:
     Clause* component;
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
-    Stack<ConditionalRedundancyEntry*> conditionalRedundancyEntries;
+    Stack<PartialRedundancyEntry*> partialRedundancyEntries;
     bool active;
 
     USE_ALLOCATOR(SplitRecord);
@@ -199,7 +199,7 @@ public:
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
-  void addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e);
+  void addPartialRedundancyEntry(SplitSet* splits, PartialRedundancyEntry* e);
   void addNewClause(Clause* cl);
   void onNewClause(Clause* cl);
   void onAllProcessed();

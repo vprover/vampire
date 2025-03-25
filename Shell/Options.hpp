@@ -458,9 +458,10 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     MINISAT = 0
+     MINISAT = 0,
+     CADICAL = 1
 #if VZ3
-     ,Z3 = 1
+     ,Z3 = 2
 #endif
   };
 
@@ -2104,16 +2105,16 @@ public:
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
-  bool conditionalRedundancyCheck() const { return _conditionalRedundancyCheck.actualValue; }
-  bool conditionalRedundancyOrderingConstraints() const { return _conditionalRedundancyOrderingConstraints.actualValue; }
-  bool conditionalRedundancySubsumption() const { return _conditionalRedundancySubsumption.actualValue; }
-  // bool conditionalRedundancyAvatarConstraints() const { return _conditionalRedundancyAvatarConstraints.actualValue; }
-  // bool conditionalRedundancyLiteralConstraints() const { return _conditionalRedundancyLiteralConstraints.actualValue; }
+  bool partialRedundancyCheck() const { return _partialRedundancyCheck.actualValue; }
+  bool partialRedundancyOrderingConstraints() const { return _partialRedundancyOrderingConstraints.actualValue; }
+  bool partialRedundancySubsumption() const { return _partialRedundancySubsumption.actualValue; }
+  // bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
+  // bool partialRedundancyLiteralConstraints() const { return _partialRedundancyLiteralConstraints.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
-  bool demodulationPrecompiledComparison() const { return _demodulationPrecompiledComparison.actualValue; }
+  bool forwardDemodulationTermOrderingDiagrams() const { return _forwardDemodulationTermOrderingDiagrams.actualValue; }
   bool demodulationOnlyEquational() const { return _demodulationOnlyEquational.actualValue; }
 
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
@@ -2467,7 +2468,7 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
-  BoolOptionValue _demodulationPrecompiledComparison;
+  BoolOptionValue _forwardDemodulationTermOrderingDiagrams;
   BoolOptionValue _demodulationOnlyEquational;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
@@ -2522,11 +2523,11 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
-  BoolOptionValue _conditionalRedundancyCheck;
-  BoolOptionValue _conditionalRedundancyOrderingConstraints;
-  BoolOptionValue _conditionalRedundancySubsumption;
-  // BoolOptionValue _conditionalRedundancyAvatarConstraints;
-  // BoolOptionValue _conditionalRedundancyLiteralConstraints;
+  BoolOptionValue _partialRedundancyCheck;
+  BoolOptionValue _partialRedundancyOrderingConstraints;
+  BoolOptionValue _partialRedundancySubsumption;
+  // BoolOptionValue _partialRedundancyAvatarConstraints;
+  // BoolOptionValue _partialRedundancyLiteralConstraints;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;

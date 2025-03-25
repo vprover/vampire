@@ -1,6 +1,9 @@
 [submodule "z3"]
 	path = z3
 	url = https://github.com/Z3Prover/z3
+[submodule "cadical"]
+	path = cadical
+	url = https://github.com/arminbiere/cadical
 [submodule "viras"]
 	path = viras
 	url = https://github.com/joe-hauns/viras
