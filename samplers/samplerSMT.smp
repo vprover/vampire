@@ -305,17 +305,17 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 # AVATAR - main
 > av ~cat on:15,off:4
 
-# conditional_redundancy_check
-> crc ~cat on:3,off:5
+# partial_redundancy_check
+> prc ~cat on:3,off:5
 
-# conditional_redundancy_ordering_constraints
-crc=on > croc ~cat on:1,off:1
+# partial_redundancy_ordering_constraints
+prc=on > proc ~cat on:1,off:1
 
-# conditional_redundancy_avatar_constraints
-av=on crc=on > crac ~cat on:1,off:1
+# partial_redundancy_avatar_constraints
+av=on prc=on > prac ~cat on:1,off:1
 
-# conditional_redundancy_literal_constraints
-crc=on > crlc ~cat on:1,off:1
+# partial_redundancy_literal_constraints
+prc=on > prlc ~cat on:1,off:1
 
 # SAT SOLVER
 
@@ -493,8 +493,8 @@ thi!=off > thigen ~cat off:1,on:1
 thi!=off > thitd ~cat off:1,on:1
 
 # unification_with_abstraction
-crc=off alasca=off > uwa ~cat off:5,interpreted_only:1,one_side_interpreted:1,one_side_constant:1,all:1,ground:1,func_ext:1
-crc=off alasca=on > uwa ~cat off:1,alasca_one_interp:1,alasca_can_abstract:1,alasca_main:1,alasca_main_floor:1
+prc=off alasca=off > uwa ~cat off:5,interpreted_only:1,one_side_interpreted:1,one_side_constant:1,all:1,ground:1,func_ext:1
+prc=off alasca=on > uwa ~cat off:1,alasca_one_interp:1,alasca_can_abstract:1,alasca_main:1,alasca_main_floor:1
 
 # unification_with_abstraction_fixed_point_iteration
 > uwa_fpi ~cat off:5,on:1

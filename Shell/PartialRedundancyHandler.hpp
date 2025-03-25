@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file ConditionalRedundancyHandler.hpp
- * Conditional redundancy is based on the following ideas:
+ * @file PartialRedundancyHandler.hpp
+ * Partial redundancy is based on the following ideas:
  * - For any generating inference, let's denote with F the conditions under
  *   which the inference is simplifying, i.e. under these conditions the
  *   main premise is made redundant by the conclusion and the side premise.
@@ -37,8 +37,8 @@
  *   and (iv) literal constraints. By default, we use only unification constraints.
  */
 
-#ifndef __ConditionalRedundancyHandler__
-#define __ConditionalRedundancyHandler__
+#ifndef __PartialRedundancyHandler__
+#define __PartialRedundancyHandler__
 
 #include "Forwards.hpp"
 
@@ -58,16 +58,9 @@ using namespace Indexing;
 
 using LiteralSet = SharedSet<Literal*>;
 
-struct OrderingConstraint {
-  OrderingConstraint(TermList lhs, TermList rhs) : lhs(lhs), rhs(rhs), tod() {}
-  TermList lhs;
-  TermList rhs;
-  TermOrderingDiagramUP tod;
-};
+using OrderingConstraints = Stack<TermOrderingConstraint>;
 
-using OrderingConstraints = Stack<OrderingConstraint>;
-
-struct ConditionalRedundancyEntry {
+struct PartialRedundancyEntry {
   OrderingConstraints ordCons;
   const LiteralSet* lits;
   SplitSet* splits;
@@ -92,13 +85,18 @@ struct ConditionalRedundancyEntry {
   }
 };
 
-class ConditionalRedundancyHandler
+struct EntryContainer {
+  TermOrderingDiagramUP tod;
+  Stack<PartialRedundancyEntry*> entries;
+};
+
+class PartialRedundancyHandler
 {
 public:
-  static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
+  static PartialRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
   static void destroyClauseData(Clause* cl);
 
-  virtual ~ConditionalRedundancyHandler() = default;
+  virtual ~PartialRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
@@ -110,9 +108,7 @@ public:
   virtual bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const = 0;
 
-  virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const = 0;
-
-  void checkEquations(Clause* cl) const;
+  virtual void checkEquations(Clause* cl) const = 0;
 
 protected:
   class ConstraintIndex;
@@ -124,11 +120,11 @@ protected:
 };
 
 template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>
-class ConditionalRedundancyHandlerImpl
-  : public ConditionalRedundancyHandler
+class PartialRedundancyHandlerImpl
+  : public PartialRedundancyHandler
 {
 public:
-  ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
+  PartialRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
     : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
       _ord(ord), _splitter(splitter) {}
@@ -145,14 +141,19 @@ public:
   bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const override;
 
-  /** Returns false if inference should be skipped. */
-  bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const override;
+  void checkEquations(Clause* cl) const override;
 
+private:
   bool isSuperpositionPremiseRedundant(
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
     const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
 
-private:
+  const LiteralSet* getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
+
+  const SplitSet* getRemainingSplits(Clause* cl, Clause* other) const;
+  void tryInsert(Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons,
+    const LiteralSet* lits, SplitSet* splits) const;
+
   bool _redundancyCheck;
   bool _encompassing;
   const Ordering* _ord;
@@ -161,4 +162,4 @@ private:
 
 };
 
-#endif // __ConditionalRedundancyHandler__
+#endif // __PartialRedundancyHandler__

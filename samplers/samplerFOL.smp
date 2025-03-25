@@ -279,17 +279,17 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 # AVATAR
 sa!=fmb > av ~cat on:15,off:4
 
-# conditional_redundancy_check
-sa!=fmb > crc ~cat on:3,off:5
+# partial_redundancy_check
+sa!=fmb > prc ~cat on:3,off:5
 
-# conditional_redundancy_ordering_constraints
-sa!=fmb crc=on > croc ~cat on:1,off:1
+# partial_redundancy_ordering_constraints
+sa!=fmb prc=on > proc ~cat on:1,off:1
 
-# conditional_redundancy_avatar_constraints
-sa!=fmb av=on crc=on > crac ~cat on:1,off:1
+# partial_redundancy_avatar_constraints
+sa!=fmb av=on prc=on > prac ~cat on:1,off:1
 
-# conditional_redundancy_literal_constraints
-sa!=fmb crc=on > crlc ~cat on:1,off:1
+# partial_redundancy_literal_constraints
+sa!=fmb prc=on > prlc ~cat on:1,off:1
 
 # sat_solver
 sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,cadical:7,z3:3

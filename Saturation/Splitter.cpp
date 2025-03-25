@@ -34,7 +34,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
-#include "Shell/ConditionalRedundancyHandler.hpp"
+#include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Shuffling.hpp"
@@ -1523,13 +1523,13 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
 }
 
-void Splitter::addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e)
+void Splitter::addPartialRedundancyEntry(SplitSet* splits, PartialRedundancyEntry* e)
 {
   auto sit = splits->iter();
   while (sit.hasNext()) {
     SplitLevel slev=sit.next();
     e->obtain();
-    _db[slev]->conditionalRedundancyEntries.push(e);
+    _db[slev]->partialRedundancyEntries.push(e);
   }
 }
 
@@ -1552,7 +1552,7 @@ void Splitter::onNewClause(Clause* cl)
   // when using AVATAR, we could have performed
   // generating inferences on the clause previously,
   // so we need to reset the data.
-  ConditionalRedundancyHandler::destroyClauseData(cl);
+  PartialRedundancyHandler::destroyClauseData(cl);
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)
@@ -1760,10 +1760,10 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       sr->children.reset();
     }
 
-    while (sr->conditionalRedundancyEntries.isNonEmpty()) {
-      auto cr = sr->conditionalRedundancyEntries.pop();
-      cr->deactivate();
-      cr->release();
+    while (sr->partialRedundancyEntries.isNonEmpty()) {
+      auto pre = sr->partialRedundancyEntries.pop();
+      pre->deactivate();
+      pre->release();
     }
   }
 
