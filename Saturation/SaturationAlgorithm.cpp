@@ -653,6 +653,12 @@ simpl_start:
   Clause *simplCl = _immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
     if (!simplCl) {
+#if VAMPIRE_CLAUSE_TRACING
+        if (env.options->traceForward() == cl->number()) {
+          std::cout << "deleted " << env.options->traceForward() << " by immediate simplification (input)" << std::endl;
+        }
+#endif // VAMPIRE_CLAUSE_TRACING
+  
       onClauseReduction(cl, 0, 0, 0);
       goto fin;
     }
@@ -743,6 +749,12 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   if (simplCl != cl) {
     if (simplCl) {
       addNewClause(simplCl);
+#if VAMPIRE_CLAUSE_TRACING
+    } else {
+        if (env.options->traceForward() == cl->number()) {
+          std::cout << "deleted " << env.options->traceForward() << " by immediate simplification" << std::endl;
+        }
+#endif // VAMPIRE_CLAUSE_TRACING
     }
     onClauseReduction(cl, &simplCl, 1, 0);
     return 0;
@@ -765,6 +777,12 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     }
     onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
     return 0;
+#if VAMPIRE_CLAUSE_TRACING
+  } else {
+      if (env.options->traceForward() == cl->number()) {
+        std::cout << "deleted " << env.options->traceForward() << " by immediate simplification (many)" << std::endl;
+      }
+#endif // VAMPIRE_CLAUSE_TRACING
   }
 
   return cl;
