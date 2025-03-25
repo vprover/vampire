@@ -152,20 +152,14 @@ struct InductionContext {
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
   Formula* getFormula(const std::vector<TermList>& r, bool opposite, Substitution* subst = nullptr) const;
-  Formula* getFormulaFreeVar(const std::vector<TermList>& r, bool opposite, unsigned freeVar, TermList& freeVarSub, Substitution* auxSubst, Substitution* subst = nullptr) const;
+  Formula* getFormulaFreeVar(const std::vector<TermList>& r, bool opposite, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(const std::vector<TermList>& r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
 
-  Clause* getPremise() const {
-    ASS(_cls.size() == 1);
-    return _cls.begin()->first;
-  }
-
-  Literal* getInductionLiteral() const {
-    ASS(_cls.size() == 1);
-    ASS(_cls.begin()->second.size() == 1);
-    return _cls.begin()->second[0];
-  }
+  // Set res to some free variable that occurs in the induction literals,
+  // and if successful, return true.
+  // Else (= if all induction literals are ground), return false.
+  bool getFreeVariable(unsigned& res) const;
 
   std::string toString() const {
     std::stringstream str;
