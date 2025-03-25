@@ -1,5 +1,3 @@
-# TODO loosen conditions in this file when merging this
-
 # An extension of samplerFOL.txt for dealing with theory reasoning
 # - this assumes compilation with z3
 
