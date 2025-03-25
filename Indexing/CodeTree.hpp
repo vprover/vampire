@@ -334,9 +334,13 @@ public:
    * this one. After use, the @b deinit function should be called (if
    * present). This allows for reuse of a single object.
    */
-  template<bool removing>
+  template<bool removing, bool checkRange>
   struct Matcher
   {
+    // we only want to enable checkRange if
+    // removing, which works on variables
+    static_assert(removing || !checkRange);
+
     /**
      * Backtracking point for the interpretation of the code tree.
      */
@@ -375,6 +379,7 @@ public:
     CodeOp* op;
 
     BindingArray bindings;
+    DHSet<unsigned> range;
 
     bool keepRecycled() const
     { return bindings.keepRecycled() 
