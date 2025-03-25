@@ -1229,6 +1229,7 @@ void TPTP::unitList()
     resetChars();
     delete _in;
     _in = _inputs.pop();
+    _lineNumber = _lineNumbers.pop();
     _includeDirectory = _includeDirectories.pop();
     delete _allowedNames;
     _allowedNames = _allowedNamesStack.pop();
@@ -2079,6 +2080,8 @@ void TPTP::include()
     _allowedNamesStack.push(_allowedNames);
     _allowedNames = 0;
     _inputs.push(_in);
+    _lineNumbers.push(_lineNumber);
+    _lineNumber = 1;
     _includeDirectories.push(_includeDirectory);
   }
 

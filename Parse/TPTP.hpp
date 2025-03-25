@@ -557,6 +557,8 @@ private:
   int _tend;
   /** line number */
   unsigned _lineNumber;
+  /** stack of line numbers when processing include directives */
+  Stack<unsigned> _lineNumbers;
   /** The list of units read (with additions directed to the end) */
   UnitList::FIFO _units;
   /** stack of unprocessed states */
