@@ -1247,8 +1247,9 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
                  Formula::fromClause(temp));
 
     Inference def_u_i = NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION);
-    if (orig != nullptr) { //
-      def_u_i.setPureTheoryDescendant(orig->isPureTheoryDescendant());
+    if (orig != nullptr) {
+      // def_u_i.setPureTheoryDescendant(orig->isPureTheoryDescendant()); -- don't probapagate PureTheoryDescendant through avatar
+      // e.g. when a PureTheoryDescendant ~$less(X1,$sum(X1,1)) | ~$less(X0,X0) splits, the component ~$less(X1,$sum(X1,1)) is not longer a theory lemma
       def_u_i.setInductionDepth(orig->inference().inductionDepth());
     }
     def_u = new FormulaUnit(def_f,def_u_i);
@@ -1381,7 +1382,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Claus
  * @param lits The component to be named (as an array of literals)
  * @param compCl The clause that will be used to represent this component - to be filled
  *
- * @return the propositional name for the Clause (to be passed to the SAT solver) 
+ * @return the propositional name for the Clause (to be passed to the SAT solver)
  */
 SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
 {

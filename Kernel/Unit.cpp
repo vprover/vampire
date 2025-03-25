@@ -261,7 +261,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
         current->setInputType(uit);
         inf.setPureTheoryDescendant(isPureTheoryDescendant);
       } else if (inf.rule() == InferenceRule::AVATAR_DEFINITION) {
-        // don't touch _pureTheoryDescendant for AVATAR_DEFINITIONs (a split theory consequence is again a theory consequence)
+        // don't touch _pureTheoryDescendant for AVATAR_DEFINITIONs - in general, they are no longer theory consequences (see Splitter.cpp around l. 1251)
         current->setInputType(UnitInputType::AXIOM); // AVATAR_DEFINITION might have inherited goaledness from its causal parent, which we want to reset
       } else {
         // no premises and not InferenceRule::AVATAR_DEFINITION
