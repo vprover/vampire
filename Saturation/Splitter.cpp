@@ -1393,6 +1393,14 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
   else {
     RSTAT_CTR_INC("ssat_new_components");
 
+    // adding a component should mean "recompute model" (even if we actually don't end up adding a clause)
+    // this is connected to the subtle case in handleNonSplittable
+    // and the fact we now maintian the _already_added filter and don't add a clause for second time there
+    // (the case where this might be needed is for a (conditional) ground clause
+    // swallowed up by handleNonSplittable, while the corresponding prop variable is already true in the model,
+    // because the complementary component was already introduced and considered in the past - requires aac=none to manifest)
+    _clausesAdded = true;
+
     if(size==1 && lits[0]->ground()) {
       res = addGroundComponent(lits[0], orig, compCl);
     }
