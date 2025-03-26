@@ -51,6 +51,14 @@ private:
   Values _value;
 };
 
+template<unsigned value>
+struct GenericSpassLiteralSelector 
+ : public SpassLiteralSelector 
+{
+  GenericSpassLiteralSelector(const Ordering& ordering, const Options& options)
+    : SpassLiteralSelector(ordering, options, Values(value)) {}
+};
+
 };
 
 #endif /* __SpassLiteralSelector__ */

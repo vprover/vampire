@@ -12,6 +12,7 @@
 #define __LIB_TYPELIST__H__
 
 #include <functional>
+#include <type_traits>
 
 namespace Lib {
 
@@ -28,6 +29,21 @@ namespace TypeList {
   template<class Token>
   using TokenType = typename Token::inner;
 
+  template<class Result, class F>
+  auto __findR(F& f) { return Result(); }
+
+  template<class Result, class F, class A, class... As>
+  auto __findR(F& f) {
+    if (auto x = f(Token<A>{})) {
+      return x;
+    } else {
+      return __findR<Result, F, As...>(f);
+    }
+  }
+
+  template<class F, class A, class... As>
+  auto __find(F& f) { return __findR<std::invoke_result_t<F&, Token<A>>, F, A, As...>(f); }
+
   template<class F>
   auto __forEach(F& f) { }
 
@@ -43,10 +59,14 @@ namespace TypeList {
    */
   template<class... As> struct List
   {
+
     template<class F>
     static auto forEach(F f)
     { __forEach<F, As...>(f); }
 
+    template<class F>
+    static auto find(F f)
+    { return __find<F, As...>(f); }
 
     template<class F>
     static auto toTuple(F f)

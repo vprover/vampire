@@ -61,6 +61,15 @@ private:
   Values _value;
 };
 
+template<unsigned value>
+struct GenericELiteralSelector 
+ : public ELiteralSelector 
+{
+  GenericELiteralSelector(const Ordering& ordering, const Options& options)
+    : ELiteralSelector(ordering, options, Values(value)) {}
+};
+
+
 };
 
 #endif /* __ELiteralSelector__ */

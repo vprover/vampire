@@ -20,17 +20,7 @@
 #include "Clause.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
-
-#include "LiteralSelector.hpp"
-
-#include "MaximalLiteralSelector.hpp"
-#include "BestLiteralSelector.hpp"
-#include "LookaheadLiteralSelector.hpp"
-#include "SpassLiteralSelector.hpp"
-#include "ELiteralSelector.hpp"
-#include "RndLiteralSelector.hpp"
-
-#include "LiteralComparators.hpp"
+#include "LiteralSelectorOptions.hpp"
 
 #undef LOGGING
 #define LOGGING 0
@@ -81,68 +71,22 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
  */
 LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Options& options, int selectorNumber)
 {
-  using namespace LiteralComparators;
-
-  typedef Composite<ColoredFirst,
-	    Composite<MaximalSize,
-	    LexComparator> > Comparator2;
-
-  typedef Composite<ColoredFirst,
-	    Composite<NoPositiveEquality,
-	    Composite<LeastTopLevelVariables,
-	    Composite<LeastDistinctVariables, LexComparator> > > > Comparator3;
-
-  typedef Composite<ColoredFirst,
-	    Composite<NoPositiveEquality,
-	    Composite<LeastTopLevelVariables,
-	    Composite<LeastVariables,
-	    Composite<MaximalSize, LexComparator> > > > > Comparator4;
-
-  typedef Composite<ColoredFirst,
-	    Composite<NegativeEquality,
-	    Composite<MaximalSize,
-	    Composite<Negative, LexComparator> > > > Comparator10;
-
   int absNum = abs(selectorNumber);
 
-  LiteralSelector* res;
-  switch(absNum) {
-  case 0: res = new TotalLiteralSelector(ordering, options); break;
-  case 1: res = new MaximalLiteralSelector(ordering, options); break;
-  case 2: res = new CompleteBestLiteralSelector<Comparator2>(ordering, options); break;
-  case 3: res = new CompleteBestLiteralSelector<Comparator3>(ordering, options); break;
-  case 4: res = new CompleteBestLiteralSelector<Comparator4>(ordering, options); break;
-  case 10: res = new CompleteBestLiteralSelector<Comparator10>(ordering, options); break;
-
-  case 11: res = new LookaheadLiteralSelector(true, ordering, options); break;
-
-  case 20:
-  case 21:
-  case 22:
-    res = new SpassLiteralSelector(ordering, options,static_cast<SpassLiteralSelector::Values>(absNum-20));
-    break;
-
-  case 30:
-  case 31:
-  case 32:
-  case 33:
-  case 34:
-  case 35:
-    res = new ELiteralSelector(ordering, options,static_cast<ELiteralSelector::Values>(absNum-30));
-    break;
-
-  case 666: res = new RndLiteralSelector(ordering, options,true /*complete*/); break;
-
-  case 1002: res = new BestLiteralSelector<Comparator2>(ordering, options); break;
-  case 1003: res = new BestLiteralSelector<Comparator3>(ordering, options); break;
-  case 1004: res = new BestLiteralSelector<Comparator4>(ordering, options); break;
-  case 1010: res = new BestLiteralSelector<Comparator10>(ordering, options); break;
-  case 1011: res = new LookaheadLiteralSelector(false, ordering, options); break;
-  case 1666: res = new RndLiteralSelector(ordering, options,false /*incomplete*/); break;
-
-  default:
+  // LiteralSelector* res;
+  auto resOpt = LiteralSelectors::OptionValues::find([&](auto token) -> Option<LiteralSelector*> {
+      using OptionValue = TypeList::TokenType<decltype(token)>;
+      using OptLiteralSelector = typename OptionValue::Type;
+      if (OptionValue::number == absNum) {
+        return Option<LiteralSelector*>(new OptLiteralSelector(ordering, options));
+      } else {
+        return {};
+      }
+  });
+  if (resOpt.isNone()) {
     INVALID_OPERATION("Undefined selection function");
   }
+  auto res = *resOpt;
   if(selectorNumber<0) {
     res->setReversePolarity(true);
   }

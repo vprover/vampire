@@ -56,6 +56,15 @@ private:
   int _skipped;
 };
 
+template<bool complete>
+struct GenericLookaheadLiteralSelector 
+ : public LookaheadLiteralSelector
+{
+  GenericLookaheadLiteralSelector(const Ordering& ordering, const Options& options)
+    : LookaheadLiteralSelector(complete, ordering, options) {}
+};
+
+
 }
 
 #endif // __LookaheadLiteralSelector__

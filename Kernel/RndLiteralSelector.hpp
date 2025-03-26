@@ -45,6 +45,14 @@ private:
   bool _complete;
 };
 
+template<bool complete>
+struct GenericRndLiteralSelector 
+ : public RndLiteralSelector
+{
+  GenericRndLiteralSelector(const Ordering& ordering, const Options& options)
+    : RndLiteralSelector(ordering, options, complete) {}
+};
+
 };
 
 #endif /* __RndLiteralSelector__ */
