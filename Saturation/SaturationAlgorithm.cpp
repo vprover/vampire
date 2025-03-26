@@ -1587,7 +1587,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         InequalityNormalizer::global(),
         &ordering,
         env.options->unificationWithAbstraction(),
-        env.options->unificationWithAbstractionFixedPointIteration()
+        env.options->unificationWithAbstractionFixedPointIteration(),
+        AlascaSelector::fromNumber(opt.selection()).unwrap()
         );
     if (env.options->alascaDemodulationFwd()) {
       res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));

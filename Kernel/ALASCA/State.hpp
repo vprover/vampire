@@ -33,20 +33,24 @@ namespace Kernel {
           std::shared_ptr<InequalityNormalizer> normalizer,
           Ordering* const ordering,
           Shell::Options::UnificationWithAbstraction uwa,
-          bool fixedPointIteration
+          bool fixedPointIteration,
+          AlascaSelector sel
         )
       : _normalizer(std::move(normalizer))
       , ordering(std::move(ordering))
       , uwa(uwa) 
       , uwaFixedPointIteration(fixedPointIteration)
+      , _selector(std::move(sel))
     {}
 
-    AlascaSelector _selector;
   public:
     std::shared_ptr<InequalityNormalizer> _normalizer;
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction uwa;
     bool const uwaFixedPointIteration;
+  private:
+    AlascaSelector _selector;
+  public:
 
     InequalityNormalizer& norm() const { return *_normalizer; }
     std::shared_ptr<InequalityNormalizer> normalizerPtr() const { return _normalizer; }
@@ -58,10 +62,11 @@ namespace Kernel {
           std::shared_ptr<InequalityNormalizer> normalizer,
           Ordering* const ordering,
           Shell::Options::UnificationWithAbstraction const uwa,
-          bool const fixedPointIteration
+          bool const fixedPointIteration,
+          AlascaSelector sel
         ) 
     {
-      globalState = Lib::make_shared(AlascaState(std::move(normalizer), ordering, uwa, fixedPointIteration));
+      globalState = Lib::make_shared(AlascaState(std::move(normalizer), ordering, uwa, fixedPointIteration, std::move(sel)));
       return globalState;
     }
 
@@ -393,7 +398,8 @@ namespace Kernel {
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN,
     std::shared_ptr<InequalityNormalizer> strongNormalization = Lib::make_shared(InequalityNormalizer()),
     Ordering* ordering = nullptr,
-    bool uwaFixdPointIteration = false
+    bool uwaFixdPointIteration = false,
+    AlascaSelector sel = AlascaSelector::fromType<MaximalLiteralSelector>()
     );
 #endif
 

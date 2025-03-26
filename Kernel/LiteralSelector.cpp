@@ -73,16 +73,13 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
 {
   int absNum = abs(selectorNumber);
 
-  // LiteralSelector* res;
-  auto resOpt = LiteralSelectors::OptionValues::find([&](auto token) -> Option<LiteralSelector*> {
-      using OptionValue = TypeList::TokenType<decltype(token)>;
-      using OptLiteralSelector = typename OptionValue::Type;
-      if (OptionValue::number == absNum) {
-        return Option<LiteralSelector*>(new OptLiteralSelector(ordering, options));
-      } else {
-        return {};
-      }
-  });
+  auto resOpt = LiteralSelectors::getSelectorType(absNum)
+    .map([&](LiteralSelectors::SelectorMode mode) {
+        return mode.apply([&](auto token) -> LiteralSelector* {
+          using SelectorType = TL::TokenType<decltype(token)>;
+          return new SelectorType(ordering, options);
+        });
+    });
   if (resOpt.isNone()) {
     INVALID_OPERATION("Undefined selection function");
   }

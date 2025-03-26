@@ -11,20 +11,21 @@
 
 #include "Selection.hpp"
 #include "Kernel/ALASCA/Ordering.hpp"
+#include "Kernel/LiteralSelector.hpp"
+#include "Kernel/MaximalLiteralSelector.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
 namespace Kernel {
 
 #define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
-Stack<NewSelectedAtom> AlascaSelector::computeSelected(Stack<NewSelectedAtom> atoms, Ordering* ord) {
-  // TODO
-  // auto out =  arrayIter(std::move(atoms))
-  //   .filter([](auto a) { return a.match(
-  //         [](auto a) { return !a.selectedAtomicTerm().isVar(); },
-  //         [](auto t) { return true; }); })
-  //   .template collect<Stack>()
-  // ;
+template<class T>
+Stack<NewSelectedAtom> AlascaSelector::computeSelected(TL::Token<T>, Stack<NewSelectedAtom> atoms, Ordering* ord) {
+  ASSERTION_VIOLATION_REP("TODO")
+}
+
+template<>
+Stack<NewSelectedAtom> AlascaSelector::computeSelected<MaximalLiteralSelector>(TL::Token<MaximalLiteralSelector>, Stack<NewSelectedAtom> atoms, Ordering* ord) {
   DEBUG(0, "     all atoms: ", atoms)
 
   auto out = OrderingUtils::maxElems(atoms.size(), 
@@ -44,5 +45,14 @@ Stack<NewSelectedAtom> AlascaSelector::computeSelected(Stack<NewSelectedAtom> at
   DEBUG(0, "selected atoms: ", out)
   return out;
 }
+
+template<>
+Stack<NewSelectedAtom> AlascaSelector::computeSelected<TotalLiteralSelector>(TL::Token<TotalLiteralSelector>, Stack<NewSelectedAtom> atoms, Ordering* ord) {
+  return atoms;
+}
+
+
+Stack<NewSelectedAtom> AlascaSelector::computeSelected(Stack<NewSelectedAtom> atoms, Ordering* ord) 
+{ return _mode.apply([&](auto token) { return computeSelected(token, std::move(atoms), ord); }); }
 
 } // namespace Kernel

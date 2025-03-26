@@ -222,7 +222,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
               return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm())
                   .intoIter())
                   .flatMap([this, &l1, &l2](auto uwa) {
-                      return applyRule(l1, l2, uwa);
+                      return this->applyRule(l1, l2, uwa);
                   });
               // return ifElseIter2(
               //

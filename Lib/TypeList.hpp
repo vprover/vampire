@@ -353,7 +353,13 @@ namespace TypeList {
       template<class... As> using apply = F<As...>;
   };
 
+  struct Get_type {
+    template<class C> 
+    using apply = typename C::type;
+  };
+
   template<template<class> class F, class As> using MapT = Map<ToTypeFn<F>, As>;
+  template<                         class As> using Map_type = Map<Get_type, As>;
 
 
   /*

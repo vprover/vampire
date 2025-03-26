@@ -49,7 +49,7 @@ namespace LiteralSelectors {
 
   template<unsigned i, class T> 
   struct OptionValue {
-    using Type = T;
+    using type = T;
     static constexpr unsigned number = i;
   };
 
@@ -84,6 +84,26 @@ using OptionValues = TL::List<
   , OptionValue<1011, GenericLookaheadLiteralSelector</* complete */ false>>
   , OptionValue<1666, GenericRndLiteralSelector</* complete */ false>>
   >;
+
+
+// using SelectorList = TL::Map_type<OptionValues>;
+struct __MkSelectorMode {
+  template<class OptionValue>
+  using apply = TL::Token<typename OptionValue::type>;
+};
+using SelectorMode = TL::ApplyT<Coproduct, TL::Map<__MkSelectorMode, OptionValues>>;
+
+inline Option<SelectorMode> getSelectorType(unsigned absSelectorNumber) {
+  return LiteralSelectors::OptionValues::find([&](auto token) -> Option<SelectorMode> {
+      using OptionValue = TypeList::TokenType<decltype(token)>;
+      using OptLiteralSelector = typename OptionValue::type;
+      if (OptionValue::number == absSelectorNumber) {
+        return some(SelectorMode(TL::Token<OptLiteralSelector>{}));
+      } else {
+        return {};
+      }
+  });
+}
 
 } // namespace LiteralSelectors
 
