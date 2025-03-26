@@ -23,7 +23,7 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-COMMON_FLAGS = -DVTIME_PROFILING=0 -DVMINI_GMP
+COMMON_FLAGS = -DVTIME_PROFILING=0
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
