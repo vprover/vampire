@@ -21,6 +21,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
@@ -75,9 +76,9 @@ public:
     auto u() const { 
       auto mulByFactor = [&](auto n) { return rawJ().isPositive() ? n : -n;  };
       return ASig::sum(
-        range(0, js_u.nSummands())
-          .filter([&](auto i) { return i != sIdx; })
-          .map([&](auto i) -> TermList { return TermList(ASig::linMul(mulByFactor(js_u[i].numeral()), js_u[i].atom())); })
+        js_u.iterSummands()
+          .dropNth(sIdx)
+          .map([&](auto m) -> TermList { return TermList(ASig::linMul(mulByFactor(m.numeral()), m.atom())); })
         ); 
     }
     auto clause() const { return self.clause(); }
@@ -96,16 +97,20 @@ public:
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
+      // TODO use selection here and use isInt instead of ⌊..⌋ = t
+      // return shared.selectedSummands(cl, /* lit */ SelectionCriterion::NOT_LEQ, /* term */ SelectionCriterion::NOT_LEQ, /*includeUnshieldedNumberVariables=*/ false)
+      //   .filter([](auto x) { return is })
+      
       return iterTraits(ALASCA::Superposition::Lhs::iter(shared, cl))
         .filter([](auto& lhs) -> bool { return ASig::isFloor(lhs.biggerSide()); })
         .filter([](auto& lhs) { return !ASig::isNumeral(lhs.smallerSide()); })
         .map([&shared](auto lhs) {
           auto js_u = toSum(shared, lhs.smallerSide());
               // TODO 3 max summands here?
-          return js_u.iterSummands().zipWithIndex()
-              .map([lhs,js_u](auto pair) {
-                return Lhs { lhs, js_u, unsigned(pair.second) };
-              });
+          return shared.maxSummandIndices(js_u, SelectionCriterion::NOT_LEQ)
+            .map([lhs, js_u](auto i) { 
+                return Lhs { lhs, js_u, i, };
+                });
         })
         .flatten()
         .filter([](auto& lhs) { return !lhs.s().isVar(); })

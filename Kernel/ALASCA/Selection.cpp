@@ -15,7 +15,7 @@
 
 namespace Kernel {
 
-#define DEBUG(lvl, ...) if (lvl < 2) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 Stack<NewSelectedAtom> AlascaSelector::computeSelected(Stack<NewSelectedAtom> atoms, Ordering* ord) {
   // TODO
@@ -38,6 +38,9 @@ Stack<NewSelectedAtom> AlascaSelector::computeSelected(Stack<NewSelectedAtom> at
                 [](auto a) { return !a.isNumSort() || !a.selectedAtomicTerm().isVar(); },
                 [](auto t) { return true; }); })
           .collectStack();
+  // if (auto i = arrayIter(out).findPosition([](auto x) { return !x.productive(); })) {
+  //     out = {out[*i]};
+  // }
   DEBUG(0, "selected atoms: ", out)
   return out;
 }

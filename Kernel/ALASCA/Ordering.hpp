@@ -419,9 +419,9 @@ struct SkelOrd
     } else if (t1.isVar() && t2.isVar()) {
       return t1 == t2 ? Result::EQUAL : Result::INCOMPARABLE;
     } else if (t1.isVar() && !t2.isVar()) {
-      return t2.containsSubterm(t1) ? Result::LESS : Result::INCOMPARABLE;
+      return t2.containsSubterm(t1) ? Ordering::Result::LESS : Ordering::Result::INCOMPARABLE;
     } else if (t2.isVar() && !t1.isVar()) {
-      return t1.containsSubterm(t2) ? Result::GREATER : Result::INCOMPARABLE;
+      return t1.containsSubterm(t2) ? Ordering::Result::GREATER : Ordering::Result::INCOMPARABLE;
     } else {
       ASS(t1.isTerm() && t2.isTerm())
       return cmp(AnyAlascaTerm::normalize(t1.term()), AnyAlascaTerm::normalize(t2.term()));
@@ -773,11 +773,11 @@ struct LAKBO
       ||(t2.isTerm() && t2.term()->isSort())) {
       return _kbo.compare(t1, t2);
     } else if (t1.isVar() && t2.isVar()) {
-      return t1 == t2 ? Result::EQUAL : Result::INCOMPARABLE;
+      return t1 == t2 ? Ordering::Result::EQUAL : Ordering::Result::INCOMPARABLE;
     } else if (t1.isVar() && !t2.isVar()) {
-      return t2.containsSubterm(t1) ? Result::LESS : Result::INCOMPARABLE;
+      return t2.containsSubterm(t1) ? Ordering::Result::LESS : Ordering::Result::INCOMPARABLE;
     } else if (t2.isVar() && !t1.isVar()) {
-      return t1.containsSubterm(t2) ? Result::GREATER : Result::INCOMPARABLE;
+      return t1.containsSubterm(t2) ? Ordering::Result::GREATER : Ordering::Result::INCOMPARABLE;
     } else {
       ASS(t1.isTerm() && t2.isTerm())
       return compare(AnyAlascaTerm::normalize(t1.term()), AnyAlascaTerm::normalize(t2.term()));

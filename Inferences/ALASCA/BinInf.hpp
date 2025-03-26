@@ -28,7 +28,7 @@
 #include "Shell/Options.hpp"
 #include "Lib/TypeList.hpp"
 
-#define DEBUG(lvl, ...)  if (lvl < 4) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...)  if (lvl < 0) { DBG(__VA_ARGS__) }
 namespace TL = Lib::TypeList;
 
 namespace Inferences {

@@ -99,25 +99,25 @@ namespace Kernel {
     // auto maxSummandIndices(AlascaLiteralItp<NumTraits> const& lit, SelectionCriterion selection)
     // { return maxSummandIndices(lit.term(), selection); }
     //
-    // // TODO 1 
-    // template<class NumTraits>
-    // auto maxSummandIndices(AlascaTermItp<NumTraits> const& term, SelectionCriterion selection)
-    // {
-    //     // TODO optimize less denormalization
-    //     auto monomAt = [=](auto i) 
-    //          { return term.summandAt(i).atom(); }; 
-    //
-    //     return iterTraits(OrderingUtils::maxElems(
-    //               term.nSummands(),
-    //               [=](unsigned l, unsigned r) 
-    //               { return ordering->compare(monomAt(l), monomAt(r)); },
-    //               [=](unsigned i)
-    //               { return monomAt(i); },
-    //               selection))
-    //              .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !term.summandAt(i).isNumeral()
-    //                                         : selection == SelectionCriterion::NOT_LESS ? !term.summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
-    //                                         : true; });
-    // }
+
+    template<class NumTraits>
+    auto maxSummandIndices(AlascaTermItp<NumTraits> const& term, SelectionCriterion selection)
+    {
+        // TODO optimize less denormalization
+        auto monomAt = [=](auto i) 
+             { return term.summandAt(i).atom(); }; 
+
+        return iterTraits(OrderingUtils::maxElems(
+                  term.nSummands(),
+                  [=](unsigned l, unsigned r) 
+                  { return ordering->compare(monomAt(l), monomAt(r)); },
+                  [=](unsigned i)
+                  { return monomAt(i); },
+                  selection))
+                 .filter([=](auto& i) { return selection == SelectionCriterion::NOT_LEQ ? !term.summandAt(i).isNumeral()
+                                            : selection == SelectionCriterion::NOT_LESS ? !term.summandAt(i).isNumeral() // <- TODO re-think about this case. i think we stay complete in this case but I can't say 100% for sure.
+                                            : true; });
+    }
     //
     //
     // template<class T>
@@ -332,6 +332,14 @@ namespace Kernel {
     // TODO rename NewSelectedAtom
    auto selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
    { return _selector.selected(cl, ordering); }
+
+   // template<class NumTraits>
+   // auto maxSummandIndices(AlascaTermItp<NumTraits> t, SelectionCriterion s) {
+   //   return OrderingUtils::maxElems(t.nSummands(), 
+   //       [](auto l, auto r) {},
+   //       [](auto i) {},
+   //       s);
+   // }
 
    auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
    { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
