@@ -133,7 +133,6 @@ void TPTP::parse()
 void TPTP::parseImpl(State initialState)
 {
   // bulding tokens one by one
-  _gpos = 0;
   _cend = 0;
   _tend = 0;
   _lineNumber = 1;
@@ -283,7 +282,7 @@ void TPTP::parseImpl(State initialState)
       break;
     default:
 #if VDEBUG
-      throw ParseErrorException(((std::string)"Don't know how to process state ")+toString(s),_lineNumber);
+      throw ParseErrorException("Don't know how to process state "s+toString(s),_lineNumber);
 #else
       throw ParseErrorException("Don't know how to process state ",_lineNumber);
 #endif
@@ -442,7 +441,6 @@ std::string TPTP::toString(Tag tag)
 bool TPTP::readToken(Token& tok)
 {
   skipWhiteSpacesAndComments();
-  tok.start = _gpos;
   switch (getChar(0)) {
   case 0:
     tok.tag = T_EOF;
@@ -666,7 +664,7 @@ bool TPTP::readToken(Token& tok)
       return true;
     }
     if (getChar(1) != '=') {
-      PARSE_ERROR("unrecognized symbol",_gpos);
+      PARSE_ERROR("unrecognized symbol");
     }
     if (getChar(2) == '>') {
       tok.tag = T_IFF;
@@ -701,7 +699,7 @@ bool TPTP::readToken(Token& tok)
     tok.tag = readNumber(tok);
     return true;
   default:
-    PARSE_ERROR("Bad character",_gpos);
+    PARSE_ERROR("Bad character");
   }
 } // TPTP::readToken()
 
@@ -1036,12 +1034,12 @@ void TPTP::readString(Token& tok)
   for (int n = 1;;n++) {
     int c = getChar(n);
     if (!c) {
-      PARSE_ERROR("non-terminated string",_gpos);
+      PARSE_ERROR("non-terminated string");
     }
     if (c == '\\') { // escape
       c = getChar(++n);
       if (!c) {
-        PARSE_ERROR("non-terminated string",_gpos);
+        PARSE_ERROR("non-terminated string");
       }
       continue;
     }
@@ -1062,12 +1060,12 @@ void TPTP::readAtom(Token& tok)
   for (int n = 1;;n++) {
     int c = getChar(n);
     if (!c) {
-      PARSE_ERROR("non-terminated quoted atom",_gpos);
+      PARSE_ERROR("non-terminated quoted atom");
     }
     if (c == '\\') { // escape
       c = getChar(++n);
       if (!c) {
-        PARSE_ERROR("non-terminated quoted atom",_gpos);
+        PARSE_ERROR("non-terminated quoted atom");
       }
       continue;
     }
@@ -1079,14 +1077,9 @@ void TPTP::readAtom(Token& tok)
   }
 } // readAtom
 
-TPTP::ParseErrorException::ParseErrorException(std::string message,int pos, unsigned ln) : _ln(ln)
-{
-  _message = message + " at position " + Int::toString(pos);
-} // TPTP::ParseErrorException::ParseErrorException
-
 TPTP::ParseErrorException::ParseErrorException(std::string message,Token& tok, unsigned ln) : _ln(ln)
 {
-  _message = message + " at position " + Int::toString(tok.start) + " (text: " + tok.toString() + ')'; 
+  _message = message + " (text: " + tok.toString() + ')';
 } // TPTP::ParseErrorException::ParseErrorException
 
 /**
@@ -1133,7 +1126,7 @@ TPTP::Tag TPTP::readNumber(Token& tok)
       while (c >= '0' && c <= '9');
       if (pos == p+1) {
         // something like 12.
-        PARSE_ERROR("wrong number format",_gpos);
+        PARSE_ERROR("wrong number format");
       }
       c = getChar(pos);
       if (c == 'e' || c == 'E') {
@@ -1172,7 +1165,7 @@ int TPTP::decimal(int pos)
   case '9':
     break;
   default:
-    PARSE_ERROR("wrong number format",_gpos);
+    PARSE_ERROR("wrong number format");
   }
 
   int c;
@@ -1202,7 +1195,7 @@ int TPTP::positiveDecimal(int pos)
   case '9':
     break;
   default:
-    PARSE_ERROR("wrong number format",_gpos);
+    PARSE_ERROR("wrong number format");
   }
 
   int c;
@@ -1237,7 +1230,7 @@ void TPTP::unitList()
     return;
   }
   if (tok.tag != T_NAME) {
-    PARSE_ERROR("cnf(), fof(), vampire() or include() expected",tok);
+    PARSE_ERROR_TOK("cnf(), fof(), vampire() or include() expected",tok);
   }
   std::string name(tok.content);
   _states.push(UNIT_LIST);
@@ -1271,7 +1264,7 @@ void TPTP::unitList()
     resetToks();
     return;
   }
-  PARSE_ERROR("cnf(), fof(), vampire() or include() expected",tok);
+  PARSE_ERROR_TOK("cnf(), fof(), vampire() or include() expected",tok);
 }
 
 /**
@@ -1301,12 +1294,11 @@ void TPTP::fof(bool fo)
     resetToks();
     break;
   default:
-    PARSE_ERROR("Unit name expected",tok);
+    PARSE_ERROR_TOK("Unit name expected",tok);
   }
 
   consumeToken(T_COMMA);
   tok = getTok(0);
-  int start = tok.start;
   std::string tp = name();
 
   _isQuestion = false;
@@ -1346,8 +1338,7 @@ void TPTP::fof(bool fo)
     USER_ERROR("Unsupported unit type '", tp, "' found");
   }
   else {
-    PARSE_ERROR((std::string)"unit type, such as axiom or definition expected but " + tp + " found",
-        start);
+    PARSE_ERROR("unit type, such as axiom or definition expected but "s + tp + " found");
   }
   consumeToken(T_COMMA);
   _states.push(END_FOF);
@@ -1378,12 +1369,11 @@ void TPTP::tff()
     resetToks();
     break;
   default:
-    PARSE_ERROR("Unit name expected",tok);
+    PARSE_ERROR_TOK("Unit name expected",tok);
   }
 
   consumeToken(T_COMMA);
   tok = getTok(0);
-  int start = tok.start;
   std::string tp = name();
   if (tp == "type") {
     // Read a TPTP type declaration.
@@ -1414,7 +1404,7 @@ void TPTP::tff()
         OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
           if(symbol->fnType()!=ot){
-            PARSE_ERROR("Type constructor declared with two different types",tok);
+            PARSE_ERROR_TOK("Type constructor declared with two different types",tok);
           }
         } else{
           symbol->setType(ot);  
@@ -1476,8 +1466,7 @@ void TPTP::tff()
     _lastInputType = UnitInputType::CLAIM;
   }
   else {
-    PARSE_ERROR((std::string)"unit type, such as axiom or definition expected but " + tp + " found",
-        start);
+    PARSE_ERROR("unit type, such as axiom or definition expected but " + tp + " found");
   }
   consumeToken(T_COMMA);
   _states.push(END_FOF);
@@ -1605,7 +1594,7 @@ void TPTP::holFormula()
     }
   //AYB ADDED, TO BE MODIFIED
   default:
-    PARSE_ERROR("formula or term expected",tok);
+    PARSE_ERROR_TOK("formula or term expected",tok);
   }
 }
 
@@ -1675,7 +1664,7 @@ void TPTP::holTerm()
       break;
     }
     default:
-      PARSE_ERROR("unexpected token", tok);
+      PARSE_ERROR_TOK("unexpected token", tok);
   }
 
   _lastPushed = TM;
@@ -1778,7 +1767,7 @@ void TPTP::endHolFormula()
     }
   case LITERAL:
   default:
-    throw ::Exception((std::string)"tell me how to handle connective " + Int::toString(con));
+    throw ::Exception("tell me how to handle connective " + Int::toString(con));
   }
 
   Token& tok = getTok(0);
@@ -2071,7 +2060,7 @@ void TPTP::include()
   consumeToken(T_LPAR);
   Token& tok = getTok(0);
   if (tok.tag != T_NAME) {
-    PARSE_ERROR((std::string)"file name expected",tok);
+    PARSE_ERROR_TOK("file name expected",tok);
   }
   std::string relativeName=tok.content;
   resetToks();
@@ -2095,7 +2084,7 @@ void TPTP::include()
     for(;;) {
       tok = getTok(0);
       if (tok.tag != T_NAME) {
-	PARSE_ERROR((std::string)"formula name expected",tok);
+        PARSE_ERROR_TOK("formula name expected",tok);
       }
       std::string axName=tok.content;
       resetToks();
@@ -2122,7 +2111,7 @@ void TPTP::include()
   std::string fileName(env.options->includeFileName(relativeName));
   _in = new ifstream(fileName.c_str());
   if (!*_in) {
-    USER_ERROR((std::string)"cannot open file " + fileName);
+    USER_ERROR("cannot open file " + fileName);
   }
 } // include
 
@@ -2140,7 +2129,7 @@ std::string TPTP::name()
 {
   Token& tok = getTok(0);
   if (tok.tag != T_NAME) {
-    PARSE_ERROR("name expected",tok);
+    PARSE_ERROR_TOK("name expected",tok);
   }
   std::string nm = tok.content;
   resetToks();
@@ -2156,7 +2145,7 @@ void TPTP::consumeToken(Tag t)
   Token& tok = getTok(0);
   if (tok.tag != t) {
     std::string expected = toString(t);
-    PARSE_ERROR(expected + " expected",tok);
+    PARSE_ERROR_TOK(expected + " expected",tok);
   }
   resetToks();
 } // consumeToken
@@ -2218,7 +2207,7 @@ void TPTP::termInfix()
       _states.push(FORMULA_INFIX);
       return;
     default:
-      PARSE_ERROR("term or formula expected", tok);
+      PARSE_ERROR_TOK("term or formula expected", tok);
   }
 } // termInfix
 
@@ -2324,7 +2313,7 @@ void TPTP::funApp()
       return;
 
     default:
-      PARSE_ERROR("unexpected token", tok);
+      PARSE_ERROR_TOK("unexpected token", tok);
   }
 } // TPTP::funApp
 
@@ -2429,7 +2418,7 @@ void TPTP::definition()
               return;
 
             default:
-              PARSE_ERROR(toString(T_ASS) + " or " + toString(T_LPAR) + " or " + toString(T_COMMA) + " expected",
+              PARSE_ERROR_TOK(toString(T_ASS) + " or " + toString(T_LPAR) + " or " + toString(T_COMMA) + " expected",
                           getTok(0));
           }
           return;
@@ -2442,12 +2431,12 @@ void TPTP::definition()
           return;
 
         default:
-          PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
+          PARSE_ERROR_TOK("name or " + toString(T_LBRA) + " expected",getTok(0));
       }
     }
 
     default:
-      PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
+      PARSE_ERROR_TOK("name or " + toString(T_LBRA) + " expected",getTok(0));
   }
 } // TPTP::definition
 
@@ -2465,7 +2454,7 @@ void TPTP::midDefinition()
       break;
 
     default:
-      PARSE_ERROR("name or " + toString(T_LBRA) + " expected",getTok(0));
+      PARSE_ERROR_TOK("name or " + toString(T_LBRA) + " expected",getTok(0));
   }
 } // TPTP::midDefinition
 
@@ -2484,7 +2473,7 @@ void TPTP::symbolDefinition()
         vars.push(var);
         resetToks();
       } else {
-        PARSE_ERROR("variable expected", getTok(0));
+        PARSE_ERROR_TOK("variable expected", getTok(0));
       }
 
       if (getTok(0).tag == T_COMMA) {
@@ -2497,7 +2486,7 @@ void TPTP::symbolDefinition()
         break;
       }
 
-      PARSE_ERROR("comma or closing bracket expected", getTok(0));
+      PARSE_ERROR_TOK("comma or closing bracket expected", getTok(0));
     }
     arity = (unsigned)vars.size();
   }
@@ -2750,7 +2739,7 @@ void TPTP::endArgs()
     resetToks();
     return;
   default:
-    PARSE_ERROR(", ) or ] expected after an end of a term",tok);
+    PARSE_ERROR_TOK(", ) or ] expected after an end of a term",tok);
   }
 } // endArgs
 
@@ -2780,7 +2769,7 @@ void TPTP::varList()
     Token& tok = getTok(0);
 
     if (tok.tag != T_VAR) {
-      PARSE_ERROR("variable expected",tok);
+      PARSE_ERROR_TOK("variable expected",tok);
     }
     int var = _vars.insert(tok.content);
     if (_isQuestion) {
@@ -2794,7 +2783,7 @@ void TPTP::varList()
     switch (tok.tag) {
     case T_COLON: // v: type
       if (sortDeclared) {
-        PARSE_ERROR("two declarations of variable sort",tok);
+        PARSE_ERROR_TOK("two declarations of variable sort",tok);
       }
       resetToks();
       bindVariable(var,(_isThf ? readArrowSort() : readSort()));
@@ -3085,7 +3074,7 @@ void TPTP::midEquality()
     _bools.push(false);
     break;
   default:
-    PARSE_ERROR("either = or != expected",tok);
+    PARSE_ERROR_TOK("either = or != expected",tok);
   }
   resetToks();
 } // midEquality
@@ -3313,7 +3302,7 @@ void TPTP::endFormula()
     return;
   case LITERAL:
   default:
-    throw ::Exception((std::string)"tell me how to handle connective " + Int::toString(con));
+    throw ::Exception("tell me how to handle connective " + Int::toString(con));
   }
 
   Token& tok = getTok(0);
@@ -3598,7 +3587,7 @@ void TPTP::endFof()
 	    positive = !positive;
 	  }
 	  if (g->connective() != LITERAL) {
-	    USER_ERROR((std::string)"input formula not in CNF: " + f->toString());
+	    USER_ERROR("input formula not in CNF: " + f->toString());
 	  }
 	  Literal* l = static_cast<AtomicFormula*>(g)->literal();
 	  lits.push(positive ? l : Literal::complementaryLiteral(l));
@@ -3610,7 +3599,7 @@ void TPTP::endFof()
       case FALSE:
 	break;
       default:
-	USER_ERROR((std::string)"input formula not in CNF: " + f->toString());
+	USER_ERROR("input formula not in CNF: " + f->toString());
       }
     }
     unit = Clause::fromStack(lits,FromInput(_lastInputType));
@@ -3949,7 +3938,7 @@ TPTP::SourceRecord* TPTP::getSource()
 
         // TODO: parse errors are nice, but maybe we just want to ignore any info which we cannot understand?
 
-        PARSE_ERROR("Source unit name expected",tok);
+        PARSE_ERROR_TOK("Source unit name expected",tok);
       }
 
       std::string premise = tok.content;
@@ -3990,7 +3979,7 @@ void TPTP::skipToRPAR()
     Token tok = getTok(0);
     switch (tok.tag) {
     case T_EOF:
-      PARSE_ERROR(") not found",tok);
+      PARSE_ERROR_TOK(") not found",tok);
     case T_LPAR:
       resetToks();
       balance++;
@@ -4019,7 +4008,7 @@ void TPTP::skipToRBRA()
     Token tok = getTok(0);
     switch (tok.tag) {
     case T_EOF:
-      PARSE_ERROR(") not found",tok);
+      PARSE_ERROR_TOK(") not found",tok);
     case T_LBRA:
       resetToks();
       balance++;
@@ -4105,7 +4094,7 @@ void TPTP::simpleFormula()
     _states.push(FUN_APP);
     return;
   default:
-    PARSE_ERROR("formula or term expected",tok);
+    PARSE_ERROR_TOK("formula or term expected",tok);
   }
 } // simpleFormula
 
@@ -4184,16 +4173,17 @@ TermList TPTP::readArrowSort()
         break;
       case T_RPAR:
         inBrackets -= 1;
-        if(inBrackets < 0){_gpos = 0; goto afterWhile;}
-          foldl(&terms);
-          break;
+        if(inBrackets < 0)
+          goto afterWhile;
+        foldl(&terms);
+        break;
       default:{
         sort = readSort();
         terms.push(sort);
         if(!sort.isVar() && sort.term()->arity()){
           tok = getTok(0);
-          continue; 
-        }               
+          continue;
+        }
       }
     }
     resetToks();
@@ -4204,9 +4194,9 @@ afterWhile:
     foldl(&terms);
   }
   ASS(terms.size() == 1);
-  return terms.pop();   
+  return terms.pop();
 }
- 
+
 void TPTP::foldl(TermStack* terms)
 {
   TermList item1 = terms->pop();
@@ -4345,7 +4335,7 @@ TermList TPTP::readSort()
     return sort;
   }
   default:
-    PARSE_ERROR("sort expected",tok);
+    PARSE_ERROR_TOK("sort expected",tok);
   }
 } // readSort
 
@@ -4671,7 +4661,7 @@ unsigned TPTP::addOverloadedFunction(std::string name,int arity,int symbolArity,
   if (srt == AtomicSort::realSort()) {
     return env.signature->addInterpretedFunction(real,name);
   }
-  USER_ERROR((std::string)"The symbol " + name + " is used with a non-numeric type");
+  USER_ERROR("The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedFunction
 
 unsigned TPTP::addOverloadedPredicate(std::string name,int arity,int symbolArity,bool& added,TermList& arg,
@@ -4701,7 +4691,7 @@ unsigned TPTP::addOverloadedPredicate(std::string name,int arity,int symbolArity
   if (srt == AtomicSort::realSort()) {
     return env.signature->addInterpretedPredicate(real,name);
   }
-  USER_ERROR((std::string)"The symbol " + name + " is used with a non-numeric type");
+  USER_ERROR("The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedPredicate
 
 /**
@@ -4792,7 +4782,7 @@ void TPTP::vampire()
       resetToks();
       break;
     default:
-      PARSE_ERROR("either atom or number expected as a value of a Vampire option",tok);
+      PARSE_ERROR_TOK("either atom or number expected as a value of a Vampire option",tok);
     }
   }
   // Allows us to insert LaTeX templates for predicate and function symbols
@@ -4807,24 +4797,24 @@ void TPTP::vampire()
       pred = false;
     }
     else {
-      PARSE_ERROR("either 'predicate' or 'function' expected",getTok(0));
+      PARSE_ERROR_TOK("either 'predicate' or 'function' expected",getTok(0));
     }
     consumeToken(T_COMMA);
     std::string symb = name();
     consumeToken(T_COMMA);
     Token tok = getTok(0);
     if (tok.tag != T_INT) {
-      PARSE_ERROR("a non-negative integer (denoting arity) expected",tok);
+      PARSE_ERROR_TOK("a non-negative integer (denoting arity) expected",tok);
     }
     unsigned arity;
     if (!Int::stringToUnsignedInt(tok.content,arity)) {
-      PARSE_ERROR("a number denoting arity expected",tok);
+      PARSE_ERROR_TOK("a number denoting arity expected",tok);
     }
     resetToks();
     consumeToken(T_COMMA);
     tok = getTok(0);
     if(tok.tag != T_STRING){
-      PARSE_ERROR("a template string expected",tok);
+      PARSE_ERROR_TOK("a template string expected",tok);
     }
     std::string temp = tok.content;
     resetToks();
@@ -4833,7 +4823,7 @@ void TPTP::vampire()
       std::string pol= name();
       bool polarity;
       if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
-      else{ PARSE_ERROR("polarity expected (true/false)",getTok(0)); }
+      else{ PARSE_ERROR_TOK("polarity expected (true/false)",getTok(0)); }
       unsigned f = env.signature->addPredicate(symb,arity);
       theory->registerLaTeXPredName(f,polarity,temp);
     }
@@ -4853,18 +4843,18 @@ void TPTP::vampire()
       pred = false;
     }
     else {
-      PARSE_ERROR("either 'predicate' or 'function' expected",getTok(0));
+      PARSE_ERROR_TOK("either 'predicate' or 'function' expected",getTok(0));
     }
     consumeToken(T_COMMA);
     std::string symb = name();
     consumeToken(T_COMMA);
     Token tok = getTok(0);
     if (tok.tag != T_INT) {
-      PARSE_ERROR("a non-negative integer (denoting arity) expected",tok);
+      PARSE_ERROR_TOK("a non-negative integer (denoting arity) expected",tok);
     }
     unsigned arity;
     if (!Int::stringToUnsignedInt(tok.content,arity)) {
-      PARSE_ERROR("a number denoting arity expected",tok);
+      PARSE_ERROR_TOK("a number denoting arity expected",tok);
     }
     resetToks();
     consumeToken(T_COMMA);
@@ -4884,7 +4874,7 @@ void TPTP::vampire()
       uncomputable = true;
     }
     else {
-      PARSE_ERROR("'left', 'right', 'skip' or 'uncomputable' expected",getTok(0));
+      PARSE_ERROR_TOK("'left', 'right', 'skip' or 'uncomputable' expected",getTok(0));
     }
     if (!uncomputable) {
       env.colorUsed = true;
@@ -4930,7 +4920,7 @@ void TPTP::vampire()
     else USER_ERROR("Unknown model_check command");
   }
   else {
-    USER_ERROR((std::string)"Unknown vampire directive: "+nm);
+    USER_ERROR("Unknown vampire directive: "+nm);
   }
   consumeToken(T_RPAR);
   consumeToken(T_DOT);

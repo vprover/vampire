@@ -288,8 +288,6 @@ public:
   struct Token {
     /** token type */
     Tag tag;
-    /** position of the beginning of this token */
-    int start;
     /** content */
     std::string content;
     std::string toString() const;
@@ -304,7 +302,6 @@ public:
   public:
     ParseErrorException(std::string message,unsigned ln) : _message(message), _ln(ln) {}
     ParseErrorException(std::string message,Token& tok,unsigned ln);
-    ParseErrorException(std::string message,int position,unsigned ln);
     void cry(std::ostream&) const;
     ~ParseErrorException() {}
   protected:
@@ -312,8 +309,10 @@ public:
     unsigned _ln = 0;
   }; // TPTP::ParseErrorException
 
-#define PARSE_ERROR(msg,tok) \
+#define PARSE_ERROR_TOK(msg,tok) \
   throw ParseErrorException(msg,tok,_lineNumber)
+#define PARSE_ERROR(msg) \
+  throw ParseErrorException(msg,_lineNumber)
 
   /**
    * @brief Construct a new TPTP parser.
@@ -547,8 +546,6 @@ private:
   Stack<std::string> _includeDirectories;
   /** input characters */
   Array<char> _chars;
-  /** position in the input stream of the 0th character in _chars[] */
-  int _gpos;
   /** the position beyond the last read characters */
   int _cend;
   /** tokens currently at work */
@@ -670,7 +667,6 @@ private:
       _chars[i] = _chars[n+i];
     }
     _cend -= n;
-    _gpos += n;
   } // shiftChars
 
   /**
@@ -679,7 +675,6 @@ private:
    */
   inline void resetChars()
   {
-    _gpos += _cend;
     _cend = 0;
   } // resetChars
 
