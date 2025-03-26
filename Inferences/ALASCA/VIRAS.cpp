@@ -133,7 +133,7 @@ Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(Clause* premi
               return Clause::fromIterator(
                   concatIters(
                     intoVampireIter(litIter),
-                    otherLits->iter()
+                    iterTraits(otherLits->iter()).cloned()
                     ),
                   Inference(SimplifyingInference1(InferenceRule::ALASCA_VIRAS_QE, premise)));
             })

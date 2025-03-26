@@ -126,7 +126,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
         AlascaOrderingUtils::atomMaxAfterUnif(_shared->ordering, rhs, SelectionCriterion::NOT_LESS, uwa, rhsVarBank));
 
     check_side_condition(
-        "s2σ ⊴ ti ∈ active(L[s2]σ)",
+        "TODO write name rhs lit maximal",
         AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, rhs, SelectionCriterion::NOT_LEQ, uwa, rhsVarBank));
 
   }

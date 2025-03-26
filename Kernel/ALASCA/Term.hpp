@@ -398,6 +398,9 @@ namespace Kernel {
         [&](Var  const& x) { ASS_EQ(i, 0); return AlascaMonom<NumTraits>(1, x.toTerm()); }
         ); }
 
+    auto asAtomic() const { return _self.asAtomic(); }
+    auto asVar() const { return _self.asVar(); }
+
     void integrity() { DEBUG_CODE(
       auto iter = iterSummands();
       if (iter.hasNext())  {
@@ -495,6 +498,7 @@ namespace Lib {
 
     static TypedTermList childAt(unsigned i, TypedTermList const& self)
     { return TypedTermList(*self.term()->nthArgument(i), SortHelper::getArgSort(self.term(), i)); }
+
     template<class NumTraits>
     static TypedTermList childAt(unsigned i, AlascaTermItp<NumTraits> const& self)
     { return TypedTermList(self.monomAt(i).atom(), NumTraits::sort()); }
@@ -578,7 +582,7 @@ namespace Kernel {
     return __AlascaTermUF(TypedTermList(Term::createFromIter(t->functor(), concatIters(
           typeArgIter(t),
           termArgIterTyped(t)
-            .map([](auto t) { return AnyAlascaTerm::normalize(t).toTerm(); })))));
+            .map([](auto t) { return TermList(AnyAlascaTerm::normalize(t).toTerm()); })))));
   }
 
   template<class NumTraits>
@@ -679,7 +683,7 @@ namespace Kernel {
                   TermList(Term::createFromIter(cur.atom().term()->functor(), concatIters(
                             typeArgIter(cur.atom().term()),
                             termArgIterTyped(cur.atom().term())
-                              .map([](auto t) { return AnyAlascaTerm::normalize(t).toTerm(); })))
+                              .map([](auto t) { return TermList(AnyAlascaTerm::normalize(t).toTerm()); })))
                  )));
         }
     };

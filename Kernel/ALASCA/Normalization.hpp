@@ -493,7 +493,7 @@ namespace Kernel {
               concatIters(
                 typeArgIter(lit),
                 termArgIterTyped(lit)
-                .map([&](auto arg) { return normalize(arg).toTerm(); })
+                .map([&](auto arg) { return TermList(normalize(arg).toTerm()); })
                 ))));
       }
     }

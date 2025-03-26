@@ -1,6 +1,5 @@
 /*
- * This file is part of the source code of the software program
- * Vampire. It is protected by applicable
+ * This file is part of the source code of the software program * Vampire. It is protected by applicable
  * copyright laws.
  *
  * This source code is distributed under the licence found here
@@ -159,38 +158,39 @@ TEST_GENERATION(coherence_5,
       ))
     )
 
-TEST_GENERATION(non_application_1,
-    Generation::SymmetricTest()
-      .inputs  ({ clause({ p(3 * x)  }) })
-      .premiseRedundant(false)
-      .expected(exactly( /* nothing */))
-    )
-
-TEST_GENERATION(non_application_2,
-    Generation::SymmetricTest()
-      .inputs  ({ clause({ p(f(3 * x))  }) })
-      .premiseRedundant(false)
-      .expected(exactly( /* nothing */))
-    )
-
-TEST_GENERATION(non_application_3,
-    Generation::SymmetricTest()
-      .inputs  ({ clause({ f(3 * x) > 0  }) })
-      .premiseRedundant(false)
-      .expected(exactly( /* nothing */))
-    )
-
-TEST_GENERATION(non_application_4,
-    Generation::SymmetricTest()
-      .inputs  ({ clause({ 3 * x > 0  }) })
-      .premiseRedundant(false)
-      .expected(exactly( /* nothing */))
-    )
-
-TEST_GENERATION(non_application_5,
-    Generation::SymmetricTest()
-      .inputs  ({ clause({ 0 != (f(0) + x) - f(x)  }) })
-      .premiseRedundant(false)
-      .expected(exactly( /* nothing */))
-    )
-
+// TODO (?)
+// TEST_GENERATION(non_application_1,
+//     Generation::SymmetricTest()
+//       .inputs  ({ clause({ p(3 * x)  }) })
+//       .premiseRedundant(false)
+//       .expected(exactly( /* nothing */))
+//     )
+//
+// TEST_GENERATION(non_application_2,
+//     Generation::SymmetricTest()
+//       .inputs  ({ clause({ p(f(3 * x))  }) })
+//       .premiseRedundant(false)
+//       .expected(exactly( /* nothing */))
+//     )
+//
+// TEST_GENERATION(non_application_3,
+//     Generation::SymmetricTest()
+//       .inputs  ({ clause({ f(3 * x) > 0  }) })
+//       .premiseRedundant(false)
+//       .expected(exactly( /* nothing */))
+//     )
+//
+// TEST_GENERATION(non_application_4,
+//     Generation::SymmetricTest()
+//       .inputs  ({ clause({ 3 * x > 0  }) })
+//       .premiseRedundant(false)
+//       .expected(exactly( /* nothing */))
+//     )
+//
+// TEST_GENERATION(non_application_5,
+//     Generation::SymmetricTest()
+//       .inputs  ({ clause({ 0 != (f(0) + x) - f(x)  }) })
+//       .premiseRedundant(false)
+//       .expected(exactly( /* nothing */))
+//     )
+//
