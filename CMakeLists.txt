@@ -2,6 +2,7 @@
 # general configuration
 ################################################################
 cmake_minimum_required (VERSION 3.14.0)
+
 project(Vampire)
 
 # version
@@ -37,6 +38,14 @@ if (NOT BUILD_SHARED_LIBS)
   set(CMAKE_EXE_LINKER_FLAGS -static)
 endif()
 message(STATUS "BUILD_SHARED_LIBS: " ${BUILD_SHARED_LIBS})
+
+# enable CCache if available
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  message(STATUS "found ccache, enablng for this build")
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  message(STATUS "CCACHE_PROGRAM: " ${CCACHE_PROGRAM})
+endif()
 
 # wrap up common object files as a target so not built multiple times for each target
 add_library(common OBJECT ${SOURCES})
@@ -89,8 +98,6 @@ if(COVERAGE)
 endif()
 
 add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
-# make __FILENAME__ macro as relative path used instead of absoulte source path __FILE__
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
 ################################################################
 # VIRAS
@@ -139,8 +146,6 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/cadical/README.md")
   message(FATAL_ERROR "CaDiCaL not found")
 endif()
 
-
-# TODO checkout CaDiCaL automagically with VIRAS?
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/cadical/src)
 add_compile_definitions(NBUILD=1)
 
@@ -185,28 +190,31 @@ endif()
 ################################################################
 # UNIT TESTING
 ################################################################
-foreach(test_file ${UNIT_TESTS})
-  get_filename_component(test_name ${test_file} NAME_WE)
-  string(REGEX REPLACE "^t" "" test_name ${test_name})
 
-  # set UNIT_ID for the unit test
-  set_property(SOURCE ${test_file} APPEND PROPERTY COMPILE_DEFINITIONS
-    UNIT_ID_STR=\"${test_name}\"
-    UNIT_ID=${test_name}
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  foreach(test_file ${UNIT_TESTS})
+    get_filename_component(test_name ${test_file} NAME_WE)
+    string(REGEX REPLACE "^t" "" test_name ${test_name})
+
+    # set UNIT_ID for the unit test
+    set_property(SOURCE ${test_file} APPEND PROPERTY COMPILE_DEFINITIONS
+      UNIT_ID_STR=\"${test_name}\"
+      UNIT_ID=${test_name}
+    )
+    # register it with CTest
+    add_test(${test_name} ${CMAKE_BINARY_DIR}/vtest run ${test_name})
+    set_tests_properties(${test_name} PROPERTIES TIMEOUT 60)
+  endforeach()
+
+  # build test executable
+  add_executable(
+    vtest
+    EXCLUDE_FROM_ALL # only build when explicitly requested
+    ${TESTING_SOURCES}
+    ${UNIT_TESTS}
+    $<TARGET_OBJECTS:common>
   )
-  # register it with CTest
-  add_test(${test_name} ${CMAKE_BINARY_DIR}/vtest run ${test_name})
-  set_tests_properties(${test_name} PROPERTIES TIMEOUT 60)
-endforeach()
-
-# build test executable
-add_executable(
-  vtest
-  EXCLUDE_FROM_ALL # only build when explicitly requested
-  ${TESTING_SOURCES}
-  ${UNIT_TESTS}
-  $<TARGET_OBJECTS:common>
-)
+endif()
 
 #################################################################
 # automated generation of Vampire revision information from git #
