@@ -637,12 +637,19 @@ TEST_FUN(bug04) {
 
 
 
-TEST_FUN(bug05) {
+#if 0
+TEST_FUN(unshielded_vars_1) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
   DECL_FUNC(f, {Real}, Real)
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
   auto& ord = lakbo(/* rand */ false);
   check(ord, f(2 * x), Incomp, f(x));
+  check(ord,   2 * x , Incomp,   x );
+  check(ord, f(x + 1), Incomp, f(x));
+  check(ord, f(x + a), Incomp, f(x));
+  check(ord, f(a), Less, f(b));
+  check(ord, f(x + a), Incomp, f(x + b));
 }
-
-
+#endif

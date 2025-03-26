@@ -92,7 +92,11 @@ public:
         if (auto itp = subterm.asSum()) {
           auto result = itp->apply([&](auto itp) -> Option<Clause*> {
 
-              if (itp.nSummands() == 1 && itp[0].atom().isVar()) {
+              // if (itp.nSummands() == 1 && itp[0].atom().isVar()) {
+              //   return {};
+              // }
+
+              if (itp.asVar().isSome()) {
                 return {};
               }
 

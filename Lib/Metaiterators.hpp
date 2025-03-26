@@ -400,6 +400,7 @@ class CatIterator
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(It1));
   DEFAULT_CONSTRUCTORS(CatIterator)
+  static_assert(std::is_same_v<ELEMENT_TYPE(It1), ELEMENT_TYPE(It2)>, "can only concat iterators with same element types");
 
   CatIterator(It1 it1, It2 it2)
   	:_first(true), _it1(std::move(it1)), _it2(std::move(it2)) {}

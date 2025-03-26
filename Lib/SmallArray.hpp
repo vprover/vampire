@@ -35,6 +35,16 @@ class SmallArray {
     }
   }
 
+  template<unsigned i>
+  void __init() { }
+
+  template<unsigned i, class... As>
+  void __init(T a, As... as) {
+    auto ptr = begin();
+    new(&ptr[i]) T(std::move(a));
+    __init<i + 1>(std::move(as)...);
+  }
+
 public:
 
 
@@ -52,6 +62,15 @@ public:
       new(ptr++) T(iter.next());
     }
     return std::move(out);
+  }
+
+  SmallArray() : SmallArray(0) {}
+
+  template<class... As>
+  static SmallArray fromItems(As... as)  {
+    auto out = SmallArray(TypeList::Size<TypeList::List<As...>>::val);
+    out.template __init<0>(std::move(as)...);
+    return out;
   }
 
   T      & operator[](unsigned i)       { ASS(i < _size); return *(begin() + i); }

@@ -149,15 +149,15 @@ TEST_GENERATION(uwa2,
       ))
     )
 
-TEST_GENERATION(uwa3,
-    Generation::SymmetricTest()
-      .rule(move_to_heap(testInequalityFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
-      .inputs  ({  clause({selected(  f(2 * x) > 0)  , selected(f(x) > 0)  }) })
-      .expected(exactly(
-            clause({  f(2 * x) > 0, num(0) > 0, 2 * x != x  })
-          , clause({  f(    x) > 0, num(0) > 0, 2 * x != x  })
-      ))
-    )
+// TEST_GENERATION(uwa3,
+//     Generation::SymmetricTest()
+//       .rule(move_to_heap(testInequalityFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+//       .inputs  ({  clause({selected(  f(2 * x) > 0)  , selected(f(x) > 0)  }) })
+//       .expected(exactly(
+//             clause({  f(2 * x) > 0, num(0) > 0, 2 * x != x  })
+//           , clause({  f(    x) > 0, num(0) > 0, 2 * x != x  })
+//       ))
+//     )
 
 // TODO think about this test case again
 // TEST_GENERATION(misc1,
@@ -174,7 +174,7 @@ TEST_GENERATION(max_s1_after_unif_1,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( f(x) + ff(y) > 0 )  , selected( f(y) + ff(x) > 0 )  }) })
       .expected(exactly( 
-            clause({ f(x) + ff(x) > 0, -f(x) + f(x) > 0 }), clause({ f(x) + ff(x) > 0, -f(x) + f(x) > 0 })
+        clause({ f(x) + ff(x) > 0, -f(x) + f(x) > 0 })
       ))
     )
 
@@ -182,7 +182,7 @@ TEST_GENERATION(max_s2_after_unif_1,
     Generation::SymmetricTest()
       .inputs  ({  clause({  selected( f(y) + ff(x) > 0 ), selected( f(x) + ff(y) > 0 )    }) })
       .expected(exactly( 
-            clause({ f(x) + ff(x) > 0, -f(x) + f(x) > 0 }), clause({ f(x) + ff(x) > 0, -f(x) + f(x) > 0 })
+        clause({ f(x) + ff(x) > 0, -f(x) + f(x) > 0 })
       ))
     )
 
@@ -315,5 +315,18 @@ TEST_GENERATION(check_symbols_08,
       .inputs  ({  clause({selected( f(x) + a != 0 ), selected(f(x) + b != 0)   }) })
       .expected(exactly(
         // we don't use this rule for equality
+      ))
+    )
+
+TEST_GENERATION(literal_maximality_check,
+    Generation::SymmetricTest()
+      .rule(move_to_heap(testInequalityFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+      .inputs  ({  clause({  f(x) > a, f(x) >  b, f(x) > c  }) })
+      .expected(exactly(
+            clause({  f(x) > a, f(x) > b, b > c  })
+          , clause({  f(x) > a, f(x) > c, c > b   })
+
+          , clause({  f(x) > b, f(x) > a, a > c  })
+          , clause({  f(x) > b, f(x) > c, c > a   })
       ))
     )

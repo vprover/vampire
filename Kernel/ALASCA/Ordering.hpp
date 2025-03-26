@@ -120,7 +120,7 @@ struct AlascaOrderingUtils {
                       });
   }
 
-  static bool litMaxAfterUnif(Ordering* ord, NewSelectedAtom const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
+  static bool litMaxAfterUnif(Ordering* ord, __SelectedLiteral const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
 
     ASS_REP(sel == SelectionCriterion::NOT_LESS || sel == SelectionCriterion::NOT_LEQ, sel);
 
@@ -328,7 +328,7 @@ struct SkelOrd
                   t->functor(),
                   concatIters(
                     typeArgIter(t),
-                    arrayIter(*args)
+                    arrayIter(*args).cloned()
                     )));
           }
       });
@@ -419,8 +419,10 @@ struct SkelOrd
     } else if (t1.isVar() && t2.isVar()) {
       return t1 == t2 ? Result::EQUAL : Result::INCOMPARABLE;
     } else if (t1.isVar() && !t2.isVar()) {
+      DBGE(t2.containsSubterm(t1))
       return t2.containsSubterm(t1) ? Ordering::Result::LESS : Ordering::Result::INCOMPARABLE;
     } else if (t2.isVar() && !t1.isVar()) {
+      DBGE(t1.containsSubterm(t2))
       return t1.containsSubterm(t2) ? Ordering::Result::GREATER : Ordering::Result::INCOMPARABLE;
     } else {
       ASS(t1.isTerm() && t2.isTerm())
@@ -565,6 +567,8 @@ struct LAKBO
   template<class NumTraits>
   Ordering::Result cmpSameSkeleton(AlascaTermItp<NumTraits> const& t0, AlascaTermItp<NumTraits> const& t1) const
   {
+    ASS_REP(t1 != t0, "case should be handled earlier")
+
     if (t0.nSummands() == 1 && t1.nSummands() == 1) {
       return cmpSameSkeleton(t0.summandAt(0), t1.summandAt(0));
     } else {
@@ -696,7 +700,7 @@ struct LAKBO
                   t->functor(),
                   concatIters(
                     typeArgIter(t),
-                    arrayIter(*args)
+                    arrayIter(*args).cloned()
                     )));
           }
       });

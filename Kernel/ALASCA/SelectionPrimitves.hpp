@@ -39,16 +39,20 @@ namespace Kernel {
     Clause* _cl;
     unsigned _lit;
 
-  public:
+  protected:
     __SelectedLiteral(Clause* cl, unsigned lit) : _cl(cl), _lit(lit) {}
+  public:
 
     Literal* literal() const { return (*_cl)[_lit]; }
     Clause* clause() const { return _cl; }
     unsigned litIdx() const { return _lit; }
 
+    auto allLiterals() const
+    { return clause()->iterLits().cloned(); }
+
     auto contextLiterals() const
     { return clause()->iterLits().cloned().dropNth(_lit); }
-              
+
     auto asTuple() const
     { return std::make_tuple(_cl, _lit); }
 
@@ -82,7 +86,7 @@ namespace Kernel {
     : public __SelectedLiteral  
   {
   public:
-    using __SelectedLiteral::__SelectedLiteral;
+    SelectedAtomicLiteral(Clause* cl, unsigned lit) : __SelectedLiteral(cl, lit) {}
     auto iterSelectedSubterms() const 
     { return termArgIterTyped(literal()) 
                .flatMap([](auto t) { return AnyAlascaTerm::normalize(t).bottomUpIter(); }); }
@@ -190,6 +194,7 @@ namespace Kernel {
                >>
   {
     using Coproduct::Coproduct;
+    operator __SelectedLiteral const&() const { return apply([](auto& x) -> __SelectedLiteral const& { return x; }); }
 #define DELEGATE(fun) \
     auto fun() const { return apply([](auto& self) { return self.fun(); }); }
 
@@ -280,6 +285,7 @@ namespace Kernel {
   struct NewSelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
     using Coproduct::Coproduct;
 
+    operator __SelectedLiteral const&() const { return apply([](auto& x) -> __SelectedLiteral const& { return x; }); }
     auto iterSelectedSubterms() const 
     { return coproductIter(applyCo([](auto x) { return x.iterSelectedSubterms(); })); }
 
