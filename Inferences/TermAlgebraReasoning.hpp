@@ -50,7 +50,7 @@ class DistinctnessISE
 {
 
 public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 };
 
 /*
@@ -67,7 +67,7 @@ public:
 class InjectivityGIE
   : public GeneratingInferenceEngine {
 public:
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c) override;
 
   /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
@@ -91,14 +91,14 @@ class InjectivityISE
   : public ImmediateSimplificationEngine
 {
 public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 };
 
 class NegativeInjectivityISE
   : public ImmediateSimplificationEngine
 {
 public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 
 private:
   bool litCondition(Clause* c, unsigned i);
@@ -107,9 +107,9 @@ private:
 class AcyclicityGIE
   : public GeneratingInferenceEngine {
 public:
-  void attach(Saturation::SaturationAlgorithm* salg);
-  void detach();
-  Kernel::ClauseIterator generateClauses(Kernel::Clause *c);
+  void attach(Saturation::SaturationAlgorithm* salg) override;
+  void detach() override;
+  Kernel::ClauseIterator generateClauses(Kernel::Clause *c) override;
 
   /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
@@ -124,7 +124,7 @@ private:
 class AcyclicityGIE1
   : public GeneratingInferenceEngine {
 public:
-  Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+  Kernel::ClauseIterator generateClauses(Kernel::Clause* c) override;
 
   /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override

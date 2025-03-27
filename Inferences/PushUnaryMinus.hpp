@@ -29,7 +29,7 @@ class PushUnaryMinus
 public:
   virtual ~PushUnaryMinus();
 
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

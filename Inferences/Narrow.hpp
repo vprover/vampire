@@ -31,14 +31,14 @@ class Narrow
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
   /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
   { return pvi(dropElementType(range(0,0))); }
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
 private:
   NarrowingIndex* _index;

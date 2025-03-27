@@ -34,15 +34,15 @@ class IFFXORRewriterISE
   : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* c);
+  Clause* simplify(Clause* c) override;
 };
 
 class EagerClausificationISE
   : public ImmediateSimplificationEngine
 {
 public:
-  ClauseIterator simplifyMany(Clause* c);
-  Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
+  ClauseIterator simplifyMany(Clause* c) override;
+  Clause* simplify(Clause* c) override { NOT_IMPLEMENTED; }
 
 };
 
@@ -88,7 +88,7 @@ private:
   : public ImmediateSimplificationEngine
 {
 public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 };
 
 
@@ -97,7 +97,7 @@ class EqualsProxyISE
 {
 
 public:
-  Kernel::Clause* simplify(Kernel::Clause* c);        
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 };
 
 
@@ -106,7 +106,7 @@ class OrImpAndProxyISE
 {
 
 public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 };
 
 
@@ -115,14 +115,14 @@ class PiSigmaProxyISE
 {
   
 public:
-  Kernel::Clause* simplify(Kernel::Clause* c);     
+  Kernel::Clause* simplify(Kernel::Clause* c) override;
 };
 
 
 class ProxyISE 
   : public ImmediateSimplificationEngine {
   public:
-    ClauseIterator simplifyMany(Clause* c);
+    ClauseIterator simplifyMany(Clause* c) override;
     Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
 };*/
 

@@ -32,7 +32,7 @@ class EqualityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 
   /** TODO 2 should we make this a correct estimation */

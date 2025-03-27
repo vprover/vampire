@@ -23,7 +23,7 @@ namespace Inferences {
 
 class Injectivity : public GeneratingInferenceEngine {
   public:
-    ClauseIterator generateClauses(Clause* premise);
+    ClauseIterator generateClauses(Clause* premise) override;
 
   /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override

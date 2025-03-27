@@ -39,8 +39,8 @@ public:
     : _index(0)
   {  }
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
   /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
@@ -56,7 +56,7 @@ public:
                                 ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts,
                                 bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, ConditionalRedundancyHandler const* condRedHandler = 0);
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
 private:
   Clause* generateClause(

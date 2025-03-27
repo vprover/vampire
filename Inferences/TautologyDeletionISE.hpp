@@ -26,7 +26,7 @@ class TautologyDeletionISE
 {
 public:
   TautologyDeletionISE(bool deleteEqTautologies=true) : _deleteEqTautologies(deleteEqTautologies) {}
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 private:
   int compare(Literal* l1,Literal* l2);
   void sort(Literal** lits,int to);

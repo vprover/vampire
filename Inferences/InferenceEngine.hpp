@@ -306,10 +306,8 @@ class DummyGIE
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise)
-  {
-    return ClauseIterator::getEmpty();
-  }
+  ClauseIterator generateClauses(Clause* premise) override
+  { return ClauseIterator::getEmpty(); }
 
   /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
@@ -348,10 +346,10 @@ public:
   virtual ~CompositeISE();
   void addFront(ImmediateSimplificationEngine* fse);
   void addFrontMany(ImmediateSimplificationEngine* fse);
-  Clause* simplify(Clause* cl);
-  ClauseIterator simplifyMany(Clause* cl);
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  Clause* simplify(Clause* cl) override;
+  ClauseIterator simplifyMany(Clause* cl) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 private:
   typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
@@ -403,7 +401,7 @@ class ChoiceDefinitionISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 
   bool isPositive(Literal* lit);
  
@@ -415,21 +413,21 @@ class DuplicateLiteralRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 class TautologyDeletionISE2
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 class TrivialInequalitiesRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

@@ -23,11 +23,10 @@ namespace Inferences {
 
 class CasesSimp : public ImmediateSimplificationEngine {
   public:
-    ClauseIterator simplifyMany(Clause* premise);
-    Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
+    ClauseIterator simplifyMany(Clause* premise) override;
+    Clause* simplify(Clause* premise) override { NOT_IMPLEMENTED; }
 
     ClauseIterator performSimplification(Clause* cl, Literal* lit, TermList t);
-    ClauseIterator generateClauses(Clause* premise);
     struct RewriteableSubtermsFn;
     struct isEqualityLit
     {
