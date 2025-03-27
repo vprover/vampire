@@ -56,6 +56,9 @@ public:
   static double getDouble(double min, double max) {
     return std::uniform_real_distribution<double>(min,max)(_eng);
   }
+ 
+  template<class T> static decltype(auto) getElem(T const& t) { return t[getInteger(t.size())]; }
+  template<class T> static decltype(auto) getElem(T      & t) { return t[getInteger(t.size())]; }
   
   /**
    * Return a random bit.

@@ -1749,6 +1749,7 @@ public:
   { return Container<Elem>::fromIterator(std::move(*this)); }
 
   Stack<Elem> collectStack() { return collect<Stack>(); }
+  RStack<Elem> collectRStack() { return collect<RStack>(); }
 
   IterTraits clone() 
   { return *this; }

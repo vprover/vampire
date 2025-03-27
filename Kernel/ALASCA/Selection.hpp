@@ -19,21 +19,19 @@
 namespace Kernel {
   class AlascaSelector {
 
-    LiteralSelectors::SelectorMode _mode; 
-    bool _reverseLCM; 
+    LiteralSelectors::SelectorMode _mode;
+    bool _reversePolarity;
     // TODO make options
 
-    AlascaSelector(LiteralSelectors::SelectorMode mode, bool reverseLCM) 
+    AlascaSelector(LiteralSelectors::SelectorMode mode, bool reversePolarity)
       : _mode(std::move(mode))
-      , _reverseLCM(reverseLCM) {}
+      , _reversePolarity(reversePolarity) {}
 
-    AlascaSelector() 
-      : AlascaSelector(LiteralSelectors::SelectorMode(TL::Token<MaximalLiteralSelector>{}), /*reverseLCM*/ false) {}
-
+    friend struct AlascaSelectorDispatch;
   public:
 
     template<class LiteralSelector>
-    static AlascaSelector fromType(bool reverseLcm = false) 
+    static AlascaSelector fromType(bool reverseLcm = false)
     { return AlascaSelector(LiteralSelectors::SelectorMode(TL::Token<MaximalLiteralSelector>{}), reverseLcm); }
 
     static Option<AlascaSelector> fromNumber(int number) {
@@ -43,13 +41,14 @@ namespace Kernel {
         });
     }
 
+
     // LiteralSelectors::AnySelector mode;
 
     // TODO make an array class that doesn't have any capacity slack
     Map<Clause* , Stack<NewSelectedAtom>> _cache;
-    template<class T>
-    Stack<NewSelectedAtom> computeSelected(TL::Token<T>, Stack<NewSelectedAtom> atoms, Ordering* ord);
-    Stack<NewSelectedAtom> computeSelected(Stack<NewSelectedAtom> atoms, Ordering* ord);
+    // template<class T>
+    // Stack<NewSelectedAtom> computeSelected(TL::Token<T>, Stack<NewSelectedAtom> atoms, Ordering* ord);
+    Stack<NewSelectedAtom> computeSelected(Stack<NewSelectedAtom> atoms, Ordering* ord) const;
     // auto iterAtoms(Clause* cl) {
     //    return cl->iterLits()
     //        .zipWithIndex() .flatMap([cl](auto l_i) {
@@ -59,8 +58,8 @@ namespace Kernel {
     //          return ifElseIter(
     //
     //              /* literals  t1 + t2 + ... + tn <> 0 */
-    //              [&]() { return nl.asItp().isSome(); }, 
-    //              [&]() { 
+    //              [&]() { return nl.asItp().isSome(); },
+    //              [&]() {
     //                return coproductIter(nl.asItp()->applyCo([cl,i](auto itp) {
     //                    return itp.term().iterSummands()
     //                       .zipWithIndex()
@@ -70,8 +69,8 @@ namespace Kernel {
     //                                   )));
     //                       });
     //                }));
-    //              }, 
-    //              
+    //              },
+    //
     //              /* literals  (~)t1 = t2  */
     //              [&]() { return nl.toLiteral()->isEquality(); },
     //              [&]() {
