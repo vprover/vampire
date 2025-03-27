@@ -214,8 +214,12 @@ public:
   template<class Idx> decltype(auto) operator[](Idx idx) const { return self()[idx]; }
   template<class Idx> decltype(auto) operator[](Idx idx)       { return self()[idx]; }
 
-  template<class Iter> void loadFromIterator(Iter iter) 
-  { return self().loadFromIterator(std::move(iter)); }
+  template<class Iter> static Recycled fromIterator(Iter iter) 
+  { 
+    Recycled out;
+    out->loadFromIterator(std::move(iter));
+    return out; 
+  }
 
   friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
   { if (self.alive())return out << self.self(); else return out << "Recycled(NULL)"; }
