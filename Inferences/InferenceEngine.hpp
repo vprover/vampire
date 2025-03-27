@@ -29,6 +29,7 @@
 #include "Lib/Allocator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #if VDEBUG
 #include "Indexing/Index.hpp"
 #endif
@@ -110,7 +111,9 @@ public:
    * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
    * as well as the information wether the premise was made redundant.
    */
-  virtual ClauseGenerationResult generateSimplify(Clause* premise)  = 0;
+  virtual ClauseGenerationResult generateSimplify(Clause* premise) = 0;
+  /** TODO */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) = 0;
 };
 
 
@@ -175,6 +178,9 @@ public:
   };
 
   ClauseGenerationResult generateSimplify(Clause* cl) override;
+
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override 
+  { return pvi(dropElementType(range(0,1))); }
 
   /** 
    * Turns this SimplifyingGeneratingInference1 into and ImmediateSimplificationEngine. 
@@ -304,6 +310,11 @@ public:
   {
     return ClauseIterator::getEmpty();
   }
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
+
 };
 
 template<class... Args>
@@ -357,6 +368,10 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
@@ -374,6 +389,10 @@ public:
   ClauseGenerationResult generateSimplify(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
 private:
   Stack<SimplifyingGeneratingInference*> _simplifiers;
   Stack<GeneratingInferenceEngine*> _generators;

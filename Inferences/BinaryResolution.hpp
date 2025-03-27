@@ -42,6 +42,10 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
 
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
+
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
                                 AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg);

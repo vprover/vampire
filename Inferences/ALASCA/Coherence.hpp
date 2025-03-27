@@ -267,7 +267,7 @@ struct Coherence : public BinInf<CoherenceConf<NumTraits>> {
 
 
 template<class NumTraits>
-struct CoherenceNormalization : SimplifyingGeneratingInference {
+struct CoherenceNormalization : public SimplifyingGeneratingInference {
   std::shared_ptr<AlascaState> shared;
   CoherenceNormalization(std::shared_ptr<AlascaState> shared) : shared(std::move(shared)) {}
 
@@ -283,6 +283,10 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
       .premiseRedundant = false,
     };
   }
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
 
   // C \/ ⌊s⌋ = t
   // ============ if ⌊t⌋ != ⌊s⌋

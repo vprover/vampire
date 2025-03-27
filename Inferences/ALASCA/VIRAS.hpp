@@ -75,6 +75,11 @@ public:
     }
   }
 
+  
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override 
+  { return pvi(dropElementType(range(0,0))); }
+
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {}
 #endif

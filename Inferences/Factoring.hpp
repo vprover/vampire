@@ -28,6 +28,10 @@ class Factoring
 {
 public:
   ClauseIterator generateClauses(Kernel::Clause* premise);
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,1))); }
 private:
   class ResultsFn;
 };

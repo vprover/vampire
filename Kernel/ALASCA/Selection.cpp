@@ -182,10 +182,15 @@ struct AlascaSelectorDispatch {
     return { arrayIter(atoms).maxBy(AlascaAtomComparator<QComparator>{}).unwrap() };
   }
 
-  template<class T>
-  Stack<NewSelectedAtom> computeSelected(TL::Token<T>, Stack<NewSelectedAtom> atoms, Ordering* ord) {
+  template<bool complete>
+  Stack<NewSelectedAtom> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Stack<NewSelectedAtom> atoms, Ordering* ord) {
     ASSERTION_VIOLATION_REP("TODO")
   }
+
+  // template<class T>
+  // Stack<NewSelectedAtom> computeSelected(TL::Token<T>, Stack<NewSelectedAtom> atoms, Ordering* ord) {
+  //   ASSERTION_VIOLATION_REP("TODO")
+  // }
 
   Stack<NewSelectedAtom> computeSelected(TL::Token<TotalLiteralSelector>, Stack<NewSelectedAtom> atoms, Ordering* ord)
   { return atoms; }

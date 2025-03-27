@@ -66,8 +66,11 @@ public:
     , _rhs(nullptr)
   {  }
 
-      
-    
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
+
   void attach(SaturationAlgorithm* salg) final override
   { 
     ASS(!_rhs);
@@ -238,6 +241,10 @@ public:
   // TODO make more generic (?)
   template<unsigned p>
   using Prem = TL::Get<p, TL::List<Premise0, Premise1, Premise2>>;
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
 
   ClauseIterator generateClauses(Clause* premise) final override
   {

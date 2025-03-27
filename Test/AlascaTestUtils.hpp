@@ -44,6 +44,10 @@ struct AlascaSimplRule
 
   AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) : _state(state), _rule(std::move(r)), _norm(std::move(n)) {}
   AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r) : _state(state), _rule(std::move(r)), _norm(state) {}
+  
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override 
+  { return _rule.lookaheadResultEstimation(selection); }
 
   void attach(SaturationAlgorithm* salg) final override {
     _rule.attach(salg);
@@ -78,7 +82,7 @@ template<class Rule>
 AlascaSimplRule<Rule> alascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) { return AlascaSimplRule<Rule>(std::move(state), std::move(r), std::move(n)); }
 
 template<class ISE>
-struct ToSgi : SimplifyingGeneratingInference {
+struct ToSgi : public SimplifyingGeneratingInference {
   ISE self;
 
   ToSgi(ISE ise) : self(std::move(ise)) {}
@@ -86,7 +90,7 @@ struct ToSgi : SimplifyingGeneratingInference {
   void attach(SaturationAlgorithm* salg) final override { }
 
   void detach() final override { }
-ClauseGenerationResult generateSimplify(Clause* premise) final override { auto concl = self.simplify(premise);
+  ClauseGenerationResult generateSimplify(Clause* premise) final override { auto concl = self.simplify(premise);
     return concl == nullptr 
          ? ClauseGenerationResult {
              .clauses = pvi(iterItems<Clause*>()),
@@ -104,6 +108,10 @@ ClauseGenerationResult generateSimplify(Clause* premise) final override { auto c
              .premiseRedundant = true,
            };
   }
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
 };
 
 template<class ISE>

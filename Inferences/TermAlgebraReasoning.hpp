@@ -69,6 +69,10 @@ class InjectivityGIE
 public:
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
+
 private:
   struct SubtermIterator;
   struct SubtermEqualityFn;
@@ -106,6 +110,10 @@ public:
   void attach(Saturation::SaturationAlgorithm* salg);
   void detach();
   Kernel::ClauseIterator generateClauses(Kernel::Clause *c);
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
 private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
@@ -117,6 +125,10 @@ class AcyclicityGIE1
   : public GeneratingInferenceEngine {
 public:
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
 
 private:
   struct SubtermDisequalityFn;

@@ -70,6 +70,11 @@ class FloorBounds
         GeneratingInference1(InferenceRule::ALASCA_FLOOR_BOUNDS, premise.clause()));
   }
 
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
+
+
   auto generateClauses(Superposition::Lhs const& premise) const
   {
     auto s = NumTraits::ifFloor(premise.selectedAtomicTerm(), [](auto s) { return s; }).unwrap();

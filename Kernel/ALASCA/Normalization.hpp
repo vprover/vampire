@@ -14,8 +14,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/ALASCA/Term.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
-#include "Kernel/Polynomial.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/STL.hpp"

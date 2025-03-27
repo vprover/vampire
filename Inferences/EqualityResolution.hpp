@@ -34,6 +34,10 @@ class EqualityResolution
 public:
   ClauseIterator generateClauses(Clause* premise);
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
+
+  /** TODO 2 should we make this a correct estimation */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,0))); }
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;

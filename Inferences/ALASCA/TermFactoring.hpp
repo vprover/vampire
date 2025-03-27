@@ -54,6 +54,9 @@ public:
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {  }
 #endif
 
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  { return pvi(dropElementType(range(0,1))); }
+
 private:
 
                             Option<Clause*> applyRule(SelectedAtomicTermItpAny const& l, SelectedAtomicTermItpAny const& r, Stack<TermList> const& maxAtoms);
