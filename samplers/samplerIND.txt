@@ -467,6 +467,9 @@ newcnf=on erd=on > $recursionOK ~cat 1:1
 ind!=none ind!=int $recursionOK=0 > sik ~cat one:5,two:1,three:1
 ind!=none ind!=int $recursionOK=1 > sik ~cat one:5,two:1,three:1,recursion:2,all:1
 
+# induction_ground_only
+ind!=none ind!=int > indgo ~cat on:3,off:1
+
 # below integer induction only
 
 # int_induction_kind

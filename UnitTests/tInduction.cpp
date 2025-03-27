@@ -1245,16 +1245,16 @@ TEST_GENERATION_INDUCTION(test_37,
 // structural induction (sik=one) with one free variable
 TEST_GENERATION_INDUCTION(test_38,
     Generation::AsymmetricTest()
-      .options({ { "induction", "struct" }, { "induction_only_ground", "off" } })
+      .options({ { "induction", "struct" }, { "induction_ground_only", "off" } })
       .indices(getIndices())
       .input( clause({  ~p(f(sK1,x3)) }))
       .expected({
         clause({ ~p(f(b,x4)), p(f(skx0,skx1)) }),
         clause({ ~p(f(b,x4)), ~p(f(r(skx0),x5)) }),
       })
-      .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
+      .preConditions({ TEST_FN_ASS_EQ(env.statistics->nonGroundInductionApplication, 0),
                        TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->nonGroundInductionApplication, 1),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 1) })
     )
 

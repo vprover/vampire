@@ -809,7 +809,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else if (!env.options->inductionOnlyGround() && (lit->getDistinctVars() == 1)) {
+  } else if (!env.options->inductionGroundOnly() && (lit->getDistinctVars() == 1)) {
     // TODO: generalize to multiple free variables
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
@@ -1098,7 +1098,8 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   }
 
   Inference inf(GeneratingInferenceMany(
-    generalized ? InferenceRule::GEN_INDUCTION_HYPERRESOLUTION : InferenceRule::INDUCTION_HYPERRESOLUTION,
+    generalized ? InferenceRule::GEN_INDUCTION_HYPERRESOLUTION
+                : ( indLitSubst ? InferenceRule::FREE_VAR_INDUCTION_HYPERRESOLUTION : InferenceRule::INDUCTION_HYPERRESOLUTION),
     premises));
   RStack<Literal*> resLits;
 
@@ -1171,6 +1172,8 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   }
   if (generalized) {
     env.statistics->generalizedInductionApplication++;
+  } else if (indLitSubst) {
+    env.statistics->nonGroundInductionApplication++;
   } else {
     env.statistics->inductionApplication++;
   }
