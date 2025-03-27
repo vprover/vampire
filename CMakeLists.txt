@@ -718,7 +718,7 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerLiteralManager.cpp
     Shell/CommandLine.cpp
-    Shell/ConditionalRedundancyHandler.cpp
+    Shell/PartialRedundancyHandler.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
     Shell/DistinctProcessor.cpp
@@ -772,7 +772,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Preprocess.cpp
     Shell/AnswerLiteralManager.hpp
     Shell/CommandLine.hpp
-    Shell/ConditionalRedundancyHandler.hpp
+    Shell/PartialRedundancyHandler.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
     Shell/DistinctProcessor.hpp

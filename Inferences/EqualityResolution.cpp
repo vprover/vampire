@@ -35,8 +35,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/ConditionalRedundancyHandler.hpp"
-
 #include "EqualityResolution.hpp"
 
 #if VDEBUG
@@ -60,8 +58,8 @@ struct EqualityResolution::IsNegativeEqualityFn
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, const ConditionalRedundancyHandler* condRedHandler = nullptr, Ordering* ord = nullptr)
-      : _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ord(ord), _cl(cl), _cLen(cl->length()) {}
+  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
+      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
 
   Clause* operator() (Literal* lit)
   {
@@ -116,13 +114,6 @@ struct EqualityResolution::ResultFn
       }
     }
 
-    if (!absUnif->usesUwa()) {
-      if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs())) {
-        env.statistics->skippedEqualityResolution++;
-        return nullptr;
-      }
-    }
-
     resLits->loadFromIterator(constraints->iterFifo());
 
     env.statistics->equalityResolution++;
@@ -134,7 +125,6 @@ struct EqualityResolution::ResultFn
   }
 private:
   bool _afterCheck;
-  const ConditionalRedundancyHandler* _condRedHandler;
   const Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
@@ -153,7 +143,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->condRedHandler(), &_salg->getOrdering()));
+      &_salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 
