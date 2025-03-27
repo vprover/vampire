@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * @file SubstitutionTree_FastGen.cpp
+ * @file SubstitutionTree_FastGen.hpp
  * Implements class SubstitutionTree::FastGen, its child classes
  * and some auxiliary classes.
  */

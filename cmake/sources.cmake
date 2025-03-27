@@ -2,8 +2,13 @@
 # sources only required for unit tests
 ################################################################
 set(TESTING_SOURCES
+    Test/AlascaTestUtils.hpp
     Test/BuilderPattern.hpp
+    Test/ClausePattern.hpp
+    Test/DummyHash.hpp
+    Test/FwdBwdSimplificationTester.hpp
     Test/GenerationTester.hpp
+    Test/MockedSaturationAlgorithm.hpp
     Test/SimplificationTester.hpp
     Test/SyntaxSugar.cpp
     Test/SyntaxSugar.hpp
@@ -44,6 +49,7 @@ set(UNIT_TESTS
     UnitTests/tDeque.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
+    UnitTests/tEqualityResolution.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
@@ -52,6 +58,7 @@ set(UNIT_TESTS
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
+    UnitTests/tKBO.hpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
@@ -61,6 +68,7 @@ set(UNIT_TESTS
     UnitTests/tQuotientE.cpp
     UnitTests/tRatioKeeper.cpp
     UnitTests/tRebalance.cpp
+    UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tSKIKBO.cpp
@@ -71,6 +79,7 @@ set(UNIT_TESTS
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
+    UnitTests/tTimeTrace.cpp
     UnitTests/tUnificationWithAbstraction.cpp
 )
 
@@ -105,6 +114,7 @@ set(SOURCES
     Debug/Tracer.hpp
     FMB/ClauseFlattening.cpp
     FMB/ClauseFlattening.hpp
+    FMB/CliqueFinder.hpp
     FMB/DefinitionIntroduction.hpp
     FMB/FiniteModel.cpp
     FMB/FiniteModel.hpp
@@ -141,9 +151,14 @@ set(SOURCES
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
+    Indexing/RequestedIndex.hpp
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp
+    Indexing/SubstitutionTree_FastGen.hpp
+    Indexing/SubstitutionTree_FastInst.hpp
+    Indexing/SubstitutionTree_Nodes.hpp
+    Indexing/SubstitutionTree_impl.hpp
     Indexing/TermCodeTree.cpp
     Indexing/TermCodeTree.hpp
     Indexing/TermIndex.cpp
@@ -152,39 +167,54 @@ set(SOURCES
     Indexing/TermSharing.cpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
+    Inferences/ALASCA/Abstractions.hpp
+    Inferences/ALASCA/BinInf.hpp
+    Inferences/ALASCA/BinaryResolution.hpp
     Inferences/ALASCA/BwdDemodulation.cpp
     Inferences/ALASCA/BwdDemodulation.hpp
+    Inferences/ALASCA/Coherence.hpp
     Inferences/ALASCA/Demodulation.cpp
     Inferences/ALASCA/Demodulation.hpp
     Inferences/ALASCA/EqFactoring.cpp
     Inferences/ALASCA/EqFactoring.hpp
+    Inferences/ALASCA/FloorBounds.hpp
+    Inferences/ALASCA/FloorFourierMotzkin.hpp
     Inferences/ALASCA/FourierMotzkin.cpp
     Inferences/ALASCA/FourierMotzkin.hpp
     Inferences/ALASCA/FwdDemodulation.cpp
     Inferences/ALASCA/FwdDemodulation.hpp
     Inferences/ALASCA/InequalityFactoring.cpp
     Inferences/ALASCA/InequalityFactoring.hpp
+    Inferences/ALASCA/InequalityPredicateNormalization.hpp
+    Inferences/ALASCA/IntegerFourierMotzkin.hpp
     Inferences/ALASCA/Normalization.cpp
     Inferences/ALASCA/Normalization.hpp
     Inferences/ALASCA/Superposition.cpp
     Inferences/ALASCA/Superposition.hpp
+    Inferences/ALASCA/TautologyDeletion.hpp
     Inferences/ALASCA/TermFactoring.cpp
     Inferences/ALASCA/TermFactoring.hpp
     Inferences/ALASCA/VIRAS.cpp
     Inferences/ALASCA/VIRAS.hpp
     Inferences/ALASCA/VariableElimination.cpp
     Inferences/ALASCA/VariableElimination.hpp
+    Inferences/ALASCA/VirasInterfacing.hpp
     Inferences/ArgCong.cpp
     Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp
+    Inferences/ArithmeticSubtermGeneralization/AdditionGeneralizationImpl.hpp
+    Inferences/ArithmeticSubtermGeneralization/NumeralMultiplicationGeneralizationImpl.hpp
+    Inferences/ArithmeticSubtermGeneralization/VariableMultiplicationGeneralizationImpl.hpp
+    Inferences/ArithmeticSubtermGeneralization/VariablePowerGeneralizationImpl.hpp
     Inferences/BackwardDemodulation.cpp
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionAndResolution.cpp
     Inferences/BackwardSubsumptionAndResolution.hpp
     Inferences/BackwardSubsumptionDemodulation.cpp
+    Inferences/BackwardSubsumptionDemodulation.hpp
     Inferences/BinaryResolution.cpp
     Inferences/BinaryResolution.hpp
     Inferences/BoolEqToDiseq.cpp
@@ -240,13 +270,16 @@ set(SOURCES
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionAndResolution.hpp
     Inferences/ForwardSubsumptionDemodulation.cpp
+    Inferences/ForwardSubsumptionDemodulation.hpp
     Inferences/FunctionDefinitionRewriting.cpp
     Inferences/FunctionDefinitionRewriting.hpp
+    Inferences/FunctionEvaluation.hpp
     Inferences/GaussianVariableElimination.cpp
     Inferences/GaussianVariableElimination.hpp
     Inferences/GlobalSubsumption.cpp
     Inferences/GlobalSubsumption.hpp
     Inferences/Induction.cpp
+    Inferences/Induction.hpp
     Inferences/InductionHelper.cpp
     Inferences/InductionHelper.hpp
     Inferences/InferenceEngine.cpp
@@ -261,6 +294,7 @@ set(SOURCES
     Inferences/InterpretedEvaluation.hpp
     Inferences/InvalidAnswerLiteralRemovals.cpp
     Inferences/InvalidAnswerLiteralRemovals.hpp
+    Inferences/LfpRule.hpp
     Inferences/Narrow.cpp
     Inferences/Narrow.hpp
     Inferences/NegativeExt.cpp
@@ -276,6 +310,7 @@ set(SOURCES
     Inferences/SubVarSup.cpp
     Inferences/SubVarSup.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
+    Inferences/SubsumptionDemodulationHelper.hpp
     Inferences/Superposition.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.cpp
@@ -333,6 +368,7 @@ set(SOURCES
     Kernel/KBO.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
+    Kernel/LiteralByMatchability.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.cpp
     Kernel/LiteralSelector.hpp
@@ -341,6 +377,7 @@ set(SOURCES
     Kernel/MLMatcher.cpp
     Kernel/MLMatcher.hpp
     Kernel/MLMatcherSD.cpp
+    Kernel/MLMatcherSD.hpp
     Kernel/MLVariant.cpp
     Kernel/MLVariant.hpp
     Kernel/MainLoop.cpp
@@ -351,10 +388,12 @@ set(SOURCES
     Kernel/MaximalLiteralSelector.hpp
     Kernel/NumTraits.cpp
     Kernel/NumTraits.cpp
+    Kernel/NumTraits.hpp
     Kernel/OperatorType.cpp
     Kernel/OperatorType.hpp
     Kernel/Ordering.cpp
     Kernel/Ordering.hpp
+    Kernel/OrderingUtils.hpp
     Kernel/Ordering_Equality.cpp
     Kernel/PartialOrdering.cpp
     Kernel/PartialOrdering.hpp
@@ -362,6 +401,7 @@ set(SOURCES
     Kernel/Polynomial.hpp
     Kernel/PolynomialNormalizer.cpp
     Kernel/PolynomialNormalizer.hpp
+    Kernel/PolynomialNormalizer/PredicateEvaluator.hpp
     Kernel/Problem.cpp
     Kernel/Problem.hpp
     Kernel/QKbo.cpp
@@ -411,6 +451,7 @@ set(SOURCES
     Kernel/TermTransformer.hpp
     Kernel/Theory.cpp
     Kernel/Theory.hpp
+    Kernel/TypedTermList.hpp
     Kernel/UnificationWithAbstraction.cpp
     Kernel/UnificationWithAbstraction.hpp
     Kernel/Unit.cpp
@@ -421,9 +462,12 @@ set(SOURCES
     Lib/ArrayMap.hpp
     Lib/BacktrackIterators.hpp
     Lib/Backtrackable.hpp
+    Lib/BacktrackableCollections.hpp
+    Lib/BiMap.hpp
     Lib/BinaryHeap.hpp
     Lib/BitUtils.hpp
     Lib/Comparison.hpp
+    Lib/Coproduct.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
     Lib/DHMap.cpp
@@ -445,8 +489,11 @@ set(SOURCES
     Lib/IntNameTable.hpp
     Lib/IntUnionFind.cpp
     Lib/IntUnionFind.hpp
+    Lib/IntegerSet.cpp
+    Lib/IntegerSet.hpp
     Lib/InverseLookup.hpp
     Lib/List.hpp
+    Lib/MacroUtils.hpp
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/Metaiterators.hpp
@@ -454,8 +501,10 @@ set(SOURCES
     Lib/NameArray.cpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
+    Lib/Option.hpp
     Lib/Output.hpp
     Lib/PairUtils.hpp
+    Lib/Perfect.hpp
     Lib/Portability.hpp
     Lib/ProofExtra.hpp
     Lib/Random.cpp
@@ -463,12 +512,15 @@ set(SOURCES
     Lib/RatioKeeper.hpp
     Lib/Recycled.hpp
     Lib/Reflection.hpp
+    Lib/STL.hpp
     Lib/SafeRecursion.hpp
+    Lib/ScopeGuard.hpp
     Lib/ScopedLet.hpp
     Lib/ScopedPtr.hpp
     Lib/Set.hpp
     Lib/SharedSet.hpp
     Lib/SkipList.hpp
+    Lib/Slice.hpp
     Lib/SmartPtr.hpp
     Lib/Sort.hpp
     Lib/Stack.hpp
@@ -481,6 +533,7 @@ set(SOURCES
     Lib/Timer.cpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
+    Lib/TypeList.hpp
     Lib/Vector.hpp
     Lib/VirtualIterator.hpp
     Minisat/core/Dimacs.h
@@ -518,7 +571,9 @@ set(SOURCES
     SAT/MinimizingSolver.cpp
     SAT/MinimizingSolver.hpp
     SAT/MinisatInterfacing.cpp
+    SAT/MinisatInterfacing.hpp
     SAT/MinisatInterfacingNewSimp.cpp
+    SAT/MinisatInterfacingNewSimp.hpp
     SAT/SAT2FO.cpp
     SAT/SAT2FO.hpp
     SAT/SATClause.cpp
@@ -564,6 +619,7 @@ set(SOURCES
     Saturation/LabelFinder.cpp
     Saturation/LabelFinder.hpp
     Saturation/ManCSPassiveClauseContainer.cpp
+    Saturation/ManCSPassiveClauseContainer.hpp
     Saturation/Otter.cpp
     Saturation/Otter.hpp
     Saturation/PredicateSplitPassiveClauseContainers.cpp
@@ -605,6 +661,7 @@ set(SOURCES
     Shell/GeneralSplitting.cpp
     Shell/GeneralSplitting.hpp
     Shell/GoalGuessing.cpp
+    Shell/GoalGuessing.hpp
     Shell/InequalitySplitting.cpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.cpp

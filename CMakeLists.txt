@@ -42,12 +42,12 @@ message(STATUS "BUILD_SHARED_LIBS: " ${BUILD_SHARED_LIBS})
 # enable CCache if available
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
-  message(STATUS "found ccache, enablng for this build")
+  message(STATUS "found ccache, enabling for this build")
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
   message(STATUS "CCACHE_PROGRAM: " ${CCACHE_PROGRAM})
 endif()
 
-# wrap up common object files as a target so not built multiple times for each target
+# wrap up common object files so not built multiple times for each target
 add_library(common OBJECT ${SOURCES})
 
 ################################################################
@@ -73,11 +73,11 @@ if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
 
+# below here configure flags for specific compilers
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   set(GCC_OR_CLANG ON)
 endif()
-
-# configure flags for specific compilers
 
 if(GCC_OR_CLANG)
   add_compile_options(-Wall)
@@ -242,8 +242,10 @@ else()
 endif()
 
 ################################################################
-# subsat (standalone version of the SAT solver used for subsumption and subsumption resolution)
+# subsat
 ################################################################
+
+# standalone version of the SAT solver used for subsumption (resolution)
 add_executable(subsat
     EXCLUDE_FROM_ALL  # only build when explicitly requested
     SATSubsumption/subsat/subsat_main.cpp
@@ -251,6 +253,6 @@ add_executable(subsat
 )
 
 ################################################################
-# Vampire executable
+# Vampire
 ################################################################
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
