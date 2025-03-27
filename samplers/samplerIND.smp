@@ -183,9 +183,6 @@ fs!=off > bs ~cat off:500,unit_only:74,on:64
 # backward_subsumption_demodulation_max_matches
 bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
 
-# binary_resolution
-> br ~cat on:8,off:1
-
 # condensation
 > cond ~cat off:500,on:89,fast:61
 
@@ -245,10 +242,30 @@ slsq=on > slsqc ~cat 0:10,1:10,2:6,3:3,4:1
 # sine_level_split_queue_ratios
 slsq=on > slsqr ~u2r -5;2;,
 
+# Decide on ALASCA (and related options) early
+> alasca ~cat on:1,off:1
+
+# alasca_integer_conversion
+alasca=on > alascai ~cat on:1,off:1
+
+# alasca_abstraction
+alasca=on > alascaa ~cat on:1,off:1
+
+# virtual_integer_real_arithmetic_substitution
+alasca=on > viras ~cat on:1,off:1
+
+# alasca_demodulation
+# alasca=on > alasca_demod ~cat on:1,off:1
+# Joe: no --alasca_demodulation is not in a usable state I think. I think it's better not to use that for now :)
+
+# alasca_strong_normalziation
+alasca=on > alasca_sn ~cat on:1,off:1
+
 # ORDERING
 
 # term_ordering
-> to ~cat kbo:13,lpo:4
+alasca=off > to ~cat kbo:130,lpo:40,incomp:1
+alasca=on > to ~cat kbo:10,qkbo:20,lakbo:40,lpo:10,incomp:1
 
 # symbol_precedence
 > sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
@@ -300,7 +317,7 @@ prc=on > prlc ~cat on:1,off:1
 # SAT SOLVER
 
 # sat_solver
-av=on > sas ~cat minisat:1,caldical:1,z3:1
+av=on > sas ~cat minisat:1,cadical:1,z3:1
 
 # sat_fallback_for_smt
 av=on sas=z3 > sffsmt ~cat off:5,on:1
@@ -314,7 +331,8 @@ av=on > aac ~cat none:147,ground:600
 av=on > abs ~cat on:63,off:300
 
 # avatar_congruence_closure
-av=on sas!=z3 > acc ~cat off:600,model:24,on:58
+av=on sas!=z3 to=incomp > acc ~cat off:600,on:58
+av=on sas!=z3 to!=incomp > acc ~cat off:600,model:24,on:58
 
 # cc_unsat_cores
 acc!=off > ccuc ~cat first:1,small_ones:1,all:3
@@ -358,11 +376,15 @@ av=on > nicw ~cat off:600,on:76
 # split_at_activation
 av=on > sac ~cat off:3,on:1
 
-# BACK TO PREPROCESSING
+# BACK TO INFERENCES
 
 # unit_resulting_resolution
-av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
-av=off > urr ~cat off:1200,ec_only:162,on:340
+sa!=fmb av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
+sa!=fmb av=off > urr ~cat off:1200,ec_only:162,on:340
+
+# binary_resolution
+intent=unsat > br ~cat on:8,off:1
+intent=sat sa!=fmb urr=on > br ~cat on:10,off:1
 
 # AVATAR SPLIT QUEUE
 
@@ -507,18 +529,17 @@ ind!=none ind!=struct > intindstterm ~cat interpreted_constant:3,none:1,no_skole
 > asg ~cat force:1,cautious:1,off:3
 
 # cancellation
-> canc ~cat force:1,cautious:1,off:3
+> canc ~cat force:1,off:3
+to!=qkbo to!=lakbo > canc ~cat force:1,cautious:1,off:3
 
 # evaluation
-> ev ~cat simple:3,force:1,cautious:1
+> ev ~cat off:1,simple:3,force:1,cautious:1
 
 # use_ac_eval
-> uace ~cat off:1,on:1
+alasca=off > uace ~cat off:1,on:1
 
 # gaussian_variable_elimination
 > gve ~cat force:1,cautious:1,off:3
-
-# high_school - this only fakes an option combo for a quick access, so we will not sample it expliticly
 
 # instantiation
 > inst ~cat off:20,on:1
@@ -539,9 +560,8 @@ thi!=off > thigen ~cat off:1,on:1
 thi!=off > thitd ~cat off:1,on:1
 
 # unification_with_abstraction
-> uwa ~cat off:5,interpreted_only:1,one_side_interpreted:1,one_side_constant:1,all:1,ground:1,func_ext:1,ac1:1,ac2:1
+prc=off alasca=off > uwa ~cat off:5,interpreted_only:1,one_side_interpreted:1,one_side_constant:1,all:1,ground:1,func_ext:1
+prc=off alasca=on > uwa ~cat off:1,alasca_one_interp:1,alasca_can_abstract:1,alasca_main:1,alasca_main_floor:1
 
-# unification_with_abstraction_postpro
+# unification_with_abstraction_fixed_point_iteration
 > uwa_fpi ~cat off:5,on:1
-
-
