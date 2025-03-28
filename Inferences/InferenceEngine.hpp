@@ -312,10 +312,8 @@ public:
   ClauseIterator generateClauses(Clause* premise) override
   { return ClauseIterator::getEmpty(); }
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
-
+  { return lookeaheadResultDoesNotDependOnSelection(); }
 };
 
 template<class... Args>
@@ -370,9 +368,9 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  { return pvi(iterTraits(_inners->iter())
+      .flatMap([&](auto gi) { return gi->lookaheadResultEstimation(selection); })); }
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
@@ -391,9 +389,13 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  {
+    return pvi(concatIters(
+          arrayIter(_simplifiers).flatMap([&](auto i) { return i->lookaheadResultEstimation(selection); }),
+          arrayIter(_generators).flatMap([&](auto i) { return i->lookaheadResultEstimation(selection); })
+    ));
+  }
 private:
   Stack<SimplifyingGeneratingInference*> _simplifiers;
   Stack<GeneratingInferenceEngine*> _generators;
