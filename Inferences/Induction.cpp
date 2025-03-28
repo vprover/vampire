@@ -809,12 +809,12 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else if (!env.options->inductionGroundOnly() && (lit->getDistinctVars() == 1)) {
+  } else if (!env.options->inductionGroundOnly() && InductionHelper::isStructInductionOn() && (lit->getDistinctVars() == 1)) {
     // TODO: generalize to multiple free variables
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
       auto st = nvi.next();
-      if (InductionHelper::isInductionTermFunctor(st->functor())) {
+      if (InductionHelper::isInductionTermFunctor(st->functor()) && InductionHelper::isStructInductionTerm(st)) {
         auto indLitsIt = contextReplacementInstance(InductionContext({ st }, lit, premise), _opt, _fnDefHandler);
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
