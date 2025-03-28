@@ -44,7 +44,8 @@ public:
   
   ClauseIterator generateClauses(Clause* premise) override;
 
-  /** TODO 2 should we make this a correct estimation */
+  /** TODO we might wanna add a correct estimation here. 
+   * this is not straight forward possible though as the implementation of `generateClauses` modifies the state of its index which is *very* unexpected behaviour, and trying to simulate this will probably lead in bugs. thus we just ignore this rule for now. */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return pvi(dropElementType(range(0,0))); }
 
