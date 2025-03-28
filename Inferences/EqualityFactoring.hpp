@@ -31,13 +31,13 @@ using namespace Saturation;
 class EqualityFactoring
 : public GeneratingInferenceEngine
 {
+  struct PotentialApplicationIters; 
+  friend struct PotentialApplicationIters; 
 public:
   EqualityFactoring();
   ClauseIterator generateClauses(Clause* premise) override;
 
-  /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override;
 private:
   struct IsPositiveEqualityFn;
   struct IsDifferentPositiveEqualityFn;

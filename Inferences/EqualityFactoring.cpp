@@ -189,6 +189,23 @@ private:
   bool _fixedPointIteration;
 };
 
+struct EqualityFactoring::PotentialApplicationIters {
+  EqualityFactoring& self;
+
+  auto iterAppls(Clause* premise, Literal* lit) {
+    return iterItems(lit)
+               .filter(IsPositiveEqualityFn())
+               .flatMap(EqHelper::LHSIteratorFn(self._salg->getOrdering()))
+               .flatMap(FactorablePairsFn(premise));
+  }
+
+};
+
+
+VirtualIterator<std::tuple<>> EqualityFactoring::lookaheadResultEstimation(SelectedAtom const& selection) 
+{ return pvi(dropElementType(iterItems(selection.clause(), selection.literal()))); }
+
+
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 {
   if(premise->length()<=1) {
@@ -196,21 +213,18 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   }
   ASS(premise->numSelected()>0);
 
-  auto it1 = premise->getSelectedLiteralIterator();
-
-  auto it2 = getFilteredIterator(it1,IsPositiveEqualityFn());
-
-  auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg->getOrdering()));
-
-  auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
-
-  auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      _salg->condRedHandler(), _salg->getOrdering(), _uwaFixedPointIteration));
-
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
-
-  return pvi( it6 );
+  return pvi(
+      premise->getSelectedLiteralIterator()
+        .flatMap([=](auto l) { return PotentialApplicationIters{*this}.iterAppls(premise, l); })
+        .map(ResultFn(
+            *this, 
+            premise, 
+            getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
+            _salg->condRedHandler(), 
+            _salg->getOrdering(), 
+            _uwaFixedPointIteration))
+        .filter(NonzeroFn())
+      );
 }
 
-}
+} // namespace Inferences
