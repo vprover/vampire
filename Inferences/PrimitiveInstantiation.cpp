@@ -123,22 +123,27 @@ private:
   PrimitiveInstantiationIndex* _index;
 };
 
+struct PrimitiveInstantiation::PotentialApplicationIters {
+  PrimitiveInstantiation& self;
+
+  auto iterAppls(Clause* cl, Literal* lit) {
+    return iterItems(lit)
+  //filter out literals that are not suitable for narrowing
+      .filter(IsInstantiable())
+  //pair of literals and possible rewrites that can be applied to literals
+      .flatMap(ApplicableRewritesFn(self._index));
+  }
+};
+
+VirtualIterator<std::tuple<>> PrimitiveInstantiation::lookaheadResultEstimation(SelectedAtom const& selection) {
+  return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal())));
+}
+
 ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
 {
-  //is this correct?
-  auto it1 = premise->getSelectedLiteralIterator();
-  //filter out literals that are not suitable for narrowing
-  auto it2 = getFilteredIterator(it1, IsInstantiable());
-
-  //pair of literals and possible rewrites that can be applied to literals
-  auto it3 = getMapAndFlattenIterator(it2, ApplicableRewritesFn(_index));
-  
-  //apply rewrite rules to literals
-  auto it4 = getMappingIterator(it3, ResultFn(premise));
-  
-
-  return pvi( it4 );
-
+  return pvi(premise->getSelectedLiteralIterator()
+          .flatMap([=](auto lit) { return PotentialApplicationIters{*this}.iterAppls(premise, lit); })
+          .map(ResultFn(premise)));
 }
 
 }
