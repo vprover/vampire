@@ -50,25 +50,26 @@ using namespace std;
 using namespace Kernel;
 using namespace Lib; 
 
-Term* ActiveOccurrenceIterator::next()
-{
-  Term* t = _stack.pop();
-  InductionTemplate* templ = _fnDefHandler.getInductionTemplate(t);
-  if (templ) {
-    // if there is an induction template,
-    // only induct on the active occurrences
-    auto& actPos = templ->inductionPositions();
+bool ActiveOccurrenceIterator::hasNext() {
+  while (_returnStack.isEmpty() && !_processStack.isEmpty()) {
+    Term* t = _processStack.pop();
+    if (t->ground()) {
+      _returnStack.push(t);
+    }
+    InductionTemplate* templ = _fnDefHandler.getInductionTemplate(t);
+    const vector<bool>* actPos = templ ? &templ->inductionPositions() : nullptr;
     for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
-      if (actPos[i]) {
-        _stack.push(t->nthArgument(i)->term());
+      if ((!actPos || (*actPos)[i]) && t->nthArgument(i)->isTerm()) {
+        _processStack.push(t->nthArgument(i)->term());
       }
     }
-  } else {
-    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
-      _stack.push(t->nthArgument(i)->term());
-    }
   }
-  return t;
+  return !_returnStack.isEmpty();
+}
+
+Term* ActiveOccurrenceIterator::next()
+{
+  return _returnStack.pop();
 }
 
 Term* getPlaceholderForTerm(const std::vector<Term*>& ts, unsigned i)
@@ -285,15 +286,19 @@ InductionContext ActiveOccurrenceContextReplacement::next()
         auto active = kv.second;
         auto templ = _fnDefHandler.getInductionTemplate(t);
         for (unsigned k = 0; k < t->arity(); k++) {
-          stack.push(make_pair(t->nthArgument(k)->term(),
-            active && templ ? templ->inductionPositions()[k] : active));
+          if (t->nthArgument(k)->isTerm()) {
+            stack.push(make_pair(t->nthArgument(k)->term(),
+              active && templ ? templ->inductionPositions()[k] : active));
+          }
         }
-        auto it = std::find(_context._indTerms.begin(), _context._indTerms.end(), t);
-        if (it != _context._indTerms.end()) {
-          auto idx = it - _context._indTerms.begin();
-          _iteration[idx] = (_iteration[idx] << 1) | active;
-          if (!active) {
-            _hasNonActive = true;
+        if (t->ground()) {
+          auto it = std::find(_context._indTerms.begin(), _context._indTerms.end(), t);
+          if (it != _context._indTerms.end()) {
+            auto idx = it - _context._indTerms.begin();
+            _iteration[idx] = (_iteration[idx] << 1) | active;
+            if (!active) {
+              _hasNonActive = true;
+            }
           }
         }
       }

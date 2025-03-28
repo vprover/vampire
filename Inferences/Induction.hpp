@@ -62,17 +62,16 @@ class ActiveOccurrenceIterator
 {
 public:
   ActiveOccurrenceIterator(Literal* lit, FunctionDefinitionHandler& fnDefHandler)
-  : _stack(8), _fnDefHandler(fnDefHandler)
+  : _returnStack(8), _processStack(8), _fnDefHandler(fnDefHandler)
   {
-    _stack.push(lit);
-    ASS(lit->ground());
-    ActiveOccurrenceIterator::next();
+    _processStack.push(lit);
   }
 
-  bool hasNext() override { return !_stack.isEmpty(); }
+  bool hasNext() override;
   Term* next() override;
 private:
-  Stack<Term*> _stack;
+  Stack<Term*> _returnStack;
+  Stack<Term*> _processStack;
   FunctionDefinitionHandler& _fnDefHandler;
 };
 
