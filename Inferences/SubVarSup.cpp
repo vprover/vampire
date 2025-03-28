@@ -149,28 +149,47 @@ private:
   SubVarSup& _parent;
 };
 
+struct SubVarSup::PotentialApplicationIter {
+  SubVarSup& self;
+
+  auto iterFwd(Clause* premise, Literal* lit) {
+    // Get an iterator of pairs of selected literals and rewritable subterms of those literals
+    // A subterm is rewritable (see EqHelper) if
+    //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
+    //  b) The subterm is not a variable
+    return iterTraits(SubVarSup::RewriteableSubtermsFn(self._salg->getOrdering(), premise)(lit))
+
+    // Get clauses with a literal whose complement unifies with the rewritable subterm,
+    // returns a pair with the original pair and the unification result (includes substitution)
+       .flatMap(SubVarSup::ApplicableRewritesFn(self._lhsIndex));
+  }
+
+
+  auto iterBwd(Clause* premise, Literal* lit) {
+    return iterTraits(EqHelper::SubVarSupLHSIteratorFn(self._salg->getOrdering())(lit))
+             .flatMap(SubVarSup::RewritableResultsFn(self._subtermIndex));
+  }
+
+};
+
+
+VirtualIterator<std::tuple<>> SubVarSup::lookaheadResultEstimation(NewSelectedAtom const& selection) {
+  return pvi(concatIters(
+        dropElementType(PotentialApplicationIter{*this}.iterFwd(selection.clause(), selection.literal())),
+        dropElementType(PotentialApplicationIter{*this}.iterBwd(selection.clause(), selection.literal()))
+  ));
+}
 
 ClauseIterator SubVarSup::generateClauses(Clause* premise)
 {
-  //cout << "SubVarSup with " << premise->toString() << endl;
 
   auto itf = iterTraits(premise->getSelectedLiteralIterator())
-  // Get an iterator of pairs of selected literals and rewritable subterms of those literals
-  // A subterm is rewritable (see EqHelper) if
-  //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
-  //  b) The subterm is not a variable
-     .flatMap(RewriteableSubtermsFn(_salg->getOrdering(), premise))
-
-  // Get clauses with a literal whose complement unifies with the rewritable subterm,
-  // returns a pair with the original pair and the unification result (includes substitution)
-     .flatMap(ApplicableRewritesFn(_lhsIndex))
-
+    .flatMap([=](auto l) { return PotentialApplicationIter{*this}.iterFwd(premise, l); })
   //Perform forward SubVarSup
      .map(ForwardResultFn(premise, *this));
 
   auto itb = iterTraits(premise->getSelectedLiteralIterator())
-             .flatMap(EqHelper::SubVarSupLHSIteratorFn(_salg->getOrdering()))
-             .flatMap(RewritableResultsFn(_subtermIndex))
+            .flatMap([=](auto l) { return PotentialApplicationIter{*this}.iterBwd(premise, l); })
   //Perform backward SubVarSup
              .map(BackwardResultFn(premise, *this));
 

@@ -26,19 +26,18 @@ namespace Inferences {
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
 class SubVarSup
 : public GeneratingInferenceEngine
 {
+  struct PotentialApplicationIter; 
+  friend struct PotentialApplicationIter; 
 public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
   ClauseIterator generateClauses(Clause* premise) override;
 
-  /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override;
 
 
 private:
