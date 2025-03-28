@@ -32,6 +32,8 @@ using namespace Saturation;
 class Superposition
 : public GeneratingInferenceEngine
 {
+  struct PotentialApplicationIters; 
+  friend struct PotentialApplicationIters; 
 public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -41,9 +43,7 @@ public:
 
 private:
 
-  /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override;
 
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,

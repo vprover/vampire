@@ -114,41 +114,57 @@ private:
 };
 
 
+struct Superposition::PotentialApplicationIters {
+  Superposition& self;
+
+  auto iterFwd(Clause* premise, Literal* lit) {
+
+    return iterTraits(env.options->combinatorySup() 
+    // Get an iterator of pairs of selected literals and rewritable subterms of those literals
+    // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
+    // a maximal side of an equality or of a non-equational literal
+      ? EqHelper::getFoSubtermIterator(lit, self._salg->getOrdering())
+      : EqHelper::getSubtermIterator(lit,  self._salg->getOrdering()))
+
+    // Get clauses with a literal whose complement unifies with the rewritable subterm,
+    // returns a pair with the original pair and the unification result (includes substitution)
+      .flatMap([this,lit](TypedTermList subterm) {
+         return iterTraits(self._lhsIndex->getUwa(subterm, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration()))
+           .map([lit,subterm](auto r) { return std::make_pair(std::make_pair(lit, subterm), std::move(r)); });
+      });
+  }
+
+
+  auto iterBwd(Clause* premise, Literal* lit) {
+    return iterTraits(EqHelper::SuperpositionLHSIteratorFn(self._salg->getOrdering(), self._salg->getOptions())(lit))
+      .flatMap([this](pair<Literal*, TermList> pair) {
+          return iterTraits(self._subtermIndex->getUwa(TypedTermList(pair.second, SortHelper::getEqualityArgumentSort(pair.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration()))
+            .map([pair](auto r) { return std::make_pair(pair, std::move(r)); });
+      });
+  }
+
+};
+
+VirtualIterator<std::tuple<>> Superposition::lookaheadResultEstimation(SelectedAtom const& selection) {
+  return pvi(concatIters(
+        dropElementType(PotentialApplicationIters{*this}.iterFwd(selection.clause(), selection.literal())),
+        dropElementType(PotentialApplicationIters{*this}.iterBwd(selection.clause(), selection.literal()))
+  ));
+}
+
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
-  auto itf1 = premise->getSelectedLiteralIterator();
-
-  // Get an iterator of pairs of selected literals and rewritable subterms of those literals
-  // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
-  // a maximal side of an equality or of a non-equational literal
-  auto itf2 = getMapAndFlattenIterator(itf1,
-      [this](Literal* lit)
-      // returns an iterator over the rewritable subterms
-      { return pushPairIntoRightIterator(lit, env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _salg->getOrdering())
-                                                                            : EqHelper::getSubtermIterator(lit,  _salg->getOrdering())); });
-
-  // Get clauses with a literal whose complement unifies with the rewritable subterm,
-  // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,
-      [this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
-
   //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, *this));
+  auto itf = premise->getSelectedLiteralIterator()
+    .flatMap([=](auto l) { return PotentialApplicationIters{*this}.iterFwd(premise,l); })
+    .map(ForwardResultFn(premise, *this));
 
-  auto itb1 = premise->getSelectedLiteralIterator();
-  auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2,
-      [this] (pair<Literal*, TermList> arg)
-      { return pushPairIntoRightIterator(
-              arg,
-              _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
-
-  //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, *this));
+  auto itb = premise->getSelectedLiteralIterator()
+    .flatMap([=](auto l) { return PotentialApplicationIters{*this}.iterBwd(premise,l); })
+    .map(BackwardResultFn(premise, *this));
 
   // Add the results of forward and backward together
-  auto it5 = concatIters(itf4,itb4);
+  auto it5 = concatIters(itf,itb);
 
   // Remove null elements - these can come from performSuperposition
   auto it6 = getFilteredIterator(it5,NonzeroFn());
