@@ -184,17 +184,17 @@ find_package(
     PATHS
       ${CMAKE_SOURCE_DIR}/z3/build/
 )
-if (NOT Z3_FOUND)
-  message(STATUS "no Z3 found -- compiling without SMT support")
-  add_compile_definitions(VZ3=0)
-else ()
-  message(STATUS "found Z3 ${Z3_VERSION_STRING}")
+
+if (Z3_FOUND)
+  message(STATUS "found Z3 " ${Z3_VERSION_STRING})
   include_directories(${Z3_CXX_INCLUDE_DIRS})
-  link_libraries(${Z3_LIBRARIES})
-  add_library(Z3 SHARED IMPORTED)
-  set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
+  link_directories(z3/build/)
+  link_libraries(z3)
   add_compile_definitions(VZ3=1)
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
+else ()
+  message(STATUS "no Z3 found -- compiling without SMT support")
+  add_compile_definitions(VZ3=0)
 endif()
 
 ################################################################
