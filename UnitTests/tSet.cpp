@@ -9,8 +9,8 @@
  */
 #include "Debug/Assertion.hpp"
 #include "Lib/Set.hpp"
+#include "Test/DummyHash.hpp"
 #include "Test/UnitTesting.hpp"
-#include "UnitTests/dummyHash.hpp"
 
 TEST_FUN(find_remove_contains)
 {
