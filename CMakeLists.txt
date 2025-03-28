@@ -57,15 +57,29 @@ add_library(common OBJECT ${SOURCES})
 # add top level directory to the search path of compiler
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# enable for (slightly) more deallocation
-add_compile_definitions(CHECK_LEAKS=0)
-# enable for time profiling
-add_compile_definitions(VTIME_PROFILING=0)
+add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_compile_definitions(VDEBUG=1)
 else()
   add_compile_definitions(VDEBUG=0)
+endif()
+
+
+option(CHECK_LEAKS "try to free more memory" OFF)
+if(CHECK_LEAKS)
+  message(STATUS "CHECK_LEAKS = 1")
+  add_compile_definitions(CHECK_LEAKS=1)
+else()
+  add_compile_definitions(CHECK_LEAKS=0)
+endif()
+
+option(TIME_PROFILING "enable internal profiler" OFF)
+if(TIME_PROFILING)
+  message(STATUS "VTIME_PROFILING = 1")
+  add_compile_definitions(VTIME_PROFILING=1)
+else()
+  add_compile_definitions(VTIME_PROFILING=0)
 endif()
 
 # Cygwin-specific
@@ -81,7 +95,7 @@ endif()
 
 if(GCC_OR_CLANG)
   add_compile_options(-Wall)
-  # we don't use multithreading in (mainline!) Vampire
+  # we don't use multithreaded statics in Vampire
   add_compile_options(-fno-threadsafe-statics)
   # ...or RTTI
   add_compile_options(-fno-rtti)
@@ -96,8 +110,6 @@ if(COVERAGE)
     set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
   endif()
 endif()
-
-add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 ################################################################
 # VIRAS
@@ -124,8 +136,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viras/src)
 ################################################################
 
 # TODO git submodule?
-
-# TODO could this just be source files?
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mini-gmp-6.3.0)
 
 ################################################################
