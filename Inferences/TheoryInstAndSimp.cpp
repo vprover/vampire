@@ -407,6 +407,8 @@ Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
   Stack<Literal*> trivial_lits = selectTrivialLiterals(cl);
   Stack<Literal*> out;
 
+  // TODO do we want to only apply it for selected literals (?)
+  //      if we do, we need to update lookaheadResultEstimation accordingly
   for (auto lit : cl->iterLits()) {
     // TODO this is O(n^2) runtime
     if (isPure(lit) && !trivial_lits.find(lit))

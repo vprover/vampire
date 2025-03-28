@@ -149,7 +149,7 @@ private:
   SubVarSup& _parent;
 };
 
-struct SubVarSup::PotentialApplicationIter {
+struct SubVarSup::PotentialApplicationIters {
   SubVarSup& self;
 
   auto iterFwd(Clause* premise, Literal* lit) {
@@ -175,8 +175,8 @@ struct SubVarSup::PotentialApplicationIter {
 
 VirtualIterator<std::tuple<>> SubVarSup::lookaheadResultEstimation(SelectedAtom const& selection) {
   return pvi(concatIters(
-        dropElementType(PotentialApplicationIter{*this}.iterFwd(selection.clause(), selection.literal())),
-        dropElementType(PotentialApplicationIter{*this}.iterBwd(selection.clause(), selection.literal()))
+        dropElementType(PotentialApplicationIters{*this}.iterFwd(selection.clause(), selection.literal())),
+        dropElementType(PotentialApplicationIters{*this}.iterBwd(selection.clause(), selection.literal()))
   ));
 }
 
@@ -184,12 +184,12 @@ ClauseIterator SubVarSup::generateClauses(Clause* premise)
 {
 
   auto itf = iterTraits(premise->getSelectedLiteralIterator())
-    .flatMap([=](auto l) { return PotentialApplicationIter{*this}.iterFwd(premise, l); })
+    .flatMap([=](auto l) { return PotentialApplicationIters{*this}.iterFwd(premise, l); })
   //Perform forward SubVarSup
      .map(ForwardResultFn(premise, *this));
 
   auto itb = iterTraits(premise->getSelectedLiteralIterator())
-            .flatMap([=](auto l) { return PotentialApplicationIter{*this}.iterBwd(premise, l); })
+            .flatMap([=](auto l) { return PotentialApplicationIters{*this}.iterBwd(premise, l); })
   //Perform backward SubVarSup
              .map(BackwardResultFn(premise, *this));
 

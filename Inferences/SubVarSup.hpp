@@ -29,8 +29,8 @@ using namespace Saturation;
 class SubVarSup
 : public GeneratingInferenceEngine
 {
-  struct PotentialApplicationIter; 
-  friend struct PotentialApplicationIter; 
+  struct PotentialApplicationIters; 
+  friend struct PotentialApplicationIters; 
 public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
