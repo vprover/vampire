@@ -203,14 +203,10 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   } while(candidates.isEmpty());
 
   using namespace LiteralComparators;
-  typedef Composite<ColoredFirst,
-	    Composite<NoPositiveEquality,
-	    Composite<LeastTopLevelVariables,
-	    Composite<LeastDistinctVariables, LexComparator> > > > LitComparator;
 
   Literal* res=candidates.pop();
   if(candidates.isNonEmpty()) {
-    LitComparator comp;
+    LookaheadComparator comp;
     while(candidates.isNonEmpty()) {
       Literal* lit=candidates.pop();
       if(comp.compare(res, lit)==LESS) {

@@ -64,6 +64,10 @@ public:
   virtual ~SaturationAlgorithm();
 
 
+  auto lookaheadResultEstimation(NewSelectedAtom const& selection) const 
+  { return _generator->lookaheadResultEstimation(selection); }
+
+
   //the following two functions allow to run the saturation algorithm step by step.
   void initAlgorithmRun();
   void doOneAlgorithmStep();

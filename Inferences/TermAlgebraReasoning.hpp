@@ -69,9 +69,16 @@ class InjectivityGIE
 public:
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c) override;
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  { 
+    auto l = selection.literal();
+    auto cnt = l->termArg(0).isTerm() 
+            && l->termArg(1).isTerm() 
+            && l->termArg(0).term()->functor() == l->termArg(1).term()->functor() 
+        ? l->termArg(0).term()->numTermArguments()
+        : 0;
+    return pvi(dropElementType(range(0, cnt)));
+  }
 
 private:
   struct SubtermIterator;

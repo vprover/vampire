@@ -318,6 +318,13 @@ struct NormalizedLinearComparatorByWeight : public LiteralComparator
 };
 
 
+using LookaheadComparator = 
+            Composite<ColoredFirst,
+	    Composite<NoPositiveEquality,
+	    Composite<LeastTopLevelVariables,
+	    Composite<LeastDistinctVariables, 
+                      LexComparator>>>>;
+
 
 }
 }

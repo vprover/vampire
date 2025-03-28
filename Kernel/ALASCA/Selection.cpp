@@ -16,6 +16,7 @@
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/BestLiteralSelector.hpp"
 #include "Kernel/LiteralComparators.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MaximalLiteralSelector.hpp"
 #include "Kernel/OrderingUtils.hpp"
@@ -184,7 +185,30 @@ struct AlascaSelectorDispatch {
 
   template<bool complete>
   Stack<NewSelectedAtom> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Stack<NewSelectedAtom> atoms, Ordering* ord) {
-    ASSERTION_VIOLATION_REP("TODO")
+    // TODO get sat algo as argument
+    auto sa = Saturation::SaturationAlgorithm::tryGetInstance();
+
+    RStack<NewSelectedAtom> leastResults;
+    auto gens = arrayIter(atoms)
+      .map([&](auto a) { return sa->lookaheadResultEstimation(a); })
+      .collectRStack();
+    
+     while (leastResults->isEmpty()) {
+      for (auto i : range(0, atoms.size())) {
+
+        if (gens[i].hasNext()) {
+          gens[i].next();
+        } else {
+          leastResults->push(atoms[i]);
+        }
+      }
+    }
+
+     ASS_REP(complete, "TODO") 
+    auto best = arrayIter(*leastResults)
+      .maxBy(AlascaAtomComparator<LiteralComparators::LookaheadComparator>{})
+      .unwrap();
+    return { best };
   }
 
   // template<class T>
