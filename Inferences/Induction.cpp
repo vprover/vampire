@@ -819,7 +819,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
       auto st = nvi.next();
-      if (InductionHelper::isInductionTermFunctor(st->functor()) && InductionHelper::isStructInductionTerm(st)) {
+      if (InductionHelper::isInductionTermFunctor(st->functor()) && st->ground() && InductionHelper::isStructInductionTerm(st)) {
         auto indLitsIt = contextReplacementInstance(InductionContext({ st }, lit, premise), _opt, _fnDefHandler);
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
@@ -1147,7 +1147,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
         }
       }
       if (copyCurr) {
-        resLits->push(renaming.apply((*kv.first)[i],1));
+        resLits->push(renaming.apply(indLitSubst ? SubstHelper::apply<Substitution>((*kv.first)[i], *indLitSubst) : (*kv.first)[i],1));
       }
     }
   }
@@ -1679,7 +1679,9 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   formula = new QuantifiedFormula(Connective::EXISTS, VList::singleton(xvar), SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::FORALL, us, SList::empty(), formula);
-  formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
+  if (!VList::isEmpty(ws)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
+  }
   formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
 
   // Produce induction clauses and obtain the skolemization bindings.
