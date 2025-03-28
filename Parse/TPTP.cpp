@@ -3626,25 +3626,7 @@ void TPTP::endFof()
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
-    if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::TCLAUSIFY)) && f->connective() == EXISTS) {
-      // create an answer predicate
-      QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
-      unsigned arity = VList::length(g->vars());
-      unsigned pred = env.signature->addPredicate("$$answer",arity);
-      env.signature->getPredicate(pred)->markAnswerPredicate();
-      Recycled<Stack<TermList>> args;
-      VList::Iterator vs(g->vars());
-      while (vs.hasNext()) {
-        args->push(TermList::var(vs.next()));
-      }
-      Literal* a = Literal::create(pred, arity, /* polarity */ true, args->begin());
-      f = new QuantifiedFormula(FORALL,
-        g->vars(),
-        g->sorts(),
-        new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
-        unit = new FormulaUnit(f,FormulaClauseTransformation(InferenceRule::ANSWER_LITERAL_INJECTION,unit));
-    }
-    else {
+    {
       VList* vs = freeVariables(f);
       if (VList::isEmpty(vs)) {
         f = new NegatedFormula(f);
