@@ -17,11 +17,12 @@
 #ifndef __Parser_TPTP__
 #define __Parser_TPTP__
 
+#include <filesystem>
 #include <iostream>
+#include <unordered_set>
 
 #include "Forwards.hpp"
 #include "Lib/Array.hpp"
-#include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/IntNameTable.hpp"
@@ -300,19 +301,22 @@ public:
     : public ParsingRelatedException
   {
   public:
-    ParseErrorException(std::string message,unsigned ln) : _message(message), _ln(ln) {}
-    ParseErrorException(std::string message,Token& tok,unsigned ln);
+    ParseErrorException(std::string message, std::filesystem::path path, unsigned ln)
+      : _message(message), _path(path), _ln(ln) {}
+    ParseErrorException(std::string message, Token& tok, std::filesystem::path path, unsigned ln)
+      : ParseErrorException(message + " (text: " + tok.toString() + ')', path, ln) {}
     void cry(std::ostream&) const;
     ~ParseErrorException() {}
   protected:
     std::string _message;
+    std::filesystem::path _path;
     unsigned _ln = 0;
   }; // TPTP::ParseErrorException
 
 #define PARSE_ERROR_TOK(msg,tok) \
-  throw ParseErrorException(msg,tok,_lineNumber)
+  throw ParseErrorException(msg,tok,currentFile.path,currentFile.lineNumber)
 #define PARSE_ERROR(msg) \
-  throw ParseErrorException(msg,_lineNumber)
+  throw ParseErrorException(msg,currentFile.path,currentFile.lineNumber)
 
   /**
    * @brief Construct a new TPTP parser.
@@ -325,7 +329,7 @@ public:
    *  (use this default behaviour if you do not want to collect formulas
    *   from multiple parser calls)
    */
-  TPTP(std::istream& in, UnitList::FIFO unitBuffer = UnitList::FIFO());
+  TPTP(std::istream &in, UnitList::FIFO unitBuffer = UnitList::FIFO());
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
@@ -342,11 +346,11 @@ public:
    * based on this value.
    */
   bool containsConjecture() const { return _containsConjecture; }
-  void addForbiddenInclude(std::string file);
   static bool findAxiomName(const Unit* unit, std::string& result);
   //this function is used also by the API
   static void assignAxiomName(const Unit* unit, std::string& name);
-  unsigned lineNumber(){ return _lineNumber; }
+  unsigned lineNumber(){ return currentFile.lineNumber; }
+  std::string currentPath(){ return currentFile.path; }
 
   static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
     auto res = _questionVariableNames.findPtr(questionNumber);
@@ -523,27 +527,23 @@ private:
 
   /** true if the input contains a conjecture */
   bool _containsConjecture;
-  /** Allowed names of formulas.
-   * If non-null, ignore formulas not included in _allowedNames.
-   * This is to support the feature formula_selection of the include
-   * directive of the TPTP format.
- */
-  Set<std::string>* _allowedNames;
-  /** stacks of allowed names when include is used */
-  Stack<Set<std::string>*> _allowedNamesStack;
-  /** set of files whose inclusion should be ignored */
-  Set<std::string> _forbiddenIncludes;
-  /** the input stream */
-  std::istream* _in;
-  /** in the case include() is used, previous streams will be saved here */
-  Stack<std::istream*> _inputs;
-  /** the current include directory */
-  std::string _includeDirectory;
-  /** in the case include() is used, previous sequence of directories will be
-   * saved here, this is required since TPTP requires the directory to be
-   * relative to the "current directory, that is, the directory used by the last include()
-   */
-  Stack<std::string> _includeDirectories;
+
+  // all the state associated with parsing a single file
+  struct FileState {
+    // the input stream: raw pointer because UIHelper might own it
+    // TODO fix ownership of streams
+    std::istream *in = nullptr;
+    // include() can optionally give a formula_selection list of names to import: the rest should be ignored
+    std::unordered_set<std::string> allowedNames;
+
+    // name of the file for error reporting
+    std::filesystem::path path;
+    // current line number for parse errors
+    unsigned lineNumber;
+  } currentFile;
+  // stack of states to restore after finishing an include() directive
+  std::vector<FileState> restoreFiles;
+
   /** input characters */
   Array<char> _chars;
   /** the position beyond the last read characters */
@@ -552,10 +552,6 @@ private:
   Array<Token> _tokens;
   /** the position beyond the last processed token */
   int _tend;
-  /** line number */
-  unsigned _lineNumber;
-  /** stack of line numbers when processing include directives */
-  Stack<unsigned> _lineNumbers;
   /** The list of units read (with additions directed to the end) */
   UnitList::FIFO _units;
   /** stack of unprocessed states */
@@ -648,7 +644,7 @@ private:
   inline char getChar(int pos)
   {
     while (_cend <= pos) {
-      int c = _in->get();
+      int c = currentFile.in->get();
       //      if (c == -1) { std::cout << "<EOF>"; } else {std::cout << char(c);}
       _chars[_cend++] = c == -1 ? 0 : c;
     }
@@ -760,6 +756,7 @@ private:
   void tag();
   void endFof();
   void endTff();
+  std::filesystem::path resolveInclude(const std::filesystem::path included);
   void include();
   void type();
   void endIte();
