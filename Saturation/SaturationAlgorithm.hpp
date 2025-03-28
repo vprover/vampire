@@ -64,7 +64,7 @@ public:
   virtual ~SaturationAlgorithm();
 
 
-  auto lookaheadResultEstimation(NewSelectedAtom const& selection) const 
+  auto lookaheadResultEstimation(SelectedAtom const& selection) const 
   { return _generator->lookaheadResultEstimation(selection); }
 
 

@@ -46,7 +46,7 @@ struct AlascaSimplRule
   AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r) : _state(state), _rule(std::move(r)), _norm(state) {}
   
   /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override 
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override 
   { return _rule.lookaheadResultEstimation(selection); }
 
   void attach(SaturationAlgorithm* salg) final override {
@@ -110,7 +110,7 @@ struct ToSgi : public SimplifyingGeneratingInference {
   }
 
   /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return pvi(dropElementType(range(0,0))); }
 };
 

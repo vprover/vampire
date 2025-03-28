@@ -334,7 +334,7 @@ namespace Kernel {
     
     // TODO make sure we deal right with unshielded vars
 
-    // TODO rename NewSelectedAtom
+    // TODO rename SelectedAtom
    auto selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
    { return _selector.selected(cl, ordering); }
 
@@ -357,7 +357,7 @@ namespace Kernel {
 
     auto selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables)
     { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-      .filterMap([](NewSelectedAtom x) -> Option<SelectedAtomicTerm> { 
+      .filterMap([](SelectedAtom x) -> Option<SelectedAtomicTerm> { 
           return std::move(x).template as<SelectedAtomicTerm>();
       }); }
 

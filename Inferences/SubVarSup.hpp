@@ -37,7 +37,7 @@ public:
 
   ClauseIterator generateClauses(Clause* premise) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override;
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override;
 
 
 private:

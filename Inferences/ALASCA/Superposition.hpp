@@ -66,7 +66,7 @@ struct SuperpositionConf
     static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_LHS_SUBST_TREE; }
   };
 
-  class Rhs : public NewSelectedAtom
+  class Rhs : public SelectedAtom
   {
     AnyAlascaTerm _toRewrite;
   public:
@@ -74,8 +74,8 @@ struct SuperpositionConf
     static const char* name() { return "alasca superposition rhs"; }
     static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_RHS_SUBST_TREE; }
 
-    Rhs(NewSelectedAtom self, AnyAlascaTerm toRewrite)
-      : NewSelectedAtom(std::move(std::move(self)))
+    Rhs(SelectedAtom self, AnyAlascaTerm toRewrite)
+      : SelectedAtom(std::move(std::move(self)))
       , _toRewrite(toRewrite)
     {  }
 
@@ -121,7 +121,7 @@ struct SuperpositionConf
       
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
-    { return out << (NewSelectedAtom const&) self << "[ " << self.toRewrite() << " ]"; }
+    { return out << (SelectedAtom const&) self << "[ " << self.toRewrite() << " ]"; }
   };
 
 

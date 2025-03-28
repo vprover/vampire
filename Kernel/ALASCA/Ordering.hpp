@@ -90,14 +90,14 @@ struct AlascaOrderingUtils {
     );
   }
 
-  static Ordering::Result compareAtom(Ordering* ord, NewSelectedAtom const& a1, NewSelectedAtom const& a2) {
+  static Ordering::Result compareAtom(Ordering* ord, SelectedAtom const& a1, SelectedAtom const& a2) {
     return lexLazy(
         [&]() { return compareAtom(ord, a1.selectedAtom(), a2.selectedAtom()); },
         [&]() { return a1 == a2 ? Ordering::Result::EQUAL : Ordering::Result::INCOMPARABLE; }
         );
   }
 
-  static bool atomMaxAfterUnif(Ordering* ord, NewSelectedAtom const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
+  static bool atomMaxAfterUnif(Ordering* ord, SelectedAtom const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
 
     // TODO 1.2 we must actually apply the unifier before calling `iter` I think (think of top level vars)
     //         or is it find because they will always be shielded thus none of the atoms created by them can get maximal anyways ...?
@@ -108,7 +108,7 @@ struct AlascaOrderingUtils {
     }; 
     auto sσ = sigma(atom.selectedAtom());
 
-    return NewSelectedAtom::iter(atom.clause())
+    return SelectedAtom::iter(atom.clause())
                   .filter([&](auto& t) { return t != atom; })
                   .all([&](auto t) { 
                       auto tσ = sigma(t.selectedAtom());

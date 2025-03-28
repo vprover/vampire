@@ -282,7 +282,7 @@ namespace Kernel {
     TermList smallerSide() const { return apply([](auto x) { return smallerSide(x); }); }
   };
 
-  struct NewSelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
+  struct SelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
     using Coproduct::Coproduct;
 
     operator __SelectedLiteral const&() const { return apply([](auto& x) -> __SelectedLiteral const& { return x; }); }
@@ -322,8 +322,8 @@ namespace Kernel {
                   return coproductIter(nl.asItp()->applyCo([cl,i](auto itp) {
                       return itp.term().iterSummands()
                          .zipWithIndex()
-                         .map([cl,i](auto s_i) -> NewSelectedAtom {
-                             return  NewSelectedAtom(SelectedAtomicTerm(SelectedAtomicTermItp<decltype(itp.numTraits())>(
+                         .map([cl,i](auto s_i) -> SelectedAtom {
+                             return  SelectedAtom(SelectedAtomicTerm(SelectedAtomicTermItp<decltype(itp.numTraits())>(
                                      cl, i, s_i.second
                                      )));
                          });
@@ -334,12 +334,12 @@ namespace Kernel {
                 [&]() { return nl.toLiteral()->isEquality(); },
                 [&]() {
                   return iterItems(0, 1)
-                     .map([cl,i](auto j) { return NewSelectedAtom(SelectedAtomicTerm(SelectedAtomicTermUF(cl, i, j))); });
+                     .map([cl,i](auto j) { return SelectedAtom(SelectedAtomicTerm(SelectedAtomicTermUF(cl, i, j))); });
                 },
 
 
                 /* literals  (~)P(t1 ... tn)  */
-                [&]() { return iterItems(NewSelectedAtom(SelectedAtomicLiteral(cl, i))); }
+                [&]() { return iterItems(SelectedAtom(SelectedAtomicLiteral(cl, i))); }
             );
           });
     }

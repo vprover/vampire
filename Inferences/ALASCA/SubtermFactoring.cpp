@@ -24,7 +24,7 @@ namespace ALASCA {
 struct Application 
 {
   // TODO is this _atom needed?
-  NewSelectedAtom _atom;
+  SelectedAtom _atom;
   AlascaTermItpAny _sum;
   unsigned i;
   unsigned j;

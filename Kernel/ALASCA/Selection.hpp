@@ -45,10 +45,10 @@ namespace Kernel {
     // LiteralSelectors::AnySelector mode;
 
     // TODO make an array class that doesn't have any capacity slack
-    Map<Clause* , Stack<NewSelectedAtom>> _cache;
+    Map<Clause* , Stack<SelectedAtom>> _cache;
     // template<class T>
-    // Stack<NewSelectedAtom> computeSelected(TL::Token<T>, Stack<NewSelectedAtom> atoms, Ordering* ord);
-    Stack<NewSelectedAtom> computeSelected(Stack<NewSelectedAtom> atoms, Ordering* ord) const;
+    // Stack<SelectedAtom> computeSelected(TL::Token<T>, Stack<SelectedAtom> atoms, Ordering* ord);
+    Stack<SelectedAtom> computeSelected(Stack<SelectedAtom> atoms, Ordering* ord) const;
     // auto iterAtoms(Clause* cl) {
     //    return cl->iterLits()
     //        .zipWithIndex() .flatMap([cl](auto l_i) {
@@ -63,8 +63,8 @@ namespace Kernel {
     //                return coproductIter(nl.asItp()->applyCo([cl,i](auto itp) {
     //                    return itp.term().iterSummands()
     //                       .zipWithIndex()
-    //                       .map([cl,i](auto s_i) -> NewSelectedAtom {
-    //                           return  NewSelectedAtom(SelectedAtomicTerm(SelectedAtomicTermItp<decltype(itp.numTraits())>(
+    //                       .map([cl,i](auto s_i) -> SelectedAtom {
+    //                           return  SelectedAtom(SelectedAtomicTerm(SelectedAtomicTermItp<decltype(itp.numTraits())>(
     //                                   cl, i, s_i.second
     //                                   )));
     //                       });
@@ -75,12 +75,12 @@ namespace Kernel {
     //              [&]() { return nl.toLiteral()->isEquality(); },
     //              [&]() {
     //                return iterItems(0, 1)
-    //                   .map([cl,i](auto j) { return NewSelectedAtom(SelectedAtomicTerm(SelectedAtomicTermUF(cl, i, j))); });
+    //                   .map([cl,i](auto j) { return SelectedAtom(SelectedAtomicTerm(SelectedAtomicTermUF(cl, i, j))); });
     //              },
     //
     //
     //              /* literals  (~)P(t1 ... tn)  */
-    //              [&]() { return iterItems(NewSelectedAtom(SelectedAtomicLiteral(cl, i))); }
+    //              [&]() { return iterItems(SelectedAtom(SelectedAtomicLiteral(cl, i))); }
     //          );
     //        });
     // }
@@ -88,7 +88,7 @@ namespace Kernel {
     auto selected(Clause* cl, Ordering* ord)
     {
       return arrayIter(_cache.getOrInit(cl, [&]() {
-            return computeSelected(NewSelectedAtom::iter(cl).collectStack(), ord);
+            return computeSelected(SelectedAtom::iter(cl).collectStack(), ord);
       }));
     }
   };

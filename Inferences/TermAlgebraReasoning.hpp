@@ -69,7 +69,7 @@ class InjectivityGIE
 public:
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { 
     auto l = selection.literal();
     auto cnt = l->termArg(0).isTerm() 
@@ -118,7 +118,7 @@ public:
   void detach() override;
   Kernel::ClauseIterator generateClauses(Kernel::Clause *c) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return pvi(dropElementType(_acyclIndex->queryCycles(selection.literal(), selection.clause()))); }
 private:
   struct AcyclicityGenIterator;
@@ -132,7 +132,7 @@ class AcyclicityGIE1
 public:
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return lookeaheadResultDoesNotDependOnSelection();  }
 
 private:

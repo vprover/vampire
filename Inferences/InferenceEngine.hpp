@@ -116,7 +116,7 @@ public:
    */
   virtual ClauseGenerationResult generateSimplify(Clause* premise) = 0;
   /** TODO */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) = 0;
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) = 0;
 };
 
 
@@ -182,7 +182,7 @@ public:
 
   ClauseGenerationResult generateSimplify(Clause* cl) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override 
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override 
   { return pvi(dropElementType(range(0,1))); }
 
   /** 
@@ -313,7 +313,7 @@ public:
   { return ClauseIterator::getEmpty(); }
 
   /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return pvi(dropElementType(range(0,0))); }
 
 };
@@ -371,7 +371,7 @@ public:
   void detach() override;
 
   /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return pvi(dropElementType(range(0,0))); }
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
@@ -392,7 +392,7 @@ public:
   void detach() override;
 
   /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return pvi(dropElementType(range(0,0))); }
 private:
   Stack<SimplifyingGeneratingInference*> _simplifiers;
