@@ -30,6 +30,68 @@
 #include "FOOLParamodulation.hpp"
 
 namespace Inferences {
+Option<TermList> FOOLParamodulation::isApplicable(Literal* literal) const {
+
+    // we shouldn't touch literals of the form s = false
+    if (literal->isEquality() && literal->polarity()) {
+      TermList* lhs = literal->nthArgument(0);
+      TermList* rhs = literal->nthArgument(1);
+      if ((lhs->isTerm() && env.signature->isFoolConstantSymbol(false,lhs->term()->functor())) ||
+          (rhs->isTerm() && env.signature->isFoolConstantSymbol(false,rhs->term()->functor()))) {
+        return {};
+      }
+    }
+
+    // we shouldn't replace variables, hence NonVariableIterator (also NonType, to support polymorphism)
+    NonVariableNonTypeIterator nvi(literal);
+    while (nvi.hasNext()) {
+      Term* subterm = nvi.next();
+      unsigned functor = subterm->functor();
+
+      // we shouldn't replace boolean constants
+      if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
+        continue;
+      }
+
+      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
+      if (resultType == AtomicSort::boolSort()) {
+        return some(TermList(subterm));
+      }
+    }
+
+    return {};
+}
+
+Option<std::pair<TermList, unsigned>> FOOLParamodulation::findApplicablePosition(Clause* premise) const {
+
+  /**
+   * We will be looking for a literal, standing in a `literalPosition` in
+   * the clause, that has an occurrence of a `booleanTerm`, that is not a
+   * variable, true or false.
+   *
+   * We will only be looking for one boolean term and only replace one
+   * occurrence of it in one literal. An alternative implementation can:
+   *  1) Replace all occurrences of a boolean term in all literals.
+   *  2) Find occurrences of multiple boolean terms and replace their
+   *     occurrences simultaneously, adding multiple literals of the form
+   *     s_n = false to the conclusion.
+   */
+  TermList booleanTerm;
+  unsigned literalPosition = 0;
+
+  auto literals = premise->getSelectedLiteralIterator();
+  while (literals.hasNext()) {
+    Literal* literal = literals.next();
+    if (auto subterm = isApplicable(literal)) {
+      return some(std::make_pair(*subterm, literalPosition));
+    }
+    literalPosition++;
+  }
+
+  // If we reached this point, it means that there was no boolean terms we are
+  // interested in, so we don't infer anything
+  return {};
+}
 
 ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   /**
@@ -51,65 +113,13 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
 
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
-
-  /**
-   * We will be looking for a literal, standing in a `literalPosition` in
-   * the clause, that has an occurrence of a `booleanTerm`, that is not a
-   * variable, true or false.
-   *
-   * We will only be looking for one boolean term and only replace one
-   * occurrence of it in one literal. An alternative implementation can:
-   *  1) Replace all occurrences of a boolean term in all literals.
-   *  2) Find occurrences of multiple boolean terms and replace their
-   *     occurrences simultaneously, adding multiple literals of the form
-   *     s_n = false to the conclusion.
-   */
-  TermList booleanTerm;
-  unsigned literalPosition = 0;
-
-  auto literals = premise->getSelectedLiteralIterator();
-  while (literals.hasNext()) {
-    Literal* literal = literals.next();
-
-    // we shouldn't touch literals of the form s = false
-    if (literal->isEquality() && literal->polarity()) {
-      TermList* lhs = literal->nthArgument(0);
-      TermList* rhs = literal->nthArgument(1);
-      if ((lhs->isTerm() && env.signature->isFoolConstantSymbol(false,lhs->term()->functor())) ||
-          (rhs->isTerm() && env.signature->isFoolConstantSymbol(false,rhs->term()->functor()))) {
-        literalPosition++;
-        continue;
-      }
-    }
-
-    // we shouldn't replace variables, hence NonVariableIterator (also NonType, to support polymorphism)
-    NonVariableNonTypeIterator nvi(literal);
-    while (nvi.hasNext()) {
-      Term* subterm = nvi.next();
-      unsigned functor = subterm->functor();
-
-      // we shouldn't replace boolean constants
-      if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
-        continue;
-      }
-
-      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
-      if (resultType == AtomicSort::boolSort()) {
-        booleanTerm = TermList(subterm);
-        goto substitution;
-      }
-    }
-    literalPosition++;
-  }
-
-  // If we reached this point, it means that there was no boolean terms we are
-  // interested in, so we don't infer anything
-  return ClauseIterator::getEmpty();
-
-  substitution:
-
   // Found a boolean term! Create the C[true] \/ s = false clause
   RStack<Literal*> resLits;
+
+
+  auto pos = findApplicablePosition(premise);
+  if (pos.isNone()) { return ClauseIterator::getEmpty(); }
+  auto [booleanTerm, literalPosition] = *pos;
 
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
