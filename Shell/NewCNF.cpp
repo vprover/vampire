@@ -105,9 +105,9 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, 
 
   for (SPGenClause gc : _genClauses) {
     if (bindings) {
-      BindingList::Iterator it(gc->bindings);
+      BindingList::RefIterator it(gc->bindings);
       while (it.hasNext()) {
-        Binding b = it.next();
+        Binding& b = it.next();
         bindings->insert(b.first, b.second);
       }
     }
