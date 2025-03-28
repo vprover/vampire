@@ -131,7 +131,6 @@ private:
 
 
   struct Node {
-    USE_ALLOCATOR(Node)
     const char* name;
     Lib::Stack<std::unique_ptr<Node>> children;
     Measurements measurements;

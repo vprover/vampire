@@ -356,7 +356,6 @@ using namespace Lib;
 class MLMatcher::Impl final
 {
   public:
-    USE_ALLOCATOR(MLMatcher::Impl);
 
     Impl();
     ~Impl() = default;

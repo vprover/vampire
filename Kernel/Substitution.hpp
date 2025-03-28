@@ -37,7 +37,6 @@ using namespace Lib;
 class Substitution
 {
 public:
-  USE_ALLOCATOR(Substitution);
 
   Substitution() {}
 

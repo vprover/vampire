@@ -184,7 +184,6 @@ private:
     Stack<PartialRedundancyEntry*> partialRedundancyEntries;
     bool active;
 
-    USE_ALLOCATOR(SplitRecord);
   };
   
 public:

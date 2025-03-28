@@ -57,7 +57,6 @@ public:
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
 
-  USE_ALLOCATOR(Stack);
 
 
   /**

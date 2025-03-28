@@ -117,7 +117,6 @@ public:
 
     void ensureFreshness(unsigned globalTimestamp);
 
-    USE_ALLOCATOR(ILStruct);
 
     struct GVArrComparator;
 

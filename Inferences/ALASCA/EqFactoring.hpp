@@ -34,7 +34,6 @@ class EqFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(EqFactoring);
 
   EqFactoring(EqFactoring&&) = default;
   EqFactoring(std::shared_ptr<AlascaState> shared)

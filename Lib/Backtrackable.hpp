@@ -67,7 +67,6 @@ class BacktrackClosure : public BacktrackObject
 {
   F _fun;
 public:
-  USE_ALLOCATOR(BacktrackClosure);
   BacktrackClosure(BacktrackClosure&&) = default;
   BacktrackClosure& operator=(BacktrackClosure&&) = default;
   

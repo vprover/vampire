@@ -48,7 +48,6 @@ public:
 
   /** expressions */
   struct Expression {
-    USE_ALLOCATOR(Expression);
 
     /** type of the expression */
     Tag tag;

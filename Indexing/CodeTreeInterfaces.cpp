@@ -44,7 +44,6 @@ public:
   : _bindings(bindings), _resultNormalizer(resultNormalizer)
   {}
 
-  USE_ALLOCATOR(CodeTreeSubstitution);
 
   TermList apply(unsigned var)
   {
@@ -109,7 +108,6 @@ public:
     }
   }
 
-  USE_ALLOCATOR(ResultIterator);
 
   bool hasNext()
   {

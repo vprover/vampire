@@ -20,7 +20,6 @@
 namespace Kernel {
   struct AlascaState 
   {
-    USE_ALLOCATOR(AlascaState);
 
     // TODO get rid of this
     static std::shared_ptr<AlascaState> globalState;

@@ -84,7 +84,6 @@ protected:
 
 public:
   // use allocator to (de)allocate objects of this class
-  USE_ALLOCATOR(Set);
 
   /** Create a new Set */
   Set()

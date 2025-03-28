@@ -35,7 +35,6 @@ class FwdDemodulation
   using Rhs = Demodulation::Rhs;
   using Lhs = Demodulation::Lhs;
 public:
-  USE_ALLOCATOR(FwdDemodulation);
 
   FwdDemodulation(FwdDemodulation&&) = default;
   FwdDemodulation(std::shared_ptr<AlascaState> shared) 

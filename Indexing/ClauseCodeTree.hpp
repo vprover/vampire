@@ -63,7 +63,6 @@ private:
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
-    USE_ALLOCATOR(RemovingLiteralMatcher);
   };
 
   //////// retrieval //////////
@@ -82,7 +81,6 @@ private:
 
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
 
-    USE_ALLOCATOR(LiteralMatcher);
 
   private:
     bool _eagerlyMatched;
@@ -104,7 +102,6 @@ public:
     bool matched() { return lms.isNonEmpty() && lms.top()->success(); }
     CodeOp* getSuccessOp() { ASS(matched()); return lms.top()->op; }
 
-    USE_ALLOCATOR(ClauseMatcher);
 
   private:
     void enterLiteral(CodeOp* entry, bool seekOnlySuccess);

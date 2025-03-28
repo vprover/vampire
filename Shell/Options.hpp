@@ -1778,7 +1778,6 @@ bool _hard;
 
     struct NegatedOptionProblemConstraint : OptionProblemConstraint {
       OptionProblemConstraintUP  _inner;
-      USE_ALLOCATOR(NegatedOptionProblemConstraint);
 
       bool check(Property*p){
         return !_inner->check(p);
@@ -1792,7 +1791,6 @@ bool _hard;
 
 
     struct HasPolymorphism : OptionProblemConstraint{
-      USE_ALLOCATOR(HasHigherOrder);
 
       bool check(Property*p){
         ASS(p)

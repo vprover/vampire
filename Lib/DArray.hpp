@@ -39,7 +39,6 @@ template<typename C>
 class DArray
 {
 public:
-  USE_ALLOCATOR(DArray<C>);
 
   class Iterator;
 

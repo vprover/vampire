@@ -68,7 +68,6 @@ public:
     _size--;
   }
 
-  USE_ALLOCATOR(UListLeaf);
 private:
   typedef List<LeafData> LDList;
   LDList* _children;
@@ -100,7 +99,6 @@ public:
   void insert(LeafData ld) override { _children.insert(ld); }
   void remove(LeafData ld) override { _children.remove(ld); }
 
-  USE_ALLOCATOR(SListLeaf);
 private:
   typedef SkipList<LeafData,LDComparator> LDSkipList;
   LDSkipList _children;

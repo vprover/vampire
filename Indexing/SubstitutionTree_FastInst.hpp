@@ -34,7 +34,6 @@ class SubstitutionTree<LeafData_>::InstMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  USE_ALLOCATOR(SubstitutionTree::InstMatcher::Substitution);
   
   Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
   : _parent(parent), _resultDenormalizer(resultDenormalizer)

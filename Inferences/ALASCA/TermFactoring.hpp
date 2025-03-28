@@ -38,7 +38,6 @@ class TermFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(TermFactoring);
 
   TermFactoring(TermFactoring&&) = default;
   TermFactoring(std::shared_ptr<AlascaState> shared)

@@ -454,7 +454,6 @@ public:
       virtual Node** childByTop(TermList::Top t, bool canCreate);
       void remove(TermList::Top t);
 
-      USE_ALLOCATOR(UArrIntermediateNode);
 
       int _size;
       Node* _nodes[UARR_INTERMEDIATE_NODE_MAX_SIZE+1];
@@ -517,7 +516,6 @@ public:
       inline void remove(TermList::Top t)
       { _nodes.remove(t); }
 
-      USE_ALLOCATOR(SListIntermediateNode);
 
       class NodePtrComparator
       {
@@ -723,7 +721,6 @@ public:
       GenMatcher(TermOrLit query, unsigned nextSpecVar)
       { init(query,nextSpecVar); }
 
-      USE_ALLOCATOR(GenMatcher);
 
       /**
        * Bind special variable @b var to @b term. This method
@@ -904,7 +901,6 @@ public:
     {
     public:
 
-      USE_ALLOCATOR(InstMatcher);
 
       void reset() {
         _boundVars.reset();

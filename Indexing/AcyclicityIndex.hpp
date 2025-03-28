@@ -40,7 +40,6 @@ struct CycleQueryResult {
     clausesTheta(c)
   {}
 
-  USE_ALLOCATOR(CycleQueryResult);
 
   unsigned totalLengthClauses();
   

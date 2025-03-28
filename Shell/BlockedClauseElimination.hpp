@@ -41,7 +41,6 @@ private:
   struct ClWrapper;
 
   struct Candidate {
-    USE_ALLOCATOR(Candidate);
 
     ClWrapper* clw;
     unsigned litIdx;    // index of the potentially blocking literal L
@@ -56,7 +55,6 @@ private:
   };
 
   struct ClWrapper {
-    USE_ALLOCATOR(ClWrapper);
 
     Clause* cl;            // the actual clause
     bool blocked;          // if already blocked, don't need to try again

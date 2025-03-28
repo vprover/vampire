@@ -26,7 +26,6 @@ class RSProxy
 : public ResultSubstitution
 {
 public:
-  USE_ALLOCATOR(RSProxy);
   
   RSProxy(RobSubstitution* subst, int queryBank, int resultBank)
   : _subst(subst), _queryBank(queryBank), _resultBank(resultBank) {}
