@@ -118,9 +118,8 @@ public:
   void detach() override;
   Kernel::ClauseIterator generateClauses(Kernel::Clause *c) override;
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  { return pvi(dropElementType(_acyclIndex->queryCycles(selection.literal(), selection.clause()))); }
 private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
@@ -133,9 +132,8 @@ class AcyclicityGIE1
 public:
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c) override;
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(NewSelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  { return lookeaheadResultDoesNotDependOnSelection();  }
 
 private:
   struct SubtermDisequalityFn;

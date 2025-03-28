@@ -93,6 +93,9 @@ protected:
 class SimplifyingGeneratingInference
 : public InferenceEngine
 {
+protected:
+  static VirtualIterator<std::tuple<>> lookeaheadResultDoesNotDependOnSelection()
+  { return pvi(dropElementType(range(0,0))); }
 public:
 
   /** result of applying the inference */
