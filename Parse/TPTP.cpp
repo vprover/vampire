@@ -2061,7 +2061,7 @@ fs::path TPTP::resolveInclude(const fs::path included)
     return included;
 
   // 2
-  auto relativeToCurrentFileDirectory = currentFile.path.remove_filename() / included;
+  auto relativeToCurrentFileDirectory = currentFile.path.parent_path() / included;
   if(fs::exists(relativeToCurrentFileDirectory))
     return relativeToCurrentFileDirectory;
 
