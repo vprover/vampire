@@ -90,11 +90,9 @@ Clause* TPTP::parseClauseFromString(const std::string& str)
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
-TPTP::TPTP(istream& in, UnitList::FIFO unitBuffer)
+TPTP::TPTP(std::istream &in, UnitList::FIFO unitBuffer)
   : _containsConjecture(false),
-    _allowedNames(0),
-    _in(&in),
-    _includeDirectory(""),
+    currentFile { &in, {}, {}, 1 },
     _units(unitBuffer),
     _isThf(false),
     _containsPolymorphism(false),
@@ -135,7 +133,7 @@ void TPTP::parseImpl(State initialState)
   // bulding tokens one by one
   _cend = 0;
   _tend = 0;
-  _lineNumber = 1;
+  currentFile.lineNumber = 1;
   _states.push(initialState);
   while (!_states.isEmpty()) {
     State s = _states.pop();
@@ -282,9 +280,9 @@ void TPTP::parseImpl(State initialState)
       break;
     default:
 #if VDEBUG
-      throw ParseErrorException("Don't know how to process state "s+toString(s),_lineNumber);
+      PARSE_ERROR("Don't know how to process state "s + toString(s));
 #else
-      throw ParseErrorException("Don't know how to process state ",_lineNumber);
+      PARSE_ERROR("Don't know how to process state ");
 #endif
     }
 #ifdef DEBUG_SHOW_STATE
@@ -716,7 +714,7 @@ void TPTP::skipWhiteSpacesAndComments()
 
     case '\n':
     case '\r':
-      _lineNumber++;
+      currentFile.lineNumber++;
     case ' ':
     case '\t':
     case '\f':
@@ -733,10 +731,10 @@ void TPTP::skipWhiteSpacesAndComments()
 	return;
       }
       if (c == '\n') {
-        _lineNumber++;
+        currentFile.lineNumber++;
 #if VDEBUG
         // Only check for Status if in preamble before any units read (also only in the top level file, not in includes)
-        if(_units.list() == 0 && _inputs.isEmpty()){
+        if(_units.list() == 0 && restoreFiles.empty()){
           _chars[n]='\0';
           std::string cline(_chars.content());
           if(cline.find("Status")!=std::string::npos){
@@ -762,7 +760,7 @@ void TPTP::skipWhiteSpacesAndComments()
       // search for the end of this comment
       for (;;) {
 	int c = getChar(0);
-        if( c == '\n' || c == '\r'){ _lineNumber++; }
+        if( c == '\n' || c == '\r'){ currentFile.lineNumber++; }
 	if (!c) {
 	  return;
 	}
@@ -1077,18 +1075,13 @@ void TPTP::readAtom(Token& tok)
   }
 } // readAtom
 
-TPTP::ParseErrorException::ParseErrorException(std::string message,Token& tok, unsigned ln) : _ln(ln)
-{
-  _message = message + " (text: " + tok.toString() + ')';
-} // TPTP::ParseErrorException::ParseErrorException
-
 /**
  * Exception printing a message. Currently computing a position is simplified
  * @since 08/04/2011 Manchester
  */
 void TPTP::ParseErrorException::cry(std::ostream& str) const
 {
-  str << "Parsing Error on line " << _ln << ": ";
+  str << "parse error in " << _path << ", line " << _ln << ": ";
   str << _message << "\n";
 }
 
@@ -1216,16 +1209,13 @@ void TPTP::unitList()
   Token& tok = getTok(0);
   if (tok.tag == T_EOF) {
     resetToks();
-    if (_inputs.isEmpty()) {
+    if (restoreFiles.empty()) {
       return;
     }
     resetChars();
-    delete _in;
-    _in = _inputs.pop();
-    _lineNumber = _lineNumbers.pop();
-    _includeDirectory = _includeDirectories.pop();
-    delete _allowedNames;
-    _allowedNames = _allowedNamesStack.pop();
+    delete currentFile.in;
+    currentFile = std::move(restoreFiles.back());
+    restoreFiles.pop_back();
     _states.push(UNIT_LIST);
     return;
   }
@@ -2052,6 +2042,51 @@ void TPTP::endTheoryFunction() {
 } // endTheoryFunction
 
 /**
+ * Resolve an include to an extant path according to TPTP spec:
+ * https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
+ *
+ * 1. If the include is absolute, use that and do not attempt anything else.
+ * 2. Try relative to current path's directory.
+ * 3. Try relative to $TPTP
+ *
+ * Then, if TPTP spec exhausted, additionally:
+ * 4. Try relative to -include.
+ * 5. Try relative to current working directory (implicit).
+ */
+namespace fs = std::filesystem;
+fs::path TPTP::resolveInclude(const fs::path included)
+{
+  // 1.
+  if(included.is_absolute())
+    return included;
+
+  // 2
+  auto relativeToCurrentFileDirectory = currentFile.path.remove_filename() / included;
+  if(fs::exists(relativeToCurrentFileDirectory))
+    return relativeToCurrentFileDirectory;
+
+  // 3
+  char *envTPTP = getenv("TPTP");
+  if(envTPTP) {
+    auto relativeToTPTP = envTPTP / included;
+    if(fs::exists(relativeToTPTP))
+      return relativeToTPTP;
+  }
+
+  // 4
+  auto include = env.options->include();
+  if(!include.empty()) {
+    auto relativeToInclude = include / included;
+    if(fs::exists(relativeToInclude))
+      return relativeToInclude;
+  }
+
+  // 5
+  return included;
+}
+
+
+/**
  * Process include() declaration
  * @since 07/07/2011 Manchester
  */
@@ -2062,23 +2097,12 @@ void TPTP::include()
   if (tok.tag != T_NAME) {
     PARSE_ERROR_TOK("file name expected",tok);
   }
-  std::string relativeName=tok.content;
   resetToks();
-  bool ignore = _forbiddenIncludes.contains(relativeName);
-  if (!ignore) {
-    _allowedNamesStack.push(_allowedNames);
-    _allowedNames = 0;
-    _inputs.push(_in);
-    _lineNumbers.push(_lineNumber);
-    _lineNumber = 1;
-    _includeDirectories.push(_includeDirectory);
-  }
 
+  const std::string included = std::move(tok.content);
+  std::unordered_set<std::string> allowedNames;
   tok = getTok(0);
   if (tok.tag == T_COMMA) {
-    if (!ignore) {
-      _allowedNames = new Set<std::string>;
-    }
     resetToks();
     consumeToken(T_LBRA);
     for(;;) {
@@ -2086,15 +2110,12 @@ void TPTP::include()
       if (tok.tag != T_NAME) {
         PARSE_ERROR_TOK("formula name expected",tok);
       }
-      std::string axName=tok.content;
       resetToks();
-      if (!ignore) {
-	_allowedNames->insert(axName);
-      }
+      allowedNames.insert(std::move(tok.content));
       tok = getTok(0);
       if (tok.tag == T_RBRA) {
-	resetToks();
-	break;
+        resetToks();
+        break;
       }
       consumeToken(T_COMMA);
     }
@@ -2102,24 +2123,19 @@ void TPTP::include()
   consumeToken(T_RPAR);
   consumeToken(T_DOT);
 
-  if (ignore) {
-    return;
+  std::filesystem::path path = fs::absolute(resolveInclude(included));
+  auto in = new ifstream(path);
+  if (!*in) {
+    delete in;
+    USER_ERROR("cannot open file " + std::string(path));
   }
-  // here should be a computation of the new include directory according to
-  // the TPTP standard, so far we just set it to ""
-  _includeDirectory = "";
-  std::string fileName(env.options->includeFileName(relativeName));
-  _in = new ifstream(fileName.c_str());
-  if (!*_in) {
-    USER_ERROR("cannot open file " + fileName);
-  }
-} // include
 
-/** add a file name to the list of forbidden includes */
-void TPTP::addForbiddenInclude(std::string file)
-{
-  _forbiddenIncludes.insert(file);
-}
+  restoreFiles.emplace_back(std::move(currentFile));
+  currentFile.in = in;
+  currentFile.allowedNames = std::move(allowedNames);
+  currentFile.path = std::move(path);
+  currentFile.lineNumber = 1;
+} // include
 
 /**
  * Read the next token that must be a name.
@@ -3549,7 +3565,7 @@ void TPTP::endFof()
   bool isFof = _bools.pop();
   Formula* f = _formulas.pop();
   std::string nm = _strings.pop(); // unit name
-  if (_allowedNames && !_allowedNames->contains(nm)) {
+  if (!currentFile.allowedNames.empty() && !currentFile.allowedNames.count(nm)) {
     return;
   }
 
@@ -3617,7 +3633,7 @@ void TPTP::endFof()
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
-  if (!_inputs.isEmpty()) {
+  if (!restoreFiles.empty()) {
     unit->inference().markIncluded();
   }
 
