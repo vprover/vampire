@@ -23,11 +23,15 @@ namespace Inferences {
 
 class FOOLParamodulation : public GeneratingInferenceEngine {
   public:
+    Option<TermList> isApplicable(Literal* lit) const;
+    Option<std::pair<TermList, unsigned>> findApplicablePosition(Clause* clause) const;
     ClauseIterator generateClauses(Clause* premise) override;
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  { 
+    auto cnt = isApplicable(selection.literal()).isSome() ? 1 : 0;
+    return pvi(dropElementType(range(0,cnt))); 
+  }
 };
 
 }
