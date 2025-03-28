@@ -120,12 +120,13 @@ void TPTP::parse()
     parseImpl();
   } catch (UserErrorException &e) {
     e.line = lineNumber();
+    e.filename = currentPath();
     throw;
   }
 }
 
 /**
- * Read all tokens one by one 
+ * Read all tokens one by one
  * @since 08/04/2011 Manchester
  */
 void TPTP::parseImpl(State initialState)

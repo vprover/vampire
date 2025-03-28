@@ -350,6 +350,7 @@ public:
   //this function is used also by the API
   static void assignAxiomName(const Unit* unit, std::string& name);
   unsigned lineNumber(){ return currentFile.lineNumber; }
+  std::string currentPath(){ return currentFile.path; }
 
   static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
     auto res = _questionVariableNames.findPtr(questionNumber);
