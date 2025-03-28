@@ -14,6 +14,7 @@
 
 #include <utility>
 
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
@@ -63,29 +64,13 @@ struct EqualityResolution::ResultFn
   ResultFn(Clause* cl, bool afterCheck = false, const ConditionalRedundancyHandler* condRedHandler = nullptr, Ordering* ord = nullptr)
       : _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ord(ord), _cl(cl), _cLen(cl->length()) {}
 
-  Clause* operator() (Literal* lit)
+  Clause* operator() (std::pair<Literal*, AbstractingUnifier> pair)
   {
+    auto lit = pair.first;
+    auto* absUnif = &pair.second;
+
     ASS(lit->isEquality());
     ASS(lit->isNegative());
-
-    static AbstractionOracle _abstractionOracle = AbstractionOracle::create();
-    auto abstractionOracle = _abstractionOracle;
-
-    TermList arg0 = *lit->nthArgument(0);
-    TermList arg1 = *lit->nthArgument(1);
-
-    // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
-    // and therefore a constraint can be created between arguments
-    if(arg0.isTerm() && arg1.isTerm() &&
-       arg0.term()->functor() != arg1.term()->functor()){
-      abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
-    }
-
-    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration());
-
-    if(absUnif.isNone()){ 
-      return 0; 
-    }
 
     auto constraints = absUnif->computeConstraintLiterals();
 
@@ -139,6 +124,40 @@ private:
   Clause* _cl;
   unsigned _cLen;
 };
+struct EqualityResolution::PotentialApplicationIters {
+  EqualityResolution& self;
+  auto iterAppls(Clause* cause, Literal* lit) {
+  return iterItems(lit)
+    .filter(IsNegativeEqualityFn())
+    .filterMap([](auto lit) -> Option<std::pair<Literal*, AbstractingUnifier>> {
+
+      static AbstractionOracle _abstractionOracle = AbstractionOracle::create();
+      auto abstractionOracle = _abstractionOracle;
+
+      TermList arg0 = lit->termArg(0);
+      TermList arg1 = lit->termArg(1);
+
+      // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
+      // and therefore a constraint can be created between arguments
+      if(arg0.isTerm() && arg1.isTerm() &&
+         arg0.term()->functor() != arg1.term()->functor()){
+        abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
+      }
+
+      if (auto unif =  AbstractingUnifier::unify(arg0, 0, arg1, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration())) {
+        return some(std::make_pair(lit, std::move(*unif)));
+      } else {
+        return {};
+      }
+    });
+
+  }
+
+};
+
+
+VirtualIterator<std::tuple<>> EqualityResolution::lookaheadResultEstimation(SelectedAtom const& selection) 
+{ return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal()))); }
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
@@ -147,27 +166,14 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
   }
   ASS(premise->numSelected()>0);
 
-  auto it1 = premise->getSelectedLiteralIterator();
-
-  auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
-
-  auto it3 = getMappingIterator(it2,ResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->condRedHandler(), &_salg->getOrdering()));
-
-  auto it4 = getFilteredIterator(it3,NonzeroFn());
-
-  return pvi( it4 );
-}
-
-/**
- * @c toResolve must be an negative equality. If it is resolvable,
- * resolve it and return the resulting clause. If it is not resolvable,
- * return 0.
- */
-Clause* EqualityResolution::tryResolveEquality(Clause* cl, Literal* toResolve)
-{
-  return ResultFn(cl)(toResolve);
+  return pvi(
+      premise->getSelectedLiteralIterator()
+      .flatMap([=](auto l) { return PotentialApplicationIters{*this}.iterAppls(premise, l); })
+      .map(ResultFn(premise,
+                    getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
+                    &_salg->condRedHandler(), 
+                    &_salg->getOrdering()))
+      .filter(NonzeroFn()));
 }
 
 }
