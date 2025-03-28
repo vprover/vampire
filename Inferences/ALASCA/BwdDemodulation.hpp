@@ -29,7 +29,6 @@ class BwdDemodulation
   using Rhs = Demodulation::Rhs;
   using Lhs = Demodulation::Lhs;
 public:
-  USE_ALLOCATOR(BwdDemodulation);
 
   BwdDemodulation(BwdDemodulation&&) = default;
   BwdDemodulation(std::shared_ptr<AlascaState> shared) 

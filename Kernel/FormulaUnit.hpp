@@ -56,7 +56,6 @@ public:
   Color getColor();
   unsigned weight();
 
-  USE_ALLOCATOR(FormulaUnit);
 
 protected:
   /** Formula of this unit */

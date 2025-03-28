@@ -106,7 +106,6 @@ private:
    * The Match set allows to get a line or column of the matrix
    */
   struct MatchSet {
-    USE_ALLOCATOR(SATSubsumptionAndResolution::MatchSet);
     friend struct Match;
 
     /// @brief Metadata remembering whether some positive match or negative match was found for each literal in M

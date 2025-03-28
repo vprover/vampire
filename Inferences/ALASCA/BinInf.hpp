@@ -54,7 +54,6 @@ private:
   AlascaIndex<Lhs>* _lhs;
   AlascaIndex<Rhs>* _rhs;
 public:
-  USE_ALLOCATOR(BinInf);
 
   BinInf(BinInf&&) = default;
   BinInf(std::shared_ptr<AlascaState> shared, Rule rule)
@@ -176,7 +175,6 @@ private:
   AlascaIndex<Premise1>* _prem1;
   AlascaIndex<Premise2>* _prem2;
 public:
-  USE_ALLOCATOR(TriInf);
 
   TriInf(TriInf&&) = default;
   TriInf(std::shared_ptr<AlascaState> shared, Rule rule)

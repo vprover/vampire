@@ -99,7 +99,6 @@ void URResolution::detach()
 
 struct URResolution::Item
 {
-  USE_ALLOCATOR(URResolution::Item);
 
   Item(Clause* cl, bool selectedOnly, URResolution& parent, bool mustResolveAll)
   : _orig(cl), _color(cl->color()), _parent(parent)

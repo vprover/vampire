@@ -128,7 +128,6 @@ namespace Indexing
       subterms(subterms)
     {}
 
-    USE_ALLOCATOR(AcyclicityIndex::IndexEntry);
 
     Literal* lit;
     Clause* clause;
@@ -173,7 +172,6 @@ namespace Indexing
       return new CycleSearchTreeNode(t, l, c, n, n ? n->depth : 0, substIndex, true);
     }
 
-    USE_ALLOCATOR(AcyclicityIndex::CycleSearchTreeNode);
 
     TypedTermList term;
     Literal *lit;

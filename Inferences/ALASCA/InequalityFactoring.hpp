@@ -34,7 +34,6 @@ class InequalityFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(InequalityFactoring);
 
   InequalityFactoring(InequalityFactoring&&) = default;
   InequalityFactoring(std::shared_ptr<AlascaState> shared)

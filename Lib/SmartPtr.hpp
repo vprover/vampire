@@ -32,7 +32,6 @@ template<typename T>
 class SmartPtr {
 private:
   struct RefCounter {
-    USE_ALLOCATOR(SmartPtr::RefCounter);
   
     inline explicit RefCounter(int v) : _val(v) {}
   

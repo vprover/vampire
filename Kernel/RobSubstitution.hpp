@@ -260,7 +260,6 @@ class UnificationConstraint
   TermSpec _sort;
 public:
   UnificationConstraint() {}
-  USE_ALLOCATOR(UnificationConstraint)
   auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2, _sort); }
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
   IMPL_HASH_FROM_TUPLE(UnificationConstraint);
@@ -298,7 +297,6 @@ class RobSubstitution
   mutable OnlyMemorizeNonVar<TermList> _applyMemo;
 
 public:
-  USE_ALLOCATOR(RobSubstitution);
   
   RobSubstitution() 
     : _startedBindingOutputVars(false)

@@ -135,7 +135,6 @@ private:
 
   // generalized clause
   struct GenClause {
-    USE_ALLOCATOR(NewCNF::GenClause);
 
     GenClause(unsigned size, BindingList* bindings, BindingList* foolBindings)
       : valid(true), bindings(bindings), foolBindings(foolBindings), _literals(size), _size(0) {}
@@ -277,7 +276,6 @@ private:
   GenClauses _genClauses;
 
   struct Occurrence {
-    USE_ALLOCATOR(NewCNF::Occurrence);
 
     SPGenClause gc;
     unsigned position;
@@ -315,7 +313,6 @@ private:
     unsigned _size;
 
   public:
-    USE_ALLOCATOR(NewCNF::Occurrences);
 
     Occurrences() : _occurrences(nullptr), _size(0) {}
 

@@ -744,7 +744,6 @@ class Inference
 {
 private:
   // don't construct on the heap
-  USE_ALLOCATOR(Inference);
 
   enum class Kind : unsigned char {
     INFERENCE_012,

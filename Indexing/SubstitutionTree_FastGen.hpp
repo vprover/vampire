@@ -81,7 +81,6 @@ private:
 template<class LeafData_>
 struct SubstitutionTree<LeafData_>::GenMatcher::Applicator
 {
-  USE_ALLOCATOR(SubstitutionTree::GenMatcher::Applicator); 
 
   inline
   Applicator(GenMatcher* parent, Renaming* resultNormalizer)
@@ -108,7 +107,6 @@ class SubstitutionTree<LeafData_>::GenMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  USE_ALLOCATOR(SubstitutionTree::GenMatcher::Substitution);
   
   Substitution(GenMatcher* parent, Renaming* resultNormalizer)
   : _parent(parent), _resultNormalizer(resultNormalizer),

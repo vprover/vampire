@@ -31,7 +31,6 @@ private:
   InverseLookup(const InverseLookup&);
   InverseLookup& operator=(const InverseLookup&);
 public:
-  USE_ALLOCATOR(InverseLookup<T>);
 
   template<typename Arr>
   InverseLookup(Arr arr, size_t size)

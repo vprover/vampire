@@ -241,7 +241,6 @@ private:
     {
       _bh->backtrackPop(_val,_lastBubbleIndex);
     }
-    USE_ALLOCATOR(BHPopBacktrackObject);
   private:
     BinaryHeap* _bh;
     T _val;
@@ -258,7 +257,6 @@ private:
     {
       _bh->backtrackInsert(_lastBubbleIndex);
     }
-    USE_ALLOCATOR(BHInsertBacktrackObject);
   private:
     BinaryHeap* _bh;
     unsigned _lastBubbleIndex;

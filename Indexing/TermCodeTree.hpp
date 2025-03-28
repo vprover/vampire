@@ -70,7 +70,6 @@ public:
     
     Data* next();
     
-    USE_ALLOCATOR(TermMatcher);
   };
 
 };

@@ -42,7 +42,6 @@ template<class T>
 class AlascaIndex : public Indexing::Index
 {
 public:
-  USE_ALLOCATOR(AlascaIndex);
 
   AlascaIndex()
     : _index()

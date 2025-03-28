@@ -837,7 +837,6 @@ protected:
 struct InferenceStore::Smt2ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::Smt2ProofCheckPrinter);
   
   Smt2ProofCheckPrinter(std::ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}

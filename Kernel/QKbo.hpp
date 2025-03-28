@@ -73,7 +73,6 @@ class QKbo
   std::shared_ptr<InequalityNormalizer> _norm;
   KBO _kbo;
 public:
-  USE_ALLOCATOR(QKbo);
 
   QKbo(QKbo&& kbo) = default;
   QKbo& operator=(QKbo&& kbo) = default;

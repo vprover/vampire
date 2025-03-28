@@ -82,7 +82,6 @@ public:
 class PropInference : public SATInference
 {
 public:
-  USE_ALLOCATOR(PropInference);
 
   PropInference(SATClauseList* premises) : _premises(premises) {}
   PropInference(SATClause* prem) : _premises(0)
@@ -110,7 +109,6 @@ private:
 class FOConversionInference : public SATInference
 {
 public:
-  USE_ALLOCATOR(FOConversionInference);
 
   FOConversionInference(Unit* origin);
   FOConversionInference(Clause* cl);
@@ -125,7 +123,6 @@ private:
 class AssumptionInference : public SATInference
 {
 public:
-  USE_ALLOCATOR(AssumptionInference);
 
   virtual InfType getType() const { return ASSUMPTION; }
 };

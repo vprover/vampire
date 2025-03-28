@@ -48,8 +48,6 @@ inline void free(void *pointer, size_t size, size_t align = alignof(std::max_ali
   ::operator delete(pointer, (std::align_val_t)align);
 }
 } // namespace Lib
-#define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
-
 // do some of our own allocation
 #else // INDIVIDUAL_ALLOCATIONS
 
@@ -275,18 +273,9 @@ inline void free(void *pointer, size_t size) {
 }
 
 } // namespace Lib
-
-// overload class-specific operator new to call the global small-object allocator
-#define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C) \
-  void *operator new(size_t size) { return Lib::alloc(size, alignof(C)); }\
-  void *operator new(size_t size, std::align_val_t align) { return Lib::alloc(size, (size_t)align); }\
-  void operator delete(void *ptr, size_t size) { Lib::free(ptr, size, alignof(C)); } \
-  void operator delete(void *ptr, size_t size, std::align_val_t align) { Lib::free(ptr, size, (size_t)align); }
-
 #endif // INDIVIDUAL_ALLOCATIONS's else
 
 // legacy macros, should be removed eventually
-#define USE_ALLOCATOR(C) USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
 #define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)
 

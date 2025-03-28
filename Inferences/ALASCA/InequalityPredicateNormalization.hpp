@@ -36,7 +36,6 @@ class InequalityPredicateNormalization
 : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(InequalityPredicateNormalization);
 
   InequalityPredicateNormalization(std::shared_ptr<AlascaState> shared) 
     : _shared(std::move(shared)) {}

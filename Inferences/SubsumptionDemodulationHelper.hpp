@@ -59,7 +59,6 @@ using namespace Lib;
  */
 class OverlayBinder
 {
-  USE_ALLOCATOR(OverlayBinder);
 
   public:
     using Var = unsigned int;
@@ -217,7 +216,6 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder);
  */
 class SDClauseMatches
 {
-  USE_ALLOCATOR(SDClauseMatches);
 
   public:
     SDClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts);

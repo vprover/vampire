@@ -100,7 +100,6 @@ class EmptyIterator
 : public IteratorCore<T>
 {
 public:
-  USE_ALLOCATOR(EmptyIterator);
 
   EmptyIterator() {}
   bool hasNext() { return false; };
@@ -124,7 +123,6 @@ public:
 template<typename T>
 class VirtualIterator {
 public:
-  USE_ALLOCATOR(VirtualIterator);
 
   DECL_ELEMENT_TYPE(T);
 
@@ -298,7 +296,6 @@ class ProxyIterator
 : public IteratorCore<T>
 {
 public:
-  USE_ALLOCATOR(ProxyIterator);
   DEFAULT_CONSTRUCTORS(ProxyIterator)
   virtual ~ProxyIterator() override {}
   

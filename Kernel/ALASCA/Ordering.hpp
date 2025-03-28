@@ -390,7 +390,6 @@ class LiteralOrdering
   }
 
 public:
-  USE_ALLOCATOR(LiteralOrdering);
 
   LiteralOrdering(LiteralOrdering&& kbo) = default;
   LiteralOrdering& operator=(LiteralOrdering&& kbo) = default;

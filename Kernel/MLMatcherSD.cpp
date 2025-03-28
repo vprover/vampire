@@ -701,7 +701,6 @@ using namespace Lib;
 class MLMatcherSD::Impl final
 {
   public:
-    USE_ALLOCATOR(MLMatcherSD::Impl);
 
     Impl();
     ~Impl() = default;

@@ -60,7 +60,6 @@ UnitInputType Kernel::getInputType(UnitList* units)
  * To be kept around in _ptr2 of INFERENCE_FROM_SAT_REFUTATION
  **/
 struct FromSatRefutationInfo {
-  USE_ALLOCATOR(FromSatRefutationInfo);
 
   FromSatRefutationInfo(const FromSatRefutation& fsr) : _satPremises(fsr._satPremises), _usedAssumptions(fsr._usedAssumptions)
   { ASS(_satPremises); }

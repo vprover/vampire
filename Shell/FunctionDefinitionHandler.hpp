@@ -32,7 +32,6 @@ using namespace Lib;
  * which are not variables in some branch.
  */
 struct InductionTemplate {
-  USE_ALLOCATOR(InductionTemplate);
   InductionTemplate() = default;
   InductionTemplate(const Term* t);
 
@@ -79,7 +78,6 @@ private:
 class FunctionDefinitionHandler
 {
 public:
-  USE_ALLOCATOR(FunctionDefinitionHandler);
 
   bool static isHandlerEnabled(const Options& opts)
   {

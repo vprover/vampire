@@ -307,7 +307,6 @@ public:
     processClause(premise);
   }
 
-  USE_ALLOCATOR(InductionClauseIterator);
   DECL_ELEMENT_TYPE(Clause*);
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }

@@ -144,7 +144,6 @@ class FloorBounds
   }
 
 public:
-  USE_ALLOCATOR(FloorBounds);
 
   FloorBounds(FloorBounds&&) = default;
   FloorBounds(std::shared_ptr<AlascaState> shared) 

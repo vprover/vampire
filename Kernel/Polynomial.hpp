@@ -159,7 +159,6 @@ class AnyPoly;
 template<class Number> 
 struct Monom 
 {
-  USE_ALLOCATOR(Monom)
 
   using Numeral = typename Number::ConstantType;
 
@@ -209,7 +208,6 @@ class FuncTerm
   FuncId _fun;
   Stack<PolyNf> _args;
 public:
-  USE_ALLOCATOR(FuncTerm)
 
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
@@ -427,7 +425,6 @@ class MonomFactors
   friend struct std::hash<MonomFactors>;
 
 public:
-  USE_ALLOCATOR(MonomFactors)
 
   /** 
    * constructs a new MonomFactors. 
@@ -521,7 +518,6 @@ class Polynom
 
 public:
   using NumTraits = Number;
-  USE_ALLOCATOR(Polynom)
 
   /** 
    * constructs a new Polynom with a list of summands 

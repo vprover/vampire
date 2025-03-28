@@ -29,7 +29,6 @@ class TautologyDeletion
 {
   std::shared_ptr<AlascaState> _shared;
 public:
-  USE_ALLOCATOR(TautologyDeletion);
 
   TautologyDeletion(std::shared_ptr<AlascaState> shared) 
     : _shared(std::move(shared)) {}

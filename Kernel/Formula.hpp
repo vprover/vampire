@@ -103,7 +103,6 @@ public:
 
 
   // use allocator to (de)allocate objects of this class
-  USE_ALLOCATOR(Formula);
 protected:
 
   /** Create a dummy formula will null content */
@@ -129,7 +128,6 @@ class NamedFormula
 public:
   explicit NamedFormula(std::string name) : Formula(NAME), _name(name) {}
 
-  USE_ALLOCATOR(NamedFormula);
 
   std::string name(){ return _name; }
   const std::string name() const { return _name;}
@@ -164,7 +162,6 @@ public:
   void setLiteral(Literal* lit) { _literal = lit; }
 
   // use allocator to (de)allocate objects of this class
-  USE_ALLOCATOR(AtomicFormula);
 protected:
   /** The literal of this formula */
   Literal* _literal;
@@ -207,7 +204,6 @@ class QuantifiedFormula
   SList** sortListPtr() { return &_sorts; }
 
   // use allocator to (de)allocate objects of this class
-  USE_ALLOCATOR(QuantifiedFormula);
  protected:
   /** list of variables */
   VList* _vars;
@@ -237,7 +233,6 @@ public:
   Formula* subformula() { return _arg; }
 
   // use allocator to (de)allocate objects of this class
-  USE_ALLOCATOR(NegatedFormula);
 protected:
   /** The immediate subformula */
   Formula* _arg;
@@ -276,7 +271,6 @@ public:
   }
 
   // use allocator to (de)allocate objects of this class
-  USE_ALLOCATOR(BinaryFormula);
 protected:
   /** The lhs subformula */
   Formula* _left;
@@ -314,7 +308,6 @@ class JunctionFormula
   static Formula* generalJunction(Connective c, FormulaList* args);
 
   // use allocator to (de)allocate objects of this class
-  USE_ALLOCATOR(JunctionFormula);
  protected:
   /** list of immediate subformulas */
   FormulaList* _args;
@@ -369,7 +362,6 @@ class BoolTermFormula
   TermList getTerm() { return _ts; }
 
   // use allocator to (de)allocate objects of this class
-  USE_ALLOCATOR(BoolTermFormula);
  protected:
   /** boolean term */
   TermList _ts;

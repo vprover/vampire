@@ -34,7 +34,6 @@ class VariableElimination
 : public SimplifyingGeneratingInference
 {
 public:
-  USE_ALLOCATOR(VariableElimination);
 
   VariableElimination(VariableElimination&&) = default;
   VariableElimination(std::shared_ptr<AlascaState> shared, bool simplify = true) 
