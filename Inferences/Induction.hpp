@@ -33,7 +33,6 @@
 #include "Kernel/Theory.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/List.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -63,17 +62,16 @@ class ActiveOccurrenceIterator
 {
 public:
   ActiveOccurrenceIterator(Literal* lit, FunctionDefinitionHandler& fnDefHandler)
-  : _stack(8), _fnDefHandler(fnDefHandler)
+  : _returnStack(8), _processStack(8), _fnDefHandler(fnDefHandler)
   {
-    _stack.push(lit);
-    ASS(lit->ground());
-    ActiveOccurrenceIterator::next();
+    _processStack.push(lit);
   }
 
-  bool hasNext() override { return !_stack.isEmpty(); }
+  bool hasNext() override;
   Term* next() override;
 private:
-  Stack<Term*> _stack;
+  Stack<Term*> _returnStack;
+  Stack<Term*> _processStack;
   FunctionDefinitionHandler& _fnDefHandler;
 };
 
@@ -149,12 +147,17 @@ struct InductionContext {
     node->second.push(lit);
   }
 
-  // These two functions should be only called on objects where
+  // These functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
   Formula* getFormula(const std::vector<TermList>& r, bool opposite, Substitution* subst = nullptr) const;
+  Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, bool opposite, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(const std::vector<TermList>& r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
+
+  // Return some free variable that occurs in the induction literals.
+  // If the literals are all ground, return 0 (and fail in debug mode).
+  unsigned getFreeVariable() const;
 
   std::string toString() const {
     std::stringstream str;
@@ -320,9 +323,9 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
-  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
+  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHMap<unsigned, Term*>* bindings = nullptr);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
-  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
+  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false, Substitution* indLitSubst = nullptr);
 
   void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
@@ -337,6 +340,7 @@ private:
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution* freeVarSubst);
   void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const std::vector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
 
   /**
