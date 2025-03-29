@@ -66,11 +66,11 @@ private:
 
     void pushNext();
 
-    using Branch = OrderingComparator::Branch;
-    using Tag = OrderingComparator::Node::Tag;
+    using Branch = TermOrderingDiagram::Branch;
+    using Tag = TermOrderingDiagram::Node::Tag;
 
-    OrderingComparatorUP comp;
-    Stack<OrderingComparator::Branch*> path;
+    TermOrderingDiagramUP tod;
+    Stack<TermOrderingDiagram::Branch*> path;
   };
 
   std::pair<State*,const TermPartialOrdering*> getNext(

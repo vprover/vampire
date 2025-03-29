@@ -99,12 +99,12 @@ public:
    * 
    * This is useful in simplifications such as demodulation where
    * only the result being greater matters and in runtime specialized
-   * ordering checks (see OrderingComparator). */
+   * ordering checks (see TermOrderingDiagram). */
   virtual Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const
   { return compare(t1, t2); }
 
-  /** Creates optimised object for ordering checks. @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(bool ground = false) const;
+  /** Creates optimised object for ordering checks. @see TermOrderingDiagram. */
+  virtual TermOrderingDiagramUP createTermOrderingDiagram(bool ground = false) const;
 
   virtual void show(std::ostream& out) const = 0;
 

@@ -21,8 +21,8 @@ using namespace Shell;
 
 void fun02() { TIME_TRACE("fun02") }
 void fun04() { TIME_TRACE("fun04") }
-void fun03() { 
-  TIME_TRACE("fun03") 
+void fun03() {
+  TIME_TRACE("fun03")
   for (unsigned i = 0; i < 3; i++) {
         fun04();
   }
@@ -38,7 +38,9 @@ void fun01(unsigned i2, unsigned i3) {
 }
 
 TEST_FUN(test01) {
+#if VTIME_PROFILING
   TimeTrace trace;
+#endif
   TIME_TRACE("test01")
   fun01(7, 2);
   fun01(0, 2);

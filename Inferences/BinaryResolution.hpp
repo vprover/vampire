@@ -50,7 +50,7 @@ public:
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
                                 ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts,
-                                bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, ConditionalRedundancyHandler const* condRedHandler = 0);
+                                bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, PartialRedundancyHandler const* parRedHandler = 0);
 
   ClauseIterator generateClauses(Clause* premise);
 

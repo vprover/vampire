@@ -33,11 +33,14 @@ using namespace Lib;
  */
 void* FlatTerm::operator new(size_t sz,unsigned num)
 {
-  ASS_GE(num,1);
+  ASS_GE(num,0);
   ASS_EQ(sz, sizeof(FlatTerm));
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(num-1)*sizeof(Entry);
+  size_t size = sizeof(FlatTerm);
+  if (num > 0) {
+    size += (num-1)*sizeof(Entry);
+  }
 
   return ALLOC_KNOWN(size,"FlatTerm");
 }
@@ -47,10 +50,13 @@ void* FlatTerm::operator new(size_t sz,unsigned num)
  */
 void FlatTerm::destroy()
 {
-  ASS_GE(_length,1);
+  ASS_GE(_length,0);
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(Entry);
+  size_t size = sizeof(FlatTerm);
+  if (_length > 0) {
+    size += (_length-1)*sizeof(Entry);
+  }
 
   DEALLOC_KNOWN(this, size,"FlatTerm");
 }
@@ -127,37 +133,6 @@ FlatTerm* FlatTerm::create(TermList t)
 
   FlatTerm* res=new(1) FlatTerm(1);
   res->_data[0]=Entry(VAR, t.var());
-
-  return res;
-}
-
-FlatTerm* FlatTerm::create(TermStack ts)
-{
-  size_t entries=0;
-  for (auto& tl : ts) {
-    entries += tl.isVar() ? 1 : getEntryCount(tl.term());
-  }
-
-  FlatTerm* res=new(entries) FlatTerm(entries);
-  size_t fti=0;
-
-  for (auto& tl : ts) {
-    if (tl.isVar()) {
-      pushVar(res, fti, tl.var());
-      continue;
-    }
-    auto t = tl.term();
-    (*res)[fti++]=Entry(FUN,
-        t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-    (*res)[fti++]=Entry(t);
-    (*res)[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
-
-    SubtermIterator sti(t);
-    while(sti.hasNext()) {
-      pushTermList(res, fti, sti.next());
-    }
-  }
-  ASS_EQ(fti, entries);
 
   return res;
 }

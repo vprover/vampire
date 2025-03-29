@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
 
 namespace Lib {
 
@@ -102,6 +103,7 @@ class UserErrorException
 
   // input line related to the error: non-zero if set
   unsigned line = 0;
+  std::string filename;
   void cry (std::ostream&) const;
 }; // UserErrorException
 

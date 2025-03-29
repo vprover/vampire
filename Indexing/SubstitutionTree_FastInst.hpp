@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * @file SubstitutionTree_FastInst.cpp
+ * @file SubstitutionTree_FastInst.hpp
  * Implements class SubstitutionTree::FastInst, its child classes
  * and some auxiliary classes.
  */

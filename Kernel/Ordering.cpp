@@ -36,7 +36,7 @@
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
-#include "OrderingComparator.hpp"
+#include "TermOrderingDiagram.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
@@ -258,9 +258,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-OrderingComparatorUP Ordering::createComparator(bool ground) const
+TermOrderingDiagramUP Ordering::createTermOrderingDiagram(bool ground) const
 {
-  return std::make_unique<OrderingComparator>(*this, ground);
+  return std::make_unique<TermOrderingDiagram>(*this, ground);
 }
 
 //////////////////////////////////////////////////

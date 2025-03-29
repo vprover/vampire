@@ -20,7 +20,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/OrderingComparator.hpp"
+#include "Kernel/TermOrderingDiagram.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -200,7 +200,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 
 #if VDEBUG
         POStruct dpo_struct(tpo);
-        OrderingComparator::VarOrderExtractor::Iterator dextIt(ordering, trm, rhsApplied.apply(), dpo_struct);
+        TermOrderingDiagram::VarOrderExtractor::Iterator dextIt(ordering, trm, rhsApplied.apply(), dpo_struct);
         std::pair<Result,POStruct> kv { Ordering::INCOMPARABLE, nullptr };
         do {
           kv = dextIt.next();
@@ -209,7 +209,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 
         POStruct po_struct(tpo);
         bool nodebug = false;
-        OrderingComparator::VarOrderExtractor extractor(qr.data->comparator.get(), &appl, po_struct);
+        TermOrderingDiagram::VarOrderExtractor extractor(qr.data->tod.get(), &appl, po_struct);
         if (!extractor.hasNext(nodebug)) {
           ASS(nodebug || kv.first != Ordering::GREATER);
           continue;
@@ -283,11 +283,11 @@ LOOP_END:
 }
 
 ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, State* data)
-  : comp(ord.createComparator(/*ground=*/true))
+  : tod(ord.createTermOrderingDiagram(/*ground=*/true))
 {
-  comp->_source = Branch(data, comp->_sink);
-  comp->_source.node()->ready = true;
-  path.push(&comp->_source);
+  tod->_source = Branch(data, tod->_sink);
+  tod->_source.node()->ready = true;
+  path.push(&tod->_source);
 }
 
 std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
@@ -314,7 +314,7 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
   // and pointing to the original node otherwise.
 
   Branch origB(*curr);
-  Branch newB = data ? Branch(data, comp->_sink) : comp->_sink;
+  Branch newB = data ? Branch(data, tod->_sink) : tod->_sink;
 
   for (const auto& [lhs,rhs,rel] : ordCons) {
     ASS(lhs.isVar());
@@ -330,11 +330,11 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
   *curr = newB;
 
   while (path.isNonEmpty()) {
-    comp->_prev = path.size()==1 ? nullptr : path[path.size()-2];
-    comp->_curr = path.top();
-    comp->processCurrentNode();
+    tod->_prev = path.size()==1 ? nullptr : path[path.size()-2];
+    tod->_curr = path.top();
+    tod->processCurrentNode();
 
-    auto node = comp->_curr->node();
+    auto node = tod->_curr->node();
     if (node->tag == Tag::T_DATA && !node->data) {
       pushNext();
       continue;

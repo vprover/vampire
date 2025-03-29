@@ -7,17 +7,13 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file KBOComparator.hpp
- * Defines comparator class for KBO.
- */
 
-#ifndef __KBOComparator__
-#define __KBOComparator__
+#ifndef __TermOrderingDiagramKBO__
+#define __TermOrderingDiagramKBO__
 
 #include "Forwards.hpp"
 
-#include "OrderingComparator.hpp"
+#include "TermOrderingDiagram.hpp"
 
 namespace Kernel {
 
@@ -27,11 +23,11 @@ using namespace Lib;
  * Runtime specialized KBO ordering check, based on the linear KBO check
  * also implemented in @b KBO.
  */
-class KBOComparator
-: public OrderingComparator
+class TermOrderingDiagramKBO
+: public TermOrderingDiagram
 {
 public:
-  KBOComparator(const Ordering& ord, bool ground) : OrderingComparator(ord, ground) {}
+  TermOrderingDiagramKBO(const Ordering& ord, bool ground) : TermOrderingDiagram(ord, ground) {}
 
   void processTermNode() override;
 };
