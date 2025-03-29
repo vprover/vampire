@@ -168,9 +168,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
         continue;
       }
 
-      bool redundancyCheck = _redundancyCheck &&
-        ((curr->L && trm == curr->left) ||
-         (curr->R && trm == curr->right));
+      // bool redundancyCheck = _redundancyCheck &&
+      //   ((curr->L && trm == curr->left) ||
+      //    (curr->R && trm == curr->right));
 
       auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
       while(git.hasNext()) {
@@ -184,6 +184,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
         }
         // we do not support AVATAR yet
         if (!qr.data->clause->noSplits()) {
+          continue;
+        }
+        if (qr.data->clause->number()>=cl->number()) {
           continue;
         }
 
@@ -217,42 +220,42 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
         // fails as the two extractors take two different branches
         // ASS(nodebug || kv.second.tpo == po_struct.tpo);
 
-        // encompassing demodulation is fine when rewriting the smaller guy
-        if (redundancyCheck) {
-          // this will only run at most once;
-          // could have been factored out of the getGeneralizations loop,
-          // but then it would run exactly once there
-          Ordering::Result litOrder = ordering.compare(curr->left,curr->right);
-          if ((trm==curr->left && litOrder == Ordering::LESS) ||
-              (trm==curr->right && litOrder == Ordering::GREATER)) {
-            redundancyCheck = false;
-          }
-        }
+        // // encompassing demodulation is fine when rewriting the smaller guy
+        // if (redundancyCheck) {
+        //   // this will only run at most once;
+        //   // could have been factored out of the getGeneralizations loop,
+        //   // but then it would run exactly once there
+        //   Ordering::Result litOrder = ordering.compare(curr->left,curr->right);
+        //   if ((trm==curr->left && litOrder == Ordering::LESS) ||
+        //       (trm==curr->right && litOrder == Ordering::GREATER)) {
+        //     redundancyCheck = false;
+        //   }
+        // }
 
-        if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
-          TermList other = trm == curr->left ? curr->right : curr->left;
-          bool fail = false;
-          while (!fail) {
-            OrderingComparator::VarOrderExtractor::Iterator extIt(ordering, other, rhsApplied.apply(), po_struct);
-            auto [redComp,red_po_struct] = extIt.next();
-            ASS_NEQ(redComp,Ordering::LESS);
-            // Note: EQUAL should be fine when doing forward simplification
-            if (redComp == Ordering::GREATER || (redComp == Ordering::EQUAL/*  && (!curr->L || !curr->R) */)) {
-              // success
-              po_struct = red_po_struct;
-              break;
-            }
-            // TODO add debug checks here
-            if (extractor.hasNext(nodebug)) {
-              po_struct = extractor.next();
-              continue;
-            }
-            fail = true;
-          }
-          if (fail) {
-            continue;
-          }
-        }
+        // if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
+        //   TermList other = trm == curr->left ? curr->right : curr->left;
+        //   bool fail = false;
+        //   while (!fail) {
+        //     OrderingComparator::VarOrderExtractor::Iterator extIt(ordering, other, rhsApplied.apply(), po_struct);
+        //     auto [redComp,red_po_struct] = extIt.next();
+        //     ASS_NEQ(redComp,Ordering::LESS);
+        //     // Note: EQUAL should be fine when doing forward simplification
+        //     if (redComp == Ordering::GREATER || (redComp == Ordering::EQUAL/*  && (!curr->L || !curr->R) */)) {
+        //       // success
+        //       po_struct = red_po_struct;
+        //       break;
+        //     }
+        //     // TODO add debug checks here
+        //     if (extractor.hasNext(nodebug)) {
+        //       po_struct = extractor.next();
+        //       continue;
+        //     }
+        //     fail = true;
+        //   }
+        //   if (fail) {
+        //     continue;
+        //   }
+        // }
 
         TermList rhsS = rhsApplied.apply();
 

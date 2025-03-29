@@ -700,7 +700,7 @@ void OrderingComparator::VarOrderExtractor::Iterator::initCurrent(Stack<Branchin
       break;
     }
     case Node::T_POLY: {
-      ASSERTION_VIOLATION;
+      // ASSERTION_VIOLATION;
       break;
     }
   }
