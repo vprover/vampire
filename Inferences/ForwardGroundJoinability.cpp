@@ -109,7 +109,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
   static DHSet<TermList> attempted;
 
   // we do not support AVATAR yet
-  if (!cl->noSplits() || cl->length()>1) {
+  if (/* !cl->noSplits() ||  */cl->length()>1) {
     return false;
   }
 
@@ -183,9 +183,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
           continue;
         }
         // we do not support AVATAR yet
-        if (!qr.data->clause->noSplits()) {
-          continue;
-        }
+        // if (!qr.data->clause->noSplits()) {
+        //   continue;
+        // }
         if (qr.data->clause->number()>=cl->number()) {
           continue;
         }
