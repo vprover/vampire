@@ -31,12 +31,6 @@ class ForwardGroundJoinability
 : public ForwardGroundSimplificationEngine
 {
 public:
-  ForwardGroundJoinability(const Options& opts)
-    : _redundancyCheck(opts.demodulationRedundancyCheck()!=Options::DemodulationRedundancyCheck::OFF),
-      _encompassing(opts.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS) {}
-
-  ~ForwardGroundJoinability() override;
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, ClauseIterator& premises) override;
@@ -47,22 +41,12 @@ public:
   }
 #endif // VDEBUG
 
-  static bool makeEqual(TermList lhs, TermList rhs, Stack<TermOrderingConstraint>& res);
+  static bool makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res);
 
 private:
-  struct State {
-    TermList left;
-    TermList right;
-    bool L;
-    bool R;
-  };
-
-  friend std::ostream& operator<<(std::ostream& str, const State& s)
-  { return str << s.left << (s.L ? "!" : "") << " ↓ " << s.right << (s.R ? "!" : ""); }
-
   struct RedundancyCheck {
-    RedundancyCheck(const Ordering& ord, State* data);
-    std::pair<State*,const TermPartialOrdering*> next(Stack<TermOrderingConstraint> cons, State* data);
+    RedundancyCheck(const Ordering& ord, Literal* data);
+    std::pair<Literal*,const TermPartialOrdering*> next(Stack<TermOrderingConstraint> cons, Literal* data);
 
     void pushNext();
 
@@ -73,13 +57,7 @@ private:
     Stack<TermOrderingDiagram::Branch*> path;
   };
 
-  std::pair<State*,const TermPartialOrdering*> getNext(
-    RedundancyCheck& checker, State* curr, Stack<TermOrderingConstraint> cons, TermList left, TermList right);
-
   DemodulationLHSIndex* _index;
-  Stack<State*> _states;
-  bool _redundancyCheck;
-  bool _encompassing;
 };
 
 };

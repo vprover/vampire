@@ -56,13 +56,6 @@ struct Applicator : SubstApplicator {
 
 } // end namespace
 
-ForwardGroundJoinability::~ForwardGroundJoinability()
-{
-  while (_states.isNonEmpty()) {
-    delete _states.pop();
-  }
-}
-
 void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
 {
   ForwardGroundSimplificationEngine::attach(salg);
@@ -77,29 +70,6 @@ void ForwardGroundJoinability::detach()
   ForwardGroundSimplificationEngine::detach();
 }
 
-TermList replace(TermList t, TermList from, TermList to)
-{
-  if (t == from) {
-    return to;
-  }
-  if (t.isVar()) {
-    return t;
-  }
-  return TermList(EqHelper::replace(t.term(), from, to));
-}
-
-std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGroundJoinability::getNext(
-  RedundancyCheck& checker, State* curr, Stack<TermOrderingConstraint> cons, TermList left, TermList right)
-{
-  if (left == right) {
-    return checker.next(cons, nullptr);
-  }
-  bool L = curr->L && curr->left == left;
-  bool R = curr->R && curr->right == right;
-  _states.push(new State{ left, right, L, R });
-  return checker.next(cons, _states.top());
-}
-
 bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
@@ -108,35 +78,22 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 
   static DHSet<TermList> attempted;
 
-  // we do not support AVATAR yet
-  if (/* !cl->noSplits() ||  */cl->length()>1) {
+  if (cl->length()>1) {
     return false;
   }
 
-  auto clit = (*cl)[0];
-  if (!clit->isEquality() || clit->isNegative()) {
+  auto lit = (*cl)[0];
+  if (!lit->isEquality() || lit->isNegative()) {
     return false;
   }
   DHSet<Clause*> premiseSet;
 
-  // cleanup previous states
-  while (_states.isNonEmpty()) {
-    delete _states.pop();
-  }
-
-  auto lhs = clit->termArg(0);
-  auto rhs = clit->termArg(1);
-  if (lhs == rhs) {
+  if (EqHelper::isEqTautology(lit)) {
     premises = ClauseIterator::getEmpty();
     return true;
   }
-  auto lcomp = ordering.compare(lhs,rhs);
-  ASS_NEQ(lcomp,Ordering::EQUAL);
-  auto curr = new State{
-    lhs, rhs, lcomp != Ordering::LESS, lcomp != Ordering::GREATER
-  };
 
-  _states.push(curr);
+  auto curr = lit;
   RedundancyCheck checker(ordering, curr);
   auto tpo = TermPartialOrdering::getEmpty(ordering);
   unsigned cnt = 0;
@@ -149,7 +106,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
     attempted.reset();
 
     Stack<TermOrderingConstraint> eqCons;
-    if (makeEqual(curr->left, curr->right, eqCons)) {
+    if (makeEqual(curr, eqCons)) {
       auto kv = checker.next(eqCons, nullptr);
       if (curr != kv.first || tpo != kv.second) {
         curr = kv.first;
@@ -160,17 +117,13 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 
     ASS(tpo->isGround());
 
-    NonVariableNonTypeIterator it({ curr->left, curr->right });
+    NonVariableNonTypeIterator it(curr);
     while (it.hasNext()) {
       TermList trm(it.next());
       if (!attempted.insert(trm)) {
         it.right();
         continue;
       }
-
-      // bool redundancyCheck = _redundancyCheck &&
-      //   ((curr->L && trm == curr->left) ||
-      //    (curr->R && trm == curr->right));
 
       auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
       while(git.hasNext()) {
@@ -182,10 +135,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
           // we are not interested in these for now
           continue;
         }
-        // we do not support AVATAR yet
-        // if (!qr.data->clause->noSplits()) {
-        //   continue;
-        // }
+        // this is a random tiebreaker instead of the usual redundancy check
         if (qr.data->clause->number()>=cl->number()) {
           continue;
         }
@@ -220,49 +170,10 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
         // fails as the two extractors take two different branches
         // ASS(nodebug || kv.second.tpo == po_struct.tpo);
 
-        // // encompassing demodulation is fine when rewriting the smaller guy
-        // if (redundancyCheck) {
-        //   // this will only run at most once;
-        //   // could have been factored out of the getGeneralizations loop,
-        //   // but then it would run exactly once there
-        //   Ordering::Result litOrder = ordering.compare(curr->left,curr->right);
-        //   if ((trm==curr->left && litOrder == Ordering::LESS) ||
-        //       (trm==curr->right && litOrder == Ordering::GREATER)) {
-        //     redundancyCheck = false;
-        //   }
-        // }
-
-        // if (redundancyCheck && (!_encompassing || DemodulationHelper::isRenamingOn(&appl,lhs))) {
-        //   TermList other = trm == curr->left ? curr->right : curr->left;
-        //   bool fail = false;
-        //   while (!fail) {
-        //     OrderingComparator::VarOrderExtractor::Iterator extIt(ordering, other, rhsApplied.apply(), po_struct);
-        //     auto [redComp,red_po_struct] = extIt.next();
-        //     ASS_NEQ(redComp,Ordering::LESS);
-        //     // Note: EQUAL should be fine when doing forward simplification
-        //     if (redComp == Ordering::GREATER || (redComp == Ordering::EQUAL/*  && (!curr->L || !curr->R) */)) {
-        //       // success
-        //       po_struct = red_po_struct;
-        //       break;
-        //     }
-        //     // TODO add debug checks here
-        //     if (extractor.hasNext(nodebug)) {
-        //       po_struct = extractor.next();
-        //       continue;
-        //     }
-        //     fail = true;
-        //   }
-        //   if (fail) {
-        //     continue;
-        //   }
-        // }
-
         TermList rhsS = rhsApplied.apply();
 
-        auto left = replace(curr->left, trm, rhsS);
-        auto right = replace(curr->right, trm, rhsS);
-
-        auto next = getNext(checker, curr, po_struct.cons, left, right);
+        auto nextLit = EqHelper::replace(curr, trm, rhsS);
+        auto next = checker.next(po_struct.cons, EqHelper::isEqTautology(nextLit) ? nullptr : nextLit);
         // TODO can it be that we go to a different node in the tree and get the same result still?
         ASS(next.first != curr || next.second != tpo);
         curr = next.first;
@@ -282,7 +193,7 @@ LOOP_END:
   return true;
 }
 
-ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, State* data)
+ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
   : tod(ord.createTermOrderingDiagram(/*ground=*/true))
 {
   tod->_source = Branch(data, tod->_sink);
@@ -290,15 +201,11 @@ ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, 
   path.push(&tod->_source);
 }
 
-std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
-  Stack<TermOrderingConstraint> ordCons, State* data)
+std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
+  Stack<TermOrderingConstraint> ordCons, Literal* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
   ASS(path.isNonEmpty());
-
-  ASS(iterTraits(ordCons.iter()).all([](auto& con) {
-    return con.lhs.isVar() && con.rhs.isVar();
-  }));
 
   auto curr = path.top();
   ASS_EQ(curr->node()->tag, Tag::T_DATA);
@@ -345,7 +252,7 @@ std::pair<ForwardGroundJoinability::State*,const TermPartialOrdering*> ForwardGr
 
     if (node->tag == Tag::T_DATA) {
       ASS(node->data);
-      return make_pair(static_cast<State*>(node->data), node->trace);
+      return make_pair(static_cast<Literal*>(node->data), node->trace);
     }
     path.push(&node->getBranch(Ordering::GREATER));
   }
@@ -377,8 +284,12 @@ void ForwardGroundJoinability::RedundancyCheck::pushNext()
   }
 }
 
-bool ForwardGroundJoinability::makeEqual(TermList lhs, TermList rhs, Stack<TermOrderingConstraint>& res)
+bool ForwardGroundJoinability::makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res)
 {
+  ASS(lit->isEquality());
+  ASS(lit->isPositive());
+  auto lhs = lit->termArg(0);
+  auto rhs = lit->termArg(1);
   if (lhs == rhs) {
     return true;
   }

@@ -79,7 +79,7 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
   Test::MockedSaturationAlgorithm salg(p, o);
   const Stack<Index*>& indices = { demodulationLhsIndex(salg) };
 
-  ForwardGroundJoinability fgj(o);
+  ForwardGroundJoinability fgj;
   fgj.setTestIndices(indices);
   fgj.InferenceEngine::attach(&salg);
   for (auto i : indices) {
