@@ -26,7 +26,7 @@ namespace Timer {
   // 2. elapsed time (instructions) data should be live
   //
   // should be called exactly once per process as it internally spawns a std::thread
-  void reinitialise();
+  void reinitialise(bool tryInitInstructionLimiting=true);
 
   // disables exit on resource out: call when a proof has been found!
   // permanently disabled per-process
