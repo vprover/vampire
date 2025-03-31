@@ -260,22 +260,32 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
       opts, doAfterCheck, salg->getPassiveClauseContainer(),
       &salg->getOrdering(), &salg->getLiteralSelector(), &salg->condRedHandler());
 }
+struct BinaryResolution::PotentialApplicationIters {
+  BinaryResolution& self;
+  auto iterAppls(Clause* premise, Literal* lit) {
+    return iterItems(lit)
+      .filter([](auto l) { return !l->isEquality(); })
+      .flatMap([this](auto lit) {
+          // find query results for literal `lit`
+          return iterTraits(self._index->getUwa(lit, /* complementary */ true,
+                                           env.options->unificationWithAbstraction(),
+                                           env.options->unificationWithAbstractionFixedPointIteration()));
+      });
+  }
+};
+
+VirtualIterator<std::tuple<>> BinaryResolution::lookaheadResultEstimation(SelectedAtom const& selection)
+{ return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal()))); }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
   return pvi(TIME_TRACE_ITER("resolution",
       premise->getSelectedLiteralIterator()
-      // TODO filter out >= in alasca
-        .filter([](auto l) { return !l->isEquality(); })
-        .flatMap([this,premise](auto lit) {
-            // find query results for literal `lit`
-            return iterTraits(_index->getUwa(lit, /* complementary */ true,
-                                             env.options->unificationWithAbstraction(),
-                                             env.options->unificationWithAbstractionFixedPointIteration()))
-                     .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, this->getOptions(), _salg); });
-        })
-        .filter(NonzeroFn())
-  ));
+        .flatMap([=](auto lit) { return PotentialApplicationIters{*this}
+          .iterAppls(premise, lit)
+            .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, this->getOptions(), _salg); })
+            .filter(NonzeroFn());
+        })));
 }
 
 }

@@ -34,6 +34,8 @@ using namespace Saturation;
 class BinaryResolution
 : public GeneratingInferenceEngine
 {
+  struct PotentialApplicationIters;
+  friend struct PotentialApplicationIters;
 public:
   BinaryResolution() 
     : _index(0)
@@ -42,9 +44,7 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
-  /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override;
 
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
