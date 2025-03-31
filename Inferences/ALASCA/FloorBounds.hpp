@@ -66,7 +66,7 @@ class FloorBounds
   template<class Premise, class... Lits>
   static auto resClause(Premise const& premise, Lits... lits) {
     return Clause::fromIterator(
-        concatIters(premise.contextLiterals(), iterItems(lits...)),
+        concatIters(premise.contextLiterals(), iterItems<Literal*>(lits...)),
         GeneratingInference1(InferenceRule::ALASCA_FLOOR_BOUNDS, premise.clause()));
   }
 
@@ -109,7 +109,7 @@ class FloorBounds
         : pred == AlascaPredicate::GREATER    ? resClause(premise, 
             greater0(sum(s, ceil(t), numeral(-1))),
             eq0(sum(floor(s), ceil(t), numeral(-1))))
-        : assertionViolation<Clause*>()
+        : assertionViolation<decltype(resClause(premise))>()
         ,
         // TODO TRYOUT RULE: put into paper
         // +⌊s⌋ + t >~ 0 
@@ -164,7 +164,7 @@ class FloorBounds
           // −⌊s⌋ + ⌈t⌉ − 1 ≈ 0 ∨ −s + ⌈t⌉ − 1 > 0
           : pred == AlascaPredicate::GREATER ?  resClause(premise, 
                                greater0(sum(minus(s), ceil(t))))
-          : assertionViolation<Clause*>()
+          : assertionViolation<decltype(resClause(premise))>()
 
 
           ,
@@ -184,7 +184,7 @@ class FloorBounds
   }
 
   template<class ClauseOrAtom, class F>
-  ClauseIterator generateClauses(ClauseOrAtom premise, F resClause)
+  auto generateClauses(ClauseOrAtom premise, F resClause)
   {
     return pvi(concatIters(
           generateClauses<Superposition::Lhs>(premise, resClause),
@@ -210,11 +210,11 @@ public:
 
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return generateClauses(selection, 
-      [this](auto& premise, auto... lits) { return 0; }); }
+      [](auto& premise, auto... lits) { return std::make_tuple(); }); }
 
   ClauseIterator generateClauses(Clause* premise) final override
-  { return generateClauses(premise, 
-      [this](auto& premise, auto... lits) { return this->resClause(premise, lits...); }); }
+  { return pvi(generateClauses(premise, 
+      [this](auto& premise, auto... lits) { return this->resClause(premise, lits...); })); }
 
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
