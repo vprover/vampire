@@ -29,12 +29,8 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 
-#if VMINI_GMP
 #include "mini-gmp.h"
 #include "mini-mpq.h"
-#else 
-#include <gmp.h>
-#endif
 
 namespace Kernel {
 

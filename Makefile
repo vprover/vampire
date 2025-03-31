@@ -23,7 +23,7 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-COMMON_FLAGS = -DVTIME_PROFILING=0 -DVMINI_GMP
+COMMON_FLAGS = -DVTIME_PROFILING=0
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
@@ -341,7 +341,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainers.o\
 
 VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/CommandLine.o\
-         Shell/ConditionalRedundancyHandler.o\
+         Shell/PartialRedundancyHandler.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
          Shell/DistinctProcessor.o\
@@ -559,7 +559,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -lgmp -lgmpxx -Lcadical/build -lcadical
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -Lcadical/build -lcadical
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

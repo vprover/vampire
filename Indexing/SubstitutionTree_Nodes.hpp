@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * @file SubstitutionTree_Nodes.cpp
+ * @file SubstitutionTree_Nodes.hpp
  * Different SubstitutionTree Node implementations.
  */
 

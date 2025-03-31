@@ -246,17 +246,17 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 # AVATAR
 > av ~cat off:1
 
-# conditional_redundancy_check
-> crc ~cat on:3,off:5
+# partial_redundancy_check
+> prc ~cat on:3,off:5
 
-# conditional_redundancy_ordering_constraints
-crc=on > croc ~cat on:1,off:1
+# partial_redundancy_ordering_constraints
+prc=on > proc ~cat on:1,off:1
 
-# conditional_redundancy_avatar_constraints
-# av=on crc=on > crac ~cat on:1,off:1 # no AVATAR for UEQ
+# partial_redundancy_avatar_constraints
+# av=on prc=on > prac ~cat on:1,off:1 # no AVATAR for UEQ
 
-# conditional_redundancy_literal_constraints
-crc=on > crlc ~cat on:1,off:1
+# partial_redundancy_literal_constraints
+prc=on > prlc ~cat on:1,off:1
 
 # BACK TO PREPROCESSING
 
