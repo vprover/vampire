@@ -95,13 +95,13 @@ public:
     FOR_NUM_TRAITS_FRAC_PREFIX(FOR_NUM)
 #undef FOR_NUM
 
-    static auto iter(AlascaState& shared, Clause* cl)
+    static auto iter(AlascaState& shared, SelectedAtom const& sel)
     {
-      // TODO use selection here and use isInt instead of ⌊..⌋ = t
+      // TODO 4 use selection here and use isInt instead of ⌊..⌋ = t
       // return shared.selectedSummands(cl, /* lit */ SelectionCriterion::NOT_LEQ, /* term */ SelectionCriterion::NOT_LEQ, /*includeUnshieldedNumberVariables=*/ false)
       //   .filter([](auto x) { return is })
       
-      return iterTraits(ALASCA::Superposition::Lhs::iter(shared, cl))
+      return ALASCA::Superposition::Lhs::iter(shared, sel)
         .filter([](auto& lhs) -> bool { return ASig::isFloor(lhs.biggerSide()); })
         .filter([](auto& lhs) { return !ASig::isNumeral(lhs.smallerSide()); })
         .map([&shared](auto lhs) {
@@ -115,6 +115,19 @@ public:
         .flatten()
         .filter([](auto& lhs) { return !lhs.s().isVar(); })
       ;
+    }
+
+
+    static auto iter(AlascaState& shared, Clause* cl)
+    {
+      // TODO use selection here and use isInt instead of ⌊..⌋ = t
+      // return shared.selectedSummands(cl, /* lit */ SelectionCriterion::NOT_LEQ, /* term */ SelectionCriterion::NOT_LEQ, /*includeUnshieldedNumberVariables=*/ false)
+      //   .filter([](auto x) { return is })
+      
+      return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
+                                 /* terms   */ SelectionCriterion::NOT_LEQ,
+                                 /* include number vars */ false)
+        .flatMap([&shared](auto sel) { return iter(shared, sel); });
     }
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
@@ -161,9 +174,9 @@ public:
        ; 
     }
 
-    static auto iter(AlascaState& shared, Clause* cl)
+    static auto iter(AlascaState& shared, SelectedAtom const& atom)
     {
-      return iterTraits(ALASCA::Superposition::Rhs::iter(shared, cl))
+      return iterTraits(ALASCA::Superposition::Rhs::iter(shared, atom))
         .flatMap([&shared](auto rhs) { 
             auto toRewrite = rhs.key();
             return iterApplicableSummandsUnderFloor(shared, toRewrite)
@@ -171,6 +184,13 @@ public:
                   return Rhs { rhs, toRewrite, pair.first, pair.second, };
                   });
               });
+    }
+
+
+    static auto iter(AlascaState& shared, Clause* cl)
+    {
+      return ALASCA::Superposition::Rhs::activePositions(shared, cl)
+        .flatMap([&shared](auto atom) { return iter(shared, atom); });
     }
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)

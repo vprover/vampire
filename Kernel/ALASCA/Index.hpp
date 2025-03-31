@@ -53,9 +53,10 @@ public:
 
   void setShared(std::shared_ptr<Kernel::AlascaState> shared) { _shared = std::move(shared); }
 
-  template<class VarBanks>
-  auto find(AbstractingUnifier* state, KeyType<T> key)
-  { return iterTraits(_index.template getUwa<VarBanks>(state, key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
+  // AU is either AbstractingUnifier* or AbstractingUnifier
+  template<class VarBanks, class AU>
+  auto find(AU state, KeyType<T> key)
+  { return iterTraits(_index.template getUwa<VarBanks>(std::move(state), key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
       .timeTraced(_lookupStr.c_str()); }
 
 

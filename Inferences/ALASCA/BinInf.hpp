@@ -20,6 +20,8 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/NumTraits.hpp"
@@ -55,6 +57,7 @@ private:
   Rule _rule;
   AlascaIndex<Lhs>* _lhs;
   AlascaIndex<Rhs>* _rhs;
+  AbstractingUnifier _lookaheadUnif; 
 public:
   USE_ALLOCATOR(BinInf);
 
@@ -64,12 +67,22 @@ public:
     , _rule(std::move(rule))
     , _lhs(nullptr)
     , _rhs(nullptr)
+    , _lookaheadUnif(AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF)))
   {  }
 
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  {
+    // TODO set retrieveSubst false in find
+    // TODO 3 test lookahead if the unifier is reset properly
+    ASS(_lookaheadUnif.subs().isEmpty())
+    return pvi(concatIters(
+      dropElementType(Lhs::iter(*_shared, selection)
+        .flatMap([=](auto lhs) { return _rhs->template find<VarBanks>(&_lookaheadUnif, lhs.key()); })),
+      dropElementType(Rhs::iter(*_shared, selection)
+        .flatMap([=](auto rhs) { return _lhs->template find<VarBanks>(&_lookaheadUnif, rhs.key()); }))
+    ));
+  }
 
   void attach(SaturationAlgorithm* salg) final override
   { 
@@ -107,6 +120,8 @@ public:
   }
 #endif
 
+  using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
+
   ClauseIterator generateClauses(Clause* premise) final override
   {
     ASS(_lhs)
@@ -119,7 +134,6 @@ public:
     auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
     ASS(sigma.isEmpty())
 
-    using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
 
     DEBUG(0, _rule.name())
     for (auto const& lhs : Lhs::iter(*_shared, premise)) {

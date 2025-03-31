@@ -21,6 +21,7 @@
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
@@ -55,11 +56,18 @@ struct BinaryResolutionConf
 
     Literal* key() const { return literal(); }
 
+    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+      return iterTraits(sel.as<SelectedAtomicLiteral>()
+             .filter([](auto x) { return x.literal()->isPositive(); })
+             .map([](auto x) { return Lhs(std::move(x)); })
+             .intoIter());
+    }
+
     static auto iter(AlascaState& shared, Clause* cl)
     {
-      return shared.selectedAtomicLiterals(cl, /* literal */ SelectionCriterion::NOT_LEQ)
-             .filter([](auto x) { return x.literal()->isPositive(); })
-             .map([](auto x) { return Lhs(std::move(x)); });
+      // TODO 3 sort out selection criterions
+      return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LEQ, /* selTerm */ SelectionCriterion::ANY, /*includeUnshieldedNumberVariables=*/ false)
+               .flatMap([&shared](auto selected) { return iter(shared, selected); });
     }
 
     static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE; }
@@ -74,11 +82,18 @@ struct BinaryResolutionConf
 
     Literal* key() const { return Literal::positiveLiteral(literal()); }
 
+    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+      return iterTraits(sel.as<SelectedAtomicLiteral>()
+             .filter([](auto x) { return !x.literal()->isPositive(); })
+             .map([](auto x) { return Rhs(std::move(x)); })
+             .intoIter());
+    }
+
     static auto iter(AlascaState& shared, Clause* cl)
     {
-      return shared.selectedAtomicLiterals(cl, /* literal */ SelectionCriterion::NOT_LESS)
-             .filter([](auto x) { return !x.literal()->isPositive(); })
-             .map([](auto x) { return Rhs(std::move(x)); });
+      // TODO 3 sort out selection criterions
+      return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LESS, /* selTerm */ SelectionCriterion::ANY, /*includeUnshieldedNumberVariables=*/ false)
+               .flatMap([&shared](auto selected) { return iter(shared, selected); });
     }
 
     static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE; }

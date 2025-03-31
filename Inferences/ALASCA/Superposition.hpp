@@ -53,14 +53,22 @@ struct SuperpositionConf
 
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
-    static auto iter(AlascaState& shared, Clause* cl)
-    {
-      return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
-                                           /* terms   */ SelectionCriterion::NOT_LEQ,
-                                           /* include number vars */ false)
-             .filter([](auto x) { return x.literal()->isPositive(); })
+
+    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+      return iterTraits(sel.as<SelectedAtomicTerm>()
+             .andThen([](auto t) { return SelectedEquality::from(std::move(t)); })
+             .filter([](auto& x) { return x.literal()->isPositive(); })
+             // TODO 4 do we ever select numerals for any inference ???
              .filter([](auto& l) { return !forAnyNumTraits([&](auto n) { return n.isNumeral(l.biggerSide()); }); })
-             .map([](auto x) { return Lhs(std::move(x)); });
+             .map([](auto x) { return Lhs(std::move(x)); })
+             .intoIter());
+    }
+
+    static auto iter(AlascaState& shared, Clause* cl) {
+      return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
+                                 /* terms   */ SelectionCriterion::NOT_LEQ,
+                                 /* include number vars */ false)
+             .flatMap([&shared](auto selected) { return iter(shared, selected); });
     }
 
     static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_LHS_SUBST_TREE; }
@@ -86,6 +94,7 @@ struct SuperpositionConf
     // TermList sort() const { return key().sort(); }
 
 
+    // TODO 3 remove activePositions
     static auto activePositions(AlascaState& shared, Clause* cl) 
     {
       return shared.selected(cl, 
@@ -94,17 +103,19 @@ struct SuperpositionConf
           /* include number vars */ false);
     }
 
+    static auto iter(AlascaState& shared, SelectedAtom const& atom) { 
+      return iterTraits(atom.iterSelectedSubterms()
+         .filter([](AnyAlascaTerm const& t) { return t.isAtomic() && !t.asAtomic()->isVar(); })
+         .filter([](AnyAlascaTerm const& t) { return !t.isNumeral(); })
+         .map([atom](auto t) { return Rhs(atom, t); }))
+         .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite().toTerm()), Output::cat(x, "\n", *x.literal(), "\n", x.toRewrite())); })
+      ;
+    }
+
     static auto iter(AlascaState& shared, Clause* cl)
     { 
       return activePositions(shared, cl)
-        .flatMap([&](auto atom) {
-            return atom.iterSelectedSubterms()
-               .filter([](AnyAlascaTerm const& t) { return t.isAtomic() && !t.asAtomic()->isVar(); })
-               .filter([](AnyAlascaTerm const& t) { return !t.isNumeral(); })
-               .map([atom](auto t) { return Rhs(atom, t); });
-        })
-      .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite().toTerm()), Output::cat(x, "\n", *x.literal(), "\n", x.toRewrite())); })
-      ;
+        .flatMap([&shared](auto selected) { return iter(shared, selected); });
     }
 
     bool postUnificationCheck(AbstractingUnifier& unif, unsigned varBank, Ordering* ord) const 

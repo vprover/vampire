@@ -113,9 +113,10 @@ public:
     return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, /* retrieveSubstitutions */ true,  unif.get(), AbstractionOracle(uwa), fixedPointIteration)
         .store(std::move(unif))); }
 
-  template<class VarBanks>
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, Literal* lit, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, VarBanks>>>(lit, /* complementar*/ false, /* retrieveSubstitutions */ true, state, AbstractionOracle(uwa), fixedPointIteration)); }
+  // AU is AbstractingUnifier or AbstractingUnifier*
+  template<class VarBanks, class AU>
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AU state, Literal* lit, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AU, VarBanks>>>(lit, /* complementar*/ false, /* retrieveSubstitutions */ true, std::move(state), AbstractionOracle(uwa), fixedPointIteration)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 

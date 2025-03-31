@@ -52,14 +52,21 @@ struct FourierMotzkinConf
     
     TypedTermList key() const { return selectedAtomicTerm(); }
 
-    static auto iter(AlascaState& shared, Clause* cl)
-    { 
-      return shared.selectedSummands(cl, /* literal*/ SelectionCriterion::NOT_LEQ, 
-                                         /* term */ SelectionCriterion::NOT_LEQ,
-                                         /* include number vars */ false)
+    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+      return iterTraits(sel.toSelectedAtomicTermItp()
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
-              .map([&]   (auto selected)        { return Lhs(std::move(selected));     }); }
+              .map([&]   (auto selected)        { return Lhs(std::move(selected));     })
+              .intoIter());
+    }
+
+    static auto iter(AlascaState& shared, Clause* cl)
+    { 
+      return shared.selected(cl, /* literal*/ SelectionCriterion::NOT_LEQ, 
+                                 /* term */ SelectionCriterion::NOT_LEQ,
+                                 /* include number vars */ false)
+              .flatMap([&shared](auto selected) { return iter(shared, selected); }); }
+
   };
 
   class Rhs : public SelectedAtomicTermItpAny { 
@@ -74,14 +81,23 @@ struct FourierMotzkinConf
 
     TypedTermList key() const { return selectedAtomicTerm(); }
 
-    static auto iter(AlascaState& shared, Clause* cl) 
-    { 
-      return shared.selectedSummands(cl, /* literal*/ SelectionCriterion::NOT_LESS,
-                                         /* term */ SelectionCriterion::NOT_LEQ,
-                                         /* include number vars */ false)
+    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+      return iterTraits(sel.toSelectedAtomicTermItp()
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
-              .map([&]   (auto selected)        { return Rhs(std::move(selected));     }); }
+              .map([&]   (auto selected)        { return Rhs(std::move(selected));     })
+              .intoIter());
+    }
+
+
+    static auto iter(AlascaState& shared, Clause* cl) 
+    { 
+      return shared.selected(cl, /* literal*/ SelectionCriterion::NOT_LESS,
+                                 /* term */ SelectionCriterion::NOT_LEQ,
+                                 /* include number vars */ false)
+              .flatMap([&shared](auto selected) { return iter(shared, selected); });
+    }
+              
   };
 
   auto applyRule(
