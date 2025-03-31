@@ -153,6 +153,11 @@ private:
   unsigned _cLen;
 };
 
+VirtualIterator<std::tuple<>> NegativeExt::lookaheadResultEstimation(SelectedAtom const& selection) {
+  auto cnt = IsNegativeEqualityFn()(selection.literal()) ? 1 : 0;
+  return pvi(dropElementType(range(0, cnt)));
+}
+
 ClauseIterator NegativeExt::generateClauses(Clause* premise)
 {
   //cout << "NegativeExt with " + premise->toString() << endl;
