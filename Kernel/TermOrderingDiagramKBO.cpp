@@ -13,7 +13,7 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
-#include "KBOComparator.hpp"
+#include "TermOrderingDiagramKBO.hpp"
 
 namespace Kernel {
 
@@ -21,7 +21,7 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void KBOComparator::processTermNode()
+void TermOrderingDiagramKBO::processTermNode()
 {
   const auto& kbo = static_cast<const KBO&>(_ord);
 
@@ -63,7 +63,7 @@ void KBOComparator::processTermNode()
   if (weightAdded) {
     // we mutate the original node
     curr->node()->tag = Node::T_POLY;
-    curr->node()->poly = LinearExpression::get(w, nonzeros);
+    curr->node()->linexp = LinearExpression::get(w, nonzeros);
     curr->node()->gtBranch = gtBranch;
     curr->node()->ngeBranch = ngeBranch;
     curr = &curr->node()->eqBranch;

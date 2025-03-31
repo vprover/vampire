@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file OrderingComparator.cpp
- * Implements class OrderingComparator.
+ * @file TermOrderingDiagram.cpp
+ * Implements class TermOrderingDiagram.
  */
 
 #include "Lib/Stack.hpp"
@@ -18,30 +18,30 @@
 #include "KBO.hpp"
 #include "SubstHelper.hpp"
 
-#include "OrderingComparator.hpp"
+#include "TermOrderingDiagram.hpp"
 
 using namespace std;
 
 namespace Kernel {
 
-// OrderingComparator
+// TermOrderingDiagram
 
-OrderingComparator::OrderingComparator(const Ordering& ord)
+TermOrderingDiagram::TermOrderingDiagram(const Ordering& ord)
 : _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr)
 {
   _sink.node()->ready = true;
 }
 
-OrderingComparator::~OrderingComparator() = default;
+TermOrderingDiagram::~TermOrderingDiagram() = default;
 
-void OrderingComparator::init(const SubstApplicator* appl)
+void TermOrderingDiagram::init(const SubstApplicator* appl)
 {
   _curr = &_source;
   _prev = nullptr;
   _appl = appl;
 }
 
-void* OrderingComparator::next()
+void* TermOrderingDiagram::next()
 {
   ASS(_appl);
   ASS(_curr);
@@ -72,9 +72,9 @@ void* OrderingComparator::next()
       ASS_EQ(node->tag, Node::T_POLY);
 
       const auto& kbo = static_cast<const KBO&>(_ord);
-      auto weight = node->poly->constant;
+      auto weight = node->linexp->constant;
       ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
+      for (const auto& [var, coeff] : node->linexp->varCoeffPairs) {
         AppliedTerm tt(TermList::var(var), _appl, true);
 
         if (tt.term.isVar()) {
@@ -109,7 +109,7 @@ loop_end:
   return nullptr;
 }
 
-void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void* data)
+void TermOrderingDiagram::insert(const Stack<TermOrderingConstraint>& comps, void* data)
 {
   ASS(data);
   static Ordering::Result ordVals[] = { Ordering::GREATER, Ordering::EQUAL, Ordering::INCOMPARABLE };
@@ -133,7 +133,7 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
     curr = &curr->node()->getBranch(comps[0].rel);
     for (unsigned i = 1; i < comps.size(); i++) {
       auto [lhs,rhs,rel] = comps[i];
-      *curr = OrderingComparator::Branch(lhs, rhs);
+      *curr = TermOrderingDiagram::Branch(lhs, rhs);
       for (unsigned i = 0; i < 3; i++) {
         if (ordVals[i] != rel) {
           curr->node()->getBranch(ordVals[i]) = newFail;
@@ -151,7 +151,7 @@ void OrderingComparator::insert(const Stack<TermOrderingConstraint>& comps, void
   _sink = newFail;
 }
 
-void OrderingComparator::processCurrentNode()
+void TermOrderingDiagram::processCurrentNode()
 {
   ASS(_curr->node());
   while (!_curr->node()->ready)
@@ -196,7 +196,7 @@ void OrderingComparator::processCurrentNode()
   }
 }
 
-void OrderingComparator::processVarNode()
+void TermOrderingDiagram::processVarNode()
 {
   auto node = _curr->node();
   auto trace = getCurrentTrace();
@@ -223,7 +223,7 @@ void OrderingComparator::processVarNode()
   _curr->node()->trace = trace;
 }
 
-void OrderingComparator::processPolyNode()
+void TermOrderingDiagram::processPolyNode()
 {
   auto node = _curr->node();
   auto trace = getCurrentTrace();
@@ -231,7 +231,7 @@ void OrderingComparator::processPolyNode()
   unsigned pos = 0;
   unsigned neg = 0;
 
-  auto vcs = node->poly->varCoeffPairs;
+  auto vcs = node->linexp->varCoeffPairs;
 
   for (unsigned i = 0; i < vcs.size();) {
     auto& [var, coeff] = vcs[i];
@@ -258,7 +258,7 @@ void OrderingComparator::processPolyNode()
     i++;
   }
 
-  auto constant = node->poly->constant;
+  auto constant = node->linexp->constant;
   if (constant == 0 && pos == 0 && neg == 0) {
     *_curr = node->eqBranch;
     return;
@@ -271,30 +271,30 @@ void OrderingComparator::processPolyNode()
     *_curr = node->ngeBranch;
     return;
   }
-  auto poly = LinearExpression::get(constant, vcs);
+  auto linexp = LinearExpression::get(constant, vcs);
 
   // if refcnt > 1 we have to copy the node,
   // otherwise we can mutate the original
   if (node->refcnt > 1) {
-    *_curr = Branch(poly);
+    *_curr = Branch(linexp);
     _curr->node()->eqBranch = node->eqBranch;
     _curr->node()->gtBranch = node->gtBranch;
     _curr->node()->ngeBranch = node->ngeBranch;
   } else {
-    _curr->node()->poly = poly;
+    _curr->node()->linexp = linexp;
   }
   _curr->node()->trace = trace;
   _curr->node()->ready = true;
 }
 
-void OrderingComparator::processTermNode()
+void TermOrderingDiagram::processTermNode()
 {
   ASS(_curr->node() && !_curr->node()->ready);
   _curr->node()->ready = true;
   _curr->node()->trace = Trace::getEmpty(_ord);
 }
 
-const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
+const TermOrderingDiagram::Trace* TermOrderingDiagram::getCurrentTrace()
 {
   ASS(!_curr->node()->ready);
 
@@ -329,37 +329,37 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
 
 // Branch
 
-OrderingComparator::Branch::Branch(void* data, Branch alt)
+TermOrderingDiagram::Branch::Branch(void* data, Branch alt)
 {
   setNode(new Node(data, alt));
 }
 
-OrderingComparator::Branch::Branch(TermList lhs, TermList rhs)
+TermOrderingDiagram::Branch::Branch(TermList lhs, TermList rhs)
 {
   setNode(new Node(lhs, rhs));
 }
 
-OrderingComparator::Branch::Branch(const LinearExpression* p)
+TermOrderingDiagram::Branch::Branch(const LinearExpression* e)
 {
-  setNode(new Node(p));
+  setNode(new Node(e));
 }
 
-OrderingComparator::Branch::~Branch()
+TermOrderingDiagram::Branch::~Branch()
 {
   setNode(nullptr);
 }
 
-OrderingComparator::Branch::Branch(const Branch& other)
+TermOrderingDiagram::Branch::Branch(const Branch& other)
 {
   setNode(other._node);
 }
 
-OrderingComparator::Node* OrderingComparator::Branch::node() const
+TermOrderingDiagram::Node* TermOrderingDiagram::Branch::node() const
 {
   return _node;
 }
 
-void OrderingComparator::Branch::setNode(Node* node)
+void TermOrderingDiagram::Branch::setNode(Node* node)
 {
   if (node) {
     node->incRefCnt();
@@ -370,12 +370,12 @@ void OrderingComparator::Branch::setNode(Node* node)
   _node = node;
 }
 
-OrderingComparator::Branch::Branch(Branch&& other)
+TermOrderingDiagram::Branch::Branch(Branch&& other)
 {
   swap(_node,other._node);
 }
 
-OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch other)
+TermOrderingDiagram::Branch& TermOrderingDiagram::Branch::operator=(Branch other)
 {
   swap(_node,other._node);
   return *this;
@@ -383,16 +383,16 @@ OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch other)
 
 // Node
 
-OrderingComparator::Node::Node(void* data, Branch alternative)
+TermOrderingDiagram::Node::Node(void* data, Branch alternative)
   : tag(T_DATA), data(data), alternative(alternative) {}
 
-OrderingComparator::Node::Node(TermList lhs, TermList rhs)
+TermOrderingDiagram::Node::Node(TermList lhs, TermList rhs)
   : tag(T_TERM), lhs(lhs), rhs(rhs) {}
 
-OrderingComparator::Node::Node(const LinearExpression* p)
-  : tag(T_POLY), poly(p) {}
+TermOrderingDiagram::Node::Node(const LinearExpression* e)
+  : tag(T_POLY), linexp(e) {}
 
-OrderingComparator::Node::~Node()
+TermOrderingDiagram::Node::~Node()
 {
   if (tag==T_DATA) {
     alternative.~Branch();
@@ -400,12 +400,12 @@ OrderingComparator::Node::~Node()
   ready = false;
 }
 
-void OrderingComparator::Node::incRefCnt()
+void TermOrderingDiagram::Node::incRefCnt()
 {
   refcnt++;
 }
 
-void OrderingComparator::Node::decRefCnt()
+void TermOrderingDiagram::Node::decRefCnt()
 {
   ASS(refcnt>=0);
   refcnt--;
@@ -414,7 +414,7 @@ void OrderingComparator::Node::decRefCnt()
   }
 }
 
-OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result r)
+TermOrderingDiagram::Branch& TermOrderingDiagram::Node::getBranch(Ordering::Result r)
 {
   switch (r) {
     case Ordering::EQUAL: return eqBranch;
@@ -429,9 +429,9 @@ OrderingComparator::Branch& OrderingComparator::Node::getBranch(Ordering::Result
 
 // Printing
 
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node::Tag& t)
+std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram::Node::Tag& t)
 {
-  using Tag = OrderingComparator::Node::Tag;
+  using Tag = TermOrderingDiagram::Node::Tag;
   switch (t) {
     case Tag::T_DATA: return out << "d";
     case Tag::T_TERM: return out << "t";
@@ -440,40 +440,40 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node::Tag&
   ASSERTION_VIOLATION;
 }
 
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node)
+std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram::Node& node)
 {
-  using Tag = OrderingComparator::Node::Tag;
+  using Tag = TermOrderingDiagram::Node::Tag;
   out << (Tag)node.tag << (node.ready?" ":"? ");
   switch (node.tag) {
     case Tag::T_DATA: return out << node.data;
-    case Tag::T_POLY: return out << *node.poly;
+    case Tag::T_POLY: return out << *node.linexp;
     case Tag::T_TERM: return out << node.lhs << " " << node.rhs;
   }
   ASSERTION_VIOLATION;
 }
 
-std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
+std::ostream& operator<<(std::ostream& str, const TermOrderingDiagram& tod)
 {
-  Stack<std::pair<const OrderingComparator::Branch*, unsigned>> todo;
-  todo.push(std::make_pair(&comp._source,0));
+  Stack<std::pair<const TermOrderingDiagram::Branch*, unsigned>> stack;
+  stack.push(std::make_pair(&tod._source,0));
   // Note: using this set we get a more compact representation
-  DHSet<OrderingComparator::Node*> seen;
+  DHSet<TermOrderingDiagram::Node*> seen;
 
-  while (todo.isNonEmpty()) {
-    auto kv = todo.pop();
+  while (stack.isNonEmpty()) {
+    auto kv = stack.pop();
     for (unsigned i = 0; i < kv.second; i++) {
       str << ((i+1 == kv.second) ? "  |--" : "  |  ");
     }
     str << *kv.first->node() << std::endl;
     if (seen.insert(kv.first->node())) {
-      if (kv.first->node()->tag==OrderingComparator::Node::T_DATA) {
+      if (kv.first->node()->tag==TermOrderingDiagram::Node::T_DATA) {
         if (kv.first->node()->data) {
-          todo.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
+          stack.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
         }
       } else {
-        todo.push(std::make_pair(&kv.first->node()->ngeBranch,kv.second+1));
-        todo.push(std::make_pair(&kv.first->node()->eqBranch,kv.second+1));
-        todo.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
+        stack.push(std::make_pair(&kv.first->node()->ngeBranch,kv.second+1));
+        stack.push(std::make_pair(&kv.first->node()->eqBranch,kv.second+1));
+        stack.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
       }
     }
   }

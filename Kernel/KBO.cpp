@@ -22,7 +22,7 @@
 #include "Shell/Options.hpp"
 #include <fstream>
 
-#include "KBOComparator.hpp"
+#include "TermOrderingDiagramKBO.hpp"
 #include "NumTraits.hpp"
 #include "Signature.hpp"
 #include "SubstHelper.hpp"
@@ -780,9 +780,9 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) co
   }
 }
 
-OrderingComparatorUP KBO::createComparator() const
+TermOrderingDiagramUP KBO::createTermOrderingDiagram() const
 {
-  return make_unique<KBOComparator>(*this);
+  return make_unique<TermOrderingDiagramKBO>(*this);
 }
 
 int KBO::symbolWeight(const Term* t) const

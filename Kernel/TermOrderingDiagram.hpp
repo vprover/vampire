@@ -8,11 +8,11 @@
  * and in the source directory
  */
 /**
- * @file OrderingComparator.hpp
+ * @file TermOrderingDiagram.hpp
  */
 
-#ifndef __OrderingComparator__
-#define __OrderingComparator__
+#ifndef __TermOrderingDiagram__
+#define __TermOrderingDiagram__
 
 #include "Forwards.hpp"
 
@@ -34,13 +34,13 @@ struct LinearExpression;
  *
  * The diagrams are created and called from inside a specific ordering
  * object (KBO or LPO), but owned by the caller, so the destructor is virtual.
- * See @b KBOComparator and @b LPOComparator for implementation details.
+ * See @b TermOrderingDiagramKBO and @b TermOrderingDiagramLPO for implementation details.
  */
-struct OrderingComparator
+struct TermOrderingDiagram
 {
 public:
-  OrderingComparator(const Ordering& ord);
-  virtual ~OrderingComparator();
+  TermOrderingDiagram(const Ordering& ord);
+  virtual ~TermOrderingDiagram();
 
   /** Has to be called each time a new retrieval is started. */
   void init(const SubstApplicator* appl);
@@ -53,7 +53,7 @@ public:
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
 
-  friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
+  friend std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram& tod);
 
 private:
   /** Processes current node until it is either (i) a term or poly node whose result
@@ -67,7 +67,7 @@ private:
 protected:
   /** Implements one step of a definitional expansion
    *  for two terms in a specific term ordering.
-   *  See @b KBOComparator and @b LPOComparator. */
+   *  See @b TermOrderingDiagramKBO and @b TermOrderingDiagramLPO. */
   virtual void processTermNode();
 
   /** As noted above, a processed node can be reached via exactly one path,
@@ -136,7 +136,7 @@ protected:
     union {
       void* data = nullptr;
       TermList lhs;
-      const LinearExpression* poly;
+      const LinearExpression* linexp;
     };
     union {
       Branch alternative;

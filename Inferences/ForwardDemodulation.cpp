@@ -84,7 +84,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   auto& opt = getOptions();
   _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
   _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _precompiledComparison = opt.demodulationPrecompiledComparison();
+  _useTermOrderingDiagrams = opt.forwardDemodulationTermOrderingDiagrams();
   _skipNonequationalLiterals = opt.demodulationOnlyEquational();
   _helper = DemodulationHelper(opt, &_salg->getOrdering());
 }
@@ -178,9 +178,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto dcomp = ordering.compare(trm,rhsApplied);
 #endif
 
-        if (_precompiledComparison) {
-          qr.data->comparator->init(appl);
-          if (!preordered && (_preorderedOnly || !qr.data->comparator->next())) {
+        if (_useTermOrderingDiagrams) {
+          qr.data->tod->init(appl);
+          if (!preordered && (_preorderedOnly || !qr.data->tod->next())) {
             ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
           }
