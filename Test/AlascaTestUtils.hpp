@@ -45,7 +45,6 @@ struct AlascaSimplRule
   AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) : _state(state), _rule(std::move(r)), _norm(std::move(n)) {}
   AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r) : _state(state), _rule(std::move(r)), _norm(state) {}
   
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override 
   { return _rule.lookaheadResultEstimation(selection); }
 
@@ -109,9 +108,8 @@ struct ToSgi : public SimplifyingGeneratingInference {
            };
   }
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  { return lookeaheadResultDoesNotDependOnSelection(); }
 };
 
 template<class ISE>
