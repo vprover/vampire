@@ -28,6 +28,7 @@
 #include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
 #include "Kernel/Theory.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/STL.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Backtrackable.hpp"
@@ -304,9 +305,8 @@ struct CoherenceNormalization : public SimplifyingGeneratingInference {
     };
   }
 
-  /** TODO 2 should we make this a correct estimation */
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
+  { return pvi(dropElementType(Superposition::Lhs::iter(*shared, selection))); }
 
   // C \/ ⌊s⌋ = t
   // ============ if ⌊t⌋ != ⌊s⌋
