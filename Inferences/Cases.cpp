@@ -28,6 +28,7 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 
+#include "Lib/Metaiterators.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Cases.hpp"
@@ -95,17 +96,23 @@ private:
   Ordering& _ord;
 };
 
+
+struct Cases::PotentialApplicationIters {
+  Cases& self; 
+  auto iterAppls(Clause* cl, Literal* lit) 
+  { return iterTraits(RewriteableSubtermsFn(self._salg->getOrdering())(lit)); }
+};
+
+VirtualIterator<std::tuple<>> Cases::lookaheadResultEstimation(SelectedAtom const& selection) 
+{ return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal()))); }
+
+
 ClauseIterator Cases::generateClauses(Clause* premise)
 {
-  auto it1 = premise->getSelectedLiteralIterator();
-
-  auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));
-
-  auto it3 = getMappingIterator(it2,ResultFn(premise, *this));
-
-  auto it4 = getFilteredIterator(it3,NonzeroFn());
-
-  return pvi( it4 );
+  return pvi(premise->getSelectedLiteralIterator()
+    .flatMap([=](auto lit) { return PotentialApplicationIters{*this}.iterAppls(premise, lit); })
+    .map(ResultFn(premise, *this))
+    .filter(NonzeroFn()));
 }
 
 }
