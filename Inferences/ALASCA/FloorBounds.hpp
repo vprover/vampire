@@ -70,12 +70,9 @@ class FloorBounds
         GeneratingInference1(InferenceRule::ALASCA_FLOOR_BOUNDS, premise.clause()));
   }
 
-  /** TODO 2 should we make this a correct estimation */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,0))); }
 
-
-  auto generateClauses(Superposition::Lhs const& premise) const
+  template<class F>
+  auto generateClauses(Superposition::Lhs const& premise, F resClause) const
   {
     auto s = NumTraits::ifFloor(premise.selectedAtomicTerm(), [](auto s) { return s; }).unwrap();
     auto t = premise.smallerSide();
@@ -83,13 +80,14 @@ class FloorBounds
     // ===========
     // C \/ t − s + 1 > 0
     // C \/ s − t ≥ 0
-    return iterItems<Clause*>(
+    return iterItems(
         resClause(premise, greater0(sum(t, minus(s), numeral(1)))),
         resClause(premise, geq0(sum(s, minus(t))))
         );
   }
 
-  auto generateClauses(FourierMotzkin::Lhs const& premise_) const 
+  template<class F>
+  auto generateClauses(FourierMotzkin::Lhs const& premise_, F resClause) const 
   {
     auto premise = premise_.unwrap<SelectedAtomicTermItp<NumTraits>>();
     ASS(premise.numeral().isPositive())
@@ -125,7 +123,8 @@ class FloorBounds
   }
 
 
-  auto generateClauses(FourierMotzkin::Rhs const& premise_) const 
+  template<class F>
+  auto generateClauses(FourierMotzkin::Rhs const& premise_, F resClause) const 
   {
     auto premise = premise_.unwrap<SelectedAtomicTermItp<NumTraits>>();
     ASS(premise.numeral().isNegative())
@@ -177,12 +176,23 @@ class FloorBounds
           );
   }
 
-  template<class RuleKind>
-  auto generateClauses(Clause* premise) const {
-    return iterTraits(RuleKind::iter(*_shared, premise))
+  template<class RuleKind, class ClauseOrAtom, class F>
+  auto generateClauses(ClauseOrAtom clauseOrAtom, F resClause) const {
+    return iterTraits(RuleKind::iter(*_shared, clauseOrAtom))
       .filter([](auto x) { return NumTraits::ifFloor(x.selectedAtomicTerm(), [](auto...) { return true; }); })
-      .flatMap([this](auto x) { return this->generateClauses(x); });
+      .flatMap([=](auto x) { return this->generateClauses(x, resClause); });
   }
+
+  template<class ClauseOrAtom, class F>
+  ClauseIterator generateClauses(ClauseOrAtom premise, F resClause)
+  {
+    return pvi(concatIters(
+          generateClauses<Superposition::Lhs>(premise, resClause),
+          generateClauses<FourierMotzkin::Lhs>(premise, resClause),
+          generateClauses<FourierMotzkin::Rhs>(premise, resClause)
+    ));
+  }
+
 
 public:
   USE_ALLOCATOR(FloorBounds);
@@ -198,15 +208,13 @@ public:
   void detach() final override
   { ASS(_salg); GeneratingInferenceEngine::detach(); }
 
-  ClauseIterator generateClauses(Clause* premise) final override
-  {
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  { return generateClauses(selection, 
+      [this](auto& premise, auto... lits) { return 0; }); }
 
-    return pvi(concatIters(
-          generateClauses<Superposition::Lhs>(premise),
-          generateClauses<FourierMotzkin::Lhs>(premise),
-          generateClauses<FourierMotzkin::Rhs>(premise)
-    ));
-  }
+  ClauseIterator generateClauses(Clause* premise) final override
+  { return generateClauses(premise, 
+      [this](auto& premise, auto... lits) { return this->resClause(premise, lits...); }); }
 
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
