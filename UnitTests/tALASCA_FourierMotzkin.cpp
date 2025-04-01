@@ -99,10 +99,15 @@ auto idxFourierMotzkin(
 
 auto testFourierMotzkin(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN,
-   LiteralSelectors::SelectorMode mode = LiteralSelectors::selectorMode<MaximalLiteralSelector>()
+    AlascaSelector sel = AlascaSelector::fromType<MaximalLiteralSelector>()
     ) 
 { 
-  auto s = testAlascaState(uwa);
+  auto s = testAlascaState(
+      uwa,
+      Lib::make_shared(InequalityNormalizer()),
+      nullptr,
+     /*uwaFixdPointIteration=*/ false,
+     sel);
   return alascaSimplRule(s,FourierMotzkin(s), ALASCA::Normalization(s));
 }
 
@@ -1162,10 +1167,10 @@ TEST_GENERATION_WITH_SUGAR(bug07,
       )
 
 template<class SelectorMode>
-inline auto FM_selectionTest() {
+auto FM_selectionTest() {
   return Generation::SymmetricTest()
       .indices(idxFourierMotzkin())
-      .rule(move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN, LiteralSelectors::selectorMode<SelectorMode>())));
+      .rule(move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN, AlascaSelector::fromType<SelectorMode>())));
 }
 
 
@@ -1203,5 +1208,16 @@ TEST_GENERATION(selection_03,
       .expected(exactly(
                   clause({ g(b, x) + a > 0 }) 
                 , clause({ g(a, x) + b > 0 }) 
+          ))
+    )
+
+TEST_GENERATION(selection_04,
+    FM_selectionTest<GenericRndLiteralSelector</* complete */ true>>()
+      .indices(idxFourierMotzkin())
+      .inputs  ({ clause({ a - b > 0 }) 
+               ,  clause({ b - a > 0 }) 
+               })
+      .expected(exactly(
+                  clause({ num(0) > 0 }) 
           ))
     )
