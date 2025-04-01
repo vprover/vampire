@@ -163,6 +163,20 @@ struct AlascaSelectorDispatch {
                   [](auto t) { return true; }); });
   }
 
+  template<class Iter>
+  auto bgSelected(bool bgSelected, Iter iter) const
+  { return iter.map([&](auto x) { x.setBGSelected(bgSelected); return x; }).collectStack(); }
+
+  auto selectMax(Ordering* ord, Stack<SelectedAtom> const& atoms) const 
+  { return bgSelected(false, iterMax(ord, atoms).cloned()); }
+
+  template<class Iter>
+  auto selectBG(Iter iter) const 
+  { return bgSelected(true, iter); }
+
+  auto selectBG(SelectedAtom atom) const 
+  { return selectBG(iterItems(atom)); }
+
   // TODO create another complete best selector that selects first the best unproductive ones and then the best productive ones
 
   template<class QComparator>
@@ -171,17 +185,15 @@ struct AlascaSelectorDispatch {
     auto negative = iterUnproductive(atoms).cloned().collectRStack();
     negative->sort([&](auto& l, auto& r) { return AlascaAtomComparator<QComparator>{}(r, l); });
     if (negative->size() != 0) {
-      return { negative[0] };
+      return selectBG(negative[0]);
     } else {
-      return iterMax(ord, atoms).cloned().collectStack();
+      return selectMax(ord, atoms);
     }
   }
 
   template<class QComparator>
   Stack<SelectedAtom> computeSelected(TL::Token<BestLiteralSelector<QComparator>>, Stack<SelectedAtom> atoms, Ordering* ord) 
-  {
-    return { arrayIter(atoms).maxBy(AlascaAtomComparator<QComparator>{}).unwrap() };
-  }
+  { return selectBG(arrayIter(atoms).maxBy(AlascaAtomComparator<QComparator>{}).unwrap()); }
 
   template<bool complete>
   Stack<SelectedAtom> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Stack<SelectedAtom> atoms, Ordering* ord) 
@@ -192,12 +204,12 @@ struct AlascaSelectorDispatch {
     RStack<SelectedAtom> leastResults;
     auto gens = arrayIter(atoms)
       .filter([](auto r) { return complete ? !r.productive() : true; })
-      .map([&](auto a) { return sa->lookaheadResultEstimation(a); })
+      .map([&](auto& a) { return sa->lookaheadResultEstimation(a); })
       .collectRStack();
 
     if (gens->isEmpty()) {
       ASS(complete)
-      return iterMax(ord, atoms).cloned().collectStack();
+      return selectMax(ord, atoms);
     }
     
      while (leastResults->isEmpty()) {
@@ -215,14 +227,14 @@ struct AlascaSelectorDispatch {
       .maxBy(AlascaAtomComparator<LiteralComparators::LookaheadComparator>{})
       .unwrap();
 
-    return { best };
+    return selectBG(best);
   } 
 
   Stack<SelectedAtom> computeSelected(TL::Token<TotalLiteralSelector>, Stack<SelectedAtom> atoms, Ordering* ord)
-  { return atoms; }
+  { return selectBG(arrayIter(std::move(atoms))); }
 
   Stack<SelectedAtom> computeSelected(TL::Token<MaximalLiteralSelector>, Stack<SelectedAtom> atoms, Ordering* ord)
-  { return iterMax(ord, atoms).cloned().collectStack(); }
+  { return selectMax(ord, atoms); }
 
 
   template<bool complete>
@@ -233,12 +245,12 @@ struct AlascaSelectorDispatch {
       if (negative.size() != 0
           // && Random::getBit() // <- sometimes select all maximals even if there is negatives TODO do we want this really?
           ) {
-        return { Random::getElem(*negative) };
+        return selectBG(Random::getElem(*negative));
       } else {
-        return iterMax(ord, atoms).cloned().collectStack();
+        return selectMax(ord, atoms);
       }
     } else {
-      return { Random::getElem(atoms) };
+      return selectBG(Random::getElem(atoms));
     }
   }
 

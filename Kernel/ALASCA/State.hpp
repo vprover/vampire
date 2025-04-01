@@ -40,7 +40,7 @@ namespace Kernel {
       , ordering(std::move(ordering))
       , uwa(uwa) 
       , uwaFixedPointIteration(fixedPointIteration)
-      , _selector(std::move(sel))
+      , selector(std::move(sel))
     {}
 
   public:
@@ -48,9 +48,7 @@ namespace Kernel {
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction uwa;
     bool const uwaFixedPointIteration;
-  private:
-    AlascaSelector _selector;
-  public:
+    AlascaSelector selector;
 
     InequalityNormalizer& norm() const { return *_normalizer; }
     std::shared_ptr<InequalityNormalizer> normalizerPtr() const { return _normalizer; }
@@ -336,7 +334,7 @@ namespace Kernel {
 
     // TODO rename SelectedAtom
    auto selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
-   { return _selector.selected(cl, ordering); }
+   { return selector.selected(cl, ordering); }
 
    // template<class NumTraits>
    // auto maxSummandIndices(AlascaTermItp<NumTraits> t, SelectionCriterion s) {

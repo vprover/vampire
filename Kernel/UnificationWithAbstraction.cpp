@@ -225,6 +225,7 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
   // bool t2Interp = isInterpreted(t2.functor());
   bool bothNumbers = t1.isNumeral() && t2.isNumeral();
 
+  DBGE(unsigned(_mode))
   switch(_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
       if(!(t1.isTerm() && t2.isTerm())) return false;
@@ -250,7 +251,7 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: 
       ASSERTION_VIOLATION_REP(Output::cat(_mode, " should be handled in AbstractionOracle::tryAbstract"))
   }
-  ASSERTION_VIOLATION;
+  ASSERTION_VIOLATION_REP(_mode);
 }
 
 Option<AbstractionOracle::AbstractionResult> funcExt(

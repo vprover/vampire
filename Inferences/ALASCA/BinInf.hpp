@@ -20,6 +20,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/ALASCA/Ordering.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
@@ -122,6 +123,14 @@ public:
 
   using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
 
+  template<class FailLogger>
+  bool postUnificationCheck(Lhs const& lhs, unsigned lhsVarBank, 
+                            Rhs const& rhs, unsigned rhsVarBank,
+                            AbstractingUnifier& unif,
+                            FailLogger logger) 
+  { return _shared->selector.postUnificationCheck(lhs, lhsVarBank, unif, _shared->ordering, [&](auto&& msg) { logger(Output::cat("lhs: ", msg));  })
+        && _shared->selector.postUnificationCheck(rhs, rhsVarBank, unif, _shared->ordering, [&](auto&& msg) { logger(Output::cat("rhs: ", msg));  }); }
+
   ClauseIterator generateClauses(Clause* premise) final override
   {
     ASS(_lhs)
@@ -142,12 +151,16 @@ public:
         auto& rhs   = *rhs_sigma.data;
         DEBUG(0, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
         DEBUG(0, "  sigma: ", sigma)
-
-        for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma))) {
-          DEBUG(0, "    result: ", *res)
-          out.push(res);
+        auto check = postUnificationCheck(lhs, VarBanks::query, 
+                                          rhs, VarBanks::internal, sigma, 
+                                          [](auto&& msg) { DEBUG(1, "    no result: ", msg) });
+        if (check) {
+          for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma))) {
+            DEBUG(0, "    result: ", *res)
+            out.push(res);
+          }
+          DEBUG(0, "")
         }
-        DEBUG(0, "")
       }
     }
 
@@ -160,11 +173,16 @@ public:
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG(0, "  lhs: ", lhs, " (", lhs.clause()->number(), ")")
           DEBUG(0, "  sigma: ", sigma)
-          for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::internal, rhs, VarBanks::query, sigma))) {
-            DEBUG(0, "    result: ", *res)
-            out.push(res);
+          auto check = postUnificationCheck(lhs, VarBanks::internal, 
+                                            rhs, VarBanks::query, sigma, 
+                                            [](auto&& msg) { DEBUG(1, "    no result: ", msg) });
+          if (check) {
+            for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::internal, rhs, VarBanks::query, sigma))) {
+              DEBUG(0, "    result: ", *res)
+              out.push(res);
+            }
+            DEBUG(0, "")
           }
-          DEBUG(0, "")
         }
       }
     }

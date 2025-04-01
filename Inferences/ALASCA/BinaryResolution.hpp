@@ -62,6 +62,9 @@ struct BinaryResolutionConf
              .map([](auto x) { return Lhs(std::move(x)); })
              .intoIter());
     }
+    
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion literalMaximality() { return /* same as atom maximality for uninterpreted predicates */ SelectionCriterion::ANY; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -88,6 +91,9 @@ struct BinaryResolutionConf
              .map([](auto x) { return Rhs(std::move(x)); })
              .intoIter());
     }
+
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion literalMaximality() { return /* same as atom maximality for uninterpreted predicates */ SelectionCriterion::ANY; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {

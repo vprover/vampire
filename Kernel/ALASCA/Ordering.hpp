@@ -16,10 +16,11 @@
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Lib/DArray.hpp"
-#include "Kernel/ALASCA.hpp"
 
 #include "Kernel/Ordering.hpp"
 #include "Lib/DArray.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
@@ -97,10 +98,13 @@ struct AlascaOrderingUtils {
         );
   }
 
-  static bool atomMaxAfterUnif(Ordering* ord, SelectedAtom const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
+  template<class Selected>
+  static bool atomMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
 
     // TODO 1.2 we must actually apply the unifier before calling `iter` I think (think of top level vars)
     //         or is it find because they will always be shielded thus none of the atoms created by them can get maximal anyways ...?
+
+    if (sel == SelectionCriterion::ANY) { return true; }
 
     ASS_REP(sel == SelectionCriterion::NOT_LESS || sel == SelectionCriterion::NOT_LEQ, sel);
     auto sigma = [&](auto t) {
@@ -109,7 +113,7 @@ struct AlascaOrderingUtils {
     auto sσ = sigma(atom.selectedAtom());
 
     return SelectedAtom::iter(atom.clause())
-                  .filter([&](auto& t) { return t != atom; })
+                  .filter([&](auto& t) { return t != SelectedAtom(atom); })
                   .all([&](auto t) { 
                       auto tσ = sigma(t.selectedAtom());
                       auto cmp = compareAtom(ord, sσ, tσ);
@@ -120,8 +124,10 @@ struct AlascaOrderingUtils {
                       });
   }
 
-  static bool litMaxAfterUnif(Ordering* ord, __SelectedLiteral const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
+  template<class Selected>
+  static bool litMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
 
+    if (sel == SelectionCriterion::ANY) { return true; }
     ASS_REP(sel == SelectionCriterion::NOT_LESS || sel == SelectionCriterion::NOT_LEQ, sel);
 
     auto sigma = [&](auto x) { return unif.subs().apply(x, varBank); }; 

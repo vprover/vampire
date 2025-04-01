@@ -13,12 +13,12 @@
 #define __ALASCA_Selection__
 
 
+#include "Kernel/ALASCA/Ordering.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/LiteralSelectorOptions.hpp"
 
 namespace Kernel {
   class AlascaSelector {
-
     // TODO make options
     LiteralSelectors::SelectorMode _mode;
     bool _reversePolarity;
@@ -50,6 +50,26 @@ namespace Kernel {
             return computeSelected(SelectedAtom::iter(cl).collectStack(), ord);
       }));
     }
+
+    template<class Selected, class FailLogger>
+    bool postUnificationCheck(Selected const& sel, unsigned varBank, AbstractingUnifier& unif, Ordering* ord, FailLogger logger) {
+      if (sel.isBGSelected()) {
+        return true;
+      } else {
+        if (!AlascaOrderingUtils::atomMaxAfterUnif(ord, sel, sel.atomMaximality(), unif, varBank)) {
+          logger("atom not maximal");
+          return false;
+        }
+        if (!AlascaOrderingUtils::litMaxAfterUnif(ord, sel, sel.literalMaximality(), unif, varBank)) {
+          logger("literal not maximal");
+          return false;
+        }
+        return true;
+      }
+    }
+
+
+
   };
 };
 

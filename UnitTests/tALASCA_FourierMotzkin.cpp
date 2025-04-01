@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include "Kernel/ALASCA/Selection.hpp"
+#include "Kernel/MaximalLiteralSelector.hpp"
 #include "Shell/Options.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Lib/STL.hpp"
@@ -96,7 +98,8 @@ auto idxFourierMotzkin(
 }
 
 auto testFourierMotzkin(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN,
+   LiteralSelectors::SelectorMode mode = LiteralSelectors::selectorMode<MaximalLiteralSelector>()
     ) 
 { 
   auto s = testAlascaState(uwa);
@@ -1158,19 +1161,47 @@ TEST_GENERATION_WITH_SUGAR(bug07,
     )
       )
 
+template<class SelectorMode>
+inline auto FM_selectionTest() {
+  return Generation::SymmetricTest()
+      .indices(idxFourierMotzkin())
+      .rule(move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN, LiteralSelectors::selectorMode<SelectorMode>())));
+}
 
-// [       is ]: [ $greater(0.0, 0.0) | ~((((15.0 * X0) + ((-15.0 * X1) + g((15.0 * X0), X1))) = ((15.0 * X2) + $uminus(g(X3, X2))))) ]
-// [ expected ]: [ $greater(0.0, 0.0) | ~(((((15.0 * X0) + (-15.0 * X1)) + g((15.0 * X0), X1)) = ((15.0 * X0) + $uminus(g(X2, X0))))) ]
 
+  // typedef Composite<CooredFirst,
+	//     Composite<NoPositiveEquality,
+	//     Composite<LeastTopLevelVariables,
+	//     Composite<LeastDistinctVariables, LexComparator> > > > Comparator3;
 
-// TEST_GENERATION_WITH_SUGAR(uwa_floor_1,
-//     SUGAR(Real),
-//     Generation::SymmetricTest()
-//     .
-//       .indices(idxFourierMotzkin())
-//       .inputs  ({ clause({ selected( f(num(123)) > 0 ) })  
-//                ,  clause({ selected( -f(floor(x)) + a > 0 )  }) })
-//       .expected(exactly(
-//           clause({ a > 0 })
-//       ))
-//     )
+TEST_GENERATION(selection_01,
+    FM_selectionTest<CompleteBestLiteralSelector<LiteralSelectors::Comparator3>>()
+      .indices(idxFourierMotzkin())
+      .inputs  ({ clause({  f(x) > 0   }) 
+               ,  clause({ f(x) - a > 0 }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(selection_02,
+    FM_selectionTest<CompleteBestLiteralSelector<LiteralSelectors::Comparator3>>()
+      .indices(idxFourierMotzkin())
+      .inputs  ({ clause({  f(x) > 0   }) 
+               ,  clause({ f(b) - a > 0 }) 
+               ,  clause({ a > 0 }) 
+               })
+      .expected(exactly( 
+                  clause({ f(b)     > 0 }) 
+          ))
+    )
+
+TEST_GENERATION(selection_03,
+    FM_selectionTest<CompleteBestLiteralSelector<LiteralSelectors::Comparator3>>()
+      .indices(idxFourierMotzkin())
+      .inputs  ({ clause({ g(a, x) + g(b, y) > 0 }) 
+               ,  clause({ -g(x, c) + x > 0 }) 
+               })
+      .expected(exactly(
+                  clause({ g(b, x) + a > 0 }) 
+                , clause({ g(a, x) + b > 0 }) 
+          ))
+    )

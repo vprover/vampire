@@ -19,6 +19,7 @@
 #include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/OrderingUtils.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
@@ -38,6 +39,10 @@ namespace Kernel {
   {
     Clause* _cl;
     unsigned _lit;
+    /* return true whether this is selected in terms of bachmair-ganzinger terminology, not in terms of vampire terminology 
+     * Concretely this means that for BG-selected literals no post-unification maximality checks are being performed.
+     * */
+    bool _bgSelected = false;
 
   protected:
     __SelectedLiteral(Clause* cl, unsigned lit) : _cl(cl), _lit(lit) {}
@@ -46,6 +51,8 @@ namespace Kernel {
     Literal* literal() const { return (*_cl)[_lit]; }
     Clause* clause() const { return _cl; }
     unsigned litIdx() const { return _lit; }
+    bool isBGSelected() const { return _bgSelected; }
+    void setBGSelected(bool b) { _bgSelected = b; }
 
     auto allLiterals() const
     { return clause()->iterLits().cloned(); }
@@ -127,6 +134,11 @@ namespace Kernel {
     TermList smallerSide() const { return literal()->termArg(1 - unsigned(_idx)); }
   };
 
+  /* a literal of the shape 
+   * k{1} t{1} + ... + k{n} t{n} <> 0
+   * where 
+   *   t{_summand} is selected
+   */
   template<class NumTraits>
   class SelectedAtomicTermItp 
     : public __SelectedLiteral
@@ -204,6 +216,7 @@ namespace Kernel {
     DELEGATE(clause)
     DELEGATE(productive)
     DELEGATE(literal)
+    DELEGATE(isBGSelected)
     DELEGATE(litIdx)
     DELEGATE(termIdx)
     DELEGATE(selectedAtomicTerm)
@@ -211,6 +224,8 @@ namespace Kernel {
     DELEGATE(contextLiterals)
     DELEGATE(selectedAtomicAlascaTerm)
     DELEGATE(iterSelectedSubterms)
+
+    void setBGSelected(bool b) { return apply([&](auto& x){ return x.setBGSelected(b); }); }
 
     template<class NumTraits>
     static bool isNumSort(SelectedAtomicTermItp<NumTraits> const&) { return true; }
@@ -229,8 +244,11 @@ namespace Kernel {
 
     DELEGATE(clause)
     DELEGATE(literal)
+    DELEGATE(isBGSelected)
     DELEGATE(litIdx)
     DELEGATE(contextLiterals)
+
+    void setBGSelected(bool b) { return apply([&](auto& x){ return x.setBGSelected(b); }); }
 
     DELEGATE(iterSelectedSubterms)
     DELEGATE(selectedAtomicTerm)
@@ -283,20 +301,29 @@ namespace Kernel {
   };
 
   struct SelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {
-    using Coproduct::Coproduct;
+    template<class NumTraits>
+    explicit SelectedAtom(SelectedAtomicTermItp<NumTraits> self) : SelectedAtom(SelectedAtomicTerm(self)) {}
+    explicit SelectedAtom(SelectedAtomicLiteral self) : Coproduct(self) {}
+    explicit SelectedAtom(SelectedAtomicTerm self) : Coproduct(self) {}
+    explicit SelectedAtom(SelectedAtomicTermItpAny self) : SelectedAtom(self.apply([](auto x) { return SelectedAtomicTerm(x); })) {}
+
+    explicit SelectedAtom(SelectedEquality self) : SelectedAtom(self.apply([](auto x) { return SelectedAtomicTerm(x); })) {}
 
     operator __SelectedLiteral const&() const { return apply([](auto& x) -> __SelectedLiteral const& { return x; }); }
+
     auto iterSelectedSubterms() const 
     { return coproductIter(applyCo([](auto x) { return x.iterSelectedSubterms(); })); }
 
     DELEGATE(clause)
     DELEGATE(productive)
     DELEGATE(literal)
+    DELEGATE(isBGSelected)
     DELEGATE(litIdx)
     DELEGATE(contextLiterals)
     DELEGATE(selectedAtom)
 
-   
+    void setBGSelected(bool b) { return apply([&](auto& x){ return x.setBGSelected(b); }); }
+
     Option<SelectedAtomicTermItpAny> toSelectedAtomicTermItp() const
     {
       return match([](SelectedAtomicTerm t) {

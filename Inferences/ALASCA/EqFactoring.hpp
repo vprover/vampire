@@ -48,6 +48,7 @@ public:
   Option<Clause*> applyRule(SelectedEquality const& e1, SelectedEquality const& e2);
   ClauseIterator generateClauses(Clause* premise) final override;
 
+  // TODO 2
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
   { return pvi(dropElementType(range(0,1))); }
 

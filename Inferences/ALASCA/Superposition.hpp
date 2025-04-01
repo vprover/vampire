@@ -54,7 +54,7 @@ struct SuperpositionConf
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
 
-    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+    static auto iter(AlascaState& shared, SelectedAtom sel) {
       return iterTraits(sel.as<SelectedAtomicTerm>()
              .andThen([](auto t) { return SelectedEquality::from(std::move(t)); })
              .filter([](auto& x) { return x.literal()->isPositive(); })
@@ -63,6 +63,9 @@ struct SuperpositionConf
              .map([](auto x) { return Lhs(std::move(x)); })
              .intoIter());
     }
+
+    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
     static auto iter(AlascaState& shared, Clause* cl) {
       return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
@@ -102,6 +105,9 @@ struct SuperpositionConf
           /* terms    */ SelectionCriterion::NOT_LEQ,
           /* include number vars */ false);
     }
+
+    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
     static auto iter(AlascaState& shared, SelectedAtom const& atom) { 
       return iterTraits(atom.iterSelectedSubterms()

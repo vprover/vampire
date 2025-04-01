@@ -36,8 +36,9 @@ struct Application
   TermList term1() const { return atomAt(i); }
   TermList term2() const { return atomAt(j); }
 
-  static auto iter(AlascaState& shared, SelectedAtom atom)
+  static auto iter(AlascaState& shared_, SelectedAtom atom)
   {
+    auto* shared = &shared_;
     return atom.iterSelectedSubterms()
          .filterMap([](auto t) { return t.asSum(); })
          .filter([](auto& s) { return s.apply([](auto& s) { return s.nSummands() >= 2; }); })
@@ -54,8 +55,8 @@ struct Application
                                                         && appl.term2().isTerm()
                                                         && appl.term1().term()->functor() == appl.term2().term()->functor()
                                                         ;  })
-                          .filterMap([&shared](auto appl) {
-                            return shared.unify(appl.term1(), appl.term2())
+                          .filterMap([=](auto appl) {
+                            return shared->unify(appl.term1(), appl.term2())
                               .map([&](auto unif) {
                                   return std::make_pair(std::move(appl), std::move(unif));
                               });

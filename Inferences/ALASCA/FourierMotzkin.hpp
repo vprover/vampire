@@ -20,6 +20,7 @@
 
 #include "Indexing/IndexManager.hpp"
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/ALASCA/Ordering.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
@@ -60,6 +61,9 @@ struct FourierMotzkinConf
               .intoIter());
     }
 
+    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
+
     static auto iter(AlascaState& shared, Clause* cl)
     { 
       return shared.selected(cl, /* literal*/ SelectionCriterion::NOT_LEQ, 
@@ -89,6 +93,9 @@ struct FourierMotzkinConf
               .intoIter());
     }
 
+
+    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
     static auto iter(AlascaState& shared, Clause* cl) 
     { 

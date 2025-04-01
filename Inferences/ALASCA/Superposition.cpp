@@ -63,8 +63,6 @@ Option<Clause*> SuperpositionConf::applyRule_(
       return nothing();                                                                   \
     }                                                                                     \
 
-
-
   auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
     static RobSubstitution subst;
     if (!subst.unify(s1, 0, s2, 0)) {
@@ -84,63 +82,9 @@ Option<Clause*> SuperpositionConf::applyRule_(
       "s1 and s2 are of unifyable sorts", 
       sort.isSome())
 
-  auto L1σ = sigma(lhs.literal(), lhsVarBank);
-  check_side_condition(
-        "(s1 ≈ t)σ /⪯ C1σ",
-        lhs.contextLiterals()
-           .all([&](auto L) {
-             auto Lσ = sigma(L, lhsVarBank);
-             return _shared->notLeq(L1σ, Lσ);
-           }))
-
   auto s2σ = sigma(s2, rhsVarBank);
   auto tσ  = sigma(lhs.smallerSide(), lhsVarBank);
-
-  // •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
-  //   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
   auto L2σ = sigma(rhs.literal(), rhsVarBank);
-  // TODO 2 theory for this side condition
-  // bool inLitPlus = rhs.inLitPlus();
-  // check_side_condition(
-  //     inLitPlus ? "L[s2]σ /⪯ C2σ"
-  //               : "L[s2]σ /≺ C2σ",
-  //       rhs.contextLiterals()
-  //          .all([&](auto L) {
-  //            auto Lσ = sigma(L, rhsVarBank);
-  //            if (_simultaneousSuperposition) {
-  //              concl.push(EqHelper::replace(Lσ, s2σ, tσ));
-  //            } else {
-  //              concl.push(Lσ);
-  //            }
-  //            return inLitPlus ? _shared->notLeq(L2σ, Lσ)
-  //                             : _shared->notLess(L2σ, Lσ);
-  //          }));
-
-  // TODO 2 note in the paper
-  // TODO 1.2 generalize and move this to BinInf
-  // TODO 1.3 option for enabling this check
-  if (rhs.productive()) {
-
-    check_side_condition(
-        "s2σ ⊴ ti ∈ active(L[s2]σ)",
-        AlascaOrderingUtils::atomMaxAfterUnif(_shared->ordering, rhs, SelectionCriterion::NOT_LESS, uwa, rhsVarBank));
-
-    check_side_condition(
-        "TODO write name rhs lit maximal",
-        AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, rhs, SelectionCriterion::NOT_LEQ, uwa, rhsVarBank));
-
-  }
-
-  check_side_condition(
-      "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well
-      _shared->notLeq(L2σ, L1σ))
-
-
-  auto s1σ = sigma(lhs.biggerSide() , lhsVarBank);
-  check_side_condition(
-      "s1σ /⪯ tσ",
-      _shared->notLeq(s1σ.untyped(), tσ))
-
 
   auto resolvent = EqHelper::replace(L2σ, s2σ, tσ);
   //   ^^^^^^^^^--> L[t]σ

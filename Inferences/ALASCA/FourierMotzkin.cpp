@@ -29,7 +29,6 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
     AbstractingUnifier& uwa
     ) const 
 {
-#define __ALASCA_Inferences_FM_DERIVE_EQUALITIES 1
 
   TIME_TRACE("fourier motzkin")
   auto cnst = uwa.computeConstraintLiterals();
@@ -59,75 +58,10 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
     bool tight = lhs.literal()->functor() == NumTraits::geqF()
               && rhs.literal()->functor() == NumTraits::geqF();
 
-    RStack<Literal*> out;
-    out->reserve(        lhs.clause()->size() - 1 // <- C1
-                       + rhs.clause()->size() - 1 // <- C2
-                       + 1                        // <- k t₁ + j t₂ > 0
-#if __ALASCA_Inferences_FM_DERIVE_EQUALITIES
-                       + (tight ? 1 : 0)          // <- -k s₂ + t₂ ≈ 0
-#endif // __ALASCA_Inferences_FM_DERIVE_EQUALITIES
-                       + cnst->size());      // Cnst
-
     auto s1 = lhs.selectedAtomicTerm();
     auto s2 = rhs.selectedAtomicTerm();
 
     ASS(!NumTraits::isFractional() || (!s1.isVar() && !s2.isVar()))
-
-    // check_side_condition(
-    //     "s₁, s₂ are not variables",
-    //     !lhs.monom().isVar() && !rhs.monom().isVar())
-
-    auto L1σ = sigma(lhs.literal(), lhsVarBank);
-    check_side_condition( 
-        "(+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ",
-        lhs.contextLiterals()
-           .all([&](auto L) {
-             auto Lσ = sigma(L, lhsVarBank);
-             out->push(Lσ);
-             return _shared->notLeq(L1σ, Lσ);
-           }));
-
-
-    auto L2σ = sigma(rhs.literal(), rhsVarBank);
-    check_side_condition(
-        "(-k s₂ + t₂ >₂ 0)σ /≺ C₂σ",
-        rhs.contextLiterals()
-           .all([&](auto L) {
-             auto Lσ = sigma(L, rhsVarBank);
-             out->push(Lσ);
-             return _shared->notLess(L2σ, Lσ);
-           }));
-
-
-    auto s1σ = sigma(s1, lhsVarBank);
-    auto s2σ = sigma(s2, rhsVarBank);
-    // ASS_REP(_shared->norm().equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
-    RStack<TermList> t1σ;
-    RStack<TermList> t2σ;
-
-    check_side_condition(
-        "s₁σ /⪯ t₁σ",
-        lhs.contextTerms()
-           .all([&](auto ti) {
-             auto tiσ = sigma(ti.atom(), lhsVarBank);
-             t1σ->push(NumTraits::mulSimpl(ti.numeral(), tiσ));
-             return _shared->notLeq(s1σ, tiσ);
-           }))
-
-    check_side_condition(
-        "s₂σ /⪯ t₂σ ",
-        rhs.contextTerms()
-           .all([&](auto ti) {
-             auto tiσ = sigma(ti.atom(), rhsVarBank);
-             t2σ->push(NumTraits::mulSimpl(ti.numeral(), tiσ));
-             return _shared->notLeq(s2σ, tiσ);
-           }))
-
-    // DEBUG_FM(1, "(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)
-    // DEBUG_FM(1, "(-k s₂ + t₂ >₂ 0)σ = ", *L2σ)
-    // check_side_condition(
-    //     "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
-    //     _shared->notLeq(L2σ, L1σ));
 
     auto j = lhs.numeral();
     auto k = rhs.numeral().abs();
@@ -138,34 +72,29 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
            : NumTraits::add(l, r); };
 
     auto resolventTerm // -> (k t₁ + j t₂)σ
-        = add( NumTraits::mulSimpl(k, NumTraits::sum(arrayIter(*t1σ))),
-               NumTraits::mulSimpl(j, NumTraits::sum(arrayIter(*t2σ))));
+        = add( NumTraits::mulSimpl(k, sigma(lhs.contextTermSum(), lhsVarBank)),
+               NumTraits::mulSimpl(j, sigma(rhs.contextTermSum(), rhsVarBank)));
 
+
+    // TODO 4 do we need to remove this?
     if (std::is_same<IntTraits, NumTraits>::value) {
       resolventTerm = add(resolventTerm, NumTraits::constantTl(-1));
     }
 
-#if __ALASCA_Inferences_FM_DERIVE_EQUALITIES
-    // (k t₁ + j t₂ > 0)σ
-    out->push(NumTraits::greater(true, resolventTerm, NumTraits::zero()));
-
-    if (tight) {
-      auto rhsSum = // -> (-k s₂ + t₂)σ
-        sigma(rhs.literal(), rhsVarBank)->termArg(0);
-      out->push(NumTraits::eq(true, rhsSum, NumTraits::zero()));
-    }
-#else 
-                   // (k t₁ + j t₂ >= 0)σ
-    out->push(tight ? NumTraits::geq    (true, resolventTerm, NumTraits::zero())
-                   // (k t₁ + j t₂ > 0)σ
-                   : NumTraits::greater(true, resolventTerm, NumTraits::zero()));
-
-#endif
-
-    out->loadFromIterator(cnst->iterFifo());
-
     Inference inf(GeneratingInference2(Kernel::InferenceRule::ALASCA_FOURIER_MOTZKIN, lhs.clause(), rhs.clause()));
-    auto cl = Clause::fromStack(*out, inf);
+    auto cl = Clause::fromIterator(concatIters(
+            /* (k t₁ + j t₂ > 0)σ */ 
+            iterItems(NumTraits::greater(true, resolventTerm, NumTraits::zero())),
+            /* (-k s₂ + t₂)σ = 0 */
+            someIf(tight, [&]() { 
+              auto rhsSum = sigma(rhs.literal(), rhsVarBank)->termArg(0);
+              return NumTraits::eq(true, rhsSum, NumTraits::zero()); 
+            }).intoIter(),
+            lhs.contextLiterals().map([&](auto l) { return sigma(l, lhsVarBank); }),
+            rhs.contextLiterals().map([&](auto l) { return sigma(l, rhsVarBank); }),
+            arrayIter(cnst).cloned()
+          ), inf);
+
     DEBUG_FM(1, "out: ", *cl);
     return Option<Clause*>(cl);
   });

@@ -63,14 +63,11 @@ public:
   static const char* name() { return "alasca coherence"; }
 
   // a clause of the form C \/ ⌊...⌋ = j s + u
-  struct Lhs
+  struct Lhs : public ALASCA::SuperpositionConf::Lhs
   {
-    ALASCA::SuperpositionConf::Lhs self;
     AlascaTermItp<NumTraits> js_u; // <- the them `j s + u`
     unsigned sIdx; // <- the index of `s` in the sum `j s + u`
 
-
-    auto contextLiterals() const { return self.contextLiterals(); }
     auto rawJ() const { return js_u[sIdx].numeral(); }
     auto s() const { return js_u[sIdx].atom(); }
     auto j() const { return rawJ().abs(); }
@@ -82,8 +79,7 @@ public:
           .map([&](auto m) -> TermList { return TermList(ASig::linMul(mulByFactor(m.numeral()), m.atom())); })
         ); 
     }
-    auto clause() const { return self.clause(); }
-    auto asTuple() const { return std::tie(self, sIdx); }
+    auto asTuple() const { return std::tie(static_cast<ALASCA::SuperpositionConf::Lhs const&>(*this), sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
 
     // TODO get rid of the need for a typed term list in this case
@@ -118,6 +114,8 @@ public:
       ;
     }
 
+    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -136,16 +134,14 @@ public:
   };
 
   // a clause of the form D \/ L[⌊k s + t⌋]
-  struct Rhs 
+  struct Rhs : public ALASCA::Superposition::Rhs
   {
-    ALASCA::Superposition::Rhs self;
     TermList toRewrite; // <- the term ⌊k s + t⌋
     AlascaTermItp<NumTraits> ks_t; // <- the term k s + t
     unsigned sIdx; // <- the index of `s` in the sum `k s + t`
 
-    auto contextLiterals() const { return self.contextLiterals(); }
-    auto clause() const { return self.clause(); }
-    auto asTuple() const { return std::tie(self,  /* ks_t redundant */ toRewrite, sIdx); }
+    auto& super() const { return static_cast<ALASCA::SuperpositionConf::Rhs const&>(*this); }
+    auto asTuple() const { return std::tie(super(),  /* ks_t redundant */ toRewrite, sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Rhs);
 
     // TODO get rid of the need for a typed term list in this case
@@ -195,7 +191,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
-    { return out << self.self << "@" << self.toRewrite << "@" << TermList(self.key()); }
+    { return out << self.super() << "@" << self.toRewrite << "@" << TermList(self.key()); }
   };
 
   using Numeral = typename NumTraits::ConstantType;
@@ -247,9 +243,9 @@ public:
     auto sigmaL = [&](auto t) { return uwa.subs().apply(t, lhsVarBank); };
     auto sigmaR = [&](auto t) { return uwa.subs().apply(t, rhsVarBank); };
 
-    auto Lσ         = sigmaR(rhs.self.literal());
+    auto Lσ         = sigmaR(rhs.literal());
     auto toRewriteσ = sigmaR(rhs.toRewrite);
-    ASS(rhs.self.literal()->containsSubterm(rhs.toRewrite))
+    ASS(rhs.literal()->containsSubterm(rhs.toRewrite))
     ASS(Lσ->containsSubterm(toRewriteσ))
     auto ks_tσ = toRewriteσ.term()->termArg(0);
 

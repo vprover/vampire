@@ -37,8 +37,7 @@ namespace LiteralSelectors {
 	    Composite<LeastDistinctVariables, LexComparator> > > > Comparator3;
 
   typedef Composite<ColoredFirst,
-	    Composite<NoPositiveEquality,
-	    Composite<LeastTopLevelVariables,
+	    Composite<NoPositiveEquality, Composite<LeastTopLevelVariables,
 	    Composite<LeastVariables,
 	    Composite<MaximalSize, LexComparator> > > > > Comparator4;
 
@@ -52,8 +51,7 @@ namespace LiteralSelectors {
     using type = T;
     static constexpr unsigned number = i;
   };
-
-  // TODO reverse polarity for alasca selector
+// TODO reverse polarity for alasca selector
 
 using OptionValues = TL::List<
     OptionValue<0, TotalLiteralSelector>
@@ -92,6 +90,9 @@ struct __MkSelectorMode {
   using apply = TL::Token<typename OptionValue::type>;
 };
 using SelectorMode = TL::ApplyT<Coproduct, TL::Map<__MkSelectorMode, OptionValues>>;
+
+template<class T>
+constexpr auto selectorMode() { return SelectorMode(TL::Token<T>{}); }
 
 inline Option<SelectorMode> getSelectorType(unsigned absSelectorNumber) {
   return LiteralSelectors::OptionValues::find([&](auto token) -> Option<SelectorMode> {
