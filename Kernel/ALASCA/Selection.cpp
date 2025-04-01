@@ -218,11 +218,6 @@ struct AlascaSelectorDispatch {
     return { best };
   } 
 
-  // template<class T>
-  // Stack<SelectedAtom> computeSelected(TL::Token<T>, Stack<SelectedAtom> atoms, Ordering* ord) {
-  //   ASSERTION_VIOLATION_REP("TODO")
-  // }
-
   Stack<SelectedAtom> computeSelected(TL::Token<TotalLiteralSelector>, Stack<SelectedAtom> atoms, Ordering* ord)
   { return atoms; }
 
