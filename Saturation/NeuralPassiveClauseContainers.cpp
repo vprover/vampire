@@ -124,7 +124,7 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   _gageCombine = _model.attr("gage_combine").toModule();
 
   _gweightEmbeddingSize = (*_model.find_method("gweight_embedding_size"))({}).toInt();
-  _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().attr("weight").toTensor();
+  _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().forward({torch::Tensor()}).toTensor();
   _gweightTermCombine = _model.attr("gweight_term_combine").toModule();
 
   _evalClauses = _model.find_method("eval_clauses");
@@ -256,12 +256,12 @@ void NeuralClauseEvaluationModel::gageEmbedPending()
 torch::Tensor NeuralClauseEvaluationModel::getSubtermEmbed(int64_t id) {
   /*
   if id < 0:
-    return self.gweight_var_embed(torch.tensor([id % HP.GWEIGHT_NUM_VAR_EMBEDS]))[0]
+    return self.gweight_var_embed()
   else:
     return self.gweight_term_embed_store[id]
   */
   if (id < 0) {
-    return _gweightVarEmbed[0]; // only using 1 var embed now
+    return _gweightVarEmbed;
   } else {
     return _gweightTermEmbedStore.get(id);
   }
