@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -27,6 +28,7 @@
 #include "Shell/Options.hpp"
 #include "Lib/Output.hpp"
 
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 namespace Inferences {
 namespace ALASCA {
 
@@ -45,27 +47,79 @@ public:
     : _shared(std::move(shared))
   {  }
 
+  struct Application : public SelectedAtomicTermItpAny {
+    Application(SelectedAtomicTermItpAny self) : SelectedAtomicTermItpAny(std::move(self)) {}
+
+    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LESS; }
+
+    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+      return iterTraits(sel.toSelectedAtomicTermItp()
+              .map([&]  (auto selected) { return Application(std::move(selected)); })
+              .intoIter());
+    }
+
+    static auto iter(AlascaState& shared, Clause* cl) 
+    { 
+      return shared.selected(cl, /* literal*/ SelectionCriterion::NOT_LESS,
+                                 /* term */ SelectionCriterion::NOT_LESS,
+                                 /* include number vars */ false)
+              .flatMap([&shared](auto selected) { return iter(shared, selected); });
+    }
+    
+    auto iterSecond(AlascaState& shared) {
+      return coproductIter(this->applyCo([&shared](auto self) {
+        auto t1 = self.selectedSummand();
+        return self.contextTerms()
+           .filter([](auto& t2) { return t2.numeral() > 0; })
+           .filterMap([&shared,t1](auto t2) {
+             return shared.unify(t1.atom(), t2.atom());
+           });
+      }));
+    }
+  };
+
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
 
-  ClauseIterator generateClauses(Clause* premise) final override;
+  ClauseIterator generateClauses(Clause* premise) final override {
+    return pvi(Application::iter(*_shared, premise)
+        .inspect([](auto& appl) { DEBUG(0, "appl: ", appl); })
+        .flatMap([=](auto sel) { 
+          return sel.iterSecond(*_shared)
+                    .inspect([](auto& unif) { DEBUG(0, "  unif: ", unif); })
+                    .filter([=](auto& unif) { 
+                        return _shared->selector.postUnificationCheck(sel, /* varBank */ 0, unif, _shared->ordering, [](auto&& msg) { DEBUG(0, "  no result: ", msg) }); })
+                    .map([sel](auto unif) {
+                        Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_TERM_FACTORING, sel.clause()));
+                        return Clause::fromIterator(concatIters(
+                              sel.clause()->iterLits()
+                                 .map([&](auto l) { return unif.subs().apply(l, /* bank */ 0); }),
+                              arrayIter(unif.computeConstraintLiterals())
+                              ),inf);
+                    })
+                    .inspect([&](auto& r) { DEBUG(0, "  result: ", *r) })
+                    ;
+        }));
+  }
 
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {  }
 #endif
 
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(range(0,1))); }
+  { return pvi(dropElementType(Application::iter(*_shared, selection)
+        .flatMap([=](auto sel) { return sel.iterSecond(*_shared); }))); }
 
 private:
 
-                            Option<Clause*> applyRule(SelectedAtomicTermItpAny const& l, SelectedAtomicTermItpAny const& r, Stack<TermList> const& maxAtoms);
-  template<class NumTraits> Option<Clause*> applyRule(SelectedAtomicTermItp<NumTraits> const& l, SelectedAtomicTermItp<NumTraits>const& r, Stack<TermList> const& maxAtoms);
+  template<class NumTraits> Option<Clause*> applyRule(SelectedAtomicTermItp<NumTraits> const& l, SelectedAtomicTermItp<NumTraits>const& r);
 
   std::shared_ptr<AlascaState> _shared;
 };
 
 } // namespace ALASCA 
 } // namespace Inferences 
+#undef DEBUG
 
 #endif /*__TermFactoring__*/
