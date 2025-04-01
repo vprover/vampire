@@ -224,17 +224,6 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
                   .flatMap([this, &l1, &l2](auto uwa) {
                       return this->applyRule(l1, l2, uwa);
                   });
-              // return ifElseIter2(
-              //
-              //     // both literals are the same. 
-              //     // we use a symmetry breaking index comparison
-              //     // TODO we could replace this == by _shared.equivalent
-              //     max.literal() == other.literal() && other.litIdx() < max.litIdx(), 
-              //     iterItems<Clause*>(),
-              //
-              //     applyRule(other, max).intoIter()
-              //     ); 
-                  
           });
       }));
 }

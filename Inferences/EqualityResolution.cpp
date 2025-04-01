@@ -124,6 +124,7 @@ private:
   Clause* _cl;
   unsigned _cLen;
 };
+
 struct EqualityResolution::PotentialApplicationIters {
   EqualityResolution& self;
   auto iterAppls(Clause* cause, Literal* lit) {
@@ -150,9 +151,7 @@ struct EqualityResolution::PotentialApplicationIters {
         return {};
       }
     });
-
   }
-
 };
 
 
