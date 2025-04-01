@@ -184,14 +184,21 @@ struct AlascaSelectorDispatch {
   }
 
   template<bool complete>
-  Stack<SelectedAtom> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Stack<SelectedAtom> atoms, Ordering* ord) {
-    // TODO get sat algo as argument
+  Stack<SelectedAtom> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Stack<SelectedAtom> atoms, Ordering* ord) 
+  {
+
     auto sa = Saturation::SaturationAlgorithm::tryGetInstance();
 
     RStack<SelectedAtom> leastResults;
     auto gens = arrayIter(atoms)
+      .filter([](auto r) { return complete ? !r.productive() : true; })
       .map([&](auto a) { return sa->lookaheadResultEstimation(a); })
       .collectRStack();
+
+    if (gens->isEmpty()) {
+      ASS(complete)
+      return iterMax(ord, atoms).cloned().collectStack();
+    }
     
      while (leastResults->isEmpty()) {
       for (auto i : range(0, atoms.size())) {
@@ -204,12 +211,12 @@ struct AlascaSelectorDispatch {
       }
     }
 
-     ASS_REP(complete, "TODO") 
     auto best = arrayIter(*leastResults)
       .maxBy(AlascaAtomComparator<LiteralComparators::LookaheadComparator>{})
       .unwrap();
+
     return { best };
-  }
+  } 
 
   // template<class T>
   // Stack<SelectedAtom> computeSelected(TL::Token<T>, Stack<SelectedAtom> atoms, Ordering* ord) {
