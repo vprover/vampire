@@ -41,6 +41,7 @@ public:
       _startupSelector->setReversePolarity(newVal);
     }
   }
+  static auto typeName() { return "LookaheadLiteralSelector";  }
 protected:
   void doSelection(Clause* c, unsigned eligible) override;
 private:
@@ -62,6 +63,7 @@ struct GenericLookaheadLiteralSelector
 {
   GenericLookaheadLiteralSelector(const Ordering& ordering, const Options& options)
     : LookaheadLiteralSelector(complete, ordering, options) {}
+  static auto typeName() { return Output::catOwned("GenericLookaheadLiteralSelector<complete = ", complete, ">");  }
 };
 
 

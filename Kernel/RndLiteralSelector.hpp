@@ -36,6 +36,7 @@ public:
     LiteralSelector(ordering, options), _complete(complete) {}
 
   bool isBGComplete() const override { return _complete; }
+  static auto typeName() { return "RndLiteralSelector";  }
 protected:
   void doSelection(Clause* c, unsigned eligible) override;
 
@@ -51,6 +52,7 @@ struct GenericRndLiteralSelector
 {
   GenericRndLiteralSelector(const Ordering& ordering, const Options& options)
     : RndLiteralSelector(ordering, options, complete) {}
+  static auto typeName() { return Output::catOwned("GenericRndLiteralSelector<complete = ", complete, ">");  }
 };
 
 };

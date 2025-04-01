@@ -32,7 +32,7 @@ namespace Kernel {
 
     template<class LiteralSelector>
     static AlascaSelector fromType(bool reverseLcm = false)
-    { return AlascaSelector(LiteralSelectors::SelectorMode(TL::Token<MaximalLiteralSelector>{}), reverseLcm); }
+    { return AlascaSelector(LiteralSelectors::SelectorMode(TL::Token<LiteralSelector>{}), reverseLcm); }
 
     static Option<AlascaSelector> fromNumber(int number) {
       return LiteralSelectors::getSelectorType(abs(number))
@@ -68,7 +68,8 @@ namespace Kernel {
       }
     }
 
-
+    friend std::ostream& operator<<(std::ostream& out, AlascaSelector const& self)
+    { self._mode.apply([&](auto x) { out << TL::TokenType<decltype(x)>::typeName(); }); return out; }
 
   };
 };

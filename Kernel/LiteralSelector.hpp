@@ -127,6 +127,7 @@ public:
     // this is on purpose; we don't want any extra checks with total selection
     return false;
   }
+  static auto typeName() { return "TotalLiteralSelector";  }
 protected:
   void doSelection(Clause* c, unsigned eligible) override;
 };

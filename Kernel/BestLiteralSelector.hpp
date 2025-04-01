@@ -60,6 +60,7 @@ class BestLiteralSelector
   }
 
   bool isBGComplete() const override { return false; }
+  static auto typeName() { return "BestLiteralSelector";  }
 protected:
   void doSelection(Clause* c, unsigned eligible) override
   {
@@ -119,6 +120,7 @@ public:
   }
 
   bool isBGComplete() const override { return true; }
+  static auto typeName() { return "CompleteBestLiteralSelector";  }
 protected:
   void doSelection(Clause* c, unsigned eligible) override
   {

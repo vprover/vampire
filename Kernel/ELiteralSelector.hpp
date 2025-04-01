@@ -49,6 +49,7 @@ public:
     LiteralSelector(ordering, options), _value(value) {}
 
   bool isBGComplete() const override { return true; }
+  static auto typeName() { return "GenericELiteralSelector";  }
 protected:
   void doSelection(Clause* c, unsigned eligible) override;
 
@@ -67,6 +68,7 @@ struct GenericELiteralSelector
 {
   GenericELiteralSelector(const Ordering& ordering, const Options& options)
     : ELiteralSelector(ordering, options, Values(value)) {}
+  static auto typeName() { return Output::catOwned("GenericELiteralSelector<value = ", value, ">");  }
 };
 
 

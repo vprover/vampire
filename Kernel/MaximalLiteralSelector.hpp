@@ -37,6 +37,7 @@ public:
   MaximalLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options) {}
 
   bool isBGComplete() const override { return true; }
+  static auto typeName() { return "MaximalLiteralSelector";  }
 protected:
   void doSelection(Clause* c, unsigned eligible) override;
 };

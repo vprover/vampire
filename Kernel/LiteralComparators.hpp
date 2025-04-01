@@ -62,6 +62,7 @@ public:
     _c1.attachSelector(selector);
     _c2.attachSelector(selector);
   }
+  static auto typeName() { return Output::catOwned("Composite(", Comp1::typeName(), ", ", Comp2::typeName(), ")");  }
 private:
   Comp1 _c1;
   Comp2 _c2;
@@ -81,6 +82,7 @@ public:
     LiteralComparator::attachSelector(selector);
     _c.attachSelector(selector);
   }
+  static auto typeName() { return Output::catOwned("Inverse(", Comp::typeName(), ")");  }
 private:
   Comp _c;
 };
@@ -97,6 +99,7 @@ struct ColoredFirst : public LiteralComparator
       return EQUAL;
     }
   }
+  static auto typeName() { return "ColoredFirst";  }
 };
 
 struct NoPositiveEquality : public LiteralComparator
@@ -113,6 +116,7 @@ struct NoPositiveEquality : public LiteralComparator
       return EQUAL;
     }
   }
+  static auto typeName() { return "NoPositiveEquality";  }
 };
 
 struct Negative : public LiteralComparator
@@ -131,6 +135,7 @@ struct Negative : public LiteralComparator
       return EQUAL;
     }
   }
+  static auto typeName() { return "Negative";  }
 };
 
 struct NegativeEquality : public LiteralComparator
@@ -147,6 +152,7 @@ struct NegativeEquality : public LiteralComparator
       return EQUAL;
     }
   }
+  static auto typeName() { return "NegativeEquality";  }
 };
 
 struct MaximalSize : public LiteralComparator
@@ -155,6 +161,7 @@ struct MaximalSize : public LiteralComparator
   {
     return Int::compare(l1->weight(), l2->weight());
   }
+  static auto typeName() { return "MaximalSize";  }
 };
 
 struct LeastVariables : public LiteralComparator
@@ -163,6 +170,7 @@ struct LeastVariables : public LiteralComparator
   {
     return Int::compare(l2->numVarOccs(), l1->numVarOccs());
   }
+  static auto typeName() { return "LeastVariables";  }
 };
 
 struct LeastDistinctVariables : public LiteralComparator
@@ -171,6 +179,7 @@ struct LeastDistinctVariables : public LiteralComparator
   {
     return Int::compare(l2->getDistinctVars(), l1->getDistinctVars());
   }
+  static auto typeName() { return "LeastDistinctVariables";  }
 };
 
 struct LeastTopLevelVariables : public LiteralComparator
@@ -179,6 +188,7 @@ struct LeastTopLevelVariables : public LiteralComparator
   {
     return Int::compare(getTLVarCnt(l2), getTLVarCnt(l1));
   }
+  static auto typeName() { return "LeastTopLevelVariables";  }
 private:
   unsigned getTLVarCnt(Literal* l)
   {
@@ -232,6 +242,7 @@ struct LexComparator : public LiteralComparator
     ASS(l1==l2);
     return EQUAL;
   }
+  static auto typeName() { return "LexComparator";  }
 };
 
 
@@ -315,6 +326,7 @@ struct NormalizedLinearComparatorByWeight : public LiteralComparator
     return compare(t1.term(), t2.term());
   }
 
+  static auto typeName() { return "NormalizedLinearComparatorByWeight";  }
 };
 
 
