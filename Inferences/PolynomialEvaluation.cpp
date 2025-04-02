@@ -298,6 +298,7 @@ PolyNf simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool remo
 {
   using Monom   = Monom<Number>;
 
+
   // first we simplify all the monoms containted in this polynom
   Stack<Monom> sum;
   {
@@ -353,15 +354,18 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, boo
   auto numeral = in.numeral;
   Stack<MonomFactor> args(facs.nFactors());
   for (unsigned i = 0; i < facs.nFactors(); i++) {
+    auto power = facs.factorAt(i).power;
     if (auto poly_ = simplifiedArgs[i].downcast<Number>()) {
       auto& poly = **poly_;
       if (poly.nSummands() == 1) {
-        numeral *= poly.summandAt(0).numeral;
-        args.loadFromIterator(poly.summandAt(0).factors->iter());
+        numeral *= pow(poly.summandAt(0).numeral, power);
+        args.loadFromIterator(
+            poly.summandAt(0).factors->iter()
+            .map([&](auto fac) { fac.power *= power; return fac; }));
         continue;
       }
     }
-    args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
+    args.push(MonomFactor(simplifiedArgs[i], power));
   }
 
   std::sort(args.begin(), args.end());
