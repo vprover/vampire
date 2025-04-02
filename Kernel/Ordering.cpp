@@ -498,6 +498,21 @@ Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, un
     tyc2 >= size ? (int)(reverse ? -tyc2 : tyc2) : _typeConPrecedences[tyc2] ));
 }
 
+Ordering::Result PrecedenceOrdering::comparePrecedences(const Term* t1, const Term* t2) const
+{
+  if (t1->isSort() && t2->isSort()) {
+    return compareTypeConPrecedences(t1->functor(), t2->functor());
+  }
+  // type constuctor symbols are less than function symbols
+  if (t1->isSort()) {
+    return LESS;
+  }
+  if (t2->isSort()) {
+    return GREATER;
+  }
+  return compareFunctionPrecedences(t1->functor(), t2->functor());
+} // PrecedenceOrdering::comparePrecedences
+
 struct SymbolComparator {
   SymbolType _symType;
   SymbolComparator(SymbolType symType) : _symType(symType) {}

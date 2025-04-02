@@ -107,8 +107,8 @@ void CadicalInterfacing::addAssumption(SATLiteral lit)
 
 SATSolver::VarAssignment CadicalInterfacing::getAssignment(unsigned var)
 {
-	ASS_EQ(_status, Status::SATISFIABLE);
-	ASS_G(var,0); ASS_L((int)var,_next);
+  ASS_EQ(_status, Status::SATISFIABLE);
+  ASS_G(var,0); ASS_L((int)var,_next);
 
   if((int)var > _solver.vars())
     return VarAssignment::DONT_CARE;

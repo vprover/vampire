@@ -146,7 +146,6 @@ public:
     void setProblemName(std::string str) { _problemName.actualValue = str; }
 
     void setInputFile(const std::string& newVal){ _inputFile.set(newVal); }
-    std::string includeFileName (const std::string& relativeName);
 
     // standard ways of creating options
     void set(const std::string& name, const std::string& value); // implicitly the long version used here

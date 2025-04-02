@@ -639,7 +639,7 @@ void PortfolioMode::runSlice(Options& opt)
       ")" << endl;
   }
 
-  Timer::reinitialise(); // timer only when done talking (otherwise output may get mangled)
+  Timer::reinitialise(Timer::instructionLimitingInPlace()); // timer only when done talking (otherwise output may get mangled)
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 

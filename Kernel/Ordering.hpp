@@ -197,6 +197,8 @@ protected:
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
+  Result comparePrecedences(const Term* t1, const Term* t2) const;
+
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 

@@ -473,8 +473,6 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     while(it.hasNext()) {
       Literal* lit = it.next();
 
-      // cout << lit->toString() << endl;
-
       ASS(lit->isPositive());
       ASS(lit->isEquality());
       ASS(lit->ground());
