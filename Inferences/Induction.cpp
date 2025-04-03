@@ -814,7 +814,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else if (!env.options->inductionGroundOnly() && InductionHelper::isStructInductionOn() && (lit->getDistinctVars() == 1)) {
+  } else if (!env.options->inductionGroundOnly() && InductionHelper::isStructInductionOn() && InductionHelper::isInductionLiteral(lit)) {
     // TODO: generalize to multiple free variables
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
@@ -1147,7 +1147,13 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
         }
       }
       if (copyCurr) {
-        resLits->push(renaming.apply(indLitSubst ? SubstHelper::apply<Substitution>((*kv.first)[i], *indLitSubst) : (*kv.first)[i],1));
+        Literal* l = (*kv.first)[i];
+        if (indLitSubst) {
+          l = SubstHelper::apply<Substitution>((*kv.first)[i], *indLitSubst);
+          TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
+          l = tr.transformLiteral(l);
+        }
+        resLits->push(renaming.apply(l,1));
       }
     }
   }
@@ -1682,11 +1688,14 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   if (!VList::isEmpty(ws)) {
     formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
   }
-  formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
+  if (!VList::isEmpty(ys)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
+  }
 
   // Produce induction clauses and obtain the skolemization bindings.
   DHMap<unsigned, Term*> bindings;
   ClauseStack hyp_clauses = produceClauses(formula, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE, context, &bindings); 
+  for (auto cl : hyp_clauses) { cout << cl->toString() << endl; }
   // Bind freeVar to its corresponding skolem term in freeVarSubst.
   // This is used later in resolution.
   Term* xSkolem = bindings.get(xvar, nullptr);
