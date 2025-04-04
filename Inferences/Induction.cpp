@@ -1640,6 +1640,11 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(SortHelper::getResultSort(context._indTerms[0]));
   unsigned freeVar = context.getFreeVariable(); // variable free in the induction literal
   unsigned var = freeVar+1; // used in the following to construct new variables
+  for (const auto& kv : context._cls) {
+    if (kv.first->maxVar() + 1 > var) {
+      var = kv.first->maxVar() + 1;
+    }
+  }
   VList* us = VList::empty();
   VList* ws = VList::empty();
   VList* ys = VList::empty();
@@ -1695,7 +1700,6 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   // Produce induction clauses and obtain the skolemization bindings.
   DHMap<unsigned, Term*> bindings;
   ClauseStack hyp_clauses = produceClauses(formula, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE, context, &bindings); 
-  for (auto cl : hyp_clauses) { cout << cl->toString() << endl; }
   // Bind freeVar to its corresponding skolem term in freeVarSubst.
   // This is used later in resolution.
   Term* xSkolem = bindings.get(xvar, nullptr);
