@@ -16,13 +16,13 @@
 #include "InequalityFactoring.hpp"
 #include "Debug/Assertion.hpp"
 #include "Kernel/ALASCA/Ordering.hpp"
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
-#define FACTOR_NEGATIVE 0
 
 namespace Inferences {
 namespace ALASCA {
@@ -80,13 +80,9 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
   // applicability checks
   //////////////////////////////////////////////////////
 
-#if FACTOR_NEGATIVE
   CHECK_CONDITION("sign(j) == sign(k)", j.sign() == k.sign())
   ASS(j.sign() != Sign::Zero)
-#else 
   ASS(j.isPositive())
-  ASS(k.isPositive())
-#endif
 
   auto s1σ = sigma(s1);
   // Stack<TermList> t1σ;
@@ -189,36 +185,56 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(SelectedAtomicTermItpAn
   });
 }
 
+struct Lhs : public SelectedAtomicTermItpAny {
+
+  Lhs(SelectedAtomicTermItpAny self) : SelectedAtomicTermItpAny(std::move(self)) {}
+
+
+
+  static auto literalMaximality() { return SelectionCriterion::NOT_LESS; }
+  // TODO 2 double check NOT_LEQ
+  static auto    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
+
+  static auto iter(AlascaState& shared, __SelectedLiteral const& lit) {
+    return SelectedAtomicTermItpAny::iter(shared.ordering, lit, literalMaximality(), atomMaximality())
+          .filter([](auto& s) { return s.apply([](auto& s) { return 
+              s.isInequality()
+              && s.numeral().sign() == Sign::Pos; 
+              }); })
+      .map([](auto x) { return Lhs(x); });
+  }
+  // TODO 2 sort out post unificaiton check and symmetry breaking
+};
+
 ClauseIterator InequalityFactoring::generateClauses(Clause* premise) 
 {
   TIME_TRACE("alasca inequality factoring generate")
   DEBUG("in: ", *premise)
 
-    auto selected = Lib::make_shared(
-        _shared->selectedSummands(premise, 
+
+    auto selected = 
+        _shared->selected(premise, 
   // TODO think about this, we don't want any literals but one of the two hast to be weakly maximal
                        /* literal */ SelectionCriterion::ANY,
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
-          .filter([](auto& s) { return s.apply([](auto& s) { return 
-              s.isInequality()
-#if !FACTOR_NEGATIVE
-              && s.numeral().sign() == Sign::Pos
-#endif
-              ; 
-              }); })
-          .template collect<Stack>());
+          .flatMap([&](auto lit) { return Lhs::iter(*_shared, lit); })
+          .collectRStack();
+
+    auto nonSelected = 
+      range(0, premise->size())
+          .flatMap([&](auto i) { return Lhs::iter(*_shared, __SelectedLiteral(premise, i)); })
+          .collectRStack();
 
 
 
-  return pvi(range(0, selected->size())
-      .flatMap([=](auto i) {
-        return range(i + 1, selected->size())
-          .filter([=](auto j) { return (*selected)[i].litIdx() != (*selected)[j].litIdx(); })
-          .filter([=](auto j) { return (*selected)[i].numTraits() == (*selected)[j].numTraits(); })
-          .flatMap([=](auto j) {
-              auto& l1 = (*selected)[i];
-              auto& l2 = (*selected)[j];
+
+  return pvi(arrayIter(std::move(selected))
+      .flatMap([this,nonSelected = std::move(nonSelected)](auto l1) {
+        return arrayIter(*nonSelected)
+          .filter([=](auto& l2) { return l1.litIdx()    != l2.litIdx(); })
+          .filter([=](auto& l2) { return l1.numTraits() == l2.numTraits(); })
+          .flatMap([=](auto& l2) {
               return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm())
                   .intoIter())
                   .flatMap([this, &l1, &l2](auto uwa) {

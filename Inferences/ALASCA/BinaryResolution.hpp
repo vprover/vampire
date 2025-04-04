@@ -56,15 +56,21 @@ struct BinaryResolutionConf
 
     Literal* key() const { return literal(); }
 
-    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
-      return iterTraits(sel.as<SelectedAtomicLiteral>()
-             .filter([](auto x) { return x.literal()->isPositive(); })
-             .map([](auto x) { return Lhs(std::move(x)); })
-             .intoIter());
-    }
+    // static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+    //   return iterTraits(sel.as<SelectedAtomicLiteral>()
+    //          .filter([](auto x) { return x.literal()->isPositive(); })
+    //          .map([](auto x) { return Lhs(std::move(x)); })
+    //          .intoIter());
+    // }
     
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
     static SelectionCriterion literalMaximality() { return /* same as atom maximality for uninterpreted predicates */ SelectionCriterion::ANY; }
+
+    static auto iter(AlascaState& shared, __SelectedLiteral sel)  {
+      return SelectedAtomicLiteral::iter(shared.ordering, sel)
+             .filter([](auto x) { return x.literal()->isPositive(); })
+             .map([](auto x) { return Lhs(std::move(x)); });
+    }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -85,16 +91,22 @@ struct BinaryResolutionConf
 
     Literal* key() const { return Literal::positiveLiteral(literal()); }
 
-    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
-      return iterTraits(sel.as<SelectedAtomicLiteral>()
-             .filter([](auto x) { return !x.literal()->isPositive(); })
-             .map([](auto x) { return Rhs(std::move(x)); })
-             .intoIter());
-    }
+    // static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+    //   return iterTraits(sel.as<SelectedAtomicLiteral>()
+    //          .filter([](auto x) { return !x.literal()->isPositive(); })
+    //          .map([](auto x) { return Rhs(std::move(x)); })
+    //          .intoIter());
+    // }
 
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LESS; }
     static SelectionCriterion literalMaximality() { return /* same as atom maximality for uninterpreted predicates */ SelectionCriterion::ANY; }
 
+
+    static auto iter(AlascaState& shared, __SelectedLiteral sel)  {
+      return SelectedAtomicLiteral::iter(shared.ordering, sel)
+             .filter([](auto x) { return !x.literal()->isPositive(); })
+             .map([](auto x) { return Rhs(std::move(x)); });
+    }
     static auto iter(AlascaState& shared, Clause* cl)
     {
       // TODO 3 sort out selection criterions

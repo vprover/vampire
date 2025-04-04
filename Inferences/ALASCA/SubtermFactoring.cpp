@@ -8,6 +8,7 @@
  * and in the source directory
  */
 
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Kernel/Clause.hpp"
@@ -36,34 +37,40 @@ struct Application
   TermList term1() const { return atomAt(i); }
   TermList term2() const { return atomAt(j); }
 
-  static auto iter(AlascaState& shared_, SelectedAtom atom)
+  static SelectionCriterion literalMaximality() { return Superposition::Rhs::literalMaximality(); }
+  static SelectionCriterion    atomMaximality() { return Superposition::Rhs::atomMaximality(); }
+
+  static auto iter(AlascaState& shared_, __SelectedLiteral sel)
   {
     auto* shared = &shared_;
-    return atom.iterSelectedSubterms()
-         .filterMap([](auto t) { return t.asSum(); })
-         .filter([](auto& s) { return s.apply([](auto& s) { return s.nSummands() >= 2; }); })
-         .flatMap([=](auto t_anyNum) {
-             return coproductIter(t_anyNum.applyCo([=](auto t) {
-                 return range(0, t.nSummands() - 1)
-                    .flatMap([=](auto i) {
-                        return range(i + 1, t.nSummands())
-                          .map([=](auto j) {
-                             return Application { ._atom = atom, ._sum = t_anyNum, .i = i, .j = j, };
-                          })
-                          .inspect([](auto& a) { DEBUG(a) })
-                          .filter([](auto& appl) { return appl.term1().isTerm()
-                                                        && appl.term2().isTerm()
-                                                        && appl.term1().term()->functor() == appl.term2().term()->functor()
-                                                        ;  })
-                          .filterMap([=](auto appl) {
-                            return shared->unify(appl.term1(), appl.term2())
-                              .map([&](auto unif) {
-                                  return std::make_pair(std::move(appl), std::move(unif));
+    return SelectedAtom::iter(shared->ordering, sel, literalMaximality(), atomMaximality())
+      .flatMap([&shared](auto atom) {
+          return atom.iterSelectedSubterms()
+             .filterMap([](auto t) { return t.asSum(); })
+             .filter([](auto& s) { return s.apply([](auto& s) { return s.nSummands() >= 2; }); })
+             .flatMap([=](auto t_anyNum) {
+                 return coproductIter(t_anyNum.applyCo([=](auto t) {
+                     return range(0, t.nSummands() - 1)
+                        .flatMap([=](auto i) {
+                            return range(i + 1, t.nSummands())
+                              .map([=](auto j) {
+                                 return Application { ._atom = atom, ._sum = t_anyNum, .i = i, .j = j, };
+                              })
+                              .inspect([](auto& a) { DEBUG(a) })
+                              .filter([](auto& appl) { return appl.term1().isTerm()
+                                                            && appl.term2().isTerm()
+                                                            && appl.term1().term()->functor() == appl.term2().term()->functor()
+                                                            ;  })
+                              .filterMap([=](auto appl) {
+                                return shared->unify(appl.term1(), appl.term2())
+                                  .map([&](auto unif) {
+                                      return std::make_pair(std::move(appl), std::move(unif));
+                                  });
                               });
-                          });
-                    });
-             })); 
-         });
+                        });
+                 })); 
+             });
+          });
    }
 
 

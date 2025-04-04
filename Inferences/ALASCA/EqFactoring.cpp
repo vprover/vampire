@@ -142,21 +142,21 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
   auto selected = Lib::make_shared(
-      _shared->selectedEqualities(premise, 
+      _shared->selected(premise, 
                        /* literal */ SelectionCriterion::NOT_LESS, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
+        .flatMap([&](auto sel) { return SelectedEquality::iter(_shared->ordering, sel, SelectionCriterion::NOT_LESS, SelectionCriterion::NOT_LEQ); })
         .filter([](auto& s) { return s.positive(); })
-        // .filter([](auto& s) { return !s.isFracNum() || !s.biggerSide().isVar(); })
         .template collect<Stack>());
 
   auto rest = Lib::make_shared(
-      _shared->selectedEqualities(premise, 
+      _shared->selected(premise, 
                        /* literal */ SelectionCriterion::ANY, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
+        .flatMap([&](auto sel) { return SelectedEquality::iter(_shared->ordering, sel, SelectionCriterion::ANY, SelectionCriterion::NOT_LEQ); })
         .filter([](auto& s) { return s.positive(); })
-        // .filter([](auto& s) { return !s.isFracNum() || !s.biggerSide().isVar(); })
         .template collect<Stack>());
 
   return pvi(range(0, selected->size())

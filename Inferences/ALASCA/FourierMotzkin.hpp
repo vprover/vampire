@@ -53,12 +53,11 @@ struct FourierMotzkinConf
     
     TypedTermList key() const { return selectedAtomicTerm(); }
 
-    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
-      return iterTraits(sel.toSelectedAtomicTermItp()
+    static auto iter(AlascaState& shared, __SelectedLiteral const& sel) {
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
-              .map([&]   (auto selected)        { return Lhs(std::move(selected));     })
-              .intoIter());
+              .map([&]   (auto selected)        { return Lhs(std::move(selected));     });
     }
 
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
@@ -85,14 +84,12 @@ struct FourierMotzkinConf
 
     TypedTermList key() const { return selectedAtomicTerm(); }
 
-    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
-      return iterTraits(sel.toSelectedAtomicTermItp()
+    static auto iter(AlascaState& shared, __SelectedLiteral const& sel) {
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
-              .map([&]   (auto selected)        { return Rhs(std::move(selected));     })
-              .intoIter());
+              .map([&]   (auto selected)        { return Rhs(std::move(selected));     });
     }
-
 
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }

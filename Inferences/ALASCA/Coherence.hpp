@@ -92,12 +92,11 @@ public:
     FOR_NUM_TRAITS_FRAC_PREFIX(FOR_NUM)
 #undef FOR_NUM
 
-    static auto iter(AlascaState& shared, SelectedAtom const& sel)
-    {
+    static auto iter(AlascaState& shared, __SelectedLiteral sel) {
       // TODO 4 use selection here and use isInt instead of ⌊..⌋ = t
       // return shared.selectedSummands(cl, /* lit */ SelectionCriterion::NOT_LEQ, /* term */ SelectionCriterion::NOT_LEQ, /*includeUnshieldedNumberVariables=*/ false)
       //   .filter([](auto x) { return is })
-      
+
       return ALASCA::Superposition::Lhs::iter(shared, sel)
         .filter([](auto& lhs) -> bool { return ASig::isFloor(lhs.biggerSide()); })
         .filter([](auto& lhs) { return !ASig::isNumeral(lhs.smallerSide()); })
@@ -110,19 +109,33 @@ public:
                 });
         })
         .flatten()
-        .filter([](auto& lhs) { return !lhs.s().isVar(); })
-      ;
+        .filter([](auto& lhs) { return !lhs.s().isVar(); });
     }
 
-    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
-    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
+    // static auto iter(AlascaState& shared, SelectedAtom const& sel)
+    // {
+    //   // TODO 4 use selection here and use isInt instead of ⌊..⌋ = t
+    //   // return shared.selectedSummands(cl, /* lit */ SelectionCriterion::NOT_LEQ, /* term */ SelectionCriterion::NOT_LEQ, /*includeUnshieldedNumberVariables=*/ false)
+    //   //   .filter([](auto x) { return is })
+    //   
+    //   return ALASCA::Superposition::Lhs::iter(shared, sel)
+    //     .filter([](auto& lhs) -> bool { return ASig::isFloor(lhs.biggerSide()); })
+    //     .filter([](auto& lhs) { return !ASig::isNumeral(lhs.smallerSide()); })
+    //     .map([&shared](auto lhs) {
+    //       auto js_u = toSum(shared, lhs.smallerSide());
+    //           // TODO 3 max summands here?
+    //       return shared.maxSummandIndices(js_u, SelectionCriterion::NOT_LEQ)
+    //         .map([lhs, js_u](auto i) { 
+    //             return Lhs { lhs, js_u, i, };
+    //             });
+    //     })
+    //     .flatten()
+    //     .filter([](auto& lhs) { return !lhs.s().isVar(); })
+    //   ;
+    // }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
-      // TODO use selection here and use isInt instead of ⌊..⌋ = t
-      // return shared.selectedSummands(cl, /* lit */ SelectionCriterion::NOT_LEQ, /* term */ SelectionCriterion::NOT_LEQ, /*includeUnshieldedNumberVariables=*/ false)
-      //   .filter([](auto x) { return is })
-      
       return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
                                  /* terms   */ SelectionCriterion::NOT_LEQ,
                                  /* include number vars */ false)
@@ -171,9 +184,8 @@ public:
        ; 
     }
 
-    static auto iter(AlascaState& shared, SelectedAtom const& atom)
-    {
-      return iterTraits(ALASCA::Superposition::Rhs::iter(shared, atom))
+    static auto iter(AlascaState& shared, __SelectedLiteral lit) {
+      return iterTraits(ALASCA::Superposition::Rhs::iter(shared, lit))
         .flatMap([&shared](auto rhs) { 
             auto toRewrite = rhs.key();
             return iterApplicableSummandsUnderFloor(shared, toRewrite)
@@ -182,6 +194,18 @@ public:
                   });
               });
     }
+
+    // static auto iter(AlascaState& shared, SelectedAtom const& atom)
+    // {
+    //   return iterTraits(ALASCA::Superposition::Rhs::iter(shared, atom))
+    //     .flatMap([&shared](auto rhs) { 
+    //         auto toRewrite = rhs.key();
+    //         return iterApplicableSummandsUnderFloor(shared, toRewrite)
+    //           .map([rhs,toRewrite](auto pair) {
+    //               return Rhs { rhs, toRewrite, pair.first, pair.second, };
+    //               });
+    //           });
+    // }
 
 
     static auto iter(AlascaState& shared, Clause* cl)

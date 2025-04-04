@@ -1961,6 +1961,19 @@ public:
   { return out << "iter(" << iterTraits(self._iter).output(", ") << ")"; }
 };
 
+template<class Iter>
+struct BorrowedIter {
+  Iter* iter;
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  bool hasNext() { return iter->hasNext(); }
+  auto next() { return iter->next(); }
+};
+
+template<class Iter>
+auto borrowedIter(Iter& iter) 
+{ return iterTraits(BorrowedIter<Iter>{ &iter, }); }
+
+
 template<class A>
 using DummyIter = IterTraits<VirtualIterator<A>>;
 

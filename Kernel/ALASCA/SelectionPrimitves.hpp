@@ -44,9 +44,8 @@ namespace Kernel {
      * */
     bool _bgSelected = false;
 
-  protected:
-    __SelectedLiteral(Clause* cl, unsigned lit) : _cl(cl), _lit(lit) {}
   public:
+    __SelectedLiteral(Clause* cl, unsigned lit) : _cl(cl), _lit(lit) {}
 
     Literal* literal() const { return (*_cl)[_lit]; }
     Clause* clause() const { return _cl; }
@@ -92,6 +91,7 @@ namespace Kernel {
   class SelectedAtomicLiteral 
     : public __SelectedLiteral  
   {
+    SelectedAtomicLiteral(__SelectedLiteral sel) : __SelectedLiteral(sel) {}
   public:
     SelectedAtomicLiteral(Clause* cl, unsigned lit) : __SelectedLiteral(cl, lit) {}
     auto iterSelectedSubterms() const 
@@ -99,6 +99,13 @@ namespace Kernel {
                .flatMap([](auto t) { return AnyAlascaTerm::normalize(t).bottomUpIter(); }); }
     bool productive() const { return literal()->isPositive(); }
     AlascaAtom selectedAtom() const { return AlascaAtom(literal()); }
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel) {
+      return iterTraits(InequalityNormalizer::normalize(sel.literal())
+        .as<AlascaLiteralUF>()
+        .filter([&](auto x) { return !sel.literal()->isEquality(); })
+        .map([&](auto x) { return SelectedAtomicLiteral(sel); })
+        .intoIter());
+    }
   };
 
   class SelectedAtomicTermUF 
@@ -148,6 +155,11 @@ namespace Kernel {
     auto asTuple() const { return std::tie((__SelectedLiteral const&) *this, _summand); }
   public:
 
+    SelectedAtomicTermItp(__SelectedLiteral lit, unsigned summand) 
+      : __SelectedLiteral(lit)
+      , _summand(summand)
+    {  }
+
     SelectedAtomicTermItp(Clause* cl, unsigned lit, unsigned summand) 
       : __SelectedLiteral(cl, lit)
       , _summand(summand)
@@ -168,6 +180,10 @@ namespace Kernel {
     bool productive() const 
     { return isInequality() ? selectedSummand().numeral() > 0 
                             : literal()->isPositive(); }
+
+    // bool productive() const 
+    // { return isInequality() ? selectedSummand().numeral() > 0 
+    //                         : literal()->isPositive(); }
 
     auto iterSelectedSubterms() const 
     { return selectedAtomicAlascaTerm().bottomUpIter(); }
@@ -198,6 +214,29 @@ namespace Kernel {
     }
   };
 
+  struct MaxIterationUtil {
+    template<class Self>
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) {
+
+      auto terms = coproductIter(InequalityNormalizer::normalize(sel.literal())
+        .applyCo([&](auto norm) { return Self::iterAll(sel, norm); }))
+        .collectRStack();
+
+      auto stack = OrderingUtils::maxElems(
+          terms->size() ,
+          [&](unsigned l, unsigned r) 
+          { return ord->compare(terms[l].selectedAtomicTerm(), 
+                                terms[r].selectedAtomicTerm()); },
+          [&](unsigned i)
+          { return terms[i].selectedAtomicTerm(); },
+          selTerm)
+        .map([&](auto i) 
+            { return terms[i]; })
+        .collectRStack();
+
+      return arrayIter(std::move(stack));
+    }
+  };
   struct SelectedAtomicTerm 
     : public TypeList::ApplyT<Coproduct, 
                TypeList::Concat<
@@ -225,6 +264,45 @@ namespace Kernel {
     DELEGATE(selectedAtomicAlascaTerm)
     DELEGATE(iterSelectedSubterms)
 
+  private:
+    friend struct MaxIterationUtil;
+    static auto iterAll(__SelectedLiteral const& lit, AlascaLiteralUF const& norm) {
+      return ifElseIter(lit.literal()->isEquality(), 
+          []() { return iterItems<bool>(0, 1); },
+          []() { return iterItems<bool>(); })
+        .map([=](bool b) { return SelectedAtomicTerm(SelectedAtomicTermUF(lit.clause(), lit.litIdx(), b)); });
+    }
+    template<class NumTraits>
+    static auto iterAll(__SelectedLiteral const& lit, AlascaLiteralItp<NumTraits> const& norm) {
+      return range(0, norm.term().nSummands()) 
+        .map([=](auto i) { return SelectedAtomicTerm(SelectedAtomicTermItp<NumTraits>(lit.clause(), lit.litIdx(), i)); });
+    }
+  public:
+
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) 
+    { return MaxIterationUtil::iter<SelectedAtomicTerm>(ord, sel, selLit, selTerm); }
+
+    // {
+    //   auto terms = coproductIter(InequalityNormalizer::normalize(sel.literal())
+    //     .applyCo([&](auto norm) { return iterAll(sel, norm); }))
+    //     .collectRStack();
+    //
+    //   auto stack = OrderingUtils::maxElems(
+    //       terms->size() ,
+    //       [&](unsigned l, unsigned r) 
+    //       { return ord->compare(terms[l].selectedAtomicTerm(), 
+    //                             terms[r].selectedAtomicTerm()); },
+    //       [&](unsigned i)
+    //       { return terms[i].selectedAtomicTerm(); },
+    //       selTerm)
+    //     .map([&](auto i) 
+    //         { return terms[i]; })
+    //     .collectRStack();
+    //
+    //   return arrayIter(std::move(stack));
+    // }
+
+
     void setBGSelected(bool b) { return apply([&](auto& x){ return x.setBGSelected(b); }); }
 
     template<class NumTraits>
@@ -237,6 +315,8 @@ namespace Kernel {
     { self.apply([&](auto& x) { out << x; }); return out; }
 
   };
+
+
 
   struct SelectedAtomicTermItpAny : public NumTraitsCopro<SelectedAtomicTermItp>
   {
@@ -256,6 +336,23 @@ namespace Kernel {
     DELEGATE(isInequality)
     DELEGATE(sign)
     DELEGATE(termIdx)
+
+  private:
+    friend struct MaxIterationUtil;
+    static auto iterAll(__SelectedLiteral const& lit, AlascaLiteralUF const& norm) 
+    { return iterItems<SelectedAtomicTermItpAny>(); }
+
+    template<class NumTraits>
+    static auto iterAll(__SelectedLiteral const& lit, AlascaLiteralItp<NumTraits> const& norm) {
+      return range(0, norm.term().nSummands()) 
+        .map([=](auto i) { return SelectedAtomicTermItpAny(SelectedAtomicTermItp<NumTraits>(lit.clause(), lit.litIdx(), i)); });
+    }
+  public:
+
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) 
+    { return MaxIterationUtil::iter<SelectedAtomicTermItpAny>(ord, sel, selLit, selTerm); }
+
+
 
     auto numTraits() const 
     { return applyCo([](auto& x) { return x.numTraits(); }); }
@@ -293,6 +390,12 @@ namespace Kernel {
         return {};
       }
     }
+
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) {
+      return SelectedAtomicTerm::iter(ord, sel, selLit, selTerm)
+        .filterMap([](auto t) { return SelectedEquality::from(t); });
+    }
+
     bool positive() const { return literal()->isPositive(); }
     TypedTermList key() const { return biggerSide(); }
    
@@ -334,6 +437,16 @@ namespace Kernel {
         });
     }
 
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) {
+      return concatIters(
+          SelectedAtomicLiteral::iter(ord, sel)
+            .map([](auto x) { return SelectedAtom(x); }),
+          SelectedAtomicTerm::iter(ord, sel, selLit, selTerm)
+            .map([](auto x) { return SelectedAtom(x); })
+          );
+    }
+
+    // TODO 2 deprecate
     static auto iter(Clause* cl) {
       return cl->iterLits()
           .zipWithIndex() 

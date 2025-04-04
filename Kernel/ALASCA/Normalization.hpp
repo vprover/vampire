@@ -207,8 +207,12 @@ namespace Kernel {
   public:
     AlascaLiteral(AlascaLiteralCache const* self) : _self(cvt(self)) {}
 
-    template<class F>
-    auto apply(F f) const -> decltype(auto) { return _self.apply(f); }
+    template<class T> auto as() const& -> decltype(auto) { return _self.template as<T>(); }
+    template<class T> auto as()      & -> decltype(auto) { return _self.template as<T>(); }
+    template<class T> auto as()     && -> decltype(auto) { return _self.template as<T>(); }
+
+    template<class F> auto apply(F f) const -> decltype(auto) { return _self.apply(f); }
+    template<class F> auto applyCo(F f) const -> decltype(auto) { return _self.applyCo(f); }
 
     template<class T>
     auto unwrap() const -> decltype(auto) { return _self.template unwrap<T>(); }

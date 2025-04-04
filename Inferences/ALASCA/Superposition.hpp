@@ -53,15 +53,14 @@ struct SuperpositionConf
 
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
-
-    static auto iter(AlascaState& shared, SelectedAtom sel) {
-      return iterTraits(sel.as<SelectedAtomicTerm>()
-             .andThen([](auto t) { return SelectedEquality::from(std::move(t)); })
+    static auto iter(AlascaState& shared, __SelectedLiteral sel) {
+      return SelectedAtomicTerm::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
+        // .flatMap([&shared](auto x) { return iter(shared, x); })
+             .filterMap([](auto t) { return SelectedEquality::from(std::move(t)); })
              .filter([](auto& x) { return x.literal()->isPositive(); })
              // TODO 4 do we ever select numerals for any inference ???
              .filter([](auto& l) { return !forAnyNumTraits([&](auto n) { return n.isNumeral(l.biggerSide()); }); })
-             .map([](auto x) { return Lhs(std::move(x)); })
-             .intoIter());
+             .map([](auto x) { return Lhs(std::move(x)); });
     }
 
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
@@ -109,13 +108,16 @@ struct SuperpositionConf
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
-    static auto iter(AlascaState& shared, SelectedAtom const& atom) { 
-      return iterTraits(atom.iterSelectedSubterms()
-         .filter([](AnyAlascaTerm const& t) { return t.isAtomic() && !t.asAtomic()->isVar(); })
-         .filter([](AnyAlascaTerm const& t) { return !t.isNumeral(); })
-         .map([atom](auto t) { return Rhs(atom, t); }))
-         .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite().toTerm()), Output::cat(x, "\n", *x.literal(), "\n", x.toRewrite())); })
-      ;
+    static auto iter(AlascaState& shared, __SelectedLiteral sel) {
+      return SelectedAtom::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
+        .flatMap([](auto atom) {
+          return iterTraits(atom.iterSelectedSubterms()
+             .filter([](AnyAlascaTerm const& t) { return t.isAtomic() && !t.asAtomic()->isVar(); })
+             .filter([](AnyAlascaTerm const& t) { return !t.isNumeral(); })
+             .map([atom](auto t) { return Rhs(atom, t); }))
+             .inspect([](auto& x) { ASS_REP(x.literal()->containsSubterm(x.toRewrite().toTerm()), Output::cat(x, "\n", *x.literal(), "\n", x.toRewrite())); })
+          ;
+        });
     }
 
     static auto iter(AlascaState& shared, Clause* cl)

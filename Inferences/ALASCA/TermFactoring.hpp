@@ -53,6 +53,11 @@ public:
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LESS; }
 
+    static auto iter(AlascaState& shared, __SelectedLiteral sel) {
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
+              .map([&]  (auto selected) { return Application(std::move(selected)); });
+    }
+
     static auto iter(AlascaState& shared, SelectedAtom const& sel) {
       return iterTraits(sel.toSelectedAtomicTermItp()
               .map([&]  (auto selected) { return Application(std::move(selected)); })

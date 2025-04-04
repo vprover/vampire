@@ -46,9 +46,10 @@ namespace Kernel {
   public:
     auto selected(Clause* cl, Ordering* ord)
     {
-      return arrayIter(_cache.getOrInit(cl, [&]() {
-            return computeSelected(SelectedAtom::iter(cl).collectStack(), ord);
-      }));
+      return assertionViolation<DummyIter<__SelectedLiteral>>();
+      // return arrayIter(_cache.getOrInit(cl, [&]() {
+      //       return computeSelected(SelectedAtom::iter(cl).collectStack(), ord);
+      // }));
     }
 
     template<class Selected, class FailLogger>

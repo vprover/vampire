@@ -163,6 +163,46 @@ struct AlascaSelectorDispatch {
                   [](auto t) { return true; }); });
   }
 
+  auto iterUnproductive2(Ordering* ord, Stack<SelectedAtom> atoms) const
+  { 
+    atoms.sort([](auto& l, auto& r) { return l.literal() < r.literal(); });
+
+    auto max = iterMax(ord, atoms)
+      .map([](auto& x) { return &x; })
+      .collectRStack();
+    max->sort([](auto& l, auto& r) { return l->literal() < r->literal(); });
+
+    RStack<Literal*> maybeProductive;
+    unsigned i = 0;
+    while (i < max.size()) {
+      auto lit = max[i]->literal();
+      auto j = i;
+      auto maybeProdLit = false;
+      while (max[j]->literal() == lit) {
+        maybeProdLit |= max[j]->productive();
+        j++;
+      }
+      if (maybeProdLit) {
+        maybeProductive->push(lit);
+      }
+      i = j;
+    }
+
+    return arrayIter(std::move(atoms))
+      .filterMap([pi = 0, maybeProductive = std::move(maybeProductive)](auto atom) mutable -> Option<SelectedAtom> {
+          if (maybeProductive[pi] < atom.literal()) {
+            pi++;
+          }
+          ASS(maybeProductive[pi] >= atom.literal())
+          if (maybeProductive[pi] == atom.literal()) {
+            return {};
+          } else {
+            return some(atom);
+          }
+      });
+  }
+
+
   template<class Iter>
   auto bgSelected(bool bgSelected, Iter iter) const
   { return iter.map([&](auto x) { x.setBGSelected(bgSelected); return x; }).collectStack(); }
@@ -241,7 +281,7 @@ struct AlascaSelectorDispatch {
   Stack<SelectedAtom> computeSelected(TL::Token<GenericRndLiteralSelector<complete>>, Stack<SelectedAtom> atoms, Ordering* ord) {
     if (complete) {
       RStack<SelectedAtom> negative;
-      negative->loadFromIterator(iterUnproductive(atoms));
+      negative->loadFromIterator(iterUnproductive2(ord, atoms));
       if (negative.size() != 0
           // && Random::getBit() // <- sometimes select all maximals even if there is negatives TODO do we want this really?
           ) {
