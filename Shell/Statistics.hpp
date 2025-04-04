@@ -139,6 +139,8 @@ public:
   unsigned inductionApplicationInProof;
   unsigned generalizedInductionApplication;
   unsigned generalizedInductionApplicationInProof;
+  unsigned nonGroundInductionApplication;
+  unsigned nonGroundInductionApplicationInProof;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;

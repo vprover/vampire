@@ -154,11 +154,30 @@ bool InductionHelper::isInductionClause(Clause* c) {
          );
 }
 
+bool inductionLiteralHasAdmissibleVariables(Literal* l) {
+  if (l->getDistinctVars() != 1) {
+    return false;
+  }
+  for (unsigned idx = 0; idx < l->arity(); ++idx) {
+    if (l->nthArgument(idx)->isVar()) {
+      return SortHelper::getArgSort(l, idx) != AtomicSort::boolSort();
+    } else {
+      VariableWithSortIterator vi(l->nthArgument(idx)->term());
+      if (vi.hasNext()) {
+        return vi.next().second != AtomicSort::boolSort();
+      }
+    }
+  }
+  ASSERTION_VIOLATION_REP("No variables in a literal which should contain one variable!");
+  return true;
+}
+
 bool InductionHelper::isInductionLiteral(Literal* l) {
   static bool negOnly = env.options->inductionNegOnly();
+  static bool groundOnly = env.options->inductionGroundOnly();
   return ((!negOnly || l->isNegative() || 
            (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
-          ) && l->ground()
+          ) && (l->ground() || (!groundOnly && inductionLiteralHasAdmissibleVariables(l)))
          );
 }
 
