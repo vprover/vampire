@@ -49,7 +49,7 @@ struct POStruct {
 struct TermOrderingDiagram
 {
 public:
-  static TermOrderingDiagram* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs, bool ground);
+  static TermOrderingDiagram* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs);
 
   TermOrderingDiagram(const Ordering& ord, bool ground);
   virtual ~TermOrderingDiagram();
@@ -215,9 +215,9 @@ public:
         Stack<TermOrderingConstraint> cons;
         Branch* branch;
       };
-      void initCurrent(Stack<BranchingPoint>* ptr);
+      Stack<BranchingPoint>* initCurrent(Node* node);
 
-      Map<Branch*, Stack<BranchingPoint>> _map;
+      Map<Node*, Stack<BranchingPoint>> _map;
       Recycled<Stack<std::tuple<Branch*,POStruct,unsigned>>> _path;
       POStruct _po_struct;
       bool _retIncomp = false;
