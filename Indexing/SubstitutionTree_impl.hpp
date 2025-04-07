@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * @file SubstitutionTree.cpp
+ * @file SubstitutionTree_impl.hpp
  * Implements class SubstitutionTree.
  *
  * @since 16/08/2008 flight Sydney-San Francisco

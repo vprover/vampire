@@ -141,7 +141,8 @@ void Options::init()
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
-    "  -casc, casc_sat, smtcomp - like portfolio mode, with competition specific\n     presets for schedule, etc.\n"
+    "  -casc, casc_sat, smtcomp - like portfolio mode, with competition-specific presets for other options, including output. "
+    "If you wish to use e.g. the CASC portfolio without the presets, use --mode portfolio --schedule casc.\n"
     "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
     "  -output,profile: output information about the problem\n"
@@ -2618,62 +2619,6 @@ bool Options::HasTheories::check(Property*p) {
   // this was the condition used in Preprocess::preprocess guarding the addition of theory axioms
   return actualCheck(p);
 }
-
-/**
- * Return the include file name using its relative name.
- *
- * @param relativeName the relative name, must begin and end with "'"
- *        because of the TPTP syntax
- * @since 16/10/2003 Manchester, relativeName changed to string from char*
- * @since 07/08/2014 Manchester, relativeName changed to std::string
- */
-// TODO this behaviour isn't quite right, at least:
-// 1. we use the *root* file to resolve relative paths, which won't work if we have an axiom file that includes another
-// 2. checks current directory, which spec doesn't ask for
-// 3. checks our "-include" option, which isn't in the spec either (OK if someone relies on it, I guess)
-// cf https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
-// probable solution: move all this logic into TPTP parser and do it properly there
-
-std::string Options::includeFileName (const std::string& relativeName)
-{
-  if (relativeName[0] == '/') { // absolute name
-    return relativeName;
-  }
-
-  if (std::filesystem::exists(relativeName)) {
-    return relativeName;
-  }
-
-  // truncatedRelativeName is relative.
-  // Use the conventions of Vampire:
-  // (a) first search the value of "include"
-  std::string dir = include();
-
-  if (dir == "") { // include undefined
-    // (b) search in the directory of the 'current file'
-    // i.e. the input file
-    std::filesystem::path currentFile(inputFile());
-    dir = currentFile.parent_path().string();
-    if(std::filesystem::exists(dir+"/"+relativeName)){
-      return dir + "/" + relativeName;
-    }
-
-    // (c) search the value of the environment variable TPTP_DIR
-    char* env = getenv("TPTP");
-    if (env) {
-      dir = env;
-    }
-    else {
-    // (d) use the current directory
-      dir = ".";
-    }
-    // we do not check (c) or (d) - an error will occur later
-    // if the file does not exist here
-  }
-  // now dir is the directory to search
-  return dir + "/" + relativeName;
-} // Options::includeFileName
-
 
 /**
  * Output options to a stream.

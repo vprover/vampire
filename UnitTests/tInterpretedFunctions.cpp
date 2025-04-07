@@ -625,6 +625,28 @@ ALL_NUMBERS_TEST(NUM_IS_NUM_08,
      false
     )
 
+
+ALL_NUMBERS_TEST(bug_10,
+     ((num(2) + 2) * ((num(2) + 2) + (num(2) + 2))) == (num(2) + 2) * (num(2) + 2) + (num(2) + 2) * (num(2) + 2),
+     true
+    )
+
+ALL_NUMBERS_TEST(bug_10a,
+     p((num(2) + 2) * ((num(2) + 2) + (num(2) + 2))),
+     p(32)
+    )
+
+ALL_NUMBERS_TEST(bug_10b,
+     p((num(2) + 2) * (num(2) + 2) + (num(2) + 2) * (num(2) + 2)),
+     p(32)
+    )
+
+ALL_NUMBERS_TEST(bug_10c,
+     // p(a * a + (-a) * (-a)),
+     p((num(2) - 2 + a) * (num(2) - 2 + a) + (num(2) - 2 - a) * (num(2) - 2 - a)),
+     p(2 * ( a * a ))
+    )
+
 // FRACTIONAL_TEST(eval_div_1,
 //     p(floor(frac(7,2))),
 //     p(3)

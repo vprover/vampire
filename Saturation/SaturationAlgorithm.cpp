@@ -426,6 +426,13 @@ void SaturationAlgorithm::onPassiveSelected(Clause* c)
  */
 void SaturationAlgorithm::onNewClause(Clause* cl)
 {
+#if VDEBUG && VZ3
+  if (cl->isPureTheoryDescendant()){
+    bool couldNotCheck = false;
+    ASS_REP(TheoryInstAndSimp::isTheoryLemma(cl,couldNotCheck),cl->toString())
+  }
+#endif
+
   if (_splitter) {
     _splitter->onNewClause(cl);
   }

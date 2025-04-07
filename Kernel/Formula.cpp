@@ -22,7 +22,7 @@ namespace Kernel {
 
 using namespace std;
 
-std::string Formula::DEFAULT_LABEL = "none";
+std::string Formula::DEFAULT_LABEL = "__unlabeled__";
 
 /**
  * Destroy the content of the formula. The destruction depends on the type
