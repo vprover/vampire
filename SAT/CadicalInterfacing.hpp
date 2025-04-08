@@ -44,7 +44,7 @@ public:
   }
 
   virtual Status solve(unsigned conflictCountLimit) override;
-  
+
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -77,6 +77,7 @@ public:
   virtual unsigned newVar() override { return _next++; }
 
   virtual void suggestPolarity(unsigned var, unsigned pol) override {
+    _solver.reserve(vampire2Cadical(true, var));
     _solver.phase(vampire2Cadical(pol, var));
   }
 
@@ -89,9 +90,9 @@ public:
     _assumptions.clear();
     _status = Status::UNKNOWN;
   };
-  
+
   virtual bool hasAssumptions() const override {
-    return (_assumptions.size() > 0);
+    return _assumptions.size() > 0;
   };
 
   Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;

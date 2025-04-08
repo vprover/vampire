@@ -454,10 +454,6 @@ void UIHelper::outputResult(std::ostream& out)
         (UIHelper::haveConjecture() ? ( refutation->derivedFromGoal() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
 	      << " for " << env.options->problemName() << endl;
     }
-    if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
-      ASS(refutation->isClause());
-      AnswerLiteralManager::getInstance()->tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation),std::cout);
-    }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
         out << "% SZS output start Proof for " << env.options->problemName() << endl;
@@ -466,7 +462,10 @@ void UIHelper::outputResult(std::ostream& out)
       if (szsOutputMode()) {
         out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
-
+    }
+    if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+      ASS(refutation->isClause());
+      AnswerLiteralManager::getInstance()->tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation),std::cout);
     }
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(refutation->isClause());
