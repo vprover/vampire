@@ -45,6 +45,7 @@ Statistics::Statistics()
   : inputClauses(0),
     inputFormulas(0),
     formulaNames(0),
+    skolemFunctions(0),
     initialClauses(0),
     splitInequalities(0),
     purePredicates(0),
@@ -279,7 +280,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Input formulas", inputFormulas);
   SEPARATOR;
 
-  HEADING("Preprocessing",formulaNames+purePredicates+trivialPredicates+
+  HEADING("Preprocessing",formulaNames+skolemFunctions+purePredicates+trivialPredicates+
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+blockedClauses+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
