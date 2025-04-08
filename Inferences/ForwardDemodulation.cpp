@@ -170,7 +170,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Applicator applWithoutEqSort(subs.ptr());
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
-        AppliedTerm rhsApplied(qr.data->rhs,appl,true);
+        AppliedTerm rhsApplied(qr.data->rhs,appl);
         bool preordered = qr.data->preordered;
 
         ASS_EQ(ordering.compare(trm,rhsApplied),Ordering::reverse(ordering.compare(rhsApplied,trm)));

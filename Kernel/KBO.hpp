@@ -192,7 +192,8 @@ protected:
   const LinearExpression* computeWeight(Term* t) const;
   Result positivityCheck(AppliedTerm t1, AppliedTerm t2) const;
   template<int sign>
-  bool positivityCheck2(int& weight, ZIArray<int>& varDiffs, const LinearExpression* linexp, AppliedTerm parent) const;
+  bool positivityCheckHelper(
+    int& weight, ZIArray<int>& varDiffs, const LinearExpression* linexp, const SubstApplicator* appl) const;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 

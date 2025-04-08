@@ -146,7 +146,7 @@ void KBO::State::traverse(KBO const& kbo, AppliedTerm tt)
     }
     AppliedTerm t(*curr.t.term.term()->nthArgument(curr.arg++), curr.t);
     if (t.term.isVar()) {
-      ASS(!t.aboveVar);
+      ASS(!t.applicator);
       _weightDiff += kbo._funcWeights._specialWeights._variableWeight * coef;
       recordVariable<coef>(t.term.var());
       continue;
@@ -173,13 +173,13 @@ Ordering::Result KBO::State::traverseLexBidir(KBO const& kbo, AppliedTerm tl1, A
   unsigned depth=1;
   unsigned lexValidDepth=0;
 
-  static Stack<pair<const TermList*,bool>> stack(32);
+  static Stack<pair<const TermList*,const SubstApplicator*>> stack(32);
   stack.reset();
-  stack.push(make_pair(t1->args(),tl1.aboveVar));
-  stack.push(make_pair(t2->args(),tl2.aboveVar));
+  stack.push(make_pair(t1->args(),tl1.applicator));
+  stack.push(make_pair(t2->args(),tl2.applicator));
   while(!stack.isEmpty()) {
-    auto [tt,ttAboveVar] = stack.pop(); // tl2 subterm
-    auto [ss,ssAboveVar] = stack.pop(); // tl1 subterm
+    auto [tt,ttApplicator] = stack.pop(); // tl2 subterm
+    auto [ss,ssApplicator] = stack.pop(); // tl1 subterm
     if(ss->isEmpty()) {
       ASS(tt->isEmpty());
       depth--;
@@ -193,11 +193,11 @@ Ordering::Result KBO::State::traverseLexBidir(KBO const& kbo, AppliedTerm tl1, A
       continue;
     }
 
-    stack.push(make_pair(ss->next(),ssAboveVar));
-    stack.push(make_pair(tt->next(),ttAboveVar));
+    stack.push(make_pair(ss->next(),ssApplicator));
+    stack.push(make_pair(tt->next(),ttApplicator));
 
-    AppliedTerm s(*ss,tl1.applicator,ssAboveVar);
-    AppliedTerm t(*tt,tl2.applicator,ttAboveVar);
+    AppliedTerm s(*ss,ssApplicator);
+    AppliedTerm t(*tt,ttApplicator);
 
     if(s.equalsShallow(t)) {
       //if content is the same, neither weightDiff nor varDiffs would change
@@ -207,8 +207,8 @@ Ordering::Result KBO::State::traverseLexBidir(KBO const& kbo, AppliedTerm tl1, A
       ASS(s.term.isTerm());
       ASS(t.term.isTerm());
       ASS(s.term.term()->arity());
-      stack.push(make_pair(s.term.term()->args(),s.aboveVar));
-      stack.push(make_pair(t.term.term()->args(),t.aboveVar));
+      stack.push(make_pair(s.term.term()->args(),s.applicator));
+      stack.push(make_pair(t.term.term()->args(),t.applicator));
       depth++;
     } else {
       traverse<1>(kbo, s);
@@ -232,23 +232,23 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
   ASS(t1->functor()==t2->functor());
   ASS(t1->arity());
 
-  static Stack<pair<const TermList*,bool>> stack(32);
+  static Stack<pair<const TermList*,const SubstApplicator*>> stack(32);
   stack.reset();
-  stack.push(make_pair(t1->args(),tl1.aboveVar));
-  stack.push(make_pair(t2->args(),tl2.aboveVar));
+  stack.push(make_pair(t1->args(),tl1.applicator));
+  stack.push(make_pair(t2->args(),tl2.applicator));
   while(!stack.isEmpty()) {
-    auto [tt,ttAboveVar] = stack.pop(); // tl2 subterm
-    auto [ss,ssAboveVar] = stack.pop(); // tl1 subterm
+    auto [tt,ttApplicator] = stack.pop(); // tl2 subterm
+    auto [ss,ssApplicator] = stack.pop(); // tl1 subterm
     if(ss->isEmpty()) {
       ASS(tt->isEmpty());
       continue;
     }
 
-    stack.push(make_pair(ss->next(),ssAboveVar));
-    stack.push(make_pair(tt->next(),ttAboveVar));
+    stack.push(make_pair(ss->next(),ssApplicator));
+    stack.push(make_pair(tt->next(),ttApplicator));
 
-    AppliedTerm s(*ss,tl1.applicator,ssAboveVar);
-    AppliedTerm t(*tt,tl2.applicator,ttAboveVar);
+    AppliedTerm s(*ss,ssApplicator);
+    AppliedTerm t(*tt,ttApplicator);
 
     if(s.equalsShallow(t)) {
       //if content is the same, neither weightDiff nor varDiffs would change
@@ -274,8 +274,8 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
       case Ordering::GREATER:
         return GREATER;
       case Ordering::EQUAL:
-        stack.push(make_pair(s.term.term()->args(),s.aboveVar));
-        stack.push(make_pair(t.term.term()->args(),t.aboveVar));
+        stack.push(make_pair(s.term.term()->args(),s.applicator));
+        stack.push(make_pair(t.term.term()->args(),t.applicator));
         break;
       default: ASSERTION_VIOLATION;
     }
@@ -865,8 +865,8 @@ Result KBO::positivityCheck(AppliedTerm t1, AppliedTerm t2) const
   static ZIArray<int> varDiffs;
   varDiffs.reset();
 
-  ALWAYS(positivityCheck2</*sign=*/1>(weight, varDiffs, computeWeight(t1.term.term()), t1));
-  if (!positivityCheck2</*sign=*/-1>(weight, varDiffs, computeWeight(t2.term.term()), t2)) {
+  ALWAYS(positivityCheckHelper</*sign=*/1>(weight, varDiffs, computeWeight(t1.term.term()), t1.applicator));
+  if (!positivityCheckHelper</*sign=*/-1>(weight, varDiffs, computeWeight(t2.term.term()), t2.applicator)) {
     return INCOMPARABLE;
   }
 
@@ -879,13 +879,13 @@ Result KBO::positivityCheck(AppliedTerm t1, AppliedTerm t2) const
 }
 
 template<int sign>
-bool KBO::positivityCheck2(int& weight, ZIArray<int>& varDiffs, const LinearExpression* linexp, AppliedTerm parent) const
+bool KBO::positivityCheckHelper(int& weight, ZIArray<int>& varDiffs, const LinearExpression* linexp, const SubstApplicator* appl) const
 {
   static_assert(sign==1 || sign==-1);
 
   weight += sign * linexp->constant;
   for (const auto& [var, coeff] : linexp->varCoeffPairs) {
-    AppliedTerm tt(TermList::var(var), parent);
+    AppliedTerm tt(TermList::var(var), appl);
     if (tt.term.isVar()) {
       varDiffs[tt.term.var()] += sign * coeff;
       weight += sign * coeff * _funcWeights._specialWeights._variableWeight;

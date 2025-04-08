@@ -40,39 +40,37 @@ struct SubstApplicator {
  * creating the result of the substitution in the process. For example, we might
  * evaluate `f(x,y)` with substitution `\theta = { x -> a, y -> g(x) }` using the
  * following @b AppliedTerm instances:
- * - Construct @b AppliedTerm with `f(x,y)`, `\theta` and @b aboveVar=true
+ * - Construct @b AppliedTerm with `f(x,y)`, `\theta` and non-null @b applicator
  *   (as we are "above" a variable position in `f(x,y)\theta`).
  *   We process the symbol `f` of the term.
- * - Construct @b AppliedTerm with `x`, `\theta` and @b aboveVar=true.
- *   Since @b aboveVar==true and `x` is a variable, the substitution is applied
- *   and we get an @b AppliedTerm with `a` and @b aboveVar=false, as we are
+ * - Construct @b AppliedTerm with `x`, `\theta` and non-null @b applicator.
+ *   Since @b applicator is non-null and `x` is a variable, @b applicator is applied
+ *   and we get an @b AppliedTerm with `a` and null @b applicator, as we are
  *   now "at" (and not "above") a variable position. We process the symbol `a`.
- * - Construct @b AppliedTerm with `y`, `\theta` and @b aboveVar=true.
- *   Again, @b aboveVar==true and `y` is a variable, so we get an @b AppliedTerm
- *   with `g(x)` and @b aboveVar=false. We process the symbol `f`.
- * - Finally, construct @b AppliedTerm with `x`, `\theta` and @b aboveVar=false.
- *   Since we are now "below" a variable position with @b aboveVar==false,
+ * - Construct @b AppliedTerm with `y`, `\theta` and non-null @b applicator.
+ *   Again, @b applicator is non-null and `y` is a variable, so we get an
+ *   @b AppliedTerm with `g(x)` and null @b applicator. We process the symbol `g`.
+ * - Finally, construct @b AppliedTerm with `x`, `\theta` and null @b applicator.
+ *   Since we are now "below" a variable position with @b applicator is null,
  *   `\theta` is not applied again and we get `x`. We process `x`.
  */
 struct AppliedTerm
 {
   TermList term;
-  bool aboveVar;
   const SubstApplicator* applicator;
 
-  AppliedTerm(TermList t) : term(t), aboveVar(false), applicator(nullptr) {}
+  AppliedTerm(TermList t) : term(t), applicator(nullptr) {}
   /**
    * The substitution is only applied to the term @b t via @b applicator if @b t is a variable
-   * and @b aboveVar is true (i.e. we are still above the substitution). @b applicator can be
-   * null is @b aboveVar is false.
+   * and @b applicator is non-null (i.e. we are still above the substitution).
    */
-  AppliedTerm(TermList t, const SubstApplicator* applicator, bool aboveVar)
-    : term(aboveVar && t.isVar() ? (*applicator)(t.var()) : t),
-      aboveVar(aboveVar && t.isVar() ? false : aboveVar), applicator(applicator) {}
+  AppliedTerm(TermList t, const SubstApplicator* applicator)
+    : term(applicator && t.isVar() ? (*applicator)(t.var()) : t),
+      applicator(applicator && t.isVar() ? nullptr : applicator) {}
 
   AppliedTerm(TermList t, AppliedTerm parent)
-    : term(parent.aboveVar && t.isVar() ? (*parent.applicator)(t.var()) : t),
-      aboveVar(parent.aboveVar && t.isVar() ? false : parent.aboveVar), applicator(parent.applicator) {}
+    : term(parent.applicator && t.isVar() ? (*parent.applicator)(t.var()) : t),
+      applicator(parent.applicator && t.isVar() ? nullptr : parent.applicator) {}
 
   /**
    * Only allow comparisons if we can guarantee that the terms are the same.
@@ -80,14 +78,14 @@ struct AppliedTerm
   bool operator==(AppliedTerm) const = delete;
   bool operator!=(AppliedTerm) const = delete;
   bool equalsShallow(AppliedTerm other) const {
-    return ((!aboveVar && !other.aboveVar) || (term.ground() && other.term.ground()))
+    return ((!applicator && !other.applicator) || (term.ground() && other.term.ground()))
       && term==other.term;
   }
 
   bool containsVar(TermList var)
   {
     ASS(var.isVar());
-    if (!aboveVar) {
+    if (!applicator) {
       return term.containsSubterm(var);
     }
     if (term.isVar()) {
@@ -660,8 +658,8 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
 };
 
 inline TermList AppliedTerm::apply() const {
-  return aboveVar ? SubstHelper::apply(term, *applicator) 
-                  : term;
+  return applicator ? SubstHelper::apply(term, *applicator) 
+                    : term;
 }
 
 #endif /* __SubstHelper__ */

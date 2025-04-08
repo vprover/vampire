@@ -65,8 +65,8 @@ void* TermOrderingDiagram::next()
     if (node->tag == Node::T_TERM) {
 
       comp = _ord.compareUnidirectional(
-        AppliedTerm(node->lhs, _appl, true),
-        AppliedTerm(node->rhs, _appl, true));
+        AppliedTerm(node->lhs, _appl),
+        AppliedTerm(node->rhs, _appl));
 
     } else {
       ASS_EQ(node->tag, Node::T_POLY);
@@ -75,7 +75,7 @@ void* TermOrderingDiagram::next()
       auto weight = node->linexp->constant;
       ZIArray<int> varDiffs;
       for (const auto& [var, coeff] : node->linexp->varCoeffPairs) {
-        AppliedTerm tt(TermList::var(var), _appl, true);
+        AppliedTerm tt(TermList::var(var), _appl);
 
         if (tt.term.isVar()) {
           varDiffs[tt.term.var()] += coeff;
