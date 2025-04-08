@@ -792,7 +792,6 @@ inline bool CodeTree::Matcher<removing, checkRange>::doSearchStruct()
     return false;
   }
   op=target;
-  // TODO look at this if something crashes
   if constexpr (removing) {
     firstsInBlocks->push(op);
   }
