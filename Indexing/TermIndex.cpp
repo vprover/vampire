@@ -156,7 +156,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
   // Iterate through literals & check if the literal is suitable for induction
   for (unsigned i=0;i<c->length();i++) {
     Literal* lit = (*c)[i];
-    if (!InductionHelper::isInductionLiteral(lit)) {
+    if (!InductionHelper::isGroundInductionLiteral(lit)) {
       continue;
     }
 
