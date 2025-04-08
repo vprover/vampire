@@ -124,7 +124,9 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   _gageCombine = _model.attr("gage_combine").toModule();
 
   _gweightEmbeddingSize = (*_model.find_method("gweight_embedding_size"))({}).toInt();
-  _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().forward({torch::Tensor()}).toTensor();
+  auto _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().forward({torch::Tensor()}).toTensor();
+  _gweightTermEmbedStore.insert(0,_gweightVarEmbed);
+
   _gweightTermCombine = _model.attr("gweight_term_combine").toModule();
 
   _evalClauses = _model.find_method("eval_clauses");
@@ -253,20 +255,6 @@ void NeuralClauseEvaluationModel::gageEmbedPending()
   _gageTodoLayers.reset();
 }
 
-torch::Tensor NeuralClauseEvaluationModel::getSubtermEmbed(int64_t id) {
-  /*
-  if id < 0:
-    return self.gweight_var_embed()
-  else:
-    return self.gweight_term_embed_store[id]
-  */
-  if (id < 0) {
-    return _gweightVarEmbed;
-  } else {
-    return _gweightTermEmbedStore.get(id);
-  }
-}
-
 void NeuralClauseEvaluationModel::gweightEmbedPending() {
   torch::NoGradGuard no_grad; // TODO: check if this is necessary here
 
@@ -304,11 +292,11 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
       if (args.size() == 0) {
         rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, torch::zeros({2*_gweightEmbeddingSize}));
       } else {
-        rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+2*_gweightEmbeddingSize)}, getSubtermEmbed(args[0]));
+        rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+2*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[0]));
         int64_t k = 1;
         auto remainingArgsEmbedSum = torch::zeros({_gweightEmbeddingSize});
         while (k < args.size()) {
-          remainingArgsEmbedSum += getSubtermEmbed(args[k++]);
+          remainingArgsEmbedSum += _gweightTermEmbedStore.get(args[k++]);
         }
         k--; // now it reflects the number of args actually summed up in remainingArgsEmbedSum
         if (k > 1) {

@@ -515,15 +515,14 @@ void SaturationAlgorithm::showSubterms(Term* t) {
     TermList arg = *t->nthArgument(n);
     if (arg.isTerm()) {
       showSubterms(arg.term());
-      args.push_back(arg.term()->getId());
+      args.push_back(arg.term()->getId()+1);
     } else {
-      // using negative indices for variables
-      args.push_back(-1-(int64_t)arg.var());
+      args.push_back(0); // all variables are 0
     }
   }
 
   _neuralModel->gweightEnqueueTerm(
-      t->getId(),
+      t->getId()+1,
       funcToSymb(t->functor()),
       0.0,
       args);
@@ -546,10 +545,9 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
       TermList arg = *lit->nthArgument(n);
       if (arg.isTerm()) {
         showSubterms(arg.term());
-        args.push_back(arg.term()->getId());
+        args.push_back(arg.term()->getId()+1);
       } else {
-        // using negative indices for variables
-        args.push_back(-1-(int64_t)arg.var());
+        args.push_back(0); // all variables are 0
       }
     }
 

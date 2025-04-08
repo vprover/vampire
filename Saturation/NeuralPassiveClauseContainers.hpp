@@ -66,10 +66,7 @@ private:
   DHMap<unsigned,unsigned> _gageClLayers;
   Stack<Stack<std::tuple<Clause*,std::vector<int64_t>>>> _gageTodoLayers;
 
-  torch::Tensor getSubtermEmbed(int64_t id);
-
   int64_t _gweightEmbeddingSize;
-  torch::Tensor _gweightVarEmbed;
   torch::jit::script::Module _gweightTermCombine;
 
   torch::Tensor _gweightSymbolEmbeds;
@@ -241,7 +238,7 @@ public:
   void gweightEnqueuOneTerm(int64_t id, unsigned functor, float sign, std::vector<int64_t>& args) {
     unsigned layer_idx = 0;
     for (auto a : args) {
-      if (a >= 0) {
+      if (a > 0) {
         layer_idx = std::max(layer_idx,_gweightTermLayers.get(a));
       }
     }
