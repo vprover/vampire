@@ -1483,6 +1483,12 @@ void Options::init()
     _inductionOnComplexTerms.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnComplexTerms);
 
+    _inductionGroundOnly = BoolOptionValue("induction_ground_only","indgo",true);
+    _inductionGroundOnly.description = "Apply induction only on ground literals vs. literals with at most one free variable";
+    _inductionGroundOnly.tag(OptionTag::INDUCTION);
+    _inductionGroundOnly.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_inductionGroundOnly);
+
     _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
     _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
     _functionDefinitionRewriting.tag(OptionTag::INFERENCES);
