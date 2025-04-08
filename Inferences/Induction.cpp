@@ -672,7 +672,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         }
       }
 
-    if (InductionHelper::isInductionLiteral(lit)) {
+    if (InductionHelper::isGroundInductionLiteral(lit)) {
       Set<Term*,SharedTermHash>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
@@ -772,7 +772,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       .filter([](const InductionContext& arg) {
         for (const auto& kv : arg._cls) {
           for (const auto& lit : kv.second) {
-            if (InductionHelper::isInductionLiteral(lit)) {
+            if (InductionHelper::isGroundInductionLiteral(lit)) {
               return true;
             }
           }
@@ -814,7 +814,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else if (!env.options->inductionGroundOnly() && InductionHelper::isStructInductionOn() && InductionHelper::isInductionLiteral(lit)) {
+  } else if (!env.options->inductionGroundOnly() && InductionHelper::isStructInductionOn() && InductionHelper::isNonGroundInductionLiteral(lit)) {
     // TODO: generalize to multiple free variables
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {

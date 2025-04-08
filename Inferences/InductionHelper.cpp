@@ -154,6 +154,17 @@ bool InductionHelper::isInductionClause(Clause* c) {
          );
 }
 
+bool InductionHelper::isInductionLiteral(Literal* l) {
+  static bool negOnly = env.options->inductionNegOnly();
+  return (!negOnly || l->isNegative() ||
+          (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
+         );
+}
+
+bool InductionHelper::isGroundInductionLiteral(Literal* l) {
+  return (l->ground() && isInductionLiteral(l));
+}
+
 bool inductionLiteralHasAdmissibleVariables(Literal* l) {
   if (l->getDistinctVars() != 1) {
     return false;
@@ -172,13 +183,9 @@ bool inductionLiteralHasAdmissibleVariables(Literal* l) {
   return true;
 }
 
-bool InductionHelper::isInductionLiteral(Literal* l) {
-  static bool negOnly = env.options->inductionNegOnly();
+bool InductionHelper::isNonGroundInductionLiteral(Literal* l) {
   static bool groundOnly = env.options->inductionGroundOnly();
-  return ((!negOnly || l->isNegative() || 
-           (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
-          ) && (l->ground() || (!groundOnly && inductionLiteralHasAdmissibleVariables(l)))
-         );
+  return (!groundOnly && !l->ground() && inductionLiteralHasAdmissibleVariables(l) && isInductionLiteral(l));
 }
 
 bool InductionHelper::isInductionTermFunctor(unsigned f) {
