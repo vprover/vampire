@@ -72,34 +72,14 @@ void* TermOrderingDiagram::next()
       ASS_EQ(node->tag, Node::T_POLY);
 
       const auto& kbo = static_cast<const KBO&>(_ord);
-      auto weight = node->linexp->constant;
+      int weight = 0;
       ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->linexp->varCoeffPairs) {
-        AppliedTerm tt(TermList::var(var), _appl);
-
-        if (tt.term.isVar()) {
-          varDiffs[tt.term.var()] += coeff;
-          weight += coeff * kbo._funcWeights._specialWeights._variableWeight;
-          if (varDiffs[tt.term.var()]<0) {
-            goto loop_end;
-          }
-        } else {
-          auto linexp = kbo.computeWeight(tt.term.term());
-          weight += coeff * linexp->constant;
-          for (const auto& [varInner, coeffInner] : linexp->varCoeffPairs) {
-            varDiffs[varInner] += coeff * coeffInner;
-            weight += coeff * coeffInner * kbo._funcWeights._specialWeights._variableWeight;
-            if (varDiffs[varInner]<0) {
-              goto loop_end;
-            }
-          }
+      if (kbo.positivityCheckHelper</*sign=*/1>(weight, varDiffs, node->linexp, _appl)) {
+        if (weight > 0) {
+          comp = Ordering::GREATER;
+        } else if (weight == 0) {
+          comp = Ordering::EQUAL;
         }
-      }
-
-      if (weight > 0) {
-        comp = Ordering::GREATER;
-      } else if (weight == 0) {
-        comp = Ordering::EQUAL;
       }
     }
 loop_end:
