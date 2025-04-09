@@ -504,6 +504,21 @@ const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int 
 
 // VarOrderExtractor
 
+void TermOrderingDiagram::Iterator::init(TermOrderingDiagram* tod)
+{
+  _tod = tod;
+  path.reset();
+  path.push(&_tod->_source);
+}
+
+TermOrderingDiagram::Branch* TermOrderingDiagram::Iterator::next()
+{
+  _tod->_prev = (path.size()==1) ? nullptr : path[path.size()-2];
+  _tod->_curr = path.top();
+  _tod->processCurrentNode();
+  return _tod->_curr;
+}
+
 TermOrderingDiagram::VarOrderExtractor::VarOrderExtractor(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct po_struct)
   : tod(tod), appl(appl), res(po_struct)
 {
@@ -547,17 +562,16 @@ bool TermOrderingDiagram::VarOrderExtractor::hasNext(bool& nodebug)
       case Node::T_TERM: {
         auto lhs = AppliedTerm(node->lhs, appl, true).apply();
         auto rhs = AppliedTerm(node->rhs, appl, true).apply();
-        if (voe == nullptr) {
+        if (!voe) {
           voe = make_unique<Iterator>(tod->_ord, lhs, rhs, ps);
         }
-        auto [tod,new_ps] = voe->next();
-        // a null tpo signifies the end of the iterator
-        if (!new_ps.tpo) {
+        if (!voe->hasNext()) {
           if (!backtrack()) {
             return false;
           }
           break;
         }
+        auto [tod,new_ps] = voe->next();
         btStack.push(path.size());
         path->push({ &node->getBranch(tod), new_ps, nullptr });
         break;
@@ -577,36 +591,38 @@ bool TermOrderingDiagram::VarOrderExtractor::backtrack()
 }
 
 TermOrderingDiagram::VarOrderExtractor::Iterator::Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct)
-  : _tod(), _po_struct(po_struct)
+  : _tod(), _res({ Ordering::INCOMPARABLE, POStruct(nullptr) })
 {
   _tod = createForSingleComparison(ord, lhs, rhs);
-  _path->push({ &_tod->_source, _po_struct, 0 });
+  _path->push({ &_tod->_source, po_struct, std::unique_ptr<Stack<BranchingPoint>>() });
 }
 
-std::pair<Result,POStruct> TermOrderingDiagram::VarOrderExtractor::Iterator::next()
+bool TermOrderingDiagram::VarOrderExtractor::Iterator::hasNext()
 {
   while (_path->isNonEmpty()) {
-    auto& [branch, ps, index] = _path->top();
+    auto& [branch, ps, sbp] = _path->top();
     _tod->_prev = (_path.size()==1) ? nullptr : get<0>(_path[_path.size()-2]);
     _tod->_curr = branch;
     _tod->processCurrentNode();
 
     auto node = branch->node();
     if (node->tag == Node::T_DATA) {
-      auto res_ps = ps; // save result before popping _path
-      _path->pop();
       ASS(node->data);
-      return { *static_cast<Result*>(node->data), res_ps };
+      _res = { *static_cast<Result*>(node->data), ps };
+      _path->pop();
+      return true;
     }
 
-    Stack<BranchingPoint>* ptr = initCurrent(node);
+    if (!sbp) {
+      sbp.reset(initCurrent(node));
+    }
     bool success = false;
-    while (index < ptr->size()) {
-      auto& bp = (*ptr)[index++];
+    while (sbp->isNonEmpty()) {
+      auto bp = sbp->pop();
       POStruct eps = ps;
       if (tryExtend(eps, bp.cons)) {
         // go one down
-        _path->push({ bp.branch, eps, 0 });
+        _path->push({ bp.branch, eps, std::unique_ptr<Stack<BranchingPoint>>() });
         success = true;
         break;
       }
@@ -615,7 +631,7 @@ std::pair<Result,POStruct> TermOrderingDiagram::VarOrderExtractor::Iterator::nex
       _path->pop();
     }
   }
-  return { Ordering::INCOMPARABLE, POStruct(nullptr) };
+  return false;
 }
 
 bool TermOrderingDiagram::VarOrderExtractor::Iterator::tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons)
@@ -645,56 +661,54 @@ bool TermOrderingDiagram::VarOrderExtractor::Iterator::tryExtend(POStruct& po_st
 Stack<TermOrderingDiagram::VarOrderExtractor::Iterator::BranchingPoint>* TermOrderingDiagram::VarOrderExtractor::Iterator::initCurrent(TermOrderingDiagram::Node* node)
 {
   ASS(node->ready);
-  Stack<BranchingPoint>* ptr;
-  if (_map.getValuePtr(node, ptr, Stack<BranchingPoint>())) {
-    switch (node->tag) {
-      case Node::T_DATA: {
-        break;
-      }
-      case Node::T_TERM: {
-        auto lhs = node->lhs;
-        auto rhs = node->rhs;
-        ASS(lhs.isVar() || rhs.isVar());
-        if (lhs.isVar() && rhs.isVar()) {
-          // x ? y
-          ptr->push({ { { lhs, rhs, Result::GREATER } }, &node->gtBranch  });
-          ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->eqBranch  });
-          ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->ngeBranch });
-        } else if (lhs.isVar()) {
-          ASS(rhs.isTerm());
-          DHSet<TermList> seen;
-          // x ? t[y_1,...,y_n]
-          VariableIterator vit(rhs.term());
-          while (vit.hasNext()) {
-            auto v = vit.next();
-            if (!seen.insert(v)) {
-              continue;
-            }
-            // x ≤ y_i ⇒ x < t[y_1,...,y_n]
-            ptr->push({ { { lhs, v, Result::LESS    } }, &node->ngeBranch });
-            ptr->push({ { { lhs, v, Result::EQUAL   } }, &node->ngeBranch });
+  auto ptr = new Stack<BranchingPoint>();
+  switch (node->tag) {
+    case Node::T_DATA: {
+      break;
+    }
+    case Node::T_TERM: {
+      auto lhs = node->lhs;
+      auto rhs = node->rhs;
+      ASS(lhs.isVar() || rhs.isVar());
+      if (lhs.isVar() && rhs.isVar()) {
+        // x ? y
+        ptr->push({ { { lhs, rhs, Result::GREATER } }, &node->gtBranch  });
+        ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->eqBranch  });
+        ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->ngeBranch });
+      } else if (lhs.isVar()) {
+        ASS(rhs.isTerm());
+        DHSet<TermList> seen;
+        // x ? t[y_1,...,y_n]
+        VariableIterator vit(rhs.term());
+        while (vit.hasNext()) {
+          auto v = vit.next();
+          if (!seen.insert(v)) {
+            continue;
           }
-        } else if (rhs.isVar()) {
-          ASS(lhs.isTerm());
-          DHSet<TermList> seen;
-          // s[x_1,...,x_n] ? y
-          VariableIterator vit(lhs.term());
-          while (vit.hasNext()) {
-            auto v = vit.next();
-            if (!seen.insert(v)) {
-              continue;
-            }
-            // x_i ≥ y ⇒ s[x_1,...,x_n] > y
-            ptr->push({ { { v, rhs, Result::GREATER } }, &node->gtBranch });
-            ptr->push({ { { v, rhs, Result::EQUAL   } }, &node->gtBranch });
-          }
+          // x ≤ y_i ⇒ x < t[y_1,...,y_n]
+          ptr->push({ { { lhs, v, Result::LESS    } }, &node->ngeBranch });
+          ptr->push({ { { lhs, v, Result::EQUAL   } }, &node->ngeBranch });
         }
-        break;
+      } else if (rhs.isVar()) {
+        ASS(lhs.isTerm());
+        DHSet<TermList> seen;
+        // s[x_1,...,x_n] ? y
+        VariableIterator vit(lhs.term());
+        while (vit.hasNext()) {
+          auto v = vit.next();
+          if (!seen.insert(v)) {
+            continue;
+          }
+          // x_i ≥ y ⇒ s[x_1,...,x_n] > y
+          ptr->push({ { { v, rhs, Result::GREATER } }, &node->gtBranch });
+          ptr->push({ { { v, rhs, Result::EQUAL   } }, &node->gtBranch });
+        }
       }
-      case Node::T_POLY: {
-        // ASSERTION_VIOLATION;
-        break;
-      }
+      break;
+    }
+    case Node::T_POLY: {
+      // ASSERTION_VIOLATION;
+      break;
     }
   }
   return ptr;

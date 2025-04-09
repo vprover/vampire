@@ -196,6 +196,16 @@ protected:
   friend class Inferences::ForwardGroundJoinability;
 
 public:
+  struct Iterator {
+    void init(TermOrderingDiagram* tod);
+    bool hasNext() const { return path.isNonEmpty(); }
+    Branch* next();
+
+    Stack<Branch*> path;
+  private:
+    TermOrderingDiagram* _tod;
+  };
+
   struct VarOrderExtractor {
     VarOrderExtractor(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct po_struct);
 
@@ -205,7 +215,8 @@ public:
     struct Iterator {
       Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct);
 
-      std::pair<Result,POStruct> next();
+      bool hasNext();
+      std::pair<Result,POStruct> next() { return _res; }
 
       bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
 
@@ -217,10 +228,8 @@ public:
       };
       Stack<BranchingPoint>* initCurrent(Node* node);
 
-      Map<Node*, Stack<BranchingPoint>> _map;
-      Recycled<Stack<std::tuple<Branch*,POStruct,unsigned>>> _path;
-      POStruct _po_struct;
-      bool _retIncomp = false;
+      Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<Stack<BranchingPoint>>>>> _path;
+      std::pair<Result,POStruct> _res;
     };
 
     bool backtrack();

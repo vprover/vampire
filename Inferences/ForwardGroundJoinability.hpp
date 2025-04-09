@@ -44,7 +44,9 @@ public:
   static bool makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res);
 
 private:
-  struct RedundancyCheck {
+  struct RedundancyCheck
+    : TermOrderingDiagram::Iterator
+  {
     RedundancyCheck(const Ordering& ord, Literal* data);
     std::pair<Literal*,const TermPartialOrdering*> next(Stack<TermOrderingConstraint> cons, Literal* data);
 
@@ -54,7 +56,6 @@ private:
     using Tag = TermOrderingDiagram::Node::Tag;
 
     TermOrderingDiagramUP tod;
-    Stack<TermOrderingDiagram::Branch*> path;
   };
 
   DemodulationLHSIndex* _index;

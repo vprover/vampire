@@ -666,16 +666,6 @@ public:
       NonVariableNonTypeIterator::next();
     }
   }
-  NonVariableNonTypeIterator(TermStack ts)
-  : _stack(8),
-    _added(0)
-  {
-    for (auto t : ts) {
-      if (t.isTerm()) {
-        _stack.push(t.term());
-      }
-    }
-  }
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */

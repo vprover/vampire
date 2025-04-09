@@ -70,6 +70,8 @@ void ForwardGroundJoinability::detach()
   ForwardGroundSimplificationEngine::detach();
 }
 
+#define ITERATION_LIMIT 500
+
 bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
@@ -99,7 +101,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
   unsigned cnt = 0;
 
   while (curr) {
-    if (cnt++ > 500) {
+    if (cnt++ > ITERATION_LIMIT) {
       // cout << "failed due to iteration limit" << endl;
       return false;
     }
@@ -152,9 +154,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
         POStruct dpo_struct(tpo);
         TermOrderingDiagram::VarOrderExtractor::Iterator dextIt(ordering, trm, rhsApplied.apply(), dpo_struct);
         std::pair<Result,POStruct> kv { Ordering::INCOMPARABLE, nullptr };
-        do {
+        while (kv.first != Ordering::GREATER && dextIt.hasNext()) {
           kv = dextIt.next();
-        } while (kv.second.tpo && kv.first != Ordering::GREATER);
+        }
 #endif
 
         POStruct po_struct(tpo);
@@ -198,16 +200,16 @@ ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, 
 {
   tod->_source = Branch(data, tod->_sink);
   tod->_source.node()->ready = true;
-  path.push(&tod->_source);
+  Iterator::init(tod.get());
 }
 
 std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
   Stack<TermOrderingConstraint> ordCons, Literal* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
-  ASS(path.isNonEmpty());
+  ASS(Iterator::hasNext());
 
-  auto curr = path.top();
+  auto curr = Iterator::next();
   ASS_EQ(curr->node()->tag, Tag::T_DATA);
   ASS(curr->node()->data);
   ASS(curr->node()->ready);
@@ -236,12 +238,10 @@ std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::Redunda
   }
   *curr = newB;
 
-  while (path.isNonEmpty()) {
-    tod->_prev = path.size()==1 ? nullptr : path[path.size()-2];
-    tod->_curr = path.top();
-    tod->processCurrentNode();
+  while (Iterator::hasNext()) {
+    auto curr = Iterator::next();
 
-    auto node = tod->_curr->node();
+    auto node = curr->node();
     if (node->tag == Tag::T_DATA && !node->data) {
       pushNext();
       continue;
@@ -257,7 +257,7 @@ std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::Redunda
     path.push(&node->getBranch(Ordering::GREATER));
   }
 
-  ASS(path.isEmpty());
+  ASS(!Iterator::hasNext());
   return { nullptr, nullptr };
 }
 
