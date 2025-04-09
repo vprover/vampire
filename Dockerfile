@@ -28,5 +28,7 @@ RUN make -j4
 
 # Create runner container
 FROM alpine:3.21
-COPY --from=builder /home/vampire/build/vampire ./
-ENTRYPOINT [ "./vampire" ]
+COPY --from=builder /home/vampire/build/vampire /usr/bin/vampire
+ENV PATH=$PATH:/usr/bin/
+WORKDIR /home/vampire
+ENTRYPOINT [ "vampire" ]
