@@ -751,7 +751,7 @@ void SMTLIB2::readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oS
 
     pRdr.acceptEOL();
 
-    TermList arg = TermList(_nextVar++, false);
+    TermList arg = TermList::var(_nextVar++);
     args.push(arg);
 
     if (!lookup->insert(vName,make_pair(arg,vSort))) {
@@ -857,7 +857,7 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
       pRdr.acceptEOL();
 
       // the vars need not be fresh across multiple definition, but it does not hurt
-      TermList arg = TermList(_nextVar++, false);
+      TermList arg = TermList::var(_nextVar++);
       decl.args.push(arg);
 
       if (!decl.lookup->insert(vName,make_pair(arg,vSort))) {
@@ -981,7 +981,7 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
   env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(numTypeVars));
   TermStack parSorts;
   for (unsigned i = 0; i < numTypeVars; i++) {
-    parSorts.push(TermList(i,false));
+    parSorts.push(TermList::var(i));
   }
   TermList taSort(AtomicSort::create(srt,parSorts.size(),parSorts.begin()));
 
@@ -1408,17 +1408,20 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     ParseResult* pr = (--boundExprs);
     TermList t;
     TermList sort = pr->asTerm(t);
-    DHMap<unsigned,TermList> vs;
+
+    // If we have a binding (S,T) with a variable T, we just
+    // replace S with T while parsing, to avoid issues later
+    // from expecting T to be a term.
     if (t.isVar()) {
-      if (sort.isVar()) {
-        vs.insert(sort.var(),AtomicSort::superSort());
-      } else {
-        SortHelper::collectVariableSorts(sort.term(),vs);
+      if (!lookup->insert(cName,make_pair(t,sort))) {
+        USER_ERROR_EXPR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
       }
-      ALWAYS(vs.insert(t.var(),sort));
-    } else {
-      SortHelper::collectVariableSorts(t.term(),vs);
+      continue;
     }
+
+    ASS(t.isTerm());
+    DHMap<unsigned,TermList> vs;
+    SortHelper::collectVariableSorts(t.term(),vs);
     TermStack args;
     TermStack varSorts;
     VList::FIFO typeVars;
@@ -1429,7 +1432,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
           return;
         }
         typeVars.pushBack(kv.first);
-        args.push(TermList(kv.first,false));
+        args.push(TermList::var(kv.first));
       });
     iterTraits(vs.items())
       .forEach([&varSorts,&args](std::pair<unsigned,TermList> kv) {
@@ -1441,7 +1444,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
           return;
         }
         varSorts.push(kv.second);
-        args.push(TermList(kv.first,false));
+        args.push(TermList::var(kv.first));
       });
     SortHelper::normaliseArgSorts(typeVars.list(),varSorts);
 
@@ -1509,6 +1512,14 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     SortedTerm term = lookup->get(cName);
     TermList exprTerm = term.first;
     TermList exprSort = term.second;
+
+    // We have already substituted bound variables during parsing.
+    // See `parseLetPrepareLookup`.
+    if (exprTerm.isVar()) {
+      ASS(boundExpr.isVar());
+      continue;
+    }
+
     ASS(exprTerm.isTerm());
     auto exprT = exprTerm.term();
     if (exprSort == AtomicSort::boolSort()) { // it has to be formula term, with atomic formula
@@ -1518,7 +1529,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     VList::FIFO vars;
     Substitution subst;
     for (unsigned i = 0; i < exprT->arity(); i++) {
-      subst.bind(exprT->nthArgument(i)->var(),TermList(_nextVar,false));
+      subst.bind(exprT->nthArgument(i)->var(),TermList::var(_nextVar));
       vars.pushBack(_nextVar++);
     }
 
@@ -1651,7 +1662,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
         USER_ERROR_EXPR("Nested ctors ("+argExp->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
       }
       // from the type arguments used in the matched term we instantiate the type of the other variables
-      if (!lookup->insert(argExp->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
+      if (!lookup->insert(argExp->str, make_pair(TermList::var(_nextVar++), SubstHelper::apply(type->arg(i++), subst)))) {
         USER_ERROR_EXPR("Variable '" + argExp->str + "' has already been defined");
       }
     }
@@ -1663,7 +1674,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     }
     // in case of _ nothing to add to lookup
     if (pattern->str != UNDERSCORE) {
-      if (!lookup->insert(pattern->str, make_pair(TermList(_nextVar++, false), matchedTermSort))) {
+      if (!lookup->insert(pattern->str, make_pair(TermList::var(_nextVar++), matchedTermSort))) {
         USER_ERROR_EXPR("Variable '" + pattern->str + "' has already been defined");
       }
     }
@@ -1723,7 +1734,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
     pRdr.acceptEOL();
     TermList p;
     if (pattern->isAtom() && pattern->str == UNDERSCORE) {
-      p = TermList(_nextVar++, false);
+      p = TermList::var(_nextVar++);
     }
     else {
       ALWAYS(_results.pop().asTerm(p) == matchedTermSort);
@@ -1767,7 +1778,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
         if (j < numTypeArgs) {
           argTerms.push(*matchedTermSort.term()->nthArgument(j));
         } else {
-          argTerms.push(TermList(_nextVar++, false));
+          argTerms.push(TermList::var(_nextVar++));
         }
       }
       TermList pattern(Term::create(kv.second->functor(), argTerms.size(), argTerms.begin()));
@@ -1848,7 +1859,7 @@ void SMTLIB2::parseQuantEnd(LExpr* exp)
 
     pRdr.acceptEOL();
 
-    if (!lookup->insert(vName,make_pair(TermList(_nextVar++,false),vSort))) {
+    if (!lookup->insert(vName,make_pair(TermList::var(_nextVar++),vSort))) {
       USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in quantification "+exp->toString());
     }
   }
@@ -2483,7 +2494,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
       unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,funType);
 
       TermList args[] = {theArray, theIndex, theValue};
-      TermList res = TermList(Term::Term::create(fun, 3, args));
+      TermList res = TermList(Term::create(fun, 3, args));
 
       _results.push(ParseResult(arraySortIdx,res));
 
