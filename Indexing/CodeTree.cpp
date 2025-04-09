@@ -568,7 +568,9 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
         }
         break;
       case LIT_END:
-        ASS(RemovingBase::matchingClauses);
+        if constexpr (removing) {
+          ASS(RemovingBase::matchingClauses);
+        }
         return true;
       case CHECK_GROUND_TERM:
         shouldBacktrack=!doCheckGroundTerm();
