@@ -1411,7 +1411,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
 
     // If we have a binding (S,T) with a variable T, we just
     // replace S with T while parsing, to avoid issues later
-    // from expecting T to be a term later.
+    // from expecting T to be a term.
     if (t.isVar()) {
       if (!lookup->insert(cName,make_pair(t,sort))) {
         USER_ERROR_EXPR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
