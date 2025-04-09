@@ -323,6 +323,16 @@ public:
   typedef Stack<CodeOp> CodeStack;
   typedef DArray<TermList> BindingArray;
 
+  // This holds the parts relevant only for Matcher<true,...>
+  struct RemovingBase {
+    Stack<CodeOp*>* firstsInBlocks;
+    size_t initFIBDepth;
+    bool matchingClauses;
+    DHSet<unsigned> range;
+  };
+
+  struct NonRemovingBase {};
+
   /**
    * Context for finding matches of literals
    *
@@ -336,6 +346,7 @@ public:
    */
   template<bool removing, bool checkRange>
   struct Matcher
+    : public std::conditional<removing, RemovingBase, NonRemovingBase>::type
   {
     // we only want to enable checkRange if
     // removing, which works on variables
@@ -379,12 +390,16 @@ public:
     CodeOp* op;
 
     BindingArray bindings;
-    DHSet<unsigned> range;
 
     bool keepRecycled() const
-    { return bindings.keepRecycled() 
-        || btStack.keepRecycled() 
-        || (firstsInBlocks && firstsInBlocks->keepRecycled()); }
+    {
+      if constexpr (removing) {
+        return bindings.keepRecycled() || btStack.keepRecycled()
+          || (RemovingBase::firstsInBlocks && RemovingBase::firstsInBlocks->keepRecycled());
+      } else {
+        return bindings.keepRecycled() || btStack.keepRecycled();
+      }
+    }
 
   protected:
     void init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
@@ -417,14 +432,12 @@ public:
     bool fresh;
     bool _matched;
 
+    /** Stack containing backtracking points */
+    Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;
+
     CodeOp* entry;
     CodeTree* tree;
 
-    /**
-     * Currently matched LitInfo object in case LitInfo objects
-     * are used (they are not in TermCodeTree::TermMatcher).
-     */
-    size_t curLInfo;
     /**
      * Array of alternative LitInfo objects
      *
@@ -438,13 +451,11 @@ public:
      */
     size_t linfoCnt;
 
-    /** Stack containing backtracking points */
-    Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;
-
-    Stack<CodeOp*>* firstsInBlocks;
-    size_t initFIBDepth;
-
-    bool matchingClauses;
+    /**
+     * Currently matched LitInfo object in case LitInfo objects
+     * are used (they are not in TermCodeTree::TermMatcher).
+     */
+    size_t curLInfo;
   };
 
   //////// auxiliary methods //////////

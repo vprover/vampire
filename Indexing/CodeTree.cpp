@@ -536,7 +536,7 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
   for(;;) {
     if(op->alternative()) {
       if constexpr (removing) {
-        btStack.push(BTPointRemoving(tp, op->alternative(), firstsInBlocks->size()));
+        btStack.push(BTPointRemoving(tp, op->alternative(), RemovingBase::firstsInBlocks->size()));
       } else {
         btStack.push(BTPoint(tp, op->alternative()));
       }
@@ -548,7 +548,7 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
           break;
         }
         if constexpr (removing) {
-          if (matchingClauses) {
+          if (RemovingBase::matchingClauses) {
             //we can succeed only in certain depth and that will be handled separately
             shouldBacktrack=true;
           }
@@ -568,7 +568,7 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
         }
         break;
       case LIT_END:
-        ASS(matchingClauses);
+        ASS(RemovingBase::matchingClauses);
         return true;
       case CHECK_GROUND_TERM:
         shouldBacktrack=!doCheckGroundTerm();
@@ -623,8 +623,9 @@ void CodeTree::Matcher<removing, checkRange>::init(CodeTree* tree_, CodeOp* entr
   linfoCnt=linfoCnt_;
 
   if constexpr (removing) {
-    firstsInBlocks=firstsInBlocks_;
-    initFIBDepth=firstsInBlocks->size();
+    RemovingBase::firstsInBlocks=firstsInBlocks_;
+    RemovingBase::initFIBDepth=RemovingBase::firstsInBlocks->size();
+    RemovingBase::matchingClauses=tree->_clauseCodeTree;
   }
 
   fresh=true;
@@ -633,8 +634,6 @@ void CodeTree::Matcher<removing, checkRange>::init(CodeTree* tree_, CodeOp* entr
 
   bindings.ensure(tree->_maxVarCnt);
   btStack.reset();
-
-  matchingClauses=tree->_clauseCodeTree;
 }
 
 /**
@@ -655,8 +654,8 @@ bool CodeTree::Matcher<removing, checkRange>::backtrack()
   tp=bp.tp;
   op=bp.op;
   if constexpr (removing) {
-    firstsInBlocks->truncate(bp.fibDepth);
-    firstsInBlocks->push(op);
+    RemovingBase::firstsInBlocks->truncate(bp.fibDepth);
+    RemovingBase::firstsInBlocks->push(op);
   }
   return true;
 }
@@ -665,7 +664,7 @@ template<bool removing, bool checkRange>
 bool CodeTree::Matcher<removing, checkRange>::prepareLiteral()
 {
   if constexpr (removing) {
-    firstsInBlocks->truncate(initFIBDepth);
+    RemovingBase::firstsInBlocks->truncate(RemovingBase::initFIBDepth);
   }
   if(curLInfo>=linfoCnt) {
     return false;
@@ -685,7 +684,7 @@ inline bool CodeTree::Matcher<removing, checkRange>::doAssignVar()
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(fte->isVar()) {
     if constexpr (checkRange) {
-      if (!range.insert(fte->_number())) {
+      if (!RemovingBase::range.insert(fte->_number())) {
         return false;
       }
     }
@@ -793,7 +792,7 @@ inline bool CodeTree::Matcher<removing, checkRange>::doSearchStruct()
   }
   op=target;
   if constexpr (removing) {
-    firstsInBlocks->push(op);
+    RemovingBase::firstsInBlocks->push(op);
   }
   return true;
 }
