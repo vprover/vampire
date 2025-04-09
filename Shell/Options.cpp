@@ -3562,11 +3562,7 @@ void Options::resolveAwayAutoValues(const Problem& prb)
   if (unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
     if (alasca() && prb.hasAlascaArithmetic() &&
       !partialRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constaint
-      if (prb.hasAlascaMixedArithmetic()) {
-        setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
-      } else {
-        setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN);
-      }
+      setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
     } else {
       setUWA(Shell::Options::UnificationWithAbstraction::OFF);
     }
