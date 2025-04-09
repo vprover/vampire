@@ -717,7 +717,7 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
   static State state;
   state.reset();
 
-  if(t1->functor()==t2->functor()) {
+  if(comparePrecedences(t1,t2)==EQUAL) {
     return state.traverseLexBidir(*this, tl1, tl2);
   }
 
