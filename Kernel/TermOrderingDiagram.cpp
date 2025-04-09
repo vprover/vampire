@@ -37,10 +37,9 @@ TermOrderingDiagram* TermOrderingDiagram::createForSingleComparison(const Orderi
   TermOrderingDiagram** ptr;
   if (cache.getValuePtr({ lhs, rhs }, ptr, nullptr)) {
     *ptr = ord.createTermOrderingDiagram(/*ground*/true).release();
-    // (*ptr)->_threeValued = true;
     (*ptr)->_source = Branch(lhs, rhs);
-    (*ptr)->_source.node()->gtBranch = Branch(&kGtPtr, (*ptr)->_sink);
-    (*ptr)->_source.node()->eqBranch = Branch(&kEqPtr, (*ptr)->_sink);
+    (*ptr)->_source.node()->gtBranch  = Branch(&kGtPtr, (*ptr)->_sink);
+    (*ptr)->_source.node()->eqBranch  = Branch(&kEqPtr, (*ptr)->_sink);
     (*ptr)->_source.node()->ngeBranch = Branch(&kLtPtr, (*ptr)->_sink);
   }
   return *ptr;
@@ -632,9 +631,7 @@ bool TermOrderingDiagram::VarOrderExtractor::Iterator::tryExtend(POStruct& po_st
     if (!etpo) {
       return false;
     }
-    stringstream str;
-    // str << *po_struct.tpo << endl << "===" << endl << con << endl << "===" << endl << *etpo << endl;
-    ASS_REP(etpo->isGround(), str.str());
+    ASS(etpo->isGround());
     // relation did not change
     if (etpo == po_struct.tpo) {
       continue;
@@ -660,8 +657,23 @@ Stack<TermOrderingDiagram::VarOrderExtractor::Iterator::BranchingPoint>* TermOrd
         ASS(lhs.isVar() || rhs.isVar());
         if (lhs.isVar() && rhs.isVar()) {
           // x ? y
-          ptr->push({ { { lhs, rhs, Result::GREATER } }, &node->gtBranch });
-          ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->eqBranch });
+          ptr->push({ { { lhs, rhs, Result::GREATER } }, &node->gtBranch  });
+          ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->eqBranch  });
+          ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->ngeBranch });
+        } else if (lhs.isVar()) {
+          ASS(rhs.isTerm());
+          DHSet<TermList> seen;
+          // x ? t[y_1,...,y_n]
+          VariableIterator vit(rhs.term());
+          while (vit.hasNext()) {
+            auto v = vit.next();
+            if (!seen.insert(v)) {
+              continue;
+            }
+            // x ≤ y_i ⇒ x < t[y_1,...,y_n]
+            ptr->push({ { { lhs, v, Result::LESS    } }, &node->ngeBranch });
+            ptr->push({ { { lhs, v, Result::EQUAL   } }, &node->ngeBranch });
+          }
         } else if (rhs.isVar()) {
           ASS(lhs.isTerm());
           DHSet<TermList> seen;
@@ -677,7 +689,6 @@ Stack<TermOrderingDiagram::VarOrderExtractor::Iterator::BranchingPoint>* TermOrd
             ptr->push({ { { v, rhs, Result::EQUAL   } }, &node->gtBranch });
           }
         }
-        ptr->push({ Stack<TermOrderingConstraint>(), &node->ngeBranch });
         break;
       }
       case Node::T_POLY: {
