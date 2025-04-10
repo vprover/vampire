@@ -239,23 +239,32 @@ public:
     bool hasNext(bool& nodebug);
     POStruct next() { return res; }
 
+    struct NodeIterator {
+      NodeIterator(POStruct po_struct, Node* node);
+      bool hasNext();
+      std::pair<Result,POStruct> next() const { return res; }
+
+    private:
+      bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
+
+      struct BranchingPoint {
+        Stack<TermOrderingConstraint> cons;
+        Result r;
+      };
+      POStruct po_struct;
+      Stack<BranchingPoint> bps;
+      std::pair<Result,POStruct> res;
+    };
+
     struct Iterator {
       Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct);
 
       bool hasNext();
       std::pair<Result,POStruct> next() { return _res; }
 
-      bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
-
       TermOrderingDiagram* _tod;
 
-      struct BranchingPoint {
-        Stack<TermOrderingConstraint> cons;
-        Branch* branch;
-      };
-      Stack<BranchingPoint>* initCurrent(Node* node);
-
-      Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<Stack<BranchingPoint>>>>> _path;
+      Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<NodeIterator>>>> _path;
       std::pair<Result,POStruct> _res;
     };
 

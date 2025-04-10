@@ -191,6 +191,8 @@ LOOP_END:
   }
   premises = pvi(getPersistentIterator(premiseSet.iterator()));
 
+  // cout << "forward ground joinable " << *cl << endl;
+
   env.statistics->forwardGroundJoinable++;
   return true;
 }

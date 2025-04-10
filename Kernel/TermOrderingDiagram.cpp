@@ -636,11 +636,69 @@ bool TermOrderingDiagram::VarOrderExtractor::backtrack()
   return true;
 }
 
+TermOrderingDiagram::VarOrderExtractor::NodeIterator::NodeIterator(POStruct po_struct, Node* node)
+  : po_struct(po_struct), res({ Result::INCOMPARABLE, po_struct })
+{
+  ASS(node->ready);
+  if (node->tag == Node::T_TERM) {
+    auto lhs = node->lhs;
+    auto rhs = node->rhs;
+    ASS(lhs.isVar() || rhs.isVar());
+    if (lhs.isVar() && rhs.isVar()) {
+      // x ? y
+      bps.push({ { { lhs, rhs, Result::GREATER } }, Result::GREATER });
+      bps.push({ { { lhs, rhs, Result::EQUAL   } }, Result::EQUAL   });
+      bps.push({ { { lhs, rhs, Result::LESS    } }, Result::LESS    });
+    } else if (lhs.isVar()) {
+      ASS(rhs.isTerm());
+      DHSet<TermList> seen;
+      // x ? t[y_1,...,y_n]
+      VariableIterator vit(rhs.term());
+      while (vit.hasNext()) {
+        auto v = vit.next();
+        if (!seen.insert(v)) {
+          continue;
+        }
+        // x ≤ y_i ⇒ x < t[y_1,...,y_n]
+        bps.push({ { { lhs, v, Result::LESS    } }, Result::LESS });
+        bps.push({ { { lhs, v, Result::EQUAL   } }, Result::LESS });
+      }
+    } else if (rhs.isVar()) {
+      ASS(lhs.isTerm());
+      DHSet<TermList> seen;
+      // s[x_1,...,x_n] ? y
+      VariableIterator vit(lhs.term());
+      while (vit.hasNext()) {
+        auto v = vit.next();
+        if (!seen.insert(v)) {
+          continue;
+        }
+        // x_i ≥ y ⇒ s[x_1,...,x_n] > y
+        bps.push({ { { v, rhs, Result::GREATER } }, Result::GREATER });
+        bps.push({ { { v, rhs, Result::EQUAL   } }, Result::GREATER });
+      }
+    }
+  }
+}
+
+bool TermOrderingDiagram::VarOrderExtractor::NodeIterator::hasNext()
+{
+  while (bps.isNonEmpty()) {
+    auto bp = bps.pop();
+    POStruct eps = po_struct;
+    if (tryExtend(eps, bp.cons)) {
+      res = { bp.r, eps };
+      return true;
+    }
+  }
+  return false;
+}
+
 TermOrderingDiagram::VarOrderExtractor::Iterator::Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct)
   : _tod(), _res({ Ordering::INCOMPARABLE, POStruct(nullptr) })
 {
   _tod = createForSingleComparison(ord, lhs, rhs);
-  _path->push({ &_tod->_source, po_struct, std::unique_ptr<Stack<BranchingPoint>>() });
+  _path->push({ &_tod->_source, po_struct, std::unique_ptr<NodeIterator>() });
 }
 
 bool TermOrderingDiagram::VarOrderExtractor::Iterator::hasNext()
@@ -660,27 +718,19 @@ bool TermOrderingDiagram::VarOrderExtractor::Iterator::hasNext()
     }
 
     if (!sbp) {
-      sbp.reset(initCurrent(node));
+      sbp.reset(new NodeIterator(ps, node));
     }
-    bool success = false;
-    while (sbp->isNonEmpty()) {
-      auto bp = sbp->pop();
-      POStruct eps = ps;
-      if (tryExtend(eps, bp.cons)) {
-        // go one down
-        _path->push({ bp.branch, eps, std::unique_ptr<Stack<BranchingPoint>>() });
-        success = true;
-        break;
-      }
-    }
-    if (!success) {
+    if (sbp->hasNext()) {
+      auto [r, eps] = sbp->next();
+      _path->push({ &node->getBranch(r), eps, std::unique_ptr<NodeIterator>() });
+    } else {
       _path->pop();
     }
   }
   return false;
 }
 
-bool TermOrderingDiagram::VarOrderExtractor::Iterator::tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons)
+bool TermOrderingDiagram::VarOrderExtractor::NodeIterator::tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons)
 {
   for (const auto& con : cons) {
     // already contains relation
@@ -702,62 +752,6 @@ bool TermOrderingDiagram::VarOrderExtractor::Iterator::tryExtend(POStruct& po_st
     po_struct.cons.push(con);
   }
   return true;
-}
-
-Stack<TermOrderingDiagram::VarOrderExtractor::Iterator::BranchingPoint>* TermOrderingDiagram::VarOrderExtractor::Iterator::initCurrent(TermOrderingDiagram::Node* node)
-{
-  ASS(node->ready);
-  auto ptr = new Stack<BranchingPoint>();
-  switch (node->tag) {
-    case Node::T_DATA: {
-      break;
-    }
-    case Node::T_TERM: {
-      auto lhs = node->lhs;
-      auto rhs = node->rhs;
-      ASS(lhs.isVar() || rhs.isVar());
-      if (lhs.isVar() && rhs.isVar()) {
-        // x ? y
-        ptr->push({ { { lhs, rhs, Result::GREATER } }, &node->gtBranch  });
-        ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->eqBranch  });
-        ptr->push({ { { lhs, rhs, Result::EQUAL   } }, &node->ngeBranch });
-      } else if (lhs.isVar()) {
-        ASS(rhs.isTerm());
-        DHSet<TermList> seen;
-        // x ? t[y_1,...,y_n]
-        VariableIterator vit(rhs.term());
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          if (!seen.insert(v)) {
-            continue;
-          }
-          // x ≤ y_i ⇒ x < t[y_1,...,y_n]
-          ptr->push({ { { lhs, v, Result::LESS    } }, &node->ngeBranch });
-          ptr->push({ { { lhs, v, Result::EQUAL   } }, &node->ngeBranch });
-        }
-      } else if (rhs.isVar()) {
-        ASS(lhs.isTerm());
-        DHSet<TermList> seen;
-        // s[x_1,...,x_n] ? y
-        VariableIterator vit(lhs.term());
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          if (!seen.insert(v)) {
-            continue;
-          }
-          // x_i ≥ y ⇒ s[x_1,...,x_n] > y
-          ptr->push({ { { v, rhs, Result::GREATER } }, &node->gtBranch });
-          ptr->push({ { { v, rhs, Result::EQUAL   } }, &node->gtBranch });
-        }
-      }
-      break;
-    }
-    case Node::T_POLY: {
-      // ASSERTION_VIOLATION;
-      break;
-    }
-  }
-  return ptr;
 }
 
 // Printing
