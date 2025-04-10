@@ -32,7 +32,7 @@ const Ordering::Result Less    = Ordering::Result::LESS;
 const Ordering::Result Equal   = Ordering::Result::EQUAL;
 const Ordering::Result Incomp  = Ordering::Result::INCOMPARABLE;
 using namespace Kernel;
-using LaKbo = LiteralOrdering<LAKBO>;
+using LaKbo = LAKBO;
 
 template<class T>
 void check___(Ordering& ord, T lhs, Ordering::Result exp, T rhs, bool silent) {
@@ -86,7 +86,7 @@ void check_in_different_contexts(LaKbo& ord, TermList l, LaKbo::Result exp, Term
   check(ord, l != 0, exp, r != 0);
 }
 
-LaKbo& lakbo(bool rand = false) { return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true), Lib::make_shared(InequalityNormalizer()))); }
+LaKbo& lakbo(bool rand = false) { return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true))); }
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -633,6 +633,24 @@ TEST_FUN(bug04) {
   auto l1 = 0 == (X1 + -f15(f17(f18,X1),sLF132));
   auto l2 = sLF132 == X0;
   check(ord, l1, Incomp, l2);
+}
+
+
+TEST_FUN(bug05) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  auto& ord = lakbo(/* rand */ false);
+  DECL_VAR(X0, 0)
+  // DECL_VAR(X1, 1)
+  // DECL_SORT(S2)
+  // DECL_SORT(S11)
+  // DECL_SORT(S12)
+  // DECL_CONST(sLF132, S2)
+  // DECL_FUNC(f15, { S11, S2 }, Real)
+  // DECL_FUNC(f17, { S12, Real }, S11)
+  // DECL_CONST(f18, S12)
+
+  check(ord, X0 != 0, Incomp, num(0) > 0);
 }
 
 

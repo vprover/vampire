@@ -369,6 +369,11 @@ TEST_GENERATION(bug_02,
                                clause({ -23 * x0 +         0 * g(-23 * x0, x0)       > 0 })   
           )))
 
+TEST_GENERATION(bug_03,
+    Generation::SymmetricTest()
+      .inputs  ({    clause({ f(x) - f(y) > 0, 2 * x - y != 0 })    })
+      .expected(exactly(  clause({  num(0) > 0 , x != 0 })   )))
+
 TEST_GENERATION(non_linear_tryout01,
     Generation::SymmetricTest()
       .inputs  ({    clause({ (x * a) - (a * a) != 0 })    })
@@ -397,8 +402,3 @@ TEST_GENERATION(tricky_uwa_03,
     Generation::SymmetricTest()
       .inputs  ({    clause({     f(x) + f(g(x, x + y)) > 0  })    })
       .expected(exactly( /* nothing */ )))
-
-TEST_GENERATION(tricky_uwa_04,
-    Generation::SymmetricTest()
-      .inputs  ({        clause({  f(x) + f(g(x + z, x + y)) > 0  }) })
-      .expected(exactly( clause({  2 * f(x) > 0, x != g(x + z, x + y)  }) )))

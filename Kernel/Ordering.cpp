@@ -149,10 +149,10 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     out = NEW_ORD(QKbo, prb, opt);
     break;
   case Options::TermOrdering::SKEL:
-    out = NEW_ORD(Kernel::SkelOrd<Kernel::KBO>, prb, opt);
+    out = NEW_ORD(SkelOrd<Kernel::KBO>, prb, opt);
     break;
   case Options::TermOrdering::LAKBO:
-    out = NEW_ORD(Kernel::LiteralOrdering<Kernel::LAKBO>, prb, opt);
+    out = NEW_ORD(SkelOrd<Kernel::KBO>, prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);

@@ -41,15 +41,18 @@ namespace Kernel {
         });
     }
     // TODO make an array class that doesn't have any capacity slack
-    Map<Clause* , Stack<SelectedAtom>> _cache;
+    Map<Clause* , Stack<__SelectedLiteral>> _cache;
+    // Map<Clause* , Stack<SelectedAtom>> _cache;
+    // TODO remove
     Stack<SelectedAtom> computeSelected(Stack<SelectedAtom> atoms, Ordering* ord) const;
+    Stack<__SelectedLiteral> computeSelected(Clause* cl, Ordering* ord) const;
   public:
     auto selected(Clause* cl, Ordering* ord)
     {
-      return assertionViolation<DummyIter<__SelectedLiteral>>();
-      // return arrayIter(_cache.getOrInit(cl, [&]() {
-      //       return computeSelected(SelectedAtom::iter(cl).collectStack(), ord);
-      // }));
+      // return assertionViolation<DummyIter<__SelectedLiteral>>();
+      return arrayIter(_cache.getOrInit(cl, [&]() {
+            return computeSelected(cl, ord);
+      }));
     }
 
     template<class Selected, class FailLogger>

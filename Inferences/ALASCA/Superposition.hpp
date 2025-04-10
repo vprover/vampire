@@ -126,19 +126,6 @@ struct SuperpositionConf
         .flatMap([&shared](auto selected) { return iter(shared, selected); });
     }
 
-    bool postUnificationCheck(AbstractingUnifier& unif, unsigned varBank, Ordering* ord) const 
-    {
-      // TODO 1.3 option for enabling this check
-      if (productive()) {
-        return AlascaOrderingUtils::atomMaxAfterUnif(ord, *this, /* term */ SelectionCriterion::NOT_LESS, unif, varBank);
-      } else {
-        return true;
-      }
-    }
-    const char* postUnificationCheckName()  const
-    { return "s2σ ⊴ ti ∈ active(L[s2]σ)"; }
-      
-
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
     { return out << (SelectedAtom const&) self << "[ " << self.toRewrite() << " ]"; }
   };

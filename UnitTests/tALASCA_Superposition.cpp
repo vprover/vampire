@@ -97,7 +97,7 @@ auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultaniou
   auto s = 
     testAlascaState(uwa,
       /* strong normalization */ {}, 
-      lakbo ? new Kernel::LiteralOrdering<Kernel::LAKBO>(LAKBO(KBO::testKBO(/*rand=*/ false, /* qkboPrec */ true), Lib::make_shared(InequalityNormalizer())))
+      lakbo ? new Kernel::LiteralOrdering<Kernel::LAKBO>(LAKBO(KBO::testKBO(/*rand=*/ false, /* qkboPrec */ true)))
             : nullptr);
   auto n = ALASCA::Normalization(s);
             

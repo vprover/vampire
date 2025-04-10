@@ -903,6 +903,7 @@ protected:
     return static_cast<ArgumentOrderVals>(_args[0]._order());
   }
 
+public:
   /**
    * Store argument order value in term.
    *
@@ -917,6 +918,8 @@ protected:
 
     _args[0]._setOrder(val);
   }
+protected:
+
 
   /** The number of this symbol in a signature */
   unsigned _functor;

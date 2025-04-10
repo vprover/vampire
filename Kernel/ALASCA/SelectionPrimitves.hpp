@@ -53,6 +53,11 @@ namespace Kernel {
     bool isBGSelected() const { return _bgSelected; }
     void setBGSelected(bool b) { _bgSelected = b; }
 
+    static auto iter(Clause* cl) {
+      return range(0, cl->size())
+        .map([=](auto i) { return __SelectedLiteral(cl, i); });
+    }
+
     auto allLiterals() const
     { return clause()->iterLits().cloned(); }
 
@@ -97,7 +102,7 @@ namespace Kernel {
     auto iterSelectedSubterms() const 
     { return termArgIterTyped(literal()) 
                .flatMap([](auto t) { return AnyAlascaTerm::normalize(t).bottomUpIter(); }); }
-    bool productive() const { return literal()->isPositive(); }
+    Option<bool> isProductive() const { return some(literal()->isPositive()); }
     AlascaAtom selectedAtom() const { return AlascaAtom(literal()); }
     static auto iter(Ordering* ord, __SelectedLiteral const& sel) {
       return iterTraits(InequalityNormalizer::normalize(sel.literal())
@@ -122,7 +127,7 @@ namespace Kernel {
 
     unsigned termIdx() const { return unsigned(_idx); }
 
-    bool productive() const { return literal()->isPositive(); }
+    Option<bool> isProductive() const { return some(literal()->isPositive()); }
 
     auto iterSelectedSubterms() const 
     { return selectedAtomicAlascaTerm().bottomUpIter(); }
@@ -177,11 +182,11 @@ namespace Kernel {
     Numeral numeral() const { return selectedSummand().numeral(); }
     Sign sign() const { return numeral().sign(); }
 
-    bool productive() const 
-    { return isInequality() ? selectedSummand().numeral() > 0 
-                            : literal()->isPositive(); }
+    Option<bool> isProductive() const 
+    { return isInequality() ? selectedSummand().atom().isVar() ? Option<bool>() : some(selectedSummand().numeral() > 0) 
+                            : some(literal()->isPositive()); }
 
-    // bool productive() const 
+    // Option<bool> isProductive() const 
     // { return isInequality() ? selectedSummand().numeral() > 0 
     //                         : literal()->isPositive(); }
 
@@ -253,7 +258,7 @@ namespace Kernel {
     auto fun() const { return coproductIter(applyCo([](auto& self) { return self.fun(); })); }
 
     DELEGATE(clause)
-    DELEGATE(productive)
+    DELEGATE(isProductive)
     DELEGATE(literal)
     DELEGATE(isBGSelected)
     DELEGATE(litIdx)
@@ -418,7 +423,7 @@ namespace Kernel {
     { return coproductIter(applyCo([](auto x) { return x.iterSelectedSubterms(); })); }
 
     DELEGATE(clause)
-    DELEGATE(productive)
+    DELEGATE(isProductive)
     DELEGATE(literal)
     DELEGATE(isBGSelected)
     DELEGATE(litIdx)

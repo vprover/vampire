@@ -40,6 +40,7 @@ template<class NumTraits>
 Literal* createLiteral(AlascaPredicate self, TermList t)
 {
   auto zero = NumTraits::constantTl(NumTraits::constant(0));
+  // TODO do we want to set ArgumentOrderVals here, becuase we know it for alasca orderings?
   switch(self) {
     case AlascaPredicate::EQ: return NumTraits::eq(true, t, zero);
     case AlascaPredicate::NEQ: return NumTraits::eq(false, t, zero);
