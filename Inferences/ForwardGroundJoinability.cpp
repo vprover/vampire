@@ -196,92 +196,76 @@ LOOP_END:
 }
 
 ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
-  : tod(ord.createTermOrderingDiagram(/*ground=*/true))
+  : tod(ord.createTermOrderingDiagram(/*ground=*/true)), traversal(tod.get())
 {
   tod->_source = Branch(data, tod->_sink);
   tod->_source.node()->ready = true;
-  Iterator::init(tod.get());
+  _curr = &tod->_source;
 }
 
 std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
   Stack<TermOrderingConstraint> ordCons, Literal* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
-  ASS(Iterator::hasNext());
 
-  auto curr = Iterator::next();
-  ASS_EQ(curr->node()->tag, Tag::T_DATA);
-  ASS(curr->node()->data);
-  ASS(curr->node()->ready);
-  ASS_EQ(curr->node()->refcnt,1);
+  {
+    auto curr = _curr;
+    ASS_EQ(curr->node()->tag, Tag::T_DATA);
+    ASS(curr->node()->data);
+    ASS(curr->node()->ready);
+    ASS_EQ(curr->node()->refcnt,1);
 
-  // current node has to be processed again
-  curr->node()->ready = false;
+    // current node has to be processed again
+    curr->node()->ready = false;
 
-  // We replace (not modify) the current node
-  // with a new subtree containing ordCons and data
-  // and pointing to the original node otherwise.
+    // We replace (not modify) the current node
+    // with a new subtree containing ordCons and data
+    // and pointing to the original node otherwise.
 
-  Branch origB(*curr);
-  Branch newB = data ? Branch(data, tod->_sink) : tod->_sink;
+    Branch origB(*curr);
+    Branch newB = data ? Branch(data, tod->_sink) : tod->_sink;
 
-  for (const auto& [lhs,rhs,rel] : ordCons) {
-    ASS(lhs.isVar());
-    ASS(rhs.isVar());
-    *curr = Branch(lhs, rhs);
-    for (unsigned i = 0; i < 3; i++) {
-      if (ordVals[i] != rel) {
-        curr->node()->getBranch(ordVals[i]) = origB;
+    for (const auto& [lhs,rhs,rel] : ordCons) {
+      ASS(lhs.isVar());
+      ASS(rhs.isVar());
+      *curr = Branch(lhs, rhs);
+      for (unsigned i = 0; i < 3; i++) {
+        if (ordVals[i] != rel) {
+          curr->node()->getBranch(ordVals[i]) = origB;
+        }
       }
+      curr = &curr->node()->getBranch(rel);
     }
-    curr = &curr->node()->getBranch(rel);
+    *curr = newB;
   }
-  *curr = newB;
 
-  while (Iterator::hasNext()) {
-    auto curr = Iterator::next();
-
-    auto node = curr->node();
-    if (node->tag == Tag::T_DATA && !node->data) {
-      pushNext();
-      continue;
-    }
-
-    // there shouldn't be any invalid branches here
-    ASS(node->trace && node->trace->isGround());
-
+  if (!traversal._fresh) {
+    traversal.processNode(_curr);
+    auto node = _curr->node();
     if (node->tag == Tag::T_DATA) {
-      ASS(node->data);
+      if (node->data) {
+        // there shouldn't be any invalid branches here
+        ASS(node->trace && node->trace->isGround());
+        return make_pair(static_cast<Literal*>(node->data), node->trace);
+      }
+    } else {
+      traversal.goDown(_curr);
+    }
+  }
+
+  while (traversal.hasNext()) {
+    _curr = traversal.next();
+
+    auto node = _curr->node();
+    ASS_EQ(node->tag, Tag::T_DATA)
+    if (node->data) {
+      // there shouldn't be any invalid branches here
+      ASS(node->trace && node->trace->isGround());
       return make_pair(static_cast<Literal*>(node->data), node->trace);
     }
-    path.push(&node->getBranch(Ordering::GREATER));
   }
 
-  ASS(!Iterator::hasNext());
   return { nullptr, nullptr };
-}
-
-void ForwardGroundJoinability::RedundancyCheck::pushNext()
-{
-  while (path.isNonEmpty()) {
-    auto curr = path.pop();
-    if (path.isEmpty()) {
-      continue;
-    }
-
-    auto prev = path.top()->node();
-    ASS_EQ(prev->tag, Tag::T_TERM);
-    // if there is a previous node and we were either in the gt or eq
-    // branches, just go to next branch in order, otherwise backtrack
-    if (curr == &prev->getBranch(Ordering::GREATER)) {
-      path.push(&prev->getBranch(Ordering::EQUAL));
-      break;
-    }
-    if (curr == &prev->getBranch(Ordering::EQUAL)) {
-      path.push(&prev->getBranch(Ordering::LESS));
-      break;
-    }
-  }
 }
 
 bool ForwardGroundJoinability::makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res)

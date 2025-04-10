@@ -196,14 +196,41 @@ protected:
   friend class Inferences::ForwardGroundJoinability;
 
 public:
-  struct Iterator {
-    void init(TermOrderingDiagram* tod);
-    bool hasNext() const { return path.isNonEmpty(); }
-    Branch* next();
+  struct DefaultIterator {
+    bool hasNext() const { return curr != Result::INCOMPARABLE; }
+    Result next() {
+      auto prev = curr;
+      switch (curr) {
+        case Result::GREATER:
+          curr = Result::EQUAL;
+          break;
+        case Result::EQUAL:
+          curr = Result::LESS;
+          break;
+        case Result::LESS:
+          curr = Result::INCOMPARABLE;
+          break;
+        case Result::INCOMPARABLE:
+          ASSERTION_VIOLATION;
+      }
+      return prev;
+    }
+    Result curr = Result::GREATER;
+  };
 
-    Stack<Branch*> path;
+  struct Traversal {
+    Traversal(TermOrderingDiagram* tod);
+    bool hasNext();
+    Branch* next() const { return _res; }
+
+    void processNode(Branch* curr);
+    void goDown(Branch* curr);
+    bool _fresh = true;
+
   private:
+    Stack<std::pair<Branch*,DefaultIterator>> _path;
     TermOrderingDiagram* _tod;
+    Branch* _res = nullptr;
   };
 
   struct VarOrderExtractor {

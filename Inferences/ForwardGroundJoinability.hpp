@@ -45,7 +45,6 @@ public:
 
 private:
   struct RedundancyCheck
-    : TermOrderingDiagram::Iterator
   {
     RedundancyCheck(const Ordering& ord, Literal* data);
     std::pair<Literal*,const TermPartialOrdering*> next(Stack<TermOrderingConstraint> cons, Literal* data);
@@ -56,6 +55,8 @@ private:
     using Tag = TermOrderingDiagram::Node::Tag;
 
     TermOrderingDiagramUP tod;
+    TermOrderingDiagram::Traversal traversal;
+    Branch* _curr;
   };
 
   DemodulationLHSIndex* _index;

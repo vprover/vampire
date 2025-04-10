@@ -504,19 +504,65 @@ const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int 
 
 // VarOrderExtractor
 
-void TermOrderingDiagram::Iterator::init(TermOrderingDiagram* tod)
+TermOrderingDiagram::Traversal::Traversal(TermOrderingDiagram* tod)
+  : _tod(tod) {}
+
+bool TermOrderingDiagram::Traversal::hasNext()
 {
-  _tod = tod;
-  path.reset();
-  path.push(&_tod->_source);
+  if (_fresh) {
+    _fresh = false;
+    auto next = &_tod->_source;
+    processNode(next);
+
+    if (next->node()->tag == Node::T_DATA) {
+      _res = next;
+      return true;
+    }
+    goDown(next);
+
+  }
+  while (_path.isNonEmpty()) {
+    auto curr = &_path.top().first;
+    auto it   = &_path.top().second;
+    // go down as much as possible
+    while (it->hasNext()) {
+      auto b = it->next();
+      auto node = (*curr)->node();
+
+      ASS_NEQ(node->tag,Node::T_DATA);
+      auto next = &node->getBranch(b);
+      processNode(next);
+
+      if (next->node()->tag == Node::T_DATA) {
+        _res = next;
+        return true;
+      }
+      goDown(next);
+      curr = &_path.top().first;
+      it   = &_path.top().second;
+    }
+    // failure, go back up
+    _path.pop();
+  }
+  return false;
 }
 
-TermOrderingDiagram::Branch* TermOrderingDiagram::Iterator::next()
+void TermOrderingDiagram::Traversal::processNode(Branch* curr)
 {
-  _tod->_prev = (path.size()==1) ? nullptr : path[path.size()-2];
-  _tod->_curr = path.top();
+  auto prev = _path.isEmpty() ? nullptr : _path.top().first;
+  ASS(!prev || curr == &prev->node()->gtBranch
+            || curr == &prev->node()->eqBranch
+            || curr == &prev->node()->ngeBranch);
+  ASS(prev  || curr == &_tod->_source);
+
+  _tod->_prev = prev;
+  _tod->_curr = curr;
   _tod->processCurrentNode();
-  return _tod->_curr;
+}
+
+void TermOrderingDiagram::Traversal::goDown(Branch* curr)
+{
+  _path.push({ curr, DefaultIterator() });
 }
 
 TermOrderingDiagram::VarOrderExtractor::VarOrderExtractor(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct po_struct)
