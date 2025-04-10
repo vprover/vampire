@@ -653,6 +653,53 @@ TEST_FUN(bug05) {
   check(ord, X0 != 0, Incomp, num(0) > 0);
 }
 
+TEST_FUN(lit_levels_1) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_FUNC (f, {Real}, Real)
+  DECL_FUNC (g, {Real, Real}, Real)
+  DECL_PRED (p, {Real})
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+
+  auto& ord = lakbo();
+
+  for (auto t : { TermList(a), TermList(x) }) {
+    check(ord, f(f(t)) + f(t) == 0, Less   , f(f(t)) +   t  > 0);
+    check(ord, f(f(t)) +   t  == 0, Less   , f(f(t)) + f(t) > 0);
+    check(ord, f(f(t)) + f(t) == 0, Greater, f(f(t)) +   t  == 0);
+    check(ord, f(f(t)) + f(t) >  0, Greater, f(f(t)) +   t  == 0);
+
+    check(ord, f(f(t)) + f(t) >  0, Less   , f(f(t) + 1) +   t  == 0);
+  }
+}
+
+
+TEST_FUN(lit_levels_non_ground) {
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+  DECL_FUNC (f, {Real}, Real)
+  DECL_FUNC (g, {Real, Real}, Real)
+  DECL_PRED (p, {Real})
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+
+  auto& ord = lakbo();
+
+  check(ord, f(f(x)) + f(y) == 0, Incomp , f(f(x)) +   y  > 0);
+  //         ^^^^^^^^^^^^^ L1           L2 ^^^^^^^^^^^^^^^^^^
+  // if   y  >> f(f(x)) then L1 > L2 because atoms
+  // if f(y) << f(f(x)) then L2 > L1 because levels
+
+  check(ord, f(f(x)) + f(y) == 0, Less   , f(f(x)) + f(y) > 0);
+
+
+  check(ord, f(f(a)) +   a  == 0, Less   , f(f(a)) + f(a) > 0);
+  check(ord, f(f(a)) + f(a) == 0, Greater, f(f(a)) +   a  == 0);
+  check(ord, f(f(a)) + f(a) >  0, Greater, f(f(a)) +   a  == 0);
+
+}
+
 
 
 #if 0

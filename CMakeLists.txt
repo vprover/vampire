@@ -782,7 +782,6 @@ set(UNIT_TESTS
     UnitTests/tALASCA_Demodulation.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_LaKbo.cpp
-    UnitTests/tALASCA_SkelOrd.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
