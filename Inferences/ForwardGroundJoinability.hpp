@@ -55,7 +55,7 @@ private:
     using Tag = TermOrderingDiagram::Node::Tag;
 
     TermOrderingDiagramUP tod;
-    TermOrderingDiagram::Traversal traversal;
+    TermOrderingDiagram::Traversal<TermOrderingDiagram::DefaultIterator> traversal;
     Branch* _curr;
   };
 

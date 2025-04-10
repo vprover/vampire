@@ -504,10 +504,12 @@ const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int 
 
 // VarOrderExtractor
 
-TermOrderingDiagram::Traversal::Traversal(TermOrderingDiagram* tod)
-  : _tod(tod) {}
+template<class Iterator, typename ...Args>
+TermOrderingDiagram::Traversal<Iterator,Args...>::Traversal(TermOrderingDiagram* tod, Args... args)
+  : _tod(tod), _res(nullptr), _tp(args...) {}
 
-bool TermOrderingDiagram::Traversal::hasNext()
+template<class Iterator, typename ...Args>
+bool TermOrderingDiagram::Traversal<Iterator,Args...>::hasNext()
 {
   if (_fresh) {
     _fresh = false;
@@ -518,15 +520,14 @@ bool TermOrderingDiagram::Traversal::hasNext()
       _res = next;
       return true;
     }
-    goDown(next);
-
+    goDown(next, _tp);
   }
   while (_path.isNonEmpty()) {
     auto curr = &_path.top().first;
     auto it   = &_path.top().second;
     // go down as much as possible
     while (it->hasNext()) {
-      auto b = it->next();
+      auto b = it->nextR();
       auto node = (*curr)->node();
 
       ASS_NEQ(node->tag,Node::T_DATA);
@@ -537,7 +538,7 @@ bool TermOrderingDiagram::Traversal::hasNext()
         _res = next;
         return true;
       }
-      goDown(next);
+      goDown(next,it->nextT());
       curr = &_path.top().first;
       it   = &_path.top().second;
     }
@@ -547,7 +548,8 @@ bool TermOrderingDiagram::Traversal::hasNext()
   return false;
 }
 
-void TermOrderingDiagram::Traversal::processNode(Branch* curr)
+template<class Iterator, typename ...Args>
+void TermOrderingDiagram::Traversal<Iterator,Args...>::processNode(Branch* curr)
 {
   auto prev = _path.isEmpty() ? nullptr : _path.top().first;
   ASS(!prev || curr == &prev->node()->gtBranch
@@ -560,10 +562,7 @@ void TermOrderingDiagram::Traversal::processNode(Branch* curr)
   _tod->processCurrentNode();
 }
 
-void TermOrderingDiagram::Traversal::goDown(Branch* curr)
-{
-  _path.push({ curr, DefaultIterator() });
-}
+template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::DefaultIterator>;
 
 TermOrderingDiagram::VarOrderExtractor::VarOrderExtractor(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct po_struct)
   : tod(tod), appl(appl), res(po_struct)

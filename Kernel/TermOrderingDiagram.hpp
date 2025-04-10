@@ -198,7 +198,7 @@ protected:
 public:
   struct DefaultIterator {
     bool hasNext() const { return curr != Result::INCOMPARABLE; }
-    Result next() {
+    Result nextR() {
       auto prev = curr;
       switch (curr) {
         case Result::GREATER:
@@ -215,22 +215,29 @@ public:
       }
       return prev;
     }
+    std::tuple<> nextT() { return std::make_tuple(); }
     Result curr = Result::GREATER;
   };
 
+  template<class Iterator, typename ...Args>
   struct Traversal {
-    Traversal(TermOrderingDiagram* tod);
+    Traversal(TermOrderingDiagram* tod, Args... args);
     bool hasNext();
-    Branch* next() const { return _res; }
+    Branch* nextR() const { return _res; }
+    std::tuple<Args...> nextT() const { return _tp; }
 
     void processNode(Branch* curr);
-    void goDown(Branch* curr);
+    template<std::size_t ...I>
+    void goDown(Branch* curr, std::tuple<Args...> args, std::index_sequence<I...> = std::index_sequence_for<Args...>{}) {
+      _path.push({ curr, Iterator(std::get<I>(args)...) });
+    }
     bool _fresh = true;
 
   private:
-    Stack<std::pair<Branch*,DefaultIterator>> _path;
+    Stack<std::pair<Branch*,Iterator>> _path;
     TermOrderingDiagram* _tod;
-    Branch* _res = nullptr;
+    Branch* _res;
+    std::tuple<Args...> _tp;
   };
 
   struct VarOrderExtractor {

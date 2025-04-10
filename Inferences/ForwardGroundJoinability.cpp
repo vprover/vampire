@@ -251,12 +251,12 @@ std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::Redunda
         return make_pair(static_cast<Literal*>(node->data), node->trace);
       }
     } else {
-      traversal.goDown(_curr);
+      traversal.goDown(_curr,tuple<>());
     }
   }
 
   while (traversal.hasNext()) {
-    _curr = traversal.next();
+    _curr = traversal.nextR();
 
     auto node = _curr->node();
     ASS_EQ(node->tag, Tag::T_DATA)
