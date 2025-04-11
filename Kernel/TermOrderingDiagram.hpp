@@ -27,10 +27,11 @@ namespace Inferences {
 namespace Kernel {
 
 struct POStruct {
+  POStruct() = default;
   POStruct(const TermPartialOrdering* tpo)
     : tpo(tpo), cons() {}
 
-  const TermPartialOrdering* tpo;
+  const TermPartialOrdering* tpo = nullptr;
   Stack<TermOrderingConstraint> cons;
 };
 
@@ -197,6 +198,7 @@ protected:
 
 public:
   struct DefaultIterator {
+    DefaultIterator(Node*) {}
     bool hasNext() const { return curr != Result::INCOMPARABLE; }
     Result nextR() {
       auto prev = curr;
@@ -229,7 +231,7 @@ public:
     void processNode(Branch* curr);
     template<std::size_t ...I>
     void goDown(Branch* curr, std::tuple<Args...> args, std::index_sequence<I...> = std::index_sequence_for<Args...>{}) {
-      _path.push({ curr, Iterator(std::get<I>(args)...) });
+      _path.push({ curr, Iterator(curr->node(), std::get<I>(args)...) });
     }
     bool _fresh = true;
 
@@ -247,9 +249,10 @@ public:
     POStruct next() { return res; }
 
     struct NodeIterator {
-      NodeIterator(POStruct po_struct, Node* node);
+      NodeIterator(Node* node, POStruct po_struct);
       bool hasNext();
-      std::pair<Result,POStruct> next() const { return res; }
+      Result nextR() const { return res; }
+      std::tuple<POStruct> nextT() const { return tp; }
 
     private:
       bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
@@ -260,7 +263,8 @@ public:
       };
       POStruct po_struct;
       Stack<BranchingPoint> bps;
-      std::pair<Result,POStruct> res;
+      Result res;
+      std::tuple<POStruct> tp;
     };
 
     struct Iterator {
@@ -279,7 +283,7 @@ public:
 
     TermOrderingDiagram* tod;
     const SubstApplicator* appl;
-    Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<Iterator>>>> path;
+    Recycled<Stack<std::tuple<Branch*,POStruct, std::unique_ptr<Traversal<NodeIterator,POStruct>>>>> path;
     Stack<unsigned> btStack;
     POStruct res;
     bool fresh = true;

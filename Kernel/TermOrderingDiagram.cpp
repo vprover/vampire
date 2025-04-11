@@ -520,7 +520,7 @@ bool TermOrderingDiagram::Traversal<Iterator,Args...>::hasNext()
       _res = next;
       return true;
     }
-    goDown(next, _tp);
+    goDown(next, _tp, index_sequence_for<Args...>{});
   }
   while (_path.isNonEmpty()) {
     auto curr = &_path.top().first;
@@ -528,6 +528,7 @@ bool TermOrderingDiagram::Traversal<Iterator,Args...>::hasNext()
     // go down as much as possible
     while (it->hasNext()) {
       auto b = it->nextR();
+      auto tp = it->nextT();
       auto node = (*curr)->node();
 
       ASS_NEQ(node->tag,Node::T_DATA);
@@ -536,9 +537,10 @@ bool TermOrderingDiagram::Traversal<Iterator,Args...>::hasNext()
 
       if (next->node()->tag == Node::T_DATA) {
         _res = next;
+        _tp = tp;
         return true;
       }
-      goDown(next,it->nextT());
+      goDown(next, tp, index_sequence_for<Args...>{});
       curr = &_path.top().first;
       it   = &_path.top().second;
     }
@@ -563,6 +565,7 @@ void TermOrderingDiagram::Traversal<Iterator,Args...>::processNode(Branch* curr)
 }
 
 template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::DefaultIterator>;
+template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::VarOrderExtractor::NodeIterator,POStruct>;
 
 TermOrderingDiagram::VarOrderExtractor::VarOrderExtractor(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct po_struct)
   : tod(tod), appl(appl), res(po_struct)
@@ -608,7 +611,7 @@ bool TermOrderingDiagram::VarOrderExtractor::hasNext(bool& nodebug)
         auto lhs = AppliedTerm(node->lhs, appl, true).apply();
         auto rhs = AppliedTerm(node->rhs, appl, true).apply();
         if (!voe) {
-          voe = make_unique<Iterator>(tod->_ord, lhs, rhs, ps);
+          voe = make_unique<Traversal<NodeIterator,POStruct>>(createForSingleComparison(tod->_ord, lhs, rhs), ps);
         }
         if (!voe->hasNext()) {
           if (!backtrack()) {
@@ -616,9 +619,11 @@ bool TermOrderingDiagram::VarOrderExtractor::hasNext(bool& nodebug)
           }
           break;
         }
-        auto [tod,new_ps] = voe->next();
+        auto b = voe->nextR();
+        auto new_ps = voe->nextT();
+        auto r = *static_cast<Result*>(b->node()->data);
         btStack.push(path.size());
-        path->push({ &node->getBranch(tod), new_ps, nullptr });
+        path->push({ &node->getBranch(r), get<0>(new_ps), nullptr });
         break;
       }
     }
@@ -635,8 +640,8 @@ bool TermOrderingDiagram::VarOrderExtractor::backtrack()
   return true;
 }
 
-TermOrderingDiagram::VarOrderExtractor::NodeIterator::NodeIterator(POStruct po_struct, Node* node)
-  : po_struct(po_struct), res({ Result::INCOMPARABLE, po_struct })
+TermOrderingDiagram::VarOrderExtractor::NodeIterator::NodeIterator(Node* node, POStruct po_struct)
+  : po_struct(po_struct), res(Result::INCOMPARABLE), tp({ po_struct })
 {
   ASS(node->ready);
   if (node->tag == Node::T_TERM) {
@@ -686,7 +691,8 @@ bool TermOrderingDiagram::VarOrderExtractor::NodeIterator::hasNext()
     auto bp = bps.pop();
     POStruct eps = po_struct;
     if (tryExtend(eps, bp.cons)) {
-      res = { bp.r, eps };
+      res = bp.r;
+      tp = { eps };
       return true;
     }
   }
@@ -717,11 +723,12 @@ bool TermOrderingDiagram::VarOrderExtractor::Iterator::hasNext()
     }
 
     if (!sbp) {
-      sbp.reset(new NodeIterator(ps, node));
+      sbp.reset(new NodeIterator(node, ps));
     }
     if (sbp->hasNext()) {
-      auto [r, eps] = sbp->next();
-      _path->push({ &node->getBranch(r), eps, std::unique_ptr<NodeIterator>() });
+      auto r = sbp->nextR();
+      auto eps = sbp->nextT();
+      _path->push({ &node->getBranch(r), get<0>(eps), std::unique_ptr<NodeIterator>() });
     } else {
       _path->pop();
     }
