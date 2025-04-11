@@ -23,7 +23,7 @@
 
 namespace Kernel {
 
-#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...) if (lvl < 1) { DBG(__VA_ARGS__) }
 
 template<class F>
 bool compareBy(SelectedAtom const& l, SelectedAtom const& r, F f) 
@@ -186,7 +186,7 @@ struct AlascaSelectorDispatch {
                     [&](unsigned i)
                     { return (*atoms)[i]; },
                     SelectionCriterion::NOT_LESS)
-            .map([&](auto i) -> decltype(auto) { return __SelectedLiteral(atoms, i); })
+            .map([&](auto i) -> decltype(auto) { return __SelectedLiteral(atoms, i, /* bgSelected */ false); })
             ;
             // .filter([](auto& a) { return a.match(
             //       [](auto a) { return !a.isNumSort() || !a.selectedAtomicTerm().isVar(); },
@@ -209,7 +209,7 @@ struct AlascaSelectorDispatch {
 
   auto iterSelectable(Ordering* ord, Clause* cl) const
   { 
-    return __SelectedLiteral::iter(cl)
+    return __SelectedLiteral::iter(cl, /*bgSelected=*/ true)
       .filter([ord, this](auto l) {
           auto atoms = SelectedAtom::iter(ord, l, SelectionCriterion::NOT_LESS, SelectionCriterion::NOT_LESS)
              .collectRStack();
@@ -343,28 +343,11 @@ struct AlascaSelectorDispatch {
   { return selectMax(ord, atoms); }
 
 
-  template<bool complete>
-  Stack<SelectedAtom> computeSelected(TL::Token<GenericRndLiteralSelector<complete>>, Stack<SelectedAtom> atoms, Ordering* ord) {
-    if (complete) {
-      RStack<SelectedAtom> negative;
-      negative->loadFromIterator(iterUnproductive(atoms));
-      if (negative.size() != 0
-          // && Random::getBit() // <- sometimes select all maximals even if there is negatives TODO do we want this really?
-          ) {
-        return selectBG(Random::getElem(*negative));
-      } else {
-        return selectMax(ord, atoms);
-      }
-    } else {
-      return selectBG(Random::getElem(atoms));
-    }
-  }
-
   // template<bool complete>
-  // Stack<SelectedAtom> computeSelected(TL::Token<GenericRndLiteralSelector<complete>>, Clause* cl, Ordering* ord) {
+  // Stack<SelectedAtom> computeSelected(TL::Token<GenericRndLiteralSelector<complete>>, Stack<SelectedAtom> atoms, Ordering* ord) {
   //   if (complete) {
   //     RStack<SelectedAtom> negative;
-  //     negative->loadFromIterator(iterSelectable(ord, cl));
+  //     negative->loadFromIterator(iterUnproductive(atoms));
   //     if (negative.size() != 0
   //         // && Random::getBit() // <- sometimes select all maximals even if there is negatives TODO do we want this really?
   //         ) {
@@ -390,7 +373,7 @@ struct AlascaSelectorDispatch {
         return selectMax(ord, atoms);
       }
     } else {
-      return selectBG(__SelectedLiteral(atoms, Random::getInteger(atoms->size())));
+      return selectBG(__SelectedLiteral(atoms, Random::getInteger(atoms->size()), /*bgSelected=*/true));
     }
   }
 

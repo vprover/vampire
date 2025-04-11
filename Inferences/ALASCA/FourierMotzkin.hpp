@@ -92,7 +92,7 @@ struct FourierMotzkinConf
     }
 
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LESS; }
 
     static auto iter(AlascaState& shared, Clause* cl) 
     { 
@@ -109,9 +109,9 @@ struct FourierMotzkinConf
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const 
-  { return applyRule_(lhs,lhsVarBank, rhs, rhsVarBank, uwa).intoIter(); }
+  { return iterItems(applyRule_(lhs,lhsVarBank, rhs, rhsVarBank, uwa)); }
 
-  Option<Clause*> applyRule_(
+  Clause* applyRule_(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa

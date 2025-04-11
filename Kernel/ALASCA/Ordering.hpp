@@ -101,8 +101,8 @@ struct AlascaOrderingUtils {
         );
   }
 
-  template<class Selected>
-  static bool atomMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
+  template<class Selected, class Logger>
+  static bool atomMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank, Logger logger) {
 
     // TODO 1.2 we must actually apply the unifier before calling `iter` I think (think of top level vars)
     //         or is it find because they will always be shielded thus none of the atoms created by them can get maximal anyways ...?
@@ -115,20 +115,24 @@ struct AlascaOrderingUtils {
     }; 
     auto sσ = sigma(atom.selectedAtom());
 
-    return SelectedAtom::iter(atom.clause())
+    return SelectedAtom::iter(atom.clause(), /*bgSelected=*/true)
                   .filter([&](auto& t) { return t != SelectedAtom(atom); })
                   .all([&](auto t) { 
                       auto tσ = sigma(t.selectedAtom());
                       auto cmp = compareAtom(ord, sσ, tσ);
                       // DBG(sσ, " ", cmp, " ", tσ)
-                      return sel == SelectionCriterion::NOT_LEQ  ? OrderingUtils::notLeq(cmp)
-                           : sel == SelectionCriterion::NOT_LESS ? OrderingUtils::notLess(cmp)
-                           : assertionViolation<bool>();
+                      auto r = sel == SelectionCriterion::NOT_LEQ  ? OrderingUtils::notLeq(cmp)
+                             : sel == SelectionCriterion::NOT_LESS ? OrderingUtils::notLess(cmp)
+                             : assertionViolation<bool>();
+                      if (!r) {
+                        logger(Output::cat(sσ, " ", cmp, " ", tσ));
+                      }
+                      return r;
                       });
   }
 
-  template<class Selected>
-  static bool litMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank) {
+  template<class Selected, class Logger>
+  static bool litMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank, Logger logger) {
 
     if (sel == SelectionCriterion::ANY) { return true; }
     ASS_REP(sel == SelectionCriterion::NOT_LESS || sel == SelectionCriterion::NOT_LEQ, sel);
@@ -141,9 +145,13 @@ struct AlascaOrderingUtils {
           .all([&](auto L2) { 
               auto L2σ = sigma(L2);
               auto cmp = ord->compare(L1σ, L2σ);
-              return sel == SelectionCriterion::NOT_LEQ  ? OrderingUtils::notLeq(cmp)
-                   : sel == SelectionCriterion::NOT_LESS ? OrderingUtils::notLess(cmp)
-                   : assertionViolation<bool>();
+              auto r = sel == SelectionCriterion::NOT_LEQ  ? OrderingUtils::notLeq(cmp)
+                     : sel == SelectionCriterion::NOT_LESS ? OrderingUtils::notLess(cmp)
+             : assertionViolation<bool>();
+              if (!r) {
+                logger(Output::cat(*L1σ, " ", cmp, " ", *L2σ));
+              }
+              return r;
               });
   }
 

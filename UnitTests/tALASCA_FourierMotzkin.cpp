@@ -298,11 +298,9 @@ TEST_GENERATION(basic16a,
 TEST_GENERATION(basic16b,
     Generation::SymmetricTest()
       .indices(idxFourierMotzkin())
-      .inputs         ({ clause({ -g(x,y) + f(x) > 0, -g(y,x) + f(z) > 0 }) 
-                       , clause({ g(x,x) > 0   }) })
-      .expected(exactly( clause({ f(x) > 0, -g(x,x) + f(z) > 0   }) 
-                       , clause({ f(z) > 0, -g(x,x) + f(x) > 0   }) 
-          ))
+      .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y,x) + f(z) > 0 }) 
+                       , clause({ -g(x,x) > 0   }) })
+      .expected(exactly( ))
     )
 
 // Testing that the lhs may be only strictly maximal

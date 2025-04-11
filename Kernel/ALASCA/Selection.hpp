@@ -60,12 +60,12 @@ namespace Kernel {
       if (sel.isBGSelected()) {
         return true;
       } else {
-        if (!AlascaOrderingUtils::atomMaxAfterUnif(ord, sel, sel.atomMaximality(), unif, varBank)) {
-          logger("atom not maximal");
+        if (!AlascaOrderingUtils::atomMaxAfterUnif(ord, sel, sel.atomMaximality(), unif, varBank
+              , [&](auto msg) { logger(Output::cat("atom not maximal: ", msg)); })) {
           return false;
         }
-        if (!AlascaOrderingUtils::litMaxAfterUnif(ord, sel, sel.literalMaximality(), unif, varBank)) {
-          logger("literal not maximal");
+        if (!AlascaOrderingUtils::litMaxAfterUnif(ord, sel, sel.literalMaximality(), unif, varBank
+              , [&](auto msg) { logger(Output::cat("literal not maximal: ", msg)); })) {
           return false;
         }
         return true;

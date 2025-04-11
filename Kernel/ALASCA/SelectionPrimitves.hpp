@@ -42,10 +42,10 @@ namespace Kernel {
     /* return true whether this is selected in terms of bachmair-ganzinger terminology, not in terms of vampire terminology 
      * Concretely this means that for BG-selected literals no post-unification maximality checks are being performed.
      * */
-    bool _bgSelected = false;
+    bool _bgSelected;
 
   public:
-    __SelectedLiteral(Clause* cl, unsigned lit) : _cl(cl), _lit(lit) {}
+    __SelectedLiteral(Clause* cl, unsigned lit, bool bgSelected) : _cl(cl), _lit(lit), _bgSelected(bgSelected) {}
 
     Literal* literal() const { return (*_cl)[_lit]; }
     Clause* clause() const { return _cl; }
@@ -53,9 +53,9 @@ namespace Kernel {
     bool isBGSelected() const { return _bgSelected; }
     void setBGSelected(bool b) { _bgSelected = b; }
 
-    static auto iter(Clause* cl) {
+    static auto iter(Clause* cl, bool bgSelected) {
       return range(0, cl->size())
-        .map([=](auto i) { return __SelectedLiteral(cl, i); });
+        .map([=](auto i) { return __SelectedLiteral(cl, i, bgSelected); });
     }
 
     auto allLiterals() const
@@ -80,8 +80,8 @@ namespace Kernel {
       } else {
         return out << 
           Output::catOwned(
-              Output::cat(mainLiteral),
-              "\\/",
+              Output::cat(_bgSelected ? "[" : " ", mainLiteral, _bgSelected ? "]" : " "),
+              " \\/ ",
               Output::interleaved("\\/", 
                 contextLiterals().map([](auto l) { return Output::cat(*l); })) );
       }
@@ -96,9 +96,8 @@ namespace Kernel {
   class SelectedAtomicLiteral 
     : public __SelectedLiteral  
   {
-    SelectedAtomicLiteral(__SelectedLiteral sel) : __SelectedLiteral(sel) {}
   public:
-    SelectedAtomicLiteral(Clause* cl, unsigned lit) : __SelectedLiteral(cl, lit) {}
+    SelectedAtomicLiteral(__SelectedLiteral sel) : __SelectedLiteral(sel) {}
     auto iterSelectedSubterms() const 
     { return termArgIterTyped(literal()) 
                .flatMap([](auto t) { return AnyAlascaTerm::normalize(t).bottomUpIter(); }); }
@@ -120,8 +119,8 @@ namespace Kernel {
     using Self = SelectedAtomicTermUF;
     auto asTuple() const { return std::tie((__SelectedLiteral const&) *this, _idx); }
   public:
-    SelectedAtomicTermUF(Clause* c, unsigned l, bool idx) 
-      : __SelectedLiteral(c,l)
+    SelectedAtomicTermUF(__SelectedLiteral lit, bool idx) 
+      : __SelectedLiteral(std::move(lit))
       , _idx(idx) 
     { ASS(literal()->isEquality()) }
 
@@ -161,12 +160,7 @@ namespace Kernel {
   public:
 
     SelectedAtomicTermItp(__SelectedLiteral lit, unsigned summand) 
-      : __SelectedLiteral(lit)
-      , _summand(summand)
-    {  }
-
-    SelectedAtomicTermItp(Clause* cl, unsigned lit, unsigned summand) 
-      : __SelectedLiteral(cl, lit)
+      : __SelectedLiteral(std::move(lit))
       , _summand(summand)
     {  }
 
@@ -275,38 +269,17 @@ namespace Kernel {
       return ifElseIter(lit.literal()->isEquality(), 
           []() { return iterItems<bool>(0, 1); },
           []() { return iterItems<bool>(); })
-        .map([=](bool b) { return SelectedAtomicTerm(SelectedAtomicTermUF(lit.clause(), lit.litIdx(), b)); });
+        .map([=](bool b) { return SelectedAtomicTerm(SelectedAtomicTermUF(lit, b)); });
     }
     template<class NumTraits>
     static auto iterAll(__SelectedLiteral const& lit, AlascaLiteralItp<NumTraits> const& norm) {
       return range(0, norm.term().nSummands()) 
-        .map([=](auto i) { return SelectedAtomicTerm(SelectedAtomicTermItp<NumTraits>(lit.clause(), lit.litIdx(), i)); });
+        .map([=](auto i) { return SelectedAtomicTerm(SelectedAtomicTermItp<NumTraits>(lit, i)); });
     }
   public:
 
     static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) 
     { return MaxIterationUtil::iter<SelectedAtomicTerm>(ord, sel, selLit, selTerm); }
-
-    // {
-    //   auto terms = coproductIter(InequalityNormalizer::normalize(sel.literal())
-    //     .applyCo([&](auto norm) { return iterAll(sel, norm); }))
-    //     .collectRStack();
-    //
-    //   auto stack = OrderingUtils::maxElems(
-    //       terms->size() ,
-    //       [&](unsigned l, unsigned r) 
-    //       { return ord->compare(terms[l].selectedAtomicTerm(), 
-    //                             terms[r].selectedAtomicTerm()); },
-    //       [&](unsigned i)
-    //       { return terms[i].selectedAtomicTerm(); },
-    //       selTerm)
-    //     .map([&](auto i) 
-    //         { return terms[i]; })
-    //     .collectRStack();
-    //
-    //   return arrayIter(std::move(stack));
-    // }
-
 
     void setBGSelected(bool b) { return apply([&](auto& x){ return x.setBGSelected(b); }); }
 
@@ -350,7 +323,7 @@ namespace Kernel {
     template<class NumTraits>
     static auto iterAll(__SelectedLiteral const& lit, AlascaLiteralItp<NumTraits> const& norm) {
       return range(0, norm.term().nSummands()) 
-        .map([=](auto i) { return SelectedAtomicTermItpAny(SelectedAtomicTermItp<NumTraits>(lit.clause(), lit.litIdx(), i)); });
+        .map([=](auto i) { return SelectedAtomicTermItpAny(SelectedAtomicTermItp<NumTraits>(lit, i)); });
     }
   public:
 
@@ -452,10 +425,10 @@ namespace Kernel {
     }
 
     // TODO 2 deprecate
-    static auto iter(Clause* cl) {
+    static auto iter(Clause* cl, bool bgSelected) {
       return cl->iterLits()
           .zipWithIndex() 
-          .flatMap([cl](auto l_i) {
+          .flatMap([cl,bgSelected](auto l_i) {
             auto l = l_i.first;
             auto i = l_i.second;
             auto nl = InequalityNormalizer::normalize(l);
@@ -464,12 +437,12 @@ namespace Kernel {
                 /* literals  t1 + t2 + ... + tn <> 0 */
                 [&]() { return nl.asItp().isSome(); }, 
                 [&]() { 
-                  return coproductIter(nl.asItp()->applyCo([cl,i](auto itp) {
+                  return coproductIter(nl.asItp()->applyCo([cl,i,bgSelected](auto itp) {
                       return itp.term().iterSummands()
                          .zipWithIndex()
-                         .map([cl,i](auto s_i) -> SelectedAtom {
+                         .map([cl,i,bgSelected](auto s_i) -> SelectedAtom {
                              return  SelectedAtom(SelectedAtomicTerm(SelectedAtomicTermItp<decltype(itp.numTraits())>(
-                                     cl, i, s_i.second
+                                     __SelectedLiteral(cl, i, bgSelected), s_i.second
                                      )));
                          });
                   }));
@@ -479,12 +452,12 @@ namespace Kernel {
                 [&]() { return nl.toLiteral()->isEquality(); },
                 [&]() {
                   return iterItems(0, 1)
-                     .map([cl,i](auto j) { return SelectedAtom(SelectedAtomicTerm(SelectedAtomicTermUF(cl, i, j))); });
+                     .map([cl,i,bgSelected](auto j) { return SelectedAtom(SelectedAtomicTerm(SelectedAtomicTermUF(__SelectedLiteral(cl, i, bgSelected), j))); });
                 },
 
 
                 /* literals  (~)P(t1 ... tn)  */
-                [&]() { return iterItems(SelectedAtom(SelectedAtomicLiteral(cl, i))); }
+                [&]() { return iterItems(SelectedAtom(SelectedAtomicLiteral(__SelectedLiteral(cl, i, bgSelected)))); }
             );
           });
     }

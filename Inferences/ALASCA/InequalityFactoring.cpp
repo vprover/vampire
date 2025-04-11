@@ -110,8 +110,8 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
 
   CHECK_CONDITION(
       "(j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \\/ C)σ or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \\/ C)σ",
-          AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, l2, SelectionCriterion::NOT_LESS, uwa, /*varBank=*/ 0)
-       || AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, l1, SelectionCriterion::NOT_LESS, uwa, /*varBank=*/ 0)
+          AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, l2, SelectionCriterion::NOT_LESS, uwa, /*varBank=*/ 0, [](auto msg) {  })
+       || AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, l1, SelectionCriterion::NOT_LESS, uwa, /*varBank=*/ 0, [](auto msg) {  })
       );
 
 
@@ -223,7 +223,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 
     auto nonSelected = 
       range(0, premise->size())
-          .flatMap([&](auto i) { return Lhs::iter(*_shared, __SelectedLiteral(premise, i)); })
+          .flatMap([&](auto i) { return Lhs::iter(*_shared, __SelectedLiteral(premise, i, /*bgSelected*/ false /* don't care */)); })
           .collectRStack();
 
 

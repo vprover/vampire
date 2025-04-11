@@ -23,7 +23,7 @@ namespace Inferences {
 namespace ALASCA {
 
 
-Option<Clause*> FourierMotzkinConf::applyRule_(
+Clause* FourierMotzkinConf::applyRule_(
     Lhs const& lhs_, unsigned lhsVarBank,
     Rhs const& rhs_, unsigned rhsVarBank,
     AbstractingUnifier& uwa
@@ -38,22 +38,6 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
   return lhs_.apply([&](auto lhs) {
     auto& rhs = rhs_.template unwrap<decltype(lhs)>();
     using NumTraits = decltype(lhs.numTraits());
-
-#define check_side_condition(cond, cond_code)                                             \
-    if (!(cond_code)) {                                                                   \
-      DEBUG_FM(1, "side condition not fulfiled: " cond)                                   \
-      return Option<Clause*>();                                                           \
-    }                                                                                     \
-
-    check_side_condition("literals are of the same sort",
-        lhs.numTraits() == rhs.numTraits()) // <- we must make this check because variables are unsorted
-   
-    ASS(lhs.numeral().sign() == Sign::Pos)
-    ASS(rhs.numeral().sign() == Sign::Neg)
-    ASS(lhs.literal()->functor() == NumTraits::geqF()
-     || lhs.literal()->functor() == NumTraits::greaterF())
-    ASS(rhs.literal()->functor() == NumTraits::geqF()
-     || rhs.literal()->functor() == NumTraits::greaterF())
 
     bool tight = lhs.literal()->functor() == NumTraits::geqF()
               && rhs.literal()->functor() == NumTraits::geqF();
@@ -96,7 +80,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
           ), inf);
 
     DEBUG_FM(1, "out: ", *cl);
-    return Option<Clause*>(cl);
+    return cl;
   });
 }
 
