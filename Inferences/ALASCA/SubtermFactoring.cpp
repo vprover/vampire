@@ -44,7 +44,7 @@ struct Application
   {
     auto* shared = &shared_;
     return SelectedAtom::iter(shared->ordering, sel, literalMaximality(), atomMaximality())
-      .flatMap([&shared](auto atom) {
+      .flatMap([shared](auto atom) {
           return atom.iterSelectedSubterms()
              .filterMap([](auto t) { return t.asSum(); })
              .filter([](auto& s) { return s.apply([](auto& s) { return s.nSummands() >= 2; }); })
