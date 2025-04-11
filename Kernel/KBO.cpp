@@ -907,6 +907,9 @@ bool KBO::positivityCheckHelper(int& weight, ZIArray<int>& varDiffs, const Linea
   return true;
 }
 
+template bool KBO::positivityCheckHelper<1>(int&, ZIArray<int>&, const LinearExpression*, const SubstApplicator*) const;
+template bool KBO::positivityCheckHelper<-1>(int&, ZIArray<int>&, const LinearExpression*, const SubstApplicator*) const;
+
 template<class SigTraits>
 KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt(bool qkbo)
 {
