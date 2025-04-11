@@ -152,7 +152,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 
 #if VDEBUG
         POStruct dpo_struct(tpo);
-        TermOrderingDiagram::VarOrderExtractor::Iterator dextIt(ordering, trm, rhsApplied.apply(), dpo_struct);
+        TermOrderingDiagram::Iterator dextIt(ordering, trm, rhsApplied.apply(), dpo_struct);
         std::pair<Result,POStruct> kv { Ordering::INCOMPARABLE, nullptr };
         while (kv.first != Ordering::GREATER && dextIt.hasNext()) {
           kv = dextIt.next();
@@ -160,17 +160,13 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 #endif
 
         POStruct po_struct(tpo);
-        bool nodebug = false;
-        TermOrderingDiagram::VarOrderExtractor extractor(qr.data->tod.get(), &appl, po_struct);
-        if (!extractor.hasNext(nodebug)) {
-          ASS(nodebug || kv.first != Ordering::GREATER);
+        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &appl, po_struct)) {
+          // TODO this check sometimes fails when the debug code can detect the
+          // extension to get GREATER due to elimination of linear expressions
+          ASS(kv.first != Ordering::GREATER);
           continue;
         }
-        po_struct = extractor.next();
-        ASS(nodebug || kv.first == Ordering::GREATER);
-        // TODO for some rather complicated reason this sometimes
-        // fails as the two extractors take two different branches
-        // ASS(nodebug || kv.second.tpo == po_struct.tpo);
+        ASS(kv.first == Ordering::GREATER);
 
         TermList rhsS = rhsApplied.apply();
 
@@ -198,7 +194,7 @@ LOOP_END:
 }
 
 ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
-  : tod(ord.createTermOrderingDiagram(/*ground=*/true)), traversal(tod.get())
+  : tod(ord.createTermOrderingDiagram(/*ground=*/true)), traversal(tod.get(), nullptr)
 {
   tod->_source = Branch(data, tod->_sink);
   tod->_source.node()->ready = true;

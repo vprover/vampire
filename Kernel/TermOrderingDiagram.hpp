@@ -51,6 +51,7 @@ struct TermOrderingDiagram
 {
 public:
   static TermOrderingDiagram* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs);
+  static bool extendVarsGreater(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct& po_struct);
 
   TermOrderingDiagram(const Ordering& ord, bool ground);
   virtual ~TermOrderingDiagram();
@@ -198,7 +199,7 @@ protected:
 
 public:
   struct DefaultIterator {
-    DefaultIterator(Node*) {}
+    DefaultIterator(const Ordering&, const SubstApplicator*, Node*) {}
     bool hasNext() const { return curr != Result::INCOMPARABLE; }
     Result nextR() {
       auto prev = curr;
@@ -223,7 +224,7 @@ public:
 
   template<class Iterator, typename ...Args>
   struct Traversal {
-    Traversal(TermOrderingDiagram* tod, Args... args);
+    Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl, Args... args);
     bool hasNext();
     Branch* nextR() const { return _res; }
     std::tuple<Args...> nextT() const { return _tp; }
@@ -231,62 +232,58 @@ public:
     void processNode(Branch* curr);
     template<std::size_t ...I>
     void goDown(Branch* curr, std::tuple<Args...> args, std::index_sequence<I...> = std::index_sequence_for<Args...>{}) {
-      _path.push({ curr, Iterator(curr->node(), std::get<I>(args)...) });
+      _path.push({ curr, Iterator(_tod->_ord, _appl, curr->node(), std::get<I>(args)...) });
     }
     bool _fresh = true;
 
   private:
-    Stack<std::pair<Branch*,Iterator>> _path;
     TermOrderingDiagram* _tod;
+    const SubstApplicator* _appl;
+    Stack<std::pair<Branch*,Iterator>> _path;
     Branch* _res;
     std::tuple<Args...> _tp;
   };
 
-  struct VarOrderExtractor {
-    VarOrderExtractor(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct po_struct);
+  struct NodeIterator {
+    NodeIterator(const Ordering&, const SubstApplicator*, Node* node, POStruct po_struct);
+    bool hasNext();
+    Result nextR() const { return res; }
+    std::tuple<POStruct> nextT() const { return tp; }
 
-    bool hasNext(bool& nodebug);
-    POStruct next() { return res; }
+  private:
+    bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
 
-    struct NodeIterator {
-      NodeIterator(Node* node, POStruct po_struct);
-      bool hasNext();
-      Result nextR() const { return res; }
-      std::tuple<POStruct> nextT() const { return tp; }
-
-    private:
-      bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
-
-      struct BranchingPoint {
-        Stack<TermOrderingConstraint> cons;
-        Result r;
-      };
-      POStruct po_struct;
-      Stack<BranchingPoint> bps;
-      Result res;
-      std::tuple<POStruct> tp;
+    struct BranchingPoint {
+      Stack<TermOrderingConstraint> cons;
+      Result r;
     };
+    POStruct po_struct;
+    Stack<BranchingPoint> bps;
+    Result res;
+    std::tuple<POStruct> tp;
+  };
 
-    struct Iterator {
-      Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct);
+  struct NodeIterator2 {
+    NodeIterator2(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct po_struct);
+    bool hasNext();
+    Result nextR() const;
+    std::tuple<POStruct> nextT() const;
 
-      bool hasNext();
-      std::pair<Result,POStruct> next() { return _res; }
+  private:
+    bool termNode;
+    Traversal<NodeIterator,POStruct> traversal;
+  };
 
-      TermOrderingDiagram* _tod;
+  struct Iterator {
+    Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct);
 
-      Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<NodeIterator>>>> _path;
-      std::pair<Result,POStruct> _res;
-    };
+    bool hasNext();
+    std::pair<Result,POStruct> next() { return _res; }
 
-    bool backtrack();
+    TermOrderingDiagram* _tod;
 
-    TermOrderingDiagram* tod;
-    const SubstApplicator* appl;
-    Recycled<Stack<std::tuple<Branch*,POStruct, std::unique_ptr<Traversal<NodeIterator,POStruct>>>>> path;
-    Stack<unsigned> btStack;
-    POStruct res;
-    bool fresh = true;
+    Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<NodeIterator>>>> _path;
+    std::pair<Result,POStruct> _res;
   };
 };
 
