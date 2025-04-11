@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
@@ -63,6 +64,9 @@ public:
   SaturationAlgorithm(Problem& prb, const Options& opt);
   virtual ~SaturationAlgorithm();
 
+
+  auto lookaheadResultEstimation(__SelectedLiteral const& selection) -> DummyIter<std::tuple<>> const ;
+    
 
   auto lookaheadResultEstimation(SelectedAtom const& selection) const 
   { return _generator->lookaheadResultEstimation(selection); }

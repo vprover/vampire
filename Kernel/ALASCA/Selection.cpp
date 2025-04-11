@@ -25,8 +25,8 @@ namespace Kernel {
 
 #define DEBUG(lvl, ...) if (lvl < 1) { DBG(__VA_ARGS__) }
 
-template<class F>
-bool compareBy(SelectedAtom const& l, SelectedAtom const& r, F f) 
+template<class T, class F>
+bool compareBy(T const& l, T const& r, F f) 
 { return f(l) < f(r); }
 
 template<class QComparator>
@@ -34,42 +34,53 @@ struct AlascaAtomComparator;
 
 template<class C1, class C2>
 struct AlascaAtomComparator<LiteralComparators::Composite<C1, C2>> {
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const {
+
+  template<class T>
+  bool operator()(T const& l, T const& r) const {
     auto c1 = AlascaAtomComparator<C1>{}(l, r);
     return c1 != Comparison::EQUAL ? c1 : AlascaAtomComparator<C2>{}(l, r);
   } 
+
 };
 
 template<class C>
 struct AlascaAtomComparator<LiteralComparators::Inverse<C>> {
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
+  template<class T>
+  bool operator()(T const& l, T const& r) const 
   { return AlascaAtomComparator<C>{}(r, l); } 
 };
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::ColoredFirst> {
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
+
+  template<class T>
+  bool operator()(T const& l, T const& r) const 
   { return compareBy(r, l, 
       [](auto x) { return x.literal()->color() != COLOR_TRANSPARENT; }); } 
 };
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::NoPositiveEquality> {
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
+  template<class T>
+  bool operator()(T const& l, T const& r) const 
   { return compareBy(r, l, 
       [](auto x) { return !(x.literal()->isEquality() && x.literal()->isPositive()); }); } 
 };
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::Negative> {
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
+  template<class T>
+  bool operator()(T const& l, T const& r) const 
   { return compareBy(r, l, 
-      [](auto x) { return x.isProductive().isSome() && !x.isProductive(); }); } 
+      [](auto x) { 
+      // TODO this should be isNegativeForSelection
+      return x.literal()->isNegative(); }); } 
 };
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::NegativeEquality> {
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
+  template<class T>
+  bool operator()(T const& l, T const& r) const 
   { return compareBy(r, l, 
       [](auto x) { return x.literal()->isEquality() && x.literal()->isNegative(); }); } 
 };
@@ -83,6 +94,11 @@ struct AlascaAtomComparator<LiteralComparators::MaximalSize> {
   bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
   { return compareBy(r, l, 
       [](auto x) { return x.selectedAtom().apply([](auto x) { return weight(x); }); }); } 
+
+  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
+  { return compareBy(r, l, 
+      [](auto x) { return weight(x.literal()); }); } 
+
 };
 
 template<>
@@ -94,6 +110,10 @@ struct AlascaAtomComparator<LiteralComparators::LeastVariables> {
   bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
   { return compareBy(r, l, 
       [](auto x) { return -int(x.selectedAtom().apply([](auto x) { return numVarOccs(x); })); }); } 
+
+  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
+  { return compareBy(r, l, 
+      [](auto x) { return numVarOccs(x.literal()); }); } 
 
 };
 
@@ -107,6 +127,10 @@ struct AlascaAtomComparator<LiteralComparators::LeastDistinctVariables> {
   { return compareBy(r, l, 
       [](auto x) { return -int(x.selectedAtom().apply([](auto x) { return getDistinctVars(x); })); }); } 
 
+
+  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
+  { return compareBy(r, l, 
+      [](auto x) { return -int(getDistinctVars(x.literal())); }); } 
 };
 
 template<>
@@ -120,13 +144,18 @@ struct AlascaAtomComparator<LiteralComparators::LeastTopLevelVariables> {
   bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
   { return compareBy(r, l, 
       [](auto x) { return -int(x.selectedAtom().apply([](auto x) { return varArgCount(x); })); }); }
+
+  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
+  { return compareBy(r, l, 
+      [](auto x) { return -int(varArgCount(x.literal())); }); }
 };
 
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::LexComparator> {
 
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
+  template<class T>
+  bool operator()(T const& l, T const& r) const 
   { 
     // TODO this is not implemented as the LexComparator, as i don't think the lex comparator has any good semantic point to it, but is only there fore tie-breaking. this can be done way more cheaply
     return l < r;
@@ -146,23 +175,23 @@ struct AlascaSelectorDispatch {
   Stack<SelectedAtom> computeSelected(TL::Token<GenericSpassLiteralSelector<i>>, Stack<SelectedAtom> atoms, Ordering* ord) 
   { throw new UserErrorException("Spass literal selector not supported for alasca (yet)"); }
 
-  auto iterUnproductive(Stack<SelectedAtom> const& atoms) const
-  { return arrayIter(atoms)
-       .filter([](auto x) { return !*x.isProductive(); }); }
+  // auto iterUnproductive(Stack<SelectedAtom> const& atoms) const
+  // { return arrayIter(atoms)
+  //      .filter([](auto x) { return !*x.isProductive(); }); }
 
-  auto iterMax(Ordering* ord, Stack<SelectedAtom> const& atoms) const {
-     return OrderingUtils::maxElems(atoms.size(),
-                    [=](unsigned l, unsigned r)
-                    { return AlascaOrderingUtils::compareAtom(ord, atoms[l], atoms[r]); },
-                    [&](unsigned i)
-                    { return atoms[i]; },
-                    SelectionCriterion::NOT_LESS)
-            .map([&](auto i) -> decltype(auto) { return atoms[i]; })
-            .filter([](auto& a) { return a.match(
-                  [](auto a) { return !a.isNumSort() || !a.selectedAtomicTerm().isVar(); },
-                  [](auto t) { return true; }); });
-  }
-
+  // auto iterMax(Ordering* ord, Stack<SelectedAtom> const& atoms) const {
+  //    return OrderingUtils::maxElems(atoms.size(),
+  //                   [=](unsigned l, unsigned r)
+  //                   { return AlascaOrderingUtils::compareAtom(ord, atoms[l], atoms[r]); },
+  //                   [&](unsigned i)
+  //                   { return atoms[i]; },
+  //                   SelectionCriterion::NOT_LESS)
+  //           .map([&](auto i) -> decltype(auto) { return atoms[i]; })
+  //           .filter([](auto& a) { return a.match(
+  //                 [](auto a) { return !a.isNumSort() || !a.selectedAtomicTerm().isVar(); },
+  //                 [](auto t) { return true; }); });
+  // }
+  //
   auto iterMax2(Ordering* ord, Stack<SelectedAtom> const& atoms) const {
      return OrderingUtils::maxElems(atoms.size(),
                     [=](unsigned l, unsigned r)
@@ -186,12 +215,7 @@ struct AlascaSelectorDispatch {
                     [&](unsigned i)
                     { return (*atoms)[i]; },
                     SelectionCriterion::NOT_LESS)
-            .map([&](auto i) -> decltype(auto) { return __SelectedLiteral(atoms, i, /* bgSelected */ false); })
-            ;
-            // .filter([](auto& a) { return a.match(
-            //       [](auto a) { return !a.isNumSort() || !a.selectedAtomicTerm().isVar(); },
-            //       [](auto t) { return true; }); });
-    // return iterMax(ord, __SelectedLiteral::iter(atoms)); 
+            .map([&](auto i) -> decltype(auto) { return __SelectedLiteral(atoms, i, /* bgSelected */ false); });
   }
 
   template<class NumTraits>
@@ -217,49 +241,11 @@ struct AlascaSelectorDispatch {
             .all([&](auto a) { return a.apply([&](auto& x) { return this->selectable(x); }); });
           return selectable;
       });
+  }
 
-
-    // auto atoms = range(0, cl->size())
-    //   .map([=](auto i) { return __SelectedLiteral(cl, i); })
-    //   .collectRStack();
-    // atoms->sort([](auto& l, auto& r) { return l.literal() < r.literal(); });
-    //
-    // auto max = iterMax(ord, *atoms)
-    //   .map([](auto& x) { return &x; })
-    //   .collectRStack();
-    // max->sort([](auto& l, auto& r) { return l->literal() < r->literal(); });
-    //
-    // // RStack<Literal*> maybeProductive;
-    // RStack<Literal*> unproductive;
-    // unsigned i = 0;
-    // while (i < max.size()) {
-    //   auto lit = max[i]->literal();
-    //   auto j = i;
-    //   auto maybeProdLit = false;
-    //   while (max[j]->literal() == lit) {
-    //     maybeProdLit |= max[j]->productive();
-    //     j++;
-    //   }
-    //   if (maybeProdLit) {
-    //     // maybeProductive->push(lit);
-    //   } else {
-    //     unproductive->push(lit);
-    //   }
-    //   i = j;
-    // }
-    //
-    // return arrayIter(std::move(atoms))
-    //   .filterMap([pi = 0, unproductive = std::move(unproductive)](auto atom) mutable -> Option<__SelectedLiteral> {
-    //       if (unproductive[pi] < atom.literal()) {
-    //         pi++;
-    //       }
-    //       ASS(unproductive[pi] >= atom.literal())
-    //       if (unproductive[pi] == atom.literal()) {
-    //         return some(atom);
-    //       } else {
-    //         return {};
-    //       }
-    //   });
+  static auto iterAll(Clause* cl, bool bgSelected) {
+    return range(0, cl->size())
+            .map([=](auto i) { return __SelectedLiteral(cl, i, bgSelected); });
   }
 
 
@@ -269,9 +255,6 @@ struct AlascaSelectorDispatch {
 
   auto selectMax(Ordering* ord, Clause* const& atoms) const 
   { return bgSelected(false, iterMax(ord, atoms)); }
-
-  auto selectMax(Ordering* ord, Stack<SelectedAtom> const& atoms) const 
-  { return bgSelected(false, iterMax(ord, atoms).cloned()); }
 
   template<class Iter>
   auto selectBG(Iter iter) const 
@@ -286,45 +269,49 @@ struct AlascaSelectorDispatch {
   // TODO create another complete best selector that selects first the best unproductive ones and then the best productive ones
 
   template<class QComparator>
-  Stack<SelectedAtom> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>>, Stack<SelectedAtom> atoms, Ordering* ord) 
+  Stack<__SelectedLiteral> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>>, Clause* cl, Ordering* ord) 
   {
-    auto negative = iterUnproductive(atoms).cloned().collectRStack();
+    auto negative = iterSelectable(ord, cl).collectRStack();
     negative->sort([&](auto& l, auto& r) { return AlascaAtomComparator<QComparator>{}(r, l); });
     if (negative->size() != 0) {
       return selectBG(negative[0]);
     } else {
-      return selectMax(ord, atoms);
+      return selectMax(ord, cl);
     }
   }
 
   template<class QComparator>
-  Stack<SelectedAtom> computeSelected(TL::Token<BestLiteralSelector<QComparator>>, Stack<SelectedAtom> atoms, Ordering* ord) 
-  { return selectBG(arrayIter(atoms).maxBy(AlascaAtomComparator<QComparator>{}).unwrap()); }
+  Stack<__SelectedLiteral> computeSelected(TL::Token<BestLiteralSelector<QComparator>>, Clause* cl, Ordering* ord) 
+  { return selectBG(iterAll(cl, /*bgSelected*/ true).maxBy(AlascaAtomComparator<QComparator>{}).unwrap()); }
 
   template<bool complete>
-  Stack<SelectedAtom> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Stack<SelectedAtom> atoms, Ordering* ord) 
+  Stack<__SelectedLiteral> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Clause* cl, Ordering* ord) 
   {
+    // TODO
 
     auto sa = Saturation::SaturationAlgorithm::tryGetInstance();
 
-    RStack<SelectedAtom> leastResults;
-    auto gens = arrayIter(atoms)
-      .filter([](auto r) { return complete ? !*r.isProductive() : true; })
+    RStack<__SelectedLiteral> leastResults;
+    auto selectable = complete 
+      ? iterSelectable(ord,cl).collectRStack()
+      : iterAll(cl, /*bgSelected*/ true).collectRStack();
+    auto gens = arrayIter(*selectable)
+      // .filter([](auto r) { return complete ? !*r.isProductive() : true; })
       .map([&](auto& a) { return sa->lookaheadResultEstimation(a); })
       .collectRStack();
 
     if (gens->isEmpty()) {
       ASS(complete)
-      return selectMax(ord, atoms);
+      return selectMax(ord, cl);
     }
     
      while (leastResults->isEmpty()) {
-      for (auto i : range(0, atoms.size())) {
+      for (auto i : range(0, gens->size())) {
 
         if (gens[i].hasNext()) {
           gens[i].next();
         } else {
-          leastResults->push(atoms[i]);
+          leastResults->push(selectable[i]);
         }
       }
     }
@@ -336,29 +323,6 @@ struct AlascaSelectorDispatch {
     return selectBG(best);
   } 
 
-  Stack<SelectedAtom> computeSelected(TL::Token<TotalLiteralSelector>, Stack<SelectedAtom> atoms, Ordering* ord)
-  { return selectBG(arrayIter(std::move(atoms))); }
-
-  Stack<SelectedAtom> computeSelected(TL::Token<MaximalLiteralSelector>, Stack<SelectedAtom> atoms, Ordering* ord)
-  { return selectMax(ord, atoms); }
-
-
-  // template<bool complete>
-  // Stack<SelectedAtom> computeSelected(TL::Token<GenericRndLiteralSelector<complete>>, Stack<SelectedAtom> atoms, Ordering* ord) {
-  //   if (complete) {
-  //     RStack<SelectedAtom> negative;
-  //     negative->loadFromIterator(iterUnproductive(atoms));
-  //     if (negative.size() != 0
-  //         // && Random::getBit() // <- sometimes select all maximals even if there is negatives TODO do we want this really?
-  //         ) {
-  //       return selectBG(Random::getElem(*negative));
-  //     } else {
-  //       return selectMax(ord, atoms);
-  //     }
-  //   } else {
-  //     return selectBG(Random::getElem(atoms));
-  //   }
-  // }
 
   template<bool complete>
   Stack<__SelectedLiteral> computeSelected(TL::Token<GenericRndLiteralSelector<complete>>, Clause* atoms, Ordering* ord) {
@@ -378,8 +342,11 @@ struct AlascaSelectorDispatch {
   }
 
 
-  Stack<__SelectedLiteral> computeSelected(TL::Token<MaximalLiteralSelector>, Clause* atoms, Ordering* ord) {
-    return selectMax(ord, atoms);
+  Stack<__SelectedLiteral> computeSelected(TL::Token<MaximalLiteralSelector>, Clause* atoms, Ordering* ord) 
+  { return selectMax(ord, atoms); }
+
+  Stack<__SelectedLiteral> computeSelected(TL::Token<TotalLiteralSelector>, Clause* cl, Ordering* ord) {
+    return iterAll(cl, /* bgSelected */ true) .collectStack();
   }
 
   template<class C>
@@ -402,13 +369,13 @@ Stack<__SelectedLiteral> AlascaSelector::computeSelected(Clause* cl, Ordering* o
 }
 
 
-Stack<SelectedAtom> AlascaSelector::computeSelected(Stack<SelectedAtom> atoms, Ordering* ord) const
-{
-  DEBUG(0, "     all atoms: ", atoms)
-  ASS(atoms.size() > 0)
-  auto out = _mode.apply([&](auto token) { return AlascaSelectorDispatch{*this}.computeSelected(token, std::move(atoms), ord); });
-  DEBUG(0, "selected atoms: ", out)
-  return out;
-}
+// Stack<SelectedAtom> AlascaSelector::computeSelected(Stack<SelectedAtom> atoms, Ordering* ord) const
+// {
+//   DEBUG(0, "     all atoms: ", atoms)
+//   ASS(atoms.size() > 0)
+//   auto out = _mode.apply([&](auto token) { return AlascaSelectorDispatch{*this}.computeSelected(token, std::move(atoms), ord); });
+//   DEBUG(0, "selected atoms: ", out)
+//   return out;
+// }
 
 } // namespace Kernel

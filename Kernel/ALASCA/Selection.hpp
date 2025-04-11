@@ -44,7 +44,7 @@ namespace Kernel {
     Map<Clause* , Stack<__SelectedLiteral>> _cache;
     // Map<Clause* , Stack<SelectedAtom>> _cache;
     // TODO remove
-    Stack<SelectedAtom> computeSelected(Stack<SelectedAtom> atoms, Ordering* ord) const;
+    // Stack<SelectedAtom> computeSelected(Stack<SelectedAtom> atoms, Ordering* ord) const;
     Stack<__SelectedLiteral> computeSelected(Clause* cl, Ordering* ord) const;
   public:
     auto selected(Clause* cl, Ordering* ord)
