@@ -214,7 +214,8 @@ void NeuralClauseEvaluationModel::gageEmbedPending()
         const auto& [c,parents] = it.next();
         auto ruleIdx = (int64_t)toNumber(c->inference().rule());
         rect.index_put_({j, torch::indexing::Slice(0, _gageEmbeddingSize)}, _gageRuleEmbed.index({ruleIdx}));
-        rect.index_put_({j, torch::indexing::Slice(1*_gageEmbeddingSize, 2*_gageEmbeddingSize)}, _gageEmbedStore.get(parents[0]));
+        rect.index_put_({j, torch::indexing::Slice(1*_gageEmbeddingSize, 2*_gageEmbeddingSize)},
+                (parents.size() == 0) ? torch::zeros({_gageEmbeddingSize}) : _gageEmbedStore.get(parents[0]));
         int64_t k = 1;
         auto remainingPremisesEmbedSum = torch::zeros({_gageEmbeddingSize});
         while (k < parents.size()) {
