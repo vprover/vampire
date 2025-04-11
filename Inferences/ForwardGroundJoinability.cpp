@@ -238,22 +238,18 @@ std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::Redunda
   }
 
   if (!traversal._fresh) {
-    traversal.processNode(_curr);
-    auto node = _curr->node();
-    if (node->tag == Tag::T_DATA) {
+    if (traversal.handleBranch(_curr)) {
+      auto node = _curr->node();
+      ASS_EQ(node->tag, Tag::T_DATA);
       if (node->data) {
         // there shouldn't be any invalid branches here
         ASS(node->trace && node->trace->isGround());
         return make_pair(static_cast<Literal*>(node->data), node->trace);
       }
-    } else {
-      traversal.goDown(_curr,tuple<>());
     }
   }
 
-  while (traversal.hasNext()) {
-    _curr = traversal.nextR();
-
+  while (traversal.next(_curr)) {
     auto node = _curr->node();
     ASS_EQ(node->tag, Tag::T_DATA)
     if (node->data) {

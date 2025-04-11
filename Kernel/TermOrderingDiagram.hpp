@@ -198,11 +198,27 @@ protected:
   friend class Inferences::ForwardGroundJoinability;
 
 public:
+  template<class Iterator, typename ...Args>
+  struct Traversal {
+    Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl);
+    bool next(Branch*&, Args&... args);
+    bool handleBranch(Branch* b, Args&... args);
+
+    bool _fresh = true;
+
+  private:
+    TermOrderingDiagram* _tod;
+    const SubstApplicator* _appl;
+    Recycled<Stack<std::pair<Branch*,Iterator>>> _path;
+  };
+
   struct DefaultIterator {
     DefaultIterator(const Ordering&, const SubstApplicator*, Node*) {}
-    bool hasNext() const { return curr != Result::INCOMPARABLE; }
-    Result nextR() {
-      auto prev = curr;
+    bool next(Result& res) {
+      if (curr == Result::INCOMPARABLE) {
+        return false;
+      }
+      res = curr;
       switch (curr) {
         case Result::GREATER:
           curr = Result::EQUAL;
@@ -216,60 +232,32 @@ public:
         case Result::INCOMPARABLE:
           ASSERTION_VIOLATION;
       }
-      return prev;
+      return true;
     }
-    std::tuple<> nextT() { return std::make_tuple(); }
     Result curr = Result::GREATER;
   };
 
-  template<class Iterator, typename ...Args>
-  struct Traversal {
-    Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl, Args... args);
-    bool hasNext();
-    Branch* nextR() const { return _res; }
-    std::tuple<Args...> nextT() const { return _tp; }
-
-    void processNode(Branch* curr);
-    template<std::size_t ...I>
-    void goDown(Branch* curr, std::tuple<Args...> args, std::index_sequence<I...> = std::index_sequence_for<Args...>{}) {
-      _path.push({ curr, Iterator(_tod->_ord, _appl, curr->node(), std::get<I>(args)...) });
-    }
-    bool _fresh = true;
-
-  private:
-    TermOrderingDiagram* _tod;
-    const SubstApplicator* _appl;
-    Stack<std::pair<Branch*,Iterator>> _path;
-    Branch* _res;
-    std::tuple<Args...> _tp;
-  };
-
   struct NodeIterator {
-    NodeIterator(const Ordering&, const SubstApplicator*, Node* node, POStruct po_struct);
-    bool hasNext();
-    Result nextR() const { return res; }
-    std::tuple<POStruct> nextT() const { return tp; }
+    NodeIterator(const Ordering&, const SubstApplicator*, Node* node, POStruct initial);
+    bool next(Result& res, POStruct& pos);
 
   private:
     bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
 
+    POStruct initial;
     struct BranchingPoint {
       Stack<TermOrderingConstraint> cons;
       Result r;
     };
-    POStruct po_struct;
     Stack<BranchingPoint> bps;
-    Result res;
-    std::tuple<POStruct> tp;
   };
 
   struct NodeIterator2 {
-    NodeIterator2(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct po_struct);
-    bool hasNext();
-    Result nextR() const;
-    std::tuple<POStruct> nextT() const;
+    NodeIterator2(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial);
+    bool next(Result& res, POStruct& pos);
 
   private:
+    POStruct initial;
     bool termNode;
     Traversal<NodeIterator,POStruct> traversal;
   };
