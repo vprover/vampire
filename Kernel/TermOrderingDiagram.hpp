@@ -200,16 +200,15 @@ protected:
 public:
   template<class Iterator, typename ...Args>
   struct Traversal {
-    Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl);
-    bool next(Branch*&, Args&... args);
-    bool handleBranch(Branch* b, Args&... args);
-
-    bool _fresh = true;
+    Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl, Args... initial);
+    bool next(Branch*& b, Args&... args);
+    bool handleBranch(Branch* b, Args... args);
 
   private:
     TermOrderingDiagram* _tod;
     const SubstApplicator* _appl;
     Recycled<Stack<std::pair<Branch*,Iterator>>> _path;
+    bool _rootIsSuccess;
   };
 
   struct DefaultIterator {
@@ -252,26 +251,14 @@ public:
     Stack<BranchingPoint> bps;
   };
 
-  struct NodeIterator2 {
-    NodeIterator2(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial);
+  struct AppliedNodeIterator {
+    AppliedNodeIterator(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial);
     bool next(Result& res, POStruct& pos);
 
   private:
     POStruct initial;
     bool termNode;
     Traversal<NodeIterator,POStruct> traversal;
-  };
-
-  struct Iterator {
-    Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct);
-
-    bool hasNext();
-    std::pair<Result,POStruct> next() { return _res; }
-
-    TermOrderingDiagram* _tod;
-
-    Recycled<Stack<std::tuple<Branch*,POStruct,std::unique_ptr<NodeIterator>>>> _path;
-    std::pair<Result,POStruct> _res;
   };
 };
 

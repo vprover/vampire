@@ -152,10 +152,16 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 
 #if VDEBUG
         POStruct dpo_struct(tpo);
-        TermOrderingDiagram::Iterator dextIt(ordering, trm, rhsApplied.apply(), dpo_struct);
-        std::pair<Result,POStruct> kv { Ordering::INCOMPARABLE, nullptr };
-        while (kv.first != Ordering::GREATER && dextIt.hasNext()) {
-          kv = dextIt.next();
+        TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct> dtr(
+          TermOrderingDiagram::createForSingleComparison(ordering, trm, rhsApplied.apply()), nullptr, dpo_struct
+        );
+        TermOrderingDiagram::Branch* b;
+        bool success = false;
+        while (dtr.next(b, dpo_struct)) {
+          if (*static_cast<Result*>(b->node()->data)==Ordering::GREATER) {
+            success = true;
+            break;
+          }
         }
 #endif
 
@@ -163,10 +169,10 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
         if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &appl, po_struct)) {
           // TODO this check sometimes fails when the debug code can detect the
           // extension to get GREATER due to elimination of linear expressions
-          ASS(kv.first != Ordering::GREATER);
+          ASS(!success);
           continue;
         }
-        ASS(kv.first == Ordering::GREATER);
+        ASS(success);
 
         TermList rhsS = rhsApplied.apply();
 
@@ -198,7 +204,8 @@ ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, 
 {
   tod->_source = Branch(data, tod->_sink);
   tod->_source.node()->ready = true;
-  _curr = &tod->_source;
+  ALWAYS(traversal.next(_curr));
+  ASS_EQ(_curr,&tod->_source);
 }
 
 std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
@@ -237,15 +244,13 @@ std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::Redunda
     *curr = newB;
   }
 
-  if (!traversal._fresh) {
-    if (traversal.handleBranch(_curr)) {
-      auto node = _curr->node();
-      ASS_EQ(node->tag, Tag::T_DATA);
-      if (node->data) {
-        // there shouldn't be any invalid branches here
-        ASS(node->trace && node->trace->isGround());
-        return make_pair(static_cast<Literal*>(node->data), node->trace);
-      }
+  if (traversal.handleBranch(_curr)) {
+    auto node = _curr->node();
+    ASS_EQ(node->tag, Tag::T_DATA);
+    if (node->data) {
+      // there shouldn't be any invalid branches here
+      ASS(node->trace && node->trace->isGround());
+      return make_pair(static_cast<Literal*>(node->data), node->trace);
     }
   }
 

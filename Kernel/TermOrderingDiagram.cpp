@@ -47,12 +47,10 @@ TermOrderingDiagram* TermOrderingDiagram::createForSingleComparison(const Orderi
 
 bool TermOrderingDiagram::extendVarsGreater(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct& po_struct)
 {
-  Traversal<NodeIterator2,POStruct> traversal(tod, appl);
+  Traversal<AppliedNodeIterator,POStruct> traversal(tod, appl, po_struct);
   Branch* b;
-  POStruct ext = po_struct;
-  while (traversal.next(b, ext)) {
+  while (traversal.next(b, po_struct)) {
     if (b->node()->data) {
-      po_struct = ext;
       return true;
     }
   }
@@ -519,18 +517,16 @@ const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int 
 // Traversal
 
 template<class Iterator, typename ...Args>
-TermOrderingDiagram::Traversal<Iterator,Args...>::Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl)
-  : _tod(tod), _appl(appl) {}
+TermOrderingDiagram::Traversal<Iterator,Args...>::Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl, Args... initial)
+  : _tod(tod), _appl(appl), _rootIsSuccess(handleBranch(&_tod->_source, std::forward<Args>(initial)...)) {}
 
 template<class Iterator, typename ...Args>
 bool TermOrderingDiagram::Traversal<Iterator,Args...>::next(Branch*& branch, Args&... args)
 {
-  if (_fresh) {
-    _fresh = false;
+  if (_rootIsSuccess) {
+    _rootIsSuccess = false;
     branch = &_tod->_source;
-    if (handleBranch(branch, args...)) {
-      return true;
-    }
+    return true;
   }
   while (_path->isNonEmpty()) {
     auto curr = &_path->top().first;
@@ -556,7 +552,7 @@ bool TermOrderingDiagram::Traversal<Iterator,Args...>::next(Branch*& branch, Arg
 }
 
 template<class Iterator, typename ...Args>
-bool TermOrderingDiagram::Traversal<Iterator,Args...>::handleBranch(Branch* b, Args&... args)
+bool TermOrderingDiagram::Traversal<Iterator,Args...>::handleBranch(Branch* b, Args... args)
 {
   auto prev = _path->isEmpty() ? nullptr : _path->top().first;
   ASS(!prev || b == &prev->node()->gtBranch
@@ -571,13 +567,13 @@ bool TermOrderingDiagram::Traversal<Iterator,Args...>::handleBranch(Branch* b, A
   if (b->node()->tag == Node::T_DATA) {
     return true;
   }
-  _path->push({ b, Iterator(_tod->_ord, _appl, b->node(), args...) });
+  _path->push({ b, Iterator(_tod->_ord, _appl, b->node(), std::forward<Args>(args)...) });
   return false;
 }
 
 template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::DefaultIterator>;
 template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct>;
-template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator2,POStruct>;
+template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::AppliedNodeIterator,POStruct>;
 
 TermOrderingDiagram::NodeIterator::NodeIterator(const Ordering&, const SubstApplicator*, Node* node, POStruct initial)
   : initial(initial)
@@ -662,14 +658,14 @@ bool TermOrderingDiagram::NodeIterator::tryExtend(POStruct& po_struct, const Sta
   return true;
 }
 
-TermOrderingDiagram::NodeIterator2::NodeIterator2(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial)
+TermOrderingDiagram::AppliedNodeIterator::AppliedNodeIterator(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial)
   : termNode(node->tag==Node::T_TERM),
     initial(initial),
     traversal(termNode ? createForSingleComparison(ord,
       AppliedTerm(node->lhs, appl, true).apply(),
-      AppliedTerm(node->rhs, appl, true).apply()) : nullptr, appl) {}
+      AppliedTerm(node->rhs, appl, true).apply()) : nullptr, appl, initial) {}
 
-bool TermOrderingDiagram::NodeIterator2::next(Result& res, POStruct& pos)
+bool TermOrderingDiagram::AppliedNodeIterator::next(Result& res, POStruct& pos)
 {
   if (termNode) {
     Branch* b;
@@ -678,43 +674,6 @@ bool TermOrderingDiagram::NodeIterator2::next(Result& res, POStruct& pos)
       res = *static_cast<Result*>(b->node()->data);
       pos = ext;
       return true;
-    }
-  }
-  return false;
-}
-
-TermOrderingDiagram::Iterator::Iterator(const Ordering& ord, TermList lhs, TermList rhs, POStruct po_struct)
-  : _tod(), _res({ Ordering::INCOMPARABLE, POStruct(nullptr) })
-{
-  _tod = createForSingleComparison(ord, lhs, rhs);
-  _path->push({ &_tod->_source, po_struct, std::unique_ptr<NodeIterator>() });
-}
-
-bool TermOrderingDiagram::Iterator::hasNext()
-{
-  while (_path->isNonEmpty()) {
-    auto& [branch, ps, sbp] = _path->top();
-    _tod->_prev = (_path.size()==1) ? nullptr : get<0>(_path[_path.size()-2]);
-    _tod->_curr = branch;
-    _tod->processCurrentNode();
-
-    auto node = branch->node();
-    if (node->tag == Node::T_DATA) {
-      ASS(node->data);
-      _res = { *static_cast<Result*>(node->data), ps };
-      _path->pop();
-      return true;
-    }
-
-    if (!sbp) {
-      sbp.reset(new NodeIterator(_tod->_ord, nullptr, node, ps));
-    }
-    Result r;
-    POStruct pos = ps;
-    if (sbp->next(r, pos)) {
-      _path->push({ &node->getBranch(r), pos, std::unique_ptr<NodeIterator>() });
-    } else {
-      _path->pop();
     }
   }
   return false;
