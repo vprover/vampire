@@ -69,6 +69,7 @@ private:
 
   int64_t _gweightEmbeddingSize;
   torch::jit::script::Module _gweightTermCombine;
+  torch::Tensor _gweightProblemTweak;
 
   torch::Tensor _gweightSymbolEmbeds;
   List<torch::Tensor>* _gweightResults = nullptr; // just to prevent garbage collector from deleting too early
@@ -121,6 +122,7 @@ public:
 
     // get _gageProblemTweak from "gage_problem_tweak" field in the model
     _gageProblemTweak = _model.attr("gage_problem_tweak").toTensor();
+    _gweightProblemTweak = _model.attr("gweight_problem_tweak").toTensor();
   }
 
   void gnnNodeKind(const char* node_name, const torch::Tensor& node_features) {

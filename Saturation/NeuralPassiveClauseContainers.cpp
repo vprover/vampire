@@ -316,6 +316,7 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
       self.gweight_term_embed_store[id] = res[j]
     */
     auto res = _gweightTermCombine.forward({rect}).toTensor();
+    res += _gweightProblemTweak;
     {
       auto it = todos.iterFifo();
       int64_t j = 0;
