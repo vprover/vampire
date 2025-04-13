@@ -237,6 +237,8 @@ void NeuralClauseEvaluationModel::gageEmbedPending()
         self.gage_embed_store[clNum] = res[j]
     */
     auto res = _gageCombine.forward({rect}).toTensor();
+    // adding the tweak to each column in res
+    res += _gageProblemTweak;
     {
       auto it = todos.iterFifo();
       int64_t j = 0;
