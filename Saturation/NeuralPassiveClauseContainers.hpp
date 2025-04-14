@@ -69,7 +69,7 @@ private:
 
   int64_t _gweightEmbeddingSize;
   torch::jit::script::Module _gweightTermCombine;
-  torch::Tensor _gweightProblemTweak;
+  torch::Tensor _gweightStaticTweak;
 
   torch::Tensor _gweightSymbolEmbeds;
   List<torch::Tensor>* _gweightResults = nullptr; // just to prevent garbage collector from deleting too early
@@ -106,7 +106,7 @@ public:
     _computing = true;
   }
 
-  void setProblemFeatures(unsigned num_prb_features, Problem& prb) {
+  void setStaticFeatures(unsigned num_prb_features, Problem& prb) {
     std::vector<float> probFeatures;
     probFeatures.reserve(num_prb_features);
     unsigned i = 0;
@@ -116,13 +116,13 @@ public:
       i++;
     }
 
-    (*_model.find_method("set_problem_features"))({
+    (*_model.find_method("set_static_features"))({
       torch::from_blob(probFeatures.data(), {num_prb_features}, torch::TensorOptions().dtype(torch::kFloat32))
       });
 
     // get _gageProblemTweak from "gage_problem_tweak" field in the model
-    _gageProblemTweak = _model.attr("gage_problem_tweak").toTensor();
-    _gweightProblemTweak = _model.attr("gweight_problem_tweak").toTensor();
+    _gageProblemTweak = _model.attr("gage_static_tweak").toTensor();
+    _gweightStaticTweak = _model.attr("gweight_static_tweak").toTensor();
   }
 
   void gnnNodeKind(const char* node_name, const torch::Tensor& node_features) {
