@@ -1601,9 +1601,10 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
     // doing this specifically, for the "IMITATION" pathway
     makeReadyForEval(cl);
 
-    Stack<Clause*> singleton;
+    static Stack<Clause*> singleton;
     singleton.push(cl);
     _neuralModel->evalClauses(singleton,/* justRecord = */ true);
+    singleton.reset();
   }
 
   {
