@@ -401,7 +401,7 @@ void FiniteModelBuilder::init()
 
   if(!_prb.units()) return;
 
-  env.statistics->phase = Statistics::FMB_PREPROCESSING;
+  env.statistics->phase = ExecutionPhase::FMB_PREPROCESSING;
 
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_nonstrict;
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_strict;
@@ -1523,13 +1523,13 @@ MainLoopResult FiniteModelBuilder::runImpl()
 {
   if(!_isAppropriate){
     // give up!
-    return MainLoopResult(Statistics::INAPPROPRIATE);
+    return MainLoopResult(TerminationReason::INAPPROPRIATE);
   }
   if(!_prb.units()){
-    return MainLoopResult(Statistics::SATISFIABLE);
+    return MainLoopResult(TerminationReason::SATISFIABLE);
   }
 
-  env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
+  env.statistics->phase = ExecutionPhase::FMB_CONSTRAINT_GEN;
 
   if(outputAllowed()){
       bool doPrinting = false;
@@ -1563,7 +1563,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       if(outputAllowed()){
         cout << "% fmb_start_size (= " << _startModelSize << ") larger than a detected sort maximum size!" << endl;
       }
-      return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
+      return MainLoopResult(TerminationReason::REFUTATION_NOT_FOUND);
      }
   }
   for(unsigned s=0;s<_sortedSignature->sorts;s++) {
@@ -1606,7 +1606,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     cout << "SYM DEFS" << endl;
 #endif
     addNewSymmetryAxioms();
-    
+
 #if VTRACE_FMB
     cout << "TOTAL DEFS" << endl;
 #endif
@@ -1629,7 +1629,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
       _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
 
-      env.statistics->phase = Statistics::FMB_SOLVING;
+      env.statistics->phase = ExecutionPhase::FMB_SOLVING;
 
       static SATLiteralStack assumptions(_distinctSortSizes.size());
       assumptions.reset();
@@ -1651,7 +1651,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
         _solver->randomizeForNextAssignment(_curMaxVar);
       }
       satResult = _solver->solveUnderAssumptions(assumptions);
-      env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
+      env.statistics->phase = ExecutionPhase::FMB_CONSTRAINT_GEN;
     }
 
     // if the clauses are satisfiable then we have found a finite model
@@ -1690,7 +1690,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       }
 
       onModelFound();
-      return MainLoopResult(Statistics::SATISFIABLE);
+      return MainLoopResult(TerminationReason::SATISFIABLE);
     }
 
     unsigned clauseSetSize = _clausesToBeAdded.size();
@@ -1782,7 +1782,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
         } else {
-          return MainLoopResult(Statistics::REFUTATION,
+          return MainLoopResult(TerminationReason::REFUTATION,
               Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
         }
       } else { // i.e. (!_xmass)
@@ -1821,7 +1821,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
         if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
           if (_dsaEnumerator->isFmbComplete(_distinctSortSizes.size())) {
-            return MainLoopResult(Statistics::REFUTATION,
+            return MainLoopResult(TerminationReason::REFUTATION,
                 Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
           } else {
             if(outputAllowed()) {
@@ -1860,7 +1860,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   }
   */
 
-  return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
+  return MainLoopResult(TerminationReason::REFUTATION_NOT_FOUND);
 }
 
 void FiniteModelBuilder::onModelFound()

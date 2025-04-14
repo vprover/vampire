@@ -583,7 +583,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   ASS(removedComps.isEmpty());
 
   unsigned maxSatVar = _parent.maxSatVar();
-  
+
   SATSolver::Status stat;
   {
     TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
@@ -600,7 +600,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   }
   if(stat == SATSolver::Status::UNKNOWN){
     env.statistics->smtReturnedUnknown=true;
-    throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    throw MainLoop::MainLoopFinishedException(TerminationReason::REFUTATION_NOT_FOUND);
   }
   ASS_EQ(stat,SATSolver::Status::SATISFIABLE);
 
@@ -614,7 +614,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
      */
     if (asgn == SATSolver::VarAssignment::NOT_KNOWN) {
       env.statistics->smtDidNotEvaluate=true;
-      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+      throw MainLoop::MainLoopFinishedException(TerminationReason::REFUTATION_NOT_FOUND);
     }
 
     updateSelection(i, asgn, addedComps, removedComps);
