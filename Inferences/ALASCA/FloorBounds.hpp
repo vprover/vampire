@@ -208,7 +208,7 @@ public:
   void detach() final override
   { ASS(_salg); GeneratingInferenceEngine::detach(); }
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { return generateClauses(selection, 
       [](auto& premise, auto... lits) { return std::make_tuple(); }); }
 

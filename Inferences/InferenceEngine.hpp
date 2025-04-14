@@ -115,8 +115,8 @@ public:
    * as well as the information wether the premise was made redundant.
    */
   virtual ClauseGenerationResult generateSimplify(Clause* premise) = 0;
-  /** TODO */
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) = 0;
+  /** TODO 2 comment */
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) = 0;
 };
 
 
@@ -182,7 +182,7 @@ public:
 
   ClauseGenerationResult generateSimplify(Clause* cl) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override 
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
   { return pvi(dropElementType(range(0,1))); }
 
   /** 
@@ -312,7 +312,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) override
   { return ClauseIterator::getEmpty(); }
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { return lookeaheadResultDoesNotDependOnSelection(); }
 };
 
@@ -368,7 +368,7 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { return pvi(iterTraits(_inners->iter())
       .flatMap([&](auto gi) { return gi->lookaheadResultEstimation(selection); })); }
 private:
@@ -389,7 +389,7 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   {
     return pvi(concatIters(
           arrayIter(_simplifiers).flatMap([&](auto i) { return i->lookaheadResultEstimation(selection); }),

@@ -42,7 +42,7 @@ public:
   void attach(SaturationAlgorithm* salg) final override { GeneratingInferenceEngine::attach(salg); }
   void detach() final override { GeneratingInferenceEngine::detach(); }
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override;
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override;
 
   ClauseIterator generateClauses(Clause* premise) final override;
 

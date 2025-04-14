@@ -27,7 +27,7 @@ class ElimLeibniz : public GeneratingInferenceEngine
   public:
     ClauseIterator generateClauses(Clause* premise) override;
 
-    virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+    virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
     { return lookeaheadResultDoesNotDependOnSelection(); }
 
   private:

@@ -33,7 +33,7 @@ class NegativeExt
 public:
   ClauseIterator generateClauses(Clause* premise) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override;
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override;
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;

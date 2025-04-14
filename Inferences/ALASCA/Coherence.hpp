@@ -316,35 +316,41 @@ struct CoherenceNormalization : public SimplifyingGeneratingInference {
 
   void detach() final override { }
 
+  static auto iter(AlascaState& shared, __SelectedLiteral sel) {
+    return Superposition::Lhs::iter(shared, sel)
+              .filter([](auto& x) { return NumTraits::isFloor(x.biggerSide()); })
+              .filter([&shared](auto& prem) {
+                auto floor_s = prem.biggerSide();
+                auto t = prem.smallerSide();
+                auto floor_t = NumTraits::floor(t);
+                return !shared.norm().equivalent(floor_s, floor_t);
+              });
+  }
+
   ClauseGenerationResult generateSimplify(Clause* premise) final override {
     return ClauseGenerationResult {
-      .clauses = pvi( Superposition::Lhs::iter(*shared, premise)
-                        .filter([](auto& x) { return NumTraits::isFloor(x.biggerSide()); })
-                        .filterMap([this](auto x) { return apply(std::move(x)); })),
+      .clauses = pvi( shared->selected(premise, Superposition::Lhs::literalMaximality(), Superposition::Lhs::atomMaximality(), /* unshielded */ false)
+                        .flatMap([this](auto x) { return iter(*shared, x); })
+                        .map([this](auto x) { return apply(std::move(x)); })),
       .premiseRedundant = false,
     };
   }
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
-  { return pvi(dropElementType(Superposition::Lhs::iter(*shared, selection))); }
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
+  { return pvi(dropElementType(iter(*shared, selection))); }
 
   // C \/ ⌊s⌋ = t
   // ============ if ⌊t⌋ != ⌊s⌋
   // C \/ ⌊t⌋ = t
-  Option<Clause*> apply(Superposition::Lhs prem) const {
-    auto floor_s = prem.biggerSide();
+  Clause* apply(Superposition::Lhs prem) const {
     auto t = prem.smallerSide();
     auto floor_t = NumTraits::floor(t);
-    if (shared->norm().equivalent(floor_s, floor_t) ) {
-      return {};
-    } else {
-      return some(Clause::fromIterator(
-          concatIters(
-            prem.contextLiterals(),
-            iterItems(NumTraits::eq(true, t, floor_t))
+    return Clause::fromIterator(
+        concatIters(
+          prem.contextLiterals(),
+          iterItems(NumTraits::eq(true, t, floor_t))
           ),
-          Inference(GeneratingInference1(InferenceRule::ALASCA_COHERENCE_NORMALIZATION, prem.clause()))));
-    }
+        Inference(GeneratingInference1(InferenceRule::ALASCA_COHERENCE_NORMALIZATION, prem.clause())));
   }
 
 #if VDEBUG

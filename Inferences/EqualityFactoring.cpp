@@ -202,8 +202,8 @@ struct EqualityFactoring::PotentialApplicationIters {
 };
 
 
-VirtualIterator<std::tuple<>> EqualityFactoring::lookaheadResultEstimation(SelectedAtom const& selection) 
-{ return pvi(dropElementType(iterItems(selection.clause(), selection.literal()))); }
+VirtualIterator<std::tuple<>> EqualityFactoring::lookaheadResultEstimation(__SelectedLiteral const& selection) 
+{ return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal()))); }
 
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)

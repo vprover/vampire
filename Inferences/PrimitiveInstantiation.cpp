@@ -135,7 +135,7 @@ struct PrimitiveInstantiation::PotentialApplicationIters {
   }
 };
 
-VirtualIterator<std::tuple<>> PrimitiveInstantiation::lookaheadResultEstimation(SelectedAtom const& selection) {
+VirtualIterator<std::tuple<>> PrimitiveInstantiation::lookaheadResultEstimation(__SelectedLiteral const& selection) {
   return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal())));
 }
 

@@ -173,7 +173,7 @@ struct SubVarSup::PotentialApplicationIters {
 };
 
 
-VirtualIterator<std::tuple<>> SubVarSup::lookaheadResultEstimation(SelectedAtom const& selection) {
+VirtualIterator<std::tuple<>> SubVarSup::lookaheadResultEstimation(__SelectedLiteral const& selection) {
   return pvi(concatIters(
         dropElementType(PotentialApplicationIters{*this}.iterFwd(selection.clause(), selection.literal())),
         dropElementType(PotentialApplicationIters{*this}.iterBwd(selection.clause(), selection.literal()))

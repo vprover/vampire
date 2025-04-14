@@ -27,7 +27,7 @@ class FOOLParamodulation : public GeneratingInferenceEngine {
     Option<std::pair<TermList, unsigned>> findApplicablePosition(Clause* clause) const;
     ClauseIterator generateClauses(Clause* premise) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { 
     auto cnt = isApplicable(selection.literal()).isSome() ? 1 : 0;
     return pvi(dropElementType(range(0,cnt))); 

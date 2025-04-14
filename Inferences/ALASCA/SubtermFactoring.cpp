@@ -82,7 +82,7 @@ struct Application
 };
 
 
-VirtualIterator<std::tuple<>> SubtermFactoring::lookaheadResultEstimation(SelectedAtom const& selection) {
+VirtualIterator<std::tuple<>> SubtermFactoring::lookaheadResultEstimation(__SelectedLiteral const& selection) {
   return pvi(dropElementType(Application::iter(*_shared, selection)));
 }
 

@@ -153,7 +153,7 @@ private:
   unsigned _cLen;
 };
 
-VirtualIterator<std::tuple<>> NegativeExt::lookaheadResultEstimation(SelectedAtom const& selection) {
+VirtualIterator<std::tuple<>> NegativeExt::lookaheadResultEstimation(__SelectedLiteral const& selection) {
   auto cnt = IsNegativeEqualityFn()(selection.literal()) ? 1 : 0;
   return pvi(dropElementType(range(0, cnt)));
 }

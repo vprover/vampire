@@ -33,7 +33,7 @@ class ArgCong
 public:
   ClauseIterator generateClauses(Clause* premise) override;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { 
     auto cnt = selection.literal()->isEquality() && selection.literal()->isPositive() ? 1 : 0;
     return pvi(dropElementType(range(0, cnt))); 

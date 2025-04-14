@@ -103,7 +103,7 @@ struct Cases::PotentialApplicationIters {
   { return iterTraits(RewriteableSubtermsFn(self._salg->getOrdering())(lit)); }
 };
 
-VirtualIterator<std::tuple<>> Cases::lookaheadResultEstimation(SelectedAtom const& selection) 
+VirtualIterator<std::tuple<>> Cases::lookaheadResultEstimation(__SelectedLiteral const& selection) 
 { return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal()))); }
 
 

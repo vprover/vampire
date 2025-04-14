@@ -49,7 +49,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) final override;
 
   // TODO 2
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { return pvi(dropElementType(range(0,1))); }
 
 #if VDEBUG

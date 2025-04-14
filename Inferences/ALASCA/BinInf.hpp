@@ -31,7 +31,7 @@
 #include "Shell/Options.hpp"
 #include "Lib/TypeList.hpp"
 
-#define DEBUG(lvl, ...)  if (lvl < 3) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...)  if (lvl < 0) { DBG(__VA_ARGS__) }
 namespace TL = Lib::TypeList;
 
 namespace Inferences {
@@ -72,7 +72,7 @@ public:
   {  }
 
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   {
     // TODO set retrieveSubst false in find
     // TODO 3 test lookahead if the unifier is reset properly
@@ -276,7 +276,7 @@ public:
   template<unsigned p>
   using Prem = TL::Get<p, TL::List<Premise0, Premise1, Premise2>>;
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   {
 #define LOOKAHEAD_ITER(i, j, k)                                                           \
       dropElementType(Prem<i>::iter(*_shared, selection)                                  \

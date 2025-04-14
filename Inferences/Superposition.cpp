@@ -145,7 +145,7 @@ struct Superposition::PotentialApplicationIters {
 
 };
 
-VirtualIterator<std::tuple<>> Superposition::lookaheadResultEstimation(SelectedAtom const& selection) {
+VirtualIterator<std::tuple<>> Superposition::lookaheadResultEstimation(__SelectedLiteral const& selection) {
   return pvi(concatIters(
         dropElementType(PotentialApplicationIters{*this}.iterFwd(selection.clause(), selection.literal())),
         dropElementType(PotentialApplicationIters{*this}.iterBwd(selection.clause(), selection.literal()))

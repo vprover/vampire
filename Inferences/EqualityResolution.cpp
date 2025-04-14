@@ -155,7 +155,7 @@ struct EqualityResolution::PotentialApplicationIters {
 };
 
 
-VirtualIterator<std::tuple<>> EqualityResolution::lookaheadResultEstimation(SelectedAtom const& selection) 
+VirtualIterator<std::tuple<>> EqualityResolution::lookaheadResultEstimation(__SelectedLiteral const& selection) 
 { return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal()))); }
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)

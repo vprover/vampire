@@ -45,7 +45,7 @@ struct AlascaSimplRule
   AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) : _state(state), _rule(std::move(r)), _norm(std::move(n)) {}
   AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r) : _state(state), _rule(std::move(r)), _norm(state) {}
   
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override 
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
   { return _rule.lookaheadResultEstimation(selection); }
 
   void attach(SaturationAlgorithm* salg) final override {
@@ -108,7 +108,7 @@ struct ToSgi : public SimplifyingGeneratingInference {
            };
   }
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { return lookeaheadResultDoesNotDependOnSelection(); }
 };
 

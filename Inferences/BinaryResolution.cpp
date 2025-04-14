@@ -274,7 +274,7 @@ struct BinaryResolution::PotentialApplicationIters {
   }
 };
 
-VirtualIterator<std::tuple<>> BinaryResolution::lookaheadResultEstimation(SelectedAtom const& selection)
+VirtualIterator<std::tuple<>> BinaryResolution::lookaheadResultEstimation(__SelectedLiteral const& selection)
 { return pvi(dropElementType(PotentialApplicationIters{*this}.iterAppls(selection.clause(), selection.literal()))); }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)

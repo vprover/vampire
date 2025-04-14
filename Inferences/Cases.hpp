@@ -31,7 +31,7 @@ class Cases : public GeneratingInferenceEngine {
     struct ResultFn;
 
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(SelectedAtom const& selection) override;
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override;
 };
 
 }
