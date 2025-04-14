@@ -235,11 +235,12 @@ struct SkelOrd
               [&]() { return mulExt(set2(n, t0), set2(n, t1)); }));
 
         } else if (isZero(asig(n).tryNumeral(t0))) {
-          ASS(!isZero(asig(n).tryNumeral(t0)))
+          ASS(!isZero(asig(n).tryNumeral(t1)))
           /* cmpSameSkeleton(0, r) = LESS */
           return some(Ordering::Result::LESS);
 
         } else if (isZero(asig(n).tryNumeral(t1))) {
+          ASS(!isZero(asig(n).tryNumeral(t0)))
           /* cmpSameSkeleton(  l, 0) = GREATER */
           return some(Ordering::Result::GREATER);
 

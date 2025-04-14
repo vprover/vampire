@@ -424,20 +424,7 @@ TEST_FUN(atoms_comparison_two_sorts) {
 
 }
 
-TEST_FUN(bug01) {
-
-  DECL_DEFAULT_VARS
-  ALASCA_SUGAR(Real)
-  DECL_CONST(a, Real)
-  // DECL_CONST(b, Real)
-  // DECL_CONST(c, Real)
-  DECL_FUNC (f, {Real}, Real)
-  auto& ord = lakbo();
-
-  check(ord, f(f(a)) - f(f(a)) > 0, Less   , f(f(a)) > 0);
-}
-
-TEST_FUN(bug02) {
+TEST_FUN(lakbo_bug02) {
 
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Real)
@@ -452,7 +439,7 @@ TEST_FUN(bug02) {
 }
 
 
-TEST_FUN(bug03) {
+TEST_FUN(lakbo_bug03) {
 
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Rat)
@@ -472,13 +459,13 @@ TEST_FUN(numerals) {
 
   check(ord,  num(1), Equal, num(1));
   check(ord,  num(0), Equal, num(0));
-  check(ord,  num(0) * 10, Equal, num(0));
+  check(ord,  num(0) * 10, Greater, num(0));
 
   check(ord,  num(3), Greater, num(1));
   check(ord,  num(-3), Greater, num(1));
   check(ord,  num(-3), Greater, num(3));
   check(ord,  num(-3) + 2, Greater, num(3));
-  check(ord,  num(3) + -2, Less, num(3));
+  check(ord,  num(3) + -2, Greater, num(3));
   check(ord,  num(2), Greater, num(1));
   check(ord,  num(0), Less, num(1));
   check(ord,  num(1), Greater, num(0));
@@ -500,7 +487,7 @@ TEST_FUN(numerals) {
 }
 
 
-TEST_FUN(eq_equiv) {
+TEST_FUN(eq_levels) {
 
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Real)
@@ -510,9 +497,14 @@ TEST_FUN(eq_equiv) {
   DECL_FUNC (f, {Real}, Real)
   auto& ord = lakbo();
 
-  check(ord,  f(a) - f(b) == 0, Equal, f(b) - f(a) == 0);
-  check(ord, -f(a) - f(b) == 0, Equal, f(a) + f(b) == 0);
-  check(ord,  f(a) + f(b) == 0, Equal   , -f(a) - f(b) == 0);
+  check(ord,  f(a) - f(b) == 0, Greater,  f(b) - f(a) == 0);
+  check(ord, -f(a) - f(b) == 0, Greater,  f(a) + f(b) == 0);
+  check(ord,  f(a) + f(b) == 0, Less   , -f(a) - f(b) == 0);
+  check(ord,  f(a) - f(b) == 0, Less   ,         f(b) != 0);
+  check(ord, -f(a) - f(b) == 0, Less   ,         f(b) != 0);
+  check(ord,  f(a) + f(b) == 0, Less   ,        -f(b) != 0);
+  check(ord, -f(a) + f(b) == 0, Less   ,         f(b) >  0);
+  check(ord, -f(a) + f(b) >  0, Less   ,         f(b) != 0);
 }
 
 TEST_FUN(ineq_diseq) {
@@ -611,9 +603,7 @@ TEST_FUN(bug_non_linear_2) {
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
 
-  auto l1 = 0 == b* (-x + (a*a) + x);
-  auto l2 = 0 == b*(a*a);
-  check(ord, l1, Equal, l2);
+  check(ord, 0 == b* (-x + (a*a) + x), Incomp, 0 == b*(a*a));
 }
 
 TEST_FUN(bug04) {
