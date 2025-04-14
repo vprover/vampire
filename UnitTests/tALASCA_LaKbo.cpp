@@ -179,7 +179,7 @@ TEST_FUN(uninterpreted_terms_05) {
 
 TEST_FUN(interpreted_terms_01) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Int)
+  ALASCA_SUGAR(Int)
   DECL_FUNC (f, {Int}, Int)
   DECL_CONST(a, Int)
   DECL_CONST(b, Int)
@@ -190,8 +190,8 @@ TEST_FUN(interpreted_terms_01) {
 
   check(ord, x, Incomp, a); 
   check(ord, a + b, Equal, b + a); 
-  check(ord, x + y, Equal, y + x); 
-  // check(ord, x + y, Incomp, x + y); 
+  // check(ord, x + y, Equal, y + x); 
+  check(ord, x + y, Incomp, y + x); 
 
   check(ord,     f(x), Less,    3 * f(x));
   check(ord, 5 * f(x), Greater, 3 * f(x));
@@ -203,6 +203,10 @@ TEST_FUN(interpreted_terms_01) {
   // check(ord, 7 * (5 * f(x)), Less, 3 * f(f(x)));
   // check(ord, 7 * (f(x) * 5), Less, 3 * f(f(x)));
 
+  check(ord,   2 * (3 * (a + a)), Greater, 6 * (a + a));
+  check(ord,        6 * (a + a) , Greater, 6 * a +  6 * a);
+  check(ord,      6 * a + 6 * a , Greater, 12 * a        );
+
   check(ord, f(x) * f(x), Greater, f(x));
 
   check(ord, f(a) + f(a), Less, a + f(f(a)));
@@ -211,12 +215,14 @@ TEST_FUN(interpreted_terms_01) {
   check(ord, f(a) + x   , Incomp, f(x) + a);
   check(ord, a + b + c + d + x, Incomp, f(x));
   check(ord, a + b + c + d    , Less, f(x));
+
+  check(ord, f(a + a)    , Greater, f(2 * a));
 }
 
 
 TEST_FUN(interpreted_literals_01) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Int)
+  ALASCA_SUGAR(Int)
   DECL_CONST(a, Int)
   DECL_CONST(b, Int)
   DECL_FUNC (f, {Int}, Int)
@@ -237,8 +243,9 @@ TEST_FUN(interpreted_literals_01) {
   check(ord,   3 * f(x) + x           > 0, Less,     f(f(x)) > 0);
   check(ord,   3 * f(x) + x     + y   > 0, Incomp,   f(f(x))     > 0);
 
-  check(ord,             f(x) + f(x) > 0, Equal,  2 * f(x) > 0);
-  check(ord,    13 * f(x) + 2 * f(x) > 0, Equal, 15 * f(x) > 0);
+  check(ord,             f(x) + f(x) > 0, Greater,  2 * f(x) > 0);
+  check(ord,    13 * f(x) + 2 * f(x) > 0, Greater, 15 * f(x) > 0);
+  check(ord,                2 * f(x) > 0, Greater,      f(x) > 0);
 
   check(ord, f(x) >= 0, Greater,  f(x) == 0);
   check(ord, f(x) >  0, Greater,  f(x) == 0);
@@ -253,13 +260,13 @@ TEST_FUN(interpreted_literals_01) {
 
   // tricky 
   check(ord,   3 * f(a) + a +      b   > 0, Less,    f(f(a)) +      b   > 0);
-  check(ord,   3 * f(a) + a + -f(f(a)) > 0, Greater, f(f(a)) + -f(f(a)) > 0);
+  check(ord,   3 * f(a) + a + -f(f(a)) > 0, Less   , f(f(a)) + -f(f(a)) > 0);
   check(ord,   3 * f(x) + x +      y   > 0, Less  ,  f(f(x)) +      y   > 0);
 }
 
 TEST_FUN(misc01) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Int)
+  ALASCA_SUGAR(Int)
   DECL_FUNC (f, {Int,Int}, Int)
   DECL_FUNC (g, {Int}, Int)
   DECL_CONST(a, Int)
@@ -277,7 +284,7 @@ TEST_FUN(misc01) {
 
 TEST_FUN(misc02) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Int)
+  ALASCA_SUGAR(Int)
   DECL_FUNC (f, {Int}, Int)
 
   auto& ord = lakbo();
@@ -288,7 +295,7 @@ TEST_FUN(misc02) {
 
 TEST_FUN(tricky_01) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_FUNC (f, {Real}, Real)
   DECL_FUNC (g, {Real, Real}, Real)
   DECL_PRED (p, {Real})
@@ -296,7 +303,7 @@ TEST_FUN(tricky_01) {
   DECL_CONST(b, Real)
 
   auto& ord = lakbo();
-  check_in_different_contexts(ord, f(g(a,a)) + 2 * f(a) - f(a), Less   , f(g(a,a)) + 2 * f(a), p , f );
+  check_in_different_contexts(ord, f(g(a,a)) + 2 * f(a) - f(a), Greater, f(g(a,a)) + 2 * f(a), p , f );
   check_in_different_contexts(ord, f(g(a,b)) + 2 * f(a) - f(b), Greater, f(g(a,b)) + 2 * f(a), p , f );
   check_in_different_contexts(ord, f(g(x,y)) + 2 * f(x) - f(y), Greater, f(g(x,y)) + 2 * f(x), p , f ); 
 }
@@ -304,7 +311,7 @@ TEST_FUN(tricky_01) {
 TEST_FUN(tricky_02) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_FUNC (f, {Real}, Real)
   DECL_FUNC (g, {Real, Real}, Real)
   DECL_PRED (p, {Real})
@@ -317,28 +324,21 @@ TEST_FUN(tricky_02) {
 
   check(ord, f(g(a,  a )) - 2 * f(a) + f(  a ) , Greater , f(g(a,  a )) + 100 * f(a));
   check(ord, f(g(a,f(a))) - 2 * f(a) + f(f(a)) , Greater , f(g(a,f(a))) + 100 * f(a));
-  #ifdef TRICKY_IMPLEMENTED
   check(ord, f(g(x,  y )) - 2 * f(x) + f(  y ) , Greater , f(g(x,  y )) + 100 * f(x));
-  #endif
 
-  check_in_different_contexts(ord, f(g(a,  a )) + 2 * f(a) - f(  a ), Less   , f(g(a,  a )) + 100 * f(a), p,f);
+  check_in_different_contexts(ord, f(g(a,  a )) + 2 * f(a) - f(  a ), Greater, f(g(a,  a )) + 100 * f(a), p,f);
   check_in_different_contexts(ord, f(g(a,f(a))) + 2 * f(a) - f(f(a)), Greater, f(g(a,f(a))) + 100 * f(a), p,f);
-  #ifdef TRICKY_IMPLEMENTED
-  check_in_different_contexts(ord, f(g(x,  y )) + 2 * f(x) - f(  y ), Incomp , f(g(x,  y )) + 100 * f(x), p,f);
-  #endif
+  check_in_different_contexts(ord, f(g(x,  y )) + 2 * f(x) - f(  y ), Greater, f(g(x,  y )) + 100 * f(x), p,f);
 
   check_in_different_contexts(ord, f(g(a,a)) + 2 * f(a) - f(a) + c, Greater, f(g(a,a)) + 2 * f(a) - f(a), p,f);
   check_in_different_contexts(ord, f(g(a,b)) + 2 * f(a) - f(b) + c, Greater, f(g(a,b)) + 2 * f(a) - f(b), p,f);
-  #ifdef TRICKY_IMPLEMENTED
   check_in_different_contexts(ord, f(g(x,y)) + 2 * f(x) - f(y) + c, Greater, f(g(x,y)) + 2 * f(x) - f(y), p,f);
-  #endif
-
 }
 
 TEST_FUN(uninterpreted_predicates) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
   DECL_FUNC (f, {Real}, Real)
@@ -378,7 +378,7 @@ TEST_FUN(uninterpreted_predicates) {
 TEST_FUN(atoms_comparison_two_sorts) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_SORT(alpha)
   DECL_CONST(a0, Real)
   DECL_FUNC (f0, {Real}, Real)
@@ -427,7 +427,7 @@ TEST_FUN(atoms_comparison_two_sorts) {
 TEST_FUN(bug01) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_CONST(a, Real)
   // DECL_CONST(b, Real)
   // DECL_CONST(c, Real)
@@ -440,7 +440,7 @@ TEST_FUN(bug01) {
 TEST_FUN(bug02) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
 
   auto& ord = lakbo(/* rand */ false);
 
@@ -455,7 +455,7 @@ TEST_FUN(bug02) {
 TEST_FUN(bug03) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Rat)
+  ALASCA_SUGAR(Rat)
   mkAlascaSyntaxSugar(RatTraits{});
   DECL_CONST(a, Rat)
   DECL_FUNC (g, {Rat, Rat}, Rat)
@@ -467,7 +467,7 @@ TEST_FUN(bug03) {
 TEST_FUN(numerals) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   auto& ord = lakbo();
 
   check(ord,  num(1), Equal, num(1));
@@ -489,11 +489,11 @@ TEST_FUN(numerals) {
   check(ord,  frac(2,3), Greater, frac(1,3));
   check(ord,  frac(1,4), Greater, frac(2,3));
   {
-    NUMBER_SUGAR(Rat)
+    ALASCA_SUGAR(Rat)
     check(ord,  num(2), Greater, num(1));
   }
    {
-    NUMBER_SUGAR(Int)
+    ALASCA_SUGAR(Int)
     check(ord,  num(2), Greater, num(1));
   }
  
@@ -503,7 +503,7 @@ TEST_FUN(numerals) {
 TEST_FUN(eq_equiv) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
   // DECL_CONST(c, Real)
@@ -518,7 +518,7 @@ TEST_FUN(eq_equiv) {
 TEST_FUN(ineq_diseq) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
   // DECL_CONST(c, Real)
@@ -532,7 +532,7 @@ TEST_FUN(ineq_diseq) {
 TEST_FUN(check_one_smallest) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
 
 
   TermList one = num(1);
@@ -550,7 +550,7 @@ TEST_FUN(check_one_smallest) {
 TEST_FUN(check_one_smallest_2) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
 
 
   DECL_CONST(a, Real)
@@ -566,7 +566,7 @@ TEST_FUN(check_one_smallest_2) {
 TEST_FUN(check_numerals_smallest) {
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
 
 
   DECL_CONST(a, Real)
@@ -595,7 +595,7 @@ TEST_FUN(check_numerals_smallest) {
 
 TEST_FUN(bug_non_linear_1) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   auto& ord = lakbo(/* rand */ false);
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
@@ -606,7 +606,7 @@ TEST_FUN(bug_non_linear_1) {
 
 TEST_FUN(bug_non_linear_2) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   auto& ord = lakbo(/* rand */ false);
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
@@ -618,7 +618,7 @@ TEST_FUN(bug_non_linear_2) {
 
 TEST_FUN(bug04) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   auto& ord = lakbo(/* rand */ false);
   DECL_VAR(X0, 0)
   DECL_VAR(X1, 1)
@@ -638,7 +638,7 @@ TEST_FUN(bug04) {
 
 TEST_FUN(bug05) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   auto& ord = lakbo(/* rand */ false);
   DECL_VAR(X0, 0)
   // DECL_VAR(X1, 1)
@@ -655,7 +655,7 @@ TEST_FUN(bug05) {
 
 TEST_FUN(lit_levels_1) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_FUNC (f, {Real}, Real)
   DECL_FUNC (g, {Real, Real}, Real)
   DECL_PRED (p, {Real})
@@ -677,7 +677,7 @@ TEST_FUN(lit_levels_1) {
 
 TEST_FUN(lit_levels_non_ground) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_FUNC (f, {Real}, Real)
   DECL_FUNC (g, {Real, Real}, Real)
   DECL_PRED (p, {Real})
@@ -705,7 +705,7 @@ TEST_FUN(lit_levels_non_ground) {
 #if 0
 TEST_FUN(unshielded_vars_1) {
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Real)
+  ALASCA_SUGAR(Real)
   DECL_FUNC(f, {Real}, Real)
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)

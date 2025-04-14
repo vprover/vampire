@@ -721,7 +721,7 @@ std::string Term::toString(bool topLevel) const
       if (NumTraits::isAdd(_functor)) {
         return binary(" + ");
       } else if (NumTraits::isMul(_functor)) {
-        return binary(" ");
+        return binary(" * ");
       } else if (auto c = NumTraits::tryLinMul(_functor)) {
         return *c == -1 ? some(Output::toString("-", maybeParMul(termArg(0))))
                         : some(Output::toString(*c, " ", maybeParMul(termArg(0))));

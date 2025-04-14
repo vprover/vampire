@@ -66,6 +66,18 @@ struct AlascaOrderingUtils {
          : c2 < c1 ? Ordering::Result::GREATER
                    : Ordering::Result::EQUAL; }
 
+  static Ordering::Result cmpSgn(Sign c1, Sign c2)
+  { 
+    auto toN = [](Sign s) {
+      switch (s) {
+        case Sign::Zero: return 0;
+        case Sign::Pos: return 1;
+        case Sign::Neg: return 2;
+      }
+    };
+    return cmpN(toN(c1), toN(c2)); 
+  }
+
   template<class Q>
   static Ordering::Result cmpQ(Q c1, Q c2)
   { return lexLazy( [&](){ return cmpN(c1 < 0              , c2 < 0              ); }
@@ -177,7 +189,9 @@ struct SkelOrd
   void show(std::ostream& out) const final override { return _ord.show(out); }
   virtual bool isAlascaLiteralOrdering() const final override { return true; }
 
-  static MultiSet<TermList> set(unsigned f, TermList t) {
+  template<class NumTraits>
+  static MultiSet<TermList> gen_set(NumTraits n, TermList t, bool set1) {
+    auto f = n.addF();
     MultiSet<TermList> out;
     RStack<TermList> todo;
     RStack<TermList> set;
@@ -185,14 +199,27 @@ struct SkelOrd
     while (todo->isNonEmpty()) {
       auto t = todo->pop();
       if (t.isTerm() && t.term()->functor() == f) {
-        set->push(t.term()->termArg(0));
-        set->push(t.term()->termArg(1));
+        todo->push(t.term()->termArg(0));
+        todo->push(t.term()->termArg(1));
+      } else if (set1 && asig(n).isNumeral(t)) {
+        set->push(NumTraits::one());
+      } else if (set1 && asig(n).isLinMul(t)) {
+        todo->push(t.term()->termArg(0));
       } else {
         set->push(t);
       }
     }
     return MultiSet<TermList>::fromIterator(arrayIter(std::move(set)));
   }
+
+  template<class NumTraits>
+  static MultiSet<TermList> set1(NumTraits n, TermList t) 
+  { return gen_set(n, t, /* set1 */ true); }
+
+  template<class NumTraits>
+  static MultiSet<TermList> set2(NumTraits n, TermList t) 
+  { return gen_set(n, t, /* set1 */ false); }
+
 
   Ordering::Result cmpSameSkeleton(TermList t0, TermList t1) const {
     if (t0 == t1) return Ordering::Result::EQUAL;
@@ -201,9 +228,11 @@ struct SkelOrd
     Option<Ordering::Result> resultItp = forAnyNumTraits([&](auto n) -> Option<Ordering::Result> {
         auto isZero = [](auto option) { return option.isSome() && option.unwrap() == 0; };
         if (asig(n).isAdd(t0) || asig(n).isAdd(t1)) {
-          auto add = n.addF();
-          return some(OrderingUtils::mulExt(set(add, t0), set(add, t1), 
-                [&](auto& l, auto& r) { return compare(l, r); }));
+          auto mulExt = [&](auto l, auto r) { return OrderingUtils::mulExt(l, r, 
+                [&](auto& l, auto& r) { return this->compare(l, r); }); };
+          return some(AlascaOrderingUtils::lexLazy(
+              [&]() { return mulExt(set1(n, t0), set1(n, t1)); },
+              [&]() { return mulExt(set2(n, t0), set2(n, t1)); }));
 
         } else if (isZero(asig(n).tryNumeral(t0))) {
           ASS(!isZero(asig(n).tryNumeral(t0)))
@@ -390,7 +419,7 @@ struct SkelOrd
   )
 
   using AnyNumeral = Coproduct<IntegerConstantType, RationalConstantType, RealConstantType>;
-  using Atom = std::tuple<TermList, unsigned , Option<AnyNumeral>>;
+  using Atom = std::tuple<TermList, unsigned , Sign>;
 
   static unsigned lvl(AlascaPredicate p) {
     switch(p) {
@@ -404,43 +433,48 @@ struct SkelOrd
   }
 
   template<class NumTraits>
-  static void atoms(NumTraits n, TermList t, AlascaPredicate p, Stack<Atom>& out) {
-    if (asig(n).isAdd(t)) {
-      atoms(n, t.term()->termArg(0), p, out);
-      atoms(n, t.term()->termArg(1), p, out);
-
-    } else if (auto k = asig(n).tryNumeral(t)) {
-      out.push(std::make_tuple(n.one(), lvl(p), some(AnyNumeral(*k))));
-
-    } else if (auto k = asig(n).tryLinMul(t)) {
-      out.push(std::make_tuple(t.term()->termArg(0), lvl(p), some(AnyNumeral(*k))));
-
-    } else {
-      out.push(std::make_tuple(t, lvl(p), Option<AnyNumeral>()));
-    }
-  }
-
-
-  template<class NumTraits>
   static MultiSet<Atom> atoms(NumTraits n, TermList t, AlascaPredicate p) {
     RStack<Atom> out;
-    atoms(n, t, p, *out);
+    RStack<TermList> todo;
+    todo->push(t);
+    while (todo->isNonEmpty()) {
+      auto t = todo->pop();
+      if (asig(n).isAdd(t)) {
+        todo->push(t.term()->termArg(0));
+        todo->push(t.term()->termArg(1));
+
+      } else if (auto k = asig(n).tryNumeral(t)) {
+        out->push(std::make_tuple(n.one(), lvl(p), k->sign()));
+
+      } else if (auto k = asig(n).tryLinMul(t)) {
+        out->push(std::make_tuple(t.term()->termArg(0), lvl(p), k->sign()));
+
+      } else {
+        out->push(std::make_tuple(t, lvl(p), Sign::Pos));
+      }
+    }
     return MultiSet<Atom>::fromIterator(arrayIter(std::move(out)));
   }
 
-  Option<MultiSet<Atom>> atoms(Literal* l) const {
-    auto itpRes = forAnyNumTraits([&](auto n) -> Option<MultiSet<Atom>> {
+  struct Atoms {
+    MultiSet<Atom> atoms;
+    Option<TermList> numTerm;
+  };
+
+  Option<Atoms> atoms(Literal* l) const {
+    auto itpRes = forAnyNumTraits([&](auto n) -> Option<Atoms> {
 
 #define TRY_INEQ(sym, check) \
         if (check(l)) { \
           ASS_EQ(l->termArg(1), n.zero()) \
-          return some(atoms(n, l->termArg(0), sym)); \
+          auto t = l->termArg(0); \
+          return some(Atoms { atoms(n, t, sym), some(t) }); \
         } \
 
 #define TRY_EQ(sym, check) \
         if (check(l)) { \
           auto t = l->termArg(1) == n.zero() ? l->termArg(0) : l->termArg(1); \
-          return some(atoms(n, t, sym)); \
+          return some(Atoms { atoms(n, t, sym), some(t) }); \
         } \
 
         TRY_EQ(AlascaPredicate::EQ        , [&](auto l) { return n.isPosEq  (l); });
@@ -455,9 +489,11 @@ struct SkelOrd
     if (itpRes) return itpRes;
     else if (l->isEquality()) {
       auto sym = l->isPositive() ? AlascaPredicate::EQ : AlascaPredicate::NEQ;
-      return some(iterItems(0, 1)
-        .map([&](auto i) { return std::make_tuple(l->termArg(i), lvl(sym), Option<AnyNumeral>()); })
-        .template collect<MultiSet>());
+      return some(Atoms {
+          .atoms = iterItems(0, 1)
+            .map([&](auto i) { return std::make_tuple(l->termArg(i), lvl(sym), Sign::Pos); })
+            .template collect<MultiSet>(),
+            .numTerm = {} });
     } else {
       return {};
     }
@@ -506,21 +542,22 @@ struct SkelOrd
             [&](){ return compare(std::get<0>(a1), std::get<0>(a2)); },
             [&](){ return AlascaOrderingUtils::cmpN(std::get<1>(a1), std::get<1>(a2)); },
             [&](){
-              auto& n1 = std::get<2>(a1);
-              auto& n2 = std::get<2>(a2);
-              if (!n1.isSome() &&  n2.isSome()) {
-                return Ordering::Result::LESS;
-
-              } else if ( n1.isSome() && !n2.isSome()) {
-                return Ordering::Result::GREATER;
-
-              } else if (n1.isSome() && n2.isSome()) {
-                return n1->applyWithIdx([&](auto& n1, auto N) { 
-                    return AlascaOrderingUtils::cmpQ(n1, n2->unwrap<N.value>()); });
-              } else {
-                ASS(!n1.isSome() && !n2.isSome())
-                return Ordering::Result::EQUAL;
-              }
+              return AlascaOrderingUtils::cmpSgn(std::get<2>(a1), std::get<2>(a2));
+              // auto& n1 = std::get<2>(a1);
+              // auto& n2 = std::get<2>(a2);
+              // if (!n1.isSome() &&  n2.isSome()) {
+              //   return Ordering::Result::LESS;
+              //
+              // } else if ( n1.isSome() && !n2.isSome()) {
+              //   return Ordering::Result::GREATER;
+              //
+              // } else if (n1.isSome() && n2.isSome()) {
+              //   return n1->applyWithIdx([&](auto& n1, auto N) { 
+              //       return AlascaOrderingUtils::cmpQ(n1, n2->unwrap<N.value>()); });
+              // } else {
+              //   ASS(!n1.isSome() && !n2.isSome())
+              //   return Ordering::Result::EQUAL;
+              // }
             }
           );
   }
@@ -538,7 +575,13 @@ struct SkelOrd
     } else if (atoms1.isSome() && atoms2.isSome()) {
 
       return AlascaOrderingUtils::lexLazy(
-            [&](){ return OrderingUtils::mulExt(*atoms1, *atoms2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
+            [&](){ return OrderingUtils::mulExt(atoms1->atoms, atoms2->atoms, [&](auto l, auto r) { return cmpAtom(l, r); }); },
+            [&](){ 
+              ASS_REP(atoms1->numTerm.isSome() == atoms1->numTerm.isSome(),
+                  Output::cat(atoms1->numTerm, " vs ", atoms1->numTerm))
+              return atoms1->numTerm.isSome() ? compare(*atoms1->numTerm, *atoms2->numTerm)
+                                              : Ordering::Result::EQUAL; 
+            },
             [&](){ return cmpPrec(l1, l2); }
             );
 

@@ -224,6 +224,9 @@ void mkAlascaSyntaxSugar(NumTraits n) {
   overrideFractionalNumerals(n);
 }
 
+#define ALASCA_SUGAR(Num) \
+  NUMBER_SUGAR(Num) \
+  mkAlascaSyntaxSugar(Num ## Traits {});
 
 
 #endif // def __TEST_ALASCA_SIMPL_RULE__

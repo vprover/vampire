@@ -23,7 +23,7 @@
 
 namespace Kernel {
 
-#define DEBUG(lvl, ...) if (lvl < 1) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 template<class T, class F>
 bool compareBy(T const& l, T const& r, F f) 
