@@ -92,7 +92,7 @@ struct FourierMotzkinConf
     }
 
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
     static auto iter(AlascaState& shared, Clause* cl) 
     { 

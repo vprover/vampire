@@ -113,8 +113,9 @@ struct AlascaOrderingUtils {
         );
   }
 
-  template<class Selected, class Logger>
-  static bool atomMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank, Logger logger) {
+
+  template<class Selected, class Logger, class Iter>
+  static bool atomMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank, Logger logger, Iter iter) {
 
     // TODO 1.2 we must actually apply the unifier before calling `iter` I think (think of top level vars)
     //         or is it find because they will always be shielded thus none of the atoms created by them can get maximal anyways ...?
@@ -127,7 +128,7 @@ struct AlascaOrderingUtils {
     }; 
     auto sσ = sigma(atom.selectedAtom());
 
-    return SelectedAtom::iter(atom.clause(), /*bgSelected=*/true)
+    return iterTraits(std::move(iter))
                   .filter([&](auto& t) { return t != SelectedAtom(atom); })
                   .all([&](auto t) { 
                       auto tσ = sigma(t.selectedAtom());
@@ -141,6 +142,20 @@ struct AlascaOrderingUtils {
                       }
                       return r;
                       });
+  }
+
+
+  template<class Selected, class Logger>
+  static bool atomLocalMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank, Logger logger) {
+    return atomMaxAfterUnif(ord, atom, sel, unif, varBank, std::move(logger), 
+        SelectedAtom::iter(ord, __SelectedLiteral(atom.clause(), atom.litIdx(), atom.isBGSelected()), sel, SelectionCriterion::ANY /* TODO remove unnecerary arg */)
+        );
+  }
+
+  template<class Selected, class Logger>
+  static bool atomGlobalMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank, Logger logger) {
+    return atomMaxAfterUnif(ord, atom, sel, unif, varBank, std::move(logger), 
+      SelectedAtom::iter(atom.clause(), /*bgSelected=*/true));
   }
 
   template<class Selected, class Logger>

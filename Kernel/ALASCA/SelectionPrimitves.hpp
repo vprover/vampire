@@ -415,6 +415,7 @@ namespace Kernel {
         });
     }
 
+    // TODO 2 remove unnecessary args
     static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) {
       return concatIters(
           SelectedAtomicLiteral::iter(ord, sel)

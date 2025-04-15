@@ -76,12 +76,10 @@ public:
       return coproductIter(this->applyCo([&shared](auto self) {
         auto t1 = self.selectedSummand();
         auto termIdx = self.termIdx();
-        auto pos1 = t1.numeral() > 0;
         return range(0, self.alascaLiteral().term().nSummands())
            .dropNth(termIdx)
            .filter([termIdx](auto i) { return i < termIdx;  }) // <- symmetry breaking
            .map([self](auto i) { return self.alascaLiteral().term().summandAt(i); })
-           .filter([pos1](auto& t2) { return pos1 || t2.numeral() > 0; })
            .filterMap([&shared,t1](auto t2) {
              return shared.unify(t1.atom(), t2.atom());
            });

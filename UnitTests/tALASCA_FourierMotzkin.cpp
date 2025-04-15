@@ -10,6 +10,7 @@
 
 #include "Kernel/ALASCA/Selection.hpp"
 #include "Kernel/MaximalLiteralSelector.hpp"
+#include "Kernel/RndLiteralSelector.hpp"
 #include "Shell/Options.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Lib/STL.hpp"
@@ -259,15 +260,6 @@ TEST_GENERATION(basic14,
     )
 
 // Testing only strictly maximal atoms are being chained
-TEST_GENERATION(basic15a,
-    Generation::SymmetricTest()
-      .indices(idxFourierMotzkin())
-      .inputs  ({ clause({ selected(- g(x,y) - g(y,x) > 0) }) 
-               ,  clause({ selected(  g(x,x) > 0) }) })
-      .expected(exactly( /* nothing */ ))
-    )
-
-// Testing only strictly maximal atoms are being chained
 TEST_GENERATION(basic15b,
     Generation::SymmetricTest()
       .indices(idxFourierMotzkin())
@@ -291,9 +283,8 @@ TEST_GENERATION(basic16a,
       .indices(idxFourierMotzkin())
       .inputs         ({ clause({ - g(x,y) + f(z) > 0, -g(y, x) + f(z) > 0 }) 
                        , clause({ g(x,x) > 0   }) })
-      .expected(exactly( clause({ f(z) > 0, - g(x,x) + f(z) > 0   }) 
-                       , clause({ f(z) > 0, - g(x,x) + f(z) > 0   }) 
-          ))
+      .expected(exactly( clause({ f(z) > 0, -g(x,x) + f(z) > 0 })
+                       , clause({ f(z) > 0, -g(x,x) + f(z) > 0 }) ))
     )
 TEST_GENERATION(basic16b,
     Generation::SymmetricTest()
@@ -301,6 +292,23 @@ TEST_GENERATION(basic16b,
       .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y,x) + f(z) > 0 }) 
                        , clause({ -g(x,x) > 0   }) })
       .expected(exactly( ))
+    )
+
+// this is taken over by inequality factoring
+TEST_GENERATION(basic16a_a,
+    Generation::SymmetricTest()
+      .indices(idxFourierMotzkin())
+      .inputs         ({ clause({ -g(x,y) > 0, -g(y, x) > 0 }) 
+                       , clause({ g(x,x) > 0   }) })
+      .expected(exactly( clause({           -g(x,x)        > 0 })
+                       , clause({           -g(x,x)        > 0 }) ))
+    )
+TEST_GENERATION(basic16b_b,
+    Generation::SymmetricTest()
+      .indices(idxFourierMotzkin())
+      .inputs         ({ clause({ g(x,y) > 0, g(y,x) > 0 }) 
+                       , clause({ -g(x,x) > 0   }) })
+      .expected(exactly( /* nothing */ )) 
     )
 
 // Testing that the lhs may be only strictly maximal
@@ -314,17 +322,15 @@ TEST_GENERATION(basic17a,
 TEST_GENERATION(basic17b,
     Generation::SymmetricTest()
       .indices(idxFourierMotzkin())
-      .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y, x) + f(z) > 0 }) 
+      .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y,x) + f(z) > 0 }) 
                        , clause({ -g(x,x) > 0   }) })
-      .expected(exactly( clause({ f(x) > 0, g(x,x) + f(z) > 0   }) 
-                       , clause({ f(z) > 0, g(x,x) + f(x) > 0   }) 
-          ))
+      .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(basic18,
     Generation::SymmetricTest()
       .indices(idxFourierMotzkin())
-      .inputs  ({ clause({ b  + a >= 0   }) 
+      .inputs  ({ clause({  b + a >= 0   }) 
                ,  clause({ -b - a >= 0   }) })
       .expected(exactly( 
           clause({ -a + a > 0, 0 == -a + -b })))
@@ -527,8 +533,6 @@ TEST_GENERATION(greater_equal01c,
     )
 
 
-// ordering condition not fulfilled
-// • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
 TEST_GENERATION(strictly_max_after_unification_0a,
     Generation::SymmetricTest()
       .selfApplications(false)
@@ -1178,9 +1182,9 @@ auto FM_selectionTest() {
 	//     Composite<LeastDistinctVariables, LexComparator> > > > Comparator3;
 
 TEST_GENERATION(selection_01,
-    FM_selectionTest<CompleteBestLiteralSelector<LiteralSelectors::Comparator3>>()
+    FM_selectionTest<GenericRndLiteralSelector</* complete */ true>>()
       .indices(idxFourierMotzkin())
-      .inputs  ({ clause({  f(x) > 0   }) 
+      .inputs  ({ clause({ f(x) > 0   }) 
                ,  clause({ f(x) - a > 0 }) })
       .expected(exactly( /* nothing */ ))
     )

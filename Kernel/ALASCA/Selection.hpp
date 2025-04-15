@@ -57,13 +57,13 @@ namespace Kernel {
 
     template<class Selected, class FailLogger>
     bool postUnificationCheck(Selected const& sel, unsigned varBank, AbstractingUnifier& unif, Ordering* ord, FailLogger logger) {
+      if (!AlascaOrderingUtils::atomLocalMaxAfterUnif(ord, sel, sel.atomMaximality(), unif, varBank
+            , [&](auto msg) { logger(Output::cat("atom not maximal: ", msg)); })) {
+        return false;
+      }
       if (sel.isBGSelected()) {
         return true;
       } else {
-        if (!AlascaOrderingUtils::atomMaxAfterUnif(ord, sel, sel.atomMaximality(), unif, varBank
-              , [&](auto msg) { logger(Output::cat("atom not maximal: ", msg)); })) {
-          return false;
-        }
         if (!AlascaOrderingUtils::litMaxAfterUnif(ord, sel, sel.literalMaximality(), unif, varBank
               , [&](auto msg) { logger(Output::cat("literal not maximal: ", msg)); })) {
           return false;
