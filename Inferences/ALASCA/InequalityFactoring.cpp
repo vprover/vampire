@@ -226,9 +226,6 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
   auto selectedLits_ = _shared->selected(premise).map([](auto lit) { return lit.litIdx(); }).collectRStack();
   auto& selectedLits = *selectedLits_;
 
-  // auto l2s = IterAppls{}.allL2(*_shared, premise);
-  // auto& l2sPtr = *l2s;
-
   return pvi(_shared->selected(premise)
         .flatMap([this, &selectedLits](auto lit) mutable { 
           return IterAppls{}.iter(*_shared, lit)
@@ -237,22 +234,6 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
                   auto& l2 = l1_l2.second;
 
                   auto bothSelected = selectedLits.find(l2.litIdx());
-                  // return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm()).intoIter())
-                  //     .flatMap([this, &l1, &l2](auto uwa) { return this->applyRule(l1, l2, uwa); });
-
-                  // return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm()).intoIter())
-                      // .flatMap([this, &l1, &l2, &selectedLits](auto uwa) { 
-                      //
-                      //     auto bothSelected = selectedLits.find(l2.litIdx());
-                      //
-                      //     return ifElseIter(
-                      //         bothSelected && kkkkkk,
-                      //         [&]() { return concatIters( this->applyRule(l1, l2, uwa),
-                      //                                     this->applyRule(l2, l1, uwa));  },
-                      //
-                      //         [&]() { return this->applyRule(l1, l2, uwa);  }
-                      //         );
-                      // });
 
                   return ifElseIter(
                       /* symmetry breaking */
