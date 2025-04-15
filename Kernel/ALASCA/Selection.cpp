@@ -23,7 +23,7 @@
 
 namespace Kernel {
 
-#define DEBUG(lvl, ...) if (lvl < 2) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 template<class T, class F>
 bool compareBy(T const& l, T const& r, F f) 
@@ -252,7 +252,7 @@ struct AlascaSelectorDispatch {
   template<class Iter>
   auto bgSelected(bool bgSelected, Iter iter) const
   { return iter.map([&](auto x) { x.setBGSelected(bgSelected); return x; })
-    .inspect([](auto& x) { return x.isBGSelected(); })
+      .inspect([](auto& x) { return x.isBGSelected(); })
       .collectStack(); }
 
   auto selectMax(Ordering* ord, Clause* const& atoms) const 

@@ -45,9 +45,7 @@ public:
     : _shared(std::move(shared))
   {  }
 
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
-  { /** if only one atom is selected we will never apply inequality factoring */
-    return pvi(dropElementType(range(0, 0))); }
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override;
 
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;

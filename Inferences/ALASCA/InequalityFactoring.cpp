@@ -15,6 +15,7 @@
 
 #include "InequalityFactoring.hpp"
 #include "Debug/Assertion.hpp"
+#include "Inferences/ALASCA/BinInf.hpp"
 #include "Kernel/ALASCA/Ordering.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
@@ -35,7 +36,6 @@ void InequalityFactoring::detach() { }
 #define CHECK_CONDITION(name, condition)                                                            \
   if (!(condition)) {                                                                               \
     DEBUG("side condition not satisfied: " name)                                                    \
-    return nothing();                                                                               \
   }                                                                                                 \
 
 //  C \/ +j s1 + t1 >1 0 \/ +k s2 + t2 >2 0
@@ -67,8 +67,6 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
 
   auto nothing = [&]() { return arrayIter(SmallArray()); };
 
-  auto s1 = l1.selectedAtomicTerm();
-  auto s2 = l2.selectedAtomicTerm();
 
   auto sigma = [&](auto x){ return uwa.subs().apply(x, /* varbank */ 0); };
   auto j = l1.numeral();
@@ -80,42 +78,33 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
   // applicability checks
   //////////////////////////////////////////////////////
 
-  CHECK_CONDITION("sign(j) == sign(k)", j.sign() == k.sign())
-  ASS(j.sign() != Sign::Zero)
-  ASS(j.isPositive())
+  {
+    namespace C = RuleApplicationConstraints;
 
-  auto s1σ = sigma(s1);
-  // Stack<TermList> t1σ;
-  CHECK_CONDITION("s1σ /⪯ terms(t1)σ",
-      l1.contextTerms() 
-        .all([&](auto ki_ti) {
-          auto tiσ = sigma(ki_ti.atom());
-          // t1σ.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
-          return _shared->notLeq(TermList(s1σ), tiσ);
-        }));
+    auto applicableTerms = C::all(
+              C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, .local = false, },
+              C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LEQ, .local = true, }
+            ).checkAfterUnif(l1, _shared->ordering, uwa, /* varBank */ 0, [](auto msg) { DEBUG("l1 :", msg) }) 
+      && C::all(
+              C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, .local = false, },
+              C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LEQ, .local = true, }
+            ).checkAfterUnif(l2, _shared->ordering, uwa, /* varBank */ 0, [](auto msg) { DEBUG("l2 :", msg) });
 
-  auto s2σ = sigma(s2);
-  // Stack<TermList> t2σ;
-  CHECK_CONDITION("s2σ /⪯ terms(t2)σ",
-      l2.contextTerms() 
-        .all([&](auto ki_ti) {
-          auto tiσ = sigma(ki_ti.atom());
-          // t2σ.push(NumTraits::mulSimpl(ki_ti.numeral(), tiσ));
-          return _shared->notLeq(TermList(s2σ), tiσ);
-        }));
+    auto applicableLiteral = 
+        C::LiteralMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, }
+          .checkAfterUnif(l1, _shared->ordering, uwa, /* varBank */ 0, [](auto msg) { DEBUG("l1 :", msg) })
+     || C::LiteralMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, }
+          .checkAfterUnif(l2, _shared->ordering, uwa, /* varBank */ 0, [](auto msg) { DEBUG("l2 :", msg) });
 
-  // // •    (j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \/ C)σ <- cond1
-  // //   or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \/ C)σ <- cond2
+    auto applicable = applicableTerms && applicableLiteral;
 
+    if (!applicable) {
+      return nothing();
+    }
+  }
 
-  CHECK_CONDITION(
-      "(j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \\/ C)σ or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \\/ C)σ",
-      // TODO 2 use the DSL
-          AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, l2, SelectionCriterion::NOT_LESS, uwa, /*varBank=*/ 0, [](auto msg) {  })
-       || AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, l1, SelectionCriterion::NOT_LESS, uwa, /*varBank=*/ 0, [](auto msg) {  })
-      );
-
-
+  ASS(j.sign() == k.sign())
+  ASS(j.sign() == Sign::Pos)
 
   // • (>3) = if (>1, >2) = (>=, >) then (>=) 
   //                                else (>)
@@ -126,10 +115,9 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
 
   auto i1 = l1.litIdx();
   auto i2 = l2.litIdx();
-  ASS(i1 < i2)
   auto ctxtLits =  [&]() { return l1.allLiterals()
-           .dropNth(i2)
-           .dropNth(i1); };
+           .dropNth(std::max(i1,i2))
+           .dropNth(std::min(i1,i2)); };
 
   auto cnst  = uwa.computeConstraintLiterals();
 
@@ -190,56 +178,94 @@ struct Lhs : public SelectedAtomicTermItpAny {
 
   Lhs(SelectedAtomicTermItpAny self) : SelectedAtomicTermItpAny(std::move(self)) {}
 
-
-
-  static auto literalMaximality() { return SelectionCriterion::NOT_LESS; }
-  // TODO 2 double check NOT_LEQ
-  static auto    atomicTermMaxmialityLocal() { return SelectionCriterion::NOT_LEQ; }
-
   static auto iter(AlascaState& shared, __SelectedLiteral const& lit) {
-    return SelectedAtomicTermItpAny::iter(shared.ordering, lit, atomicTermMaxmialityLocal())
+    return SelectedAtomicTermItpAny::iter(shared.ordering, lit, SelectionCriterion::NOT_LESS)
           .filter([](auto& s) { return s.apply([](auto& s) { return 
-              s.isInequality()
-              && s.numeral().sign() == Sign::Pos; 
-              }); })
+                    s.isInequality() 
+                &&  s.numeral().sign() == Sign::Pos 
+                && !s.selectedAtomicTerm().isVar();
+                }); })
       .map([](auto x) { return Lhs(x); });
   }
-  // TODO 2 sort out post unificaiton check and symmetry breaking
+
 };
+
+struct IterAppls {
+  auto iter(AlascaState& shared, __SelectedLiteral lit, Stack<RStack<Lhs>>& all) {
+    return Lhs::iter(shared, lit)
+      .flatMap([&all](auto l1) { 
+          // all[l1.litIdx()]->reset();
+          return arrayIter(all)
+            .flatMap([](auto& x) { return arrayIter(x); })
+            .filter([=](auto& l2) { return l1.litIdx() != l2.litIdx(); })
+            .filter([=](auto& l2) { return l1.numTraits() == l2.numTraits(); })
+            .map([=](auto l2) { return std::make_pair(l1, l2); });
+      });
+  }
+  auto allL2(AlascaState& shared, Clause* cl) {
+    return range(0, cl->size())
+          .map([&shared,cl](auto i) { return Lhs::iter(shared, __SelectedLiteral(cl, i, /*bgSelected*/ false /* don't care */)).collectRStack(); })
+          .collectRStack();
+  }
+  auto iter(AlascaState& shared, __SelectedLiteral lit) {
+    auto l2s = allL2(shared, lit.clause());
+    auto& l2sPtr = *l2s;
+    return iter(shared, lit, l2sPtr)
+      .store(std::move(l2s));
+  }
+};
+
+VirtualIterator<std::tuple<>> InequalityFactoring::lookaheadResultEstimation(__SelectedLiteral const& selection)
+{ return pvi(dropElementType(IterAppls{}.iter(*_shared, selection))); }
 
 ClauseIterator InequalityFactoring::generateClauses(Clause* premise) 
 {
   TIME_TRACE("alasca inequality factoring generate")
   DEBUG("in: ", *premise)
 
+  auto selectedLits_ = _shared->selected(premise).map([](auto lit) { return lit.litIdx(); }).collectRStack();
+  auto& selectedLits = *selectedLits_;
 
-  // TODO think about this, we don't want any literals but one of the two hast to be weakly maximal
-    auto selected = 
-        _shared->selected(premise)
-          .flatMap([&](auto lit) { return Lhs::iter(*_shared, lit); })
-          .collectRStack();
+  // auto l2s = IterAppls{}.allL2(*_shared, premise);
+  // auto& l2sPtr = *l2s;
 
-    auto nonSelected = 
-      range(0, premise->size())
-          .flatMap([&](auto i) { return Lhs::iter(*_shared, __SelectedLiteral(premise, i, /*bgSelected*/ false /* don't care */)); })
-          .collectRStack();
+  return pvi(_shared->selected(premise)
+        .flatMap([this, &selectedLits](auto lit) mutable { 
+          return IterAppls{}.iter(*_shared, lit)
+              .flatMap([this,&selectedLits](auto l1_l2) {
+                  auto& l1 = l1_l2.first;
+                  auto& l2 = l1_l2.second;
 
+                  auto bothSelected = selectedLits.find(l2.litIdx());
+                  // return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm()).intoIter())
+                  //     .flatMap([this, &l1, &l2](auto uwa) { return this->applyRule(l1, l2, uwa); });
 
+                  // return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm()).intoIter())
+                      // .flatMap([this, &l1, &l2, &selectedLits](auto uwa) { 
+                      //
+                      //     auto bothSelected = selectedLits.find(l2.litIdx());
+                      //
+                      //     return ifElseIter(
+                      //         bothSelected && kkkkkk,
+                      //         [&]() { return concatIters( this->applyRule(l1, l2, uwa),
+                      //                                     this->applyRule(l2, l1, uwa));  },
+                      //
+                      //         [&]() { return this->applyRule(l1, l2, uwa);  }
+                      //         );
+                      // });
 
+                  return ifElseIter(
+                      /* symmetry breaking */
+                      bothSelected && l1.litIdx() > l2.litIdx(), 
+                      [&]() { return iterItems<Clause*>(); },
 
-  return pvi(arrayIter(std::move(selected))
-      .flatMap([this,nonSelected = std::move(nonSelected)](auto l1) {
-        return arrayIter(*nonSelected)
-          .filter([=](auto& l2) { return l1.litIdx()    != l2.litIdx(); })
-          .filter([=](auto& l2) { return l1.numTraits() == l2.numTraits(); })
-          .flatMap([=](auto& l2) {
-              return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm())
-                  .intoIter())
-                  .flatMap([this, &l1, &l2](auto uwa) {
-                      return this->applyRule(l1, l2, uwa);
-                  });
-          });
-      }));
+                      [&]() { return iterTraits(_shared->unify(l1.selectedAtomicTerm(), l2.selectedAtomicTerm()).intoIter())
+                            .flatMap([this, &l1, &l2](auto uwa) { return this->applyRule(l1, l2, uwa); }); });
+              });
+          })
+          .store(std::move(selectedLits_))
+          // .store(std::move(l2s))
+    );
 }
 
   

@@ -242,14 +242,12 @@ public:
 
   using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
 
-  // TODO 2 deprecate
-
   template <typename T, typename = void>
-  struct has_foo : std::false_type {};
+  struct has_atomicTermMaximality : std::false_type {};
   template <typename T>
-  struct has_foo<T, std::void_t<decltype(std::declval<T>().atomicTermMaxmialityLocal())>> : std::true_type {};
+  struct has_atomicTermMaximality<T, std::void_t<decltype(std::declval<T>().atomicTermMaxmialityLocal())>> : std::true_type {};
 
-  template<class C, std::enable_if_t<has_foo<C>::value, bool> = true>
+  template<class C, std::enable_if_t<has_atomicTermMaximality<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
     return RuleApplicationConstraints::all(
         RuleApplicationConstraints::any(
@@ -263,7 +261,7 @@ public:
     );
   }
 
-  template<class C, std::enable_if_t<!has_foo<C>::value, bool> = true>
+  template<class C, std::enable_if_t<!has_atomicTermMaximality<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
     return RuleApplicationConstraints::all(
         RuleApplicationConstraints::any(

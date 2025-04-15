@@ -147,6 +147,9 @@ public:
   auto asTuple() const { return std::make_tuple(size(), iterContOps(iter())); }
   IMPL_COMPARISONS_FROM_TUPLE(Self);
   IMPL_HASH_FROM_TUPLE(Self);
+
+  friend std::ostream& operator<<(std::ostream& out, SmallArray const& self)
+  { return out << "[ " << arrayIter(self).output(", ") << " ]"; }
 };
 
 } // namespace Lib
