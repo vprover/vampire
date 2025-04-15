@@ -58,7 +58,7 @@ private:
   int64_t _gageEmbeddingSize;
   torch::Tensor _gageRuleEmbed;
   torch::jit::script::Module _gageCombine;
-  torch::Tensor _gageProblemTweak;
+  torch::Tensor _gageStaticTweak;
 
   torch::Tensor _initialClauseGage;
   List<torch::Tensor>* _laterGageResults = nullptr; // just to prevent garbage collector from deleting too early
@@ -120,8 +120,8 @@ public:
       torch::from_blob(probFeatures.data(), {num_prb_features}, torch::TensorOptions().dtype(torch::kFloat32))
       });
 
-    // get _gageProblemTweak from "gage_problem_tweak" field in the model
-    _gageProblemTweak = _model.attr("gage_static_tweak").toTensor();
+    // get _gageStaticTweak from "gage_static_tweak" field in the model
+    _gageStaticTweak = _model.attr("gage_static_tweak").toTensor();
     _gweightStaticTweak = _model.attr("gweight_static_tweak").toTensor();
   }
 
