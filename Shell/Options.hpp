@@ -2286,6 +2286,106 @@ public:
     _complexVarCondition.actualValue = true;
   }
 
+  class StratFeatureIterator {
+    const Options& _opts;
+    unsigned _featureId;
+
+  public:
+    inline static constexpr unsigned NUM_FEATURES = 30;
+
+    StratFeatureIterator(const Options& opts) : _opts(opts), _featureId(0) {}
+
+    bool hasNext() {
+      return _featureId < NUM_FEATURES;
+    }
+
+    float next() {
+      unsigned selection = abs(_opts.selection())%1000;
+      _featureId++;
+      switch (_featureId) {
+        case 1:
+          return _opts.saturationAlgorithm() != SaturationAlgorithm::DISCOUNT; // both LRS and Otter
+        case 2:
+          return _opts.saturationAlgorithm() == SaturationAlgorithm::LRS;      // extra for LRS magic
+
+        case 3:
+          return _opts.sos() == Sos::OFF;
+
+        case 4:
+          return _opts.termOrdering() == TermOrdering::KBO;
+
+        case 5:
+          return _opts.symbolPrecedence() == SymbolPrecedence::OCCURRENCE;
+        case 6:
+          return _opts.symbolPrecedence() == SymbolPrecedence::ARITY;
+        case 7:
+          return _opts.symbolPrecedence() == SymbolPrecedence::REVERSE_ARITY;
+        case 8:
+          return _opts.symbolPrecedence() == SymbolPrecedence::FREQUENCY;
+        case 9:
+          return _opts.symbolPrecedence() == SymbolPrecedence::REVERSE_FREQUENCY;
+        case 10:
+          return _opts.symbolPrecedence() == SymbolPrecedence::CONST_MIN;
+        case 11:
+          return _opts.symbolPrecedence() == SymbolPrecedence::CONST_FREQ;  // leaving many others to the gray "all false"
+
+        // skipping symbol_precedence_boost, kbo_max_zero
+        case 12:
+          return _opts.kboWeightGenerationScheme() == KboWeightGenerationScheme::CONST;
+        case 13:
+          return _opts.kboWeightGenerationScheme() == KboWeightGenerationScheme::PRECEDENCE;
+        case 14:
+          return _opts.kboWeightGenerationScheme() == KboWeightGenerationScheme::INV_FREQUENCY; // leaving many others to the gray "all false"
+
+        case 15:
+          return _opts.literalComparisonMode() == LiteralComparisonMode::STANDARD;
+        case 16:
+          return _opts.literalComparisonMode() == LiteralComparisonMode::PREDICATE; // the third value, REVERSE, encoded implicitly
+
+        case 17:
+          return _opts.selection() < 0;
+        case 18:
+          return abs(_opts.selection()) >= 1000;
+        case 19:
+          return selection == 10;
+        case 20:
+          return selection == 11;
+        case 21:
+          return selection >= 20 && selection < 30;
+        case 22:
+          return selection >= 30 && selection < 40;
+
+        case 23:
+          return _opts.conditionalRedundancyCheck();
+
+        case 24:
+          return _opts.globalSubsumption();
+
+        case 25:
+          return _opts.splitting();
+        case 26:
+          return _opts.splitAtActivation();
+        case 27:
+          return _opts.splittingCongruenceClosure() != SplittingCongruenceClosure::OFF;
+
+        case 28:
+          return _opts.unitResultingResolution() != URResolution::OFF;
+
+        case 29:
+          return _opts.extensionalityResolution() != ExtensionalityResolution::OFF;
+
+        case 30:
+          return _opts.forwardDemodulation() != Demodulation::OFF;
+
+        // one could continue, but this could already be fun
+
+        default:
+          ASSERTION_VIOLATION;
+      }
+    }
+  };
+
+
 private:
 
     /**

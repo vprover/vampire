@@ -276,7 +276,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     }
 
     if (_neuralActivityRecoring || _neuralModelGuidance) {
-      _neuralModel->setStaticFeatures(opt.numProblemFeatures(),prb);
+      _neuralModel->setStaticFeatures(prb,opt);
     }
 
     // will also set the strategy vector here at some point in the feature

@@ -23,6 +23,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
 #include "Shell/Property.hpp"
+#include "Shell/Options.hpp"
 #include "ClauseContainer.hpp"
 #include "AbstractPassiveClauseContainers.hpp"
 
@@ -106,18 +107,19 @@ public:
     _computing = true;
   }
 
-  void setStaticFeatures(unsigned num_prb_features, Problem& prb) {
-    std::vector<float> probFeatures;
-    probFeatures.reserve(num_prb_features);
-    unsigned i = 0;
-    Property::FeatureIterator it(prb.getProperty());
-    while (i < num_prb_features && it.hasNext()) {
-      probFeatures.push_back(it.next());
-      i++;
+  void setStaticFeatures(Problem& prb, const Options& opt) {
+    std::vector<float> staticFeatures;
+    Property::FeatureIterator itP(prb.getProperty());
+    while (itP.hasNext()) {
+      staticFeatures.push_back(itP.next());
+    }
+    Options::StratFeatureIterator itS(opt);
+    while (itS.hasNext()) {
+      staticFeatures.push_back(itS.next());
     }
 
     (*_model.find_method("set_static_features"))({
-      torch::from_blob(probFeatures.data(), {num_prb_features}, torch::TensorOptions().dtype(torch::kFloat32))
+      torch::from_blob(staticFeatures.data(), {(unsigned)staticFeatures.size()}, torch::TensorOptions().dtype(torch::kFloat32))
       });
 
     // get _gageStaticTweak from "gage_static_tweak" field in the model
