@@ -43,7 +43,7 @@ struct Application
   static auto iter(AlascaState& shared_, __SelectedLiteral sel)
   {
     auto* shared = &shared_;
-    return SelectedAtom::iter(shared->ordering, sel, literalMaximality(), atomMaximality())
+    return SelectedAtom::iter(shared->ordering, sel, atomMaximality())
       .flatMap([shared](auto atom) {
           return atom.iterSelectedSubterms()
              .filterMap([](auto t) { return t.asSum(); })

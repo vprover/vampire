@@ -215,7 +215,7 @@ namespace Kernel {
 
   struct MaxIterationUtil {
     template<class Self>
-    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) {
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selTerm) {
 
       auto terms = coproductIter(InequalityNormalizer::normalize(sel.literal())
         .applyCo([&](auto norm) { return Self::iterAll(sel, norm); }))
@@ -278,8 +278,8 @@ namespace Kernel {
     }
   public:
 
-    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) 
-    { return MaxIterationUtil::iter<SelectedAtomicTerm>(ord, sel, selLit, selTerm); }
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selTerm) 
+    { return MaxIterationUtil::iter<SelectedAtomicTerm>(ord, sel, selTerm); }
 
     void setBGSelected(bool b) { return apply([&](auto& x){ return x.setBGSelected(b); }); }
 
@@ -327,10 +327,8 @@ namespace Kernel {
     }
   public:
 
-    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) 
-    { return MaxIterationUtil::iter<SelectedAtomicTermItpAny>(ord, sel, selLit, selTerm); }
-
-
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selTerm) 
+    { return MaxIterationUtil::iter<SelectedAtomicTermItpAny>(ord, sel, selTerm); }
 
     auto numTraits() const 
     { return applyCo([](auto& x) { return x.numTraits(); }); }
@@ -370,7 +368,7 @@ namespace Kernel {
     }
 
     static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) {
-      return SelectedAtomicTerm::iter(ord, sel, selLit, selTerm)
+      return SelectedAtomicTerm::iter(ord, sel, selTerm)
         .filterMap([](auto t) { return SelectedEquality::from(t); });
     }
 
@@ -415,12 +413,11 @@ namespace Kernel {
         });
     }
 
-    // TODO 2 remove unnecessary args
-    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) {
+    static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selTerm) {
       return concatIters(
           SelectedAtomicLiteral::iter(ord, sel)
             .map([](auto x) { return SelectedAtom(x); }),
-          SelectedAtomicTerm::iter(ord, sel, selLit, selTerm)
+          SelectedAtomicTerm::iter(ord, sel, selTerm)
             .map([](auto x) { return SelectedAtom(x); })
           );
     }

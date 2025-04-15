@@ -30,6 +30,7 @@
 #include "Kernel/ALASCA/Index.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/TypeList.hpp"
+#include <utility>
 
 #define DEBUG(lvl, ...)  if (lvl < 0) { DBG(__VA_ARGS__) }
 namespace TL = Lib::TypeList;
@@ -44,6 +45,123 @@ using namespace Saturation;
  
 template<class Inner>
 void attachToInner(Inner& inner, SaturationAlgorithm* salg) { }
+
+// TODO rename to ApplicabilityChecks
+
+namespace RuleApplicationConstraints {
+
+struct TermMaximalityConstraint {
+  OrderingUtils::SelectionCriterion max;
+  /* whether the term must be wrt all atomic terms in the clause, or wrt all atomic terms in its literal.
+   * e.g. consider the clause f(a) + a > 0 \/ f(f(a)) + a > 0,
+   * here the occurence of f(a) is locally maximal, but not globally, while f(f(a)) is both locally and 
+   * globally maximal */
+  bool local;
+
+  template<class Selected, class FailLogger>
+  bool checkBeforeUnif(Selected const& selected, Ordering* ord, FailLogger logger) {
+    // TODO
+    return true; 
+  }
+
+  template<class Selected, class FailLogger>
+  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger) {
+    auto log = [&](auto msg) { logger(Output::cat("atom not maximal: ", msg)); };
+    return local ? AlascaOrderingUtils ::atomLocalMaxAfterUnif(ord, selected, max, unif, varBank, log)
+                 : AlascaOrderingUtils::atomGlobalMaxAfterUnif(ord, selected, max, unif, varBank, log);
+  }
+
+};
+
+struct LiteralMaximalityConstraint {
+  OrderingUtils::SelectionCriterion max;
+
+  template<class Selected, class FailLogger>
+  bool checkBeforeUnif(Selected const& selected,  FailLogger logger) {
+    // TODO
+    return true; 
+  }
+
+  template<class Selected, class FailLogger>
+  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger) {
+    return AlascaOrderingUtils::litMaxAfterUnif(ord, selected, max, unif, varBank, 
+             [&](auto msg) { logger(Output::cat("literal not maximal: ", msg)); });
+  }
+};
+
+
+struct BGSelected {
+  OrderingUtils::SelectionCriterion max;
+
+  template<class Selected, class FailLogger>
+  bool checkBeforeUnif(Selected const& selected, Ordering* ord, FailLogger logger) 
+  { return selected.isBGSelected(); }
+
+  template<class Selected, class FailLogger>
+  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger) 
+  { return selected.isBGSelected(); }
+};
+
+template<class A, class B>
+struct Or {
+  A lhs;
+  B rhs;
+
+  Or(A a, B b) : lhs(std::move(a)), rhs(std::move(b)) { }
+
+  template<class Selected, class FailLogger>
+  bool checkBeforeUnif(Selected const& selected, Ordering* ord, FailLogger logger) 
+  { std::string lhsMsg;
+    return lhs.checkBeforeUnif(selected, ord, [&](auto msg) { lhsMsg = Output::toString(msg); })
+        || rhs.checkBeforeUnif(selected, ord, [&](auto msg) { logger(Output::cat(lhsMsg, " and ", msg)); }); }
+
+  template<class Selected, class FailLogger>
+  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger)
+  { std::string lhsMsg;
+    return lhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { lhsMsg = Output::toString(msg); })
+        || rhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(Output::cat(lhsMsg, " and ", msg)); }); }
+};
+
+template<class A, class B>
+Or(A,B) -> Or<A,B>;
+
+template<class A1>
+auto any(A1 a1) { return a1; }
+
+template<class A1, class A2, class... As>
+auto any(A1 a1, A2 a2, As... as)
+{ return Or(a1, all(a2, as...)); }
+
+template<class A, class B>
+struct And {
+  A lhs;
+  B rhs;
+
+  And(A a, B b) : lhs(std::move(a)), rhs(std::move(b)) { }
+
+  template<class Selected, class FailLogger>
+  bool checkBeforeUnif(Selected const& selected, Ordering* ord, FailLogger logger) 
+  { return lhs.checkBeforeUnif(selected, ord, [&](auto msg) { logger(msg); })
+        && rhs.checkBeforeUnif(selected, ord, [&](auto msg) { logger(msg); }); }
+
+  template<class Selected, class FailLogger>
+  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger)
+  { return lhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(msg); })
+        || rhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(msg); }); }
+};
+
+template<class A, class B>
+And(A,B) -> And<A,B>;
+
+template<class A1>
+auto all(A1 a1) { return a1; }
+
+template<class A1, class A2, class... As>
+auto all(A1 a1, A2 a2, As... as)
+{ return And(a1, all(a2, as...)); }
+
+} // namespace RuleApplicationConstraints
+
   
 template<class Rule>
 struct BinInf
@@ -123,13 +241,38 @@ public:
 
   using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
 
+  // TODO 2 deprecate
+
+  template<class C, std::enable_if_t<std::is_invocable_v<decltype(&C::atomMaximality), C const&>, bool> = true>
+  static auto applicabilityChecks(C const& c) {
+    return RuleApplicationConstraints::all(
+        RuleApplicationConstraints::any(
+          RuleApplicationConstraints::BGSelected{},
+          RuleApplicationConstraints::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
+        ),
+        RuleApplicationConstraints::TermMaximalityConstraint { .max = c.atomMaximality(), .local = true, }
+    );
+  }
+
+  template<class C>
+  static auto applicabilityChecks(C const& c) {
+    return RuleApplicationConstraints::all(
+        RuleApplicationConstraints::any(
+          RuleApplicationConstraints::BGSelected{},
+          RuleApplicationConstraints::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
+        )
+    );
+  }
+
   template<class FailLogger>
   bool postUnificationCheck(Lhs const& lhs, unsigned lhsVarBank, 
                             Rhs const& rhs, unsigned rhsVarBank,
                             AbstractingUnifier& unif,
                             FailLogger logger) 
-  { return _shared->selector.postUnificationCheck(lhs, lhsVarBank, unif, _shared->ordering, [&](auto&& msg) { logger(Output::cat("lhs: ", msg));  })
-        && _shared->selector.postUnificationCheck(rhs, rhsVarBank, unif, _shared->ordering, [&](auto&& msg) { logger(Output::cat("rhs: ", msg));  }); }
+  { 
+    return applicabilityChecks(lhs).checkAfterUnif(lhs, _shared->ordering, unif, lhsVarBank, [&](auto&& msg) { logger(Output::cat("lhs: ", msg));  })
+        && applicabilityChecks(rhs).checkAfterUnif(rhs, _shared->ordering, unif, rhsVarBank, [&](auto&& msg) { logger(Output::cat("rhs: ", msg));  });
+  }
 
   ClauseIterator generateClauses(Clause* premise) final override
   {

@@ -54,7 +54,7 @@ struct FourierMotzkinConf
     TypedTermList key() const { return selectedAtomicTerm(); }
 
     static auto iter(AlascaState& shared, __SelectedLiteral const& sel) {
-      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, atomMaximality())
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
               .map([&]   (auto selected)        { return Lhs(std::move(selected));     });
@@ -83,7 +83,7 @@ struct FourierMotzkinConf
     TypedTermList key() const { return selectedAtomicTerm(); }
 
     static auto iter(AlascaState& shared, __SelectedLiteral const& sel) {
-      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, atomMaximality())
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
               .map([&]   (auto selected)        { return Rhs(std::move(selected));     });

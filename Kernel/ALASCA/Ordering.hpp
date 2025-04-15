@@ -148,8 +148,7 @@ struct AlascaOrderingUtils {
   template<class Selected, class Logger>
   static bool atomLocalMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank, Logger logger) {
     return atomMaxAfterUnif(ord, atom, sel, unif, varBank, std::move(logger), 
-        SelectedAtom::iter(ord, __SelectedLiteral(atom.clause(), atom.litIdx(), atom.isBGSelected()), sel, SelectionCriterion::ANY /* TODO remove unnecerary arg */)
-        );
+        SelectedAtom::iter(ord, __SelectedLiteral(atom.clause(), atom.litIdx(), atom.isBGSelected()), sel));
   }
 
   template<class Selected, class Logger>

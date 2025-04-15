@@ -196,7 +196,7 @@ struct Lhs : public SelectedAtomicTermItpAny {
   static auto    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
   static auto iter(AlascaState& shared, __SelectedLiteral const& lit) {
-    return SelectedAtomicTermItpAny::iter(shared.ordering, lit, literalMaximality(), atomMaximality())
+    return SelectedAtomicTermItpAny::iter(shared.ordering, lit, atomMaximality())
           .filter([](auto& s) { return s.apply([](auto& s) { return 
               s.isInequality()
               && s.numeral().sign() == Sign::Pos; 

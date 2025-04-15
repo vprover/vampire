@@ -54,7 +54,7 @@ struct SuperpositionConf
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
-      return SelectedAtomicTerm::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
+      return SelectedAtomicTerm::iter(shared.ordering, sel, atomMaximality())
         // .flatMap([&shared](auto x) { return iter(shared, x); })
              .filterMap([](auto t) { return SelectedEquality::from(std::move(t)); })
              .filter([](auto& x) { return x.literal()->isPositive(); })
@@ -103,7 +103,7 @@ struct SuperpositionConf
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
-      return SelectedAtom::iter(shared.ordering, sel, literalMaximality(), atomMaximality())
+      return SelectedAtom::iter(shared.ordering, sel, atomMaximality())
         .flatMap([](auto atom) {
           return iterTraits(atom.iterSelectedSubterms()
              .filter([](AnyAlascaTerm const& t) { return t.isAtomic() && !t.asAtomic()->isVar(); })

@@ -235,7 +235,7 @@ struct AlascaSelectorDispatch {
   { 
     return __SelectedLiteral::iter(cl, /*bgSelected=*/ true)
       .filter([ord, this](auto l) {
-          auto atoms = SelectedAtom::iter(ord, l, SelectionCriterion::NOT_LESS, SelectionCriterion::NOT_LESS)
+          auto atoms = SelectedAtom::iter(ord, l, SelectionCriterion::NOT_LESS)
              .collectRStack();
           auto selectable = iterMax2(ord,*atoms)
             .all([&](auto a) { return a.apply([&](auto& x) { return this->selectable(x); }); });

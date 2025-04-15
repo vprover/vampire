@@ -228,6 +228,7 @@ namespace Kernel {
   public:
     using MulExtMemo = DArray<Option<Ordering::Result>>;
 
+    // TODO 2 rename to maximality criterion
     enum class SelectionCriterion {
       NOT_LEQ,
       NOT_LESS,
