@@ -141,7 +141,7 @@ struct AlascaOrderingUtils {
                         logger(Output::cat(sσ, " ", cmp, " ", tσ));
                       }
                       return r;
-                      });
+                  });
   }
 
 

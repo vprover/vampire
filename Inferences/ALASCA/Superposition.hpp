@@ -54,7 +54,7 @@ struct SuperpositionConf
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
-      return SelectedAtomicTerm::iter(shared.ordering, sel, atomMaximality())
+      return SelectedAtomicTerm::iter(shared.ordering, sel, atomicTermMaxmialityLocal())
         // .flatMap([&shared](auto x) { return iter(shared, x); })
              .filterMap([](auto t) { return SelectedEquality::from(std::move(t)); })
              .filter([](auto& x) { return x.literal()->isPositive(); })
@@ -63,8 +63,9 @@ struct SuperpositionConf
              .map([](auto x) { return Lhs(std::move(x)); });
     }
 
-    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
-    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion            literalMaximality() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion    atomicTermMaxmialityLocal() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion   atomicTermMaxmialityGlobal() { return SelectionCriterion::NOT_LEQ; }
 
     // TODO 2 deprecate
     static auto iter(AlascaState& shared, Clause* cl) {
@@ -99,11 +100,13 @@ struct SuperpositionConf
     static auto activePositions(AlascaState& shared, Clause* cl) 
     { return shared.selected(cl); }
 
-    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
+    // TODO for productive stuff we could strengthen then global maximality to NOT_LEQ because factoring will kick in, right?
+    static SelectionCriterion            literalMaximality() { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion    atomicTermMaxmialityLocal() { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion   atomicTermMaxmialityGlobal() { return SelectionCriterion::NOT_LESS; }
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
-      return SelectedAtom::iter(shared.ordering, sel, atomMaximality())
+      return SelectedAtom::iter(shared.ordering, sel, atomicTermMaxmialityLocal())
         .flatMap([](auto atom) {
           return iterTraits(atom.iterSelectedSubterms()
              .filter([](AnyAlascaTerm const& t) { return t.isAtomic() && !t.asAtomic()->isVar(); })

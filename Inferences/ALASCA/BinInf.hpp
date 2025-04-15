@@ -30,6 +30,7 @@
 #include "Kernel/ALASCA/Index.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/TypeList.hpp"
+#include <type_traits>
 #include <utility>
 
 #define DEBUG(lvl, ...)  if (lvl < 0) { DBG(__VA_ARGS__) }
@@ -130,7 +131,7 @@ auto any(A1 a1) { return a1; }
 
 template<class A1, class A2, class... As>
 auto any(A1 a1, A2 a2, As... as)
-{ return Or(a1, all(a2, as...)); }
+{ return Or(a1, any(a2, as...)); }
 
 template<class A, class B>
 struct And {
@@ -147,7 +148,7 @@ struct And {
   template<class Selected, class FailLogger>
   bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger)
   { return lhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(msg); })
-        || rhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(msg); }); }
+        && rhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(msg); }); }
 };
 
 template<class A, class B>
@@ -243,18 +244,26 @@ public:
 
   // TODO 2 deprecate
 
-  template<class C, std::enable_if_t<std::is_invocable_v<decltype(&C::atomMaximality), C const&>, bool> = true>
+  template <typename T, typename = void>
+  struct has_foo : std::false_type {};
+  template <typename T>
+  struct has_foo<T, std::void_t<decltype(std::declval<T>().atomicTermMaxmialityLocal())>> : std::true_type {};
+
+  template<class C, std::enable_if_t<has_foo<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
     return RuleApplicationConstraints::all(
         RuleApplicationConstraints::any(
           RuleApplicationConstraints::BGSelected{},
-          RuleApplicationConstraints::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
+          RuleApplicationConstraints::all(
+            RuleApplicationConstraints::LiteralMaximalityConstraint { .max = c.literalMaximality(), },
+            RuleApplicationConstraints::TermMaximalityConstraint { .max = c.atomicTermMaxmialityGlobal(), .local = false, }
+          )
         ),
-        RuleApplicationConstraints::TermMaximalityConstraint { .max = c.atomMaximality(), .local = true, }
+        RuleApplicationConstraints::TermMaximalityConstraint { .max = c.atomicTermMaxmialityLocal() , .local = true, }
     );
   }
 
-  template<class C>
+  template<class C, std::enable_if_t<!has_foo<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
     return RuleApplicationConstraints::all(
         RuleApplicationConstraints::any(

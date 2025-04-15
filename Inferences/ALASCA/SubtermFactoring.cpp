@@ -37,13 +37,14 @@ struct Application
   TermList term1() const { return atomAt(i); }
   TermList term2() const { return atomAt(j); }
 
-  static SelectionCriterion literalMaximality() { return Superposition::Rhs::literalMaximality(); }
-  static SelectionCriterion    atomMaximality() { return Superposition::Rhs::atomMaximality(); }
+  static SelectionCriterion literalMaximality         () { return Superposition::Rhs::literalMaximality(); }
+  static SelectionCriterion atomicTermMaxmialityLocal () { return Superposition::Rhs::atomicTermMaxmialityLocal(); }
+  static SelectionCriterion atomicTermMaxmialityGlobal() { return Superposition::Rhs::atomicTermMaxmialityGlobal(); }
 
   static auto iter(AlascaState& shared_, __SelectedLiteral sel)
   {
     auto* shared = &shared_;
-    return SelectedAtom::iter(shared->ordering, sel, atomMaximality())
+    return SelectedAtom::iter(shared->ordering, sel, atomicTermMaxmialityLocal())
       .flatMap([shared](auto atom) {
           return atom.iterSelectedSubterms()
              .filterMap([](auto t) { return t.asSum(); })

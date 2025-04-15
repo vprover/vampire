@@ -68,6 +68,8 @@ using namespace Inferences::ALASCA;
   DECL_VAR(x28, 28)                                                                       \
   DECL_VAR(x29, 29)                                                                       \
   DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(f1, {Num}, Num)                                                               \
+  DECL_FUNC(f2, {Num}, Num)                                                               \
   DECL_FUNC(g, {Num, Num}, Num)                                                           \
   DECL_CONST(a, Num)                                                                      \
   DECL_CONST(a0, Num)                                                                     \
@@ -1184,36 +1186,53 @@ auto FM_selectionTest() {
 TEST_GENERATION(selection_01,
     FM_selectionTest<GenericRndLiteralSelector</* complete */ true>>()
       .indices(idxFourierMotzkin())
-      .inputs  ({ clause({ f(x) > 0   }) 
-               ,  clause({ f(x) - a > 0 }) })
+      .inputs  ({ clause({ f(x) > 0, -a > 0   }) 
+               ,  clause({ -f(a) > 0 }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(selection_02,
-    FM_selectionTest<CompleteBestLiteralSelector<LiteralSelectors::Comparator3>>()
+    FM_selectionTest<GenericRndLiteralSelector</* complete */ true>>()
       .indices(idxFourierMotzkin())
-      .inputs  ({ clause({  f(x) > 0   }) 
-               ,  clause({ f(b) - a > 0 }) 
-               ,  clause({ a > 0 }) 
-               })
-      .expected(exactly( 
-                  clause({ f(b)     > 0 }) 
-          ))
+      .inputs  ({ clause({ f(x) > 0, -a > 0   }) 
+               ,  clause({ -f(a) > 0, a > 0 }) })
+      .expected(exactly( /* nothing */ ))
     )
 
-TEST_GENERATION(selection_03,
-    FM_selectionTest<CompleteBestLiteralSelector<LiteralSelectors::Comparator3>>()
+TEST_GENERATION(selection_03a,
+    FM_selectionTest<GenericRndLiteralSelector</* complete */ true>>()
       .indices(idxFourierMotzkin())
-      .inputs  ({ clause({ g(a, x) + g(b, y) > 0 }) 
-               ,  clause({ -g(x, c) + x > 0 }) 
+      .inputs  ({ clause({ f(x) > 0, f(y) - f(a) > 0   }) 
+               ,  clause({-f(b) > 0 }) 
                })
-      .expected(exactly(
-                  clause({ g(b, x) + a > 0 }) 
-                , clause({ g(a, x) + b > 0 }) 
+      .expected(exactly( 
+                  clause({           f(x) - f(a) > 0   }) 
+               ,  clause({ f(x) > 0,      - f(a) > 0   }) 
           ))
+    )
+// in this case the global maximality of the term f(x) does not hold, so no inference is applied
+TEST_GENERATION(selection_03b,
+    FM_selectionTest<GenericRndLiteralSelector</* complete */ true>>()
+      .indices(idxFourierMotzkin())
+      .inputs  ({ clause({ f(x) > 0, f(x) - f(a) > 0   }) 
+               ,  clause({-f(b) > 0 }) 
+               })
+      .expected(exactly(  /* nothing */ ))
     )
 
 TEST_GENERATION(selection_04,
+    FM_selectionTest<CompleteBestLiteralSelector<LiteralSelectors::Comparator3>>()
+      .indices(idxFourierMotzkin())
+      .inputs  ({ clause({ g(f1(x3), x) + g(f2(x4), y) > 0 }) 
+               ,  clause({ -g(x, c) + x > 0, f(z) > 0 }) 
+               })
+      .expected(exactly(
+                  clause({ g(f2(x4), x) + f1(x3) > 0, f(z) > 0 }) 
+                , clause({ g(f1(x3), x) + f2(x4) > 0, f(z) > 0 }) 
+          ))
+    )
+
+TEST_GENERATION(selection_05,
     FM_selectionTest<GenericRndLiteralSelector</* complete */ true>>()
       .indices(idxFourierMotzkin())
       .inputs  ({ clause({ a - b > 0 }) 

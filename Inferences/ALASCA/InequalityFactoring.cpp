@@ -110,6 +110,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
 
   CHECK_CONDITION(
       "(j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \\/ C)σ or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \\/ C)σ",
+      // TODO 2 use the DSL
           AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, l2, SelectionCriterion::NOT_LESS, uwa, /*varBank=*/ 0, [](auto msg) {  })
        || AlascaOrderingUtils::litMaxAfterUnif(_shared->ordering, l1, SelectionCriterion::NOT_LESS, uwa, /*varBank=*/ 0, [](auto msg) {  })
       );
@@ -193,10 +194,10 @@ struct Lhs : public SelectedAtomicTermItpAny {
 
   static auto literalMaximality() { return SelectionCriterion::NOT_LESS; }
   // TODO 2 double check NOT_LEQ
-  static auto    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
+  static auto    atomicTermMaxmialityLocal() { return SelectionCriterion::NOT_LEQ; }
 
   static auto iter(AlascaState& shared, __SelectedLiteral const& lit) {
-    return SelectedAtomicTermItpAny::iter(shared.ordering, lit, atomMaximality())
+    return SelectedAtomicTermItpAny::iter(shared.ordering, lit, atomicTermMaxmialityLocal())
           .filter([](auto& s) { return s.apply([](auto& s) { return 
               s.isInequality()
               && s.numeral().sign() == Sign::Pos; 
