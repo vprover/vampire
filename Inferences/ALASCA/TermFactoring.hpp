@@ -64,13 +64,10 @@ public:
               .intoIter());
     }
 
+    // TODO 2 depreacte
     static auto iter(AlascaState& shared, Clause* cl) 
-    { 
-      return shared.selected(cl, /* literal*/ SelectionCriterion::NOT_LESS,
-                                 /* term */ SelectionCriterion::NOT_LESS,
-                                 /* include number vars */ false)
-              .flatMap([&shared](auto selected) { return iter(shared, selected); });
-    }
+    { return shared.selected(cl)
+              .flatMap([&shared](auto selected) { return iter(shared, selected); }); }
     
     auto iterSecond(AlascaState& shared) {
       return coproductIter(this->applyCo([&shared](auto self) {

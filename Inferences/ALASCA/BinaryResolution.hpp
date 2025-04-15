@@ -73,11 +73,8 @@ struct BinaryResolutionConf
     }
 
     static auto iter(AlascaState& shared, Clause* cl)
-    {
-      // TODO 3 sort out selection criterions
-      return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LEQ, /* selTerm */ SelectionCriterion::ANY, /*includeUnshieldedNumberVariables=*/ false)
-               .flatMap([&shared](auto selected) { return iter(shared, selected); });
-    }
+    { return shared.selected(cl)
+               .flatMap([&shared](auto selected) { return iter(shared, selected); }); }
 
     static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE; }
   };
@@ -107,12 +104,11 @@ struct BinaryResolutionConf
              .filter([](auto x) { return !x.literal()->isPositive(); })
              .map([](auto x) { return Rhs(std::move(x)); });
     }
+
+    // TODO 2 depreacate
     static auto iter(AlascaState& shared, Clause* cl)
-    {
-      // TODO 3 sort out selection criterions
-      return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LESS, /* selTerm */ SelectionCriterion::ANY, /*includeUnshieldedNumberVariables=*/ false)
-               .flatMap([&shared](auto selected) { return iter(shared, selected); });
-    }
+    { return shared.selected(cl)
+               .flatMap([&shared](auto selected) { return iter(shared, selected); }); }
 
     static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE; }
   };

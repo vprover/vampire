@@ -225,40 +225,6 @@ namespace Kernel {
     }
 
 
-    // auto maxSummands(SelectedLiteral sel_lit , SelectionCriterion sel) 
-    // { return coproductIter(sel_lit.interpreted.unwrap()
-    //             .applyCo([&](auto& lit) 
-    //                    { return maxSummandIndices(lit, sel); }))
-    //             .map([=](auto i) 
-    //                  { return SelectedSummand(sel_lit, i); }); }
-
-
-                // TODO 1 replace this by 'selected(...)'
-// IterTraits<VirtualIterator<Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>>>
-//     selectedActivePositions(
-//         Clause* cl, SelectionCriterion selLit, 
-//         SelectionCriterion selSum,
-//         bool includeUnshieldedNumberVariables);
-    // {
-    //   using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
-    //   return _maxLits(cl, selLit)
-    //     .flatMap([=](auto sel_lit) -> VirtualIterator<Out> {
-    //         auto lit = sel_lit.literal();
-    //         if (sel_lit.interpreted.isSome()) {
-    //           return pvi(maxSummands(sel_lit, selSum)
-    //               .filter([=](auto x) { return includeUnshieldedNumberVariables || x.numTraits().apply([](auto x) { return !x.isFractional(); }) || !x.selectedAtom().isVar(); })
-    //               .map([](auto x) { return Out(std::move(x)); }));
-    //
-    //         } else if (lit->isEquality()) {
-    //           return pvi(maxEqIndices(lit, selSum)
-    //                     .map([=](auto j) 
-    //                         { return Out(SelectedUninterpretedEquality(sel_lit, j)); }));
-    //         } else {
-    //           return pvi(getSingletonIterator(Out(SelectedUninterpretedPredicate(sel_lit))));
-    //         }
-    //     });
-    // }
-
     auto isUninterpreted(Literal* l) const 
     { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 
@@ -292,106 +258,11 @@ namespace Kernel {
     }
 
 
-    // auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) {
-    //   using Out = OldSelectedAtom;
-    //   auto atoms = Lib::make_shared(Stack<Out>());
-    //   for (unsigned i : range(0, cl->size())) {
-    //     auto l = SelectedLiteral(cl, i, *this);
-    //     if (interpretedPred(l.literal())) {
-    //       if (l.interpreted.isSome()) {
-    //         for (auto a : maxSummands(l, criterion)) {
-    //           atoms->push(Out(a));
-    //         }
-    //       } else {
-    //         // must be an equality of uninterpreted terms
-    //         ASS_REP(isUninterpretedEquality(l.literal()), *l.literal());
-    //         for (auto a : selectUninterpretedEquality(l, criterion)) {
-    //           atoms->push(Out(a));
-    //         }
-    //       }
-    //     } else {
-    //       atoms = Lib::make_shared(Stack<Out>());
-    //       break;
-    //     }
-    //   }
-    //
-    //   return OrderingUtils::maxElems(
-    //       atoms->size(), 
-    //       [=](unsigned l, unsigned r) 
-    //       { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
-    //       [=](unsigned i)
-    //       { return (*atoms)[i].atom(); },
-    //       criterion)
-    //     .map([=](auto i) 
-    //         { return (*atoms)[i]; })
-    //   .filter([=](auto x) 
-    //       { return !x.template is<SelectedSummand>() 
-    //             || !x.template unwrap<SelectedSummand>().selectedAtom().isVar(); });
-    // }
-    //
-    
-    // TODO make sure we deal right with unshielded vars
-
-    // TODO rename SelectedAtom
-   auto selected(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) 
-   { return selector.selected(cl, ordering); }
-
-   // template<class NumTraits>
-   // auto maxSummandIndices(AlascaTermItp<NumTraits> t, SelectionCriterion s) {
-   //   return OrderingUtils::maxElems(t.nSummands(), 
-   //       [](auto l, auto r) {},
-   //       [](auto i) {},
-   //       s);
-   // }
-
-   auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) -> DummyIter<SelectedAtomicTermItpAny>
-     ;
-   // { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-   //   .filterMap([](auto l) { return l.toSelectedAtomicTermItp(); }); }
-
-    // auto selectedAtomicLiterals(Clause* cl, SelectionCriterion selLit) 
-    //   // TODO 1.2
-    // { return selected(cl, selLit, SelectionCriterion::ANY, /* includeUnshieldedNumberVariables */ false)
-    // .filterMap([](auto x) { return std::move(x).template as<SelectedAtomicLiteral>(); }); }
-    //
-    // auto selectedAtomicTerms(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables)
-    // { return selected(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-    //   .filterMap([](SelectedAtom x) -> Option<SelectedAtomicTerm> { 
-    //       return std::move(x).template as<SelectedAtomicTerm>();
-    //   }); }
-
-    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) -> DummyIter<SelectedEquality>
-      ;
-    // { return selectedAtomicTerms(cl, selLit, selTerm, includeUnshieldedNumberVariables)
-        // .filterMap([](auto x) { return SelectedEquality::from(std::move(x)); }); }
-
-
-  public:
+    auto selected(Clause* cl)
+    { return selector.selected(cl, ordering); }
 
     Option<AbstractingUnifier> unify(TermList lhs, TermList rhs) const
     { return AbstractingUnifier::unify(lhs, 0, rhs, 0, uwaMode(), uwaFixedPointIteration); }
-
-
-    template<class LitOrTerm, class Iter>
-    bool strictlyMaximal(LitOrTerm pivot, Iter lits)
-    {
-      bool found = false;
-      for (auto lit : iterTraits(lits)) {
-        if (lit == pivot) {
-          if (found)  {
-            return false;
-          } else {
-            found = true;
-          }
-        }
-        if (ordering->compare(pivot, lit) == Ordering::LESS) {
-          return false;
-        }
-      }
-      ASS(found)
-      return true;
-    }
-  };
 
 #if VDEBUG
   std::shared_ptr<AlascaState> testAlascaState(

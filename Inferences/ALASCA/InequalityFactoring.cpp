@@ -212,12 +212,9 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
 
-    auto selected = 
-        _shared->selected(premise, 
   // TODO think about this, we don't want any literals but one of the two hast to be weakly maximal
-                       /* literal */ SelectionCriterion::ANY,
-                       /* summand */ SelectionCriterion::NOT_LEQ,
-                       /* include number vars */ false)
+    auto selected = 
+        _shared->selected(premise)
           .flatMap([&](auto lit) { return Lhs::iter(*_shared, lit); })
           .collectRStack();
 

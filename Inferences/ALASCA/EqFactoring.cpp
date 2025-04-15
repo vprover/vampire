@@ -142,19 +142,13 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
   auto selected = Lib::make_shared(
-      _shared->selected(premise, 
-                       /* literal */ SelectionCriterion::NOT_LESS, 
-                       /* summand */ SelectionCriterion::NOT_LEQ,
-                       /* include number vars */ false)
+      _shared->selected(premise)
         .flatMap([&](auto sel) { return SelectedEquality::iter(_shared->ordering, sel, SelectionCriterion::NOT_LESS, SelectionCriterion::NOT_LEQ); })
         .filter([](auto& s) { return s.positive(); })
         .template collect<Stack>());
 
   auto rest = Lib::make_shared(
-      _shared->selected(premise, 
-                       /* literal */ SelectionCriterion::ANY, 
-                       /* summand */ SelectionCriterion::NOT_LEQ,
-                       /* include number vars */ false)
+      _shared->selected(premise)
         .flatMap([&](auto sel) { return SelectedEquality::iter(_shared->ordering, sel, SelectionCriterion::ANY, SelectionCriterion::NOT_LEQ); })
         .filter([](auto& s) { return s.positive(); })
         .template collect<Stack>());

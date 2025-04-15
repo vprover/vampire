@@ -63,11 +63,9 @@ struct FourierMotzkinConf
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
+    // TODO 2 deprecate/generalize
     static auto iter(AlascaState& shared, Clause* cl)
-    { 
-      return shared.selected(cl, /* literal*/ SelectionCriterion::NOT_LEQ, 
-                                 /* term */ SelectionCriterion::NOT_LEQ,
-                                 /* include number vars */ false)
+    { return shared.selected(cl)
               .flatMap([&shared](auto selected) { return iter(shared, selected); }); }
 
   };
@@ -94,11 +92,10 @@ struct FourierMotzkinConf
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
+    // TODO 2 deprecate/generalize
     static auto iter(AlascaState& shared, Clause* cl) 
     { 
-      return shared.selected(cl, /* literal*/ SelectionCriterion::NOT_LESS,
-                                 /* term */ SelectionCriterion::NOT_LEQ,
-                                 /* include number vars */ false)
+      return shared.selected(cl)
               .flatMap([&shared](auto selected) { return iter(shared, selected); });
     }
               

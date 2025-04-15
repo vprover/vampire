@@ -66,10 +66,9 @@ struct SuperpositionConf
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }
 
+    // TODO 2 deprecate
     static auto iter(AlascaState& shared, Clause* cl) {
-      return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
-                                 /* terms   */ SelectionCriterion::NOT_LEQ,
-                                 /* include number vars */ false)
+      return shared.selected(cl)
              .flatMap([&shared](auto selected) { return iter(shared, selected); });
     }
 
@@ -96,14 +95,9 @@ struct SuperpositionConf
     // TermList sort() const { return key().sort(); }
 
 
-    // TODO 3 remove activePositions
+    // TODO 2 depreacte
     static auto activePositions(AlascaState& shared, Clause* cl) 
-    {
-      return shared.selected(cl, 
-          /* literals */ SelectionCriterion::NOT_LESS, 
-          /* terms    */ SelectionCriterion::NOT_LEQ,
-          /* include number vars */ false);
-    }
+    { return shared.selected(cl); }
 
     static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
     static SelectionCriterion    atomMaximality() { return SelectionCriterion::NOT_LEQ; }

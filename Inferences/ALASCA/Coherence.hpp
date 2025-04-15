@@ -94,8 +94,6 @@ public:
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
       // TODO 4 use selection here and use isInt instead of ⌊..⌋ = t
-      // return shared.selectedSummands(cl, /* lit */ SelectionCriterion::NOT_LEQ, /* term */ SelectionCriterion::NOT_LEQ, /*includeUnshieldedNumberVariables=*/ false)
-      //   .filter([](auto x) { return is })
 
       return ALASCA::Superposition::Lhs::iter(shared, sel)
         .filter([](auto& lhs) -> bool { return ASig::isFloor(lhs.biggerSide()); })
@@ -134,11 +132,10 @@ public:
     //   ;
     // }
 
+    // TODO depr
     static auto iter(AlascaState& shared, Clause* cl)
     {
-      return shared.selected(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
-                                 /* terms   */ SelectionCriterion::NOT_LEQ,
-                                 /* include number vars */ false)
+      return shared.selected(cl)
         .flatMap([&shared](auto sel) { return iter(shared, sel); });
     }
 
@@ -329,7 +326,7 @@ struct CoherenceNormalization : public SimplifyingGeneratingInference {
 
   ClauseGenerationResult generateSimplify(Clause* premise) final override {
     return ClauseGenerationResult {
-      .clauses = pvi( shared->selected(premise, Superposition::Lhs::literalMaximality(), Superposition::Lhs::atomMaximality(), /* unshielded */ false)
+      .clauses = pvi( shared->selected(premise)
                         .flatMap([this](auto x) { return iter(*shared, x); })
                         .map([this](auto x) { return apply(std::move(x)); })),
       .premiseRedundant = false,
