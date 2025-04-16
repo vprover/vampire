@@ -353,7 +353,8 @@ struct SkelOrd
                     case Ordering::Result::GREATER: return some(*s0);
                     case Ordering::Result::LESS: return some(*s1);
                     case Ordering::Result::INCOMPARABLE: return {};
-                  }
+                  } 
+                  ASSERTION_VIOLATION
                 } else {
                   return {};
                 }

@@ -75,12 +75,6 @@ void TermFactoring::detach()
 //   DEBUG("L2: ", sel2)
 //
 //
-// #define check_side_condition(cond, cond_code)                                                       \
-//     if (!(cond_code)) {                                                                             \
-//       DEBUG("side condition not fulfiled: " cond)                                                   \
-//       return nothing();                                                                             \
-//     }                                                                                               \
-//
 //   auto nothing = [&]() { return Option<Clause*>(); };
 //
 //   // ASS(!(sel1.literal()->isEquality() && sel1.literal()->isNegative()))

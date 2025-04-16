@@ -31,11 +31,10 @@ class SmallStack {
   bool onHeap() const { return _capacity > InlineCapacity; }
 
   static constexpr unsigned initialCapacity(unsigned c) {
-    auto out = 1;
+    unsigned out = 1;
     while (out < c + 1) {
       out <<= 1;
     }
-    // out > c
     return out;
   }
 

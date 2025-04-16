@@ -654,7 +654,7 @@ simpl_start:
   if (simplCl != cl) {
     if (!simplCl) {
 #if VAMPIRE_CLAUSE_TRACING
-        if (env.options->traceForward() == cl->number()) {
+        if (env.options->traceForward() == int(cl->number())) {
           std::cout << "deleted " << env.options->traceForward() << " by immediate simplification (input)" << std::endl;
         }
 #endif // VAMPIRE_CLAUSE_TRACING
@@ -751,7 +751,7 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       addNewClause(simplCl);
 #if VAMPIRE_CLAUSE_TRACING
     } else {
-        if (env.options->traceForward() == cl->number()) {
+        if (env.options->traceForward() == int(cl->number())) {
           std::cout << "deleted " << env.options->traceForward() << " by immediate simplification" << std::endl;
         }
 #endif // VAMPIRE_CLAUSE_TRACING
@@ -779,7 +779,7 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     return 0;
 #if VAMPIRE_CLAUSE_TRACING
   } else {
-      if (env.options->traceForward() == cl->number()) {
+      if (env.options->traceForward() == int(cl->number())) {
         std::cout << "deleted " << env.options->traceForward() << " by immediate simplification (many)" << std::endl;
       }
 #endif // VAMPIRE_CLAUSE_TRACING
@@ -942,7 +942,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         if (replacement) {
           addNewClause(replacement);
 #if VAMPIRE_CLAUSE_TRACING
-        } else if (env.options->traceForward() == cl->number()) {
+        } else if (env.options->traceForward() == int(cl->number())) {
           RStack<Clause*> ps;
           ps->loadFromIterator(premises);
           std::cout << "deleted " << env.options->traceForward() 

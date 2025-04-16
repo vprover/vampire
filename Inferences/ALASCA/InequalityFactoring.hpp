@@ -35,8 +35,8 @@ using namespace Saturation;
 class InequalityFactoring
 : public GeneratingInferenceEngine
 {
-  using SmallArray = SmallArray<Clause*, 2>;
-  using Iter = decltype(arrayIter(std::declval<SmallArray>()));
+  using SArray = SmallArray<Clause*, 2>;
+  using Iter = decltype(arrayIter(std::declval<SArray>()));
 public:
   USE_ALLOCATOR(InequalityFactoring);
 

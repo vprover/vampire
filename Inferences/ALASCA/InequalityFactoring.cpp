@@ -65,7 +65,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)
 
-  auto nothing = [&]() { return arrayIter(SmallArray()); };
+  auto nothing = [&]() { return arrayIter(SArray()); };
 
 
   auto sigma = [&](auto x){ return uwa.subs().apply(x, /* varbank */ 0); };
@@ -157,12 +157,12 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
 
   auto out = InequalityNormalizer::normalize(L1σ) == InequalityNormalizer::normalize(L2σ)
     /* optimization to not create duplicate clauses, as in this case c1() and c2() are equivalent */
-    ? SmallArray::fromItems(Clause::fromIterator(concatIters(
+    ? SArray::fromItems(Clause::fromIterator(concatIters(
        iterItems( /*   (±js1 + t1 <> 0)σ */ L1σ ),
        ctxtLits(),
        arrayIter(cnst).cloned()
     ), inf))
-    : SmallArray::fromItems(c1(), c2());
+    : SArray::fromItems(c1(), c2());
 
   DEBUG("conclusion: ", out)
   return arrayIter(std::move(out));
