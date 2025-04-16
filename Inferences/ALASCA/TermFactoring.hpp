@@ -51,11 +51,11 @@ public:
     Application(SelectedAtomicTermItpAny self) : SelectedAtomicTermItpAny(std::move(self)) {}
 
     static SelectionCriterion            literalMaximality() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion    atomicTermMaxmialityLocal() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion   atomicTermMaxmialityGlobal() { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion    localAtomicTermMaximality() { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion   globalAtomicTermMaximality() { return SelectionCriterion::NOT_LESS; }
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
-      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, atomicTermMaxmialityLocal())
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, localAtomicTermMaximality())
               .map([&]  (auto selected) { return Application(std::move(selected)); });
     }
 

@@ -245,7 +245,7 @@ public:
   template <typename T, typename = void>
   struct has_atomicTermMaximality : std::false_type {};
   template <typename T>
-  struct has_atomicTermMaximality<T, std::void_t<decltype(std::declval<T>().atomicTermMaxmialityLocal())>> : std::true_type {};
+  struct has_atomicTermMaximality<T, std::void_t<decltype(std::declval<T>().localAtomicTermMaximality())>> : std::true_type {};
 
   template<class C, std::enable_if_t<has_atomicTermMaximality<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
@@ -254,10 +254,10 @@ public:
           RuleApplicationConstraints::BGSelected{},
           RuleApplicationConstraints::all(
             RuleApplicationConstraints::LiteralMaximalityConstraint { .max = c.literalMaximality(), },
-            RuleApplicationConstraints::TermMaximalityConstraint { .max = c.atomicTermMaxmialityGlobal(), .local = false, }
+            RuleApplicationConstraints::TermMaximalityConstraint { .max = c.globalAtomicTermMaximality(), .local = false, }
           )
         ),
-        RuleApplicationConstraints::TermMaximalityConstraint { .max = c.atomicTermMaxmialityLocal() , .local = true, }
+        RuleApplicationConstraints::TermMaximalityConstraint { .max = c.localAtomicTermMaximality() , .local = true, }
     );
   }
 

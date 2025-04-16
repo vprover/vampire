@@ -58,7 +58,7 @@ namespace Kernel {
     // TODO 2 deprecate
     template<class Selected, class FailLogger>
     bool postUnificationCheck(Selected const& sel, unsigned varBank, AbstractingUnifier& unif, Ordering* ord, FailLogger logger) {
-      if (!AlascaOrderingUtils::atomLocalMaxAfterUnif(ord, sel, sel.atomicTermMaxmialityLocal(), unif, varBank
+      if (!AlascaOrderingUtils::atomLocalMaxAfterUnif(ord, sel, sel.localAtomicTermMaximality(), unif, varBank
             , [&](auto msg) { logger(Output::cat("atom not maximal: ", msg)); })) {
         return false;
       }
