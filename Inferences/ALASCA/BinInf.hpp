@@ -410,7 +410,6 @@ public:
         Check::premiseN<1>(applicabilityChecks(rhs)),
         binApplicabilityChecks(_rule, lhs, rhs)
         );
-    DBGE(check)
     return check.checkAfterUnif(prems, _shared->ordering, unif, logger);
   }
 

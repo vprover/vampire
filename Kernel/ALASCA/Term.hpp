@@ -329,6 +329,7 @@ namespace Kernel {
     friend class AnyAlascaTerm;
     auto& unwrapAppl() const { return _self.unwrap<AlascaTermCache const*>()->_self.template unwrap<__AlascaTermItp<NumTraits>>(); }
   public:
+    static NumTraits numTraits() { return NumTraits{}; }
     static AlascaTermItp fromVar(TypedTermList v)  
     { 
       ASS_EQ(v.sort(), NumTraits::sort())

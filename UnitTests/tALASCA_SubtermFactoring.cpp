@@ -47,6 +47,7 @@ using namespace Inferences::ALASCA;
   DECL_VAR(x3, 3)                                                                         \
   DECL_VAR(x4, 4)                                                                         \
   DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(f2, {Num}, Num)                                                                \
   DECL_FUNC(g, {Num, Num}, Num)                                                           \
   DECL_CONST(a, Num)                                                                      \
   DECL_CONST(b, Num)                                                                      \
@@ -101,7 +102,8 @@ TEST_GENERATION(basic05,
 
 TEST_GENERATION(uwa01,
     Generation::SymmetricTest()
-      .inputs  ({  clause({ f(g(f(x) + 1) - g(f(y) + 1)) > 0  }) })
+      .rule(new SubtermFactoring(testAlascaState(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+      .inputs  ({  clause({ f(f2(f(x) + 1) - f2(a)) > 0  }) })
       .expected(exactly(
-          clause({ f(0) > 0, f(x) + 1 != f(y) + 1 })
+          clause({ f(0) > 0, a != f(x) + 1 })
       )))

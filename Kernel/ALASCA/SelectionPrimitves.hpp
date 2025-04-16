@@ -236,6 +236,7 @@ namespace Kernel {
       return arrayIter(std::move(stack));
     }
   };
+
   struct SelectedAtomicTerm 
     : public TypeList::ApplyT<Coproduct, 
                TypeList::Concat<
@@ -460,6 +461,7 @@ namespace Kernel {
           });
     }
   };
+
 #undef DELEGATE
 
   using SelectionCriterion = OrderingUtils::SelectionCriterion;

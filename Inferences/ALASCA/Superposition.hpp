@@ -97,17 +97,20 @@ struct SuperpositionConf
     // TermList sort() const { return key().sort(); }
 
 
+    static auto iterRewriteableSubterms(Ordering* ord, __SelectedLiteral sel) {
+      return SelectedAtom::iter(ord, sel, SelectionCriterion::NOT_LESS)
+        .flatMap([](auto a) { return a.iterSelectedSubterms(); });
+    }
+
     // TODO 2 depreacte
     static auto activePositions(AlascaState& shared, Clause* cl) 
     { return shared.selected(cl); }
-
-    // TODO for productive stuff we could strengthen then global maximality to NOT_LEQ because factoring will kick in, right?
-    SelectionCriterion            literalMaximality() const { return SelectionCriterion::NOT_LESS; }
-    SelectionCriterion    localAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
-    SelectionCriterion   globalAtomicTermMaximality() const { 
-      if (literal()->isEquality()) {
-        return literal()->isPositive() ? SelectionCriterion::NOT_LEQ : SelectionCriterion::NOT_LESS;
-      } else if (auto self = toSelectedAtomicTermItp()) {
+    static SelectionCriterion literalMaximality(SelectedAtom const& a) { return SelectionCriterion::NOT_LESS; }
+    static SelectionCriterion    localAtomicTermMaximality(SelectedAtom const& a) { return SelectionCriterion::NOT_LEQ; }
+    static SelectionCriterion   globalAtomicTermMaximality(SelectedAtom const& a) { 
+      if (a.literal()->isEquality()) {
+        return a.literal()->isPositive() ? SelectionCriterion::NOT_LEQ : SelectionCriterion::NOT_LESS;
+      } else if (auto self = a.toSelectedAtomicTermItp()) {
         return self->apply([](auto& self) {
             // TODO 2 return SelectionCriterion::NOT_LEQ; for > where all max are positive
             // think about this again
@@ -118,10 +121,11 @@ struct SuperpositionConf
       } else {
         return SelectionCriterion::NOT_LESS; 
       }
-      // if (auto self = self.)
-      // return self.
-      return SelectionCriterion::NOT_LESS; 
     }
+
+    SelectionCriterion            literalMaximality() const { return          literalMaximality(*this); }
+    SelectionCriterion    localAtomicTermMaximality() const { return  localAtomicTermMaximality(*this); }
+    SelectionCriterion   globalAtomicTermMaximality() const { return globalAtomicTermMaximality(*this); }
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
       return SelectedAtom::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
