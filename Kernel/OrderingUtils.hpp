@@ -247,6 +247,15 @@ namespace Kernel {
       return out;
     }
 
+    static bool isTrue(SelectionCriterion s, Ordering::Result r) {
+      switch (s) {
+        case SelectionCriterion::NOT_LEQ: return r != Ordering::Result::LESS && r != Ordering::Result::EQUAL;
+        case SelectionCriterion::NOT_LESS: return r != Ordering::Result::LESS;
+        case SelectionCriterion::STRICTLY_MAX: return r == Ordering::Result::GREATER;
+        case SelectionCriterion::ANY: return true;
+      } ASSERTION_VIOLATION
+    }
+
     static bool notLeq(Ordering::Result r) 
     { return r != Ordering::Result::LESS 
           && r != Ordering::Result::EQUAL; }

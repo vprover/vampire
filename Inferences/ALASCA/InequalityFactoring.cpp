@@ -79,22 +79,24 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
   //////////////////////////////////////////////////////
 
   {
-    namespace C = ApplicabilityCheck1;
+    namespace C = ApplicabilityCheck;
+    auto ll1 = std::make_pair(&l1, unsigned(/* varBank */ 0));
+    auto ll2 = std::make_pair(&l2, unsigned(/* varBank */ 0));
 
     auto applicableTerms = C::all(
               C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, .local = false, },
               C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LEQ, .local = true, }
-            ).checkAfterUnif(l1, _shared->ordering, uwa, /* varBank */ 0, [](auto msg) { DEBUG("l1 :", msg) }) 
+            ).checkAfterUnif(ll1, _shared->ordering, uwa, [](auto msg) { DEBUG("l1 :", msg) }) 
       && C::all(
               C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, .local = false, },
               C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LEQ, .local = true, }
-            ).checkAfterUnif(l2, _shared->ordering, uwa, /* varBank */ 0, [](auto msg) { DEBUG("l2 :", msg) });
+            ).checkAfterUnif(ll2, _shared->ordering, uwa, [](auto msg) { DEBUG("l2 :", msg) });
 
     auto applicableLiteral = 
         C::LiteralMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, }
-          .checkAfterUnif(l1, _shared->ordering, uwa, /* varBank */ 0, [](auto msg) { DEBUG("l1 :", msg) })
+          .checkAfterUnif(ll1, _shared->ordering, uwa, [](auto msg) { DEBUG("l1 :", msg) })
      || C::LiteralMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, }
-          .checkAfterUnif(l2, _shared->ordering, uwa, /* varBank */ 0, [](auto msg) { DEBUG("l2 :", msg) });
+          .checkAfterUnif(ll2, _shared->ordering, uwa, [](auto msg) { DEBUG("l2 :", msg) });
 
     auto applicable = applicableTerms && applicableLiteral;
 

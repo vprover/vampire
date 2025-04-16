@@ -49,7 +49,17 @@ void attachToInner(Inner& inner, SaturationAlgorithm* salg) { }
 
 // TODO rename to ApplicabilityChecks
 
-namespace ApplicabilityCheck1 {
+namespace ApplicabilityCheck {
+
+template<bool b>
+struct Constant {
+  template<class Selected, class FailLogger>
+  bool checkBeforeUnif(Selected selected, Ordering* ord, FailLogger logger) { return b; }
+
+  template<class Selected, class FailLogger>
+  bool checkAfterUnif(Selected selected, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) { return b; }
+};
+
 
 struct TermMaximalityConstraint {
   OrderingUtils::SelectionCriterion max;
@@ -59,17 +69,21 @@ struct TermMaximalityConstraint {
    * globally maximal */
   bool local;
 
+  static constexpr unsigned checkForNArgs(unsigned arity) { return arity == 1; }
+
   template<class Selected, class FailLogger>
-  bool checkBeforeUnif(Selected const& selected, Ordering* ord, FailLogger logger) {
+  bool checkBeforeUnif(Selected selected, Ordering* ord, FailLogger logger) {
     // TODO
     return true; 
   }
 
   template<class Selected, class FailLogger>
-  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger) {
+  bool checkAfterUnif(Selected sel_bank, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) {
     auto log = [&](auto msg) { logger(Output::cat("atom not maximal: ", msg)); };
-    return local ? AlascaOrderingUtils ::atomLocalMaxAfterUnif(ord, selected, max, unif, varBank, log)
-                 : AlascaOrderingUtils::atomGlobalMaxAfterUnif(ord, selected, max, unif, varBank, log);
+    auto* selected = sel_bank.first;
+    auto varBank = sel_bank.second;
+    return local ? AlascaOrderingUtils ::atomLocalMaxAfterUnif(ord, *selected, max, unif, varBank, log)
+                 : AlascaOrderingUtils::atomGlobalMaxAfterUnif(ord, *selected, max, unif, varBank, log);
   }
 
 };
@@ -77,16 +91,76 @@ struct TermMaximalityConstraint {
 struct LiteralMaximalityConstraint {
   OrderingUtils::SelectionCriterion max;
 
+  static constexpr unsigned checkForNArgs(unsigned arity) { return arity == 1; }
+
   template<class Selected, class FailLogger>
-  bool checkBeforeUnif(Selected const& selected,  FailLogger logger) {
+  bool checkBeforeUnif(std::pair<Selected const*, unsigned> selected,  FailLogger logger) {
     // TODO
     return true; 
   }
 
   template<class Selected, class FailLogger>
-  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger) {
-    return AlascaOrderingUtils::litMaxAfterUnif(ord, selected, max, unif, varBank, 
+  bool checkAfterUnif(std::pair<Selected const*, unsigned>  sel_bank, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) {
+    auto* selected = sel_bank.first;
+    auto varBank = sel_bank.second;
+    return AlascaOrderingUtils::litMaxAfterUnif(ord, *selected, max, unif, varBank, 
              [&](auto msg) { logger(Output::cat("literal not maximal: ", msg)); });
+  }
+};
+
+
+template<unsigned n, class C>
+struct PremiseN {
+  C check;
+  PremiseN(C check) : check(std::move(check)) {}
+
+  static constexpr unsigned checkForNArgs(unsigned arity) { return arity == 1; }
+
+  template<class Logger>
+  static auto wrapLogger(Logger& logger) 
+  { return [&](auto msg) { logger(Output::cat("premise ", n, ": ", msg)); }; }
+
+  template<class Tup, class FailLogger>
+  bool checkBeforeUnif(Tup tup,  FailLogger logger) 
+  { return check.checkBeforeUnif(std::get<n>(tup), wrapLogger(logger)); }
+
+  template<class Tup, class FailLogger>
+  bool checkAfterUnif(Tup tup, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) 
+  { return check.checkAfterUnif(std::get<n>(tup), ord, unif, wrapLogger(logger)); }
+};
+
+template<unsigned n, class C>
+PremiseN<n, C> premiseN(C check) 
+{ return PremiseN<n, C>(std::move(check)); }
+
+
+struct CmpLitLit {
+  OrderingUtils::SelectionCriterion max;
+
+  static constexpr unsigned checkForNArgs(unsigned arity) { return arity == 1; }
+
+  template<class Selected, class FailLogger>
+  bool checkBeforeUnif(std::tuple<
+      std::pair<Selected const*, unsigned>,
+      std::pair<Selected const*, unsigned>> lhs_rhs,  FailLogger logger) {
+    // TODO
+    return true; 
+  }
+
+  template<class Selected, class FailLogger>
+  bool checkAfterUnif(std::tuple<
+      std::pair<Selected const*, unsigned>,
+      std::pair<Selected const*, unsigned>>  lhs_rhs, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) {
+    auto [lhs_bank, rhs_bank] = lhs_rhs;
+    auto lσ = unif.subs().apply(lhs_bank.first->literal(), lhs_bank.second);
+    auto rσ = unif.subs().apply(rhs_bank.first->literal(), rhs_bank.second);
+    auto res = ord->compare(lσ, rσ);
+    if (isTrue(max, res)) {
+      return true;
+    } else {
+      logger(lσ, " ", res, " ", rσ, " (expected: ", max, ")");
+      return false;
+    }
   }
 };
 
@@ -94,13 +168,15 @@ struct LiteralMaximalityConstraint {
 struct BGSelected {
   OrderingUtils::SelectionCriterion max;
 
-  template<class Selected, class FailLogger>
-  bool checkBeforeUnif(Selected const& selected, Ordering* ord, FailLogger logger) 
-  { return selected.isBGSelected(); }
+  static constexpr unsigned checkForNArgs(unsigned arity) { return arity == 1; }
 
   template<class Selected, class FailLogger>
-  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger) 
-  { return selected.isBGSelected(); }
+  bool checkBeforeUnif(std::pair<Selected const*, unsigned> sel_bank, Ordering* ord, FailLogger logger) 
+  { return sel_bank.first->isBGSelected(); }
+
+  template<class Selected, class FailLogger>
+  bool checkAfterUnif(std::pair<Selected const*, unsigned> sel_bank, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) 
+  { return sel_bank.first->isBGSelected(); }
 };
 
 template<class A, class B>
@@ -108,19 +184,21 @@ struct Or {
   A lhs;
   B rhs;
 
+  static constexpr unsigned checkForNArgs(unsigned arity) { return true; }
+
   Or(A a, B b) : lhs(std::move(a)), rhs(std::move(b)) { }
 
   template<class Selected, class FailLogger>
-  bool checkBeforeUnif(Selected const& selected, Ordering* ord, FailLogger logger) 
+  bool checkBeforeUnif(Selected selected, Ordering* ord, FailLogger logger) 
   { std::string lhsMsg;
     return lhs.checkBeforeUnif(selected, ord, [&](auto msg) { lhsMsg = Output::toString(msg); })
         || rhs.checkBeforeUnif(selected, ord, [&](auto msg) { logger(Output::cat(lhsMsg, " and ", msg)); }); }
 
   template<class Selected, class FailLogger>
-  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger)
+  bool checkAfterUnif(Selected selected, Ordering* ord, AbstractingUnifier& unif, FailLogger logger)
   { std::string lhsMsg;
-    return lhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { lhsMsg = Output::toString(msg); })
-        || rhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(Output::cat(lhsMsg, " and ", msg)); }); }
+    return lhs.checkAfterUnif(selected, ord, unif, [&](auto msg) { lhsMsg = Output::toString(msg); })
+        || rhs.checkAfterUnif(selected, ord, unif, [&](auto msg) { logger(Output::cat(lhsMsg, " and ", msg)); }); }
 };
 
 template<class A, class B>
@@ -141,14 +219,14 @@ struct And {
   And(A a, B b) : lhs(std::move(a)), rhs(std::move(b)) { }
 
   template<class Selected, class FailLogger>
-  bool checkBeforeUnif(Selected const& selected, Ordering* ord, FailLogger logger) 
+  bool checkBeforeUnif(Selected selected, Ordering* ord, FailLogger logger) 
   { return lhs.checkBeforeUnif(selected, ord, [&](auto msg) { logger(msg); })
         && rhs.checkBeforeUnif(selected, ord, [&](auto msg) { logger(msg); }); }
 
   template<class Selected, class FailLogger>
-  bool checkAfterUnif(Selected const& selected, Ordering* ord, AbstractingUnifier& unif, unsigned varBank, FailLogger logger)
-  { return lhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(msg); })
-        && rhs.checkAfterUnif(selected, ord, unif, varBank, [&](auto msg) { logger(msg); }); }
+  bool checkAfterUnif(Selected selected, Ordering* ord, AbstractingUnifier& unif, FailLogger logger)
+  { return lhs.checkAfterUnif(selected, ord, unif, [&](auto msg) { logger(msg); })
+        && rhs.checkAfterUnif(selected, ord, unif, [&](auto msg) { logger(msg); }); }
 };
 
 template<class A, class B>
@@ -161,7 +239,7 @@ template<class A1, class A2, class... As>
 auto all(A1 a1, A2 a2, As... as)
 { return And(a1, all(a2, as...)); }
 
-} // namespace ApplicabilityCheck1
+} // namespace ApplicabilityCheck
 
   
 template<class Rule>
@@ -247,32 +325,43 @@ public:
   template <typename T>
   struct has_atomicTermMaximality<T, std::void_t<decltype(std::declval<T>().localAtomicTermMaximality())>> : std::true_type {};
 
-  // template <typename T, typename = void>
-  // struct has_applicabilityChecks : std::false_type {};
-  // template <typename T>
-  // struct has_applicabilityChecks<T, std::void_t<decltype(_rule.applicabilityChecks(std::declval<Rhs>(), std::declval<Lhs>()))>> : std::true_type {};
+  template <typename T, typename = void>
+  struct has_binApplicabilityChecks : std::false_type {};
+  template <typename T>
+  struct has_binApplicabilityChecks<T, 
+    std::void_t<decltype(std::declval<T>().binApplicabilityChecks(std::declval<Rhs const&>(), std::declval<Lhs const&>()))>> : std::true_type {};
+
+
+  template<class R, class Lhs, class Rhs, 
+    std::enable_if_t< has_atomicTermMaximality<R>::value, bool> = true>
+  static auto binApplicabilityChecks(R const& rule, Lhs const& lhs, Rhs const& rhs) 
+  { return ApplicabilityCheck::Constant<true>{}; }
+
+  template<class R, class Lhs, class Rhs, 
+    std::enable_if_t<!has_atomicTermMaximality<R>::value, bool> = true>
+  static auto binApplicabilityChecks(R const& rule, Lhs const& lhs, Rhs const& rhs) 
+  { return ApplicabilityCheck::Constant<true>{}; }
 
 
   template<class C, std::enable_if_t<has_atomicTermMaximality<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
-    return ApplicabilityCheck1::all(
-        ApplicabilityCheck1::any(
-          ApplicabilityCheck1::BGSelected{},
-          ApplicabilityCheck1::all(
-            ApplicabilityCheck1::LiteralMaximalityConstraint { .max = c.literalMaximality(), },
-            ApplicabilityCheck1::TermMaximalityConstraint { .max = c.globalAtomicTermMaximality(), .local = false, }
+    return ApplicabilityCheck::all(
+        ApplicabilityCheck::any(
+          ApplicabilityCheck::BGSelected{},
+          ApplicabilityCheck::all(
+            ApplicabilityCheck::LiteralMaximalityConstraint { .max = c.literalMaximality(), },
+            ApplicabilityCheck::TermMaximalityConstraint { .max = c.globalAtomicTermMaximality(), .local = false, }
           )
         ),
-        ApplicabilityCheck1::TermMaximalityConstraint { .max = c.localAtomicTermMaximality() , .local = true, }
+        ApplicabilityCheck::TermMaximalityConstraint { .max = c.localAtomicTermMaximality() , .local = true, }
     );
   }
-
   template<class C, std::enable_if_t<!has_atomicTermMaximality<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
-    return ApplicabilityCheck1::all(
-        ApplicabilityCheck1::any(
-          ApplicabilityCheck1::BGSelected{},
-          ApplicabilityCheck1::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
+    return ApplicabilityCheck::all(
+        ApplicabilityCheck::any(
+          ApplicabilityCheck::BGSelected{},
+          ApplicabilityCheck::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
         )
     );
   }
@@ -283,8 +372,14 @@ public:
                             AbstractingUnifier& unif,
                             FailLogger logger) 
   { 
-    return applicabilityChecks(lhs).checkAfterUnif(lhs, _shared->ordering, unif, lhsVarBank, [&](auto&& msg) { logger(Output::cat("lhs: ", msg));  })
-        && applicabilityChecks(rhs).checkAfterUnif(rhs, _shared->ordering, unif, rhsVarBank, [&](auto&& msg) { logger(Output::cat("rhs: ", msg));  });
+    namespace Check = ApplicabilityCheck;
+    auto prems = std::make_tuple(std::make_pair(&lhs, lhsVarBank),
+                                 std::make_pair(&rhs, rhsVarBank));
+    return Check::all(
+        Check::premiseN<0>(applicabilityChecks(lhs)),
+        Check::premiseN<1>(applicabilityChecks(rhs)),
+        binApplicabilityChecks(_rule, lhs, rhs)
+        ).checkAfterUnif(prems, _shared->ordering, unif, logger);
   }
 
   ClauseIterator generateClauses(Clause* premise) final override
