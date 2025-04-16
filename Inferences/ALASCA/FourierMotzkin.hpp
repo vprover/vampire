@@ -54,15 +54,15 @@ struct FourierMotzkinConf
     TypedTermList key() const { return selectedAtomicTerm(); }
 
     static auto iter(AlascaState& shared, __SelectedLiteral const& sel) {
-      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, localAtomicTermMaximality())
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
               .map([&]   (auto selected)        { return Lhs(std::move(selected));     });
     }
 
-    static SelectionCriterion          literalMaximality() { return SelectionCriterion::NOT_LEQ; }
-    static SelectionCriterion  localAtomicTermMaximality() { return SelectionCriterion::NOT_LEQ; }
-    static SelectionCriterion globalAtomicTermMaximality() { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion          literalMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion  localAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion globalAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
 
     // TODO 2 deprecate/generalize
     static auto iter(AlascaState& shared, Clause* cl)
@@ -84,15 +84,15 @@ struct FourierMotzkinConf
     TypedTermList key() const { return selectedAtomicTerm(); }
 
     static auto iter(AlascaState& shared, __SelectedLiteral const& sel) {
-      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, localAtomicTermMaximality())
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
               .filter([&](auto const& selected) { return selected.isInequality(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
               .map([&]   (auto selected)        { return Rhs(std::move(selected));     });
     }
 
-    static SelectionCriterion          literalMaximality() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion  localAtomicTermMaximality() { return SelectionCriterion::NOT_LEQ; }
-    static SelectionCriterion globalAtomicTermMaximality() { return SelectionCriterion::NOT_LESS; }
+    SelectionCriterion          literalMaximality() const { return SelectionCriterion::NOT_LESS; }
+    SelectionCriterion  localAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion globalAtomicTermMaximality() const { return SelectionCriterion::NOT_LESS; }
 
     // TODO 2 deprecate/generalize
     static auto iter(AlascaState& shared, Clause* cl) 

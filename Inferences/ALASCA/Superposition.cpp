@@ -40,6 +40,8 @@ namespace ALASCA {
 // • s1σ /⪯ tσ
 // • s1 is not a variable
 // • s2 is not a variable
+//
+// • L[s2]σ /⪯ (s1 ≈ t) σ
 Option<Clause*> SuperpositionConf::applyRule_(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,

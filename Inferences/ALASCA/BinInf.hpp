@@ -33,7 +33,7 @@
 #include <type_traits>
 #include <utility>
 
-#define DEBUG(lvl, ...)  if (lvl < 0) { DBG(__VA_ARGS__) }
+#define DEBUG(lvl, ...)  if (lvl < 3) { DBG(__VA_ARGS__) }
 namespace TL = Lib::TypeList;
 
 namespace Inferences {
@@ -49,7 +49,7 @@ void attachToInner(Inner& inner, SaturationAlgorithm* salg) { }
 
 // TODO rename to ApplicabilityChecks
 
-namespace RuleApplicationConstraints {
+namespace ApplicabilityCheck1 {
 
 struct TermMaximalityConstraint {
   OrderingUtils::SelectionCriterion max;
@@ -161,7 +161,7 @@ template<class A1, class A2, class... As>
 auto all(A1 a1, A2 a2, As... as)
 { return And(a1, all(a2, as...)); }
 
-} // namespace RuleApplicationConstraints
+} // namespace ApplicabilityCheck1
 
   
 template<class Rule>
@@ -247,26 +247,32 @@ public:
   template <typename T>
   struct has_atomicTermMaximality<T, std::void_t<decltype(std::declval<T>().localAtomicTermMaximality())>> : std::true_type {};
 
+  // template <typename T, typename = void>
+  // struct has_applicabilityChecks : std::false_type {};
+  // template <typename T>
+  // struct has_applicabilityChecks<T, std::void_t<decltype(_rule.applicabilityChecks(std::declval<Rhs>(), std::declval<Lhs>()))>> : std::true_type {};
+
+
   template<class C, std::enable_if_t<has_atomicTermMaximality<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
-    return RuleApplicationConstraints::all(
-        RuleApplicationConstraints::any(
-          RuleApplicationConstraints::BGSelected{},
-          RuleApplicationConstraints::all(
-            RuleApplicationConstraints::LiteralMaximalityConstraint { .max = c.literalMaximality(), },
-            RuleApplicationConstraints::TermMaximalityConstraint { .max = c.globalAtomicTermMaximality(), .local = false, }
+    return ApplicabilityCheck1::all(
+        ApplicabilityCheck1::any(
+          ApplicabilityCheck1::BGSelected{},
+          ApplicabilityCheck1::all(
+            ApplicabilityCheck1::LiteralMaximalityConstraint { .max = c.literalMaximality(), },
+            ApplicabilityCheck1::TermMaximalityConstraint { .max = c.globalAtomicTermMaximality(), .local = false, }
           )
         ),
-        RuleApplicationConstraints::TermMaximalityConstraint { .max = c.localAtomicTermMaximality() , .local = true, }
+        ApplicabilityCheck1::TermMaximalityConstraint { .max = c.localAtomicTermMaximality() , .local = true, }
     );
   }
 
   template<class C, std::enable_if_t<!has_atomicTermMaximality<C>::value, bool> = true>
   static auto applicabilityChecks(C const& c) {
-    return RuleApplicationConstraints::all(
-        RuleApplicationConstraints::any(
-          RuleApplicationConstraints::BGSelected{},
-          RuleApplicationConstraints::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
+    return ApplicabilityCheck1::all(
+        ApplicabilityCheck1::any(
+          ApplicabilityCheck1::BGSelected{},
+          ApplicabilityCheck1::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
         )
     );
   }

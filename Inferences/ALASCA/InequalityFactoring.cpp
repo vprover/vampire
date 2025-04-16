@@ -79,7 +79,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
   //////////////////////////////////////////////////////
 
   {
-    namespace C = RuleApplicationConstraints;
+    namespace C = ApplicabilityCheck1;
 
     auto applicableTerms = C::all(
               C::TermMaximalityConstraint { .max = SelectionCriterion::NOT_LESS, .local = false, },

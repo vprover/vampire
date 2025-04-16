@@ -56,7 +56,7 @@ struct BinaryResolutionConf
 
     Literal* key() const { return literal(); }
 
-    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion literalMaximality() const { return SelectionCriterion::NOT_LEQ; }
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel)  {
       return SelectedAtomicLiteral::iter(shared.ordering, sel)
@@ -80,7 +80,7 @@ struct BinaryResolutionConf
 
     Literal* key() const { return Literal::positiveLiteral(literal()); }
 
-    static SelectionCriterion literalMaximality() { return SelectionCriterion::NOT_LESS; }
+    SelectionCriterion literalMaximality() const { return SelectionCriterion::NOT_LESS; }
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel)  {
       return SelectedAtomicLiteral::iter(shared.ordering, sel)

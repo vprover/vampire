@@ -54,7 +54,7 @@ struct SuperpositionConf
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
-      return SelectedAtomicTerm::iter(shared.ordering, sel, localAtomicTermMaximality())
+      return SelectedAtomicTerm::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
         // .flatMap([&shared](auto x) { return iter(shared, x); })
              .filterMap([](auto t) { return SelectedEquality::from(std::move(t)); })
              .filter([](auto& x) { return x.literal()->isPositive(); })
@@ -63,9 +63,9 @@ struct SuperpositionConf
              .map([](auto x) { return Lhs(std::move(x)); });
     }
 
-    static SelectionCriterion            literalMaximality() { return SelectionCriterion::NOT_LEQ; }
-    static SelectionCriterion    localAtomicTermMaximality() { return SelectionCriterion::NOT_LEQ; }
-    static SelectionCriterion   globalAtomicTermMaximality() { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion            literalMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion    localAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion   globalAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
 
     // TODO 2 deprecate
     static auto iter(AlascaState& shared, Clause* cl) {
@@ -101,12 +101,29 @@ struct SuperpositionConf
     { return shared.selected(cl); }
 
     // TODO for productive stuff we could strengthen then global maximality to NOT_LEQ because factoring will kick in, right?
-    static SelectionCriterion            literalMaximality() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion    localAtomicTermMaximality() { return SelectionCriterion::NOT_LEQ; }
-    static SelectionCriterion   globalAtomicTermMaximality() { return SelectionCriterion::NOT_LESS; }
+    SelectionCriterion            literalMaximality() const { return SelectionCriterion::NOT_LESS; }
+    SelectionCriterion    localAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion   globalAtomicTermMaximality() const { 
+      if (literal()->isEquality()) {
+        return literal()->isPositive() ? SelectionCriterion::NOT_LEQ : SelectionCriterion::NOT_LESS;
+      } else if (auto self = toSelectedAtomicTermItp()) {
+        return self->apply([](auto& self) {
+            // TODO 2 return SelectionCriterion::NOT_LEQ; for > where all max are positive
+            // think about this again
+            return self.selectedSummand().numeral() > 0 
+              ? SelectionCriterion::NOT_LEQ
+              : SelectionCriterion::NOT_LESS;
+        });
+      } else {
+        return SelectionCriterion::NOT_LESS; 
+      }
+      // if (auto self = self.)
+      // return self.
+      return SelectionCriterion::NOT_LESS; 
+    }
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
-      return SelectedAtom::iter(shared.ordering, sel, localAtomicTermMaximality())
+      return SelectedAtom::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
         .flatMap([](auto atom) {
           return iterTraits(atom.iterSelectedSubterms()
              .filter([](AnyAlascaTerm const& t) { return t.isAtomic() && !t.asAtomic()->isVar(); })

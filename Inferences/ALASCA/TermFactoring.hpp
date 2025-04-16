@@ -50,12 +50,12 @@ public:
   struct Application : public SelectedAtomicTermItpAny {
     Application(SelectedAtomicTermItpAny self) : SelectedAtomicTermItpAny(std::move(self)) {}
 
-    static SelectionCriterion            literalMaximality() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion    localAtomicTermMaximality() { return SelectionCriterion::NOT_LESS; }
-    static SelectionCriterion   globalAtomicTermMaximality() { return SelectionCriterion::NOT_LESS; }
+    SelectionCriterion            literalMaximality() const { return SelectionCriterion::NOT_LESS; }
+    SelectionCriterion    localAtomicTermMaximality() const { return SelectionCriterion::NOT_LESS; }
+    SelectionCriterion   globalAtomicTermMaximality() const { return SelectionCriterion::NOT_LESS; }
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
-      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, localAtomicTermMaximality())
+      return SelectedAtomicTermItpAny::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
               .map([&]  (auto selected) { return Application(std::move(selected)); });
     }
 
