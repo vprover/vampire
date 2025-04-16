@@ -47,6 +47,7 @@ struct SuperpositionConf
 
   static const char* name() { return "alasca superposition"; }
 
+
   struct Lhs : public SelectedEquality
   {
     static const char* name() { return "alasca superposition lhs"; }
@@ -144,6 +145,15 @@ struct SuperpositionConf
     { return out << (SelectedAtom const&) self << "[ " << self.toRewrite() << " ]"; }
   };
 
+  auto binApplicabilityChecks(
+      Lhs const& lhs,
+      Rhs const& rhs) const {
+    namespace Check = ApplicabilityCheck;
+    return Check::all(
+        Check::CmpLitLit<1, 0> { SelectionCriterion::NOT_LEQ, }
+    );
+  }
+
 
   auto applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
@@ -159,13 +169,16 @@ struct SuperpositionConf
       ) const;
 };
 
+
 struct Superposition 
 : public BinInf<SuperpositionConf> 
 {
   template<class... Args>
   Superposition(std::shared_ptr<AlascaState> shared, Args... args) : BinInf<SuperpositionConf>(shared, SuperpositionConf(shared, args...)) {}
 };
+// using T = decltype(std::declval<SuperpositionConf const&>().binApplicabilityChecks(std::declval<SuperpositionConf::Rhs const&>(), std::declval<SuperpositionConf::Lhs const&>()))
 
+static_assert(BinInf<SuperpositionConf>::has_binApplicabilityChecks<SuperpositionConf>::value);
 
 #undef DEBUG
 } // namespaceALASCA 

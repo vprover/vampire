@@ -134,31 +134,30 @@ PremiseN<n, C> premiseN(C check)
 { return PremiseN<n, C>(std::move(check)); }
 
 
+template<unsigned L, unsigned R>
 struct CmpLitLit {
   OrderingUtils::SelectionCriterion max;
 
   static constexpr unsigned checkForNArgs(unsigned arity) { return arity == 1; }
 
-  template<class Selected, class FailLogger>
-  bool checkBeforeUnif(std::tuple<
-      std::pair<Selected const*, unsigned>,
-      std::pair<Selected const*, unsigned>> lhs_rhs,  FailLogger logger) {
+  template<class Tup, class FailLogger>
+  bool checkBeforeUnif(Tup tup,  FailLogger logger) {
     // TODO
     return true; 
   }
 
-  template<class Selected, class FailLogger>
-  bool checkAfterUnif(std::tuple<
-      std::pair<Selected const*, unsigned>,
-      std::pair<Selected const*, unsigned>>  lhs_rhs, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) {
-    auto [lhs_bank, rhs_bank] = lhs_rhs;
+  template<class Tup, class FailLogger>
+  bool checkAfterUnif(Tup  tup, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) {
+    auto lhs_bank = std::get<L>(tup);
+    auto rhs_bank = std::get<R>(tup);
     auto lσ = unif.subs().apply(lhs_bank.first->literal(), lhs_bank.second);
     auto rσ = unif.subs().apply(rhs_bank.first->literal(), rhs_bank.second);
     auto res = ord->compare(lσ, rσ);
-    if (isTrue(max, res)) {
+    if (OrderingUtils::isTrue(max, res)) {
       return true;
     } else {
-      logger(lσ, " ", res, " ", rσ, " (expected: ", max, ")");
+      logger(Output::cat("main literal comparison: L", L, " ", res, " L", R, " ", 
+          ": ", lσ, " ", res, " ", rσ, " (expected: ", max, ")"));
       return false;
     }
   }
@@ -329,16 +328,16 @@ public:
   struct has_binApplicabilityChecks : std::false_type {};
   template <typename T>
   struct has_binApplicabilityChecks<T, 
-    std::void_t<decltype(std::declval<T>().binApplicabilityChecks(std::declval<Rhs const&>(), std::declval<Lhs const&>()))>> : std::true_type {};
+    std::void_t<decltype(std::declval<T const&>().binApplicabilityChecks(std::declval<Lhs const&>(), std::declval<Rhs const&>()))>> : std::true_type {};
 
 
   template<class R, class Lhs, class Rhs, 
-    std::enable_if_t< has_atomicTermMaximality<R>::value, bool> = true>
+    std::enable_if_t< has_binApplicabilityChecks<R>::value, bool> = true>
   static auto binApplicabilityChecks(R const& rule, Lhs const& lhs, Rhs const& rhs) 
-  { return ApplicabilityCheck::Constant<true>{}; }
+  { return rule.binApplicabilityChecks(lhs,rhs); }
 
   template<class R, class Lhs, class Rhs, 
-    std::enable_if_t<!has_atomicTermMaximality<R>::value, bool> = true>
+    std::enable_if_t<!has_binApplicabilityChecks<R>::value, bool> = true>
   static auto binApplicabilityChecks(R const& rule, Lhs const& lhs, Rhs const& rhs) 
   { return ApplicabilityCheck::Constant<true>{}; }
 
