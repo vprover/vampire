@@ -51,13 +51,16 @@ void attachToInner(Inner& inner, SaturationAlgorithm* salg) { }
 
 namespace ApplicabilityCheck {
 
-template<bool b>
+template<bool B>
 struct Constant {
   template<class Selected, class FailLogger>
-  bool checkBeforeUnif(Selected selected, Ordering* ord, FailLogger logger) { return b; }
+  bool checkBeforeUnif(Selected selected, Ordering* ord, FailLogger logger) { return B; }
 
   template<class Selected, class FailLogger>
-  bool checkAfterUnif(Selected selected, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) { return b; }
+  bool checkAfterUnif(Selected selected, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) { return B; }
+
+  friend std::ostream& operator<<(std::ostream& out, Constant const& self)
+  { return out << B; }
 };
 
 
@@ -86,6 +89,9 @@ struct TermMaximalityConstraint {
                  : AlascaOrderingUtils::atomGlobalMaxAfterUnif(ord, *selected, max, unif, varBank, log);
   }
 
+
+  friend std::ostream& operator<<(std::ostream& out, TermMaximalityConstraint const& self)
+  { return out << "term" << "(" << self.max << ", " << (self.local ? "local" : "global") << ")"; }
 };
 
 struct LiteralMaximalityConstraint {
@@ -106,10 +112,13 @@ struct LiteralMaximalityConstraint {
     return AlascaOrderingUtils::litMaxAfterUnif(ord, *selected, max, unif, varBank, 
              [&](auto msg) { logger(Output::cat("literal not maximal: ", msg)); });
   }
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralMaximalityConstraint const& self)
+  { return out << "literal" << "(" << self.max << ")"; }
 };
 
 
-template<unsigned n, class C>
+template<unsigned N, class C>
 struct PremiseN {
   C check;
   PremiseN(C check) : check(std::move(check)) {}
@@ -118,15 +127,18 @@ struct PremiseN {
 
   template<class Logger>
   static auto wrapLogger(Logger& logger) 
-  { return [&](auto msg) { logger(Output::cat("premise ", n, ": ", msg)); }; }
+  { return [&](auto msg) { logger(Output::cat("premise ", N, ": ", msg)); }; }
 
   template<class Tup, class FailLogger>
   bool checkBeforeUnif(Tup tup,  FailLogger logger) 
-  { return check.checkBeforeUnif(std::get<n>(tup), wrapLogger(logger)); }
+  { return check.checkBeforeUnif(std::get<N>(tup), wrapLogger(logger)); }
 
   template<class Tup, class FailLogger>
   bool checkAfterUnif(Tup tup, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) 
-  { return check.checkAfterUnif(std::get<n>(tup), ord, unif, wrapLogger(logger)); }
+  { return check.checkAfterUnif(std::get<N>(tup), ord, unif, wrapLogger(logger)); }
+
+  friend std::ostream& operator<<(std::ostream& out, PremiseN const& self)
+  { return out << "premise" << N << "(" << self.check << ")"; }
 };
 
 template<unsigned n, class C>
@@ -161,6 +173,9 @@ struct CmpLitLit {
       return false;
     }
   }
+
+  friend std::ostream& operator<<(std::ostream& out, CmpLitLit const& self)
+  { return out << "L" << L << " " << self.max << " L" << R; }
 };
 
 
@@ -175,7 +190,17 @@ struct BGSelected {
 
   template<class Selected, class FailLogger>
   bool checkAfterUnif(std::pair<Selected const*, unsigned> sel_bank, Ordering* ord, AbstractingUnifier& unif, FailLogger logger) 
-  { return sel_bank.first->isBGSelected(); }
+  { 
+    if (sel_bank.first->isBGSelected()) {
+      return true;
+    } else {
+      logger(Output::cat(*sel_bank.first, " is not BG-selected"));
+      return false;
+    }
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, BGSelected const& self)
+  { return out << "BG-selected"; }
 };
 
 template<class A, class B>
@@ -198,6 +223,9 @@ struct Or {
   { std::string lhsMsg;
     return lhs.checkAfterUnif(selected, ord, unif, [&](auto msg) { lhsMsg = Output::toString(msg); })
         || rhs.checkAfterUnif(selected, ord, unif, [&](auto msg) { logger(Output::cat(lhsMsg, " and ", msg)); }); }
+
+  friend std::ostream& operator<<(std::ostream& out, Or const& self)
+  { return out << "(" << self.lhs << " or " << self.rhs << ")"; }
 };
 
 template<class A, class B>
@@ -226,6 +254,9 @@ struct And {
   bool checkAfterUnif(Selected selected, Ordering* ord, AbstractingUnifier& unif, FailLogger logger)
   { return lhs.checkAfterUnif(selected, ord, unif, [&](auto msg) { logger(msg); })
         && rhs.checkAfterUnif(selected, ord, unif, [&](auto msg) { logger(msg); }); }
+
+  friend std::ostream& operator<<(std::ostream& out, And const& self)
+  { return out << "(" << self.lhs << " and " << self.rhs << ")"; }
 };
 
 template<class A, class B>
@@ -374,11 +405,13 @@ public:
     namespace Check = ApplicabilityCheck;
     auto prems = std::make_tuple(std::make_pair(&lhs, lhsVarBank),
                                  std::make_pair(&rhs, rhsVarBank));
-    return Check::all(
+    auto check = Check::all(
         Check::premiseN<0>(applicabilityChecks(lhs)),
         Check::premiseN<1>(applicabilityChecks(rhs)),
         binApplicabilityChecks(_rule, lhs, rhs)
-        ).checkAfterUnif(prems, _shared->ordering, unif, logger);
+        );
+    DBGE(check)
+    return check.checkAfterUnif(prems, _shared->ordering, unif, logger);
   }
 
   ClauseIterator generateClauses(Clause* premise) final override

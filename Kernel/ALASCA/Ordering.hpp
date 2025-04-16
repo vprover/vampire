@@ -133,7 +133,6 @@ struct AlascaOrderingUtils {
                   .all([&](auto t) { 
                       auto tσ = sigma(t.selectedAtom());
                       auto cmp = compareAtom(ord, sσ, tσ);
-                      // DBG(sσ, " ", cmp, " ", tσ)
                       auto r = sel == SelectionCriterion::NOT_LEQ  ? OrderingUtils::notLeq(cmp)
                              : sel == SelectionCriterion::NOT_LESS ? OrderingUtils::notLess(cmp)
                              : assertionViolation<bool>();
