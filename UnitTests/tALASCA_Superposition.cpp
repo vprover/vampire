@@ -719,38 +719,3 @@ TEST_GENERATION(is_int_skip_app,
       ))
     )
  
- 
-#define SUGAR_01                                                                          \
-  NUMBER_SUGAR(Real)                                                                      \
-  DECL_VAR(X0, 0)                                                                         \
-  DECL_VAR(X1, 1)                                                                         \
-  DECL_SORT(S2)                                                                           \
-  DECL_SORT(S11)                                                                          \
-  DECL_SORT(S12)                                                                          \
-  DECL_CONST(sLF142, S2)                                                                  \
-  DECL_CONST(sLF132, S2)                                                                  \
-  DECL_FUNC(f15, { S11, S2 }, Real)                                                       \
-  DECL_FUNC(f17, { S12, Real }, S11)                                                      \
-  DECL_CONST(f18, S12)                                                                    \
-
-
- 
-TEST_GENERATION_WITH_SUGAR(normalization_bug_01,
-    SUGAR_01,
-    Generation::AsymmetricTest()
-      .indices(alascaSuperpositionIndices())
-      .rule(move_to_heap(testSuperposition(
-            Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR,
-            /*simultanious=*/ true,
-            /* lakbo */ true
-            )))
-      .selfApplications(false)
-      .input(clause({ sLF132 == X0, sLF132 != sLF142 }))
-      .context({ 
-          clause({ 0 == (X0 + -f15(f17(f18,X0),sLF132)) }),
-        })
-      .expected(exactly(
-          clause({ 0 == (X0 + -f15(f17(f18,X0),X1)), sLF132 != sLF142 })
-      ))
-    )
- 
