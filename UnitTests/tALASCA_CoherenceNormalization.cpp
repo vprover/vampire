@@ -100,14 +100,34 @@ TEST_GENERATION(basic_fail01,
       ))
     )
 
-TEST_GENERATION(basic_fail02,
+TEST_GENERATION(basic_fail02a,
     Generation::SymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(1,1) + b  }) })
       .premiseRedundant(false)
       .expected(exactly(
-            clause({ 0 == -floor(b) + b })
+          /* nothing */
       ))
     )
+
+TEST_GENERATION(basic_fail02b,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ floor(b) == frac(1,1) + a  }) })
+      .premiseRedundant(false)
+      .expected(exactly(
+            clause({ 0 == -floor(a) + a })
+      ))
+    )
+
+
+TEST_GENERATION(basic_fail02c,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ floor(b) == frac(1,2) + a  }) })
+      .premiseRedundant(false)
+      .expected(exactly(
+            clause({ 0 == -floor(a + frac(1,2)) + a + frac(1,2) })
+      ))
+    )
+
 
 TEST_GENERATION(basic_fail03,
     Generation::SymmetricTest()
