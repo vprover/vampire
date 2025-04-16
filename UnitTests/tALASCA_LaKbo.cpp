@@ -714,8 +714,6 @@ TEST_FUN(lit_levels_non_ground) {
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Real)
   DECL_FUNC (f, {Real}, Real)
-  DECL_FUNC (g, {Real, Real}, Real)
-  DECL_PRED (p, {Real})
   DECL_CONST(a, Real)
   DECL_CONST(b, Real)
 
