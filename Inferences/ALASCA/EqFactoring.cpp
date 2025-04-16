@@ -14,6 +14,7 @@
  */
 
 #include "EqFactoring.hpp"
+#include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
@@ -56,7 +57,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   TIME_TRACE("alasca equality factoring application")
   DEBUG("============")
   DEBUG("l1: ", l1)
-  DEBUG("l2: ", l2)
 
 
   auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
@@ -99,20 +99,12 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
       uwa.isSome())
   
   auto sigma = [&](auto t) { return uwa->subs().apply(t, /* varbank */ 0); };
-  auto cnst = uwa->computeConstraintLiterals();
-
-  Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
-                      + cnst->size()); // <- Cnstσ
 
   auto L2σ = sigma(l2.literal());
   check_side_condition(
         "(s2 ≈ t2)σ /< (s1 ≈ t1 \\/ C)σ",
         l2.contextLiterals()
-          .all([&](auto L) {
-             auto Lσ = sigma(L);
-             concl.push(Lσ);
-             return _shared->notLess(L2σ, Lσ);
-           }))
+          .all([&](auto L) { return _shared->notLess(L2σ, sigma(L)); }))
 
   auto s1σ = sigma(s1);
   auto s2σ = sigma(s2);
@@ -122,15 +114,16 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ, t1σ))
   check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ, t1σ))
 
-
-  auto res = Literal::createEquality(false, t1σ, t2σ, srt);
-  concl.push(res);
-
-  // adding Cnst
-  concl.loadFromIterator(cnst->iterFifo());
-
   Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_EQ_FACTORING, l1.clause()));
-  auto out = Clause::fromStack(concl, inf);
+  auto lits = concatIters(
+      /* t1σ != t2σ */
+      iterItems(Literal::createEquality(false, t1σ, t2σ, srt)),
+      /* C \/ s1 ≈ t1 */
+      l2.contextLiterals()
+        .map([&](auto L) { return sigma(L); }),
+      arrayIter(uwa->computeConstraintLiterals()));
+
+  auto out = Clause::fromIterator(std::move(lits), inf);
   DEBUG("out: ", *out);
   return Option<Clause*>(out);
 }
@@ -141,16 +134,23 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
   TIME_TRACE("alasca equality factoring generate")
   DEBUG("in: ", *premise)
 
+  auto filterEq = [](SelectedEquality const& x) { 
+    auto atom = SelectedAtom(x);
+    return x.positive() && 
+      (atom.toSelectedAtomicTermItp().isNone() || !atom.toSelectedAtomicTermItp()->selectedAtomicTerm().isVar()); };
+
   auto selected = Lib::make_shared(
       _shared->selected(premise)
+      // TODO 2 remove unnecessary args here
         .flatMap([&](auto sel) { return SelectedEquality::iter(_shared->ordering, sel, SelectionCriterion::NOT_LESS, SelectionCriterion::NOT_LEQ); })
-        .filter([](auto& s) { return s.positive(); })
+        .filter(filterEq)
         .template collect<Stack>());
 
   auto rest = Lib::make_shared(
-      _shared->selected(premise)
+      range(0, premise->size())
+        .map([premise](auto i) { return __SelectedLiteral(premise, i, /* bgSelected */ false); })
         .flatMap([&](auto sel) { return SelectedEquality::iter(_shared->ordering, sel, SelectionCriterion::ANY, SelectionCriterion::NOT_LEQ); })
-        .filter([](auto& s) { return s.positive(); })
+        .filter(filterEq)
         .template collect<Stack>());
 
   return pvi(range(0, selected->size())

@@ -433,16 +433,20 @@ struct SkelOrd
   )
 
   using AnyNumeral = Coproduct<IntegerConstantType, RationalConstantType, RealConstantType>;
-  using Atom = std::tuple<TermList, unsigned , Sign>;
+  using Atom = std::tuple<TermList, unsigned>;
 
-  static unsigned lvl(AlascaPredicate p) {
+  static unsigned lvl(Sign sgn, AlascaPredicate p) {
+    ASS(sgn != Sign::Zero)
     switch(p) {
       case AlascaPredicate::EQ: return 0;
       case AlascaPredicate::GREATER:
       case AlascaPredicate::GREATER_EQ:
-                               return 1;
+                               return sgn == Sign::Zero ? 1 
+                                    : sgn == Sign::Pos ? 2 
+                                    : sgn == Sign::Neg ? 3
+                                    : assertionViolation<unsigned>();
       case AlascaPredicate::NEQ:
-                               return 2;
+                               return 4;
     } ASSERTION_VIOLATION
   }
 
@@ -451,6 +455,10 @@ struct SkelOrd
     RStack<Atom> out;
     RStack<TermList> todo;
     todo->push(t);
+    auto atom = [&](auto t, auto sgn) -> Atom {
+      return std::make_tuple(t, lvl(sgn, p));
+    };
+
     while (todo->isNonEmpty()) {
       auto t = todo->pop();
       if (asig(n).isAdd(t)) {
@@ -458,13 +466,13 @@ struct SkelOrd
         todo->push(t.term()->termArg(1));
 
       } else if (auto k = asig(n).tryNumeral(t)) {
-        out->push(std::make_tuple(n.one(), lvl(p), k->sign()));
+        out->push(atom(n.one(), k->sign()));
 
       } else if (auto k = asig(n).tryLinMul(t)) {
-        out->push(std::make_tuple(t.term()->termArg(0), lvl(p), k->sign()));
+        out->push(atom(t.term()->termArg(0), k->sign()));
 
       } else {
-        out->push(std::make_tuple(t, lvl(p), Sign::Pos));
+        out->push(atom(t, Sign::Pos));
       }
     }
     return MultiSet<Atom>::fromIterator(arrayIter(std::move(out)));
@@ -505,7 +513,7 @@ struct SkelOrd
       auto sym = l->isPositive() ? AlascaPredicate::EQ : AlascaPredicate::NEQ;
       return some(Atoms {
           .atoms = iterItems(0, 1)
-            .map([&](auto i) { return std::make_tuple(l->termArg(i), lvl(sym), Sign::Pos); })
+            .map([&](auto i) { return std::make_tuple(l->termArg(i), lvl(Sign::Pos, sym)); })
             .template collect<MultiSet>(),
             .numTerm = {} });
     } else {
@@ -554,25 +562,7 @@ struct SkelOrd
   Ordering::Result cmpAtom(Atom a1, Atom a2) const {
     return AlascaOrderingUtils::lexLazy(
             [&](){ return compare(std::get<0>(a1), std::get<0>(a2)); },
-            [&](){ return AlascaOrderingUtils::cmpN(std::get<1>(a1), std::get<1>(a2)); },
-            [&](){
-              return AlascaOrderingUtils::cmpSgn(std::get<2>(a1), std::get<2>(a2));
-              // auto& n1 = std::get<2>(a1);
-              // auto& n2 = std::get<2>(a2);
-              // if (!n1.isSome() &&  n2.isSome()) {
-              //   return Ordering::Result::LESS;
-              //
-              // } else if ( n1.isSome() && !n2.isSome()) {
-              //   return Ordering::Result::GREATER;
-              //
-              // } else if (n1.isSome() && n2.isSome()) {
-              //   return n1->applyWithIdx([&](auto& n1, auto N) { 
-              //       return AlascaOrderingUtils::cmpQ(n1, n2->unwrap<N.value>()); });
-              // } else {
-              //   ASS(!n1.isSome() && !n2.isSome())
-              //   return Ordering::Result::EQUAL;
-              // }
-            }
+            [&](){ return AlascaOrderingUtils::cmpN(std::get<1>(a1), std::get<1>(a2)); }
           );
   }
 

@@ -292,7 +292,6 @@ TEST_FUN(misc02) {
   check(ord, f(x + y), Greater, x);
 }
 
-
 TEST_FUN(tricky_01) {
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Real)
@@ -424,6 +423,18 @@ TEST_FUN(atoms_comparison_two_sorts) {
 
 }
 
+TEST_FUN(misc03) {
+
+  DECL_DEFAULT_VARS
+  ALASCA_SUGAR(Rat)
+  mkAlascaSyntaxSugar(RatTraits{});
+  DECL_CONST(a, Rat)
+  DECL_FUNC (g, {Rat, Rat}, Rat)
+  auto& ord = lakbo();
+
+  check(ord, g(a,a), Incomp , frac(-1,2) * g(x,y));
+}
+
 TEST_FUN(misc04) {
 
   DECL_DEFAULT_VARS
@@ -438,31 +449,19 @@ TEST_FUN(misc04) {
   check(ord, c, Greater, -floor(frac(1,2) * floor(b) + frac(1,2) * floor(a)) + -floor(frac(1,2) + frac(1,2) * floor(b) + frac(1,2) * floor(a)));
 }
 
-
-TEST_FUN(misc03) {
-
+TEST_FUN(misc05) {
   DECL_DEFAULT_VARS
-  ALASCA_SUGAR(Rat)
-  mkAlascaSyntaxSugar(RatTraits{});
-  DECL_CONST(a, Rat)
-  DECL_FUNC (g, {Rat, Rat}, Rat)
+  ALASCA_SUGAR(Int)
+  DECL_FUNC (f, {Int}, Int)
+  DECL_CONST(a, Int)
+  DECL_CONST(b, Int)
+  DECL_CONST(c, Int)
+
   auto& ord = lakbo();
 
-  check(ord, g(a,a), Incomp , frac(-1,2) * g(x,y));
+  check(ord, 0 == b + -3 * f(a), Less, 0 == c + 4 * f(a));
 }
 
-
-// TEST_FUN(bug01) {
-//
-//   DECL_DEFAULT_VARS
-//   ALASCA_SUGAR(Rat)
-//   mkAlascaSyntaxSugar(RatTraits{});
-//   DECL_CONST(a, Rat)
-//   DECL_FUNC (f, {Rat }, Rat)
-//   auto& ord = lakbo();
-//
-//   check(ord, f(a) + -f(a) > 0, Incomp, f(x) > 0)
-// }
 
 TEST_FUN(numerals) {
 
