@@ -706,7 +706,6 @@ TEST_FUN(lit_levels_non_ground) {
   ALASCA_SUGAR(Real)
   DECL_FUNC (f, {Real}, Real)
   DECL_CONST(a, Real)
-  DECL_CONST(b, Real)
 
   auto& ord = lakbo();
 
