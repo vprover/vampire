@@ -436,13 +436,12 @@ struct SkelOrd
   using Atom = std::tuple<TermList, unsigned>;
 
   static unsigned lvl(Sign sgn, AlascaPredicate p) {
-    ASS(sgn != Sign::Zero)
+    if (sgn == Sign::Zero) return 0;
     switch(p) {
-      case AlascaPredicate::EQ: return 0;
+      case AlascaPredicate::EQ: return 1;
       case AlascaPredicate::GREATER:
       case AlascaPredicate::GREATER_EQ:
-                               return sgn == Sign::Zero ? 1 
-                                    : sgn == Sign::Pos ? 2 
+                               return sgn == Sign::Pos ? 2 
                                     : sgn == Sign::Neg ? 3
                                     : assertionViolation<unsigned>();
       case AlascaPredicate::NEQ:
