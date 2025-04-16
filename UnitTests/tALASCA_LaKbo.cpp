@@ -468,11 +468,8 @@ TEST_FUN(misc05) {
 TEST_FUN(misc06) {
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Int)
-  DECL_FUNC (f, {Int}, Int)
-  DECL_FUNC (g, {Int, Int}, Int)
   DECL_CONST(a, Int)
   DECL_CONST(b, Int)
-  DECL_CONST(c, Int)
 
   auto& ord = lakbo();
 
@@ -483,11 +480,8 @@ TEST_FUN(misc06) {
 TEST_FUN(misc07) {
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Int)
-  DECL_FUNC (f, {Int}, Int)
-  DECL_FUNC (g, {Int, Int}, Int)
   DECL_CONST(a, Int)
   DECL_CONST(b, Int)
-  DECL_CONST(c, Int)
 
   auto& ord = lakbo();
 
@@ -692,10 +686,7 @@ TEST_FUN(lit_levels_1) {
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Real)
   DECL_FUNC (f, {Real}, Real)
-  DECL_FUNC (g, {Real, Real}, Real)
-  DECL_PRED (p, {Real})
   DECL_CONST(a, Real)
-  DECL_CONST(b, Real)
 
   auto& ord = lakbo();
 
