@@ -11,13 +11,15 @@
 #include "Kernel/ALASCA/State.hpp"
 #include "Kernel/ALASCA/Selection.hpp"
 #include "Kernel/QKbo.hpp"
+#include "Kernel/ALASCA/Ordering.hpp"
 
 namespace Kernel {
 
 #if VDEBUG
 std::shared_ptr<AlascaState> testAlascaState(Options::UnificationWithAbstraction uwa, std::shared_ptr<InequalityNormalizer> norm, Ordering* ordering, bool uwaFixedPointIteration, AlascaSelector sel) {
 
-  auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/* rand */false, /*qkbo*/ true), norm) : nullptr;
+  // auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/* rand */false, /*qkbo*/ true), norm) : nullptr;
+  auto qkbo = ordering == nullptr ? new LAKBO(KBO::testKBO(/* rand */false, /*qkbo*/ true)) : nullptr;
   auto& ord = ordering == nullptr ? *qkbo : *ordering;
   return AlascaState::create(norm, &ord, uwa, uwaFixedPointIteration, sel);
 }

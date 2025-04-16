@@ -386,7 +386,8 @@ TEST_GENERATION(tricky_uwa_01_one_interp,
     Generation::SymmetricTest()
     .rule(move_to_heap(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
       .inputs  ({    clause({     f(x) + f(f(x) + y) > 0  })    })
-      .expected(exactly( clause({ 2 * f(x) > 0, f(x) + y != x }) )))
+      .expected(exactly(anyOf( clause({ 2 * f(x      ) > 0, f(x) + y != x })
+                             , clause({ 2 * f(f(x) + y) > 0, f(x) + y != x })))))
 
 TEST_GENERATION(tricky_uwa_01,
     Generation::SymmetricTest()

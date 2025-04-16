@@ -98,3 +98,10 @@ TEST_GENERATION(basic05,
       .expected(exactly(
           clause({ f(f(2 * f(x)) - f(0)) + f(x) > 0 })
       )))
+
+TEST_GENERATION(uwa01,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({ f(g(f(x) + 1) - g(f(y) + 1)) > 0  }) })
+      .expected(exactly(
+          clause({ f(0) > 0, f(x) + 1 != f(y) + 1 })
+      )))

@@ -151,7 +151,7 @@ namespace Kernel {
    *   t{_summand} is selected
    */
   template<class NumTraits>
-  class SelectedAtomicTermItp 
+  class SelectedAtomicTermItp
     : public __SelectedLiteral
   {
     unsigned _summand;

@@ -25,6 +25,7 @@
 #include "Indexing/TermIndex.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/ALASCA.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/Output.hpp"
 
@@ -56,14 +57,15 @@ public:
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel) {
       return SelectedAtomicTermItpAny::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
+              .filter([](auto& x) { return !x.selectedAtomicTerm().isVar(); })
               .map([&]  (auto selected) { return Application(std::move(selected)); });
     }
 
-    static auto iter(AlascaState& shared, SelectedAtom const& sel) {
-      return iterTraits(sel.toSelectedAtomicTermItp()
-              .map([&]  (auto selected) { return Application(std::move(selected)); })
-              .intoIter());
-    }
+    // static auto iter(AlascaState& shared, SelectedAtom const& sel) {
+    //   return iterTraits(sel.toSelectedAtomicTermItp()
+    //           .map([&]  (auto selected) { return Application(std::move(selected)); })
+    //           .intoIter());
+    // }
 
     // TODO 2 depreacte
     static auto iter(AlascaState& shared, Clause* cl) 
@@ -71,15 +73,18 @@ public:
               .flatMap([&shared](auto selected) { return iter(shared, selected); }); }
     
     auto iterSecond(AlascaState& shared) {
-      return coproductIter(this->applyCo([&shared](auto self) {
+      return coproductIter(this->applyCo([shared](auto self) {
         auto t1 = self.selectedSummand();
         auto termIdx = self.termIdx();
         return range(0, self.alascaLiteral().term().nSummands())
            .dropNth(termIdx)
            .filter([termIdx](auto i) { return i < termIdx;  }) // <- symmetry breaking
-           .map([self](auto i) { return self.alascaLiteral().term().summandAt(i); })
-           .filterMap([&shared,t1](auto t2) {
-             return shared.unify(t1.atom(), t2.atom());
+           .filterMap([shared,self,t1](auto i) {
+             auto t2 = self.alascaLiteral().term().summandAt(i);
+             return someIf(/* no unshielded vars */ !t2.atom().isVar(),
+                 [&](){ return shared.unify(t1.atom(), t2.atom());
+                 }).flatten()
+                 .map([&](auto unif) { return std::make_tuple(i, std::move(unif)); });
            });
       }));
     }
@@ -88,6 +93,35 @@ public:
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
 
+  static Clause* applyRule(Application const& appl, unsigned i, AbstractingUnifier& unif) {
+    return appl.apply([&](auto self) {
+        auto n = self.numTraits();
+        auto lit = self.alascaLiteral();
+
+        auto s = self.selectedSummand().atom();
+        auto j = self.selectedSummand().numeral();
+        auto k = lit.term().summandAt(i).numeral();
+    Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_TERM_FACTORING, self.clause()));
+    return Clause::fromIterator(concatIters(
+
+          iterItems(
+            createLiteral<decltype(n)>(lit.symbol(), n.sum(
+                concatIters(
+                  iterItems(AlascaMonom<decltype(n)>(j + k , s)),
+                  lit.term().iterSummands()
+                    .dropNth(std::max(i, appl.termIdx()))
+                    .dropNth(std::min(i, appl.termIdx()))
+                  )
+                  .map([&](auto ti) -> TermList { return AlascaMonom<decltype(n)>(ti.numeral(), unif.subs().apply(ti.atom(), 0)).toTerm(); })
+            ))
+          ),
+          self.contextLiterals()
+             .map([&](auto l) { return unif.subs().apply(l, /* bank */ 0); }),
+          arrayIter(unif.computeConstraintLiterals())
+          ),inf);
+    });
+  }
+
   ClauseIterator generateClauses(Clause* premise) final override {
     return pvi(Application::iter(*_shared, premise)
         .inspect([](auto& appl) { DEBUG(0, "appl: ", appl); })
@@ -95,14 +129,10 @@ public:
           return sel.iterSecond(*_shared)
                     .inspect([](auto& unif) { DEBUG(0, "  unif: ", unif); })
                     .filter([=](auto& unif) { 
-                        return _shared->selector.postUnificationCheck(sel, /* varBank */ 0, unif, _shared->ordering, [](auto&& msg) { DEBUG(0, "  no result: ", msg) }); })
-                    .map([sel](auto unif) {
-                        Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_TERM_FACTORING, sel.clause()));
-                        return Clause::fromIterator(concatIters(
-                              sel.clause()->iterLits()
-                                 .map([&](auto l) { return unif.subs().apply(l, /* bank */ 0); }),
-                              arrayIter(unif.computeConstraintLiterals())
-                              ),inf);
+                        // TODO 2 remove this call and replace by DSL call
+                        return _shared->selector.postUnificationCheck(sel, /* varBank */ 0, std::get<1>(unif), _shared->ordering, [](auto&& msg) { DEBUG(0, "  no result: ", msg) }); })
+                    .map([sel](auto i_unif) {
+                        return applyRule(sel, std::get<0>(i_unif), std::get<1>(i_unif));
                     })
                     .inspect([&](auto& r) { DEBUG(0, "  result: ", *r) })
                     ;
