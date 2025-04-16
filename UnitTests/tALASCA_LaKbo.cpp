@@ -453,6 +453,7 @@ TEST_FUN(misc05) {
   DECL_DEFAULT_VARS
   ALASCA_SUGAR(Int)
   DECL_FUNC (f, {Int}, Int)
+  DECL_FUNC (g, {Int, Int}, Int)
   DECL_CONST(a, Int)
   DECL_CONST(b, Int)
   DECL_CONST(c, Int)
@@ -460,6 +461,38 @@ TEST_FUN(misc05) {
   auto& ord = lakbo();
 
   check(ord, 0 == b + -3 * f(a), Less, 0 == c + 4 * f(a));
+  check(ord, 0 == g(a,a), Less, g(a,a) == -f(a));
+}
+
+
+TEST_FUN(misc06) {
+  DECL_DEFAULT_VARS
+  ALASCA_SUGAR(Int)
+  DECL_FUNC (f, {Int}, Int)
+  DECL_FUNC (g, {Int, Int}, Int)
+  DECL_CONST(a, Int)
+  DECL_CONST(b, Int)
+  DECL_CONST(c, Int)
+
+  auto& ord = lakbo();
+
+  check(ord, a == b, Greater, 0 == a - b);
+  check(ord, a == b, Greater, a - b == 0);
+}
+
+TEST_FUN(misc07) {
+  DECL_DEFAULT_VARS
+  ALASCA_SUGAR(Int)
+  DECL_FUNC (f, {Int}, Int)
+  DECL_FUNC (g, {Int, Int}, Int)
+  DECL_CONST(a, Int)
+  DECL_CONST(b, Int)
+  DECL_CONST(c, Int)
+
+  auto& ord = lakbo();
+
+  check(ord, a == b, Greater, a - b == 0);
+  check(ord, a == b, Greater, 0 == a - b);
 }
 
 

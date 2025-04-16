@@ -449,11 +449,11 @@ struct SkelOrd
     } ASSERTION_VIOLATION
   }
 
-  template<class NumTraits>
-  static MultiSet<Atom> atoms(NumTraits n, TermList t, AlascaPredicate p) {
+  template<class NumTraits, class Iter>
+  static MultiSet<Atom> atoms(NumTraits n, Iter iter, AlascaPredicate p) {
     RStack<Atom> out;
     RStack<TermList> todo;
-    todo->push(t);
+    todo->loadFromIterator(std::move(iter));
     auto atom = [&](auto t, auto sgn) -> Atom {
       return std::make_tuple(t, lvl(sgn, p));
     };
@@ -479,7 +479,7 @@ struct SkelOrd
 
   struct Atoms {
     MultiSet<Atom> atoms;
-    Option<TermList> numTerm;
+    SmallArray<TermList, 2> numTerms;
   };
 
   Option<Atoms> atoms(Literal* l) const {
@@ -489,13 +489,18 @@ struct SkelOrd
         if (check(l)) { \
           ASS_EQ(l->termArg(1), n.zero()) \
           auto t = l->termArg(0); \
-          return some(Atoms { atoms(n, t, sym), some(t) }); \
+          return some(Atoms { atoms(n, iterItems(t), sym), SmallArray<TermList, 2>::fromItems(t) }); \
         } \
 
 #define TRY_EQ(sym, check) \
         if (check(l)) { \
-          auto t = l->termArg(1) == n.zero() ? l->termArg(0) : l->termArg(1); \
-          return some(Atoms { atoms(n, t, sym), some(t) }); \
+          auto t0 = l->termArg(1) == n.zero() ? l->termArg(0) : l->termArg(1); \
+          auto t1 = l->termArg(1) == n.zero() ? l->termArg(1) : l->termArg(0); \
+          if (t1 == n.zero()) { \
+            return some(Atoms { atoms(n, iterItems(t0), sym), SmallArray<TermList, 2>::fromItems(t1, t0) }); \
+          } else { \
+            return some(Atoms { atoms(n, iterItems(t1, t0), sym), SmallArray<TermList, 2>::fromItems(t1, t0) }); \
+          } \
         } \
 
         TRY_EQ(AlascaPredicate::EQ        , [&](auto l) { return n.isPosEq  (l); });
@@ -514,7 +519,7 @@ struct SkelOrd
           .atoms = iterItems(0, 1)
             .map([&](auto i) { return std::make_tuple(l->termArg(i), lvl(Sign::Pos, sym)); })
             .template collect<MultiSet>(),
-            .numTerm = {} });
+            .numTerms = SmallArray<TermList,2>::fromItems() });
     } else {
       return {};
     }
@@ -580,10 +585,11 @@ struct SkelOrd
       return AlascaOrderingUtils::lexLazy(
             [&](){ return OrderingUtils::mulExt(atoms1->atoms, atoms2->atoms, [&](auto l, auto r) { return cmpAtom(l, r); }); },
             [&](){ 
-              ASS_REP(atoms1->numTerm.isSome() == atoms1->numTerm.isSome(),
-                  Output::cat(atoms1->numTerm, " vs ", atoms1->numTerm))
-              return atoms1->numTerm.isSome() ? compare(*atoms1->numTerm, *atoms2->numTerm)
-                                              : Ordering::Result::EQUAL; 
+              ASS(atoms1->numTerms.size() == atoms2->numTerms.size())
+              return AlascaOrderingUtils::lexIter(
+                  arrayIter(atoms1->numTerms).zip(arrayIter(atoms2->numTerms))
+                  .map([this](auto ts) { return this->compare(ts.first, ts.second); })
+                  );
             },
             [&](){ return cmpPrec(l1, l2); }
             );
