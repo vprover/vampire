@@ -113,7 +113,6 @@ struct AlascaOrderingUtils {
         );
   }
 
-
   template<class Selected, class Logger, class Iter>
   static bool atomMaxAfterUnif(Ordering* ord, Selected const& atom, SelectionCriterion sel, AbstractingUnifier& unif, unsigned varBank, Logger logger, Iter iter) {
 
@@ -130,6 +129,7 @@ struct AlascaOrderingUtils {
 
     return iterTraits(std::move(iter))
                   .filter([&](auto& t) { return t != SelectedAtom(atom); })
+                  // .filter([&](auto& t) { return !isSame(t, atom); })
                   .all([&](auto t) { 
                       auto tσ = sigma(t.selectedAtom());
                       auto cmp = compareAtom(ord, sσ, tσ);

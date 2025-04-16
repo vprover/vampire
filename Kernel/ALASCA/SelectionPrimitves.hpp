@@ -387,7 +387,7 @@ namespace Kernel {
     explicit SelectedAtom(SelectedAtomicTerm self) : Coproduct(self) {}
     explicit SelectedAtom(SelectedAtomicTermItpAny self) : SelectedAtom(self.apply([](auto x) { return SelectedAtomicTerm(x); })) {}
 
-    explicit SelectedAtom(SelectedEquality self) : SelectedAtom(self.apply([](auto x) { return SelectedAtomicTerm(x); })) {}
+    // explicit SelectedAtom(SelectedEquality self) : SelectedAtom(self.apply([](auto x) { return SelectedAtomicTerm(x); })) {}
 
     operator __SelectedLiteral const&() const { return apply([](auto& x) -> __SelectedLiteral const& { return x; }); }
 
