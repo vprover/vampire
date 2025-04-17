@@ -384,7 +384,7 @@ namespace TypeList {
 
   template<class F, class As> using Apply = typename ApplyImpl<F, As>::type;
 
-  template<template<class> class F, class As> using ApplyT = Apply<ToTypeFn<F>, As>;
+  template<template<class...> class F, class As> using ApplyT = Apply<ToTypeFn<F>, As>;
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////// COMPILE TIME TESTS
