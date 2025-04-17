@@ -1261,15 +1261,15 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {
-    MainLoopResult::TerminationReason termReason =
-        isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
+    TerminationReason termReason =
+        isComplete() ? TerminationReason::SATISFIABLE : TerminationReason::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);
 
     // if (termReason == Statistics::REFUTATION_NOT_FOUND){
     //   Shell::UIHelper::outputSaturatedSet(cout, pvi(UnitList::Iterator(collectSaturatedSet())));
     // }
 
-    if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
+    if (termReason == TerminationReason::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
       res.saturatedSet = collectSaturatedSet();
 
       if (_splitter) {
