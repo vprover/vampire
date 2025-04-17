@@ -303,9 +303,15 @@ public:
 
     return pvi(concatIters(
       dropElementType(Lhs::iter(*_shared, selection)
-        .flatMap([=](auto lhs) { return _rhs->template find<VarBanks>(unif, lhs.key()); })),
+        .flatMap([=](auto lhs) { 
+          ASS_REP(unif->isEmpty(), *unif) 
+          return _rhs->template find<VarBanks>(unif, lhs.key()); 
+        })),
       dropElementType(Rhs::iter(*_shared, selection)
-        .flatMap([=](auto rhs) { return _lhs->template find<VarBanks>(unif, rhs.key()); }))
+        .flatMap([=](auto rhs) { 
+          ASS_REP(unif->isEmpty(), *unif)
+          return _lhs->template find<VarBanks>(unif, rhs.key()); 
+        }))
       ).store(std::move(unif_)));
   }
 

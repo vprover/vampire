@@ -642,13 +642,18 @@ public:
 
   explicit FlatteningIterator(Master master)
   : _master(std::move(master))
-  , _current(_master.hasNext() 
-        ? Option<Inner>(move_if_value<Inner>(_master.next()))
-        : Option<Inner>())
+  , _init(false)
+  , _current()
   { }
 
   bool hasNext()
   {
+    if (!_init) {
+      _init = true;
+      _current = _master.hasNext() 
+          ? Option<Inner>(move_if_value<Inner>(_master.next()))
+          : Option<Inner>();
+    }
     while (_current.isSome()) {
       if (_current->hasNext()) {
         return true;
@@ -665,12 +670,12 @@ public:
   inline
   ELEMENT_TYPE(FlatteningIterator) next()
   {
-    ASS(_current.isSome());
-    ASS(_current.unwrap().hasNext());
+    ALWAYS(hasNext())
     return move_if_value<OWN_ELEMENT_TYPE>(_current.unwrap().next());
   }
 private:
   Master _master;
+  bool _init;
   Option<Inner> _current;
 };
 

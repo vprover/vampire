@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include "Inferences/ALASCA/IntegerFourierMotzkin.hpp"
+#include "Inferences/BinaryResolution.hpp"
 #include "Kernel/ALASCA/Selection.hpp"
 #include "Kernel/LookaheadLiteralSelector.hpp"
 #include "Kernel/MaximalLiteralSelector.hpp"
@@ -16,6 +18,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Lib/STL.hpp"
 #include "Inferences/ALASCA/FourierMotzkin.hpp"
+#include "Inferences/ALASCA/Superposition.hpp"
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/AlascaTestUtils.hpp"
@@ -64,7 +67,7 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<FourierMotzkin>())
 // Basic tests
 //////////////////////////////////////
 
-template<class SelectorMode>
+template<class SelectorMode, class... Rules>
 auto asymSelectionTest() {
   auto s = testAlascaState(
       Options::UnificationWithAbstraction::ALASCA_MAIN,
@@ -73,7 +76,11 @@ auto asymSelectionTest() {
      /*uwaFixdPointIteration=*/ false,
      AlascaSelector::fromType<SelectorMode>());
 
-  auto* rule = move_to_heap(alascaSimplRule(s, FourierMotzkin(s), ALASCA::Normalization(s)));
+  auto rule = new CompositeSGI();
+  TypeList::List<Rules...>::forEach([&](auto token) {
+      rule->push(new TypeList::TokenType<decltype(token)>(s));
+  });
+  // auto* rule = move_to_heap(alascaSimplRule(s, FourierMotzkin(s), ALASCA::Normalization(s)));
   return Generation::AsymmetricTest()
       .rule(rule)
       .setup([=](auto& alg) { s->selector.setLookaheadInferenceEngine(rule); });
@@ -82,21 +89,21 @@ auto asymSelectionTest() {
 
 
 TEST_GENERATION(rnd_complete_01,
-    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>>()
+    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, FourierMotzkin>()
       .context ({ clause({ f(x) > 0, -a > 0   }) })
       .input   (  clause({ -f(a) > 0 }) )
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(rnd_complete_02,
-    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>>()
+    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, FourierMotzkin>()
       .context ({ clause({ f(x) > 0, -a > 0   }) })
       .input   (  clause({ -f(a) > 0, a > 0 }) )
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(rnd_complete_02a,
-    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>>()
+    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, FourierMotzkin>()
       .context ({ clause({ f(x) > 0, f(y) - f(a) > 0   }) })
       .input   (  clause({-f(b) > 0 }) )
       .expected(exactly( 
@@ -106,14 +113,14 @@ TEST_GENERATION(rnd_complete_02a,
     )
 // in this case the global maximality of the term f(x) does not hold, so no inference is applied
 TEST_GENERATION(rnd_complete_02b,
-    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>>()
+    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, FourierMotzkin>()
       .context  ({ clause({ f(x) > 0, f(x) - f(a) > 0   }) })
       .input   (  clause({-f(b) > 0 }) )
       .expected(exactly(  /* nothing */ ))
     )
 
 TEST_GENERATION(rnd_complete_03,
-    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>>()
+    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, FourierMotzkin>()
       .context ({ clause({ a - b > 0 }) })
       .input   (  clause({ b - a > 0 }) )
       .expected(exactly(
@@ -122,7 +129,7 @@ TEST_GENERATION(rnd_complete_03,
     )
 
 TEST_GENERATION(lookahead_01_complete,
-    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ true>>()
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ true>, FourierMotzkin>()
       .context ({ clause({ f(a) + a0 > 0 })
                ,  clause({ f(b) + a0 > 0 }) ,  clause({ f(b) + a1 > 0 }),  clause({ f(b) + a2 > 0 })  
                ,  clause({ f(c) + a0 > 0 }) ,  clause({ f(c) + a1 > 0 }) 
@@ -135,7 +142,7 @@ TEST_GENERATION(lookahead_01_complete,
 
 
 TEST_GENERATION(lookahead_01_incomplete,
-    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>>()
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>, FourierMotzkin>()
       .context ({ clause({ f(a) + a0 > 0 })
                ,  clause({ f(b) + a0 > 0 }) ,  clause({ f(b) + a1 > 0 }),  clause({ f(b) + a2 > 0 })  
                ,  clause({ f(c) + a0 > 0 }) ,  clause({ f(c) + a1 > 0 }) 
@@ -147,7 +154,7 @@ TEST_GENERATION(lookahead_01_incomplete,
       )
 
 TEST_GENERATION(lookahead_02_complete,
-    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ true>>()
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ true>, FourierMotzkin>()
       .context ({ clause({ -f(a) + a0 > 0 })
                ,  clause({ -f(b) + a0 > 0 }) ,  clause({ -f(b) + a1 > 0 }),  clause({ -f(b) + a2 > 0 })  
                ,  clause({ -f(c) + a0 > 0 }) ,  clause({ -f(c) + a1 > 0 }) 
@@ -160,7 +167,7 @@ TEST_GENERATION(lookahead_02_complete,
     )
 
 TEST_GENERATION(lookahead_02_incomplete,
-    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>>()
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>, FourierMotzkin>()
       .context ({ clause({ -f(a) + a0 > 0 })
                ,  clause({ -f(b) + a0 > 0 }) ,  clause({ -f(b) + a1 > 0 }),  clause({ -f(b) + a2 > 0 })  
                ,  clause({ -f(c) + a0 > 0 }) ,  clause({ -f(c) + a1 > 0 }) 
@@ -168,5 +175,61 @@ TEST_GENERATION(lookahead_02_incomplete,
       .input   (  clause({ f(a) > 0, f(b) > 0, f(c) > 0 }) )
       .expected(exactly(
                   clause({  f(b) > 0,  f(c) > 0, a0 > 0 }) 
+          ))
+    )
+
+TEST_GENERATION(lookahead_03,
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>, FourierMotzkin>()
+      .context ({ clause({ -f(a) + a0 > 0 })
+               ,  clause({ -g(b) + a0 > 0 }) ,  clause({ -g(b) + a1 > 0 }),  clause({ -g(b) + a2 > 0 })  
+               })
+      .input   (  clause({ f(x) > 0, g(y) > 0 }) )
+      .expected(exactly(
+                  clause({  g(x) > 0, a0 > 0 }) 
+          ))
+    )
+
+TEST_GENERATION(lookahead_04_with_sup,
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>, FourierMotzkin, ALASCA::Superposition>()
+      .context ({ clause({ -f(a) + a0 > 0 })
+               ,  clause({ -g(b) + a0 > 0 }) ,  clause({ -g(b) + a1 > 0 }),  clause({ -g(b) + a2 > 0 })  
+               })
+      .input   (  clause({ f(x) > 0, g(y) == 0 }) )
+      .expected(exactly(
+                  clause({  g(x) == 0, a0 > 0 }) 
+          ))
+    )
+
+TEST_GENERATION(lookahead_04_with_sup_2,
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>, FourierMotzkin, ALASCA::Superposition>()
+      .context ({ clause({ -f(a) + a0 > 0 }) ,  clause({ -f(b) + a0 > 0 })
+               ,  clause({ -g(b) + a0 > 0 }) ,  clause({ -g(b) + a1 > 0 }),  clause({ -g(b) + a2 > 0 })  
+               })
+      .input   (  clause({ f(x) > 0, g(y) == 0, f(a) == 0 }) )
+      .expected(exactly(
+                  clause({  f(x) > 0, g(y) == 0, a0 > 0 }) 
+          ))
+    )
+
+
+TEST_GENERATION(lookahead_04_no_sup,
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>, FourierMotzkin>()
+      .context ({ clause({ -f(a) + a0 > 0 })
+               ,  clause({ -g(b) + a0 > 0 }) ,  clause({ -g(b) + a1 > 0 }),  clause({ -g(b) + a2 > 0 })  
+               })
+      .input   (  clause({ f(x) > 0, g(y) == 0 }) )
+      .expected(exactly(
+          /* nothing */
+          ))
+    )
+
+TEST_GENERATION(lookahead_05,
+    asymSelectionTest<GenericLookaheadLiteralSelector</* complete */ false>, FourierMotzkin, IntegerFourierMotzkin<RatTraits>>()
+      .context ({ clause({ -f(a) + a0 > 0 })
+               ,  clause({ -g(b) + a0 > 0 }) ,  clause({ -g(b) + a1 > 0 }),  clause({ -g(b) + a2 > 0 })  
+               })
+      .input   (  clause({ f(x) > 0, g(y) > 0 }) )
+      .expected(exactly(
+                  clause({  g(x) > 0, a0 > 0 }) 
           ))
     )
