@@ -270,8 +270,7 @@ auto all(A1 a1, A2 a2, As... as)
 { return And(a1, all(a2, as...)); }
 
 } // namespace ApplicabilityCheck
-
-  
+ 
 template<class Rule>
 struct BinInf
 : public GeneratingInferenceEngine
@@ -285,7 +284,6 @@ private:
   Rule _rule;
   AlascaIndex<Lhs>* _lhs;
   AlascaIndex<Rhs>* _rhs;
-  AbstractingUnifier _lookaheadUnif; 
 public:
   USE_ALLOCATOR(BinInf);
 
@@ -295,21 +293,20 @@ public:
     , _rule(std::move(rule))
     , _lhs(nullptr)
     , _rhs(nullptr)
-    , _lookaheadUnif(AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF)))
   {  }
 
 
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   {
-    // TODO set retrieveSubst false in find
-    // TODO 3 test lookahead if the unifier is reset properly
-    ASS(_lookaheadUnif.subs().isEmpty())
+    auto unif_ = std::unique_ptr<AbstractingUnifier>(move_to_heap(AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF))));
+    auto* unif = unif_.get();
+
     return pvi(concatIters(
       dropElementType(Lhs::iter(*_shared, selection)
-        .flatMap([=](auto lhs) { return _rhs->template find<VarBanks>(&_lookaheadUnif, lhs.key()); })),
+        .flatMap([=](auto lhs) { return _rhs->template find<VarBanks>(unif, lhs.key()); })),
       dropElementType(Rhs::iter(*_shared, selection)
-        .flatMap([=](auto rhs) { return _lhs->template find<VarBanks>(&_lookaheadUnif, rhs.key()); }))
-    ));
+        .flatMap([=](auto rhs) { return _lhs->template find<VarBanks>(unif, rhs.key()); }))
+      ).store(std::move(unif_)));
   }
 
   void attach(SaturationAlgorithm* salg) final override
