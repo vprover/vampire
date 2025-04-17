@@ -256,7 +256,6 @@ public:
     bool next(Result& res, POStruct& pos);
 
   private:
-    POStruct initial;
     bool termNode;
     Traversal<NodeIterator,POStruct> traversal;
   };

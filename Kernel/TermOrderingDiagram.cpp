@@ -660,7 +660,6 @@ bool TermOrderingDiagram::NodeIterator::tryExtend(POStruct& po_struct, const Sta
 
 TermOrderingDiagram::AppliedNodeIterator::AppliedNodeIterator(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial)
   : termNode(node->tag==Node::T_TERM),
-    initial(initial),
     traversal(termNode ? createForSingleComparison(ord,
       AppliedTerm(node->lhs, appl, true).apply(),
       AppliedTerm(node->rhs, appl, true).apply()) : nullptr, appl, initial) {}
@@ -669,10 +668,8 @@ bool TermOrderingDiagram::AppliedNodeIterator::next(Result& res, POStruct& pos)
 {
   if (termNode) {
     Branch* b;
-    POStruct ext = initial;
-    if (traversal.next(b, ext)) {
+    if (traversal.next(b, pos)) {
       res = *static_cast<Result*>(b->node()->data);
-      pos = ext;
       return true;
     }
   }
