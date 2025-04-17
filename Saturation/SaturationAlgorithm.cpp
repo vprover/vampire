@@ -1371,6 +1371,12 @@ void SaturationAlgorithm::setGeneratingInferenceEngine(SimplifyingGeneratingInfe
   _generator->attach(this);
 }
 
+void SaturationAlgorithm::unsetGeneratingInferenceEngine()
+{
+  _generator->detach();
+  _generator.release();
+}
+
 /**
  * Assign an immediate simplifier object @b immediateSimplifier
  * to be used

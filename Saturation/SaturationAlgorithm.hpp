@@ -71,6 +71,7 @@ public:
   UnitList* collectSaturatedSet();
 
   void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
+  void unsetGeneratingInferenceEngine();
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }

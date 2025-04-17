@@ -306,7 +306,7 @@ public:
     alg.initIndexManager();
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.attach(&alg);
+    alg.setGeneratingInferenceEngine(&rule);
 
     auto& container =  *alg.getActiveClauseContainer();
 
@@ -360,8 +360,8 @@ public:
       container.remove(c);
     }
 
-    // // tear down saturation algorithm
-    rule.detach();
+    // tear down saturation algorithm
+    alg.unsetGeneratingInferenceEngine();
 
     Ordering::unsetGlobalOrdering();
   }
@@ -373,6 +373,7 @@ class SymmetricTest
   Option<SimplifyingGeneratingInference*> _rule;
   Stack<Clause*> _inputs;
   Option<StackMatcher> _expected;
+  std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   bool _premiseRedundant;
   bool _selfApplications;
 
@@ -398,6 +399,7 @@ public:
 
   __BUILDER_METHOD(Stack<Clause*>, inputs)
   __BUILDER_METHOD(StackMatcher, expected)
+  __BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   __BUILDER_METHOD(bool, premiseRedundant)
   __BUILDER_METHOD(bool, selfApplications)
   __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
@@ -426,6 +428,7 @@ public:
       .expected(_expected.unwrap())
       .premiseRedundant(_premiseRedundant)
       .selfApplications(_selfApplications)
+      .setup(_setup)
       .rule(rule)
       .run(simpl);
   }
