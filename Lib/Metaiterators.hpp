@@ -403,17 +403,17 @@ public:
   static_assert(std::is_same_v<ELEMENT_TYPE(It1), ELEMENT_TYPE(It2)>, "can only concat iterators with same element types");
 
   CatIterator(It1 it1, It2 it2)
-  	:_first(true), _it1(std::move(it1)), _it2(std::move(it2)) {}
+  	: _it1(std::move(it1)), _it2(std::move(it2)) {}
   bool hasNext()
   {
-    if(_first) {
-      if(_it1.hasNext()) {
+    if(_it1) {
+      if(_it1->hasNext()) {
 	return true;
       }
-      _first=false;
+      _it1.take();
     }
     return  _it2.hasNext();
-  };
+  }
   /**
    * Return the next value
    * @warning hasNext() must have been called before
@@ -421,11 +421,11 @@ public:
   OWN_ELEMENT_TYPE next()
   {
     ALWAYS(hasNext())
-    if(_first) {
+    if(_it1) {
       //_it1 contains the next value, as hasNext must have
       //been called before. (It would have updated the
       //_first value otherwise.)
-      return _it1.next();
+      return _it1->next();
     }
     return  _it2.next();
   };
@@ -436,18 +436,17 @@ public:
    * This function can be called only if both underlying iterators contain
    * the @b knowsSize() function.
    */
-  bool knowsSize() const { return _it1.knowsSize() && _it2.knowsSize(); }
+  bool knowsSize() const { return (_it1.isSome() ? _it1->knowsSize() : 1) && _it2.knowsSize(); }
   /**
    * Return the initial number of elements of this iterator
    *
    * This function can be called only if both underlying iterators contain
    * the @b size() function, and if the @b knowsSize() function returns true.
    */
-  size_t size() const { return _it1.size()+_it2.size(); }
+  size_t size() const { return (_it1.isSome() ? _it1->size() : 0) + _it2.size(); }
 private:
-  /** False if we have already iterated through the first iterator */
-  bool _first;
-  It1 _it1;
+  /** is none if we have already iterated through the first iterator */
+  Option<It1> _it1;
   It2 _it2;
 };
 
@@ -654,6 +653,7 @@ public:
       if (_current->hasNext()) {
         return true;
       } else {
+        _current.take();
         _current = _master.hasNext() 
           ? Option<Inner>(move_if_value<Inner>(_master.next())) 
           : Option<Inner>();
