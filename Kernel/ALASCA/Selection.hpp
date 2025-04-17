@@ -13,6 +13,7 @@
 #define __ALASCA_Selection__
 
 
+#include "Inferences/InferenceEngine.hpp"
 #include "Kernel/ALASCA/Ordering.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/LiteralSelectorOptions.hpp"
@@ -22,6 +23,7 @@ namespace Kernel {
     // TODO make options
     LiteralSelectors::SelectorMode _mode;
     bool _reversePolarity;
+    Inferences::SimplifyingGeneratingInference* _inf = nullptr;
 
     AlascaSelector(LiteralSelectors::SelectorMode mode, bool reversePolarity)
       : _mode(std::move(mode))
@@ -29,6 +31,8 @@ namespace Kernel {
 
     friend struct AlascaSelectorDispatch;
   public:
+
+    void setLookaheadInferenceEngine(Inferences::SimplifyingGeneratingInference* inf) { _inf = inf; }
 
     template<class LiteralSelector>
     static AlascaSelector fromType(bool reverseLcm = false)

@@ -289,7 +289,8 @@ public:
     _input = simpl.normalize(_input);
 
     // set up saturation algorithm
-    auto container = ActiveClauseContainer();
+
+    // auto container = ActiveClauseContainer();
 
     // init problem
     Problem p;
@@ -304,21 +305,20 @@ public:
       env.options->set(kv.first, kv.second);
     }
     MockedSaturationAlgorithm alg(p, *env.options);
+    alg.initIndexManager();
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.InferenceEngine::attach(&alg);
-    Stack<Indexing::Index*> indices;
-    for (auto i : _indices) {
-      indices.push(i());
-    }
+    rule.attach(&alg);
 
-    rule.setTestIndices(indices);
-    for (auto i : indices) {
-      i->attachContainer(&container);
-    }
+    auto& container =  *alg.getActiveClauseContainer();
+
+    auto contextClauses = [&]() { return concatIters(
+        arrayIter(_context).cloned(),
+        iterItems(_input)
+          .filter([&](auto&) { return _selfApplications; })); };
 
     // add the clauses to the index
-    for (auto c : _context) {
+    for (auto c : contextClauses()) {
       c->setStore(Clause::ACTIVE);
       container.add(c);
     }
@@ -333,11 +333,6 @@ public:
     }
 
     // run rule
-    if (_selfApplications) {
-      _input->setStore(Clause::ACTIVE);
-      container.add(_input);
-    }
-
     auto res = rule.generateSimplify(_input);
 
     // run checks
@@ -363,14 +358,12 @@ public:
     }
 
 
-    // add the clauses to the index
-    for (auto c : _context) {
-      // c->setStore(Clause::ACTIVE);
+    for (auto c : contextClauses()) {
       container.remove(c);
     }
 
     // // tear down saturation algorithm
-    rule.InferenceEngine::detach();
+    rule.detach();
 
     Ordering::unsetGlobalOrdering();
   }

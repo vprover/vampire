@@ -1422,6 +1422,17 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
   bwSimplifier->attach(this);
 }
 
+void SaturationAlgorithm::initIndexManager(IndexManager* indexMgr)
+{
+  if (indexMgr) {
+    _imgr = SmartPtr<IndexManager>(indexMgr, true);
+    indexMgr->setSaturationAlgorithm(this);
+  }
+  else {
+    _imgr = SmartPtr<IndexManager>(new IndexManager(this));
+  }
+}
+
 /**
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
@@ -1442,13 +1453,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   default:
     NOT_IMPLEMENTED;
   }
-  if (indexMgr) {
-    res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
-    indexMgr->setSaturationAlgorithm(res);
-  }
-  else {
-    res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
-  }
+  res->initIndexManager(indexMgr);
 
   if (opt.splitting()) {
     res->_splitter = new Splitter();
@@ -1582,6 +1587,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   auto ise = createISE(prb, opt, ordering, alascaTakesOver);
+  AlascaState* alascaState = nullptr;
   if (alascaTakesOver) {
     auto shared = Kernel::AlascaState::create(
         InequalityNormalizer::global(),
@@ -1643,6 +1649,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new ALASCA::Coherence<RealTraits>(shared));
     sgi->push(new ALASCA::FloorBounds<RatTraits>(shared));
     sgi->push(new ALASCA::FloorBounds<RealTraits>(shared));
+    alascaState = shared.get();
   }
 
 #if VZ3
@@ -1652,6 +1659,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
 
   res->setGeneratingInferenceEngine(sgi);
+  if (alascaState) {
+    alascaState->selector.setLookaheadInferenceEngine(sgi);
+  }
 
   res->setImmediateSimplificationEngine(ise);
 

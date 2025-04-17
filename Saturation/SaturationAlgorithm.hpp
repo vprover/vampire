@@ -64,10 +64,6 @@ public:
   SaturationAlgorithm(Problem& prb, const Options& opt);
   virtual ~SaturationAlgorithm();
 
-  auto lookaheadResultEstimation(__SelectedLiteral const& selection) const 
-  { return _generator->lookaheadResultEstimation(selection); }
-
-
   //the following two functions allow to run the saturation algorithm step by step.
   void initAlgorithmRun();
   void doOneAlgorithmStep();
@@ -110,6 +106,8 @@ public:
   ActiveClauseContainer* getActiveClauseContainer() { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
+  /** intit the index manager. if nullptr is passed it will be initialized with a fresh index manager */
+  void initIndexManager(IndexManager* imgr = nullptr);
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const ConditionalRedundancyHandler& condRedHandler() const { return *_conditionalRedundancyHandler; }

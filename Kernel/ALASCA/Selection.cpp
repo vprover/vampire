@@ -16,7 +16,6 @@
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/BestLiteralSelector.hpp"
 #include "Kernel/LiteralComparators.hpp"
-#include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MaximalLiteralSelector.hpp"
 #include "Kernel/OrderingUtils.hpp"
@@ -289,17 +288,15 @@ struct AlascaSelectorDispatch {
   template<bool complete>
   Stack<__SelectedLiteral> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Clause* cl, Ordering* ord) 
   {
-    // TODO
-
-    auto sa = Saturation::SaturationAlgorithm::tryGetInstance();
+    ASS_REP(self._inf, "inference engine must be set when using lookahead selection")
 
     RStack<__SelectedLiteral> leastResults;
     auto selectable = complete 
       ? iterSelectable(ord,cl).collectRStack()
       : iterAll(cl, /*bgSelected*/ true).collectRStack();
+
     auto gens = arrayIter(*selectable)
-      // .filter([](auto r) { return complete ? !*r.isProductive() : true; })
-      .map([&](auto& a) { return sa->lookaheadResultEstimation(a); })
+      .map([&](auto& a) { return self._inf->lookaheadResultEstimation(a); })
       .collectRStack();
 
     if (gens->isEmpty()) {
