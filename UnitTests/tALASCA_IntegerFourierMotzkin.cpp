@@ -111,7 +111,6 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<IntegerFourierMotzkin<RealTraits>>(te
 
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(f3(a,b,c)) }) })
@@ -122,7 +121,6 @@ TEST_GENERATION(basic01,
 
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(b) }) })
@@ -133,7 +131,6 @@ TEST_GENERATION(basic02,
 
 TEST_GENERATION(basic03,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ f3(a,b,c) == floor(f(f3(a,b,c))) }) })
@@ -144,7 +141,6 @@ TEST_GENERATION(basic03,
 
 TEST_GENERATION(basic04,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(2 * f3(a,b,c)) }) })
@@ -155,7 +151,6 @@ TEST_GENERATION(basic04,
 
 TEST_GENERATION(basic05,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(f3(a,b,c) / 2) }) })
@@ -166,7 +161,6 @@ TEST_GENERATION(basic05,
 
 TEST_GENERATION(basic06,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(f3(a,b,c) / 2 + frac(1,2)) }) })
@@ -177,7 +171,6 @@ TEST_GENERATION(basic06,
 
 TEST_GENERATION(basic07,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(f3(a,b,c) / 2 + c) }) })
@@ -189,7 +182,6 @@ TEST_GENERATION(basic07,
 
 TEST_GENERATION(bug01,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ b  + a  > 0   }) 
                ,  clause({ -b - a > 0   }) 
                ,  clause({ floor(c) == -a - b }) })
@@ -200,7 +192,6 @@ TEST_GENERATION(bug01,
 
 TEST_GENERATION(bug02,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ b  + a >= 0   }) 
                ,  clause({ -b - a >= 0   }) 
                ,  clause({ floor(c) == -a - b }) })
@@ -212,7 +203,6 @@ TEST_GENERATION(bug02,
 
 TEST_GENERATION(bug03,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ f3(a, y, z)  + a > 0   }) 
                ,  clause({ -f3(x, b, z) - a > 0   }) 
                ,  clause({ floor(-a - f3(x, y, c)) == -a - f3(x, y, c) }) })
@@ -224,7 +214,6 @@ TEST_GENERATION(bug03,
 
 TEST_GENERATION(bug04,
     Generation::SymmetricTest()
-      .indices(idxIntegerFourierMotzkin())
       .inputs  ({ clause({ num("2147483650") + a > 0 }) 
                ,  clause({  num("2147483649") + -a > 0  }) 
                ,  clause({  isInt(a) }) })

@@ -139,18 +139,11 @@ public:
         }));
   }
 
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {  }
-#endif
-
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { return pvi(dropElementType(Application::iter(*_shared, selection)
         .flatMap([=](auto sel) { return sel.iterSecond(*_shared); }))); }
-
 private:
-
   template<class NumTraits> Option<Clause*> applyRule(SelectedAtomicTermItp<NumTraits> const& l, SelectedAtomicTermItp<NumTraits>const& r);
-
   std::shared_ptr<AlascaState> _shared;
 };
 

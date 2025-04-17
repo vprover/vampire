@@ -349,10 +349,6 @@ struct CoherenceNormalization : public SimplifyingGeneratingInference {
           ),
         Inference(GeneratingInference1(InferenceRule::ALASCA_COHERENCE_NORMALIZATION, prem.clause())));
   }
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& i) final override { }
-#endif
 };
 
 #undef DEBUG

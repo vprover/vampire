@@ -96,10 +96,6 @@ public:
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
   { return lookeaheadResultDoesNotDependOnSelection(); }
 
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
-#endif
-
 private:
 
   static auto isOneSideBounded(AnyFoundVariable const& v)

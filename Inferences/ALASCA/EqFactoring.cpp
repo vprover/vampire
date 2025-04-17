@@ -174,15 +174,5 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
       }));
 }
 
-
-  
-
-#if VDEBUG
-void EqFactoring::setTestIndices(Stack<Indexing::Index*> const&) 
-{
-
-}
-#endif
-
 } // namespace ALASCA 
 } // namespace Inferences 

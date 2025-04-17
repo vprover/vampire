@@ -337,17 +337,6 @@ public:
     GeneratingInferenceEngine::detach();
   }
 
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
-  {
-    _lhs = (decltype(_lhs)) indices[0]; 
-    _lhs->setShared(_shared);
-    _rhs = (decltype(_rhs)) indices[1]; 
-    _rhs->setShared(_shared);
-  }
-#endif
-
   using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
 
   template <typename T, typename = void>
@@ -537,19 +526,6 @@ public:
     _salg->getIndexManager()->release(Premise2::indexType());
     GeneratingInferenceEngine::detach();
   }
-
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
-  {
-    _prem0 = (decltype(_prem0)) indices[0]; 
-    _prem1 = (decltype(_prem1)) indices[1]; 
-    _prem2 = (decltype(_prem2)) indices[2]; 
-    _prem0->setShared(_shared);
-    _prem1->setShared(_shared);
-    _prem2->setShared(_shared);
-  }
-#endif
 
   template<unsigned p>
   auto getIdx() { return std::get<p>(std::tie(_prem0, _prem1, _prem2)); }

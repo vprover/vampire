@@ -215,12 +215,6 @@ public:
   ClauseIterator generateClauses(Clause* premise) final override
   { return pvi(generateClauses(premise, 
       [this](auto& premise, auto... lits) { return this->resClause(premise, lits...); })); }
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
-  { }
-#endif
-    
 };
 
 } // namespace ALASCA 

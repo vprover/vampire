@@ -46,10 +46,6 @@ public:
 
   ClauseIterator generateClauses(Clause* premise) final override;
 
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {  }
-#endif
-
 private:
   std::shared_ptr<AlascaState> _shared;
 };

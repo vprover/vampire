@@ -52,12 +52,7 @@ public:
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { return pvi(dropElementType(range(0,1))); }
 
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
-#endif
-
 private:
-
   std::shared_ptr<AlascaState> _shared;
 };
 
