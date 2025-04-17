@@ -72,7 +72,8 @@ public:
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { 
     auto l = selection.literal();
-    auto cnt = l->termArg(0).isTerm() 
+    auto cnt = l->isEquality() 
+            && l->termArg(0).isTerm() 
             && l->termArg(1).isTerm() 
             && l->termArg(0).term()->functor() == l->termArg(1).term()->functor() 
         ? l->termArg(0).term()->numTermArguments()
