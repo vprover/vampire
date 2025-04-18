@@ -1074,9 +1074,9 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
   if (t1.isTerm()) {                                                                      \
     auto sort = SortHelper::getResultSort(t1.term.term());                                \
     if (sort.isVar()) {                                                                   \
-      sortUnif = some(UnificationConstraint(TermSpec(sort, t1.index),                     \
-                                            TermSpec(sig.sort(), t1.index),               \
-                                            TermSpec(AtomicSort::superSort(), t1.index)));\
+      return AbstractionResult(AbstractionOracle::UnifySortsFirst( \
+            TermSpec(sort, t1.index),                     \
+            TermSpec(sig.sort(), t1.index)));               \
     } else if (sort != sig.sort()) {                                                      \
       return AbstractionResult(NeverEqual{});                                             \
     }                                                                                     \
@@ -1408,6 +1408,10 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         ASS(absRes);
         if (absRes->is<AbstractionOracle::NeverEqual>()) {
           return false;
+
+        } else if (auto unifSorts = absRes->as<AbstractionOracle::UnifySortsFirst>()) {
+          toDo->push(std::make_pair(dt1, dt2));
+          toDo->push(std::make_pair(unifSorts->sort1, unifSorts->sort2));
 
         } else {
           ASS(absRes->is<AbstractionOracle::EqualIf>())

@@ -118,7 +118,16 @@ public:
     { return out << "NeverEqual"; } 
   };
 
-  using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
+  struct UnifySortsFirst {
+    TermSpec sort1;
+    TermSpec sort2;
+    UnifySortsFirst(TermSpec sort1, TermSpec sort2) : sort1(sort1), sort2(sort2) {}
+
+    friend std::ostream& operator<<(std::ostream& out, UnifySortsFirst const& self)
+    { return out << "UnifySortsFirst(" << self.sort1 << ", " << self.sort2 <<  ")"; }
+  };
+
+  using AbstractionResult = Coproduct<NeverEqual, EqualIf, UnifySortsFirst>;
 
   /** main function that either returns nothing, which means that unification with abstraction will 
    * shall not be applied for the given terms, or an AbstractionResult, which tells wether the given 
