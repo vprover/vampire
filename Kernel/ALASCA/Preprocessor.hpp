@@ -15,6 +15,7 @@
 #define __ALASCA_Preprocessor__
 
 #include "Kernel/ALASCA/Normalization.hpp"
+#include "Kernel/Connective.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
@@ -161,8 +162,6 @@ class AlascaPreprocessor
       // TODO 
 #define ASS_NOT(itp) ASS(!theory->isInterpretedFunction(f, itp))
       ASS_NOT(Theory::INT_SUCCESSOR)
-      ASS_NOT(Theory::INT_QUOTIENT_T)
-      ASS_NOT(Theory::INT_REMAINDER_T)
       ASS_NOT(Theory::INT_CEILING)
       ASS_NOT(Theory::INT_TRUNCATE)
       ASS_NOT(Theory::INT_ROUND)
@@ -332,23 +331,60 @@ class QuotientEPreproc
     if (t.term()->isSpecial()) return t;
     auto &trm = *t.term();
 
-    auto ite = [](auto c, auto x, auto y) {
-      return TermList(Term::createITE(new AtomicFormula(c), x, y, Z::sort()));
+    auto lit = [](auto c) { return new AtomicFormula(c); };
+    auto conj = [](auto... cs) { return new JunctionFormula(Connective::AND, FormulaList::fromIterator(iterItems<Formula*>(cs...))); };
+    auto iff = [](auto l, auto r) { return new BinaryFormula(Connective::IFF, l, r); };
+    auto neg = [](auto f) { return new NegatedFormula(f); };
+
+    auto ite = [](auto c, auto x, auto y) 
+    { return TermList(Term::createITE(c, x, y, Z::sort())); };
+
+    auto eq = [&](auto l, auto r) { return lit(Z::eq(true, l, r)); };
+    auto gt = [&](auto l, auto r) { return lit(Z::greater(true, l, r)); };
+
+    auto quotientE = [&](auto a, auto b) {
+      return ite(gt(b, Z::zero()), 
+              /* if ( (a > 0) == (b > 0) ) ==>  quotientF( a,b) */          Z::quotientF(a, b),
+              /* else                          -quotientF(-a,b) */ Z::minus(Z::quotientF(Z::minus(a), b)));
+    };    
+
+    auto quotientT = [&](auto a, auto b) {
+      return ite(iff(gt(a, Z::zero()), gt(b, Z::zero())), 
+               /* if ( (a > 0) == (b > 0) ) ==>  quotientF( a,b) */ Z::quotientF(a, b),
+               /* else                      ==> -quotientF(-a,b) */ Z::minus(Z::quotientF(Z::minus(a), b))
+      );
     };
-    auto transQuotientE = [&]() {
-      return ite(Z::greater(true, trm.termArg(1),  Z::constantTl(0)), Z::quotientF(trm.termArg(0), trm.termArg(1)),
-             ite(Z::less(true, trm.termArg(1), Z::constantTl(0)), Z::minus(Z::quotientF(Z::minus(trm.termArg(0)), trm.termArg(1))),
-              Z::quotientE(trm.termArg(0), Z::zero())
-      ));
+
+    auto rem = [&](auto quot) {
+      // quot(a,b) * b + rem(a,b) = a
+      // rem(a,b) = a - quot(a,b) * b
+      return [=](auto a, auto b) {
+        return Z::add(a, Z::minus(Z::mul(b, quot(a,b))));
+      };
     };
+
+    auto transQR = [&](auto quot, auto origF, auto a, auto b) {
+      return ite(eq(b, Z::zero()), origF(a, Z::zero())
+                                 , quot(a,b));
+    };
+    // auto transQuotientE = [&]() {
+    //   return ite(Z::greater(true, b,  Z::constantTl(0)), Z::quotientF(trm.termArg(0), b),
+    //          ite(Z::less(true, b, Z::constantTl(0)), Z::minus(Z::quotientF(Z::minus(trm.termArg(0)), trm.termArg(1))),
+    //           Z::quotientE(trm.termArg(0), Z::zero())
+    //   ));
+    // };
     if (Z::isQuotientE(t) && trm.termArg(1) != Z::zero()) {
       _addedITE = true;
-      return transQuotientE();
+      return transQR(quotientE, Z::quotientE, trm.termArg(0), trm.termArg(1));
     } else if (Z::isRemainderE(t)) {
       _addedITE = true;
-      // quot * arg[1] + rem = arg[0]
-      // rem = arg[0] - quot * arg[1]
-      return Z::add(trm.termArg(0), Z::minus(Z::mul(trm.termArg(1), transQuotientE())));
+      return transQR(rem(quotientE), Z::remainderE, trm.termArg(0), trm.termArg(1));
+    } else if (Z::isQuotientT(t) && trm.termArg(1) != Z::zero()) {
+      _addedITE = true;
+      return transQR(quotientT, Z::quotientT, trm.termArg(0), trm.termArg(1));
+    } else if (Z::isRemainderT(t)) {
+      _addedITE = true;
+      return transQR(rem(quotientT), Z::remainderT, trm.termArg(0), trm.termArg(1));
     } else {
       return t;
     }
