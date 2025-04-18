@@ -491,14 +491,14 @@ namespace Lib {
 
     BottomUpChildIter(AnyAlascaTermStruct t, Context);
 
-    static unsigned nChildren(TypedTermList const& self) { return self.isVar() ? 0 : self.term()->arity();  }
+    static unsigned nChildren(TypedTermList const& self) { return self.isVar() ? 0 : self.term()->numTermArguments();  }
     template<class NumTraits>
     static unsigned nChildren(AlascaTermItp<NumTraits> const& self) { return self.nSummands(); }
 
     unsigned nChildren(Context = {}) const { return _self.apply([](auto& x) { return nChildren(x); }); }
 
     static TypedTermList childAt(unsigned i, TypedTermList const& self)
-    { return TypedTermList(*self.term()->nthArgument(i), SortHelper::getArgSort(self.term(), i)); }
+    { return TypedTermList(self.term()->termArg(i), SortHelper::getTermArgSort(self.term(), i)); }
 
     template<class NumTraits>
     static TypedTermList childAt(unsigned i, AlascaTermItp<NumTraits> const& self)
