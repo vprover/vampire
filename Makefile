@@ -127,8 +127,8 @@ endif
 ################################################################
 
 ifeq ($(OS),Darwin)
-CXX = g++ # (clang++ currently crashing on Viras.cpp)
-CC = gcc  # (clang)
+CXX = clang++
+CC = clang
 else
 CXX = g++
 CC = gcc
