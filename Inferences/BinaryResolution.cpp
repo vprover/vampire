@@ -265,7 +265,7 @@ struct BinaryResolution::PotentialApplicationIters {
   auto iterAppls(Clause* premise, Literal* lit) {
     return iterItems(lit)
       .filter([](auto l) { return !l->isEquality(); })
-      .flatMap([this](auto lit) {
+      .flatMap([*this](auto lit) {
           // find query results for literal `lit`
           return iterTraits(self._index->getUwa(lit, /* complementary */ true,
                                            env.options->unificationWithAbstraction(),

@@ -128,7 +128,7 @@ struct Superposition::PotentialApplicationIters {
 
     // Get clauses with a literal whose complement unifies with the rewritable subterm,
     // returns a pair with the original pair and the unification result (includes substitution)
-      .flatMap([this,lit](TypedTermList subterm) {
+      .flatMap([*this,lit](TypedTermList subterm) {
          return iterTraits(self._lhsIndex->getUwa(subterm, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration()))
            .map([lit,subterm](auto r) { return std::make_pair(std::make_pair(lit, subterm), std::move(r)); });
       });
@@ -137,7 +137,7 @@ struct Superposition::PotentialApplicationIters {
 
   auto iterBwd(Clause* premise, Literal* lit) {
     return iterTraits(EqHelper::SuperpositionLHSIteratorFn(self._salg->getOrdering(), self._salg->getOptions())(lit))
-      .flatMap([this](pair<Literal*, TermList> pair) {
+      .flatMap([*this](pair<Literal*, TermList> pair) {
           return iterTraits(self._subtermIndex->getUwa(TypedTermList(pair.second, SortHelper::getEqualityArgumentSort(pair.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration()))
             .map([pair](auto r) { return std::make_pair(pair, std::move(r)); });
       });
