@@ -1587,10 +1587,10 @@ public:
   } // namespace Indexing
 
 
-#include "Indexing/SubstitutionTree.cpp"
-#include "Indexing/SubstitutionTree_Nodes.cpp"
-#include "Indexing/SubstitutionTree_FastGen.cpp"
-#include "Indexing/SubstitutionTree_FastInst.cpp"
+#include "Indexing/SubstitutionTree_impl.hpp"
+#include "Indexing/SubstitutionTree_Nodes.hpp"
+#include "Indexing/SubstitutionTree_FastGen.hpp"
+#include "Indexing/SubstitutionTree_FastInst.hpp"
 
 #undef DEBUG_ITER
 #undef DEBUG_INSERT

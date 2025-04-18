@@ -59,6 +59,16 @@ public:
 
   ClauseGenerationResult generateSimplify(Clause* premise);
 
+  /**
+   * Assuming cl is only built from theory material, this will use an SMT solver
+   * to check whether the given clause cl is sematically valid (in its theory).
+   *
+   * The function sets couldNotCheck to true, if it found symbols that it didn't understand.
+   * (In that case the answer is "true" even though we don't know.)
+   *
+   * The main use case for this function (for now) is a sanity check on PureTheoryDescendants.
+  */
+  static bool isTheoryLemma(Clause* cl, bool& couldNotCheck);
 private:
   struct SkolemizedLiterals {
     Stack<SATLiteral> lits;
@@ -67,7 +77,6 @@ private:
   };
   template<class IterLits> SkolemizedLiterals skolemize(IterLits lits);
   VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar);
-
 
   Option<Substitution> instantiateWithModel(SkolemizedLiterals skolemized);
   Option<Substitution> instantiateGeneralised(SkolemizedLiterals skolemized, unsigned freshVar);

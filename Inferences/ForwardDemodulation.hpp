@@ -41,7 +41,7 @@ public:
 protected:
   bool _preorderedOnly;
   bool _encompassing;
-  bool _precompiledComparison;
+  bool _useTermOrderingDiagrams;
   bool _skipNonequationalLiterals;
   DemodulationHelper _helper;
   DemodulationLHSIndex* _index;

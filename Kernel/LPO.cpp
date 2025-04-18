@@ -24,7 +24,7 @@
 
 #include "Term.hpp"
 #include "LPO.hpp"
-#include "LPOComparator.hpp"
+#include "TermOrderingDiagramLPO.hpp"
 #include "Signature.hpp"
 
 namespace Kernel {
@@ -247,9 +247,9 @@ Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, uns
   return GREATER;
 }
 
-OrderingComparatorUP LPO::createComparator() const
+TermOrderingDiagramUP LPO::createTermOrderingDiagram() const
 {
-  return make_unique<LPOComparator>(*this);
+  return make_unique<TermOrderingDiagramLPO>(*this);
 }
 
 void LPO::showConcrete(std::ostream&) const 

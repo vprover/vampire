@@ -333,9 +333,11 @@ namespace CoproductImpl {
     RawCoproduct() = default;
 #endif // VDEBUG
 
+    IGNORE_MAYBE_UNINITIALIZED(
     template<class F>
     ResultOf<F, Constant<0>> switchN(F f) const
     { return Lib::switchN<size>(_tag, std::move(f)); }
+    )
 
 #define CONST_POLYMORPIHIC(CONST)                                                         \
     template<class B>                                                                     \

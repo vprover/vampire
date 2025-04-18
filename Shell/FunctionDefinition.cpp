@@ -15,6 +15,7 @@
  */
 
 
+#include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
@@ -245,7 +246,9 @@ void FunctionDefinition::removeAllDefinitions(Problem& prb, bool inHigherOrder)
 void FunctionDefinition::reverse(Def* def){
   ASS(def->twoConstDef);
   Term* temp = def->lhs;
+  IGNORE_MAYBE_UNINITIALIZED(
   def->lhs = def->rhs;
+  )
   def->rhs = temp;
   def->fun = def->lhs->functor();
 }

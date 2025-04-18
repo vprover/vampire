@@ -16,8 +16,9 @@
 #define __GlobalSubsumption__
 
 #include "Forwards.hpp"
-#include "Indexing/GroundingIndex.hpp"
 #include "Shell/Options.hpp"
+#include "Kernel/Grounder.hpp"
+#include "SAT/SATSolver.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -31,33 +32,23 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace SAT;
 
-class GlobalSubsumption
-: public ForwardSimplificationEngine
+class GlobalSubsumption : public ForwardSimplificationEngine
 {
 public:
-  virtual const char* name() const final override { return "GlobalSubsumption"; }
-  GlobalSubsumption(const Options& opts) : _index(0),
-      _uprOnly(opts.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY),
-      _explicitMinim(opts.globalSubsumptionExplicitMinim()!=Options::GlobalSubsumptionExplicitMinim::OFF),
-      _randomizeMinim(opts.globalSubsumptionExplicitMinim()==Options::GlobalSubsumptionExplicitMinim::RANDOMIZED),
-      _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
-      _splitter(0) {}
-
-  /**
-   * The attach function must not be called when this constructor is used.
-   */
-  GlobalSubsumption(const Options& opts, GroundingIndex* idx) : GlobalSubsumption(opts) { _index = idx; }
+  GlobalSubsumption(const Options& opts);
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-  
+
   Clause* perform(Clause* cl, Stack<Unit*>& prems);
- 
-private:  
+  virtual const char* name() const override { return "GlobalSubsumption"; }
+
+private:
   struct Unit2ClFn;
-      
-  GroundingIndex* _index;
+
+  ScopedPtr<SATSolverWithAssumptions> _solver;
+  ScopedPtr<GlobalSubsumptionGrounder> _grounder;
 
   /**
    * Call the SAT solver using the cheap, unit-propagation-only calls.
@@ -81,36 +72,35 @@ private:
 
   /*
    * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.
-   * 
+   *
    * In fact, _splitter!=0 iff we want to do the FULL_MODEL option.
    */
   Splitter* _splitter;
-  
+
   /**
    * A map binding split levels to variables assigned to them in our SAT solver.
-   * 
+   *
    * (Should this be rather a part of _index?)
    */
   DHMap<unsigned, unsigned> _splits2vars;
-  
+
   /**
    * An inverse of the above map, for convenience.
-   */  
+   */
   DHMap<unsigned, unsigned> _vars2splits;
-      
-protected:  
-  unsigned splitLevelToVar(SplitLevel lev) {        
+
+protected:
+  unsigned splitLevelToVar(SplitLevel lev) {
     unsigned* pvar;
-              
+
     if(_splits2vars.getValuePtr(lev, pvar)) {
-      SATSolver& solver = _index->getSolver();
-      *pvar = solver.newVar();
+      *pvar = _solver->newVar();
       ALWAYS(_vars2splits.insert(*pvar,lev));
     }
-    
+
     return *pvar;
-  }  
-  
+  }
+
   bool isSplitLevelVar(unsigned var, SplitLevel& lev) {
     return _vars2splits.find(var,lev);
   }

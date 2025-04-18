@@ -20,6 +20,7 @@
 #include <utility>
 #include <functional>
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Lib/Recycled.hpp"
@@ -462,7 +463,7 @@ class MappingIterator
 {
 public:
   DECL_ELEMENT_TYPE(ResultType);
-  DEFAULT_CONSTRUCTORS(MappingIterator)
+  IGNORE_MAYBE_UNINITIALIZED(DEFAULT_CONSTRUCTORS(MappingIterator))
   explicit MappingIterator(Inner inner, Functor func)
   : _func(std::move(func)), _inner(std::move(inner)) {}
   inline bool hasNext() { return _inner.hasNext(); };

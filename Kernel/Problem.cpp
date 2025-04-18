@@ -380,6 +380,14 @@ bool Problem::hasAlascaArithmetic() const
   return _hasAlascaArithmetic.value();
 }
 
+bool Problem::hasAlascaMixedArithmetic() const
+{
+  return hasAlascaArithmetic() 
+    && forAnyNumTraits([&](auto n) {
+        return getProperty()->hasInterpretedOperation(n.floorI);
+    });
+}
+
 bool Problem::hasFOOL() const
 {
   if(!_hasFOOL.known()) { refreshProperty(); }

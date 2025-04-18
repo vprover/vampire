@@ -36,7 +36,7 @@
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
-#include "OrderingComparator.hpp"
+#include "TermOrderingDiagram.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
@@ -141,7 +141,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   }
 
   Ordering* out;
-  switch (env.options->termOrdering()) {
+  switch (opt.termOrdering()) {
   case Options::TermOrdering::KBO:
     out = new KBO(prb, opt);
     break;
@@ -261,9 +261,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-OrderingComparatorUP Ordering::createComparator() const
+TermOrderingDiagramUP Ordering::createTermOrderingDiagram() const
 {
-  return std::make_unique<OrderingComparator>(*this);
+  return std::make_unique<TermOrderingDiagram>(*this);
 }
 
 //////////////////////////////////////////////////

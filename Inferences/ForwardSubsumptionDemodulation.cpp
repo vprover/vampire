@@ -91,10 +91,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   // we use this boolean flag to disable the assertions broken in this case. 
   // everything is still sound but might become incomplete.
   // TODO investigate casese like this indepth and adjust demodulation appropriately
-  DEBUG_CODE(
-  static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
-                              || env.options->termOrdering () == Shell::Options::TermOrdering::LAKBO;
-      )
+  DEBUG_CODE(static bool isAlascaOrdering = ordering.isAlascaLiteralOrdering();)
 
   // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();

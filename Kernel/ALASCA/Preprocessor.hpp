@@ -26,7 +26,6 @@ namespace Kernel {
 
 class AlascaPreprocessor 
 {
-  std::shared_ptr<InequalityNormalizer> _norm;
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
   // all the functions func_R where func is an integer function
@@ -40,7 +39,7 @@ class AlascaPreprocessor
 
   Literal* integerConversion(Literal* l)
   {
-    auto lit = _norm->normalize(l).toLiteral();
+    auto lit = InequalityNormalizer::normalize(l).toLiteral();
     auto impl = [&]() { 
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
@@ -233,7 +232,7 @@ class AlascaPreprocessor
     auto change = false;
     Recycled<Stack<Literal*>> res;
     for (auto l_ : clause->iterLits()) {
-      auto l = _norm->normalize(l_).toLiteral();
+      auto l = InequalityNormalizer::normalize(l_).toLiteral();
       auto ll = integerConversion(l);
       change |= ll != l;
       if (!_useFloor) {
@@ -264,9 +263,8 @@ class AlascaPreprocessor
 public:
 
 
-  AlascaPreprocessor(std::shared_ptr<InequalityNormalizer> norm) 
-    : _norm(std::move(norm))
-    , _preds()
+  AlascaPreprocessor() 
+    : _preds()
     , _funcs() {}
 
   void integerConversion(Problem& prb)

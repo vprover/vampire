@@ -243,12 +243,14 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
       return true;
     case Shell::Options::UnificationWithAbstraction::OFF:
       return false;
-    case Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: 
-    case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN: 
-    case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: 
-    case Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP: 
-    case Shell::Options::UnificationWithAbstraction::FUNC_EXT: 
+    case Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT:
+    case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN:
+    case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR:
+    case Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP:
+    case Shell::Options::UnificationWithAbstraction::FUNC_EXT:
       ASSERTION_VIOLATION_REP(Output::cat(_mode, " should be handled in AbstractionOracle::tryAbstract"))
+    case Shell::Options::UnificationWithAbstraction::AUTO:
+      ASSERTION_VIOLATION_REP("UnificationWithAbstraction::AUTO should have been resolved to a concrete value by now")
   }
   ASSERTION_VIOLATION;
 }
@@ -1300,6 +1302,8 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId 
   auto anything = []() -> Option<Recycled<Stack<unsigned>>> { return {}; };
   auto nothing  = []() -> Option<Recycled<Stack<unsigned>>> { return some(recycledStack<unsigned>()); };
   switch (_uwa._mode) {
+    case Options::UnificationWithAbstraction::AUTO:
+      ASSERTION_VIOLATION_REP("UnificationWithAbstraction::AUTO should have been resolved to a concrete value by now")
     case Options::UnificationWithAbstraction::OFF: return some(recycledStack(f));
     case Options::UnificationWithAbstraction::INTERP_ONLY: return theory->isInterpretedFunction(f) ? anything() : some(recycledStack(f));
     case Options::UnificationWithAbstraction::ONE_INTERP: return anything();
@@ -1307,8 +1311,8 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId 
     case Options::UnificationWithAbstraction::ALL: return anything();
     case Options::UnificationWithAbstraction::GROUND: anything();
     case Options::UnificationWithAbstraction::FUNC_EXT: anything();
-    case Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: 
-    case Options::UnificationWithAbstraction::ALASCA_ONE_INTERP: 
+    case Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT:
+    case Options::UnificationWithAbstraction::ALASCA_ONE_INTERP:
     case Options::UnificationWithAbstraction::ALASCA_MAIN: return isAlascaInterpreted(f) ? anything() : some(recycledStack(f));
     case Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: return isAlascaiInterpreted(f) ? anything() : some(recycledStack(f));
   }
@@ -1317,7 +1321,7 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId 
 
 bool AbstractingUnifier::unify(TermList term1, int bank1, TermList term2, int bank2)
 {
-  if (_uwa._mode == Shell::Options::UnificationWithAbstraction::OFF) 
+  if (_uwa._mode == Shell::Options::UnificationWithAbstraction::OFF)
     return _subs->unify(term1, bank1, term2, bank2);
 
   bool progress;

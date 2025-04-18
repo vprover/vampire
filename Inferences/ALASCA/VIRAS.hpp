@@ -43,6 +43,9 @@ public:
   {  }
 
   Option<VirtualIterator<Clause*>> apply(Clause* premise);
+  template<class NumTraits>
+  Option<VirtualIterator<Clause*>> apply(NumTraits num, Clause* premise);
+  Option<VirtualIterator<Clause*>> apply(IntTraits num, Clause* premise) { /* TODO impl cooper quantifier elimination (?) */ return {}; }
 };
 
 

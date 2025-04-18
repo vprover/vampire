@@ -594,7 +594,12 @@ protected:
       }
       std::string axiomName;
       if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
-	      axiomName="unknown";
+        // Giles' ucore extraction code parses labels from smtlib files, let's try printing these too
+        if (!us->isClause() && us->getFormula()->hasLabel()) {
+          axiomName = us->getFormula()->getLabel();
+        } else {
+	        axiomName="unknown";
+        }
       }
       inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
     }
