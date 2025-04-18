@@ -118,13 +118,18 @@ public:
       staticFeatures.push_back(itS.next());
     }
 
-    (*_model.find_method("set_static_features"))({
+    auto method = _model.find_method("set_static_features");
+    if (method) {
+      (*method)({
       torch::from_blob(staticFeatures.data(), {(unsigned)staticFeatures.size()}, torch::TensorOptions().dtype(torch::kFloat32))
       });
 
-    // get _gageStaticTweak from "gage_static_tweak" field in the model
-    _gageStaticTweak = _model.attr("gage_static_tweak").toTensor();
-    _gweightStaticTweak = _model.attr("gweight_static_tweak").toTensor();
+      _gageStaticTweak = _model.attr("gage_static_tweak").toTensor();
+      _gweightStaticTweak = _model.attr("gweight_static_tweak").toTensor();
+    } else {
+      _gageStaticTweak = torch::zeros({}, torch::TensorOptions().dtype(torch::kFloat32));
+      _gweightStaticTweak = torch::zeros({}, torch::TensorOptions().dtype(torch::kFloat32));
+    }
   }
 
   void gnnNodeKind(const char* node_name, const torch::Tensor& node_features) {
