@@ -333,7 +333,7 @@ public:
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
-  static Clause* parseClauseFromString(const std::string& str);
+  static Unit* parseFormulaFromString(const std::string& str);
   /** Return the list of parsed units */
   UnitList* units() const { return _units.list(); }
   /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
