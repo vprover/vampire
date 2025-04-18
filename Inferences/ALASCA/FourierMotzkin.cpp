@@ -17,7 +17,7 @@
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#define DEBUG_FM(lvl, ...) if (lvl <= 0) DBG(__VA_ARGS__)
+#define DEBUG_FM(lvl, ...) if (lvl <= 0) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace ALASCA {
@@ -42,10 +42,9 @@ Clause* FourierMotzkinConf::applyRule_(
     bool tight = lhs.literal()->functor() == NumTraits::geqF()
               && rhs.literal()->functor() == NumTraits::geqF();
 
-    auto s1 = lhs.selectedAtomicTerm();
-    auto s2 = rhs.selectedAtomicTerm();
-
-    ASS(!NumTraits::isFractional() || (!s1.isVar() && !s2.isVar()))
+    // auto s1 = lhs.selectedAtomicTerm();
+    // auto s2 = rhs.selectedAtomicTerm();
+    // ASS(!NumTraits::isFractional() || (!s1.isVar() && !s2.isVar()))
 
     auto j = lhs.numeral();
     auto k = rhs.numeral().abs();
