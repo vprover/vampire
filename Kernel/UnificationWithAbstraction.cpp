@@ -225,7 +225,6 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
   // bool t2Interp = isInterpreted(t2.functor());
   bool bothNumbers = t1.isNumeral() && t2.isNumeral();
 
-  DBGE(unsigned(_mode))
   switch(_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
       if(!(t1.isTerm() && t2.isTerm())) return false;
@@ -548,9 +547,9 @@ AbstractionOracle::AbstractionResult alasca(AbstractingUnifier& au, TermSpec con
     auto sort = SortHelper::getResultSort(t1.term.term());                                \
     if (sort.isVar()) {                                                                   \
       return AbstractionResult(EqualIf().unify(                                           \
-              constraint(TermSpec(sort, t1.index), TermSpec(sig.sort(), t1.index)),\
+              constraint(TermSpec(sort, t1.index), TermSpec(sig.sort(), t1.index)),       \
               constraint(t1, t2)));                                                       \
-    } else if (sort != sig.sort()) {                                               \
+    } else if (sort != sig.sort()) {                                                      \
       return AbstractionResult(NeverEqual{});                                             \
     }                                                                                     \
   }                                                                                       \
@@ -1058,6 +1057,11 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
   TIME_TRACE("unification with abstraction ALASCA+F")
   AlascaSignature<NumTraits> sig;
   using EqualIf = AbstractionOracle::EqualIf;
+  Option<UnificationConstraint> sortUnif;
+  auto equalIf = [&]() {
+    return sortUnif.isSome() ? AbstractionOracle::EqualIf().constr(std::move(*sortUnif))
+                             : AbstractionOracle::EqualIf();
+  };
   using AbstractionResult = AbstractionOracle::AbstractionResult;
   using NeverEqual = AbstractionOracle::NeverEqual;
   using Numeral = typename NumTraits::ConstantType;
@@ -1070,13 +1074,14 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
   if (t1.isTerm()) {                                                                      \
     auto sort = SortHelper::getResultSort(t1.term.term());                                \
     if (sort.isVar()) {                                                                   \
-      return AbstractionResult(EqualIf().unify(                                           \
-              constraint(TermSpec(sort, t1.index), TermSpec(sig.sort(), t1.index)),\
-              constraint(t1, t2)));                                                       \
-    } else if (sort != sig.sort()) {                                               \
+      sortUnif = some(UnificationConstraint(TermSpec(sort, t1.index),                     \
+                                            TermSpec(sig.sort(), t1.index),               \
+                                            TermSpec(AtomicSort::superSort(), t1.index)));\
+    } else if (sort != sig.sort()) {                                                      \
       return AbstractionResult(NeverEqual{});                                             \
     }                                                                                     \
   }                                                                                       \
+
 
   CHECK_SORTS(t1, t2)
   CHECK_SORTS(t2, t1)
@@ -1086,7 +1091,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
   auto const diff = FUA::add(au, FUA::scan(au, t1), FUA::mul(au, Numeral(-1), FUA::scan(au, t2)));
 
   return optionIfThenElse(
-      [&]() -> Option<AbstractionResult> { return someIf(diff.size() == 0, []() { return AbstractionResult(EqualIf()); }); },
+      [&]() -> Option<AbstractionResult> { return someIf(diff.size() == 0, [&]() { return AbstractionResult(equalIf()); }); },
       [&]() -> Option<AbstractionResult> {
             if (auto v = arrayIter(*diff.ratVars)
                            .find([&](auto& v) { return !diff.isShielded(v.first) && !diff.isMixVar(v.first); })) {
@@ -1095,7 +1100,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                 // <->   x = (- t1/k - ... - tn/k)
                 auto& k = v->second;
                 auto& x = v->first;
-                return some(AbstractionResult(EqualIf().unify(constraint(
+                return some(AbstractionResult(equalIf().unify(constraint(
                         x, 
                         sum(diff.summands() 
                                  .filter([&](auto s) { /* filter out k x */ return s != *v; })
@@ -1116,7 +1121,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                   if (one.term == sig.one()) {
                     ASS(sig.isFloor(t.term))
                     if ((k / kt).isInt()) {
-                      return some(AbstractionResult(EqualIf().unify(constraint(t.termArg(0), TermSpec(sig.numeralTl(-(k / kt)), 0)))));
+                      return some(AbstractionResult(equalIf().unify(constraint(t.termArg(0), TermSpec(sig.numeralTl(-(k / kt)), 0)))));
                     } else {
                       return some(AbstractionResult(NeverEqual{}));
                     }
@@ -1135,14 +1140,14 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                 //   if (k0 != -k1) {
                 //     return {};
                 //   } else {
-                //     return some(AbstractionResult(EqualIf().unify(constraint(t0.termArg(0), t1.termArg(0)))));
+                //     return some(AbstractionResult(equalIf().unify(constraint(t0.termArg(0), t1.termArg(0)))));
                 //   }
                 //   // auto [one, k] = s0;
                 //   // auto [t, kt] = s1;
                 //   // if (sig.tryNumeral(one.term) == some(Numeral(1))) {
                 //   //   ASS(sig.isFloor(t.term))
                 //   //   if ((k / kt).isInt()) {
-                //   //     return some(AbstractionResult(EqualIf().unify(constraint(t.termArg(0), TermSpec(sig.numeralTl(-(k / kt)), 0)))));
+                //   //     return some(AbstractionResult(equalIf().unify(constraint(t.termArg(0), TermSpec(sig.numeralTl(-(k / kt)), 0)))));
                 //   //   } else {
                 //   //     return some(AbstractionResult(NeverEqual{}));
                 //   //   }
@@ -1162,13 +1167,13 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                 return {};
               }
             },
-            [&]() { return AbstractionResult(EqualIf().constr(constraint0(sum(diff.summands())))); }); 
+            [&]() { return AbstractionResult(equalIf().constr(constraint0(sum(diff.summands())))); }); 
       }); },
-      [&]() { return someIf(diff.hasTopVars(), [&]() { return AbstractionResult(EqualIf().constr(constraint0(sum(diff.summands())))); }); },
+      [&]() { return someIf(diff.hasTopVars(), [&]() { return AbstractionResult(equalIf().constr(constraint0(sum(diff.summands())))); }); },
       [&]() { 
           /* no top vars */
           if (auto buckets = diff.buckets()) {
-            auto equalIf = EqualIf();
+            auto eqIf = equalIf();
             for (auto b : *buckets) {
               if (b.summands().size() == 2) {
                 auto [t0_, k0, t1, k1] = tuple_flatten(b.summands().template collectTuple<2>());
@@ -1176,17 +1181,17 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
                 ASS_EQ(t0.functor(), t1.functor())
                 ASS_EQ(k0, -k1)
                 /* unwrap */
-                equalIf.unify().loadFromIterator(
+                eqIf.unify().loadFromIterator(
                     t0.allArgs().zip(t1.allArgs()).zip(range(0, t0.nAllArgs()))
                       .map([&](auto pair) { return UnificationConstraint(pair.first.first, pair.first.second, t0.anyArgSort(pair.second)); }));
               } else {
-                equalIf.constr().push(constraint(
+                eqIf.constr().push(constraint(
                   sum(b.positive()),
                   sum(b.negative().map([](auto t) { return std::make_pair(t.first, -t.second); }))
                 ));
               }
             }
-            return AbstractionResult(std::move(equalIf));
+            return AbstractionResult(std::move(eqIf));
           } else {
             return AbstractionResult(NeverEqual{});
           }
