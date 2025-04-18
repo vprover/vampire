@@ -488,7 +488,6 @@ private:
   AlascaIndex<Premise0>* _prem0;
   AlascaIndex<Premise1>* _prem1;
   AlascaIndex<Premise2>* _prem2;
-  AbstractingUnifier _lookaheadUnif; 
 public:
   USE_ALLOCATOR(TriInf);
 
@@ -499,7 +498,6 @@ public:
     , _prem0(nullptr)
     , _prem1(nullptr)
     , _prem2(nullptr)
-    , _lookaheadUnif(AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF)))
   {  }
 
   void attach(SaturationAlgorithm* salg) final override
@@ -539,21 +537,23 @@ public:
 
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   {
+    auto unif_ = std::unique_ptr<AbstractingUnifier>(move_to_heap(AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF))));
+    auto* unif = unif_.get();
 #define LOOKAHEAD_ITER(i, j, k)                                                           \
       dropElementType(Prem<i>::iter(*_shared, selection)                                  \
         .flatMap([=](auto pi) {                                                           \
-          return getIdx<j>()->template find<QueryBank<i, j>>(&_lookaheadUnif, pi.key())   \
-            .flatMap([=](auto pj) { return getIdx<k>()->template find<QueryBank<i, k>>(&_lookaheadUnif, pi.key()); })\
-          ; }))                                                                           \
+          ASS(unif->subs().isEmpty())                                                     \
+          return getIdx<j>()->template find<QueryBank<i, j>>(unif, pi.key())              \
+            .flatMap([=](auto pj)                                                         \
+              { return getIdx<k>()->template find<QueryBank<i, k>>(unif, pi.key()); });   \
+          }))                                                                             \
 
     // TODO set retrieveSubst false in find
-    // TODO 3 test lookahead if the unifier is reset properly
-    ASS(_lookaheadUnif.subs().isEmpty())
     return pvi(concatIters(
        LOOKAHEAD_ITER(0, 1, 2),
        LOOKAHEAD_ITER(1, 0, 2),
        LOOKAHEAD_ITER(2, 0, 1)
-    ));
+    ).store(std::move(unif_)));
   }
 
 
