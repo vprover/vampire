@@ -32,7 +32,7 @@ class AlascaPreprocessor
   // all the functions func_R where func is an integer function
   Set<unsigned> _intFuncThatWasTransformedToRealFunc;
   // TODO create option for this
-  bool _useFloor = false;
+  bool _useFloor = true;
 
   using Z = IntTraits;
   using R = RealTraits;
@@ -273,7 +273,7 @@ public:
     for (auto& unit : iterTraits(prb.units()->iter())) {
       unit = integerConversion(unit);
     }
-    if (!_useFloor) {
+    // if (!_useFloor) {
       for (auto& func : iterTraits(_funcs.iter())) {
         auto orig_sym = env.signature->getFunction(func.key());
         if (!theory->isInterpretedFunction(func.value()) 
@@ -290,7 +290,7 @@ public:
           }
         }
       }
-    }
+    // }
     
   }
 };
