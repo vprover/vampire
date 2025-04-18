@@ -302,6 +302,8 @@ public:
     for (const auto& kv : _options) {
       env.options->set(kv.first, kv.second);
     }
+    env.options->resolveAwayAutoValues0();
+    env.options->resolveAwayAutoValues(p);
     MockedSaturationAlgorithm alg(p, *env.options);
     alg.initIndexManager();
     _setup(alg);

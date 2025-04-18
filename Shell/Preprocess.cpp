@@ -74,8 +74,9 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
-  InequalityNormalizer::initGlobal(InequalityNormalizer());
-  AlascaPreprocessor alasca(InequalityNormalizer::global());
+  env.options->resolveAwayAutoValues0();
+
+  AlascaPreprocessor alasca;
   auto normalizeInterpreted = [&]() {
     if (env.options->alasca()) {
       /* alasca preprocessing is done in the saturation loop using immediate simplifications */

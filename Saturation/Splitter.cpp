@@ -34,7 +34,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
-#include "Shell/ConditionalRedundancyHandler.hpp"
+#include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Shuffling.hpp"
@@ -43,6 +43,7 @@
 #include "SAT/MinimizingSolver.hpp"
 #include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
+#include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -77,6 +78,9 @@ void SplittingBranchSelector::init()
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
+      break;
+    case Options::SatSolver::CADICAL:
+      _solver = new CadicalInterfacing(_parent.getOptions(),true);
       break;
 #if VZ3
     case Options::SatSolver::Z3:
@@ -1243,8 +1247,9 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
                  Formula::fromClause(temp));
 
     Inference def_u_i = NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION);
-    if (orig != nullptr) { //
-      def_u_i.setPureTheoryDescendant(orig->isPureTheoryDescendant());
+    if (orig != nullptr) {
+      // def_u_i.setPureTheoryDescendant(orig->isPureTheoryDescendant()); -- don't probapagate PureTheoryDescendant through avatar
+      // e.g. when a PureTheoryDescendant ~$less(X1,$sum(X1,1)) | ~$less(X0,X0) splits, the component ~$less(X1,$sum(X1,1)) is not longer a theory lemma
       def_u_i.setInductionDepth(orig->inference().inductionDepth());
     }
     def_u = new FormulaUnit(def_f,def_u_i);
@@ -1377,7 +1382,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Claus
  * @param lits The component to be named (as an array of literals)
  * @param compCl The clause that will be used to represent this component - to be filled
  *
- * @return the propositional name for the Clause (to be passed to the SAT solver) 
+ * @return the propositional name for the Clause (to be passed to the SAT solver)
  */
 SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
 {
@@ -1388,6 +1393,14 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
   }
   else {
     RSTAT_CTR_INC("ssat_new_components");
+
+    // adding a component should mean "recompute model" (even if we actually don't end up adding a clause)
+    // this is connected to the subtle case in handleNonSplittable
+    // and the fact we now maintian the _already_added filter and don't add a clause for second time there
+    // (the case where this might be needed is for a (conditional) ground clause
+    // swallowed up by handleNonSplittable, while the corresponding prop variable is already true in the model,
+    // because the complementary component was already introduced and considered in the past - requires aac=none to manifest)
+    _clausesAdded = true;
 
     if(size==1 && lits[0]->ground()) {
       res = addGroundComponent(lits[0], orig, compCl);
@@ -1511,13 +1524,13 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
 }
 
-void Splitter::addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e)
+void Splitter::addPartialRedundancyEntry(SplitSet* splits, PartialRedundancyEntry* e)
 {
   auto sit = splits->iter();
   while (sit.hasNext()) {
     SplitLevel slev=sit.next();
     e->obtain();
-    _db[slev]->conditionalRedundancyEntries.push(e);
+    _db[slev]->partialRedundancyEntries.push(e);
   }
 }
 
@@ -1540,7 +1553,7 @@ void Splitter::onNewClause(Clause* cl)
   // when using AVATAR, we could have performed
   // generating inferences on the clause previously,
   // so we need to reset the data.
-  ConditionalRedundancyHandler::destroyClauseData(cl);
+  PartialRedundancyHandler::destroyClauseData(cl);
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)
@@ -1748,10 +1761,10 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       sr->children.reset();
     }
 
-    while (sr->conditionalRedundancyEntries.isNonEmpty()) {
-      auto cr = sr->conditionalRedundancyEntries.pop();
-      cr->deactivate();
-      cr->release();
+    while (sr->partialRedundancyEntries.isNonEmpty()) {
+      auto pre = sr->partialRedundancyEntries.pop();
+      pre->deactivate();
+      pre->release();
     }
   }
 

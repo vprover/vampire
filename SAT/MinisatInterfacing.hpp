@@ -96,7 +96,7 @@ public:
     return (_assumptions.size() > 0);
   };
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
 
   /**
    * Use minisat and solving under assumptions to minimize the given set of premises (= unsat core extraction).

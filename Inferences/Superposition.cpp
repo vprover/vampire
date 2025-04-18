@@ -43,7 +43,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
-#include "Shell/ConditionalRedundancyHandler.hpp"
+#include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -367,9 +367,9 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  const auto& condRedHandler = _salg->condRedHandler();
+  const auto& parRedHandler = _salg->parRedHandler();
   if (!unifier->usesUwa()) {
-    if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+    if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
   }
@@ -406,7 +406,7 @@ Clause* Superposition::performSuperposition(
   }
 
   if (!unifier->usesUwa()) {
-    condRedHandler.insertSuperposition(
+    parRedHandler.insertSuperposition(
       eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 

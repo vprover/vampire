@@ -137,7 +137,7 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
   return out;
 }
 
-#include "Inferences/FunctionEvaluation.cpp"
+#include "Inferences/FunctionEvaluation.hpp"
 
 
 Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 

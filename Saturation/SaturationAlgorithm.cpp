@@ -102,7 +102,7 @@
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
-#include "Shell/ConditionalRedundancyHandler.hpp"
+#include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -224,7 +224,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
-    _generatedClauseCount(0),
+    _partialRedundancyHandler(), _generatedClauseCount(0),
     _activationLimit(0)
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
@@ -425,6 +425,13 @@ void SaturationAlgorithm::onPassiveSelected(Clause* c)
  */
 void SaturationAlgorithm::onNewClause(Clause* cl)
 {
+#if VDEBUG && VZ3
+  if (cl->isPureTheoryDescendant()){
+    bool couldNotCheck = false;
+    ASS_REP(TheoryInstAndSimp::isTheoryLemma(cl,couldNotCheck),cl->toString())
+  }
+#endif
+
   if (_splitter) {
     _splitter->onNewClause(cl);
   }
@@ -1163,7 +1170,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
-  _conditionalRedundancyHandler->checkEquations(cl);
+  _partialRedundancyHandler->checkEquations(cl);
 
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
@@ -1445,6 +1452,8 @@ void SaturationAlgorithm::initIndexManager(IndexManager* indexMgr)
  */
 SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager *indexMgr)
 {
+  bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
+
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
   case Shell::Options::SaturationAlgorithm::DISCOUNT:
@@ -1468,8 +1477,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create generating inference engine
   CompositeGIE *gie = new CompositeGIE();
 
-  bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
-
   if(opt.functionDefinitionIntroduction()) {
     gie->addFront(new DefinitionIntroduction);
   }
@@ -1485,7 +1492,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(res->_instantiation);
   }
 
-  if (prb.hasEquality()) {
+  bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  if (mayHaveEquality) {
     if (!alascaTakesOver) { // in alasca we have a special equality factoring rule
       gie->addFront(new EqualityFactoring());
     }
@@ -1553,7 +1562,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.injectivityReasoning()) {
     gie->addFront(new Injectivity());
   }
-  if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());
     }
@@ -1682,7 +1691,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create forward simplification engine
-  if (prb.hasEquality() && opt.innerRewriting()) {
+  if (mayHaveEquality && opt.innerRewriting()) {
     res->addForwardSimplifierToFront(new InnerRewriting());
   }
   if (opt.globalSubsumption()) {
@@ -1694,7 +1703,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   bool subDemodOrdOpt = /* enables ordering optimizations of subsumption demodulation rules */
             opt.termOrdering() == Shell::Options::TermOrdering::KBO
             || opt.termOrdering() == Shell::Options::TermOrdering::LPO;
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
@@ -1702,7 +1711,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false, subDemodOrdOpt));
     }
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     // TODO disable normal demodulation if alsca demodulation is enabled (?)
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
@@ -1735,7 +1744,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   // create backward simplification engine
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     switch (opt.backwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
@@ -1749,7 +1758,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
     }
   }
-  if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
+  
+  if (mayHaveEquality && opt.backwardSubsumptionDemodulation()) {
     res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(subDemodOrdOpt));
   }
 
@@ -1768,7 +1778,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl = new SymElOutput();
   }
 
-  res->_conditionalRedundancyHandler.reset(ConditionalRedundancyHandler::create(opt, &ordering, res->_splitter));
+  res->_partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, &ordering, res->_splitter));
 
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);
@@ -1783,7 +1793,9 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
 {
   CompositeISE* res =new CompositeISE();
 
-  if (prb.hasEquality() && opt.equationalTautologyRemoval()) {
+  bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  if (mayHaveEquality && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
   }
 
@@ -1828,10 +1840,10 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
   }
 
   // Only add if there are distinct groups
-  if (prb.hasEquality() && env.signature->hasDistinctGroups()) {
+  if (mayHaveEquality && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
-  if (prb.hasEquality() && env.signature->hasTermAlgebras()) {
+  if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraInferences()) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
@@ -1872,7 +1884,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       res->addFront(new PushUnaryMinus());
     }
   }
-  if (prb.hasEquality()) {
+  if (mayHaveEquality) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());

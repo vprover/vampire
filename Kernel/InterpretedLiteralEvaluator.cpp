@@ -999,17 +999,14 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
 
-  if(env.options->useACeval()){
-
-  // Special AC evaluators are added to be tried first for Plus and Multiply
-
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>()); 
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
-
+  if(env.options->useACeval() && !env.options->alasca()){
+    // Special AC evaluators are added to be tried first for Plus and Multiply
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
   }
 
   _funEvaluators.ensure(0);

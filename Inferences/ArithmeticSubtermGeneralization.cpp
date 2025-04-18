@@ -326,10 +326,10 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
 }
 
 
-#include "ArithmeticSubtermGeneralization/NumeralMultiplicationGeneralizationImpl.cpp"
-#include "ArithmeticSubtermGeneralization/AdditionGeneralizationImpl.cpp"
-#include "ArithmeticSubtermGeneralization/VariableMultiplicationGeneralizationImpl.cpp"
-#include "ArithmeticSubtermGeneralization/VariablePowerGeneralizationImpl.cpp"
+#include "ArithmeticSubtermGeneralization/NumeralMultiplicationGeneralizationImpl.hpp"
+#include "ArithmeticSubtermGeneralization/AdditionGeneralizationImpl.hpp"
+#include "ArithmeticSubtermGeneralization/VariableMultiplicationGeneralizationImpl.hpp"
+#include "ArithmeticSubtermGeneralization/VariablePowerGeneralizationImpl.hpp"
 
 SimplifyingGeneratingInference1::Result AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 

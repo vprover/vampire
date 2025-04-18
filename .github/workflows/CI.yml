@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout Tree
       uses: actions/checkout@v4
@@ -33,9 +33,12 @@ jobs:
       run: cmake .. -DCMAKE_BUILD_TYPE=Debug
       env:
         CXX: clang++
-    - name: Build
+    - name: Build Vampire
       working-directory: ${{runner.workspace}}/vampire/build
       run: make -j8
+    - name: Build Unit Tests
+      working-directory: ${{runner.workspace}}/vampire/build
+      run: make vtest -j8
     - name: Run Unit Tests
       working-directory: ${{runner.workspace}}/vampire/build
       run: ctest --output-on-failure

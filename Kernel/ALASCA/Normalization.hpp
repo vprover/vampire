@@ -268,14 +268,14 @@ namespace Kernel {
     AlascaTermItp<NumTraits> const& term() const
     { return _self.term(); }
 
-    /* 
-     * returns whether this is a strict inequality (i.e. >), 
-     * or a non-strict one (i.e. >=) 
+    /*
+     * returns whether this is a strict inequality (i.e. >),
+     * or a non-strict one (i.e. >=)
      * */
     bool strict() const
     { return _self.symbol() == AlascaPredicate::GREATER; }
 
-    friend std::ostream& operator<<(std::ostream& out, InequalityLiteral const& self) 
+    friend std::ostream& operator<<(std::ostream& out, InequalityLiteral const& self)
     { return out << self._self; }
 
     Literal* denormalize() const
@@ -292,18 +292,16 @@ namespace Kernel {
   static Option<InequalityLiteral<NumTraits>> tryInequalityLiteral(AlascaLiteralItp<NumTraits> lit) 
   { return someIf(lit.isInequality(), [&](){ return InequalityLiteral(std::move(lit)); }); }
 
-  class InequalityNormalizer 
+  class InequalityNormalizer
   {
     // TODO get rid of this global state
     static std::shared_ptr<InequalityNormalizer> globalNormalizer;
 
   public:
-    static std::shared_ptr<InequalityNormalizer> initGlobal(InequalityNormalizer norm) {
-      globalNormalizer = Lib::make_shared(std::move(norm));
-      return globalNormalizer;
-    }
     static std::shared_ptr<InequalityNormalizer> global() {
-      ASS(globalNormalizer)
+      // TODO get rid of this global state
+      static std::shared_ptr<InequalityNormalizer> globalNormalizer = Lib::make_shared(InequalityNormalizer());
+
       return globalNormalizer;
     }
 
@@ -314,8 +312,8 @@ namespace Kernel {
   private:
     template<class Numeral>
     static Numeral intDivide(Numeral gcd, Numeral toCorrect)
-    { 
-      auto out = toCorrect / gcd; 
+    {
+      auto out = toCorrect / gcd;
       ASS(out.isInt())
       return out;
     }
@@ -372,9 +370,9 @@ namespace Kernel {
         AlascaPredicate pred;
         TermList l, r; // <- we rewrite to l < r or l <= r
         switch(itp) {
-         
+
           case Interpretation::EQUAL:/* l == r or l != r */
-            if (SortHelper::getEqualityArgumentSort(lit) != ASig::sort()) 
+            if (SortHelper::getEqualityArgumentSort(lit) != ASig::sort())
               return {};
             if (ASig::isZero(*lit->nthArgument(0))) {
               l = *lit->nthArgument(0);
@@ -438,7 +436,7 @@ namespace Kernel {
         }
 
         /* l < r ==> r > l ==> r - l > 0 */
-        auto t = l == ASig::zero() ? r 
+        auto t = l == ASig::zero() ? r
                : r == ASig::zero() ? ASig::minus(l)
                : ASig::add(r, ASig::minus(l));
 
@@ -520,7 +518,7 @@ namespace Kernel {
     { 
       if (lhs.isVar() && rhs.isVar()) {
         return lhs == rhs;
-      } 
+      }
       TermList sort;
       if (lhs.isTerm() && rhs.isTerm()) {
         auto s1 = SortHelper::getResultSort(lhs.term());
@@ -529,7 +527,7 @@ namespace Kernel {
         if (s1 != s2) return false;
         else sort = s1;
       } else {
-        sort = lhs.isTerm() ? SortHelper::getResultSort(lhs.term()) 
+        sort = lhs.isTerm() ? SortHelper::getResultSort(lhs.term())
                             : SortHelper::getResultSort(rhs.term());
       }
       return equivalent(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
@@ -538,12 +536,12 @@ namespace Kernel {
     bool equivalent(Literal* lhs, Literal* rhs) 
     { return normalize(lhs) == normalize(rhs); }
 
-    bool equivalent(TypedTermList lhs, TypedTermList rhs) 
+    bool equivalent(TypedTermList lhs, TypedTermList rhs)
     { return normalize(lhs) == normalize(rhs); }
   };
 
 
 } // namespace Kernel
- 
+
 #endif // __ALASCA_Normalization__
 

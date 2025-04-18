@@ -149,7 +149,7 @@ bool PortfolioMode::searchForProof()
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
-    
+
     if (env.options->normalize()) { // set explicitly by CASC(SAT) and SMTCOMP modes
       Normalisation().normalise(*_prb);
     }
@@ -158,7 +158,7 @@ bool PortfolioMode::searchForProof()
     // the usual way is to have strategies request shuffling explicitly in the schedule strings
     if (env.options->shuffleInput()) {
       Shuffling().shuffle(*_prb);
-    } 
+    }
 
     //TheoryFinder cannot cope with polymorphic input
     if(!env.getMainProblem()->hasPolymorphicSym()){
@@ -195,7 +195,7 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
    */
 
   // a (temporary) helper lambda that will go away as soon as we have new schedules from spider
-  auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) { 
+  auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) {
     // Always try these
     addScheduleExtra(sOrig,sWithExtras,"si=on:rtra=on:rawr=on:rp=on"); // shuffling options
     addScheduleExtra(sOrig,sWithExtras,"sp=frequency");                // frequency sp; this is in casc19 but not smt18
@@ -210,8 +210,8 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
     // If contains integers, rationals and reals
     if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-      addScheduleExtra(sOrig,sWithExtras,"hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21)
-      addScheduleExtra(sOrig,sWithExtras,"gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+      addScheduleExtra(sOrig,sWithExtras,"gve=cautious:asg=cautious:canc=cautious:ev=cautious:pum=on"); // Sets a sensible set of Joe's arithmetic rules (TACAS-21)
+      addScheduleExtra(sOrig,sWithExtras,"gve=force:asg=force:canc=force:ev=force:pum=on");             // More drastic set of rules
       addScheduleExtra(sOrig,sWithExtras,"sos=theory:sstl=5");  // theory sos with non-default limit
       addScheduleExtra(sOrig,sWithExtras,"thsq=on");            // theory split queues, default
       addScheduleExtra(sOrig,sWithExtras,"thsq=on:thsqd=16");   // theory split queues, other ratio
@@ -589,7 +589,7 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
   ASS_GE(sliceTime,0);
   try
   {
-    Options opt = *env.options;
+    Options& opt = *env.options;
 
     // opt.randomSeed() would normally be inherited from the parent
     // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;
@@ -620,17 +620,15 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
 /**
  * Run a slice given by its options
  */
-void PortfolioMode::runSlice(Options& strategyOpt)
+void PortfolioMode::runSlice(Options& opt)
 {
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
 
-  Options opt = strategyOpt;
   //we have already performed the normalization (or don't care about it)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
-  *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
   if (outputAllowed()) {
     addCommentSignForSZS(cout) << opt.testId() << " on " << opt.problemName() <<
@@ -641,7 +639,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       ")" << endl;
   }
 
-  Timer::reinitialise(); // timer only when done talking (otherwise output may get mangled)
+  Timer::reinitialise(Timer::instructionLimitingInPlace()); // timer only when done talking (otherwise output may get mangled)
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 

@@ -485,9 +485,13 @@ TEST_GENERATION(test_misc_02,
       .premiseRedundant(false)
     )
 
-TEST_FUN(viras_internal) {
-  auto conf = VampireVirasConfig();
-  auto viras = viras::viras_test(conf);
-  auto success = viras.auto_test();
-  ASS(success)
-}
+#define TEST_INTERNAL(Num)                                                                \
+  TEST_FUN(viras_internal_ ## Num) {                                                      \
+    auto conf = VampireVirasConfig<Num ## Traits>();                                      \
+    auto viras = viras::viras_test(conf);                                                 \
+    auto success = viras.auto_test();                                                     \
+    ASS(success)                                                                          \
+  }                                                                                       \
+
+TEST_INTERNAL(Real)
+TEST_INTERNAL(Rat)

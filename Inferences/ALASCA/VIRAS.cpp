@@ -57,27 +57,29 @@ auto intoVampireIter(VirasIter i)
 
 struct Void {};
 
-template<class F>
+template<class NumTraits, class F>
 void traverseLiraVars(TermList self, F f) {
-  VampireVirasConfig{}.
+  VampireVirasConfig<NumTraits>{}.
     matchTerm(self,
       /* var v */ [&](auto y) { f(y); return Void {}; },
       /* numeral 1 */ [&]() { return Void {}; },
-      /* k * t */ [&](auto k, auto t)  { traverseLiraVars(t, f); return Void {}; },
+      /* k * t */ [&](auto k, auto t)  { traverseLiraVars<NumTraits>(t, f); return Void {}; },
       /* l + r */ [&](auto l, auto r)  {
-        traverseLiraVars(l, f);
-        traverseLiraVars(r, f);
+        traverseLiraVars<NumTraits>(l, f);
+        traverseLiraVars<NumTraits>(r, f);
         return Void {};
       },
-      /* floor */ [&](auto t) { traverseLiraVars(t, f); return Void {}; }
+      /* floor */ [&](auto t) { traverseLiraVars<NumTraits>(t, f); return Void {}; }
       );
 }
 
-Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(Clause* premise) {
+Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(Clause* premise) 
+{ return forAnyNumTraits([&](auto n) { return apply(n, premise); }); }
+
+template<class NumTraits>
+Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(NumTraits n, Clause* premise) {
   DEBUG(0, *premise)
-    // TODO for rationals ?
-  using NumTraits = RealTraits;
-  auto viras = viras::viras(VampireVirasConfig{});
+  auto viras = viras::viras(VampireVirasConfig<NumTraits>{});
   Recycled<DHSet<unsigned>> shieldedVars;
   Recycled<DHSet<unsigned>> candidateVars;
   Recycled<Stack<Literal*>> toElim;
@@ -108,7 +110,7 @@ Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(Clause* premi
       noteShielded(l);
     } else {
       toElim->push(l);
-      traverseLiraVars(norm->term().toTerm(),
+      traverseLiraVars<NumTraits>(norm->term().toTerm(),
           [&](TermList t) {
             if (t.isVar()) {
               candidateVars->insert(t.var());
@@ -126,7 +128,7 @@ Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(Clause* premi
   if (unshielded.isNone()) {
     return {};
   } else {
-    auto var = VampireVirasConfig::VarWrapper(TermList::var(*unshielded));
+    auto var = typename VampireVirasConfig<NumTraits>::VarWrapper(TermList::var(*unshielded));
     return some(pvi(
           intoVampireIter(viras.quantifier_elimination(var, &*toElim))
             .map([premise, otherLits = std::move(otherLits)](auto litIter) {

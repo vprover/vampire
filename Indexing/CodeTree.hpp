@@ -401,6 +401,7 @@ public:
 
   void optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp* removedOp);
 
+  template<bool checkRange>
   struct RemovingMatcher
   : public BaseMatcher
   {
@@ -437,6 +438,7 @@ public:
 
     /** Variable bindings */
     DArray<unsigned> bindings;
+    DHSet<unsigned> range;
 
     Stack<BTPoint> btStack;
     Stack<CodeOp*>* firstsInBlocks;

@@ -27,15 +27,17 @@ namespace Inferences {
 namespace ALASCA {
 
 
-  // TODO more num traits?
-struct VampireVirasConfig {
+// TODO more num traits?
+
+template<class NumTraits>
+struct VampireVirasConfig 
+{
   struct VarWrapper : public TermList {
     VarWrapper() : TermList() {}
     VarWrapper(TermList t) : TermList(t) {}
   };
 
-  // using NumTraits = Kernel::RealTraits;
-  using ASig     = Kernel::AlascaSignature<Kernel::RealTraits>;
+  using ASig     = Kernel::AlascaSignature<NumTraits>;
   using Literals = Stack<Kernel::Literal*> const*;
   using Literal  = Kernel::Literal*;
   using Var      = VarWrapper;
@@ -54,7 +56,7 @@ struct VampireVirasConfig {
 
   Numeral mul(Numeral l, Numeral r) { return l * r; }
   Numeral add(Numeral l, Numeral r) { return l + r; }
-  Numeral floor(Numeral t) { return t.floor(); }
+  Numeral floor(Numeral t) { return Numeral(t.floor()); }
 
   Term term(Numeral n) { return ASig::numeralTl(n); }
   Term term(Var v) { return v; }

@@ -201,6 +201,7 @@ void check_eval(Lit orig_, Lit expected_) {
 
 #define NUM_TEST(NUM, name, formula, expected)                                            \
     TEST_FUN(name ## _ ## NUM) {                                                          \
+      env.options->set("alasca", "off", /*longOpt*/ false);                               \
       NUMBER_SUGAR(NUM);                                                                  \
       mkAlascaSyntaxSugar(NUM ## Traits{});                                               \
       DECL_DEFAULT_VARS                                                                   \
