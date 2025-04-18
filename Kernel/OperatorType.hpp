@@ -150,7 +150,8 @@ public:
 
   OperatorKey* key() const { return _key; }
   unsigned numTypeArguments() const { return _typeArgsArity; }
-  unsigned arity() const { return _typeArgsArity + _key->length()-1; }
+  unsigned numTermArguments() const { return _key->length()-1; }
+  unsigned arity() const { return numTypeArguments() + numTermArguments(); }
 
   /**
    * These are the free variables of the sorts of the arguments (and the return type in case of functions) in the polymorphic case.
@@ -163,6 +164,8 @@ public:
     return TermList(idx, false);
   }
 
+  TermList termArg(unsigned idx) const { return (*_key)[idx]; }
+
    /**
     * In the polymorhpic case, the first _typeArgsArity arguments of a predicate / function symbol are actually sorts, so their sort is "superSort"
     *
@@ -173,7 +176,7 @@ public:
     if(idx < _typeArgsArity){
       return AtomicSort::superSort();
     }
-    return (*_key)[idx - _typeArgsArity];
+    return termArg(idx - numTypeArguments());
   }
 
   //TODO functions below do not hold for higher-order

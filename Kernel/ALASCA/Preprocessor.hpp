@@ -30,7 +30,7 @@ class AlascaPreprocessor
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
   // all the functions func_R where func is an integer function
-  Set<unsigned> _intFuncThatWsTransformedToRealFunc;
+  Set<unsigned> _intFuncThatWasTransformedToRealFunc;
   // TODO create option for this
   bool _useFloor = false;
 
@@ -112,7 +112,6 @@ class AlascaPreprocessor
 
   unsigned integerPredicateConversion(unsigned f)
   {
-
     return _preds.getOrInit(f, [&]() { 
       using Z = IntTraits;
       using R = RealTraits;
@@ -133,14 +132,16 @@ class AlascaPreprocessor
         return out;
       };
       Recycled<Stack<TermList>> arg_sorts;
-      for (auto i : range(0, ty->arity())) {
-        arg_sorts->push(intConv(ty->arg(i)));
+      for (auto i : range(0, ty->numTermArguments())) {
+        arg_sorts->push(intConv(ty->termArg(i)));
       }
+
       if (sorts_changed) {
         auto name = sym->name() + "_R";
         unsigned nf = env.signature->addFreshPredicate2(sym->arity(), name.c_str());
+
         auto nsym = env.signature->getPredicate(nf);
-        auto nty = OperatorType::getPredicateType(sym->arity(), arg_sorts->begin(), ty->numTypeArguments());
+        auto nty = OperatorType::getPredicateType(arg_sorts->size(), arg_sorts->begin(), ty->numTypeArguments());
         nsym->setType(nty);
         DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
         return nf;
@@ -172,31 +173,32 @@ class AlascaPreprocessor
       TRANSLATE_ARRAY(Function, fnType, Theory::ARRAY_STORE)
 
       auto sorts_changed = false;
+      auto sym = env.signature->getFunction(f);
+      auto ty = sym->fnType();
+
       auto intConv= [&](auto x) { 
         auto out = integerConversion(TypedTermList(x, AtomicSort::superSort())); 
         sorts_changed |= out != x;
         return out;
       };
-
-      auto sym = env.signature->getFunction(f);
-      auto ty = sym->fnType();
       Recycled<Stack<TermList>> sorts;
-      for (auto i : range(0, ty->arity())) {
-        sorts->push(intConv(ty->arg(i)));
+      for (auto i : range(0, ty->numTermArguments())) {
+        sorts->push(intConv(ty->termArg(i)));
       }
       auto res_sort = intConv(ty->result());
       if (sorts_changed) {
         auto name = sym->name() + "_R";
         unsigned nf = env.signature->addFreshFunction2(sym->arity(), name.c_str());
-        _intFuncThatWsTransformedToRealFunc.insert(nf);
+        _intFuncThatWasTransformedToRealFunc.insert(nf);
         auto nsym = env.signature->getFunction(nf);
-        auto nty = OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments());
+        auto nty = OperatorType::getFunctionType(sorts->size(), sorts->begin(), res_sort, ty->numTypeArguments());
         nsym->setType(nty);
         DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
         return nf;
       } else {
         return f;
       }
+
     });
   }
 
@@ -214,7 +216,7 @@ class AlascaPreprocessor
         return false;
       }
     } else {
-      return R::isFloor(t) || _intFuncThatWsTransformedToRealFunc.contains(t->functor());
+      return R::isFloor(t) || _intFuncThatWasTransformedToRealFunc.contains(t->functor());
     }
   }
 
@@ -367,18 +369,14 @@ class QuotientEPreproc
       return ite(eq(b, Z::zero()), origF(a, Z::zero())
                                  , quot(a,b));
     };
-    // auto transQuotientE = [&]() {
-    //   return ite(Z::greater(true, b,  Z::constantTl(0)), Z::quotientF(trm.termArg(0), b),
-    //          ite(Z::less(true, b, Z::constantTl(0)), Z::minus(Z::quotientF(Z::minus(trm.termArg(0)), trm.termArg(1))),
-    //           Z::quotientE(trm.termArg(0), Z::zero())
-    //   ));
-    // };
+
     if (Z::isQuotientE(t) && trm.termArg(1) != Z::zero()) {
       _addedITE = true;
       return transQR(quotientE, Z::quotientE, trm.termArg(0), trm.termArg(1));
     } else if (Z::isRemainderE(t)) {
       _addedITE = true;
       return transQR(rem(quotientE), Z::remainderE, trm.termArg(0), trm.termArg(1));
+
     } else if (Z::isQuotientT(t) && trm.termArg(1) != Z::zero()) {
       _addedITE = true;
       return transQR(quotientT, Z::quotientT, trm.termArg(0), trm.termArg(1));
