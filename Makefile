@@ -95,7 +95,7 @@ OS = $(shell uname)
 ifeq ($(OS),Darwin)
 INCLUDES := $(INCLUDES) -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include
 else
-INCLUDES := $(INCLUDES) -DUSE_C10D_GLOO -DUSE_DISTRIBUTED -DUSE_RPC -DUSE_TENSORPIPE -isystem /nfs/sudamar2/projects/vampire/libtorch/include -isystem /nfs/sudamar2/projects/vampire/libtorch/include/torch/csrc/api/include  -D_GLIBCXX_USE_CXX11_ABI=1   -D_GLIBCXX_USE_CXX11_ABI=1
+INCLUDES := $(INCLUDES) -DUSE_C10D_GLOO -DUSE_DISTRIBUTED -DUSE_RPC -DUSE_TENSORPIPE -isystem $(LIBTORCH)/include -isystem $(LIBTORCH)/include/torch/csrc/api/include  -D_GLIBCXX_USE_CXX11_ABI=1   -D_GLIBCXX_USE_CXX11_ABI=1
 endif
 
 Z3FLAG= -DVZ3=0
