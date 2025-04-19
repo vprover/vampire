@@ -150,6 +150,12 @@ private:
   TermList parseSort(LExpr* sExpr);
 
   /**
+   * Normalizes type variables in a stack of argument sorts and result sort.
+   * Returns the stack of type variables before normalization. 
+   */
+  TermStack normalizeFunctionSorts(TermStack& argSorts, TermList& resSort);
+
+  /**
    * Some built-in symbols represent functions with result of sort Bool.
    * They are listed here.
    */
@@ -197,6 +203,7 @@ private:
     TS_INT,
     TS_REAL,
     TS_ABS,
+    TS_AS,
     TS_DIV,
     TS_ITE,
     TS_LET,
@@ -245,7 +252,7 @@ private:
    *
    * Declaring a function just extends the signature.
    */
-  void readDeclareFun(const std::string& name, LExprList* iSorts, LExpr* oSort, unsigned taArity);
+  void readDeclareFun(const std::string& name, LExprList* iSorts, LExpr* oSort);
 
   /**
    * Handle "define-fun[-rec]" entry.
@@ -253,7 +260,7 @@ private:
    * Defining a function extends the signature and adds the new function's definition into _formulas.
    * Additionally, the "define-fun-rec" variant allows the defined function to be present inside the definition, allowing recursion.
    */
-  void readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive);
+  void readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive);
   /**
    * Handle "define-funs-rec" entry.
    *
@@ -278,8 +285,6 @@ private:
     }
 
     bool isSeparator() { return sort.isSpecialVar() && formula && !frm; }
-
-    bool isSharedTerm() { return !formula && (!trm.isTerm() || trm.term()->shared()); }
 
     /** Construct ParseResult from a formula */
     ParseResult(Formula* frm) : sort(AtomicSort::boolSort()), formula(true), frm(frm) {}
@@ -347,6 +352,13 @@ private:
    * but require a true function/predicate symbol by vampire )
    */
   Scopes _scopes;
+  /**
+   * Permitted by SMTLIB 2.7, users can declare sort parameters ranging over
+   * sort terms and use statements with prenex polymorphism, that is, these
+   * global sort parameters can appear in (almost) any statement, implicitly
+   * universally quantified. We collect them in this structure globally.
+   */
+  TermLookup _globalSortParamScope;
 
   /**
    * Stack of partial results used by parseTermOrFormula below.
@@ -370,11 +382,11 @@ private:
     // these two are intermediate cases for handling let
     PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
     PO_LET_END,            // takes LExpr* (the whole let expression again, why not)
-    PO_MATCH_CASE_START,   // takes LExpr*, a list containing the matched term, pattern, case
-    PO_MATCH_CASE_END,     // takes LExpr*, a list containing the matched term, pattern, case
+    PO_MATCH_CASE,         // takes LExpr*, a list containing the pattern and body
     PO_MATCH_END,          // takes LExpr* (the whole match again)
     PO_QUANT,              // takes LExpr* (the whole quantified expression again)
     PO_POP_LOOKUP,         // takes nothing
+    PO_AS_END,             // takes LExpr* (the whole as expression again)
   };
   /**
    * Main smtlib term parsing stack.
@@ -399,14 +411,11 @@ private:
 
   bool isTermAlgebraConstructor(const std::string& name);
   void parseMatchBegin(LExpr* exp);
-  void parseMatchCaseStart(LExpr* exp);
-  void parseMatchCaseEnd(LExpr* exp);
+  void parseMatchCase(LExpr* exp);
   void parseMatchEnd(LExpr* exp);
 
   void parseQuantBegin(LExpr* exp);
   void parseQuantEnd(LExpr* exp);
-
-  void parseParametric(LExpr* exp);
 
   void parseAnnotatedTerm(LExpr* exp);
 

@@ -82,7 +82,7 @@ public:
 
   static void normaliseArgSorts(VList* qVars, TermStack& argSorts);
   static void normaliseSort(VList* qVars, TermList& sort);
-  static void normaliseArgSorts(TermStack& qVars, TermStack& argSorts);
+  static void normaliseArgSorts(TermStack qVars, TermStack& argSorts);
   static void normaliseSort(TermStack qVars, TermList& sort);    
 
   static OperatorType* getType(Term const* t);
