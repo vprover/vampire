@@ -2045,7 +2045,9 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
     // Sort matching does not work well, but our sorts
     // are not dependent anyways, so just check equals
     if (isSort) {
-      ASS_EQ(type->arg(i),argSort);
+      if (type->arg(i)!=argSort) {
+        complainAboutArgShortageOrWrongSorts("user defined symbol",exp);
+      }
     } else {
       if (!MatchingUtils::matchTerms(type->arg(i), argSort, subst)) {
         complainAboutArgShortageOrWrongSorts("user defined symbol",exp);
