@@ -993,9 +993,6 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 
   ALWAYS(_declaredSymbols.insert(dtypeName, make_pair(srt,SymbolType::TYPECON)));
   env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(numTypeVars));
-  // for (unsigned i = 0; i < numTypeVars; i++) {
-  //   parSorts.push(TermList::var(i));
-  // }
 
   TermList taSort(AtomicSort::create(srt,parSorts.size(),parSorts.begin()));
 
@@ -1724,12 +1721,11 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
     USER_ERROR_EXPR("Match term '" + matchedTerm.toString() + "' is not of a term algebra type in expression '" + exp->toString() + "'");
   }
   for (unsigned int i = 0; i < ta->nConstructors(); i++) {
-    ctorFunctors.insert(make_pair(ta->constructor(i)->functor(), ta->constructor(i)));
+    ctorFunctors.insert({ ta->constructor(i)->functor(), ta->constructor(i) });
   }
 
   TermList varPattern;
   TermList varBody;
-  bool varUsed = false;
 
   // This holds the arguments to the $match
   TermStack matchArgs;
@@ -1738,30 +1734,21 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 
   LispListReader cRdr(lRdr.readList());
   while (cRdr.hasNext()) {
-    LispListReader pRdr(cRdr.readList());
-    /* LExpr *pattern =  */pRdr.readNext();
-    pRdr.readNext(); // body
-    pRdr.acceptEOL();
+    cRdr.readList();
     TermList body;
     TermList currSort = _results.pop().asTerm(body);
-    TermList pattern;
-    // if (pattern->isAtom() && pattern->str == UNDERSCORE) {
-    //   p = TermList::var(_nextVar++);
-    // }
-    // else {
-    ALWAYS(_results.pop().asTerm(pattern) == matchedTermSort);
-    // }
     ASS(sort == AtomicSort::defaultSort() || sort == currSort);
     sort = currSort;
+    TermList pattern;
+    ALWAYS(_results.pop().asTerm(pattern) == matchedTermSort);
 
     LOG2("CASE pattern ", pattern);
     LOG2("CASE body    ", body);
 
     if (pattern.isVar()) {
-      if (varUsed) {
+      if (varPattern.isNonEmpty()) {
         USER_ERROR_EXPR("Else branch cannot be used twice in match in '" + exp->toString() + "'");
       }
-      varUsed = true;
       varPattern = pattern;
       varBody = body;
     }
@@ -1777,10 +1764,10 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   lRdr.acceptEOL();
 
   // if there is a variable pattern, we add the missing ctors
-  if (varUsed) {
+  if (varPattern.isNonEmpty()) {
     TermStack argTerms;
     // the number of type arguments for all ctors is the arity of the type
-    unsigned numTypeArgs = env.signature->getTypeCon(matchedTermSort.term()->functor())->typeConType()->arity();
+    unsigned numTypeArgs = matchedTermSort.term()->arity();
     for (const auto &kv : ctorFunctors) {
       argTerms.reset();
       for (unsigned j = 0; j < kv.second->arity(); j++) {
@@ -1792,13 +1779,11 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
       }
       TermList pattern(Term::create(kv.second->functor(), argTerms.size(), argTerms.begin()));
       LOG2("CASE missing ", pattern);
-      if (varPattern.isVar()) {
-        Substitution subst;
-        subst.bind(varPattern.var(), pattern);
-        varBody = SubstHelper::apply(varBody, subst);
-      }
+      ASS(varPattern.isVar());
+      Substitution subst;
+      subst.bind(varPattern.var(), pattern);
       matchArgs.push(pattern);
-      matchArgs.push(varBody);
+      matchArgs.push(SubstHelper::apply(varBody, subst));
     }
   }
   else if (ctorFunctors.size() > 0) {
@@ -2074,6 +2059,13 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
   for (unsigned i = 0; i < numTypeArgs; i++) {
     auto typeVar = type->quantifiedVar(i).var();
     TermList typeVarS;
+    // We require terms to have unambiguous sorts, except for ctor
+    // terms in 'match' blocks which are disambiguated by the sort
+    // of the matched term. We collect type variable instantiations
+    // from the arguments recursively, which by assumption already have
+    // unambiguous sorts. If any variable remains free after this, it
+    // means the result sort contains some free variable, and the user
+    // must enclose it in an (as <term> <sort>) block.
     if (!subst._map.find(typeVar, typeVarS)) {
       USER_ERROR_EXPR("User defined term "+exp->toString()+" has ambiguous sort, use (as "+exp->toString()+" <sort>) block to disambiguate");
     }
