@@ -783,13 +783,12 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       addNewClause(simpedCl);
     }
     onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
-    return 0;
 #if VAMPIRE_CLAUSE_TRACING
-  } else {
       if (env.options->traceForward() == int(cl->number())) {
         std::cout << "deleted " << env.options->traceForward() << " by immediate simplification (many)" << std::endl;
       }
 #endif // VAMPIRE_CLAUSE_TRACING
+    return 0;
   }
 
   return cl;
