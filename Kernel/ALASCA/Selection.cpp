@@ -218,9 +218,32 @@ struct AlascaSelectorDispatch {
   }
 
   template<class NumTraits>
+  static bool hasUnshieldedVar(TermList term) {
+    auto sig = asig(NumTraits{});
+    if (term.isVar()) {
+      return true;
+    }
+    RStack<TermList> todo;
+    todo->push(term);
+    while (auto term = todo->tryPop()) {
+      if (term->isVar()) {
+        return true;
+      } else if (sig.isFloor(*term)) {
+        todo->push(term->term()->termArg(0));
+      } else if (sig.isLinMul(*term)) {
+        todo->push(term->term()->termArg(0));
+      } else if (sig.isAdd(*term)) {
+        todo->push(term->term()->termArg(0));
+        todo->push(term->term()->termArg(1));
+      }
+    }
+    return false;
+  }
+
+  template<class NumTraits>
   static bool selectable(SelectedAtomicTermItp<NumTraits> const& s) {
     // we cannot select unshielded vars
-    if (s.selectedSummand().atom().isVar()) 
+    if (hasUnshieldedVar<NumTraits>(s.selectedSummand().atom())) 
       return false;
     return s.literal()->isEquality() ? s.literal()->isNegative() 
                                      : s.selectedSummand().numeral() < 0;
