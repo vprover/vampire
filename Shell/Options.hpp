@@ -1960,6 +1960,7 @@ public:
 
   const std::string& neuralClauseEvaluationModel() const { return _neuralClauseEvaluationModel.actualValue; }
   const std::string& neuralActivityRecording() const { return _neuralActivityRecording.actualValue; }
+  const std::string& neuralActivityRecordingModel() const { return _neuralActivityRecordingModel.actualValue; }
   const std::string& neuralClauseEvaluationModelTweaks() const { return _neuralClauseEvaluationModelTweaks.actualValue; }
 
   bool neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
@@ -2708,6 +2709,7 @@ private:
   UnsignedOptionValue _numProblemFeatures;
   StringOptionValue _neuralClauseEvaluationModel;
   StringOptionValue _neuralActivityRecording;
+  StringOptionValue _neuralActivityRecordingModel;
 
   BoolOptionValue _neuralPassiveClauseContainer;
   FloatOptionValue _npccTemperature;

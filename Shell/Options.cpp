@@ -967,10 +967,13 @@ void Options::init()
     _lookup.insert(&_neuralActivityRecording);
     _neuralActivityRecording.tag(OptionTag::SATURATION);
     _neuralActivityRecording.onlyUsefulWith(ProperSaturationAlgorithm());
-    // we need a model loaded first, so that we can later save it
-    // however, the loaded model does not need to contain weights for guidance (could be "hollow")
-    // but at the moment we don't, but later could, support recordings from runs that were not guided (i.e., for runs with "-npcc off"); for imitation learning
-    _neuralPassiveClauseContainer.reliesOn(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
+    _neuralPassiveClauseContainer.reliesOn(Or(_neuralActivityRecordingModel.is(notEqual(std::string(""))), _neuralClauseEvaluationModel.is(notEqual(std::string("")))));
+
+    _neuralActivityRecordingModel = StringOptionValue("neural_activity_recording_model","narm","");
+    _neuralActivityRecordingModel.description="This torch script model is used to implement nar; if not specified, ncem will be used instead.";
+    _lookup.insert(&_neuralActivityRecordingModel);
+    _neuralActivityRecordingModel.tag(OptionTag::SATURATION);
+    _neuralActivityRecordingModel.reliesOn(_neuralActivityRecording.is(notEqual(std::string(""))));
 
     _neuralPassiveClauseContainer = BoolOptionValue("neural_passive_clause_container","npcc",false);
     _neuralPassiveClauseContainer.description="Use neural clause evaluation model as the sole basis for the main passive container.";
