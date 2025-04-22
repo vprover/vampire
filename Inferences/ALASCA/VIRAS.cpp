@@ -121,6 +121,7 @@ Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(NumTraits n, 
     }
   }
 
+
   auto unshielded = iterTraits(candidateVars->iterator())
     .filter([&](auto x) { return !shieldedVars->contains(x); })
     .tryNext();
