@@ -380,6 +380,7 @@ class QuotientEPreproc
     }
 
     auto numRes = forAnyNumTraits([&](auto n) -> Option<TermList> {
+
       if (n.isTruncate(t)) {
         auto arg = t.term()->termArg(0);
         return some(ite(lit(n.geq(true, arg, n.zero())),
@@ -387,6 +388,11 @@ class QuotientEPreproc
               n.minus(n.floor(n.minus(arg)))
         ));
       } else {
+
+      if (n.isCeiling(t)) {
+        return some(n.minus(n.floor(n.minus(t.term()->termArg(0)))));
+      } else {
+
         return {};
       }
 

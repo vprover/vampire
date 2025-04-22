@@ -266,6 +266,7 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , Mul  , SHORT, _MULTIPLY   , 2)                \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(floor, Floor, SHORT, _FLOOR, 1)                      \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(truncate, Truncate, SHORT, _TRUNCATE, 1)             \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(ceiling, Ceiling, SHORT, _CEILING, 1)             \
     __NUM_TRAITS_IF_FRAC(SHORT,                                                           \
       IMPL_NUM_TRAITS__INTERPRETED_FUN(div, Div, SHORT, _QUOTIENT, 2)                     \
       static ConstantType constant(int num, int den) { return ConstantType(num, den); }   \
