@@ -182,6 +182,7 @@ find_package(
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
     PATHS
+      ${Z3_DIR}
       ${CMAKE_SOURCE_DIR}/z3/build/
 )
 
