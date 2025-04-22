@@ -59,15 +59,15 @@ MainLoopResult MainLoop::run()
   }
   catch(RefutationFoundException& rs)
   {
-    return MainLoopResult(Statistics::REFUTATION, rs.refutation);
+    return MainLoopResult(TerminationReason::REFUTATION, rs.refutation);
   }
   catch(TimeLimitExceededException&)
   {
-    return MainLoopResult(Statistics::TIME_LIMIT);
+    return MainLoopResult(TerminationReason::TIME_LIMIT);
   }
   catch(ActivationLimitExceededException&)
   {
-    return MainLoopResult(Statistics::ACTIVATION_LIMIT);
+    return MainLoopResult(TerminationReason::ACTIVATION_LIMIT);
   }
   catch(MainLoopFinishedException& e)
   {

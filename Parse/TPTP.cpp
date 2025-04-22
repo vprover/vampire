@@ -74,16 +74,16 @@ UnitList* TPTP::parse(istream& input)
   return parser.units();
 }
 
-Clause* TPTP::parseClauseFromString(const std::string& str)
+Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input);
   parser._lastInputType = UnitInputType::AXIOM;
-  parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
+  parser._bools.push(true);     // true is what fof/tff normally pushes (but we start "from the middle")
   parser._strings.push("dummy_name");
   parser._states.push(END_FOF);  // this is what does the clause building
   parser.parseImpl(FORMULA);
-  return parser._units.list()->head()->asClause();
+  return parser._units.list()->head();
 }
 
 /**
