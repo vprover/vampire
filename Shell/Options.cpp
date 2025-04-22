@@ -962,6 +962,13 @@ void Options::init()
     _neuralClauseEvaluationModel.tag(OptionTag::SATURATION);
     _neuralClauseEvaluationModel.onlyUsefulWith(ProperSaturationAlgorithm());
 
+    _neuralClauseEvaluationModelGSD = UnsignedOptionValue("neural_clause_evaluation_model_generalized_search_direction","ncem_gsd",0);
+    _neuralClauseEvaluationModelGSD.description= "Generalized search direction model tweaks (will be ignored by the model, if not supported).";
+    _lookup.insert(&_neuralClauseEvaluationModelGSD);
+    _neuralClauseEvaluationModelGSD.setExperimental();
+    _neuralClauseEvaluationModelGSD.tag(OptionTag::SATURATION);
+    _neuralClauseEvaluationModelGSD.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
+
     _neuralActivityRecording = StringOptionValue("neural_activity_recording","nar","");
     _neuralActivityRecording.description="If non-empty, specifies a path where to save a torch object which data collected for training (from a successful run).";
     _lookup.insert(&_neuralActivityRecording);
@@ -989,13 +996,6 @@ void Options::init()
     _npccTemperature.onlyUsefulWith(_neuralPassiveClauseContainer.is(equal(true)));
 
     // highly experimental and ignored in this iteration
-    _neuralClauseEvaluationModelTweaks = StringOptionValue("npcc_tweaks","npccw","");
-    _neuralClauseEvaluationModelTweaks.description="String representation of a vector passed as additional ``problem-tweak'' to the ncem at contruction";
-    _lookup.insert(&_neuralClauseEvaluationModelTweaks);
-    _neuralClauseEvaluationModelTweaks.setExperimental();
-    _neuralClauseEvaluationModelTweaks.tag(OptionTag::SATURATION);
-    _neuralClauseEvaluationModelTweaks.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
-
     _reshuffleAt = UnsignedOptionValue("reshuffle_at","ra",0);
     _reshuffleAt.description="Nonterministically pick a new random seed before the specified-th clause selection from the NeuralPassiveClauseContainer (counter starts from 1, 0 value means 'never do this')";
     _lookup.insert(&_reshuffleAt);

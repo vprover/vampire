@@ -1959,9 +1959,10 @@ public:
   unsigned numProblemFeatures() const { return _numProblemFeatures.actualValue; }
 
   const std::string& neuralClauseEvaluationModel() const { return _neuralClauseEvaluationModel.actualValue; }
+  unsigned neuralClauseEvaluationModelGSD() const { return _neuralClauseEvaluationModelGSD.actualValue; }
+
   const std::string& neuralActivityRecording() const { return _neuralActivityRecording.actualValue; }
   const std::string& neuralActivityRecordingModel() const { return _neuralActivityRecordingModel.actualValue; }
-  const std::string& neuralClauseEvaluationModelTweaks() const { return _neuralClauseEvaluationModelTweaks.actualValue; }
 
   bool neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
   float npccTemperature() const { return _npccTemperature.actualValue; }
@@ -2714,8 +2715,7 @@ private:
   BoolOptionValue _neuralPassiveClauseContainer;
   FloatOptionValue _npccTemperature;
 
-  // highly experimental and ignored in this iteration
-  StringOptionValue _neuralClauseEvaluationModelTweaks;
+  UnsignedOptionValue _neuralClauseEvaluationModelGSD;
   UnsignedOptionValue _reshuffleAt;
 
 #if VZ3

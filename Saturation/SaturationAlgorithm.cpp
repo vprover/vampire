@@ -276,6 +276,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     }
 
     if (_neuralActivityRecoring || _neuralModelGuidance) {
+      // must be called before setStaticFeatures
+      _neuralModel->setGSD(opt.neuralClauseEvaluationModelGSD());
       _neuralModel->setStaticFeatures(prb,opt);
     }
 

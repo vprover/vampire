@@ -107,6 +107,13 @@ public:
     _computing = true;
   }
 
+  void setGSD(unsigned val) {
+    auto method = _model.find_method("set_gsd");
+    if (method) {
+      (*method)({(int64_t)val});
+    }
+  }
+
   void setStaticFeatures(Problem& prb, const Options& opt) {
     std::vector<float> staticFeatures;
     Property::FeatureIterator itP(prb.getProperty());
