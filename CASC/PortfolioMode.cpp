@@ -148,7 +148,7 @@ bool PortfolioMode::searchForProof()
     TIME_TRACE(TimeTrace::PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
-    ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
+    ScopedLet<ExecutionPhase> phaseLet(env.statistics->phase,ExecutionPhase::NORMALIZATION);
 
     if (env.options->normalize()) { // set explicitly by CASC(SAT) and SMTCOMP modes
       Normalisation().normalise(*_prb);
@@ -644,8 +644,8 @@ void PortfolioMode::runSlice(Options& opt)
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 
   bool succeeded =
-    env.statistics->terminationReason == Statistics::REFUTATION ||
-    env.statistics->terminationReason == Statistics::SATISFIABLE;
+    env.statistics->terminationReason == TerminationReason::REFUTATION ||
+    env.statistics->terminationReason == TerminationReason::SATISFIABLE;
 
   if(!succeeded) {
     if(outputAllowed())

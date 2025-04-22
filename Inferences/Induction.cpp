@@ -50,25 +50,26 @@ using namespace std;
 using namespace Kernel;
 using namespace Lib; 
 
-Term* ActiveOccurrenceIterator::next()
-{
-  Term* t = _stack.pop();
-  InductionTemplate* templ = _fnDefHandler.getInductionTemplate(t);
-  if (templ) {
-    // if there is an induction template,
-    // only induct on the active occurrences
-    auto& actPos = templ->inductionPositions();
+bool ActiveOccurrenceIterator::hasNext() {
+  while (_returnStack.isEmpty() && !_processStack.isEmpty()) {
+    Term* t = _processStack.pop();
+    if (t->ground()) {
+      _returnStack.push(t);
+    }
+    InductionTemplate* templ = _fnDefHandler.getInductionTemplate(t);
+    const vector<bool>* actPos = templ ? &templ->inductionPositions() : nullptr;
     for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
-      if (actPos[i]) {
-        _stack.push(t->nthArgument(i)->term());
+      if ((!actPos || (*actPos)[i]) && t->nthArgument(i)->isTerm()) {
+        _processStack.push(t->nthArgument(i)->term());
       }
     }
-  } else {
-    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
-      _stack.push(t->nthArgument(i)->term());
-    }
   }
-  return t;
+  return !_returnStack.isEmpty();
+}
+
+Term* ActiveOccurrenceIterator::next()
+{
+  return _returnStack.pop();
 }
 
 Term* getPlaceholderForTerm(const std::vector<Term*>& ts, unsigned i)
@@ -152,6 +153,14 @@ Formula* InductionContext::getFormula(const std::vector<TermList>& r, bool oppos
   return getFormula(tr, opposite);
 }
 
+Formula* InductionContext::getFormulaWithFreeVar(const std::vector<TermList>& r, bool opposite, unsigned freeVar, TermList& freeVarSub, Substitution* subst) const
+{
+  Formula* replaced = getFormula(r, opposite, subst);
+  Substitution s;
+  s.bind(freeVar, freeVarSub);
+  return SubstHelper::apply(replaced, s);
+}
+
 Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermList>& r, bool opposite,
   unsigned& var, VList** varList, Substitution* subst) const
 {
@@ -188,6 +197,21 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermL
     }
   }
   return res;
+}
+
+unsigned InductionContext::getFreeVariable() const {
+  // Note: we return the first free variable from literals of _cls,
+  // because we assume there is just one
+  for (const auto& kv : _cls) {
+    for (const auto& lit : kv.second) {
+      VariableIterator vi(lit);
+      if (vi.hasNext()) {
+        return vi.next().var();
+      }
+    }
+  }
+  ASSERTION_VIOLATION_REP("Called getFreeVariable on InductionContext without free variables");
+  return 0;
 }
 
 std::map<Term*,TermList> getContextReplacementMap(const InductionContext& context, bool inverse = false)
@@ -262,15 +286,19 @@ InductionContext ActiveOccurrenceContextReplacement::next()
         auto active = kv.second;
         auto templ = _fnDefHandler.getInductionTemplate(t);
         for (unsigned k = 0; k < t->arity(); k++) {
-          stack.push(make_pair(t->nthArgument(k)->term(),
-            active && templ ? templ->inductionPositions()[k] : active));
+          if (t->nthArgument(k)->isTerm()) {
+            stack.push(make_pair(t->nthArgument(k)->term(),
+              active && templ ? templ->inductionPositions()[k] : active));
+          }
         }
-        auto it = std::find(_context._indTerms.begin(), _context._indTerms.end(), t);
-        if (it != _context._indTerms.end()) {
-          auto idx = it - _context._indTerms.begin();
-          _iteration[idx] = (_iteration[idx] << 1) | active;
-          if (!active) {
-            _hasNonActive = true;
+        if (t->ground()) {
+          auto it = std::find(_context._indTerms.begin(), _context._indTerms.end(), t);
+          if (it != _context._indTerms.end()) {
+            auto idx = it - _context._indTerms.begin();
+            _iteration[idx] = (_iteration[idx] << 1) | active;
+            if (!active) {
+              _hasNonActive = true;
+            }
           }
         }
       }
@@ -644,7 +672,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         }
       }
 
-    if (InductionHelper::isInductionLiteral(lit)) {
+    if (InductionHelper::isGroundInductionLiteral(lit)) {
       Set<Term*,SharedTermHash>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
@@ -744,7 +772,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       .filter([](const InductionContext& arg) {
         for (const auto& kv : arg._cls) {
           for (const auto& lit : kv.second) {
-            if (InductionHelper::isInductionLiteral(lit)) {
+            if (InductionHelper::isGroundInductionLiteral(lit)) {
               return true;
             }
           }
@@ -786,6 +814,30 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
+  } else if (!env.options->inductionGroundOnly() && InductionHelper::isStructInductionOn() && InductionHelper::isNonGroundInductionLiteral(lit)) {
+    // TODO: generalize to multiple free variables
+    NonVariableNonTypeIterator nvi(lit);
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      if (InductionHelper::isInductionTermFunctor(st->functor()) && st->ground() && InductionHelper::isStructInductionTerm(st)) {
+        auto indLitsIt = contextReplacementInstance(InductionContext({ st }, lit, premise), _opt, _fnDefHandler);
+        while (indLitsIt.hasNext()) {
+          auto ctx = indLitsIt.next();
+          InductionFormulaIndex::Entry* e;
+          // TODO: make sure that the index handles literals with free variables correctly
+          // (right now it might allow redundant induction applications due to variable renaming).
+          if (_formulaIndex.findOrInsert(ctx, e)) {
+            // Generate induction axioms, clausify and resolve them
+            Substitution freeVarSubst;
+            performStructInductionFreeVar(ctx, e, &freeVarSubst);
+            for (auto& kv : e->get()) {
+              resolveClauses(kv.first, ctx, kv.second, /*applySubst=*/ false, &freeVarSubst);
+            }
+          }
+        }
+      }
+    }
+
   }
 }
 
@@ -849,7 +901,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
   }
 }
 
-ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context)
+ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHMap<unsigned, Term*>* bindings)
 {
   NewCNF cnf(0);
   cnf.setForInduction();
@@ -864,7 +916,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   if(_opt.showInduction()){
     std::cout << "[Induction] formula " << fu->toString() << endl;
   }
-  cnf.clausify(NNF::ennf(fu), hyp_clauses);
+  cnf.clausify(NNF::ennf(fu), hyp_clauses, bindings);
 
   switch (rule) {
     case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
@@ -955,7 +1007,7 @@ void InductionClauseIterator::resolveClauses(InductionContext context, Induction
  * in the resulting clause. We find this partition and return it in form
  * of a union find structure.
  */
-IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution& subst, const InductionContext& context)
+IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution& subst, const InductionContext& context, Substitution* indLitSubst)
 {
   const auto& toResolve = context._cls;
   IntUnionFind uf(clauses.size());
@@ -974,7 +1026,8 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
         bool found = false;
 #endif
         for (const auto& lit : kv.second) {
-          if (lit == clit) {
+          Literal* slit = indLitSubst ? SubstHelper::apply<Substitution>(lit, *indLitSubst) : lit;
+          if (slit == clit) {
             conclusionLits.push((*cl)[k]);
 #if VDEBUG
             variantCounts.push(kv.second.size()-1);
@@ -1032,7 +1085,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
  *               it is stored separately so that we don't have to apply
  *               substitutions expensively in all cases.
  */
-Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, bool applySubst)
+Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, bool applySubst, Substitution* indLitSubst)
 {
   // first create the clause with the required size
   RobSubstitution renaming;
@@ -1050,7 +1103,8 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   }
 
   Inference inf(GeneratingInferenceMany(
-    generalized ? InferenceRule::GEN_INDUCTION_HYPERRESOLUTION : InferenceRule::INDUCTION_HYPERRESOLUTION,
+    generalized ? InferenceRule::GEN_INDUCTION_HYPERRESOLUTION
+                : ( indLitSubst ? InferenceRule::FREE_VAR_INDUCTION_HYPERRESOLUTION : InferenceRule::INDUCTION_HYPERRESOLUTION),
     premises));
   RStack<Literal*> resLits;
 
@@ -1059,7 +1113,8 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
     bool contains = false;
     for (const auto& kv : toResolve) {
       for (const auto& lit : kv.second) {
-        if (lit == clit) {
+        Literal* slit = indLitSubst ? SubstHelper::apply<Substitution>(lit, *indLitSubst) : lit;
+        if (slit == clit) {
           contains = true;
           break;
         }
@@ -1092,7 +1147,13 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
         }
       }
       if (copyCurr) {
-        resLits->push(renaming.apply((*kv.first)[i],1));
+        Literal* l = (*kv.first)[i];
+        if (indLitSubst) {
+          l = SubstHelper::apply<Substitution>((*kv.first)[i], *indLitSubst);
+          TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
+          l = tr.transformLiteral(l);
+        }
+        resLits->push(renaming.apply(l,1));
       }
     }
   }
@@ -1100,7 +1161,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   return Clause::fromStack(*resLits, inf);
 }
 
-void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst)
+void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst, Substitution* indLitSubst)
 {
   ASS(cls.isNonEmpty());
   bool generalized = false;
@@ -1122,15 +1183,17 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   }
   if (generalized) {
     env.statistics->generalizedInductionApplication++;
+  } else if (indLitSubst) {
+    env.statistics->nonGroundInductionApplication++;
   } else {
     env.statistics->inductionApplication++;
   }
 
-  auto uf = findDistributedVariants(cls, subst, context);
+  auto uf = findDistributedVariants(cls, subst, context, indLitSubst);
   IntUnionFind::ComponentIterator cit(uf);
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
-    _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst));
+    _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst, indLitSubst));
     if(_opt.showInduction()){
       std::cout << "[Induction] generate " << _clauses.top()->toString() << endl;
     }
@@ -1565,6 +1628,87 @@ void InductionClauseIterator::performRecursionInduction(const InductionContext& 
 
   auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION, context);
   e->add(std::move(cls), std::move(subst));
+}
+
+/*
+Creates the structural induction axiom with an existentially quantified variable:
+?y,w. !u0,us,z. ?x. (L[0, u0] & (L[y, w] -> L[s(y), us]) -> L[z, x])
+*/
+void InductionClauseIterator::performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution* freeVarSubst)
+{
+  if (context._indTerms.size() > 1) return;
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(SortHelper::getResultSort(context._indTerms[0]));
+  unsigned freeVar = context.getFreeVariable(); // variable free in the induction literal
+  unsigned var = freeVar+1; // used in the following to construct new variables
+  for (const auto& kv : context._cls) {
+    if (kv.first->maxVar() + 1 > var) {
+      var = kv.first->maxVar() + 1;
+    }
+  }
+  VList* us = VList::empty();
+  VList* ws = VList::empty();
+  VList* ys = VList::empty();
+  FormulaList* formulas = FormulaList::empty();
+
+  // Construct premise as a conjunction of steps.
+  // Each step's antecedent contains a fresh free variable in place
+  // of freeVar (collected in `ws`), each step's conclusion too (collected in `us`).
+  for (unsigned i = 0; i < ta->nConstructors(); i++){
+    TermAlgebraConstructor* con = ta->constructor(i);
+    unsigned arity = con->arity();
+    TermStack argTerms(arity); // Arguments of the step case antecedent: y_1, ..., y_arity
+    FormulaList* hyps = FormulaList::empty();
+    for (unsigned j = 0; j < arity; j++){
+      TermList y(var++, false);
+      argTerms.push(y);
+      VList::push(y.var(), ys);
+      if (con->argSort(j) == con->rangeSort()){
+        TermList w(var++, false);
+        VList::push(w.var(), ws);
+        Formula* curLit = context.getFormulaWithFreeVar({ y }, true, freeVar, w);
+        FormulaList::push(curLit, hyps); // L[y_j, w_j]
+      }
+    }
+    TermList u(var++, false);
+    VList::push(u.var(), us);
+    Term* tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
+    Formula* consequent = context.getFormulaWithFreeVar({ TermList(tcons) }, true, freeVar, u);
+    Formula* step = (VList::isEmpty(ws)) ? consequent :
+      new BinaryFormula(Connective::IMP, JunctionFormula::generalJunction(Connective::AND, hyps), consequent); // (/\_{j ∈ P_c} L[y_j, w_j]) --> L[cons(y_1, ..., y_n), u_i]
+    formulas->push(step, formulas);
+  }
+  Formula* formula = new JunctionFormula(Connective::AND, formulas);
+
+  // Construct conclusion: L[z, x]
+  TermList z(var++, false);
+  const unsigned xvar = var;
+  TermList x(var++, false);
+  Substitution subst;
+  Formula* conclusion = context.getFormulaWithFreeVar({ z }, true, freeVar, x, &subst);
+  // Put together the whole induction axiom:
+  formula = new BinaryFormula(Connective::IMP, formula, conclusion);
+  formula = new QuantifiedFormula(Connective::EXISTS, VList::singleton(xvar), SList::empty(), formula);
+  formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
+  formula = new QuantifiedFormula(Connective::FORALL, us, SList::empty(), formula);
+  if (!VList::isEmpty(ws)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
+  }
+  if (!VList::isEmpty(ys)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
+  }
+
+  // Produce induction clauses and obtain the skolemization bindings.
+  DHMap<unsigned, Term*> bindings;
+  ClauseStack hyp_clauses = produceClauses(formula, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE, context, &bindings); 
+  // Bind freeVar to its corresponding skolem term in freeVarSubst.
+  // This is used later in resolution.
+  Term* xSkolem = bindings.get(xvar, nullptr);
+  ASS(xSkolem != nullptr);
+  ASS(freeVarSubst != nullptr);
+  freeVarSubst->bind(int(freeVar), SubstHelper::apply<Substitution>(xSkolem, subst));
+
+  e->add(std::move(hyp_clauses), std::move(subst));
+  return;
 }
 
 bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e)

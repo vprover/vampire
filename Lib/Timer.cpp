@@ -71,7 +71,10 @@ static std::recursive_mutex EXIT_LOCK;
 
   const char* REACHED[2] = {"Time limit reached! \n","Instruction limit reached! \n"}; // deliberate spaces before \n, so that it's a different string than in UIHelper::outputResult
   const char* STATUS[2] = {"% SZS status Timeout for ","% SZS status InstrOut for "};
-  Shell::Statistics::TerminationReason REASON[2] = {Shell::Statistics::TIME_LIMIT,Shell::Statistics::INSTRUCTION_LIMIT};
+  Shell::TerminationReason REASON[2] = {
+    Shell::TerminationReason::TIME_LIMIT,
+    Shell::TerminationReason::INSTRUCTION_LIMIT
+  };
 
   // if we get this lock we can assume that the parent won't also try to exit
   EXIT_LOCK.lock();
