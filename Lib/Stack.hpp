@@ -28,6 +28,7 @@
 
 #include "Allocator.hpp"
 #include "Lib/Reflection.hpp"
+#include "Lib/Option.hpp"
 
 namespace std
 {
@@ -344,6 +345,21 @@ public:
     _cursor->~C();
 
     return res;
+  } // Stack::pop()
+
+
+  /**
+   * Pop the stack and return the popped element.
+   * @since 11/03/2006 Bellevue
+   */
+  inline
+  Option<C> tryPop() 
+  {
+    if(size() > 0) {
+      return Option<C>(pop());
+    } else {
+      return {};
+    }
   } // Stack::pop()
 
 
