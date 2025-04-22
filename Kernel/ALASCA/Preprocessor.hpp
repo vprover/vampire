@@ -78,12 +78,13 @@ class AlascaPreprocessor
               auto quotF = [](auto l, auto r) { return R::floor(R::div(l,r)); };
               if (IntTraits::isToReal(f) || IntTraits::isToInt(f) || RealTraits::isToReal(f)) {
                 return args[0];
-              } else if (Z::isRemainderF(f) || R::isRemainderF(f)) {
-                return rem(quotF,args[0], args[1]);
+
               } else if (Z::isQuotientF(f) || R::isQuotientF(f)) {
                 return quotF(args[0], args[1]);
+
               } else if (R::isToInt(f)) {
                 return TermList(RealTraits::floor(args[0]));
+
               } else {
                 auto out = TermList(Term::create(this->integerFunctionConversion(f), t.term()->arity(), args));
                 return out;
@@ -323,11 +324,17 @@ class QuotientEPreproc
     auto iff = [](auto l, auto r) { return new BinaryFormula(Connective::IFF, l, r); };
     auto neg = [](auto f) { return new NegatedFormula(f); };
 
-    auto ite = [](auto c, auto x, auto y) 
-    { return TermList(Term::createITE(c, x, y, Z::sort())); };
+    auto ite = [this](auto c, auto x, auto y) 
+    { 
+      _addedITE = true;
+      return TermList(Term::createITE(c, x, y, Z::sort())); };
 
     auto eq = [&](auto l, auto r) { return lit(Z::eq(true, l, r)); };
     auto gt = [&](auto l, auto r) { return lit(Z::greater(true, l, r)); };
+
+    auto quotientF = [&](auto a, auto b) {
+      return Z::quotientF(a, b);
+    };    
 
     auto quotientE = [&](auto a, auto b) {
       return ite(gt(b, Z::zero()), 
@@ -356,21 +363,36 @@ class QuotientEPreproc
     };
 
     if (Z::isQuotientE(t) && trm.termArg(1) != Z::zero()) {
-      _addedITE = true;
       return transQR(quotientE, Z::quotientE, trm.termArg(0), trm.termArg(1));
+
     } else if (Z::isRemainderE(t)) {
-      _addedITE = true;
       return transQR(rem(quotientE), Z::remainderE, trm.termArg(0), trm.termArg(1));
 
     } else if (Z::isQuotientT(t) && trm.termArg(1) != Z::zero()) {
-      _addedITE = true;
       return transQR(quotientT, Z::quotientT, trm.termArg(0), trm.termArg(1));
+
     } else if (Z::isRemainderT(t)) {
-      _addedITE = true;
       return transQR(rem(quotientT), Z::remainderT, trm.termArg(0), trm.termArg(1));
-    } else {
-      return t;
+
+
+    } else if (Z::isRemainderF(t)) {
+      return transQR(rem(quotientF), Z::remainderF, trm.termArg(0), trm.termArg(1));
     }
+
+    auto numRes = forAnyNumTraits([&](auto n) -> Option<TermList> {
+      if (n.isTruncate(t)) {
+        auto arg = t.term()->termArg(0);
+        return some(ite(lit(n.geq(true, arg, n.zero())),
+              n.floor(arg),
+              n.minus(n.floor(n.minus(arg)))
+        ));
+      } else {
+        return {};
+      }
+
+    });
+    if (numRes) return *numRes;
+    return t;
   }
 
   TermList proc(TypedTermList t) 
