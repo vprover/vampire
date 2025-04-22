@@ -25,7 +25,7 @@
 
 namespace Kernel {
 
-class AlascaPreprocessor 
+class AlascaIntegerTransformation 
 {
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
@@ -250,7 +250,7 @@ class AlascaPreprocessor
 public:
 
 
-  AlascaPreprocessor() 
+  AlascaIntegerTransformation() 
     : _preds()
     , _funcs() {}
 
