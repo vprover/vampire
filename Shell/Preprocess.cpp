@@ -175,7 +175,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "eliminating euclidean quotient and remainder" << std::endl;
 
-    QuotientEPreproc().proc(prb);
+    AlascaSymbolElimination().proc(prb);
   }
 
   if (prb.hasFOOL() || prb.isHigherOrder()) {

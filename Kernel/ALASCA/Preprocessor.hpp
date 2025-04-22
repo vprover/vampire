@@ -281,12 +281,13 @@ public:
   }
 };
 
-class QuotientEPreproc 
+/** preprocessing step that replaces eliminates symbols that can be inter-defined in alasca. e.g. $ceiling(x) ==> -$floor(-x) */
+class AlascaSymbolElimination 
 {
   bool _addedITE = false;
   using Z = IntTraits;
   // TODO
-  static constexpr InferenceRule INF_RULE = InferenceRule::ALASCA_INTEGER_TRANSFORMATION;
+  static constexpr InferenceRule INF_RULE = InferenceRule::ALASCA_SYMBOL_ELIMINATION;
 
   Literal* proc(Literal* lit)
   {
@@ -387,12 +388,11 @@ class QuotientEPreproc
               n.floor(arg),
               n.minus(n.floor(n.minus(arg)))
         ));
-      } else {
 
-      if (n.isCeiling(t)) {
+      } else if (n.isCeiling(t)) {
         return some(n.minus(n.floor(n.minus(t.term()->termArg(0)))));
-      } else {
 
+      } else {
         return {};
       }
 
@@ -424,8 +424,8 @@ class QuotientEPreproc
   }
 
   struct TermTrans : public TermTransformer {
-    QuotientEPreproc& _self;
-    TermTrans(QuotientEPreproc& self) : _self(self) {}
+    AlascaSymbolElimination& _self;
+    TermTrans(AlascaSymbolElimination& self) : _self(self) {}
     virtual TermList transformSubterm(TermList t) override 
     { return _self.transformSubterm(t); }
   };

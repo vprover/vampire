@@ -72,6 +72,7 @@ auto replaceTraceFwd(InferenceRule r) {
     case InferenceRule::NNF:
     case InferenceRule::THEORY_NORMALIZATION:
     case InferenceRule::ALASCA_INTEGER_TRANSFORMATION:
+    case InferenceRule::ALASCA_SYMBOL_ELIMINATION:
     case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
     case InferenceRule::SUBSUMPTION_RESOLUTION:
     case InferenceRule::ALASCA_SUPERPOSITION_DEMOD:
