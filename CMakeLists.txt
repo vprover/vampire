@@ -189,7 +189,6 @@ find_package(
 if (Z3_FOUND)
   message(STATUS "found Z3 " ${Z3_VERSION_STRING})
   include_directories(${Z3_CXX_INCLUDE_DIRS})
-  # link_directories(z3/build/)
   link_libraries(${Z3_LIBRARIES})
   add_compile_definitions(VZ3=1)
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
