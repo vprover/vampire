@@ -31,8 +31,6 @@ class AlascaPreprocessor
   Map<unsigned, unsigned> _funcs;
   // all the functions func_R where func is an integer function
   Set<unsigned> _intFuncThatWasTransformedToRealFunc;
-  // TODO create option for this
-  bool _useFloor = true;
 
   using Z = IntTraits;
   using R = RealTraits;
@@ -68,9 +66,8 @@ class AlascaPreprocessor
   {
     return BottomUpEvaluation<TypedTermList, TermList>()
       .function([this](TypedTermList t, TermList* args) -> TermList {
-          auto wrapFloor = _useFloor && t.sort() == IntTraits::sort();
           if (t.isVar()) {
-            return wrapFloor ?  RealTraits::floor(t) : t;
+            return t.sort() == IntTraits::sort() ?  RealTraits::floor(t) : t;
           } else {
             auto f = t.term()->functor();
             if (t.sort() == AtomicSort::superSort()) {
@@ -89,7 +86,7 @@ class AlascaPreprocessor
                 return TermList(RealTraits::floor(args[0]));
               } else {
                 auto out = TermList(Term::create(this->integerFunctionConversion(f), t.term()->arity(), args));
-                return wrapFloor ? RealTraits::floor(out) : out;
+                return out;
               }
             }
           }
@@ -236,18 +233,6 @@ class AlascaPreprocessor
       auto l = InequalityNormalizer::normalize(l_).toLiteral();
       auto ll = integerConversion(l);
       change |= ll != l;
-      if (!_useFloor) {
-        if (l->isEquality() && l->eqArgSort() == Z::sort()) {
-          ASS(ll->isEquality() && ll->eqArgSort() == R::sort() && change)
-          res->loadFromIterator(termArgIter(ll)
-              .filterMap([&](auto x) { return notInt(x); }));
-        } else if (l->functor() != ll->functor() && theory->isInterpretedPredicate(ll->functor())) {
-          ASS(ll->arity() == l->arity())
-          res->loadFromIterator(range(0, l->numTermArguments())
-              .filter([&](auto i) { return SortHelper::getTermArgSort(l, i) == Z::sort(); })
-              .filterMap([&](auto i) { return notInt(ll->termArg(i)); }));
-        }
-      }
       res->push(ll);
     }
     if (change) {
