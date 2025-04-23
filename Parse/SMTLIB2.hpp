@@ -175,7 +175,6 @@ private:
     FS_IS_INT,
     FS_NOT,
     FS_OR,
-    FS_PAR,
     FS_TRUE,
     FS_XOR,
 
@@ -345,7 +344,7 @@ private:
   typedef std::pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<std::string,SortedTerm> TermLookup;
-  typedef Stack<TermLookup*> Scopes;
+  typedef Stack<std::unique_ptr<TermLookup>> Scopes;
   /** Stack of parsing contexts:
    * for variables from quantifiers and
    * for symbols bound by let (which are variables from smtlib perspective,
@@ -359,6 +358,16 @@ private:
    * universally quantified. We collect them in this structure globally.
    */
   TermLookup _globalSortParamScope;
+
+  inline void pushScope() {
+    _scopes.push(std::make_unique<TermLookup>());
+  }
+  inline void popScope() {
+    _scopes.pop();
+  }
+  inline bool insertIntoTopScope(std::string name, TermList term, TermList sort) {
+    return _scopes.top()->insert(name, { term, sort });
+  }
 
   /**
    * Stack of partial results used by parseTermOrFormula below.
