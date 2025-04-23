@@ -37,7 +37,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_Superposition.cpp
     UnitTests/tALASCA_TautologyDeletion.cpp
     UnitTests/tALASCA_TermFactoring.cpp
-    UnitTests/tALASCA_SubTermFactoring.cpp
+    UnitTests/tALASCA_SubtermFactoring.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
     UnitTests/tArithCompare.cpp
@@ -191,8 +191,8 @@ set(SOURCES
     Inferences/ALASCA/TautologyDeletion.hpp
     Inferences/ALASCA/TermFactoring.cpp
     Inferences/ALASCA/TermFactoring.hpp
-    Inferences/ALASCA/SubTermFactoring.cpp
-    Inferences/ALASCA/SubTermFactoring.hpp
+    Inferences/ALASCA/SubtermFactoring.cpp
+    Inferences/ALASCA/SubtermFactoring.hpp
     Inferences/ALASCA/VIRAS.cpp
     Inferences/ALASCA/VIRAS.hpp
     Inferences/ALASCA/VariableElimination.cpp
