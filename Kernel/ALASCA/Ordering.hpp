@@ -392,8 +392,8 @@ struct SkelOrd
     }
   }
 
-  int predPrec(unsigned pred) const { return _ord.predicatePrecedence(pred); }
-  Ordering::Result cmpPredPrec(unsigned p0, unsigned p1) const { return AlascaOrderingUtils::cmpN(predPrec(p0), predPrec(p1)); }
+  int predicatePrecedence(unsigned pred) const { return _ord.predicatePrecedence(pred); }
+  Ordering::Result cmpPredPrec(unsigned p0, unsigned p1) const { return AlascaOrderingUtils::cmpN(predicatePrecedence(p0), predicatePrecedence(p1)); }
 
   Ordering::Result compare(TermList t1, TermList t2) const final override
   DEBUG_FN_RESULT(2, Output::cat("comapre", std::tie(t1, t2), " = "),

@@ -533,7 +533,6 @@ public:
     LAKBO = 3,
     LPO = 4,
     ALL_INCOMPARABLE = 5,
-    SKEL = 6,
   };
 
   enum class SymbolPrecedence : unsigned int {
@@ -2306,6 +2305,7 @@ public:
   EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
   bool alasca() const { return _alasca.actualValue; }
+  bool alascaSkelOrd() const { return _alascaSkelOrd.actualValue; }
   bool viras() const { return _viras.actualValue; }
   bool alascaDemodulationFwd() const { return _alascaDemodulationFwd.actualValue; }
   bool alascaDemodulationBwd() const { return _alascaDemodulationBwd.actualValue; }
@@ -2754,6 +2754,7 @@ private:
   BoolOptionValue _pushUnaryMinus;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   BoolOptionValue _alasca;
+  BoolOptionValue _alascaSkelOrd;
   BoolOptionValue _viras;
   BoolOptionValue _alascaDemodulationBwd;
   BoolOptionValue _alascaDemodulationFwd;

@@ -244,6 +244,7 @@ public:
   Result compare(AppliedTerm t1, AppliedTerm t2) const override
   { return compare(t1.apply(), t2.apply()); }
 
+  int predicatePrecedence(unsigned pred) const { return _kbo.predicatePrecedence(pred); }
 private:
 
   Result cmpNonAbstr(TermList, TermList) const;

@@ -128,7 +128,6 @@ struct AllIncomparableOrdering : Ordering {
 
 #endif // TIME_TRACING_ORD
 
-
 /**
  * Creates the ordering
  *
@@ -140,29 +139,25 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     return new SKIKBO(prb, opt, env.options->lambdaFreeHol());
   }
 
-  Ordering* out;
-  switch (opt.termOrdering()) {
-  case Options::TermOrdering::KBO:
-    out = new KBO(prb, opt);
-    break;
-  case Options::TermOrdering::QKBO:
-    out = NEW_ORD(QKbo, prb, opt);
-    break;
-  case Options::TermOrdering::SKEL:
-    out = NEW_ORD(SkelOrd<Kernel::KBO>, prb, opt);
-    break;
-  case Options::TermOrdering::LAKBO:
-    out = NEW_ORD(SkelOrd<Kernel::KBO>, prb, opt);
-    break;
-  case Options::TermOrdering::LPO:
-    out = new LPO(prb, opt);
-    break;
-  case Options::TermOrdering::ALL_INCOMPARABLE:
-    out = new AllIncomparableOrdering();
-    break;
-  default:
-    ASSERTION_VIOLATION;
-  }
+  auto wrap = [](auto ord) {
+    using Ord = decltype(ord);
+    bool skel;
+    return skel ? static_cast<Ordering*>(NEW_ORD(SkelOrd<Ord>, std::move(ord)))
+                : static_cast<Ordering*>(NEW_ORD(        Ord , std::move(ord)));
+  };
+
+  Ordering* out = [&]() -> Ordering* {
+    switch (opt.termOrdering()) {
+      case Options::TermOrdering::KBO:              return wrap(                    KBO(prb, opt));
+      case Options::TermOrdering::QKBO:             return wrap(                   QKbo(prb, opt));
+      case Options::TermOrdering::LAKBO:            return wrap(   SkelOrd<Kernel::KBO>(prb, opt));
+      case Options::TermOrdering::LPO:              return wrap(            Kernel::LPO(prb, opt));
+      case Options::TermOrdering::ALL_INCOMPARABLE: return new AllIncomparableOrdering();
+      case Options::TermOrdering::AUTO_KBO: ASSERTION_VIOLATION
+      }
+      ASSERTION_VIOLATION_REP(opt.termOrdering())
+  }();
+  
   //TODO currently do not show SKIKBO
   if (opt.showSimplOrdering()) {
     out->show(std::cout);

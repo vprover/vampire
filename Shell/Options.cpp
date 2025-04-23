@@ -1303,6 +1303,14 @@ void Options::init()
             , equal(UnificationWithAbstraction::AUTO)
             )));
 
+
+    _alascaSkelOrd = BoolOptionValue("alasca-skel-ord","alasca-so",false);
+    _alascaSkelOrd.description="Turns an the term ordering into an alasca-compatible term ordering.";
+    _lookup.insert(&_alascaSkelOrd);
+    addRecommendationConstraint(_alascaSkelOrd, Or(
+           _alasca.is(equal(true))
+           ));
+
     _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
     _viras.description= "Enables the VIRAS quantifier elimination to be used in ALASCA. The VIRAS method is explained in the LPAR2024 paper \"VIRAS: Conflict-Driven Quantifier Elimination for Integer-Real Arithmetic\"\n";
     _lookup.insert(&_viras);
@@ -2380,7 +2388,7 @@ void Options::init()
     _activationLimit.tag(OptionTag::SATURATION);
 
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::AUTO_KBO,
-                                                    {"auto_kbo", "kbo", "qkbo","lakbo", "lpo", "incomp", "skel"});
+                                                    {"auto_kbo", "kbo", "qkbo","lakbo", "lpo", "incomp"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
       "\n"
       "possible values:\n"
@@ -2389,7 +2397,6 @@ void Options::init()
       "- qkbo: QKBO ordering as described in the TACAS 2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n"
       "- lpo: Lexicographical Path Ordering\n"
       "- lakbo: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
-      "- skel: similar to QKBO but for mixed integer-real arithmetic. this option is experimental"
       ;
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());
     _termOrdering.tag(OptionTag::SATURATION);
