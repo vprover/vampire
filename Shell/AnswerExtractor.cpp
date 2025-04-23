@@ -49,9 +49,9 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 {
   Stack<TermList> answer;
 
-  bool hasSyntManager = false;
+  bool hasSynthManager = false;
   if (SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) {
-    hasSyntManager = true;
+    hasSynthManager = true;
   } else if (!AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
     ConjunctionGoalAnswerExractor cge;
     if(!cge.tryGetAnswer(refutation, answer)) {
@@ -59,7 +59,7 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     }
   }
   env.beginOutput();
-  if (hasSyntManager) {
+  if (hasSynthManager) {
     SynthesisManager::getInstance()->tryOutputInputUnits();
     SynthesisManager::getInstance()->outputRecursiveFunctions();
   }
@@ -855,25 +855,25 @@ void SynthesisManager::ConjectureSkolemReplacement::outputRecursiveFunctions() {
 }
 
 SynthesisManager::ConjectureSkolemReplacement::Function::Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement) {
-  ALWAYS(replacement->_functionHeads->find(recFunctor, _caseHeads));
-  _cases.ensure(_caseHeads->length(_caseHeads));
-  const std::pair<bool, DHMap<unsigned, SkolemTracker>>& p = replacement->_recursionMappings->get(recFunctor);
-  ASS(p.first);
+  _caseHeads = replacement->_functionHeads->findPtr(recFunctor);
+  ASS(_caseHeads);
+  _cases.ensure(_caseHeads->size());
+  const DHMap<unsigned, SkolemTracker>& mapping = replacement->_recursionMappings->get(recFunctor);
   OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
   TermList in = ot->arg(ot->arity()-1);
   TermList out = ot->arg(0);
-  ASS(env.signature->getTermAlgebraOfSort(in)->nConstructors() == _caseHeads->length(_caseHeads));
+  ASS(env.signature->getTermAlgebraOfSort(in)->nConstructors() == _caseHeads->size());
   _functor = env.signature->addFreshFunction(/*arity=*/1, "rf");
   Signature::Symbol* f = env.signature->getFunction(_functor);
   f->setType(OperatorType::getFunctionType({in}, out));
   DHMap<Term*, TermList>* caseMap;
-  DHMap<unsigned, SkolemTracker>::Iterator it(p.second /*mapping*/);
+  DHMap<unsigned, SkolemTracker>::Iterator it(mapping);
   while (it.hasNext()) {
     unsigned var;
     SkolemTracker& st = it.nextRef(var);
     ASS(var == st.binding.first);
     ASS(!_skolemToTermList.find(st.binding.second));
-    TermList tl(st.recursiveCall ? TermList(Term::create(_functor, {*_caseHeads->nth(_caseHeads, st.constructorId).term()->nthArgument(st.indexInConstructor)})) : TermList(var, false));
+    TermList tl(st.recursiveCall ? TermList(Term::create1(_functor, *(*_caseHeads)[st.constructorId]->nthArgument(st.indexInConstructor))) : TermList(var, false));
     _skolemToTermList.insert(st.binding.second, tl);
     _skolemToTermListForCase.getValuePtr(st.constructorId, caseMap);
     caseMap->insert(st.binding.second, tl);
@@ -888,24 +888,24 @@ void SynthesisManager::ConjectureSkolemReplacement::Function::addCases(Term* t) 
 }
 
 void SynthesisManager::registerRecSymbol(unsigned recFnId) {
-  std::pair<bool, DHMap<unsigned, SkolemTracker>>* p;
-  ALWAYS(_recursionMappings.getValuePtr(recFnId, p));
-  p->first = false;
+  return;
+  DHMap<unsigned, SkolemTracker>* mapping;
+  ALWAYS(_recursionMappings.getValuePtr(recFnId, mapping));
 }
 
 void SynthesisManager::addInductionVarData(unsigned recFnId, unsigned var, unsigned consId, bool recCall, unsigned idxInCons) {
-  std::pair<bool, DHMap<unsigned, SkolemTracker>>* p = _recursionMappings.findPtr(recFnId);
-  ASS(p != nullptr);
-  ASS(!p->first);
-  ALWAYS(p->second.insert(var, SkolemTracker(Binding(var, nullptr), consId, recCall, idxInCons, recFnId)));
+  return;
+  DHMap<unsigned, SkolemTracker>* mapping = _recursionMappings.findPtr(recFnId);
+  ASS(mapping != nullptr);
+  ALWAYS(mapping->insert(var, SkolemTracker(Binding(var, nullptr), consId, recCall, idxInCons, recFnId)));
 }
 
 void SynthesisManager::printSkolemTrackers() {
   cout << "Skolem mappings:" << endl;
-  DHMap<unsigned, SkolemTracker>::Iterator it(_skolemTrackers);
+  DHMap<unsigned, SkolemTracker*>::Iterator it(_skolemTrackers);
   while (it.hasNext()) {
-    SkolemTracker st = it.next();
-    cout << st.toString() << endl;
+    SkolemTracker* st = it.next();
+    cout << st->toString() << endl;
   }
 }
 
@@ -916,9 +916,9 @@ void SynthesisManager::printRecursionMappings() {
   unsigned v;
   while (rit.hasNext()) {
     unsigned recFn;
-    auto& p = rit.nextRef(recFn);
+    auto& m = rit.nextRef(recFn);
     cout << "  recFn " << recFn << ":" << endl; 
-    DHMap<unsigned, SkolemTracker>::Iterator mit(p.second);
+    DHMap<unsigned, SkolemTracker>::Iterator mit(m);
     while (mit.hasNext()) {
       SkolemTracker& s = mit.nextRef(v);
       cout << v << ": " << s.toString() << endl;
@@ -926,21 +926,57 @@ void SynthesisManager::printRecursionMappings() {
   }
 }
 
-void SynthesisManager::matchSkolemSymbols(unsigned recFnId, const DHSet<Binding>& bindings, List<TermList>* functionHeads) {
-  std::pair<bool, DHMap<unsigned, SkolemTracker>>* p = _recursionMappings.findPtr(recFnId);
-  ASS(!p->first);
-  DHSet<Binding>::Iterator it(bindings);
-  while (it.hasNext()) {
-    Binding b = it.next();
-    SkolemTracker* sptr = p->second.findPtr(b.first);
-    ASS(sptr != nullptr);
-    ASS_REP(sptr->binding.second == nullptr, sptr->binding.second->toString());
-    sptr->binding.second = b.second;
-    _skolemTrackers.insert(b.second->functor(), *sptr);
-    ASS(recFnId == sptr->recFnId);
+void SynthesisManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& bindings, const List<Term*>* functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
+  unsigned recFnId = recTerm->functor();
+  unsigned ctorNumber = recTerm->arity()-1;
+  ASS(ctorNumber == VList::length(us));
+  ASS(ctorNumber == List<Term*>::length(functionHeadsByConstruction));
+  // Find out what is the order of arguments in `recTerm`.
+  // Each of the first `ctorNumber` arguments should be one of `us`.
+  // The order of `us` is the same as the order of `functionHeadsByConstruction`,
+  // and reverse to the `constructorId` of the SkolemTrackers.
+  DArray<unsigned> ctorOrder(ctorNumber);
+  VList::Iterator vit(us);
+  unsigned i = 0;
+  while (vit.hasNext()) {
+    unsigned v = vit.next();
+    bool found = false;
+    for (unsigned j = 0; j < ctorNumber; ++j) {
+      TermList& arg = *(recTerm->nthArgument(j));
+      ASS(arg.isVar());
+      if (arg.var() == v) {
+        ctorOrder[ctorNumber-i-1] = j;
+        ++i;
+        found = true;
+        break;
+      }
+    }
+    ASS(found);
   }
-  ALWAYS(_functionHeads.insert(recFnId, functionHeads));
-  p->first = true;
+  // Store `functionHeads` in the correct indices in `_functionHeads`.
+  List<Term*>::Iterator fhit(functionHeadsByConstruction);
+  i = 0;
+  vector<Term*> functionHeads(ctorNumber);
+  while (fhit.hasNext()) {
+    functionHeads[ctorOrder[ctorNumber-i-1]] = fhit.next();
+    ++i;
+  }
+  ALWAYS(_functionHeads.insert(recFnId, std::move(functionHeads)));
+
+  // Finalize SkolemTrackers and store them.
+  DHMap<unsigned, SkolemTracker>* mapping;
+  ALWAYS(_recursionMappings.getValuePtr(recFnId, mapping));
+  for (SkolemTracker& st : incompleteTrackers) {
+    ASS(st.binding.second == nullptr);
+    ASS(st.recFnId == 0);
+    const unsigned var = st.binding.first;
+    st.binding.second = bindings.get(var);
+    st.recFnId = recFnId;
+    st.constructorId = ctorOrder[st.constructorId];
+    SkolemTracker* stp;
+    ALWAYS(mapping->getValuePtr(var, stp, st));
+    _skolemTrackers.insert(st.binding.second->functor(), stp);
+  }
 }
 
 bool SynthesisManager::isRecTerm(const Term* t) {
@@ -948,7 +984,7 @@ bool SynthesisManager::isRecTerm(const Term* t) {
 }
 
 const SkolemTracker* SynthesisManager::getSkolemTracker(unsigned skolemFunctor) {
-  return _skolemTrackers.findPtr(skolemFunctor);
+  return _skolemTrackers.get(skolemFunctor, nullptr);
 }
 
 bool SynthesisManager::hasRecTerm(Literal* lit) {
@@ -961,16 +997,6 @@ bool SynthesisManager::hasRecTerm(Literal* lit) {
     }
   }
   return false;
-}
-
-int SynthesisManager::getResolventLiteralIdx(Clause* clause) {
-  unsigned len = clause->length();
-  for (unsigned i = 0; i < len; i++) {
-    if (hasRecTerm((*clause)[i])) {
-      return (int)i;
-    }
-  }
-  return -1;
 }
 
 }

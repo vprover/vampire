@@ -1847,15 +1847,17 @@ bool Term::computableOrVarHelper(DHMap<unsigned, unsigned>* recAncestors) const 
     if (!symbol->skolem()) {
       return false;
     }
-    const Shell::SkolemTracker* st = synthMan->getSkolemTracker(functor());
-    if (st == nullptr) {
-       return false;
+    if (!synthMan->isRecTerm(this)) { // non-rec skolem terms need to be specifically allowed
+      const Shell::SkolemTracker* st = synthMan->getSkolemTracker(functor());
+      if (st == nullptr) {
+         return false;
+      }
+      unsigned idx = 0;
+      if (!recAncestors->find(st->recFnId, idx) || (idx != st->constructorId)) {
+        return false;
+      }
+      return true;
     }
-    unsigned idx = 0;
-    if (!recAncestors->find(st->recFnId, idx) || (idx != st->constructorId)) {
-      return false;
-    }
-    return true;
   }
 
   // Top functor is computable, now recurse.

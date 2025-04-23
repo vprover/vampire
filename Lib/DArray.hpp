@@ -38,9 +38,6 @@ namespace Lib {
 template<typename C>
 class DArray
 {
-private:
-  //private and undefined operator= to avoid an implicitly generated one
-  DArray& operator=(const DArray&);
 public:
   USE_ALLOCATOR(DArray<C>);
 
