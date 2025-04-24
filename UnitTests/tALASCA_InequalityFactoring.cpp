@@ -330,3 +330,13 @@ TEST_GENERATION(literal_maximality_check,
           , clause({  f(x) > b, f(x) > c, c > a   })
       ))
     )
+
+TEST_GENERATION(contextSubs,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected(f(a) + a > 0), selected(f(x) + b > 0), -f(x) == 0   }) })
+      .expected(exactly(
+            clause({          f(a) + b > 0 , a - b > 0, -f(a) == 0             })
+          , clause({          f(a) + a > 0 , b - a > 0, -f(a) == 0             })
+      ))
+    )
+

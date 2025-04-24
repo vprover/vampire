@@ -117,9 +117,10 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
 
   auto i1 = l1.litIdx();
   auto i2 = l2.litIdx();
-  auto ctxtLits =  [&]() { return l1.allLiterals()
+  auto ctxtLitsσ =  [&]() { return l1.allLiterals()
            .dropNth(std::max(i1,i2))
-           .dropNth(std::min(i1,i2)); };
+           .dropNth(std::min(i1,i2))
+           .map([&](auto l) { return sigma(l); }); };
 
   auto cnst  = uwa.computeConstraintLiterals();
 
@@ -139,7 +140,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
          /* (k t1 − j t2 >3 0)σ */ createLiteral<NumTraits>(less3(l1, l2), k_t1_minus_j_t2σ),
          /*   (±ks2 + t2 <> 0)σ */ L2σ 
        ),
-       ctxtLits(),
+       ctxtLitsσ(),
        arrayIter(cnst).cloned()
     ), inf);
   };
@@ -150,7 +151,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
          /* -(k t1 − j t2 >3' 0)σ */ createLiteral<NumTraits>(less3(l2, l1), NumTraits::minus(k_t1_minus_j_t2σ)),
          /*   (±js1 + t1 <> 0)σ */ L1σ 
        ),
-       ctxtLits(),
+       ctxtLitsσ(),
        arrayIter(cnst).cloned()
     ), inf);
   };
@@ -159,7 +160,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
     /* optimization to not create duplicate clauses, as in this case c1() and c2() are equivalent */
     ? SArray::fromItems(Clause::fromIterator(concatIters(
        iterItems( /*   (±js1 + t1 <> 0)σ */ L1σ ),
-       ctxtLits(),
+       ctxtLitsσ(),
        arrayIter(cnst).cloned()
     ), inf))
     : SArray::fromItems(c1(), c2());
