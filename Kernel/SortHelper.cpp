@@ -12,6 +12,7 @@
  * Implements class SortHelper.
  */
 
+#include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/MultiCounter.hpp"
 
@@ -284,11 +285,14 @@ TermList SortHelper::getTermSort(TermList trm, Literal* lit)
  *
  * Variable @c var must occurr in @c t.
  */
-TermList SortHelper::getVariableSort(TermList var, Term* t)
+Option<TermList> SortHelper::tryGetVariableSort(TermList var, Term* t)
 {
   TermList res;
-  ALWAYS(tryGetVariableSortTerm(var, t, res, true));
-  return res;
+  if (tryGetVariableSortTerm(var, t, res, true)) {
+    return some(res);
+  } else {
+    return {};
+  }
 }
 
 /**
@@ -859,40 +863,57 @@ bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result
  *
  * @pre Arguments of t must be shared.
  */
+bool SortHelper::areVariableSortsValidPoly(Clause* cl)
+{
+  Recycled<Map<TermList, TermList>> varSorts;
+  for (auto lit : cl->iterLits()) {
+    for (auto arg : anyArgIterTyped(lit)) {
+      for (auto subterm :  iterTraits(SubtermIterBottomUp(arg, TermListContext {.ignoreTypeArgs = false}))) {
+        if (subterm.isVar()) {
+          auto s = varSorts->getOrInit(subterm, [&]() { return subterm.sort(); });
+          if (s != subterm.sort()) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+/**
+ * Return true iff sorts of immediate subterms of term/literal @c t correspond
+ * to the type of @c t.
+ *
+ * @pre Arguments of t must be shared.
+ */
 bool SortHelper::areImmediateSortsValidPoly(Term* t)
 {
   ASS(!t->isSuper());  
 
-  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
-    Literal* lit = static_cast<Literal*>(t);
-    TermList eqSrt = getEqualityArgumentSort(lit);
-    for (unsigned i=0; i<2; i++) {
+  auto checkSort = [&](auto getGroundTruth) {
+    for (unsigned i : range(0, t->arity())) {
+      TermList shouldBe = getGroundTruth(i);
       TermList arg = *t->nthArgument(i);
       if (!arg.isTerm()) { continue; }
       Term* ta = arg.term();
       TermList argSort = getResultSort(ta);
-      if (eqSrt != argSort) {
+      if (shouldBe != argSort) {
         return false;
       }
     }
     return true;
+  };
+
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    Literal* lit = static_cast<Literal*>(t);
+    TermList eqSrt = getEqualityArgumentSort(lit);
+    return checkSort([&](auto i) { return eqSrt; });
   }
     
   OperatorType* type = getType(t);
-  unsigned arity = t->arity();
   Substitution subst;
   getTypeSub(t, subst);
-  for (unsigned i=0; i<arity; i++) {
-    TermList arg = *t->nthArgument(i);
-    if (!arg.isTerm()) { continue; }
-    Term* ta = arg.term();
-    TermList argSort = getResultSort(ta);
-    TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
-    if (instantiatedTypeSort != argSort) {
-      return false;
-    }
-  }
-  return true;
+  return checkSort([&](auto i) { return SubstHelper::apply(type->arg(i), subst);  });
 }
 
 

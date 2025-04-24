@@ -62,6 +62,9 @@ size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
 bool Clause::_auxInUse = false;
 #endif
+#ifndef VAMPIRE_VARIABLE_SORT_CHECK
+#define VAMPIRE_VARIABLE_SORT_CHECK 0
+#endif // VAMPIRE_VARIABLE_SORT_CHECK
 
 /** New clause */
 Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
@@ -93,6 +96,9 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
   }
 
   doUnitTracing();
+#if VAMPIRE_VARIABLE_SORT_CHECK
+  ASS_REP(SortHelper::areVariableSortsValidPoly(this), this->toString())
+#endif // VAMPIRE_VARIABLE_SORT_CHECK
 }
 
 /**
