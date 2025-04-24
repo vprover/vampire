@@ -167,12 +167,12 @@ struct AlascaSelectorDispatch {
   AlascaSelector const& self;
 
   template<unsigned i>
-  Stack<SelectedAtom> computeSelected(TL::Token<GenericELiteralSelector<i>>, Stack<SelectedAtom> atoms, Ordering* ord) 
-  { throw new UserErrorException("E literal selector not supported for alasca (yet)"); }
+  Stack<__SelectedLiteral> computeSelected(TL::Token<GenericELiteralSelector<i>>, Clause* cl, Ordering* ord) 
+  { throw UserErrorException("E literal selector not supported for alasca (yet)"); }
 
   template<unsigned i>
-  Stack<SelectedAtom> computeSelected(TL::Token<GenericSpassLiteralSelector<i>>, Stack<SelectedAtom> atoms, Ordering* ord) 
-  { throw new UserErrorException("Spass literal selector not supported for alasca (yet)"); }
+  Stack<__SelectedLiteral> computeSelected(TL::Token<GenericSpassLiteralSelector<i>>, Clause* cl, Ordering* ord) 
+  { throw UserErrorException("Spass literal selector not supported for alasca (yet)"); }
 
   // auto iterUnproductive(Stack<SelectedAtom> const& atoms) const
   // { return arrayIter(atoms)
@@ -370,14 +370,6 @@ struct AlascaSelectorDispatch {
   Stack<__SelectedLiteral> computeSelected(TL::Token<TotalLiteralSelector>, Clause* cl, Ordering* ord) {
     return iterAll(cl, /* bgSelected */ true) .collectStack();
   }
-
-  template<class C>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<C>, Clause* atoms, Ordering* ord) {
-    ASSERTION_VIOLATION_REP(Output::cat("TODO: ", C::typeName()))
-  }
-
-
-
 };
 
 
