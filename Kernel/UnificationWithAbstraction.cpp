@@ -279,10 +279,9 @@ AbstractionOracle::AbstractionResult uwa_ac(AbstractingUnifier& au, TermSpec con
 }
 
 Option<AbstractionOracle::AbstractionResult> uwa_ac(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2) {
-  auto varCase = [](auto t1, auto t2) {
+  auto varCase = [&au](auto t1, auto t2) {
     return someIf(t1.isVar(), [&]() { 
-      ASS(t1.index == t2.index)
-      ASS(t2.term.containsSubterm(t1.term))
+      ASS(au.occurs(t1, t2))
       return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{});
     });
   };
