@@ -1476,6 +1476,7 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
       });
     }
   }
+  ASSERTION_VIOLATION
 }
 
 void UnificationConstraintStack::add(UnificationConstraint c, Option<BacktrackData&> bd)
