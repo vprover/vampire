@@ -217,6 +217,7 @@ struct LiteralIndexTest {
       DECL_VAR(x1, 1)                                                                     \
       DECL_VAR(x2, 2)                                                                     \
       DECL_VAR(x3, 3)                                                                     \
+      DECL_VAR(x4, 4)                                                                     \
                                                                                           \
       DECL_VAR(S0, 500)                                                                   \
       DECL_VAR(S1, 501)                                                                   \
@@ -2742,3 +2743,11 @@ ROB_UNIFY_TEST(alsca_ac_23,
       .constraints = constraints(),
       .alascaSimpl = true,
     })
+
+ROB_UNIFY_TEST(alsca_ac_24,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x0 + f(x1) + f(x2),
+    f(x3) + f(x4),
+    TermUnificationFail{})

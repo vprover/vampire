@@ -165,8 +165,8 @@ AbstractionOracle::AbstractionResult uwa_ac(AbstractingUnifier& au, TermSpec con
     cancel(*S1.terms->getOrInit(f), *S2.terms->getOrInit(f));
   }
 
-  DEBUG_UWA(0, S1)
-  DEBUG_UWA(0, S2)
+  DEBUG_UWA(0, "S1: ", S1)
+  DEBUG_UWA(0, "S2: ", S2)
 
   auto sz1 = S1.size();
   auto sz2 = S2.size();
@@ -236,6 +236,11 @@ AbstractionOracle::AbstractionResult uwa_ac(AbstractingUnifier& au, TermSpec con
         if (surplus1.size() > 0) {
           return AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
               .constr(eq(sum(S1.allTerms()), sum(S2.allTerms()))));
+        }
+        auto sz1 = S1.vars->size();
+        auto sz2 = S2.vars->size() + surplus2->size();
+        if (sz1 > sz2) {
+          return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{});
         }
         auto sum1 = sum(iterTraits(S1.vars->iter()).cloned());
         auto sum2 = sum(iterTraits(S2.vars->iter()).cloned(), arrayIter(*surplus2).cloned());
