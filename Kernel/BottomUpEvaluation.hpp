@@ -616,10 +616,9 @@ struct BottomUpChildIter<Kernel::PolyNf>
   { return out << self._self; }
 };
 
-template<class A>
+template<class A, class Context = typename BottomUpChildIter<A>::Context>
 struct SubtermIterTopDown 
 {
-  using Context = typename BottomUpChildIter<A>::Context;
   struct Inner {
     BottomUpChildIter<A> iter;
     bool returned;
@@ -628,7 +627,7 @@ struct SubtermIterTopDown
   RStack<Inner> _self;
   Context _context;
 
-  SubtermIterTopDown(A self, typename BottomUpChildIter<A>::Context context = {}) 
+  SubtermIterTopDown(A self, Context context = {}) 
     : _self() 
     , _context(std::move(context))
   { 
@@ -661,9 +660,8 @@ struct SubtermIterTopDown
   }
 };
 
-template<class A>
+template<class A, class Context = typename BottomUpChildIter<A>::Context>
 struct SubtermIterBottomUp {
-  using Context = typename BottomUpChildIter<A>::Context;
   struct Inner {
     BottomUpChildIter<A> iter;
     Inner(A self, Context ctx) : iter(self, ctx) {}
@@ -672,7 +670,7 @@ struct SubtermIterBottomUp {
   Context _context;
   bool _bottomUp = true;
 
-  SubtermIterBottomUp(A self, typename BottomUpChildIter<A>::Context context = {}) 
+  SubtermIterBottomUp(A self, Context context = {}) 
     : _self() 
     , _context(std::move(context))
   { 
@@ -698,6 +696,8 @@ struct SubtermIterBottomUp {
 
 template<class A> SubtermIterBottomUp(A) -> SubtermIterBottomUp<A>;
 template<class A> SubtermIterTopDown(A) -> SubtermIterTopDown<A>;
+template<class A, class C> SubtermIterBottomUp(A, C) -> SubtermIterBottomUp<A,C>;
+template<class A, class C> SubtermIterTopDown(A, C) -> SubtermIterTopDown<A,C>;
 // template<bool bottomUp> struct GenericSubtermIterFun;
 //
 // template<> struct GenericSubtermIterFun<true>  { 
