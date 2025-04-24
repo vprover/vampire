@@ -668,6 +668,7 @@ public:
    */
   class ConstIterator {
   public:
+    DECL_ELEMENT_TYPE(Entry const&);
     /** Create a new iterator */
     inline ConstIterator(Map const& map)
       : _next(map._entries), _last(map._afterLast)

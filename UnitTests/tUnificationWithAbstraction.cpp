@@ -101,6 +101,7 @@ struct UnificationResultSpec {
   }
 };
 
+struct TermUnificationFail {};
 using TermUnificationResultSpec    = UnificationResultSpec<TermList>;
 using LiteralUnificationResultSpec = UnificationResultSpec<Literal*>;
 
@@ -1103,6 +1104,7 @@ Option<TermUnificationResultSpec> runRobUnify(bool diffNamespaces, Options::Unif
 
 }
 
+
 void checkRobUnify(bool diffNamespaces, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermList a, TermList b, TermUnificationResultSpec exp)
 // void checkRobUnify(TypedTermList a, TypedTermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermUnificationResultSpec exp)
 {
@@ -1119,7 +1121,6 @@ void checkRobUnify(bool diffNamespaces, Options::UnificationWithAbstraction opt,
 
 
 void checkRobUnifyFail(bool diffNamespaces, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermList a, TermList b)
-// void checkRobUnifyFail(TypedTermList a, TypedTermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration)
 {
   auto is = runRobUnify(diffNamespaces, opt, fixedPointIteration, a, b);
   if(is.isNone()) {
@@ -1131,6 +1132,9 @@ void checkRobUnifyFail(bool diffNamespaces, Options::UnificationWithAbstraction 
     ASSERTION_VIOLATION
   }
 }
+
+void checkRobUnify(bool diffNamespaces, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermList a, TermList b, TermUnificationFail)
+{ return checkRobUnifyFail(diffNamespaces,opt,fixedPointIteration,a,b); }
 
 #define ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(name, sugar, opt, fixedPointIteration, lhs, rhs, ...)          \
   TEST_FUN(name)                                                                          \
@@ -2484,3 +2488,257 @@ TEST_FUN(bug06) {
     uwa.unify(a(x), 2, b + 3, 0);
   }
 }
+
+ROB_UNIFY_TEST(alsca_ac_01,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    f(x0) + f(x1),
+    f(x2) + f(x3),
+    TermUnificationResultSpec { 
+      .querySigma  = f(x0) + f(x1),
+      .resultSigma = f(x2) + f(x3),
+      .constraints = constraints(f(x0) + f(x1) != f(x2) + f(x3)),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_02,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    c + a,
+    a + b + c,
+    TermUnificationFail {})
+
+ROB_UNIFY_TEST(alsca_ac_03,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    c + a,
+    a + x + c,
+    TermUnificationFail {})
+
+ROB_UNIFY_TEST(alsca_ac_04,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    c + a + b,
+    a + x + c,
+    TermUnificationResultSpec { 
+      .querySigma  = c + a + b,
+      .resultSigma = a + b + c,
+      .constraints = constraints(),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_05,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    c + a + b + a,
+    a + x + c,
+    TermUnificationResultSpec { 
+      .querySigma  = c + a + b + a,
+      .resultSigma = a + b + a + c,
+      .constraints = constraints(),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_06,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    c + f(x) + a,
+    a + x + c,
+    TermUnificationFail {})
+
+ROB_UNIFY_TEST(alsca_ac_07,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    c + x + a + a,
+    a + x + c,
+    TermUnificationFail {})
+
+ROB_UNIFY_TEST(alsca_ac_08,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    c + x + a + a,
+    a + y + c,
+    TermUnificationResultSpec { 
+      .querySigma  = c + x + a + a,
+      .resultSigma = a + (x + a) + c,
+      .constraints = constraints(),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_09,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x + f(y),
+    y + f(x),
+    TermUnificationResultSpec { 
+      .querySigma  = x + f(y),
+      .resultSigma = y + f(x),
+      .constraints = constraints(x + f(y) != y + f(x)),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_10,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    f(x0) + x1,
+    b + f(b) + f(a),
+    TermUnificationResultSpec { 
+      .querySigma  = f(x0) + x1,
+      .resultSigma = b + f(b) + f(a),
+      .constraints = constraints(f(x0) + x1 != b + f(b) + f(a)),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_11,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    f(z) + g(a),
+    b + f(b) + f(a),
+    TermUnificationFail{})
+
+ROB_UNIFY_TEST(alsca_ac_12,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    f(z) + g(a),
+    b + f(b) + g(a),
+    TermUnificationFail {})
+
+ROB_UNIFY_TEST(alsca_ac_13,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    f(z) + g(a),
+    g(a) + f(b),
+    TermUnificationResultSpec { 
+      .querySigma  = f(b) + g(a),
+      .resultSigma = g(a) + f(b),
+      .constraints = constraints(),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_14,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    f(x0) + g(x1) + f(a),
+    g(a) + f(x1) + f(x2),
+    TermUnificationResultSpec { 
+      .querySigma  = f(x0) + g(a) + f(a),
+      .resultSigma = g(a) + f(a) + f(x1),
+      .constraints = constraints(f(x0) + f(a) != f(a) + f(x1)),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_15,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    f(z) + g(x),
+    g(a) + f(b) + f(y),
+    TermUnificationFail {})
+
+
+ROB_UNIFY_TEST(alsca_ac_16,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    f(x0) + g(x1) + g(x2) + f(a),
+    g(b) + f(x1) + g(x0) + f(x2),
+    TermUnificationResultSpec { 
+      .querySigma  = f(x0) + g(x1) + g(x2) + f(a),
+      .resultSigma = g(b) + f(x1) + g(x0) + f(x2),
+      .constraints = constraints( g(x1) + g(x2) != g(b) + g(x0),
+                                  f(x0) + f(a) != f(x1) + f(x2)),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_17,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x + a,
+    b,
+    TermUnificationFail {})
+
+ROB_UNIFY_TEST(alsca_ac_18,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x + a,
+    a + c,
+    TermUnificationResultSpec { 
+      .querySigma  = c + a,
+      .resultSigma = a + c,
+      .constraints = constraints(),
+      .alascaSimpl = true,
+    })
+
+
+
+ROB_UNIFY_TEST(alsca_ac_19,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x + a,
+    b + c,
+    TermUnificationFail {})
+
+
+ROB_UNIFY_TEST(alsca_ac_20,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x + y + a,
+    b + c,
+    TermUnificationFail {})
+
+ROB_UNIFY_TEST(alsca_ac_21,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x + f(x) + f(y),
+    b + c + f(a) + f(b + c),
+    TermUnificationResultSpec {
+      .querySigma  = b + c + f(b + c) + f(x),
+      .resultSigma = b + c + f(a) + f(b + c),
+      .constraints = constraints(f(b + c) + f(x) != f(a) + f(b + c)),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_22,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x + f(a),
+    y + f(z),
+    TermUnificationResultSpec { 
+      .querySigma  = x + f(a),
+      .resultSigma = y + f(z),
+      .constraints = constraints(x + f(a) != y + f(z)),
+      .alascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(alsca_ac_23,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::ALASCA_AC,
+    /* fixedPointIteration */ false,
+    x,
+    y + z,
+    TermUnificationResultSpec { 
+      .querySigma  = x + y,
+      .resultSigma = x + y,
+      .constraints = constraints(),
+      .alascaSimpl = true,
+    })

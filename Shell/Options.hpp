@@ -207,6 +207,7 @@ public:
     ALASCA_CAN_ABSTRACT,
     ALASCA_MAIN,
     ALASCA_MAIN_FLOOR,
+    ALASCA_AC,
   };
   friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
   {
@@ -223,6 +224,7 @@ public:
       case UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: return out << "alasca_can_abstract";
       case UnificationWithAbstraction::ALASCA_MAIN:         return out << "alasca_main";
       case UnificationWithAbstraction::ALASCA_MAIN_FLOOR:   return out << "alasca_floor";
+      case UnificationWithAbstraction::ALASCA_AC        :   return out << "alasca_ac";
     }
     ASSERTION_VIOLATION
   }
