@@ -69,7 +69,11 @@ struct TermSpec {
   TermSpec(TermList t, int i) : term(t), index(t.isTerm() && t.term()->shared() && t.ground() ? 0 : i) {}
   TermSpec(VarSpec v) : term(v.varAsTermlist()), index(v.index) {}
 
-  auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
+  auto asTuple() const -> decltype(auto) 
+  { return std::make_tuple(term.isTerm() ? Coproduct<TermList, Term const*>(term.term())
+                                         : Coproduct<TermList, Term const*>(term), 
+                           index); }
+
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
   IMPL_HASH_FROM_TUPLE(TermSpec)
 
