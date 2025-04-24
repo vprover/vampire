@@ -25,6 +25,7 @@
 
 #include "Shell/LispParser.hpp"
 
+#define USER_ERROR_EXPR(msg) USER_ERROR(std::string(msg)+" in top-level expression '"+_topLevelExpr->toString()+"'")
 
 namespace Parse {
 
@@ -48,8 +49,6 @@ public:
 
   /** Parse from an open stream */
   void parse(std::istream& str);
-  /** Parse a ready lisp expression */
-  void parse(LExpr* bench);
 
   /** Formulas obtained during parsing:
    *  1) equations collected from "define-fun"
@@ -117,32 +116,15 @@ private:
   void readDeclareSort(const std::string& name, const std::string& arity);
 
   /**
-   * Sort definition is a macro (with arguments) for a complex sort expression.
-   *
-   * We don't parse the definition until it is used.
-   *
-   * Then a lookup context is created mapping
-   * symbolic arguments from the definition to actual arguments from the invocation
-   * and the invocation is parsed as the defined body in this context.
+   * Maps smtlib name of a defined sort to its arity and its sort term.
+   * The sort term is assumed to contain X1,...,Xn where n is the arity.
    */
-  struct SortDefinition {
-    SortDefinition() : args(0), body(0) {}
-    SortDefinition(LExprList* args, LExpr* body)
-     : args(args), body(body) {}
-
-    LExprList* args;
-    LExpr* body;
-  };
-
-  /**
-   * Maps smtlib name of a defined sort to its SortDefinition struct.
-   */
-  DHMap<std::string,SortDefinition> _sortDefinitions;
+  DHMap<std::string,std::pair<unsigned,TermList>> _sortDefinitions;
 
   /**
    * Handle "define-sort" entry.
    */
-  void readDefineSort(const std::string& name, LExprList* args, LExpr* body);
+  void readDefineSort(const std::string& name, LExpr* args, LExpr* body);
 
   /**
    * Helper funtion to check that a parsed sort is indeed a sort.
@@ -252,7 +234,7 @@ private:
    *
    * Declaring a function just extends the signature.
    */
-  void readDeclareFun(const std::string& name, LExprList* iSorts, LExpr* oSort);
+  void readDeclareFun(const std::string& name, LExpr* iSorts, LExpr* oSort);
 
   /**
    * Handle "define-fun[-rec]" entry.
@@ -260,17 +242,17 @@ private:
    * Defining a function extends the signature and adds the new function's definition into _formulas.
    * Additionally, the "define-fun-rec" variant allows the defined function to be present inside the definition, allowing recursion.
    */
-  void readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive);
+  void readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort, LExpr* body, bool recursive);
   /**
    * Handle "define-funs-rec" entry.
    *
    * Same as "define-fun-rec" (see above), except it defines possibly multiple functions at the same time which can use each other.
    */
-  void readDefineFunsRec(LExprList* declarations, LExprList* definitions);
+  void readDefineFunsRec(LExpr* declarations, LExpr* definitions);
 
-  void readDeclareDatatype(LExpr* sort, LExprList* datatype);
+  void readDeclareDatatype(std::string name, LExpr* datatype);
 
-  void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
+  void readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codatatype = false);
 
   TermAlgebraConstructor* buildTermAlgebraConstructor(std::string constrName, TermList taSort,
                                                       Stack<std::string> destructorNames, TermStack argSorts);
@@ -366,8 +348,10 @@ private:
   inline void popScope() {
     _scopes.pop();
   }
-  inline bool insertIntoTopScope(std::string name, TermList term, TermList sort) {
-    return _scopes.top()->insert(name, { term, sort });
+  inline void tryInsertIntoTopScope(std::string name, TermList term, TermList sort) {
+    if (!_scopes.top()->insert(name, { term, sort })) {
+      USER_ERROR_EXPR("Identifier '" + name + "' has already been defined in top scope");
+    }
   }
 
   /**
@@ -408,14 +392,17 @@ private:
   // a few helper functions enabling the body of parseTermOrFormula be of reasonable size
 
   [[noreturn]] void complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp);
-  inline void expectList(LispListReader& rdr, const char* msg);
+
+  inline LExpr* tryReadNext(LispListReader& rdr);
+  inline std::string tryReadAtom(LispListReader& rdr);
+  inline LExpr* tryReadList(LispListReader& rdr);
   inline void readKeyword(LispListReader& rdr, const char* keyword);
 
   /**
-   * Read `[vars]` from a `(par ([vars]) body)` block into `lookup`.
+   * Read `[vars]` from a `(par ([vars]) body)` block into the topmost lookup.
    * Note that `rdr.next()` gives `body` after the function returns.
    */
-  void readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts = nullptr);
+  void readTypeParameters(LispListReader& rdr, TermStack& ts);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
@@ -536,7 +523,7 @@ private:
   /**
    * Toplevel parsing dispatch for a benchmark.
    */
-  void readBenchmark(LExprList* bench);
+  void readBenchmark(LExpr* bench);
 };
 
 }

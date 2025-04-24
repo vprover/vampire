@@ -58,25 +58,15 @@ public:
     List<Expression*>* list;
     /** build a list expressions with the list initially empty */
     explicit Expression(Tag t)
-      : tag(t),
-	str("?"),
-	list(0)
-    {}
+      : tag(t),	str("?"),	list(0) {}
     /** build a string-values expression */
     Expression(Tag t,std::string s)
-      : tag(t),
-	str(s),
-	list(0)
-    {}
+      : tag(t),	str(s),	list(0) {}
     std::string toString(bool outerParentheses=true) const;
+    std::string highlightSubexpression(Expression* expr) const;
 
     bool isList() const { return tag==LIST; }
     bool isAtom() const { return tag==ATOM; }
-
-    bool get2Args(std::string functionName, Expression*& arg1, Expression*& arg2);
-    bool get1Arg(std::string functionName, Expression*& arg);
-    bool getPair(Expression*& el1, Expression*& el2);
-    bool getSingleton(Expression*& el);
   };
 
   typedef Lib::List<Expression*> EList;
@@ -113,14 +103,10 @@ typedef List<LExpr*> LExprList;
 
 class LispListReader {
 public:
-  explicit LispListReader(LExpr* e) : it(nullptr)
+  LispListReader(LExpr* e) : e(e), it(LExprList::Iterator(e->list))
   {
-    if(!e->isList()) {
-      lispError(e, "list expected");
-    }
-    it = LExprList::Iterator(e->list);
+    ASS(e->isList());
   }
-  explicit LispListReader(LExprList* list) : it(list) {}
 
   [[noreturn]] void lispError(LExpr* expr, std::string reason="error");
   [[noreturn]] void lispCurrError(std::string reason="error");
@@ -150,7 +136,7 @@ public:
 
   bool lookAheadAtom(std::string atom);
 
-  bool tryAcceptCurlyBrackets();
+  LExpr* e;
 private:
   LExprList::Iterator it;
 };

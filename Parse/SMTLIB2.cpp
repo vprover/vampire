@@ -54,8 +54,6 @@
 #define LOG4(a1,a2,a3,a4)
 #endif
 
-#define USER_ERROR_EXPR(msg) USER_ERROR(std::string(msg)+" in top-level expression '"+_topLevelExpr->toString()+"'")
-
 namespace Parse {
 
 using namespace std;
@@ -77,16 +75,13 @@ void SMTLIB2::parse(istream& str)
   LispLexer lex(str);
   LispParser lpar(lex);
   LExpr* expr = lpar.parse();
-  parse(expr);
+  if (!expr->isList()) {
+    USER_ERROR("Input file is not a list");
+  }
+  readBenchmark(expr);
 }
 
-void SMTLIB2::parse(LExpr* bench)
-{
-  ASS(bench->isList());
-  readBenchmark(bench->list);
-}
-
-void SMTLIB2::readBenchmark(LExprList* bench)
+void SMTLIB2::readBenchmark(LExpr* bench)
 {
   LispListReader bRdr(bench);
 
@@ -108,7 +103,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       if (_logicSet) {
         USER_ERROR_EXPR("set-logic can appear only once in a problem");
       }
-      readLogic(ibRdr.readAtom());
+      readLogic(tryReadAtom(ibRdr));
       ibRdr.acceptEOL();
       continue;
     }
@@ -116,31 +111,28 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     if (ibRdr.tryAcceptAtom("set-info")) {
 
       if (ibRdr.tryAcceptAtom(":status")) {
-        _statusStr = ibRdr.readAtom();
+        _statusStr = tryReadAtom(ibRdr);
         ibRdr.acceptEOL();
         continue;
       }
 
       if (ibRdr.tryAcceptAtom(":source")) {
-        _sourceInfo = ibRdr.readAtom();
+        _sourceInfo = tryReadAtom(ibRdr);
         ibRdr.acceptEOL();
         continue;
       }
 
       // ignore unknown info
-      ibRdr.readAtom();
-      ibRdr.readAtom();
+      tryReadAtom(ibRdr);
+      tryReadAtom(ibRdr);
       ibRdr.acceptEOL();
       continue;
     }
 
     if (ibRdr.tryAcceptAtom("declare-sort")) {
-      std::string name = ibRdr.readAtom();
-      std::string arity;
-      if (!ibRdr.tryReadAtom(arity)) {
-        USER_ERROR_EXPR("Unspecified arity while declaring sort: "+name);
-      }
 
+      auto name = tryReadAtom(ibRdr);
+      auto arity = tryReadAtom(ibRdr);
       readDeclareSort(name,arity);
 
       ibRdr.acceptEOL();
@@ -149,7 +141,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("declare-sort-parameter")) {
-      std::string name = ibRdr.readAtom();
+
+      auto name = tryReadAtom(ibRdr);
       // TODO: should we allow shadowing?
       if (isAlreadyKnownSymbol(name)) {
         USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort parameter: "+name);
@@ -162,14 +155,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("define-sort")) {
-      std::string name = ibRdr.readAtom();
-      LExprList* args = ibRdr.readList();
 
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("define-sort expects a sort definition body");
-      }
-      LExpr* body = ibRdr.readNext();
-
+      auto name = tryReadAtom(ibRdr);
+      auto args = tryReadList(ibRdr);
+      auto body = tryReadNext(ibRdr);
       readDefineSort(name,args,body);
 
       ibRdr.acceptEOL();
@@ -178,14 +167,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("declare-fun")) {
-      std::string name = ibRdr.readAtom();
-      LExprList* iSorts = ibRdr.readList();
-      LispListReader iSortRdr(iSorts);
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("declare-fun expects an output sort");
-      }
-      LExpr* oSort = ibRdr.readNext();
 
+      auto name = tryReadAtom(ibRdr);
+      auto iSorts = tryReadList(ibRdr);
+      auto oSort = tryReadNext(ibRdr);
       readDeclareFun(name,iSorts,oSort);
 
       ibRdr.acceptEOL();
@@ -194,9 +179,9 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("declare-datatype")) {
-      LExpr *sort = ibRdr.readNext();
-      LExprList *datatype = ibRdr.readList();
 
+      auto sort = tryReadAtom(ibRdr);
+      auto datatype = tryReadList(ibRdr);
       readDeclareDatatype(sort, datatype);
 
       ibRdr.acceptEOL();
@@ -205,9 +190,9 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("declare-datatypes")) {
-      LExprList* sorts = ibRdr.readList();
-      LExprList* datatypes = ibRdr.readList();
-
+  
+      auto sorts = tryReadList(ibRdr);
+      auto datatypes = tryReadList(ibRdr);
       readDeclareDatatypes(sorts, datatypes, false);
 
       ibRdr.acceptEOL();
@@ -216,9 +201,9 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("declare-codatatypes")) {
-      LExprList* sorts = ibRdr.readList();
-      LExprList* datatypes = ibRdr.readList();
-
+  
+      auto sorts = tryReadList(ibRdr);
+      auto datatypes = tryReadList(ibRdr);
       readDeclareDatatypes(sorts, datatypes, true);
 
       ibRdr.acceptEOL();
@@ -227,13 +212,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
     
     if (ibRdr.tryAcceptAtom("declare-const")) {
-      std::string name = ibRdr.readAtom();
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("declare-const expects a const definition body");
-      }
-      LExpr* oSort = ibRdr.readNext();
 
-      readDeclareFun(name,nullptr,oSort);
+      auto name = tryReadAtom(ibRdr);
+      auto oSort = tryReadNext(ibRdr);
+      LExpr iArgs(LispParser::LIST); // dummy list to avoid passing null below
+      readDeclareFun(name,&iArgs,oSort);
 
       ibRdr.acceptEOL();
 
@@ -242,18 +225,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
     bool recursive = false;
     if (ibRdr.tryAcceptAtom("define-fun") || (recursive = ibRdr.tryAcceptAtom("define-fun-rec"))) {
-      std::string name = ibRdr.readAtom();
-      LExprList* iArgs = ibRdr.readList();
-      LispListReader iArgRdr(iArgs);
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("define-fun expects an output sort");
-      }
-      LExpr* oSort = ibRdr.readNext();
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("define-fun expects a fun definition body");
-      }
-      LExpr* body = ibRdr.readNext();
 
+      auto name = tryReadAtom(ibRdr);
+      auto iArgs = tryReadList(ibRdr);
+      auto oSort = tryReadNext(ibRdr);
+      auto body = tryReadNext(ibRdr);
       readDefineFun(name,iArgs,oSort,body,recursive);
 
       ibRdr.acceptEOL();
@@ -262,9 +238,9 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("define-funs-rec")) {
-      LExprList* declarations = ibRdr.readList();
-      LExprList* definitions = ibRdr.readList();
 
+      auto declarations = tryReadList(ibRdr);
+      auto definitions = tryReadList(ibRdr);
       // TODO make this work with sort parameters
       readDefineFunsRec(declarations, definitions);
 
@@ -272,34 +248,26 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("assert")) {
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("assert expects a body");
-      }
-      LExpr* body = ibRdr.readNext();
-      readAssert(body);
 
+      auto body = tryReadNext(ibRdr);
+      readAssert(body);
       ibRdr.acceptEOL();
 
       continue;
     }
 
     if (ibRdr.tryAcceptAtom("assert-claim")) {
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("assert expects a body");
-      }
-      LExpr* body = ibRdr.readNext();
-      readAssertClaim(body);
 
+      auto body = tryReadNext(ibRdr);
+      readAssertClaim(body);
       ibRdr.acceptEOL();
 
       continue;
     }
 
     if (ibRdr.tryAcceptAtom("assert-not")) {
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("assert-not expects a body");
-      }
-      LExpr* body = ibRdr.readNext();
+
+      auto body = tryReadNext(ibRdr);
       readAssertNot(body);
 
       ibRdr.acceptEOL();
@@ -308,10 +276,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("assert-theory")) {
-      if (!ibRdr.hasNext()) {
-        USER_ERROR_EXPR("assert-theory expects a body");
-      }
-      LExpr* body = ibRdr.readNext();
+
+      auto body = tryReadNext(ibRdr);
       readAssertTheory(body);
 
       ibRdr.acceptEOL();
@@ -321,7 +287,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
     // not an official SMTLIB command
     if (ibRdr.tryAcceptAtom("color-symbol")) {
-      std::string symbol = ibRdr.readAtom();
+
+      auto symbol = tryReadAtom(ibRdr);
 
       if (ibRdr.tryAcceptAtom(":left")) {
         colorSymbol(symbol, Color::COLOR_LEFT);
@@ -523,17 +490,23 @@ void SMTLIB2::readDeclareSort(const std::string& name, const std::string& arity)
   declareTypeCon(pName, val);
 }
 
-void SMTLIB2::readDefineSort(const std::string& name, LExprList* args, LExpr* body)
+void SMTLIB2::readDefineSort(const std::string& name, LExpr* args, LExpr* body)
 {
   std::string pName = name + TYPECON_POSTFIX;
   if (isAlreadyKnownSymbol(pName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol: "+name);
   }
 
-  // here we could check the definition for well-formed-ness
-  // current solution: crash only later, at application site
-
-  ALWAYS(_sortDefinitions.insert(pName,SortDefinition(args,body)));
+  pushScope();
+  // sort definitions cannot contain global sort
+  // parameters, so we use normalized variables
+  unsigned var = 0;
+  LispListReader argRdr(args);
+  while (argRdr.hasNext()) {
+    tryInsertIntoTopScope(tryReadAtom(argRdr), TermList::var(var++), AtomicSort::superSort());
+  }
+  ALWAYS(_sortDefinitions.insert(pName, { var, parseSort(body) }));
+  popScope();
 }
 
 //  ----------------------------------------------------------------------
@@ -664,7 +637,7 @@ bool SMTLIB2::isAlreadyKnownSymbol(const std::string& name)
   return false;
 }
 
-void SMTLIB2::readDeclareFun(const std::string& name, LExprList* iSorts, LExpr* oSort)
+void SMTLIB2::readDeclareFun(const std::string& name, LExpr* iSorts, LExpr* oSort)
 {
   if (isAlreadyKnownSymbol(name)) {
     USER_ERROR_EXPR("Redeclaring function symbol: "+name);
@@ -748,7 +721,7 @@ unsigned SMTLIB2::declareTypeCon(const std::string& name, unsigned arity)
 
 //  ----------------------------------------------------------------------
 
-void SMTLIB2::readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive)
+void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort, LExpr* body, bool recursive)
 {
   if (isAlreadyKnownSymbol(name)) {
     USER_ERROR_EXPR("Redeclaring function symbol: "+name);
@@ -766,20 +739,17 @@ void SMTLIB2::readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oS
 
   LispListReader iaRdr(iArgs);
   while (iaRdr.hasNext()) {
-    LExprList* pair = iaRdr.readList();
-    LispListReader pRdr(pair);
+    LispListReader pRdr(tryReadList(iaRdr));
 
-    std::string vName = pRdr.readAtom();
-    TermList vSort = parseSort(pRdr.readNext());
+    auto vName = tryReadAtom(pRdr);
+    TermList vSort = parseSort(tryReadNext(pRdr));
 
     pRdr.acceptEOL();
 
     TermList arg = TermList::var(_nextVar++);
     termArgs.push(arg);
 
-    if (!insertIntoTopScope(vName, arg, vSort)) {
-      USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in the definition of function "+name);
-    }
+    tryInsertIntoTopScope(vName, arg, vSort);
 
     argSorts.push(vSort);
   }
@@ -842,7 +812,7 @@ void SMTLIB2::readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oS
   _formulas.pushBack(fu);
 }
 
-void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
+void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
 {
   struct Declaration {
     DeclaredSymbol sym;
@@ -855,18 +825,13 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
   // first, declare all symbols
   LispListReader declsRdr(declsExpr);
   while (declsRdr.hasNext()) {
-    auto declExpr = declsRdr.next();
-    if (!declExpr->isList()) {
-      USER_ERROR_EXPR("define-funs-rec expect a list of lists of declaration as its first argument");
-    }
-
     Declaration decl;
-    LispListReader declRdr(declExpr->list);
-    std::string name = declRdr.readAtom();
+    LispListReader declRdr(tryReadList(declsRdr));
+    auto name = tryReadAtom(declRdr);
     if (isAlreadyKnownSymbol(name)) {
       USER_ERROR_EXPR("Redeclaring function symbol: "+name);
     }
-    LExprList* iArgs = declRdr.readList();
+    auto iArgs = tryReadList(declRdr);
 
     decl.lookup = new TermLookup();
 
@@ -875,11 +840,10 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
 
     LispListReader iaRdr(iArgs);
     while (iaRdr.hasNext()) {
-      LExprList* pair = iaRdr.readList();
-      LispListReader pRdr(pair);
+      LispListReader pRdr(tryReadList(iaRdr));
 
-      std::string vName = pRdr.readAtom();
-      TermList vSort = parseSort(pRdr.readNext());
+      auto vName = tryReadAtom(pRdr);
+      TermList vSort = parseSort(tryReadNext(pRdr));
 
       pRdr.acceptEOL();
 
@@ -953,40 +917,29 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
   }
 }
 
-void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
+void SMTLIB2::readTypeParameters(LispListReader& rdr, TermStack& ts)
 {
-  expectList(rdr, "after 'par' keyword in datatype declaration");
-
-  LispListReader parRdr(rdr.readList());
+  LispListReader parRdr(tryReadList(rdr));
   while (parRdr.hasNext()) {
-    auto par = parRdr.next();
-    if (!par->isAtom()) {
-      USER_ERROR_EXPR("List of parameters contains non-atomic expression '"+par->str+"'");
-    }
     auto sortVar = TermList::var(_nextVar++);
-    if (!lookup->insert(par->str, make_pair(sortVar, AtomicSort::superSort()))) {
-      USER_ERROR_EXPR("Type parameter '" + par->str + "' has already been defined");
-    }
-    if (ts) {
-      ts->push(sortVar);
-    }
+    tryInsertIntoTopScope(tryReadAtom(parRdr), sortVar, AtomicSort::superSort());
+    ts.push(sortVar);
   }
 }
 
-void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
+void SMTLIB2::readDeclareDatatype(string name, LExpr *datatype)
 {
   // first declare the sort
-  std::string dtypeName = sort->str+TYPECON_POSTFIX;
+  std::string dtypeName = name+TYPECON_POSTFIX;
   if (isAlreadyKnownSymbol(dtypeName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: " + dtypeName);
   }
   LispListReader dtypeRdr(datatype);
   pushScope();
   TermStack parSorts;
-  if (dtypeRdr.hasNext() && dtypeRdr.peekAtNext()->isAtom() && dtypeRdr.peekAtNext()->str == PAR) {
-    dtypeRdr.readAtom();
-    readTypeParameters(dtypeRdr, _scopes.top().get(), &parSorts);
-    auto rest = dtypeRdr.readList();
+  if (dtypeRdr.tryAcceptAtom(PAR)) {
+    readTypeParameters(dtypeRdr, parSorts);
+    auto rest = tryReadList(dtypeRdr);
     dtypeRdr.acceptEOL();
     dtypeRdr = LispListReader(rest);
   }
@@ -1040,26 +993,25 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
   env.signature->addTermAlgebra(ta);
 }
 
-void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype)
+void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codatatype)
 {
-  if(LExprList::length(sorts) != LExprList::length(datatypes)){
-    USER_ERROR_EXPR("declare-datatype(s) declaration mismatch between declared datatypes and definitions");
-  }
+  // if(LExprList::length(sorts) != LExprList::length(datatypes)){
+  //   USER_ERROR_EXPR("declare-datatype(s) declaration mismatch between declared datatypes and definitions");
+  // }
 
   // first declare all the sorts, and then only the constructors, in
   // order to allow mutually recursive datatype definitions
   LispListReader dtypesNamesRdr(sorts);
   Stack<unsigned> dtypeFns;
   while (dtypesNamesRdr.hasNext()) {
-    LispListReader dtypeNRdr(dtypesNamesRdr.readList());
+    LispListReader dtypeNRdr(tryReadList(dtypesNamesRdr));
 
-    auto dtypeName = dtypeNRdr.readAtom()+TYPECON_POSTFIX;
+    auto dtypeName = tryReadAtom(dtypeNRdr)+TYPECON_POSTFIX;
     if (isAlreadyKnownSymbol(dtypeName)) {
       USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
     }
-    auto dtypeSize = dtypeNRdr.readAtom();
     unsigned arity;
-    if (!Int::stringToUnsignedInt(dtypeSize,arity)) {
+    if (!Int::stringToUnsignedInt(tryReadAtom(dtypeNRdr),arity)) {
       USER_ERROR_EXPR("datatype arity not given");
     }
     dtypeFns.push(declareTypeCon(dtypeName,arity));
@@ -1071,8 +1023,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
   LispListReader dtypesDefsRdr(datatypes);
   Stack<unsigned>::BottomFirstIterator dtypeFnIter(dtypeFns);
-  while(dtypesDefsRdr.hasNext()) {
-    ASS(dtypeFnIter.hasNext());
+  while(dtypeFnIter.hasNext()) {
     constructors.reset();
 
     auto fn = dtypeFnIter.next();
@@ -1080,16 +1031,12 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
     LOG4("reading datatype ",sym->name()," of type ",sym->typeConType()->toString());
 
-    expectList(dtypesDefsRdr, "in datatype declaration");
-
     pushScope();
     TermStack parSorts;
-    LispListReader dtypeRdr(dtypesDefsRdr.readList());
-    if (dtypeRdr.hasNext() && dtypeRdr.peekAtNext()->isAtom() && dtypeRdr.peekAtNext()->str == PAR) {
-      dtypeRdr.readAtom();
-      readTypeParameters(dtypeRdr, _scopes.top().get(), &parSorts);
-      expectList(dtypeRdr, "after 'par' block");
-      auto rest = dtypeRdr.readList();
+    LispListReader dtypeRdr(tryReadList(dtypesDefsRdr));
+    if (dtypeRdr.tryAcceptAtom(PAR)) {
+      readTypeParameters(dtypeRdr, parSorts);
+      auto rest = tryReadList(dtypeRdr);
       dtypeRdr.acceptEOL();
       dtypeRdr = LispListReader(rest);
     }
@@ -1120,10 +1067,9 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
         constrName = constrRdr.readAtom();
 
         while (constrRdr.hasNext()) {
-          expectList(constrRdr, "for destructor declaration");
-          LExpr *arg = constrRdr.next();
+          auto arg = tryReadList(constrRdr);
           LispListReader argRdr(arg);
-          destructorNames.push(argRdr.readAtom());
+          destructorNames.push(tryReadAtom(argRdr));
           argSorts.push(r.apply(parseSort(argRdr.next())));
           if (argRdr.hasNext()) {
             USER_ERROR_EXPR("Bad constructor argument:" + arg->toString());
@@ -1368,14 +1314,33 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
 
 void SMTLIB2::complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp)
 {
-  USER_ERROR_EXPR("Not enough arguments or wrong sorts for "+symbolClass+" application '"+exp->toString()+"'");
+  USER_ERROR("Not enough arguments or wrong sorts in expression\n"+exp->toString()+"\nin\n"+_topLevelExpr->highlightSubexpression(exp));
 }
 
-void SMTLIB2::expectList(LispListReader& reader, const char* msg)
+LExpr* SMTLIB2::tryReadNext(LispListReader& reader)
 {
-  if (!reader.hasNext() || !reader.peekAtNext()->isList()) {
-    USER_ERROR_EXPR("Expected list at " + reader.peekAtNext()->toString() + " " + string(msg));
+  if (!reader.hasNext()) {
+    USER_ERROR("Unexpected end of list at\n" + _topLevelExpr->highlightSubexpression(reader.e));
   }
+  return reader.readNext();
+}
+
+string SMTLIB2::tryReadAtom(LispListReader& reader)
+{
+  auto exp = tryReadNext(reader);
+  if (!exp->isAtom()) {
+    USER_ERROR("Expected atom at\n" + _topLevelExpr->highlightSubexpression(exp));
+  }
+  return exp->str;
+}
+
+LExpr* SMTLIB2::tryReadList(LispListReader& reader)
+{
+  auto exp = tryReadNext(reader);
+  if (!exp->isList()) {
+    USER_ERROR("Expected list at\n" + _topLevelExpr->highlightSubexpression(exp));
+  }
+  return exp;
 }
 
 void SMTLIB2::readKeyword(LispListReader& reader, const char* keyword)
@@ -1390,21 +1355,15 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
 {
   LOG2("parseLetBegin  ",exp->toString());
 
-  ASS(exp->isList());
-  LispListReader lRdr(exp->list);
+  LispListReader lRdr(exp);
 
   // the let atom
   ALWAYS(lRdr.readAtom() == LET);
 
   // now, there should be a list of bindings
-  LExprList* bindings = lRdr.readList();
-
+  auto bindings = tryReadList(lRdr);
   // and the actual body term
-  if (!lRdr.hasNext()) {
-    complainAboutArgShortageOrWrongSorts(LET,exp);
-  }
-  LExpr* body = lRdr.readNext();
-
+  auto body = tryReadNext(lRdr);
   // and that's it
   lRdr.acceptEOL();
 
@@ -1422,13 +1381,9 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
   // but we start by parsing the bound expressions
   LispListReader bindRdr(bindings);
   while (bindRdr.hasNext()) {
-    LExprList* pair = bindRdr.readList();
-    LispListReader pRdr(pair);
-
-    pRdr.readAtom(); // for now ignore the identifier
-    LExpr* expr = pRdr.readNext();
-
-    _todo.push(make_pair(PO_PARSE,expr)); // just parse the expression
+    LispListReader pRdr(tryReadList(bindRdr));
+    tryReadAtom(pRdr); // for now ignore the identifier
+    _todo.push(make_pair(PO_PARSE,tryReadNext(pRdr))); // just parse the expression
     pRdr.acceptEOL();
   }
 }
@@ -1438,12 +1393,11 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
   LOG2("PO_LET_PREPARE_LOOKUP",exp->toString());
 
   // so we know it is let
-  ASS(exp->isList());
-  LispListReader lRdr(exp->list);
-  ALWAYS(lRdr.readAtom() == LET);
+  LispListReader lRdr(exp);
+  ALWAYS(tryReadAtom(lRdr) == LET);
 
   // with a list of bindings
-  LispListReader bindRdr(lRdr.readList());
+  LispListReader bindRdr(tryReadList(lRdr));
 
   // corresponding results have already been parsed
   ParseResult* boundExprs = _results.end();
@@ -1451,10 +1405,9 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
   pushScope();
 
   while (bindRdr.hasNext()) {
-    LExprList* pair = bindRdr.readList();
-    LispListReader pRdr(pair);
+    LispListReader pRdr(tryReadList(bindRdr));
 
-    const std::string& cName = pRdr.readAtom();
+    const std::string& cName = tryReadAtom(pRdr);
     ParseResult* pr = (--boundExprs);
     TermList t;
     TermList sort = pr->asTerm(t);
@@ -1463,9 +1416,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     // replace S with T while parsing, to avoid issues later
     // from expecting T to be a term.
     if (t.isVar()) {
-      if (!insertIntoTopScope(cName, t, sort)) {
-        USER_ERROR_EXPR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
-      }
+      tryInsertIntoTopScope(cName, t, sort);
       continue;
     }
 
@@ -1516,10 +1467,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
       trm = TermList(Term::create(symb,args.size(),args.begin()));
     }
 
-    if (!insertIntoTopScope(cName, trm, sort)) {
-      USER_ERROR_EXPR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
-    }
-
+    tryInsertIntoTopScope(cName, trm, sort);
     VList::destroy(typeVars.list());
   }
 }
@@ -1529,14 +1477,12 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   LOG2("PO_LET_END ",exp->toString());
 
   // so we know it is let
-  ASS(exp->isList());
-  LispListReader lRdr(exp->list);
-  DEBUG_CODE(const std::string& theLetAtom =)
-    lRdr.readAtom();
+  LispListReader lRdr(exp);
+  DEBUG_CODE(const std::string& theLetAtom =) tryReadAtom(lRdr);
   ASS_EQ(getBuiltInTermSymbol(theLetAtom),TS_LET);
 
   // with a list of bindings
-  LispListReader bindRdr(lRdr.readList());
+  LispListReader bindRdr(tryReadList(lRdr));
 
   const auto& lookup = _scopes.top();
 
@@ -1547,10 +1493,9 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   LOG2("LET body  ",let.toString());
 
   while (bindRdr.hasNext()) {
-    LExprList* pair = bindRdr.readList();
-    LispListReader pRdr(pair);
+    LispListReader pRdr(tryReadList(bindRdr));
 
-    const std::string& cName = pRdr.readAtom();
+    const std::string& cName = tryReadAtom(pRdr);
     TermList boundExpr;
     _results.pop().asTerm(boundExpr);
 
@@ -1602,24 +1547,17 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
 {
   LOG2("parseMatchBegin  ", exp->toString());
 
-  ASS(exp->isList());
-  LispListReader lRdr(exp->list);
+  LispListReader lRdr(exp);
 
   // the match atom
-  DEBUG_CODE(const std::string &theMatchAtom =) lRdr.readAtom();
+  DEBUG_CODE(const std::string &theMatchAtom =) tryReadAtom(lRdr);
   ASS_EQ(theMatchAtom, MATCH);
 
   // next is the matched term
-  if (!lRdr.hasNext()) {
-    complainAboutArgShortageOrWrongSorts(MATCH, exp);
-  }
-  LExpr *matchedAtom = lRdr.readNext();
+  auto matchedAtom = tryReadNext(lRdr);
 
   // and the list of cases
-  if (!lRdr.hasNext()) {
-    complainAboutArgShortageOrWrongSorts(MATCH, exp);
-  }
-  LispListReader casesRdr(lRdr.readList());
+  LispListReader casesRdr(tryReadList(lRdr));
 
   lRdr.acceptEOL();
 
@@ -1629,7 +1567,7 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
   _todo.push(make_pair(PO_PARSE, matchedAtom));
 
   while (casesRdr.hasNext()) {
-    auto caseExp = casesRdr.readNext();
+    auto caseExp = tryReadNext(casesRdr);
 
     _todo.push({ PO_POP_LOOKUP, nullptr });
     _todo.push({ PO_MATCH_CASE, caseExp });
@@ -1641,17 +1579,9 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
 {
   LOG2("parseMatchCase  ", exp->toString());
 
-  ASS(exp->isList());
-  LispListReader eRdr(exp->list);
-
-  if (!eRdr.hasNext()) {
-    complainAboutArgShortageOrWrongSorts(MATCH, exp);
-  }
-  LExpr *pattern = eRdr.readNext();
-  if (!eRdr.hasNext()) {
-    complainAboutArgShortageOrWrongSorts(MATCH, exp);
-  }
-  LExpr *body = eRdr.readNext();
+  LispListReader eRdr(exp);
+  auto pattern = tryReadNext(eRdr);
+  auto body = tryReadNext(eRdr);
   eRdr.acceptEOL();
 
   TermList matchedTerm;
@@ -1673,9 +1603,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
       // If the symbol is not a ctor, we optimistically assume
       // that it is a fresh variable possibly shadowing symbols
       TermList var = TermList::var(_nextVar++);
-      if (!insertIntoTopScope(pattern->str, var, matchedTermSort)) {
-        USER_ERROR_EXPR("Variable '" + pattern->str + "' has already been defined");
-      }
+      tryInsertIntoTopScope(pattern->str, var, matchedTermSort);
       _results.push(ParseResult(matchedTermSort, var));
       return;
     }
@@ -1690,9 +1618,8 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
     return;
   }
 
-  ASS(pattern->isList());
   LispListReader tRdr(pattern);
-  auto ctorName = tRdr.readAtom();
+  auto ctorName = tryReadAtom(tRdr);
   if (!isTermAlgebraConstructor(ctorName)) {
     USER_ERROR_EXPR("Unrecognized term algebra constructor "+ctorName+" in match pattern");
   }
@@ -1708,8 +1635,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
       patternArgs.push(typeArg);
       continue;
     }
-    ALWAYS(tRdr.hasNext());
-    auto argExp = tRdr.readNext();
+    auto argExp = tryReadNext(tRdr);
     if (!argExp->isAtom() || isAlreadyKnownSymbol(argExp->str)) {
       USER_ERROR_EXPR("Nested ctors ("+argExp->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
     }
@@ -1717,9 +1643,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
     patternArgs.push(var);
     if (argExp->str != UNDERSCORE) {
       // from the type arguments used in the matched term we instantiate the type of the other variables
-      if (!insertIntoTopScope(argExp->str, var, SubstHelper::apply(type->arg(i), subst))) {
-        USER_ERROR_EXPR("Variable '" + argExp->str + "' has already been defined");
-      }
+      tryInsertIntoTopScope(argExp->str, var, SubstHelper::apply(type->arg(i), subst));
     }
   }
   _results.push(ParseResult(matchedTermSort, TermList(Term::create(fn, patternArgs))));
@@ -1729,12 +1653,11 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 {
   LOG2("PO_MATCH_END ", exp->toString());
 
-  ASS(exp->isList());
-  LispListReader lRdr(exp->list);
-  DEBUG_CODE(const std::string &theMatchAtom =) lRdr.readAtom();
+  LispListReader lRdr(exp);
+  DEBUG_CODE(const std::string &theMatchAtom =) tryReadAtom(lRdr);
   ASS_EQ(getBuiltInTermSymbol(theMatchAtom), TS_MATCH);
 
-  lRdr.readNext(); // the matched term
+  tryReadNext(lRdr); // the matched term
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
 
@@ -1757,9 +1680,9 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   matchArgs.push(matchedTerm);
   TermList sort = AtomicSort::defaultSort();
 
-  LispListReader cRdr(lRdr.readList());
+  LispListReader cRdr(tryReadList(lRdr));
   while (cRdr.hasNext()) {
-    cRdr.readList();
+    tryReadList(cRdr);
     TermList body;
     TermList currSort = _results.pop().asTerm(body);
     ASS(sort == AtomicSort::defaultSort() || sort == currSort);
@@ -1821,66 +1744,47 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 
 void SMTLIB2::parseQuantBegin(LExpr* exp)
 {
-  ASS(exp->isList());
-  LispListReader lRdr(exp->list);
+  LispListReader lRdr(exp);
 
   // the quant atom
-  DEBUG_CODE(const std::string& theQuantAtom =)
-    lRdr.readAtom();
+  DEBUG_CODE(const std::string& theQuantAtom =) tryReadAtom(lRdr);
   ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS);
   _todo.push(make_pair(PO_QUANT,exp));
 
   // there should next be a list of sorted variables
-  LispListReader varRdr(lRdr.readList());
+  LispListReader varRdr(tryReadList(lRdr));
 
   while (varRdr.hasNext()) {
-    LExprList* pair = varRdr.readList();
-    LispListReader pRdr(pair);
+    LispListReader pRdr(tryReadList(varRdr));
 
-    std::string vName = pRdr.readAtom();
-    if(!pRdr.hasNext()) {
-      USER_ERROR_EXPR("No associated sort for "+vName+" in quantification "+exp->toString());
-    }
-    _todo.push(make_pair(PO_PARSE_SORT, pRdr.readNext()));
-    if(pRdr.hasNext()) {
-      USER_ERROR_EXPR("More than one sort for "+vName+" in quantification "+exp->toString());
-    }
-
+    tryReadAtom(pRdr); // name
+    _todo.push(make_pair(PO_PARSE_SORT, tryReadNext(pRdr)));
     pRdr.acceptEOL();
   }
 }
 
 void SMTLIB2::parseQuantEnd(LExpr* exp)
 {
-  ASS(exp->isList());
-  LispListReader lRdr(exp->list);
+  LispListReader lRdr(exp);
 
-  // already checked the quant atom
-  lRdr.readAtom();
+  tryReadAtom(lRdr); // already checked the quant atom
 
   // there should next be a list of sorted variables
-  LispListReader varRdr(lRdr.readList());
+  LispListReader varRdr(tryReadList(lRdr));
 
   pushScope();
 
   while (varRdr.hasNext()) {
-    LExprList* pair = varRdr.readList();
-    LispListReader pRdr(pair);
+    LispListReader pRdr(tryReadList(varRdr));
 
-    std::string vName = pRdr.readAtom();
-    ASS(pRdr.hasNext());
+    auto vName = tryReadAtom(pRdr);
+    tryReadNext(pRdr); // the type
+    pRdr.acceptEOL();
+  
     ParseResult pr = _results.pop();
     TermList vSort;
     ALWAYS(pr.asTerm(vSort) == AtomicSort::superSort());
-    // the type
-    pRdr.readNext();
-    ASS(!pRdr.hasNext());
-
-    pRdr.acceptEOL();
-
-    if (!insertIntoTopScope(vName, TermList::var(_nextVar++), vSort)) {
-      USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in quantification "+exp->toString());
-    }
+    tryInsertIntoTopScope(vName, TermList::var(_nextVar++), vSort);
   }
 
   if (!lRdr.hasNext()) {
@@ -1895,8 +1799,7 @@ static const char* EXCLAMATION = "!";
 
 void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 {
-  ASS(exp->isList());
-  LispListReader lRdr(exp->list);
+  LispListReader lRdr(exp);
 
   // the exclamation atom
   ALWAYS(lRdr.readAtom() == EXCLAMATION)
@@ -1953,25 +1856,16 @@ bool SMTLIB2::parseAsSortDefinition(const std::string& id,LExpr* exp)
   if (!def) {
     return false;
   }
-  pushScope();
-
-  LispListReader argRdr(def->args);
-
-  while (argRdr.hasNext()) {
+  Substitution subst;
+  for (unsigned i = 0; i < def->first; i++) {
     if (_results.isEmpty() || _results.top().isSeparator()) {
       complainAboutArgShortageOrWrongSorts("sort definition",exp);
     }
     TermList arg;
     ALWAYS(_results.pop().asTerm(arg) == AtomicSort::superSort());
-    const std::string& argName = argRdr.readAtom();
-    // TODO: could check if the same string names more than one argument positions
-    // the following just takes the first and ignores the others
-    insertIntoTopScope(argName, arg, AtomicSort::superSort());
+    subst.bind(i, arg);
   }
-
-  _todo.push(make_pair(PO_POP_LOOKUP,nullptr)); //schedule lookup deletion (see above)
-  _todo.push(make_pair(PO_PARSE_SORT,def->body));
-
+  _results.push(ParseResult(AtomicSort::superSort(), SubstHelper::apply(def->second, subst)));
   return true;
 }
 
@@ -2639,8 +2533,8 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
 void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 {
   ASS(exp->isList());
-  LispListReader lRdr(exp->list);
-  LExpr* head = lRdr.readNext();
+  LispListReader lRdr(exp);
+  LExpr* head = tryReadList(lRdr);
   ASS(head->isList());
   LispListReader headRdr(head);
 
@@ -2732,7 +2626,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
     switch (op) {
       case PO_PARSE: {
         if (exp->isList()) {
-          LispListReader lRdr(exp->list);
+          LispListReader lRdr(exp);
 
           // schedule arity check
           _results.push(ParseResult()); // separator into results
@@ -2801,7 +2695,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
           id = exp->str;
         } else {
           ASS(exp->isList());
-          LispListReader lRdr(exp->list);
+          LispListReader lRdr(exp);
 
           LExpr* head = lRdr.readNext();
 
@@ -2837,7 +2731,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
       }
       case PO_PARSE_SORT: {
         if (exp->isList()) {
-          LispListReader lRdr(exp->list);
+          LispListReader lRdr(exp);
           lRdr.readNext(); // the head
 
           // schedule arity check
@@ -2857,7 +2751,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
           id = exp->str;
         } else {
           ASS(exp->isList());
-          LispListReader lRdr(exp->list);
+          LispListReader lRdr(exp);
 
           LExpr* head = lRdr.readNext();
           ASS(head->isAtom());

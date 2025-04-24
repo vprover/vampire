@@ -43,54 +43,6 @@ LispParser::Expression* LispParser::parse()
   return result;
 } // parse()
 
-///**
-// * @since 26/08/2009 Redmond
-// */
-//void LispParser::parse(List** expr)
-//{
-//  Token t;
-//  for (;;) {
-//    _lexer.readToken(t);
-//    switch (t.tag) {
-//    case TT_RPAR:
-//      if (_balance == 0) {
-//	throw ParserException("unmatched right parenthesis",t);
-//      }
-//      _balance--;
-//      return;
-//    case TT_LPAR:
-//      _balance++;
-//      {
-//	Expression* subexpr = new Expression(LIST);
-//	parse(&subexpr->list);
-//	List* sub = new List(subexpr);
-//	*expr = sub;
-//	expr = sub->tailPtr();
-//      }
-//      break;
-//    case TT_NAME:
-//    case TT_INTEGER:
-//    case TT_REAL:
-//    {
-//      Expression* subexpr = new Expression(ATOM,t.text);
-//      List* sub = new List(subexpr);
-//      *expr = sub;
-//      expr = sub->tailPtr();
-//      break;
-//    }
-//    case TT_EOF:
-//      if (_balance == 0) {
-//	return;
-//      }
-//      throw ParserException("unmatched left parenthesis",t);
-//#if VDEBUG
-//    default:
-//      ASS(false);
-//#endif
-//    }
-//  }
-//} // parse()
-
 /**
  * @since 26/08/2009 Redmond
  */
@@ -184,98 +136,53 @@ std::string LispParser::Expression::toString(bool outerParentheses) const
   ASSERTION_VIOLATION;
 } // LispParser::Expression::toString
 
-/**
- * If expression corresponds to a unary function named @c funcionName,
- * return true and assign its argument to @c arg. Otherwise return false.
- */
-bool LispParser::Expression::get1Arg(std::string functionName, Expression*& arg)
+string LispParser::Expression::highlightSubexpression(Expression* se) const
 {
-  if(!isList()) {
-    return false;
+  ASS_EQ(tag, LIST);
+
+  static Expression space(ATOM, " ");
+  string res1;
+  string res2;
+  Stack<const Expression*> todo;
+  todo.push(this);
+
+  while (todo.isNonEmpty()) {
+    auto expr = todo.pop();
+    if (!expr) {
+      res1 += ')';
+      res2 += ' ';
+      continue;
+    }
+    if (expr == se) {
+      auto sres = expr->toString();
+      res1 += sres;
+      res2 += string(sres.size(), '^');
+      continue;
+    }
+    switch (expr->tag) {
+      case ATOM: {
+        res1 += expr->str;
+        res2 += string(expr->str.size(), ' ');
+        break;
+      }
+      case LIST: {
+        res1 += '(';
+        res2 += ' ';
+        Stack<const Expression*> inner;
+        for (EList* l = expr->list; l; l = l->tail()) {
+          inner.push(l->head());
+          if (l->tail()) {
+            inner.push(&space);
+          }
+        }
+        inner.push(nullptr);
+        todo.loadFromIterator(inner.iter());
+        break;
+      }
+    }
   }
-
-  EList::Iterator args(list);
-  if(!args.hasNext()) { return false; }
-  std::string name = args.next()->str;
-  if(name!=functionName) { return false; }
-
-  if(!args.hasNext()) { return false; }
-  Expression* tmpArg = args.next();
-
-  if(args.hasNext()) { return false; }
-
-  arg = tmpArg;
-  return true;
-}
-
-/**
- * If expression corresponds to a binary function named @c funcionName,
- * return true and assign its arguments to @c arg1 and @c arg2. Otherwise
- * return false.
- */
-bool LispParser::Expression::get2Args(std::string functionName, Expression*& arg1, Expression*& arg2)
-{
-  if(!isList()) {
-    return false;
-  }
-
-  EList::Iterator args(list);
-  if(!args.hasNext()) { return false; }
-  std::string name = args.next()->str;
-  if(name!=functionName) { return false; }
-
-  if(!args.hasNext()) { return false; }
-  Expression* tmpArg1 = args.next();
-
-  if(!args.hasNext()) { return false; }
-  Expression* tmpArg2 = args.next();
-
-  if(args.hasNext()) { return false; }
-
-  arg1 = tmpArg1;
-  arg2 = tmpArg2;
-  return true;
-}
-
-/**
- * If expression is a list of two elements, return true and assign them
- * into @c el1 and @c el2.
- */
-bool LispParser::Expression::getPair(Expression*& el1, Expression*& el2)
-{
-  if(!isList()) {
-    return false;
-  }
-
-  EList::Iterator args(list);
-  if(!args.hasNext()) { return false; }
-  Expression* tmpEl1 = args.next();
-
-  if(!args.hasNext()) { return false; }
-  Expression* tmpEl2 = args.next();
-
-  if(args.hasNext()) { return false; }
-
-  el1 = tmpEl1;
-  el2 = tmpEl2;
-  return true;
-}
-
-bool LispParser::Expression::getSingleton(Expression*& el)
-{
-  if(!isList()) {
-    return false;
-  }
-
-  EList::Iterator args(list);
-  if(!args.hasNext()) { return false; }
-  Expression* tmpEl = args.next();
-
-  if(args.hasNext()) { return false; }
-
-  el = tmpEl;
-  return true;
-}
+  return res1 + "\n" + res2;
+} // LispParser::Expression::highlightSubexpression
 
 /**
  * Create a new parser exception.
@@ -440,33 +347,6 @@ bool LispListReader::lookAheadAtom(std::string atom)
   if(!hasNext()) { return false; }
   LExpr* next = peekAtNext();
   return next->isAtom() && next->str==atom;
-}
-
-bool LispListReader::tryAcceptCurlyBrackets()
-{
-  LExpr* next = peekAtNext();
-  if(!next->isAtom() || next->str!="{") {
-    return false;
-  }
-  unsigned depth = 1;
-  readNext();
-  while(depth!=0 && hasNext()) {
-    next = readNext();
-
-    if(!next->isAtom()) {
-      continue;
-    }
-    if(next->str=="{") {
-      depth++;
-    }
-    else if(next->str=="}") {
-      depth--;
-    }
-  }
-  if(depth!=0) {
-    lispCurrError("unpaired opening curly bracket");
-  }
-  return true;
 }
 
 }
