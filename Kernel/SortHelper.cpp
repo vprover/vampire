@@ -857,12 +857,6 @@ bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result
   return false;
 } // SortHelper::tryGetVariableSort
 
-/**
- * Return true iff sorts of immediate subterms of term/literal @c t correspond
- * to the type of @c t.
- *
- * @pre Arguments of t must be shared.
- */
 bool SortHelper::areVariableSortsValidPoly(Clause* cl)
 {
   Recycled<Map<TermList, TermList>> varSorts;
