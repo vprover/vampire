@@ -245,6 +245,7 @@ private:
    * and return it.
    */
   DeclaredSymbol declareFunctionOrPredicate(const std::string& name, TermList rangeSort, const TermStack& argSorts, unsigned taArity);
+  unsigned declareTypeCon(const std::string& name, unsigned arity);
 
   /**
    * Handle "declare-fun" entry.
@@ -313,13 +314,13 @@ private:
      */
     TermList asTerm(TermList& resTrm);
     /**
-     * Records a label for the formula represented by this `ParserResult`,
+     * Records a label for the formula represented by this `ParseResult`,
      * resulting from a ":named" SMT-LIB2 annotation.
      */
     void setLabel(std::string l){ label = l; }
     /**
      * Helper that attaches a label to a `Formula`
-     * if a label is recorded for this `ParserResult`.
+     * if a label is recorded for this `ParseResult`.
      * Returns the formula.
      */
     Formula* attachLabelToFormula(Formula* frm);
@@ -407,6 +408,8 @@ private:
   // a few helper functions enabling the body of parseTermOrFormula be of reasonable size
 
   [[noreturn]] void complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp);
+  inline void expectList(LispListReader& rdr, const char* msg);
+  inline void readKeyword(LispListReader& rdr, const char* keyword);
 
   /**
    * Read `[vars]` from a `(par ([vars]) body)` block into `lookup`.

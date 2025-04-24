@@ -520,11 +520,7 @@ void SMTLIB2::readDeclareSort(const std::string& name, const std::string& arity)
     USER_ERROR_EXPR("Couldn't convert sort arity: "+arity);
   }
 
-  bool added;
-  unsigned srt = env.signature->addTypeCon(pName,val,added);
-  ASS(added);
-  ALWAYS(_declaredSymbols.insert(pName,make_pair(srt,SymbolType::TYPECON)));
-  env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(val));
+  declareTypeCon(pName, val);
 }
 
 void SMTLIB2::readDefineSort(const std::string& name, LExprList* args, LExpr* body)
@@ -731,6 +727,23 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const std::string& n
   ALWAYS(_declaredSymbols.insert(name,res));
 
   return res;
+}
+
+unsigned SMTLIB2::declareTypeCon(const std::string& name, unsigned arity)
+{
+  bool added = false;
+  auto symNum = env.signature->addTypeCon(name, arity, added);
+  ASS(added);
+
+  auto type = OperatorType::getTypeConType(arity);
+  env.signature->getTypeCon(symNum)->setType(type);
+
+  LOG2("declareTypeCon -name ",name);
+  LOG2("declareTypeCon -symNum ",symNum);
+  LOG2("declareTypeCon -type ",type->toString());
+
+  ALWAYS(_declaredSymbols.insert(name, { symNum, SymbolType::TYPECON }));
+  return symNum;
 }
 
 //  ----------------------------------------------------------------------
@@ -942,14 +955,9 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
 
 void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
 {
-  if (!rdr.hasNext()) {
-    USER_ERROR_EXPR("'par' keyword must be followed by a list of parameters");
-  }
-  LExpr* pars = rdr.next();
-  if (!pars->isList()) {
-    USER_ERROR_EXPR("'par' keyword must be followed by a list of parameters");
-  }
-  LispListReader parRdr(pars);
+  expectList(rdr, "after 'par' keyword in datatype declaration");
+
+  LispListReader parRdr(rdr.readList());
   while (parRdr.hasNext()) {
     auto par = parRdr.next();
     if (!par->isAtom()) {
@@ -982,14 +990,7 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
     dtypeRdr.acceptEOL();
     dtypeRdr = LispListReader(rest);
   }
-  auto numTypeVars = parSorts.size();
-
-  bool added = false;
-  unsigned srt = env.signature->addTypeCon(dtypeName,numTypeVars,added);
-  ASS(added);
-
-  ALWAYS(_declaredSymbols.insert(dtypeName, make_pair(srt,SymbolType::TYPECON)));
-  env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(numTypeVars));
+  auto srt = declareTypeCon(dtypeName,parSorts.size());
 
   TermList taSort(AtomicSort::create(srt,parSorts.size(),parSorts.begin()));
 
@@ -1046,49 +1047,64 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
   }
 
   // first declare all the sorts, and then only the constructors, in
-  // order to allow mutually recursive datatypes definitions
+  // order to allow mutually recursive datatype definitions
   LispListReader dtypesNamesRdr(sorts);
-  Stack<std::string> dtypeNames;
+  Stack<unsigned> dtypeFns;
   while (dtypesNamesRdr.hasNext()) {
     LispListReader dtypeNRdr(dtypesNamesRdr.readList());
 
-    std::string dtypeName = dtypeNRdr.readAtom()+TYPECON_POSTFIX;
-    const std::string& dtypeSize = dtypeNRdr.readAtom();
-    unsigned arity;
-    if(!Int::stringToUnsignedInt(dtypeSize,arity)){ USER_ERROR_EXPR("datatype arity not given"); }
-    if(arity>0){ USER_ERROR_EXPR("unsupported parametric datatype declaration"); }
+    auto dtypeName = dtypeNRdr.readAtom()+TYPECON_POSTFIX;
     if (isAlreadyKnownSymbol(dtypeName)) {
       USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
     }
-
-    bool added = false;
-    unsigned srt = env.signature->addTypeCon(dtypeName,0,added);
-    ASS(added);
-    ALWAYS(_declaredSymbols.insert(dtypeName, make_pair(srt, SymbolType::TYPECON)));
-    env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-    TermList sort = TermList(AtomicSort::createConstant(srt));
-    (void)sort; // to get rid of compiler warning when logging is off
-    // TODO: is it really OK we normally don't need the sort?
-    LOG2("reading datatype "+dtypeName+" as sort ",sort);
-    dtypeNames.push(dtypeName);
+    auto dtypeSize = dtypeNRdr.readAtom();
+    unsigned arity;
+    if (!Int::stringToUnsignedInt(dtypeSize,arity)) {
+      USER_ERROR_EXPR("datatype arity not given");
+    }
+    dtypeFns.push(declareTypeCon(dtypeName,arity));
   }
 
   Stack<TermAlgebraConstructor*> constructors;
   TermStack argSorts;
-  Stack<std::string> destructorNames;
+  Stack<string> destructorNames;
 
   LispListReader dtypesDefsRdr(datatypes);
-  Stack<std::string>::BottomFirstIterator dtypeNameIter(dtypeNames);
+  Stack<unsigned>::BottomFirstIterator dtypeFnIter(dtypeFns);
   while(dtypesDefsRdr.hasNext()) {
-    ASS(dtypeNameIter.hasNext());
+    ASS(dtypeFnIter.hasNext());
     constructors.reset();
-    const std::string& taName = dtypeNameIter.next(); 
-    bool added = false;
-    unsigned sort = env.signature->addTypeCon(taName,0,added);
-    ASS(!added);
-    TermList taSort(AtomicSort::createConstant(sort));
 
+    auto fn = dtypeFnIter.next();
+    auto sym = env.signature->getTypeCon(fn);
+
+    LOG4("reading datatype ",sym->name()," of type ",sym->typeConType()->toString());
+
+    expectList(dtypesDefsRdr, "in datatype declaration");
+
+    pushScope();
+    TermStack parSorts;
     LispListReader dtypeRdr(dtypesDefsRdr.readList());
+    if (dtypeRdr.hasNext() && dtypeRdr.peekAtNext()->isAtom() && dtypeRdr.peekAtNext()->str == PAR) {
+      dtypeRdr.readAtom();
+      readTypeParameters(dtypeRdr, _scopes.top().get(), &parSorts);
+      expectList(dtypeRdr, "after 'par' block");
+      auto rest = dtypeRdr.readList();
+      dtypeRdr.acceptEOL();
+      dtypeRdr = LispListReader(rest);
+    }
+    if (parSorts.size() != sym->arity()) {
+      USER_ERROR_EXPR("'par' block for datatype "+sym->name()+" should define "+Int::toString(sym->arity())+" arguments");
+    }
+
+    TermList taSort(AtomicSort::create(fn,parSorts.size(),parSorts.begin()));
+
+    // Due to global sort variables, the parsed variables
+    // are not necessary normalized, so we normalize them
+    Renaming r;
+    r.normalizeVariables(taSort);
+    taSort = r.apply(taSort);
+  
     while (dtypeRdr.hasNext()) {
       argSorts.reset();
       destructorNames.reset();
@@ -1104,10 +1120,11 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
         constrName = constrRdr.readAtom();
 
         while (constrRdr.hasNext()) {
+          expectList(constrRdr, "for destructor declaration");
           LExpr *arg = constrRdr.next();
           LispListReader argRdr(arg);
           destructorNames.push(argRdr.readAtom());
-          argSorts.push(parseSort(argRdr.next()));
+          argSorts.push(r.apply(parseSort(argRdr.next())));
           if (argRdr.hasNext()) {
             USER_ERROR_EXPR("Bad constructor argument:" + arg->toString());
           }
@@ -1115,12 +1132,13 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
       }
       constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
     }
+    popScope();
 
     ASS(!env.signature->isTermAlgebraSort(taSort));
     TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), codatatype);
 
     if (ta->emptyDomain()) {
-      USER_ERROR_EXPR("Datatype " + taName + " defines an empty sort");
+      USER_ERROR_EXPR("Datatype " + taSort.toString() + " defines an empty sort");
     }
 
     env.signature->addTermAlgebra(ta);
@@ -1351,6 +1369,21 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
 void SMTLIB2::complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp)
 {
   USER_ERROR_EXPR("Not enough arguments or wrong sorts for "+symbolClass+" application '"+exp->toString()+"'");
+}
+
+void SMTLIB2::expectList(LispListReader& reader, const char* msg)
+{
+  if (!reader.hasNext() || !reader.peekAtNext()->isList()) {
+    USER_ERROR_EXPR("Expected list at " + reader.peekAtNext()->toString() + " " + string(msg));
+  }
+}
+
+void SMTLIB2::readKeyword(LispListReader& reader, const char* keyword)
+{
+  if (!reader.hasNext() || !reader.peekAtNext()->isAtom() || reader.peekAtNext()->str != keyword) {
+    USER_ERROR_EXPR("Expected keyword " + string(keyword));
+  }
+  reader.readAtom();
 }
 
 void SMTLIB2::parseLetBegin(LExpr* exp)
