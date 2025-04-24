@@ -1081,12 +1081,13 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
 
 #define CHECK_SORTS(t1, t2)                                                               \
   if (t1.isTerm()) {                                                                      \
-    auto sort = SortHelper::getResultSort(t1.term.term());                                \
+    auto sort = au.subs().derefBound(TermSpec(SortHelper::getResultSort(t1.term.term()),t1.index));      \
+    auto sigSort = TermSpec(sig.sort(), t1.index);                                        \
     if (sort.isVar()) {                                                                   \
       return AbstractionResult(AbstractionOracle::UnifySortsFirst(                        \
-            TermSpec(sort, t1.index),                                                     \
-            TermSpec(sig.sort(), t1.index)));                                             \
-    } else if (sort != sig.sort()) {                                                      \
+            sort,                                                                         \
+            sigSort));                                                                    \
+    } else if (sort != sigSort) {                                                         \
       return AbstractionResult(NeverEqual{});                                             \
     }                                                                                     \
   }                                                                                       \
@@ -1357,8 +1358,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
   auto impl = [&]() -> bool {
 
-    Recycled<Stack<std::pair<TermSpec, TermSpec>>> toDo;
-    toDo->push(std::make_pair(t1, t2));
+    Recycled<Stack<std::pair<TermSpec, TermSpec>>> todo;
+    todo->push(std::make_pair(t1, t2));
     
     // Save encountered unification pairs to avoid
     // recomputing their unification
@@ -1388,13 +1389,13 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         // } else 
         if (!encountered->find(pair)) {
           encountered->insert(pair);
-          toDo->push(std::move(pair));
+          todo->push(std::move(pair));
         }
     };
 
-    while (toDo->isNonEmpty()) {
-      DEBUG_UNIFY(2, "todo:   ", toDo);
-      auto cur = toDo->pop();
+    while (todo->isNonEmpty()) {
+      DEBUG_UNIFY(2, "todo:   ", todo);
+      auto cur = todo->pop();
       DEBUG_UNIFY(2, "popped: ", cur)
       auto dt1 = subs().derefBound(cur.first);
       auto dt2 = subs().derefBound(cur.second);
@@ -1419,8 +1420,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
           return false;
 
         } else if (auto unifSorts = absRes->as<AbstractionOracle::UnifySortsFirst>()) {
-          toDo->push(std::make_pair(dt1, dt2));
-          toDo->push(std::make_pair(unifSorts->sort1, unifSorts->sort2));
+          todo->push(std::make_pair(dt1, dt2));
+          todo->push(std::make_pair(unifSorts->sort1, unifSorts->sort2));
 
         } else {
           ASS(absRes->is<AbstractionOracle::EqualIf>())
