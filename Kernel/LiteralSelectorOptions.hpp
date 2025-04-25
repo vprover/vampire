@@ -27,24 +27,36 @@ namespace LiteralSelectors {
 
   using namespace LiteralComparators;
 
-  typedef Composite<ColoredFirst,
-	    Composite<MaximalSize,
-	    LexComparator> > Comparator2;
+  using Comparator2 = CompositeN
+    < ColoredFirst
+    , MaximalSize
+    , LexComparator
+    >;
 
-  typedef Composite<ColoredFirst,
-	    Composite<NoPositiveEquality,
-	    Composite<LeastTopLevelVariables,
-	    Composite<LeastDistinctVariables, LexComparator> > > > Comparator3;
+  using Comparator3 = CompositeN
+    < ColoredFirst
+    , NoPositiveEquality
+    , LeastTopLevelVariables
+    , LeastDistinctVariables
+    , LexComparator
+    >;
 
-  typedef Composite<ColoredFirst,
-	    Composite<NoPositiveEquality, Composite<LeastTopLevelVariables,
-	    Composite<LeastVariables,
-	    Composite<MaximalSize, LexComparator> > > > > Comparator4;
+  using Comparator4 = CompositeN
+    < ColoredFirst
+    , NoPositiveEquality
+    , LeastTopLevelVariables
+    , LeastVariables
+    , MaximalSize
+    , LexComparator
+    >;
 
-  typedef Composite<ColoredFirst,
-	    Composite<NegativeEquality,
-	    Composite<MaximalSize,
-	    Composite<Negative, LexComparator> > > > Comparator10;
+  using Comparator10 = CompositeN
+    < ColoredFirst
+    , NegativeEquality
+    , MaximalSize
+    , Negative
+    , LexComparator
+    >;
 
   template<unsigned i, class T> 
   struct OptionValue {

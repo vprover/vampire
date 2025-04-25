@@ -63,7 +63,7 @@ struct AlascaAtomComparatorByKey {
 
   template<class T>
   bool operator()(T const& l, T const& r) const  
-  { return By::getKey(r) < By::getKey(l); }
+  { return By::getKey(l) < By::getKey(r); }
 
   template<class T>
   auto dbg(T const& t) {
@@ -119,7 +119,7 @@ struct AlascaAtomComparator<LiteralComparators::NegativeEquality>
 { };
 
 
-struct MaximalSize {
+struct Weight {
   static unsigned weight(Term* t) { return t->weight(); }
   static unsigned weight(TermList t) { return t.weight(); }
 
@@ -129,11 +129,10 @@ struct MaximalSize {
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::MaximalSize> 
-  : public AlascaAtomComparatorByKey<MaximalSize> 
+  : public AlascaAtomComparatorByKey<Weight> 
 { };
 
-struct LeastVariables {
-
+struct MinusVariables {
   static int numVarOccs(Term* t) { return t->numVarOccs(); }
   static int numVarOccs(TermList t) { return t.isVar() ? 1 : numVarOccs(t.term()); }
 
@@ -143,10 +142,10 @@ struct LeastVariables {
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::LeastVariables> 
-  : public AlascaAtomComparatorByKey<LeastVariables> 
+  : public AlascaAtomComparatorByKey<MinusVariables> 
 { };
 
-struct LeastDistinctVariables {
+struct MinusDistinctVariables {
 
   static int getDistinctVars(Term* t) { return t->getDistinctVars(); }
   static int getDistinctVars(TermList t) { return t.isVar() ? 1 : getDistinctVars(t.term()); }
@@ -157,10 +156,10 @@ struct LeastDistinctVariables {
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::LeastDistinctVariables> 
-  : public AlascaAtomComparatorByKey<LeastDistinctVariables> 
+  : public AlascaAtomComparatorByKey<MinusDistinctVariables> 
 { };
 
-struct LeastTopLevelVariables {
+struct MinusTopLevelVariables {
 
   /* top level variables here does not mean alasca top level variables (e.g. x in `k x + t`), 
    * but mean variables that are arguments to the outer most function/predicate (e.g. x in `p(x, f(y))`) */
@@ -174,7 +173,7 @@ struct LeastTopLevelVariables {
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::LeastTopLevelVariables> 
-  : public AlascaAtomComparatorByKey<LeastTopLevelVariables> 
+  : public AlascaAtomComparatorByKey<MinusTopLevelVariables> 
 { };
 
 template<>
@@ -327,31 +326,8 @@ struct AlascaSelectorDispatch {
   Stack<__SelectedLiteral> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>>, Clause* cl, Ordering* ord) 
   {
     auto negative = iterSelectable(ord, cl).collectRStack();
-    negative->sort([&](__SelectedLiteral const& l, __SelectedLiteral const& r) { 
-        auto c = AlascaAtomComparator<QComparator>{};
-        auto less = [&c](auto& l, auto& r) { return c(r, l); };
-#if VEBUG
-        if (!(
-
-           (negative->begin() <= &l && &l < negative->end())
-        && (negative->begin() <= &r && &r < negative->end())
-             )) {
-        for (auto x : *negative) {
-          ASS(!less(x,x))
-          for (auto y : *negative) {
-            ASS(!less(x,y) || !less(y,x))
-            for (auto z : *negative) {
-              ASS(!less(x,y) || !less(y,z) || less(x,z))
-              auto equiv = [&less](auto& l, auto& r) { return !less(l,r) && !less(r,l); };
-              ASS(!equiv(x,y) || !equiv(y,z) || equiv(x,z))
-            }
-          }
-        }
-        }
-#endif //VDEBUG
-        ASS(negative->begin() <= &l && &l < negative->end())
-        ASS(negative->begin() <= &r && &r < negative->end())
-        return less(l,r); });
+    negative->sort([&](auto const& l, auto const& r) 
+        { return AlascaAtomComparator<QComparator>{}(r,l); });
     if (negative->size() != 0) {
       return selectBG(negative[0]);
     } else {

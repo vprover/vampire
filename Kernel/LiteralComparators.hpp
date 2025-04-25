@@ -68,6 +68,14 @@ private:
   Comp2 _c2;
 };
 
+template<class... As> struct CompositeN_struct;
+template<class A> struct CompositeN_struct<A> { using type = A; };
+template<class A, class B, class... As> struct CompositeN_struct<A, B, As...> { using type = Composite<A, typename CompositeN_struct<B, As...>::type>; };
+
+template<class... As>
+using CompositeN = typename CompositeN_struct<As...>::type;
+
+
 template<class Comp>
 class Inverse : public LiteralComparator
 {

@@ -11,6 +11,7 @@
 #include "Inferences/ALASCA/IntegerFourierMotzkin.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Kernel/ALASCA/Selection.hpp"
+#include "Kernel/BestLiteralSelector.hpp"
 #include "Kernel/LookaheadLiteralSelector.hpp"
 #include "Kernel/MaximalLiteralSelector.hpp"
 #include "Kernel/RndLiteralSelector.hpp"
@@ -53,6 +54,7 @@ using namespace Inferences::ALASCA;
   DECL_CONST(b, Num)                                                                      \
   DECL_CONST(c, Num)                                                                      \
   DECL_PRED(r, {Num,Num})                                                                 \
+  DECL_PRED(p, {Num})                                                                 \
   DECL_SORT(srt)                                                                          \
   DECL_CONST(au, srt)                                                                     \
   DECL_CONST(bu, srt)                                                                     \
@@ -233,3 +235,33 @@ TEST_GENERATION(lookahead_05,
                   clause({  g(x) > 0, a0 > 0 }) 
           ))
     )
+
+TEST_FUN(best_01) {
+  __ALLOW_UNUSED(
+    SUGAR(Rat)
+  )
+
+  auto cl = clause({ ~p(x), -a + -b * x + c >= 0 });
+
+  using namespace LiteralComparators;
+  using SelectorMode = CompleteBestLiteralSelector<CompositeN
+    < ColoredFirst
+    , NegativeEquality
+    , MaximalSize
+    , Negative
+    , LexComparator
+    >>;
+
+  auto state = testAlascaState(
+      Options::UnificationWithAbstraction::ALASCA_MAIN,
+      Lib::make_shared(InequalityNormalizer()),
+      nullptr,
+     /*uwaFixdPointIteration=*/ false,
+     AlascaSelector::fromType<SelectorMode>());
+
+  auto sel = state->selected(cl)
+    .map([](auto& s) { return s.litIdx(); })
+    .collectStack();
+
+  ASS_EQ(sel, Stack<unsigned>{1})
+}
