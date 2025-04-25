@@ -330,6 +330,7 @@ struct AlascaSelectorDispatch {
     negative->sort([&](__SelectedLiteral const& l, __SelectedLiteral const& r) { 
         auto c = AlascaAtomComparator<QComparator>{};
         auto less = [&c](auto& l, auto& r) { return c(r, l); };
+#if VEBUG
         if (!(
 
            (negative->begin() <= &l && &l < negative->end())
@@ -347,6 +348,7 @@ struct AlascaSelectorDispatch {
           }
         }
         }
+#endif //VDEBUG
         ASS(negative->begin() <= &l && &l < negative->end())
         ASS(negative->begin() <= &r && &r < negative->end())
         return less(l,r); });
