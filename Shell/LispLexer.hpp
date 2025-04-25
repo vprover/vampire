@@ -32,8 +32,8 @@ class LispLexer
 {
 public:
   LispLexer(std::istream& in);
-  void readToken (Token&);
-  ~LispLexer () {}
+  void readToken (Token&) override;
+  ~LispLexer () override = default;
 
 private:
   void skipWhiteSpacesAndComments();

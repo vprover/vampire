@@ -348,9 +348,9 @@ private:
   inline void popScope() {
     _scopes.pop();
   }
-  inline void tryInsertIntoTopScope(std::string name, TermList term, TermList sort) {
+  inline void tryInsertIntoCurrentScope(std::string name, TermList term, TermList sort) {
     if (!_scopes.top()->insert(name, { term, sort })) {
-      USER_ERROR_EXPR("Identifier '" + name + "' has already been defined in top scope");
+      USER_ERROR_EXPR("Identifier '" + name + "' has already been defined in current scope");
     }
   }
 
@@ -393,10 +393,9 @@ private:
 
   [[noreturn]] void complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp);
 
-  inline LExpr* tryReadNext(LispListReader& rdr);
+  inline LExpr* tryReadExpression(LispListReader& rdr);
   inline std::string tryReadAtom(LispListReader& rdr);
   inline LExpr* tryReadList(LispListReader& rdr);
-  inline void readKeyword(LispListReader& rdr, const char* keyword);
 
   /**
    * Read `[vars]` from a `(par ([vars]) body)` block into the topmost lookup.

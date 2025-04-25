@@ -78,9 +78,12 @@ protected:
   bool _eof;
   /** current line number, counting from 1 */
   int _lineNumber;
+  /** current col number inside line, counting from 1 */
+  int _colNumber;
   /** lookahead character. In this implementation there may be only one */
   int _lookAheadChar;
 
+  bool handleChar();
   bool readNextChar();
   void readNumber(Token&);
   void readUnsignedInteger();

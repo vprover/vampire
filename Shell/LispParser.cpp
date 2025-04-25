@@ -70,7 +70,7 @@ void LispParser::parse(EList** expr0)
       case TT_LPAR:
         _balance++;
         {
-	  Expression* subexpr = new Expression(LIST);
+	  Expression* subexpr = new Expression(LIST, t.line, t.col);
 	  EList* sub = new EList(subexpr);
 	  *expr = sub;
 	  expr = sub->tailPtr();
@@ -83,7 +83,7 @@ void LispParser::parse(EList** expr0)
       case TT_INTEGER:
       case TT_REAL:
       {
-        Expression* subexpr = new Expression(ATOM,t.text);
+        Expression* subexpr = new Expression(ATOM, t.text, t.line, t.col);
         EList* sub = new EList(subexpr);
         *expr = sub;
         expr = sub->tailPtr();
@@ -183,6 +183,12 @@ string LispParser::Expression::highlightSubexpression(Expression* se) const
   }
   return res1 + "\n" + res2;
 } // LispParser::Expression::highlightSubexpression
+
+string LispParser::Expression::getPosition() const
+{
+  ASS(line != -1 && col != -1);
+  return "line " + Int::toString(line) + " col " + Int::toString(col);
+}
 
 /**
  * Create a new parser exception.
@@ -340,13 +346,6 @@ void LispListReader::acceptEOL()
   if(hasNext()) {
     lispCurrError("<eol> expected");
   }
-}
-
-bool LispListReader::lookAheadAtom(std::string atom)
-{
-  if(!hasNext()) { return false; }
-  LExpr* next = peekAtNext();
-  return next->isAtom() && next->str==atom;
 }
 
 }
