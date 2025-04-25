@@ -24,10 +24,6 @@ namespace Kernel {
 
 #define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
-template<class T, class F>
-bool compareBy(T const& l, T const& r, F f) 
-{ return f(l) < f(r); }
-
 template<class QComparator>
 struct AlascaAtomComparator;
 
@@ -36,9 +32,15 @@ struct AlascaAtomComparator<LiteralComparators::Composite<C1, C2>> {
 
   template<class T>
   bool operator()(T const& l, T const& r) const {
-    auto c1 = AlascaAtomComparator<C1>{}(l, r);
-    return c1 != Comparison::EQUAL ? c1 : AlascaAtomComparator<C2>{}(l, r);
+    return AlascaAtomComparator<C1>{}(l, r) ? /* less */ true
+         : AlascaAtomComparator<C1>{}(r, l) ? /* greater */ false
+         : AlascaAtomComparator<C2>{}(l, r);
   } 
+
+  template<class T>
+  auto dbg(T const& t) {
+    return std::make_tuple(AlascaAtomComparator<C1>{}.dbg(t), AlascaAtomComparator<C2>{}.dbg(t));
+  }
 
 };
 
@@ -47,108 +49,133 @@ struct AlascaAtomComparator<LiteralComparators::Inverse<C>> {
   template<class T>
   bool operator()(T const& l, T const& r) const 
   { return AlascaAtomComparator<C>{}(r, l); } 
+
+  template<class T>
+  auto dbg(T const& t) {
+    return Output::catOwned("inverse(", AlascaAtomComparator<C>{}.dbg(t), ")");
+  }
+
+
+};
+
+template<class By>
+struct AlascaAtomComparatorByKey {
+
+  template<class T>
+  bool operator()(T const& l, T const& r) const  
+  { return By::getKey(r) < By::getKey(l); }
+
+  template<class T>
+  auto dbg(T const& t) {
+    return By::getKey(t);
+  }
+
+
+};
+
+
+struct NotTransparent 
+{
+  template<class T>
+  static auto getKey(T const& x)  { return x.literal()->color() != COLOR_TRANSPARENT; }
 };
 
 template<>
-struct AlascaAtomComparator<LiteralComparators::ColoredFirst> {
+struct AlascaAtomComparator<LiteralComparators::ColoredFirst> 
+  : public AlascaAtomComparatorByKey<NotTransparent> 
+{ };
 
+
+struct NoPositiveEquality {
   template<class T>
-  bool operator()(T const& l, T const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return x.literal()->color() != COLOR_TRANSPARENT; }); } 
+  static auto getKey(T const& x)  { return !(x.literal()->isEquality() && x.literal()->isPositive()); }
 };
 
 template<>
-struct AlascaAtomComparator<LiteralComparators::NoPositiveEquality> {
-  template<class T>
-  bool operator()(T const& l, T const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return !(x.literal()->isEquality() && x.literal()->isPositive()); }); } 
-};
+struct AlascaAtomComparator<LiteralComparators::NoPositiveEquality> 
+  : public AlascaAtomComparatorByKey<NoPositiveEquality>
+{ };
 
-template<>
-struct AlascaAtomComparator<LiteralComparators::Negative> {
+struct IsNegative {
   template<class T>
-  bool operator()(T const& l, T const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { 
+  static auto getKey(T const& x) { 
       // TODO this should be isNegativeForSelection
-      return x.literal()->isNegative(); }); } 
+      return x.literal()->isNegative(); }
 };
 
 template<>
-struct AlascaAtomComparator<LiteralComparators::NegativeEquality> {
+struct AlascaAtomComparator<LiteralComparators::Negative> 
+  : public AlascaAtomComparatorByKey<IsNegative> 
+{ };
+
+struct IsNegativeEquality {
   template<class T>
-  bool operator()(T const& l, T const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return x.literal()->isEquality() && x.literal()->isNegative(); }); } 
+  static auto getKey(T const& x) { return x.literal()->isEquality() && x.literal()->isNegative(); }
 };
 
 template<>
-struct AlascaAtomComparator<LiteralComparators::MaximalSize> {
+struct AlascaAtomComparator<LiteralComparators::NegativeEquality> 
+  : public AlascaAtomComparatorByKey<IsNegativeEquality> 
+{ };
 
+
+struct MaximalSize {
   static unsigned weight(Term* t) { return t->weight(); }
   static unsigned weight(TermList t) { return t.weight(); }
 
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return x.selectedAtom().apply([](auto x) { return weight(x); }); }); } 
-
-  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return weight(x.literal()); }); } 
-
+  static auto getKey(SelectedAtom const& x) { return x.selectedAtom().apply([](auto x) { return weight(x); }); }
+  static auto getKey(__SelectedLiteral const& x) { return weight(x.literal()); }
 };
 
 template<>
-struct AlascaAtomComparator<LiteralComparators::LeastVariables> {
+struct AlascaAtomComparator<LiteralComparators::MaximalSize> 
+  : public AlascaAtomComparatorByKey<MaximalSize> 
+{ };
+
+struct LeastVariables {
 
   static int numVarOccs(Term* t) { return t->numVarOccs(); }
   static int numVarOccs(TermList t) { return t.isVar() ? 1 : numVarOccs(t.term()); }
 
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return -int(x.selectedAtom().apply([](auto x) { return numVarOccs(x); })); }); } 
-
-  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return numVarOccs(x.literal()); }); } 
-
+  static auto getKey(SelectedAtom const& x) { return -int(x.selectedAtom().apply([](auto x) { return numVarOccs(x); })); }
+  static auto getKey(__SelectedLiteral const& x) { return numVarOccs(x.literal()); }
 };
 
 template<>
-struct AlascaAtomComparator<LiteralComparators::LeastDistinctVariables> {
+struct AlascaAtomComparator<LiteralComparators::LeastVariables> 
+  : public AlascaAtomComparatorByKey<LeastVariables> 
+{ };
+
+struct LeastDistinctVariables {
 
   static int getDistinctVars(Term* t) { return t->getDistinctVars(); }
   static int getDistinctVars(TermList t) { return t.isVar() ? 1 : getDistinctVars(t.term()); }
 
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return -int(x.selectedAtom().apply([](auto x) { return getDistinctVars(x); })); }); } 
-
-
-  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return -int(getDistinctVars(x.literal())); }); } 
+  static auto getKey(SelectedAtom const& x) { return -int(x.selectedAtom().apply([](auto x) { return getDistinctVars(x); })); }
+  static auto getKey(__SelectedLiteral const& x) { return -int(getDistinctVars(x.literal())); }
 };
 
 template<>
-struct AlascaAtomComparator<LiteralComparators::LeastTopLevelVariables> {
+struct AlascaAtomComparator<LiteralComparators::LeastDistinctVariables> 
+  : public AlascaAtomComparatorByKey<LeastDistinctVariables> 
+{ };
+
+struct LeastTopLevelVariables {
+
   /* top level variables here does not mean alasca top level variables (e.g. x in `k x + t`), 
    * but mean variables that are arguments to the outer most function/predicate (e.g. x in `p(x, f(y))`) */
 
   static int varArgCount(Term* t) { return anyArgIter(t).filter([](auto t) { return t.isVar(); }).count(); }
   static int varArgCount(TermList t) { return std::numeric_limits<int>::max() - 1; }
 
-  bool operator()(SelectedAtom const& l, SelectedAtom const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return -int(x.selectedAtom().apply([](auto x) { return varArgCount(x); })); }); }
-
-  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
-  { return compareBy(r, l, 
-      [](auto x) { return -int(varArgCount(x.literal())); }); }
+  static auto getKey(SelectedAtom const& x) { return -int(x.selectedAtom().apply([](auto x) { return varArgCount(x); })); }
+  static auto getKey(__SelectedLiteral const& x) { return -int(varArgCount(x.literal())); }
 };
 
+template<>
+struct AlascaAtomComparator<LiteralComparators::LeastTopLevelVariables> 
+  : public AlascaAtomComparatorByKey<LeastTopLevelVariables> 
+{ };
 
 template<>
 struct AlascaAtomComparator<LiteralComparators::LexComparator> {
@@ -159,6 +186,10 @@ struct AlascaAtomComparator<LiteralComparators::LexComparator> {
     // TODO this is not implemented as the LexComparator, as i don't think the lex comparator has any good semantic point to it, but is only there fore tie-breaking. this can be done way more cheaply
     return l < r;
   }
+
+  template<class T>
+  auto dbg(T const& x) 
+  { return "lex"; }
 
 };
 
@@ -296,7 +327,29 @@ struct AlascaSelectorDispatch {
   Stack<__SelectedLiteral> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>>, Clause* cl, Ordering* ord) 
   {
     auto negative = iterSelectable(ord, cl).collectRStack();
-    negative->sort([&](auto& l, auto& r) { return AlascaAtomComparator<QComparator>{}(r, l); });
+    negative->sort([&](__SelectedLiteral const& l, __SelectedLiteral const& r) { 
+        auto c = AlascaAtomComparator<QComparator>{};
+        auto less = [&c](auto& l, auto& r) { return c(r, l); };
+        if (!(
+
+           (negative->begin() <= &l && &l < negative->end())
+        && (negative->begin() <= &r && &r < negative->end())
+             )) {
+        for (auto x : *negative) {
+          ASS(!less(x,x))
+          for (auto y : *negative) {
+            ASS(!less(x,y) || !less(y,x))
+            for (auto z : *negative) {
+              ASS(!less(x,y) || !less(y,z) || less(x,z))
+              auto equiv = [&less](auto& l, auto& r) { return !less(l,r) && !less(r,l); };
+              ASS(!equiv(x,y) || !equiv(y,z) || equiv(x,z))
+            }
+          }
+        }
+        }
+        ASS(negative->begin() <= &l && &l < negative->end())
+        ASS(negative->begin() <= &r && &r < negative->end())
+        return less(l,r); });
     if (negative->size() != 0) {
       return selectBG(negative[0]);
     } else {
