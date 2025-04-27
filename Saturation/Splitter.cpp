@@ -630,12 +630,7 @@ std::string Splitter::splPrefix = "";
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
   _clausesAdded(false), _haveBranchRefutation(false)
-{
-  if(env.options->proof()==Options::Proof::TPTP){
-    unsigned spl = env.signature->addFreshFunction(0,"spl");
-    splPrefix = env.signature->functionName(spl)+"_";
-  }
-}
+{}
 
 Splitter::~Splitter()
 {
@@ -738,6 +733,13 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
 }
 std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
+  if (splPrefix.empty()) {
+    if(env.options->proof()==Options::Proof::TPTP){
+      unsigned spl = env.signature->addFreshFunction(0,"spl");
+      splPrefix = env.signature->functionName(spl)+"_";
+    }
+  }
+
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
     lit = lit.opposite();

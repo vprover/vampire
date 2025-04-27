@@ -275,8 +275,8 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
        || env.signature->isBoolCon(argSort1.functor())
        || env.signature->isBoolCon(argSort2.functor())
        ) {
-        auto& arg1 = au->subs().derefBound(t1.termArg(1));
-        auto& arg2 = au->subs().derefBound(t2.termArg(1));
+        auto arg1 = au->subs().derefBound(t1.termArg(1));
+        auto arg2 = au->subs().derefBound(t2.termArg(1));
         auto out = AbstractionOracle::EqualIf()
               .unify (UnificationConstraint(t1.typeArg(0), t2.typeArg(0), TermSpec(AtomicSort::superSort(), 0)),
                       UnificationConstraint(t1.typeArg(1), t2.typeArg(1), TermSpec(AtomicSort::superSort(), 0)),
