@@ -60,10 +60,10 @@ public:
     int col;
     /** build a list expressions with the list initially empty */
     explicit Expression(Tag t, int line = -1, int col = -1)
-      : tag(t),	str("?"),	list(0), line(line), col(col) {}
+      : tag(t), str("?"), list(0), line(line), col(col) {}
     /** build a string-values expression */
     Expression(Tag t, std::string s, int line = -1, int col = -1)
-      : tag(t),	str(s),	list(0), line(line), col(col) {}
+      : tag(t), str(s), list(0), line(line), col(col) {}
     std::string toString(bool outerParentheses=true) const;
     std::string highlightSubexpression(Expression* expr) const;
     std::string getPosition() const;

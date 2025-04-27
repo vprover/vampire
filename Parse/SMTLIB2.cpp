@@ -864,7 +864,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
   auto defsRdr = READER(defsExpr);
   for (const auto& decl : declarations) {
     auto def = defsRdr.readExpr();
-    _scopes.push(std::unique_ptr<TermLookup>(decl.lookup));
+    _scopes.push(decl.lookup);
     ParseResult res = parseTermOrFormula(def,false/*isSort*/);
 
     TermList rhs;

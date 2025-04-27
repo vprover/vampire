@@ -327,7 +327,7 @@ private:
   typedef std::pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<std::string,SortedTerm> TermLookup;
-  typedef Stack<std::unique_ptr<TermLookup>> Scopes;
+  typedef Stack<TermLookup*> Scopes;
   /** Stack of parsing contexts:
    * for variables from quantifiers and
    * for symbols bound by let (which are variables from smtlib perspective,
@@ -343,10 +343,10 @@ private:
   TermLookup _globalSortParamScope;
 
   inline void pushScope() {
-    _scopes.push(std::make_unique<TermLookup>());
+    _scopes.push(new TermLookup());
   }
   inline void popScope() {
-    _scopes.pop();
+    delete _scopes.pop();
   }
   inline void tryInsertIntoCurrentScope(std::string name, TermList term, TermList sort) {
     if (!_scopes.top()->insert(name, { term, sort })) {
