@@ -104,41 +104,24 @@ typedef LispParser::Expression LExpr;
 typedef List<LExpr*> LExprList;
 
 
-class LispListReader {
+class ErrorThrowingLispListReader {
 public:
-  LispListReader(LExpr* e) : e(e), it(LExprList::Iterator(e->list))
-  {
-    ASS(e->isList());
-  }
-
-  [[noreturn]] void lispError(LExpr* expr, std::string reason="error");
-  [[noreturn]] void lispCurrError(std::string reason="error");
+  ErrorThrowingLispListReader(LExpr* e, LExpr* root)
+    : e(e), root(root), it(LExprList::Iterator(e->list))
+  { ASS(e->isList()); }
 
   bool hasNext() { return it.hasNext(); }
-  LExpr* peekAtNext();
-  LExpr* readNext();
-  LExpr* next() { return readNext(); }
 
-  bool tryReadAtom(std::string& atom);
+  LExpr* readExpr();
   std::string readAtom();
-
-  bool tryReadListExpr(LExpr*& e);
-  LExpr* readListExpr();
-
-  bool tryReadList(LExprList*& list);
-  LExprList* readList();
+  LExpr* readList();
 
   bool tryAcceptAtom(std::string atom);
-  void acceptAtom(std::string atom);
-  void acceptAtom() { readAtom(); }
-
-  bool tryAcceptList();
-  void acceptList();
-
   void acceptEOL();
 
-  LExpr* e;
 private:
+  LExpr* e;
+  LExpr* root;
   LExprList::Iterator it;
 };
 

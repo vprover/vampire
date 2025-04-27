@@ -213,138 +213,51 @@ void LispParser::Exception::cry(std::ostream& out) const
 } // Exception::cry
 
 ///////////////////////
-// LispListReader
+// ErrorThrowingLispListReader
 //
 
-void LispListReader::lispError(LExpr* expr, std::string reason)
+LExpr* ErrorThrowingLispListReader::readExpr()
 {
-  if(expr) {
-    USER_ERROR(reason+": "+expr->toString());
+  if (!it.hasNext()) {
+    USER_ERROR("Unexpected end of list at " + e->getPosition() + "\n" + root->highlightSubexpression(e));
   }
-  else {
-    USER_ERROR(reason+": <eol>");
-  }
-}
-
-/**
- * Report error with the current lisp element
- */
-void LispListReader::lispCurrError(std::string reason)
-{
-  if(hasNext()) {
-    lispError(peekAtNext(), reason);
-  }
-  else {
-    lispError(0, reason);
-  }
-}
-
-LExpr* LispListReader::peekAtNext()
-{
-  ASS(hasNext());
-
-  return it.peekAtNext();
-}
-
-LExpr* LispListReader::readNext()
-{
-  ASS(hasNext());
-
   return it.next();
 }
 
-bool LispListReader::tryReadAtom(std::string& atom)
+string ErrorThrowingLispListReader::readAtom()
 {
-  if(!hasNext()) { return false; }
+  auto exp = readExpr();
+  if (!exp->isAtom()) {
+    USER_ERROR("Expected atom at " + exp->getPosition() + "\n" + root->highlightSubexpression(exp));
+  }
+  return exp->str;
+}
 
-  LExpr* next = peekAtNext();
-  if(next->isAtom()) {
-    atom = next->str;
-    ALWAYS(readNext()==next);
+LExpr* ErrorThrowingLispListReader::readList()
+{
+  auto exp = readExpr();
+  if (!exp->isList()) {
+    USER_ERROR("Expected list at " + exp->getPosition() + "\n" + root->highlightSubexpression(exp));
+  }
+  return exp;
+}
+
+bool ErrorThrowingLispListReader::tryAcceptAtom(std::string atom)
+{
+  if (!it.hasNext()) { return false; }
+
+  auto n = it.peekAtNext();
+  if(n->isAtom() && n->str==atom) {
+    ALWAYS(it.next()==n);
     return true;
   }
   return false;
 }
 
-std::string LispListReader::readAtom()
+void ErrorThrowingLispListReader::acceptEOL()
 {
-  std::string atm;
-  if(!tryReadAtom(atm)) {
-    lispCurrError("atom expected");
-  }
-  return atm;
-}
-
-bool LispListReader::tryAcceptAtom(std::string atom)
-{
-  if(!hasNext()) { return false; }
-
-  LExpr* next = peekAtNext();
-  if(next->isAtom() && next->str==atom) {
-    ALWAYS(readNext()==next);
-    return true;
-  }
-  return false;
-}
-
-void LispListReader::acceptAtom(std::string atom)
-{
-  if(!tryAcceptAtom(atom)) {
-    lispCurrError("atom \""+atom+"\" expected");
-  }
-}
-
-bool LispListReader::tryReadListExpr(LExpr*& e)
-{
-  if(!hasNext()) { return false; }
-
-  LExpr* next = peekAtNext();
-  if(next->isList()) {
-    e = next;
-    ALWAYS(readNext()==next);
-    return true;
-  }
-  return false;
-}
-
-LExpr* LispListReader::readListExpr()
-{
-  LExpr* list;
-  if(!tryReadListExpr(list)) {
-    lispCurrError("list expected");
-  }
-  return list;
-}
-
-bool LispListReader::tryReadList(LExprList*& list)
-{
-  LExpr* lstExpr;
-  if(tryReadListExpr(lstExpr)) {
-    list = lstExpr->list;
-    return true;
-  }
-  return false;
-}
-
-LExprList* LispListReader::readList()
-{
-  return readListExpr()->list;
-}
-
-bool LispListReader::tryAcceptList()
-{
-  LExprList* lst;
-  return tryReadList(lst);
-}
-void LispListReader::acceptList()
-{
-  readList();
-}
-
-void LispListReader::acceptEOL()
-{
-  if(hasNext()) {
-    lispCurrError("<eol> expected");
+  if (it.hasNext()) {
+    USER_ERROR("Expected end of list at " + e->getPosition() + "\n" + root->highlightSubexpression(e));
   }
 }
 

@@ -54,6 +54,8 @@
 #define LOG4(a1,a2,a3,a4)
 #endif
 
+#define READER(exp) ErrorThrowingLispListReader(exp, _topLevelExpr)
+
 namespace Parse {
 
 using namespace std;
@@ -83,27 +85,26 @@ void SMTLIB2::parse(istream& str)
 
 void SMTLIB2::readBenchmark(LExpr* bench)
 {
-  LispListReader bRdr(bench);
+  auto bRdr = READER(bench);
 
   bool afterCheckSat = false;
 
   // iteration over benchmark top level entries
   while(bRdr.hasNext()) {
-    LExpr* lexp = bRdr.next();
-    _topLevelExpr = lexp;
+    _topLevelExpr = bRdr.readExpr();
     _nextVar = _globalSortParamScope.size();
 
     ASS(_scopes.isEmpty());
 
-    LOG2("readBenchmark ",lexp->toString(true));
+    LOG2("readBenchmark ",_topLevelExpr->toString(true));
 
-    LispListReader ibRdr(lexp);
+    auto ibRdr = READER(_topLevelExpr);
 
     if (ibRdr.tryAcceptAtom("set-logic")) {
       if (_logicSet) {
         USER_ERROR_EXPR("set-logic can appear only once in a problem");
       }
-      readLogic(tryReadAtom(ibRdr));
+      readLogic(ibRdr.readAtom());
       ibRdr.acceptEOL();
       continue;
     }
@@ -111,28 +112,28 @@ void SMTLIB2::readBenchmark(LExpr* bench)
     if (ibRdr.tryAcceptAtom("set-info")) {
 
       if (ibRdr.tryAcceptAtom(":status")) {
-        _statusStr = tryReadAtom(ibRdr);
+        _statusStr = ibRdr.readAtom();
         ibRdr.acceptEOL();
         continue;
       }
 
       if (ibRdr.tryAcceptAtom(":source")) {
-        _sourceInfo = tryReadAtom(ibRdr);
+        _sourceInfo = ibRdr.readAtom();
         ibRdr.acceptEOL();
         continue;
       }
 
       // ignore unknown info
-      tryReadAtom(ibRdr);
-      tryReadAtom(ibRdr);
+      ibRdr.readAtom();
+      ibRdr.readAtom();
       ibRdr.acceptEOL();
       continue;
     }
 
     if (ibRdr.tryAcceptAtom("declare-sort")) {
 
-      auto name = tryReadAtom(ibRdr);
-      auto arity = tryReadAtom(ibRdr);
+      auto name = ibRdr.readAtom();
+      auto arity = ibRdr.readAtom();
       readDeclareSort(name,arity);
 
       ibRdr.acceptEOL();
@@ -142,7 +143,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("declare-sort-parameter")) {
 
-      auto name = tryReadAtom(ibRdr);
+      auto name = ibRdr.readAtom();
       // TODO: should we allow shadowing?
       if (isAlreadyKnownSymbol(name)) {
         USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort parameter: "+name);
@@ -156,9 +157,9 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("define-sort")) {
 
-      auto name = tryReadAtom(ibRdr);
-      auto args = tryReadList(ibRdr);
-      auto body = tryReadExpression(ibRdr);
+      auto name = ibRdr.readAtom();
+      auto args = ibRdr.readList();
+      auto body = ibRdr.readExpr();
       readDefineSort(name,args,body);
 
       ibRdr.acceptEOL();
@@ -168,9 +169,9 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("declare-fun")) {
 
-      auto name = tryReadAtom(ibRdr);
-      auto iSorts = tryReadList(ibRdr);
-      auto oSort = tryReadExpression(ibRdr);
+      auto name = ibRdr.readAtom();
+      auto iSorts = ibRdr.readList();
+      auto oSort = ibRdr.readExpr();
       readDeclareFun(name,iSorts,oSort);
 
       ibRdr.acceptEOL();
@@ -180,8 +181,8 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("declare-datatype")) {
 
-      auto sort = tryReadAtom(ibRdr);
-      auto datatype = tryReadList(ibRdr);
+      auto sort = ibRdr.readAtom();
+      auto datatype = ibRdr.readList();
       readDeclareDatatype(sort, datatype);
 
       ibRdr.acceptEOL();
@@ -191,8 +192,8 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("declare-datatypes")) {
   
-      auto sorts = tryReadList(ibRdr);
-      auto datatypes = tryReadList(ibRdr);
+      auto sorts = ibRdr.readList();
+      auto datatypes = ibRdr.readList();
       readDeclareDatatypes(sorts, datatypes, false);
 
       ibRdr.acceptEOL();
@@ -202,8 +203,8 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("declare-codatatypes")) {
   
-      auto sorts = tryReadList(ibRdr);
-      auto datatypes = tryReadList(ibRdr);
+      auto sorts = ibRdr.readList();
+      auto datatypes = ibRdr.readList();
       readDeclareDatatypes(sorts, datatypes, true);
 
       ibRdr.acceptEOL();
@@ -213,8 +214,8 @@ void SMTLIB2::readBenchmark(LExpr* bench)
     
     if (ibRdr.tryAcceptAtom("declare-const")) {
 
-      auto name = tryReadAtom(ibRdr);
-      auto oSort = tryReadExpression(ibRdr);
+      auto name = ibRdr.readAtom();
+      auto oSort = ibRdr.readExpr();
       LExpr iArgs(LispParser::LIST); // dummy list to avoid passing null below
       readDeclareFun(name,&iArgs,oSort);
 
@@ -226,10 +227,10 @@ void SMTLIB2::readBenchmark(LExpr* bench)
     bool recursive = false;
     if (ibRdr.tryAcceptAtom("define-fun") || (recursive = ibRdr.tryAcceptAtom("define-fun-rec"))) {
 
-      auto name = tryReadAtom(ibRdr);
-      auto iArgs = tryReadList(ibRdr);
-      auto oSort = tryReadExpression(ibRdr);
-      auto body = tryReadExpression(ibRdr);
+      auto name = ibRdr.readAtom();
+      auto iArgs = ibRdr.readList();
+      auto oSort = ibRdr.readExpr();
+      auto body = ibRdr.readExpr();
       readDefineFun(name,iArgs,oSort,body,recursive);
 
       ibRdr.acceptEOL();
@@ -239,8 +240,8 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("define-funs-rec")) {
 
-      auto declarations = tryReadList(ibRdr);
-      auto definitions = tryReadList(ibRdr);
+      auto declarations = ibRdr.readList();
+      auto definitions = ibRdr.readList();
       // TODO make this work with sort parameters
       readDefineFunsRec(declarations, definitions);
 
@@ -249,7 +250,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("assert")) {
 
-      auto body = tryReadExpression(ibRdr);
+      auto body = ibRdr.readExpr();
       readAssert(body);
       ibRdr.acceptEOL();
 
@@ -258,7 +259,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("assert-claim")) {
 
-      auto body = tryReadExpression(ibRdr);
+      auto body = ibRdr.readExpr();
       readAssertClaim(body);
       ibRdr.acceptEOL();
 
@@ -267,7 +268,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("assert-not")) {
 
-      auto body = tryReadExpression(ibRdr);
+      auto body = ibRdr.readExpr();
       readAssertNot(body);
 
       ibRdr.acceptEOL();
@@ -277,7 +278,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("assert-theory")) {
 
-      auto body = tryReadExpression(ibRdr);
+      auto body = ibRdr.readExpr();
       readAssertTheory(body);
 
       ibRdr.acceptEOL();
@@ -288,7 +289,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
     // not an official SMTLIB command
     if (ibRdr.tryAcceptAtom("color-symbol")) {
 
-      auto symbol = tryReadAtom(ibRdr);
+      auto symbol = ibRdr.readAtom();
 
       if (ibRdr.tryAcceptAtom(":left")) {
         colorSymbol(symbol, Color::COLOR_LEFT);
@@ -321,13 +322,9 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
     if (ibRdr.tryAcceptAtom("set-option")) {
       if (ibRdr.tryAcceptAtom(":uncomputable")) {
-        LExprList* lel = ibRdr.readList();
-        LExprList::Iterator lIt(lel);
-        while (lIt.hasNext()) {
-          LExpr* exp = lIt.next();
-          ASS(exp->isAtom());
-          std::string& name = exp->str;
-          markSymbolUncomputable(name);
+        auto uRdr = READER(ibRdr.readList());
+        while (uRdr.hasNext()) {
+          markSymbolUncomputable(uRdr.readAtom());
         }
         ibRdr.acceptEOL();
         continue;
@@ -354,7 +351,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
   // (or other things we might support in the future)
   if (afterCheckSat) {
     while(bRdr.hasNext()) {
-      LispListReader ibRdr(bRdr.next());
+      auto ibRdr = READER(bRdr.readExpr());
       
       if (ibRdr.tryAcceptAtom("exit")) {
         ibRdr.acceptEOL(); // no arguments of exit
@@ -501,9 +498,9 @@ void SMTLIB2::readDefineSort(const std::string& name, LExpr* args, LExpr* body)
   // sort definitions cannot contain global sort
   // parameters, so we use normalized variables
   unsigned var = 0;
-  LispListReader argRdr(args);
+  auto argRdr = READER(args);
   while (argRdr.hasNext()) {
-    tryInsertIntoCurrentScope(tryReadAtom(argRdr), TermList::var(var++), AtomicSort::superSort());
+    tryInsertIntoCurrentScope(argRdr.readAtom(), TermList::var(var++), AtomicSort::superSort());
   }
   ALWAYS(_sortDefinitions.insert(pName, { var, parseSort(body) }));
   popScope();
@@ -645,13 +642,13 @@ void SMTLIB2::readDeclareFun(const std::string& name, LExpr* iSorts, LExpr* oSor
 
   TermList rangeSort = parseSort(oSort);
 
-  LispListReader isRdr(iSorts);
+  auto isRdr = READER(iSorts);
 
   static TermStack argSorts;
   argSorts.reset();
 
   while (isRdr.hasNext()) {
-    argSorts.push(parseSort(isRdr.next()));
+    argSorts.push(parseSort(isRdr.readExpr()));
   }
 
   auto taArity = normalizeFunctionSorts(argSorts, rangeSort).size();
@@ -737,12 +734,12 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
   static TermStack termArgs;
   termArgs.reset();
 
-  LispListReader iaRdr(iArgs);
+  auto iaRdr = READER(iArgs);
   while (iaRdr.hasNext()) {
-    LispListReader pRdr(tryReadList(iaRdr));
+    auto pRdr = READER(iaRdr.readList());
 
-    auto vName = tryReadAtom(pRdr);
-    TermList vSort = parseSort(tryReadExpression(pRdr));
+    auto vName = pRdr.readAtom();
+    TermList vSort = parseSort(pRdr.readExpr());
 
     pRdr.acceptEOL();
 
@@ -823,27 +820,27 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
   Stack<Declaration> declarations;
 
   // first, declare all symbols
-  LispListReader declsRdr(declsExpr);
+  auto declsRdr = READER(declsExpr);
   while (declsRdr.hasNext()) {
     Declaration decl;
-    LispListReader declRdr(tryReadList(declsRdr));
-    auto name = tryReadAtom(declRdr);
+    auto declRdr = READER(declsRdr.readList());
+    auto name = declRdr.readAtom();
     if (isAlreadyKnownSymbol(name)) {
       USER_ERROR_EXPR("Redeclaring function symbol: "+name);
     }
-    auto iArgs = tryReadList(declRdr);
+    auto iArgs = declRdr.readList();
 
     decl.lookup = new TermLookup();
 
     static TermStack argSorts;
     argSorts.reset();
 
-    LispListReader iaRdr(iArgs);
+    auto iaRdr = READER(iArgs);
     while (iaRdr.hasNext()) {
-      LispListReader pRdr(tryReadList(iaRdr));
+      auto pRdr = READER(iaRdr.readList());
 
-      auto vName = tryReadAtom(pRdr);
-      TermList vSort = parseSort(tryReadExpression(pRdr));
+      auto vName = pRdr.readAtom();
+      TermList vSort = parseSort(pRdr.readExpr());
 
       pRdr.acceptEOL();
 
@@ -857,19 +854,16 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
 
       argSorts.push(vSort);
     }
-    decl.rangeSort = parseSort(declRdr.readNext());
+    decl.rangeSort = parseSort(declRdr.readExpr());
     decl.sym = declareFunctionOrPredicate(name, decl.rangeSort, argSorts, /*taArity=*/ 0);
 
     declarations.push(decl);
   }
 
   // then, read all definitions
-  LispListReader defsRdr(defsExpr);
+  auto defsRdr = READER(defsExpr);
   for (const auto& decl : declarations) {
-    if (!defsRdr.hasNext()) {
-      USER_ERROR_EXPR("Less definitions than declarations in define-funs-rec");
-    }
-    auto def = defsRdr.next();
+    auto def = defsRdr.readExpr();
     _scopes.push(std::unique_ptr<TermLookup>(decl.lookup));
     ParseResult res = parseTermOrFormula(def,false/*isSort*/);
 
@@ -912,17 +906,15 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
 
     popScope();
   }
-  if (defsRdr.hasNext()) {
-    USER_ERROR_EXPR("More definitions than declarations in define-funs-rec");
-  }
+  defsRdr.acceptEOL();
 }
 
-void SMTLIB2::readTypeParameters(LispListReader& rdr, TermStack& ts)
+void SMTLIB2::readTypeParameters(ErrorThrowingLispListReader& rdr, TermStack& ts)
 {
-  LispListReader parRdr(tryReadList(rdr));
+  auto parRdr = READER(rdr.readList());
   while (parRdr.hasNext()) {
     auto sortVar = TermList::var(_nextVar++);
-    tryInsertIntoCurrentScope(tryReadAtom(parRdr), sortVar, AtomicSort::superSort());
+    tryInsertIntoCurrentScope(parRdr.readAtom(), sortVar, AtomicSort::superSort());
     ts.push(sortVar);
   }
 }
@@ -934,14 +926,14 @@ void SMTLIB2::readDeclareDatatype(string name, LExpr *datatype)
   if (isAlreadyKnownSymbol(dtypeName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: " + dtypeName);
   }
-  LispListReader dtypeRdr(datatype);
+  auto dtypeRdr = READER(datatype);
   pushScope();
   TermStack parSorts;
   if (dtypeRdr.tryAcceptAtom(PAR)) {
     readTypeParameters(dtypeRdr, parSorts);
-    auto rest = tryReadList(dtypeRdr);
+    auto rest = dtypeRdr.readList();
     dtypeRdr.acceptEOL();
-    dtypeRdr = LispListReader(rest);
+    dtypeRdr = READER(rest);
   }
   auto srt = declareTypeCon(dtypeName,parSorts.size());
 
@@ -961,23 +953,14 @@ void SMTLIB2::readDeclareDatatype(string name, LExpr *datatype)
     argSorts.reset();
     destructorNames.reset();
     // read each constructor declaration
-    LExpr *ctor = dtypeRdr.next();
-    ASS(ctor->isList());
-    LispListReader constrRdr(ctor);
+    auto constrRdr = READER(dtypeRdr.readList());
     auto ctorName = constrRdr.readAtom();
 
     while (constrRdr.hasNext()) {
-      LExpr *arg = constrRdr.next();
-      if (arg->isAtom()) {
-        USER_ERROR_EXPR("Constructor argument must be a pair of destructor name and argument type:" + arg->toString());
-      }
-      LispListReader argRdr(arg);
+      auto argRdr = READER(constrRdr.readList());
       destructorNames.push(argRdr.readAtom());
-      argSorts.push(r.apply(parseSort(argRdr.next())));
-
-      if (argRdr.hasNext()) {
-        USER_ERROR_EXPR("Bad constructor argument:" + arg->toString());
-      }
+      argSorts.push(r.apply(parseSort(argRdr.readExpr())));
+      argRdr.acceptEOL();
     }
     constructors.push(buildTermAlgebraConstructor(ctorName, taSort, destructorNames, argSorts));
   }
@@ -995,23 +978,19 @@ void SMTLIB2::readDeclareDatatype(string name, LExpr *datatype)
 
 void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codatatype)
 {
-  // if(LExprList::length(sorts) != LExprList::length(datatypes)){
-  //   USER_ERROR_EXPR("declare-datatype(s) declaration mismatch between declared datatypes and definitions");
-  // }
-
   // first declare all the sorts, and then only the constructors, in
   // order to allow mutually recursive datatype definitions
-  LispListReader dtypesNamesRdr(sorts);
+  auto dtypesNamesRdr = READER(sorts);
   Stack<unsigned> dtypeFns;
   while (dtypesNamesRdr.hasNext()) {
-    LispListReader dtypeNRdr(tryReadList(dtypesNamesRdr));
+    auto dtypeNRdr = READER(dtypesNamesRdr.readList());
 
-    auto dtypeName = tryReadAtom(dtypeNRdr)+TYPECON_POSTFIX;
+    auto dtypeName = dtypeNRdr.readAtom()+TYPECON_POSTFIX;
     if (isAlreadyKnownSymbol(dtypeName)) {
       USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
     }
     unsigned arity;
-    if (!Int::stringToUnsignedInt(tryReadAtom(dtypeNRdr),arity)) {
+    if (!Int::stringToUnsignedInt(dtypeNRdr.readAtom(),arity)) {
       USER_ERROR_EXPR("datatype arity not given");
     }
     dtypeFns.push(declareTypeCon(dtypeName,arity));
@@ -1021,7 +1000,7 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
   TermStack argSorts;
   Stack<string> destructorNames;
 
-  LispListReader dtypesDefsRdr(datatypes);
+  auto dtypesDefsRdr = READER(datatypes);
   Stack<unsigned>::BottomFirstIterator dtypeFnIter(dtypeFns);
   while(dtypeFnIter.hasNext()) {
     constructors.reset();
@@ -1033,12 +1012,12 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
 
     pushScope();
     TermStack parSorts;
-    LispListReader dtypeRdr(tryReadList(dtypesDefsRdr));
+    auto dtypeRdr = READER(dtypesDefsRdr.readList());
     if (dtypeRdr.tryAcceptAtom(PAR)) {
       readTypeParameters(dtypeRdr, parSorts);
-      auto rest = tryReadList(dtypeRdr);
+      auto rest = dtypeRdr.readList();
       dtypeRdr.acceptEOL();
-      dtypeRdr = LispListReader(rest);
+      dtypeRdr = READER(rest);
     }
     if (parSorts.size() != sym->arity()) {
       USER_ERROR_EXPR("'par' block for datatype "+sym->name()+" should define "+Int::toString(sym->arity())+" arguments");
@@ -1057,23 +1036,21 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
       destructorNames.reset();
       // read each constructor declaration
       std::string constrName;
-      LExpr *constr = dtypeRdr.next();
+      auto constr = dtypeRdr.readExpr();
       if (constr->isAtom()) {
         // atom, construtor of arity 0
         constrName = constr->str;
       } else {
         ASS(constr->isList());
-        LispListReader constrRdr(constr);
+        auto constrRdr = READER(constr);
         constrName = constrRdr.readAtom();
 
         while (constrRdr.hasNext()) {
-          auto arg = tryReadList(constrRdr);
-          LispListReader argRdr(arg);
-          destructorNames.push(tryReadAtom(argRdr));
-          argSorts.push(r.apply(parseSort(argRdr.next())));
-          if (argRdr.hasNext()) {
-            USER_ERROR_EXPR("Bad constructor argument:" + arg->toString());
-          }
+          auto arg = constrRdr.readList();
+          auto argRdr = READER(arg);
+          destructorNames.push(argRdr.readAtom());
+          argSorts.push(r.apply(parseSort(argRdr.readExpr())));
+          argRdr.acceptEOL();
         }
       }
       constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
@@ -1317,45 +1294,19 @@ void SMTLIB2::complainAboutArgShortageOrWrongSorts(const std::string& symbolClas
   USER_ERROR("Not enough arguments or wrong sorts in expression\n"+exp->toString()+"\nin\n"+_topLevelExpr->highlightSubexpression(exp));
 }
 
-LExpr* SMTLIB2::tryReadExpression(LispListReader& reader)
-{
-  if (!reader.hasNext()) {
-    USER_ERROR("Unexpected end of list at " + reader.e->getPosition() + "\n" + _topLevelExpr->highlightSubexpression(reader.e));
-  }
-  return reader.readNext();
-}
-
-string SMTLIB2::tryReadAtom(LispListReader& reader)
-{
-  auto exp = tryReadExpression(reader);
-  if (!exp->isAtom()) {
-    USER_ERROR("Expected atom at " + exp->getPosition() + "\n" + _topLevelExpr->highlightSubexpression(exp));
-  }
-  return exp->str;
-}
-
-LExpr* SMTLIB2::tryReadList(LispListReader& reader)
-{
-  auto exp = tryReadExpression(reader);
-  if (!exp->isList()) {
-    USER_ERROR("Expected list at " + exp->getPosition() + "\n" + _topLevelExpr->highlightSubexpression(exp));
-  }
-  return exp;
-}
-
 void SMTLIB2::parseLetBegin(LExpr* exp)
 {
   LOG2("parseLetBegin  ",exp->toString());
 
-  LispListReader lRdr(exp);
+  auto lRdr = READER(exp);
 
   // the let atom
-  ALWAYS(lRdr.readAtom() == LET);
+  ALWAYS(lRdr.tryAcceptAtom(LET));
 
   // now, there should be a list of bindings
-  auto bindings = tryReadList(lRdr);
+  auto bindings = lRdr.readList();
   // and the actual body term
-  auto body = tryReadExpression(lRdr);
+  auto body = lRdr.readExpr();
   // and that's it
   lRdr.acceptEOL();
 
@@ -1371,11 +1322,11 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
   _todo.push(make_pair(PO_LET_PREPARE_LOOKUP,exp));
 
   // but we start by parsing the bound expressions
-  LispListReader bindRdr(bindings);
+  auto bindRdr = READER(bindings);
   while (bindRdr.hasNext()) {
-    LispListReader pRdr(tryReadList(bindRdr));
-    tryReadAtom(pRdr); // for now ignore the identifier
-    _todo.push(make_pair(PO_PARSE,tryReadExpression(pRdr))); // just parse the expression
+    auto pRdr = READER(bindRdr.readList());
+    pRdr.readAtom(); // for now ignore the identifier
+    _todo.push(make_pair(PO_PARSE,pRdr.readExpr())); // just parse the expression
     pRdr.acceptEOL();
   }
 }
@@ -1385,11 +1336,11 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
   LOG2("PO_LET_PREPARE_LOOKUP",exp->toString());
 
   // so we know it is let
-  LispListReader lRdr(exp);
-  ALWAYS(tryReadAtom(lRdr) == LET);
+  auto lRdr = READER(exp);
+  ALWAYS(lRdr.readAtom() == LET);
 
   // with a list of bindings
-  LispListReader bindRdr(tryReadList(lRdr));
+  auto bindRdr = READER(lRdr.readList());
 
   // corresponding results have already been parsed
   ParseResult* boundExprs = _results.end();
@@ -1397,9 +1348,9 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
   pushScope();
 
   while (bindRdr.hasNext()) {
-    LispListReader pRdr(tryReadList(bindRdr));
+    auto pRdr = READER(bindRdr.readList());
 
-    const std::string& cName = tryReadAtom(pRdr);
+    const std::string& cName = pRdr.readAtom();
     ParseResult* pr = (--boundExprs);
     TermList t;
     TermList sort = pr->asTerm(t);
@@ -1469,12 +1420,12 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   LOG2("PO_LET_END ",exp->toString());
 
   // so we know it is let
-  LispListReader lRdr(exp);
-  DEBUG_CODE(const std::string& theLetAtom =) tryReadAtom(lRdr);
+  auto lRdr = READER(exp);
+  DEBUG_CODE(const std::string& theLetAtom =) lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theLetAtom),TS_LET);
 
   // with a list of bindings
-  LispListReader bindRdr(tryReadList(lRdr));
+  auto bindRdr = READER(lRdr.readList());
 
   const auto& lookup = _scopes.top();
 
@@ -1485,9 +1436,9 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   LOG2("LET body  ",let.toString());
 
   while (bindRdr.hasNext()) {
-    LispListReader pRdr(tryReadList(bindRdr));
+    auto pRdr = READER(bindRdr.readList());
 
-    const std::string& cName = tryReadAtom(pRdr);
+    const std::string& cName = pRdr.readAtom();
     TermList boundExpr;
     _results.pop().asTerm(boundExpr);
 
@@ -1539,17 +1490,16 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
 {
   LOG2("parseMatchBegin  ", exp->toString());
 
-  LispListReader lRdr(exp);
+  auto lRdr = READER(exp);
 
   // the match atom
-  DEBUG_CODE(const std::string &theMatchAtom =) tryReadAtom(lRdr);
-  ASS_EQ(theMatchAtom, MATCH);
+  ALWAYS(lRdr.tryAcceptAtom(MATCH));
 
   // next is the matched term
-  auto matchedAtom = tryReadExpression(lRdr);
+  auto matchedAtom = lRdr.readExpr();
 
   // and the list of cases
-  LispListReader casesRdr(tryReadList(lRdr));
+  auto casesRdr = READER(lRdr.readList());
 
   lRdr.acceptEOL();
 
@@ -1559,7 +1509,7 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
   _todo.push(make_pair(PO_PARSE, matchedAtom));
 
   while (casesRdr.hasNext()) {
-    auto caseExp = tryReadExpression(casesRdr);
+    auto caseExp = casesRdr.readExpr();
 
     _todo.push({ PO_POP_LOOKUP, nullptr });
     _todo.push({ PO_MATCH_CASE, caseExp });
@@ -1571,9 +1521,9 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
 {
   LOG2("parseMatchCase  ", exp->toString());
 
-  LispListReader eRdr(exp);
-  auto pattern = tryReadExpression(eRdr);
-  auto body = tryReadExpression(eRdr);
+  auto eRdr = READER(exp);
+  auto pattern = eRdr.readExpr();
+  auto body = eRdr.readExpr();
   eRdr.acceptEOL();
 
   TermList matchedTerm;
@@ -1610,8 +1560,8 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
     return;
   }
 
-  LispListReader tRdr(pattern);
-  auto ctorName = tryReadAtom(tRdr);
+  auto tRdr = READER(pattern);
+  auto ctorName = tRdr.readAtom();
   if (!isTermAlgebraConstructor(ctorName)) {
     USER_ERROR_EXPR("Unrecognized term algebra constructor "+ctorName+" in match pattern");
   }
@@ -1627,7 +1577,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
       patternArgs.push(typeArg);
       continue;
     }
-    auto argExp = tryReadExpression(tRdr);
+    auto argExp = tRdr.readExpr();
     if (!argExp->isAtom() || isAlreadyKnownSymbol(argExp->str)) {
       USER_ERROR_EXPR("Nested ctors ("+argExp->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
     }
@@ -1645,11 +1595,11 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 {
   LOG2("PO_MATCH_END ", exp->toString());
 
-  LispListReader lRdr(exp);
-  DEBUG_CODE(const std::string &theMatchAtom =) tryReadAtom(lRdr);
+  auto lRdr = READER(exp);
+  DEBUG_CODE(const std::string &theMatchAtom =) lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theMatchAtom), TS_MATCH);
 
-  tryReadExpression(lRdr); // the matched term
+  lRdr.readExpr(); // the matched term
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
 
@@ -1672,9 +1622,9 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   matchArgs.push(matchedTerm);
   TermList sort = AtomicSort::defaultSort();
 
-  LispListReader cRdr(tryReadList(lRdr));
+  auto cRdr = READER(lRdr.readList());
   while (cRdr.hasNext()) {
-    tryReadList(cRdr);
+    cRdr.readList();
     TermList body;
     TermList currSort = _results.pop().asTerm(body);
     ASS(sort == AtomicSort::defaultSort() || sort == currSort);
@@ -1736,41 +1686,40 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 
 void SMTLIB2::parseQuantBegin(LExpr* exp)
 {
-  LispListReader lRdr(exp);
+  auto lRdr = READER(exp);
 
   // the quant atom
-  DEBUG_CODE(const std::string& theQuantAtom =) tryReadAtom(lRdr);
+  DEBUG_CODE(const std::string& theQuantAtom =) lRdr.readAtom();
   ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS);
   _todo.push(make_pair(PO_QUANT,exp));
 
   // there should next be a list of sorted variables
-  LispListReader varRdr(tryReadList(lRdr));
-
+  auto varRdr = READER(lRdr.readList());
   while (varRdr.hasNext()) {
-    LispListReader pRdr(tryReadList(varRdr));
+    auto pRdr = READER(varRdr.readList());
 
-    tryReadAtom(pRdr); // name
-    _todo.push(make_pair(PO_PARSE_SORT, tryReadExpression(pRdr)));
+    pRdr.readAtom(); // name
+    _todo.push(make_pair(PO_PARSE_SORT, pRdr.readExpr()));
     pRdr.acceptEOL();
   }
 }
 
 void SMTLIB2::parseQuantEnd(LExpr* exp)
 {
-  LispListReader lRdr(exp);
+  auto lRdr = READER(exp);
 
-  tryReadAtom(lRdr); // already checked the quant atom
+  lRdr.readAtom(); // already checked the quant atom
 
   // there should next be a list of sorted variables
-  LispListReader varRdr(tryReadList(lRdr));
+  auto varRdr = READER(lRdr.readList());
 
   pushScope();
 
   while (varRdr.hasNext()) {
-    LispListReader pRdr(tryReadList(varRdr));
+    auto pRdr = READER(varRdr.readList());
 
-    auto vName = tryReadAtom(pRdr);
-    tryReadExpression(pRdr); // the type
+    auto vName = pRdr.readAtom();
+    pRdr.readExpr(); // the type
     pRdr.acceptEOL();
   
     ParseResult pr = _results.pop();
@@ -1779,11 +1728,8 @@ void SMTLIB2::parseQuantEnd(LExpr* exp)
     tryInsertIntoCurrentScope(vName, TermList::var(_nextVar++), vSort);
   }
 
-  if (!lRdr.hasNext()) {
-    USER_ERROR_EXPR("Missing quantification body");
-  }
   _todo.push(make_pair(PO_PARSE_APPLICATION,exp)); // will create the actual quantified formula and clear the lookup...
-  _todo.push(make_pair(PO_PARSE,lRdr.readNext())); // ... from the only remaining argument, the body
+  _todo.push(make_pair(PO_PARSE,lRdr.readExpr())); // ... from the only remaining argument, the body
   lRdr.acceptEOL();
 }
 
@@ -1791,35 +1737,19 @@ static const char* EXCLAMATION = "!";
 
 void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 {
-  LispListReader lRdr(exp);
+  auto lRdr = READER(exp);
 
   // the exclamation atom
-  ALWAYS(lRdr.readAtom() == EXCLAMATION)
+  ALWAYS(lRdr.tryAcceptAtom(EXCLAMATION));
 
-  LExpr* toParse = 0;
-  if(lRdr.peekAtNext()->isAtom()){ 
-    toParse = lRdr.next();
-  }
-  else{
-    toParse = lRdr.readListExpr();
-  }
-
-  static bool annotation_warning = false; // print warning only once
-
-  if (!annotation_warning) {
-    //env.beginOutput();
-    //std::cout << "% Warning: term annotations ignored!" << endl;
-    //env.endOutput();
-    annotation_warning = true;
-  }
+  auto toParse = lRdr.readExpr();
 
   // we only consider :named annotations
   if(lRdr.tryAcceptAtom(":named")){
-    _todo.push(make_pair(PO_LABEL,lRdr.readNext()));
+    _todo.push(make_pair(PO_LABEL,lRdr.readExpr()));
   }
 
   _todo.push(make_pair(PO_PARSE,toParse));
-
 }
 
 bool SMTLIB2::parseAsScopeLookup(const std::string& id)
@@ -1841,7 +1771,7 @@ bool SMTLIB2::parseAsScopeLookup(const std::string& id)
   return false;
 }
 
-bool SMTLIB2::parseAsSortDefinition(const std::string& id,LExpr* exp)
+bool SMTLIB2::parseAsSortDefinition(const std::string& id, LExpr* exp)
 {
   std::string pId = id + TYPECON_POSTFIX;
   auto def = _sortDefinitions.findPtr(pId);
@@ -2524,11 +2454,9 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
 
 void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 {
-  ASS(exp->isList());
-  LispListReader lRdr(exp);
-  LExpr* head = tryReadList(lRdr);
-  ASS(head->isList());
-  LispListReader headRdr(head);
+  auto lRdr = READER(exp);
+  auto head = lRdr.readList();
+  auto headRdr = READER(head);
 
   if (!headRdr.tryAcceptAtom(UNDERSCORE)) {
     USER_ERROR("Compound functor expected to be a rankend function (starting with '_'). Instead read: "+head->toString());
@@ -2618,14 +2546,14 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
     switch (op) {
       case PO_PARSE: {
         if (exp->isList()) {
-          LispListReader lRdr(exp);
+          auto lRdr = READER(exp);
 
           // schedule arity check
           _results.push(ParseResult()); // separator into results
           _todo.push(make_pair(PO_CHECK_ARITY,exp)); // check as a todo (exp for error reporting)
 
           // special treatment of some tokens
-          LExpr* fst = lRdr.readNext();
+          auto fst = lRdr.readExpr();
           if (fst->isAtom()) {
             std::string& id = fst->str;
 
@@ -2650,12 +2578,10 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
             }
 
             if (id == AS) {
-              _todo.push(make_pair(PO_AS_END,exp));
-              ALWAYS(lRdr.hasNext());
-              _todo.push(make_pair(PO_PARSE,lRdr.next()));
-              ALWAYS(lRdr.hasNext());
-              _todo.push(make_pair(PO_PARSE_SORT,lRdr.next()));
-              ASS(!lRdr.hasNext());
+              _todo.push({ PO_AS_END, exp });
+              _todo.push({ PO_PARSE, lRdr.readExpr() });
+              _todo.push({ PO_PARSE_SORT, lRdr.readExpr() });
+              lRdr.acceptEOL();
               continue;
             }
 
@@ -2673,7 +2599,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
           _todo.push(make_pair(PO_PARSE_APPLICATION,exp));
           // and all the other arguments too
           while (lRdr.hasNext()) {
-            _todo.push(make_pair(PO_PARSE,lRdr.next()));
+            _todo.push(make_pair(PO_PARSE,lRdr.readExpr()));
           }
 
           continue;
@@ -2687,9 +2613,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
           id = exp->str;
         } else {
           ASS(exp->isList());
-          LispListReader lRdr(exp);
-
-          LExpr* head = lRdr.readNext();
+          auto lRdr = READER(exp);
+          auto head = lRdr.readExpr();
 
           if (head->isList()) {
             parseRankedFunctionApplication(exp);
@@ -2723,15 +2648,15 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
       }
       case PO_PARSE_SORT: {
         if (exp->isList()) {
-          LispListReader lRdr(exp);
-          lRdr.readNext(); // the head
+          auto lRdr = READER(exp);
+          lRdr.readExpr(); // the head
 
           // schedule arity check
           _results.push(ParseResult()); // separator into results
           _todo.push(make_pair(PO_CHECK_ARITY,exp)); // check as a todo (exp for error reporting)
           _todo.push(make_pair(PO_PARSE_SORT_APPLICATION,exp));
           while (lRdr.hasNext()) {
-            _todo.push(make_pair(PO_PARSE_SORT,lRdr.next()));
+            _todo.push(make_pair(PO_PARSE_SORT,lRdr.readExpr()));
           }
 
           continue;
@@ -2742,12 +2667,8 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
         if (exp->isAtom()) { // the fall-through case
           id = exp->str;
         } else {
-          ASS(exp->isList());
-          LispListReader lRdr(exp);
-
-          LExpr* head = lRdr.readNext();
-          ASS(head->isAtom());
-          id = head->str;
+          auto lRdr = READER(exp);
+          id = lRdr.readAtom();
         }
 
         if (parseAsScopeLookup(id)) {

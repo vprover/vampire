@@ -393,15 +393,11 @@ private:
 
   [[noreturn]] void complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp);
 
-  inline LExpr* tryReadExpression(LispListReader& rdr);
-  inline std::string tryReadAtom(LispListReader& rdr);
-  inline LExpr* tryReadList(LispListReader& rdr);
-
   /**
    * Read `[vars]` from a `(par ([vars]) body)` block into the topmost lookup.
    * Note that `rdr.next()` gives `body` after the function returns.
    */
-  void readTypeParameters(LispListReader& rdr, TermStack& ts);
+  void readTypeParameters(ErrorThrowingLispListReader& rdr, TermStack& ts);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
