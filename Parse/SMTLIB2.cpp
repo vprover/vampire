@@ -1291,7 +1291,7 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
 
 void SMTLIB2::complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp)
 {
-  USER_ERROR("Not enough arguments or wrong sorts in expression\n"+exp->toString()+"\nin\n"+_topLevelExpr->highlightSubexpression(exp));
+  USER_ERROR("Not enough arguments or wrong sorts at " + exp->getPosition() + "\n" + _topLevelExpr->highlightSubexpression(exp));
 }
 
 void SMTLIB2::parseLetBegin(LExpr* exp)
