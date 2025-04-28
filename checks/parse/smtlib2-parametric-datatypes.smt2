@@ -2112,4 +2112,4 @@
 ; is_root h -> T_del_min h + psi (del_min h) - psi h <= 2 * lg (|h| + 1) + 5
 
 (declare-sort S 0)
-(assert-not (forall ((x S)) (= (inorder (Node (as Leaf (tree S)) x (as Leaf (tree S)))) (Cons x (as Nil (list S))))))
+(assert-not (forall ((x S)) (= (inorder (as Leaf (tree S))) (as Nil (list S)))))
