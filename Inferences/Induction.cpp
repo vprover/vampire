@@ -1637,7 +1637,9 @@ Creates the structural induction axiom with an existentially quantified variable
 void InductionClauseIterator::performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution* freeVarSubst)
 {
   if (context._indTerms.size() > 1) return;
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(SortHelper::getResultSort(context._indTerms[0]));
+  TermList sort = SortHelper::getResultSort(context._indTerms[0]);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  unsigned numTypeArgs = sort.term()->arity();
   unsigned freeVar = context.getFreeVariable(); // variable free in the induction literal
   unsigned var = freeVar+1; // used in the following to construct new variables
   for (const auto& kv : context._cls) {
@@ -1657,8 +1659,9 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
     TermStack argTerms(arity); // Arguments of the step case antecedent: y_1, ..., y_arity
+    argTerms.loadFromIterator(Term::Iterator(sort.term()));
     FormulaList* hyps = FormulaList::empty();
-    for (unsigned j = 0; j < arity; j++){
+    for (unsigned j = numTypeArgs; j < arity; j++){
       TermList y(var++, false);
       argTerms.push(y);
       VList::push(y.var(), ys);

@@ -276,6 +276,18 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("assert-synth")) {
+
+      auto forall = ibRdr.readList();
+      auto exist = ibRdr.readList();
+      auto body = ibRdr.readExpr();
+      readAssertSynth(forall, exist, body);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("assert-theory")) {
 
       auto body = ibRdr.readExpr();
@@ -2783,6 +2795,51 @@ void SMTLIB2::readAssertNot(LExpr* body)
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
 
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
+  fu = new FormulaUnit(new NegatedFormula(fla),
+                       FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
+  _formulas.pushBack(fu);
+}
+
+void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
+{
+  pushScope();
+
+  auto fvars = VList::empty();
+  auto fsorts = SList::empty();
+  auto fRdr = READER(forall);
+  while (fRdr.hasNext()) {
+    auto pRdr = READER(fRdr.readList());
+    auto name = pRdr.readAtom();
+    auto var = TermList::var(_nextVar++);
+    auto sort = parseSort(pRdr.readExpr());
+    tryInsertIntoCurrentScope(name, var, sort);
+    VList::push(var.var(), fvars);
+    SList::push(sort, fsorts);
+  }
+
+  auto evars = VList::empty();
+  auto esorts = SList::empty();
+  auto eRdr = READER(exist);
+  while (eRdr.hasNext()) {
+    auto pRdr = READER(eRdr.readList());
+    auto name = pRdr.readAtom();
+    auto var = TermList::var(_nextVar++);
+    auto sort = parseSort(pRdr.readExpr());
+    tryInsertIntoCurrentScope(name, var, sort);
+    VList::push(var.var(), evars);
+    SList::push(sort, esorts);
+  }
+  ParseResult res = parseTermOrFormula(body,false/*isSort*/);
+
+  Formula* fla;
+  if (!res.asFormula(fla)) {
+    USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
+  }
+  popScope();
+
+  fla = new QuantifiedFormula(Connective::EXISTS, evars, esorts, fla);
+  fla = new QuantifiedFormula(Connective::FORALL, fvars, fsorts, fla);
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
