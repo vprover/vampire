@@ -32,7 +32,6 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
-#include "Shell/LambdaElimination.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Rectify.hpp"
@@ -165,11 +164,8 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 }
 
 Formula* FOOLElimination::process(Formula* formula) {
-  if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-     !_polymorphic){
-    LambdaElimination le = LambdaElimination();
-    TermList proxifiedFormula = le.elimLambda(formula);
-    Formula* processedFormula = toEquality(proxifiedFormula);
+  if (!_polymorphic) {
+    Formula* processedFormula = toEquality(TermList(Term::createFormula(formula)));
 
     if (env.options->showPreprocessing()) {
       reportProcessed(formula->toString(), processedFormula->toString());
@@ -200,8 +196,7 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() &&
-         (!env.getMainProblem()->isHigherOrder() || env.options->equalityToEquivalence())) {
+      if (literal->isEquality() && !env.getMainProblem()->isHigherOrder()) {
         ASS_EQ(literal->arity(), 2);
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -722,7 +717,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *     where true is FOOL constant
          *  3) Replace the term with g(Y1, ..., Ym, X1, ..., Xn)
          */
-        if(!_higherOrder){
+        if (_higherOrder) {
+            HOL_ERROR;
+        }
+        else {
           Formula *formula = process(sd->getFormula());
 
           collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
@@ -748,17 +746,11 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           InferenceStore::instance()->recordIntroducedSymbol(defUnit,SymbolType::FUNC, freshSymbol);
 
           termResult = freshSymbolApplication;
-        } else {
-          LambdaElimination le = LambdaElimination();
-          termResult = le.elimLambda(sd->getFormula());
         }
         break;
       }
       case SpecialFunctor::LAMBDA: {
-        // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in
-        // the literature.
-        LambdaElimination le = LambdaElimination();
-        termResult = le.elimLambda(term);
+        HOL_ERROR;
         break;
       }
 

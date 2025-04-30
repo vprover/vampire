@@ -566,8 +566,7 @@ std::string Term::headToString() const
     if (!isSort() && Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
-    bool print = (isLiteral() || isSort() ||
-                 (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB)) && arity();
+    bool print = (isLiteral() || isSort()) && arity();
     std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
@@ -676,7 +675,7 @@ std::string Term::toString(bool topLevel) const
       return res;
     }
 
-    printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
+    printArgs = isSort();
   }
 
 #if NICE_THEORY_OUTPUT

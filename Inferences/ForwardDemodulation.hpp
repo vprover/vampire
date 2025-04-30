@@ -46,7 +46,6 @@ protected:
   DemodulationLHSIndex* _index;
 };
 
-template <bool combinatorySupSupport>
 class ForwardDemodulationImpl
 : public ForwardDemodulation
 {

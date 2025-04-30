@@ -202,42 +202,14 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
-    //using a substitution tree to store variable.
-    //TODO update
-    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
-    isGenerating = true;
-    break;
-  case SUB_VAR_SUP_LHS_SUBST_TREE:
-    res = new SubVarSupLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
-    isGenerating = true;
-    break;
 
-  case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
-    isGenerating = false;
-    break;
-
-  case NARROWING_INDEX:
-    res = new NarrowingIndex(new Indexing::TermSubstitutionTree<TermWithValue<Literal*>>());
-    isGenerating = true;
-    break;
-
-  case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new Indexing::TermSubstitutionTree<TermWithoutValue>());
-    isGenerating = true;
-    break;
    case ACYCLICITY_INDEX:
     res = new AcyclicityIndex(new TermSubstitutionTree());
     isGenerating = true;
     break;
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    if (env.options->combinatorySup()) {
-      res = new DemodulationSubtermIndexImpl<true>(new TermSubstitutionTree(),_alg->getOptions());
-    } else {
-      res = new DemodulationSubtermIndexImpl<false>(new TermSubstitutionTree(),_alg->getOptions());
-    }
+    res = new DemodulationSubtermIndexImpl(new TermSubstitutionTree(),_alg->getOptions());
     isGenerating = false;
     break;
   case DEMODULATION_LHS_CODE_TREE:
