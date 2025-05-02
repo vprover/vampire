@@ -44,8 +44,8 @@
 
 #include "Kernel/Ordering.hpp"
 
-#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Saturation/Splitter.hpp"
 
@@ -56,13 +56,13 @@ namespace Shell {
 using namespace Lib;
 using namespace Indexing;
 
-using LiteralSet = SharedSet<Literal*>;
+using LiteralSet = Set<Literal*,SharedTermHash>;
 
 using OrderingConstraints = Stack<TermOrderingConstraint>;
 
 struct PartialRedundancyEntry {
   OrderingConstraints ordCons;
-  const LiteralSet* lits;
+  LiteralSet lits;
   SplitSet* splits;
   bool active = true;
   unsigned refcnt = 1;
@@ -148,11 +148,11 @@ private:
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
     const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
 
-  const LiteralSet* getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
+  LiteralSet getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
 
   const SplitSet* getRemainingSplits(Clause* cl, Clause* other) const;
   void tryInsert(Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons,
-    const LiteralSet* lits, SplitSet* splits) const;
+    LiteralSet&& lits, SplitSet* splits) const;
 
   bool _redundancyCheck;
   bool _encompassing;
