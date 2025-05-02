@@ -45,6 +45,7 @@
 #include "Kernel/Ordering.hpp"
 
 #include "Lib/Stack.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Saturation/Splitter.hpp"
 
