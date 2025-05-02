@@ -44,7 +44,6 @@
 
 #include "Kernel/Ordering.hpp"
 
-#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Saturation/Splitter.hpp"
@@ -148,7 +147,7 @@ private:
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
     const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
 
-  void getRemainingLiterals(LiteralSet& res, Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
+  LiteralSet getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
 
   const SplitSet* getRemainingSplits(Clause* cl, Clause* other) const;
   void tryInsert(Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons,
