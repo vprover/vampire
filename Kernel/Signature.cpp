@@ -51,6 +51,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _answerPredicate(0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),
+    _termAlgebraDiscriminator(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
