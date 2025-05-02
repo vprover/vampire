@@ -65,7 +65,7 @@ public:
     }
   }
 
-  bool check(const Ordering* ord, ResultSubstitution* subst, bool result, const LiteralSet* lits, const SplitSet* splits)
+  bool check(const Ordering* ord, ResultSubstitution* subst, bool result, LiteralSet& lits, const SplitSet* splits)
   {
     if (_varSorts.isEmpty()) {
       return true;
@@ -75,10 +75,10 @@ public:
   }
 
   void insert(const Ordering* ord, ResultSubstitution* subst, bool result, Splitter* splitter,
-    OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits)
+    OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
+    insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), std::move(lits), splits));
   }
 
 private:
@@ -128,7 +128,7 @@ private:
     incorporate(code);
   }
 
-  bool check(const TermStack& ts, const Ordering* ord, const LiteralSet* lits, const SplitSet* splits)
+  bool check(const TermStack& ts, const Ordering* ord, const LiteralSet& lits, const SplitSet* splits)
   {
     if (isEmpty()) {
       return false;
@@ -157,8 +157,8 @@ private:
         }
 
         // check literal conditions
-        auto subsetof = e->lits->iter().all([lits,&applicator](Literal* lit) {
-          return lits->member(SubstHelper::apply(lit,applicator));
+        auto subsetof = e->lits.iter().all([&lits,&applicator](Literal* lit) {
+          return lits.contains(SubstHelper::apply(lit,applicator));
         });
         if (!subsetof) {
           continue;
@@ -178,7 +178,7 @@ private:
         if (e->ordCons.isNonEmpty()) {
           env.statistics->skippedInferencesDueToOrderingConstraints++;
         }
-        if (!e->lits->isEmpty()) {
+        if (e->lits.size()>0) {
           env.statistics->skippedInferencesDueToLiteralConstraints++;
         }
         if (!e->splits->isEmpty()) {
@@ -206,11 +206,11 @@ private:
 
   DHMap<unsigned,TermList> _varSorts;
 
-  PartialRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
+  PartialRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits) const
   {
     auto e = new PartialRedundancyEntry();
     Renaming r;
-    if (ordCons.isNonEmpty() || !lits->isEmpty()) {
+    if (ordCons.isNonEmpty() || lits.size()>0) {
       // normalize constraints, the same way as
       // terms from ts are normalized upon insertion
       for (const auto t : ts) {
@@ -228,12 +228,12 @@ private:
     e->ordCons = std::move(ordCons);
 
 #if VDEBUG
-    lits->iter().forEach([&ts](Literal* lit) {
+    lits.iter().forEach([&ts](Literal* lit) {
       ASS(checkVars(ts,lit));
     });
 #endif
 
-    e->lits = LiteralSet::getFromIterator(lits->iter().map([&r](Literal* lit) {
+    e->lits.insertFromIterator(lits.iter().map([&r](Literal* lit) {
       return r.apply(lit);
     }));
 
@@ -374,7 +374,8 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
     return true;
   }
 
-  auto rwLits = getRemainingLiterals(rwClause, rwLit, subs, !eqIsResult);
+  LiteralSet rwLits;
+  getRemainingLiterals(rwLits, rwClause, rwLit, subs, !eqIsResult);
   auto rwSplits = getRemainingSplits(rwClause, eqClause);
 
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
@@ -383,7 +384,8 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
     return false;
   }
 
-  auto eqLits = getRemainingLiterals(eqClause, eqLit, subs, eqIsResult);
+  LiteralSet eqLits;
+  getRemainingLiterals(eqLits, eqClause, eqLit, subs, eqIsResult);
   auto eqSplits = getRemainingSplits(eqClause, rwClause);
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
@@ -441,10 +443,11 @@ void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposi
     }
   }
 
-  auto lits = getRemainingLiterals(eqClause, eqLit, subs, eqIsResult);
+  LiteralSet lits;
+  getRemainingLiterals(lits, eqClause, eqLit, subs, eqIsResult);
   auto splits = getRemainingSplits(eqClause, rwClause);
 
-  tryInsert(rwClause, subs, !eqIsResult, eqClause, std::move(ordCons), lits, splits);
+  tryInsert(rwClause, subs, !eqIsResult, eqClause, std::move(ordCons), std::move(lits), splits);
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
@@ -455,7 +458,8 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolutio
     return true;
   }
 
-  auto resultLits = getRemainingLiterals(resultCl, resultLit, subs, /*result*/true);
+  LiteralSet resultLits;
+  getRemainingLiterals(resultLits, resultCl, resultLit, subs, /*result*/true);
   auto resultSplits = getRemainingSplits(resultCl, queryCl);
   auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/false);
   if (dataPtr && !(*dataPtr)->check(_ord, subs, /*result*/false, resultLits, resultSplits)) {
@@ -463,7 +467,8 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolutio
     return false;
   }
 
-  auto queryLits = getRemainingLiterals(queryCl, queryLit, subs, /*result*/false);
+  LiteralSet queryLits;
+  getRemainingLiterals(queryLits, queryCl, queryLit, subs, /*result*/false);
   auto querySplits = getRemainingSplits(queryCl, resultCl);
   dataPtr = getDataPtr(resultCl, /*doAllocate=*/false);
   if (dataPtr && !(*dataPtr)->check(_ord, subs, /*result*/true, queryLits, querySplits)) {
@@ -474,10 +479,10 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolutio
   // Try insertion
   // Note that we're inserting into the data of one clause based on the *other* clause
   if (resultLit->isPositive()) {
-    tryInsert(queryCl, subs, /*result*/false, resultCl, OrderingConstraints(), resultLits, resultSplits);
+    tryInsert(queryCl, subs, /*result*/false, resultCl, OrderingConstraints(), std::move(resultLits), resultSplits);
   } else {
     ASS(queryLit->isPositive());
-    tryInsert(resultCl, subs, /*result*/true, queryCl, OrderingConstraints(), queryLits, querySplits);
+    tryInsert(resultCl, subs, /*result*/true, queryCl, OrderingConstraints(), std::move(queryLits), querySplits);
   }
   return true;
 }
@@ -522,13 +527,13 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperposition
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-const LiteralSet* PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingLiterals(
-  Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const
+void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingLiterals(
+  LiteralSet& res, Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const
 {
   if constexpr (!litC) {
-    return LiteralSet::getEmpty();
+    return;
   }
-  return LiteralSet::getFromIterator(cl->iterLits().filter([lit](Literal* other) {
+  res.insertFromIterator(cl->iterLits().filter([lit](Literal* other) {
     return other != lit && lit->containsAllVariablesOf(other);
   }).map([subs,result](Literal* other) {
     return subs->applyTo(other, result);
@@ -546,13 +551,13 @@ const SplitSet* PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getR
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::tryInsert(
-  Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
+  Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits) const
 {
   if constexpr (!enabled) {
     return;
   }
 
-  if (cl->numSelected()!=1 || cl->length()>lits->size()+1) {
+  if (cl->numSelected()!=1 || cl->length()>lits.size()+1) {
     return;
   }
   if constexpr (!avatarC) {
@@ -561,7 +566,7 @@ void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::tryInsert(
     }
   }
   auto dataPtr = getDataPtr(into, /*doAllocate=*/true);
-  (*dataPtr)->insert(_ord, subs, result, _splitter, std::move(ordCons), lits, splits);
+  (*dataPtr)->insert(_ord, subs, result, _splitter, std::move(ordCons), std::move(lits), splits);
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
@@ -584,7 +589,7 @@ void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(
     }
     auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
     auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet::getEmpty(), SplitSet::getEmpty());
+    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet(), SplitSet::getEmpty());
   });
 }
 
