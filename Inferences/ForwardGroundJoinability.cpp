@@ -58,7 +58,7 @@ struct Applicator : SubstApplicator {
 
 void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
 {
-  ForwardGroundSimplificationEngine::attach(salg);
+  ForwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 }
@@ -67,12 +67,12 @@ void ForwardGroundJoinability::detach()
 {
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
-  ForwardGroundSimplificationEngine::detach();
+  ForwardSimplificationEngine::detach();
 }
 
 #define ITERATION_LIMIT 500
 
-bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
+bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
 
@@ -92,6 +92,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, ClauseIterator& premises)
 
   if (EqHelper::isEqTautology(lit)) {
     premises = ClauseIterator::getEmpty();
+    replacement = nullptr;
     return true;
   }
 
@@ -192,6 +193,7 @@ LOOP_END:
     continue;
   }
   premises = pvi(getPersistentIterator(premiseSet.iterator()));
+  replacement = nullptr;
 
   // cout << "forward ground joinable " << *cl << endl;
 

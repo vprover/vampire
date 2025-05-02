@@ -28,12 +28,12 @@ using namespace Indexing;
 using namespace Saturation;
 
 class ForwardGroundJoinability
-: public ForwardGroundSimplificationEngine
+: public ForwardSimplificationEngine
 {
 public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
-  bool perform(Clause* cl, ClauseIterator& premises) override;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {

@@ -223,7 +223,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _fwGrndSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _partialRedundancyHandler(), _generatedClauseCount(0),
@@ -306,10 +306,10 @@ SaturationAlgorithm::~SaturationAlgorithm()
     fse->detach();
     delete fse;
   }
-  while (_fwGrndSimplifiers) {
-    ForwardGroundSimplificationEngine* fgse = FwGrndSimplList::pop(_fwGrndSimplifiers);
-    fgse->detach();
-    delete fgse;
+  while (_expensiveFwSimplifiers) {
+    ForwardSimplificationEngine* fse = FwSimplList::pop(_expensiveFwSimplifiers);
+    fse->detach();
+    delete fse;
   }
   while (_simplifiers) {
     SimplificationEngine* fse = SimplList::pop(_simplifiers);
@@ -1310,12 +1310,16 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
-  FwGrndSimplList::Iterator fsit(_fwGrndSimplifiers);
+  FwSimplList::Iterator fsit(_expensiveFwSimplifiers);
   while (fsit.hasNext()) {
-    ForwardGroundSimplificationEngine *fse = fsit.next();
+    ForwardSimplificationEngine *fse = fsit.next();
+    Clause *replacement = 0;
     auto premises = ClauseIterator::getEmpty();
 
-    if (fse->perform(cl, premises)) {
+    if (fse->perform(cl, replacement, premises)) {
+      if (replacement) {
+        addNewClause(replacement);
+      }
       onClauseReduction(cl, nullptr, 0, premises);
       removeSelected(cl);
       return;
@@ -1401,10 +1405,10 @@ void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngin
   fwSimplifier->attach(this);
 }
 
-void SaturationAlgorithm::addForwardGroundSimplifierToFront(ForwardGroundSimplificationEngine *fwGrndSimplifier)
+void SaturationAlgorithm::addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine *fwSimplifier)
 {
-  FwGrndSimplList::push(fwGrndSimplifier, _fwGrndSimplifiers);
-  fwGrndSimplifier->attach(this);
+  FwSimplList::push(fwSimplifier, _expensiveFwSimplifiers);
+  fwSimplifier->attach(this);
 }
 
 void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
@@ -1681,7 +1685,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (mayHaveEquality) {
     if (opt.forwardGroundJoinability()) {
-      res->addForwardGroundSimplifierToFront(new ForwardGroundJoinability());
+      res->addExpensiveForwardSimplifierToFront(new ForwardGroundJoinability());
     }
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
