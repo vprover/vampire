@@ -327,29 +327,32 @@ private:
   typedef std::pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<std::string,SortedTerm> TermLookup;
-  typedef Stack<TermLookup*> Scopes;
+  typedef Stack<TermLookup*> Lookups;
   /** Stack of parsing contexts:
    * for variables from quantifiers and
    * for symbols bound by let (which are variables from smtlib perspective,
    * but require a true function/predicate symbol by vampire )
    */
-  Scopes _scopes;
+  Lookups _lookups;
   /**
    * Permitted by SMTLIB 2.7, users can declare sort parameters ranging over
    * sort terms and use statements with prenex polymorphism, that is, these
    * global sort parameters can appear in (almost) any statement, implicitly
    * universally quantified. We collect them in this structure globally.
    */
-  TermLookup _globalSortParamScope;
+  TermLookup _globalSortParamLookup;
 
-  inline void pushScope() {
-    _scopes.push(new TermLookup());
+  /**
+   * Helper function maintaining lookups (see above).
+   */
+  inline void pushLookup() {
+    _lookups.push(new TermLookup());
   }
-  inline void popScope() {
-    delete _scopes.pop();
+  inline void popLookup() {
+    delete _lookups.pop();
   }
-  inline void tryInsertIntoCurrentScope(std::string name, TermList term, TermList sort) {
-    if (!_scopes.top()->insert(name, { term, sort })) {
+  inline void tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort) {
+    if (!_lookups.top()->insert(name, { term, sort })) {
       USER_ERROR_EXPR("Identifier '" + name + "' has already been defined in current scope");
     }
   }
