@@ -144,7 +144,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
     if (ibRdr.tryAcceptAtom("declare-sort-parameter")) {
 
       auto name = ibRdr.readAtom();
-      // TODO: should we allow shadowing?
+      // // We strictly disallow shadowing, as opposed to the standard
       if (isAlreadyKnownSymbol(name)) {
         USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort parameter: "+name);
       }
@@ -523,13 +523,9 @@ TermStack SMTLIB2::normalizeFunctionSorts(TermStack& argSorts, TermList& resSort
 {
   DHSet<TermList> varsSeen;
   for (auto sort : argSorts) {
-    iterTraits(VariableIterator(sort)).forEach([&](const auto& v){
-      varsSeen.insert(v);
-    });
+    varsSeen.loadFromIterator(VariableIterator(sort));
   }
-  iterTraits(VariableIterator(resSort)).forEach([&](const auto& v){
-    varsSeen.insert(v);
-  });
+  varsSeen.loadFromIterator(VariableIterator(resSort));
 
   TermStack vars;
   vars.loadFromIterator(varsSeen.iter());
@@ -626,10 +622,10 @@ bool SMTLIB2::isAlreadyKnownSymbol(const std::string& name)
     return true;
   }
 
-  // TODO: Should we disallow shadowing these variables?
-  // if (_globalSortParamLookup.find(name)) {
-  //   return true;
-  // }
+  // We strictly disallow shadowing, as opposed to the standard
+  if (_globalSortParamLookup.find(name)) {
+    return true;
+  }
 
   return false;
 }
@@ -1873,6 +1869,9 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
     termArgs.push(arg);
   }
 
+  // Try to handle 'as' expression, which is required
+  // to diambiguate the result sort, see below.
+  // TODO: try to remove this ugly hack.
   if (_todo.isNonEmpty()) {
     auto [op,exp] = _todo.top();
     if (op == PO_AS_END) {
@@ -1898,6 +1897,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
     // unambiguous sorts. If any variable remains free after this, it
     // means the result sort contains some free variable, and the user
     // must enclose it in an (as <term> <sort>) block.
+    // Note that the 'as' is handled just above.
     if (!subst._map.find(typeVar, typeVarS)) {
       USER_ERROR_EXPR("User defined term "+exp->toString()+" has ambiguous sort, use (as "+exp->toString()+" <sort>) block to disambiguate");
     }
