@@ -351,11 +351,7 @@ private:
   inline void popLookup() {
     delete _lookups.pop();
   }
-  inline void tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort) {
-    if (!_lookups.top()->insert(name, { term, sort })) {
-      USER_ERROR_EXPR("Identifier '" + name + "' has already been defined in current scope");
-    }
-  }
+  void tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort);
 
   /**
    * Stack of partial results used by parseTermOrFormula below.

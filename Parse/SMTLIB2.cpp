@@ -1285,6 +1285,21 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
     USER_ERROR_EXPR("invalid sort "+firstArgSort.toString()+" for interpretation "+std::string(s_termSymbolNameStrings[ts]));
 }
 
+void SMTLIB2::tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort)
+{
+  if (isAlreadyKnownSymbol(name) ||
+    iterTraits(Lookups::ConstRefIterator(_lookups)).any([&](const auto& lookup) {
+      return lookup->findPtr(name)!=nullptr;
+    }))
+  {
+    std::cout << "% WARNING: shadowing variable " << name << " in " << _topLevelExpr->getPosition() << std::endl;
+  }
+
+  if (!_lookups.top()->insert(name, { term, sort })) {
+    USER_ERROR_EXPR("Identifier '" + name + "' has already been defined in current lookup");
+  }
+}
+
 void SMTLIB2::complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp)
 {
   USER_ERROR("Not enough arguments or wrong sorts at " + exp->getPosition() + "\n" + _topLevelExpr->highlightSubexpression(exp));
