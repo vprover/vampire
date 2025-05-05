@@ -114,10 +114,15 @@ enum class TermKind : unsigned {
 struct SymbolId {
   unsigned functor;
   TermKind kind;
-  friend bool operator==(SymbolId const& l, SymbolId const& r) 
-  { return std::tie(l.functor, l.kind) == std::tie(r.functor, r.kind); }
-  friend bool operator<(SymbolId const& l, SymbolId const& r) 
-  { return std::tie(l.functor, l.kind) < std::tie(r.functor, r.kind); }
+  auto asTuple() const { return std::tie(functor, kind); }
+  IMPL_COMPARISONS_FROM_TUPLE(SymbolId);
+};
+
+struct VarNumber {
+  unsigned number;
+  bool special;
+  auto asTuple() const { return std::tie(number, special); }
+  IMPL_COMPARISONS_FROM_TUPLE(VarNumber);
 };
 
 /**
@@ -210,19 +215,17 @@ public:
 
   /** the top of a term is either a function symbol or a variable id. this class is model this */
   class Top {
-    using Inner = Coproduct<unsigned, SymbolId>;
-    static constexpr unsigned VAR = 0;
-    static constexpr unsigned FUN = 1;
+    using Inner = Coproduct<VarNumber, SymbolId>;
     Inner _inner;
 
     Top(Inner self) : _inner(self) {}
   public:
-    static Top var    (unsigned v) { return Top(Inner::variant<VAR>(v)); }
+    static Top var    (unsigned v, bool special) { return Top(Inner(VarNumber {v, special})); }
     // static Top functor(unsigned f) { return Top(Inner::variant<FUN>(f)); }
     template<class T>
-    static Top functor(T const* t) { return Top(Inner::variant<FUN>({ t->functor(), t->kind(), })); }
-    Option<unsigned> var()     const { return _inner.as<VAR>().toOwned(); }
-    Option<SymbolId> functor() const { return _inner.as<FUN>().toOwned(); }
+    static Top functor(T const* t) { return Top(Inner(SymbolId{ t->functor(), t->kind(), })); }
+    Option<VarNumber> var()     const { return _inner.as<VarNumber>().toOwned(); }
+    Option<SymbolId> functor() const { return _inner.as<SymbolId>().toOwned(); }
     Lib::Comparison compare(Top const& other) const 
     { return _inner.compare(other._inner); }
     IMPL_COMPARISONS_FROM_COMPARE(Top);
@@ -237,7 +240,7 @@ public:
   /* returns the Top of a function (a variable id, or a function symbol depending on whether the term is a variable or a complex term) */
   Top top() const
   { return isTerm() ? TermList::Top::functor(term())
-                    : TermList::Top::var(var());            }
+                    : TermList::Top::var(var(), isSpecialVar());            }
 
   /** make the term into a reference */
   inline void setTerm(Term* t) {
@@ -534,11 +537,11 @@ public:
   static std::string variableToString(unsigned var);
   static std::string variableToString(TermList var);
 
-  /** return the arguments 
+  /** return the arguments
    *
    *  WARNING: this function returns a pointer to the first argument
    *  which could be a sort when dealing with a polymorphic problem!
-   * 
+   *
    *  Use with care! Consider whether the termArgs() function may be more
    *  suited to your needs before using this.
    */
@@ -1259,6 +1262,14 @@ private:
 //      find a better place for this?
 bool positionIn(TermList& subterm,TermList* term, std::string& position);
 bool positionIn(TermList& subterm,Term* term, std::string& position);
+
+/**
+ * Hash used to make hashing over shared terms deterministic.
+ */
+struct SharedTermHash {
+  static bool equals(Term* t1, Term* t2) { return t1==t2; }
+  static unsigned hash(Term* t) { return t->getId(); }
+};
 
 } // namespace Kernel
 

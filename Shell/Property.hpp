@@ -249,8 +249,6 @@ public:
     return _smtlibLogic;
   }
 
-  bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
-
   class FeatureIterator {
     Property* _prop;
     unsigned _featureId;
@@ -303,8 +301,14 @@ public:
     }
   };
 
-
+  bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
+  template<class Numeral>
+  bool isNonLinear() const { return isNonLinear((Numeral*)nullptr); }
  private:
+  bool isNonLinear(IntegerConstantType*) const { return _nonLinearInt; }
+  bool isNonLinear(RationalConstantType*) const { return _nonLinearRat; }
+  bool isNonLinear(RealConstantType*) const { return _nonLinearReal; }
+
   static bool hasXEqualsY(const Clause* c);
   static bool hasXEqualsY(const Formula*);
 
@@ -371,11 +375,17 @@ public:
   unsigned _sortsUsed;
   Array<bool> _usesSort;
 
+
+  friend struct Setter;
+
   /** Makes sense for all interpretations, but for polymorphic ones we also keep
    *  the more precise information about which monomorphisations are present (see below).
    */
   DArray<bool> _interpretationPresence;
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
+
+
+
 
   bool _hasFOOL;
   bool _hasCombs;
@@ -395,6 +405,12 @@ public:
   bool _allClausesGround;
   bool _allNonTheoryClausesGround;
   bool _allQuantifiersEssentiallyExistential;
+  bool _hasNumeralsInt;
+  bool _hasNumeralsRat;
+  bool _hasNumeralsReal;
+  bool _nonLinearInt;
+  bool _nonLinearRat;
+  bool _nonLinearReal;
   SMTLIBLogic _smtlibLogic;
 }; // class Property
 

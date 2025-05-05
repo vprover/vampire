@@ -243,7 +243,7 @@ void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyn
   newPiece._id = lineToParse;
   _loadedPieces.push(std::move(newPiece));
 
-  ScopedLet<Statistics::ExecutionPhase> localAssing(env.statistics->phase,Statistics::PARSING);
+  ScopedLet<ExecutionPhase> localAssing(env.statistics->phase,ExecutionPhase::PARSING);
 
   std::istringstream stream(lineToParse);
   try {
@@ -344,7 +344,7 @@ void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inpu
   _loadedPieces.push(std::move(newPiece));
 
   TIME_TRACE(TimeTrace::PARSING);
-  ScopedLet<Statistics::ExecutionPhase> localAssing(env.statistics->phase,Statistics::PARSING);
+  ScopedLet<ExecutionPhase> localAssing(env.statistics->phase,ExecutionPhase::PARSING);
 
   ifstream input(inputFile.c_str());
   if (input.fail()) {
@@ -419,7 +419,7 @@ void UIHelper::popLoadedPiece(int numPops)
 void UIHelper::outputResult(std::ostream& out)
 {
   switch (env.statistics->terminationReason) {
-  case Statistics::REFUTATION: {
+  case TerminationReason::REFUTATION: {
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unsat" << endl;
       return;
@@ -455,10 +455,6 @@ void UIHelper::outputResult(std::ostream& out)
         (UIHelper::haveConjecture() ? ( refutation->derivedFromGoal() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
 	      << " for " << env.options->problemName() << endl;
     }
-    if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
-      ASS(refutation->isClause());
-      AnswerLiteralManager::getInstance()->tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation),std::cout);
-    }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
         out << "% SZS output start Proof for " << env.options->problemName() << endl;
@@ -467,7 +463,10 @@ void UIHelper::outputResult(std::ostream& out)
       if (szsOutputMode()) {
         out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
-
+    }
+    if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+      ASS(refutation->isClause());
+      AnswerLiteralManager::getInstance()->tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation),std::cout);
     }
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(refutation->isClause());
@@ -521,7 +520,7 @@ void UIHelper::outputResult(std::ostream& out)
     ASS(!s_expecting_sat);
     break;
   }
-  case Statistics::TIME_LIMIT:
+  case TerminationReason::TIME_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -529,7 +528,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Time limit reached!\n";
     break;
-  case Statistics::INSTRUCTION_LIMIT:
+  case TerminationReason::INSTRUCTION_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -537,7 +536,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Instruction limit reached!\n";
     break;
-  case Statistics::MEMORY_LIMIT:
+  case TerminationReason::MEMORY_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -545,7 +544,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Memory limit exceeded!\n";
     break;
-  case Statistics::ACTIVATION_LIMIT: {
+  case TerminationReason::ACTIVATION_LIMIT: {
     addCommentSignForSZS(out);
     out << "Activation limit reached!\n";
 
@@ -553,7 +552,7 @@ void UIHelper::outputResult(std::ostream& out)
 
     break;
   }
-  case Statistics::REFUTATION_NOT_FOUND:
+  case TerminationReason::REFUTATION_NOT_FOUND:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -561,7 +560,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
     break;
-  case Statistics::SATISFIABLE:
+  case TerminationReason::SATISFIABLE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "sat" << endl;
       return;
@@ -571,7 +570,7 @@ void UIHelper::outputResult(std::ostream& out)
     ASS(!s_expecting_unsat);
 
     break;
-  case Statistics::INAPPROPRIATE:
+  case TerminationReason::INAPPROPRIATE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -579,7 +578,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Terminated due to inappropriate strategy.\n";
     break;
-  case Statistics::UNKNOWN:
+  case TerminationReason::UNKNOWN:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;

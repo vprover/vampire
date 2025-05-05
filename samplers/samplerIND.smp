@@ -1,0 +1,567 @@
+# PREPROCESSING
+
+# blocked_clause_elimination
+> bce ~cat off:5,on:1
+
+# equality_proxy
+> ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
+# mono_ep
+ep!=off > mep ~cat on:10,off:1
+
+# equality_resolution_with_deletion
+> erd ~cat on:10,off:1
+
+# function_definition_elimination
+> fde ~cat all:5,none:1,unused:1
+
+# general_splitting
+> gsp ~cat off:8,on:1
+
+# newcnf
+> newcnf ~cat on:9,off:25
+
+# inline_let -- this is probably irrelevant on TPTP anyway
+newcnf=on > ile ~cat off:10,on:1
+
+# naming
+> $nm ~cat Z:1,NZ:5
+$nm=Z > nm ~cat 0:1
+$nm=NZ > nm ~sgd 0.07,2
+
+# inequality_splitting
+> $ins ~cat Z:2,NZ:1
+$ins=Z > ins ~cat 0:1
+$ins=NZ > ins ~sgd 0.4,1
+
+# random_polarities
+> rp ~cat off:3,on:1
+
+# twee_goal_transformation
+> tgt ~cat off:10,ground:6,full:5
+
+# set_of_support
+> sos ~cat off:80,on:17,all:10,theory:10
+
+# sos_theory_limit
+sos=theory > sstl ~cat 0:10,1:1,2:1,3:1
+
+# theory_axioms
+> tha ~cat on:10,off:1,some:3
+
+# theory_flattening
+> thf ~cat on:1,off:10
+
+# sine_selection
+> ss ~cat off:1182,included:135,axioms:392
+
+# sine_depth
+ss!=off > sd ~cat 0:45,1:13,2:12,3:5,4:4,5:4,7:3,10:2,12:1,15:1
+
+# sine_generality_threshold
+ss!=off > sgt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
+
+# sine_tolerance
+ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
+
+# unused_predicate_definition_removal
+> updr ~cat on:16,off:1
+
+# SATURATION
+
+# saturation_algorithms
+> sa ~cat lrs:600,discount:572,otter:236
+
+# lrs_first_time_check
+> $lftc ~cat N:5,Y:1
+sa=lrs $lftc=Y > lftc ~ui 5,95
+
+# literal selection
+> $s_pos ~cat Y:4,N:1
+$s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
+$s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
+
+# lookahaed_delay
+> $ls ~cat off:1
+s=11 > $ls ~cat on:1
+s=-11 > $ls ~cat on:1
+s=1011 > $ls ~cat on:1
+s=-1011 > $ls ~cat on:1
+
+$ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
+
+# age_weight_ratio
+> $awr ~cat A:1,W:1,AW:98
+$awr=A > awr ~set 1:0
+$awr=W > awr ~set 0:1
+$awr=AW > awr ~u2r -10;4;:
+
+# random_awr
+> rawr ~cat on:4,off:1
+
+# lrs_weight_limit_only
+sa=lrs > lwlo ~cat off:5,on:1
+
+# lrs_retroactive_deletes
+sa=lrs > lrd ~cat off:1,on:1
+
+# lrs_estimate_correction_coef
+# > $lecc ~cat 1:1
+# sa=lrs > $lecc ~cat 1:10,666:1
+# sa=lrs $lecc=1 > lecc ~cat 1.0:1
+# sa=lrs $lecc!=1 > lecc ~uf 0.5,2.0
+# TODO: leaving out weird timing dependent options
+
+# nongoal_weight_coefficient
+> $nwc ~cat 1:2,666:1
+$nwc=1 > nwc ~cat 1:1
+$nwc!=1 > nwc ~uf 0.5,15.0
+# TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
+
+# increased_numeral_weight
+> inw ~cat off:5,on:1
+
+# introduced_symbol_precedence
+> isp ~cat top:10,bottom:1
+
+# restrict_nwc_to_goal_constants
+nwc!=1 > rnwc ~cat off:5,on:1
+
+# literal_maximality_aftercheck
+> lma ~cat off:500,on:83
+
+# POSITIVE LITERAL SPLIT QUEUE
+> plsq ~cat off:4,on:1
+
+# positive_literal_split_queue_layered_arrangement
+plsq=on > plsql ~cat on:66,off:162
+
+# positive_literal_split_queue_cutoffs
+plsq=on > plsqc ~cat 0:117,1:92,2:19,3:5,4:1
+
+# positive_literal_split_queue_ratios
+plsq=on > plsqr ~u2r -5;7;,
+
+# INFERENCES
+
+# superposition (don't turn this off at home!)
+> sup ~cat on:100,off:1
+
+# simultaneous_superposition
+sup=on > sims ~cat on:50,off:1
+
+# superposition_from_variables
+sup=on > sfv ~cat on:38,off:1
+
+# code_tree_subsumption
+> cts ~cat on:3,off:1
+
+# forward_subsumption
+> fs ~cat on:500,off:31
+
+# forward_subsumption_resolution
+fs=off > fsr ~cat off:1
+fs=on  > fsr ~cat on:500,off:193
+
+# forward_subsumption_demodulation
+> fsd ~cat off:500,on:90
+
+# forward_subsumption_demodulation_max_matches
+fsd=on > fsdmm ~cat 0:10,1:3,2:2,3:1
+
+# backward_demodulation
+> bd ~cat all:500,off:245,preordered:91
+
+# backward_subsumption
+fs!=off > bs ~cat off:500,unit_only:74,on:64
+
+# backward_subsumption_resolution
+> bsr ~cat off:500,unit_only:118,on:75
+
+# backward_subsumption_demodulation
+> bsd ~cat off:500,on:74
+
+# backward_subsumption_demodulation_max_matches
+bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
+
+# condensation
+> cond ~cat off:500,on:89,fast:61
+
+# equational_tautology_removal
+> etr ~cat off:500,on:30
+
+# extensionality_resolution
+ins=0 > er ~cat off:500,known:25,filter:26
+
+# extensionality_allow_pos_eq
+er=filter > erape ~cat off:3,on:1
+
+# extensionality_max_length
+er!=off > erml ~cat 0:3,2:1,3:1
+
+# fool_paramodulation
+> foolp ~cat off:10,on:1
+
+# forward_demodulation
+> fd ~cat all:500,off:41,preordered:168
+
+# demodulation_redundancy_check
+> $drc ~cat 0:1
+fd!=off > $drc ~cat 1:1
+bd!=off > $drc ~cat 1:1
+$drc=1 > drc ~cat encompass:500,ordering:500,off:354
+
+# forward_demodulation_term_ordering_diagrams
+fd!=off > fdtod ~cat on:1,off:1
+
+# demodulation_only_equational
+$drc=1 > doe ~cat on:1,off:1
+
+# forward_literal_rewriting
+> flr ~cat off:8,on:1
+
+# function_definition_introduction
+> fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
+
+# inner_rewriting
+> irw ~cat off:165,on:6
+
+# SINE LEVELS and shit
+
+# sine_to_age
+> s2a ~cat off:2,on:1
+
+# sine_level_split_queue
+> slsq ~cat off:5,on:1
+
+# sine_level_split_queue_layered_arrangement
+slsq=on > slsql ~cat on:1,off:1
+
+# sine_level_split_queue_cutoffs
+slsq=on > slsqc ~cat 0:10,1:10,2:6,3:3,4:1
+
+# sine_level_split_queue_ratios
+slsq=on > slsqr ~u2r -5;2;,
+
+# Decide on ALASCA (and related options) early
+> alasca ~cat on:1,off:1
+
+# alasca_integer_conversion
+alasca=on > alascai ~cat on:1,off:1
+
+# alasca_abstraction
+alasca=on > alascaa ~cat on:1,off:1
+
+# virtual_integer_real_arithmetic_substitution
+alasca=on > viras ~cat on:1,off:1
+
+# alasca_demodulation
+# alasca=on > alasca_demod ~cat on:1,off:1
+# Joe: no --alasca_demodulation is not in a usable state I think. I think it's better not to use that for now :)
+
+# alasca_strong_normalziation
+alasca=on > alasca_sn ~cat on:1,off:1
+
+# ORDERING
+
+# term_ordering
+alasca=off > to ~cat kbo:130,lpo:40,incomp:1
+alasca=on > to ~cat kbo:10,qkbo:20,lakbo:40,lpo:10,incomp:1
+
+# symbol_precedence
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
+# symbol_precedence_boost
+> spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
+
+# kbo_max_zero
+to=kbo > kmz ~cat off:200,on:1
+# kbo_weight_scheme
+to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv_arity:5,inv_frequency:8,frequency:2
+
+# literal_comparison_mode
+> lcm ~cat standard:500,reverse:66,predicate:51
+
+# sine_to_pred_levels
+lcm=standard > s2pl ~cat off:50,on:2,no:3
+
+# SINE LEVELS - configure (must come after sine_to_age & slsq & s2pl)
+
+# set $s2a as the disjunction: s2a=on | slsq=on | s2pl!=off
+> $s2a ~cat off:1
+s2a=on    > $s2a ~cat on:1
+slsq=on   > $s2a ~cat on:1
+s2pl!=off > $s2a ~cat on:1
+
+# now configure (stealing the values from sine proper, which is not ideal, but should do)
+
+# sine_to_age_generality_threshold
+$s2a=on > s2agt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
+
+# sine_to_age_tolerance
+$s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
+
+# AVATAR - main
+> av ~cat on:15,off:4
+
+# partial_redundancy_check
+> prc ~cat on:3,off:5
+
+# partial_redundancy_ordering_constraints
+prc=on > proc ~cat on:1,off:1
+
+# partial_redundancy_avatar_constraints
+av=on prc=on > prac ~cat on:1,off:1
+
+# partial_redundancy_literal_constraints
+prc=on > prlc ~cat on:1,off:1
+
+# SAT SOLVER
+
+# sat_solver
+av=on > sas ~cat minisat:1,cadical:1,z3:1
+
+# sat_fallback_for_smt
+av=on sas=z3 > sffsmt ~cat off:5,on:1
+
+# AVATAR - rest
+
+# avatar_add_complementary
+av=on > aac ~cat none:147,ground:600
+
+# avatar_buffered_solver
+av=on > abs ~cat on:63,off:300
+
+# avatar_congruence_closure
+av=on sas!=z3 to=incomp > acc ~cat off:600,on:58
+av=on sas!=z3 to!=incomp > acc ~cat off:600,model:24,on:58
+
+# cc_unsat_cores
+acc!=off > ccuc ~cat first:1,small_ones:1,all:3
+
+# avatar_minimize_model
+av=on  acc=model > amm ~cat all:600,off:69
+av=on acc!=model > amm ~cat all:600,sco:32,off:69
+
+# avatar_eager_removal
+av=on amm=all > aer ~cat on:300,off:1
+
+# avatar_delete_deactivated
+av=on > add ~cat on:300,large:55,off:8
+
+# avatar_fast_restart
+av=on > afr ~cat off:10,on:1
+
+# avatar_literal_polarity_advice
+av=on > alpa ~cat none:300,false:13,true:6,random:4
+
+# avatar_nonsplittable_components
+av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
+
+# avatar_turn_off_time_frac
+# av=on > $atotf ~cat 1:10,666:1
+# av=on $atotf=1 > atotf ~cat 1:1
+# av=on $atotf!=1 > atotf ~uf 0.0,0.7
+# TODO: leaving out weird timing dependent options
+
+# avatar_flush_period
+av=on > $afp ~cat 0:15,666:1
+av=on $afp=0 > afp ~cat 0:1
+av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
+
+# avatar_flush_quotient
+afp!=0 > afq ~uf 1.0,3.0
+
+# nonliterals_in_clause_weight
+av=on > nicw ~cat off:600,on:76
+
+# split_at_activation
+av=on > sac ~cat off:3,on:1
+
+# BACK TO INFERENCES
+
+# unit_resulting_resolution
+sa!=fmb av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
+sa!=fmb av=off > urr ~cat off:1200,ec_only:162,on:340
+
+# binary_resolution
+intent=unsat > br ~cat on:8,off:1
+intent=sat sa!=fmb urr=on > br ~cat on:10,off:1
+
+# AVATAR SPLIT QUEUE
+
+# avatar_split_queue
+av=on > avsq ~cat off:5,on:1
+
+# avatar_split_queue_layered_arrangement
+avsq=on > avsql ~cat off:4,on:1
+
+# avatar_split_queue_cutoffs
+avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+
+# avatar_split_queue_ratios
+avsq=on > avsqr ~u2r -5;3;,
+
+# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+# global_subsumption
+> gs ~cat off:5,on:1
+
+# global_subsumption_explicit_minim
+gs=on > gsem ~cat randomized:50,on:5,off:17
+
+# global_subsumption_sat_solver_power
+gs=on > gsssp ~cat propagation_only:20,full:1
+
+# global_subsumption_avatar_assumptions
+gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
+
+# MISC
+
+> uhcvi ~cat off:1,on:1
+
+# GOAL GUESSING - useful for induction on SMTLIB problems (without assert-not)
+
+# guess_the_goal
+> gtg ~cat off:10,all:1,exists_top:1,exists_all:1,exists_sym:1,position:1
+
+# guess_the_goal_limit
+gtg!=off > gtgl ~ui 1,5
+
+# THEORY SPLIT QUEUE
+
+# theory_split_queue
+> thsq ~cat off:10,on:1
+
+# theory_split_queue_layered_arrangement
+thsq=on > thsql ~cat on:11,off:3
+
+# theory_split_queue_cutoffs
+thsq=on > thsqc ~cat 0:1,8:1,16:2,32:5,64:5,128:2
+
+# theory_split_queue_ratios
+thsq=on > thsqr ~u2r -3;3;,
+
+# theory_split_queue_expected_ratio_denom
+thsq=on > thsqd ~cat 2:1,4:1,8:7,32:5,64:2,128:1
+
+# INDUCTION (focusing on structural)
+
+# induction
+> ind ~cat none:5,struct:10,int:1,both:1
+
+# induction_choice
+ind!=none > indc ~cat all:3,goal:1,goal_plus:1
+
+# induction_gen
+# Marton: toggles generalizing over occurrences, when on it inducts separately on all non-empty subsets of each induction term (very explosive)
+ind!=none > indgen ~cat off:5,on:1
+
+# max_induction_gen_subset_size
+indgen=on > indgenss ~cat 0:5,1:5,2:5,3:20,4:3,5:2,6:1,7:1,8:1,9:1
+
+# induction_max_depth
+# Marton: maximum depth of inductions, this could be useful when you want to restrict the search space, but hard to set to a reasonably low yet effective value in my experience.
+ind!=none > indmd ~sgd 0.3,0
+
+# induction_neg_only
+ind!=none > indn ~cat on:5,off:1
+
+# induction_on_complex_terms
+ind!=none > indoct ~cat off:5,on:1
+
+# induction_strengthen_hypothesis
+# Marton: this strengthens the inductions by replacing any Skolem constant not inducted upon with variables, so the hypotheses might be easier to apply. But since the inductions are changed, some proofs may be lost when enabling this. This is mostly useful when the problem involves function definitions that recurse on multiple arguments, so at some point I wanted to add logic to enable it automatically when the conjecture has such function definitions.. I can still do it if needed.
+ind!=none > indstrhyp ~cat off:5,on:1
+
+# induction_unit_only
+ind!=none > indu ~cat on:5,off:1
+
+# non_unit_induction
+ind!=none > nui ~cat off:5,on:1
+
+# function_definition_rewriting
+newcnf=on erd=on > fnrw ~cat off:3,on:1
+
+# induction_on_active_occurrences
+ind!=none > indao ~cat off:3,on:1
+
+# structural_induction_kind
+> $recursionOK ~cat 0:1
+newcnf=on erd=on > $recursionOK ~cat 1:1
+ind!=none ind!=int $recursionOK=0 > sik ~cat one:5,two:1,three:1
+ind!=none ind!=int $recursionOK=1 > sik ~cat one:5,two:1,three:1,recursion:2,all:1
+
+# induction_ground_only
+ind!=none ind!=int > indgo ~cat on:3,off:1
+
+# below integer induction only
+
+# int_induction_kind
+ind!=none ind!=struct > iik ~cat one:5,two:1,all:1
+
+# int_induction_default_bound
+ind!=none ind!=struct > intinddb ~cat off:5,on:1
+
+# int_induction_interval
+ind!=none ind!=struct > intindint ~cat both:3,infinite:1,finite:1
+
+# int_induction_strictness_comp
+ind!=none ind!=struct > intindstcomp ~cat toplevel_not_in_other:10,none:1,only_one_occurrence:1,not_in_both:1,always:1
+
+# int_induction_strictness_eq
+ind!=none ind!=struct > intindsteq ~cat none:10,toplevel_not_in_other:1,only_one_occurrence:1,not_in_both:1,always:1
+
+# int_induction_strictness_term
+ind!=none ind!=struct > intindstterm ~cat interpreted_constant:3,none:1,no_skolems:1
+
+# TERM ALGEBRA REASONINING
+
+# term_algebra_exhaustiveness_axiom
+> taea ~cat off:1,on:1
+
+# term_algebra_acyclicity
+> tac ~cat off:3,axiom:1,rule:1,light:1
+
+# term_algebra_rules
+> tar ~cat off:1,on:1
+
+# ARITHMETIC THEORIES (assume z3 will be present):
+
+# arithmetic_subterm_generalizations
+> asg ~cat force:1,cautious:1,off:3
+
+# cancellation
+> canc ~cat force:1,off:3
+to!=qkbo to!=lakbo > canc ~cat force:1,cautious:1,off:3
+
+# evaluation
+> ev ~cat off:1,simple:3,force:1,cautious:1
+
+# use_ac_eval
+alasca=off > uace ~cat off:1,on:1
+
+# gaussian_variable_elimination
+> gve ~cat force:1,cautious:1,off:3
+
+# instantiation
+> inst ~cat off:20,on:1
+
+# normalize_inequalities
+> norm_ineq ~cat off:1,on:1
+
+# push_unary_minus
+> pum ~cat off:1,on:1
+
+# theory_instantiation
+> thi ~cat off:1,all:1,strong:1,neg_eq:1,overlap:1
+
+# theory_instantiation_generalisation
+thi!=off > thigen ~cat off:1,on:1
+
+# theory_instantiation_tautology_deletion
+thi!=off > thitd ~cat off:1,on:1
+
+# unification_with_abstraction
+prc=off alasca=off > uwa ~cat off:5,interpreted_only:1,one_side_interpreted:1,one_side_constant:1,all:1,ground:1,func_ext:1
+prc=off alasca=on > uwa ~cat off:1,alasca_one_interp:1,alasca_can_abstract:1,alasca_main:1,alasca_main_floor:1
+
+# unification_with_abstraction_fixed_point_iteration
+> uwa_fpi ~cat off:5,on:1

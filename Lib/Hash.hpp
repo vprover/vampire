@@ -18,6 +18,7 @@
 #include <utility>
 #include <functional>
 #include <type_traits>
+#include <cstdint>
 
 #include "Forwards.hpp"
 #include "Kernel/Unit.hpp"
@@ -39,6 +40,10 @@ struct HashUtils
    * http://www.boost.org/doc/libs/1_35_0/doc/html/boost/hash_combine_id241013.html
    */
   static unsigned combine(unsigned h1, unsigned h2) { return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); }
+
+  /** auxilary functions to be able to use combine with arbitrary arity */
+  static unsigned combine(unsigned h1) { return h1; }
+  static unsigned combine() { return combine(0, 1); }
 
   /** 
    * Combine n hashes for n > 2.

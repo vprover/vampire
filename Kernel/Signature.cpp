@@ -15,6 +15,7 @@
 #include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Shell/Options.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -39,6 +40,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _usageCount(0),
     _unitUsageCount(0),
     _interpreted(interpreted ? 1 : 0),
+    _linMul(0),
     _introduced(0),
     _protected(0),
     _skip(0),
@@ -85,6 +87,16 @@ void Signature::Symbol::destroyFnSymbol()
   }
   else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
+  }
+  else if (linMul()) {
+    forAnyNumTraits([&](auto n) {
+        if (auto s = Signature::tryLinMulSym<typename decltype(n)::ConstantType>(this)) {
+          delete &*s;
+          return true;
+        } else {
+          return false;
+        }
+    });
   }
   else {
     delete this;

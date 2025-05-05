@@ -80,12 +80,11 @@ public:
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
   void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition);
- 
+
   DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
   DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
   DHMap<unsigned,Unit*> getPartiallyEliminatedPredicates(){ return _partiallyDeletedPredicates;}
   FunctionDefinitionHandler& getFunctionDefinitionHandler(){ return *_fnDefHandler; }
-  
 
   bool isPropertyUpToDate() const { return _propertyValid; }
   Property* getProperty() const;
@@ -96,6 +95,8 @@ public:
 
   bool hasFormulas() const;
   bool hasEquality() const;
+  bool hasAlascaArithmetic() const;
+  bool hasAlascaMixedArithmetic() const;
   /** Problem contains an interpreted symbol including equality */
   bool hasInterpretedOperations() const;
   bool hasNumerals() const; // meaning the interpreted constants of arithmetic theories, e.g. 1,2, 3.1415,...
@@ -208,6 +209,7 @@ private:
   mutable MaybeBool _hasEquality;
   mutable MaybeBool _hasInterpretedOperations;
   mutable MaybeBool _hasNumerals;
+  mutable MaybeBool _hasAlascaArithmetic;
   mutable MaybeBool _hasFOOL;
   mutable MaybeBool _hasCombs;
   mutable MaybeBool _hasApp;

@@ -89,7 +89,7 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I. -I/opt/local/include
+INCLUDES= -I. -I/opt/local/include -Icadical/src -Imini-gmp-6.3.0 -Iviras/src
 
 OS = $(shell uname)
 ifeq ($(OS),Darwin)
@@ -197,12 +197,14 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
-        Kernel/KBOComparator.o\
+        Kernel/QKbo.o\
         Kernel/SKIKBO.o\
+        Kernel/ALASCA/Signature.o\
+        Kernel/ALASCA/SelectionPrimitves.o\
+        Kernel/ALASCA/State.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
         Kernel/LPO.o\
-        Kernel/LPOComparator.o\
         Kernel/MainLoop.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
@@ -213,7 +215,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
-        Kernel/OrderingComparator.o\
         Kernel/Ordering_Equality.o\
         Kernel/PartialOrdering.o\
         Kernel/Problem.o\
@@ -230,6 +231,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/PolynomialNormalizer.o\
         Kernel/Polynomial.o\
         Kernel/TermIterators.o\
+        Kernel/TermOrderingDiagram.o\
+        Kernel/TermOrderingDiagramKBO.o\
+        Kernel/TermOrderingDiagramLPO.o\
         Kernel/TermPartialOrdering.o\
         Kernel/TermTransformer.o\
         Kernel/Theory.o\
@@ -245,7 +249,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
-         Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
          Indexing/InductionFormulaIndex.o\
@@ -295,6 +298,17 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/PolynomialEvaluation.o\
          Inferences/ArithmeticSubtermGeneralization.o\
          Inferences/Superposition.o\
+         Inferences/ALASCA/Normalization.o\
+         Inferences/ALASCA/InequalityFactoring.o\
+         Inferences/ALASCA/EqFactoring.o\
+         Inferences/ALASCA/VariableElimination.o\
+         Inferences/ALASCA/VIRAS.o\
+         Inferences/ALASCA/Superposition.o\
+         Inferences/ALASCA/Demodulation.o\
+         Inferences/ALASCA/FwdDemodulation.o\
+         Inferences/ALASCA/BwdDemodulation.o\
+         Inferences/ALASCA/FourierMotzkin.o\
+         Inferences/ALASCA/TermFactoring.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
@@ -324,6 +338,7 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
          SAT/SATLiteral.o\
+	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
 	 SAT/BufferedSolver.o\
@@ -347,7 +362,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainers.o\
 
 VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/CommandLine.o\
-         Shell/ConditionalRedundancyHandler.o\
+         Shell/PartialRedundancyHandler.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
          Shell/DistinctProcessor.o\
@@ -565,7 +580,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(TORCHLINK) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -lgmp -lgmpxx $(TORCHLIB)
+$(CXX) $(CXXFLAGS) $(TORCHLINK) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -Lcadical/build -lcadical $(TORCHLIB)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

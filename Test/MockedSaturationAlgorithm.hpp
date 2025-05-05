@@ -20,8 +20,7 @@ namespace Test {
 class MockedSaturationAlgorithm : public Saturation::Otter {
 public:
   MockedSaturationAlgorithm(Kernel::Problem& p, Shell::Options& o) : Otter(p,o) 
-  {
-  }
+  { }
 };
 
 } // namespace Test

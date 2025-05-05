@@ -228,7 +228,7 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 }
 
 /**
- * Register a predicate that has been partially eliminated i.e. <=> replaced by => 
+ * Register a predicate that has been partially eliminated i.e. <=> replaced by =>
  *
  * This information may be used during model output
  */
@@ -243,7 +243,7 @@ void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
 void Problem::refreshProperty() const
 {
   TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
-  ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
+  ScopedLet<ExecutionPhase> phaseLet(env.statistics->phase, ExecutionPhase::PROPERTY_SCANNING);
 
   auto oldProp = _property;
   _propertyValid = true;
@@ -265,6 +265,12 @@ void Problem::readDetailsFromProperty() const
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasNumerals = _property->hasNumerals();
+  _hasAlascaArithmetic = _property->hasNumerals()
+    || forAnyNumTraits([&](auto n) { return 
+           _property->hasInterpretedOperation(n.addI)
+        || _property->hasInterpretedOperation(n.mulI)
+        || _property->hasInterpretedOperation(n.floorI);
+        });
   _hasFOOL = _property->hasFOOL();
   _hasCombs = _property->hasCombs();
   _hasApp = _property->hasApp();
@@ -293,6 +299,7 @@ void Problem::invalidateEverything()
   _hasEquality = MaybeBool::Unknown;
   _hasInterpretedOperations = MaybeBool::Unknown;
   _hasNumerals = MaybeBool::Unknown;
+  _hasAlascaArithmetic = MaybeBool::Unknown;
   _hasFOOL = MaybeBool::Unknown;
   _hasCombs = MaybeBool::Unknown;
   _hasApp = MaybeBool::Unknown;
@@ -316,6 +323,7 @@ void Problem::invalidateByRemoval()
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
   _hasNumerals.mightBecameFalse();
+  _hasAlascaArithmetic.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
   _hasCombs.mightBecameFalse();
   _hasAppliedVar.mightBecameFalse();
@@ -342,7 +350,7 @@ Property* Problem::getProperty() const
 bool Problem::hasFormulas() const
 {
   if(!mayHaveFormulas()) { return false; }
-  if(!_hasFormulas.known()) { refreshProperty(); }  
+  if(!_hasFormulas.known()) { refreshProperty(); }
   ASS(_hasFormulas.known());
   return _hasFormulas.value();
 }
@@ -364,6 +372,20 @@ bool Problem::hasNumerals() const
 {
   if(!_hasNumerals.known()) { refreshProperty(); }
   return _hasNumerals.value();
+}
+
+bool Problem::hasAlascaArithmetic() const
+{
+  if(!_hasAlascaArithmetic.known()) { refreshProperty(); }
+  return _hasAlascaArithmetic.value();
+}
+
+bool Problem::hasAlascaMixedArithmetic() const
+{
+  return hasAlascaArithmetic() 
+    && forAnyNumTraits([&](auto n) {
+        return getProperty()->hasInterpretedOperation(n.floorI);
+    });
 }
 
 bool Problem::hasFOOL() const

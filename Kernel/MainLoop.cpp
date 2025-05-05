@@ -59,15 +59,15 @@ MainLoopResult MainLoop::run()
   }
   catch(RefutationFoundException& rs)
   {
-    return MainLoopResult(Statistics::REFUTATION, rs.refutation);
+    return MainLoopResult(TerminationReason::REFUTATION, rs.refutation);
   }
   catch(TimeLimitExceededException&)
   {
-    return MainLoopResult(Statistics::TIME_LIMIT);
+    return MainLoopResult(TerminationReason::TIME_LIMIT);
   }
   catch(ActivationLimitExceededException&)
   {
-    return MainLoopResult(Statistics::ACTIVATION_LIMIT);
+    return MainLoopResult(TerminationReason::ACTIVATION_LIMIT);
   }
   catch(MainLoopFinishedException& e)
   {
@@ -91,7 +91,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
   /*
-  if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
+  if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround()
                         && prb.getProperty()->hasInterpretedOperations()){
     return new SAT::Z3MainLoop(prb,opt);
   }

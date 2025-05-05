@@ -394,21 +394,19 @@ Inference::Inference(const TheoryAxiom& ta) {
   ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
 }
 
-Inference::Inference(const FormulaTransformation& ft) {
+Inference::Inference(const FormulaClauseTransformation& ft) {
   init1(ft.rule,ft.premise);
 
-  ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
-  ASS(!ft.premise->isClause());
+  ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
 
   _included = ft.premise->included();
 }
 
-Inference::Inference(const FormulaTransformationMany& ft) {
+Inference::Inference(const FormulaClauseTransformationMany& ft) {
   initMany(ft.rule,ft.premises);
 
-  ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
+  ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
   ASS_NEQ(ft.premises,UnitList::empty());
-  ASS(!ft.premises->head()->isClause()); // TODO: assert also for all others?
 
   _included = ft.premises->head()->included();
 }
@@ -744,6 +742,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "inner rewriting";
   case InferenceRule::CONDENSATION:
     return "condensation";
+  case InferenceRule::ALASCA_INTEGER_TRANSFORMATION:
+    return "alasca integer transformation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
   case InferenceRule::POLARITY_FLIPPING:
@@ -780,6 +780,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_TRANSITIVITY:
   case InferenceRule::THA_ORDER_TOTALALITY:
   case InferenceRule::THA_ORDER_MONOTONICITY:
+  case InferenceRule::THA_ALASCA:
   case InferenceRule::THA_PLUS_ONE_GREATER:
   case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
   case InferenceRule::THA_MINUS_MINUS_X:
@@ -881,6 +882,38 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
+  case InferenceRule::ALASCA_VARIABLE_ELIMINATION:
+    return "alasca variable elimination";
+  case InferenceRule::ALASCA_VIRAS_QE:
+    return "alasca viras quantifier elimination";
+  case InferenceRule::ALASCA_COHERENCE:
+    return "alasca coherence";
+  case InferenceRule::ALASCA_COHERENCE_NORMALIZATION:
+    return "alasca coherence normalization";
+  case InferenceRule::ALASCA_SUPERPOSITION:
+    return "alasca superposition";
+  case InferenceRule::ALASCA_LITERAL_FACTORING:
+    return "alasca inequality literal factoring";
+  case InferenceRule::ALASCA_EQ_FACTORING:
+    return "alasca equality factoring";
+  case InferenceRule::ALASCA_FLOOR_BOUNDS:
+    return "alasca floor bounds";
+  case InferenceRule::ALASCA_TERM_FACTORING:
+    return "alasca term factoring";
+  case InferenceRule::ALASCA_INTEGER_FOURIER_MOTZKIN:
+    return "alasca integer fourier motzkin";
+  case InferenceRule::ALASCA_FOURIER_MOTZKIN:
+    return "alasca fourier motzkin";
+  case InferenceRule::ALASCA_FLOOR_ELIMINATION:
+    return "alasca floor elimination";
+  case InferenceRule::ALASCA_NORMALIZATION:
+    return "alasca normalization";
+  case InferenceRule::ALASCA_ABSTRACTION:
+    return "alasca abstraction";
+  case InferenceRule::ALASCA_FWD_DEMODULATION:
+    return "alasca forward demodulation";
+  case InferenceRule::ALASCA_BWD_DEMODULATION:
+    return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
@@ -909,6 +942,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "induction hyperresolution";
   case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
     return "generalized induction hyperresolution";
+  case InferenceRule::FREE_VAR_INDUCTION_HYPERRESOLUTION:
+    return "induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:
@@ -987,8 +1022,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "cases simplifying";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
-  case InferenceRule::GENERIC_FORMULA_TRANSFORMATION:
-  case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST:
+  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION:
+  case InferenceRule::INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST:
   case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:
   case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST:
   case InferenceRule::GENERIC_GENERATING_INFERNCE:

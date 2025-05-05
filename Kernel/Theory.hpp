@@ -29,12 +29,8 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 
-#if VMINI_GMP
 #include "mini-gmp.h"
 #include "mini-mpq.h"
-#else 
-#include <gmp.h>
-#endif
 
 namespace Kernel {
 
@@ -628,6 +624,8 @@ public:
   }
   bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
   bool tryInterpretConstant(unsigned functor, IntegerConstantType& res);
+
+
   Option<IntegerConstantType> tryInterpretConstant(unsigned functor);
   /**
    * Try to interpret the term list as an rational constant. If it is an

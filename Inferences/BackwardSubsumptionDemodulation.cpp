@@ -55,9 +55,10 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation()
+BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrderingOptimizations)
   : _preorderedOnly{false}
   , _allowIncompleteness{false}
+  , _enableOrderingOptimizations{enableOrderingOptimizations}
 { }
 
 
@@ -355,7 +356,9 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
 bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
 {
   Ordering const& ordering = _salg->getOrdering();
-
+  // to see why we use this have a look at the respective line in ForwardSubsumptionDemodulation
+  DEBUG_CODE(static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
+                              || env.options->termOrdering () == Shell::Options::TermOrdering::LAKBO;)
   Literal* eqLit = matcher.getEqualityForDemodulation();
   if (!eqLit) {
     // eqLit == nullptr means that the whole side premise can be instantiated to some subset of the candidate,
@@ -512,6 +515,11 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
         // NOTE: see comments in ForwardSubsumptionDemodulation::perform for explanation
         if (!_allowIncompleteness) {
+          bool dli_was_checked = false;
+          if (!_enableOrderingOptimizations) {
+            goto afterOptimizations;
+          }
+          {
           if (!dlit->isEquality()) {
             // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
             ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
@@ -564,19 +572,22 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
               return true;
             }
           }
+          dli_was_checked = true;
           Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
           if (r_cmp_t == Ordering::LESS) {
             // rhsS < t implies eqLitS < dlit
             ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
             goto isRedundant;
           }
+          }
+afterOptimizations:
           // We could not show redundancy with dlit alone,
           // so now we have to look at the other literals of the main premise
           Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, lhsSSort);
           ASS_EQ(eqLitS, binder.applyTo(eqLit));
           for (unsigned li2 = 0; li2 < mainCl->length(); li2++) {
             // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
-            if (dli != li2 && !isMatched[li2]) {
+            if ((!dli_was_checked || dli != li2) && !isMatched[li2]) {
               Literal* lit2 = (*mainCl)[li2];
               if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
                 // we found that eqLitS < lit2; and thus sideCl < mainCl => after inference, mainCl is redundant
@@ -591,7 +602,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 isRedundant:
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE && !isAlascaOrdering) {
           // Check mclΘ < cl.
           // This is not clear and might easily be violated if we have a bug above.
           if (!SDHelper::substClauseIsSmaller(sideCl, binder, mainCl, ordering)) {
@@ -608,9 +619,11 @@ isRedundant:
          * Step 4: found application of SD; now create the conclusion
          */
         Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
-        ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
 #if VDEBUG
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+        if (!isAlascaOrdering)
+          ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
+        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
+            && !isAlascaOrdering) {
           // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
           ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
         }
@@ -658,7 +671,8 @@ isRedundant:
 #endif
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
+        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
+            && !isAlascaOrdering) {  // see note above
           // Check replacement < mainCl.
           ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
         }

@@ -59,6 +59,15 @@ class NeuralClauseEvaluationModel;
 class SaturationAlgorithm : public MainLoop
 {
 public:
+  /**
+   * Sometimes the problem does not have equality after preprocessing,
+   * but still needs to be treated equationally during saturation (think theory reasoning);
+   * this helper function is here to capture such cases.
+  */
+  static bool couldEqualityArise(const Problem& prb, const Options& opt) {
+    // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
+    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation());
+  }
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
@@ -109,7 +118,7 @@ public:
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
-  const ConditionalRedundancyHandler& condRedHandler() const { return *_conditionalRedundancyHandler; }
+  const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
@@ -236,7 +245,7 @@ protected:
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
   FunctionDefinitionHandler& _fnDefHandler;
-  std::unique_ptr<ConditionalRedundancyHandler> _conditionalRedundancyHandler;
+  std::unique_ptr<PartialRedundancyHandler> _partialRedundancyHandler;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;
@@ -291,7 +300,8 @@ protected:
   unsigned _generatedClauseCount;
   unsigned _activationLimit;
 private:
-  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering,
+     bool alascaTakesOver);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit
   unsigned _softTimeLimit = 0;

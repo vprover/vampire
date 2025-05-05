@@ -39,7 +39,7 @@ using namespace Kernel;
 
 namespace Shell {
 
-void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
+void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, Term*>* bindings)
 {
   _beingClausified = unit;
 
@@ -57,7 +57,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
     case FALSE: {
       // create an empty clause and push it in the stack
-      output.push(Clause::empty(FormulaTransformation(InferenceRule::CLAUSIFY,unit)));
+      output.push(Clause::empty(FormulaClauseTransformation(InferenceRule::CLAUSIFY,unit)));
       return;
     }
 
@@ -104,6 +104,13 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 #endif
 
   for (SPGenClause gc : _genClauses) {
+    if (bindings) {
+      BindingList::RefIterator it(gc->bindings);
+      while (it.hasNext()) {
+        Binding& b = it.next();
+        bindings->insert(b.first, b.second);
+      }
+    }
     toClauses(gc, output);
   }
 
@@ -1503,7 +1510,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     resLits->push(l);
   }
 
-  return Clause::fromStack(*resLits,FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
+  return Clause::fromStack(*resLits,FormulaClauseTransformation(InferenceRule::CLAUSIFY,_beingClausified));
 }
 
 }

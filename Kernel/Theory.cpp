@@ -30,12 +30,11 @@
 #include <cstdio>
 #include <iostream>
 
-#if VMINI_GMP
-#include "mini-gmp.c"
-#include "mini-mpq.c"
-#else
-#include <gmpxx.h>
-#endif
+#  pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wsign-compare"
+#    include "mini-gmp.c"
+#    include "mini-mpq.c"
+#  pragma GCC diagnostic pop
 
 std::string to_string(mpz_t const& self) {
   auto s = mpz_sizeinbase(self, /* base */ 10);
@@ -47,7 +46,6 @@ std::string to_string(mpz_t const& self) {
 }
 
 std::ostream& output(std::ostream& out, mpz_t const& self)
-// TODO: make this faster usign gmpxx output operator somehow if compiled with !VMINI_GMP
 { return out << to_string(self); }
 
 using namespace Lib;

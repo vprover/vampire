@@ -71,7 +71,10 @@ static std::recursive_mutex EXIT_LOCK;
 
   const char* REACHED[2] = {"Time limit reached! \n","Instruction limit reached! \n"}; // deliberate spaces before \n, so that it's a different string than in UIHelper::outputResult
   const char* STATUS[2] = {"% SZS status Timeout for ","% SZS status InstrOut for "};
-  Shell::Statistics::TerminationReason REASON[2] = {Shell::Statistics::TIME_LIMIT,Shell::Statistics::INSTRUCTION_LIMIT};
+  Shell::TerminationReason REASON[2] = {
+    Shell::TerminationReason::TIME_LIMIT,
+    Shell::TerminationReason::INSTRUCTION_LIMIT
+  };
 
   // if we get this lock we can assume that the parent won't also try to exit
   EXIT_LOCK.lock();
@@ -139,7 +142,7 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 namespace Lib {
 namespace Timer {
 
-void reinitialise() {
+void reinitialise(bool tryInitInstructionLimiting) {
   // might (probably have) locked this in the parent process, release it for the child
   //
   // I am not sure of the semantics of placement-new for std::recursive_mutex,
@@ -149,37 +152,39 @@ void reinitialise() {
   START_TIME = std::chrono::steady_clock::now();
 
 #if VAMPIRE_PERF_EXISTS // if available, (re)initialize the perf reading
-  /*
-   *
-   * NOTE: we need to do this before initializing the actual timer
-   * (otherwise tick() could start asking the uninitialized PERF_FD!)
-   */
-  LAST_INSTRUCTION_COUNT_READ = -1;
-  PERF_FD = -1;
-  struct perf_event_attr pe;
+  if (tryInitInstructionLimiting) {
+    /*
+    *
+    * NOTE: we need to do this before initializing the actual timer
+    * (otherwise tick() could start asking the uninitialized PERF_FD!)
+    */
+    LAST_INSTRUCTION_COUNT_READ = -1;
+    PERF_FD = -1;
+    struct perf_event_attr pe;
 
-  memset(&pe, 0, sizeof(struct perf_event_attr));
-    pe.type = PERF_TYPE_HARDWARE;
-    pe.size = sizeof(struct perf_event_attr);
-    pe.config = PERF_COUNT_HW_INSTRUCTIONS;
-    pe.disabled = 1;
-    pe.exclude_kernel = 1;
-    pe.exclude_hv = 1;
+    memset(&pe, 0, sizeof(struct perf_event_attr));
+      pe.type = PERF_TYPE_HARDWARE;
+      pe.size = sizeof(struct perf_event_attr);
+      pe.config = PERF_COUNT_HW_INSTRUCTIONS;
+      pe.disabled = 1;
+      pe.exclude_kernel = 1;
+      pe.exclude_hv = 1;
 
-  PERF_FD = perf_event_open(&pe, 0, -1, -1, 0);
-  if (PERF_FD == -1) {
-    // we want this to be guarded by env.options->instructionLimit()
-    // not to bother with the error people who don't even know about instruction limiting
-    if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
-      std::cerr
-        << "perf_event_open failed (instruction limiting will be disabled): "
-        << std::strerror(errno)
-        << "\n(If you are seeing 'Permission denied' ask your admin to run 'sudo sysctl -w kernel.perf_event_paranoid=-1' for you.)"
-        << std::endl;
+    PERF_FD = perf_event_open(&pe, 0, -1, -1, 0);
+    if (PERF_FD == -1) {
+      // we want this to be guarded by env.options->instructionLimit()
+      // not to bother with the error people who don't even know about instruction limiting
+      if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
+        std::cerr
+          << "perf_event_open failed (instruction limiting will be disabled): "
+          << std::strerror(errno)
+          << "\n(If you are seeing 'Permission denied' ask your admin to run 'sudo sysctl -w kernel.perf_event_paranoid=-1' for you.)"
+          << std::endl;
+      }
+    } else {
+      ioctl(PERF_FD, PERF_EVENT_IOC_RESET, 0);
+      ioctl(PERF_FD, PERF_EVENT_IOC_ENABLE, 0);
     }
-  } else {
-    ioctl(PERF_FD, PERF_EVENT_IOC_RESET, 0);
-    ioctl(PERF_FD, PERF_EVENT_IOC_ENABLE, 0);
   }
 #endif
 
