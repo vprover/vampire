@@ -84,6 +84,7 @@ auto replaceTraceFwd(InferenceRule r) {
     case InferenceRule::ALASCA_NORMALIZATION:
     case InferenceRule::ALASCA_ABSTRACTION:
     case InferenceRule::ALASCA_FLOOR_ELIMINATION:
+    case InferenceRule::ALASCA_INEQUALITY_MERGING:
     case InferenceRule::EVALUATION:
     case InferenceRule::CANCELLATION:
     case InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION:

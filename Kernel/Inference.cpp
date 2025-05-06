@@ -906,6 +906,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "alasca integer fourier motzkin";
   case InferenceRule::ALASCA_FOURIER_MOTZKIN:
     return "alasca fourier motzkin";
+  case InferenceRule::ALASCA_INEQUALITY_MERGING:
+    return "alasca inequality merging";
   case InferenceRule::ALASCA_FLOOR_ELIMINATION:
     return "alasca floor elimination";
   case InferenceRule::ALASCA_NORMALIZATION:
