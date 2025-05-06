@@ -1953,8 +1953,8 @@ void Schedules::getStructInductionTipSchedule(const Shell::Property& property, S
   // Overall score 235.07056943321408 probs on average / budget 24401 Mi
 }
 
-void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick) {    
-  if (property.hasNumerals() || property.hasInterpretedOperations()) { 
+void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick) {
+  if (property.hasNumerals() || property.hasInterpretedOperations()) {
     // problemsARIUNS.txt
     // Champion singleton-schedule for 60000Mi
     quick.push("dis+1010_1:4_drc=ordering:aac=none:abs=on:atotf=0.5:avsq=on:avsqc=2:avsqr=215,247:bsd=on:erd=off:fde=none:gve=cautious:newcnf=on:nwc=5.0:rnwc=on:sac=on:sas=z3:sp=const_min:tgt=ground:thsq=on:thsqc=64:thsqr=1,4:i=59848:si=on:rawr=on:rtra=on_0");
@@ -3923,7 +3923,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
   if (property.hasNumerals() || property.hasInterpretedOperations()) {
     // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
 
-    getSnakeTptpUnsSchedule(property,quick);
+    getAlascaAwareAriSchedule(property,quick);
 
   } else if (cat == Property::Category::UEQ) {
     // The UEQ division: Unit EQuality clause normal form theo rems (unsatisfiable clause sets)
@@ -5016,4 +5016,130 @@ void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick
 
   //total_instr 1326802
   // len(covered) 1067
+}
+
+void Schedules::getAlascaAwareAriSchedule(const Shell::Property& property, Schedule& quick) {
+  // alasca/problemsARIuns.txt
+  // Sub-schedule for 2000Mi strat cap / 2000Mi overall limit
+  quick.push("ott+1002_1:1_alasca=off:bd=preordered:ins=3:inst=on:lcm=predicate:nm=2:sp=occurrence:spb=goal:tar=off:i=3:si=on:rtra=on_0");
+  quick.push("dis+1002_8:1_alasca=off:gve=cautious:sac=on:sas=z3:sos=all:sp=occurrence:spb=goal:ss=axioms:to=kbo:i=248:si=on:rtra=on_0");
+  quick.push("lrs+10_1:128_alascai=on:gtg=exists_all:sos=on:uwa=alasca_main:i=104:si=on:rtra=on_0");
+  quick.push("dis+1011_1:1_alasca=off:canc=force:drc=off:prc=on:sac=on:i=19:si=on:rtra=on_0");
+  quick.push("ott-1_8:1_alasca=off:flr=on:ins=3:inw=on:plsq=on:plsqc=2:plsqr=3,1:sas=z3:sos=on:tgt=ground:i=51:si=on:rtra=on_0");
+  quick.push("lrs-1011_1:64_alasca=off:av=off:br=off:canc=cautious:sos=on:sp=unary_first:to=lpo:i=4:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_ep=RSTC:fs=off:fsr=off:gtg=position:s2a=on:sas=z3:slsq=on:to=lpo:i=77:si=on:rtra=on_0");
+  quick.push("lrs+1010_1:1_alasca=off:bd=off:fde=unused:gve=force:kws=precedence:sas=z3:sp=unary_frequency:spb=goal:tgt=ground:tha=off:thf=on:to=kbo:uace=off:i=36:si=on:rtra=on_0");
+  quick.push("lrs+10_1_i=16:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alasca=off:tha=some:thi=all:i=21:si=on:rtra=on_0");
+  quick.push("ott+2_29:4_alasca=off:bsr=on:drc=off:ev=off:nm=16:prc=on:sas=z3:tgt=ground:thi=overlap:to=kbo:i=45:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alasca=off:fd=off:gtg=all:nwc=10.0:thi=all:i=54:si=on:rtra=on_0");
+  quick.push("dis+10_1:32_alasca=off:gtg=position:sac=on:sos=all:sp=const_frequency:to=lpo:i=12:si=on:rtra=on_0");
+  quick.push("lrs+1010_4:1_alasca=off:gtg=exists_top:newcnf=on:tha=off:to=lpo:i=7:si=on:rtra=on_0");
+  quick.push("lrs-1002_1:1_alasca=off:norm_ineq=on:sas=z3:sos=on:tha=some:to=kbo:i=72:si=on:rtra=on_0");
+  quick.push("dis+1010_1:1_alasca=off:doe=on:ev=cautious:gtg=exists_sym:nm=0:ss=axioms:to=kbo:i=345:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alasca=off:sas=z3:tha=off:to=lpo:i=748:si=on:rtra=on_0");
+  quick.push("dis+10_1:1_ep=R:i=3:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alasca=off:anc=all_dependent:bs=on:bsr=on:drc=ordering:ev=cautious:gtg=exists_sym:lftc=50:slsq=on:slsql=off:sp=unary_frequency:tac=axiom:thi=strong:to=lpo:i=12:si=on:rtra=on_0");
+  quick.push("lrs+1011_1:3_alasca=off:bsr=on:canc=force:ev=off:gtg=all:plsq=on:plsqr=1,32:s2a=on:s2at=2.0:sas=z3:sp=reverse_arity:tha=off:thsq=on:thsqc=64:to=kbo:i=87:si=on:rtra=on_0");
+  quick.push("lrs+1002_1:1_alasca=off:bsr=on:ev=force:kws=inv_arity_squared:s2a=on:sac=on:sas=z3:tha=off:thi=strong:to=kbo:i=34:si=on:rtra=on_0");
+  quick.push("ott+1011_1:1_alasca=off:drc=off:ep=RST:gtg=exists_top:nm=16:plsq=on:plsqr=32,1:sac=on:sos=all:sp=const_frequency:to=kbo:uwa=one_side_interpreted:i=8:si=on:rtra=on_0");
+ // Improves by expected 949.6321988515131 probs costing 1984 Mi
+ // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
+  quick.push("lrs-1011_1:64_alasca=off:av=off:br=off:canc=cautious:sos=on:sp=unary_first:to=lpo:i=92:si=on:rtra=on_0");
+  quick.push("dis+11_1:1_add=large:alasca=off:pum=on:s2agt=20:s2pl=no:sas=z3:sd=10:sos=theory:sp=reverse_arity:ss=axioms:tha=some:thsq=on:thsqc=64:thsqd=64:thsqr=2,1:to=lpo:i=1313:si=on:rtra=on_0");
+  quick.push("lrs+1010_1:1_alasca=off:bd=off:fde=unused:gve=force:kws=precedence:sas=z3:sp=unary_frequency:spb=goal:tgt=ground:tha=off:thf=on:to=kbo:uace=off:i=567:si=on:rtra=on_0");
+  quick.push("lrs+1004_1:1_alasca=off:fd=preordered:gtg=exists_all:to=lpo:i=31:si=on:rtra=on_0");
+  quick.push("dis+11_1:1_alasca=off:doe=on:fsr=off:norm_ineq=on:plsq=on:slsq=on:slsqr=1,2:to=lpo:i=670:si=on:rtra=on_0");
+  quick.push("ott+11_1:1_alasca=off:asg=cautious:fdtod=on:foolp=on:gtg=all:gtgl=5:rawr=on:sas=z3:sp=const_max:thi=all:to=lpo:i=374:si=on:rtra=on_0");
+  quick.push("lrs+10_1:40_alasca=off:anc=all:ev=force:nm=0:sas=z3:tgt=ground:thi=overlap:thigen=on:thitd=on:to=kbo:i=109:si=on:rtra=on_0");
+  quick.push("dis+10_1:32_alasca=off:gtg=position:sac=on:sos=all:sp=const_frequency:to=lpo:i=369:si=on:rtra=on_0");
+  quick.push("ott+21_1:1_alasca=off:gtg=exists_all:kws=inv_frequency:nm=0:sas=z3:tgt=full:tha=off:to=kbo:i=330:si=on:rtra=on_0");
+  quick.push("ott+2_1:1_alasca=off:bs=unit_only:canc=force:sas=z3:sp=reverse_arity:tac=light:tgt=ground:thi=overlap:to=kbo:uace=off:uhcvi=on:i=128:si=on:rtra=on_0");
+ // Improves by expected 81.68093461060609 probs costing 3973 Mi
+ // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
+  quick.push("dis+1010_1:1_bd=off:gsp=on:sos=on:sp=weighted_frequency:spb=goal:uhcvi=on:i=376:si=on:rtra=on_0");
+  quick.push("dis+1002_8:1_alasca=off:gve=cautious:sac=on:sas=z3:sos=all:sp=occurrence:spb=goal:ss=axioms:to=kbo:i=788:si=on:rtra=on_0");
+  quick.push("dis+10_1:1_alasca=off:gtg=exists_all:s2a=on:i=306:si=on:rtra=on_0");
+  quick.push("lrs+1004_1:1_alasca=off:fd=preordered:gtg=exists_all:to=lpo:i=31:si=on:rtra=on_0");
+  quick.push("ott+11_1:1_alasca=off:asg=cautious:fdtod=on:foolp=on:gtg=all:gtgl=5:rawr=on:sas=z3:sp=const_max:thi=all:to=lpo:i=502:si=on:rtra=on_0");
+  quick.push("lrs+10_1:40_alasca=off:anc=all:ev=force:nm=0:sas=z3:tgt=ground:thi=overlap:thigen=on:thitd=on:to=kbo:i=216:si=on:rtra=on_0");
+  quick.push("lrs-1002_1:1_alasca=off:norm_ineq=on:sas=z3:sos=on:tha=some:to=kbo:i=657:si=on:rtra=on_0");
+  quick.push("lrs+1011_1:3_alasca=off:bsr=on:canc=force:ev=off:gtg=all:plsq=on:plsqr=1,32:s2a=on:s2at=2.0:sas=z3:sp=reverse_arity:tha=off:thsq=on:thsqc=64:to=kbo:i=257:si=on:rtra=on_0");
+  quick.push("lrs+1002_1:1_alasca=off:bsr=on:ev=force:kws=inv_arity_squared:s2a=on:sac=on:sas=z3:tha=off:thi=strong:to=kbo:i=309:si=on:rtra=on_0");
+  quick.push("ott+1011_1:1_alasca=off:drc=off:ep=RST:gtg=exists_top:nm=16:plsq=on:plsqr=32,1:sac=on:sos=all:sp=const_frequency:to=kbo:uwa=one_side_interpreted:i=441:si=on:rtra=on_0");
+ // Improves by expected 18.554682442834164 probs costing 3873 Mi
+ // Sub-schedule for 8000Mi strat cap / 8000Mi overall limit
+  quick.push("lrs+1010_1:1_alasca=off:bd=off:fde=unused:gve=force:kws=precedence:sas=z3:sp=unary_frequency:spb=goal:tgt=ground:tha=off:thf=on:to=kbo:uace=off:i=1230:si=on:rtra=on_0");
+  quick.push("dis+11_1:1_alasca=off:doe=on:fsr=off:norm_ineq=on:plsq=on:slsq=on:slsqr=1,2:to=lpo:i=5491:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alasca=off:sas=z3:tha=off:to=lpo:i=1261:si=on:rtra=on_0");
+ // Improves by expected 32.768608240312595 probs costing 7979 Mi
+ // Sub-schedule for 20000Mi strat cap / 20000Mi overall limit
+  quick.push("ott+1002_1:1_alasca=off:bd=preordered:ins=3:inst=on:lcm=predicate:nm=2:sp=occurrence:spb=goal:tar=off:i=1077:si=on:rtra=on_0");
+  quick.push("dis+1002_5:1_acc=on:alasca=off:canc=cautious:doe=on:tgt=ground:to=lpo:i=829:si=on:rtra=on_0");
+  quick.push("dis+1002_8:1_alasca=off:gve=cautious:sac=on:sas=z3:sos=all:sp=occurrence:spb=goal:ss=axioms:to=kbo:i=1175:si=on:rtra=on_0");
+  quick.push("dis+1010_1:1_alasca=off:bd=off:drc=off:fde=none:nm=32:tgt=ground:to=lpo:i=1035:si=on:rtra=on_0");
+  quick.push("dis+10_1:1_alasca=off:gtg=exists_all:s2a=on:i=461:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alascai=on:prc=on:i=2218:si=on:rtra=on_0");
+  quick.push("dis+11_1:1_alasca=off:doe=on:fsr=off:norm_ineq=on:plsq=on:slsq=on:slsqr=1,2:to=lpo:i=8894:si=on:rtra=on_0");
+  quick.push("ott+11_1:1_alasca=off:asg=cautious:fdtod=on:foolp=on:gtg=all:gtgl=5:rawr=on:sas=z3:sp=const_max:thi=all:to=lpo:i=1393:si=on:rtra=on_0");
+  quick.push("dis+1011_1:5_alasca=off:anc=all:avsq=on:bd=off:doe=on:ev=off:fd=preordered:fsr=off:nm=64:sac=on:sgt=32:sp=const_frequency:spb=non_intro:ss=included:tac=light:tgt=full:thsq=on:thsqc=32:thsqd=64:i=1879:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alasca=off:anc=all_dependent:bs=on:bsr=on:drc=ordering:ev=cautious:gtg=exists_sym:lftc=50:slsq=on:slsql=off:sp=unary_frequency:tac=axiom:thi=strong:to=lpo:i=296:si=on:rtra=on_0");
+  quick.push("lrs+1011_1:3_alasca=off:bsr=on:canc=force:ev=off:gtg=all:plsq=on:plsqr=1,32:s2a=on:s2at=2.0:sas=z3:sp=reverse_arity:tha=off:thsq=on:thsqc=64:to=kbo:i=654:si=on:rtra=on_0");
+ // Improves by expected 22.685613519674227 probs costing 19900 Mi
+ // Sub-schedule for 40000Mi strat cap / 40000Mi overall limit
+  quick.push("dis+1002_8:1_alasca=off:gve=cautious:sac=on:sas=z3:sos=all:sp=occurrence:spb=goal:ss=axioms:to=kbo:i=1156:si=on:rtra=on_0");
+  quick.push("lrs+21_1:1_alascai=on:thf=on:i=2577:si=on:rtra=on_0");
+  quick.push("dis+10_1:4_bsr=on:cond=on:doe=on:gtg=position:nm=16:sac=on:sos=all:to=lakbo:uwa=alasca_one_interp:i=4160:si=on:rtra=on_0");
+  quick.push("lrs+11_1:1_alasca=off:br=off:ev=cautious:fdtod=on:fsr=off:gtg=exists_top:ss=axioms:st=2.0:to=kbo:i=1784:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_gtg=position:sd=10:ss=axioms:st=5.0:to=kbo:i=17184:si=on:rtra=on_0");
+  quick.push("lrs+1010_1:1_alasca=off:bd=off:fde=unused:gve=force:kws=precedence:sas=z3:sp=unary_frequency:spb=goal:tgt=ground:tha=off:thf=on:to=kbo:uace=off:i=3048:si=on:rtra=on_0");
+  quick.push("lrs+1010_4:1_alasca=off:gtg=exists_top:newcnf=on:tha=off:to=lpo:i=3284:si=on:rtra=on_0");
+  quick.push("dis+10_1:1_add=off:alasca_sn=on:nm=0:prc=on:sas=z3:tac=light:tar=off:tgt=full:to=lakbo:viras=off:i=3153:si=on:rtra=on_0");
+  quick.push("ott+1011_1:1_alasca=off:drc=off:ep=RST:gtg=exists_top:nm=16:plsq=on:plsqr=32,1:sac=on:sos=all:sp=const_frequency:to=kbo:uwa=one_side_interpreted:i=3086:si=on:rtra=on_0");
+ // Improves by expected 23.696335910197206 probs costing 39423 Mi
+ // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
+  quick.push("dis+1002_5:1_acc=on:alasca=off:canc=cautious:doe=on:tgt=ground:to=lpo:i=829:si=on:rtra=on_0");
+  quick.push("dis+1002_8:1_alasca=off:gve=cautious:sac=on:sas=z3:sos=all:sp=occurrence:spb=goal:ss=axioms:to=kbo:i=3092:si=on:rtra=on_0");
+  quick.push("dis+1010_1:1_alasca=off:bd=off:drc=off:fde=none:nm=32:tgt=ground:to=lpo:i=8858:si=on:rtra=on_0");
+  quick.push("lrs+10_1:128_alascai=on:gtg=exists_all:sos=on:uwa=alasca_main:i=3001:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_sas=z3:tgt=ground:i=2775:si=on:rtra=on_0");
+  quick.push("lrs+11_1:1_alasca=off:br=off:ev=cautious:fdtod=on:fsr=off:gtg=exists_top:ss=axioms:st=2.0:to=kbo:i=3049:si=on:rtra=on_0");
+  quick.push("ott-1011_3:2_acc=on:alasca=off:bd=off:ccuc=first:ev=off:gsp=on:gve=cautious:nm=0:sgt=20:sp=unary_first:ss=axioms:taea=off:thsq=on:thsqc=4:thsqd=32:to=lpo:urr=on:uwa=ground:i=5497:si=on:rtra=on_0");
+  quick.push("dis+11_1:1_add=large:alasca=off:pum=on:s2agt=20:s2pl=no:sas=z3:sd=10:sos=theory:sp=reverse_arity:ss=axioms:tha=some:thsq=on:thsqc=64:thsqd=64:thsqr=2,1:to=lpo:i=4475:si=on:rtra=on_0");
+  quick.push("lrs+1010_1:1_alasca=off:bd=off:fde=unused:gve=force:kws=precedence:sas=z3:sp=unary_frequency:spb=goal:tgt=ground:tha=off:thf=on:to=kbo:uace=off:i=4762:si=on:rtra=on_0");
+  quick.push("lrs+1011_3:2_alasca=off:bsr=unit_only:doe=on:kws=inv_frequency:lrd=on:lsd=50:lwlo=on:nm=30:s2a=on:s2at=5.0:sp=const_max:to=kbo:i=12446:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alascai=on:prc=on:i=10365:si=on:rtra=on_0");
+  quick.push("ott+2_29:4_alasca=off:bsr=on:drc=off:ev=off:nm=16:prc=on:sas=z3:tgt=ground:thi=overlap:to=kbo:i=6448:si=on:rtra=on_0");
+  quick.push("ott+11_1:1_alasca=off:asg=cautious:fdtod=on:foolp=on:gtg=all:gtgl=5:rawr=on:sas=z3:sp=const_max:thi=all:to=lpo:i=5989:si=on:rtra=on_0");
+  quick.push("lrs+1010_4:1_alasca=off:gtg=exists_top:newcnf=on:tha=off:to=lpo:i=10123:si=on:rtra=on_0");
+  quick.push("dis+1011_1:5_alasca=off:anc=all:avsq=on:bd=off:doe=on:ev=off:fd=preordered:fsr=off:nm=64:sac=on:sgt=32:sp=const_frequency:spb=non_intro:ss=included:tac=light:tgt=full:thsq=on:thsqc=32:thsqd=64:i=1879:si=on:rtra=on_0");
+  quick.push("dis+1010_1:1_alasca=off:doe=on:ev=cautious:gtg=exists_sym:nm=0:ss=axioms:to=kbo:i=2101:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alasca=off:sas=z3:tha=off:to=lpo:i=11001:si=on:rtra=on_0");
+  quick.push("ott+21_1:1_alasca=off:gtg=exists_all:kws=inv_frequency:nm=0:sas=z3:tgt=full:tha=off:to=kbo:i=4811:si=on:rtra=on_0");
+  quick.push("dis+10_1:1_add=off:alasca_sn=on:nm=0:prc=on:sas=z3:tac=light:tar=off:tgt=full:to=lakbo:viras=off:i=4361:si=on:rtra=on_0");
+  quick.push("ott+1011_1:1_alasca=off:drc=off:ep=RST:gtg=exists_top:nm=16:plsq=on:plsqr=32,1:sac=on:sos=all:sp=const_frequency:to=kbo:uwa=one_side_interpreted:i=13001:si=on:rtra=on_0");
+ // Improves by expected 19.3678382772864 probs costing 118843 Mi
+ // Sub-schedule for 240000Mi strat cap / 240000Mi overall limit
+  quick.push("dis+1002_8:1_alasca=off:gve=cautious:sac=on:sas=z3:sos=all:sp=occurrence:spb=goal:ss=axioms:to=kbo:i=3092:si=on:rtra=on_0");
+  quick.push("lrs+10_1:128_alascai=on:gtg=exists_all:sos=on:uwa=alasca_main:i=3001:si=on:rtra=on_0");
+  quick.push("ott-1011_3:2_acc=on:alasca=off:bd=off:ccuc=first:ev=off:gsp=on:gve=cautious:nm=0:sgt=20:sp=unary_first:ss=axioms:taea=off:thsq=on:thsqc=4:thsqd=32:to=lpo:urr=on:uwa=ground:i=29388:si=on:rtra=on_0");
+  quick.push("ott+2_29:4_alasca=off:bsr=on:drc=off:ev=off:nm=16:prc=on:sas=z3:tgt=ground:thi=overlap:to=kbo:i=6448:si=on:rtra=on_0");
+  quick.push("ott+11_1:1_alasca=off:asg=cautious:fdtod=on:foolp=on:gtg=all:gtgl=5:rawr=on:sas=z3:sp=const_max:thi=all:to=lpo:i=5989:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_thi=all:i=7272:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_alasca=off:sas=z3:tha=off:to=lpo:i=11001:si=on:rtra=on_0");
+ // Improves by expected 2.1763493327108874 probs costing 66184 Mi
+ // Sub-schedule for 480000Mi strat cap / 480000Mi overall limit
+  quick.push("dis+1002_8:1_alasca=off:gve=cautious:sac=on:sas=z3:sos=all:sp=occurrence:spb=goal:ss=axioms:to=kbo:i=6927:si=on:rtra=on_0");
+  quick.push("ott+11_1:1_alasca=off:asg=cautious:fdtod=on:foolp=on:gtg=all:gtgl=5:rawr=on:sas=z3:sp=const_max:thi=all:to=lpo:i=2461:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_thi=all:i=7272:si=on:rtra=on_0");
+ // Improves by expected 0.5011461334096556 probs costing 16657 Mi
+ // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
+  quick.push("ott+11_1:1_alasca=off:asg=cautious:fdtod=on:foolp=on:gtg=all:gtgl=5:rawr=on:sas=z3:sp=const_max:thi=all:to=lpo:i=2761:si=on:rtra=on_0");
+  quick.push("lrs+10_1:1_thi=all:i=7272:si=on:rtra=on_0");
+ // Improves by expected 0.23989840158876852 probs costing 10031 Mi
+ // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
+ // Improves by expected 0.0 probs costing 0 Mi
+ // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
+ // Improves by expected 0.0 probs costing 0 Mi
+ // Overall score 1151.3036057201332 probs on average / budget 288847 Mi
 }
