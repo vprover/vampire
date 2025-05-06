@@ -294,7 +294,7 @@ public:
   }
 };
 
-class QuotientEPreproc 
+class AlascaSymbolElimination 
 {
   bool _addedITE = false;
   using Z = IntTraits;
@@ -382,8 +382,8 @@ class QuotientEPreproc
   }
 
   struct TermTrans : public TermTransformer {
-    QuotientEPreproc& _self;
-    TermTrans(QuotientEPreproc& self) : _self(self) {}
+    AlascaSymbolElimination& _self;
+    TermTrans(AlascaSymbolElimination& self) : _self(self) {}
     virtual TermList transformSubterm(TermList t) override 
     { return _self.transformSubterm(t); }
   };
