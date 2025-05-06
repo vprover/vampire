@@ -303,7 +303,8 @@ class QuotientEPreproc
 
   Literal* proc(Literal* lit)
   {
-    auto impl = [&]() { 
+    auto impl = [this,origLit = lit]() { 
+      Literal* lit = InequalityNormalizer::normalize(origLit).toLiteral();
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
         return Literal::createEquality(lit->polarity(), 
@@ -328,6 +329,10 @@ class QuotientEPreproc
   }
 
   TermList transformSubterm(TermList t) {
+    if (t.isTerm()) {
+      ASS(!t.term()->isLiteral())
+      t = InequalityNormalizer::normalize(TypedTermList(t.term())).toTerm();
+    }
     if (!t.isTerm()) return t;
     if (t.term()->isSpecial()) return t;
     auto &trm = *t.term();
@@ -383,12 +388,25 @@ class QuotientEPreproc
     { return _self.transformSubterm(t); }
   };
 
+  // struct FormulaTransformer : public TermTransformingFormulaTransformer {
+  //   FormulaTransformer(TermTrans& inner) : TermTransformingFormulaTransformer(inner) {}
+  //
+  //   virtual Formula* applyLiteral(Formula* f) override 
+  //   {
+  //     Literal* lit = InequalityNormalizer::normalize(f->literal()).toLiteral();
+  //     Literal* res = _termTransformer.transformLiteral(lit);
+  //     if(lit==res) { return f; }
+  //     return new AtomicFormula(res);
+  //   }
+  // };
+
   FormulaUnit* proc(FormulaUnit* unit) 
   { 
     auto trans = TermTrans(*this);
     auto inf = Inference(FormulaClauseTransformation(INF_RULE, unit));
     return new FormulaUnit(TermTransformingFormulaTransformer(trans).transform(unit->formula()), inf); 
   }
+
   Unit* proc(Unit* unit) {
     return unit->isClause() 
       ? (Unit*)proc(static_cast<Clause*>(unit))
@@ -399,7 +417,10 @@ public:
   void proc(Problem& prb)
   {
     for (auto& unit : iterTraits(prb.units()->iter())) {
-      unit = proc(unit);
+
+      auto newUnit = proc(unit);
+      DEBUG_TRANSLATION(*unit, " ==> ", *newUnit);
+      unit = newUnit;
     }
     if (_addedITE) {
       prb.reportFOOLAdded();
