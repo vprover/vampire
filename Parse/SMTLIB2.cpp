@@ -1287,13 +1287,13 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
 
 void SMTLIB2::tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort)
 {
-  if (isAlreadyKnownSymbol(name) ||
-    iterTraits(Lookups::ConstRefIterator(_lookups)).any([&](const auto& lookup) {
-      return lookup->findPtr(name)!=nullptr;
-    }))
-  {
-    std::cout << "% WARNING: shadowing variable " << name << " in " << _topLevelExpr->getPosition() << std::endl;
-  }
+  // if (isAlreadyKnownSymbol(name) ||
+  //   iterTraits(Lookups::ConstRefIterator(_lookups)).any([&](const auto& lookup) {
+  //     return lookup->findPtr(name)!=nullptr;
+  //   }))
+  // {
+  //   std::cout << "% WARNING: shadowing variable " << name << " in " << _topLevelExpr->getPosition() << std::endl;
+  // }
 
   if (!_lookups.top()->insert(name, { term, sort })) {
     USER_ERROR_EXPR("Identifier '" + name + "' has already been defined in current lookup");
