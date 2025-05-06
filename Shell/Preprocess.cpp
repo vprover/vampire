@@ -171,11 +171,12 @@ void Preprocess::preprocess(Problem& prb)
       return out;
    });
 
-  if (_options.alascaIntegerConversion()) {
+  if (_options.alasca()) {
     if (env.options->showPreprocessing())
       std::cout << "eliminating euclidean quotient and remainder" << std::endl;
 
     AlascaSymbolElimination().proc(prb);
+    prb.getProperty();
   }
 
   if (prb.hasFOOL() || prb.isHigherOrder()) {
