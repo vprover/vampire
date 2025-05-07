@@ -384,7 +384,7 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
 
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:
-    Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
+    Schedules::getSmtcomp2018Schedule(prop,quick,fallback, /*allowUndefinedLogic=*/env.options->ignoreUnrecognizedLogic());
     break;
 
   case Options::Schedule::LTB_HH4_2017:
