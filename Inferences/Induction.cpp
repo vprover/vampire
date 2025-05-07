@@ -56,7 +56,7 @@ bool ActiveOccurrenceIterator::hasNext() {
     if (t->ground()) {
       _returnStack.push(t);
     }
-    InductionTemplate* templ = _fnDefHandler.getInductionTemplate(t);
+    const InductionTemplate* templ = _fnDefHandler.getInductionTemplate(t);
     const vector<bool>* actPos = templ ? &templ->inductionPositions() : nullptr;
     for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
       if ((!actPos || (*actPos)[i]) && t->nthArgument(i)->isTerm()) {
@@ -613,7 +613,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 
   if (lit->ground()) {
       Set<Term*,SharedTermHash> int_terms;
-      std::map<std::vector<Term*>,std::set<pair<const InductionTemplate*,std::vector<Term*>>>> ta_terms;
+      typedef std::set<pair<const InductionTemplate*,std::vector<Term*>>> TemplateTypeArgsSet;
+      std::map<std::vector<Term*>,TemplateTypeArgsSet> ta_terms;
 
       auto templ = _fnDefHandler.getInductionTemplate(lit);
       if (templ) {
@@ -623,11 +624,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           for (unsigned i = 0; i < lit->numTypeArguments(); i++) {
             typeArgs.push_back(lit->nthArgument(i)->term());
           }
-          auto it = ta_terms.find(indTerms);
-          if (it == ta_terms.end()) {
-            it = ta_terms.insert(make_pair(indTerms,std::set<pair<const InductionTemplate*,std::vector<Term*>>>())).first;
-          }
-          it->second.insert(make_pair(templ,typeArgs));
+          auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
+          it->second.emplace(templ, std::move(typeArgs));
         }
       }
 
@@ -645,11 +643,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto f = t->functor();
         if(InductionHelper::isInductionTermFunctor(f)){
           if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(t)){
-            std::vector<Term*> indTerms = { t };
-            auto it = ta_terms.find(indTerms);
-            if (it == ta_terms.end()) {
-              ta_terms.insert(make_pair(indTerms,std::set<pair<const InductionTemplate*,std::vector<Term*>>>()));
-            }
+            ta_terms.emplace(std::vector<Term*>{ t }, TemplateTypeArgsSet());
           }
           if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(t, lit)){
             int_terms.insert(t);
@@ -663,11 +657,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             for (unsigned i = 0; i < t->numTypeArguments(); i++) {
               typeArgs.push_back(t->nthArgument(i)->term());
             }
-            auto it = ta_terms.find(indTerms);
-            if (it == ta_terms.end()) {
-              it = ta_terms.insert(make_pair(indTerms,std::set<pair<const InductionTemplate*,std::vector<Term*>>>())).first;
-            }
-            it->second.insert(make_pair(templ,typeArgs));
+            auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
+            it->second.emplace(templ, std::move(typeArgs));
           }
         }
       }
@@ -728,7 +719,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     auto sideLitsIt = VirtualIterator<pair<std::vector<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(getSTLIterator(ta_terms.begin(), ta_terms.end()))
-        .map([](pair<std::vector<Term*>,std::set<pair<const InductionTemplate*,std::vector<Term*>>>> kv){
+        .map([](const auto& kv){
           return kv.first;
         })
         .map([this](std::vector<Term*> ts) {
@@ -760,7 +751,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       });
     // collect contexts for single-literal induction with given clause
     auto indCtxSingle = iterTraits(getSTLIterator(ta_terms.begin(), ta_terms.end()))
-      .map([&lit,&premise](pair<std::vector<Term*>,std::set<pair<const InductionTemplate*,std::vector<Term*>>>> arg) {
+      .map([&lit,&premise](const auto& arg) {
         return InductionContext(arg.first, lit, premise);
       })
       // generalize all contexts if needed
@@ -804,8 +795,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           }
         }
         if (rec) {
-          for (const auto& kv : ta_terms.at(ctx._indTerms)) {
-            performRecursionInduction(ctx, kv.first, kv.second, e);
+          for (const auto& [templ, typeArgs] : ta_terms.at(ctx._indTerms)) {
+            performRecursionInduction(ctx, templ, typeArgs, e);
           }
         }
       }
