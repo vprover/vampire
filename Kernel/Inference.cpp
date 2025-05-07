@@ -738,6 +738,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "inner rewriting";
   case InferenceRule::CONDENSATION:
     return "condensation";
+  case InferenceRule::ALASCA_SYMBOL_ELIMINATION:
+    return "alasca symbol elimination";
   case InferenceRule::ALASCA_INTEGER_TRANSFORMATION:
     return "alasca integer transformation";
   case InferenceRule::THEORY_NORMALIZATION:

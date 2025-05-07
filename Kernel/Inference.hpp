@@ -198,6 +198,7 @@ enum class InferenceRule : unsigned char {
   /** normalizing inference */
   THEORY_NORMALIZATION,
   ALASCA_INTEGER_TRANSFORMATION,
+  ALASCA_SYMBOL_ELIMINATION,
   /** skolemization */
   SKOLEMIZE,
   /** obtain clause from a formula */

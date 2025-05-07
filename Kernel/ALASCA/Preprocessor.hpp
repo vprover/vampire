@@ -15,23 +15,24 @@
 #define __ALASCA_Preprocessor__
 
 #include "Kernel/ALASCA/Normalization.hpp"
+#include "Kernel/Connective.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
+#include "Inferences/ALASCA/Normalization.hpp"
 #include "Kernel/Theory.hpp"
+#include "Shell/FOOLElimination.hpp"
 
 #define DEBUG_TRANSLATION(...) // DBG(__VA_ARGS__)
 
 namespace Kernel {
 
-class AlascaPreprocessor 
+class AlascaIntegerTransformation 
 {
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
   // all the functions func_R where func is an integer function
-  Set<unsigned> _intFuncThatWsTransformedToRealFunc;
-  // TODO create option for this
-  bool _useFloor = false;
+  Set<unsigned> _intFuncThatWasTransformedToRealFunc;
 
   using Z = IntTraits;
   using R = RealTraits;
@@ -67,9 +68,8 @@ class AlascaPreprocessor
   {
     return BottomUpEvaluation<TypedTermList, TermList>()
       .function([this](TypedTermList t, TermList* args) -> TermList {
-          auto wrapFloor = _useFloor && t.sort() == IntTraits::sort();
           if (t.isVar()) {
-            return wrapFloor ?  RealTraits::floor(t) : t;
+            return t.sort() == IntTraits::sort() ?  RealTraits::floor(t) : t;
           } else {
             auto f = t.term()->functor();
             if (t.sort() == AtomicSort::superSort()) {
@@ -80,15 +80,16 @@ class AlascaPreprocessor
               auto quotF = [](auto l, auto r) { return R::floor(R::div(l,r)); };
               if (IntTraits::isToReal(f) || IntTraits::isToInt(f) || RealTraits::isToReal(f)) {
                 return args[0];
-              } else if (Z::isRemainderF(f) || R::isRemainderF(f)) {
-                return rem(quotF,args[0], args[1]);
+
               } else if (Z::isQuotientF(f) || R::isQuotientF(f)) {
                 return quotF(args[0], args[1]);
+
               } else if (R::isToInt(f)) {
                 return TermList(RealTraits::floor(args[0]));
+
               } else {
                 auto out = TermList(Term::create(this->integerFunctionConversion(f), t.term()->arity(), args));
-                return wrapFloor ? RealTraits::floor(out) : out;
+                return out;
               }
             }
           }
@@ -111,7 +112,6 @@ class AlascaPreprocessor
 
   unsigned integerPredicateConversion(unsigned f)
   {
-
     return _preds.getOrInit(f, [&]() { 
       using Z = IntTraits;
       using R = RealTraits;
@@ -132,14 +132,16 @@ class AlascaPreprocessor
         return out;
       };
       Recycled<Stack<TermList>> arg_sorts;
-      for (auto i : range(0, ty->arity())) {
-        arg_sorts->push(intConv(ty->arg(i)));
+      for (auto i : range(0, ty->numTermArguments())) {
+        arg_sorts->push(intConv(ty->termArg(i)));
       }
+
       if (sorts_changed) {
         auto name = sym->name() + "_R";
         unsigned nf = env.signature->addFreshPredicate2(sym->arity(), name.c_str());
+
         auto nsym = env.signature->getPredicate(nf);
-        auto nty = OperatorType::getPredicateType(sym->arity(), arg_sorts->begin(), ty->numTypeArguments());
+        auto nty = OperatorType::getPredicateType(arg_sorts->size(), arg_sorts->begin(), ty->numTypeArguments());
         nsym->setType(nty);
         DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
         return nf;
@@ -161,8 +163,6 @@ class AlascaPreprocessor
       // TODO 
 #define ASS_NOT(itp) ASS(!theory->isInterpretedFunction(f, itp))
       ASS_NOT(Theory::INT_SUCCESSOR)
-      ASS_NOT(Theory::INT_QUOTIENT_T)
-      ASS_NOT(Theory::INT_REMAINDER_T)
       ASS_NOT(Theory::INT_CEILING)
       ASS_NOT(Theory::INT_TRUNCATE)
       ASS_NOT(Theory::INT_ROUND)
@@ -173,31 +173,32 @@ class AlascaPreprocessor
       TRANSLATE_ARRAY(Function, fnType, Theory::ARRAY_STORE)
 
       auto sorts_changed = false;
+      auto sym = env.signature->getFunction(f);
+      auto ty = sym->fnType();
+
       auto intConv= [&](auto x) { 
         auto out = integerConversion(TypedTermList(x, AtomicSort::superSort())); 
         sorts_changed |= out != x;
         return out;
       };
-
-      auto sym = env.signature->getFunction(f);
-      auto ty = sym->fnType();
       Recycled<Stack<TermList>> sorts;
-      for (auto i : range(0, ty->arity())) {
-        sorts->push(intConv(ty->arg(i)));
+      for (auto i : range(0, ty->numTermArguments())) {
+        sorts->push(intConv(ty->termArg(i)));
       }
       auto res_sort = intConv(ty->result());
       if (sorts_changed) {
         auto name = sym->name() + "_R";
         unsigned nf = env.signature->addFreshFunction2(sym->arity(), name.c_str());
-        _intFuncThatWsTransformedToRealFunc.insert(nf);
+        _intFuncThatWasTransformedToRealFunc.insert(nf);
         auto nsym = env.signature->getFunction(nf);
-        auto nty = OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments());
+        auto nty = OperatorType::getFunctionType(sorts->size(), sorts->begin(), res_sort, ty->numTypeArguments());
         nsym->setType(nty);
         DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
         return nf;
       } else {
         return f;
       }
+
     });
   }
 
@@ -215,7 +216,7 @@ class AlascaPreprocessor
         return false;
       }
     } else {
-      return R::isFloor(t) || _intFuncThatWsTransformedToRealFunc.contains(t->functor());
+      return R::isFloor(t) || _intFuncThatWasTransformedToRealFunc.contains(t->functor());
     }
   }
 
@@ -235,18 +236,6 @@ class AlascaPreprocessor
       auto l = InequalityNormalizer::normalize(l_).toLiteral();
       auto ll = integerConversion(l);
       change |= ll != l;
-      if (!_useFloor) {
-        if (l->isEquality() && l->eqArgSort() == Z::sort()) {
-          ASS(ll->isEquality() && ll->eqArgSort() == R::sort() && change)
-          res->loadFromIterator(termArgIter(ll)
-              .filterMap([&](auto x) { return notInt(x); }));
-        } else if (l->functor() != ll->functor() && theory->isInterpretedPredicate(ll->functor())) {
-          ASS(ll->arity() == l->arity())
-          res->loadFromIterator(range(0, l->numTermArguments())
-              .filter([&](auto i) { return SortHelper::getTermArgSort(l, i) == Z::sort(); })
-              .filterMap([&](auto i) { return notInt(ll->termArg(i)); }));
-        }
-      }
       res->push(ll);
     }
     if (change) {
@@ -257,13 +246,13 @@ class AlascaPreprocessor
   }
 
   Unit* integerConversion(Unit* unit) {
-    ASS_REP(unit->isClause(), "integer conversion needs to be performed after clausification because we don't wanna deal with FOOL & friends here")
+    ASS_REP(unit->isClause(), Output::cat("integer conversion needs to be performed after clausification because we don't wanna deal with FOOL & friends here\n", *unit))
     return (Unit*)integerConversion(static_cast<Clause*>(unit));
   }
 public:
 
 
-  AlascaPreprocessor() 
+  AlascaIntegerTransformation() 
     : _preds()
     , _funcs() {}
 
@@ -272,7 +261,7 @@ public:
     for (auto& unit : iterTraits(prb.units()->iter())) {
       unit = integerConversion(unit);
     }
-    if (!_useFloor) {
+    // if (!_useFloor) {
       for (auto& func : iterTraits(_funcs.iter())) {
         auto orig_sym = env.signature->getFunction(func.key());
         if (!theory->isInterpretedFunction(func.value()) 
@@ -289,22 +278,23 @@ public:
           }
         }
       }
-    }
+    // }
     
   }
 };
 
+/** preprocessing step that replaces eliminates symbols that can be inter-defined in alasca. e.g. $ceiling(x) ==> -$floor(-x) */
 class AlascaSymbolElimination 
 {
   bool _addedITE = false;
   using Z = IntTraits;
   // TODO
-  static constexpr InferenceRule INF_RULE = InferenceRule::ALASCA_INTEGER_TRANSFORMATION;
+  static constexpr InferenceRule INF_RULE = InferenceRule::ALASCA_SYMBOL_ELIMINATION;
 
   Literal* proc(Literal* lit)
   {
     auto impl = [this,origLit = lit]() { 
-      Literal* lit = InequalityNormalizer::normalize(origLit).toLiteral();
+      Literal* lit = origLit;
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
         return Literal::createEquality(lit->polarity(), 
@@ -329,34 +319,89 @@ class AlascaSymbolElimination
   }
 
   TermList transformSubterm(TermList t) {
-    if (t.isTerm()) {
-      ASS(!t.term()->isLiteral())
-      t = InequalityNormalizer::normalize(TypedTermList(t.term())).toTerm();
-    }
     if (!t.isTerm()) return t;
     if (t.term()->isSpecial()) return t;
     auto &trm = *t.term();
 
-    auto ite = [](auto c, auto x, auto y) {
-      return TermList(Term::createITE(new AtomicFormula(c), x, y, Z::sort()));
+    auto lit = [](auto c) { return new AtomicFormula(c); };
+    auto conj = [](auto... cs) { return new JunctionFormula(Connective::AND, FormulaList::fromIterator(iterItems<Formula*>(cs...))); };
+    auto iff = [](auto l, auto r) { return new BinaryFormula(Connective::IFF, l, r); };
+    auto neg = [](auto f) { return new NegatedFormula(f); };
+
+    auto ite = [this](auto c, auto x, auto y) 
+    { 
+      _addedITE = true;
+      return TermList(Term::createITE(c, x, y, Z::sort())); };
+
+    auto eq = [&](auto l, auto r) { return lit(Z::eq(true, l, r)); };
+    auto gt = [&](auto l, auto r) { return lit(Z::greater(true, l, r)); };
+
+    auto quotientF = [&](auto a, auto b) {
+      return Z::quotientF(a, b);
+    };    
+
+    auto quotientE = [&](auto a, auto b) {
+      return ite(gt(b, Z::zero()), 
+              /* if ( (a > 0) == (b > 0) ) ==>  quotientF( a,b) */          Z::quotientF(a, b),
+              /* else                          -quotientF(-a,b) */ Z::minus(Z::quotientF(Z::minus(a), b)));
+    };    
+
+    auto quotientT = [&](auto a, auto b) {
+      return ite(iff(gt(a, Z::zero()), gt(b, Z::zero())), 
+               /* if ( (a > 0) == (b > 0) ) ==>  quotientF( a,b) */ Z::quotientF(a, b),
+               /* else                      ==> -quotientF(-a,b) */ Z::minus(Z::quotientF(Z::minus(a), b))
+      );
     };
-    auto transQuotientE = [&]() {
-      return ite(Z::greater(true, trm.termArg(1),  Z::constantTl(0)), Z::quotientF(trm.termArg(0), trm.termArg(1)),
-             ite(Z::less(true, trm.termArg(1), Z::constantTl(0)), Z::minus(Z::quotientF(Z::minus(trm.termArg(0)), trm.termArg(1))),
-              Z::quotientE(trm.termArg(0), Z::zero())
-      ));
+
+    auto rem = [&](auto quot) {
+      // quot(a,b) * b + rem(a,b) = a
+      // rem(a,b) = a - quot(a,b) * b
+      return [=](auto a, auto b) {
+        return Z::add(a, Z::minus(Z::mul(b, quot(a,b))));
+      };
     };
+
+    auto transQR = [&](auto quot, auto origF, auto a, auto b) {
+      return ite(eq(b, Z::zero()), origF(a, Z::zero())
+                                 , quot(a,b));
+    };
+
     if (Z::isQuotientE(t) && trm.termArg(1) != Z::zero()) {
-      _addedITE = true;
-      return transQuotientE();
+      return transQR(quotientE, Z::quotientE, trm.termArg(0), trm.termArg(1));
+
     } else if (Z::isRemainderE(t)) {
-      _addedITE = true;
-      // quot * arg[1] + rem = arg[0]
-      // rem = arg[0] - quot * arg[1]
-      return Z::add(trm.termArg(0), Z::minus(Z::mul(trm.termArg(1), transQuotientE())));
-    } else {
-      return t;
+      return transQR(rem(quotientE), Z::remainderE, trm.termArg(0), trm.termArg(1));
+
+    } else if (Z::isQuotientT(t) && trm.termArg(1) != Z::zero()) {
+      return transQR(quotientT, Z::quotientT, trm.termArg(0), trm.termArg(1));
+
+    } else if (Z::isRemainderT(t)) {
+      return transQR(rem(quotientT), Z::remainderT, trm.termArg(0), trm.termArg(1));
+
+
+    } else if (Z::isRemainderF(t)) {
+      return transQR(rem(quotientF), Z::remainderF, trm.termArg(0), trm.termArg(1));
     }
+
+    auto numRes = forAnyNumTraits([&](auto n) -> Option<TermList> {
+
+      if (n.isTruncate(t)) {
+        auto arg = t.term()->termArg(0);
+        return some(ite(lit(n.geq(true, arg, n.zero())),
+              n.floor(arg),
+              n.minus(n.floor(n.minus(arg)))
+        ));
+
+      } else if (n.isCeiling(t)) {
+        return some(n.minus(n.floor(n.minus(t.term()->termArg(0)))));
+
+      } else {
+        return {};
+      }
+
+    });
+    if (numRes) return *numRes;
+    return t;
   }
 
   TermList proc(TypedTermList t) 
@@ -388,18 +433,6 @@ class AlascaSymbolElimination
     { return _self.transformSubterm(t); }
   };
 
-  // struct FormulaTransformer : public TermTransformingFormulaTransformer {
-  //   FormulaTransformer(TermTrans& inner) : TermTransformingFormulaTransformer(inner) {}
-  //
-  //   virtual Formula* applyLiteral(Formula* f) override 
-  //   {
-  //     Literal* lit = InequalityNormalizer::normalize(f->literal()).toLiteral();
-  //     Literal* res = _termTransformer.transformLiteral(lit);
-  //     if(lit==res) { return f; }
-  //     return new AtomicFormula(res);
-  //   }
-  // };
-
   FormulaUnit* proc(FormulaUnit* unit) 
   { 
     auto trans = TermTrans(*this);
@@ -416,15 +449,25 @@ public:
 
   void proc(Problem& prb)
   {
-    for (auto& unit : iterTraits(prb.units()->iter())) {
-
-      auto newUnit = proc(unit);
-      DEBUG_TRANSLATION(*unit, " ==> ", *newUnit);
-      unit = newUnit;
-    }
+    auto mapClauses = [&prb](auto f) {
+      UnitList* newUnits = nullptr;
+      for (auto& unit : iterTraits(prb.units()->iter())) {
+        ASS(unit->isClause())
+        auto newUnit = f(static_cast<Clause*>(unit));
+        if (unit != newUnit) {
+          DEBUG_TRANSLATION(*unit, " ==> ", Output::ptr(newUnit));
+        }
+        if (newUnit)
+          UnitList::push(newUnit, newUnits);
+      }
+      prb.units() = newUnits;
+    };
+    mapClauses([this](auto cl) { return proc(cl); });
     if (_addedITE) {
       prb.reportFOOLAdded();
+      FOOLElimination().apply(prb);
     }
+    mapClauses([](auto cl) { return Inferences::ALASCA::Normalization().simplify(cl); });
   }
 };
 

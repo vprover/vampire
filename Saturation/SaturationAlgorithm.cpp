@@ -1603,7 +1603,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
     // TODO properly create an option for that, make it a simplifying rule
     ise->addFront(new ALASCA::TautologyDeletion(shared));
-    ise->addFront(new ALASCA::Normalization(shared));
+    ise->addFront(new ALASCA::Normalization());
     // TODO check when the other one is better
     if (env.options->viras()) {
       ise->addFrontMany(new ALASCA::VirasQuantifierEliminationISE(shared));
