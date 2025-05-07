@@ -14,6 +14,7 @@
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "Signature.hpp"
+#include "Lib/TypeList.hpp"
 
 namespace Kernel {
 
@@ -146,6 +147,11 @@ struct NumTraits;
     static auto if ## Name(TermList t, F fun) {                                           \
       return someIf(t.isTerm(), [&]() { return if ## Name(t.term(), fun); }).flatten();   \
     }                                                                                     \
+    template<class TermOrTermList>                                                        \
+    static auto try ## Name(TermOrTermList t) {                                           \
+      return if ## Name(t, [](IMPL_NUM_TRAITS__ARG_DECL(TermList, arity))                 \
+          { return std::make_tuple(IMPL_NUM_TRAITS__ARG_EXPR(arity)); });                 \
+    }                                                                                     \
                                                                                           \
     static TermList name(IMPL_NUM_TRAITS__ARG_DECL(TermList, arity)) {                    \
       return TermList(                                                                    \
@@ -222,6 +228,10 @@ struct NumTraits;
       }                                                                                   \
     };                                                                                    \
                                                                                           \
+    static bool isEq(Literal* lit)                                                        \
+    { return lit->isEquality()                                                            \
+          && (lit->eqArgSort() == sort());  }                                             \
+                                                                                          \
     static bool isEq(bool positive, Literal* lit)                                         \
     { return (lit->isPositive() == positive)                                              \
           && lit->isEquality()                                                            \
@@ -255,6 +265,8 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , Add  , SHORT, _PLUS       , 2)                \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , Mul  , SHORT, _MULTIPLY   , 2)                \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(floor, Floor, SHORT, _FLOOR, 1)                      \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(truncate, Truncate, SHORT, _TRUNCATE, 1)             \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(ceiling, Ceiling, SHORT, _CEILING, 1)             \
     __NUM_TRAITS_IF_FRAC(SHORT,                                                           \
       IMPL_NUM_TRAITS__INTERPRETED_FUN(div, Div, SHORT, _QUOTIENT, 2)                     \
       static ConstantType constant(int num, int den) { return ConstantType(num, den); }   \
@@ -344,7 +356,7 @@ struct NumTraits;
                                                                                           \
     static const char* name() {return #CamelCase;}                                        \
     friend std::ostream& operator<<(std::ostream& out, NumTraits const& self)             \
-    { return out << name(); }                                                            \
+    { return out << name(); }                                                             \
   };                                                                                      \
 
 #define __NUM_TRAITS_IF_FRAC(sort, ...) __NUM_TRAITS_IF_FRAC_ ## sort (__VA_ARGS__)
@@ -375,9 +387,14 @@ IMPL_NUM_TRAITS(Integer , int     , INTEGER , INT )
   macro(Kernel::NumTraits<Kernel::    RealConstantType>)                                  \
   macro(Kernel::NumTraits<Kernel::RationalConstantType>)                                  \
 
+#define NUM_TRAITS_LIST IntTraits, RealTraits, RatTraits
+
 using IntTraits  = NumTraits< IntegerConstantType>;
 using RatTraits  = NumTraits<RationalConstantType>;
 using RealTraits = NumTraits<    RealConstantType>;
+
+
+using NumTraitsList = TypeList::List<IntTraits, RatTraits, RealTraits>;
 
 template<template<class> class Tmplt>
 using NumTraitsCopro = Coproduct<Tmplt<IntTraits>, Tmplt<RatTraits>, Tmplt<RealTraits>>;
