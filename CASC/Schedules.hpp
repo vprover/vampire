@@ -30,7 +30,7 @@ public:
   static void getCasc2024Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCascSat2024Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
-  static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback, bool allowUndefinedLogic);
 
   static void getLtb2017Hh4Schedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017IsaSchedule(const Shell::Property& property, Schedule& sched);
