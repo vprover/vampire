@@ -17,6 +17,7 @@
 /* this translation unit causes the optimiser to take a very long time,
  * but it's not really performance-critical code:
  * disable optimisation for this file with various compilers */
+#include "Shell/SMTLIBLogic.hpp"
 #if defined(__clang__)
 #pragma clang optimize off
 #elif defined(__GNUC__)
@@ -66,9 +67,13 @@ void Schedules::getScheduleFromFile(const std::string& filename, Schedule& quick
 
 // Regex matching the first part of a strategy ([a-z]{3}[\+\-][0-9]+_([0-9]+:){0,1}[0-9]+_)
 
-void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick, Schedule& fallback, bool allowUndefinedLogic)
 {
-  switch (property.getSMTLIBLogic()) {
+  auto logic = property.getSMTLIBLogic();
+  if (logic == SMTLIBLogic::UNDEFINED && allowUndefinedLogic) {
+    logic = SMTLIBLogic::ALL;
+  }
+  switch (logic) {
   case SMTLIBLogic::AUFDTLIA:
   case SMTLIBLogic::AUFDTLIRA: // Add new logic here even though probably not best schedule
   case SMTLIBLogic::AUFDTNIRA: // Add new logic here even though probably not best schedule
