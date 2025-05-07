@@ -151,7 +151,7 @@ void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options
     }
   }
 
-  DHMap<pair<unsigned,SymbolType>,InductionTemplate>::DelIterator tIt(_templates);
+  DHMap<pair<unsigned,SymbolType>,RecursionTemplate>::DelIterator tIt(_templates);
   while (tIt.hasNext()) {
     auto k = tIt.nextKey();
     auto ptr = _templates.findPtr(k);
@@ -168,8 +168,8 @@ void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options
 void FunctionDefinitionHandler::addFunctionBranch(Term* header, TermList body)
 {
   auto fn = header->functor();
-  InductionTemplate* templ;
-  _templates.getValuePtr(make_pair(fn,SymbolType::FUNC), templ, InductionTemplate(header));
+  RecursionTemplate* templ;
+  _templates.getValuePtr(make_pair(fn,SymbolType::FUNC), templ, RecursionTemplate(header));
 
   // handle for induction
   std::vector<Term*> recursiveCalls;
@@ -188,8 +188,8 @@ void FunctionDefinitionHandler::addFunctionBranch(Term* header, TermList body)
 void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const LiteralStack& conditions)
 {
   auto fn = header->functor();
-  InductionTemplate* templ;
-  _templates.getValuePtr(make_pair(fn,SymbolType::PRED), templ, InductionTemplate(header));
+  RecursionTemplate* templ;
+  _templates.getValuePtr(make_pair(fn,SymbolType::PRED), templ, RecursionTemplate(header));
 
   // handle for induction
   std::vector<Term*> recursiveCalls;
@@ -202,17 +202,39 @@ void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const Litera
   templ->addBranch(std::move(recursiveCalls), header);
 }
 
-bool InductionTemplate::finalize()
+bool RecursionTemplate::finalize()
 {
   if (!checkWellFoundedness() || !checkUsefulness()) {
     return false;
   }
 
   checkWellDefinedness();
+
+  // fill out InductionTemplate
+  for (const auto& b : _branches) {
+    TermStack main;
+    for (unsigned i = 0; i < _arity; i++) {
+      if (_indPos[i]) {
+        main.push(*b._header->nthArgument(i));
+      }
+    }
+    Stack<TermStack> hyps;
+    for (const auto& recCall : b._recursiveCalls) {
+      TermStack hyp;
+      for (unsigned i = 0; i < _arity; i++) {
+        if (_indPos[i]) {
+          hyp.push(*recCall->nthArgument(i));
+        }
+      }
+      hyps.push(std::move(hyp));
+    }
+    _templ._cases.push(InductionTemplate::Case(std::move(hyps), std::move(main)));
+  }
+
   return true;
 }
 
-void InductionTemplate::checkWellDefinedness()
+void RecursionTemplate::checkWellDefinedness()
 {
   std::vector<Term*> cases;
   for (auto& b : _branches) {
@@ -245,7 +267,7 @@ void InductionTemplate::checkWellDefinedness()
   }
 }
 
-bool InductionTemplate::matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const
+const InductionTemplate* RecursionTemplate::matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const
 {
   ASS(t->ground());
   inductionTerms.clear();
@@ -256,19 +278,22 @@ bool InductionTemplate::matchesTerm(Term* t, std::vector<Term*>& inductionTerms)
       if (!InductionHelper::isInductionTermFunctor(f) ||
           !InductionHelper::isStructInductionOn() ||
           !InductionHelper::isStructInductionTerm(arg)) {
-        return false;
+        return nullptr;
       }
       auto it = std::find(inductionTerms.begin(),inductionTerms.end(),arg);
       if (it != inductionTerms.end()) {
-        return false;
+        return nullptr;
       }
       inductionTerms.push_back(arg);
     }
   }
-  return !inductionTerms.empty();
+  if (inductionTerms.empty()) {
+    return nullptr;
+  }
+  return &_templ;
 }
 
-bool InductionTemplate::Branch::contains(const InductionTemplate::Branch& other) const
+bool RecursionTemplate::Branch::contains(const RecursionTemplate::Branch& other) const
 {
   RobSubstitution subst;
   if (!subst.match(TermList(_header), 0, TermList(other._header), 1)) {
@@ -299,7 +324,7 @@ bool InductionTemplate::Branch::contains(const InductionTemplate::Branch& other)
   return true;
 }
 
-bool InductionTemplate::checkUsefulness() const
+bool RecursionTemplate::checkUsefulness() const
 {
   // discard templates without inductive argument positions:
   // this happens either when there are no recursive calls
@@ -313,7 +338,7 @@ bool InductionTemplate::checkUsefulness() const
   return !discard;
 }
 
-bool InductionTemplate::checkWellFoundedness()
+bool RecursionTemplate::checkWellFoundedness()
 {
   std::vector<pair<Term*, Term*>> relatedTerms;
   for (auto& b : _branches) {
@@ -331,13 +356,13 @@ bool InductionTemplate::checkWellFoundedness()
   return InductionPreprocessor::checkWellFoundedness(relatedTerms);
 }
 
-InductionTemplate::InductionTemplate(const Term* t)
+RecursionTemplate::RecursionTemplate(const Term* t)
     : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
     _type(_isLit ? env.signature->getPredicate(_functor)->predType()
                  : env.signature->getFunction(_functor)->fnType()),
     _branches(), _indPos(_arity, false) {}
 
-void InductionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* header)
+void RecursionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* header)
 {
   ASS(header->arity() == _arity && header->isLiteral() == _isLit && header->functor() == _functor);
   Branch branch(std::move(recursiveCalls), std::move(header));
@@ -353,7 +378,7 @@ void InductionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* hea
   _branches.push_back(std::move(branch));
 }
 
-std::string InductionTemplate::toString() const
+std::string RecursionTemplate::toString() const
 {
   std::stringstream str;
   str << "Branches: ";

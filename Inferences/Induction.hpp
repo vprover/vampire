@@ -341,7 +341,7 @@ private:
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution* freeVarSubst);
-  void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const std::vector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
+  void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e);
 
   /**
    * Whether an induction formula is applicable (or has already been generated)

@@ -56,8 +56,8 @@ bool ActiveOccurrenceIterator::hasNext() {
     if (t->ground()) {
       _returnStack.push(t);
     }
-    const InductionTemplate* templ = _fnDefHandler.getInductionTemplate(t);
-    const vector<bool>* actPos = templ ? &templ->inductionPositions() : nullptr;
+    auto templ = _fnDefHandler.getRecursionTemplate(t);
+    auto actPos = templ ? &templ->inductionPositions() : nullptr;
     for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
       if ((!actPos || (*actPos)[i]) && t->nthArgument(i)->isTerm()) {
         _processStack.push(t->nthArgument(i)->term());
@@ -284,7 +284,7 @@ InductionContext ActiveOccurrenceContextReplacement::next()
         auto kv = stack.pop();
         auto t = kv.first;
         auto active = kv.second;
-        auto templ = _fnDefHandler.getInductionTemplate(t);
+        auto templ = _fnDefHandler.getRecursionTemplate(t);
         for (unsigned k = 0; k < t->arity(); k++) {
           if (t->nthArgument(k)->isTerm()) {
             stack.push(make_pair(t->nthArgument(k)->term(),
@@ -613,19 +613,16 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 
   if (lit->ground()) {
       Set<Term*,SharedTermHash> int_terms;
-      typedef std::set<pair<const InductionTemplate*,std::vector<Term*>>> TemplateTypeArgsSet;
+      typedef std::set<const InductionTemplate*> TemplateTypeArgsSet;
       std::map<std::vector<Term*>,TemplateTypeArgsSet> ta_terms;
 
-      auto templ = _fnDefHandler.getInductionTemplate(lit);
-      if (templ) {
+      auto rtempl = _fnDefHandler.getRecursionTemplate(lit);
+      if (rtempl) {
         std::vector<Term*> indTerms;
-        if (templ->matchesTerm(lit, indTerms)) {
-          std::vector<Term*> typeArgs;
-          for (unsigned i = 0; i < lit->numTypeArguments(); i++) {
-            typeArgs.push_back(lit->nthArgument(i)->term());
-          }
+        auto templ = rtempl->matchesTerm(lit, indTerms);
+        if (templ) {
           auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
-          it->second.emplace(templ, std::move(typeArgs));
+          it->second.emplace(templ);
         }
       }
 
@@ -649,16 +646,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             int_terms.insert(t);
           }
         }
-        auto templ = _fnDefHandler.getInductionTemplate(t);
-        if (templ) {
+        auto rtempl = _fnDefHandler.getRecursionTemplate(t);
+        if (rtempl) {
           std::vector<Term*> indTerms;
-          if (templ->matchesTerm(t, indTerms)) {
-            std::vector<Term*> typeArgs;
-            for (unsigned i = 0; i < t->numTypeArguments(); i++) {
-              typeArgs.push_back(t->nthArgument(i)->term());
-            }
+          auto templ = rtempl->matchesTerm(t, indTerms);
+          if (templ) {
             auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
-            it->second.emplace(templ, std::move(typeArgs));
+            it->second.emplace(templ);
           }
         }
       }
@@ -795,8 +789,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           }
         }
         if (rec) {
-          for (const auto& [templ, typeArgs] : ta_terms.at(ctx._indTerms)) {
-            performRecursionInduction(ctx, templ, typeArgs, e);
+          for (const auto& templ : ta_terms.at(ctx._indTerms)) {
+            performRecursionInduction(ctx, templ, e);
           }
         }
       }
@@ -1567,40 +1561,47 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
   e->add(std::move(cls), std::move(subst));
 }
 
-void InductionClauseIterator::performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const std::vector<Term*>& typeArgs, InductionFormulaIndex::Entry* e)
+std::vector<TermList> instantiateTypes(const std::vector<Term*>& indTerms, const TermStack& terms)
+{
+  ASS_EQ(indTerms.size(), terms.size());
+  std::vector<TermList> res;
+  for (unsigned i = 0; i < indTerms.size(); i++) {
+    if (terms[i].isVar()) {
+      res.push_back(terms[i]);
+    } else {
+      auto indTermSort = SortHelper::getResultSort(indTerms[i]);
+      auto termSort = SortHelper::getResultSort(terms[i].term());
+
+      static MatchingUtils::MapBinderAndApplicator binder;
+      binder.reset();
+      ALWAYS(MatchingUtils::matchTerms(termSort, indTermSort, binder));
+
+      res.push_back(SubstHelper::apply(terms[i], binder));
+    }
+  }
+  return res;
+}
+
+void InductionClauseIterator::performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e)
 {
   unsigned var = 0;
   FormulaList* formulas = FormulaList::empty();
   std::vector<TermList> ts(context._indTerms.size(), TermList());
-  auto& indPos = templ->inductionPositions();
-  auto header = templ->branches().begin()->_header;
-  Substitution typeSubst;
-  ASS_EQ(typeArgs.size(),header->numTypeArguments());
-  for (unsigned i = 0; i < header->numTypeArguments(); i++) {
-    auto arg = *header->nthArgument(i);
-    ASS(arg.isVar());
-    typeSubst.bind(arg.var(),typeArgs[i]);
-  }
 
-  for (const auto& b : templ->branches()) {
+  for (const auto& b : templ->_cases) {
+    ts = instantiateTypes(context._indTerms, b._main);
     Renaming rn(var);
-    rn.normalizeVariables(b._header);
-    auto header = rn.apply(b._header->apply(typeSubst));
-    unsigned j = 0;
-    for (unsigned i = 0; i < header->arity(); i++) {
-      if (indPos[i]) {
-        ts[j++] = *header->nthArgument(i);
-      }
+    for (auto& t : ts) {
+      rn.normalizeVariables(t);
+      t = rn.apply(t);
     }
     auto right = context.getFormula(ts, true);
     FormulaList* hyps = FormulaList::empty();
-    for (const auto& r : b._recursiveCalls) {
-      j = 0;
-      auto rr = rn.apply(r->apply(typeSubst));
-      for (unsigned i = 0; i < rr->arity(); i++) {
-        if (indPos[i]) {
-          ts[j++] = *rr->nthArgument(i);
-        }
+    for (const auto& hyp : b._hyps) {
+      ts = instantiateTypes(context._indTerms, hyp);
+      for (auto& t : ts) {
+        rn.normalizeVariables(t);
+        t = rn.apply(t);
       }
       FormulaList::push(context.getFormula(ts,true),hyps);
     }
@@ -1612,7 +1613,7 @@ void InductionClauseIterator::performRecursionInduction(const InductionContext& 
   Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
   Substitution subst;
   for (auto& t : ts) {
-    t = TermList(var++,false);
+    t = TermList::var(var++);
   }
   auto conclusion = context.getFormula(ts, true, &subst);
   Formula* hypothesis = new BinaryFormula(Connective::IMP, Formula::quantify(indPremise), Formula::quantify(conclusion));
