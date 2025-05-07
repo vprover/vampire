@@ -616,14 +616,11 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       typedef std::set<const InductionTemplate*> TemplateTypeArgsSet;
       std::map<std::vector<Term*>,TemplateTypeArgsSet> ta_terms;
 
-      auto rtempl = _fnDefHandler.getRecursionTemplate(lit);
-      if (rtempl) {
-        std::vector<Term*> indTerms;
-        auto templ = rtempl->matchesTerm(lit, indTerms);
-        if (templ) {
-          auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
-          it->second.emplace(templ);
-        }
+      std::vector<Term*> indTerms;
+      auto templ = _fnDefHandler.matchesTerm(lit, indTerms);
+      if (templ) {
+        auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
+        it->second.emplace(templ);
       }
 
       VirtualIterator<Term*> it;
@@ -646,14 +643,11 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             int_terms.insert(t);
           }
         }
-        auto rtempl = _fnDefHandler.getRecursionTemplate(t);
-        if (rtempl) {
-          std::vector<Term*> indTerms;
-          auto templ = rtempl->matchesTerm(t, indTerms);
-          if (templ) {
-            auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
-            it->second.emplace(templ);
-          }
+        std::vector<Term*> indTerms;
+        auto templ = _fnDefHandler.matchesTerm(t, indTerms);
+        if (templ) {
+          auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
+          it->second.emplace(templ);
         }
       }
 
@@ -1310,54 +1304,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
   ASS_EQ(context._indTerms.size(), 1);
   TermList sort = SortHelper::getResultSort(context._indTerms[0]);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-  unsigned numTypeArgs = sort.term()->arity();
-
-  FormulaList* formulas = FormulaList::empty();
-
-  unsigned var = 0;
-
-  // first produce the formula
-  for(unsigned i=0;i<ta->nConstructors();i++){
-    TermAlgebraConstructor* con = ta->constructor(i);
-    unsigned arity = con->arity();
-      TermStack argTerms(arity);
-      argTerms.loadFromIterator(Term::Iterator(sort.term()));
-      TermStack ta_vars;
-      for(unsigned j=numTypeArgs;j<arity;j++){
-        TermList x(var,false);
-        var++;
-        if(con->argSort(j) == con->rangeSort()){
-          ta_vars.push(x);
-        }
-        argTerms.push(x);
-      }
-      // if hypothesis strengthening is on, this replaces the Skolems with fresh variables
-      auto right = context.getFormulaWithSquashedSkolems(
-        { TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())) }, true, var);
-      FormulaList* args = FormulaList::empty();
-      TermStack::Iterator tvit(ta_vars);
-      while(tvit.hasNext()){
-        auto hypVars = VList::empty();
-        auto hyp = context.getFormulaWithSquashedSkolems({ tvit.next() },true,var,&hypVars);
-        // quantify each hypotheses with variables replacing Skolems explicitly
-        if (hypVars) {
-          hyp = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), hyp);
-        }
-        FormulaList::push(hyp,args);
-      }
-      FormulaList::push(args ?
-        new BinaryFormula(Connective::IMP,JunctionFormula::generalJunction(Connective::AND,args),right) : right, formulas);
-  }
-  ASS(formulas);
-  Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
-  Substitution subst;
-  auto conclusion = context.getFormulaWithSquashedSkolems({ TermList(var++,false) }, true, var, nullptr, &subst);
-  Formula* hypothesis = new BinaryFormula(Connective::IMP,
-                            Formula::quantify(indPremise),
-                            Formula::quantify(conclusion));
-
-  auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE, context);
-  e->add(std::move(cls), std::move(subst));
+  performRecursionInduction(context, ta->getInductionTemplate(), e);
 }
 
 /**
@@ -1561,13 +1508,16 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
   e->add(std::move(cls), std::move(subst));
 }
 
-std::vector<TermList> instantiateTypes(const std::vector<Term*>& indTerms, const TermStack& terms)
+std::vector<TermList> instantiateTypesAndRename(const std::vector<Term*>& indTerms, const TermStack& terms, Renaming& r)
 {
   ASS_EQ(indTerms.size(), terms.size());
   std::vector<TermList> res;
-  for (unsigned i = 0; i < indTerms.size(); i++) {
+  for (unsigned i = 0; i < indTerms.size(); i++)
+  {
+    ASS(indTerms[i]->ground());
+
     if (terms[i].isVar()) {
-      res.push_back(terms[i]);
+      res.push_back(r.apply(terms[i]));
     } else {
       auto indTermSort = SortHelper::getResultSort(indTerms[i]);
       auto termSort = SortHelper::getResultSort(terms[i].term());
@@ -1576,7 +1526,7 @@ std::vector<TermList> instantiateTypes(const std::vector<Term*>& indTerms, const
       binder.reset();
       ALWAYS(MatchingUtils::matchTerms(termSort, indTermSort, binder));
 
-      res.push_back(SubstHelper::apply(terms[i], binder));
+      res.push_back(r.apply(SubstHelper::apply(terms[i], binder)));
     }
   }
   return res;
@@ -1588,26 +1538,34 @@ void InductionClauseIterator::performRecursionInduction(const InductionContext& 
   FormulaList* formulas = FormulaList::empty();
   std::vector<TermList> ts(context._indTerms.size(), TermList());
 
-  for (const auto& b : templ->_cases) {
-    ts = instantiateTypes(context._indTerms, b._main);
+  for (const auto& b : templ->cases) {
+    // first normalize variables to fresh ones
     Renaming rn(var);
-    for (auto& t : ts) {
+    for (const auto& t : b.main) {
       rn.normalizeVariables(t);
-      t = rn.apply(t);
     }
-    auto right = context.getFormula(ts, true);
-    FormulaList* hyps = FormulaList::empty();
-    for (const auto& hyp : b._hyps) {
-      ts = instantiateTypes(context._indTerms, hyp);
-      for (auto& t : ts) {
+    for (const auto& hyp : b.hyps) {
+      for (const auto& t : hyp) {
         rn.normalizeVariables(t);
-        t = rn.apply(t);
       }
-      FormulaList::push(context.getFormula(ts,true),hyps);
+    }
+    var = rn.nextVar();
+
+    ts = instantiateTypesAndRename(context._indTerms, b.main, rn);
+    auto right = context.getFormulaWithSquashedSkolems(ts, true, var);
+    FormulaList* hyps = FormulaList::empty();
+    for (const auto& hyp : b.hyps) {
+      ts = instantiateTypesAndRename(context._indTerms, hyp, rn);
+      auto hypVars = VList::empty();
+      auto hypF = context.getFormulaWithSquashedSkolems(ts, true, var, &hypVars);
+      // quantify each hypotheses with variables replacing Skolems explicitly
+      if (hypVars) {
+        hypF = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), hypF);
+      }
+      FormulaList::push(hypF, hyps);
     }
     FormulaList::push(hyps ?
       new BinaryFormula(Connective::IMP,JunctionFormula::generalJunction(Connective::AND,hyps),right) : right, formulas);
-    var = rn.nextVar();
   }
   ASS(formulas);
   Formula* indPremise = JunctionFormula::generalJunction(Connective::AND,formulas);
@@ -1615,10 +1573,10 @@ void InductionClauseIterator::performRecursionInduction(const InductionContext& 
   for (auto& t : ts) {
     t = TermList::var(var++);
   }
-  auto conclusion = context.getFormula(ts, true, &subst);
+  auto conclusion = context.getFormulaWithSquashedSkolems(ts, true, var, nullptr, &subst);
   Formula* hypothesis = new BinaryFormula(Connective::IMP, Formula::quantify(indPremise), Formula::quantify(conclusion));
 
-  auto cls = produceClauses(hypothesis, InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION, context);
+  auto cls = produceClauses(hypothesis, templ->rule, context);
   e->add(std::move(cls), std::move(subst));
 }
 

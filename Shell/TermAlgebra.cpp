@@ -235,6 +235,30 @@ void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
   }
 }
 
+const InductionTemplate* TermAlgebra::getInductionTemplate()
+{
+  if (!_indTempl) {
+    _indTempl = new InductionTemplate(InferenceRule::STRUCT_INDUCTION_AXIOM_ONE);
+    unsigned var = 0;
+    iterCons()
+      .forEach([&](const auto& cons) {
+        Stack<TermStack> hyps;
+        TermStack args;
+        for (unsigned i = 0; i < cons->arity(); i++) {
+          args.push(TermList::var(var++));
+          if (cons->argSort(i) == cons->rangeSort()) {
+            hyps.push({ args.top() });
+          }
+        }
+        _indTempl->cases.push(InductionTemplate::Case(
+          std::move(hyps),
+          { TermList(Term::create(cons->functor(),(unsigned)args.size(), args.begin())) }
+        ));
+      });
+  }
+  return _indTempl;
+}
+
 void TermAlgebra::excludeTermFromAvailables(TermStack& availables, TermList e, unsigned& var)
 {
   ASS(e.isTerm() && !e.term()->isLiteral());

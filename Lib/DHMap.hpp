@@ -171,6 +171,18 @@ public:
   }
 
   /**
+   * const version of findPtr.
+   */
+  const Val* findPtr(Key key) const
+  {
+    const Entry* e=findEntry(key);
+    if(!e) {
+      return nullptr;
+    }
+    return &e->_val;
+  }
+
+  /**
    *  Return value associated with given key. A pair with
    *  this key has to be present.
    */

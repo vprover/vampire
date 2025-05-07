@@ -17,6 +17,8 @@
  
 #include "Lib/Stack.hpp"
 
+#include "Kernel/Inference.hpp"
+
 namespace Kernel {
 
 /**
@@ -25,14 +27,16 @@ namespace Kernel {
  */
 struct InductionTemplate
 {
+  InductionTemplate(InferenceRule rule) : rule(rule) {}
   struct Case {
     Case(Stack<TermStack>&& hyps, TermStack&& main)
-      : _hyps(hyps), _main(main) {}
+      : hyps(hyps), main(main) {}
 
-    Stack<TermStack> _hyps;
-    TermStack _main;
+    Stack<TermStack> hyps;
+    TermStack main;
   };
-  Stack<Case> _cases;
+  Stack<Case> cases;
+  InferenceRule rule;
 };
 
 }

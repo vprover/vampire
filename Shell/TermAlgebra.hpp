@@ -15,11 +15,13 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Set.hpp"
 
-using Kernel::TermList;
+#include "Kernel/InductionTemplate.hpp"
+#include "Kernel/OperatorType.hpp"
+
+using namespace Kernel;
 
 namespace Shell {
   class TermAlgebraConstructor {
@@ -99,7 +101,6 @@ namespace Shell {
     TermAlgebra(TermList sort,
                 std::initializer_list<TermAlgebraConstructor*> constrs,
                 bool allowsCyclicTerms = false);
-    ~TermAlgebra() {}
 
     unsigned nTypeArgs() const { return _sort.term()->arity(); }
     unsigned nConstructors() const { return _n; }
@@ -155,6 +156,7 @@ namespace Shell {
     std::string getSubtermPredicateName();
     unsigned getSubtermPredicate();
     void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
+    const InductionTemplate* getInductionTemplate();
 
     /**
      * Given a set of (possibly variable) term algebra terms in @b availables
@@ -169,6 +171,7 @@ namespace Shell {
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;
+    InductionTemplate* _indTempl;
   };
 }
 

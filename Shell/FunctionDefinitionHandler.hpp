@@ -36,13 +36,12 @@ using namespace Lib;
  * which are not variables in some branch.
  */
 struct RecursionTemplate {
-  RecursionTemplate() = default;
+  RecursionTemplate() : _templ(InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION) {}
   RecursionTemplate(const Term* t);
 
   void addBranch(std::vector<Term*>&& recursiveCalls, Term* header);
   bool finalize();
   const std::vector<bool>& inductionPositions() const { return _indPos; }
-  const InductionTemplate* matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const;
 
   /**
    * Stores the template for a recursive case
@@ -62,6 +61,7 @@ struct RecursionTemplate {
   };
 
   const std::vector<Branch>& branches() const { return _branches; }
+  const InductionTemplate* templ() const { return &_templ; }
 
   std::string toString() const;
 
@@ -105,11 +105,13 @@ public:
     return _is->getGeneralizations(t, true);
   }
 
-  const RecursionTemplate* getRecursionTemplate(Term* t) {
+  const RecursionTemplate* getRecursionTemplate(Term* t) const {
     auto fn = t->functor();
     auto st = t->isLiteral() ? SymbolType::PRED : SymbolType::FUNC;
     return _templates.findPtr(std::make_pair(fn, st));
   }
+
+  const InductionTemplate* matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const;
 
 private:
   ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;

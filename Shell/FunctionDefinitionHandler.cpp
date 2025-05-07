@@ -202,6 +202,39 @@ void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const Litera
   templ->addBranch(std::move(recursiveCalls), header);
 }
 
+const InductionTemplate* FunctionDefinitionHandler::matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const
+{
+  ASS(t->ground());
+
+  auto rtempl = getRecursionTemplate(t);
+  if (!rtempl) {
+    return nullptr;
+  }
+
+  inductionTerms.clear();
+  for (unsigned i = 0; i < t->arity(); i++) {
+    auto arg = t->nthArgument(i)->term();
+    auto f = arg->functor();
+    if (!rtempl->inductionPositions()[i]) {
+      continue;
+    }
+    if (!InductionHelper::isInductionTermFunctor(f) ||
+        !InductionHelper::isStructInductionOn() ||
+        !InductionHelper::isStructInductionTerm(arg)) {
+      return nullptr;
+    }
+    auto it = std::find(inductionTerms.begin(),inductionTerms.end(),arg);
+    if (it != inductionTerms.end()) {
+      return nullptr;
+    }
+    inductionTerms.push_back(arg);
+  }
+  if (inductionTerms.empty()) {
+    return nullptr;
+  }
+  return rtempl->templ();
+}
+
 bool RecursionTemplate::finalize()
 {
   if (!checkWellFoundedness() || !checkUsefulness()) {
@@ -228,7 +261,7 @@ bool RecursionTemplate::finalize()
       }
       hyps.push(std::move(hyp));
     }
-    _templ._cases.push(InductionTemplate::Case(std::move(hyps), std::move(main)));
+    _templ.cases.push(InductionTemplate::Case(std::move(hyps), std::move(main)));
   }
 
   return true;
@@ -265,32 +298,6 @@ void RecursionTemplate::checkWellDefinedness()
       cout << ". New template is " << toString() << endl;
     }
   }
-}
-
-const InductionTemplate* RecursionTemplate::matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const
-{
-  ASS(t->ground());
-  inductionTerms.clear();
-  for (unsigned i = 0; i < t->arity(); i++) {
-    auto arg = t->nthArgument(i)->term();
-    auto f = arg->functor();
-    if (_indPos[i]) {
-      if (!InductionHelper::isInductionTermFunctor(f) ||
-          !InductionHelper::isStructInductionOn() ||
-          !InductionHelper::isStructInductionTerm(arg)) {
-        return nullptr;
-      }
-      auto it = std::find(inductionTerms.begin(),inductionTerms.end(),arg);
-      if (it != inductionTerms.end()) {
-        return nullptr;
-      }
-      inductionTerms.push_back(arg);
-    }
-  }
-  if (inductionTerms.empty()) {
-    return nullptr;
-  }
-  return &_templ;
 }
 
 bool RecursionTemplate::Branch::contains(const RecursionTemplate::Branch& other) const
@@ -357,10 +364,11 @@ bool RecursionTemplate::checkWellFoundedness()
 }
 
 RecursionTemplate::RecursionTemplate(const Term* t)
-    : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
-    _type(_isLit ? env.signature->getPredicate(_functor)->predType()
-                 : env.signature->getFunction(_functor)->fnType()),
-    _branches(), _indPos(_arity, false) {}
+  : _templ(InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION),
+  _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
+  _type(_isLit ? env.signature->getPredicate(_functor)->predType()
+                : env.signature->getFunction(_functor)->fnType()),
+  _branches(), _indPos(_arity, false) {}
 
 void RecursionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* header)
 {
