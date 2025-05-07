@@ -19,7 +19,9 @@
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
+#include "Inferences/ALASCA/Normalization.hpp"
 #include "Kernel/Theory.hpp"
+#include "Shell/FOOLElimination.hpp"
 
 #define DEBUG_TRANSLATION(...) // DBG(__VA_ARGS__)
 
@@ -244,7 +246,7 @@ class AlascaIntegerTransformation
   }
 
   Unit* integerConversion(Unit* unit) {
-    ASS_REP(unit->isClause(), "integer conversion needs to be performed after clausification because we don't wanna deal with FOOL & friends here")
+    ASS_REP(unit->isClause(), Output::cat("integer conversion needs to be performed after clausification because we don't wanna deal with FOOL & friends here\n", *unit))
     return (Unit*)integerConversion(static_cast<Clause*>(unit));
   }
 public:
@@ -293,7 +295,6 @@ class AlascaSymbolElimination
   {
     auto impl = [this,origLit = lit]() { 
       Literal* lit = origLit;
-      // Literal* lit = InequalityNormalizer::normalize(origLit).toLiteral();
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
         return Literal::createEquality(lit->polarity(), 
@@ -318,10 +319,6 @@ class AlascaSymbolElimination
   }
 
   TermList transformSubterm(TermList t) {
-    // if (t.isTerm()) {
-    //   ASS(!t.term()->isLiteral())
-    //   t = InequalityNormalizer::normalize(TypedTermList(t.term())).toTerm();
-    // }
     if (!t.isTerm()) return t;
     if (t.term()->isSpecial()) return t;
     auto &trm = *t.term();
@@ -381,6 +378,7 @@ class AlascaSymbolElimination
     } else if (Z::isRemainderT(t)) {
       return transQR(rem(quotientT), Z::remainderT, trm.termArg(0), trm.termArg(1));
 
+
     } else if (Z::isRemainderF(t)) {
       return transQR(rem(quotientF), Z::remainderF, trm.termArg(0), trm.termArg(1));
     }
@@ -396,15 +394,6 @@ class AlascaSymbolElimination
 
       } else if (n.isCeiling(t)) {
         return some(n.minus(n.floor(n.minus(t.term()->termArg(0)))));
-
-      } else if (n.isMul(t)) {
-        if (auto k = n.tryNumeral(t.term()->termArg(0))) {
-          return some(n.linMul(*k, t.term()->termArg(1)));
-        }
-        if (auto k = n.tryNumeral(t.term()->termArg(1))) {
-          return some(n.linMul(*k, t.term()->termArg(0)));
-        }
-        return {};
 
       } else {
         return {};
@@ -444,18 +433,6 @@ class AlascaSymbolElimination
     { return _self.transformSubterm(t); }
   };
 
-  // struct FormulaTransformer : public TermTransformingFormulaTransformer {
-  //   FormulaTransformer(TermTrans& inner) : TermTransformingFormulaTransformer(inner) {}
-  //
-  //   virtual Formula* applyLiteral(Formula* f) override 
-  //   {
-  //     Literal* lit = InequalityNormalizer::normalize(f->literal()).toLiteral();
-  //     Literal* res = _termTransformer.transformLiteral(lit);
-  //     if(lit==res) { return f; }
-  //     return new AtomicFormula(res);
-  //   }
-  // };
-
   FormulaUnit* proc(FormulaUnit* unit) 
   { 
     auto trans = TermTrans(*this);
@@ -472,15 +449,25 @@ public:
 
   void proc(Problem& prb)
   {
-    for (auto& unit : iterTraits(prb.units()->iter())) {
-
-      auto newUnit = proc(unit);
-      DEBUG_TRANSLATION(*unit, " ==> ", *newUnit);
-      unit = newUnit;
-    }
+    auto mapClauses = [&prb](auto f) {
+      UnitList* newUnits = nullptr;
+      for (auto& unit : iterTraits(prb.units()->iter())) {
+        ASS(unit->isClause())
+        auto newUnit = f(static_cast<Clause*>(unit));
+        if (unit != newUnit) {
+          DEBUG_TRANSLATION(*unit, " ==> ", Output::ptr(newUnit));
+        }
+        if (newUnit)
+          UnitList::push(newUnit, newUnits);
+      }
+      prb.units() = newUnits;
+    };
+    mapClauses([this](auto cl) { return proc(cl); });
     if (_addedITE) {
       prb.reportFOOLAdded();
+      FOOLElimination().apply(prb);
     }
+    mapClauses([](auto cl) { return Inferences::ALASCA::Normalization().simplify(cl); });
   }
 };
 

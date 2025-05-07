@@ -79,6 +79,7 @@ void Preprocess::preprocess(Problem& prb)
   AlascaIntegerTransformation alasca;
   auto normalizeInterpreted = [&]() {
     if (env.options->alasca()) {
+      AlascaSymbolElimination().proc(prb);
       /* alasca preprocessing is done in the saturation loop using immediate simplifications */
     } else {
       InterpretedNormalizer().apply(prb);
@@ -146,8 +147,8 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
-  // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
-  normalizeInterpreted();
+  // // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
+  // normalizeInterpreted();
 
   bool useNewCnf = prb.mayHaveFormulas() && _options.newCNF() &&
      !prb.hasPolymorphicSym() && !prb.isHigherOrder();
@@ -171,13 +172,13 @@ void Preprocess::preprocess(Problem& prb)
       return out;
    });
 
-  if (_options.alasca()) {
-    if (env.options->showPreprocessing())
-      std::cout << "eliminating euclidean quotient and remainder" << std::endl;
-
-    AlascaSymbolElimination().proc(prb);
-    prb.getProperty();
-  }
+  // if (_options.alasca()) {
+  //   if (env.options->showPreprocessing())
+  //     std::cout << "eliminating euclidean quotient and remainder" << std::endl;
+  //
+  //   // AlascaSymbolElimination().proc(prb);
+  //   prb.getProperty();
+  // }
 
   if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
@@ -333,7 +334,6 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=ExecutionPhase::FUNCTION_DEFINITION_ELIMINATION;
     if (env.options->showPreprocessing())
@@ -449,11 +449,11 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
+   normalizeInterpreted();
+
    if (env.options->alascaIntegerConversion()) {
      alasca.integerConversion(prb);
    }
-
-   normalizeInterpreted();
 
   // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()) {
