@@ -76,7 +76,7 @@ void Preprocess::preprocess(Problem& prb)
 {
   env.options->resolveAwayAutoValues0();
 
-  AlascaPreprocessor alasca;
+  AlascaIntegerTransformation alasca;
   auto normalizeInterpreted = [&]() {
     if (env.options->alasca()) {
       AlascaSymbolElimination().proc(prb);
