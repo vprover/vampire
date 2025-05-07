@@ -292,7 +292,8 @@ class AlascaSymbolElimination
   Literal* proc(Literal* lit)
   {
     auto impl = [this,origLit = lit]() { 
-      Literal* lit = InequalityNormalizer::normalize(origLit).toLiteral();
+      Literal* lit = origLit;
+      // Literal* lit = InequalityNormalizer::normalize(origLit).toLiteral();
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
         return Literal::createEquality(lit->polarity(), 
@@ -317,10 +318,10 @@ class AlascaSymbolElimination
   }
 
   TermList transformSubterm(TermList t) {
-    if (t.isTerm()) {
-      ASS(!t.term()->isLiteral())
-      t = InequalityNormalizer::normalize(TypedTermList(t.term())).toTerm();
-    }
+    // if (t.isTerm()) {
+    //   ASS(!t.term()->isLiteral())
+    //   t = InequalityNormalizer::normalize(TypedTermList(t.term())).toTerm();
+    // }
     if (!t.isTerm()) return t;
     if (t.term()->isSpecial()) return t;
     auto &trm = *t.term();
@@ -380,7 +381,6 @@ class AlascaSymbolElimination
     } else if (Z::isRemainderT(t)) {
       return transQR(rem(quotientT), Z::remainderT, trm.termArg(0), trm.termArg(1));
 
-
     } else if (Z::isRemainderF(t)) {
       return transQR(rem(quotientF), Z::remainderF, trm.termArg(0), trm.termArg(1));
     }
@@ -396,6 +396,15 @@ class AlascaSymbolElimination
 
       } else if (n.isCeiling(t)) {
         return some(n.minus(n.floor(n.minus(t.term()->termArg(0)))));
+
+      } else if (n.isMul(t)) {
+        if (auto k = n.tryNumeral(t.term()->termArg(0))) {
+          return some(n.linMul(*k, t.term()->termArg(1)));
+        }
+        if (auto k = n.tryNumeral(t.term()->termArg(1))) {
+          return some(n.linMul(*k, t.term()->termArg(0)));
+        }
+        return {};
 
       } else {
         return {};
