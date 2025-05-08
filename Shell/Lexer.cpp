@@ -29,13 +29,7 @@ using namespace Lib;
  * @since 27/07/2004 Torrevieja
  */
 Lexer::Lexer (istream& in)
-  : _charBuffer(512),
-    _charCursor(0),
-    _stream(in),
-    _eof(false),
-    _lineNumber(1),
-    _colNumber(1),
-    _lookAheadChar(0)
+  : _charBuffer(512), _stream(in)
 {
   readNextChar();
 } // Lexer::Lexer

@@ -27,8 +27,8 @@
 #include "Lib/Output.hpp"
 
 namespace std {
-template<typename T>
-void swap(Lib::Set<T>& s1, Lib::Set<T>& s2);
+template<typename T, typename H>
+void swap(Lib::Set<T, H>& s1, Lib::Set<T, H>& s2);
 }
 
 
@@ -42,7 +42,7 @@ namespace Lib {
  * So, if you want to use default hash then either add it to Lib::Hash
  * or provide something in place of Hash
  */
-template <typename Val,class Hash>
+template <typename Val, typename Hash>
 class Set
 {
 protected:
@@ -96,9 +96,8 @@ public:
     expand();
   } // Set::Set
 
-  template<typename U>
-  friend void std::swap(Set<U>& lhs, Set<U>& rhs);
-  
+  template<typename U, class H>
+  friend void std::swap(Set<U, H>& lhs, Set<U, H>& rhs);
 
   Set(Set&& other) : Set()
   { std::swap(other, *this); }
@@ -498,8 +497,8 @@ std::ostream& operator<<(std::ostream& out, Set<A, B> const& self)
 
 namespace std {
 
-template<typename T>
-void swap(Lib::Set<T>& lhs, Lib::Set<T>& rhs)
+template<typename T, typename H>
+void swap(Lib::Set<T, H>& lhs, Lib::Set<T, H>& rhs)
 {
   std::swap(lhs._capacity, rhs._capacity);
   std::swap(lhs._nonemptyCells, rhs._nonemptyCells);

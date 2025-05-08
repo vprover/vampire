@@ -76,14 +76,6 @@ private:
 };
 
 /**
- * Hash used to make hashing over shared terms deterministic.
- */
-struct SharedTermHash {
-  static bool equals(Term* t1, Term* t2) { return t1==t2; }
-  static unsigned hash(Term* t) { return t->getId(); }
-};
-
-/**
  * Hash used to make hashing over clauses deterministic.
  */
 struct StlClauseHash {

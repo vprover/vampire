@@ -71,17 +71,17 @@ protected:
   /** Character buffer, used to store currently read token */
   Array<char> _charBuffer;
   /** cursor to the current character */
-  int _charCursor;
+  int _charCursor = 0;
   /** the input stream */
   std::istream& _stream;
   /** true if end-of-file is reached */
-  bool _eof;
+  bool _eof = false;
   /** current line number, counting from 1 */
-  int _lineNumber;
+  int _lineNumber = 1;
   /** current col number inside line, counting from 1 */
-  int _colNumber;
+  int _colNumber = 1;
   /** lookahead character. In this implementation there may be only one */
-  int _lookAheadChar;
+  int _lookAheadChar = 0;
 
   bool handleChar();
   bool readNextChar();
