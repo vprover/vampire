@@ -141,7 +141,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
 
   auto wrap = [](auto ord) {
     using Ord = decltype(ord);
-    bool skel;
+    bool skel = env.options->alascaSkelOrd();
     return skel ? static_cast<Ordering*>(NEW_ORD(SkelOrd<Ord>, std::move(ord)))
                 : static_cast<Ordering*>(NEW_ORD(        Ord , std::move(ord)));
   };
