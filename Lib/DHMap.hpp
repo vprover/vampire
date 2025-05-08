@@ -335,7 +335,7 @@ public:
    * the value with @b initial, and return true. Otherwise,
    * return false.
    */
-  bool getValuePtr(Key key, Val*& pval, const Val& initial)
+  bool getValuePtr(Key key, Val*& pval, Val initial)
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
@@ -351,7 +351,7 @@ public:
       }
       e->_info.deleted=0;
       e->_key=key;
-      e->_val=initial;
+      e->_val=std::move(initial);
       _size++;
     }
     pval=&e->_val;

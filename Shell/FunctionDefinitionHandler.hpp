@@ -36,7 +36,7 @@ using namespace Lib;
  * which are not variables in some branch.
  */
 struct RecursionTemplate {
-  RecursionTemplate() : _templ(InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION) {}
+  RecursionTemplate() = default;
   RecursionTemplate(const Term* t);
 
   void addBranch(std::vector<Term*>&& recursiveCalls, Term* header);
@@ -61,7 +61,7 @@ struct RecursionTemplate {
   };
 
   const std::vector<Branch>& branches() const { return _branches; }
-  const InductionTemplate* templ() const { return &_templ; }
+  const InductionTemplate* templ() const { return _templ.get(); }
 
   std::string toString() const;
 
@@ -77,7 +77,7 @@ private:
 
   std::vector<Branch> _branches;
   std::vector<bool> _indPos;
-  InductionTemplate _templ;
+  std::unique_ptr<const InductionTemplate> _templ;
 };
 
 class FunctionDefinitionHandler

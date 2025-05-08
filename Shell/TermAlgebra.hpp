@@ -32,7 +32,6 @@ namespace Shell {
     TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
     TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors);
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
-    ~TermAlgebraConstructor() {}
 
     unsigned arity() const;
     unsigned numTypeArguments() const;
@@ -156,7 +155,8 @@ namespace Shell {
     std::string getSubtermPredicateName();
     unsigned getSubtermPredicate();
     void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
-    const InductionTemplate* getInductionTemplate();
+    const InductionTemplate* getConstructorInductionTemplate();
+    const InductionTemplate* getDestructorInductionTemplate();
 
     /**
      * Given a set of (possibly variable) term algebra terms in @b availables
@@ -171,7 +171,8 @@ namespace Shell {
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;
-    InductionTemplate* _indTempl;
+    std::unique_ptr<const InductionTemplate> _ctorIndTempl;
+    std::unique_ptr<const InductionTemplate> _dtorIndTempl;
   };
 }
 

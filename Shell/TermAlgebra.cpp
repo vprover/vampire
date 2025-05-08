@@ -235,28 +235,81 @@ void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
   }
 }
 
-const InductionTemplate* TermAlgebra::getInductionTemplate()
+const InductionTemplate* TermAlgebra::getConstructorInductionTemplate()
 {
-  if (!_indTempl) {
-    _indTempl = new InductionTemplate(InferenceRule::STRUCT_INDUCTION_AXIOM_ONE);
+  if (!_ctorIndTempl) {
+    Stack<InductionTemplate::Case> cases;
     unsigned var = 0;
     iterCons()
       .forEach([&](const auto& cons) {
-        Stack<TermStack> hyps;
+        Stack<InductionTemplate::Atom> hyps;
         TermStack args;
         for (unsigned i = 0; i < cons->arity(); i++) {
           args.push(TermList::var(var++));
           if (cons->argSort(i) == cons->rangeSort()) {
-            hyps.push({ args.top() });
+            hyps.push(InductionTemplate::Atom({ args.top() }));
           }
         }
-        _indTempl->cases.push(InductionTemplate::Case(
+        cases.push(InductionTemplate::Case(
           std::move(hyps),
-          { TermList(Term::create(cons->functor(),(unsigned)args.size(), args.begin())) }
+          InductionTemplate::Atom({ TermList(Term::create(cons->functor(),(unsigned)args.size(), args.begin())) })
         ));
       });
+    _ctorIndTempl = std::make_unique<const InductionTemplate>(
+      std::move(cases),
+      InductionTemplate::Atom({ TermList::var(0) }),
+      InferenceRule::STRUCT_INDUCTION_AXIOM_ONE
+    );
   }
-  return _indTempl;
+  return _ctorIndTempl.get();
+}
+
+const InductionTemplate* TermAlgebra::getDestructorInductionTemplate()
+{
+  if (!_dtorIndTempl) {
+    Stack<InductionTemplate::Atom> hypotheses;
+    auto taArity = nTypeArgs();
+    auto y = TermList::var(taArity);
+
+    iterCons()
+      .forEach([&](const auto& cons) {
+        if (!cons->recursive()) {
+          return;
+        }
+
+        auto typeArgs = TermStack::fromIterator(range(0,taArity).map([](unsigned i){ return TermList::var(i); }));
+        TermStack args = typeArgs;
+
+        TermStack taTerms;
+        for (unsigned i = taArity; i < cons->arity(); i++) {
+          TermStack dargs = typeArgs;
+          dargs.push(y);
+
+          unsigned di = cons->destructorFunctor(i - taArity);
+          TermList diy = (cons->argSort(i)==AtomicSort::boolSort())
+            ? TermList(Term::createFormula(new AtomicFormula(Literal::create(di,dargs.size(),true,dargs.begin()))))
+            : TermList(Term::create(di,dargs.size(),dargs.begin()));
+
+          args.push(diy);
+          if (cons->argSort(i) == cons->rangeSort()) {
+            taTerms.push(diy);
+          }
+        }
+        ASS(taTerms.isNonEmpty());
+
+        for (const auto& t : taTerms) {
+          hypotheses.push(InductionTemplate::Atom(
+            { t }, { Literal::createEquality(true, y, TermList(Term::create(cons->functor(), args.size(), args.begin())), cons->rangeSort()) }));
+        }
+      });
+
+    _dtorIndTempl = std::make_unique<const InductionTemplate>(
+      Stack<InductionTemplate::Case>{ InductionTemplate::Case(std::move(hypotheses), InductionTemplate::Atom({ y })) },
+      InductionTemplate::Atom({ TermList::var(0) }),
+      InferenceRule::STRUCT_INDUCTION_AXIOM_TWO
+    );
+  }
+  return _dtorIndTempl.get();
 }
 
 void TermAlgebra::excludeTermFromAvailables(TermStack& availables, TermList e, unsigned& var)

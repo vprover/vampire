@@ -243,15 +243,10 @@ bool RecursionTemplate::finalize()
 
   checkWellDefinedness();
 
+  Stack<InductionTemplate::Case> cases;
   // fill out InductionTemplate
   for (const auto& b : _branches) {
-    TermStack main;
-    for (unsigned i = 0; i < _arity; i++) {
-      if (_indPos[i]) {
-        main.push(*b._header->nthArgument(i));
-      }
-    }
-    Stack<TermStack> hyps;
+    Stack<InductionTemplate::Atom> hypotheses;
     for (const auto& recCall : b._recursiveCalls) {
       TermStack hyp;
       for (unsigned i = 0; i < _arity; i++) {
@@ -259,11 +254,21 @@ bool RecursionTemplate::finalize()
           hyp.push(*recCall->nthArgument(i));
         }
       }
-      hyps.push(std::move(hyp));
+      hypotheses.push(InductionTemplate::Atom(std::move(hyp)));
     }
-    _templ.cases.push(InductionTemplate::Case(std::move(hyps), std::move(main)));
+    TermStack conclusion;
+    for (unsigned i = 0; i < _arity; i++) {
+      if (_indPos[i]) {
+        conclusion.push(*b._header->nthArgument(i));
+      }
+    }
+    cases.push(InductionTemplate::Case(std::move(hypotheses), std::move(conclusion)));
   }
-
+  _templ = make_unique<const InductionTemplate>(
+    std::move(cases),
+    InductionTemplate::Atom(TermStack::fromIterator(range(0,_arity).map([](unsigned i) { return TermList::var(i); }))),
+    InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION
+  );
   return true;
 }
 
@@ -364,8 +369,7 @@ bool RecursionTemplate::checkWellFoundedness()
 }
 
 RecursionTemplate::RecursionTemplate(const Term* t)
-  : _templ(InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION),
-  _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
+  : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
   _type(_isLit ? env.signature->getPredicate(_functor)->predType()
                 : env.signature->getFunction(_functor)->fnType()),
   _branches(), _indPos(_arity, false) {}
