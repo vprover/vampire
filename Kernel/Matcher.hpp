@@ -126,24 +126,6 @@ public:
   template<class Binder>
   static bool matchReversedArgs(Literal* base, Literal* instance, Binder& binder);
 
-  template<class Map>
-  struct MapRefBinder
-  {
-    MapRefBinder(Map& map) : _map(map) {}
-
-    bool bind(unsigned var, TermList term)
-    {
-      TermList* aux;
-      return _map.getValuePtr(var,aux,term) || *aux==term;
-    }
-    void specVar(unsigned var, TermList term)
-    { ASSERTION_VIOLATION; }
-    void reset() { _map.reset(); }
-  private:
-    Map& _map;
-  };
-
-private:
   typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
   struct MapBinder
   {
@@ -155,10 +137,20 @@ private:
     void specVar(unsigned var, TermList term)
     { ASSERTION_VIOLATION; }
     void reset() { _map.reset(); }
-  private:
+
     BindingMap _map;
   };
 
+  struct MapBinderAndApplicator : MapBinder
+  {
+    TermList apply(unsigned var) {
+      TermList res;
+      if(!_map.find(var, res)) {
+        res = TermList::var(var);
+      }
+      return res;
+    }
+  };
 };
 
 /**

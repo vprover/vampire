@@ -38,7 +38,6 @@
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
 #include "LaTeX.hpp"
-#include "LispLexer.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
 #include "Statistics.hpp"
