@@ -2818,7 +2818,7 @@ void SMTLIB2::readAssertNot(LExpr* body)
 
 void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
 {
-  pushScope();
+  pushLookup();
 
   auto fvars = VList::empty();
   auto fsorts = SList::empty();
@@ -2828,7 +2828,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
     auto name = pRdr.readAtom();
     auto var = TermList::var(_nextVar++);
     auto sort = parseSort(pRdr.readExpr());
-    tryInsertIntoCurrentScope(name, var, sort);
+    tryInsertIntoCurrentLookup(name, var, sort);
     VList::push(var.var(), fvars);
     SList::push(sort, fsorts);
   }
@@ -2841,7 +2841,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
     auto name = pRdr.readAtom();
     auto var = TermList::var(_nextVar++);
     auto sort = parseSort(pRdr.readExpr());
-    tryInsertIntoCurrentScope(name, var, sort);
+    tryInsertIntoCurrentLookup(name, var, sort);
     VList::push(var.var(), evars);
     SList::push(sort, esorts);
   }
@@ -2851,7 +2851,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   if (!res.asFormula(fla)) {
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
-  popScope();
+  popLookup();
 
   fla = new QuantifiedFormula(Connective::EXISTS, evars, esorts, fla);
   fla = new QuantifiedFormula(Connective::FORALL, fvars, fsorts, fla);
