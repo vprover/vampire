@@ -137,7 +137,10 @@ void Options::init()
                                         "spider",
                                         "tclausify",
                                         "tpreprocess",
-                                        "vampire"});
+                                        "vampire",
+                                        "property",
+                                        "property-clausified"
+                                        });
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
@@ -149,6 +152,7 @@ void Options::init()
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
+    "  -property: preprocesses the problem and outputs properties about it as a json\n"
     "  -consequence_elimination: perform consequence elimination\n";
     _lookup.insert(&_mode);
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));

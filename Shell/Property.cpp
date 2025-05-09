@@ -30,6 +30,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
+#include "Shell/SMTLIBLogic.hpp"
 #include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
@@ -746,7 +747,10 @@ void Property::scanForInterpreted(Term* t)
 {
   Interpretation itp;
   auto isNumeral = [&](auto n, auto t) { return t.isTerm() && !t.term()->isSpecial() && n.isNumeral(t.term()); };
-  if (t->isLiteral()) {
+  switch(t->kind()) {
+
+  case TermKind::LITERAL: {
+      
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit->functor())) { return; }
     if (lit->isEquality()) {
@@ -754,31 +758,36 @@ void Property::scanForInterpreted(Term* t)
       return; 
     }
     itp = theory->interpretPredicate(lit);
-  }
-  else {
+    break;
+  } 
+  case TermKind::SORT:
+    return;
+  case TermKind::TERM: {
+    /* check for numerals */
+    auto numeral = forAnyNumTraits([&](auto n) {
+        return !t->isSpecial() && n.ifNumeral(t, [&](auto) { 
+            Setter::setHasNumerals(*this, n); 
+            return std::make_tuple(); 
+        }).isSome();
+    });
+    if (numeral) return;
     if (!theory->isInterpretedFunction(t)) { return; }
     itp = theory->interpretFunction(t);
     forEachNumTraits([&](auto n) {
       n.ifMul(t,[&](auto l, auto r) { 
+        DBGE(t)
         if (!isNumeral(n, l) && !isNumeral(n, r)) {
+          DBG("non-linear")
           Setter::setNonLinear(*this, n);
         }
         return std::make_tuple();
       });
     });
+    break;
   }
 
-  forEachNumTraits([&](auto n) {
-    switch (t->kind()) {
-      case TermKind::LITERAL:
-      case TermKind::SORT:
-        break;
-      case TermKind::TERM:
-        if (!t->isSpecial())
-          n.ifNumeral(t, [&](auto) { Setter::setHasNumerals(*this, n); return std::make_tuple(); });
-        break;
-    }
-  });
+  }
+
   _hasInterpreted = true;
 
   if(itp < _interpretationPresence.size()){
@@ -1080,4 +1089,31 @@ std::string Property::toSpider(const std::string& problemName) const
     + "';";
 } // Property::toSpider
 
+
+auto output_json(bool b) { return b ? "true" : "false"; }
+auto output_json(SMTLIBLogic val) {
+#define X(N) case SMTLIBLogic::N: return "\"" #N "\"";
+  switch (val) {
+    SMTLIBLogic_X
+  }
+#undef X
+}
+
+void Property::toJson(std::ostream& out) const {
+  out << "{" << std::endl;
+#define X(type, name) out << "  " << "\"" << #name << "\": " << output_json(_ ## name) << "," << std::endl;
+  PROPERTY_FIELDS_X
+#undef X
+
+  out << "  \"itp\": [ "  
+  << arrayIter(_interpretationPresence).zipWithIndex()
+    .filter([](auto pair) { return pair.first; })
+    .map([](auto pair) {
+        return Output::catOwned("\"", Theory::Interpretation(pair.second), "\"");
+    })
+    .output(",")
+    <<   " ]" << std::endl;
+  
+  out << "}" << std::endl;
+}
 } // namespace Shell

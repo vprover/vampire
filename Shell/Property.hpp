@@ -47,6 +47,7 @@ using namespace Lib;
 class Property
 {
 public:
+  void toJson(std::ostream& out) const;
   /**
    * CASC category
    */
@@ -330,34 +331,36 @@ public:
   DArray<bool> _interpretationPresence;
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
+#define PROPERTY_FIELDS_X \
+  X(bool, hasFOOL) \
+  X(bool, hasCombs) \
+  X(bool, hasArrowSort) \
+  X(bool, hasApp) \
+  X(bool, hasAppliedVar) \
+  X(bool, hasBoolVar) \
+  X(bool, hasLogicalProxy) \
+  X(bool, hasLambda) \
+  X(bool, hasPolymorphicSym) \
+  X(bool, hasAnswerLiteral) \
+  X(bool, quantifiesOverPolymorphicVar) \
+ \
+  X(bool, onlyFiniteDomainDatatypes) \
+  X(bool, knownInfiniteDomain) \
+ \
+  X(bool, allClausesGround) \
+  X(bool, allNonTheoryClausesGround) \
+  X(bool, allQuantifiersEssentiallyExistential) \
+  X(bool, hasNumeralsInt) \
+  X(bool, hasNumeralsRat) \
+  X(bool, hasNumeralsReal) \
+  X(bool, nonLinearInt) \
+  X(bool, nonLinearRat) \
+  X(bool, nonLinearReal) \
+  X(SMTLIBLogic, smtlibLogic) \
 
-
-
-  bool _hasFOOL;
-  bool _hasCombs;
-  bool _hasArrowSort;
-  bool _hasApp;
-  bool _hasAppliedVar;
-  bool _hasBoolVar;
-  bool _hasLogicalProxy;
-  bool _hasLambda;
-  bool _hasPolymorphicSym;
-  bool _hasAnswerLiteral;
-  bool _quantifiesOverPolymorphicVar;
-
-  bool _onlyFiniteDomainDatatypes;
-  bool _knownInfiniteDomain;
-
-  bool _allClausesGround;
-  bool _allNonTheoryClausesGround;
-  bool _allQuantifiersEssentiallyExistential;
-  bool _hasNumeralsInt;
-  bool _hasNumeralsRat;
-  bool _hasNumeralsReal;
-  bool _nonLinearInt;
-  bool _nonLinearRat;
-  bool _nonLinearReal;
-  SMTLIBLogic _smtlibLogic;
+#define X(type, name) type _ ## name;
+  PROPERTY_FIELDS_X
+#undef X
 }; // class Property
 
 }

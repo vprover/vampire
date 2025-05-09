@@ -438,7 +438,7 @@ void spiderMode(Problem* problem)
   explainException(*exception);
 } // spiderMode
 
-void clausifyMode(Problem* problem, bool theory)
+void clausifyMode(Problem* problem, bool theory, bool doOutput)
 {
   CompositeISE simplifier;
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
@@ -453,7 +453,7 @@ void clausifyMode(Problem* problem, bool theory)
 
   //outputSymbolDeclarations deals with sorts as well for now
   //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  if (doOutput) UIHelper::outputSymbolDeclarations(std::cout);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -474,9 +474,9 @@ void clausifyMode(Problem* problem, bool theory)
 
       FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
       fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
-      std::cout << TPTPPrinter::toString(fu) << "\n";
+      if (doOutput) std::cout << TPTPPrinter::toString(fu) << std::endl;
     } else {
-      std::cout << TPTPPrinter::toString(cl) << "\n";
+      if (doOutput) std::cout << TPTPPrinter::toString(cl) << std::endl;
     }
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
@@ -486,7 +486,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ false, {})
       }, 
       NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
-    std::cout << TPTPPrinter::toString(c) << "\n";
+    if (doOutput) std::cout << TPTPPrinter::toString(c) << std::endl;
   }
 
   if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
@@ -600,11 +600,25 @@ void dispatchByMode(Problem* problem)
     break;
 
   case Options::Mode::CLAUSIFY:
-    clausifyMode(problem,false);
+    clausifyMode(problem,/* theory */false, /* output */ true);
+    break;
+
+  case Options::Mode::PROPERTY_CLAUSIFY: {
+    ScopedPtr<Problem> prb(preprocessProblem(problem));
+    prb->invalidateProperty();
+    prb->getProperty()->toJson(std::cout);
+  }
+    break;
+
+  case Options::Mode::PROPERTY: 
+    // problem->getProperty()->scan(problem->units());
+    problem->invalidateProperty();
+    problem->getProperty()->toJson(std::cout);
+    std::cout << std::endl;
     break;
 
   case Options::Mode::TCLAUSIFY:
-    clausifyMode(problem,true);
+    clausifyMode(problem,/* theory */true, /* output */ true);
     break;
 
   case Options::Mode::OUTPUT:

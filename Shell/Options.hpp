@@ -390,7 +390,9 @@ public:
     SPIDER,
     TCLAUSIFY,
     TPREPROCESS,
-    VAMPIRE
+    VAMPIRE,
+    PROPERTY,
+    PROPERTY_CLAUSIFY,
   };
 
   enum class Intent : unsigned int {
