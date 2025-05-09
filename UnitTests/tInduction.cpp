@@ -587,7 +587,7 @@ TEST_GENERATION_INDUCTION(test_12,
     )
 
 // upward infinite interval integer induction
-TEST_GENERATION_INDUCTION(test_13,
+TEST_GENERATION_INDUCTION(int_test_1,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
@@ -605,7 +605,7 @@ TEST_GENERATION_INDUCTION(test_13,
     )
 
 // use bounds for upward+downward infinite interval integer induction
-TEST_GENERATION_INDUCTION(test_14,
+TEST_GENERATION_INDUCTION(int_test_2,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" }, { "int_induction_interval", "infinite" } })
       .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
@@ -631,7 +631,7 @@ TEST_GENERATION_INDUCTION(test_14,
     )
 
 // use bounds for upward+downward finite interval integer induction
-TEST_GENERATION_INDUCTION(test_15,
+TEST_GENERATION_INDUCTION(int_test_3,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" }, { "int_induction_interval", "finite" } })
       .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
@@ -660,7 +660,7 @@ TEST_GENERATION_INDUCTION(test_15,
 
 // use default bound for downward integer induction,
 // but for upward use the bound from index
-TEST_GENERATION_INDUCTION(test_16,
+TEST_GENERATION_INDUCTION(int_test_4,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" },
                  { "int_induction_interval", "infinite" },
@@ -695,7 +695,7 @@ TEST_GENERATION_INDUCTION(test_16,
     )
 
 // upward infinite interval induction triggered by the comparison literal
-TEST_GENERATION_INDUCTION(test_17,
+TEST_GENERATION_INDUCTION(int_test_5,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~pi(sK6) }) })
@@ -713,7 +713,7 @@ TEST_GENERATION_INDUCTION(test_17,
     )
 
 // infinite+finite downward interval induction triggered by the comparison literal
-TEST_GENERATION_INDUCTION(test_18,
+TEST_GENERATION_INDUCTION(int_test_6,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~pi(sK6) }), clause({ ~(sK6 < num(1)) }) })
@@ -741,7 +741,7 @@ TEST_GENERATION_INDUCTION(test_18,
 
 // given the default strictness, induction is not applied on an interpreted constant
 // (any strictness with term strictness != none works the same)
-TEST_GENERATION_INDUCTION(test_19,
+TEST_GENERATION_INDUCTION(int_test_7,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
@@ -754,7 +754,7 @@ TEST_GENERATION_INDUCTION(test_19,
 
 // given a suitable strictness, induction is applied on an interpreted constant
 // (any strictness with term strictness = none works the same)
-TEST_GENERATION_INDUCTION(test_20,
+TEST_GENERATION_INDUCTION(int_test_8,
     Generation::AsymmetricTest()
       .options({
         { "induction", "int" },
@@ -779,7 +779,7 @@ TEST_GENERATION_INDUCTION(test_20,
 // given a suitable strictness, induction is applied on a term occuring only
 // as one of the top-level arguments of "<"
 // (any strictness with comparison strictness = none, term strictness in {none, interpreted_constant} works the same)
-TEST_GENERATION_INDUCTION(test_21,
+TEST_GENERATION_INDUCTION(int_test_9,
     Generation::AsymmetricTest()
       .options({
         { "induction", "int" },
@@ -811,7 +811,7 @@ TEST_GENERATION_INDUCTION(test_21,
 // one of the arguments of "<", but not to a term occuring only as a top-level
 // argument of "<" (the "sK6" in context)
 // (any strictness with comparison strictness != none, term strictness in {none, interpreted_constant} works the same)
-TEST_GENERATION_INDUCTION(test_22,
+TEST_GENERATION_INDUCTION(int_test_10,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
@@ -831,7 +831,7 @@ TEST_GENERATION_INDUCTION(test_22,
 // given the default suitable strictness, no induction is applied on a term occuring only
 // as one of the top-level arguments of "<"
 // (any strictness with comparison strictness != none, term strictness in {none, interpreted_constant} works the same)
-TEST_GENERATION_INDUCTION(test_23,
+TEST_GENERATION_INDUCTION(int_test_11,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
@@ -845,7 +845,7 @@ TEST_GENERATION_INDUCTION(test_23,
 // given the default strictness, induction is applied on a term occuring only
 // as one of the top-level arguments of "="
 // (any strictness with equality strictness != none, term strictness in {none, interpreted_constant} works the same)
-TEST_GENERATION_INDUCTION(test_24,
+TEST_GENERATION_INDUCTION(int_test_12,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
@@ -865,7 +865,7 @@ TEST_GENERATION_INDUCTION(test_24,
 // given a suitable strictness, no induction is applied on a term occuring only
 // as one of the top-level arguments of "="
 // (any strictness with equality strictness != none works the same)
-TEST_GENERATION_INDUCTION(test_25,
+TEST_GENERATION_INDUCTION(int_test_13,
     Generation::AsymmetricTest()
       .options({
         { "induction", "int" },
@@ -880,6 +880,41 @@ TEST_GENERATION_INDUCTION(test_25,
       .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
       .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
+
+// given the same lower and upper bound, induction is not applied 
+TEST_GENERATION_INDUCTION(int_test_14,
+  Generation::AsymmetricTest()
+    .options({ { "induction", "int" }, { "int_induction_interval", "finite" } })
+    .context({ clause({ ~(sK6 < bi) }), clause({ ~(bi < sK6) }) })
+    .indices(getIndices())
+    .input( clause({ ~pi(sK6) }) )
+    // TODO: make the new implementation - satisfying the commented constraints -
+    // satisfy the uncommented constraints instead.
+    //
+    // .expected({
+    //   // upward induction
+    //   clause({ ~pi(bi), ~(skx0 < bi) }),
+    //   clause({ ~pi(bi), skx0 < bi }),
+    //   clause({ ~pi(bi), pi(skx0) }),
+    //   clause({ ~pi(bi), ~pi(skx0+1) }),
+
+    //   // downard induction
+    //   clause({ ~pi(bi), bi < skx1 }),
+    //   clause({ ~pi(bi), ~(bi < skx1) }),
+    //   clause({ ~pi(bi), pi(skx1) }),
+    //   clause({ ~pi(bi), ~pi(skx1+num(-1)) }),
+    // })
+    .expected(none())
+    .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
+                     TEST_FN_ASS_EQ(env.statistics->intFinUpInduction, 0),
+                     TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 0) })
+    // .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
+    //                   TEST_FN_ASS_EQ(env.statistics->intFinUpInduction, 1),
+    //                   TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 1) })
+    .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
+                      TEST_FN_ASS_EQ(env.statistics->intFinUpInduction, 0),
+                      TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 0) })
+  )
 
 // all skolems are replaced when the hypothesis strengthening options is on, sik=one
 TEST_GENERATION_INDUCTION(test_26,

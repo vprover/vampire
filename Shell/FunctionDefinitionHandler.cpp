@@ -243,30 +243,28 @@ bool RecursionTemplate::finalize()
 
   checkWellDefinedness();
 
-  Stack<InductionTemplate::Case> cases;
+  auto indPos = Stack<unsigned>::fromIterator(range(0,_arity).filter([&](unsigned i) { return _indPos[i]; }));
+
+  Stack<InductionCase> cases;
   // fill out InductionTemplate
   for (const auto& b : _branches) {
-    Stack<InductionTemplate::Atom> hypotheses;
+    Stack<InductionUnit> hypotheses;
     for (const auto& recCall : b._recursiveCalls) {
       TermStack hyp;
-      for (unsigned i = 0; i < _arity; i++) {
-        if (_indPos[i]) {
-          hyp.push(*recCall->nthArgument(i));
-        }
+      for (unsigned i : indPos) {
+        hyp.push(*recCall->nthArgument(i));
       }
-      hypotheses.push(InductionTemplate::Atom(std::move(hyp)));
+      hypotheses.emplace(std::move(hyp));
     }
     TermStack conclusion;
-    for (unsigned i = 0; i < _arity; i++) {
-      if (_indPos[i]) {
-        conclusion.push(*b._header->nthArgument(i));
-      }
+    for (unsigned i : indPos) {
+      conclusion.push(*b._header->nthArgument(i));
     }
-    cases.push(InductionTemplate::Case(std::move(hypotheses), std::move(conclusion)));
+    cases.emplace(std::move(conclusion), std::move(hypotheses));
   }
   _templ = make_unique<const InductionTemplate>(
     std::move(cases),
-    InductionTemplate::Atom(TermStack::fromIterator(range(0,_arity).map([](unsigned i) { return TermList::var(i); }))),
+    InductionUnit(TermStack::fromIterator(range(0,indPos.size()).map([](unsigned i) { return TermList::var(i); }))),
     InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION
   );
   return true;

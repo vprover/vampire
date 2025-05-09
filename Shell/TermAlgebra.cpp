@@ -238,26 +238,26 @@ void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
 const InductionTemplate* TermAlgebra::getConstructorInductionTemplate()
 {
   if (!_ctorIndTempl) {
-    Stack<InductionTemplate::Case> cases;
+    Stack<InductionCase> cases;
     unsigned var = 0;
     iterCons()
       .forEach([&](const auto& cons) {
-        Stack<InductionTemplate::Atom> hyps;
+        Stack<InductionUnit> hyps;
         TermStack args;
         for (unsigned i = 0; i < cons->arity(); i++) {
           args.push(TermList::var(var++));
           if (cons->argSort(i) == cons->rangeSort()) {
-            hyps.push(InductionTemplate::Atom({ args.top() }));
+            hyps.emplace(TermStack{ args.top() });
           }
         }
-        cases.push(InductionTemplate::Case(
-          std::move(hyps),
-          InductionTemplate::Atom({ TermList(Term::create(cons->functor(),(unsigned)args.size(), args.begin())) })
-        ));
+        cases.emplace(
+          InductionUnit({ TermList(Term::create(cons->functor(),(unsigned)args.size(), args.begin())) }),
+          std::move(hyps)
+        );
       });
     _ctorIndTempl = std::make_unique<const InductionTemplate>(
       std::move(cases),
-      InductionTemplate::Atom({ TermList::var(0) }),
+      InductionUnit({ TermList::var(0) }),
       InferenceRule::STRUCT_INDUCTION_AXIOM_ONE
     );
   }
@@ -267,7 +267,7 @@ const InductionTemplate* TermAlgebra::getConstructorInductionTemplate()
 const InductionTemplate* TermAlgebra::getDestructorInductionTemplate()
 {
   if (!_dtorIndTempl) {
-    Stack<InductionTemplate::Atom> hypotheses;
+    Stack<InductionUnit> hypotheses;
     auto taArity = nTypeArgs();
     auto y = TermList::var(taArity);
 
@@ -298,14 +298,14 @@ const InductionTemplate* TermAlgebra::getDestructorInductionTemplate()
         ASS(taTerms.isNonEmpty());
 
         for (const auto& t : taTerms) {
-          hypotheses.push(InductionTemplate::Atom(
-            { t }, { Literal::createEquality(true, y, TermList(Term::create(cons->functor(), args.size(), args.begin())), cons->rangeSort()) }));
+          hypotheses.emplace(TermStack{ t },
+            LiteralStack{ Literal::createEquality(true, y, TermList(Term::create(cons->functor(), args.size(), args.begin())), cons->rangeSort()) });
         }
       });
 
     _dtorIndTempl = std::make_unique<const InductionTemplate>(
-      Stack<InductionTemplate::Case>{ InductionTemplate::Case(std::move(hypotheses), InductionTemplate::Atom({ y })) },
-      InductionTemplate::Atom({ TermList::var(0) }),
+      Stack<InductionCase>{ { InductionUnit({ y }), std::move(hypotheses) } },
+      InductionUnit({ TermList::var(0) }),
       InferenceRule::STRUCT_INDUCTION_AXIOM_TWO
     );
   }

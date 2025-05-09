@@ -12,14 +12,61 @@
  * Defines class InductionTemplate.
  */
 
- #ifndef __InductionTemplate__
- #define __InductionTemplate__
+#ifndef __InductionTemplate__
+#define __InductionTemplate__
  
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
+
+#include "Kernel/Term.hpp"
 
 #include "Kernel/Inference.hpp"
 
+using namespace std;
+
 namespace Kernel {
+
+struct InductionUnit {
+  InductionUnit(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack())
+    : F_terms(F_terms), conditions(conditions)
+  {
+    ASS(F_terms.isNonEmpty());
+  }
+
+  friend ostream& operator<<(ostream& out, const InductionUnit& u) {
+    for (const auto& c : u.conditions) {
+      out << *c << " & ";
+    }
+    out << "=> F[";
+    for (const auto& t : u.F_terms) {
+      out << t << ",";
+    }
+    return out << "]";
+  }
+
+  TermStack F_terms;
+  LiteralStack conditions;
+};
+
+struct InductionCase {
+  InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses = Stack<InductionUnit>())
+    : conclusion(conclusion), hypotheses(hypotheses)
+  {
+    ASS(iterTraits(hypotheses.iter()).all([&](const auto& h){
+      return h.F_terms.size() == conclusion.F_terms.size();
+    }));
+  }
+
+  friend ostream& operator<<(ostream& out, const InductionCase& c) {
+    for (const auto& h : c.hypotheses) {
+      out << "(" << h << ") & ";
+    }
+    return out << " => (" << c.conclusion << ")";
+  }
+
+  InductionUnit conclusion;
+  Stack<InductionUnit> hypotheses;
+};
 
 /**
  * Similar to a second-order formula that we use for induction,
@@ -27,29 +74,23 @@ namespace Kernel {
  */
 struct InductionTemplate
 {
-  struct Atom {
-    Atom(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack())
-      : F_terms(F_terms), conditions(conditions) {}
-    TermStack F_terms;
-    LiteralStack conditions;
-  };
-
-  struct Case {
-    Case(Stack<Atom>&& hypotheses, Atom&& conclusion)
-      : hypotheses(hypotheses), conclusion(conclusion) {}
-
-    Stack<Atom> hypotheses;
-    Atom conclusion;
-  };
-
-  InductionTemplate(Stack<Case>&& cases, Atom&& conclusion, InferenceRule rule)
+  InductionTemplate(Stack<InductionCase>&& cases, InductionUnit&& conclusion, InferenceRule rule)
     : cases(cases), conclusion(conclusion), rule(rule)
   {
-    //TODO add debug check for arities
+    ASS_REP(iterTraits(cases.iter()).all([&](const auto& c){
+      return c.conclusion.F_terms.size() == conclusion.F_terms.size();
+    }), *this);
   }
 
-  Stack<Case> cases;
-  Atom conclusion;
+  friend ostream& operator<<(ostream& out, const InductionTemplate& t) {
+    for (const auto& c : t.cases) {
+      out << "(" << c << ") & ";
+    }
+    return out << " => (" << t.conclusion << ") " << ruleName(t.rule);
+  }
+
+  Stack<InductionCase> cases;
+  InductionUnit conclusion;
   InferenceRule rule;
 };
 
