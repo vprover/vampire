@@ -14,11 +14,8 @@
 
 #ifndef __InductionTemplate__
 #define __InductionTemplate__
- 
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Stack.hpp"
 
-#include "Kernel/Term.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Kernel/Inference.hpp"
 
@@ -26,68 +23,42 @@ using namespace std;
 
 namespace Kernel {
 
-struct InductionUnit {
-  InductionUnit(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack())
-    : F_terms(F_terms), conditions(conditions)
-  {
-    ASS(F_terms.isNonEmpty());
-  }
+/**
+ * A formula template corresponding to (conditions → F[F_terms])
+ * used as the unit for building induction formulas.
+ */
+struct InductionUnit
+{
+  InductionUnit(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack());
 
-  friend ostream& operator<<(ostream& out, const InductionUnit& u) {
-    for (const auto& c : u.conditions) {
-      out << *c << " & ";
-    }
-    out << "=> F[";
-    for (const auto& t : u.F_terms) {
-      out << t << ",";
-    }
-    return out << "]";
-  }
+  friend ostream& operator<<(ostream& out, const InductionUnit& u);
 
   TermStack F_terms;
   LiteralStack conditions;
 };
 
-struct InductionCase {
-  InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses = Stack<InductionUnit>())
-    : conclusion(conclusion), hypotheses(hypotheses)
-  {
-    ASS(iterTraits(hypotheses.iter()).all([&](const auto& h){
-      return h.F_terms.size() == conclusion.F_terms.size();
-    }));
-  }
+/**
+ * A formula template corresponding to ∀(hypotheses → conclusion)
+ * used as a single case within an induction formula.
+ */
+struct InductionCase
+{
+  InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses = Stack<InductionUnit>());
 
-  friend ostream& operator<<(ostream& out, const InductionCase& c) {
-    for (const auto& h : c.hypotheses) {
-      out << "(" << h << ") & ";
-    }
-    return out << " => (" << c.conclusion << ")";
-  }
+  friend ostream& operator<<(ostream& out, const InductionCase& c);
 
   InductionUnit conclusion;
   Stack<InductionUnit> hypotheses;
 };
 
 /**
- * Similar to a second-order formula that we use for induction,
- * with one universally-quantified second-order variable.
+ * An induction formula template corresponding to ∀F(cases → conclusion).
  */
 struct InductionTemplate
 {
-  InductionTemplate(Stack<InductionCase>&& cases, InductionUnit&& conclusion, InferenceRule rule)
-    : cases(cases), conclusion(conclusion), rule(rule)
-  {
-    ASS_REP(iterTraits(cases.iter()).all([&](const auto& c){
-      return c.conclusion.F_terms.size() == conclusion.F_terms.size();
-    }), *this);
-  }
+  InductionTemplate(Stack<InductionCase>&& cases, InductionUnit&& conclusion, InferenceRule rule);
 
-  friend ostream& operator<<(ostream& out, const InductionTemplate& t) {
-    for (const auto& c : t.cases) {
-      out << "(" << c << ") & ";
-    }
-    return out << " => (" << t.conclusion << ") " << ruleName(t.rule);
-  }
+  friend ostream& operator<<(ostream& out, const InductionTemplate& t);
 
   Stack<InductionCase> cases;
   InductionUnit conclusion;

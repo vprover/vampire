@@ -916,6 +916,26 @@ TEST_GENERATION_INDUCTION(int_test_14,
                       TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 0) })
   )
 
+// Strengthening is applied with integer induction. Note that we test with a
+// Skolem bound to check that this Skolem is not replaced in the strengthening.
+TEST_GENERATION_INDUCTION(int_test_15,
+  Generation::AsymmetricTest()
+    .options({ { "induction", "int" },
+               { "induction_strengthen_hypothesis", "on" } })
+    .context({ clause({ ~(sK6 < sK7) }) })
+    .indices(getIndices())
+    .input( clause({ fi(sK6,sK1) != fi(sK6,sK2) }) )
+    .expected({
+      clause({ fi(sK7,skx0) != fi(sK7,skx1), ~(skx2 < sK7) }),
+      clause({ fi(sK7,skx0) != fi(sK7,skx1), fi(skx2,x) == fi(skx2,y) }),
+      clause({ fi(sK7,skx0) != fi(sK7,skx1), fi(skx2+1,skx3) != fi(skx2+1,skx4) }),
+    })
+    .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
+                     TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 0) })
+    .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 1),
+                      TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1) })
+  )
+
 // all skolems are replaced when the hypothesis strengthening options is on, sik=one
 TEST_GENERATION_INDUCTION(test_26,
     Generation::AsymmetricTest()

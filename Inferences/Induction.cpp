@@ -1198,15 +1198,16 @@ void InductionClauseIterator::performInfIntInduction(const InductionContext& con
   resolveClauses(context, e, increasing ? &bound : nullptr, increasing ? nullptr : &bound);
 }
 
-InductionTemplate InductionClauseIterator::getIntegerInductionTemplate(bool increasing, Coproduct<TermLiteralClause, DefaultBound> bound1, const TermLiteralClause* optionalBound2)
+std::unique_ptr<InductionTemplate> InductionClauseIterator::getIntegerInductionTemplate(bool increasing, Coproduct<TermLiteralClause, DefaultBound> bound1, const TermLiteralClause* optionalBound2)
 {
   TermList b1(bound1.apply([](auto x) { return x.term; }));
-  TermList one(theory->representConstant(IntegerConstantType(increasing ? 1 : -1)));
 
   auto x = TermList::var(0);
 
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-  LiteralStack stepConds = { Literal::create2(less,false,(increasing ? x : b1),(increasing ? b1 : x)) };
+  LiteralStack stepConds = {
+    Literal::create2(less,false,(increasing ? x : b1),(increasing ? b1 : x))
+  };
 
   // create Y>=b1 (which is ~Y<b1), or Y>b1, or Y<=b1 (which is ~b1<Y), or Y<b1
   // This comparison is mirroring the structure of bound1.literal, which is "b1 <comparison> inductionTerm".
@@ -1215,21 +1216,18 @@ InductionTemplate InductionClauseIterator::getIntegerInductionTemplate(bool incr
       [](TermLiteralClause const& bound1) { return (bound1.literal->functor() == less && bound1.literal->isNegative()); },
       [](DefaultBound) { return true; });
   const bool isBound1FirstArg = (increasing != isBound1Equal);
-  LiteralStack concConds = { Literal::create2(less, !isBound1Equal, (isBound1FirstArg ? b1 : x), (isBound1FirstArg ? x : b1)) };
+  LiteralStack concConds = {
+    Literal::create2(less, !isBound1Equal, (isBound1FirstArg ? b1 : x), (isBound1FirstArg ? x : b1))
+  };
 
-  const bool isDefaultBound = bound1.template is<DefaultBound>();
-  const bool hasBound2 = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
+  const bool hasBound2 = optionalBound2 && optionalBound2->literal;
   // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
   if (hasBound2) {
     // Finite interval induction, use two bounds on both x and y.
     TermList b2(optionalBound2->term);
-
-
-
-    // TODO do something about this, see failing unit test
-    // if (b1 == b2) {
-    //   return;
-    // }
+    if (b1 == b2) {
+      return std::unique_ptr<InductionTemplate>();
+    }
     // create X<b2 or X>b2 (which is b2<X)
     stepConds.push(Literal::create2(less, true, (increasing ? x : b2), (increasing ? b2 : x)));
     const bool isBound2Equal = (optionalBound2->literal->functor() == less && optionalBound2->literal->isNegative());
@@ -1238,26 +1236,23 @@ InductionTemplate InductionClauseIterator::getIntegerInductionTemplate(bool incr
     concConds.push(Literal::create2(less, !isBound2Equal, (isBound2FirstArg ? b2 : x), (isBound2FirstArg ? x : b2)));
   }
 
+  TermList xPlusOne(Term::create2(
+    env.signature->getInterpretingSymbol(Theory::INT_PLUS), x,
+    TermList(theory->representConstant(IntegerConstantType(increasing ? 1 : -1))))
+  );
+  Stack<InductionCase> cases {
+    InductionCase(InductionUnit({ b1 })), // base case
+    InductionCase(InductionUnit({ xPlusOne }, std::move(stepConds)), { TermStack{ x } }) // step case
+  };
+
+  const bool isDefaultBound = bound1.template is<DefaultBound>();
   InferenceRule rule =
       isDefaultBound
           ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
           : (increasing ? (hasBound2 ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
                         : (hasBound2 ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
 
-  Stack<InductionCase> cases;
-  // base case
-  cases.emplace(InductionUnit({ b1 }));
-
-  // step case
-  cases.emplace(
-    InductionUnit(
-      { TermList(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,one)) },
-      std::move(stepConds)
-    ),
-    Stack<InductionUnit>{ TermStack{ x } }
-  );
-
-  return InductionTemplate(std::move(cases), InductionUnit({ x }, std::move(concConds)), rule);
+  return make_unique<InductionTemplate>(std::move(cases), InductionUnit({ x }, std::move(concConds)), rule);
 }
 
 // Given a literal ~L[term], where 'term' is of the integer sort,
@@ -1276,85 +1271,10 @@ InductionTemplate InductionClauseIterator::getIntegerInductionTemplate(bool incr
 void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, Coproduct<TermLiteralClause, DefaultBound> bound1, const TermLiteralClause* optionalBound2)
 {
   auto templ = getIntegerInductionTemplate(increasing, bound1, optionalBound2);
-  performRecursionInduction(context, &templ, e);
-  return;
-
-  TermList b1(bound1.apply([](auto x) { return x.term; }));
-  TermList one(theory->representConstant(IntegerConstantType(increasing ? 1 : -1)));
-
-  TermList x(0,false);
-  TermList y(1,false);
-
-  // create L[b1]
-  Formula* Lb1 = context.getFormula({ b1 },true);
-
-  // create L[X]
-  Formula* Lx = context.getFormula({ x },true);
-
-  // create L[Y]
-  Substitution subst;
-  Formula* Ly = context.getFormula({ y },true,&subst);
-
-  // create L[X+1] or L[X-1]
-  TermList fpo(Term::create2(env.signature->getInterpretingSymbol(Theory::INT_PLUS),x,one));
-  Formula* Lxpo = context.getFormula({ fpo },true);
-
-  static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-  // create X>=b1 (which is ~X<b1) or X<=b1 (which is ~b1<X)
-  Formula* Lxcompb1 = new AtomicFormula(Literal::create2(less,false,(increasing ? x : b1),(increasing ? b1 : x)));
-  // create Y>=b1 (which is ~Y<b1), or Y>b1, or Y<=b1 (which is ~b1<Y), or Y<b1
-  // This comparison is mirroring the structure of bound1.literal, which is "b1 <comparison> inductionTerm".
-  // If bound1.literal is nullptr, we are using the default bound with the comparison sign >= or <=.
-  const bool isBound1Equal = bound1.match(
-      [](TermLiteralClause const& bound1) { return (bound1.literal->functor() == less && bound1.literal->isNegative()); },
-      [](DefaultBound) { return true; });
-  const bool isBound1FirstArg = (increasing != isBound1Equal);
-  Formula* Lycompb1 = new AtomicFormula(Literal::create2(
-        less, !isBound1Equal, (isBound1FirstArg ? b1 : y), (isBound1FirstArg ? y : b1)));
-
-  Formula* FxInterval;
-  Formula* FyInterval;
-  const bool isDefaultBound = bound1.template is<DefaultBound>();
-  const bool hasBound2 = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
-  // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
-  if (hasBound2) {
-    // Finite interval induction, use two bounds on both x and y.
-    TermList b2(optionalBound2->term);
-    if (b1 == b2) {
-      return;
-    }
-    // create X<b2 or X>b2 (which is b2<X)
-    Formula* Lxcompb2 = new AtomicFormula(Literal::create2(less, true, (increasing ? x : b2), (increasing ? b2 : x)));
-    const bool isBound2Equal = (optionalBound2->literal->functor() == less && optionalBound2->literal->isNegative());
-    const bool isBound2FirstArg = (increasing == isBound2Equal);
-    // create Y<b2, or Y<=b2 (which is ~b2<Y) or Y>b2, or Y>=b2 (which is ~Y<b2)
-    Formula* Lycompb2 = new AtomicFormula(Literal::create2(
-          less, !isBound2Equal, (isBound2FirstArg ? b2 : y), (isBound2FirstArg ? y : b2)));
-    FxInterval = new JunctionFormula(Connective::AND, FormulaList::cons(Lxcompb1, FormulaList::singleton(Lxcompb2)));
-    FyInterval = new JunctionFormula(Connective::AND, FormulaList::cons(Lycompb1, FormulaList::singleton(Lycompb2)));
-  } else {
-    // Infinite interval induction (either with default bound or not), use only one bound on both x and y.
-    FxInterval = Lxcompb1;
-    FyInterval = Lycompb1;
+  if (!templ) {
+    return;
   }
-
-  // Create the hypothesis, with FxInterval and FyInterval being as described
-  // in the comment above this function.
-  Formula* hyp = new BinaryFormula(Connective::IMP,
-                   new JunctionFormula(Connective::AND,FormulaList::cons(Lb1,FormulaList::singleton(
-                     Formula::quantify(new BinaryFormula(Connective::IMP,
-                       new JunctionFormula(Connective::AND, FormulaList::cons(FxInterval,FormulaList::singleton(Lx))),
-                       Lxpo))))),
-                   Formula::quantify(new BinaryFormula(Connective::IMP,FyInterval,Ly)));
-
-  InferenceRule rule =
-      isDefaultBound
-          ? (increasing ? InferenceRule::INT_DB_UP_INDUCTION_AXIOM : InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM)
-          : (increasing ? (hasBound2 ? InferenceRule::INT_FIN_UP_INDUCTION_AXIOM : InferenceRule::INT_INF_UP_INDUCTION_AXIOM)
-                        : (hasBound2 ? InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM : InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM));
-
-  auto cls = produceClauses(hyp, rule, context);
-  e->add(std::move(cls), std::move(subst));
+  performRecursionInduction(context, templ.get(), e);
 }
 
 /**

@@ -358,6 +358,7 @@ set(SOURCES
     Kernel/FormulaVarIterator.hpp
     Kernel/Grounder.cpp
     Kernel/Grounder.hpp
+    Kernel/InductionTemplate.cpp
     Kernel/InductionTemplate.hpp
     Kernel/Inference.cpp
     Kernel/Inference.hpp

@@ -324,8 +324,8 @@ private:
 
   struct DefaultBound { TypedTermList term; };
   using Bound = Coproduct<TermLiteralClause, DefaultBound>;
-  InductionTemplate getIntegerInductionTemplate(bool increasing, Bound bound1, const TermLiteralClause* optionalBound2);
 
+  std::unique_ptr<InductionTemplate> getIntegerInductionTemplate(bool increasing, Bound bound1, const TermLiteralClause* optionalBound2);
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, Bound bound1, const TermLiteralClause* optionalBound2);
 
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, TermLiteralClause const& bound1, const TermLiteralClause* optionalBound2)
