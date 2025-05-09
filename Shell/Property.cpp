@@ -775,9 +775,7 @@ void Property::scanForInterpreted(Term* t)
     itp = theory->interpretFunction(t);
     forEachNumTraits([&](auto n) {
       n.ifMul(t,[&](auto l, auto r) { 
-        DBGE(t)
         if (!isNumeral(n, l) && !isNumeral(n, r)) {
-          DBG("non-linear")
           Setter::setNonLinear(*this, n);
         }
         return std::make_tuple();
