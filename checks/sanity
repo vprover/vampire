@@ -65,14 +65,19 @@ check_szs_status Theorem Problems/LCL/LCL840_5.p
 check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.smt2
 
 # Integer induction problems
+check_szs_status Unsatisfiable -ind int -alasca off ind/int_invariant_infinite_geq3_val3.smt2
+check_szs_status Unsatisfiable -ind int -alasca off ind/int_invariant_finite_a_to_b.smt2
 # disabled until we have a known strategy
-#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_invariant_infinite_geq3_val3.smt2
-#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_invariant_finite_a_to_b.smt2
 #check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_power_0_all_0.smt2
 #check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_sum_y_geq_0.smt2
 
 # Structural induction problems
-check_szs_status Unsatisfiable -ind struct -nui on ind/mem_append.smt2
+check_szs_status Unsatisfiable -ind struct -sik one -nui on ind/mem_append_poly.smt2
+check_szs_status Unsatisfiable -ind struct -sik two -nui on ind/mem_append_poly.smt2
+# TODO find a strategy for sik=three which solves the polymorphic version faster
+check_szs_status Unsatisfiable -ind struct -sik three -nui on ind/mem_append.smt2
+# TODO newcnf=on is incompatible with polymorphism, use monomorphic version
+check_szs_status Unsatisfiable -ind struct -sik recursion -nui on -newcnf on ind/mem_append.smt2
 
 # Parser
 check_szs_status Unsatisfiable parse/types-funs.smt2

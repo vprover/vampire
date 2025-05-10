@@ -208,7 +208,7 @@ void Inference::updateStatistics()
         * proof search, update statistics won't reset these "hacky" values.
         * (C.f., inductionDepth assigned in AVATAR to AVATAR_DEFINITION
         * and thus later propagated to AVATAR_COMPONENT, AVATAR_SPLIT_CLAUSE, and transitively to AVATAR_REFUTATION,
-        * and similarly inductionDepth assigned to INDUCTION "hypothesis" formulas in Induction.)
+        * and similarly inductionDepth assigned to induction formulas in Induction.)
         */
       } else if (_ptr2 == nullptr) {
         _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
@@ -915,25 +915,25 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
-    return "structural induction hypothesis (one)";
+    return "structural induction formula (one)";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
-    return "structural induction hypothesis (two)";
+    return "structural induction formula (two)";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
-    return "structural induction hypothesis (three)";
+    return "structural induction formula (three)";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
-    return "structural induction hypothesis (recursion)";
+    return "structural induction formula (recursion)";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    return "integer induction hypothesis (up, infinite interval)";
+    return "integer induction formula (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-    return "integer induction hypothesis (down, infinite interval)";
+    return "integer induction formula (down, infinite interval)";
   case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    return "integer induction hypothesis (up, finite interval)";
+    return "integer induction formula (up, finite interval)";
   case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-    return "integer induction hypothesis (down, finite interval)";
+    return "integer induction formula (down, finite interval)";
   case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    return "integer induction hypothesis (up, default bound)";
+    return "integer induction formula (up, default bound)";
   case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-    return "integer induction hypothesis (down, default bound)";
+    return "integer induction formula (down, default bound)";
   case InferenceRule::INDUCTION_HYPERRESOLUTION:
     return "induction hyperresolution";
   case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:

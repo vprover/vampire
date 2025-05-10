@@ -6,6 +6,6 @@
 
 (assert (forall ((x Int)) (=> (and (>= x a) (< x b)) (= (f x) (f (+ x 1))))))
 
-(assert (not (forall ((x Int)) (=> (and (>= x a) (<= x b)) (= (f x) (f a))))))
+(assert-not (forall ((x Int)) (=> (and (>= x a) (<= x b)) (= (f x) (f a)))))
 
 (check-sat)
