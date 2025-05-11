@@ -80,3 +80,9 @@ check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
 check_szs_status Unsatisfiable -t 2 parse/smtlib2-parametric-datatypes.smt2
 check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
+
+# Arithmetic
+check_szs_status Theorem -t 1 Problems/ARI/ARI548_1.p
+check_szs_status Theorem -t 1 -sas z3 Problems/ARI/ARI700_1.p
+check_szs_status Theorem -t 1 Problems/ARI/ARI045_1.p # alasca can't!
+check_szs_status Theorem -t 1 -tha off Problems/DAT/DAT042_1.p
