@@ -49,18 +49,30 @@ ostream& outputImplication(ostream& out, const Stack<S>& antecedent, const T& su
   return out;
 }
 
-InductionUnit::InductionUnit(TermStack&& F_terms, LiteralStack&& conditions)
-  : F_terms(F_terms), conditions(conditions)
+InductionUnit::InductionUnit(TermStack&& F_terms, LiteralStack&& conditions, VList* condUnivVars)
+  : F_terms(F_terms), conditions(conditions), condUnivVars(condUnivVars)
 {
   ASS(F_terms.isNonEmpty());
-  // check that all variables in conditions are in F_terms
-  ASS(iterTraits(conditions.iter()).all([&](const auto& lit) {
-    return iterTraits(VariableIterator(lit)).all([&](const auto& t) {
-      return iterTraits(F_terms.iter()).any([&](const auto& Ft) {
-        return Ft.containsSubterm(t);
-      });
-    });
-  }));
+}
+
+void InductionUnit::collectVariableSorts(const DHSet<unsigned>& sortVars, const TermStack& sorts, DHMap<unsigned,TermList>& varSorts) const
+{
+  ASS_EQ(sorts.size(), F_terms.size());
+  for (unsigned i = 0; i < sorts.size(); i++) {
+    auto t = F_terms[i];
+    if (t.isVar()) {
+      ASS(!sortVars.contains(t.var()));
+      if (!varSorts.insert(t.var(), sorts[i])) {
+        ASS_EQ(sorts[i], varSorts.get(t.var()));
+      }
+    } else {
+      ASS_EQ(sorts[i], SortHelper::getResultSort(t.term()));
+      SortHelper::collectVariableSorts(t.term(), varSorts);
+    }
+  }
+  for (const auto& l : conditions) {
+    SortHelper::collectVariableSorts(l, varSorts);
+  }
 }
 
 ostream& operator<<(ostream& out, const InductionUnit& u) {
@@ -79,8 +91,8 @@ ostream& operator<<(ostream& out, const InductionUnit& u) {
   return out;
 }
 
-InductionCase::InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses)
-  : conclusion(conclusion), hypotheses(hypotheses)
+InductionCase::InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses, VList* hypUnivVars)
+  : conclusion(conclusion), hypotheses(hypotheses), hypUnivVars(hypUnivVars)
 {
   ASS(iterTraits(hypotheses.iter()).all([&](const auto& h){
     return h.F_terms.size() == conclusion.F_terms.size();
@@ -92,13 +104,33 @@ ostream& operator<<(ostream& out, const InductionCase& c) {
   return out;
 }
 
-InductionTemplate::InductionTemplate(Stack<InductionCase>&& cases, InductionUnit&& conclusion, InferenceRule rule)
-  : cases(cases), conclusion(conclusion), rule(rule)
+InductionTemplate::InductionTemplate(TermStack&& sorts, Stack<InductionCase>&& cases, InductionUnit&& conclusion, unsigned maxVar, InferenceRule rule)
+  : sorts(sorts), cases(cases), conclusion(conclusion), maxVar(maxVar), rule(rule)
 {
+#if VDEBUG
+  DHSet<unsigned> sortVars;
+  for (const auto& s : sorts) {
+    iterTraits(VariableIterator(s)).forEach([&](const auto& t) {
+      sortVars.insert(t.var());
+    });
+  }
+
+  // check sorts and vars
+  DHMap<unsigned,TermList> varSorts;
+  conclusion.collectVariableSorts(sortVars, sorts, varSorts);
+
   ASS(cases.isNonEmpty());
-  ASS_REP(iterTraits(cases.iter()).all([&](const auto& c){
-    return c.conclusion.F_terms.size() == conclusion.F_terms.size();
-  }), *this);
+  for (const auto& c : cases) {
+    DHMap<unsigned,TermList> caseVars;
+    c.conclusion.collectVariableSorts(sortVars, sorts, caseVars);
+    for (const auto& h : c.hypotheses) {
+      h.collectVariableSorts(sortVars, sorts, caseVars);
+    }
+    iterTraits(caseVars.items()).forEach([&](const auto& kv) {
+      ASS_REP(sortVars.contains(kv.first) || varSorts.insert(kv.first, kv.second), *this);
+    });
+  }
+#endif
 }
 
 ostream& operator<<(ostream& out, const InductionTemplate& t) {

@@ -250,6 +250,7 @@ private:
   __ALLOW_UNUSED(                                                                          \
     auto r0 = r.dtor(0);                                                                   \
     TermSugar ph_s(TermList(getPlaceholderForTerm({ sK1.sugaredExpr().term() }, 0)));      \
+    PredSugar subterm_s(env.signature->getTermAlgebraOfSort(s)->getSubtermPredicate());    \
   )                                                                                        \
   DECL_CONST(b1, u)                                                                        \
   DECL_CONST(b2, u)                                                                        \
@@ -376,6 +377,24 @@ TEST_GENERATION_INDUCTION(test_05,
       .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
                         TEST_FN_ASS_EQ(env.statistics->structInduction, 2) })
     )
+
+// normal case sik=three
+TEST_GENERATION_INDUCTION(test_06,
+  Generation::AsymmetricTest()
+    .options({ { "induction", "struct" }, { "structural_induction_kind", "three" } })
+    .indices(getIndices())
+    .input( clause({  ~p(f(sK1,sK2)) }))
+    .expected({
+      clause({ ~subterm_s(x,skx0), p(f(x,sK2)) }),
+      clause({ ~p(f(skx0,sK2)) }),
+      clause({ ~subterm_s(x,skx1), p(f(sK1,x)) }),
+      clause({ ~p(f(sK1,skx1)) }),
+    })
+    .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
+                     TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
+    .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
+                      TEST_FN_ASS_EQ(env.statistics->structInduction, 2) })
+  )
 
 // TODO this case is a bit hard to test since new predicates are introduced,
 // so we need to customize the test suite for this even more, checking certain

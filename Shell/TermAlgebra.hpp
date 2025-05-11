@@ -155,8 +155,9 @@ namespace Shell {
     std::string getSubtermPredicateName();
     unsigned getSubtermPredicate();
     void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
-    const InductionTemplate* getConstructorInductionTemplate();
-    const InductionTemplate* getDestructorInductionTemplate();
+    const InductionTemplate* getInductionTemplateOne();
+    const InductionTemplate* getInductionTemplateTwo();
+    const InductionTemplate* getInductionTemplateThree();
 
     /**
      * Given a set of (possibly variable) term algebra terms in @b availables
@@ -171,8 +172,9 @@ namespace Shell {
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;
-    std::unique_ptr<const InductionTemplate> _ctorIndTempl;
-    std::unique_ptr<const InductionTemplate> _dtorIndTempl;
+    std::unique_ptr<const InductionTemplate> _indTemplOne;
+    std::unique_ptr<const InductionTemplate> _indTemplTwo;
+    std::unique_ptr<const InductionTemplate> _indTemplThree;
   };
 }
 

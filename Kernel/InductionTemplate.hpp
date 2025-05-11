@@ -29,12 +29,15 @@ namespace Kernel {
  */
 struct InductionUnit
 {
-  InductionUnit(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack());
+  InductionUnit(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack(), VList* condUnivVars = nullptr);
+
+  void collectVariableSorts(const DHSet<unsigned>& sortVars, const TermStack& sorts, DHMap<unsigned,TermList>& varSorts) const;
 
   friend ostream& operator<<(ostream& out, const InductionUnit& u);
 
   TermStack F_terms;
   LiteralStack conditions;
+  VList* condUnivVars;
 };
 
 /**
@@ -43,12 +46,13 @@ struct InductionUnit
  */
 struct InductionCase
 {
-  InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses = Stack<InductionUnit>());
+  InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses = Stack<InductionUnit>(), VList* hypUnivVars = nullptr);
 
   friend ostream& operator<<(ostream& out, const InductionCase& c);
 
   InductionUnit conclusion;
   Stack<InductionUnit> hypotheses;
+  VList* hypUnivVars;
 };
 
 /**
@@ -56,13 +60,15 @@ struct InductionCase
  */
 struct InductionTemplate
 {
-  InductionTemplate(Stack<InductionCase>&& cases, InductionUnit&& conclusion, InferenceRule rule);
+  InductionTemplate(TermStack&& sorts, Stack<InductionCase>&& cases, InductionUnit&& conclusion, unsigned maxVar, InferenceRule rule);
 
   friend ostream& operator<<(ostream& out, const InductionTemplate& t);
 
+  TermStack sorts;
   Stack<InductionCase> cases;
   InductionUnit conclusion;
   InferenceRule rule;
+  unsigned maxVar;
 };
 
 }

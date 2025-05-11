@@ -245,26 +245,68 @@ bool RecursionTemplate::finalize()
 
   auto indPos = Stack<unsigned>::fromIterator(range(0,_arity).filter([&](unsigned i) { return _indPos[i]; }));
 
+  // first create normalized sorts
+  TermStack sorts;
+  Renaming r;
+  for (unsigned i : indPos) {
+    r.normalizeVariables(_type->arg(i));
+    sorts.push(r.apply(_type->arg(i)));
+  }
+
+  unsigned var = r.nextVar();
   Stack<InductionCase> cases;
   // fill out InductionTemplate
   for (const auto& b : _branches) {
+    // we need this sophisticated renaming due to
+    // already fixed sort variables coming from _type
+    static DHMap<unsigned,unsigned> renaming;
+    renaming.reset();
+    auto renameTerm = [&](TermList t, TermList sort) {
+      if (t.isVar()) {
+        unsigned* ptr;
+        if (renaming.getValuePtr(t.var(), ptr)) {
+          *ptr = var++;
+        }
+        return TermList::var(*ptr);
+      } else {
+        auto tsort = SortHelper::getResultSort(t.term());
+        MatchingUtils::MapBinderAndApplicator binder;
+        ALWAYS(MatchingUtils::matchTerms(tsort, sort, binder));
+        iterTraits(binder._map.items()).forEach([&](const auto& kv) {
+          ASS(kv.second.isVar());
+          renaming.insert(kv.first,kv.second.var());
+        });
+        iterTraits(VariableIterator(t)).forEach([&](TermList v) {
+          unsigned* ptr;
+          if (renaming.getValuePtr(v.var(), ptr)) {
+            *ptr = var++;
+          }
+        });
+        struct Applicator {
+          TermList apply(unsigned var) { return TermList::var(renaming.get(var)); }
+        } appl;
+        return SubstHelper::apply(t, appl);
+      }
+    };
+    TermStack conclusion;
+    for (unsigned i = 0; i < indPos.size(); i++) {
+      conclusion.push(renameTerm(*b._header->nthArgument(indPos[i]), sorts[i]));
+    }
     Stack<InductionUnit> hypotheses;
     for (const auto& recCall : b._recursiveCalls) {
       TermStack hyp;
-      for (unsigned i : indPos) {
-        hyp.push(*recCall->nthArgument(i));
+      for (unsigned i = 0; i < indPos.size(); i++) {
+        hyp.push(renameTerm(*recCall->nthArgument(indPos[i]), sorts[i]));
       }
       hypotheses.emplace(std::move(hyp));
-    }
-    TermStack conclusion;
-    for (unsigned i : indPos) {
-      conclusion.push(*b._header->nthArgument(i));
     }
     cases.emplace(std::move(conclusion), std::move(hypotheses));
   }
   _templ = make_unique<const InductionTemplate>(
+    std::move(sorts),
     std::move(cases),
-    InductionUnit(TermStack::fromIterator(range(0,indPos.size()).map([](unsigned i) { return TermList::var(i); }))),
+    InductionUnit(TermStack::fromIterator(range(0,indPos.size()).map([&](unsigned i) { return TermList::var(var++); }))),
+    /*maxVar=*/var,
     InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION
   );
   return true;
@@ -369,7 +411,7 @@ bool RecursionTemplate::checkWellFoundedness()
 RecursionTemplate::RecursionTemplate(const Term* t)
   : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
   _type(_isLit ? env.signature->getPredicate(_functor)->predType()
-                : env.signature->getFunction(_functor)->fnType()),
+               : env.signature->getFunction(_functor)->fnType()),
   _branches(), _indPos(_arity, false) {}
 
 void RecursionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* header)

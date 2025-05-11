@@ -74,8 +74,8 @@ check_szs_status Unsatisfiable -ind int -alasca off ind/int_invariant_finite_a_t
 # Structural induction problems
 check_szs_status Unsatisfiable -ind struct -sik one -nui on ind/mem_append_poly.smt2
 check_szs_status Unsatisfiable -ind struct -sik two -nui on ind/mem_append_poly.smt2
-# TODO find a strategy for sik=three which solves the polymorphic version faster
-check_szs_status Unsatisfiable -ind struct -sik three -nui on ind/mem_append.smt2
+# TODO get rid of -tac axiom
+check_szs_status Unsatisfiable -ind struct -sik three -nui on -tac axiom -to lpo ind/mem_append_poly.smt2
 # TODO newcnf=on is incompatible with polymorphism, use monomorphic version
 check_szs_status Unsatisfiable -ind struct -sik recursion -nui on -newcnf on ind/mem_append.smt2
 

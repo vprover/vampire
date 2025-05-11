@@ -1016,6 +1016,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "leibniz equality elimination";
   case InferenceRule::CASES_SIMP:
     return "cases simplifying";
+  case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
+    return "term algebra direct subterm axiom";
+  case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
+    return "term algebra subterm transitivity axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION: 
@@ -1024,8 +1028,6 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
   case InferenceRule::GENERIC_GENERATING_INFERNCE:
   case InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST:
-  case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
-  case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
   case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }
