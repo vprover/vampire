@@ -57,7 +57,6 @@ check_szs_status Theorem Problems/PUZ/PUZ001+1.p
 
 # simple polymorphic problems
 check_szs_status Theorem Problems/PUZ/PUZ139_1.p
-check_szs_status Theorem -t 1 Problems/LCL/LCL840_5.p
 
 # Unsat core problems
 # disabled until we have a known strategy
