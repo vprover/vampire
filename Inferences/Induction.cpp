@@ -126,7 +126,7 @@ Formula* InductionContext::getFormula(const InductionUnit& unit, const TypeBinde
     FormulaList::push(new AtomicFormula(SubstHelper::apply(lit, typeBinder)), hyps);
   }
   auto left = hyps ? JunctionFormula::generalJunction(Connective::AND, hyps) : nullptr;
-  auto hypVars = VList::copy(unit.condUnivVars);
+  auto hypVars = VList::fromIterator(unit.condUnivVars.iterFifo());
   if (hypVars) {
     ASS(left);
     left = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), left);
@@ -1379,7 +1379,7 @@ void InductionClauseIterator::performRecursionInduction(const InductionContext& 
       FormulaList::push(hypF, hyps);
     }
     auto left = hyps ? JunctionFormula::generalJunction(Connective::AND, hyps) : nullptr;
-    auto hypVars = VList::copy(c.hypUnivVars);
+    auto hypVars = VList::fromIterator(c.hypUnivVars.iterFifo());
     if (hypVars) {
       ASS(left);
       left = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), left);

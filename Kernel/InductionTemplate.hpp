@@ -23,13 +23,15 @@ using namespace std;
 
 namespace Kernel {
 
+using VStack = Stack<unsigned>;
+
 /**
  * A formula template corresponding to (conditions → F[F_terms])
  * used as the unit for building induction formulas.
  */
 struct InductionUnit
 {
-  InductionUnit(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack(), VList* condUnivVars = nullptr);
+  InductionUnit(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack(), VStack&& condUnivVars = VStack());
 
   void collectVariableSorts(const DHSet<unsigned>& sortVars, const TermStack& sorts, DHMap<unsigned,TermList>& varSorts) const;
 
@@ -37,7 +39,7 @@ struct InductionUnit
 
   TermStack F_terms;
   LiteralStack conditions;
-  VList* condUnivVars;
+  VStack condUnivVars;
 };
 
 /**
@@ -46,13 +48,13 @@ struct InductionUnit
  */
 struct InductionCase
 {
-  InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses = Stack<InductionUnit>(), VList* hypUnivVars = nullptr);
+  InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses = Stack<InductionUnit>(), VStack&& hypUnivVars = VStack());
 
   friend ostream& operator<<(ostream& out, const InductionCase& c);
 
   InductionUnit conclusion;
   Stack<InductionUnit> hypotheses;
-  VList* hypUnivVars;
+  VStack hypUnivVars;
 };
 
 /**

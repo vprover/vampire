@@ -336,7 +336,7 @@ const InductionTemplate* TermAlgebra::getInductionTemplateThree()
 
     _indTemplThree = std::make_unique<const InductionTemplate>(
       TermStack{ TermList(AtomicSort::create(_sort.term()->functor(), typeArgs.size(), typeArgs.begin())) },
-      Stack<InductionCase>{ { InductionUnit({ y }), std::move(hypotheses), VList::singleton(x.var()) } },
+      Stack<InductionCase>{ { InductionUnit({ y }), std::move(hypotheses), { x.var() } } },
       InductionUnit({ z }), /*maxVar=*/z.var(),
       InferenceRule::STRUCT_INDUCTION_AXIOM_THREE
     );

@@ -49,7 +49,7 @@ ostream& outputImplication(ostream& out, const Stack<S>& antecedent, const T& su
   return out;
 }
 
-InductionUnit::InductionUnit(TermStack&& F_terms, LiteralStack&& conditions, VList* condUnivVars)
+InductionUnit::InductionUnit(TermStack&& F_terms, LiteralStack&& conditions, VStack&& condUnivVars)
   : F_terms(F_terms), conditions(conditions), condUnivVars(condUnivVars)
 {
   ASS(F_terms.isNonEmpty());
@@ -91,7 +91,7 @@ ostream& operator<<(ostream& out, const InductionUnit& u) {
   return out;
 }
 
-InductionCase::InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses, VList* hypUnivVars)
+InductionCase::InductionCase(InductionUnit&& conclusion, Stack<InductionUnit>&& hypotheses, VStack&& hypUnivVars)
   : conclusion(conclusion), hypotheses(hypotheses), hypUnivVars(hypUnivVars)
 {
   ASS(iterTraits(hypotheses.iter()).all([&](const auto& h){
