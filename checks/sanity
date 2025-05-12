@@ -57,7 +57,7 @@ check_szs_status Theorem Problems/PUZ/PUZ001+1.p
 
 # simple polymorphic problems
 check_szs_status Theorem Problems/PUZ/PUZ139_1.p
-check_szs_status Theorem Problems/LCL/LCL840_5.p
+check_szs_status Theorem -t 1 Problems/LCL/LCL840_5.p
 
 # Unsat core problems
 # disabled until we have a known strategy
@@ -82,7 +82,15 @@ check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 
 # Arithmetic
-check_szs_status Theorem -t 1 Problems/ARI/ARI548_1.p
-check_szs_status Theorem -t 1 -sas z3 Problems/ARI/ARI700_1.p
-check_szs_status Theorem -t 1 Problems/ARI/ARI045_1.p # alasca can't!
-check_szs_status Theorem -t 1 -tha off Problems/DAT/DAT042_1.p
+check_szs_status Theorem -t 1d Problems/ARI/ARI548_1.p
+check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI700_1.p
+check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI724_1.p
+check_szs_status Theorem -t 1d Problems/ARI/ARI045_1.p # alasca can't!
+check_szs_status Theorem -t 1d -tha off Problems/DAT/DAT042_1.p
+check_szs_status Theorem -t 1d -tgt ground -sas z3 Problems/ARI/ARI633_1.p
+check_szs_status Theorem -t 1d -alasca on -alascai on -thf on Problems/DAT/DAT023_1.p
+check_szs_status Theorem -t 1d -to lpo -sas z3 Problems/ARI/ARI637_1.p
+check_szs_status Theorem -t 1d -isp bottom -to lpo -sas z3 -fd preordered -ev force Problems/SWC/SWC478_1.p
+check_szs_status Theorem -t 1d -s 1011 -tgt full -fde none -nm 0 Problems/SWW/SWW605_2.p
+
+
