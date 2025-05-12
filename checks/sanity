@@ -86,6 +86,7 @@ check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI700_1.p
 check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI724_1.p
 check_szs_status Theorem -t 1d Problems/ARI/ARI045_1.p # alasca can't!
 check_szs_status Theorem -t 1d -tha off Problems/DAT/DAT042_1.p
+check_szs_status Theorem -t 1d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -canc force Problems/DAT/DAT043_1.p
 check_szs_status Theorem -t 1d -tgt ground -sas z3 Problems/ARI/ARI633_1.p
 check_szs_status Theorem -t 1d -alasca on -alascai on -thf on Problems/DAT/DAT023_1.p
 check_szs_status Theorem -t 1d -to lpo -sas z3 Problems/ARI/ARI637_1.p
