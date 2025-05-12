@@ -143,9 +143,9 @@ public:
 
   struct MapBinderAndApplicator : MapBinder
   {
-    TermList apply(unsigned var) {
+    TermList apply(unsigned var) const {
       TermList res;
-      if(!_map.find(var, res)) {
+      if (!_map.find(var, res)) {
         res = TermList::var(var);
       }
       return res;
