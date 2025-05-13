@@ -63,16 +63,22 @@ public:
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
   { return lookeaheadResultDoesNotDependOnSelection(); }
 
+  enum class TheoremStatus {
+    Theorem,
+    CounterSat,
+    Unknown,
+  };
+
   /**
    * Assuming cl is only built from theory material, this will use an SMT solver
    * to check whether the given clause cl is sematically valid (in its theory).
    *
-   * The function sets couldNotCheck to true, if it found symbols that it didn't understand.
-   * (In that case the answer is "true" even though we don't know.)
+   * The function returns "Unkown", if it found symbols that it didn't understand, or if the underlying SMT-Solver returns unknown.
    *
    * The main use case for this function (for now) is a sanity check on PureTheoryDescendants.
+   *
   */
-  static bool isTheoryLemma(Clause* cl, bool& couldNotCheck);
+  static TheoremStatus isTheoryLemma(Clause* cl);
 private:
   struct SkolemizedLiterals {
     Stack<SATLiteral> lits;
