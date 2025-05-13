@@ -631,7 +631,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   Timer::reinitialise(); // timer only when done talking (otherwise output may get mangled)
 
-  Saturation::ProvingHelper::runVampire(*_prb, opt);
+  Saturation::ProvingHelper::runVampire(*_prb, *env.options);
 
   bool succeeded =
     env.statistics->terminationReason == Statistics::REFUTATION ||
