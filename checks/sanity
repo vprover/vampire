@@ -93,3 +93,5 @@ check_szs_status Theorem -t 1d -to lpo -sas z3 Problems/ARI/ARI637_1.p
 check_szs_status Theorem -t 1d -isp bottom -to lpo -sas z3 -fd preordered -ev force Problems/SWC/SWC478_1.p
 check_szs_status Theorem -t 3d -s 1011 -tgt full -fde none -nm 0 Problems/SWW/SWW605_2.p
 check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
+check_szs_status ContradictoryAxioms -t 1d -s 1011 -thi all -uwa ground -br off Problems/PLA/PLA046_1.p
+
