@@ -16,39 +16,34 @@ jobs:
         submodules: true
     - name: Check Copyright Headers
       run: checks/headers
-    - name: Create Z3 Build Directory
-      run: mkdir z3/build
-    - name: Configure Z3 Build
-      working-directory: ${{runner.workspace}}/vampire/z3/build
-      run: cmake .. -DCMAKE_BUILD_TYPE=Debug -DZ3_BUILD_EXECUTABLE=OFF -DZ3_BUILD_TEST_EXECUTABLES=OFF
+    - name: Configure and Build Z3
+      working-directory: ${{ runner.workspace }}/vampire
+      run: |
+        mkdir -p z3/build
+        cd z3/build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DZ3_BUILD_EXECUTABLE=OFF -DZ3_BUILD_TEST_EXECUTABLES=OFF
+        make -j8
       env:
         CXX: clang++
-    - name: Z3 Build
-      working-directory: ${{runner.workspace}}/vampire/z3/build
-      run: make -j8
-    - name: Create Build Directory
-      run: mkdir build
-    - name: Configure Debug Build
-      working-directory: ${{runner.workspace}}/vampire/build
-      run: cmake .. -DCMAKE_BUILD_TYPE=Debug
+    - name: Configure and Build Vampire (Debug + Unit Tests)
+      working-directory: ${{ runner.workspace }}/vampire
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug
+        make -j8
+        make vtest -j8
       env:
         CXX: clang++
-    - name: Build Debug Vampire
-      working-directory: ${{runner.workspace}}/vampire/build
-      run: make -j8
-    - name: Build Unit Tests
-      working-directory: ${{runner.workspace}}/vampire/build
-      run: make vtest -j8
     - name: Run Unit Tests
       working-directory: ${{runner.workspace}}/vampire/build
       run: ctest --output-on-failure
-    - name: Configure Release Build
-      working-directory: ${{runner.workspace}}/vampire/build
-      run: cmake .. -DCMAKE_BUILD_TYPE=Release
+    - name: Configure and Build Vampire (Release)
+      working-directory: ${{ runner.workspace }}/vampire/build
+      run: |
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        make -j8
       env:
         CXX: clang++
-    - name: Build Release Vampire
-      working-directory: ${{runner.workspace}}/vampire/build
-      run: make -j8
     - name: Run Sanity Checks
       run: checks/sanity build/vampire
