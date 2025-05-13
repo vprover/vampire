@@ -16,7 +16,18 @@ jobs:
         submodules: true
     - name: Check Copyright Headers
       run: checks/headers
-    - name: Configure and Build Z3
+    - name: Get Z3 submodule commit hash
+      id: z3hash
+      run: |
+        echo "z3_hash=$(git rev-parse HEAD:z3)" >> $GITHUB_OUTPUT
+    - name: Restore Z3 build cache
+      id: cache-z3
+      uses: actions/cache@v4
+      with:
+        path: z3/build
+        key: z3-build-${{ steps.z3hash.outputs.z3_hash }}
+    - name: Configure and Build Z3 (if cache miss)
+      if: steps.cache-z3.outputs.cache-hit != 'true'
       working-directory: ${{ runner.workspace }}/vampire
       run: |
         mkdir -p z3/build
