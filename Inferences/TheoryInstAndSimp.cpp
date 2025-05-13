@@ -965,7 +965,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 }
 
-bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
+TheoryInstAndSimp::TheoremStatus TheoryInstAndSimp::isTheoryLemma(Clause* cl) {
   static TheoryInstAndSimp checker(
     Options::TheoryInstSimp::ALL,
     /* thiTautologyDeletion */ true,
@@ -974,8 +974,7 @@ bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
     "", Options::ProblemExportSyntax::SMTLIB);
 
   if (!forAll(cl->iterLits(),[](auto l){ return checker.isPure(l); })) {
-    couldNotCheck = true;
-    return true;
+    return TheoremStatus::Theorem; // TODO
   }
 
   auto invertedLiterals = iterTraits(cl->iterLits())
@@ -985,8 +984,12 @@ bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
   static Stack<Literal*> empty;
 
   auto solutions = checker.getSolutions(invertedLiterals,empty,0);
-  ASS_REP(solutions.hasNext(),cl->toString())
-  return !solutions.next().sat;
+  if (solutions.hasNext()) {
+    return solutions.next().sat ? TheoremStatus::CounterSat
+                                : TheoremStatus::Theorem;
+  } else {
+    return TheoremStatus::Unknown;
+  }
 }
 
 } // namespace Inferences
