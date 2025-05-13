@@ -28,12 +28,12 @@ jobs:
       run: make -j8
     - name: Create Build Directory
       run: mkdir build
-    - name: Configure Build
+    - name: Configure Debug Build
       working-directory: ${{runner.workspace}}/vampire/build
       run: cmake .. -DCMAKE_BUILD_TYPE=Debug
       env:
         CXX: clang++
-    - name: Build Vampire
+    - name: Build Debug Vampire
       working-directory: ${{runner.workspace}}/vampire/build
       run: make -j8
     - name: Build Unit Tests
@@ -42,5 +42,13 @@ jobs:
     - name: Run Unit Tests
       working-directory: ${{runner.workspace}}/vampire/build
       run: ctest --output-on-failure
+    - name: Configure Release Build
+      working-directory: ${{runner.workspace}}/vampire/build
+      run: cmake .. -DCMAKE_BUILD_TYPE=Release
+      env:
+        CXX: clang++
+    - name: Build Release Vampire
+      working-directory: ${{runner.workspace}}/vampire/build
+      run: make -j8
     - name: Run Sanity Checks
       run: checks/sanity build/vampire
