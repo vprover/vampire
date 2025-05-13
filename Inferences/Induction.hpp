@@ -331,11 +331,8 @@ private:
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, TermLiteralClause const& bound1, const TermLiteralClause* optionalBound2)
   { performIntInduction(context, e, increasing, Bound::variant<0>(bound1), optionalBound2); }
 
-  void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
-  void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
-  void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution* freeVarSubst);
-  void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e);
+  void performInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e);
 
   /**
    * Whether an induction formula is applicable (or has already been generated)

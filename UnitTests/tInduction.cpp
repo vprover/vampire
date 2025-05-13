@@ -907,29 +907,10 @@ TEST_GENERATION_INDUCTION(int_test_14,
     .context({ clause({ ~(sK6 < bi) }), clause({ ~(bi < sK6) }) })
     .indices(getIndices())
     .input( clause({ ~pi(sK6) }) )
-    // TODO: make the new implementation - satisfying the commented constraints -
-    // satisfy the uncommented constraints instead.
-    //
-    // .expected({
-    //   // upward induction
-    //   clause({ ~pi(bi), ~(skx0 < bi) }),
-    //   clause({ ~pi(bi), skx0 < bi }),
-    //   clause({ ~pi(bi), pi(skx0) }),
-    //   clause({ ~pi(bi), ~pi(skx0+1) }),
-
-    //   // downard induction
-    //   clause({ ~pi(bi), bi < skx1 }),
-    //   clause({ ~pi(bi), ~(bi < skx1) }),
-    //   clause({ ~pi(bi), pi(skx1) }),
-    //   clause({ ~pi(bi), ~pi(skx1+num(-1)) }),
-    // })
     .expected(none())
     .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                      TEST_FN_ASS_EQ(env.statistics->intFinUpInduction, 0),
                      TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 0) })
-    // .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 2),
-    //                   TEST_FN_ASS_EQ(env.statistics->intFinUpInduction, 1),
-    //                   TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 1) })
     .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
                       TEST_FN_ASS_EQ(env.statistics->intFinUpInduction, 0),
                       TEST_FN_ASS_EQ(env.statistics->intFinDownInduction, 0) })

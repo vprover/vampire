@@ -793,19 +793,21 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       // generate formulas and add them to index if not done already
       if (_formulaIndex.findOrInsert(ctx, e)) {
         if (ctx._indTerms.size() == 1) {
+          TermList sort = SortHelper::getResultSort(ctx._indTerms[0]);
+          TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
           if(one){
-            performStructInductionOne(ctx,e);
+            performInduction(ctx, ta->getInductionTemplateOne(), e);
           }
           if(two){
-            performStructInductionTwo(ctx,e);
+            performInduction(ctx, ta->getInductionTemplateTwo(), e);
           }
           if(three){
-            performStructInductionThree(ctx,e);
+            performInduction(ctx, ta->getInductionTemplateThree(), e);
           }
         }
         if (rec) {
           for (const auto& templ : ta_terms.at(ctx._indTerms)) {
-            performRecursionInduction(ctx, templ, e);
+            performInduction(ctx, templ, e);
           }
         }
       }
@@ -1301,56 +1303,10 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
   if (!templ) {
     return;
   }
-  performRecursionInduction(context, templ.get(), e);
+  performInduction(context, templ.get(), e);
 }
 
-/**
- * Introduce the Induction Hypothesis
- * ( L[base1] & ... & L[basen] & (L[x] => L[c1(x)]) & ... (L[x] => L[cm(x)]) ) => L[x]
- * for some lit ~L[a]
- * and then force binary resolution on L for each resultant clause
- */
-
-void InductionClauseIterator::performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e)
-{
-  ASS_EQ(context._indTerms.size(), 1);
-  TermList sort = SortHelper::getResultSort(context._indTerms[0]);
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-  performRecursionInduction(context, ta->getInductionTemplateOne(), e);
-}
-
-/**
- * This idea (taken from the CVC4 paper) is that there exists some smallest k that makes lit true
- * We produce the clause ~L[x] \/ ?y : L[y] & !z (z subterm y -> ~L[z])
- * and perform resolution with lit L[c]
- */
-void InductionClauseIterator::performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e)
-{
-  ASS_EQ(context._indTerms.size(), 1);
-  TermList sort = SortHelper::getResultSort(context._indTerms[0]);
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-  performRecursionInduction(context, ta->getInductionTemplateTwo(), e);
-}
-
-/*
- * A variant of Two where we are stronger with respect to all subterms. here the existential part is
- *
- * ?y : L[y] &_{con_i} ( y = con_i(..dec(y)..) -> smaller(dec(y))) 
-             & (!x : smallerThanY(x) -> smallerThanY(destructor(x))) 
-             & !z : smallerThanY(z) => ~L[z]
- *
- * i.e. we add a new special predicat that is true when its argument is smaller than Y
- *
- */
-void InductionClauseIterator::performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e)
-{
-  ASS_EQ(context._indTerms.size(), 1);
-  TermList sort = SortHelper::getResultSort(context._indTerms[0]);
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-  performRecursionInduction(context, ta->getInductionTemplateThree(), e);
-}
-
-void InductionClauseIterator::performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e)
+void InductionClauseIterator::performInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e)
 {
   unsigned var = templ->maxVar+1;
   FormulaList* formulas = FormulaList::empty();

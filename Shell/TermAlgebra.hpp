@@ -155,6 +155,22 @@ namespace Shell {
     std::string getSubtermPredicateName();
     unsigned getSubtermPredicate();
     void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
+
+    /**
+     * These three induction templates correspond to the schemas presented in the CADE 2019 paper.
+     * Examples use list datatype nil, cons(head,tail)
+     * 
+     * - one: based on constructors
+     *   (F[nil] ⋀ ∀ x,y. (F[y] → F[cons(x,y)])) → ∀ z. F[z]
+     * 
+     * - two: based on well-founded induction using subterms
+     *   (∀ x. (x = cons(head(x),tail(x)) → F[tail(x)]) → F[x]) → ∀ y. F[y]
+     * 
+     * - three: based on well-founded induction using subterm predicate
+     *   (note that this needs the axiomatisation of the subterm predicate)
+     *   (∀ x. (∀ y. (subterm(y,x) → F[y]) → F[x]) → ∀ z. F[z]
+     */
+    /* Constructor-based induction template. */
     const InductionTemplate* getInductionTemplateOne();
     const InductionTemplate* getInductionTemplateTwo();
     const InductionTemplate* getInductionTemplateThree();
