@@ -830,13 +830,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto indLitsIt = contextReplacementInstance(InductionContext({ st }, lit, premise), _opt, _fnDefHandler);
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
-          InductionFormulaIndex::Entry* e;
-          // TODO: make sure that the index handles literals with free variables correctly
-          // (right now it might allow redundant induction applications due to variable renaming).
           for (unsigned i = 0; i <= (unsigned)env.options->inductionNonstandardBase(); ++i) {
             if (i == 1) {
               ctx._standardBase = false;
             }
+            InductionFormulaIndex::Entry* e;
+            // TODO: make sure that the index handles literals with free variables correctly
+            // (right now it might allow redundant induction applications due to variable renaming).
             if (_formulaIndex.findOrInsert(ctx, e)) {
               // Generate induction axioms, clausify and resolve them
               Binding binding;
@@ -1054,8 +1054,9 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
       }
     }
     // cl should have the same number of conclusion
-    // literals as the size of toResolve
-    ASS_EQ(conclusionLits.size(), toResolve.size());
+    // literals as the size of toResolve, unless non-standard base case is on
+    // TODO(hzzv): remove the non-standard base option
+    ASS(env.options->inductionNonstandardBase() || (conclusionLits.size() == toResolve.size()));
     // now we look for the variants
     for (unsigned k = 0; k < conclusionLits.size(); k++) {
 #if VDEBUG
