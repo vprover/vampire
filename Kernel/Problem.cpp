@@ -228,7 +228,7 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 }
 
 /**
- * Register a predicate that has been partially eliminated i.e. <=> replaced by => 
+ * Register a predicate that has been partially eliminated i.e. <=> replaced by =>
  *
  * This information may be used during model output
  */
@@ -243,7 +243,7 @@ void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
 void Problem::refreshProperty() const
 {
   TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
-  ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
+  ScopedLet<ExecutionPhase> phaseLet(env.statistics->phase, ExecutionPhase::PROPERTY_SCANNING);
 
   auto oldProp = _property;
   _propertyValid = true;
@@ -350,7 +350,7 @@ Property* Problem::getProperty() const
 bool Problem::hasFormulas() const
 {
   if(!mayHaveFormulas()) { return false; }
-  if(!_hasFormulas.known()) { refreshProperty(); }  
+  if(!_hasFormulas.known()) { refreshProperty(); }
   ASS(_hasFormulas.known());
   return _hasFormulas.value();
 }

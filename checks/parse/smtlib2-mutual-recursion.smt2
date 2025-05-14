@@ -1,7 +1,7 @@
 
 (declare-datatype nat ((zero) (s (s_0 nat))))
-(declare-datatype list ((nil) (cons (head nat) (tail list))))
-(declare-datatype pair ((pair2 (proj1-pair list) (proj2-pair list))))
+(declare-datatype list (par (a) ((nil) (cons (head a) (tail (list a))))))
+(declare-datatype pair (par (a) ((pair2 (proj1-pair a) (proj2-pair a)))))
 
 (define-funs-rec
   ((even
@@ -13,12 +13,14 @@
    (match x ((zero false)
              ((s z) (even z))))))
 
-(define-fun-rec take ((x nat) (y list)) list
+(declare-sort-parameter A)
+
+(define-fun-rec take ((x nat) (y (list A))) (list A)
   (match x
-    ((zero nil)
+    ((zero (as nil (list A)))
      ((s z)
       (match y
-        ((nil nil)
+        ((nil (as nil (list A)))
          ((cons z2 xs) (cons z2 (take z xs)))))))))
 (define-fun-rec plus ((x nat) (y nat)) nat
   (match x
@@ -50,52 +52,52 @@
       (match y
         ((zero false)
          ((s x2) (leq z x2))))))))
-(define-fun-rec ordered ((x list)) Bool
+(define-fun-rec ordered ((x (list nat))) Bool
   (match x
     ((nil true)
      ((cons y z)
       (match z
         ((nil true)
          ((cons y2 xs) (and (leq y y2) (ordered z)))))))))
-(define-fun sort2 ((x nat) (y nat)) list
+(define-fun sort2 ((x nat) (y nat)) (list nat)
   (ite
-    (leq x y) (cons x (cons y nil))
-    (cons y (cons x nil))))
-(define-fun-rec length ((x list)) nat
+    (leq x y) (cons x (cons y (as nil (list nat))))
+    (cons y (cons x (as nil (list nat))))))
+(define-fun-rec length ((x (list A))) nat
   (match x
     ((nil zero)
-     ((cons y l) (plus (s zero) (length l))))))
-(define-fun-rec drop ((x nat) (y list)) list
+     ((cons _ l) (plus (s zero) (length l))))))
+(define-fun-rec drop ((x nat) (y (list A))) (list A)
   (match x
     ((zero y)
      ((s z)
       (match y
-        ((nil nil)
+        ((nil (as nil (list A)))
          ((cons z2 xs1) (drop z xs1))))))))
-(define-fun splitAt ((x nat) (y list)) pair
+(define-fun splitAt ((x nat) (y (list A))) (pair (list A))
   (pair2 (take x y) (drop x y)))
-(define-fun-rec ++ ((x list) (y list)) list
+(define-fun-rec ++ ((x (list A)) (y (list A))) (list A)
   (match x
     ((nil y)
      ((cons z xs) (cons z (++ xs y))))))
-(define-fun-rec reverse ((x list)) list
+(define-fun-rec reverse ((x (list A))) (list A)
   (match x
-    ((nil nil)
-     ((cons y xs) (++ (reverse xs) (cons y nil))))))
+    ((nil (as nil (list A)))
+     ((cons y xs) (++ (reverse xs) (cons y (as nil (list A))))))))
 (define-funs-rec
   ((nstooge1sort2
-    ((x list)) list)
+    ((x (list nat))) (list nat))
    (nstoogesort
-    ((x list)) list)
+    ((x (list nat))) (list nat))
    (nstooge1sort1
-    ((x list)) list))
+    ((x (list nat))) (list nat)))
   ((match (splitAt (third (length x)) (reverse x))
      (((pair2 ys1 zs1) (++ (nstoogesort zs1) (reverse ys1)))))
    (match x
-     ((nil nil)
+     ((nil (as nil (list nat)))
       ((cons y z)
        (match z
-         ((nil (cons y nil))
+         ((nil (cons y (as nil (list nat))))
           ((cons y2 x2)
            (match x2
              ((nil (sort2 y y2))
@@ -105,4 +107,4 @@
      (((pair2 ys1 zs) (++ ys1 (nstoogesort zs)))))))
 
 (assert-not (let ((two (s (s zero))))
-  (and (even two) (not (odd two)) (ordered (nstoogesort (cons two nil))))))
+  (and (even two) (not (odd two)) (ordered (nstoogesort (cons two (as nil (list nat))))))))
