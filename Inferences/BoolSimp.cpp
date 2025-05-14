@@ -53,15 +53,14 @@ Clause* BoolSimp::simplify(Clause* premise) {
 
 substitution:
 
-  unsigned conclusionLength = premise->length();
-  Clause* conclusion = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
+  RStack<Literal*> resLits;
 
-  for (unsigned i = 0; i < conclusion->length(); i++) {
-    (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i];
+  for (unsigned i = 0; i < premise->length(); i++) {
+    resLits->push(i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i]);
   }
 
   env.statistics->booleanSimps++;
-  return conclusion;
+  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
 }
 
 bool BoolSimp::areComplements(TermList t1, TermList t2){

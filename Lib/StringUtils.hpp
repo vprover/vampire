@@ -15,8 +15,8 @@
 #ifndef __StringUtils__
 #define __StringUtils__
 
-#include "VString.hpp"
 #include "DHMap.hpp"
+#include "Lib/Output.hpp"
 #include <cstdlib>
 
 namespace Lib {
@@ -26,35 +26,55 @@ template<class A> struct StringParser;
 
 class StringUtils {
 public:
-  static vstring replaceChar(vstring str, char src, char target);
-  static vstring sanitizeSuffix(vstring str);
-  static bool isPositiveInteger(vstring str);
-  static bool isPositiveDecimal(vstring str);
+  static std::string replaceChar(std::string str, char src, char target);
+  static std::string sanitizeSuffix(std::string str);
+  static bool isPositiveInteger(std::string str);
+  static bool isPositiveDecimal(std::string str);
+  static void replaceAll(std::string& where, const std::string& from, const std::string& to);
 
-  static void splitStr(const char* str, char delimiter, Stack<vstring>& strings);
-  static void dropEmpty(Stack<vstring>& strings);
-  static bool readEquality(const char* str, char eqChar, vstring& lhs, vstring& rhs);
-  static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<vstring,vstring>& pairs);
+  static bool starts_with(const std::string& str, const std::string& what) {
+    return str.rfind(what,0) == 0;
+  }
+  static void splitStr(const char* str, char delimiter, Stack<std::string>& strings);
+  static void dropEmpty(Stack<std::string>& strings);
+  static bool readEquality(const char* str, char eqChar, std::string& lhs, std::string& rhs);
+  static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string>& pairs);
   template<class A>
-  static A parse(vstring const& str) 
+  static A parse(std::string const& str)
   { return StringParser<A>{}(str); }
+
+  static size_t distance(const std::string &s1, const std::string &s2);
 };
 
-template<> struct StringParser<int> 
+template<> struct StringParser<int>
 {
-  int operator()(vstring const& str)
+  int operator()(std::string const& str)
   { return atoi(str.c_str()); }
 };
 
 
-template<> struct StringParser<float> 
+template<> struct StringParser<float>
 {
-  float operator()(vstring const& str)
+  float operator()(std::string const& str)
   { return atof(str.c_str()); }
 };
 
-
-
+template<class... Cs>
+std::string outputToString(Cs const&... xs) {
+  std::stringstream out;
+  out << Kernel::Output::cat(xs...);
+  return out.str();
 }
+
+// TODO deprecate
+template<class A>
+std::string toString(A const& a) {
+  std::stringstream out;
+  out << a;
+  return out.str();
+}
+
+
+} // namespace Lib
 
 #endif // __StringUtils__

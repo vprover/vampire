@@ -170,7 +170,7 @@ public:
     if(_swapArguments) { swap(args[0], args[1]); }
     bool polarity = lit->isPositive() ^ _reversePolarity;
 
-    return Literal::create(_tgtPred, 2, polarity, false, args);
+    return Literal::create(_tgtPred, 2, polarity, args);
   }
 
 private:
@@ -183,7 +183,7 @@ private:
 /**
  * Class that performs literal transformations
  */
-class InterpretedNormalizer::NLiteralTransformer : public TermTransformer
+class InterpretedNormalizer::NLiteralTransformer : public BottomUpTermTransformer
 {
 public:
   NLiteralTransformer()
@@ -233,7 +233,7 @@ public:
     }
 
     constantRes = false;
-    litRes = transform(lit);
+    litRes = transformLiteral(lit);
     unsigned pred = litRes->functor();
     IneqTranslator* transl = getIneqTranslator(pred);
     if(transl) {
@@ -244,7 +244,7 @@ public:
   Formula* transform(Formula* f) override;
 
 protected:
-  using TermTransformer::transform;
+  using BottomUpTermTransformer::transform;
 
   TermList transformSubterm(TermList trm) override
   {
@@ -452,8 +452,8 @@ bool InterpretedNormalizer::apply(UnitList*& units)
       FormulaUnit* fu = static_cast<FormulaUnit*>(u);
       FormulaUnit* fu1 = futransf.transform(fu);
       if(fu!=fu1) {
-	uit.replace(fu1);
-	modified = true;
+	      uit.replace(fu1);
+	      modified = true;
       }
     }
   }
@@ -468,12 +468,12 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
   bool modified = false;
 
   for(unsigned i=0; i<clen; i++) {
-    Literal* lit = (*cl)[i];
+    Literal* orig = (*cl)[i];
 
     bool isConst;
     Literal* newLit;
     bool newConst;
-    _litTransf->apply(lit, isConst, newLit, newConst);
+    _litTransf->apply(orig, isConst, newLit, newConst);
 
     if(isConst) {
       modified = true;
@@ -482,7 +482,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
       }
       continue;
     }
-    if(newLit!=lit) {
+    if(newLit != orig) {
       modified = true;
     }
     lits.push(newLit);
@@ -492,7 +492,8 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
   }
 
   Clause* res = Clause::fromStack(lits,
-      FormulaTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
+      FormulaClauseTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
+  // DBG(*cl, " ==> ", *res)
   return res;
 }
 

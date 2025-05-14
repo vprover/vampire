@@ -20,7 +20,6 @@
 #include "Lib/List.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Deque.hpp"
-#include "Lib/STLAllocator.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
@@ -55,6 +54,9 @@ namespace Kernel {
 
 namespace Shell {
 
+typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
+typedef List<Binding> BindingList;
+
 /**
  * Class implementing the NewCNF transformation.
  * @since 19/11/2015 Manchester
@@ -87,7 +89,6 @@ private:
    * from the input does not compromise correctness.
    */
   Deque<Formula*> _queue;
-
 
   // all allocations of shared BindingLists should go via BindingStore so that they get destroyed in the end
   struct BindingStore {
@@ -178,10 +179,10 @@ private:
     }
 
     // Position of a gen literal in _genClauses
-    std::list<SmartPtr<GenClause>,STLAllocator<SmartPtr<GenClause>>>::iterator iter;
+    std::list<SmartPtr<GenClause>>::iterator iter;
 
-    vstring toString() {
-      vstring res = "GC("+Int::toString(size())+")";
+    std::string toString() {
+      std::string res = "GC("+Int::toString(size())+")";
       if (!valid) {
         res += " [INVALID]";
       }
@@ -211,7 +212,7 @@ private:
   bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
-  typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
+  typedef std::list<SPGenClause> GenClauses;
 
   /**
    * pushLiteral is responsible for tautology elimination. Whenever it sees two

@@ -95,8 +95,8 @@ TEST_FUN(examples__match_02) {
   // Further we can create polymorphic function structs if each match branch does the same thing
   auto x = Coproduct<int, float>(1);
 
-  vstring str = x.apply([](auto const& c) {
-    vstringstream out;
+  std::string str = x.apply([](auto const& c) {
+    std::stringstream out;
     out << c;
     return out.str(); 
   });
@@ -111,6 +111,20 @@ TEST_FUN(examples__compare) {
   ASS(Co(2) < Co(3))
   ASS(Co(1.0) < Co(2.0))
 }
+
+
+
+// TEST_FUN(examples__zip_variants) {
+//   // Coproducts are orderd first by tag, then by value.
+//   using Co = Coproduct<int, double>;
+//   std::tuple<int&&> x = std::make_tuple<int&&>(1);
+//
+//   ASS(Co(1).zipVariant(Co(1.0)).isNone())
+//   ASS(Co(1.0).zipVariant(Co(1)).isNone())
+//   // ASS(Co(2) < Co(1.0))
+//   // ASS(Co(2) < Co(3))
+//   // ASS(Co(1.0) < Co(2.0))
+// }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -149,7 +163,7 @@ struct NonCopy {
   bool operator==(const NonCopy& other) const {
     return content == other.content;
   }
-  friend ostream& operator<<(ostream& out, const NonCopy& x)  {
+  friend std::ostream& operator<<(std::ostream& out, const NonCopy& x)  {
     return out << "NonCopy(" << x.content << ")";
   }
 };
@@ -169,13 +183,55 @@ TEST_FUN(move_01) {
   ASS((y != Coproduct<int,NonCopy>::variant<0>(0)));
 }
 
-// TEST_FUN(move_02) {
-//
-//   auto x = Coproduct<int, NonCopy>::variant<1>(NonCopy( true ));
-//
-//   auto y = x;
-//
-//   ASS(!x.unwrap<NonCopy>().wasMoved)
-//   ASS(!y.unwrap<NonCopy>().wasMoved)
-//
-// }
+TEST_FUN(apply01) {
+
+  struct Bar {
+    int f() { return 42; }
+  } b;
+
+  struct Foo {
+    int f() { return -42; }
+  } f;
+
+
+  using C = Coproduct<Foo,Bar>;
+  auto foo = C(f);
+  auto& fooRef = foo;
+  auto bar = C(b);
+
+  auto applyF = [](auto& x) { return x.f(); };
+  auto& applyFref = applyF;
+  static_assert( std::is_same<decltype(foo.template unwrap<0>()), Foo& >::value, "");
+  static_assert( std::is_same<decltype(foo.template unwrap<1>()), Bar& >::value, "");
+  static_assert( std::is_same<decltype(applyF((foo.template unwrap<1>()))), int >::value, "");
+  static_assert( std::is_same<decltype(applyF((foo.template unwrap<0>()))), int >::value, "");
+  static_assert( std::is_same<decltype(applyFref((fooRef.template unwrap<0>()))), int >::value, "");
+
+  auto doApply = [](auto f) {
+
+    auto foo = C(Foo{});
+    auto doApplication = [&]() {
+      return f(foo.template unwrap<0>());
+    };
+    return doApplication();
+  };
+  ASS_EQ(doApply(applyF), -42)
+
+  ASS_EQ( 42, bar.apply([](auto& x) { 
+  static_assert( std::is_same<decltype(x), Foo& >::value
+              || std::is_same<decltype(x), Bar& >::value, "");
+        return x.f(); }))
+  ASS_EQ(-42, foo.apply([](auto& x) { return x.f(); }))
+
+}
+
+TEST_FUN(map_01) {
+
+  auto c1 = Coproduct<int, string>::variant<1>("");
+  auto c2 = c1.map([](auto x) { return (unsigned)x; },
+             [](auto x) { return x; }
+        );
+
+  ASS_EQ(( Coproduct<unsigned, string>::variant<1>("") ), c2)
+
+}

@@ -20,14 +20,16 @@
 #include <cstdlib>
 
 #include "Lib/Allocator.hpp"
-#include "Lib/VString.hpp"
 #include "Forwards.hpp"
 
 #include <type_traits>
+#include <limits>
 
 using namespace Lib;
 
 namespace Kernel {
+
+class Unit;
 
 /** Kind of input. The integers should not be changed, they are used in
  *  Compare. */
@@ -108,13 +110,12 @@ enum class InferenceRule : unsigned char {
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL
    * (preprocessing/normalisation) FORMULA TRANSFORMATION SHOULD BELONG
-   * (see also INTERNAL_FORMULA_TRANSFORMATION_LAST and isFormulaTransformation below). */
-  GENERIC_FORMULA_TRANSFORMATION,
+   * (see also INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST and isFormulaClauseTransformation below). */
+  GENERIC_FORMULA_CLAUSE_TRANSFORMATION,
   /** negated conjecture from the input */
   NEGATED_CONJECTURE,
-  /** introduction of answer literal into the conjecture,
-   * or the unit negation of answer literal used to obtain refutation */
-  ANSWER_LITERAL,
+  /** introduction of answer literal into the conjecture */
+  ANSWER_LITERAL_INJECTION,
   /** introduction of answer literal into the conjecture,
    * and skolemisation of input variables */
   ANSWER_LITERAL_INPUT_SKOLEMISATION,
@@ -196,14 +197,15 @@ enum class InferenceRule : unsigned char {
 //     MINISCOPE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
+  ALASCA_INTEGER_TRANSFORMATION,
   /** skolemization */
   SKOLEMIZE,
   /** obtain clause from a formula */
   CLAUSIFY,
   /** the (preprocessing/normalisation) formula transformation marker --
-    inferences between GENERIC_FORMULA_TRANSFORMATION and INTERNAL_FORMULA_TRANSFORMATION_LAST
-    will be automatically understood as formula transformations (see also isFormulaTransformation) */
-  INTERNAL_FORMULA_TRANSFORMATION_LAST,
+    inferences between GENERIC_FORMULA_CLAUSE_TRANSFORMATION and INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST
+    will be automatically understood as formula transformations (see also isFormulaClauseTransformation) */
+  INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST,
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
    * (see also INTERNAL_SIMPLIFYING_INFERNCE_LAST and isSimplifyingInferenceRule below). */
@@ -222,6 +224,8 @@ enum class InferenceRule : unsigned char {
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
   BACKWARD_DEMODULATION,
+  ALASCA_FWD_DEMODULATION,
+  ALASCA_BWD_DEMODULATION,
   /** forward subsumption demodulation inference */
   FORWARD_SUBSUMPTION_DEMODULATION,
   /** backward subsumption demodulation inference */
@@ -234,6 +238,9 @@ enum class InferenceRule : unsigned char {
   CONDENSATION,
   /** evaluation inference */
   EVALUATION,
+  ALASCA_NORMALIZATION,
+  ALASCA_ABSTRACTION,
+  ALASCA_FLOOR_ELIMINATION,
   CANCELLATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,
@@ -252,22 +259,27 @@ enum class InferenceRule : unsigned char {
   ARITHMETIC_SUBTERM_GENERALIZATION,
   /* clause added after removing answer literal and saving it as a witness */
   ANSWER_LITERAL_REMOVAL,
-  /** the last simplifying inference marker --
-    inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
-    (see also isSimplifyingInferenceRule) */
+  /* clause with literals added from AVATAR assertions of the parent */
+  AVATAR_ASSERTION_REINTRODUCTION,
+
    /* eager demodulation with combinator axioms */
   COMBINATOR_DEMOD,
   /* normalising combinators */
   COMBINATOR_NORMALISE,
   /* negative extnsionality */
   CASES_SIMP,
+  ALASCA_VIRAS_QE,
 
   BOOL_SIMP,
 
+  FUNCTION_DEFINITION_DEMODULATION,
+
+  /** the last simplifying inference marker --
+    inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
+    (see also isSimplifyingInferenceRule) */
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
-
-  /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
+  /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL GENERATING INFERENCES SHOULD BELONG
     * (see also INTERNAL_GENERATING_INFERNCE_LAST and isGeneratingInferenceRule below). */
   GENERIC_GENERATING_INFERNCE,
   /** resolution inference */
@@ -280,6 +292,8 @@ enum class InferenceRule : unsigned char {
   CONSTRAINED_FACTORING,
   /** superposition inference */
   SUPERPOSITION,
+  /** function definition rewriting inference */
+  FUNCTION_DEFINITION_REWRITING,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
   /** equality factoring inference */
@@ -300,8 +314,21 @@ enum class InferenceRule : unsigned char {
   INDUCTION_HYPERRESOLUTION,
   /* Generalized induction hyperresolution */
   GEN_INDUCTION_HYPERRESOLUTION,
+  /* Induction hyperresolution where the induction literal has a free variable */
+  FREE_VAR_INDUCTION_HYPERRESOLUTION,
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
+  /* inequality factoring rule of the ALASCA Calculs */
+  ALASCA_FOURIER_MOTZKIN,
+  ALASCA_INTEGER_FOURIER_MOTZKIN,
+  ALASCA_TERM_FACTORING,
+  ALASCA_FLOOR_BOUNDS,
+  ALASCA_EQ_FACTORING,
+  ALASCA_LITERAL_FACTORING,
+  ALASCA_SUPERPOSITION,
+  ALASCA_COHERENCE,
+  ALASCA_COHERENCE_NORMALIZATION,
+  ALASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
@@ -354,6 +381,9 @@ enum class InferenceRule : unsigned char {
 
   HOL_EQUALITY_ELIMINATION,
 
+  /** the last generating inference marker --
+        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        (see also isGeneratingInferenceRule) */
   INTERNAL_GENERATING_INFERNCE_LAST,
 
   /** equality proxy replacement */
@@ -446,7 +476,10 @@ enum class InferenceRule : unsigned char {
   CHOICE_AXIOM,
 
   /* Structural induction hypothesis*/
-  STRUCT_INDUCTION_AXIOM,
+  STRUCT_INDUCTION_AXIOM_ONE,
+  STRUCT_INDUCTION_AXIOM_TWO,
+  STRUCT_INDUCTION_AXIOM_THREE,
+  STRUCT_INDUCTION_AXIOM_RECURSION,
   /* Integer induction hypothesis for infinite intervals */
   INT_INF_UP_INDUCTION_AXIOM,
   INT_INF_DOWN_INDUCTION_AXIOM,
@@ -459,8 +492,6 @@ enum class InferenceRule : unsigned char {
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
-  /* clause with literals added from AVATAR assertions of the parent */
-  AVATAR_ASSERTION_REINTRODUCTION,
 
   /** A (first-order) tautology generated on behalf of a decision procedure,
    * whose propositional counterpart becomes a conflict clause in a sat solver */
@@ -480,6 +511,7 @@ enum class InferenceRule : unsigned char {
   THA_TRANSITIVITY,
   THA_ORDER_TOTALALITY,
   THA_ORDER_MONOTONICITY,
+  THA_ALASCA,
   THA_PLUS_ONE_GREATER,
   THA_ORDER_PLUS_ONE_DICHOTOMY,
   THA_MINUS_MINUS_X,
@@ -525,24 +557,24 @@ enum class InferenceRule : unsigned char {
   /** one of two axioms of FOOL (distinct constants or finite domain) */
   FOOL_AXIOM_TRUE_NEQ_FALSE,
   FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,
- 
+
   COMBINATOR_AXIOM,
-  
+
   FUNC_EXT_AXIOM,
 
   /** beginning of proxy funxtion axioms marker --*/
   PROXY_AXIOM,
   /* Equality proxy axiom */
   EQUALITY_PROXY_AXIOM,
-  /* Not proxy axiom */    
+  /* Not proxy axiom */
   NOT_PROXY_AXIOM,
   /* And proxy axiom */
   AND_PROXY_AXIOM,
-  /* OR proxy axiom */    
+  /* OR proxy axiom */
   OR_PROXY_AXIOM,
   /* Implies proxy axiom */
   IMPLIES_PROXY_AXIOM,
-  /* Forall proxy axiom */    
+  /* Forall proxy axiom */
   PI_PROXY_AXIOM,
   /* Exists proxy axiom */
   SIGMA_PROXY_AXIOM,
@@ -556,9 +588,9 @@ enum class InferenceRule : unsigned char {
 
 inline std::underlying_type<InferenceRule>::type toNumber(InferenceRule r) { return static_cast<std::underlying_type<InferenceRule>::type>(r); }
 
-inline bool isFormulaTransformation(InferenceRule r) {
-  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_FORMULA_TRANSFORMATION) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST));
+inline bool isFormulaClauseTransformation(InferenceRule r) {
+  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION) &&
+      toNumber(r) < toNumber(InferenceRule::INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST));
 }
 
 /** Currently not enforced but (almost) assumed:
@@ -608,7 +640,8 @@ inline bool isSatRefutationRule(InferenceRule r) {
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
-vstring ruleName(InferenceRule rule);
+std::string inputTypeName(UnitInputType type);
+std::string ruleName(InferenceRule rule);
 
 /*
 * The following structs are here just that we can have specialized overloads for the Inference constructor (see below)
@@ -625,14 +658,14 @@ struct TheoryAxiom {
   InferenceRule rule;
 };
 
-struct FormulaTransformation {
-  FormulaTransformation(InferenceRule r, Unit* p) : rule(r), premise(p) {}
+struct FormulaClauseTransformation {
+  FormulaClauseTransformation(InferenceRule r, Unit* p) : rule(r), premise(p) {}
   InferenceRule rule;
   Unit* premise;
 };
 
-struct FormulaTransformationMany {
-  FormulaTransformationMany(InferenceRule r, UnitList* p) : rule(r), premises(p) {}
+struct FormulaClauseTransformationMany {
+  FormulaClauseTransformationMany(InferenceRule r, UnitList* p) : rule(r), premises(p) {}
   InferenceRule rule;
   UnitList* premises;
 };
@@ -703,6 +736,9 @@ struct NonspecificInferenceMany {
 
 struct FromSatRefutation; // defined in SATInference.hpp
 
+class Inference;
+std::ostream& operator<<(std::ostream& out, Inference const& self);
+
 /**
  * Class to represent inferences
  */
@@ -747,9 +783,9 @@ public:
 
   /* A formula transformation inference automatically propagates the _included flag from the parent to the child
      (later during clausal proof search, currently, this is not done anymore)*/
-  Inference(const FormulaTransformation& ft);
+  Inference(const FormulaClauseTransformation& ft);
   // _included propagated from the first premise here
-  Inference(const FormulaTransformationMany& ft);
+  Inference(const FormulaClauseTransformationMany& ft);
 
   /* A generating inference automatically computes age as 1 + the maximum over the parents' age */
   Inference(const GeneratingInference1& gi);
@@ -833,7 +869,7 @@ public:
    **/
   void updateStatistics();
 
-   vstring toString() const;
+ friend std::ostream& operator<<(std::ostream& out, Inference const& self);
 
   /**
    * To implement lazy minimization of proofs coming from a SAT solver
@@ -847,7 +883,8 @@ public:
    */
   void minimizePremises();
 
-  vstring name() const { return ruleName(_rule); }
+  // returns ruleName; with inputTypeName on top, in the case of ruleName == INPUT
+  std::string name() const;
 
   /** return the input type of the unit */
   UnitInputType inputType() const { return (UnitInputType)_inputType; }
@@ -943,7 +980,7 @@ public:
   void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; }
 
   bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
-  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }  
+  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }

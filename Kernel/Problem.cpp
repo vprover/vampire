@@ -21,6 +21,7 @@
 
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/FunctionDefinitionHandler.hpp"
 
 #include "Clause.hpp"
 #include "Term.hpp"
@@ -38,7 +39,7 @@ using namespace Kernel;
  * The new object takes ownership of the list @c units.
  */
 Problem::Problem(UnitList* units)
-: _units(0), _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED), _property(0)
+: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _smtlibLogic(SMTLIBLogic::UNDEFINED), _property(0)
 {
   initValues();
 
@@ -52,7 +53,7 @@ Problem::Problem(UnitList* units)
  * clauses in the iterator.
  */
 Problem::Problem(ClauseIterator clauses, bool copy)
-: _units(0), _property(0)
+: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _property(0)
 {
   initValues();
 
@@ -70,9 +71,6 @@ Problem::Problem(ClauseIterator clauses, bool copy)
 
 Problem::~Problem()
 {
-  //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
-
-  UnitList::destroy(_units);
   // Don't delete the property as it is owned by Environment
 }
 
@@ -129,7 +127,7 @@ ClauseIterator Problem::clauseIterator() const
   //no formulas. otherwise we call hasFormulas() which may cause rescanning
   //the problem property
   ASS(!mayHaveFormulas() || !hasFormulas());
-  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units())) );
+  return pvi( iterTraits(UnitList::Iterator(units())).map([](Unit* u) { return (Clause*)u; }) );
 }
 
 /**
@@ -247,11 +245,12 @@ void Problem::refreshProperty() const
   TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
-  if(_property) {
-    delete _property;
-  }
+  auto oldProp = _property;
   _propertyValid = true;
   _property = Property::scan(_units);
+  if(oldProp) {
+    delete oldProp;
+  }
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
   readDetailsFromProperty();
@@ -266,6 +265,12 @@ void Problem::readDetailsFromProperty() const
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
   _hasNumerals = _property->hasNumerals();
+  _hasAlascaArithmetic = _property->hasNumerals()
+    || forAnyNumTraits([&](auto n) { return 
+           _property->hasInterpretedOperation(n.addI)
+        || _property->hasInterpretedOperation(n.mulI)
+        || _property->hasInterpretedOperation(n.floorI);
+        });
   _hasFOOL = _property->hasFOOL();
   _hasCombs = _property->hasCombs();
   _hasApp = _property->hasApp();
@@ -290,14 +295,15 @@ void Problem::readDetailsFromProperty() const
 void Problem::invalidateEverything()
 {
   invalidateProperty();
-  _hasFormulas = MaybeBool::UNKNOWN;
-  _hasEquality = MaybeBool::UNKNOWN;
-  _hasInterpretedOperations = MaybeBool::UNKNOWN;
-  _hasNumerals = MaybeBool::UNKNOWN;
-  _hasFOOL = MaybeBool::UNKNOWN;
-  _hasCombs = MaybeBool::UNKNOWN;
-  _hasApp = MaybeBool::UNKNOWN;
-  _hasAppliedVar = MaybeBool::UNKNOWN;
+  _hasFormulas = MaybeBool::Unknown;
+  _hasEquality = MaybeBool::Unknown;
+  _hasInterpretedOperations = MaybeBool::Unknown;
+  _hasNumerals = MaybeBool::Unknown;
+  _hasAlascaArithmetic = MaybeBool::Unknown;
+  _hasFOOL = MaybeBool::Unknown;
+  _hasCombs = MaybeBool::Unknown;
+  _hasApp = MaybeBool::Unknown;
+  _hasAppliedVar = MaybeBool::Unknown;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -317,6 +323,7 @@ void Problem::invalidateByRemoval()
   _hasEquality.mightBecameFalse();
   _hasInterpretedOperations.mightBecameFalse();
   _hasNumerals.mightBecameFalse();
+  _hasAlascaArithmetic.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
   _hasCombs.mightBecameFalse();
   _hasAppliedVar.mightBecameFalse();
@@ -365,6 +372,20 @@ bool Problem::hasNumerals() const
 {
   if(!_hasNumerals.known()) { refreshProperty(); }
   return _hasNumerals.value();
+}
+
+bool Problem::hasAlascaArithmetic() const
+{
+  if(!_hasAlascaArithmetic.known()) { refreshProperty(); }
+  return _hasAlascaArithmetic.value();
+}
+
+bool Problem::hasAlascaMixedArithmetic() const
+{
+  return hasAlascaArithmetic() 
+    && forAnyNumTraits([&](auto n) {
+        return getProperty()->hasInterpretedOperation(n.floorI);
+    });
 }
 
 bool Problem::hasFOOL() const

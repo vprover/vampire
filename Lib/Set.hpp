@@ -24,6 +24,7 @@
 #include "Hash.hpp"
 #include "Reflection.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Output.hpp"
 
 namespace std {
 template<typename T>
@@ -166,48 +167,46 @@ public:
   } // Set::contains
 
   /**
-   * If a value equal to @b val is not contained in the set, insert @b val
-   * in the set.
-   * Return the value equal to @b val from the set.
-   * @since 29/09/2002 Manchester
-   * @since 09/12/2006 Manchester, reimplemented
+   * Checks whether a value with a given hashCode is in the map. 
+   * If the value is not present, a new value will be inserted. The new value will be 
+   * created using the closure `create`. If a new value has been inserted the bool `inserted` will be set to true, or to false otherwise.
+   * When checking whether the is already in the map the closure `isCorrectVal` is used to 
+   * compare the value in the map to the one to be inserted. This funciton can be used 
+   * in order to avoid allocating a new value when it is already present in the map.
+   * a pseudo-code use case for this:
+   *
+   * ```
+   * Set<Stack<char>> set;
+   * ...
+   * set.rawFindOrInsert(
+   *   [](){ return Stack<char>{'a','c'}; },  // <- allocates new stack
+   *   computeHashCode({'a','c'}), 
+   *   [](auto& stack other) { return other.size() == 2 && other[0] == 'a' && other[1] == 'c' });
+   * ```
    */
-  inline Val insert(const Val val)
+  template<class Create, class IsCorrectVal>
+  Val& rawFindOrInsert(Create create, unsigned hashCode, IsCorrectVal isCorrectVal, bool& inserted)
   {
+    inserted = false;
+
+    auto correctHash = [](unsigned hash) { return hash < 2 ? 2 : hash; };
+    hashCode = correctHash(hashCode);
     if (_nonemptyCells >= _maxEntries) { // too many entries
       expand();
     }
 
-    unsigned code;
-    code = Hash::hash(val);
-
-    if (code < 2) {
-      code = 2;
-    }
-
-    return insert(val,code);
-  } // Set::insert
-
-  /**
-   * Insert a value with a given code in the set.
-   * The set must have a sufficient capacity
-   * @since 09/12/2006 Manchester, reimplemented
-   */
-  Val insert(const Val val,unsigned code)
-  {
     Cell* found = 0;
-    Cell* cell = firstCellForCode(code);
+    Cell* cell = firstCellForCode(hashCode);
     while (! cell->empty()) {
       if (cell->deleted()) {
-	if (! found) {
-	  found = cell;
-	}
-	cell = nextCell(cell);
-	continue;
+        if (! found) {
+          found = cell;
+        }
+        cell = nextCell(cell);
+        continue;
       }
-      if (cell->code == code &&
-	  Hash::equals(cell->value,val)) {
-	return cell->value;
+      if (cell->code == hashCode && isCorrectVal(cell->value)) {
+        return cell->value;
       }
       cell = nextCell(cell);
     }
@@ -218,10 +217,35 @@ public:
       _nonemptyCells++;
     }
     _size++;
-    cell->value = val;
-    cell->code = code;
+    cell->value = create();
+    cell->code = hashCode;
+    inserted = true;
+    ASS_REP(correctHash(Hash::hash(cell->value)) == hashCode, cell->value)
     return cell->value;
   } // Set::insert
+
+  template<class Create, class IsCorrectVal>
+  Val& rawFindOrInsert(Create create, unsigned hashCode, IsCorrectVal isCorrectVal)
+  { bool b; return rawFindOrInsert(std::move(create), hashCode, std::move(isCorrectVal), b); }
+
+
+  /**
+   * If a value equal to @b val is not contained in the set, insert @b val
+   * in the set.
+   * Return the value equal to @b val from the set.
+   * @since 29/09/2002 Manchester
+   * @since 09/12/2006 Manchester, reimplemented
+   */
+  inline Val insert(const Val val)
+  { return insert(val,Hash::hash(val)); } 
+
+  /**
+   * Insert a value with a given code in the set.
+   * The set must have a sufficient capacity
+   * @since 09/12/2006 Manchester, reimplemented
+   */
+  Val insert(Val val, unsigned code)
+  { bool dummy; return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { return Hash::equals(v, val); }, dummy); } // Set::insert
 
   /** Insert all elements from @b it iterator in the set */
   template<class It>
@@ -297,6 +321,19 @@ public:
     }
   } // deleteAll
 
+  void outputRaw(std::ostream& out) 
+  {
+    out << "[";
+    for (auto i : range(0, _capacity)) {
+      if (_entries[i].occupied()) {
+        out << _entries[i].value;
+      } else {
+        out << "_";
+      }
+      out << " ";
+    }
+    out << "]";
+  }
 private:
   Set(const Set&); //private non-defined copy constructor to prevent copying
 

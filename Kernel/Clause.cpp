@@ -20,6 +20,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/Output.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
@@ -31,14 +32,18 @@
 
 #include "SAT/SATClause.hpp"
 
+#include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "SortHelper.hpp"
 
 #include <cmath>
+
+
 
 #include "Clause.hpp"
 
@@ -58,10 +63,9 @@ size_t Clause::_auxCurrTimestamp = 0;
 bool Clause::_auxInUse = false;
 #endif
 
-
 /** New clause */
-Clause::Clause(unsigned length,const Inference& inf)
-  : Unit(Unit::CLAUSE,inf),
+Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
+  : Unit(Unit::CLAUSE, std::move(inf)),
     _length(length),
     _color(COLOR_INVALID),
     _extensionality(false),
@@ -83,6 +87,12 @@ Clause::Clause(unsigned length,const Inference& inf)
     _extensionalityTag = true;
     inference().setInputType(UnitInputType::AXIOM);
   }
+
+  for(unsigned i = 0; i < length; i++) {
+    (*this)[i] = lits[i];
+  }
+
+  doUnitTracing();
 }
 
 /**
@@ -123,6 +133,8 @@ void Clause::destroyExceptInferenceObject()
     delete _literalPositions;
   }
 
+  PartialRedundancyHandler::destroyClauseData(this);
+
   RSTAT_CTR_INC("clauses deleted");
 
   //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
@@ -135,18 +147,6 @@ void Clause::destroyExceptInferenceObject()
 }
 
 
-Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
-{
-  unsigned clen = lits.size();
-  Clause* res = new (clen) Clause(clen, inf);
-
-  for(unsigned i = 0; i < clen; i++) {
-    (*res)[i] = lits[i];
-  }
-
-  return res;
-}
-
 /**
  * Create a clause with the same content as @c c. The inference of the
  * created clause refers to @c c using the REORDER_LITERALS inference.
@@ -157,7 +157,7 @@ Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
  */
 Clause* Clause::fromClause(Clause* c)
 {
-  Clause* res = fromIterator(Clause::Iterator(*c), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
+  Clause* res = fromIterator(c->iterLits(), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
 
   if (c->splits()) {
     res->setSplits(c->splits());
@@ -193,8 +193,8 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    if ((env.options->proofExtra()==Options::ProofExtra::FULL) && env.proofExtra) {
-      env.proofExtra->remove(cl);
+    if (env.options->proofExtra() == Options::ProofExtra::FULL) {
+      env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();
     while (cl->_inference.hasNext(it)) {
@@ -235,7 +235,14 @@ void Clause::setStore(Store s)
     selected=this;
   }
 #endif
+#if VAMPIRE_CLAUSE_TRACING
+  int traceForward = env.options->traceForward();
+  if ((int)number() == traceForward && _store != s) {
+    std::cout << number() << ".setStore(" << s << ")" << std::endl;
+  }
+#endif // VAMPIRE_CLAUSE_TRACING
   _store = s;
+
   destroyIfUnnecessary();
 }
 
@@ -244,13 +251,7 @@ void Clause::setStore(Store s)
  */
 bool Clause::isGround()
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (!it.next()->ground()) {
-      return false;
-    }
-  }
-  return true;
+  return iterLits().all([](auto l) { return l->ground(); });
 }
 
 /**
@@ -258,13 +259,7 @@ bool Clause::isGround()
  */
 bool Clause::isPropositional()
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (it.next()->arity() > 0) {
-      return false;
-    }
-  }
-  return true;
+  return iterLits().all([](auto l) { return l->arity() == 0; });
 }
 
 /**
@@ -273,9 +268,8 @@ bool Clause::isPropositional()
 bool Clause::isHorn()
 {
   bool posFound=false;
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (it.next()->isPositive()) {
+  for (Literal* l : iterLits()) {
+    if (l->isPositive()) {
       if (posFound) {
         return false;
       }
@@ -290,12 +284,12 @@ bool Clause::isHorn()
 /**
  * Return iterator over clause variables
  */
-VirtualIterator<unsigned> Clause::getVariableIterator()
+VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
   return pvi( getUniquePersistentIterator(
       getMappingIterator(
 	  getMapAndFlattenIterator(
-	      Iterator(*this),
+	      iterLits(),
 	      VariableIteratorFn()),
 	  OrdVarNumberExtractorFn())));
 }
@@ -310,14 +304,14 @@ bool Clause::noSplits() const
 }
 
 /**
- * Convert non-propositional part of the clause to vstring.
+ * Convert non-propositional part of the clause to std::string.
  */
-vstring Clause::literalsOnlyToString() const
+std::string Clause::literalsOnlyToString() const
 {
   if (_length == 0) {
     return "$false";
   } else {
-    vstring result;
+    std::string result;
     result += _literals[0]->toString();
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
@@ -328,88 +322,123 @@ vstring Clause::literalsOnlyToString() const
 }
 
 /**
- * Convert the clause to the TPTP-compatible vstring representation.
+ * Convert the clause to the TPTP-compatible std::string representation.
  *
  * The split history is omitted.
  */
-vstring Clause::toTPTPString() const
+std::string Clause::toTPTPString() const
 {
-  vstring result = literalsOnlyToString();
+  std::string result = literalsOnlyToString();
 
   return result;
 }
 
 /**
- * Convert the clause to easily readable vstring representation.
+ * Convert the clause to easily readable std::string representation.
  */
-vstring Clause::toNiceString() const
+std::string Clause::toNiceString() const
 {
-  vstring result = literalsOnlyToString();
+  std::string result = literalsOnlyToString();
 
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" {") + splits()->toString() + "}";
+    result += std::string(" {") + splits()->toString() + "}";
   }
 
   return result;
 }
 
+std::ostream& operator<<(std::ostream& out, Clause const& self)
+{
+  if (self.size() == 0) {
+    return out << "$false";
+  } else {
+    out << *self[0];
+    for (unsigned i = 1; i < self.size(); i++){
+      out << " | " << *self[i];
+    }
+    if (self.splits() && !self.splits()->isEmpty()) {
+      out << "{" << *self.splits() << "}";
+    }
+  }
+  return out;
+}
+
 /**
- * Convert the clause to the vstring representation
+ * Convert the clause to the std::string representation
  * Includes splitting, age, weight, selected and inference
  */
-vstring Clause::toString() const
+std::string Clause::toString() const
 {
+  std::string quantifier = "";
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
+    DHMap<unsigned,TermList> varSortMap;
+    SortHelper::collectVariableSorts(const_cast<Clause*>(this),varSortMap);
+    auto vars = Stack<unsigned>::fromIterator(varSortMap.domain());
+    vars.sort();
+    unsigned numVars = vars.size();
+    if (numVars) {
+      quantifier += "![";
+      for (auto var : vars) {
+        quantifier += TermList(var,false).toString() + ":" + varSortMap.get(var).toString();
+        if (--numVars) {
+          quantifier += ", ";
+        }
+      }
+      quantifier += "]: ";
+    }
+  }
+
   // print id and literals of clause
-  vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
+  std::string result = Int::toString(_number) + ". "+ quantifier + literalsOnlyToString();
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" <- (") + Splitter::splitsToString(splits()) + ")";
+    result += std::string(" <- (") + Splitter::splitsToString(splits()) + ")";
   }
 
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
-  if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
-    result += vstring(" {");
-      
-    result += vstring("a:") + Int::toString(age());
+    result += std::string(" {");
+
+    result += std::string("a:") + Int::toString(age());
     unsigned weight = (_weight ? _weight : computeWeight());
-    result += vstring(",w:") + Int::toString(weight);
-    
+    result += std::string(",w:") + Int::toString(weight);
+
     unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
     if(weightForClauseSelection!=weight){
-      result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
+      result += std::string(",wCS:") + Int::toString(weightForClauseSelection);
     }
 
     if (numSelected()>0) {
-      result += vstring(",nSel:") + Int::toString(numSelected());
+      result += std::string(",nSel:") + Int::toString(numSelected());
     }
 
     if (env.colorUsed) {
-      result += vstring(",col:") + Int::toString(color());
+      result += std::string(",col:") + Int::toString(color());
     }
 
     if(derivedFromGoal()){
-      result += vstring(",goal:1");
+      result += std::string(",goal:1");
     }
     if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
-      result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
+      result += std::string(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
     }
 
     if(isPureTheoryDescendant()){
-      result += vstring(",ptD:1");
+      result += std::string(",ptD:1");
     }
 
     if(env.options->induction() != Shell::Options::Induction::NONE){
-      result += vstring(",inD:") + Int::toString(_inference.inductionDepth());
+      result += std::string(",inD:") + Int::toString(_inference.inductionDepth());
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
-    result += vstring("}");
+    result += std::string("}");
   }
 
   return result;
@@ -419,10 +448,9 @@ vstring Clause::toString() const
  * Convert the clause into sequence of strings, each containing
  * a proper clause
  */
-VirtualIterator<vstring> Clause::toSimpleClauseStrings()
+VirtualIterator<std::string> Clause::toSimpleClauseStrings()
 {
     return pvi(getSingletonIterator(literalsOnlyToString()));
-
 }
 
 /**
@@ -472,7 +500,7 @@ unsigned Clause::computeWeight() const
 {
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    ASS(_literals[i]->shared());
+    ASS_REP(_literals[i]->shared(), *_literals[i]);
     result += _literals[i]->weight();
   }
 
@@ -502,9 +530,7 @@ unsigned Clause::splitWeight() const
 
 unsigned Clause::getNumeralWeight() const {
   unsigned res = 0;
-  Iterator litIt(*this);
-  while (litIt.hasNext()) {
-    Literal* lit = litIt.next();
+  for (Literal* lit : iterLits()) {
     if (!lit->hasInterpretedConstants()) {
       continue;
     }
@@ -515,9 +541,13 @@ unsigned Clause::getNumeralWeight() const {
         continue;
       }
       IntegerConstantType intVal;
+      auto intWeight = [](IntegerConstantType const& i) {
+        return (i.abs().log2() - IntegerConstantType(1)).cvt<int>()
+          .orElse([&]() { return std::numeric_limits<int>::max(); });
+      };
 
       if (theory->tryInterpretConstant(t, intVal)) {
-        int w = BitUtils::log2(Int::safeAbs(intVal.toInner())) - 1;
+        int w = intWeight(intVal);
         if (w > 0) {
           res += w;
         }
@@ -536,8 +566,8 @@ unsigned Clause::getNumeralWeight() const {
       if (!haveRat) {
         continue;
       }
-      int wN = BitUtils::log2(Int::safeAbs(ratVal.numerator().toInner())) - 1;
-      int wD = BitUtils::log2(Int::safeAbs(ratVal.denominator().toInner())) - 1;
+      int wN = intWeight(ratVal.numerator());
+      int wD = intWeight(ratVal.denominator());
       int v = wN + wD;
       if (v > 0) {
         res += v;
@@ -618,9 +648,7 @@ void Clause::collectVars(DHSet<unsigned>& acc)
 template<class VarIt>
 void Clause::collectVars2(DHSet<unsigned>& acc)
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    Literal* lit = it.next();
+  for (Literal* lit : iterLits()) {
     VarIt vit(lit);
     while (vit.hasNext()) {
       TermList var = vit.next();
@@ -738,18 +766,6 @@ bool Clause::contains(Literal* lit)
     }
   }
   return false;
-}
-
-std::ostream& operator<<(std::ostream& out, Clause::Store const& store) 
-{
-  switch (store) {
-    case Clause::PASSIVE:     return out << "PASSIVE";
-    case Clause::ACTIVE:      return out << "ACTIVE";
-    case Clause::UNPROCESSED: return out << "UNPROCESSED";
-    case Clause::NONE:        return out << "NONE";
-    case Clause::SELECTED:    return out << "SELECTED";
-  }
-  ASSERTION_VIOLATION;
 }
 
 Literal* Clause::getAnswerLiteral() {

@@ -20,6 +20,8 @@
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
+#include "Inferences/ProofExtra.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
 
@@ -38,11 +40,11 @@ public:
 
 
 private:
+
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-          UnificationConstraintStackSP constraints, bool ansLitIte);
+    AbstractingUnifier* unifier, bool eqIsResult, bool ansLitIte);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
@@ -50,6 +52,13 @@ private:
       ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
+  { 
+    _lhsIndex = static_cast<decltype(_lhsIndex)>(is[0]);
+    _subtermIndex = static_cast<decltype(_subtermIndex)>(is[1]);
+  }
+#endif
 
   struct ForwardResultFn;
 
@@ -61,6 +70,7 @@ private:
   SuperpositionLHSIndex* _lhsIndex;
 };
 
+using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;
 
 };
 

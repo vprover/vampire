@@ -34,12 +34,11 @@ public:
   ~TermSharing();
 
   // TODO we should probably inline the common path where a term already exists
-  Term* insert(Term*);
-
-  AtomicSort* insert(AtomicSort*);
-
-  Literal* insert(Literal*);
-  Literal* insertVariableEquality(Literal* lit,TermList sort);
+  // not quite sure what that todo exactly meant but I think it should be resolved now (?)
+  void computeAndSetSharedTermData(Term*);
+  void computeAndSetSharedSortData(AtomicSort*);
+  void computeAndSetSharedLiteralData(Literal*);
+  void computeAndSetSharedVarEqData(Literal*, TermList eqSort);
 
   Literal* tryGetOpposite(Literal* l);
 
@@ -53,8 +52,14 @@ public:
   { return t->hash(); }
   static bool equals(const Term* t1,const Term* t2);
 
+  /**
+   * True if the two literals are equal (or equal except polarity if @c opposite is true)
+   */
   template<bool opposite = false>
-  static bool equals(const Literal* l1, const Literal* l2);
+  static bool equals(const Literal* l1, const Literal* l2)
+  { return Literal::literalEquals(l1, l2->functor(), l2->polarity() ^ opposite, 
+        [&](auto i){ return *l2->nthArgument(i); }, 
+        l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); })); }
 
   DHSet<TermList>* getArraySorts(){
     return &_arraySorts;
@@ -88,8 +93,11 @@ public:
   bool isWellSortednessCheckingDisabled() const { return _wellSortednessCheckingDisabled; }
 
 private:
+  friend class Kernel::Term;
+  friend class Kernel::Literal;
+  friend class Kernel::AtomicSort;
   int sumRedLengths(TermStack& args);
-  bool argNormGt(TermList t1, TermList t2);
+  static bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */
   Set<Term*,TermSharing> _terms;
@@ -105,6 +113,7 @@ private:
   bool _poly;
   bool _wellSortednessCheckingDisabled;
 }; // class TermSharing
+
 
 } // namespace Indexing
 

@@ -46,11 +46,17 @@ public:
     _map.reset();
   }
 
+  DHSet() : _map() {}
+  DHSet(DHSet&&) = default;
+  DHSet& operator=(DHSet&&) = default;
+
+  bool keepRecycled() const { return _map.keepRecycled(); }
+
   /**
    *  Return true iff @b val is in the set.
    */
   inline
-  bool find(Val val) const
+  bool find(Val const& val) const
   {
     return _map.find(val);
   }
@@ -61,7 +67,7 @@ public:
    *  (synomym for the @b find function)
    */
   inline
-  bool contains(Val val) const
+  bool contains(Val const& val) const
   {
     return find(val);
   }
@@ -72,7 +78,7 @@ public:
    */
   bool insert(Val val)
   {
-    return _map.insert(val, EmptyStruct());
+    return _map.insert(std::move(val), EmptyStruct());
   }
 
 
@@ -80,7 +86,7 @@ public:
    * If there is a value stored under the @b key, remove
    * it and return true. Otherwise, return false.
    */
-  bool remove(Val val)
+  bool remove(Val const& val)
   {
     return _map.remove(val);
   }
@@ -132,14 +138,16 @@ public:
     return _map.domain();
   }
 
+  auto iter() const { return iterator(); }
+
   friend std::ostream& operator<<(std::ostream& out, DHSet const& self) 
   {
-    auto iter = self.iterator();
+    auto iter = self._map.items();
     out << "{";
     if (iter.hasNext()) {
-      out << iter.next();
+      out << iter.next().first;
       while (iter.hasNext()) {
-        out << ", " << iter.next();
+        out << ", " << iter.next().first;
       }
     }
     return out << "}";

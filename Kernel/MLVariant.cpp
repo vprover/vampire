@@ -105,7 +105,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
   while(ait.hasNext()) {
     //handle multiple matches in equality!
     Literal* alit=ait.next();
-    if(alit->commutative()) {
+    if(alit->isEquality()) {
       //we must try both possibilities
       if(MatchingUtils::haveVariantArgs(baseLit,alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
@@ -339,7 +339,7 @@ MatchingData* getMatchingData(Literal* const * baseLits0, unsigned baseLen, Clau
     LiteralList::Iterator ait(altsArr[i]);
     while(ait.hasNext()) {
       currAltCnt++;
-      if(ait.next()->commutative()) {
+      if(ait.next()->isEquality()) {
 	currAltCnt++;
       }
     }
@@ -410,8 +410,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
   md->nextAlts[0]=0;
   unsigned currBLit=0;
 
-  int counter=0;
-
   while(true) {
     MatchingData::InitResult ires=md->ensureInit(currBLit);
     if(ires!=MatchingData::OK) {
@@ -447,14 +445,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
     } else {
       if(currBLit==0) { return false; }
       currBLit--;
-    }
-
-    counter++;
-    if(counter==50000) {
-      counter=0;
-      if(env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
     }
   }
   return true;

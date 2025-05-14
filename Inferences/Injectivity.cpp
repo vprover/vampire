@@ -100,11 +100,8 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   TermList sort = SortHelper::getResultSort(newLhs.term());
   Literal* lit = Literal::createEquality(true, newLhs, differingArg, sort);
 
-  Clause* conclusion = new(1) Clause(1, GeneratingInference1(InferenceRule::INJECTIVITY, premise));
-
-  (*conclusion)[0] = lit;
-
-  return pvi(getSingletonIterator(conclusion));
+  return pvi(getSingletonIterator(Clause::fromLiterals(
+          {lit}, GeneratingInference1(InferenceRule::INJECTIVITY, premise))));
 }
 
 TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsigned index){
@@ -116,7 +113,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   }
 
   Signature::Symbol* func = env.signature->getFunction(oldhead.term()->functor());
-  vstring pref = "inv_" + func->name() + "_";
+  std::string pref = "inv_" + func->name() + "_";
   unsigned iFunc = env.signature->addFreshFunction(func->arity(), pref.c_str() ); 
 
   OperatorType* funcType = func->fnType();

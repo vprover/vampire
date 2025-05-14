@@ -225,8 +225,8 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
       continue;
     }
     getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType());
-    lits.push(Literal::create(i, arity, false, false, vars1.begin()));
-    lits.push(Literal::create(i, arity, true, false, vars2.begin()));
+    lits.push(Literal::create(i, arity, false, vars1.begin()));
+    lits.push(Literal::create(i, arity, true, vars2.begin()));
 
     Clause* cl = createEqProxyAxiom(lits);
     UnitList::push(cl,units);
@@ -243,13 +243,13 @@ Clause* EqualityProxy::apply(Clause* cl)
 {
   unsigned clen = cl->length();
 
-  Stack<Literal*> resLits(8);
+  RStack<Literal*> resLits;
 
   bool modified = false;
   for (unsigned i = 0; i < clen ; i++) {
     Literal* lit=(*cl)[i];
     Literal* rlit=apply(lit);
-    resLits.push(rlit);
+    resLits->push(rlit);
     if (rlit != lit) {
       ASS(lit->isEquality());
       modified = true;
@@ -261,14 +261,10 @@ Clause* EqualityProxy::apply(Clause* cl)
 
   ASS(_defUnit);
 
-  Clause* res = new(clen) Clause(clen, 
+  auto res = Clause::fromStack(*resLits, 
     NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, _defUnit));
+  // TODO isn't this done automatically?
   res->setAge(cl->age());
-
-  for (unsigned i=0;i<clen;i++) {
-    (*res)[i] = resLits[i];
-  }
-
   return res;
 } // EqualityProxy::apply(Clause*)
 
@@ -321,7 +317,7 @@ unsigned EqualityProxy::getProxyPredicate()
   args.push(var1);
   args.push(var2);
 
-  Literal* proxyLit = Literal::create(newPred, 3, true, false, args.begin());
+  Literal* proxyLit = Literal::create(newPred, 3, true, args.begin());
   Literal* eqLit = Literal::createEquality(true,var1,var2,sort);
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
@@ -358,6 +354,6 @@ Literal* EqualityProxy::makeProxyLiteral(bool polarity, TermList arg0, TermList 
 {
   unsigned pred = getProxyPredicate();
   TermList args[] = {sort, arg0, arg1};
-  return Literal::create(pred, 3, polarity, false, args);
+  return Literal::create(pred, 3, polarity, args);
 } // EqualityProxy::makeProxyLiteral
 

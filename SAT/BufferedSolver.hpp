@@ -68,7 +68,9 @@ public:
     return _varCnt;
   }
   
-  virtual void suggestPolarity(unsigned var,unsigned pol) override { _inner->suggestPolarity(var,pol); }
+  virtual void suggestPolarity(unsigned var,unsigned pol) override {
+    _polaritySuggestions.push_back({var, pol});
+  }
 
 private:
 
@@ -91,7 +93,12 @@ private:
    * or the variables implicitly set in _literalBuffer
    */
   SATClauseStack _unadded;
-  
+
+  /**
+   * Also buffer polarity suggestions as some solvers (CaDiCaL) invalidate their model on phase suggestion
+   */
+  std::vector<std::pair<unsigned, unsigned>> _polaritySuggestions;
+
   /**
    * Index (to _unadded) of the least clause not yet checked wrt the current model.
    */ 

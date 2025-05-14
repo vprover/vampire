@@ -58,7 +58,7 @@ private:
   bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
 
   struct RemovingLiteralMatcher
-  : public RemovingMatcher
+  : public RemovingMatcher<false>
   {
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
@@ -97,6 +97,7 @@ public:
   {
     void init(ClauseCodeTree* tree_, Clause* query_, bool sres_);
     void reset();
+    bool keepRecycled() const { return lInfos.keepRecycled(); }
 
     Clause* next(int& resolvedQueryLit);
 

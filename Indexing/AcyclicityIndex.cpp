@@ -224,15 +224,14 @@ namespace Indexing
 
     Clause *applySubstitution(Clause *c, unsigned index)
     {
-      unsigned clen = c->length();
-      Clause* res = new(clen) Clause(clen,
-          GeneratingInference1(InferenceRule::INSTANTIATION, c));
+      RStack<Literal*> resLits;
 
-      for (unsigned i = 0; i < clen; i++) {
-        (*res)[i] = _subst->apply((*c)[i], index);
+      for (auto lit : c->iterLits()) {
+        resLits->push(_subst->apply(lit, index));
       }
 
-      return res;
+      return Clause::fromStack(*resLits,
+          GeneratingInference1(InferenceRule::INSTANTIATION, c));
     }
 
     CycleQueryResult *resultFromNode(CycleSearchTreeNode *node)
@@ -264,21 +263,21 @@ namespace Indexing
     {
       // ASS(t.isTerm());
       ASS(_tis);
-      TermQueryResultIterator tqrIt = _tis->getUnifications(t);
+      auto tqrIt = _tis->getUnifications(t);
       int index;
       while (tqrIt.hasNext()) {
-        TermQueryResult tqr = tqrIt.next();
-        if (tqr.literal == _queryLit || notInAncestors(parent, tqr.literal)) {
-          if (tqr.literal == _queryLit) {
+        auto tqr = tqrIt.next();
+        if (tqr.data->literal == _queryLit || notInAncestors(parent, tqr.data->literal)) {
+          if (tqr.data->literal == _queryLit) {
             index = 0;
-          } else if (parent && tqr.clause == parent->clause) {
+          } else if (parent && tqr.data->clause == parent->clause) {
             index = parent->substIndex;
           } else {
             index = _nextAvailableIndex++;
           }
-          _stack.push(CycleSearchTreeNode::unificationNode(TypedTermList(tqr.term,t.sort()),
-                                                           tqr.literal,
-                                                           tqr.clause,
+          _stack.push(CycleSearchTreeNode::unificationNode(tqr.data->term,
+                                                           tqr.data->literal,
+                                                           tqr.data->clause,
                                                            parent,
                                                            index));
         }
@@ -379,7 +378,7 @@ namespace Indexing
 
   void AcyclicityIndex::handleClause(Clause* c, bool adding)
   {
-    ArrayishObjectIterator<Clause> it = c->getSelectedLiteralIterator();
+    auto it = c->getSelectedLiteralIterator();
     while (it.hasNext()) {
       if (adding) {
         insert(it.next(), c);
@@ -410,7 +409,7 @@ namespace Indexing
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, TypedTermList(*t,sort), getSubterms(fs->term())));
-        _tis->insert(TypedTermList(*t, sort), lit, c);
+        _tis->insert(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
       }
     }
   }
@@ -427,7 +426,7 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-     _tis->remove(TypedTermList(*t, sort), lit, c);
+      _tis->remove(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
     }
   }
 

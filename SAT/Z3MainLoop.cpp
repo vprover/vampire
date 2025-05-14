@@ -42,7 +42,7 @@ MainLoopResult Z3MainLoop::runImpl()
   }
 
   SAT2FO s2f;
-  Z3Interfacing solver(_opt,s2f, /* unsat core */ false, /* export smtlib problem */ "");
+  Z3Interfacing solver(_opt,s2f, /* unsat core */ false, /* export smtlib problem */ "", Options::ProblemExportSyntax::SMTLIB);
 
  ClauseIterator cit(_prb.clauseIterator());
  while(cit.hasNext()){
@@ -53,12 +53,10 @@ MainLoopResult Z3MainLoop::runImpl()
      continue;
    }
 
-   Clause::Iterator lit(*cl);
    unsigned len = cl->size();
    SATClause* sc = new(len) SATClause(len);
    unsigned i=0;
-   while(lit.hasNext()){
-     Literal* l = lit.next();
+   for (auto l : cl->iterLits()) {
      SATLiteral sl = s2f.toSAT(l);
      (*sc)[i++] = sl;
    }

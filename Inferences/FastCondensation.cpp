@@ -110,21 +110,17 @@ Clause* FastCondensation::simplify(Clause* cl)
         continue;
       }
       if(MatchingUtils::match(cLit, (*cl)[mIndex], false, cbinder)) {
-        unsigned newLen=clen-1;
-        Clause* res = new(newLen) Clause(newLen,
-            SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        RStack<Literal*> resLits;
 
-        unsigned ri=0;
         for(unsigned ci=0;ci<clen;ci++) {
           if(ci!=cIndex) {
-            (*res)[ri++] = (*cl)[ci];
+            resLits->push((*cl)[ci]);
           }
         }
-        ASS_EQ(ri, newLen);
  
         env.statistics->condensations++;
  
-        return res;
+        return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
       }
     }
   }

@@ -16,9 +16,11 @@
 #ifndef __Exception__
 #define __Exception__
 
-#include <iostream>
+#include "Forwards.hpp"
 
-#include "VString.hpp"
+#include <iostream>
+#include <sstream>
+#include <string>
 
 namespace Lib {
 
@@ -30,10 +32,10 @@ class ThrowableBase
 {
 };
 
-template<class... Ms> 
+template<class... Ms>
 struct OutputAll;
 
-template<class M, class... Ms> 
+template<class M, class... Ms>
 struct OutputAll<M,Ms...> {
   static void apply(std::ostream& out, M m, Ms... ms) {
     out << m;
@@ -41,7 +43,7 @@ struct OutputAll<M,Ms...> {
   }
 };
 
-template<> 
+template<>
 struct OutputAll<> {
   static void apply(std::ostream& out) { }
 };
@@ -53,8 +55,8 @@ struct OutputAll<> {
 class Exception : public ThrowableBase
 {
   template<class... Msg>
-  vstring toString(Msg... msg){
-    vstringstream out;
+  std::string toString(Msg... msg){
+    std::stringstream out;
     OutputAll<Msg...>::apply(out, msg...);
     return out.str();
   }
@@ -62,29 +64,30 @@ public:
   /** Create an exception with a given error message */
   explicit Exception (const char* msg) : _message(msg) {}
   Exception (const char* msg, int line);
-  explicit Exception (const vstring msg) : _message(msg) {}
+  explicit Exception (const std::string msg) : _message(msg) {}
 
   template<class... Msg>
-  explicit Exception(Msg... msg) 
+  explicit Exception(Msg... msg)
    : Exception(toString(msg...))
   { }
 
   virtual void cry (std::ostream&) const;
   virtual ~Exception() {}
 
-  const vstring& msg() { return _message; }
+  const std::string& msg() { return _message; }
 protected:
   /** Default constructor, required for some subclasses, made protected
    * so that it cannot be called directly */
   Exception () {}
   /** The error message */
-  vstring _message;
+  std::string _message;
 
   friend std::ostream& operator<<(std::ostream& out, Exception const& self)
   { self.cry(out); return out; }
 
 }; // Exception
 
+class ParsingRelatedException : public Exception { using Exception::Exception; };
 
 /**
  * Class UserErrorException. A UserErrorException is thrown
@@ -93,19 +96,14 @@ protected:
  * was given, or there is a syntax error in the input file.
  */
 class UserErrorException
-  : public Exception
+  : public ParsingRelatedException
 {
  public:
-  UserErrorException (const char* msg)
-    : Exception(msg)
-  {}
-  template<class... Msgs>
-  UserErrorException (Msgs... ms)
-    : Exception(ms...)
-  {}
-  UserErrorException (const vstring msg)
-    : Exception(msg)
-  {}
+  using ParsingRelatedException::ParsingRelatedException;
+
+  // input line related to the error: non-zero if set
+  unsigned line = 0;
+  std::string filename;
   void cry (std::ostream&) const;
 }; // UserErrorException
 
@@ -158,7 +156,7 @@ class InvalidOperationException
    InvalidOperationException (const char* msg)
     : Exception(msg)
   {}
-   InvalidOperationException (const vstring msg)
+   InvalidOperationException (const std::string msg)
     : Exception(msg)
   {}
   void cry (std::ostream&) const;
@@ -171,7 +169,7 @@ class SystemFailException
   : public Exception
 {
 public:
-  SystemFailException (const vstring msg, int err);
+  SystemFailException (const std::string msg, int err);
   void cry (std::ostream&) const;
 
   int err;

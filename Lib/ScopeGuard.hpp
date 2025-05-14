@@ -11,7 +11,6 @@
 #ifndef SCOPEGUARD_HPP
 #define SCOPEGUARD_HPP
 
-#include "Lib/STL.hpp"
 #include <exception>
 #include <utility>
 
@@ -48,7 +47,8 @@ class ScopeGuard final
     // where the guard goes out of scope.
     ScopeGuard& operator=(ScopeGuard&& other) = delete;
 
-    ~ScopeGuard()
+    // noexcept clause: throws an exception if Callable::operator() throws
+    ~ScopeGuard() noexcept(noexcept(std::declval<Callable>()))
     {
       if (active) {
         execute();
@@ -56,7 +56,7 @@ class ScopeGuard final
     }
 
   private:
-    void execute()
+    void execute() noexcept(noexcept(std::declval<Callable>()))
     {
       active = false;
       if (!stackUnwindingInProgress()) {
@@ -87,38 +87,18 @@ class ScopeGuard final
     bool active;
     Callable f;
 
-    bool stackUnwindingInProgress() const {
-      return std::uncaught_exception();
-    }
-
-    /*  C++17 only
     int exception_count = std::uncaught_exceptions();
 
     bool stackUnwindingInProgress() const {
       return exception_count != std::uncaught_exceptions();
     }
-    */
 };
-
-template <typename Callable>
-ScopeGuard<Callable> make_scope_guard(Callable&& f)
-{
-  return ScopeGuard<Callable>(std::forward<Callable>(f));
-}
-
 
 #define ON_SCOPE_EXIT_CONCAT_HELPER(X,Y) X ## Y
 #define ON_SCOPE_EXIT_CONCAT(X,Y) ON_SCOPE_EXIT_CONCAT_HELPER(X,Y)
 
 #define ON_SCOPE_EXIT(stmt) \
-  auto ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__) = make_scope_guard([&]() { stmt; });
-
-// We don't need make_scope_guard in C++17 or later:
-// feature is called "class template argument deduction"
-/*
-#define ON_SCOPE_EXIT(stmt) \
   ScopeGuard ON_SCOPE_EXIT_CONCAT(on_scope_exit_guard_on_line_,__LINE__){[&]() { stmt; }};
-*/
 
 }
 

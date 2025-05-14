@@ -39,30 +39,27 @@ namespace Inferences {
   // copy clause c, replacing literal a by b
   Clause* replaceLit(Clause *c, Literal *a, Literal *b, const Inference& inf)
   {
-    int length = c->length();
-    Clause* res = new(length) Clause(length,inf);
-
-    unsigned i = 0;
-    while ((*c)[i] != a) { i++; }
-    std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
-    (*res)[i] = b;
-
-    return res;
+    RStack<Literal*> resLits;
+    for (auto lit : c->iterLits()) {
+      resLits->push(lit == a ? b : lit);
+    }
+    return Clause::fromStack(*resLits,inf);
   }
 
   // copy clause c, with the exception of the i-th literal
   Clause* removeLit(Clause *c, unsigned i, const Inference& inf)
   {
-    unsigned length = c->length();
     ASS_GE(i, 0);
-    ASS_L(i, length);
+    ASS_L(i, c->length());
 
-    Clause* res = new(length - 1) Clause(length - 1,inf);
+    RStack<Literal*> resLits;
+    for (auto j : range(0, c->size())) {
+      if (j != i) {
+        resLits->push((*c)[j]);
+      }
+    }
 
-    std::memcpy(res->literals(), c->literals(), i * sizeof(Literal*));
-    std::memcpy(res->literals() + i, c->literals() + i + 1, (length - i - 1) * sizeof(Literal*));
-
-    return res;
+    return Clause::fromStack(*resLits,inf);
   }
 
   // return f is the term has the form f(x1 ... xn) and f is a term
@@ -255,37 +252,33 @@ namespace Inferences {
     if (c->isPureTheoryDescendant())
       return c;
 
-    int length = c->length();
-    for (int i = length - 1; i >= 0; i--) {
+    for (int i = c->length() - 1; i >= 0; i--) {
       if (litCondition(c, i)) {
         Literal *lit = (*c)[i];
         TermList lhs = *lit->nthArgument(0);
         ASS(lhs.isTerm());
-        unsigned oldLength = c->length();
         unsigned arity = lhs.term()->arity();
         unsigned numTypeArgs = lhs.term()->numTypeArguments();
-        unsigned newLength = oldLength + arity - numTypeArgs - 1;
 
-        Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));       
+        RStack<Literal*> resLits;
         Literal *newLit = Literal::createEquality(false,
                                                   *lit->nthArgument(0)->term()->nthArgument(numTypeArgs),
                                                   *lit->nthArgument(1)->term()->nthArgument(numTypeArgs),
                                                   SortHelper::getArgSort(lhs.term(), numTypeArgs));
-        unsigned j = 0;
-        while ((*c)[j] != lit) { j++; }
-        std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
-        (*res)[j] = newLit;
+        for (auto curr : c->iterLits()) {
+          resLits->push(curr == lit ? newLit : curr);
+        }
         
         for (unsigned j = numTypeArgs+1; j < arity; j++) {
           newLit = Literal::createEquality(false,
                                            *lit->nthArgument(0)->term()->nthArgument(j),
                                            *lit->nthArgument(1)->term()->nthArgument(j),
                                             SortHelper::getArgSort(lhs.term(), j));
-          (*res)[oldLength + j - numTypeArgs - 1] = newLit;
+          resLits->push(newLit);
         }
         env.statistics->taNegativeInjectivitySimplifications++;
 
-        return res;
+        return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));       
       }
     }
     return c;
@@ -328,17 +321,13 @@ namespace Inferences {
       ClauseList::Iterator premises(qres->premises);
       ClauseList::Iterator clausesTheta(qres->clausesTheta);
       
-      unsigned length = qres->totalLengthClauses() - LiteralList::length(qres->literals);
       UnitList* ulpremises = UnitList::empty();
       while (premises.hasNext()) {
         UnitList::push(premises.next(), ulpremises);
       }
-      Clause* res = new(length) Clause(length,GeneratingInferenceMany(InferenceRule::TERM_ALGEBRA_ACYCLICITY, ulpremises));
-      // MS: to preserve the original semantics (although it looks slightly suspicious)
-      res->setAge(_premise->age() + 1);
+      RStack<Literal*> resLits;
 
       premises.reset(qres->premises);
-      unsigned i = 0;
 
       while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {              
         Literal *l = literals.next();
@@ -349,15 +338,18 @@ namespace Inferences {
 
         for (unsigned j = 0; j < c->length(); j++) {
           if ((*p)[j] != l) {
-            (*res)[i++] = (*c)[j];
+            resLits->push((*c)[j]);
           }
         }
       }
       ASS (!literals.hasNext());
       ASS (!premises.hasNext());
       ASS (!clausesTheta.hasNext());
-      ASS_EQ(i, length);
 
+      auto res = Clause::fromStack(*resLits,GeneratingInferenceMany(InferenceRule::TERM_ALGEBRA_ACYCLICITY, ulpremises));
+      // MS: to preserve the original semantics (although it looks slightly suspicious)
+      res->setAge(_premise->age() + 1); 
+      
       return res;
     }
   private:

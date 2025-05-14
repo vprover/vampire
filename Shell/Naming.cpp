@@ -20,6 +20,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -27,6 +28,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
@@ -65,13 +67,11 @@ Naming::Naming(int threshold, bool preserveEpr, bool appify) :
  */
 FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   ASS(!unit->isClause());
-  ASS_REP(unit->formula()->freeVariables() == 0, *unit);
+  ASS_REP(!FormulaVarIterator(unit->formula()).hasNext(), *unit);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] naming args: " << unit->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] naming args: " << unit->toString() << std::endl;
   }
 
   Formula* f = unit->formula();
@@ -106,7 +106,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
-      FormulaTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
+      FormulaClauseTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {
@@ -1069,11 +1069,9 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
     }
   }
 
-  VList* fvars = f->freeVariables();
-  bool freeVars = fvars;
-  VList::destroy(fvars);
+  bool hasFreeVars = FormulaVarIterator(f).hasNext();
 
-  if (!_varsInScope && freeVars
+  if (!_varsInScope && hasFreeVars
       && (exQuant || (unQuant && where == UNDER_IFF))) {
     return false;
   }
@@ -1132,7 +1130,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     }
 
     predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
-    return Literal::create(pred, arity, true, false, allVars.begin());
+    return Literal::create(pred, arity, true, allVars.begin());
   } else {
     unsigned fun = env.signature->addNameFunction(typeVars.size());
     TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
@@ -1163,8 +1161,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
 
   RSTAT_CTR_INC("naming_introduced_defs");
 
-  VList* vs;
-  vs = f->freeVariables();
+  VList* vs = freeVariables(f);
   Literal* atom = getDefinitionLiteral(f, vs);
   Formula* name = new AtomicFormula(atom);
 
@@ -1192,9 +1189,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   UnitList::push(definition, _defs);
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] naming defs: " << definition->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] naming defs: " << definition->toString() << std::endl;
   }
 
   return name;

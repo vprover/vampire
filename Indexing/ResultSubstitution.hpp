@@ -43,8 +43,10 @@ public:
   virtual ~ResultSubstitution() {}
   virtual TermList applyToQuery(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToQuery(Literal* l) { NOT_IMPLEMENTED; }
+  virtual TypedTermList applyToQuery(TypedTermList t) { return TypedTermList(applyToQuery(TermList(t)), applyToQuery(t.sort())); }
   virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
+  virtual TypedTermList applyToResult(TypedTermList t) { return TypedTermList(applyToResult(TermList(t)), applyToResult(t.sort())); }
 
   virtual TermList applyTo(TermList t, unsigned index) { ASSERTION_VIOLATION; }
   virtual Literal* applyTo(Literal* l, unsigned index) { NOT_IMPLEMENTED; }
@@ -81,6 +83,9 @@ public:
     }
   }
 
+  virtual TermList applyToBoundResult(unsigned v)
+  { return applyToResult(TermList::var(v)); }
+
   /**
    * Apply substitution to result term that fulfills the condition,
    * that all its variables are bound to some term of the query.
@@ -94,13 +99,7 @@ public:
   { return applyToResult(t); }
 
   /**
-   * Apply substitution to result term that fulfills the condition,
-   * that all its variables are bound to some term of the query.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnQueryWhenResultBound() method returns true,
-   * as then there is no need to apply the substitution to any
-   * query terms.
+   * Same as @b applyToBoundResult(TermList) with @b Literal argument.
    */
   virtual Literal* applyToBoundResult(Literal* lit)
   { return applyToResult(lit); }

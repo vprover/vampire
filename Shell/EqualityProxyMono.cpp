@@ -232,8 +232,8 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
     if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType(), true)) {
       continue;
     }
-    lits.push(Literal::create(i, arity, false, false, vars1.begin()));
-    lits.push(Literal::create(i, arity, true, false, vars2.begin()));
+    lits.push(Literal::create(i, arity, false, vars1.begin()));
+    lits.push(Literal::create(i, arity, true, vars2.begin()));
 
     Clause* cl = createEqProxyAxiom(lits);
     UnitList::push(cl,units);
@@ -248,16 +248,13 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
  */
 Clause* EqualityProxyMono::apply(Clause* cl)
 {
-  unsigned clen = cl->length();
-
   UnitStack proxyPremises;
-  Stack<Literal*> resLits(8);
+  RStack<Literal*> resLits;
 
   bool modified = false;
-  for (unsigned i = 0; i < clen ; i++) {
-    Literal* lit=(*cl)[i];
+  for (Literal* lit : cl->iterLits()) {
     Literal* rlit=apply(lit);
-    resLits.push(rlit);
+    resLits->push(rlit);
     if (rlit != lit) {
       ASS(lit->isEquality());
       modified = true;
@@ -273,7 +270,7 @@ Clause* EqualityProxyMono::apply(Clause* cl)
   Clause* res;
   ASS(proxyPremises.isNonEmpty());
   if (proxyPremises.size() == 1) {
-    res = new(clen) Clause(clen,
+    res = Clause::fromStack(*resLits,
         NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top()));
   }
   else {
@@ -281,14 +278,11 @@ Clause* EqualityProxyMono::apply(Clause* cl)
     UnitList::pushFromIterator(UnitStack::ConstIterator(proxyPremises),prems);
     UnitList::push(cl,prems);
 
-    res = new(clen) Clause(clen,
+    res = Clause::fromStack(*resLits,
         NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_REPLACEMENT, prems));
   }
+  // TODO isn't this done atomatically
   res->setAge(cl->age()); // MS: this seems useless; as long as EqualityProxy is only operating as a part of preprocessing, age is going to 0 anyway
-
-  for (unsigned i=0;i<clen;i++) {
-    (*res)[i] = resLits[i];
-  }
 
   return res;
 } // EqualityProxy::apply(Clause*)
@@ -401,6 +395,6 @@ Literal* EqualityProxyMono::makeProxyLiteral(bool polarity, TermList arg0, TermL
 {
   unsigned pred = getProxyPredicate(sort);
   TermList args[] = {arg0, arg1};
-  return Literal::create(pred, 2, polarity, false, args);
+  return Literal::create(pred, 2, polarity, args);
 } // EqualityProxy::makeProxyLiteral
 

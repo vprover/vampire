@@ -48,8 +48,9 @@ class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {
   public:
-    ForwardSubsumptionDemodulation(bool doSubsumption)
+    ForwardSubsumptionDemodulation(bool doSubsumption, bool enableOrderingOptimizations)
       : _doSubsumption(doSubsumption)
+      , _enableOrderingOptimizations(enableOrderingOptimizations)
     { }
 
     void attach(SaturationAlgorithm* salg) override;
@@ -57,13 +58,14 @@ class ForwardSubsumptionDemodulation
     bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   private:
-    RequestedIndex<LiteralIndex> _unitIndex;
-    RequestedIndex<LiteralIndex> _index;
+    RequestedIndex<LiteralIndex<LiteralClause>> _unitIndex;
+    RequestedIndex<LiteralIndex<LiteralClause>> _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;
 
     bool _doSubsumption;
+    const bool _enableOrderingOptimizations;
 };
 
 

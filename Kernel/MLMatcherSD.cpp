@@ -711,9 +711,9 @@ class MLMatcherSD::Impl final
 
     Literal* getEqualityForDemodulation() const;
 
-    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const;
 
-    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(std::unordered_map<unsigned, TermList>& outBindings) const;
 
     // Disallow copy and move because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
     Impl(Impl const&) = delete;
@@ -741,8 +741,6 @@ class MLMatcherSD::Impl final
     DArray<pair<int,int> > s_intersectionData;
 
     MatchingData s_matchingData;
-
-    int s_counter;
 };
 
 
@@ -807,7 +805,7 @@ void MLMatcherSD::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, 
     LiteralList::Iterator ait(s_altsArr[i]);
     while(ait.hasNext()) {
       currAltCnt++;
-      if(ait.next()->commutative()) {
+      if(ait.next()->isEquality()) {
         currAltCnt++;
       }
     }
@@ -889,8 +887,6 @@ void MLMatcherSD::Impl::init(Literal** baseLits, unsigned baseLen, Clause* insta
     std::cerr << "\tinstance: " << instance->toString() << std::endl;
 #endif
   initMatchingData(baseLits, baseLen, instance, alts);
-
-  s_counter = 0;
 }
 
 
@@ -1060,16 +1056,6 @@ bool MLMatcherSD::Impl::nextMatch()
         return false;
       }
     }
-
-    // Ensure vampire exits timely in pathological cases instead of appearing to be stuck
-    s_counter++;
-    if(s_counter==50000) {
-      // std::cerr << "counter reached 50k" << std::endl;
-      s_counter=0;
-      if(env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-    }
   } // while (true)
 
   // We found a complete match
@@ -1093,7 +1079,7 @@ Literal* MLMatcherSD::Impl::getEqualityForDemodulation() const
   }
 }
 
-void MLMatcherSD::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcherSD::Impl::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1111,7 +1097,7 @@ void MLMatcherSD::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) co
 }
 
 
-void MLMatcherSD::Impl::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcherSD::Impl::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1169,13 +1155,13 @@ Literal* MLMatcherSD::getEqualityForDemodulation() const
   return m_impl->getEqualityForDemodulation();
 }
 
-void MLMatcherSD::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcherSD::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   ASS(m_impl);
   m_impl->getMatchedAltsBitmap(outMatchedBitmap);
 }
 
-void MLMatcherSD::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcherSD::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   ASS(m_impl);
   m_impl->getBindings(outBindings);

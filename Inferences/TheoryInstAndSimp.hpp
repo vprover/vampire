@@ -16,6 +16,7 @@
 #ifndef __TheoryInstAndSimp__
 #define __TheoryInstAndSimp__
 
+#include "Lib/Allocator.hpp"
 #if VZ3
 
 #include "Forwards.hpp"
@@ -48,16 +49,26 @@ class TheoryInstAndSimp
 {
 public:
   using SortId = SAT::Z3Interfacing::SortId;
-  ~TheoryInstAndSimp();
   TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
+  TheoryInstAndSimp(TheoryInstAndSimp&&) = default;
 
   TheoryInstAndSimp(Options& opts);
-  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib);
+  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax);
 
   void attach(SaturationAlgorithm* salg);
 
   ClauseGenerationResult generateSimplify(Clause* premise);
 
+  /**
+   * Assuming cl is only built from theory material, this will use an SMT solver
+   * to check whether the given clause cl is sematically valid (in its theory).
+   *
+   * The function sets couldNotCheck to true, if it found symbols that it didn't understand.
+   * (In that case the answer is "true" even though we don't know.)
+   *
+   * The main use case for this function (for now) is a sanity check on PureTheoryDescendants.
+  */
+  static bool isTheoryLemma(Clause* cl, bool& couldNotCheck);
 private:
   struct SkolemizedLiterals {
     Stack<SATLiteral> lits;
@@ -66,7 +77,6 @@ private:
   };
   template<class IterLits> SkolemizedLiterals skolemize(IterLits lits);
   VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar);
-
 
   Option<Substitution> instantiateWithModel(SkolemizedLiterals skolemized);
   Option<Substitution> instantiateGeneralised(SkolemizedLiterals skolemized, unsigned freshVar);
@@ -135,9 +145,7 @@ private:
   Options::TheoryInstSimp const _mode;
   bool const _thiTautologyDeletion;
   SAT2FO _naming;
-  volatile char padding00[1024];
-  Z3Interfacing* _solver;
-  volatile char padding01[1024];
+  std::unique_ptr<Z3Interfacing> _solver;
   Map<SortId, bool> _supportedSorts;
   bool _generalisation;
   ConstantCache _instantiationConstants;

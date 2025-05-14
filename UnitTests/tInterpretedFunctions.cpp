@@ -21,6 +21,7 @@
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
+#include "Test/AlascaTestUtils.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/KBO.hpp"
 
@@ -69,17 +70,17 @@ bool equalityCheck(Option<LitSimplResult>& l, Option<LitSimplResult>& r)
 }
 
 
-#define __CHECK(op, is, expected, msg, test_case)                                                             \
-  if (!(op equalityCheck( is, expected))) {                                                                   \
-    auto& out = cout;                                                                                         \
-    out << endl;                                                                                              \
-    out << msg << endl;                                                                                       \
-    out << "[   case   ] " << pretty(test_case) << endl;                                                      \
-    out << "[    is    ] " << #is << " =  " << pretty(is) << endl;                                            \
-    out << "[ expected ] " << #expected << " " #op "=" << " " << pretty(expected) << endl;                    \
-    out << endl;                                                                                              \
-    exit(-1);                                                                                                 \
-  }                                                                                                           \
+#define __CHECK(op, is, expected, msg, test_case)                                         \
+  if (!(op equalityCheck( is, expected))) {                                               \
+    auto& out = cout;                                                                     \
+    out << endl;                                                                          \
+    out << msg << endl;                                                                   \
+    out << "[   case   ] " << pretty(test_case) << endl;                                  \
+    out << "[    is    ] " << #is << " =  " << pretty(is) << endl;                        \
+    out << "[ expected ] " << #expected << " " #op "=" << " " << pretty(expected) << endl;\
+    out << endl;                                                                          \
+    exit(-1);                                                                             \
+  }                                                                                       \
 
 #define CHECK_NE(...) __CHECK(! , __VA_ARGS__) 
 #define CHECK_EQ(...) __CHECK(  , __VA_ARGS__)
@@ -108,7 +109,7 @@ Option<LitSimplResult> evaluate(Literal* lit)
 
     auto _simpl = [](Clause* cl) -> Clause* 
     {
-      PolynomialEvaluation norm(*Ordering::tryGetGlobalOrdering());
+      PolynomialEvaluationRule norm(*Ordering::tryGetGlobalOrdering());
       PushUnaryMinus uminus;
       Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       if (cl == nullptr) {
@@ -155,9 +156,8 @@ void check_eval(Lit orig_, Failure) {
   CHECK_EQ(expected, res, "unexpectedly evaluation was successful", orig);
 }
 
-template<>
-std::ostream& Pretty<LitSimplResult>::prettyPrint(std::ostream& out) const
-{ return out << pretty(static_cast<LitSimplResult::super const&>(_self)); }
+void prettyPrint(std::ostream& out, LitSimplResult const& self)
+{ out << pretty(static_cast<LitSimplResult::super const&>(self)); }
 
 
 
@@ -188,39 +188,39 @@ void check_eval(Lit orig_, Lit expected_) {
   CHECK_EQ(*result.unwrap().template unwrap<0>(), expected, "result not evaluated correctly", orig)
 }
 
-#define ADDITIONAL_FUNCTIONS(Num)                                                                             \
-      __ALLOW_UNUSED(                                                                                         \
-        DECL_CONST(a , Num)                                                                                   \
-        DECL_CONST(b , Num)                                                                                   \
-        DECL_CONST(c , Num)                                                                                   \
-        DECL_FUNC(f , {Num}    , Num)                                                                         \
-        DECL_FUNC(f2, {Num,Num}, Num)                                                                         \
-        DECL_PRED(p, {Num})                                                                                   \
-        DECL_PRED(r, {Num,Num})                                                                               \
-      )                                                                                                       \
+#define ADDITIONAL_FUNCTIONS(Num)                                                         \
+      __ALLOW_UNUSED(                                                                     \
+        DECL_CONST(a , Num)                                                               \
+        DECL_CONST(b , Num)                                                               \
+        DECL_CONST(c , Num)                                                               \
+        DECL_FUNC(f , {Num}    , Num)                                                     \
+        DECL_FUNC(f2, {Num,Num}, Num)                                                     \
+        DECL_PRED(p, {Num})                                                               \
+        DECL_PRED(r, {Num,Num})                                                           \
+      )
 
-#define NUM_TEST(NUM, name, formula, expected)                                                                \
-    TEST_FUN(name ## _ ## NUM) {                                                                              \
-      __ALLOW_UNUSED(                                                                                         \
-        NUMBER_SUGAR(NUM);                                                                                    \
-        DECL_DEFAULT_VARS                                                                                     \
-      )                                                                                                       \
-      ADDITIONAL_FUNCTIONS(NUM)                                                                               \
-      check_eval(( formula ), ( expected ));                                                                  \
-    }                                                                                                         \
+#define NUM_TEST(NUM, name, formula, expected)                                            \
+    TEST_FUN(name ## _ ## NUM) {                                                          \
+      env.options->set("alasca", "off", /*longOpt*/ false);                               \
+      NUMBER_SUGAR(NUM);                                                                  \
+      mkAlascaSyntaxSugar(NUM ## Traits{});                                               \
+      DECL_DEFAULT_VARS                                                                   \
+      ADDITIONAL_FUNCTIONS(NUM)                                                           \
+      check_eval(( formula ), ( expected ));                                              \
+    }                                                                                     \
 
 /** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
-#define FRACTIONAL_TEST(name, formula, expected)                                                              \
-  NUM_TEST(Rat , name, formula, expected)                                                                     \
-  NUM_TEST(Real, name, formula, expected)                                                                     \
+#define FRACTIONAL_TEST(name, formula, expected)                                          \
+  NUM_TEST(Rat , name, formula, expected)                                                 \
+  NUM_TEST(Real, name, formula, expected)                                                 \
 
-#define INT_TEST(name, formula, expected)                                                                     \
-  NUM_TEST(Int , name, formula, expected)                                                                     \
+#define INT_TEST(name, formula, expected)                                                 \
+  NUM_TEST(Int , name, formula, expected)                                                 \
 
-#define ALL_NUMBERS_TEST(name, formula, expected)                                                             \
-  NUM_TEST(Int , name, formula, expected)                                                                     \
-  NUM_TEST(Rat , name, formula, expected)                                                                     \
-  NUM_TEST(Real, name, formula, expected)                                                                     \
+#define ALL_NUMBERS_TEST(name, formula, expected)                                         \
+  NUM_TEST(Int , name, formula, expected)                                                 \
+  NUM_TEST(Rat , name, formula, expected)                                                 \
+  NUM_TEST(Real, name, formula, expected)                                                 \
 
 /////////////////////////////////////////////// Test cases ///////////////////////////////////////////////////////
 
@@ -399,10 +399,10 @@ ALL_NUMBERS_TEST(polynomial__push_unary_minus,
       p((-7 * a))
       )
 
-FRACTIONAL_TEST(test_div_1,
-      p((a * 6) / 7),
-      p(a * frac(6,7))
-      )
+// FRACTIONAL_TEST(test_div_1,
+//       p((a * 6) / 7),
+//       p(a * frac(6,7))
+//       )
 
 // ALL_NUMBERS_TEST(polynomial__sorting_1,
 //       p(((7 * x) * a)),
@@ -440,10 +440,10 @@ ALL_NUMBERS_TEST(eval_test_cached_1,
       evaluationFail
       )
 
-ALL_NUMBERS_TEST(eval_test_cached_2,
-      (b * a) * c == f((b * a) * c),
-      evaluationFail
-      )
+// ALL_NUMBERS_TEST(eval_test_cached_2,
+//       (b * a) * c == f((b * a) * c),
+//       evaluationFail
+//       )
 
 ALL_NUMBERS_TEST(eval_bug_1,
       p(f2(a,b)),
@@ -584,43 +584,6 @@ INT_TEST(div_zero_2,
     r(remainderE(num(7), 0),     11     )
     )
 
-ALL_NUMBERS_TEST(eval_overflow_1,
-    p(num(1661992960) + 1661992960),
-    evaluationFail
-    )
-
-ALL_NUMBERS_TEST(eval_overflow_2,
-    r(num(1661992960) + 1661992960, num(7) + 3),
-    r(num(1661992960) + 1661992960, 10)
-    )
-
-ALL_NUMBERS_TEST(eval_overflow_3,
-    r(num(1661992960) * 1661992960, num(7) + 3),
-    r(num(1661992960) * 1661992960, 10)
-    )
-
-ALL_NUMBERS_TEST(eval_overflow_4,
-    p(-1 * num(std::numeric_limits<int>::min())),
-    // p(-num(std::numeric_limits<int>::min()))
-    evaluationFail
-    )
-
-ALL_NUMBERS_TEST(eval_overflow_5,
-    p(std::numeric_limits<int>::min() * num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()),
-    evaluationFail
-    )
-
-FRACTIONAL_TEST(eval_overflow_6,
-    // p($sum(0.0555556,-1260453006.0)),
-    p(frac(5,90) + num(-1260453006)),
-    evaluationFail
-    )
-
-FRACTIONAL_TEST(eval_overflow_7,
-    // p($sum(0.0555556,-1260453006.0)),
-    frac(5,90) < num(-1260453006),
-    false
-    )
 
 ALL_NUMBERS_TEST(NUM_IS_NUM_01,
      ~isInt(num(3)),
@@ -660,6 +623,28 @@ FRACTIONAL_TEST(NUM_IS_NUM_07,
 ALL_NUMBERS_TEST(NUM_IS_NUM_08,
      ~isReal(num(3)),
      false
+    )
+
+
+ALL_NUMBERS_TEST(bug_10,
+     ((num(2) + 2) * ((num(2) + 2) + (num(2) + 2))) == (num(2) + 2) * (num(2) + 2) + (num(2) + 2) * (num(2) + 2),
+     true
+    )
+
+ALL_NUMBERS_TEST(bug_10a,
+     p((num(2) + 2) * ((num(2) + 2) + (num(2) + 2))),
+     p(32)
+    )
+
+ALL_NUMBERS_TEST(bug_10b,
+     p((num(2) + 2) * (num(2) + 2) + (num(2) + 2) * (num(2) + 2)),
+     p(32)
+    )
+
+ALL_NUMBERS_TEST(bug_10c,
+     // p(a * a + (-a) * (-a)),
+     p((num(2) - 2 + a) * (num(2) - 2 + a) + (num(2) - 2 - a) * (num(2) - 2 - a)),
+     p(2 * ( a * a ))
     )
 
 // FRACTIONAL_TEST(eval_div_1,

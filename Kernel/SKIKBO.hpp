@@ -26,6 +26,7 @@
 #include "KBO.hpp"
 #include "Ordering.hpp"
 #include "Signature.hpp"
+#include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 
 namespace Kernel {
@@ -62,6 +63,7 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+
   static unsigned maximumReductionLength(Term* t);
   static TermList reduce(TermStack& args, TermList& head);
 
@@ -113,7 +115,7 @@ protected:
   bool _basic_hol;
 
 #if VDEBUG
-  static vstring vCondResToString(VarCondRes v)
+  static std::string vCondResToString(VarCondRes v)
   {
     if(v == INCOMP){ return "incomparable"; }
     if(v == LEFT){ return "left"; }

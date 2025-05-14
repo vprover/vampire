@@ -96,14 +96,14 @@ public:
   
   virtual void retractAllAssumptions() override {
     _assumptions.clear();
-    _status = UNKNOWN;
+    _status = Status::UNKNOWN;
   };
   
   virtual bool hasAssumptions() const override {
     return (_assumptions.size() > 0);
   };
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
 
   virtual SATClause* getRefutation() override { ASSERTION_VIOLATION; }
 
@@ -146,7 +146,7 @@ private:
           if (rl.rlim_max == RLIM_INFINITY || new_mem_lim < rl.rlim_max){
               rl.rlim_cur = new_mem_lim;
               if (setrlimit(RLIMIT_AS, &rl) == -1)
-                  printf("WARNING! Could not set resource limit: Virtual memory.\n");
+                  printf("%% WARNING! Could not set resource limit: Virtual memory.\n");
           }
       }
   }

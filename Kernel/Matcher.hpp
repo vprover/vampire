@@ -79,7 +79,7 @@ public:
 
     binder.reset();
 
-    if(base->commutative()) {
+    if(base->isEquality()) {
       ASS_EQ(base->arity(), 2);
       if(matchArgs(base, instance, binder)) {
         return true;
@@ -101,7 +101,7 @@ public:
     if(base.isTerm()) {
       Term* bt=base.term();
       if(!instance.isTerm() || base.term()->functor()!=instance.term()->functor()) {
-	return false;
+        return false;
       }
       Term* it=instance.term();
       if(bt->shared() && it->shared()) {
@@ -159,121 +159,6 @@ private:
     BindingMap _map;
   };
 
-};
-
-/**
- * Class of objects that iterate over matches between two literals that
- * may share variables (therefore it has to perform occurs check).
- */
-class OCMatchIterator
-{
-public:
-  void init(Literal* base, Literal* inst, bool complementary);
-
-  bool tryNextMatch();
-
-  TermList apply(unsigned var);
-  TermList apply(TermList t);
-  Literal* apply(Literal* lit);
-
-private:
-
-  void reset();
-
-  bool tryDirectMatch();
-  bool tryReversedMatch();
-
-  enum OCStatus {
-    ENQUEUED,
-    TRAVERSING,
-    CHECKED
-  };
-  bool occursCheck();
-
-
-  bool bind(unsigned var, TermList term)
-  {
-    TermList* binding;
-
-    if(_bindings.getValuePtr(var,binding,term)) {
-      _bound.push(var);
-      return true;
-    }
-    return *binding==term;
-  }
-  void specVar(unsigned var, TermList term)
-  { ASSERTION_VIOLATION; }
-
-
-  typedef DHMap<unsigned,TermList> BindingMap;
-  typedef Stack<unsigned> BoundStack;
-
-  BindingMap _bindings;
-  BoundStack _bound;
-  bool _finished;
-  bool _firstMatchDone;
-  Literal* _base;
-  Literal* _inst;
-
-  friend class MatchingUtils;
-};
-
-class Matcher
-: public Backtrackable
-{
-public:
-  Matcher() : _binder(*this) {}
-
-  MatchIterator matches(Literal* base, Literal* instance, bool complementary);
-
-private:
-  class CommutativeMatchIterator;
-
-  struct MatchContext;
-
-  bool matchArgs(Literal* base, Literal* instance);
-
-  bool matchReversedArgs(Literal* base, Literal* instance);
-
-  typedef DHMap<unsigned,TermList> BindingMap;
-  struct MapBinder
-  {
-    MapBinder(Matcher& parent) : _parent(parent) {}
-    bool bind(unsigned var, TermList term)
-    {
-      TermList* aux;
-      if(_map.getValuePtr(var,aux,term)) {
-	if(_parent.bdIsRecording()) {
-	  _parent.bdAdd(new BindingBacktrackObject(this,var));
-	}
-	return true;
-      } else {
-	return *aux==term;
-      }
-    }
-    void specVar(unsigned var, TermList term)
-    { ASSERTION_VIOLATION; }
-  private:
-    BindingMap _map;
-    Matcher& _parent;
-
-    class BindingBacktrackObject
-    : public BacktrackObject
-    {
-    public:
-      BindingBacktrackObject(MapBinder* bnd, unsigned var)
-      :_map(&bnd->_map), _var(var) {}
-      void backtrack()
-      { ALWAYS(_map->remove(_var)); }
-
-      USE_ALLOCATOR(BindingBacktrackObject);
-    private:
-      BindingMap* _map;
-      unsigned _var;
-    };
-  };
-
-  MapBinder _binder;
 };
 
 /**

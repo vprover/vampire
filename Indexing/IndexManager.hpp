@@ -21,6 +21,7 @@
 #include "Index.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 
 namespace Indexing
@@ -43,10 +44,19 @@ enum IndexType {
   SUPERPOSITION_LHS_SUBST_TREE,
   SUB_VAR_SUP_SUBTERM_SUBST_TREE,
   SUB_VAR_SUP_LHS_SUBST_TREE,
+  ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE,
+  ALASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE,
+  ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE,
+  ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE,
+  ALASCA_SUPERPOSITION_LHS_SUBST_TREE,
+  ALASCA_SUPERPOSITION_RHS_SUBST_TREE,
+  ALASCA_COHERENCE_RHS_SUBST_TREE,
+  ALASCA_COHERENCE_LHS_SUBST_TREE,
+  ALASCA_FWD_DEMODULATION_SUBST_TREE,
+  ALASCA_BWD_DEMODULATION_SUBST_TREE,
 
   DEMODULATION_SUBTERM_SUBST_TREE,
   DEMODULATION_LHS_CODE_TREE,
-  DEMODULATION_LHS_SUBST_TREE,
 
   FW_SUBSUMPTION_CODE_TREE,
   FW_SUBSUMPTION_SUBST_TREE,
@@ -55,8 +65,6 @@ enum IndexType {
   FSD_SUBST_TREE,
 
   REWRITE_RULE_SUBST_TREE,
-
-  GLOBAL_SUBSUMPTION_INDEX,
 
   ACYCLICITY_INDEX,
   NARROWING_INDEX,
@@ -73,7 +81,7 @@ class IndexManager
 {
 public:
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg) : _alg(alg) {}
+  explicit IndexManager(SaturationAlgorithm* alg);
   void setSaturationAlgorithm(SaturationAlgorithm* alg) 
   { 
     ASS(!_alg);
@@ -96,6 +104,8 @@ private:
   DHMap<IndexType,Entry> _store;
 
   Index* create(IndexType t);
+  Shell::Options::UnificationWithAbstraction _uwa;
+  bool _uwaFixedPointIteration;
 };
 
 };

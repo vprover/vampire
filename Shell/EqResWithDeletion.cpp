@@ -18,6 +18,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "EqResWithDeletion.hpp"
 
@@ -73,33 +74,32 @@ start_applying:
 
   _subst.reset();
 
-  static Stack<Literal*> resLits(8);
-  resLits.reset();
+  RStack<Literal*> resLits;
 
   bool foundResolvable=false;
+  std::unordered_set<Literal *> resolved;
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
     if(!foundResolvable && scan(lit)) {
       foundResolvable=true;
+      if(env.options->proofExtra() == Options::ProofExtra::FULL)
+        resolved.insert(lit);
     } else {
-      resLits.push(lit);
+      resLits->push(lit);
     }
   }
   if(!foundResolvable) {
     return cl;
   }
 
-  unsigned nlen=resLits.size();
-  ASS_L(nlen, clen);
-
-  Clause* res = new(nlen) Clause(nlen,
-      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
-
-  for(unsigned i=0;i<nlen;i++) {
-    (*res)[i] = SubstHelper::apply(resLits[i], *this);
+  for(unsigned i=0;i<resLits->size();i++) {
+    (*resLits)[i] = SubstHelper::apply((*resLits)[i], *this);
   }
 
-  cl=res;
+  cl = Clause::fromStack(*resLits,
+      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(cl, new EqResWithDeletionExtra(std::move(resolved)));
   goto start_applying;
 }
 
@@ -115,21 +115,35 @@ TermList EqResWithDeletion::apply(unsigned var)
 
 bool EqResWithDeletion::scan(Literal* lit)
 {
+  using Kernel::isFreeVariableOf;
+
   if(lit->isEquality() && lit->isNegative()) {
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
-    if( t0.isVar() && !t1.containsSubterm(t0) && (!_ansLit || !t1.isTerm() || t1.term()->computableOrVar() || !_ansLit->isFreeVariable(t0.var()))) {
+    if( t0.isVar() && !t1.containsSubterm(t0) && (!_ansLit || !t1.isTerm() || t1.term()->computableOrVar() || !isFreeVariableOf(_ansLit,t0.var()))) {
       if(_subst.insert(t0.var(), t1)) {
         return true;
       }
     }
-    if( t1.isVar() && !t0.containsSubterm(t1) && (!_ansLit || !t0.isTerm() || t0.term()->computableOrVar() || !_ansLit->isFreeVariable(t1.var()))) {
+    if( t1.isVar() && !t0.containsSubterm(t1) && (!_ansLit || !t0.isTerm() || t0.term()->computableOrVar() || !isFreeVariableOf(_ansLit,t1.var()))) {
       if(_subst.insert(t1.var(), t0)) {
         return true;
       }
     }
   }
   return false;
+}
+
+void EqResWithDeletionExtra::output(std::ostream &out) const {
+  bool first = true;
+  out << "resolved=[";
+  for(Literal *l : resolved) {
+    if(!first)
+      out << ",";
+    first = false;
+    out << "(" << l->toString() << ")";
+  }
+  out << "]";
 
 }
 

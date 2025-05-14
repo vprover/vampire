@@ -39,7 +39,7 @@ TEST_FUN(examples__match) {
   // we can also match on Options instead of testing with isSome and unwrap
   auto opt = Option<int>();
   auto result = opt.match(
-        [](int i) -> vstring { return "some integer"; },
+        [](int i) -> std::string { return "some integer"; },
         [](     )            { return "nothing";      }
         );
   ASS_EQ("nothing", result)
@@ -63,9 +63,9 @@ TEST_FUN(examples__unwrapOrInit) {
 
 TEST_FUN(examples__toOwned) {
   // an option of a reference type can be turned into an option of the corresponding value, by coping it:
-  vstring str ("lala");
-  auto opt = Option<vstring&>(str);
-  auto opt2 = Option<vstring>("lala");
+  std::string str ("some string");
+  auto opt = Option<std::string&>(str);
+  auto opt2 = Option<std::string>("some string");
   // ASS_NEQ(opt, opt2) // <- does not compile. different types!!
   ASS_EQ(opt.toOwned(), opt2);
 }
@@ -155,6 +155,68 @@ TEST_FUN(test_LeaqueChecker_2) {
   }
 
   ASS_EQ(LeaqueChecker::instances, LeaqueChecker::deletes)
+}
+
+
+struct MovableInt {
+  int _value;
+  MovableInt(int v) : _value(v) {}
+
+  MovableInt(MovableInt const& other) 
+    : _value(other._value) 
+  {  }
+
+  MovableInt& operator=(MovableInt const& other) 
+  { _value = other._value; return *this; }
+
+
+  MovableInt(MovableInt&& other) 
+    : _value(other._value) 
+  { other._value = -1; }
+
+  MovableInt& operator=(MovableInt&& other) 
+  { 
+    _value = other._value;
+    other._value = -1; 
+    return *this;
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, MovableInt const& self)
+  { return out << self._value; }
+};
+
+TEST_FUN(ref_option_test_1) {
+  auto val = MovableInt(42);
+  auto opt1 = Option<MovableInt const&>(val);
+  ASS(opt1.isSome())
+  ASS_EQ(opt1->_value, 42)
+  ASS_EQ(val._value, 42)
+
+  auto opt2 = std::move(opt1);
+  ASS(opt2.isSome())
+  ASS_EQ(opt2->_value, 42)
+  ASS_EQ(val._value, 42)
+
+  auto opt_opt = some(std::move(opt2));
+  auto opt3 = opt_opt.flatten();
+  ASS(opt3.isSome())
+  ASS_EQ(opt3->_value, 42)
+  ASS_EQ(val._value, 42)
+}
+
+
+
+TEST_FUN(ref_option_test_2) {
+  auto val = MovableInt(42);
+  auto createOption = [&]() {
+    return Option<MovableInt const&>(val);
+  };
+  auto res = createOption()
+    .map([](auto x) {
+        return x._value + 2000;
+    });
+  ASS_EQ(res, some(2042))
+  ASS_EQ(val._value, 42)
 }
 
 

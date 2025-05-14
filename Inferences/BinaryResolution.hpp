@@ -19,8 +19,10 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Indexing/LiteralIndex.hpp"
 
 namespace Inferences
 {
@@ -34,23 +36,34 @@ class BinaryResolution
 {
 public:
   BinaryResolution() 
-    : _index(0),
-    _unificationWithAbstraction(false)
+    : _index(0)
   {  }
 
   void attach(SaturationAlgorithm* salg);
   void detach();
 
-  static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, bool ansLitIte = true);
+  static ClauseIterator generateClauses(Clause* queryCl, Literal* queryLit, 
+                                        Clause* resultCl, Literal* resultLit, 
+                                        AbstractingUnifier& uwa, const Options& opts,
+                                        SaturationAlgorithm* salg);
+
+  template<class ComputeConstraints>
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
+                                Clause* resultCl, Literal* resultLit, 
+                                ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts,
+                                bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, PartialRedundancyHandler const* parRedHandler = 0, bool ansLitIte = true);
+
   ClauseIterator generateClauses(Clause* premise);
 
 private:
-  struct UnificationsFn;
-  struct ResultFn;
+  Clause* generateClause(
+    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
+    ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
   BinaryResolutionIndex* _index;
-  bool _unificationWithAbstraction;
 };
+
+using BinaryResolutionExtra = TwoLiteralInferenceExtra;
 
 };
 

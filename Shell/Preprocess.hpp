@@ -41,7 +41,6 @@ public:
     _clausify(true),_stillSimplify(false)
   {}
   void preprocess(Problem& prb);
-
   void preprocess1(Problem& prb);
   /** turn off clausification, can be used when only preprocessing without clausification is needed */
   void turnClausifierOff() {_clausify = false;}

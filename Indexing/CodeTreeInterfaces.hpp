@@ -37,51 +37,43 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-class CodeTreeTIS : public TermIndexingStructure
+template<class Data>
+class CodeTreeTIS : public TermIndexingStructure<Data>
 {
 public:
-  void insert(TypedTermList t, Literal* lit, Clause* cls);
-  void remove(TypedTermList t, Literal* lit, Clause* cls);
+  /* INFO: we ignore unifying the sort of the keys here */
+  void handle(Data data, bool insert) final override
+  {
+    if (insert) {
+      auto ti = new Data(std::move(data));
+      _ct.insert(ti);
+    } else {
+      _ct.remove(data);
+    }
+  }
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
-  bool generalizationExists(TermList t);
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
+  // TODO use TypedTermList here too
+  bool generalizationExists(TermList t) final override;
+  // TODO: get rid of NOT_IMPLEMENTED
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
-#if VDEBUG
-  virtual void markTagged(){ NOT_IMPLEMENTED; } 
-#endif
+  virtual void output(std::ostream& out) const final override { out << _ct; }
 
 private:
   class ResultIterator;
 
-  TermCodeTree _ct;
+  TermCodeTree<Data> _ct;
 };
-/*
-class CodeTreeLIS : public LiteralIndexingStructure
-{
-public:
-  void insert(Literal* lit, Clause* cls);
-  void remove(Literal* lit, Clause* cls);
-
-  SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true);
-private:
-  struct LiteralInfo;
-  class ResultIterator;
-
-  TermCodeTree _ct;
-};
-*/
 
 class CodeTreeSubsumptionIndex
-: public ClauseSubsumptionIndex
+: public Index
 {
 public:
-  ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
+  ClauseCodeTree* getClauseCodeTree() { return &_ct; }
 protected:
-  //overrides Index::handleClause
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
-  class ClauseSResIterator;
 
   ClauseCodeTree _ct;
 };

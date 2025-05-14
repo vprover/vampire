@@ -24,13 +24,13 @@ namespace SAT {
 
 class SATSolver {
 public:
-  enum VarAssignment {
+  enum class VarAssignment {
     TRUE,
     FALSE,
     DONT_CARE,  // to represent partial models
     NOT_KNOWN
   };
-  enum Status {
+  enum class Status {
     SATISFIABLE,
     UNSATISFIABLE,
     /**
@@ -40,7 +40,7 @@ public:
   };
 
   virtual ~SATSolver() {}
-  
+
   /**
    * Add a clause to the solver.
    *
@@ -62,14 +62,14 @@ public:
    * a partial model P computed must satisfy all the clauses added to the solver
    * via addClause and there must be a full model extending P which also
    * satisfies clauses added via addClauseIgnoredInPartialModel.
-   * 
+   *
    * This is a default implementation of addClauseIgnoredInPartialModel
    * for all the solvers which return total models
    * for which addClause and addClauseIgnoredInPartialModel
    * naturally coincide.
-   */  
+   */
   virtual void addClauseIgnoredInPartialModel(SATClause* cl) { addClause(cl); }
-  
+
   /**
    * Opportunity to perform in-processing of the clause database.
    */
@@ -77,7 +77,7 @@ public:
 
   /**
    * Establish Status of the clause set inserted so far.
-   * 
+   *
    * If conflictCountLimit==0,
    * do only unit propagation, if conflictCountLimit==UINT_MAX, do
    * full satisfiability check, and for values in between, restrict
@@ -85,9 +85,9 @@ public:
    * solving and assign the status to UNKNOWN.
    */
   virtual Status solve(unsigned conflictCountLimit) = 0;
-  
+
   Status solve(bool onlyPropagate=false) { return solve(onlyPropagate ? 0u : UINT_MAX); }
-    
+
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -117,20 +117,20 @@ public:
 
   /**
    * Ensure that clauses mentioning variables 1..newVarCnt can be handled.
-   * 
+   *
    * See also newVar for a different (and conceptually incompatible)
    * way for managing variables in the solver.
    */
   virtual void ensureVarCount(unsigned newVarCnt) {}
-  
+
   /**
    * Allocate a slot for a new (previosly unused) variable in the solver
-   * and return the variable. 
-   * 
+   * and return the variable.
+   *
    * Variables start from 1 and keep increasing by 1.
    */
   virtual unsigned newVar() = 0;
-  
+
   virtual void suggestPolarity(unsigned var, unsigned pol) = 0;
 
   /**
@@ -148,9 +148,9 @@ public:
    * Immediately after a call to solveXXX that returned UNSAT,
    * this method can be used to obtain the corresponding
    * empty SATClause as a root of a corresponding refutation tree.
-   * 
+   *
    * (However, the empty clause may be invalidated later on.)
-   */    
+   */
   virtual SATClause* getRefutation() = 0;
 
   /**
@@ -170,7 +170,7 @@ public:
   bool trueInAssignment(SATLiteral lit)
   {
     VarAssignment asgn = getAssignment(lit.var());
-    VarAssignment desired = lit.polarity() ? TRUE : FALSE;
+    VarAssignment desired = lit.polarity() ? VarAssignment::TRUE : VarAssignment::FALSE;
     return asgn==desired;
   }
 
@@ -180,22 +180,33 @@ public:
   bool falseInAssignment(SATLiteral lit)
   {
     VarAssignment asgn = getAssignment(lit.var());
-    VarAssignment desired = lit.polarity() ? FALSE: TRUE;
+    VarAssignment desired = lit.polarity() ? VarAssignment::FALSE: VarAssignment::TRUE;
     return asgn==desired;
-  }  
+  }
 };
 
 inline std::ostream& operator<<(std::ostream& out, SATSolver::Status const& s)
-{ 
+{
   switch (s)  {
-    case SATSolver::SATISFIABLE: return out << "SATISFIABLE";
-    case SATSolver::UNSATISFIABLE: return out << "UNSATISFIABLE";
-    case SATSolver::UNKNOWN: return out << "UNKNOWN";
+    case SATSolver::Status::SATISFIABLE: return out << "SATISFIABLE";
+    case SATSolver::Status::UNSATISFIABLE: return out << "UNSATISFIABLE";
+    case SATSolver::Status::UNKNOWN: return out << "UNKNOWN";
     default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
   }
 }
 
-class SATSolverWithAssumptions: 
+inline std::ostream& operator<<(std::ostream& out, SATSolver::VarAssignment const& a)
+{
+  switch (a)  {
+    case SATSolver::VarAssignment::TRUE: return out << "TRUE";
+    case SATSolver::VarAssignment::FALSE: return out << "FALSE";
+    case SATSolver::VarAssignment::DONT_CARE: return out << "DONT_CARE";
+    case SATSolver::VarAssignment::NOT_KNOWN: return out << "NOT_KNOWN";
+    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
+  }
+}
+
+class SATSolverWithAssumptions:
       public SATSolver {
 public:
 
@@ -233,12 +244,12 @@ public:
   // access to the model after it returns SATISFIABLE, as it uses retractAllAssumptions
   // to clean in the end.
 
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) {
+  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) {
     ASS(!hasAssumptions());
     _failedAssumptionBuffer.reset();
 
     Status res = solve(conflictCountLimit);
-    if (res == UNSATISFIABLE) {
+    if (res == Status::UNSATISFIABLE) {
       return res;
     }
 
@@ -249,7 +260,7 @@ public:
       _failedAssumptionBuffer.push(lit);
 
       res = solve(conflictCountLimit);
-      if (res == UNSATISFIABLE) {
+      if (res == Status::UNSATISFIABLE) {
         break;
       }
     }
@@ -266,14 +277,9 @@ public:
    *
    * @b onlyPropagate suggests that a limited (and potentially incomplete)
    * solving strategy should be employed which only performs unit propagation.
-   *
-   * If @b onlyProperSubusets, time can be saved by
-   * skipping the case when all the given assumptions
-   * would need to be considered to obtain unsatisfiability
-   * and UNKOWN can be returned instead right away.
    */
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false, bool onlyProperSubusets=false) {
-    return solveUnderAssumptions(assumps,onlyPropagate ? 0u : UINT_MAX,onlyProperSubusets);
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false) {
+    return solveUnderAssumptions(assumps,onlyPropagate ? 0u : UINT_MAX);
   }
 
   /**
@@ -322,7 +328,7 @@ public:
         }
       }
 
-      if (solve(conflictCountLimit) == UNSATISFIABLE) {
+      if (solve(conflictCountLimit) == Status::UNSATISFIABLE) {
         // leave out forever by overwriting by the last one (buffer shrinks implicitly)
         _failedAssumptionBuffer[i] = _failedAssumptionBuffer[--sz];
       } else {
@@ -344,33 +350,33 @@ protected:
 /**
  * A convenience class for solvers which do not track actual refutations
  * and so return the whole set of clauses added so far as refutations.
- * 
+ *
  * This need not necessarily inherit from SATSolverWithAssumptions,
- * but why bother with multiple inheritance if we know the only 
+ * but why bother with multiple inheritance if we know the only
  * two descendants of this class will need it...
  */
 class PrimitiveProofRecordingSATSolver : public SATSolverWithAssumptions {
 public:
-  PrimitiveProofRecordingSATSolver() :  
+  PrimitiveProofRecordingSATSolver() :
     _addedClauses(0), _refutation(new(0) SATClause(0)), _refutationInference(new PropInference(SATClauseList::empty()))
     {
-      _refutation->setInference(_refutationInference);    
+      _refutation->setInference(_refutationInference);
     }
-  
+
   virtual ~PrimitiveProofRecordingSATSolver() {
     // cannot clear the list - some inferences may be keeping its suffices till proof printing phase ...
     // _addedClauses->destroy(); // we clear the list but not its content
   }
 
-  virtual void addClause(SATClause* cl) override 
+  virtual void addClause(SATClause* cl) override
   {
     SATClauseList::push(cl,_addedClauses);
   }
-  
+
   virtual SATClause* getRefutation() override
   {
-    // connect the added clauses ... 
-    SATClauseList* prems = _addedClauses;  
+    // connect the added clauses ...
+    SATClauseList* prems = _addedClauses;
 
     // ... with the current assumptions
 
@@ -391,9 +397,9 @@ public:
 
     _refutationInference->setPremises(prems);
 
-    return _refutation; 
+    return _refutation;
   }
-  
+
   virtual SATClauseList* getRefutationPremiseList() override {
     return _addedClauses;
   }
@@ -401,7 +407,7 @@ public:
 private:
   // to be used for the premises of a refutation
   SATClauseList* _addedClauses;
-  
+
   /**
    * Empty clause to be returned by the getRefutation call.
    * Recycled between consecutive getRefutation calls.
@@ -410,7 +416,7 @@ private:
   /**
    * The inference inside _refutation.
    */
-  PropInference* _refutationInference;  
+  PropInference* _refutationInference;
 };
 
 

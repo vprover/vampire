@@ -44,11 +44,16 @@ public:
   static VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
   static VirtualIterator<TypedTermList> getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
-  static VirtualIterator<TypedTermList> getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
+  static std::pair<VirtualIterator<TypedTermList>,bool> getDemodulationLHSIterator(Literal* lit, bool onlyPreordered, const Ordering& ord);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
   //WARNING, this function cannot be used when @param t is a sort.
   static Term* replace(Term* t, TermList what, TermList by);
+  static TermList replace(TermList t, TermList what, TermList by) {
+    return t == what ? by 
+         : t.isVar() ? t
+         : TermList(replace(t.term(), what, by));
+  }
   static Literal* replace(Literal* lit, TermList what, TermList by);
 
   struct LHSIteratorFn

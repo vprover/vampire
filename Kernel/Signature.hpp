@@ -22,13 +22,11 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
 
@@ -43,13 +41,25 @@
 namespace Kernel {
 
 using namespace Lib;
-typedef Map<vstring, unsigned> SymbolMap;
 
 /**
  * Class implementing signatures
  */
 class Signature
 {
+  using SymbolKey = Coproduct<
+      std::pair<std::string, unsigned> // <- (name, arity)
+    , std::string // <- string-constant
+    // (number, arity). 
+    // if arity = 0 we mean a numeral constant
+    // if arity = 1 we mean a linear multiplication
+    , std::pair<IntegerConstantType, unsigned> 
+    , std::pair<RationalConstantType, unsigned> 
+    , std::pair<RealConstantType, unsigned> 
+    , std::pair<Theory::Interpretation, OperatorType*>
+    >;
+
+  using SymbolMap = Map<SymbolKey, unsigned>;
  public:
   /** Function or predicate symbol */
   
@@ -96,7 +106,7 @@ class Signature
   
   protected:
     /** print name */
-    vstring _name;
+    std::string _name;
 
     // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
 
@@ -116,6 +126,7 @@ class Signature
 
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
+    unsigned _linMul : 1;
     /** symbol that doesn't come from input problem, but was introduced by Vampire */
     unsigned _introduced : 1;
     /** protected symbols aren't subject to any kind of preprocessing elimination */
@@ -131,18 +142,14 @@ class Signature
     unsigned _wasFlipped : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
-    /** marks distinct string constants */
-    unsigned _stringConstant : 1;
-    /** marks numeric constants, they are only used in TPTP's fof declarations */
-    unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
-    /** marks numbers too large to represent natively */
-    unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
     unsigned _termAlgebraCons : 1;
     /** marks term algebra destructors */
     unsigned _termAlgebraDest : 1;
+    /** marks term algebra discriminators */
+    unsigned _termAlgebraDiscriminator : 1;
     /** if used in the goal **/
     unsigned _inGoal : 1;
     /** if used in a unit **/
@@ -157,6 +164,8 @@ class Signature
     unsigned _tuple : 1;
     /** if allowed in answer literals */
     unsigned _computable : 1;
+    /** name that is bound by a $let-binder */
+    unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -164,7 +173,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
+    Symbol(const std::string& name, unsigned arity, bool interpreted, bool preventQuoting, bool super);
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
@@ -187,14 +196,17 @@ class Signature
     void markEqualityProxy() { _equalityProxy=1; }
     /** mark predicate as (polarity) flipped */
     void markFlipped() { _wasFlipped=1; }
-    /** mark constant as overflown */
-    void markOverflownConstant() { _overflownConstant=1; }
+    void markLinMul() { _linMul=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
     void markTermAlgebraDest() { _termAlgebraDest=1; }
+    /** mark symbol as a term algebra discriminator */
+    void markTermAlgebraDiscriminator() { _termAlgebraDiscriminator=1; }
     /** mark the symbol as uncomputable and hence not allowed in answer literals */
     void markUncomputable() { _computable = 0; }
+    /** mark the symbol as let-bound */
+    void markLetBound() { _letBound = 1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -220,31 +232,29 @@ class Signature
       return _typeArgsArity; 
     }
     /** Return the name of the symbol */
-    inline const vstring& name() const { return _name; }
+    inline const std::string& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
     /** Return true iff the symbol doesn't come from input problem but was introduced by Vampire */
     inline bool introduced() const { return _introduced; }
     /** Return true iff the symbol is must not be eliminated by proprocessing */
     inline bool protectedSymbol() const { return _protected; }
-    /** Return true iff symbol is a distinct string constant */
-    inline bool stringConstant() const { return _stringConstant; }
-    /** Return true iff symbol is a numeric constant */
-    inline bool numericConstant() const { return _numericConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
     /** Return true iff symbol was polarity flipped */
     inline bool wasFlipped() const { return _wasFlipped; }
-    /** Return true iff symbol is an overflown constant */
-    inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
+    /** Return true iff symbol is a term algebra destructor */
+    inline bool termAlgebraDiscriminator() const { return _termAlgebraDiscriminator; }
     /** Return true iff symbol is considered computable */
     inline bool computable() const { return _computable; }
+    /** if bound by a $let-binder */
+    inline bool letBound() const { return _letBound; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -290,25 +300,57 @@ class Signature
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::realSort(); }
 
-    /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
+  private:
+    bool numeralConstant(RealConstantType*) const { return realConstant(); }
+    bool numeralConstant(RationalConstantType*) const { return rationalConstant(); }
+    bool numeralConstant(IntegerConstantType*) const { return integerConstant(); }
+  public:
+
+    /** template version of {integer,rational,real}Constant */
+    template<class Number> bool numeralConstant() const
+    { return numeralConstant((Number*)nullptr); }
+
+    /** return true if an interpreted number */
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
 
+    inline bool linMul() const
+    { return _linMul; }
+
     /** Return value of an integer constant */
-    inline IntegerConstantType integerValue() const
+    inline IntegerConstantType const& integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
     /** Return value of a rational constant */
-    inline RationalConstantType rationalValue() const
+    inline RationalConstantType const& rationalValue() const
     { ASS(rationalConstant()); return static_cast<const RationalSymbol*>(this)->_ratValue; }
     /** Return value of a real constant */
-    inline RealConstantType realValue() const
+    inline RealConstantType const& realValue() const
     { ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
+
+  private:
+    RealConstantType const& numeralValue(RealConstantType*) const { return realValue(); }
+    RationalConstantType const& numeralValue(RationalConstantType*) const { return rationalValue(); }
+    IntegerConstantType const& numeralValue(IntegerConstantType*) const { return integerValue(); }
+  public:
+
+    /** template version of {integer,rational,real}Value */
+    template<class Number> auto const& numeralValue() const
+    { return numeralValue((Number*)nullptr); }
 
     const List<unsigned>* distinctGroups() const { return _distinctGroups; }
     /** This takes the symbol number of this symbol as the symbol doesn't know it
         Note that this should only be called on a constant **/
     void addToDistinctGroup(unsigned group,unsigned this_number);
-    friend std::ostream& operator<<(std::ostream& out, const Signature::Symbol& self){ return out << self.name(); };
+    friend std::ostream& operator<<(std::ostream& out, const Signature::Symbol& self)
+    { 
+      out << self.name() << ": "; 
+      if (self._type) {
+        out << *self._type;
+      } else {
+        out << "<type not (yet) set>";
+      }
+      return out;
+    }
 
     void setType(OperatorType* type);
     void forceType(OperatorType* type);
@@ -327,14 +369,71 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    InterpretedSymbol(const std::string& name, Interpretation interp)
+    : Symbol(name, 
+        /* arity */ Theory::getArity(interp), 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /*             super */ false),
+      _interp(interp)
     {
     }
 
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
+
+  class AnyLinMulSym 
+    : public Symbol {
+  public:
+    enum Type { Int, Rat, Real, } type;
+  private:
+    static Type typeOf(IntegerConstantType*) { return Int; }
+    static Type typeOf(RationalConstantType*) { return Rat; }
+    static Type typeOf(RealConstantType*) { return Real; }
+
+    static auto sortOf(IntegerConstantType *) { return AtomicSort::intSort(); }
+    static auto sortOf(RationalConstantType *) { return AtomicSort::rationalSort(); }
+    static auto sortOf(RealConstantType *) { return AtomicSort::realSort(); }
+
+  public:
+
+    template<class Numeral>
+    auto isType() const { return typeOf<Numeral>() == type; }
+    template<class Numeral>
+    static auto typeOf() { return typeOf((Numeral*)0); }
+    template<class Numeral>
+    static auto sortOf() { return sortOf((Numeral*)0); }
+
+    template<class... Args>
+    AnyLinMulSym(Type type, Args... args) : Symbol(std::move(args)...), type(type) 
+    { markLinMul(); }
+  };
+
+  template<class Numeral>
+  class LinMulSym
+  : public AnyLinMulSym
+  {
+    friend class Signature;
+    friend class Symbol;
+    Numeral _value;
+
+  public:
+    static std::string name(Numeral n) { return Output::toString(n); }
+    LinMulSym(Numeral val)
+    : AnyLinMulSym(
+        AnyLinMulSym::typeOf<Numeral>(),
+        name(val),
+        /*             arity */ 1, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ true, 
+        /*             super */ false),
+      _value(std::move(val))
+    {
+      setType(OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()));
+    }
+  };
+
 
   class IntegerSymbol
   : public Symbol
@@ -345,8 +444,13 @@ class Signature
     IntegerConstantType _intValue;
 
   public:
-    IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(val.toString(), 0, true), _intValue(val)
+    IntegerSymbol(IntegerConstantType val)
+    : Symbol(Output::toString(val),
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /*             super */ false),
+      _intValue(std::move(val))
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
@@ -361,8 +465,13 @@ class Signature
     RationalConstantType _ratValue;
 
   public:
-    RationalSymbol(const RationalConstantType& val)
-    : Symbol(val.toString(), 0, true), _ratValue(val)
+    RationalSymbol(RationalConstantType val)
+    : Symbol(Output::toString(val),
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /*             super */ false),
+       _ratValue(std::move(val))
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
@@ -378,7 +487,13 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")") 
+                                                                         : Output::toString(val),
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /*             super */ false),
+       _realValue(std::move(val))
     {
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
@@ -388,9 +503,9 @@ class Signature
   // Uninterpreted symbol declarations
   //
 
-  unsigned addPredicate(const vstring& name,unsigned arity,bool& added);
-  unsigned addTypeCon(const vstring& name,unsigned arity,bool& added);
-  unsigned addFunction(const vstring& name,unsigned arity,bool& added,bool overflowConstant = false);
+  unsigned addPredicate(const std::string& name,unsigned arity,bool& added);
+  unsigned addTypeCon(const std::string& name,unsigned arity,bool& added);
+  unsigned addFunction(const std::string& name,unsigned arity,bool& added);
 
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -400,7 +515,7 @@ class Signature
    * @param arity arity of the symbol
    * @since 07/05/2007 Manchester
    */
-  unsigned addPredicate(const vstring& name,unsigned arity)
+  unsigned addPredicate(const std::string& name,unsigned arity)
   {
     bool added;
     return addPredicate(name,arity,added);
@@ -411,7 +526,7 @@ class Signature
    *
    * @since 28/12/2007 Manchester
    */
-  unsigned addFunction(const vstring& name,unsigned arity)
+  unsigned addFunction(const std::string& name,unsigned arity)
   {
     bool added;
     return addFunction(name,arity,added);
@@ -422,7 +537,7 @@ class Signature
    *
    * The added constant is of default ($i) sort.
    */
-  unsigned addStringConstant(const vstring& name);
+  unsigned addStringConstant(const std::string& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0, bool computable = false);
   unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
@@ -435,25 +550,97 @@ class Signature
   unsigned getApp();
   unsigned getDiff();
   unsigned getChoice();
+  /**
+   * For a function f with result type t, this introduces a predicate
+   * $def_f with the type t x t. This is used to track expressions of
+   * the form f(s) = s' as $def_f(f(s),s') through preprocessing.
+   */
+  unsigned getFnDef(unsigned fn);
+  /**
+   * For a predicate p, this introduces a predicate $def_p with the same signature,
+   * which is used to track a predicate definition "headers" through preprocessing.
+   */
+  unsigned getBoolDef(unsigned fn);
+
+ private:
+  Symbol* newNumeralConstantSymbol(IntegerConstantType n) 
+  { return new IntegerSymbol(std::move(n)); }
+
+  Symbol* newNumeralConstantSymbol(RationalConstantType n) 
+  { return new RationalSymbol(std::move(n)); }
+
+  Symbol* newNumeralConstantSymbol(RealConstantType n) 
+  { return new RealSymbol(std::move(n)); }
+ public:
 
   // Interpreted symbol declarations
-  unsigned addIntegerConstant(const vstring& number,bool defaultSort);
-  unsigned addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort);
-  unsigned addRealConstant(const vstring& number,bool defaultSort);
 
-  unsigned addIntegerConstant(const IntegerConstantType& number);
-  unsigned addRationalConstant(const RationalConstantType& number);
-  unsigned addRealConstant(const RealConstantType& number);
- 
-  unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name);
-  unsigned addInterpretedFunction(Interpretation itp, const vstring& name)
+  template<class Numeral>
+  unsigned addNumeralConstant(Numeral number_) {
+    auto key = SymbolKey(std::make_pair(std::move(number_), unsigned(0)));
+    unsigned result;
+    if (_funNames.find(key,result)) {
+      return result;
+    }
+    result = _funs.length();
+    // copy number out of key again
+    auto number = key.as<std::pair<Numeral, unsigned>>()->first;
+    noteOccurrence(number);
+    Symbol* sym = newNumeralConstantSymbol(std::move(number));
+    _funs.push(sym);
+    _funNames.insert(key,result);
+    return result;
+  }
+
+ private:
+  void noteOccurrence(IntegerConstantType const&)  { _integers++; }
+  void noteOccurrence(RationalConstantType const&)  { _rationals++; }
+  void noteOccurrence(RealConstantType const&)  { _reals++; }
+ public:
+
+  template<class Numeral>
+  unsigned addLinMul(Numeral const& number) {
+    auto key = SymbolKey(std::make_pair(number, unsigned(1)));
+    unsigned result;
+    if (_funNames.find(key, result)) {
+      return result;
+    }
+    noteOccurrence(number);
+    result = _funs.length();
+    Symbol* sym = new LinMulSym<Numeral>(number);
+    auto s = AnyLinMulSym::sortOf<Numeral>();
+    sym->setType(OperatorType::getFunctionType({s}, s));
+    _funs.push(sym);
+    _funNames.insert(key,result);
+    return result;
+  }
+
+  template<class Numeral>
+  static Lib::Option<LinMulSym<Numeral>&> tryLinMulSym(Symbol* sym) {
+    return someIf(sym->linMul() && static_cast<LinMulSym<Numeral>*>(sym)->template isType<Numeral>(),
+        [&]() -> LinMulSym<Numeral>& { return *static_cast<LinMulSym<Numeral>*>(sym); });
+  }
+
+  template<class Numeral>
+  Lib::Option<Numeral const&> tryLinMul(unsigned f) {
+    if (f >= Term::SPECIAL_FUNCTOR_LOWER_BOUND) return {};
+    if (auto sym = tryLinMulSym<Numeral>(getFunction(f))) {
+      return Option<Numeral const&>(sym->_value);
+    } else {
+      return {};
+    }
+  }
+
+
+  unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const std::string& name);
+  unsigned addInterpretedFunction(Interpretation itp, const std::string& name)
   {
     ASS(!Theory::isPolymorphic(itp));
     return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name);
   }
 
-  unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const vstring& name);
-  unsigned addInterpretedPredicate(Interpretation itp, const vstring& name)
+  unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const std::string& name);
+  unsigned addInterpretedPredicate(Interpretation itp, const std::string& name)
   {
     ASS(!Theory::isPolymorphic(itp));
     return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
@@ -477,14 +664,14 @@ class Signature
   }
 
   /** return the name of a function with a given number */
-  const vstring& functionName(int number);
+  const std::string& functionName(int number);
   /** return the name of a predicate with a given number */
-  const vstring& predicateName(int number)
+  const std::string& predicateName(int number)
   {
     return _preds[number]->name();
   }
   /** return the name of a type constructor with a given number */
-  const vstring& typeConName(int number)
+  const std::string& typeConName(int number)
   {
     return _typeCons[number]->name();
   }  
@@ -515,9 +702,9 @@ class Signature
   }
 
   /** return true iff predicate of given @b name and @b arity exists. */
-  bool isPredicateName(vstring name, unsigned arity)
+  bool isPredicateName(std::string name, unsigned arity)
   {
-    vstring symbolKey = key(name,arity);
+    auto symbolKey = key(name,arity);
     unsigned tmp;
     return _predNames.find(symbolKey,tmp);
   }
@@ -568,9 +755,9 @@ class Signature
   Signature();
   ~Signature();
 
-  bool functionExists(const vstring& name,unsigned arity) const;
-  bool predicateExists(const vstring& name,unsigned arity) const;
-  bool typeConExists(const vstring& name,unsigned arity) const;
+  bool functionExists(const std::string& name,unsigned arity) const;
+  bool predicateExists(const std::string& name,unsigned arity) const;
+  bool typeConExists(const std::string& name,unsigned arity) const;
 
   /** true if there are user defined sorts */
   bool hasSorts() const{
@@ -611,10 +798,18 @@ class Signature
     return (fun == _appFun && _appFun != UINT_MAX);
   }
 
-  bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
-  bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
-  unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
-  unsigned getPredicateNumber(const vstring& name, unsigned arity) const;
+  bool isFnDefPred(unsigned p) const{
+    return _fnDefPreds.contains(p);
+  }
+
+  bool isBoolDefPred(unsigned p, unsigned& orig) const {
+    return _boolDefPreds.find(p, orig);
+  }
+
+  bool tryGetFunctionNumber(const std::string& name, unsigned arity, unsigned& out) const;
+  bool tryGetPredicateNumber(const std::string& name, unsigned arity, unsigned& out) const;
+  unsigned getFunctionNumber(const std::string& name, unsigned arity) const;
+  unsigned getPredicateNumber(const std::string& name, unsigned arity) const;
 
   typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
   
@@ -626,8 +821,9 @@ class Signature
   Stack<DistinctGroupMembers> &distinctGroupMembers(){ return _distinctGroupMembers; }
 
   bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
+  bool hasDefPreds() const { return !_fnDefPreds.isEmpty() || !_boolDefPreds.isEmpty(); }
       
-  static vstring key(const vstring& name,int arity);
+  static SymbolKey key(const std::string& name,int arity);
 
   /** the number of string constants */
   unsigned strings() const {return _strings;}
@@ -749,11 +945,11 @@ class Signature
     return eqProxy;  
   }
 
-  unsigned getBinaryProxy(vstring name){
+  unsigned getBinaryProxy(std::string name){
     ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
     
-    auto convert = [] (vstring name) { 
+    auto convert = [] (std::string name) { 
       if(name == "vIMP"){ return IMP; }
       else if(name == "vAND"){ return AND; }
       else if(name == "vOR"){ return OR; }
@@ -786,7 +982,7 @@ class Signature
   } //TODO merge with above?
 
 
-  unsigned getPiSigmaProxy(vstring name){
+  unsigned getPiSigmaProxy(std::string name){
     bool added = false;
     unsigned proxy = addFunction(name,1, added);
     if(added){
@@ -821,7 +1017,7 @@ class Signature
       }
     };
     
-    vstring name = convert(c);
+    std::string name = convert(c);
     if(c == S_COMB || c == B_COMB || c == C_COMB){
       comb = addFunction(name,3, added);
     } else if ( c == K_COMB) {
@@ -881,7 +1077,7 @@ class Signature
   }
   Stack<TermList>& getDividesNvalues(){ return _dividesNvalues; }
 
-  static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
+  static bool symbolNeedsQuoting(std::string name, bool interpreted, unsigned arity);
 
 private:
   Stack<TermList> _dividesNvalues;
@@ -891,7 +1087,7 @@ private:
   unsigned _foolTrue;
   unsigned _foolFalse;
 
-  static bool isProtectedName(vstring name);
+  static bool isProtectedName(std::string name);
   static bool charNeedsQuoting(char c, bool first);
   /** Stack of function symbols */
   Stack<Symbol*> _funs;
@@ -901,19 +1097,12 @@ private:
   Stack<Symbol*> _typeCons;
 
   DHSet<unsigned> _choiceSymbols;
-  /**
-   * Map from vstring "name_arity" to their numbers
-   *
-   * String constants have key "value_c", integer constants "value_n",
-   * rational "numerator_denominator_q" and real "value_r".
-   */
+
   SymbolMap _funNames;
-  /** Map from vstring "name_arity" to their numbers */
   SymbolMap _predNames;
-  /** Map from vstring "name_arity" to their numbers */
   SymbolMap _typeConNames;
   /** Map for the arity_check options: maps symbols to their arities */
-  SymbolMap _arityCheck;
+  Map<std::string, unsigned> _arityCheck;
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 
@@ -952,13 +1141,15 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
+  DHSet<unsigned> _fnDefPreds;
+  DHMap<unsigned,unsigned> _boolDefPreds;
 
   /**
    * Map from type constructor functor to the associated term algebra, if applicable for the sort.
    * If the term algebra is polymorphic, it contains the general type, ctors, dtors, etc.
    * For a term algebra instance, this map gives the general term algebra based on the top-level
    * functor of its sort, the ctors and dtors still have to be instantiated to the right instances.
-   */ 
+   */
   DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
 
   //TODO Why are these here? They are not used anywhere. AYB

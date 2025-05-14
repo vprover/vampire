@@ -14,6 +14,7 @@
 
 #include <fstream>
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Indexing/TermSharing.hpp"
@@ -26,18 +27,23 @@
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
-#include "KBOForEPR.hpp"
+#include "TermOrderingDiagram.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
+#include "Kernel/QKbo.hpp"
+#include "Kernel/ALASCA/Ordering.hpp"
 #include "Shell/Shuffling.hpp"
+#include "NumTraits.hpp"
 
 #include "Ordering.hpp"
 
@@ -51,18 +57,6 @@ using namespace Lib;
 using namespace Kernel;
 
 OrderingSP Ordering::s_globalOrdering;
-
-Ordering::Ordering()
-{
-  createEqualityComparator();
-  ASS(_eqCmp);
-}
-
-Ordering::~Ordering()
-{
-  destroyEqualityComparator();
-}
-
 
 /**
  * If there is no global ordering yet, assign @c ordering to be
@@ -81,6 +75,16 @@ bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
   }
   s_globalOrdering = ordering;
   return true;
+}
+
+bool Ordering::unsetGlobalOrdering()
+{
+  if(s_globalOrdering) {
+    s_globalOrdering = OrderingSP();
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /**
@@ -103,6 +107,28 @@ Ordering* Ordering::tryGetGlobalOrdering()
   }
 }
 
+struct AllIncomparableOrdering : Ordering {
+  AllIncomparableOrdering() {
+    WARN("using term ordering that makes all terms incomparable. This is meant for debugging purposes only, as it is potentially VERY slow. please be sure that you really want to do this.")
+  }
+  virtual Result compare(Literal* l1,Literal* l2) const override { return Result::INCOMPARABLE; }
+  virtual Result compare(TermList t1,TermList t2) const override { return Result::INCOMPARABLE; }
+  virtual void show(std::ostream& out) const override { out << "everything incomparable" << std::endl; }
+};
+
+#define TIME_TRACING_ORD 0
+
+#if TIME_TRACING_ORD
+#  define NEW_ORD(Ord, ...) \
+      new TimeTraceOrdering<Ord>(#Ord " (literal)", #Ord "(term)", Ord(__VA_ARGS__))
+
+#else // !TIME_TRACING_ORD
+#  define NEW_ORD(Ord, ...) \
+      new Ord(__VA_ARGS__)
+
+#endif // TIME_TRACING_ORD
+
+
 /**
  * Creates the ordering
  *
@@ -115,40 +141,32 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   }
 
   Ordering* out;
-  switch (env.options->termOrdering()) {
+  switch (opt.termOrdering()) {
   case Options::TermOrdering::KBO:
-    // KBOForEPR does not support 
-    // - colors
-    // - user specified symbol weights
-    // TODO fix this! 
-    if(prb.getProperty()->maxFunArity()==0 
-        && prb.getProperty()->maxTypeConArity() == 0
-        && !env.colorUsed
-        && env.options->predicateWeights() == ""
-        && env.options->functionWeights() == ""
-        && env.options->kboWeightGenerationScheme() == Options::KboWeightGenerationScheme::CONST
-        && !env.options->kboMaxZero()
-        && !prb.hasInterpretedOperations()
-        ) {
-      out = new KBOForEPR(prb, opt);
-    } else {
-      out = new KBO(prb, opt);
-    }
+    out = new KBO(prb, opt);
+    break;
+  case Options::TermOrdering::QKBO:
+    out = NEW_ORD(QKbo, prb, opt);
+    break;
+  case Options::TermOrdering::LAKBO:
+    out = NEW_ORD(Kernel::LiteralOrdering<Kernel::LAKBO>, prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
+    break;
+  case Options::TermOrdering::ALL_INCOMPARABLE:
+    out = new AllIncomparableOrdering();
     break;
   default:
     ASSERTION_VIOLATION;
   }
   //TODO currently do not show SKIKBO
   if (opt.showSimplOrdering()) {
-    env.beginOutput();
-    out->show(env.out());
-    env.endOutput();
+    out->show(std::cout);
   }
   return out;
 }
+
 
 
 Ordering::Result Ordering::fromComparison(Comparison c)
@@ -181,12 +199,8 @@ const char* Ordering::resultToString(Result r)
   switch(r) {
   case GREATER:
     return "GREATER";
-  case GREATER_EQ:
-    return "GREATER_EQ";
   case LESS:
     return "LESS";
-  case LESS_EQ:
-    return "LESS_EQ";
   case EQUAL:
     return "EQUAL";
   case INCOMPARABLE:
@@ -209,11 +223,10 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
     while (*ptr2 && *ptr1) {
       Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
-      if (res == Ordering::GREATER || res == Ordering::GREATER_EQ
-          || res == Ordering::EQUAL) {
+      if (res == Ordering::GREATER || res == Ordering::EQUAL) {
         LiteralList::pop(*ptr2);
         continue;
-      } else if (res == Ordering::LESS || res == Ordering::LESS_EQ) {
+      } else if (res == Ordering::LESS) {
         LiteralList::pop(*ptr1);
         goto topLevelContinue;
       }
@@ -243,6 +256,11 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
     eq->setArgumentOrderValue(static_cast<ArgumentOrderVals>(res));
   }
   return res;
+}
+
+TermOrderingDiagramUP Ordering::createTermOrderingDiagram() const
+{
+  return std::make_unique<TermOrderingDiagram>(*this);
 }
 
 //////////////////////////////////////////////////
@@ -275,10 +293,9 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   }
 
   if(l1->isEquality()) {
-    ASS(l2->isEquality());
+    ASS(l2->isEquality())
     return compareEqualities(l1, l2);
   }
-  ASS(!l1->isEquality());
 
   if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
     if(l1->isNegative() && l2->isNegative()) {
@@ -333,6 +350,15 @@ int PrecedenceOrdering::predicatePrecedence (unsigned pred) const
   return res;
 } // PrecedenceOrdering::predicatePrecedences
 
+
+Ordering::Result PrecedenceOrdering::comparePredicatePrecedences(unsigned p1, unsigned p2) const
+{
+  static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
+  return fromComparison(Int::compare(
+      p1 >= _predicates ? (int)(reverse ? -p1 : p1) : _predicatePrecedences[p1],
+      p2 >= _predicates ? (int)(reverse ? -p2 : p2) : _predicatePrecedences[p2] ));
+}
+
 /**
  * Compare precedences of two function symbols
  */ //TODO update for HOL>?
@@ -341,13 +367,29 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
-  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
-  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
+  if (_qkboPrecedence) {
+    // one is less than everything else
+    if (fun1 == IntTraits::oneF()) { return LESS; }
+    if (fun2 == IntTraits::oneF()) { return GREATER; }
 
-  if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
-  if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
-  if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
+    if (fun1 == RatTraits::oneF()) { return LESS; }
+    if (fun2 == RatTraits::oneF()) { return GREATER; }
+
+    if (fun1 == RealTraits::oneF()) { return LESS; }
+    if (fun2 == RealTraits::oneF()) { return GREATER; }
+
+  } else {
+    // unary minus is the biggest
+    // CAREFUL: changing the relative order might cause non-well-foundedness
+    if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+
+    if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+
+    if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
+  }
 
   // $$false is the smallest
   if (env.signature->isFoolConstantSymbol(false,fun1)) {
@@ -401,7 +443,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   }
   //two interpreted constants
 
-  if (!s1->numericConstant() || !s2->numericConstant()) {
+  if (!s1->interpretedNumber() || !s2->interpretedNumber()) {
     return fromComparison(Int::compare(fun1, fun2));
   }
 
@@ -455,6 +497,21 @@ Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, un
     tyc1 >= size ? (int)(reverse ? -tyc1 : tyc1) : _typeConPrecedences[tyc1],
     tyc2 >= size ? (int)(reverse ? -tyc2 : tyc2) : _typeConPrecedences[tyc2] ));
 }
+
+Ordering::Result PrecedenceOrdering::comparePrecedences(const Term* t1, const Term* t2) const
+{
+  if (t1->isSort() && t2->isSort()) {
+    return compareTypeConPrecedences(t1->functor(), t2->functor());
+  }
+  // type constuctor symbols are less than function symbols
+  if (t1->isSort()) {
+    return LESS;
+  }
+  if (t2->isSort()) {
+    return GREATER;
+  }
+  return compareFunctionPrecedences(t1->functor(), t2->functor());
+} // PrecedenceOrdering::comparePrecedences
 
 struct SymbolComparator {
   SymbolType _symType;
@@ -591,7 +648,7 @@ using UnaryFirstComparator = SpecAriFirstComparator<1,revert,InnerComparator>;
 template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 using ConstFirstComparator = SpecAriFirstComparator<0,revert,InnerComparator>;
 
-static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
+static void loadPermutationFromString(DArray<unsigned>& p, const std::string& str) {
   std::stringstream ss(str.c_str());
   unsigned i = 0;
   unsigned val;
@@ -633,19 +690,22 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
                                        const DArray<int>& typeConPrec,   
                                        const DArray<int>& predPrec, 
                                        const DArray<int>& predLevels, 
-                                       bool reverseLCM)
+                                       bool reverseLCM,
+                                       bool qkboPrecedence)
   : _predicates(predPrec.size()),
     _functions(funcPrec.size()),
     _predicateLevels(predLevels),
     _predicatePrecedences(predPrec),
     _functionPrecedences(funcPrec),
     _typeConPrecedences(typeConPrec),
-    _reverseLCM(reverseLCM)
+    _reverseLCM(reverseLCM),
+    _qkboPrecedence(qkboPrecedence)
 {
   ASS_EQ(env.signature->predicates(), _predicates);
   ASS_EQ(env.signature->functions(), _functions);
   ASS(isPermutation(_functionPrecedences))
   ASS(isPermutation(_predicatePrecedences))
+  checkLevelAssumptions(predLevels);
 }
 
 /**
@@ -653,13 +713,14 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
  *
  * "Intermediate" constructor; this is needed so that we only call predPrecFromOpts once (and use it here twice).
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence)
 : PrecedenceOrdering(
     funcPrecFromOpts(prb,opt),
     typeConPrecFromOpts(prb,opt),    
     predPrec,
     predLevelsFromOptsAndPrec(prb,opt,predPrec),
-    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
+    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE,
+    qkboPrecedence
     )
 {
 }
@@ -667,13 +728,15 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const D
 /**
  * Create a PrecedenceOrdering object.
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence)
 : PrecedenceOrdering(prb,opt,
-    (
+    [&]() {
        // Make sure we (re-)compute usageCnt's for all the symbols;
        // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
-       prb.getProperty(),
-       predPrecFromOpts(prb, opt)))
+       prb.getProperty();
+       return predPrecFromOpts(prb, opt);
+   }(),
+   qkboPrecedence)
 {
   ASS_G(_predicates, 0);
 }
@@ -739,7 +802,7 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
     aux.initFromIterator(getRangeIterator(0u, nTypeCons), nTypeCons);
 
     if (!opt.typeConPrecedence().empty()) {
-      vstring precedence;
+      std::string precedence;
       ifstream precedence_file (opt.typeConPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
         loadPermutationFromString(aux,precedence);
@@ -765,7 +828,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
     aux.initFromIterator(getRangeIterator(0u, nFunctions), nFunctions);
 
     if (!opt.functionPrecedence().empty()) {
-      vstring precedence;
+      std::string precedence;
       ifstream precedence_file (opt.functionPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
         loadPermutationFromString(aux,precedence);
@@ -789,7 +852,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   aux.initFromIterator(getRangeIterator(0u, nPredicates), nPredicates);
 
   if (!opt.predicatePrecedence().empty()) {
-    vstring precedence;
+    std::string precedence;
     ifstream precedence_file (opt.predicatePrecedence().c_str());
     if (precedence_file.is_open() && getline(precedence_file, precedence)) {
       loadPermutationFromString(aux,precedence);
@@ -806,24 +869,25 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   return predicatePrecedences;
 }
 
-DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences) {
 
+DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences) {
   unsigned nPredicates = env.signature->predicates();
+
   DArray<int> predicateLevels(nPredicates);
 
   switch(opt.literalComparisonMode()) {
   case Shell::Options::LiteralComparisonMode::STANDARD:
-    predicateLevels.init(nPredicates, 1);
+    predicateLevels.init(nPredicates, PredLevels::MIN_USER_DEF);
     break;
   case Shell::Options::LiteralComparisonMode::PREDICATE:
   case Shell::Options::LiteralComparisonMode::REVERSE:
     for(unsigned i=1;i<nPredicates;i++) {
-      predicateLevels[i]=predicatePrecedences[i]+1;
+      predicateLevels[i] = predicatePrecedences[i] + PredLevels::MIN_USER_DEF;
     }
     break;
   }
   //equality is on the lowest level
-  predicateLevels[0]=0;
+  predicateLevels[0] = PredLevels::EQ;
 
   if (env.predicateSineLevels) {
     // predicateSineLevels start from zero
@@ -835,7 +899,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
       if (!env.predicateSineLevels->find(i,level)) {
         level = bound;
       }
-      predicateLevels[i] = reverse ? (bound - level + 1) : level;
+      predicateLevels[i] = (reverse ? (bound - level) : level) + PredLevels::MIN_USER_DEF;
       // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << predicateLevels[i] << endl;
     }
   }
@@ -848,14 +912,32 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
     }
     else if(predSym->equalityProxy()) {
       //equality proxy predicates have the highest level (lower than colored predicates)
-      predicateLevels[i]=nPredicates+2;
+      predicateLevels[i] = nPredicates + PredLevels::MIN_USER_DEF+ 1;
     }
-
   }
+
+  checkLevelAssumptions(predicateLevels);
   return predicateLevels;
 }
 
-void PrecedenceOrdering::show(ostream& out) const 
+void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
+{
+#if VDEBUG
+  for (unsigned i = 0; i < levels.size(); i++) {
+    if (theory->isInterpretedPredicate(i)) {
+      auto itp = theory->interpretPredicate(i);
+      if (itp == Kernel::Theory::EQUAL) {
+        ASS_EQ(levels[i], PredLevels::EQ);
+      } else if (theory->isInequality(itp)) {
+      } else {
+        ASS(levels[i] >= PredLevels::MIN_USER_DEF || levels[i] < 0)
+      }
+    }
+  }
+#endif // VDEBUG
+}
+
+void PrecedenceOrdering::show(std::ostream& out) const 
 {
   auto _show = [&](const char* precKind, unsigned cntFunctors, auto getSymbol, auto compareFunctors)
     {
@@ -889,7 +971,7 @@ void PrecedenceOrdering::show(ostream& out) const
   _show("predicate", 
       env.signature->predicates(),
       [](unsigned f) { return env.signature->getPredicate(f); },
-      [&](unsigned l, unsigned r) { return Int::compare(_predicatePrecedences[l], _predicatePrecedences[r]); });
+      [&](unsigned l, unsigned r) { return intoComparison(comparePredicatePrecedences(l,r)); });
 
 
   {
@@ -898,11 +980,11 @@ void PrecedenceOrdering::show(ostream& out) const
 
     DArray<unsigned> functors;
     functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
-    functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(_predicateLevels[l], _predicateLevels[r]); }));
+    functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(predicateLevel(l), predicateLevel(r)); }));
 
     for (unsigned i = 0; i < functors.size(); i++) {
       auto sym = env.signature->getPredicate(i);
-      out << "% " << sym->name() << " " << sym->arity() << " " << _predicateLevels[i] << std::endl;
+      out << "% " << sym->name() << " " << sym->arity() << " " << predicateLevel(i) << std::endl;
     }
 
     out << "% ===== end of predicate levels ===== " << std::endl;
@@ -911,4 +993,22 @@ void PrecedenceOrdering::show(ostream& out) const
   out << "%" << std::endl;
 
   showConcrete(out);
+}
+
+DArray<int> PrecedenceOrdering::testLevels() 
+{
+  DArray<int> levels(env.signature->predicates());
+  for (unsigned i = 0; i < levels.size(); i++) {
+    if (theory->isInterpretedPredicate(i)) {
+      auto itp = theory->interpretPredicate(i);
+      if (itp == Kernel::Theory::EQUAL) {
+        levels[i] = PredLevels::EQ;
+      } else if (theory->isInequality(itp)) {
+        levels[i] = PredLevels::INEQ;
+      } else {
+        levels[i] = PredLevels::MIN_USER_DEF;
+      }
+    }
+  }
+  return levels;
 }

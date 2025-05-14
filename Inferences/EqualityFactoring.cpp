@@ -49,6 +49,13 @@ using namespace Indexing;
 using namespace Saturation;
 using std::pair;
 
+EqualityFactoring::EqualityFactoring()
+  : _abstractionOracle(AbstractionOracle::createOnlyHigherOrder())
+  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
+{
+
+}
+
 struct EqualityFactoring::IsPositiveEqualityFn
 {
   bool operator()(Literal* l)
@@ -68,7 +75,7 @@ struct EqualityFactoring::FactorablePairsFn
   FactorablePairsFn(Clause* cl) : _cl(cl) {}
   VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > > operator() (pair<Literal*,TermList> arg)
   {
-    auto it1 = getContentIterator(*_cl);
+    auto it1 = _cl->iterLits();
 
     auto it2 = getFilteredIterator(it1,IsDifferentPositiveEqualityFn(arg.first));
 
@@ -84,29 +91,23 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
-      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
+  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, Ordering& ordering, bool fixedPointIteration)
+      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
+    auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle);
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
     ASS(fLit->isEquality());
 
-    FuncSubtermMap funcSubtermMap;
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    static RobSubstitution subst;
-    static UnificationConstraintStack constraints;
-    subst.reset();
-    constraints.reset();
-
-    if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
+    if (!absUnif.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
     }
 
-    TermList srtS=subst.apply(srt,0);
 
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
@@ -114,88 +115,69 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
-    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.getMainProblem()->isHigherOrder();
-
-    if(use_ho_handler){
-      TermList sLHSreplaced = sLHS;
-      TermList fLHSreplaced = fLHS;
-      if(!sLHS.isVar() && !fLHS.isVar() && 
-         !srtS.isVar() && !srtS.isArrowSort()){
-        sLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(sLHS.term(), &funcSubtermMap);
-        fLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &funcSubtermMap);
-      }
-      subst.setMap(&funcSubtermMap);
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0, &hndlr)) {
-        return 0;
-      }
-    } else {
-      if(!subst.unify(sLHS,0,fLHS,0)) {
-        return 0;
-      }
-    }
-
-    TermList sLHSS=subst.apply(sLHS,0);
-    TermList sRHSS=subst.apply(sRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
-      return 0;
-    }
-    TermList fRHSS=subst.apply(fRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
+    if(!absUnif.unify(sLHS,0,fLHS,0)) {
       return 0;
     }
 
-    unsigned newLen=_cLen+constraints.length();
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    if (_fixedPointIteration && !absUnif.fixedPointIteration()) {
+      return nullptr;
+    }
 
-    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
+    TermList srtS = absUnif.subs().apply(srt,0);
+    TermList sLHSS = absUnif.subs().apply(sLHS,0);
+    TermList sRHSS = absUnif.subs().apply(sRHS,0);
+    if(Ordering::isGreaterOrEqual(_ordering.compare(sRHSS,sLHSS))) {
+      return 0;
+    }
+    TermList fRHSS = absUnif.subs().apply(fRHS,0);
+    if(Ordering::isGreaterOrEqual(_ordering.compare(fRHSS,sLHSS))) {
+      return 0;
+    }
+    auto constraints = absUnif.computeConstraintLiterals();
+
+    RStack<Literal*> resLits;
+
+    resLits->push(Literal::createEquality(false, sRHSS, fRHSS, srtS));
 
     Literal* sLitAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      sLitAfter = subst.apply(sLit, 0);
+      sLitAfter = absUnif.subs().apply(sLit, 0);
     }
 
-    unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=sLit) {
-        Literal* currAfter = subst.apply(curr, 0);
+        Literal* currAfter = absUnif.subs().apply(curr, 0);
 
         if (sLitAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
           if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
+            return nullptr;
           }
         }
 
-        (*res)[next++] = currAfter;
+        resLits->push(currAfter);
       }
     }
-    for(unsigned i=0;i<constraints.length();i++){
-      UnificationConstraint con = (constraints)[i];
-      TermList qT = subst.apply(con.first.first,0);
-      TermList rT = subst.apply(con.second.first,0);
 
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
-
-      (*res)[next++] = constraint;
-    }
-    ASS_EQ(next,newLen);
+    resLits->loadFromIterator(constraints->iterFifo());
 
     env.statistics->equalityFactoring++;
 
-    return res;
+    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+      env.proofExtra.insert(cl, new EqualityFactoringExtra(sLit, fLit, sLHS, fRHS));
+    return cl;
   }
 private:
+  EqualityFactoring& _self;
   Clause* _cl;
   unsigned _cLen;
   bool _afterCheck;
-  Ordering& _ordering;
+  const Ordering& _ordering;
+  bool _fixedPointIteration;
 };
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
@@ -213,8 +195,9 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
+  auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
+      _salg->getOrdering(), _uwaFixedPointIteration));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 

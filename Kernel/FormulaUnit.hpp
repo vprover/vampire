@@ -39,10 +39,10 @@ public:
   FormulaUnit(Formula* f,const Inference& inf)
     : Unit(FORMULA,inf),
       _formula(f), _cachedColor(COLOR_INVALID), _cachedWeight(0)
-  {}
+  { doUnitTracing(); }
 
   void destroy();
-  vstring toString() const;
+  std::string toString() const;
 
   unsigned varCnt();
 

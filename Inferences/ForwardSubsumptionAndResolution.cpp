@@ -11,38 +11,39 @@
  * @file ForwardSubsumptionAndResolution.cpp
  * Implements class ForwardSubsumptionAndResolution.
  */
+/**
+ * The subsumption and subsumption resolution are described in the papers:
+ * - 2022: "First-Order Subsumption via SAT Solving." by Jakob Rath, Armin Biere and Laura Kovács
+ * - 2023: "SAT-Based Subsumption Resolution" by Robin Coutelier, Jakob Rath, Michael Rawson and
+ *         Laura Kovács
+ * - 2024: "SAT Solving for Variants of First-Order Subsumption" by Robin Coutelier, Jakob Rath,
+ *         Michael Rawson, Armin Biere and Laura Kovács
+ *
+ * In particular, this file implements the loop optimization described in 2023 and 2024.
+ */
 
-#include "Lib/VirtualIterator.hpp"
-#include "Lib/DArray.hpp"
-#include "Lib/List.hpp"
-#include "Lib/Comparison.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Debug/TimeProfiling.hpp"
-
-#include "Kernel/Term.hpp"
-#include "Kernel/Clause.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Matcher.hpp"
-#include "Kernel/MLMatcher.hpp"
-#include "Kernel/ColorHelper.hpp"
-
-#include "Indexing/Index.hpp"
-#include "Indexing/LiteralIndex.hpp"
-#include "Indexing/LiteralMiniIndex.hpp"
-#include "Indexing/IndexManager.hpp"
-
+#include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-
+#include "Indexing/LiteralIndex.hpp"
+#include "Kernel/ColorHelper.hpp"
+#include "Lib/Timer.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/ForwardSubsumptionAndResolution.hpp"
 
 namespace Inferences {
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
+    : _subsumptionResolution(subsumptionResolution)
+    , satSubs()
+{
+}
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
@@ -62,304 +63,166 @@ void ForwardSubsumptionAndResolution::detach()
   ForwardSimplificationEngine::detach();
 }
 
-struct ClauseMatches {
-  USE_ALLOCATOR(ClauseMatches);
+/// @brief Set of clauses that were already checked
+static DHSet<Clause *> checkedClauses;
 
-private:
-  //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  ClauseMatches(const ClauseMatches &);
-  ClauseMatches &operator=(const ClauseMatches &);
-
-public:
-  ClauseMatches(Clause *cl) : _cl(cl), _zeroCnt(cl->length())
-  {
-    unsigned clen = _cl->length();
-    _matches = static_cast<LiteralList **>(ALLOC_KNOWN(clen * sizeof(void *), "Inferences::ClauseMatches"));
-    for (unsigned i = 0; i < clen; i++) {
-      _matches[i] = 0;
-    }
-  }
-  ~ClauseMatches()
-  {
-    unsigned clen = _cl->length();
-    for (unsigned i = 0; i < clen; i++) {
-      LiteralList::destroy(_matches[i]);
-    }
-    DEALLOC_KNOWN(_matches, clen * sizeof(void *), "Inferences::ClauseMatches");
-  }
-
-  void addMatch(Literal *baseLit, Literal *instLit)
-  {
-    addMatch(_cl->getLiteralPosition(baseLit), instLit);
-  }
-  void addMatch(unsigned bpos, Literal *instLit)
-  {
-    if (!_matches[bpos]) {
-      _zeroCnt--;
-    }
-    LiteralList::push(instLit, _matches[bpos]);
-  }
-  void fillInMatches(LiteralMiniIndex *miniIndex)
-  {
-    unsigned blen = _cl->length();
-
-    for (unsigned bi = 0; bi < blen; bi++) {
-      LiteralMiniIndex::InstanceIterator instIt(*miniIndex, (*_cl)[bi], false);
-      while (instIt.hasNext()) {
-        Literal *matched = instIt.next();
-        addMatch(bi, matched);
-      }
-    }
-  }
-  bool anyNonMatched() { return _zeroCnt; }
-
-  Clause *_cl;
-  unsigned _zeroCnt;
-  LiteralList **_matches;
-
-  class ZeroMatchLiteralIterator {
-  public:
-    ZeroMatchLiteralIterator(ClauseMatches *cm)
-        : _lits(cm->_cl->literals()), _mlists(cm->_matches), _remaining(cm->_cl->length())
-    {
-      if (!cm->_zeroCnt) {
-        _remaining = 0;
-      }
-    }
-    bool hasNext()
-    {
-      while (_remaining > 0 && *_mlists) {
-        _lits++;
-        _mlists++;
-        _remaining--;
-      }
-      return _remaining;
-    }
-    Literal *next()
-    {
-      _remaining--;
-      _mlists++;
-      return *(_lits++);
-    }
-
-  private:
-    Literal **_lits;
-    LiteralList **_mlists;
-    unsigned _remaining;
-  };
-};
-
-typedef Stack<ClauseMatches *> CMStack;
-
-Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause)
+bool ForwardSubsumptionAndResolution::perform(Clause *cl,
+                                              Clause *&replacement,
+                                              ClauseIterator &premises)
 {
-  int clen = cl->length();
-  int nlen = clen - 1;
+  TIME_TRACE("forward subsumption");
 
-  Clause *res = new (nlen) Clause(nlen,
-                                  SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
-
-  int next = 0;
-  bool found = false;
-  for (int i = 0; i < clen; i++) {
-    Literal *curr = (*cl)[i];
-    //As we will apply subsumption resolution after duplicate literal
-    //deletion, the same literal should never occur twice.
-    ASS(curr != lit || !found);
-    if (curr != lit || found) {
-      (*res)[next++] = curr;
-    }
-    else {
-      found = true;
-    }
-  }
-
-  return res;
-}
-
-bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resLit)
-{
-  Clause *mcl = cms->_cl;
-  unsigned mclen = mcl->length();
-
-  ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
-  if (zmli.hasNext()) {
-    while (zmli.hasNext()) {
-      Literal *bl = zmli.next();
-      //      if( !resLit->couldBeInstanceOf(bl, true) ) {
-      if (!MatchingUtils::match(bl, resLit, true)) {
-        return false;
-      }
-    }
-  }
-  else {
-    bool anyResolvable = false;
-    for (unsigned i = 0; i < mclen; i++) {
-      //      if(resLit->couldBeInstanceOf((*mcl)[i], true)) {
-      if (MatchingUtils::match((*mcl)[i], resLit, true)) {
-        anyResolvable = true;
-        break;
-      }
-    }
-    if (!anyResolvable) {
-      return false;
-    }
-  }
-
-  return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit);
-}
-
-bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
-{
-  Clause *resolutionClause = 0;
+  ASS(replacement == nullptr)
 
   unsigned clen = cl->length();
   if (clen == 0) {
     return false;
   }
 
-  TIME_TRACE("forward subsumption");
+  /// @brief Conclusion of the subsumption resolution if successful
+  Clause *conclusion = nullptr;
+  /// @brief Premise of either subsumption or subsumption resolution
+  Clause *premise = nullptr;
 
-  bool result = false;
+  checkedClauses.reset();
 
-  Clause::requestAux();
+  Clause *mcl;
 
-  static CMStack cmStore(64);
-  ASS(cmStore.isEmpty());
-
+  /*******************************************************/
+  /*              SUBSUMPTION UNIT CLAUSE                */
+  /*******************************************************/
+  // In case of unit clauses, no need to check subsumption since
+  // L = a where a is a single literal
+  // M = b v C where σ(a) = b is a given from the index
+  // Therefore L subsumes M
   for (unsigned li = 0; li < clen; li++) {
-    SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
-    while (rit.hasNext()) {
-      Clause *premise = rit.next().clause;
-      if (ColorHelper::compatible(cl->color(), premise->color())) {
-        premises = pvi(getSingletonIterator(premise));
-        env.statistics->forwardSubsumed++;
-        result = true;
-        goto fin;
-      }
+    Literal *lit = (*cl)[li];
+    auto it = _unitIndex->getGeneralizations(lit, false, false);
+    if (it.hasNext()) {
+      mcl = it.next().data->clause;
+      premise = mcl;
+      ASS(ColorHelper::compatible(cl->color(), premise->color()))
+      premises = pvi(getSingletonIterator(premise));
+      env.statistics->forwardSubsumed++;
+      return true;
     }
   }
 
-  {
-    LiteralMiniIndex miniIndex(cl);
+  /*******************************************************/
+  /*       SUBSUMPTION & RESOLUTION MULTI-LITERAL        */
+  /*******************************************************/
+  // For each clauses mcl, first check for subsumption, then for subsumption resolution
+  // During subsumption, setup the subsumption resolution solver. This is an overhead
+  // largely compensated because the success rate of subsumption is fairly low, and
+  // in case of failure, having the solver ready is a great saving on subsumption resolution
+  //
+  // Since subsumption is stronger than subsumption resolution, if a subsumption resolution is found,
+  // keep it until the end of the loop to make sure no subsumption is possible.
+  // Only when it has been checked that subsumption is not possible does the conclusion of
+  // subsumption resolution become relevant
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _fwIndex->getGeneralizations(lit, false, false);
+    while (it.hasNext()) {
+      mcl = it.next().data->clause;
+      if (!checkedClauses.insert(mcl)) {
+        continue;
+      }
 
-    for (unsigned li = 0; li < clen; li++) {
-      SLQueryResultIterator rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
-      while (rit.hasNext()) {
-        SLQueryResult res = rit.next();
-        Clause *mcl = res.clause;
-        if (mcl->hasAux()) {
-          //we've already checked this clause
-          continue;
-        }
-        ASS_G(mcl->length(), 1);
+      bool checkSR = _subsumptionResolution && !conclusion &&
+                    (_checkLongerClauses || mcl->length() <= clen);
 
-        ClauseMatches *cms = new ClauseMatches(mcl);
-        mcl->setAux(cms);
-        cmStore.push(cms);
-        cms->fillInMatches(&miniIndex);
-
-        if (cms->anyNonMatched()) {
-          continue;
-        }
-
-        if (MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0) && ColorHelper::compatible(cl->color(), mcl->color())) {
+      // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
+      bool checkS = mcl->length() <= clen;
+      if (checkS) {
+        if (satSubs.checkSubsumption(mcl, cl, checkSR)) {
+          ASS(replacement == nullptr)
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
-          result = true;
-          goto fin;
+          return true;
         }
       }
-    }
-
-    if (!_subsumptionResolution) {
-      goto fin;
-    }
-
-    {
-      TIME_TRACE("forward subsumption resolution");
-
-      for (unsigned li = 0; li < clen; li++) {
-        Literal *resLit = (*cl)[li];
-        SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
-        while (rit.hasNext()) {
-          Clause *mcl = rit.next().clause;
-          if (ColorHelper::compatible(cl->color(), mcl->color())) {
-            resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
-            env.statistics->forwardSubsumptionResolution++;
-            premises = pvi(getSingletonIterator(mcl));
-            replacement = resolutionClause;
-            result = true;
-            goto fin;
-          }
-        }
-      }
-
-      {
-        CMStack::Iterator csit(cmStore);
-        while (csit.hasNext()) {
-          ClauseMatches *cms = csit.next();
-          for (unsigned li = 0; li < clen; li++) {
-            Literal *resLit = (*cl)[li];
-            if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
-              resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
-              env.statistics->forwardSubsumptionResolution++;
-              premises = pvi(getSingletonIterator(cms->_cl));
-              replacement = resolutionClause;
-              result = true;
-              goto fin;
-            }
-          }
-          ASS_EQ(cms->_cl->getAux<ClauseMatches>(), cms);
-          cms->_cl->setAux(nullptr);
-        }
-      }
-
-      for (unsigned li = 0; li < clen; li++) {
-        Literal *resLit = (*cl)[li]; //resolved literal
-        SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
-        while (rit.hasNext()) {
-          SLQueryResult res = rit.next();
-          Clause *mcl = res.clause;
-
-          ClauseMatches *cms = nullptr;
-          if (mcl->hasAux()) {
-            // We have seen the clause already, try to re-use the literal matches.
-            // (Note that we can't just skip the clause: if our previous check
-            // failed to detect subsumption resolution, it might still work out
-            // with a different resolved literal.)
-            cms = mcl->getAux<ClauseMatches>();
-            // Already handled in the loop over cmStore above.
-            if (!cms) {
-              continue;
-            }
-          }
-          if (!cms) {
-            cms = new ClauseMatches(mcl);
-            mcl->setAux(cms);
-            cmStore.push(cms);
-            cms->fillInMatches(&miniIndex);
-          }
-
-          if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
-            resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
-            env.statistics->forwardSubsumptionResolution++;
-            premises = pvi(getSingletonIterator(cms->_cl));
-            replacement = resolutionClause;
-            result = true;
-            goto fin;
-          }
+      if (checkSR) {
+        // In this case, the literals come from the non complementary list, and there is therefore
+        // a low chance of it being resolved. However, in the case where there is no negative match,
+        // checkSubsumption resolution is very fast after subsumption, since filling the match set
+        // for subsumption will have already detected that subsumption resolution is impossible
+        conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);
+        if (conclusion) {
+          ASS(premise == nullptr)
+          // cannot override the premise since the loop would have ended otherwise
+          // the premise will be overriden if a subsumption is found
+          premise = mcl;
         }
       }
     }
   }
 
-fin:
-  Clause::releaseAux();
-  while (cmStore.isNonEmpty()) {
-    delete cmStore.pop();
+  if (conclusion) {
+    premises = pvi(getSingletonIterator(premise));
+    replacement = conclusion;
+    env.statistics->forwardSubsumptionResolution++;
+    return true;
   }
-  return result;
-}
+  else if (!_subsumptionResolution) {
+    return false;
+  }
+
+  /*******************************************************/
+  /*         SUBSUMPTION RESOLUTION UNIT CLAUSE          */
+  /*******************************************************/
+  // In case of unit clauses, no need to check subsumption resolution since
+  // L = a where a is a single literal
+  // M = ¬b v C where σ(a) = ¬b is a given from the index
+  // Therefore M can be replaced by C
+  //
+  // This behavior can be chained and several resolution can happen at the same time
+  // The negatively matching literals are stacked and removed at the same time
+  // However, some experiments showed that chaining subsumption resolutions yields poor performance
+  // The intuition for this problem is that the intermidiate clauses can sometimes be useful.
+  // This is why we do not chain subsumption resolutions.
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _unitIndex->getGeneralizations(lit, true, false);
+    if (it.hasNext()) {
+      mcl = it.next().data->clause;
+      ASS(mcl->length() == 1)
+      replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl);
+      premises = pvi(getSingletonIterator(mcl));
+      env.statistics->forwardSubsumptionResolution++;
+      return true;
+    }
+  }
+
+  /*******************************************************/
+  /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
+  /*******************************************************/
+  // Check for the last clauses that are negatively matched in the index.
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _fwIndex->getGeneralizations(lit, true, false);
+    while (it.hasNext()) {
+      mcl = it.next().data->clause;
+      if (!checkedClauses.insert(mcl)) {
+        continue;
+      }
+      if (!_checkLongerClauses && mcl->length() > clen) {
+        continue;
+      }
+      conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+      if (conclusion) {
+        ASS(premise == nullptr)
+        premise = mcl;
+        replacement = conclusion;
+        premises = pvi(getSingletonIterator(premise));
+        env.statistics->forwardSubsumptionResolution++;
+        return true;
+      }
+    }
+  }
+
+  return false;
+}  // perform
+
 
 } // namespace Inferences

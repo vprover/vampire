@@ -61,13 +61,10 @@ Literal* SAT2FO::toFO(SATLiteral sl) const
  */
 SATClause* SAT2FO::toSAT(Clause* cl)
 {
-  Clause::Iterator cit(*cl);
-
   static SATLiteralStack satLits;
   satLits.reset();
 
-  while (cit.hasNext()) {
-    Literal* lit = cit.next();
+  for (auto lit : cl->iterLits()) {
     //check if it is already in the map and/or add it
     SATLiteral slit = toSAT(lit);
     satLits.push(slit);
@@ -88,12 +85,12 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
   unsigned maxVar = maxSATVar();
   for (unsigned i = 1; i <= maxVar; i++) {
     SATSolver::VarAssignment asgn = solver.getAssignment(i);
-    if(asgn==SATSolver::DONT_CARE) {
+    if(asgn==SATSolver::VarAssignment::DONT_CARE) {
       //we don't add DONT_CARE literals into the assignment
       continue;
     }
-    ASS(asgn==SATSolver::TRUE || asgn==SATSolver::FALSE);
-    SATLiteral sl(i, asgn==SATSolver::TRUE);
+    ASS(asgn==SATSolver::VarAssignment::TRUE || asgn==SATSolver::VarAssignment::FALSE);
+    SATLiteral sl(i, asgn==SATSolver::VarAssignment::TRUE);
     ASS(solver.trueInAssignment(sl));
     Literal* lit = toFO(sl);
     if(!lit) {

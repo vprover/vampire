@@ -250,7 +250,7 @@ CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clau
     }
   }
   return ClauseGenerationResult {
-    .clauses          = pvi(getFlattenedIterator(ownedArrayishIterator(std::move(clauses)))),
+    .clauses          = pvi(getFlattenedIterator(arrayIter(std::move(clauses)))),
     .premiseRedundant = redundant,
   };
 }
@@ -366,9 +366,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     seen.reset();
     //here we rely on the fact that the iterator traverses the clause from
     //the first to the last literal
-    Clause::Iterator cit(*c);
-    while(cit.hasNext()) {
-      Literal* lit = cit.next();
+    for (Literal* lit : c->iterLits()) {
       if(!seen.insert(lit)) {
         skipped.push(lit);
       }
@@ -383,9 +381,8 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   // there are duplicate literals, delete them from lits
   int newLength = length - skipped.length();
   // now lits[0 ... newLength-1] contain the remaining literals
-  Clause* d = new(newLength)
-		 Clause(newLength,
-			 SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
+  Recycled<DArray<Literal*>> resLits;
+  resLits->ensure(newLength);
 
   int origIdx = length-1;
 
@@ -395,7 +392,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
       origIdx--;
       ASS_GE(origIdx,0);
     }
-    (*d)[newIdx] = (*c)[origIdx];
+    (*resLits)[newIdx] = (*c)[origIdx];
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
@@ -407,14 +404,15 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     origLits.reset();
     static DHSet<Literal*> newLits;
     newLits.reset();
-    origLits.loadFromIterator(Clause::Iterator(*c));
-    newLits.loadFromIterator(Clause::Iterator(*d));
+    origLits.loadFromIterator(c->iterLits());
+    newLits.loadFromIterator(d->iterLits());
     ASS_EQ(origLits.size(),newLits.size());
     ASS_EQ(origLits.size(), static_cast<unsigned>(newLength));
   }
 #endif
 
-  return d;
+  return Clause::fromArray(resLits->begin(), newLength,
+			 SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
 }
 
 Clause* TautologyDeletionISE2::simplify(Clause* c)
@@ -473,18 +471,14 @@ Clause* TautologyDeletionISE2::simplify(Clause* c)
 
 Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 {
-  static DArray<Literal*> lits(32);
+  RStack<Literal*> resLits;
 
   typedef ApplicativeHelper AH;
 
-  int length = c->length();
-  int j = 0;
-  lits.ensure(length);
   int found = 0;
-  for (int i = length-1;i >= 0;i--) {
-    Literal* l = (*c)[i];
+  for (auto l : c->iterLits()) {
     if (!l->isEquality()) {
-      lits[j++] = l;
+      resLits->push(l);
       continue;
     }
     TermList* t1 = l->args();
@@ -495,14 +489,14 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
       continue;
     }
     if(l->isPositive()){
-      lits[j++] = l;
+      resLits->push(l);
       continue;
     }
     if (t1->sameContent(t2)) {
       found++;
     }
     else {
-      lits[j++] = l;
+      resLits->push(l);
     }
   }
 
@@ -510,15 +504,8 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
     return c;
   }
 
-  int newLength = length - found;
-  Clause* d = new(newLength) Clause(newLength,
-		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
-  for (int i = newLength-1;i >= 0;i--) {
-    (*d)[i] = lits[newLength-i-1];
-  }
   env.statistics->trivialInequalities += found;
-
-  return d;
+  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
 }
 
 Clause* SimplifyingGeneratingInference1::simplify(Clause* cl) 
@@ -601,13 +588,11 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
             case Ordering::Result::LESS:
               oneLess = true;
               break;
-            case Ordering::Result::LESS_EQ:
             case Ordering::Result::EQUAL:
               ASSERTION_VIOLATION
               break;
             case Ordering::Result::INCOMPARABLE:
             case Ordering::Result::GREATER:
-            case Ordering::Result::GREATER_EQ:
               if (cmp == Ordering::Result::INCOMPARABLE) {
                 env.statistics->evaluationIncomp++;
               } else {

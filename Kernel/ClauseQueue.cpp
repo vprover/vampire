@@ -17,11 +17,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Environment.hpp"
-
-#if VDEBUG
 #include "Clause.hpp"
-#endif
-
 #include "ClauseQueue.hpp"
 
 #define MAX_HEIGHT 31
@@ -189,11 +185,9 @@ void ClauseQueue::removeAll()
   }
 } // removeAll
 
-#if VDEBUG
-void ClauseQueue::output(ostream& str) const
+void ClauseQueue::output(std::ostream& str) const
 {
   for (const Node* node = _left->nodes[0]; node; node=node->nodes[0]) {
     str << node->clause->toString() << '\n';
   }
 } // ClauseQueue::output
-#endif

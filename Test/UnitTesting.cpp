@@ -15,7 +15,10 @@
 #include <iomanip>
 #include <fstream>
 
+#include "Lib/Environment.hpp"
+#include "Lib/System.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
+#include "Shell/Options.hpp"
 
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
@@ -30,7 +33,7 @@ using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 
-TestUnit::TestUnit(vstring const& name)
+TestUnit::TestUnit(std::string const& name)
 : _tests(), _name(name)
 { }
 
@@ -44,35 +47,55 @@ UnitTesting& UnitTesting::instance()
   return *_instance; 
 }
 
-bool UnitTesting::runTest(vstring const& unitId, vstring const& testCase) 
+bool UnitTesting::runTest(std::string const& unitId, std::string const& testName) 
 {
   auto unit = findUnit(unitId);
   if (unit == nullptr) return false;
-  else return unit->runTest(testCase);
-}
-bool TestUnit::runTest(vstring const& testCase)
-{
-  for (auto test : _tests) {
-    if (test.name == testCase) {
-      test.proc();
-      return true;
-    }
+  else if (unit->hasTest(testName)) {
+    return unit->runTest(testName);
+  } else {
+    return unit->runTestsWithNameSubstring(testName, std::cout);
   }
-  std::cerr << "test \"" << testCase << "\" not found in " << id() << std::endl;
-  return false;
 }
 
-bool UnitTesting::run(Stack<vstring> const& args) 
+TestUnit::Test* TestUnit::findTest(std::string const& testCase)
+{
+  for (auto& test : _tests) {
+    if (test.name == testCase) {
+      return &test;
+    }
+  }
+  return nullptr;
+}
+bool TestUnit::hasTest(std::string const& name)
+{ return findTest(name) != nullptr; }
+
+
+bool TestUnit::runTest(std::string const& name)
+{
+  auto test = findTest(name);
+  if (test != nullptr) {
+      test->proc();
+      return true;
+  } else {
+    std::cerr << "test \"" << name << "\" not found in " << id() << std::endl;
+    return false;
+  }
+}
+
+bool UnitTesting::run(Stack<std::string> const& args) 
 {
   if (args.size() == 2) {
     return runTest(args[0], args[1]);
-  } else {
-    ASS_EQ(args.size(), 1)
+  } else if (args.size() == 1) {
     return runUnit(args[0]);
+  } else {
+    std::cerr << "usage: vtest <unit-name> [ <test-name-substring> ]";
+    exit(-1);
   }
 }
 
-TestUnit* UnitTesting::findUnit(vstring const& id) 
+TestUnit* UnitTesting::findUnit(std::string const& id) 
 {
   TestUnit* found = nullptr;
   for (auto& test : _units) {
@@ -92,14 +115,14 @@ TestUnit* UnitTesting::findUnit(vstring const& id)
   return found;
 }
 
-bool UnitTesting::runUnit(vstring const& id)
+bool UnitTesting::runUnit(std::string const& id)
 {
   auto unit = findUnit(id);
   if (unit == nullptr) return false;
   else return unit->run(std::cout);
 }
 
-bool UnitTesting::listTests(Stack<vstring> const&)
+bool UnitTesting::listTests(Stack<std::string> const&)
 {
   auto& out = std::cout;
   for (auto unit : _units) {
@@ -110,7 +133,7 @@ bool UnitTesting::listTests(Stack<vstring> const&)
   return true;
 }
 
-bool TestUnit::run(ostream& out)
+bool TestUnit::runTestsWithNameSubstring(std::string const& pref, ostream& out)
 {
   Stack<Test>::BottomFirstIterator uit(_tests);
 
@@ -121,15 +144,17 @@ bool TestUnit::run(ostream& out)
   unsigned cnt_ok  = 0;
   while(uit.hasNext()) {
     TestUnit::Test t=uit.next();
-    out << "Running " << t.name << "... ";
-    out.flush();
-    bool ok;
-    {
-      ok = spawnTest(t.proc);
+    if (std::string(t.name).find(pref) != std::string::npos) {
+      out << "Running " << t.name << "... \r";
+      out.flush();
+      bool ok;
+      {
+        ok = spawnTest(t.proc);
+      }
+      out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
+      if (ok) cnt_ok++;
+      else cnt_fail++;
     }
-    out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
-    if (ok) cnt_ok++;
-    else cnt_fail++;
   }
   out << endl;
   auto cnt = cnt_fail + cnt_ok;
@@ -139,6 +164,9 @@ bool TestUnit::run(ostream& out)
   out << "  - fail " << cnt_fail << "\t(" << (cnt_fail * 100.0 / cnt) << ") %" << endl;
   return cnt_fail == 0;
 }
+
+bool TestUnit::run(std::ostream& out)
+{ return runTestsWithNameSubstring("", out); }
 
 void TestUnit::add(Test t)
 { _tests.push(t); }
@@ -160,16 +188,13 @@ bool TestUnit::spawnTest(TestProc proc)
     try {
       proc();
     } catch (Lib::Exception& e) {
-      // e.cry(std::cout);
       e.cry(std::cerr);
-      _exit(-1);
-
+      exit(-1);
     } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
-      _exit(-1);
-
+      exit(-1);
     }
-    _exit(0); // don't call parent's atexit! 
+    exit(0);
   } else {
     int childRes;
     Multiprocessing::instance()->waitForChildTermination(childRes);
@@ -177,7 +202,7 @@ bool TestUnit::spawnTest(TestProc proc)
   }
 }
 
-bool UnitTesting::add(vstring const& testUnit, TestUnit::Test test)
+bool UnitTesting::add(std::string const& testUnit, TestUnit::Test test)
 {
   for (auto& unit : _units) {
     if (unit.id() == testUnit) {
@@ -190,7 +215,7 @@ bool UnitTesting::add(vstring const& testUnit, TestUnit::Test test)
   return true;
 }
 
-std::ostream& operator<<(ostream& out, TestUnit::Test const& t) 
+std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t) 
 { return out << t.name; }
 
 } // namespace Test
@@ -199,11 +224,12 @@ int main(int argc, const char** argv)
 {
   using namespace Lib;
   using namespace std;
+
   bool success;
-  auto cmd = vstring(argv[1]);
-  auto args = Stack<vstring>(argc - 2);
+  auto cmd = std::string(argv[1]);
+  auto args = Stack<std::string>(argc - 2);
   for (int i = 2; i < argc; i++) {
-    args.push(vstring(argv[i]));
+    args.push(std::string(argv[i]));
   }
   if (cmd == "ls") {
     success = Test::UnitTesting::instance().listTests(args);

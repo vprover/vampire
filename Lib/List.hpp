@@ -456,8 +456,8 @@ public:
 
 #if VDEBUG
 // Only works if called on a List of elements with toString functions
-  vstring toString(){
-    vstring h = _head->toString();
+  std::string toString(){
+    std::string h = _head->toString();
     if(_tail){
       return h+","+_tail->toString();
     }
@@ -469,7 +469,7 @@ public:
   class Iterator {
   public:
     USE_ALLOCATOR(List::Iterator);
-    
+
     DECL_ELEMENT_TYPE(C);
 
     explicit Iterator(const List* l) : _lst (l) {}
@@ -506,11 +506,13 @@ public:
     const List* _lst;
   };
 
+  Iterator iter() const { return Iterator(this); }
+
   /** iterator over references to list elements */
   class RefIterator {
    public:
      USE_ALLOCATOR(List::RefIterator);
-     
+
      DECL_ELEMENT_TYPE(C&);
 
     explicit RefIterator(List* l) : _lst (l) {}
@@ -536,26 +538,7 @@ public:
     List* _lst;
   };
 
-  class PtrIterator
-  {
-  public:
-    USE_ALLOCATOR(List::PtrIterator);
-    
-    DECL_ELEMENT_TYPE(C*);
-    PtrIterator(List* lst) : _l(lst) {}
-    bool hasNext()
-    { return _l->isNonEmpty(); }
-
-    C* next()
-    {
-      C* res=_l->headPtr();
-      _l=_l->tail();
-      return res;
-    }
-  protected:
-    List* _l;
-  };
-
+  RefIterator iter() { return RefIterator(this); }
 
   /** Iterator that allows one to delete the current element */
   class DelIterator {
@@ -688,6 +671,16 @@ public:
      * if _cur=null then no next was called */
     List* _cur;
   };
+  RefIterator delIter() { return DelIterator(this); }
+
+  template<class Iter>
+  static List* fromIterator(Iter iter) {
+    List* result = List::empty();
+    while (iter.hasNext()) {
+      List::push(iter.next(), result);
+    }
+    return result;
+  }
 
   /**
    * iterator over the list elements
@@ -727,45 +720,66 @@ public:
   USE_ALLOCATOR(List);
 
   /**
-   * Class that allows to create a list initially by pushing elements
-   * at the end of it.
+   * Class that allows to create a list initially by pushing element both at the beginning (pushFront, the usual push)
+   * and at the end of it (pushBack, the FIFO style).
+   *
+   * The interal list is not owned by the FIFO. In a typical use case, the list will be retrieved via list() call
+   * and kept after FIFO passes out of scope.
    * @since 06/04/2006 Bellevue
    */
   class FIFO {
   public:
-    /** constructor */
-    explicit FIFO(List* &lst)
-      : _last(0), _initial(lst)
-    {
-      ASS_EQ(_initial,0);
+    explicit FIFO() : _first(0), _last(0) {}
+
+    bool empty() const {
+      return !_first;
     }
-    
-    /** add element at the end of the original list */
+
+    /* If you only need pushFront, you probably don't need FIFO. */
+    void pushFront(C elem)
+    {
+      _first = cons(elem, _first);
+      if (!_last) {
+        _last = _first;
+      }
+    }
+
     void pushBack(C elem)
     {
       List* newLast = new List(elem);
       if (_last) {
         _last->setTail(newLast);
       } else {
-        _initial = newLast;
+        _first = newLast;
       }
-
       _last = newLast;
     }
 
-    void pushFront(C elem)
+    List* list() const
     {
-      _initial = new List(elem, _initial);
-      if (!_last) {
-        _last = _initial;
-      }
+      return _first;
     }
 
-  private:
-    /** last element */
+    /**
+     * @brief If last's tail is not null, set it to null.
+     *
+     * @return Whatever was last's tail pointing to.
+     *
+     * Note that this will only return non-null,
+     * if the list inside was modified outside this objects interface.
+     */
+    List* clipAtLast() const
+    {
+      List* beyondLast = List::empty();
+      if (_last) {
+        std::swap(_last->_tail,beyondLast);
+      }
+      return beyondLast;
+    }
+
+  protected:
+    List* _first;
     List* _last;
-    /** reference to the initial element */
-    List* &_initial;
   }; // class List::FIFO
 
 protected:  // structure
@@ -823,7 +837,7 @@ std::ostream& operator<< (std::ostream& out, const List<T>& lstr )
   while(lst) {
     out<<lst->head();
     lst=lst->tail();
-    if (lst) out << ",\n";
+    if (lst) out << ", ";
   }
 
   return out<<']';
@@ -843,6 +857,10 @@ std::ostream& operator<< (std::ostream& out, const List<T*>& lstr )
 
   return out<<']';
 }
+
+
+
+
 
 #endif
 

@@ -16,7 +16,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
-#include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
@@ -35,52 +34,6 @@ namespace Saturation
 
 using namespace Kernel;
 using namespace Indexing;
-
-void ClauseContainer::addClauses(ClauseIterator cit)
-{
-  while (cit.hasNext()) {
-    add(cit.next());
-  }
-}
-
-
-/////////////////   RandomAccessClauseContainer   //////////////////////
-
-void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
-{
-  while (cit.hasNext()) {
-    remove(cit.next());
-  }
-}
-
-/**
- * Attach to the SaturationAlgorithm object.
- *
- * This method is being called in the SaturationAlgorithm constructor,
- * so no virtual methods of SaturationAlgorithm should be called.
- */
-void RandomAccessClauseContainer::attach(SaturationAlgorithm* salg)
-{
-  ASS(!_salg);
-
-  _salg=salg;
-  _limitChangeSData=_salg->getPassiveClauseContainer()->changedEvent.subscribe(
-      this, &RandomAccessClauseContainer::onLimitsUpdated);
-}
-/**
- * Detach from the SaturationAlgorithm object.
- *
- * This method is being called in the SaturationAlgorithm destructor,
- * so no virtual methods of SaturationAlgorithm should be called.
- */
-void RandomAccessClauseContainer::detach()
-{
-  ASS(_salg);
-
-  _limitChangeSData->unsubscribe();
-  _salg=0;
-}
-
 
 /////////////////   UnprocessedClauseContainer   //////////////////////
 
@@ -101,7 +54,7 @@ void UnprocessedClauseContainer::add(Clause* c)
 
 Clause* UnprocessedClauseContainer::pop()
 {
-  Clause* res=_data.pop_back();
+  Clause* res=_data.pop_front();
   selectedEvent.fire(res);
   return res;
 }
@@ -110,39 +63,30 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
 {
   ASS_GE(estReachableCnt,0);
 
-  bool atLeastOneLimitTightened;
-
   // optimization: if the estimated number of clause-selections is higher than the number of clauses in passive,
   // we already conclude that we will select all clauses, so we set the limits accordingly.
   if (estReachableCnt > static_cast<long long>(sizeEstimate())) {
-    atLeastOneLimitTightened = setLimitsToMax();
-    if (atLeastOneLimitTightened) {
-      onLimitsUpdated();
-    }
+    setLimitsToMax();
     return;
   }
   // otherwise we run the simulation and set the limits accordingly
-  else
+  Clause::requestAux();
+  simulationInit();
+
+  long long remains=estReachableCnt;
+  while (simulationHasNext() && remains > 0)
   {
-    Clause::requestAux();
-
-    simulationInit();
-
-    long long remains=estReachableCnt;
-    while (simulationHasNext() && remains > 0)
-    {
-      simulationPopSelected();
-      remains--;
-    }
-
-    atLeastOneLimitTightened = setLimitsFromSimulation();
-
-    Clause::releaseAux();
+    simulationPopSelected();
+    remains--;
   }
+  bool atLeastOneLimitTightened = setLimitsFromSimulation();
+  Clause::releaseAux();
 
-  if (atLeastOneLimitTightened) {
-    // trigger a change event, in order to notify both passive and active clause-containers
-    changedEvent.fire();
+  if (atLeastOneLimitTightened && env.options->lrsRetroactiveDeletes()) {
+    // let's notify ourselves (the PassiveClauseContainer) ...
+    onLimitsUpdated();
+    // ... and also the getActiveClauseContainer, about the tightening limits
+    getSaturationAlgorithm()->getActiveClauseContainer()->onLimitsUpdated(this);
   }
 }
 
@@ -153,7 +97,7 @@ void ActiveClauseContainer::add(Clause* c)
   TIME_TRACE("add clause")
 
   ASS(c->store()==Clause::ACTIVE);
-  ALWAYS(_clauses.insert(c));  
+  ALWAYS(_clauses.insert(c));
   addedEvent.fire(c);
 }
 
@@ -170,11 +114,10 @@ void ActiveClauseContainer::remove(Clause* c)
   removedEvent.fire(c);
 } // Active::ClauseContainer::remove
 
-void ActiveClauseContainer::onLimitsUpdated()
+void ActiveClauseContainer::onLimitsUpdated(PassiveClauseContainer* limits)
 {
-  auto limits=getSaturationAlgorithm()->getPassiveClauseContainer();
   ASS(limits);
-  if (!limits->ageLimited() || !limits->weightLimited()) {
+  if (!limits->mayBeAbleToDiscriminateChildrenOnLimits()) {
     return;
   }
 
@@ -186,7 +129,7 @@ void ActiveClauseContainer::onLimitsUpdated()
     Clause* cl=rit.next();
     ASS(cl);
 
-    if (!limits->childrenPotentiallyFulfilLimits(cl, cl->numSelected()))
+    if (limits->allChildrenNecessarilyExceedLimits(cl, cl->numSelected()))
     {
       ASS(cl->store()==Clause::ACTIVE);
       toRemove.push(cl);
@@ -203,7 +146,7 @@ void ActiveClauseContainer::onLimitsUpdated()
     Clause* removed=toRemove.pop();
     ASS(removed->store()==Clause::ACTIVE);
 
-    RSTAT_CTR_INC("clauses discarded from active on weight limit update");
+    RSTAT_CTR_INC("clauses discarded from active on limit update");
     env.statistics->discardedNonRedundantClauses++;
 
     remove(removed);

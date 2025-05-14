@@ -341,7 +341,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) { 
 	    return false;
 	  }
-	  RationalConstantType resNum(arg,1);
+	  RationalConstantType resNum(arg,IntegerConstantType(1));
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -351,7 +351,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  RealConstantType resNum(RationalConstantType(arg,1));
+	  RealConstantType resNum(RationalConstantType(arg,IntegerConstantType(1)));
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -361,7 +361,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  IntegerConstantType resNum = IntegerConstantType::floor(arg);
+	  IntegerConstantType resNum = arg.floor();
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -381,7 +381,7 @@ public:
 	  if (!theory->tryInterpretConstant(argTrm, arg)) {
 	    return false;
 	  }
-	  IntegerConstantType resNum = IntegerConstantType::floor(RationalConstantType(arg));
+	  auto resNum = arg.floor();
 	  res = TermList(theory->representConstant(resNum));
 	  return true;
 	}
@@ -401,7 +401,7 @@ public:
 	ASSERTION_VIOLATION;
       }
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
       return false;
     }
@@ -423,9 +423,9 @@ public:
 
   TypedEvaluator() {}
 
-  bool isZero(T arg) const { return number::zeroC == arg; }
+  bool isZero(T arg) const { return T(0) == arg; }
   TermList getZero() const {return number::zero(); }
-  bool isOne(T arg) const { return number::oneC == arg; }
+  bool isOne(T arg) const { return T(1) == arg; }
   bool isMinusOne(T arg) const { return typename number::ConstantType(-1) == arg; }
   TermList invert(TermList t) const { return number::minus(t); }
   bool isAddition(Interpretation interp) const { return interp == number::addI; }
@@ -534,9 +534,8 @@ public:
       res = TermList(theory->representConstant(resNum));
       return true;
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
-       DEBUG( "ArithmeticException" );
       return false;
     }
   }
@@ -571,7 +570,7 @@ public:
       }
       return PredEvalResult::trivial(res);
     }
-    catch(ArithmeticException&)
+    catch(DivByZeroException&)
     {
       return PredEvalResult::nop();
     }
@@ -687,14 +686,14 @@ protected:
       res = -arg;
       return true;
     case Theory::INT_ABS:
-      if (arg < 0) {
+      if (arg < IntegerConstantType(0)) {
         res = -arg;
       } else {
         res = arg;
       }
       return true;
     case Theory::INT_SUCCESSOR:
-      res = arg+1;
+      res = arg+ IntegerConstantType(1);
       return true;
     case Theory::INT_FLOOR:
     case Theory::INT_CEILING:
@@ -722,22 +721,28 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::INT_QUOTIENT_E:
+      if (arg2 == 0) return false;
       res = arg1.quotientE(arg2); // should be equivalent to arg1/arg2
       return true;
     case Theory::INT_QUOTIENT_T:
+      if (arg2 == 0) return false;
       res = arg1.quotientT(arg2);
       return true;
     case Theory::INT_QUOTIENT_F:
+      if (arg2 == 0) return false;
       res = arg1.quotientF(arg2);
       return true;
     // The remainder is left - (quotient * right)
     case Theory::INT_REMAINDER_E:
+      if (arg2 == 0) return false;
       res = arg1.remainderE(arg2);
       return true;
     case Theory::INT_REMAINDER_T:
+      if (arg2 == 0) return false;
       res = arg1 - (arg1.quotientT(arg2)*arg2);
       return true;
     case Theory::INT_REMAINDER_F:
+      if (arg2 == 0) return false;
       res = arg1 - (arg1.quotientF(arg2)*arg2);
       return true;
     default:
@@ -788,13 +793,13 @@ protected:
       res = -arg;
       return true;
     case Theory::RAT_FLOOR:
-      res = arg.floor();
+      res = RationalConstantType(arg.floor());
       return true;
     case Theory::RAT_CEILING:
-      res = arg.ceiling();
+      res = RationalConstantType(arg.ceiling());
       return true;
     case Theory::RAT_TRUNCATE:
-      res = arg.truncate();
+      res = RationalConstantType(arg.truncate());
       return true;
     default:
       return false;
@@ -815,7 +820,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::RAT_QUOTIENT:
-      if (arg2 == RationalConstantType(0)) return false;
+      if (arg2 == 0) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -877,10 +882,10 @@ protected:
       res = -arg;
       return true;
     case Theory::REAL_FLOOR:
-      res = arg.floor();
+      res = RealConstantType(arg.floor());
       return true;
     case Theory::REAL_CEILING:
-      res = arg.ceiling();
+      res = RealConstantType(arg.ceiling());
       return true;
     case Theory::REAL_TRUNCATE:
       res = arg.truncate();
@@ -904,7 +909,7 @@ protected:
       res = arg1*arg2;
       return true;
     case Theory::REAL_QUOTIENT:
-      if (arg2 == RealConstantType(0)) return false;
+      if (arg2 == 0) return false;
       res = arg1/arg2;
       return true;
     default:
@@ -994,17 +999,14 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
   _evals.push(new ConversionEvaluator());
   _evals.push(new EqualityEvaluator());
 
-  if(env.options->useACeval()){
-
-  // Special AC evaluators are added to be tried first for Plus and Multiply
-
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>()); 
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
-  _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
-
+  if(env.options->useACeval() && !env.options->alasca()){
+    // Special AC evaluators are added to be tried first for Plus and Multiply
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_PLUS>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::INT_MULTIPLY>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_PLUS>>());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::RAT_MULTIPLY>> ());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_PLUS>> ());
+    _evals.push(new ACFunEvaluator<AbelianGroup<Theory::REAL_MULTIPLY>> ());
   }
 
   _funEvaluators.ensure(0);
@@ -1075,7 +1077,7 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
  * @author Giles
  * @since 11/11/14
  */
-bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Literal*>& sideConditions)
+bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
 {
   ASS(balancable(lit));
 
@@ -1123,8 +1125,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
     TermList* args = t2.term()->args();
     
     // find which arg of t2 is the non_constant bit, this is what we are unwrapping 
-    TermList to_unwrap;
-    to_unwrap.makeEmpty();
+    TermList to_unwrap = TermList::empty();
     while(args->isNonEmpty()){
       if(!theory->isInterpretedNumber(*args)){
         if(!to_unwrap.isEmpty()){
@@ -1155,27 +1156,27 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
 
       case Theory::INT_MULTIPLY: 
       {
-        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,swap);
         break;
       }
       case Theory::RAT_MULTIPLY:
       {
         RationalConstantType zero(0,1);
-        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap);
         break;
       }
       case Theory::REAL_MULTIPLY:
       {
         RealConstantType zero(RationalConstantType(0, 1));
-        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap);
         break;
        }
 
       case Theory::RAT_QUOTIENT:
-        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,swap);
         break;
       case Theory::REAL_QUOTIENT:
-        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,swap);
         break;
 
       default:
@@ -1203,14 +1204,14 @@ endOfUnwrapping:
 
   // don't swap equality
   if(lit->functor()==0){
-   resLit = BottomUpTermTransformer::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
+   resLit = BottomUpTermTransformer::transformLiteral(Literal::createEquality(lit->polarity(),t2,t1,srt));
   }
   else{
     // important, need to preserve the ordering of t1 and t2 in the original!
     if(swap){
-      resLit = BottomUpTermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
+      resLit = BottomUpTermTransformer::transformLiteral(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
     }else{
-      resLit = BottomUpTermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
+      resLit = BottomUpTermTransformer::transformLiteral(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
     }
   }
   return true;
@@ -1239,7 +1240,7 @@ bool InterpretedLiteralEvaluator::balancePlus(Interpretation plus, Interpretatio
 template<typename ConstantType>
 bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,ConstantType zero, 
                                                   Term* AmultiplyB, TermList A, TermList C, TermList& result,
-                                                  bool& swap, Stack<Literal*>& sideConditions)
+                                                  bool& swap)
 {
 #if VDEBUG
     TermList srt = theory->getOperationSort(divide); 
@@ -1266,17 +1267,11 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
     // Unsure exactly what the best thing to do here, so for now give up
     // This means we only balance when we have a constant on the variable side
     return false;
-
-    // if B is not a constant we need to ensure that B!=0
-    //Literal* notZero = Literal::createEquality(false,B,zero,srt);
-    //sideConditions.push(notZero);
-    //result = TermList(Term::create2(div,C,B);
-    //return true;
 }
 
 bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
                                                   Term* AmultiplyB, TermList A, TermList C, TermList& result,
-                                                  bool& swap, Stack<Literal*>& sideConditions)
+                                                  bool& swap)
 {
     // only works if we in the end divid a number by a number
     IntegerConstantType ccon;
@@ -1305,7 +1300,7 @@ bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
 }
 
 bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply, 
-                       Term* AoverB, TermList A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions)
+                       Term* AoverB, TermList A, TermList C, TermList& result, bool& swap)
 {
 #if VDEBUG
     TermList srt = theory->getOperationSort(multiply); 
@@ -1412,7 +1407,7 @@ TermList InterpretedLiteralEvaluator::evaluate(TermList t) {
  * isConstant is true if the literal predicate evaluates to a constant value
  * resConst is set iff isConstant and gives the constant value (true/false) of resLit 
  */
-bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions)
+bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst)
 {
   DEBUG( "evaluate ", lit->toString() );
 
@@ -1422,44 +1417,8 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
                       : lit;
   DEBUG( "\t0 ==> ", resLit->toString() );
 
-  resLit = BottomUpTermTransformer::transform( resLit);
+  resLit = BottomUpTermTransformer::transformLiteral( resLit);
   DEBUG( "\t1 ==> ", resLit->toString() );
-
-//   // If it can be balanced we balance it
-//   // A predicate on constants will not be balancable
-// #if 0
-//   resLit = &Kernel::balance(*resLit);
-// #else // not NEW_BALANCE
-//   if(balancable(resLit)){
-//       Literal* new_resLit=resLit;
-// #if VDEBUG
-//       bool balance_result = 
-// #endif
-//         balance(resLit,new_resLit,sideConditions);
-//       ASS(balance_result || resLit==new_resLit);
-//       resLit=new_resLit;
-//   }
-// #endif
-//   DEBUG( "\t2 ==> ", *resLit );
-
-  // // If resLit contains variables the predicate cannot be interpreted
-  // VariableIterator vit(lit);
-  // if(vit.hasNext()){
-  //   isConstant=false;
-  //   return (lit!=resLit);
-  // }
-  // // If resLit contains uninterpreted functions then it cannot be interpreted
-  // TermFunIterator tit(lit);
-  // ASS(tit.hasNext()); tit.next(); // pop off literal symbol
-  // while(tit.hasNext()){
-  //   unsigned f = tit.next();
-  //   if(!env.signature->getFunction(f)->interpreted()){
-  //     isConstant=false;
-  //     return (lit!=resLit);
-  //   } 
-  // }
-  // _DEBUG( resLit->toString(, " is ground and interpreted, evaluating..." );
-
 
   unsigned pred = resLit->functor();
 
@@ -1474,7 +1433,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
       case PredEvalResult::Simplified: 
         // resLit = r.simplified_val;
-        resLit = BottomUpTermTransformer::transform(r.simplified_val);
+        resLit = BottomUpTermTransformer::transformLiteral(r.simplified_val);
         break;
 
       case PredEvalResult::Trivial: 

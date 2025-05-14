@@ -33,11 +33,14 @@ using namespace Lib;
  */
 void* FlatTerm::operator new(size_t sz,unsigned num)
 {
-  ASS_GE(num,1);
+  ASS_GE(num,0);
   ASS_EQ(sz, sizeof(FlatTerm));
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(num-1)*sizeof(Entry);
+  size_t size = sizeof(FlatTerm);
+  if (num > 0) {
+    size += (num-1)*sizeof(Entry);
+  }
 
   return ALLOC_KNOWN(size,"FlatTerm");
 }
@@ -47,10 +50,13 @@ void* FlatTerm::operator new(size_t sz,unsigned num)
  */
 void FlatTerm::destroy()
 {
-  ASS_GE(_length,1);
+  ASS_GE(_length,0);
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(Entry);
+  size_t size = sizeof(FlatTerm);
+  if (_length > 0) {
+    size += (_length-1)*sizeof(Entry);
+  }
 
   DEALLOC_KNOWN(this, size,"FlatTerm");
 }
@@ -62,8 +68,22 @@ FlatTerm::FlatTerm(size_t length)
 
 size_t FlatTerm::getEntryCount(Term* t)
 {
-  //functionEntryCount entries per function and one per variable
-  return t->weight()*functionEntryCount-(functionEntryCount-1)*t->numVarOccs();
+  //FUNCTION_ENTRY_COUNT entries per function and one per variable
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    // we add the type to the flat term for equalities as an extra,
+    // which requires some additional calculation
+    auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+    unsigned numVarOccs = t->numVarOccs();
+    if (!t->isTwoVarEquality()) {
+      // in case of non-two-var equalities, the variables in
+      // the type are not counted by Term::numVarOccs
+      numVarOccs += sort.isVar() ? 1 : sort.term()->numVarOccs();
+    }
+    // the weight is corrected to be conservative in the
+    // monomorphic case, we uncorrect it by adding 1
+    return (t->weight()+1)*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*numVarOccs;
+  }
+  return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
 FlatTerm* FlatTerm::create(Term* t)
@@ -72,25 +92,31 @@ FlatTerm* FlatTerm::create(Term* t)
 
   FlatTerm* res=new(entries) FlatTerm(entries);
   size_t fti=0;
-  res->_data[fti++]=Entry(FUN,
+  (*res)[fti++]=Entry(FUN,
       t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-  res->_data[fti++]=Entry(t);
-  res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+  (*res)[fti++]=Entry(t);
+  (*res)[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+
+  // If literal is equality, we add a type argument
+  // to properly match with two variable equalities.
+  // This has to be done also in the code tree.
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+    if (sort.isVar()) {
+      pushVar(res, fti, sort.var());
+    } else {
+      pushTerm(res, fti, sort.term());
+
+      SubtermIterator sti(sort.term());
+      while(sti.hasNext()) {
+        pushTermList(res, fti, sti.next());
+      }
+    }
+  }
 
   SubtermIterator sti(t);
   while(sti.hasNext()) {
-    ASS_L(fti, entries);
-    TermList s=sti.next();
-    if(s.isVar()) {
-      ASS(s.isOrdinaryVar());
-      res->_data[fti++]=Entry(VAR, s.var());
-    }
-    else {
-      ASS(s.isTerm());
-      res->_data[fti++]=Entry(FUN, s.term()->functor());
-      res->_data[fti++]=Entry(s.term());
-      res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
-    }
+    pushTermList(res, fti, sti.next());
   }
   ASS_EQ(fti, entries);
 
@@ -111,6 +137,60 @@ FlatTerm* FlatTerm::create(TermList t)
   return res;
 }
 
+FlatTerm* FlatTerm::createUnexpanded(Term* t)
+{
+  size_t entries=getEntryCount(t);
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+
+  res->_data[0]=Entry(FUN_UNEXPANDED,
+      t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+  res->_data[1]=Entry(t);
+  res->_data[2]=Entry(FUN_RIGHT_OFS, entries);
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createUnexpanded(TermList t)
+{
+  if(t.isTerm()) {
+    return createUnexpanded(t.term());
+  }
+  ASS(t.isOrdinaryVar());
+
+  FlatTerm* res=new(1) FlatTerm(1);
+  res->_data[0]=Entry(VAR, t.var());
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createUnexpanded(TermStack ts)
+{
+  size_t entries=0;
+  for (auto& tl : ts) {
+    entries += tl.isVar() ? 1 : getEntryCount(tl.term());
+  }
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+  size_t fti=0;
+
+  for (auto& tl : ts) {
+    if (tl.isVar()) {
+      res->_data[fti++]=Entry(VAR, tl.var());
+      continue;
+    }
+    auto t = tl.term();
+    res->_data[fti]=Entry(FUN_UNEXPANDED,
+        t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+    res->_data[fti+1]=Entry(t);
+    res->_data[fti+2]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+    fti+=getEntryCount(t);
+  }
+  ASS_EQ(fti, entries);
+
+  return res;
+}
+
 FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 {
   size_t entries=ft->_length;
@@ -121,29 +201,36 @@ FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 
 void FlatTerm::swapCommutativePredicateArguments()
 {
-  ASS_EQ((*this)[0].tag(), FUN);
-  ASS_EQ((*this)[0].number()|1, 1); //as for now, the only commutative predicate is equality
+  ASS_EQ((*this)[0]._tag(), FUN);
+  ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
+
+  ASS((*this)[1]._term()->isLiteral());
+  auto lit = static_cast<Literal*>((*this)[1]._term());
+  ASS(lit->isEquality());
 
   size_t firstStart=3;
+  auto sort = SortHelper::getEqualityArgumentSort(lit);
+  firstStart += sort.isVar() ? 1 : getEntryCount(sort.term());
+
   size_t firstLen;
-  if((*this)[firstStart].tag()==FUN) {
-    ASS_EQ((*this)[firstStart+2].tag(), FUN_RIGHT_OFS);
-    firstLen=(*this)[firstStart+2].number();
+  if((*this)[firstStart]._tag()==FUN) {
+    ASS_EQ((*this)[firstStart+2]._tag(), FUN_RIGHT_OFS);
+    firstLen=(*this)[firstStart+2]._number();
   }
   else {
-    ASS_EQ((*this)[firstStart].tag(), VAR);
+    ASS_EQ((*this)[firstStart]._tag(), VAR);
     firstLen=1;
   }
 
   size_t secStart=firstStart+firstLen;
   size_t secLen;
 
-  if((*this)[secStart].tag()==FUN) {
-    ASS_EQ((*this)[secStart+2].tag(), FUN_RIGHT_OFS);
-    secLen=(*this)[secStart+2].number();
+  if((*this)[secStart]._tag()==FUN) {
+    ASS_EQ((*this)[secStart+2]._tag(), FUN_RIGHT_OFS);
+    secLen=(*this)[secStart+2]._number();
   }
   else {
-    ASS_EQ((*this)[secStart].tag(), VAR);
+    ASS_EQ((*this)[secStart]._tag(), VAR);
     secLen=1;
   }
   ASS_EQ(secStart+secLen,_length);
@@ -161,6 +248,34 @@ void FlatTerm::swapCommutativePredicateArguments()
     memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
     memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
   }
+}
+
+void FlatTerm::Entry::expand()
+{
+  if (_tag()==FUN) {
+    return;
+  }
+  ASS(_tag()==FUN_UNEXPANDED);
+  ASS(this[1]._tag()==FUN_TERM_PTR);
+  ASS(this[2]._tag()==FUN_RIGHT_OFS);
+  Term* t = this[1]._term();
+  size_t p = FlatTerm::FUNCTION_ENTRY_COUNT;
+  for (unsigned i = 0; i < t->arity(); i++) {
+    auto arg = t->nthArgument(i);
+    if (arg->isVar()) {
+      ASS(arg->isOrdinaryVar());
+      this[p++] = Entry(VAR, arg->var());
+    }
+    else {
+      ASS(arg->isTerm());
+      this[p] = Entry(FUN_UNEXPANDED, arg->term()->functor());
+      this[p+1] = Entry(arg->term());
+      this[p+2] = Entry(FUN_RIGHT_OFS, getEntryCount(arg->term()));
+      p += this[p+2]._number();
+    }
+  }
+  ASS_EQ(p,this[2]._number());
+  _setTag(FUN);
 }
 
 };

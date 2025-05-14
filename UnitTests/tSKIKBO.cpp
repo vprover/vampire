@@ -7,11 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
- *
- * @autor Johannes Schoisswohl
- * @date 2020-04-29
- */
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -42,7 +37,7 @@ SKIKBO skikbo(unsigned introducedSymbolWeight,
                 DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
                 DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
                 DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
-                predLevels(),                
+                PrecedenceOrdering::testLevels(),
                 /*revereseLCM*/ false);
 }
 
@@ -59,8 +54,7 @@ SKIKBO skikbo(const Map<unsigned, KboWeight>& symbolWeights) {
 TEST_FUN(skikbo_test01) {
   DECL_DEFAULT_VARS             // <- macro to initialize some syntax sugar for creating terms over a single uninterpreted sort  
   DECL_SORT(srt)
-  DECL_ARROW_SORT(xSrt, {srt, srt})
-  DECL_HOL_VAR(x0, 0, xSrt)
+  DECL_VAR_SORTED(x0, 0, arrow(srt, srt))
   DECL_CONST(a, srt)    // <- declares a constant symbol
   DECL_CONST(b, srt)    // <- declares a constant symbol  
 
@@ -85,8 +79,7 @@ TEST_FUN(skikbo_test01) {
 TEST_FUN(skikbo_test02) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt) 
-  DECL_ARROW_SORT(xSrt, {srt, srt, srt})
-  DECL_HOL_VAR(x0, 0, xSrt)
+  DECL_VAR_SORTED(x0, 0, arrow({srt, srt}, srt))
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
 
@@ -105,8 +98,7 @@ TEST_FUN(skikbo_test02) {
 TEST_FUN(skikbo_test03) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt) 
-  DECL_ARROW_SORT(xSrt, {srt, srt, srt})  
-  DECL_HOL_VAR(x0, 0, xSrt)
+  DECL_VAR_SORTED(x0, 0, arrow({srt, srt}, srt))
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
 
@@ -126,9 +118,8 @@ TEST_FUN(skikbo_test04) {
   DECL_DEFAULT_VARS
   DECL_COMBINATORS  
   DECL_SORT(srt) 
-  DECL_ARROW_SORT(fSrt, {srt, srt, srt, srt})  
   DECL_CONST(a, srt)
-  DECL_CONST(f, fSrt)
+  DECL_CONST(f, arrow({srt, srt, srt}, srt))
 
   auto ord = skikbo(
     weights(
@@ -146,12 +137,10 @@ TEST_FUN(skikbo_test05) {
   DECL_DEFAULT_VARS
   DECL_COMBINATORS  
   DECL_SORT(srt) 
-  DECL_ARROW_SORT(xSrt, {srt, srt}) 
-  DECL_ARROW_SORT(fSrt, {srt, srt, srt}) 
-  DECL_HOL_VAR(x0, 0, xSrt)
+  DECL_VAR_SORTED(x0, 0, arrow(srt,srt))
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
-  DECL_CONST(f, fSrt)
+  DECL_CONST(f, arrow({srt,srt}, srt))
 
   auto ord = skikbo(
     weights(
@@ -176,9 +165,8 @@ TEST_FUN(skikbo_test06) {
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt1)
   DECL_TYPE_CON(list, 1)
-  DECL_ARROW_SORT(fSrt, {srt1, srt1}) 
   DECL_CONST(a, srt1)
-  DECL_POLY_CONST(f, 1, fSrt)
+  DECL_POLY_CONST(f, 1, arrow(srt1,srt1))
 
   auto ord = skikbo(
     weights(

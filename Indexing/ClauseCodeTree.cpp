@@ -67,18 +67,16 @@ void ClauseCodeTree::insert(Clause* cl)
 
   optimizeLiteralOrder(lits);
 
-  static CodeStack code;
-  code.reset();
-
-  static CompileContext cctx;
-  cctx.init();
+  CodeStack code;
+  LitCompiler compiler(code);
 
   for(unsigned i=0;i<clen;i++) {
-    compileTerm(lits[i], code, cctx, true);
+    compiler.nextLit();
+    compiler.handleTerm(lits[i]);
   }
   code.push(CodeOp::getSuccess(cl));
 
-  cctx.deinit(this);
+  compiler.updateCodeTree(this);
 
   incorporate(code);
   ASS(code.isEmpty());
@@ -91,7 +89,7 @@ struct ClauseCodeTree::InitialLiteralOrderingComparator
     if(l1->weight()!=l2->weight()) {
       return Int::compare(l2->weight(), l1->weight());
     }
-    return Int::compare(l1, l2);
+    return Int::compare(l1->getId(), l2->getId());
   }
 };
 
@@ -148,15 +146,10 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 
 void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
 {
-  static CodeStack code;
-  static CompileContext cctx;
+  CodeStack code;
+  LitCompiler compiler(code);
 
-  code.reset();
-  cctx.init();
-
-  compileTerm(lit, code, cctx, true);
-
-  cctx.deinit(this, true);
+  compiler.handleTerm(lit);
 
   matchCode(code, startOp, sharedLen, nextOp);
 
@@ -185,7 +178,7 @@ void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matched
       if(treeOp->isSearchStruct()) {
 	SearchStruct* ss=treeOp->getSearchStruct();
 	CodeOp** toPtr;
-	if(ss->getTargetOpPtr(code[i], toPtr) && *toPtr) {
+	if(ss->getTargetOpPtr<false>(code[i], toPtr) && *toPtr) {
 	  treeOp=*toPtr;
 	  continue;
 	}
@@ -311,7 +304,7 @@ bool ClauseCodeTree::removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeO
 {
   unsigned initDepth=firstsInBlocks->size();
 
-  while(!op->isSuccess() || op->getSuccessResult()!=cl) {
+  while(!op->isSuccess() || op->getSuccessResult<Clause>()!=cl) {
     op=op->alternative();
     if(!op) {
       firstsInBlocks->truncate(initDepth);
@@ -573,7 +566,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
       }
     }
     else if(lm->op->isSuccess()) {
-      Clause* candidate=static_cast<Clause*>(lm->op->getSuccessResult());
+      Clause* candidate=lm->op->getSuccessResult<Clause>();
       RSTAT_MCTR_INC("candidates", lms.size()-1);
       if(checkCandidate(candidate, resolvedQueryLit)) {
 	RSTAT_MCTR_INC("candidates (success)", lms.size()-1);
@@ -612,25 +605,6 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
   ILStruct* ils=op->getILS();
   if(ils->timestamp==tree->_curTimeStamp && ils->visited) {
     return false;
-  }
-
-  if(ils->isVarEqLit) {
-    TermList idxVarSort = ils->varEqLitSort;
-    size_t matchIndex=ils->matchCnt;
-    while(matchIndex!=0) {
-      matchIndex--;
-      MatchInfo* mi=ils->getMatch(matchIndex);
-      unsigned liIntex = mi->liIndex;
-      Literal* lit = (*query)[lInfos[liIntex].litIndex];
-      ASS(lit->isEquality());
-      TermList argSort = SortHelper::getEqualityArgumentSort(lit); 
-      if(idxVarSort!=argSort) {//TODO check that this is what we want. Perhaps require unification
-        ils->deleteMatch(matchIndex); //decreases ils->matchCnt
-      }
-    }
-    if(!ils->matchCnt) {
-      return false;
-    }
   }
 
   if(lms.size()>1) {

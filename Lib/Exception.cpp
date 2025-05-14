@@ -18,7 +18,6 @@
 #include "Int.hpp"
 
 #include "Exception.hpp"
-#include "VString.hpp"
 
 namespace Lib
 {
@@ -26,12 +25,12 @@ namespace Lib
 using namespace std;
 
 Exception::Exception (const char* msg, int line)
-  : _message((vstring(msg)+": "+Int::toString(line)).c_str()) {}
+  : _message((std::string(msg)+": "+Int::toString(line)).c_str()) {}
 
 /**
  * Write a description of the exception to a stream.
  */
-void Exception::cry (ostream& str) const
+void Exception::cry (std::ostream& str) const
 {
   str << _message << endl;
 } // Exception::cry
@@ -40,21 +39,29 @@ void Exception::cry (ostream& str) const
 /**
  * Write a description of the exception to a stream.
  */
-void UserErrorException::cry (ostream& str) const
+void UserErrorException::cry (std::ostream& str) const
 {
-  str << "User error: " << _message << endl;
+  str << "User error: " << _message;
+  if(line) {
+    str << " (detected at or around line " << line;
+    if (!filename.empty()) {
+      str << " in file " << filename;
+    }
+    str << ")";
+  }
+  str << endl;
 } // UserErrorException::cry
 
 /**
  * Write a description of the exception to a stream.
  */
-void InvalidOperationException::cry (ostream& str) const
+void InvalidOperationException::cry (std::ostream& str) const
 {
   str << "Invalid operation: " << _message << endl;
 } // InvalidOperationException::cry
 
 
-SystemFailException::SystemFailException(const vstring msg, int err)
+SystemFailException::SystemFailException(const std::string msg, int err)
 : Exception(msg+" error "+Int::toString(err)+": "+strerror(err)), err(err)
 {
 //#if VDEBUG
@@ -64,7 +71,7 @@ SystemFailException::SystemFailException(const vstring msg, int err)
 /**
  * Write a description of the exception to a stream.
  */
-void SystemFailException::cry (ostream& str) const
+void SystemFailException::cry (std::ostream& str) const
 {
   str << "System fail: " << _message << endl;
 } // SystemFailException::cry
@@ -73,7 +80,7 @@ void SystemFailException::cry (ostream& str) const
 /**
  * Write a description of the exception to a stream.
  */
-void NotImplementedException::cry (ostream& str) const
+void NotImplementedException::cry (std::ostream& str) const
 {
   str << "Not implemented at " << file << ":" << line << endl;
 } // NotImplementedException::cry

@@ -48,6 +48,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Inferences;
+using namespace Shell;
 
 class ConsequenceFinder;
 class LabelFinder;
@@ -57,6 +58,15 @@ class Splitter;
 class SaturationAlgorithm : public MainLoop
 {
 public:
+  /**
+   * Sometimes the problem does not have equality after preprocessing,
+   * but still needs to be treated equationally during saturation (think theory reasoning);
+   * this helper function is here to capture such cases.
+  */
+  static bool couldEqualityArise(const Problem& prb, const Options& opt) {
+    // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
+    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation());
+  }
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
@@ -102,10 +112,12 @@ public:
 
   ClauseIterator activeClauses();
 
+  ActiveClauseContainer* getActiveClauseContainer() { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
+  const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
@@ -124,6 +136,12 @@ public:
   static void tryUpdateFinalClauseCount();
 
   Splitter* getSplitter() { return _splitter; }
+  FunctionDefinitionHandler& getFunctionDefinitionHandler() const { return _fnDefHandler; }
+
+  // set a "soft" time limit to be checked periodically
+  // separate to, and not as carefully checked as, Lib::Timer
+  // used by FMB's FunctionRelationshipInference
+  void setSoftTimeLimit(unsigned deciseconds) { _softTimeLimit = deciseconds; }
 
 protected:
   virtual void init();
@@ -145,16 +163,13 @@ protected:
   virtual void onPassiveAdded(Clause* c);
   virtual void onPassiveRemoved(Clause* c);
   void onPassiveSelected(Clause* c);
-  void onUnprocessedAdded(Clause* c);
-  void onUnprocessedRemoved(Clause* c);
-  virtual void onUnprocessedSelected(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
   /** called before the selected clause is deleted from the searchspace */
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
-  int elapsedTime();
   virtual bool isComplete();
+  virtual void poppedFromUnprocessed(Clause* cl) {}; // mainly for LRS to inherit and update its estimates there
 
 private:
   void passiveRemovedHandler(Clause* cl);
@@ -173,11 +188,7 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
-
-  int _startTime;
-  int _startInstrs;
-
-  bool _completeOptionSettings;  
+  bool _completeOptionSettings;
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;
@@ -215,7 +226,8 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-
+  FunctionDefinitionHandler& _fnDefHandler;
+  std::unique_ptr<PartialRedundancyHandler> _partialRedundancyHandler;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;
@@ -228,15 +240,21 @@ protected:
    */
   ScopedPtr<LiteralSelector> _sosLiteralSelector;
 
+  // start for the first activation, for the LRS estimate
+  long _lrsStartTime = 0;
+  long _lrsStartInstrs = 0;
 
   // counters
 
   /** Number of clauses that entered the unprocessed container */
   unsigned _generatedClauseCount;
-
   unsigned _activationLimit;
 private:
-  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering,
+     bool alascaTakesOver);
+
+  // a "soft" time limit in deciseconds, checked manually: 0 is no limit
+  unsigned _softTimeLimit = 0;
 };
 
 

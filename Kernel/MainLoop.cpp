@@ -91,7 +91,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
   /*
-  if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
+  if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround()
                         && prb.getProperty()->hasInterpretedOperations()){
     return new SAT::Z3MainLoop(prb,opt);
   }
@@ -104,7 +104,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   switch (opt.saturationAlgorithm()) {
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
     if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
-      USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");
+      USER_ERROR("Finite model building is currently not compatible with polymorphism or higher-order constructs");
     }
     if(env.options->outputMode() == Shell::Options::Output::UCORE){
       USER_ERROR("Finite model building is not compatible with producing unsat cores");

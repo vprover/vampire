@@ -24,7 +24,6 @@
 #include <new>
 
 #include "Debug/Assertion.hpp"
-#include "Portability.hpp"
 
 /*
  * uncomment the following to use Valgrind more profitably
@@ -34,28 +33,21 @@
 // #define INDIVIDUAL_ALLOCATIONS
 
 namespace Lib {
-
-// get the amount of memory used by global operator new so far
-size_t getUsedMemory();
-
-// get the memory limit for global operator new
-size_t getMemoryLimit();
-// set the memory limit for global operator new
+// attempt to set a memory limit for this process by system call
 void setMemoryLimit(size_t bytes);
-
+long peakMemoryUsageKB();
 }
 
 #ifdef INDIVIDUAL_ALLOCATIONS
 namespace Lib {
 inline void *alloc(size_t size, size_t align = alignof(std::max_align_t)) {
-  // C++17: aligned operator new
-  return ::operator new(size);
+  return ::operator new(size, (std::align_val_t)align);
 }
 
 inline void free(void *pointer, size_t size, size_t align = alignof(std::max_align_t)) {
-  ::operator delete(pointer);
+  ::operator delete(pointer, (std::align_val_t)align);
 }
-}
+} // namespace Lib
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
 
 // do some of our own allocation
@@ -169,7 +161,7 @@ public:
   [[gnu::alloc_align(3)]] // implicit `this` argument
   [[gnu::returns_nonnull]]
   [[gnu::malloc]]
-  VWARN_UNUSED
+  [[nodiscard]]
   inline void *alloc(size_t size, size_t align) {
     ASS_EQ(size % align, 0)
     // no support for overaligned objects yet, but there is nothing stopping it in principle
@@ -192,8 +184,7 @@ public:
       return FSA8.alloc();
 
     // fall back to the system allocator for larger allocations
-    // C++17: aligned operators
-    return ::operator new(size);
+    return ::operator new(size, (std::align_val_t)align);
   }
 
   // deallocate a `pointer` to a memory chunk of known `size`
@@ -217,8 +208,7 @@ public:
     if(size <= 8 * sizeof(void *))
       return FSA8.free(pointer);
 
-    // C++17: aligned operators
-    ::operator delete(pointer, size);
+    ::operator delete(pointer, (std::align_val_t)align);
   }
 
 private:
@@ -248,7 +238,7 @@ extern SmallObjectAllocator GLOBAL_SMALL_OBJECT_ALLOCATOR;
 [[gnu::alloc_align(2)]]
 [[gnu::returns_nonnull]]
 [[gnu::malloc]]
-VWARN_UNUSED
+[[nodiscard]]
 inline void *alloc(size_t size, size_t align) {
   return GLOBAL_SMALL_OBJECT_ALLOCATOR.alloc(size, align);
 }
@@ -259,7 +249,7 @@ inline void *alloc(size_t size, size_t align) {
 [[gnu::alloc_size(1)]]
 [[gnu::returns_nonnull]]
 [[gnu::malloc]]
-VWARN_UNUSED
+[[nodiscard]]
 inline void *alloc(size_t size) {
   const size_t align = alignof(std::max_align_t);
   // round up to the nearest multiple of align
@@ -284,13 +274,14 @@ inline void free(void *pointer, size_t size) {
   free(pointer, size, align);
 }
 
-}
+} // namespace Lib
 
 // overload class-specific operator new to call the global small-object allocator
-// C++17: aligned operators
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C) \
   void *operator new(size_t size) { return Lib::alloc(size, alignof(C)); }\
-  void operator delete(void *ptr, size_t size) { Lib::free(ptr, size, alignof(C)); }
+  void *operator new(size_t size, std::align_val_t align) { return Lib::alloc(size, (size_t)align); }\
+  void operator delete(void *ptr, size_t size) { Lib::free(ptr, size, alignof(C)); } \
+  void operator delete(void *ptr, size_t size, std::align_val_t align) { Lib::free(ptr, size, (size_t)align); }
 
 #endif // INDIVIDUAL_ALLOCATIONS's else
 

@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 #include "Shell/Options.hpp"
 
 namespace Inferences {
@@ -31,16 +32,20 @@ class EqualityFactoring
 : public GeneratingInferenceEngine
 {
 public:
+  EqualityFactoring();
   ClauseIterator generateClauses(Clause* premise);
 private:
   struct IsPositiveEqualityFn;
   struct IsDifferentPositiveEqualityFn;
   struct FactorablePairsFn;
   struct ResultFn;
+  friend struct ResultFn;
 
+  AbstractionOracle _abstractionOracle;
+  bool _uwaFixedPointIteration;
 };
 
-
+using EqualityFactoringExtra = TwoLiteralRewriteInferenceExtra;
 };
 
 #endif /* __EqualityFactoring__ */

@@ -17,6 +17,8 @@
 #ifndef __SmartPtr__
 #define __SmartPtr__
 
+#include <ostream>
+
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
@@ -48,6 +50,7 @@ public:
   inline
   explicit SmartPtr(T* obj, bool nondisposable=false)
   : _obj(obj), _refCnt(nondisposable ? 0 : new RefCounter(1)) {ASS(obj);}
+  IGNORE_MAYBE_UNINITIALIZED(
   inline
   SmartPtr(const SmartPtr& ptr) : _obj(ptr._obj), _refCnt(ptr._refCnt)
   {
@@ -69,6 +72,7 @@ public:
       delete _refCnt;
     }
   }
+  )
   SmartPtr& operator=(const SmartPtr& ptr)
   {
     T* oldObj=_obj;
@@ -113,7 +117,13 @@ public:
   Target* pcast() const { return static_cast<Target*>(_obj); }
 
   friend std::ostream& operator<<(std::ostream& out, SmartPtr const& self)
-  { return self ? out << *self : out << "NULL"; }
+  { 
+    out << "SmartPtr(";
+    if (self) {
+      out << *self;
+    }
+    return out << ")";
+  }
 private:
   template<typename U> friend class SmartPtr;
 

@@ -25,30 +25,23 @@ TEST_FUN(example_01__replace_all_vars_by_term) {
   DECL_FUNC(f, {s}, s)
   DECL_FUNC(g, {s,s}, s)
 
-  /* defines how to evaluate bottom up. 
-   * all variables are being replaced by a constant term in this case */
-  struct Eval {
-    TermList replacement;
-
-    using Arg    = TermList;
-    using Result = TermList;
-
-    TermList operator()(TermList toEval, TermList* evaluatedChildren) {
-      if (toEval.isVar()) {
-        return replacement;
-      } else {
-        return TermList(Term::create(toEval.term(), evaluatedChildren));
-      }
-    }
-  };
-
-
   /* test specification */
   TermList input    = g(f(x), y);
   TermList expected = g(f(a), a);
 
   /* actual evaluation */
-  TermList result =  evaluateBottomUp(input, Eval{a});
+  TermList result =  BottomUpEvaluation<TermList, TermList>()
+    .function(
+      /* defines how to evaluate bottom up. 
+       * all variables are being replaced by a constant term in this case */
+      [&](TermList toEval, TermList* evaluatedChildren) -> TermList {
+        if (toEval.isVar()) {
+          return a;
+        } else {
+          return TermList(Term::create(toEval.term(), evaluatedChildren));
+        }
+      })
+    .apply(input);
 
   ASS_EQ(result, expected)
 }
@@ -60,30 +53,6 @@ TEST_FUN(example_02__compute_size) {
   DECL_FUNC(f, {s}, s)
   DECL_FUNC(g, {s,s}, s)
 
-  /* defines how to evaluate bottom up. 
-   * computes the size of the term (number of function & variable symbols) */
-  struct Eval {
-    using Arg    = TermList;
-    using Result = unsigned;
-
-    unsigned operator()(TermList toEval, unsigned* evaluatedChildren) {
-      if (toEval.isVar()) {
-        return 1;
-      } else {
-        // clang-tidy thought that evaluatedChildren could be nullptr and toEval.term()->arity > 0
-        // it's wrong, but it's a nice thing to check
-        unsigned arity = toEval.term()->numTermArguments();
-        ASS(arity == 0 || evaluatedChildren);
-
-        unsigned out = 1;
-        for (unsigned i = 0; i < arity; i++) {
-          out += evaluatedChildren[i];
-        }
-        return out;
-      }
-    }
-  };
-
 
   /* test specification */
   TermList input    = g(f(x), f(f(x)));
@@ -91,7 +60,75 @@ TEST_FUN(example_02__compute_size) {
 
   /* actual evaluation */
   Memo::Hashed<TermList, unsigned> memo{};
-  auto size =  evaluateBottomUp(input, Eval{}, memo);
+  auto size =  BottomUpEvaluation<TermList, unsigned>()
+    .function(
+        /* defines how to evaluate bottom up. 
+         * computes the size of the term (number of function & variable symbols) */
+        [&](TermList toEval, unsigned* evaluatedChildren) -> unsigned {
+          if (toEval.isVar()) {
+            return 1;
+          } else {
+            // clang-tidy thought that evaluatedChildren could be nullptr and toEval.term()->arity > 0
+            // it's wrong, but it's a nice thing to check
+            unsigned arity = toEval.term()->numTermArguments();
+            ASS(arity == 0 || evaluatedChildren);
+
+            unsigned out = 1;
+            for (unsigned i = 0; i < arity; i++) {
+              out += evaluatedChildren[i];
+            }
+            return out;
+          }
+        })
+      .memo<decltype(memo)&>(memo)
+      .apply(input);
 
   ASS_EQ(size, 6)
+}
+
+TEST_FUN(example_03__compute_size_with_context) {
+  /* syntax sugar imports */
+  DECL_DEFAULT_VARS
+  DECL_SORT(s)
+  DECL_POLY_FUNC(f, 1, {s}, s)
+
+
+  TypedTermList input    = f(s, x);
+  auto evalSize = 
+    [](bool skipTypeArgs) {
+      return [skipTypeArgs](TypedTermList toEval, unsigned* evaluatedChildren) -> unsigned {
+            if (toEval.isVar()) {
+              return 1;
+            } else {
+              unsigned arity = skipTypeArgs ? toEval.term()->numTermArguments()
+                                            : toEval.term()->arity();
+              ASS(arity == 0 || evaluatedChildren);
+
+              unsigned out = 1;
+              for (unsigned i = 0; i < arity; i++) {
+                out += evaluatedChildren[i];
+              }
+              return out;
+            }
+          };
+    };
+
+  auto sizeWithTypeArgs =  BottomUpEvaluation<TypedTermList, unsigned>()
+      .function(evalSize(false))
+      .context(TermListContext {.ignoreTypeArgs = false})
+      .apply(input);
+
+  auto sizeWithoutTypeArgs =  BottomUpEvaluation<TypedTermList, unsigned>()
+      .function(evalSize(true))
+      .context(TermListContext {.ignoreTypeArgs = true})
+      .apply(input);
+
+  auto sizeWithoutTypeArgs2 =  BottomUpEvaluation<TypedTermList, unsigned>()
+      .function(evalSize(true))
+      /* .context(TermListContext {.ignoreTypeArgs = true}) <- default */ 
+      .apply(input);
+
+  ASS_EQ(sizeWithTypeArgs, 3)
+  ASS_EQ(sizeWithoutTypeArgs, 2)
+  ASS_EQ(sizeWithoutTypeArgs, sizeWithoutTypeArgs2)
 }

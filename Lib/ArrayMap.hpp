@@ -78,6 +78,7 @@ public:
       _timestamp=1;
     }
   }
+  using DArray<Entry>::keepRecycled;
 
   /**
    * Ensure that keys less than @b size can be stored in the map

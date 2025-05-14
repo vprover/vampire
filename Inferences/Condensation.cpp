@@ -55,7 +55,6 @@ Clause* Condensation::simplify(Clause* cl)
   static DArray<Literal*> newLits(32);
   //
   static DArray<LiteralList*> alts(32);
-  //static OCMatchIterator matcher;
 
   LiteralMiniIndex cmi(cl);
 
@@ -130,16 +129,8 @@ Clause* Condensation::simplify(Clause* cl)
       }
 
       if(success) {
-        Clause* res = new(newLen) Clause(newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
-        Renaming norm;
-
-        for(unsigned i=0;i<newLen;i++) {
-          //(*res)[i] = norm.normalize(newLits[i]);
-          (*res)[i] = newLits[i];
-        }
-
         env.statistics->condensations++;
-        return res;
+        return Clause::fromArray(newLits.begin(), newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
       }
     }
   }

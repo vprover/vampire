@@ -45,75 +45,76 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) : 
-   _sizes(sizes), _isPartial(false)
+void FiniteModelMultiSorted::initTables()
 {
-  (void)_isPartial; // to suppress unused warning
-
-  f_offsets.ensure(env.signature->functions());
-  p_offsets.ensure(env.signature->predicates());
+  _f_offsets.ensure(env.signature->functions());
+  _p_offsets.ensure(env.signature->predicates());
 
   // generate offsets per function for indexing f_interpreation
   // see addFunctionDefinition for how the offset is used to compute
   // the actual index
-  unsigned offsets=1;
+  unsigned offsets=0;
   for(unsigned f=0; f<env.signature->functions();f++){
     unsigned arity=env.signature->functionArity(f);
-    f_offsets[f]=offsets;
+    _f_offsets[f]=offsets;
 
     OperatorType* sig = env.signature->getFunction(f)->fnType();
-    unsigned s = sig->result().term()->functor();
-    unsigned add = _sizes.get(s);
-    for(unsigned i=0;i<arity;i++){ 
-      s = sig->arg(i).term()->functor();
-      add*= _sizes.get(s); 
+    unsigned add = 1;
+    for(unsigned i=0;i<arity;i++) {
+      add *= _sizes[sig->arg(i).term()->functor()];
     }
-    
-    ASS(UINT_MAX - add > offsets);
+
+    if (UINT_MAX - add <= offsets) {
+      // the SAT solver skipped some functions as they are eliminated
+      // (the model, on the other hand, should be prepared to hold their values later too)
+      INVALID_OPERATION("Model too large to represent!");
+    }
+
     offsets += add;
   }
-  f_interpretation.expand(offsets+1,0);
+  _f_interpretation.expand(offsets,0);
   // can restart for predicates as indexing p_interepration instead
-  offsets=1;
+  offsets=0;
   for(unsigned p=1; p<env.signature->predicates();p++){
     unsigned arity=env.signature->predicateArity(p);
-    p_offsets[p]=offsets;
+    _p_offsets[p]=offsets;
 
     OperatorType* sig = env.signature->getPredicate(p)->predType();
     unsigned add = 1;
-
-    for(unsigned i=0;i<arity;i++){ 
-      unsigned s = sig->arg(i).term()->functor();
-      int mult = _sizes.get(s); 
+    for(unsigned i=0;i<arity;i++) {
+      int mult = _sizes[sig->arg(i).term()->functor()];
       ASS(mult>0);
-      add*= (mult>0 ? mult : 1);
+      add *= (mult>0 ? mult : 1);
     }
 
-    ASS(UINT_MAX - add > offsets);
+    if (UINT_MAX - add <= offsets) {
+      // the SAT solver skipped some functions as they are eliminated
+      // (the model, on the other hand, should be prepared to hold their values later too)
+      INVALID_OPERATION("Model too large to represent!");
+    }
+
     offsets += add;
   }
-  p_interpretation.expand(offsets+1,0);
+  _p_interpretation.expand(offsets,0);
 
   sortRepr.ensure(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
-    sortRepr[s].ensure(_sizes.get(s)+1);
-    for(unsigned i=0;i<=_sizes.get(s);i++){
+    if(env.signature->isInterpretedNonDefault(s))
+      continue;
+    sortRepr[s].ensure(_sizes[s]+1);
+    for(unsigned i=0;i<=_sizes[s];i++){
       sortRepr[s][i] = -1;
     }
   }
-}
-
-void FiniteModelMultiSorted::addConstantDefinition(unsigned f, unsigned res)
-{
-  static const DArray<unsigned> empty(0);
-  addFunctionDefinition(f,empty,res);
 }
 
 void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
 {
   ASS_EQ(env.signature->functionArity(f),args.size());
 
-  if(env.signature->functionArity(f)==0 && !env.signature->getFunction(f)->introduced()){
+  unsigned arity = args.size();
+
+  if(arity==0 && !env.signature->getFunction(f)->introduced()){
     TermList srt = env.signature->getFunction(f)->fnType()->result();
     unsigned srtU = srt.term()->functor();
     if(sortRepr[srtU][res] == -1){
@@ -121,33 +122,12 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
       //cout << env.sorts->sortName(srt) << " and " << res << endl;
       sortRepr[srtU][res]=f;
     }
-  } 
-
-  unsigned var = f_offsets[f];
-  unsigned mult = 1;
-  OperatorType* sig = env.signature->getFunction(f)->fnType();
-  for(unsigned i=0;i<args.size();i++){
-    var += mult*(args[i]-1);
-    unsigned s = sig->arg(i).term()->functor();
-    mult *= _sizes.get(s);
   }
 
-  //TODO should be a zero array, should check if previously assigned
-  //     check consistency and only update coverage if not defined already
-  
-  ASS_L(var, f_interpretation.size());
-  f_interpretation[var] = res;
+  unsigned var = args2var(args,_sizes,_f_offsets,f,env.signature->getFunction(f)->fnType());
 
-  unsigned previous = 0;
-  _functionCoverage.find(f,previous);
-  _functionCoverage.insert(f,previous+1);
-
-}
-
-void FiniteModelMultiSorted::addPropositionalDefinition(unsigned p, bool res)
-{
-  static const DArray<unsigned> empty(0);
-  addPredicateDefinition(p,empty,res);
+  ASS_L(var, _f_interpretation.size());
+  _f_interpretation[var] = res;
 }
 
 void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<unsigned>& args, bool res)
@@ -156,71 +136,55 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 
   //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
 
-  unsigned var = p_offsets[p];
-  unsigned mult = 1;
-  OperatorType* sig = env.signature->getPredicate(p)->predType();
-  for(unsigned i=0;i<args.size();i++){
-    var += mult*(args[i]-1);
-    unsigned s = sig->arg(i).term()->functor();
-    mult *=_sizes.get(s);
-  }
+  unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
 
-  ASS_L(var, p_interpretation.size());
-  p_interpretation[var] = (res ? 2 : 1);
-
-  unsigned previous = 0;
-  _predicateCoverage.find(p,previous);
-  _predicateCoverage.insert(p,previous+1);
+  ASS_L(var, _p_interpretation.size());
+  _p_interpretation[var] = (res ? INTP_TRUE : INTP_FALSE);
 }
 
-bool FiniteModelMultiSorted::isPartial()
+std::string FiniteModelMultiSorted::toString()
 {
-  //TODO
-  return true;
-}
-
-vstring FiniteModelMultiSorted::toString()
-{
-  vostringstream modelStm;
+  std::ostringstream modelStm;
 
   bool printIntroduced = false;
 
-  static DArray<DArray<vstring>> cnames;
+  static DArray<DArray<std::string>> cnames;
   cnames.ensure(env.signature->typeCons());
 
-  //Output sorts and their sizes 
+  //Output sorts and their sizes
   for(unsigned s=0;s<env.signature->typeCons();s++){
-
-    unsigned size = _sizes.get(s);
+    unsigned size = _sizes[s];
     if(size==0) continue;
 
-    vstring sortName = env.signature->typeConName(s);
-    vstring sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
+    // don't output interpreted sorts at all, we know what they are
+    if(env.signature->isInterpretedNonDefault(s))
+      continue;
 
-    // Sort declaration
-    modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
+    std::string sortName = env.signature->typeConName(s);
+    std::string sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
+
+    // skip declaring $i, we know what it is
+    if(!env.signature->isDefaultSortCon(s))
+      // Sort declaration
+      modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
 
     cnames[s].ensure(size+1);
-
 
     // Domain constant declarations
     for(unsigned i=1;i<=size;i++){
       modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
       int frep = sortRepr[s][i];
-      vstring cname = "fmb_"+sortNameLabel+"_"+Lib::Int::toString(i);
-      if(frep >= 0){
-        cname = env.signature->functionName(frep);
-      }
-      cnames[s][i]=cname; 
+      std::string cname = (frep >= 0) ? env.signature->functionName(frep) : append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
+      cnames[s][i]=cname;
       modelStm << cname << ":" << sortName << ")." << endl;
     }
 
     //Output domain
-    modelStm << "tff(finite_domain,axiom," << endl;
+    modelStm << "tff(" << prepend("finite_domain_", sortNameLabel) << ",axiom," << endl;
     modelStm << "      ! [X:" << sortName << "] : (" << endl;
     modelStm << "         ";
     for(unsigned i=1;i<=size;i++){
-      modelStm << "X = " << cnames[s][i]; 
+      modelStm << "X = " << cnames[s][i];
       if(i<size) modelStm << " | ";
       if(i==size) modelStm << endl;
       else if(i%5==0) modelStm << endl << "         ";
@@ -229,13 +193,13 @@ vstring FiniteModelMultiSorted::toString()
     //Distinctness of domain
     modelStm << endl;
     if(size>1){
-    modelStm << "tff(distinct_domain,axiom," << endl;
+    modelStm << "tff(" << prepend("distinct_domain_", sortNameLabel) << ",axiom," << endl;
     modelStm << "         ";
     unsigned c=0;
     for(unsigned i=1;i<=size;i++){
       for(unsigned j=i+1;j<=size;j++){
         c++;
-        modelStm << cnames[s][i] <<" != " << cnames[s][j]; 
+        modelStm << cnames[s][i] <<" != " << cnames[s][j];
         if(!(i==size-1 && j==size)){
            modelStm << " & ";
            if(c%5==0){ modelStm << endl << "         "; }
@@ -249,46 +213,47 @@ vstring FiniteModelMultiSorted::toString()
 
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->getFunction(f)->usageCnt()==0) continue;
-    unsigned arity = env.signature->functionArity(f);
+    Signature::Symbol* symb = env.signature->getFunction(f);
+    if(symb->usageCnt()==0) continue;
+    unsigned arity = symb->arity();
     if(arity>0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
-    unsigned res = f_interpretation[f_offsets[f]];
-    TermList srtT = env.signature->getFunction(f)->fnType()->result();
+    if(!printIntroduced && symb->introduced()) continue;
+    std::string name = symb->name();
+    unsigned res = _f_interpretation[_f_offsets[f]];
+    TermList srtT = symb->fnType()->result();
     unsigned srt = srtT.term()->functor();
-    vstring cname = cnames[srt][res];
+    std::string cname = cnames[srt][res];
     if(name == cname) continue;
 
-    vstring sortName = env.signature->typeConName(srt);
+    std::string sortName = env.signature->typeConName(srt);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
-    if(res>0){ 
+    if(res>0){
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
     }
     else{
-      modelStm << "% " << name << " undefined in model" << endl; 
+      modelStm << "% " << name << " undefined in model" << endl;
     }
   }
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->getFunction(f)->usageCnt()==0) continue;
-    unsigned arity = env.signature->functionArity(f);
+    Signature::Symbol* symb = env.signature->getFunction(f);
+    if(symb->usageCnt()==0) continue;
+    unsigned arity = symb->arity();
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
-
-    OperatorType* sig = env.signature->getFunction(f)->fnType();
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
+    if(!printIntroduced && symb->introduced()) continue;
+    std::string name = symb->name();
+    OperatorType* sig = symb->fnType();
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
     for(unsigned i=0;i<arity;i++){
       modelStm << sig->arg(i).toString();
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << " > " << sig->result().toString() << ")." << endl; 
+    modelStm << ") > " << sig->result().toString() << ")." << endl;
 
     modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
-    unsigned offset = f_offsets[f];
+    unsigned offset = _f_offsets[f];
 
     static DArray<unsigned> args;
     args.ensure(arity);
@@ -300,25 +265,25 @@ fModelLabel:
 
         TermList argST = sig->arg(i);
         unsigned argS = argST.term()->functor();
-        if(args[i]==_sizes.get(argS)){
+        if(args[i]==_sizes[argS]){
           args[i]=1;
         }
         else{
           args[i]++;
 
-          //TODO could probably compute this directly, instead of via args 
+          //TODO could probably compute this directly, instead of via args
           // my mind isn't in the right place to do that now though!
           unsigned var = offset;
-          unsigned mult=1; 
+          unsigned mult=1;
           for(unsigned i=0;i<args.size();i++){
             var += mult*(args[i]-1);
             unsigned s = sig->arg(i).term()->functor();
-            mult *= _sizes.get(s);
-          } 
-          unsigned res = f_interpretation[var];
+            mult *= _sizes[s];
+          }
+          unsigned res = _f_interpretation[var];
 
           if(res>0){
-            if(!first){ modelStm << "         & " ; } 
+            if(!first){ modelStm << "         & " ; }
             else{ modelStm << "           " ; }
             first=false;
           }
@@ -329,12 +294,12 @@ fModelLabel:
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
             TermList argSortT = sig->arg(j);
-            unsigned argSort = argSortT.term()->functor(); 
+            unsigned argSort = argSortT.term()->functor();
             modelStm << cnames[argSort][args[j]];
           }
           if(res>0){
             TermList resultSortT = sig->result();
-            unsigned resultSort = resultSortT.term()->functor();    
+            unsigned resultSort = resultSortT.term()->functor();
             modelStm << ") = " << cnames[resultSort][res] << endl;
           }
           else{
@@ -347,17 +312,19 @@ fModelLabel:
   }
 
   //Propositions
-  for(unsigned f=1;f<env.signature->predicates();f++){
-    unsigned arity = env.signature->predicateArity(f);
+  for(unsigned p=1;p<env.signature->predicates();p++){
+    unsigned arity = env.signature->predicateArity(p);
     if(arity>0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o).";
-    unsigned res = p_interpretation[p_offsets[f]];
-    if(res==2){
+    Signature::Symbol* symb = env.signature->getPredicate(p);
+    if(!printIntroduced && symb->introduced()) continue;
+    if(symb->usageCnt() == 0) continue;
+    std::string name = symb->name();
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o)."<<endl;
+    char res = _p_interpretation[_p_offsets[p]];
+    if(res==INTP_TRUE){
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
     }
-    else if(res==1){
+    else if(res==INTP_FALSE){
       modelStm << "tff("<<append(name,"_definition")<<",axiom,~"<<name<< ")."<<endl;
     }
     else{
@@ -365,26 +332,27 @@ fModelLabel:
     }
   }
 
-//Predicates
-  for(unsigned f=1;f<env.signature->predicates();f++){
-    unsigned arity = env.signature->predicateArity(f);
+  //Predicates
+  for(unsigned p=1;p<env.signature->predicates();p++){
+    Signature::Symbol* symb = env.signature->getPredicate(p);
+    unsigned arity = symb->arity();
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
-
-    OperatorType* sig = env.signature->getPredicate(f)->predType();
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
+    if(!printIntroduced && symb->introduced()) continue;
+    if(symb->usageCnt() == 0) continue;
+    std::string name = symb->name();
+    OperatorType* sig = symb->predType();
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
     for(unsigned i=0;i<arity;i++){
       TermList argST = sig->arg(i);
-      unsigned argS = argST.term()->functor();      
+      unsigned argS = argST.term()->functor();
       modelStm << env.signature->typeConName(argS);
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << " > $o )." << endl;
+    modelStm << ") > $o)." << endl;
 
     modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
-    unsigned offset = p_offsets[f];
+    unsigned offset = _p_offsets[p];
 
     static DArray<unsigned> args;
     args.ensure(arity);
@@ -395,23 +363,23 @@ pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
         TermList argST = sig->arg(i);
         unsigned argS = argST.term()->functor();
-        if(args[i]==_sizes.get(argS)){
+        if(args[i]==_sizes[argS]){
           args[i]=1;
         }
         else{
           args[i]++;
 
-          //TODO could probably compute this directly, instead of via args 
+          //TODO could probably compute this directly, instead of via args
           // my mind isn't in the right place to do that now though!
           unsigned var = offset;
           unsigned mult=1;
           for(unsigned i=0;i<args.size();i++){
             var += mult*(args[i]-1);
             unsigned s = sig->arg(i).term()->functor();
-            mult *= _sizes.get(s);
+            mult *= _sizes[s];
           }
-          unsigned res = p_interpretation[var];
-          if(res>0){
+          char res = _p_interpretation[var];
+          if(res>INTP_UNDEF){
             if(!first){ modelStm << "         & " ; }
             else{ modelStm << "           " ; }
             first=false;
@@ -419,16 +387,16 @@ pModelLabel:
           else{
             modelStm << "%         ";
           }
-          if(res==1) modelStm << "~";
+          if(res==INTP_FALSE) modelStm << "~";
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
             TermList argSortT = sig->arg(j);
             unsigned argSort = argSortT.term()->functor();
-            modelStm << cnames[argSort][args[j]]; 
+            modelStm << cnames[argSort][args[j]];
           }
           modelStm << ")";
-          if(res==0){
+          if(res==INTP_UNDEF){
             modelStm << " undefined in model";
           }
           modelStm << endl;
@@ -437,8 +405,6 @@ pModelLabel:
       }
       modelStm << endl << ")." << endl << endl;
   }
-
-
 
   return modelStm.str();
 }
@@ -450,7 +416,7 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
 #if DEBUG_MODEL
   cout << "evaluating ground term " << term->toString() << endl;
   cout << "domain constant status " << isDomainConstant(term) << endl;
-#endif  
+#endif
   if(isDomainConstant(term)) return getDomainConstant(term).first;
 
   unsigned arity = env.signature->functionArity(term->functor());
@@ -461,19 +427,19 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
   }
 
   OperatorType* sig = env.signature->getFunction(term->functor())->fnType();
-  unsigned var = f_offsets[term->functor()];
+  unsigned var = _f_offsets[term->functor()];
   unsigned mult = 1;
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
     unsigned s = sig->arg(i).term()->functor();
-    mult *=_sizes.get(s);
+    mult *=_sizes[s];
   }
 #if VDEBUG
-  if((term->functor()+1)<f_offsets.size()) ASS_L(var,f_offsets[term->functor()+1]);
+  if((term->functor()+1)<_f_offsets.size()) ASS_L(var,_f_offsets[term->functor()+1]);
 #endif
-  ASS_L(var,f_interpretation.size());
+  ASS_L(var,_f_interpretation.size());
 
-  return f_interpretation[var];
+  return _f_interpretation[var];
 }
 
 bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
@@ -505,29 +471,325 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
   }
 
   OperatorType* sig = env.signature->getPredicate(lit->functor())->predType();
-  unsigned var = p_offsets[lit->functor()];
+  unsigned var = _p_offsets[lit->functor()];
   unsigned mult = 1;
   for(unsigned i=0;i<args.size();i++){
     var += mult*(args[i]-1);
     unsigned s = sig->arg(i).term()->functor();
-    mult *=_sizes.get(s);
-  }  
+    mult *=_sizes[s];
+  }
 
 #if VDEBUG
-  if((lit->functor()+1)<p_offsets.size()) ASS_L(var,p_offsets[lit->functor()+1]);
+  if((lit->functor()+1)<_p_offsets.size()) ASS_L(var,_p_offsets[lit->functor()+1]);
 #endif
-  ASS_L(var,p_interpretation.size());
+  ASS_L(var,_p_interpretation.size());
 
-  unsigned res = p_interpretation[var];
+  char res = _p_interpretation[var];
 #if DEBUG_MODEL
-    cout << "res is " << res << " and polarity is " << lit->polarity() << endl; 
+    cout << "res is " << res << " and polarity is " << lit->polarity() << endl;
 #endif
 
-  if(res==0) 
+  if(res==INTP_UNDEF)
     USER_ERROR("Could not evaluate "+lit->toString()+", probably a partial model");
 
-  if(lit->polarity()) return (res==2);
-  else return (res==1); 
+  return (res==INTP_TRUE) == (lit->polarity());
+}
+
+void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<unsigned> &sortFunctions, const Stack<unsigned> &sortPredicates)
+{
+  // if we already started evaluating things with the model, elimination would be more complicated
+  ASS_EQ(_domainConstants.size(),0);
+  ASS_EQ(_domainConstantsRev.size(),0);
+
+  // let's do functions first
+  for(unsigned i = 0; i<sortFunctions.size(); i++) {
+    unsigned elim_f = sortFunctions[i];
+    Signature::Symbol* elim_symb = env.signature->getFunction(elim_f);
+    ASS_EQ(elim_symb->arity(),1)
+    unsigned srt = elim_symb->fnType()->result().term()->functor();
+
+    DHSet<unsigned> f_range;
+    DHMap<unsigned,unsigned> new_to_old;
+    DHMap<unsigned,unsigned> old_to_new;
+
+    unsigned origSize = _sizes[srt];
+    unsigned newSize = 0;
+
+    // srt's domain is getting reduced to the range of f
+    {
+      unsigned var = _f_offsets[elim_f];
+      for(unsigned j = 1; j<=origSize; j++) {
+        unsigned res = _f_interpretation[var++];
+        //cout << "f(" << j << ")=" << res << endl;
+        if (f_range.insert(res)) {
+          newSize++;
+          new_to_old.insert(newSize,res);
+          old_to_new.insert(res,newSize);
+        }
+      }
+    }
+
+    // we will need to reencode everything
+
+    // save the old stuff
+    auto old_f_offsets        = std::move(_f_offsets);
+    auto old_f_interpretation = std::move(_f_interpretation);
+    auto old_p_offsets        = std::move(_p_offsets);
+    auto old_p_interpretation = std::move(_p_interpretation);
+    auto old_sizes = _sizes.clone();
+
+    // update size of the affected sort
+    _sizes[srt] = newSize;
+    // cout << "newSize " << newSize << endl;
+    initTables();
+
+    // every function and predicate need to get reencoded
+    // - arguments of sort srt now iterate over a different (likely smaller domain)
+    // - function values of sort srt still need to passed through the ``disappearing'' elim_f
+
+    unsigned var = 0; // ... var will fly linearly through all this
+    for(unsigned f=0; f<env.signature->functions();f++){
+      ASS_EQ(var,_f_offsets[f]);
+      Signature::Symbol* symb = env.signature->getFunction(f);
+      OperatorType* sig = symb->fnType();
+      unsigned arity = symb->arity();
+
+      // cout << "f = " << f << " arity= " << arity << endl;
+
+      DArray<unsigned> args(arity); // ... args will respect the table encoding
+      DArray<unsigned> old_args(arity);
+      for(unsigned i=0;i<arity;i++){ args[i]=1; }
+
+      for(;;) {
+        // encode args into old_args
+        for(unsigned i=0;i<arity;i++){
+          unsigned i_srt = sig->arg(i).term()->functor();
+          old_args[i] = (i_srt == srt) ? new_to_old.get(args[i]) : args[i];
+        }
+
+        // reencode and store
+        unsigned old_var = args2var(old_args,old_sizes,old_f_offsets,f,sig);
+        unsigned old_res = old_f_interpretation[old_var];
+
+        if (old_res) { // eliminated symbols don't have reasonable values
+          unsigned res_srt = sig->result().term()->functor();
+          unsigned res = (res_srt == srt) ?
+                            // need to first pass old_res through elim_f, before mapping to the new domain
+                            old_to_new.get(old_f_interpretation[old_f_offsets[elim_f]+old_res-1]) :
+                            old_res;
+
+          _f_interpretation[var] = res;
+
+          if (arity==0 && !symb->introduced() && sortRepr[res_srt][res] == -1){
+            sortRepr[res_srt][res]=f;
+          }
+        }
+
+        // move var
+        var++;
+        // increase args
+        unsigned i;
+        for(i=0;i<arity;i++) {
+          args[i]++;
+          if(args[i] <= _sizes[sig->arg(i).term()->functor()]){
+            break;
+          }
+          args[i]=1;
+        }
+        if (i == arity) {
+          break;
+        }
+      }
+    }
+
+    var = 0; // ... var will fly linearly through all this again (for the predicates)
+    for(unsigned p=1; p<env.signature->predicates();p++){
+      ASS_EQ(var,_p_offsets[p]);
+      Signature::Symbol* symb = env.signature->getPredicate(p);
+      OperatorType* sig = symb->predType();
+      unsigned arity = symb->arity();
+
+      // cout << "p = " << p << " arity= " << arity << endl;
+
+      DArray<unsigned> args(arity); // ... args will respect the table encoding
+      DArray<unsigned> old_args(arity);
+      for(unsigned i=0;i<arity;i++){ args[i]=1; }
+
+      for(;;) {
+        // encode args into old_args
+        for(unsigned i=0;i<arity;i++){
+          unsigned i_srt = sig->arg(i).term()->functor();
+          old_args[i] = (i_srt == srt) ? new_to_old.get(args[i]) : args[i];
+        }
+
+        // reencode and store
+        unsigned old_var = args2var(old_args,old_sizes,old_p_offsets,p,sig);
+        char old_res = old_p_interpretation[old_var];
+
+        _p_interpretation[var++] = old_res; // no change for predicates
+
+        // increase args
+        unsigned i;
+        for(i=0;i<arity;i++) {
+          args[i]++;
+          if(args[i] <= _sizes[sig->arg(i).term()->functor()]){
+            break;
+          }
+          args[i]=1;
+        }
+        if (i == arity) {
+          break;
+        }
+      }
+    }
+  }
+
+  // let's do predicates now
+  for(unsigned i = 0; i<sortPredicates.size(); i++) {
+    unsigned elim_p = sortPredicates[i];
+    Signature::Symbol* elim_symb = env.signature->getPredicate(elim_p);
+    ASS_EQ(elim_symb->arity(),1)
+    unsigned srt = elim_symb->predType()->arg(0).term()->functor();
+
+    // cout << "Eliminate p = " << elim_p << endl;
+
+    DHMap<unsigned,unsigned> new_to_old;
+    DHMap<unsigned,unsigned> old_to_new;
+
+    unsigned origSize = _sizes[srt];
+    unsigned newSize = 0;
+
+    // srt's domain is getting reduced to those elements for which p is true
+    {
+      unsigned var = _p_offsets[elim_p];
+      for(unsigned j = 1; j<=origSize; j++) {
+        char res = _p_interpretation[var++];
+        // cout << "p(" << j << ")=" << (unsigned)res << endl;
+        if (res == INTP_TRUE) {
+          newSize++;
+          new_to_old.insert(newSize,j);
+          old_to_new.insert(j,newSize);
+        }
+      }
+    }
+
+    if (origSize == newSize)
+      continue;
+
+    // we will need to reencode everything
+
+    // save the old stuff
+    auto old_f_offsets        = std::move(_f_offsets);
+    auto old_f_interpretation = std::move(_f_interpretation);
+    auto old_p_offsets        = std::move(_p_offsets);
+    auto old_p_interpretation = std::move(_p_interpretation);
+    auto old_sizes = _sizes.clone();
+
+    // update size of the affected sort
+    _sizes[srt] = newSize;
+    // cout << "origSize = " << origSize << " --> newSize = " << newSize << endl;
+
+    initTables();
+
+    // every function and predicate need to get reencoded
+    // - arguments of sort srt now iterate over a different (likely smaller domain)
+
+    unsigned var = 0; // ... var will fly linearly through all this
+    for(unsigned f=0; f<env.signature->functions();f++){
+      ASS_EQ(var,_f_offsets[f]);
+      Signature::Symbol* symb = env.signature->getFunction(f);
+      OperatorType* sig = symb->fnType();
+      unsigned arity = symb->arity();
+
+      // cout << "  f = " << f << " arity= " << arity << " of name " << symb->name() << endl;
+      // cout << "->usageCnt() == " << symb->usageCnt() << endl;
+
+      DArray<unsigned> args(arity); // ... args will respect the table encoding
+      DArray<unsigned> old_args(arity);
+      for(unsigned i=0;i<arity;i++){ args[i]=1; }
+
+      for(;;) {
+        // encode args into old_args
+        for(unsigned i=0;i<arity;i++){
+          unsigned i_srt = sig->arg(i).term()->functor();
+          old_args[i] = (i_srt == srt) ? new_to_old.get(args[i]) : args[i];
+        }
+
+        // reencode and store
+        unsigned old_var = args2var(old_args,old_sizes,old_f_offsets,f,sig);
+        unsigned old_res = old_f_interpretation[old_var];
+
+        if (old_res) { // eliminated symbols don't have reasonable values
+          unsigned res_srt = sig->result().term()->functor();
+          // this should be stipulated by the extra sort-predicate axioms
+          ASS(res_srt != srt || old_p_interpretation[old_p_offsets[elim_p]+old_res-1] == INTP_TRUE)
+
+          unsigned res = (res_srt == srt) ? old_to_new.get(old_res) : old_res;
+          _f_interpretation[var] = res;
+
+          if (arity==0 && !symb->introduced() && sortRepr[res_srt][res] == -1) {
+            sortRepr[res_srt][res]=f;
+          }
+        }
+
+        // move var
+        var++;
+        // increase args
+        unsigned i;
+        for(i=0;i<arity;i++) {
+          args[i]++;
+          if(args[i] <= _sizes[sig->arg(i).term()->functor()]){
+            break;
+          }
+          args[i]=1;
+        }
+        if (i == arity) {
+          break;
+        }
+      }
+    }
+
+    var = 0; // ... var will fly linearly through all this again (for the predicates)
+    for(unsigned p=1; p<env.signature->predicates();p++){
+      ASS_EQ(var,_p_offsets[p]);
+      Signature::Symbol* symb = env.signature->getPredicate(p);
+      OperatorType* sig = symb->predType();
+      unsigned arity = symb->arity();
+
+      // cout << "p = " << p << " arity= " << arity << endl;
+
+      DArray<unsigned> args(arity); // ... args will respect the table encoding
+      DArray<unsigned> old_args(arity);
+      for(unsigned i=0;i<arity;i++){ args[i]=1; }
+
+      for(;;) {
+        // encode args into old_args
+        for(unsigned i=0;i<arity;i++){
+          unsigned i_srt = sig->arg(i).term()->functor();
+          old_args[i] = (i_srt == srt) ? new_to_old.get(args[i]) : args[i];
+        }
+
+        // reencode and store
+        unsigned old_var = args2var(old_args,old_sizes,old_p_offsets,p,sig);
+        unsigned old_res = old_p_interpretation[old_var];
+
+        _p_interpretation[var++] = old_res; // no change for predicates
+
+        // increase args
+        unsigned i;
+        for(i=0;i<arity;i++) {
+          args[i]++;
+          if(args[i] <= _sizes[sig->arg(i).term()->functor()]){
+            break;
+          }
+          args[i]=1;
+        }
+        if (i == arity) {
+          break;
+        }
+      }
+    }
+  }
 }
 
 bool FiniteModelMultiSorted::evaluate(Unit* unit)
@@ -553,13 +815,13 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
 /**
  *
  * TODO: This is recursive, which could be problematic in the long run
- * 
+ *
  */
 bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
 {
 #if DEBUG_MODEL
   for(unsigned i=0;i<depth;i++){ cout << "."; }
-  cout << "Evaluating..." << formula->toString() << endl; 
+  cout << "Evaluating..." << formula->toString() << endl;
 #endif
 
   bool isAnd = false;
@@ -571,7 +833,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
     case LITERAL:
     {
       Literal* lit = formula->literal();
-      if(!lit->ground()){ 
+      if(!lit->ground()){
         USER_ERROR("Was not expecting free variables in "+formula->toString());
       }
       return evaluateGroundLiteral(lit);
@@ -610,7 +872,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
       bool left_res = evaluate(left,depth+1);
       if(isImp && !left_res) return true;
       bool right_res = evaluate(right,depth+1);
-      
+
 #if DEBUG_MODEL
       cout << "left_res is " << left_res << ", right_res is " << right_res << endl;
 #endif
@@ -640,13 +902,13 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
      }
 
      unsigned srtU = srt.term()->functor();
-     for(unsigned c=1;c<=_sizes.get(srtU);c++){
+     for(unsigned c=1;c<=_sizes[srtU];c++){
        Substitution s;
        s.bind(var,getDomainConstant(c,srtU));
        Formula* next_sub = SubstHelper::apply(next,s);
        next_sub = SimplifyFalseTrue::simplify(next_sub);
-       next_sub = Flattening::flatten(next_sub); 
-       
+       next_sub = Flattening::flatten(next_sub);
+
        bool res = evaluate(next_sub,depth+1);
 
        //TODO try and limit memory issues!
@@ -662,7 +924,6 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
     default:
       USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");
   }
-  
 
   NOT_IMPLEMENTED;
   return false;

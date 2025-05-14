@@ -240,48 +240,47 @@ void Inference::updateStatistics()
   }
 }
 
-vstring Inference::toString() const
+std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
 {
-  vstring result;
-
-  switch(_kind) {
-    case Kind::INFERENCE_012:
-      result = "INFERENCE_012, (";
+  switch(self._kind) {
+    case Inference::Kind::INFERENCE_012:
+      out << "INFERENCE_012, (";
       break;
-    case Kind::INFERENCE_MANY:
-      result = "INFERENCE_MANY, (";
+    case Inference::Kind::INFERENCE_MANY:
+      out << "INFERENCE_MANY, (";
       break;
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
-      result = "INFERENCE_FROM_SAT_REFUTATION, (";
+    case Inference::Kind::INFERENCE_FROM_SAT_REFUTATION:
+      out << "INFERENCE_FROM_SAT_REFUTATION, (";
       break;
   }
-  result += ruleName(_rule);
-  result += "), it: " + Int::toString(toNumber(_inputType));
+  // TODO get rid of intermediate string generation by ruleName
+  out << ruleName(self._rule);
+  out << "), it: " << toNumber(self._inputType);
 
-  result += ", incl: " + Int::toString(_included);
-  result += ", ptd: " + Int::toString(_isPureTheoryDescendant);
+  out << ", incl: " << self._included;
+  out << ", ptd: " << self._isPureTheoryDescendant;
   if(env.options->addCombAxioms()){
-    result += ", cad: " + Int::toString(_combAxiomsDescendant);
+    out << ", cad: " << self._combAxiomsDescendant;
   }
   if(env.options->addProxyAxioms()){
-   result += ", pad: " + Int::toString(_proxyAxiomsDescendant);
+     out << ", pad: " << self._proxyAxiomsDescendant;
   }
   if(env.options->addCombAxioms() && env.options->addProxyAxioms()){
-    result += ", had: " + Int::toString(_holAxiomsDescendant);
+    out << ", had: " << self._holAxiomsDescendant;
   }
-  result += ", id: " + Int::toString(_inductionDepth);
+  out << ", id: " << self._inductionDepth;
   if(env.options->maxXXNarrows() > 0){
-    result += ", xxNarrs " + Int::toString(_XXNarrows);
+    out << ", xxNarrs " << self._XXNarrows;
   }
   if(env.options->prioritiseClausesProducedByLongReduction()){
-    result += ", redLen " + Int::toString(_reductions);
+    out << ", redLen " << self._reductions;
   }
-  result += ", sl: " + Int::toString(_sineLevel);
-  result += ", age: " + Int::toString(_age);
-  result += ", thAx:" + Int::toString((int)(th_ancestors));
-  result += ", allAx:" + Int::toString((int)(all_ancestors));
+  out << ", sl: " << self._sineLevel;
+  out << ", age: " << self._age;
+  out << ", thAx:" << (int)(self.th_ancestors);
+  out << ", allAx:" << (int)(self.all_ancestors);
 
-  return result;
+  return out;
 }
 
 
@@ -337,7 +336,7 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
   _combAxiomsDescendant = premise1->isCombAxiomsDescendant() && premise2->isCombAxiomsDescendant() ;
-  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();  
+  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();
   _holAxiomsDescendant = premise1->isHolAxiomsDescendant() && premise2->isHolAxiomsDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 
@@ -395,21 +394,19 @@ Inference::Inference(const TheoryAxiom& ta) {
   ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
 }
 
-Inference::Inference(const FormulaTransformation& ft) {
+Inference::Inference(const FormulaClauseTransformation& ft) {
   init1(ft.rule,ft.premise);
 
-  ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
-  ASS(!ft.premise->isClause());
+  ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
 
   _included = ft.premise->included();
 }
 
-Inference::Inference(const FormulaTransformationMany& ft) {
+Inference::Inference(const FormulaClauseTransformationMany& ft) {
   initMany(ft.rule,ft.premises);
 
-  ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
+  ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
   ASS_NEQ(ft.premises,UnitList::empty());
-  ASS(!ft.premises->head()->isClause()); // TODO: assert also for all others?
 
   _included = ft.premises->head()->included();
 }
@@ -493,6 +490,14 @@ Inference::Inference(const NonspecificInferenceMany& gi) {
   initMany(gi.rule,gi.premises);
 }
 
+std::string Inference::name() const {
+  if (_rule == InferenceRule::INPUT) {
+    return ruleName(_rule)+"("+inputTypeName(_inputType)+")";
+  } else {
+    return ruleName(_rule);
+  }
+}
+
 void Inference::minimizePremises()
 {
   if (_kind != Kind::INFERENCE_FROM_SAT_REFUTATION)
@@ -573,20 +578,41 @@ void Inference::computeTheoryRunningSums()
   }
 }
 
+std::string Kernel::inputTypeName(UnitInputType type)
+{
+  switch (type) {
+    case UnitInputType::AXIOM:
+      return "axiom";
+    case UnitInputType::ASSUMPTION:
+      return "assumption";
+    case UnitInputType::CONJECTURE:
+      return "conjecture";
+    case UnitInputType::NEGATED_CONJECTURE:
+      return "negated conjecture";
+    case UnitInputType::CLAIM:
+      return "claim";
+    case UnitInputType::EXTENSIONALITY_AXIOM:
+      return "extensionality axiom";
+  default:
+      return "unknown";
+  }
+}
+
 /**
  * Return the rule name, such as "binary resolution".
  * @since 04/01/2008 Torrevieja
  */
-vstring Kernel::ruleName(InferenceRule rule)
+std::string Kernel::ruleName(InferenceRule rule)
 {
   switch (rule) {
   case InferenceRule::INPUT:
     return "input";
   case InferenceRule::NEGATED_CONJECTURE:
     return "negated conjecture";
-  case InferenceRule::ANSWER_LITERAL:
+  case InferenceRule::ANSWER_LITERAL_INJECTION:
+    return "answer literal injection";
   case InferenceRule::ANSWER_LITERAL_RESOLVER:
-    return "answer literal";
+    return "answer literal resolver";
   case InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION:
     return "answer literal with input var skolemisation";
   case InferenceRule::ANSWER_LITERAL_REMOVAL:
@@ -687,6 +713,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
+  case InferenceRule::FUNCTION_DEFINITION_REWRITING:
+    return "function definition rewriting";
+  case InferenceRule::FUNCTION_DEFINITION_DEMODULATION:
+    return "function definition demodulation";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
   case InferenceRule::EQUALITY_FACTORING:
@@ -708,6 +738,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "inner rewriting";
   case InferenceRule::CONDENSATION:
     return "condensation";
+  case InferenceRule::ALASCA_INTEGER_TRANSFORMATION:
+    return "alasca integer transformation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
   case InferenceRule::POLARITY_FLIPPING:
@@ -744,6 +776,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_TRANSITIVITY:
   case InferenceRule::THA_ORDER_TOTALALITY:
   case InferenceRule::THA_ORDER_MONOTONICITY:
+  case InferenceRule::THA_ALASCA:
   case InferenceRule::THA_PLUS_ONE_GREATER:
   case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
   case InferenceRule::THA_MINUS_MINUS_X:
@@ -845,12 +878,50 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
+  case InferenceRule::ALASCA_VARIABLE_ELIMINATION:
+    return "alasca variable elimination";
+  case InferenceRule::ALASCA_VIRAS_QE:
+    return "alasca viras quantifier elimination";
+  case InferenceRule::ALASCA_COHERENCE:
+    return "alasca coherence";
+  case InferenceRule::ALASCA_COHERENCE_NORMALIZATION:
+    return "alasca coherence normalization";
+  case InferenceRule::ALASCA_SUPERPOSITION:
+    return "alasca superposition";
+  case InferenceRule::ALASCA_LITERAL_FACTORING:
+    return "alasca inequality literal factoring";
+  case InferenceRule::ALASCA_EQ_FACTORING:
+    return "alasca equality factoring";
+  case InferenceRule::ALASCA_FLOOR_BOUNDS:
+    return "alasca floor bounds";
+  case InferenceRule::ALASCA_TERM_FACTORING:
+    return "alasca term factoring";
+  case InferenceRule::ALASCA_INTEGER_FOURIER_MOTZKIN:
+    return "alasca integer fourier motzkin";
+  case InferenceRule::ALASCA_FOURIER_MOTZKIN:
+    return "alasca fourier motzkin";
+  case InferenceRule::ALASCA_FLOOR_ELIMINATION:
+    return "alasca floor elimination";
+  case InferenceRule::ALASCA_NORMALIZATION:
+    return "alasca normalization";
+  case InferenceRule::ALASCA_ABSTRACTION:
+    return "alasca abstraction";
+  case InferenceRule::ALASCA_FWD_DEMODULATION:
+    return "alasca forward demodulation";
+  case InferenceRule::ALASCA_BWD_DEMODULATION:
+    return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
-  case InferenceRule::STRUCT_INDUCTION_AXIOM:
-    return "structural induction hypothesis";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
+    return "structural induction hypothesis (one)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
+    return "structural induction hypothesis (two)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
+    return "structural induction hypothesis (three)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
+    return "structural induction hypothesis (recursion)";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
@@ -867,6 +938,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "induction hyperresolution";
   case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
     return "generalized induction hyperresolution";
+  case InferenceRule::FREE_VAR_INDUCTION_HYPERRESOLUTION:
+    return "induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:
@@ -945,8 +1018,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "cases simplifying";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
-  case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 
-  case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST: 
+  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION: 
+  case InferenceRule::INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST: 
   case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:
   case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
   case InferenceRule::GENERIC_GENERATING_INFERNCE:

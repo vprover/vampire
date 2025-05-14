@@ -12,10 +12,11 @@
  * Implements class Signature for handling signatures
  */
 
+#include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/DistinctGroupExpansion.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Signature.hpp"
@@ -28,11 +29,9 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 
 /**
  * Standard constructor.
- * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
-                          bool overflownConstant)
+Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interpreted, bool preventQuoting, bool super)
   : _name(nm),
     _arity(arity),
     _typeArgsArity(0),
@@ -41,6 +40,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _usageCount(0),
     _unitUsageCount(0),
     _interpreted(interpreted ? 1 : 0),
+    _linMul(0),
     _introduced(0),
     _protected(0),
     _skip(0),
@@ -48,10 +48,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _equalityProxy(0),
     _wasFlipped(0),
     _color(COLOR_TRANSPARENT),
-    _stringConstant(stringConstant ? 1: 0),
-    _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
-    _overflownConstant(overflownConstant ? 1 : 0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),
     _inGoal(0),
@@ -61,13 +58,11 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skipCongruence(0),
     _tuple(0),
     _computable(1),
+    _letBound(0),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
 {
-  ASS(!stringConstant || arity==0);
-
-  if (!stringConstant && !numericConstant && !overflownConstant &&
-       symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -91,6 +86,16 @@ void Signature::Symbol::destroyFnSymbol()
   }
   else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
+  }
+  else if (linMul()) {
+    forAnyNumTraits([&](auto n) {
+        if (auto s = Signature::tryLinMulSym<typename decltype(n)::ConstantType>(this)) {
+          delete &*s;
+          return true;
+        } else {
+          return false;
+        }
+    });
   }
   else {
     delete this;
@@ -265,155 +270,9 @@ Signature::~Signature ()
 } // Signature::~Signature
 
 /**
- * Add an integer constant to the signature. If defaultSort is true, treat it as
- * a term of the default sort, otherwise as an interepreted integer value.
- * @since 03/05/2013 train Manchester-London
- * @author Andrei Voronkov
- */
-unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
-{
-  IntegerConstantType value(number);
-  if (!defaultSort) {
-    return addIntegerConstant(value);
-  }
-
-  // default sort should be used
-  vstring name = value.toString();
-  vstring symbolKey = name + "_n";
-  unsigned result;
-  if (_funNames.find(symbolKey,result)) {
-    return result;
-  }
-
-  result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
-  /*
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  if(defaultSort){ 
-     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are disctinct from strings
-  }
-  */
-  _funs.push(sym);
-  _funNames.insert(symbolKey,result);
-  return result;
-} // Signature::addIntegerConstant
-
-/**
- * Add an integer constant to the signature.
- * @todo something smarter, so that we don't need to convert all values to string
- */
-unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
-{
-  vstring key = value.toString() + "_n";
-  unsigned result;
-  if (_funNames.find(key, result)) {
-    return result;
-  }
-  _integers++;
-  result = _funs.length();
-  Symbol* sym = new IntegerSymbol(value);
-  _funs.push(sym);
-  _funNames.insert(key,result);
-  /*
-  sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
-  */
-  return result;
-} // addIntegerConstant
-
-/**
- * Add a rational constant to the signature. If defaultSort is true, treat it as
- * a term of the default sort, otherwise as an interepreted rational value.
- * @since 03/05/2013 London
- * @author Andrei Voronkov
- */
-unsigned Signature::addRationalConstant(const vstring& numerator, const vstring& denominator,bool defaultSort)
-{
-  RationalConstantType value(numerator, denominator);
-  if (!defaultSort) {
-    return addRationalConstant(value);
-  }
-
-  vstring name = value.toString();
-  vstring key = name + "_q";
-  unsigned result;
-  if (_funNames.find(key,result)) {
-    return result;
-  }
-  result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
-  /*
-  if(defaultSort){ 
-    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
-  }
-  sym->addToDistinctGroup(RATIONAL_DISTINCT_GROUP,result);
-  */
-  _funs.push(sym);
-  _funNames.insert(key,result);
-  return result;
-} // addRatonalConstant
-
-unsigned Signature::addRationalConstant(const RationalConstantType& value)
-{
-  vstring key = value.toString() + "_q";
-  unsigned result;
-  if (_funNames.find(key, result)) {
-    return result;
-  }
-  _rationals++;
-  result = _funs.length();
-  _funs.push(new RationalSymbol(value));
-  _funNames.insert(key, result);
-  return result;
-} // Signature::addRationalConstant
-
-/**
- * Add a real constant to the signature. If defaultSort is true, treat it as
- * a term of the default sort, otherwise as an interepreted real value.
- * @since 03/05/2013 London
- * @author Andrei Voronkov
- */
-unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
-{
-  RealConstantType value(number);
-  if (!defaultSort) {
-    return addRealConstant(value);
-  }
-  vstring key = value.toString() + "_r";
-  unsigned result;
-  if (_funNames.find(key,result)) {
-    return result;
-  }
-  result = _funs.length();
-  Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
-  /*
-  if(defaultSort){ 
-    sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
-  }
-  sym->addToDistinctGroup(REAL_DISTINCT_GROUP,result);
-  */
-  _funs.push(sym);
-  _funNames.insert(key,result);
-  return result;
-} // addRealConstant
-
-unsigned Signature::addRealConstant(const RealConstantType& value)
-{
-  vstring key = value.toString() + "_r";
-  unsigned result;
-  if (_funNames.find(key, result)) {
-    return result;
-  }
-  _reals++;
-  result = _funs.length();
-  _funs.push(new RealSymbol(value));
-  _funNames.insert(key, result);
-  return result;
-}
-
-/**
  * Add interpreted function
  */
-unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const vstring& name)
+unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const std::string& name)
 {
   ASS(Theory::isFunction(interpretation));
 
@@ -428,7 +287,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
     return res;
   }
 
-  vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
+  auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
   ASS_REP(!_funNames.find(symbolKey), name);
 
   unsigned fnNum = _funs.length();
@@ -446,7 +305,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
 /**
  * Add interpreted predicate
  */
-unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const vstring& name)
+unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const std::string& name)
 {
   ASS(!Theory::isFunction(interpretation));
 
@@ -462,7 +321,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
     return res;
   }
 
-  vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
+  auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
 
   // cout << "symbolKey " << symbolKey << endl;
 
@@ -496,7 +355,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
     return res;
   }
 
-  vstring name = theory->getInterpretationName(interp);
+  std::string name = theory->getInterpretationName(interp);
   unsigned arity = Theory::getArity(interp);
   
   if (Theory::isFunction(interp)) {
@@ -524,18 +383,18 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
   return _iSymbols.get(mi);
 }
 
-const vstring& Signature::functionName(int number)
+const std::string& Signature::functionName(int number)
 {
   // it is safe to reuse "$true" and "$false" for constants
   // because the user cannot define constants with these names herself
   // and the formula, obtained by toString() with "$true" or "$false"
   // in term position would be syntactically valid in FOOL
   if (!env.options->showFOOL() && isFoolConstantSymbol(false,number)) {
-    static vstring fols("$false");
+    static std::string fols("$false");
     return fols;
   }
   if (!env.options->showFOOL() && isFoolConstantSymbol(true,number)) { 
-    static vstring troo("$true");
+    static std::string troo("$true");
     return troo;
   }
   return _funs[number]->name();
@@ -544,7 +403,7 @@ const vstring& Signature::functionName(int number)
 /**
  * Return true if specified function exists
  */
-bool Signature::functionExists(const vstring& name,unsigned arity) const
+bool Signature::functionExists(const std::string& name,unsigned arity) const
 {
   return _funNames.find(key(name, arity));
 }
@@ -552,7 +411,7 @@ bool Signature::functionExists(const vstring& name,unsigned arity) const
 /**
  * Return true if specified predicate exists
  */
-bool Signature::predicateExists(const vstring& name,unsigned arity) const
+bool Signature::predicateExists(const std::string& name,unsigned arity) const
 {
   return _predNames.find(key(name, arity));
 }
@@ -560,18 +419,18 @@ bool Signature::predicateExists(const vstring& name,unsigned arity) const
 /**
  * Return true if specified type constructor exists
  */
-bool Signature::typeConExists(const vstring& name,unsigned arity) const
+bool Signature::typeConExists(const std::string& name,unsigned arity) const
 {
   return _typeConNames.find(key(name, arity));
 }
 
-unsigned Signature::getFunctionNumber(const vstring& name, unsigned arity) const
+unsigned Signature::getFunctionNumber(const std::string& name, unsigned arity) const
 {
   ASS(_funNames.find(key(name, arity)));
   return _funNames.get(key(name, arity));
 }
 
-bool Signature::tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const
+bool Signature::tryGetFunctionNumber(const std::string& name, unsigned arity, unsigned& out) const
 {
   auto* value = _funNames.getPtr(key(name, arity));
   if (value != NULL) {
@@ -582,7 +441,7 @@ bool Signature::tryGetFunctionNumber(const vstring& name, unsigned arity, unsign
   }
 }
 
-bool Signature::tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const
+bool Signature::tryGetPredicateNumber(const std::string& name, unsigned arity, unsigned& out) const
 {
   auto* value = _predNames.getPtr(key(name, arity));
   if (value != NULL) {
@@ -594,7 +453,7 @@ bool Signature::tryGetPredicateNumber(const vstring& name, unsigned arity, unsig
 }
 
 
-unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) const
+unsigned Signature::getPredicateNumber(const std::string& name, unsigned arity) const
 {
   ASS(_predNames.find(key(name, arity)));
   return _predNames.get(key(name, arity));
@@ -607,15 +466,13 @@ unsigned Signature::getPredicateNumber(const vstring& name, unsigned arity) cons
  * @param name name of the symbol
  * @param arity arity of the symbol
  * @param added will be set to true if the function did not exist
- * @param overflowConstant
  * @since 07/05/2007 Manchester
  */
-unsigned Signature::addFunction (const vstring& name,
+unsigned Signature::addFunction (const std::string& name,
 				 unsigned arity,
-				 bool& added,
-				 bool overflowConstant)
+				 bool& added)
 {
-  vstring symbolKey = key(name,arity);
+  auto symbolKey = key(name,arity);
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     added = false;
@@ -627,7 +484,7 @@ unsigned Signature::addFunction (const vstring& name,
     if (_arityCheck.find(name,prev)) {
       unsigned prevArity = prev/2;
       bool isFun = prev % 2;
-      USER_ERROR((vstring)"Symbol " + name +
+      USER_ERROR((std::string)"Symbol " + name +
 		 " is used both as a function of arity " + Int::toString(arity) +
 		 " and a " + (isFun ? "function" : "predicate") +
 		 " of arity " + Int::toString(prevArity));
@@ -636,7 +493,11 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
+  bool super = (name == "$tType");
+  _funs.push(new Symbol(name, arity, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ super, 
+                                super));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -647,18 +508,23 @@ unsigned Signature::addFunction (const vstring& name,
  * added to the distinct group STRING_DISTINCT_GROUP.
  * @author Andrei Voronkov
  */
-unsigned Signature::addStringConstant(const vstring& name)
+unsigned Signature::addStringConstant(const std::string& name)
 {
-  vstring symbolKey = name + "_c";
+  auto symbolKey = SymbolKey(name);
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
     return result;
   }
 
   _strings++;
-  vstring quotedName = "\"" + name + "\"";
+  // TODO shouldn't we also quote inside of name?
+  std::string quotedName = "\"" + name + "\"";
   result = _funs.length();
-  Symbol* sym = new Symbol(quotedName,0,false,true);
+  Symbol* sym = new Symbol(quotedName,
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ true, 
+        /*             super */ false);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
@@ -696,6 +562,43 @@ unsigned Signature::getDiff(){
   return diff;
 }
 
+
+unsigned Signature::getFnDef(unsigned fn)
+{
+  auto type = getFunction(fn)->fnType();
+  auto sort = type->result();
+  bool added = false;
+  auto name = "sFN_"+getFunction(fn)->name();
+  unsigned p = addPredicate(name, 2+type->numTypeArguments(), added);
+  if (added) {
+    ALWAYS(_fnDefPreds.insert(p));
+    OperatorType* ot = OperatorType::getPredicateType({sort, sort}, type->numTypeArguments());
+    Symbol* sym = getPredicate(p);
+    sym->markProtected();
+    sym->setType(ot);
+  }
+  return p;
+}
+
+unsigned Signature::getBoolDef(unsigned fn)
+{
+  auto type = getPredicate(fn)->predType();
+  auto name = "sPN_"+getPredicate(fn)->name();
+  bool added = false;
+  auto p = addPredicate(name, type->arity(), added);
+  if (added) {
+    ALWAYS(_boolDefPreds.insert(p,fn));
+    TermStack sorts;
+    for (unsigned i = type->numTypeArguments(); i < type->arity(); i++) {
+      sorts.push(type->arg(i));
+    }
+    OperatorType* ot = OperatorType::getPredicateType(sorts.size(), sorts.begin(), type->numTypeArguments());
+    Symbol* sym = getPredicate(p);
+    sym->markProtected();
+    sym->setType(ot);
+  }
+  return p;
+}
 
 unsigned Signature::getChoice(){
   bool added = false;
@@ -753,11 +656,11 @@ unsigned Signature::formulaCount(Term* t){
  * If a type constructor with this name and arity exists, return its number.
  * Otherwise, add a new one and return its number.
  */
-unsigned Signature::addTypeCon (const vstring& name,
+unsigned Signature::addTypeCon (const std::string& name,
          unsigned arity,
          bool& added)
 {
-  vstring symbolKey = key(name,arity);
+  auto symbolKey = key(name,arity);
   unsigned result;
   if (_typeConNames.find(symbolKey,result)) {
     added = false;
@@ -766,7 +669,7 @@ unsigned Signature::addTypeCon (const vstring& name,
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  _typeCons.push(new Symbol(name,arity));
+  _typeCons.push(new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* super */ false));
   _typeConNames.insert(symbolKey,result);
   added = true;
   return result;
@@ -785,11 +688,11 @@ unsigned Signature::addTypeCon (const vstring& name,
  * @since 06/12/2009 Haifa, arity check added
  * @author Andrei Voronkov
  */
-unsigned Signature::addPredicate (const vstring& name,
+unsigned Signature::addPredicate (const std::string& name,
 				  unsigned arity,
 				  bool& added)
 {
-  vstring symbolKey = key(name,arity);
+  auto symbolKey = key(name,arity);
   unsigned result;
   if (_predNames.find(symbolKey,result)) {
     added = false;
@@ -801,7 +704,7 @@ unsigned Signature::addPredicate (const vstring& name,
     if (_arityCheck.find(name,prev)) {
       unsigned prevArity = prev/2;
       bool isFun = prev % 2;
-      USER_ERROR((vstring)"Symbol " + name +
+      USER_ERROR((std::string)"Symbol " + name +
 		 " is used both as a predicate of arity " + Int::toString(arity) +
 		 " and a " + (isFun ? "function" : "predicate") +
 		 " of arity " + Int::toString(prevArity));
@@ -810,7 +713,10 @@ unsigned Signature::addPredicate (const vstring& name,
   }
 
   result = _preds.length();
-  _preds.push(new Symbol(name,arity));
+  _preds.push(new Symbol(name, arity, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ false, 
+        /*             super */ false));
   _predNames.insert(symbolKey,result);
   added = true;
   return result;
@@ -839,8 +745,8 @@ unsigned Signature::addNameFunction(unsigned arity)
  */
 unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const char* suffix)
 {
-  vstring pref(prefix);
-  vstring suf(suffix ? vstring("_")+suffix : "");
+  std::string pref(prefix);
+  std::string suf(suffix ? std::string("_")+suffix : "");
   bool added;
   unsigned result;
   //commented out because it could lead to introduction of function with the same name
@@ -867,8 +773,8 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
  */
 unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix)
 {
-  vstring pref(prefix);
-  vstring suf(suffix ? vstring("_")+suffix : "");
+  std::string pref(prefix);
+  std::string suf(suffix ? std::string("_")+suffix : "");
   bool added;
   unsigned result;
 
@@ -893,8 +799,8 @@ unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix, const ch
  */
 unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const char* suffix)
 {
-  vstring pref(prefix);
-  vstring suf(suffix ? vstring("_")+suffix : "");
+  std::string pref(prefix);
+  std::string suf(suffix ? std::string("_")+suffix : "");
   bool added = false;
   unsigned result;
   //commented out because it could lead to introduction of function with the same name
@@ -979,9 +885,9 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
  * @since 27/02/2006 Redmond
  * @author Andrei Voronkov
  */
-vstring Signature::key(const vstring& name,int arity)
+Signature::SymbolKey Signature::key(const std::string& name,int arity)
 {
-  return name + '_' + Int::toString(arity);
+  return SymbolKey(std::make_pair(name,unsigned(arity)));
 } // Signature::key
 
 
@@ -1030,14 +936,14 @@ void Signature::addToDistinctGroup(unsigned constantSymbol, unsigned groupId)
   sym->addToDistinctGroup(groupId,constantSymbol);
 }
 
-bool Signature::isProtectedName(vstring name)
+bool Signature::isProtectedName(std::string name)
 {
   if (name=="$distinct") {
     //TODO: remove this hack once we properly support the $distinct predicate
     return true;
   }
 
-  vstring protectedPrefix = env.options->protectedPrefix();
+  std::string protectedPrefix = env.options->protectedPrefix();
   if (protectedPrefix.size()==0) {
     return false;
   }
@@ -1073,7 +979,7 @@ bool Signature::isProtectedName(vstring name)
  * @since 03/05/2013 train Manchester-London
  * @since 04/05/2015 Gothenburg -- do not quote FOOL true and false
  */
-bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity)
+bool Signature::symbolNeedsQuoting(std::string name, bool interpreted, unsigned arity)
 {
   ASS_G(name.length(),0);
 

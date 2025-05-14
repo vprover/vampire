@@ -17,10 +17,12 @@
 #ifndef __Parser_TPTP__
 #define __Parser_TPTP__
 
+#include <filesystem>
 #include <iostream>
+#include <unordered_set>
 
+#include "Forwards.hpp"
 #include "Lib/Array.hpp"
-#include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/IntNameTable.hpp"
@@ -29,25 +31,22 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 //#define DEBUG_SHOW_STATE
-
-using namespace Lib;
-using namespace Kernel;
 
 namespace Kernel {
   class Clause;
 };
 
 namespace Parse {
-
-class TPTP;
+  using namespace Kernel;
 
 /**
  * Implements a TPTP parser
  * @since 08/04/2011 Manchester
  */
-class TPTP 
+class TPTP
 {
 public:
   /** Token types */
@@ -290,40 +289,55 @@ public:
   struct Token {
     /** token type */
     Tag tag;
-    /** position of the beginning of this token */
-    int start;
     /** content */
-    vstring content;
-    vstring toString() const;
+    std::string content;
+    std::string toString() const;
   };
 
   /**
    * Implements lexer and parser exceptions.
    */
-  class ParseErrorException 
-    : public ::Exception
+  class ParseErrorException
+    : public ParsingRelatedException
   {
   public:
-    ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
-    ParseErrorException(vstring message,Token& tok,unsigned ln);
-    ParseErrorException(vstring message,int position,unsigned ln);
+    ParseErrorException(std::string message, std::filesystem::path path, unsigned ln)
+      : _message(message), _path(path), _ln(ln) {}
+    ParseErrorException(std::string message, Token& tok, std::filesystem::path path, unsigned ln)
+      : ParseErrorException(message + " (text: " + tok.toString() + ')', path, ln) {}
     void cry(std::ostream&) const;
     ~ParseErrorException() {}
   protected:
-    vstring _message;
-    unsigned _ln;
+    std::string _message;
+    std::filesystem::path _path;
+    unsigned _ln = 0;
   }; // TPTP::ParseErrorException
-  friend class Exception;
 
-#define PARSE_ERROR(msg,tok) \
-  throw ParseErrorException(msg,tok,_lineNumber)
+#define PARSE_ERROR_TOK(msg,tok) \
+  throw ParseErrorException(msg,tok,currentFile.path,currentFile.lineNumber)
+#define PARSE_ERROR(msg) \
+  throw ParseErrorException(msg,currentFile.path,currentFile.lineNumber)
 
-  TPTP(std::istream& in);
+  /**
+   * @brief Construct a new TPTP parser.
+   *
+   * @param in is the stream with the raw input to read
+   * @param unitBuffer is FIFO of units to which newly parsed Clauses/Formulas
+   *   will be added (via pushBack);
+   *
+   *  if left unspeficied, and empty fifo is created and used instead.
+   *  (use this default behaviour if you do not want to collect formulas
+   *   from multiple parser calls)
+   */
+  TPTP(std::istream &in, UnitList::FIFO unitBuffer = UnitList::FIFO());
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
+  static Clause* parseClauseFromString(const std::string& str);
   /** Return the list of parsed units */
-  inline UnitList* units() { return _units.list(); }
+  UnitList* units() const { return _units.list(); }
+  /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
+  UnitList::FIFO unitBuffer() const { return _units; }
   /**
    * Return true if there was a conjecture formula among the parsed units
    *
@@ -332,12 +346,21 @@ public:
    * based on this value.
    */
   bool containsConjecture() const { return _containsConjecture; }
-  void addForbiddenInclude(vstring file);
-  static bool findAxiomName(const Unit* unit, vstring& result);
+  static bool findAxiomName(const Unit* unit, std::string& result);
   //this function is used also by the API
-  static void assignAxiomName(const Unit* unit, vstring& name);
-  unsigned lineNumber(){ return _lineNumber; }
+  static void assignAxiomName(const Unit* unit, std::string& name);
+  unsigned lineNumber(){ return currentFile.lineNumber; }
+  std::string currentPath(){ return currentFile.path; }
+
+  static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
+    auto res = _questionVariableNames.findPtr(questionNumber);
+    return res ? *res : nullptr;
+  }
+  static bool seenQuestions() {
+    return !_questionVariableNames.isEmpty();
+  }
 private:
+  void parseImpl(State initialState = State::UNIT_LIST);
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 
@@ -439,46 +462,15 @@ private:
      VList* _vars;
   }; // ProductType
 
-  /**
-   * Class that allows to create a list initially by pushing elements
-   * at the end of it.
-   * @since 10/05/2007 Manchester, updated from List::FIFO
-   */
-  class UnitStack {
-  public:
-    /** constructor */
-    inline explicit UnitStack()
-      : _initial(0),
-	_last(&_initial)
-    {}
-
-    /** add element at the end of the original list */
-    inline void push(Unit* u)
-    {
-      UnitList* newList = new UnitList(u);
-      *_last = newList;
-      _last = reinterpret_cast<UnitList**>(&newList->tailReference());
-    }
-
-    /** Return the collected list */
-    UnitList* list() { return _initial; }
-
-  private:
-    /** reference to the initial element */
-    UnitList* _initial;
-    /** last element */
-    UnitList** _last;
-  }; // class UnitStack
-
   enum TheorySort {
     /** $array theoy */
     TS_ARRAY,
   };
-  static bool findTheorySort(const vstring name, TheorySort &ts) {
-    static const vstring theorySortNames[] = {
+  static bool findTheorySort(const std::string name, TheorySort &ts) {
+    static const std::string theorySortNames[] = {
       "$array"
     };
-    static const unsigned theorySorts = sizeof(theorySortNames)/sizeof(vstring);
+    static const unsigned theorySorts = sizeof(theorySortNames)/sizeof(std::string);
     for (unsigned sort = 0; sort < theorySorts; sort++) {
       if (theorySortNames[sort] == name) {
         ts = static_cast<TheorySort>(sort);
@@ -487,7 +479,7 @@ private:
     }
     return false;
   }
-  static bool isTheorySort(const vstring name) {
+  static bool isTheorySort(const std::string name) {
     static TheorySort dummy;
     return findTheorySort(name, dummy);
   }
@@ -504,11 +496,11 @@ private:
     /** $array theory */
     TF_SELECT, TF_STORE
   };
-  static bool findTheoryFunction(const vstring name, TheoryFunction &tf) {
-    static const vstring theoryFunctionNames[] = {
+  static bool findTheoryFunction(const std::string name, TheoryFunction &tf) {
+    static const std::string theoryFunctionNames[] = {
       "$select", "$store"
     };
-    static const unsigned theoryFunctions = sizeof(theoryFunctionNames)/sizeof(vstring);
+    static const unsigned theoryFunctions = sizeof(theoryFunctionNames)/sizeof(std::string);
     for (unsigned fun = 0; fun < theoryFunctions; fun++) {
       if (theoryFunctionNames[fun] == name) {
         tf = static_cast<TheoryFunction>(fun);
@@ -517,7 +509,7 @@ private:
     }
     return false;
   }
-  static bool isTheoryFunction(const vstring name) {
+  static bool isTheoryFunction(const std::string name) {
     static TheoryFunction dummy;
     return findTheoryFunction(name, dummy);
   }
@@ -530,58 +522,50 @@ private:
     return tf;
   }
 
+  TermList* nLastTermLists(unsigned n)
+  { return n == 0 ? nullptr : &_termLists[_termLists.size() - n]; }
+
   /** true if the input contains a conjecture */
   bool _containsConjecture;
-  /** Allowed names of formulas.
-   * If non-null, ignore formulas not included in _allowedNames.
-   * This is to support the feature formula_selection of the include
-   * directive of the TPTP format.
- */
-  Set<vstring>* _allowedNames;
-  /** stacks of allowed names when include is used */
-  Stack<Set<vstring>*> _allowedNamesStack;
-  /** set of files whose inclusion should be ignored */
-  Set<vstring> _forbiddenIncludes;
-  /** the input stream */
-  std::istream* _in;
-  /** in the case include() is used, previous streams will be saved here */
-  Stack<std::istream*> _inputs;
-  /** the current include directory */
-  vstring _includeDirectory;
-  /** in the case include() is used, previous sequence of directories will be
-   * saved here, this is required since TPTP requires the directory to be
-   * relative to the "current directory, that is, the directory used by the last include()
-   */
-  Stack<vstring> _includeDirectories;
+
+  // all the state associated with parsing a single file
+  struct FileState {
+    // the input stream: raw pointer because UIHelper might own it
+    // TODO fix ownership of streams
+    std::istream *in = nullptr;
+    // include() can optionally give a formula_selection list of names to import: the rest should be ignored
+    std::unordered_set<std::string> allowedNames;
+
+    // name of the file for error reporting
+    std::filesystem::path path;
+    // current line number for parse errors
+    unsigned lineNumber;
+  } currentFile;
+  // stack of states to restore after finishing an include() directive
+  std::vector<FileState> restoreFiles;
+
   /** input characters */
   Array<char> _chars;
-  /** position in the input stream of the 0th character in _chars[] */
-  int _gpos;
   /** the position beyond the last read characters */
   int _cend;
   /** tokens currently at work */
   Array<Token> _tokens;
   /** the position beyond the last processed token */
   int _tend;
-  /** line number */
-  unsigned _lineNumber;
-  /** The stack of units read */
-  UnitStack _units;
+  /** The list of units read (with additions directed to the end) */
+  UnitList::FIFO _units;
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   UnitInputType _lastInputType;
-  /** true if the last read unit is a question */ 
+  /** true if the last read unit is a question */
   bool _isQuestion;
-  /** true if the last read unit is fof() or cnf() due to a subtle difference
-   * between fof() and tff() in treating numeric constants */ 
-  bool _isFof;
   /** */
   bool _isThf;
   /** */
   bool _containsPolymorphism;
   /** various strings saved during parsing */
-  Stack<vstring> _strings;
+  Stack<std::string> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
   Stack<int> _connectives;
   /** various boolean values saved during parsing */
@@ -604,6 +588,8 @@ private:
   Stack<TermList> _termLists;
   /** name table for variable names */
   IntNameTable _vars;
+  /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
+  Map<int,std::string> _curQuestionVarNames;
   /** parsed types */
   Stack<Type*> _types;
   /** various type tags saved during parsing */
@@ -612,13 +598,13 @@ private:
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
   Map<unsigned,SList*> _variableSorts;
-  /** overflown arithmetical constants for which uninterpreted constants are introduced */
-  Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
+  /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
+  RobSubstitution _substScratchpad;
 
   /** a function name and arity */
-  typedef std::pair<vstring, unsigned> LetSymbolName;
+  typedef std::pair<std::string, unsigned> LetSymbolName;
 
   /** a symbol number with a predicate/function flag */
   typedef std::pair<unsigned, bool> LetSymbolReference;
@@ -658,7 +644,7 @@ private:
   inline char getChar(int pos)
   {
     while (_cend <= pos) {
-      int c = _in->get();
+      int c = currentFile.in->get();
       //      if (c == -1) { std::cout << "<EOF>"; } else {std::cout << char(c);}
       _chars[_cend++] = c == -1 ? 0 : c;
     }
@@ -677,7 +663,6 @@ private:
       _chars[i] = _chars[n+i];
     }
     _cend -= n;
-    _gpos += n;
   } // shiftChars
 
   /**
@@ -686,7 +671,6 @@ private:
    */
   inline void resetChars()
   {
-    _gpos += _cend;
     _cend = 0;
   } // resetChars
 
@@ -735,7 +719,7 @@ private:
   Tag readNumber(Token&);
   int decimal(int pos);
   int positiveDecimal(int pos);
-  static vstring toString(Tag);
+  static std::string toString(Tag);
 
   // parser functions
   static Formula* makeJunction(Connective c,Formula* lhs,Formula* rhs);
@@ -744,7 +728,7 @@ private:
   void tff();
   void vampire();
   void consumeToken(Tag);
-  vstring name();
+  std::string name();
   void formula();
   void funApp();
   void simpleFormula();
@@ -758,9 +742,9 @@ private:
   void endTerm();
   void endArgs();
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
-  Formula* createPredicateApplication(vstring name,unsigned arity);
-  TermList createFunctionApplication(vstring name,unsigned arity);
-  TermList createTypeConApplication(vstring name,unsigned arity);
+  Formula* createPredicateApplication(std::string name,unsigned arity);
+  TermList createFunctionApplication(std::string name,unsigned arity);
+  TermList createTypeConApplication(std::string name,unsigned arity);
   void endEquality();
   void midEquality();
   void formulaInfix();
@@ -772,6 +756,7 @@ private:
   void tag();
   void endFof();
   void endTff();
+  std::filesystem::path resolveInclude(const std::filesystem::path included);
   void include();
   void type();
   void endIte();
@@ -794,7 +779,7 @@ private:
   void endApp();
   void holFormula();
   void endHolFormula();
-  void holTerm();  
+  void holTerm();
   void foldl(TermStack*);
   TermList readArrowSort();
   void readTypeArgs(unsigned arity);
@@ -804,31 +789,42 @@ private:
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();
-  unsigned addFunction(vstring name,int arity,bool& added,TermList& someArgument);
-  int addPredicate(vstring name,int arity,bool& added,TermList& someArgument);
-  unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
+  unsigned addFunction(std::string name,int arity,bool& added,TermList& someArgument);
+  int addPredicate(std::string name,int arity,bool& added,TermList& someArgument);
+  unsigned addOverloadedFunction(std::string name,int arity,int symbolArity,bool& added,TermList& arg,
 				 Theory::Interpretation integer,Theory::Interpretation rational,
 				 Theory::Interpretation real);
-  unsigned addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
+  unsigned addOverloadedPredicate(std::string name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
   TermList sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
-  vstring convert(Tag t);
+  std::string convert(Tag t);
 
-  bool findInterpretedPredicate(vstring name, unsigned arity);
+  bool findInterpretedPredicate(std::string name, unsigned arity);
 
   OperatorType* constructOperatorType(Type* t, VList* vars = 0);
 
 public:
-  // make the tptp routines for dealing with overflown constants available to other parsers
-  static unsigned addIntegerConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
-  static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
-  static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
-  static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
+
+  /**
+   * Add a numeral constant by reading it from the std::string name.
+   */
+  template<class Numeral>
+  static unsigned addNumeralConstant(const std::string& name)
+  {
+    if (auto n = Numeral::parse(name)) {
+      return env.signature->addNumeralConstant(*n);
+    } else {
+      throw UserErrorException("not a valid ", Numeral::getSort(), " literal: ", name);
+    }
+  } 
+
+
+  static unsigned addUninterpretedConstant(const std::string& name, bool& added);
 
   // also here, simply made public static to share the code with another use site
-  static Unit* processClaimFormula(Unit* unit, Formula* f, const vstring& nm);
+  static Unit* processClaimFormula(Unit* unit, Formula* f, const std::string& nm);
 
   /**
    * Used to store the contents of the 'source' of an input formula
@@ -839,18 +835,18 @@ public:
     virtual bool isFile() = 0;
   };
   struct FileSourceRecord : SourceRecord {
-    const vstring fileName;
-    const vstring nameInFile;
-    bool isFile(){ return true; } 
-    FileSourceRecord(vstring fN, vstring nF) : fileName(fN), nameInFile(nF) {}
+    const std::string fileName;
+    const std::string nameInFile;
+    bool isFile(){ return true; }
+    FileSourceRecord(std::string fN, std::string nF) : fileName(fN), nameInFile(nF) {}
   };
   struct InferenceSourceRecord : SourceRecord{
-    const vstring name;
-    Stack<vstring> premises; 
-    bool isFile(){ return false; } 
-    InferenceSourceRecord(vstring n) : name(n) {}
+    const std::string name;
+    Stack<std::string> premises;
+    bool isFile(){ return false; }
+    InferenceSourceRecord(std::string n) : name(n) {}
   };
-  
+
   void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
     _unitSources = m;
   }
@@ -863,18 +859,30 @@ private:
 
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
-  static DHMap<unsigned, vstring> _axiomNames;
+  static DHMap<unsigned, std::string> _axiomNames;
+
+  /**
+   * During question parsing, we store the mapping from int variables
+   * back to their original (v)string names, for nicer user reporting.
+   *
+   * This map stores, for each question (by unit number)
+   * a map of such parsed variable name bingings.
+   *
+   * (Can there be more than one question? Yes, e.g., in the interactive mode.)
+   */
+  static DHMap<unsigned, Map<int,std::string>*> _questionVariableNames;
+
   /** Stores the type arities of function symbols */
-  DHMap<vstring, unsigned> _typeArities;
-  DHMap<vstring, unsigned> _typeConstructorArities;
+  DHMap<std::string, unsigned> _typeArities;
+  DHMap<std::string, unsigned> _typeConstructorArities;
 
   bool _filterReserved;
   bool _seenConjecture;
 
 
 #if VDEBUG
-  void printStates(vstring extra);
-  void printInts(vstring extra);
+  void printStates(std::string extra);
+  void printInts(std::string extra);
   const char* toString(State s);
 #endif
 #ifdef DEBUG_SHOW_STATE

@@ -92,7 +92,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
         auto termArgs = termArgIter(lit)
           .map([&](TermList term) -> TermList { 
               auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, j++)));
-              auto res = evaluateBottomUp(norm, eval);
+              auto res = BottomUpEvaluation<typename EvalFn::Arg, typename EvalFn::Result>().function(eval).apply(norm);
               if (res != norm) {
                 DEBUG_CODE(anyChange = true);
                 DEBUG("generalized: ", norm, " -> ", res);
@@ -117,11 +117,9 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
             case Ordering::LESS:
               oneLess = true;
               break;
-            case Ordering::LESS_EQ:
             case Ordering::EQUAL:
               break;
             case Ordering::GREATER:
-            case Ordering::GREATER_EQ:
             case Ordering::INCOMPARABLE:
               allLessEq = false;
               DEBUG("ordering violation: ", cmp)
@@ -159,8 +157,8 @@ struct Top {};
 /** type to represent the bottom element in a lattice */
 struct Bot {};
 
-ostream& operator<<(ostream& out, Bot self) { return out << "bot"; }
-ostream& operator<<(ostream& out, Top self) { return out << "top"; }
+std::ostream& operator<<(std::ostream& out, Bot self) { return out << "bot"; }
+std::ostream& operator<<(std::ostream& out, Top self) { return out << "top"; }
 bool operator==(Top,Top) { return true; }
 bool operator==(Bot,Bot) { return true; }
 
@@ -175,13 +173,13 @@ struct EvaluateAnyPoly
   PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
   {
     auto out = term.match(
-        [&](Perfect<FuncTerm> t) -> PolyNf
-        { return perfect(FuncTerm(t->function(), evaluatedArgs)); },
+        [&](Perfect<FuncTerm> t)
+        { return PolyNf(perfect(FuncTerm(t->function(), evaluatedArgs))); },
 
-        [&](Variable v) 
-        { return v; },
+        [&](Variable v)
+        { return PolyNf(v); },
 
-        [&](AnyPoly p) 
+        [&](AnyPoly p)
         { return PolyNf(eval(p, evaluatedArgs)); }
         );
     return out;
@@ -287,7 +285,7 @@ public:
   A      & unwrap()
   { return _inner.template unwrap<A>(); }
 
-  friend ostream& operator<<(ostream& out, FlatMeetLattice const& self) 
+  friend std::ostream& operator<<(std::ostream& out, FlatMeetLattice const& self) 
   { return out << self._inner; }
 
 private:
@@ -328,10 +326,10 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
 }
 
 
-#include "ArithmeticSubtermGeneralization/NumeralMultiplicationGeneralizationImpl.cpp"
-#include "ArithmeticSubtermGeneralization/AdditionGeneralizationImpl.cpp"
-#include "ArithmeticSubtermGeneralization/VariableMultiplicationGeneralizationImpl.cpp"
-#include "ArithmeticSubtermGeneralization/VariablePowerGeneralizationImpl.cpp"
+#include "ArithmeticSubtermGeneralization/NumeralMultiplicationGeneralizationImpl.hpp"
+#include "ArithmeticSubtermGeneralization/AdditionGeneralizationImpl.hpp"
+#include "ArithmeticSubtermGeneralization/VariableMultiplicationGeneralizationImpl.hpp"
+#include "ArithmeticSubtermGeneralization/VariablePowerGeneralizationImpl.hpp"
 
 SimplifyingGeneratingInference1::Result AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 

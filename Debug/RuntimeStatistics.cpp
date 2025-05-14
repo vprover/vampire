@@ -26,9 +26,9 @@ namespace Debug
 
 using namespace std;
 
-void RSMultiCounter::print(ostream& out)
+void RSMultiCounter::print(std::ostream& out)
 {
-  out << name() << ":"<< endl;
+  out << "% " << name() << ":"<< endl;
   for(size_t i=0;i<_counters.size();i++) {
     if(_counters[i]) {
       out << "  " << i << ": " << _counters[i] <<endl;
@@ -43,9 +43,9 @@ RSMultiStatistic::~RSMultiStatistic()
   }
 }
 
-void RSMultiStatistic::print(ostream& out)
+void RSMultiStatistic::print(std::ostream& out)
 {
-  out << name() << ":"<< endl;
+  out << "% " << name() << ":"<< endl;
   for(size_t i=0;i<_values.size();i++) {
     if(_values[i]) {
 
@@ -67,8 +67,7 @@ void RSMultiStatistic::print(ostream& out)
 	  max=val;
 	}
       }
-      
-      out << "  " << i << ": " << 
+      out << "  " << i << ": " <<
               "cnt: "+Int::toString(cnt)+
               ", avg: "+Int::toString(static_cast<float>(sum)/cnt)+
               ", min: "+Int::toString(min)+
@@ -96,16 +95,16 @@ RuntimeStatistics::~RuntimeStatistics()
   }
 }
 
-void RuntimeStatistics::print(ostream& out)
+void RuntimeStatistics::print(std::ostream& out)
 {
-  out<<"----  Runtime statistics ----"<<endl;
+  out<<"% ----  Runtime statistics ----"<<endl;
 
   ObjSkipList::Iterator it(_objs);
   while(it.hasNext()) {
     it.next()->print(out);
   }
 
-  out<<"-----------------------------"<<endl;
+  out<<"% -----------------------------"<<endl;
 }
 
 

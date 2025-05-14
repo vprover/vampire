@@ -42,13 +42,11 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
     return unit;
   }
 
-  FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::ENNF,unit));
+  FormulaUnit* res = new FormulaUnit(g,FormulaClauseTransformation(InferenceRule::ENNF,unit));
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] ennf in: " << unit->toString() << std::endl;
-    env.out() << "[PP] ennf out: " << res->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] ennf in: " << unit->toString() << std::endl;
+    std::cout << "[PP] ennf out: " << res->toString() << std::endl;
   }
 
   return res;
@@ -71,7 +69,7 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
     return unit;
   }
 
-  return new FormulaUnit(g,FormulaTransformation(InferenceRule::NNF,unit));
+  return new FormulaUnit(g,FormulaClauseTransformation(InferenceRule::NNF,unit));
 } // NNF::nnf
 
 
@@ -248,7 +246,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->specialFunctor()) {
-      case Term::SpecialFunctor::FORMULA: {
+      case SpecialFunctor::FORMULA: {
         Formula* f = sd->getFormula();
         Formula* ennfF = ennf(f, polarity);
         switch (ennfF->connective()) {
@@ -267,7 +265,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SpecialFunctor::ITE: {
+      case SpecialFunctor::ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
         Formula* condition  = sd->getCondition();
@@ -286,7 +284,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SpecialFunctor::LET: {
+      case SpecialFunctor::LET: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -301,7 +299,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SpecialFunctor::LET_TUPLE: {
+      case SpecialFunctor::LET_TUPLE: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -316,7 +314,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SpecialFunctor::TUPLE: {
+      case SpecialFunctor::TUPLE: {
         TermList tupleTerm = TermList(sd->getTupleTerm());
         TermList ennfTupleTerm = ennf(tupleTerm, true);
 
@@ -329,9 +327,9 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SpecialFunctor::LAMBDA:
+      case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case Term::SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
@@ -388,22 +386,21 @@ FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
     return fs;
   }
 
-  FormulaList* result = FormulaList::empty();
-  FormulaList::FIFO stack(result);
+  FormulaList::FIFO result;
   bool changed = false;
   FormulaList::Iterator it(fs);
   while (it.hasNext()) {
     Formula* f = it.next();
     Formula* g = ennf(f,polarity);
-    stack.pushBack(g);
+    result.pushBack(g);
     if (f != g) {
       changed = true;
     }
   }
   if (changed) {
-    return result;
+    return result.list();
   }
-  FormulaList::destroy(result);
+  FormulaList::destroy(result.list());
   return fs;
 } // NNF::ennf(FormulaList...)
 
@@ -535,22 +532,21 @@ FormulaList* NNF::nnf (FormulaList* fs, bool polarity)
     return fs;
   }
 
-  FormulaList* result = FormulaList::empty();
-  FormulaList::FIFO stack(result);
+  FormulaList::FIFO result;
   bool changed = false;
   FormulaList::Iterator it(fs);
   while (it.hasNext()) {
     Formula* f = it.next();
     Formula* g = nnf(f,polarity);
-    stack.pushBack(g);
+    result.pushBack(g);
     if (f != g) {
       changed = true;
     }
   }
   if (changed) {
-    return result;
+    return result.list();
   }
-  FormulaList::destroy(result);
+  FormulaList::destroy(result.list());
   return fs;
 } // NNF::nnf(FormulaList...)
 

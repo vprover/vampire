@@ -34,11 +34,13 @@
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
+#include "Kernel/NumTraits.hpp"
 
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-using namespace Shell;
+namespace Shell {
+
 
 /**
  * Initialize Property. Must be applied to the preprocessed problem.
@@ -89,7 +91,13 @@ Property::Property()
     _allClausesGround(true),
     _allNonTheoryClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
-    _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
+    _hasNumeralsInt(false),
+    _hasNumeralsRat(false),
+    _hasNumeralsReal(false),
+    _nonLinearInt(false),
+    _nonLinearRat(false),
+    _nonLinearReal(false),
+    _smtlibLogic(SMTLIBLogic::UNDEFINED)
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
 } // Property::Property
@@ -424,19 +432,16 @@ void Property::scan(Formula* f, int polarity)
     }
     case FORALL:
       if(!_quantifiesOverPolymorphicVar){
-        VList* vars = f->vars();
-        VList::Iterator vit(vars);
+        SList* sorts = f->sorts();
+        SList::Iterator sit(sorts);
 
-        TermList s;
-        while(vit.hasNext()){
-          int v = vit.next();
-          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && s.term()->isSuper()){
-              _quantifiesOverPolymorphicVar = true;
-              break;
-            }
+        while(sit.hasNext()){
+          TermList s = sit.next();
+          if(s.isTerm() && s.term()->isSuper()){
+            _quantifiesOverPolymorphicVar = true;
+            break;
           }
-        }    
+        }
       }
       if (polarity != -1) {
         _allQuantifiersEssentiallyExistential = false;
@@ -444,19 +449,16 @@ void Property::scan(Formula* f, int polarity)
       break;
     case EXISTS:
       if(!_quantifiesOverPolymorphicVar){
-        VList* vars = f->vars();
-        VList::Iterator vit(vars);
+        SList* sorts = f->sorts();
+        SList::Iterator sit(sorts);
 
-        TermList s;
-        while(vit.hasNext()){
-          int v = vit.next();
-          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && s.term()->isSuper()){
-              _quantifiesOverPolymorphicVar = true;
-              break;
-            }
+        while(sit.hasNext()){
+          TermList s = sit.next();
+          if(s.isTerm() && s.term()->isSuper()){
+            _quantifiesOverPolymorphicVar = true;
+            break;
           }
-        }    
+        }
       }
       if (polarity != 1) {
         _allQuantifiersEssentiallyExistential = false;
@@ -488,13 +490,13 @@ void Property::scanSort(TermList sort)
   }
 
   if(!higherOrder() && !hasPolymorphicSym()){
-    //used sorts is for FMB which is not compatible with 
+    //used sorts is for FMB which is not compatible with
     //higher-order or polymorphism
     unsigned sortU = sort.term()->functor();
     if(!_usesSort.get(sortU)){
       _sortsUsed++;
       _usesSort[sortU]=true;
-    } 
+    }
   }
 
   if (sort==AtomicSort::defaultSort()) {
@@ -645,31 +647,31 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
   if (t->isSpecial()) {
     switch(t->specialFunctor()) {
-      case Term::SpecialFunctor::ITE:
+      case SpecialFunctor::ITE:
         _hasFOOL = true;
         addProp(PR_HAS_ITE);
         break;
 
-      case Term::SpecialFunctor::TUPLE:
+      case SpecialFunctor::TUPLE:
         // TODO something like
         // _hasFOOL = true
         // addProp(PR_HAS_TUPLE)
         // for now, do nothing
         break;
-      case Term::SpecialFunctor::LET:
-      case Term::SpecialFunctor::LET_TUPLE:
+      case SpecialFunctor::LET:
+      case SpecialFunctor::LET_TUPLE:
         _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
         break;
-      case Term::SpecialFunctor::FORMULA:
+      case SpecialFunctor::FORMULA:
         _hasFOOL = true;
         break;
 
-      case Term::SpecialFunctor::MATCH:
+      case SpecialFunctor::MATCH:
         _hasFOOL = true;
         break;
 
-      case Term::SpecialFunctor::LAMBDA:
+      case SpecialFunctor::LAMBDA:
         _hasLambda = true;
         break;
 
@@ -731,9 +733,19 @@ void Property::scan(TermList ts,bool unit,bool goal)
   }
 }
 
+struct Setter {
+  static void setNonLinear(Property& p,  IntTraits) { p._nonLinearInt  = true; }
+  static void setNonLinear(Property& p,  RatTraits) { p._nonLinearRat  = true; }
+  static void setNonLinear(Property& p, RealTraits) { p._nonLinearReal = true; }
+  static void setHasNumerals(Property& p,  IntTraits) { p._hasNumeralsInt  = true; }
+  static void setHasNumerals(Property& p,  RatTraits) { p._hasNumeralsRat  = true; }
+  static void setHasNumerals(Property& p, RealTraits) { p._hasNumeralsReal = true; }
+};
+
 void Property::scanForInterpreted(Term* t)
 {
   Interpretation itp;
+  auto isNumeral = [&](auto n, auto t) { return t.isTerm() && !t.term()->isSpecial() && n.isNumeral(t.term()); };
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit->functor())) { return; }
@@ -746,7 +758,27 @@ void Property::scanForInterpreted(Term* t)
   else {
     if (!theory->isInterpretedFunction(t)) { return; }
     itp = theory->interpretFunction(t);
+    forEachNumTraits([&](auto n) {
+      n.ifMul(t,[&](auto l, auto r) { 
+        if (!isNumeral(n, l) && !isNumeral(n, r)) {
+          Setter::setNonLinear(*this, n);
+        }
+        return std::make_tuple();
+      });
+    });
   }
+
+  forEachNumTraits([&](auto n) {
+    switch (t->kind()) {
+      case TermKind::LITERAL:
+      case TermKind::SORT:
+        break;
+      case TermKind::TERM:
+        if (!t->isSpecial())
+          n.ifNumeral(t, [&](auto) { Setter::setHasNumerals(*this, n); return std::make_tuple(); });
+        break;
+    }
+  });
   _hasInterpreted = true;
 
   if(itp < _interpretationPresence.size()){
@@ -787,11 +819,11 @@ void Property::scanForInterpreted(Term* t)
 /**
  * Return the string representation of the CASC category.
  */
-vstring Property::categoryString() const
+std::string Property::categoryString() const
 {
   return categoryToString(_category);
 }
-vstring Property::categoryToString(Category cat)
+std::string Property::categoryToString(Category cat)
 {
   switch (cat)
     {
@@ -824,9 +856,9 @@ vstring Property::categoryToString(Category cat)
  * ARE CURRENTLY OUTPUT.
  * @since 27/08/2003 Vienna
  */
-vstring Property::toString() const
+std::string Property::toString() const
 {
-  vstring result("TPTP class: ");
+  std::string result("TPTP class: ");
   result += categoryString() + "\n";
 
   if (clauses() > 0) {
@@ -1037,9 +1069,9 @@ bool Property::hasXEqualsY(const Formula* f)
  *
  * @since 04/05/2005 Manchester
  */
-vstring Property::toSpider(const vstring& problemName) const
+std::string Property::toSpider(const std::string& problemName) const
 {
-  return (vstring)"UPDATE problem SET property="
+  return (std::string)"UPDATE problem SET property="
     + Int::toString((int)_props)
     + ",category='"
     + categoryString()
@@ -1048,3 +1080,4 @@ vstring Property::toSpider(const vstring& problemName) const
     + "';";
 } // Property::toSpider
 
+} // namespace Shell

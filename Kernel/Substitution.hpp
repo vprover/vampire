@@ -21,7 +21,6 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/VString.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -47,7 +46,7 @@ public:
   void rebind(int v, Term* t);
   void rebind(int v, TermList t);
   bool findBinding(int var, TermList& res) const;
-  TermList apply(unsigned var);
+  TermList apply(unsigned var) const;
   void unbind(int var);
   void reset();
   bool isEmpty() const { return _map.isEmpty(); }
@@ -58,7 +57,8 @@ public:
   { return _map.mapValues(f); }
 
 #if VDEBUG
-  vstring toString() const;
+  std::string toString() const;
+  unsigned size() const { return _map.size(); }
 #endif
   friend std::ostream& operator<<(std::ostream& out, Substitution const&);
 private:

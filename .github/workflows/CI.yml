@@ -3,13 +3,15 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, reopened, synchronize]
+  push:
+    branches: [master]
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout Tree
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         submodules: true
     - name: Check Copyright Headers
@@ -31,13 +33,14 @@ jobs:
       run: cmake .. -DCMAKE_BUILD_TYPE=Debug
       env:
         CXX: clang++
-    - name: Build
+    - name: Build Vampire
       working-directory: ${{runner.workspace}}/vampire/build
       run: make -j8
+    - name: Build Unit Tests
+      working-directory: ${{runner.workspace}}/vampire/build
+      run: make vtest -j8
     - name: Run Unit Tests
       working-directory: ${{runner.workspace}}/vampire/build
       run: ctest --output-on-failure
-    - name: Find Vampire Binary
-      run: cp build/bin/vampire_* vampire
     - name: Run Sanity Checks
-      run: checks/sanity vampire
+      run: checks/sanity build/vampire

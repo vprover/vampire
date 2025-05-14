@@ -21,6 +21,7 @@
 #include "Problem.hpp"
 #include "SortHelper.hpp"
 #include "TermTransformer.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "FormulaTransformer.hpp"
 
@@ -94,35 +95,35 @@ TermList FormulaTransformer::apply(TermList ts) {
   if (term->isSpecial()) {
     Term::SpecialTermData *sd = ts.term()->getSpecialData();
     switch (sd->specialFunctor()) {
-      case Term::SpecialFunctor::ITE:
+      case SpecialFunctor::ITE:
         return TermList(Term::createITE(apply(sd->getCondition()),
                                         apply(*term->nthArgument(0)),
                                         apply(*term->nthArgument(1)),
                                         sd->getSort()));
 
-      case Term::SpecialFunctor::FORMULA:
+      case SpecialFunctor::FORMULA:
         return TermList(Term::createFormula(apply(sd->getFormula())));
 
-      case Term::SpecialFunctor::LET:
+      case SpecialFunctor::LET:
         return TermList(Term::createLet(sd->getFunctor(),
                                         sd->getVariables(),
                                         apply(sd->getBinding()),
                                         apply(*term->nthArgument(0)),
                                         sd->getSort()));
 
-      case Term::SpecialFunctor::LET_TUPLE:
+      case SpecialFunctor::LET_TUPLE:
         return TermList(Term::createTupleLet(sd->getFunctor(),
                                              sd->getTupleSymbols(),
                                              apply(sd->getBinding()),
                                              apply(*term->nthArgument(0)),
                                              sd->getSort()));
 
-      case Term::SpecialFunctor::TUPLE:
+      case SpecialFunctor::TUPLE:
         return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));
 
-      case Term::SpecialFunctor::LAMBDA:
+      case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case Term::SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {
           terms[i] = apply(*term->nthArgument(i));
@@ -206,7 +207,7 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
     return f;
   }
   // 0 is for the sorts list
-  return new QuantifiedFormula(f->connective(), f->vars(),0, newArg);
+  return new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), newArg);
 }
 
 ///////////////////////////////////////
@@ -216,7 +217,7 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
 Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 {
   Literal* lit = f->literal();
-  Literal* res = _termTransformer.transform(lit);
+  Literal* res = _termTransformer.transformLiteral(lit);
   if(lit==res) { return f; }
   return new AtomicFormula(res);
 }
@@ -228,7 +229,7 @@ Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 Formula* BottomUpTermTransformerFormulaTransformer::applyLiteral(Formula* f)
 {
   Literal* lit = f->literal();
-  Literal* res = _termTransformer.transform(lit);
+  Literal* res = _termTransformer.transformLiteral(lit);
   if(lit==res) { return f; }
   return new AtomicFormula(res);
 }
@@ -324,7 +325,7 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
   if(f==newForm) {
     return unit;
   }
-  return new FormulaUnit(newForm, FormulaTransformation(_rule, unit));
+  return new FormulaUnit(newForm, FormulaClauseTransformation(_rule, unit));
 }
 
 

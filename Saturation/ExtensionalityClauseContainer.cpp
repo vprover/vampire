@@ -63,8 +63,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     static DHSet<TermList> negEqSorts;
     negEqSorts.reset();
   
-    for (Clause::Iterator ci(*c); ci.hasNext(); ) {
-      Literal* l = ci.next();
+    for (auto l : c->iterLits()) {
 
       if (l->isTwoVarEquality() && l->isPositive()) {
         if (varEq != 0)
@@ -160,7 +159,7 @@ ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(TermL
   }
 }
 
-void ExtensionalityClauseContainer::print (ostream& out) {
+void ExtensionalityClauseContainer::print (std::ostream& out) {
   out << "#####################" << endl;
 
   ClausesBySort::Iterator cbs(_clausesBySort);

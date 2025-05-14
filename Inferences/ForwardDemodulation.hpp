@@ -19,7 +19,9 @@
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
 
+#include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 
 namespace Inferences
 {
@@ -37,8 +39,10 @@ public:
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
 protected:
   bool _preorderedOnly;
-  bool _redundancyCheck;
   bool _encompassing;
+  bool _useTermOrderingDiagrams;
+  bool _skipNonequationalLiterals;
+  DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
 };
 
@@ -51,6 +55,7 @@ public:
 private:
 };
 
+using ForwardDemodulationExtra = RewriteInferenceExtra;
 
 };
 

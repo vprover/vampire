@@ -18,7 +18,6 @@
 
 #include "Lib/System.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Lib/ScopedLet.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/Tracer.hpp"
@@ -38,7 +37,7 @@ using namespace Minisat;
 const unsigned MinisatInterfacingNewSimp::VAR_MAX = std::numeric_limits<Minisat::Var>::max() / 2;
   
 MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts, bool generateProofs):
-  _status(SATISFIABLE)
+  _status(Status::SATISFIABLE)
 {
   // TODO: consider tuning minisat's options to be set for _solver
   // (or even forwarding them to vampire's options)  
@@ -47,14 +46,12 @@ MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts,
 }
 
 void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
-  env.beginOutput();
   reportSpiderStatus('m');
-  env.out() << "Minisat ran out of memory" << endl;
+  std::cout << "Minisat ran out of memory" << endl;
   if(env.statistics) {
-    env.statistics->print(env.out());
+    env.statistics->print(std::cout);
   }
-  Debug::Tracer::printStack(env.out());
-  env.endOutput();
+  Debug::Tracer::printStack();
   System::terminateImmediately(1);
 }
 
@@ -78,7 +75,7 @@ unsigned MinisatInterfacingNewSimp::newVar()
   return minisatVar2Vampire(_solver.newVar());
 }
 
-SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
+SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   ASS(!hasAssumptions());
 
@@ -90,7 +87,7 @@ SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptions(const SATLite
 
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
 
-  if (_status == SATSolver::UNSATISFIABLE) {
+  if (_status == Status::UNSATISFIABLE) {
     // unload minisat's internal conflict clause to _failedAssumptionBuffer
     _failedAssumptionBuffer.reset();
     Minisat::LSet& conflict = _solver.conflict;
@@ -122,11 +119,11 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
     //cout << "After: vars " << bef - _solver.eliminated_vars << ", non-unit clauses " << _solver.nClauses() << endl;
   
     if (res == l_True) {
-      _status = SATISFIABLE;
+      _status = Status::SATISFIABLE;
     } else if (res == l_False) {
-      _status = UNSATISFIABLE;
+      _status = Status::UNSATISFIABLE;
     } else {
-      _status = UNKNOWN;
+      _status = Status::UNKNOWN;
     }
   }catch(Minisat::OutOfMemoryException&){
     reportMinisatOutOfMemory();
@@ -174,22 +171,22 @@ void MinisatInterfacingNewSimp::addAssumption(SATLiteral lit)
 
 SATSolver::VarAssignment MinisatInterfacingNewSimp::getAssignment(unsigned var) 
 {
-	ASS_EQ(_status, SATISFIABLE);  
+	ASS_EQ(_status, Status::SATISFIABLE);
 	ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   lbool res;
-    
-  Minisat::Var mvar = vampireVar2Minisat(var);  
-  if (mvar < _solver.model.size()) {  
+
+  Minisat::Var mvar = vampireVar2Minisat(var);
+  if (mvar < _solver.model.size()) {
     if ((res = _solver.modelValue(mvar)) == l_True) {
-      return TRUE;
-    } else if (res == l_False) {    
-      return FALSE;
-    } else {              
+      return VarAssignment::TRUE;
+    } else if (res == l_False) {
+      return VarAssignment::FALSE;
+    } else {
       ASSERTION_VIOLATION;
-      return NOT_KNOWN;
+      return VarAssignment::NOT_KNOWN;
     }
   } else { // new vars have been added but the model didn't grow yet
-    return DONT_CARE;
+    return VarAssignment::DONT_CARE;
   }
 }
 

@@ -96,34 +96,31 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
     return cl;
   }
 
-  static DArray<Literal*> resLits(8);
-  resLits.ensure(clen);
+  // static DArray<Literal*> resLits(8);
+  RStack<Literal*> resLits;
 
   UnitInputType inpType = cl->inputType();
   UnitList* premises=0;
 
   for(unsigned i=0; i<firstSplittable; i++) {
-    resLits[i] = (*cl)[i];
+    resLits->push((*cl)[i]);
   }
   for(unsigned i=firstSplittable; i<clen; i++) {
     Literal* lit= (*cl)[i];
     if(i==firstSplittable || isSplittable(lit)) {
       Clause* prem;
-      resLits[i] = splitLiteral(lit, inpType , prem);
+      resLits->push(splitLiteral(lit, inpType , prem));
       UnitList::push(prem, premises);
     } else {
-      resLits[i] = lit;
+      resLits->push(lit);
     }
   }
 
   UnitList::push(cl, premises);
 
-  Clause* res = new(clen) Clause(clen,NonspecificInferenceMany(InferenceRule::INEQUALITY_SPLITTING, premises));
+  auto res = Clause::fromStack(*resLits,NonspecificInferenceMany(InferenceRule::INEQUALITY_SPLITTING, premises));
+  // TODO isn't this done automatically?
   res->setAge(cl->age()); // MS: this seems useless; as long as InequalitySplitting is only operating as a part of preprocessing, age is going to 0 anyway
-
-  for(unsigned i=0;i<clen;i++) {
-    (*res)[i] = resLits[i];
-  }
 
 #if TRACE_INEQUALITY_SPLITTING
   cout<<"---------"<<endl;
@@ -168,11 +165,12 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
   Signature::Symbol* sym;
   if(_appify){
-    sym = env.signature->getFunction(fun);    
+    sym = env.signature->getFunction(fun);
   } else {
-    sym = env.signature->getPredicate(fun);    
+    sym = env.signature->getPredicate(fun);
   }
   sym->setType(type);
+  sym->markProtected(); // at least to prevent blocked clause elimination to work on split equality (think "Problems/ARI/ARI713_1.p --decode ott+2_1:1_bce=on:ins=3_0", where BCE otherwise wipes the input completely)
 
   TermList s;
   TermList t; //the ground inequality argument, that'll be split out
@@ -193,8 +191,9 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
     sym->markSkip();
   }
 
-  Clause* defCl=new(1) Clause(1,NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
-  (*defCl)[0]=makeNameLiteral(fun, t, false, vars);
+  RStack<Literal*> resLits;
+  auto defCl = Clause::fromLiterals({makeNameLiteral(fun, t, false, vars)}, 
+      NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
   _predDefs.push(defCl);
 
   if(_appify){
@@ -226,7 +225,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
 {
   if(!_appify){
     vars.push(arg);
-    return Literal::create(predNum, vars.size(), polarity, false, vars.begin());
+    return Literal::create(predNum, vars.size(), polarity, vars.begin());
   } else {
     TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));

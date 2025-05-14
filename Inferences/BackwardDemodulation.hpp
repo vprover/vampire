@@ -19,7 +19,9 @@
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
 
+#include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 
 namespace Inferences {
 
@@ -40,8 +42,10 @@ private:
   struct ResultFn;
 
   DemodulationSubtermIndex* _index;
+  DemodulationHelper _helper;
 };
 
+using BackwardDemodulationExtra = RewriteInferenceExtra;
 };
 
 #endif /* __BackwardDemodulation__ */

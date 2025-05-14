@@ -15,15 +15,13 @@
 #ifndef __Forwards__
 #define __Forwards__
 
-#include "Lib/VString.hpp"
+#include <memory>
 
 namespace Lib
 {
 struct EmptyStruct {};
-typedef void (*VoidFunc)();
 
 template<typename T> class VirtualIterator;
-template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 
 template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;
@@ -37,8 +35,7 @@ template<typename T> class List;
 template<typename T> class SharedSet;
 
 typedef List<int> IntList;
-typedef Stack<vstring> StringStack;
-typedef List<VoidFunc> VoidFuncList;
+typedef Stack<std::string> StringStack;
 
 class DefaultHash;
 class DefaultHash2;
@@ -48,8 +45,6 @@ template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=Defau
 template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHSet;
 template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMultiset;
 template <typename Val, class Hash=DefaultHash> class Set;
-
-class Timer;
 };
 
 namespace Kernel
@@ -59,19 +54,18 @@ using namespace Lib;
 class Signature;
 
 class Term;
-typedef BiMap<unsigned, Term*> FuncSubtermMap;
-
 class TermList;
+typedef TermList SortId;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
+
+struct SubstApplicator;
+struct AppliedTerm;
 
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
 typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
 typedef const SharedSet<unsigned> VarSet;
 
-typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
-typedef Stack<UnificationConstraint> UnificationConstraintStack;
-typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 
 class Literal;
 typedef List<Literal*> LiteralList;
@@ -106,13 +100,13 @@ class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
-class Matcher;
-typedef VirtualIterator<Matcher*> MatchIterator;
-
 class LiteralSelector;
 
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
+struct TermOrderingDiagram;
+typedef std::unique_ptr<TermOrderingDiagram> TermOrderingDiagramUP;
+class PartialOrdering;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
@@ -143,18 +137,17 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
+template<class Data>
 class LiteralIndex;
-class LiteralIndexingStructure;
+template<class Data>
 class TermIndex;
+template<class Data>
 class TermIndexingStructure;
 
 class TermSharing;
 
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
-
-struct SLQueryResult;
-struct TermQueryResult;
 };
 
 namespace Saturation
@@ -181,6 +174,7 @@ namespace SAT
 using namespace Lib;
 
 class SATClause;
+class Z3Interfacing;
 class SATLiteral;
 class SATInference;
 class SATSolver;
@@ -189,6 +183,7 @@ typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
 typedef Stack<SATClause*> SATClauseStack;
 typedef Stack<SATLiteral> SATLiteralStack;
+
 }
 
 namespace Shell
@@ -196,6 +191,8 @@ namespace Shell
 class Options;
 class Property;
 class Statistics;
+class FunctionDefinitionHandler;
+class PartialRedundancyHandler;
+struct PartialRedundancyEntry;
 }
-
 #endif /* __Forwards__ */

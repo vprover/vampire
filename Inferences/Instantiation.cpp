@@ -102,9 +102,7 @@ void Instantiation::registerClause(Clause* cl)
 
   //cout << "register " << cl->toString() << endl;
 
-  Clause::Iterator cit(*cl);
-  while(cit.hasNext()){
-    Literal* lit = cit.next();
+  for (Literal* lit : cl->iterLits()) {
     SubtermIterator it(lit);
     while(it.hasNext()){
       TermList t = it.next();
@@ -184,27 +182,21 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
 {
   TermList sort = SortHelper::getResultSort(t);
 
-  try {
-        if(sort == AtomicSort::intSort()){
-              IntegerConstantType constant;
-              if(theory->tryInterpretConstant(t,constant)){
-                return theory->representConstant(constant+1);
-              }
-        } else if(sort == AtomicSort::rationalSort()){
-              RationalConstantType constant;
-              RationalConstantType one(1,1);
-              if(theory->tryInterpretConstant(t,constant)){
-                return theory->representConstant(constant+one);
-              }
-        } else if(sort == AtomicSort::realSort()){
-              RealConstantType constant;
-              RealConstantType one(RationalConstantType(1,1));
-              if(theory->tryInterpretConstant(t,constant)){
-                return theory->representConstant(constant+one);
-              }
-        }
-  } catch (ArithmeticException&) {
-    // return 0 as well
+  if(sort == AtomicSort::intSort()){
+    IntegerConstantType constant;
+    if(theory->tryInterpretConstant(t,constant)){
+      return theory->representConstant(constant+1);
+    }
+  } else if(sort == AtomicSort::rationalSort()){
+    RationalConstantType constant;
+    if(theory->tryInterpretConstant(t,constant)){
+      return theory->representConstant(constant + 1);
+    }
+  } else if(sort == AtomicSort::realSort()){
+    RealConstantType constant;
+    if(theory->tryInterpretConstant(t,constant)){
+      return theory->representConstant(constant + 1);
+    }
   }
 
   return 0;
@@ -227,10 +219,10 @@ public:
   {
     DHMap<unsigned,TermList> sortedVars;
     SortHelper::collectVariableSorts(cl,sortedVars);
-    VirtualIterator<std::pair<unsigned,TermList>> it = sortedVars.items();
+    auto it = sortedVars.items();
 
     while(it.hasNext()){
-       std::pair<unsigned,TermList> item = it.next();
+       auto item = it.next();
        DArray<Term*>* array = new DArray<Term*>();
        array->initFromIterator(ins->getCandidateTerms(cl,item.first,item.second));
        candidates.insert(item.first,array);
@@ -283,14 +275,12 @@ struct Instantiation::ResultFn
   ResultFn(Clause* cl) : _cl(cl) {}
   Clause* operator()(Substitution sub)
   {
-    unsigned clen = _cl->length();
-    Clause* res = new(clen) Clause(clen,GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
-
-    for(unsigned i=0;i<clen;i++){
-      (*res)[i] = SubstHelper::apply((*_cl)[i],sub);
+    RStack<Literal*> resLits;
+    for(Literal* curr : _cl->iterLits()){
+      resLits->push(SubstHelper::apply(curr,sub));
     }
 
-    return res; 
+    return Clause::fromStack(*resLits,GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
   }
 private:
   Clause* _cl;
@@ -306,17 +296,10 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
     tryMakeLiteralFalse(lit,subs);
   }
 
-  return pvi(getConcatenatedIterator(
-  //return pvi(
-               getMappingIterator(
-                  getPersistentIterator(Stack<Substitution>::Iterator(subs)),
-                  ResultFn(premise)
-               ),
-               getMappingIterator(
-                 AllSubstitutionsIterator(premise,this),
-                 ResultFn(premise)
-              )
-         ));
+  return pvi(concatIters(
+                 getPersistentIterator(Stack<Substitution>::Iterator(subs)),
+                 AllSubstitutionsIterator(premise,this))
+            .map(ResultFn(premise)));
 
 }
 

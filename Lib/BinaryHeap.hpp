@@ -212,12 +212,23 @@ public:
    * Iterator on elements in the heap. It yields elements
    * in no particular order.
    */
-  struct Iterator
-  : public PointerIterator<T>
-  {
-    Iterator(const BinaryHeap& obj)
-    : PointerIterator<T>(obj._data, obj._data+obj._size) {}
-  };
+  auto iter() const 
+  { return arrayIter(_data, _size); }
+
+  friend std::ostream& operator<<(std::ostream& out, BinaryHeap const& self) 
+  { 
+    out << "[";
+    auto iter = self.iter();
+    if (iter.hasNext()) {
+      out << iter.next();
+      while (iter.hasNext()) {
+        out << ", " << iter.next();
+      }
+    }
+    return out << "]";
+  }
+
+
 
 private:
   class BHPopBacktrackObject

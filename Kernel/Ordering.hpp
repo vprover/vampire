@@ -24,11 +24,20 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 namespace Kernel {
+
+
+namespace PredLevels {
+  constexpr static int MIN_USER_DEF = 1;
+  constexpr static int EQ = 0;
+  constexpr static int INEQ = 0;
+};
 
 using namespace Shell;
 
@@ -46,27 +55,60 @@ public:
    * in the @c ArgumentOrderVals enum, so that one can convert between the
    * enums using static_cast.
    */
-  enum VWARN_UNUSED_TYPE Result {
+  enum [[nodiscard]] Result {
     GREATER=1,
     LESS=2,
-    GREATER_EQ=3,
-    LESS_EQ=4,
-    EQUAL=5,
-    INCOMPARABLE=6
+    EQUAL=3,
+    INCOMPARABLE=4
   };
 
-  Ordering();
-  virtual ~Ordering();
+  friend std::ostream& operator<<(std::ostream& out, Kernel::Ordering::Result const& r)
+  {
+    switch (r) {
+      case Kernel::Ordering::Result::GREATER: return out << "GREATER";
+      case Kernel::Ordering::Result::LESS: return out << "LESS";
+      case Kernel::Ordering::Result::EQUAL: return out << "EQUAL";
+      case Kernel::Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+    }
+    ASSERTION_VIOLATION
+    return out << "UNKNOWN";
+  }
+
+  virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(Literal* l1,Literal* l2) const = 0;
+
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
+  /** Same as @b compare, for applied (substituted) terms. */
+  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
+  { return compare(lhs.apply(), rhs.apply()); }
+
+  /** Unidirectional comparison of @b t1 and @b t2 under some
+   * substitutions captured by @b AppliedTerm which returns:
+   * (a) GREATER       if and only if  t1 ≻ t2,
+   * (b) EQUAL         if and only if  t1 = t2,
+   * (c) LESS                 only if  t1 ≺ t2,
+   * (d) INCOMPARABLE         only if  t1 ⪰̸ t2.
+   * That is, the function need not distinguish between t1 less
+   * than t2 and t1 and t2 being incomparable, which allows for
+   * some optimisations (see KBO and LPO implementation).
+   * 
+   * This is useful in simplifications such as demodulation where
+   * only the result being greater matters and in runtime specialized
+   * ordering checks (see TermOrderingDiagram). */
+  virtual Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const
+  { return compare(t1, t2); }
+
+  /** Creates optimised object for ordering checks. @see TermOrderingDiagram. */
+  virtual TermOrderingDiagramUP createTermOrderingDiagram() const;
+
   virtual void show(std::ostream& out) const = 0;
 
-  static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
+  static bool isGreaterOrEqual(Result r) { return (r == GREATER || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;
 
@@ -78,12 +120,8 @@ public:
     switch(r) {
     case GREATER:
       return LESS;
-    case GREATER_EQ:
-      return LESS_EQ;
     case LESS:
       return GREATER;
-    case LESS_EQ:
-      return GREATER_EQ;
     case EQUAL:
     case INCOMPARABLE:
       return r;
@@ -96,6 +134,7 @@ public:
   static Ordering* create(Problem& prb, const Options& opt);
 
   static bool trySetGlobalOrdering(OrderingSP ordering);
+  static bool unsetGlobalOrdering();
   static Ordering* tryGetGlobalOrdering();
 
   Result getEqualityArgumentOrder(Literal* eq) const;
@@ -104,12 +143,15 @@ protected:
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 private:
-  void createEqualityComparator();
-  void destroyEqualityComparator();
-
-  class EqCmp;
-  /** Object used to compare equalities */
-  EqCmp* _eqCmp;
+  /**
+   * Helper methods for comparing literals s1=s2 and t1=t2.
+   */
+  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
 
   /**
    * We store orientation of equalities in this ordering inside
@@ -126,29 +168,40 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
+  PrecedenceOrdering(PrecedenceOrdering&&) = default;
+  PrecedenceOrdering& operator=(PrecedenceOrdering&&) = default;
   Result compare(Literal* l1, Literal* l2) const override;
   void show(std::ostream&) const override;
   virtual void showConcrete(std::ostream&) const = 0;
 
+  static DArray<int> testLevels();
+
+#ifdef VDEBUG
+  bool usesQkboPrecedence() const { return _qkboPrecedence; }
+#endif
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+
+  Result comparePredicatePrecedences(unsigned fun1, unsigned fun2) const;
+  int predicatePrecedence(unsigned pred) const;
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
-
   PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
-                     const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
-  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
-  PrecedenceOrdering(Problem& prb, const Options& opt);
+                     const DArray<int>& predPrec, const DArray<int>& predLevels, 
+                     bool reverseLCM, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence = false);
 
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
+
+  Result comparePrecedences(const Term* t1, const Term* t2) const;
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
-  int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;
 
   /** number of predicates in the signature at the time the order was created */
@@ -164,25 +217,13 @@ protected:
   /** Array of type con precedences */
   DArray<int> _typeConPrecedences;
 
+  static void checkLevelAssumptions(DArray<int> const&);
+
   bool _reverseLCM;
+  bool _qkboPrecedence;
 };
 
 
-inline std::ostream& operator<<(std::ostream& out, Ordering::Result const& r) 
-{
-  switch (r) {
-    case Ordering::Result::GREATER: return out << "GREATER";
-    case Ordering::Result::LESS: return out << "LESS";
-    case Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
-    case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
-    case Ordering::Result::EQUAL: return out << "EQUAL";
-    case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
-    default:
-      return out << "UNKNOWN";
-  }
-  ASSERTION_VIOLATION
-}
-
-}
+} // namespace Kernel
 
 #endif

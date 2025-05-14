@@ -61,7 +61,7 @@ public:
     }
   }
 
-  DArray(const DArray& o)
+  explicit DArray(const DArray& o)
     : _size(o.size()), _capacity(o.size())
   {
     if(_size==0) {
@@ -75,6 +75,18 @@ public:
     }
   }
 
+  DArray clone() const { return DArray(*this); }
+
+  void swap(DArray& other) {
+    std::swap(other._size, _size);
+    std::swap(other._capacity, _capacity);
+    std::swap(other._array, _array);
+  }
+
+  bool keepRecycled() const { return _capacity > 0; }
+
+  DArray(DArray&& other) : DArray() { swap(other); }
+  DArray& operator=(DArray&& other) { swap(other); return *this; }
 
   /** Delete array */
   inline ~DArray()
@@ -108,7 +120,7 @@ public:
 
     _size = s;
   }
-  
+
   inline bool operator==(const DArray& o) const
   {
     if(size()!=o.size()) { return false; }
@@ -127,8 +139,6 @@ public:
 
   inline C* begin() { return _array; }
   inline C* end() { return _array+_size; }
-
-
 
   /**
    * Set array's size to @b s and that its capacity is at least @b s.
@@ -160,6 +170,9 @@ public:
     _array = newArray;
     return false;
   } // ensure
+
+
+  void reset() { ensure(0); }
 
   /**
    * Set array's size to @b s and that its capacity is at least @b s.
@@ -288,6 +301,9 @@ public:
     }
   }
 
+  /**
+   * Creates an array initialized with all the elements of the iterator it.
+   */
   template<class It>
   static DArray fromIterator(It it, size_t count=0) {
     DArray out;
