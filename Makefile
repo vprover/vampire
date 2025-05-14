@@ -561,7 +561,7 @@ TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 ifeq ($(shell uname), Darwin)
   RPATH_CMD = install_name_tool -add_rpath @executable_path/z3/build
 else
-  RPATH_CMD =
+  RPATH_CMD = @echo
 endif
 
 define COMPILE_CMD
