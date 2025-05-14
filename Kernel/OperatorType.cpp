@@ -19,6 +19,7 @@
 #include "Shell/Options.hpp"
 
 #include "Term.hpp"
+#include "TermIterators.hpp"
 #include "Signature.hpp"
 
 using namespace std;
@@ -101,7 +102,7 @@ OperatorType::OperatorTypes& OperatorType::operatorTypes() {
  *
  * Release key if not needed.
  */
-OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsigned taArity)
+OperatorType* OperatorType::getTypeFromKey(OperatorKey* key, unsigned taArity)
 {
   /*
   cout << "getTypeFromKey(" << key->length() << "): ";
@@ -119,6 +120,16 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsig
     
     return resultType;
   }
+
+#if VDEBUG
+  for (unsigned i = 0; i < key->length(); i++) {
+    if ((*key)[i].isNonEmpty()) {
+      ASS_REP(iterTraits(VariableIterator((*key)[i])).all([&](TermList var) {
+        return var.var() < taArity;
+      }), "Unbound variable in type " + resultType->toString());
+    }
+  }
+#endif
 
   operatorTypes().insert(resultType);
 
