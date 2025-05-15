@@ -26,6 +26,8 @@
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
 #include "Lib/Option.hpp"
+#include "Lib/Reflection.hpp"
+#include <cstdint>
 
 #define DEBUG_ALASCA_ORD(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
@@ -434,19 +436,51 @@ struct SkelOrd
   )
 
   using AnyNumeral = Coproduct<IntegerConstantType, RationalConstantType, RealConstantType>;
-  using Atom = std::tuple<TermList, unsigned>;
 
-  static unsigned lvl(Sign sgn, AlascaPredicate p) {
-    if (sgn == Sign::Zero) return 0;
+  struct Level {
+    enum class Pred : uint8_t {
+      EQ = 0,
+      NEQ = 1,
+      INEQ = 2,
+    };
+    Pred pred;
+    bool strict;
+    Sign sign;
+
+    friend Level operator-(Level const& self) {
+      auto out = self;
+      if (self.pred == Pred::INEQ) {
+        out.sign = -out.sign;
+      }
+      return out;
+    }
+    auto asTuple() const { return std::tie(pred, strict, sign); }
+    IMPL_COMPARISONS_FROM_TUPLE(Level);
+  };
+
+  struct Atom {
+    TermList term;
+    Level lvl;
+    auto asTuple() const { return std::tie(term,lvl); }
+    IMPL_COMPARISONS_FROM_TUPLE(Atom);
+  };
+
+  static Level lvl(Sign sgn, AlascaPredicate p) {
     switch(p) {
-      case AlascaPredicate::EQ: return 1;
+      case AlascaPredicate::NEQ:
+      case AlascaPredicate::EQ: 
+        return Level {
+           .pred = p == AlascaPredicate::EQ ? Level::Pred::EQ : Level::Pred::NEQ,
+           .strict = false,
+           .sign = absSign(sgn),
+         };
       case AlascaPredicate::GREATER:
       case AlascaPredicate::GREATER_EQ:
-                               return sgn == Sign::Pos ? 2 
-                                    : sgn == Sign::Neg ? 3
-                                    : assertionViolation<unsigned>();
-      case AlascaPredicate::NEQ:
-                               return 4;
+        return Level {
+           .pred = Level::Pred::INEQ,
+           .strict = AlascaPredicate::GREATER == p,
+           .sign = sgn,
+         };
     } ASSERTION_VIOLATION
   }
 
@@ -456,7 +490,7 @@ struct SkelOrd
     RStack<TermList> todo;
     todo->loadFromIterator(std::move(iter));
     auto atom = [&](auto t, auto sgn) -> Atom {
-      return std::make_tuple(t, lvl(sgn, p));
+      return Atom { t, lvl(sgn, p) };
     };
 
     while (todo->isNonEmpty()) {
@@ -480,28 +514,36 @@ struct SkelOrd
 
   struct Atoms {
     MultiSet<Atom> atoms;
-    SmallArray<TermList, 2> numTerms;
+    unsigned zeros;
+    MultiSet<TermList> sides;
   };
 
   Option<Atoms> atoms(Literal* l) const {
     auto itpRes = forAnyNumTraits([&](auto n) -> Option<Atoms> {
 
+        TermList zero = n.zero();
 #define TRY_INEQ(sym, check) \
         if (check(l)) { \
-          ASS_EQ(l->termArg(1), n.zero()) \
+          ASS_EQ(l->termArg(1), zero) \
           auto t = l->termArg(0); \
-          return some(Atoms { atoms(n, iterItems(t), sym), SmallArray<TermList, 2>::fromItems(t) }); \
+          return some(Atoms { \
+              .atoms = atoms(n, iterItems(t), sym), \
+              .zeros = 1 + unsigned(t == zero),\
+              .sides = MultiSet<TermList>::fromItems(t, zero),\
+              }); \
         } \
 
 #define TRY_EQ(sym, check) \
         if (check(l)) { \
-          auto t0 = l->termArg(1) == n.zero() ? l->termArg(0) : l->termArg(1); \
-          auto t1 = l->termArg(1) == n.zero() ? l->termArg(1) : l->termArg(0); \
-          if (t1 == n.zero()) { \
-            return some(Atoms { atoms(n, iterItems(t0), sym), SmallArray<TermList, 2>::fromItems(t1, t0) }); \
-          } else { \
-            return some(Atoms { atoms(n, iterItems(t1, t0), sym), SmallArray<TermList, 2>::fromItems(t1, t0) }); \
-          } \
+          auto t0 = l->termArg(0); \
+          auto t1 = l->termArg(1); \
+          return some(Atoms { \
+              .atoms = t0 != zero && t1 != zero ? atoms(n, iterItems(t0, t1), sym) \
+                     : t1 == zero ? atoms(n, iterItems(t0), sym) \
+                     :              atoms(n, iterItems(t1), sym), \
+              .zeros = unsigned(t0 == zero) + unsigned(t1 == zero),\
+              .sides = MultiSet<TermList>::fromItems(t0, t1),\
+              }); \
         } \
 
         TRY_EQ(AlascaPredicate::EQ        , [&](auto l) { return n.isPosEq  (l); });
@@ -516,11 +558,14 @@ struct SkelOrd
     if (itpRes) return itpRes;
     else if (l->isEquality()) {
       auto sym = l->isPositive() ? AlascaPredicate::EQ : AlascaPredicate::NEQ;
-      return some(Atoms {
+
+      return some(Atoms { 
           .atoms = iterItems(0, 1)
-            .map([&](auto i) { return std::make_tuple(l->termArg(i), lvl(Sign::Pos, sym)); })
+            .map([&](auto i) { return Atom { l->termArg(i), lvl(Sign::Pos, sym) }; })
             .template collect<MultiSet>(),
-            .numTerms = SmallArray<TermList,2>::fromItems() });
+          .zeros = 0,
+          .sides = MultiSet<TermList>::fromItems(),
+          });
     } else {
       return {};
     }
@@ -564,11 +609,27 @@ struct SkelOrd
     }
   }
 
-  Ordering::Result cmpAtom(Atom a1, Atom a2) const {
+  Ordering::Result cmpLvl(Level const& a1, Level const& a2) const {
     return AlascaOrderingUtils::lexLazy(
-            [&](){ return compare(std::get<0>(a1), std::get<0>(a2)); },
-            [&](){ return AlascaOrderingUtils::cmpN(std::get<1>(a1), std::get<1>(a2)); }
+            [&](){ return AlascaOrderingUtils::cmpN(a1.pred, a2.pred); },
+            [&](){ return AlascaOrderingUtils::cmpSgn(a1.sign, a2.sign); },
+            [&](){ return AlascaOrderingUtils::cmpN(a1.strict, a2.strict); }
           );
+  }
+
+  Ordering::Result cmpAtom(Atom const& a1, Atom const& a2) const {
+    return AlascaOrderingUtils::lexLazy(
+            [&](){ return compare(a1.term, a2.term); },
+            [&](){ 
+              if (a1.term.isVar()) {
+                ASS(a2.term.isVar() && a1.term == a2.term)
+                auto c1 = cmpLvl(a1.lvl, a2.lvl);
+                auto c2 = cmpLvl(-a1.lvl, -a2.lvl);
+                return c1 == c2 ? c1 : Ordering::Result::INCOMPARABLE;
+              } else {
+                return cmpLvl(a1.lvl, a2.lvl);
+              } 
+            });
   }
 
 
@@ -585,15 +646,11 @@ struct SkelOrd
 
       return AlascaOrderingUtils::lexLazy(
             [&](){ return OrderingUtils::mulExt(atoms1->atoms, atoms2->atoms, [&](auto l, auto r) { return cmpAtom(l, r); }); },
+            [&](){ return AlascaOrderingUtils::cmpN(2 - atoms1->zeros, 2 - atoms2->zeros); },
             [&](){ 
-              ASS(atoms1->numTerms.size() == atoms2->numTerms.size())
-              return AlascaOrderingUtils::lexIter(
-                  arrayIter(atoms1->numTerms).zip(arrayIter(atoms2->numTerms))
-                  .map([this](auto ts) { return this->compare(ts.first, ts.second); })
-                  );
-            },
-            [&](){ return cmpPrec(l1, l2); }
-            );
+              ASS((atoms1->sides.distinctElems() == 0) == (atoms2->sides.distinctElems() == 0))
+              return OrderingUtils::mulExt(atoms1->sides, atoms2->sides, [&](auto l, auto r) { return this->compare(l, r); });
+            });
 
     } else {
       ASS(atoms1.isNone() && atoms2.isNone())

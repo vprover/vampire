@@ -51,6 +51,11 @@ namespace Kernel {
       return MultiSet (std::move(stack)); 
     }
 
+
+    template<class... As>
+    static MultiSet fromItems(As... as) 
+    { return fromIterator(iterItems<T>(std::move(as)...)); }
+
     auto iter()  const
     { return iterTraits(_elems.iterFifo()); }
 

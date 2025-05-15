@@ -45,12 +45,28 @@ std::string to_string(mpz_t const& self) {
   return out;
 }
 
+
 std::ostream& output(std::ostream& out, mpz_t const& self)
 { return out << to_string(self); }
 
 using namespace Lib;
 
 namespace Kernel {
+
+Sign absSign(Sign const& sign) {
+  switch (sign) {
+    case Kernel::Sign::Zero: return Kernel::Sign::Zero;
+    case Kernel::Sign::Pos:
+    case Kernel::Sign::Neg: return Kernel::Sign::Pos;
+  }
+}
+Kernel::Sign operator-(Kernel::Sign const& sign) {
+  switch (sign) {
+    case Kernel::Sign::Zero: return Kernel::Sign::Zero;
+    case Kernel::Sign::Pos: return Kernel::Sign::Neg;
+    case Kernel::Sign::Neg: return Kernel::Sign::Pos;
+  }
+}
 
 Option<IntegerConstantType> IntegerConstantType::parse(std::string const& str)
 {

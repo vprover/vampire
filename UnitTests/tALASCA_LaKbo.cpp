@@ -724,6 +724,28 @@ TEST_FUN(lit_levels_non_ground) {
 }
 
 
+TEST_FUN(ineq_merging) {
+  DECL_DEFAULT_VARS
+  ALASCA_SUGAR(Real)
+  DECL_FUNC (f, {Real}, Real)
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+
+  auto& ord = lakbo();
+
+  for (auto t : iterItems<TermList>(a, 3 * a, x, f(a + b), f(x + b) )) {
+    check(ord, t  == 0, Less   , t > 0);
+    check(ord, t  != 0, Less   , t > 0);
+    check(ord, t  != 0, Less   , t >= 0);
+    check(ord, t  >= 0, Less   , t >  0);
+  }
+  check(ord, -x  != 0, Less   , -x > 0);
+  check(ord, -x  != 0, Less   ,  x > 0);
+  check(ord, x >= 0, Less   ,  x > 0);
+  check(ord, -x >= 0, Less   ,  -x > 0);
+  check(ord, x >= 0, Incomp ,  -x > 0);
+}
+
 
 #if 0
 TEST_FUN(unshielded_vars_1) {

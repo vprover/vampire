@@ -75,6 +75,10 @@ enum class Sign : std::uint8_t {
   Neg = 2,
 };
 
+Kernel::Sign operator-(Kernel::Sign const&);
+
+Kernel::Sign absSign(Kernel::Sign const&);
+
 inline std::ostream& operator<<(std::ostream& out, Sign const& self)
 {
   switch(self) {
@@ -772,6 +776,9 @@ extern Theory* theory;
 std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self);
 
 } // namespace Kernel
+
+
+
 
 template<>
 struct std::hash<Kernel::IntegerConstantType>
