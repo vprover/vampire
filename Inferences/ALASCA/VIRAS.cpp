@@ -78,7 +78,6 @@ Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(Clause* premi
 
 template<class NumTraits>
 Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(NumTraits n, Clause* premise) {
-  DEBUG(0, *premise)
   auto viras = viras::viras(VampireVirasConfig<NumTraits>{});
   Recycled<DHSet<unsigned>> shieldedVars;
   Recycled<DHSet<unsigned>> candidateVars;
@@ -128,8 +127,10 @@ Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(NumTraits n, 
 
 
   if (unshielded.isNone()) {
+    DEBUG(1, "viras no result: ", premise->toString())
     return {};
   } else {
+    DEBUG(0, "viras in: ", premise->toString())
     auto var = typename VampireVirasConfig<NumTraits>::VarWrapper(TermList::var(*unshielded));
     return some(pvi(
           intoVampireIter(viras.quantifier_elimination(var, &*toElim))
@@ -141,6 +142,7 @@ Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(NumTraits n, 
                     ),
                   Inference(SimplifyingInference1(InferenceRule::ALASCA_VIRAS_QE, premise)));
             })
+            .inspect([](auto& cl) { DEBUG(0, "viras out: ", cl->toString()) })
           ));
   }
 }
