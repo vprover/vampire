@@ -19,6 +19,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Lib/STL.hpp"
 #include "Inferences/ALASCA/FourierMotzkin.hpp"
+#include "Inferences/ALASCA/TermFactoring.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
 
 #include "Test/SyntaxSugar.hpp"
@@ -90,6 +91,7 @@ auto asymSelectionTest() {
 }
 
 
+
 TEST_GENERATION(rnd_complete_01,
     asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, FourierMotzkin>()
       .context ({ clause({ f(x) > 0, -a > 0   }) })
@@ -128,6 +130,13 @@ TEST_GENERATION(rnd_complete_03,
       .expected(exactly(
                   clause({ num(0) > 0 }) 
           ))
+    )
+
+TEST_GENERATION(rnd_complete_04,
+    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, TermFactoring>()
+      // .context ({})
+      .input   (clause({ f(x) - f(y) > 0, -f(z) - f(b) > 0   }))
+      .expected(exactly( clause({ f(x) - f(y) > 0, -2 * f(b) > 0   }) ))
     )
 
 TEST_GENERATION(lookahead_01_complete,
