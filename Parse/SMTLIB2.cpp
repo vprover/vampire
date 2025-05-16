@@ -1893,7 +1893,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
       _todo.pop();
       ASS(!isSort);
       TermList resSort;
-      auto sort = _results.pop().asTerm(resSort);
+      DEBUG_CODE(auto sort =) _results.pop().asTerm(resSort);
       ASS_EQ(sort, AtomicSort::superSort());
       if (!MatchingUtils::matchTerms(type->result(), resSort, subst)) {
         complainAboutArgShortageOrWrongSorts("user defined symbol",exp);
