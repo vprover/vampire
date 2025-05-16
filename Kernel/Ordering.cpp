@@ -515,7 +515,8 @@ Ordering::Result PrecedenceOrdering::comparePrecedences(const Term* t1, const Te
 
 struct SymbolComparator {
   SymbolType _symType;
-  SymbolComparator(SymbolType symType) : _symType(symType) {}
+  bool _noTiebreak;
+  SymbolComparator(SymbolType symType, bool noTiebreak) : _symType(symType), _noTiebreak(noTiebreak) {}
 
   Signature::Symbol* getSymbol(unsigned s) {
     if(_symType == SymbolType::FUNC){
@@ -531,7 +532,7 @@ struct SymbolComparator {
 template<typename InnerComparator>
 struct BoostWrapper : public SymbolComparator
 {
-  BoostWrapper(SymbolType symType) : SymbolComparator(symType) {}
+  BoostWrapper(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
@@ -573,22 +574,25 @@ struct BoostWrapper : public SymbolComparator
     }
     if(res==EQUAL){
       // fallback to Inner
-      res = InnerComparator(_symType).compare(s1,s2);
+      res = InnerComparator(_symType,_noTiebreak).compare(s1,s2);
     }
     return res;
   }
 };
 
-struct IncomaparableTiebreak {
-  IncomaparableTiebreak(SymbolType) {} // here the SymbolType is a dummy argument, required by the template recursion convention
+struct OccurenceTiebreak {
+  OccurenceTiebreak(SymbolType, // here the SymbolType is a dummy argument, required by the template recursion convention
+    bool noTiebreak) : _noTiebreak(noTiebreak) {}
 
-  Comparison compare(unsigned s1, unsigned s2) { return Comparison::EQUAL; }
+  Comparison compare(unsigned s1, unsigned s2) { return _noTiebreak ? Comparison::EQUAL : Int::compare(s1,s2); }
+private:
+  bool _noTiebreak;
 };
 
-template<bool revert = false, typename InnerComparator = IncomaparableTiebreak>
+template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 struct FreqComparator : public SymbolComparator
 {
-  FreqComparator(SymbolType symType) : SymbolComparator(symType) {}
+  FreqComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
@@ -598,16 +602,16 @@ struct FreqComparator : public SymbolComparator
     Comparison res = revert ? Int::compare(c1,c2) : Int::compare(c2,c1);
     if(res==EQUAL){
       // fallback to Inner
-      res = InnerComparator(_symType).compare(s1,s2);
+      res = InnerComparator(_symType,_noTiebreak).compare(s1,s2);
     }
     return res;
   }
 };
 
-template<bool revert = false, typename InnerComparator = IncomaparableTiebreak>
+template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 struct ArityComparator : public SymbolComparator
 {
-  ArityComparator(SymbolType symType) : SymbolComparator(symType) {}
+  ArityComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
 
   Comparison compare(unsigned u1, unsigned u2)
   {
@@ -617,16 +621,16 @@ struct ArityComparator : public SymbolComparator
     }
     if(res==EQUAL) {
       // fallback to Inner
-      res = InnerComparator(_symType).compare(u1,u2);
+      res = InnerComparator(_symType,_noTiebreak).compare(u1,u2);
     }
     return res;
   }
 };
 
-template<int spc, bool revert = false, typename InnerComparator = IncomaparableTiebreak>
+template<int spc, bool revert = false, typename InnerComparator = OccurenceTiebreak>
 struct SpecAriFirstComparator : public SymbolComparator
 {
-  SpecAriFirstComparator(SymbolType symType) : SymbolComparator(symType) {}
+  SpecAriFirstComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
@@ -638,14 +642,14 @@ struct SpecAriFirstComparator : public SymbolComparator
       return revert ? GREATER : LESS;
     }
     // fallback to Inner
-    return InnerComparator(_symType).compare(s1,s2);
+    return InnerComparator(_symType,_noTiebreak).compare(s1,s2);
   }
 };
 
-template<bool revert = false, typename InnerComparator = IncomaparableTiebreak>
+template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 using UnaryFirstComparator = SpecAriFirstComparator<1,revert,InnerComparator>;
 
-template<bool revert = false, typename InnerComparator = IncomaparableTiebreak>
+template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 using ConstFirstComparator = SpecAriFirstComparator<0,revert,InnerComparator>;
 
 static void loadPermutationFromString(DArray<unsigned>& p, const std::string& str) {
@@ -742,8 +746,9 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, bool qk
 }
 
 static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType) {
+  bool noTiebreak = opt.shuffleInput();
   // a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
-  if (opt.shuffleInput()) {
+  if (noTiebreak) {
     // in particular shuffleInput causes OCCURRENCE to be also random
     Shuffling::shuffleArray(aux,aux.size());
     if (opt.symbolPrecedence() == Shell::Options::SymbolPrecedence::SCRAMBLE) {
@@ -754,33 +759,33 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
 
   switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(BoostWrapper<ArityComparator<>>(symType));
+      aux.sort(BoostWrapper<ArityComparator<>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(BoostWrapper<ArityComparator<true /*reverse*/>>(symType));
+      aux.sort(BoostWrapper<ArityComparator<true /*reverse*/>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FIRST:
-      aux.sort(BoostWrapper<UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>>(symType));
+      aux.sort(BoostWrapper<UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::CONST_MAX:
-      aux.sort(BoostWrapper<ConstFirstComparator<false,ArityComparator<>>>(symType));
+      aux.sort(BoostWrapper<ConstFirstComparator<false,ArityComparator<>>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::CONST_MIN:
-      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>>(symType));
+      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::FREQUENCY:
     case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
-      aux.sort(BoostWrapper<FreqComparator<>>(symType));
+      aux.sort(BoostWrapper<FreqComparator<>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
     case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
-      aux.sort(BoostWrapper<FreqComparator<true /*reverse*/>>(symType));
+      aux.sort(BoostWrapper<FreqComparator<true /*reverse*/>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FREQ:
-      aux.sort(BoostWrapper<UnaryFirstComparator<false,FreqComparator<>>>(symType));
+      aux.sort(BoostWrapper<UnaryFirstComparator<false,FreqComparator<>>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::CONST_FREQ:
-      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,FreqComparator<>>>(symType));
+      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,FreqComparator<>>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       // already sorted by occurrence
