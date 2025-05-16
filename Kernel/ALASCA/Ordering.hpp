@@ -205,7 +205,7 @@ struct SkelOrd
   virtual bool isAlascaLiteralOrdering() const final override { return true; }
 
   template<class NumTraits>
-  static MultiSet<TermList> gen_set(NumTraits n, TermList t, bool set1) {
+  static MultiSet<TermList> term_atoms(NumTraits n, TermList t, bool noNum) {
     auto f = n.addF();
     MultiSet<TermList> out;
     RStack<TermList> todo;
@@ -216,10 +216,10 @@ struct SkelOrd
       if (t.isTerm() && t.term()->functor() == f) {
         todo->push(t.term()->termArg(0));
         todo->push(t.term()->termArg(1));
-      } else if (set1 && asig(n).isNumeral(t)) {
+      } else if (noNum && asig(n).isNumeral(t)) {
         set->push(NumTraits::one());
-      } else if (set1 && asig(n).isLinMul(t)) {
-        todo->push(t.term()->termArg(0));
+      } else if (noNum && asig(n).isLinMul(t)) {
+        set->push(t.term()->termArg(0));
       } else {
         set->push(t);
       }
@@ -228,12 +228,12 @@ struct SkelOrd
   }
 
   template<class NumTraits>
-  static MultiSet<TermList> set1(NumTraits n, TermList t) 
-  { return gen_set(n, t, /* set1 */ true); }
+  static MultiSet<TermList> atomsNoNum(NumTraits n, TermList t) 
+  { return term_atoms(n, t, /* noNum */ true); }
 
   template<class NumTraits>
-  static MultiSet<TermList> set2(NumTraits n, TermList t) 
-  { return gen_set(n, t, /* set1 */ false); }
+  static MultiSet<TermList> atomsNum(NumTraits n, TermList t) 
+  { return term_atoms(n, t, /* noNum */ false); }
 
 
   Ordering::Result cmpSameSkeleton(TermList t0, TermList t1) const {
@@ -241,36 +241,14 @@ struct SkelOrd
     // TODO make this nicer
 
     Option<Ordering::Result> resultItp = forAnyNumTraits([&](auto n) -> Option<Ordering::Result> {
-        auto isZero = [](auto option) { return option.isSome() && option.unwrap() == 0; };
+        auto isOne = [](auto option) { return option.isSome() && option.unwrap() == 1; };
+        // auto isZero = [](auto option) { return option.isSome() && option.unwrap() == 0; };
         if (asig(n).isAdd(t0) || asig(n).isAdd(t1)) {
           auto mulExt = [&](auto l, auto r) { return OrderingUtils::mulExt(l, r, 
                 [&](auto& l, auto& r) { return this->compare(l, r); }); };
           return some(AlascaOrderingUtils::lexLazy(
-              [&]() { return mulExt(set1(n, t0), set1(n, t1)); },
-              [&]() { return mulExt(set2(n, t0), set2(n, t1)); }));
-
-        } else if (isZero(asig(n).tryNumeral(t0))) {
-          ASS(!isZero(asig(n).tryNumeral(t1)))
-          /* cmpSameSkeleton(0, r) = LESS */
-          return some(Ordering::Result::LESS);
-
-        } else if (isZero(asig(n).tryNumeral(t1))) {
-          ASS(!isZero(asig(n).tryNumeral(t0)))
-          /* cmpSameSkeleton(  l, 0) = GREATER */
-          return some(Ordering::Result::GREATER);
-
-        } else if (isZero(asig(n).tryLinMul(t0)) &&  isZero(asig(n).tryLinMul(t1))) {
-          /* cmpSameSkeleton(0 l, 0 r) = cmpSameSkeleton(l,r) */
-          return some(cmpSameSkeleton(t0.term()->termArg(0), t1.term()->termArg(0)));
-
-        } else if (isZero(asig(n).tryLinMul(t0))) {
-          /* cmpSameSkeleton(0 l,   r) = LESS */
-          return some(Ordering::Result::LESS);
-
-        } else if (isZero(asig(n).tryLinMul(t1))) {
-          /* cmpSameSkeleton(  l, 0 r) = GREATER */
-          return some(Ordering::Result::GREATER);
-
+              [&]() { return mulExt(atomsNoNum(n, t0), atomsNoNum(n, t1)); },
+              [&]() { return mulExt(  atomsNum(n, t0),   atomsNum(n, t1)); }));
 
         } else if (asig(n).tryNumeral(t0).isSome() &&  asig(n).tryNumeral(t1).isSome()) {
           auto j = *asig(n).tryNumeral(t0);
@@ -378,8 +356,6 @@ struct SkelOrd
       return some(TermList(Term::create(t, args->begin())));
     }
   }
-
-  // TODO atoms of equalities normalizing!!!
 
   Option<TermList> skeleton(TermList t) const
   {
