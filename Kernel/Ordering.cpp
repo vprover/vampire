@@ -579,13 +579,13 @@ struct BoostWrapper : public SymbolComparator
   }
 };
 
-struct OccurenceTiebreak {
-  OccurenceTiebreak(SymbolType) {} // here the SymbolType is a dummy argument, required by the template recursion convention
+struct IncomaparableTiebreak {
+  IncomaparableTiebreak(SymbolType) {} // here the SymbolType is a dummy argument, required by the template recursion convention
 
-  Comparison compare(unsigned s1, unsigned s2) {  return Int::compare(s1,s2); }
+  Comparison compare(unsigned s1, unsigned s2) { return Comparison::EQUAL; }
 };
 
-template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<bool revert = false, typename InnerComparator = IncomaparableTiebreak>
 struct FreqComparator : public SymbolComparator
 {
   FreqComparator(SymbolType symType) : SymbolComparator(symType) {}
@@ -604,7 +604,7 @@ struct FreqComparator : public SymbolComparator
   }
 };
 
-template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<bool revert = false, typename InnerComparator = IncomaparableTiebreak>
 struct ArityComparator : public SymbolComparator
 {
   ArityComparator(SymbolType symType) : SymbolComparator(symType) {}
@@ -616,14 +616,14 @@ struct ArityComparator : public SymbolComparator
       res = Lib::revert(res);
     }
     if(res==EQUAL) {
-      // fallback to Inner 
+      // fallback to Inner
       res = InnerComparator(_symType).compare(u1,u2);
     }
     return res;
   }
 };
 
-template<int spc, bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<int spc, bool revert = false, typename InnerComparator = IncomaparableTiebreak>
 struct SpecAriFirstComparator : public SymbolComparator
 {
   SpecAriFirstComparator(SymbolType symType) : SymbolComparator(symType) {}
@@ -642,10 +642,10 @@ struct SpecAriFirstComparator : public SymbolComparator
   }
 };
 
-template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<bool revert = false, typename InnerComparator = IncomaparableTiebreak>
 using UnaryFirstComparator = SpecAriFirstComparator<1,revert,InnerComparator>;
 
-template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<bool revert = false, typename InnerComparator = IncomaparableTiebreak>
 using ConstFirstComparator = SpecAriFirstComparator<0,revert,InnerComparator>;
 
 static void loadPermutationFromString(DArray<unsigned>& p, const std::string& str) {
@@ -742,7 +742,7 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, bool qk
 }
 
 static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType) {
-  // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
+  // a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
   if (opt.shuffleInput()) {
     // in particular shuffleInput causes OCCURRENCE to be also random
     Shuffling::shuffleArray(aux,aux.size());
