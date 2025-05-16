@@ -584,6 +584,8 @@ struct OccurenceTiebreak {
   OccurenceTiebreak(SymbolType, // here the SymbolType is a dummy argument, required by the template recursion convention
     bool noTiebreak) : _noTiebreak(noTiebreak) {}
 
+  // normally, OccurenceTiebreak resorts to comparing the plain symbol IDs,
+  // but under shuffling (=> noTiebreak), we want to ignore this and use whatever was in the array before (which was a random permutation)
   Comparison compare(unsigned s1, unsigned s2) { return _noTiebreak ? Comparison::EQUAL : Int::compare(s1,s2); }
 private:
   bool _noTiebreak;
