@@ -743,9 +743,13 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, bool qk
 
 static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType) {
   // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
-  if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
-    Shuffling::shuffleArray(aux,aux.size());
+  if (opt.shuffleInput()) {
     // in particular shuffleInput causes OCCURRENCE to be also random
+    Shuffling::shuffleArray(aux,aux.size());
+    if (opt.symbolPrecedence() == Shell::Options::SymbolPrecedence::SCRAMBLE) {
+      // no need to go and shuffle one more time below
+      return;
+    }
   }
 
   switch(opt.symbolPrecedence()) {
@@ -782,13 +786,7 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
       // already sorted by occurrence
       break;
     case Shell::Options::SymbolPrecedence::SCRAMBLE:
-      unsigned sz = aux.size();
-      for(unsigned i=0;i<sz;i++){
-        unsigned j = Random::getInteger(sz-i)+i;
-        unsigned tmp = aux[j];
-        aux[j]=aux[i];
-        aux[i]=tmp;
-      }
+      Shuffling::shuffleArray(aux,aux.size());
       break;
   }
 }
