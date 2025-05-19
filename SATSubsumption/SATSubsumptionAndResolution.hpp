@@ -166,9 +166,8 @@ private:
     Slice<Match> getIMatches(unsigned i)
     {
       ASS_L(i, _indexI.size())
-      return Slice<Match>(
-          &_matchesByI[_indexI[i]],
-          &_matchesByI[_indexI[i + 1]]);
+      return Slice(_matchesByI.data() + _indexI[i],
+                   _matchesByI.data() + _indexI[i + 1]);
     }
 
     /**
@@ -179,9 +178,8 @@ private:
     Slice<Match> getJMatches(unsigned j)
     {
       ASS_L(j, _indexJ.size())
-      return Slice<Match>(
-          &_matchesByJ[_indexJ[j]],
-          &_matchesByJ[_indexJ[j + 1]]);
+      return Slice(_matchesByJ.data() + _indexJ[j],
+                   _matchesByJ.data() + _indexJ[j + 1]);
     }
 
     /**
