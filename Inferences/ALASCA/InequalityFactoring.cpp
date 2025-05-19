@@ -129,7 +129,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
             l1.contextTerms().map([&](auto t) { return  sigma(( k * t).toTerm()); }),
             l2.contextTerms().map([&](auto t) { return  sigma((-j * t).toTerm()); })));
 
-  Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_LITERAL_FACTORING, premise));
+  auto inf = [&]() { return Inference(GeneratingInference1(Kernel::InferenceRule::ALASCA_LITERAL_FACTORING, premise)); };
 
   auto L1σ = sigma(l1.literal()); // <- (j s1 + t1 >1 0)σ
   auto L2σ = sigma(l2.literal()); // <- (j s2 + t2 >2 0)σ
@@ -142,7 +142,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
        ),
        ctxtLitsσ(),
        arrayIter(cnst).cloned()
-    ), inf);
+    ), inf());
   };
 
   auto c2 = [&]() { 
@@ -153,7 +153,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
        ),
        ctxtLitsσ(),
        arrayIter(cnst).cloned()
-    ), inf);
+    ), inf());
   };
 
   auto out = InequalityNormalizer::normalize(L1σ) == InequalityNormalizer::normalize(L2σ)
@@ -162,7 +162,7 @@ InequalityFactoring::Iter InequalityFactoring::applyRule(
        iterItems( /*   (±js1 + t1 <> 0)σ */ L1σ ),
        ctxtLitsσ(),
        arrayIter(cnst).cloned()
-    ), inf))
+    ), inf()))
     : SArray::fromItems(c1(), c2());
 
   DEBUG("conclusion: ", out)
