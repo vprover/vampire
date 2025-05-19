@@ -101,7 +101,6 @@ public:
         auto s = self.selectedSummand().atom();
         auto j = self.selectedSummand().numeral();
         auto k = lit.term().summandAt(i).numeral();
-    Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_TERM_FACTORING, self.clause()));
     return Clause::fromIterator(concatIters(
 
           iterItems(
@@ -118,7 +117,7 @@ public:
           self.contextLiterals()
              .map([&](auto l) { return unif.subs().apply(l, /* bank */ 0); }),
           arrayIter(unif.computeConstraintLiterals())
-          ),inf);
+          ),Inference(GeneratingInference1(Kernel::InferenceRule::ALASCA_TERM_FACTORING, self.clause())));
     });
   }
 

@@ -92,7 +92,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
   //   ^^^^^^^^^--> L[t]σ
   DEBUG(3, "replacing: ", *L2σ, " [ ", s2σ, " -> ", tσ, " ] ==> ", *resolvent);
 
-  Inference inf(GeneratingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, lhs.clause(), rhs.clause()));
+  
   auto out = Clause::fromIterator(concatIters(
           lhs.contextLiterals().map([&](auto l) { return sigma(l, lhsVarBank); }),
           rhs.contextLiterals().map([&](auto l) { 
@@ -101,7 +101,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
           }),
           arrayIter(uwa.computeConstraintLiterals()),
           iterItems(resolvent)
-        ), inf);
+        ), Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_SUPERPOSITION, lhs.clause(), rhs.clause())));
   DEBUG(1, "out: ", *out);
   return Option<Clause*>(out);
 }

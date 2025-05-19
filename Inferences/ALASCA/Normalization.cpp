@@ -80,8 +80,7 @@ Clause* Normalization::simplify(Clause* cl)
     }
   }
   if (altered) {
-    Inference inf(SimplifyingInference1(Kernel::InferenceRule::ALASCA_NORMALIZATION, cl));
-    auto outCl = Clause::fromStack(*out, inf);
+    auto outCl = Clause::fromStack(*out, Inference(SimplifyingInference1(Kernel::InferenceRule::ALASCA_NORMALIZATION, cl)));
     DEBUG_NORMALIZE(0, *cl, " ==> ", *outCl)
     return outCl;
   } else {

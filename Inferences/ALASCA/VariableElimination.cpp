@@ -347,9 +347,7 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
           }
         }
 
-        Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_VARIABLE_ELIMINATION, premise));
-        auto out = Clause::fromStack(concl, inf);
-        return out;
+        return Clause::fromStack(concl, Inference(GeneratingInference1(Kernel::InferenceRule::ALASCA_VARIABLE_ELIMINATION, premise)));
       }));
 }
 

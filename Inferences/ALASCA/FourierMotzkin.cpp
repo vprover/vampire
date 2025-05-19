@@ -64,7 +64,6 @@ Clause* FourierMotzkinConf::applyRule_(
       resolventTerm = add(resolventTerm, NumTraits::constantTl(-1));
     }
 
-    Inference inf(GeneratingInference2(Kernel::InferenceRule::ALASCA_FOURIER_MOTZKIN, lhs.clause(), rhs.clause()));
     auto cl = Clause::fromIterator(concatIters(
             /* (k t₁ + j t₂ > 0)σ */ 
             iterItems(NumTraits::greater(true, resolventTerm, NumTraits::zero())),
@@ -76,7 +75,7 @@ Clause* FourierMotzkinConf::applyRule_(
             lhs.contextLiterals().map([&](auto l) { return sigma(l, lhsVarBank); }),
             rhs.contextLiterals().map([&](auto l) { return sigma(l, rhsVarBank); }),
             arrayIter(cnst).cloned()
-          ), inf);
+          ), Inference(GeneratingInference2(Kernel::InferenceRule::ALASCA_FOURIER_MOTZKIN, lhs.clause(), rhs.clause())));
 
     DEBUG_FM(1, "out: ", *cl);
     return cl;

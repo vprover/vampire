@@ -116,15 +116,13 @@ ClauseIterator SubtermFactoring::generateClauses(Clause* premise)
             );
           // TODO make its own InferenceRule (?)
         auto constr = unif.computeConstraintLiterals();
-        Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_TERM_FACTORING, premise));
           return Clause::fromIterator(
               concatIters(
                 premise->iterLits()
                   .map([&](auto l) { return unif.subs().apply(EqHelper::replace(l, oldSum, newSum), 0); }),
                 arrayIter(*constr).cloned()
                 ),
-              inf
-              );
+              Inference(GeneratingInference1(Kernel::InferenceRule::ALASCA_TERM_FACTORING, premise)));
       });
     }));
 }

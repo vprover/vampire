@@ -114,7 +114,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ, t1σ))
   check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ, t1σ))
 
-  Inference inf(GeneratingInference1(Kernel::InferenceRule::ALASCA_EQ_FACTORING, l1.clause()));
   auto lits = concatIters(
       /* t1σ != t2σ */
       iterItems(Literal::createEquality(false, t1σ, t2σ, srt)),
@@ -123,7 +122,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
         .map([&](auto L) { return sigma(L); }),
       arrayIter(uwa->computeConstraintLiterals()));
 
-  auto out = Clause::fromIterator(std::move(lits), inf);
+  auto out = Clause::fromIterator(std::move(lits), Inference(GeneratingInference1(Kernel::InferenceRule::ALASCA_EQ_FACTORING, l1.clause())));
   DEBUG("out: ", *out);
   return Option<Clause*>(out);
 }
