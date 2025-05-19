@@ -881,6 +881,7 @@ protected:
     for (unsigned i = 0; i < sig.functions(); ++i) {
       if ( env.signature->isFoolConstantSymbol(true,i) 
         || env.signature->isFoolConstantSymbol(false,i)
+        || forAnyNumTraits([&](auto n) { return env.signature->tryLinMul<typename decltype(n)::ConstantType>(i); })
         || theory->isInterpretedFunction(i)
         || theory->isInterpretedConstant(i))  {
         /* don't output */
@@ -1129,37 +1130,59 @@ protected:
     }
   }
 
+  static void outputNumeral(std::ostream& out, IntegerConstantType const& n) {
+    if (n < IntegerConstantType(0)) {
+      out << "(- " << n.abs() << ")";
+    } else {
+      out << n;
+    }
+  }
+
+  static void outputNumeral(std::ostream& out, RationalConstantType const& r) {
+    throw UserErrorException("only reals and integers are allowed in smt2");
+  }
+
+  static void outputNumeral(std::ostream& out, RealConstantType const& r) {
+    if (r < RealConstantType(0)) {
+      out << "(-";
+    }
+    if (r.denominator() != IntegerConstantType(1)) {
+      out << r.numerator().abs() << ".0";
+    } else {
+      out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
+    }
+    if (r < RealConstantType(0)) {
+      out << ")";
+    }
+  }
+
   static void outputFunctionName(std::ostream& out, unsigned f) 
   {
+    auto linMulOutputted = forAnyNumTraits([&](auto n) { 
+        if (auto num = env.signature->tryLinMul<typename decltype(n)::ConstantType>(f)) {
+          out << "* ";
+          outputNumeral(out, *num);
+          return true;
+        } else {
+          return false; 
+        }
+    });
+    if (linMulOutputted) return;
+
+    auto numeralOutputted = forAnyNumTraits([&](auto n) { 
+       typename decltype(n)::ConstantType num;
+       if (theory->tryInterpretConstant(f, num)) {
+         outputNumeral(out, num);
+         return true;
+       } else {
+         return false;
+       }
+    });
+    if (numeralOutputted) return;
+
     if (theory->isInterpretedFunction(f)) {
       outputInterpretationName(out, theory->interpretFunction(f));
-    } else if (theory->isInterpretedConstant(f)) {
-      IntegerConstantType i;
-      RealConstantType r;
-      if (theory->tryInterpretConstant(f, i)) {
-        if (i < IntegerConstantType(0)) {
-          out << "(- " << i.abs() << ")";
-        } else {
-          out << i;
-        }
-
-      } else if (theory->tryInterpretConstant(f, r)) {
-        if (r < RealConstantType(0)) {
-          out << "(-";
-        }
-        if (r.denominator() != IntegerConstantType(1)) {
-          out << r.numerator().abs() << ".0";
-        } else {
-          out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
-        }
-        if (r < RealConstantType(0)) {
-          out << ")";
-        }
-
-      } else {
-        throw UserErrorException("only reals and integers are allowed in smt2");
-      }
-
+        
     } else if (env.signature->isFoolConstantSymbol(true, f)) {
       out << "true";
 
