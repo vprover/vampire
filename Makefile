@@ -579,8 +579,15 @@ VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
+ifeq ($(shell uname), Darwin)
+  RPATH_CMD = install_name_tool -add_rpath @executable_path/z3/build
+else
+  RPATH_CMD = @echo
+endif
+
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(TORCHLINK) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -Lcadical/build -lcadical $(TORCHLIB)
+$(RPATH_CMD) $@_$(BRANCH)_$(COM_CNT)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

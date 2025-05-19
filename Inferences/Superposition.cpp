@@ -466,7 +466,7 @@ Clause* Superposition::performSuperposition(
 
     for(unsigned i=0;i<eqLength;i++) {
       Literal* curr=(*eqClause)[i];
-      if(curr!=eqLit) {
+      if(curr!=eqLit && (!bothHaveAnsLit || curr!=eqAnsLit)) {
         Literal* currAfter = subst->apply(curr, eqIsResult);
 
         if(EqHelper::isEqTautology(currAfter)) {

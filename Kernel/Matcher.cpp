@@ -24,34 +24,6 @@ namespace Kernel
 
 using namespace std;
 
-namespace __MU_Aux {
-
-class MapBinderAndApplicator
-{
-public:
-  TermList apply(unsigned var) {
-    TermList res;
-    if(!_map.find(var, res)) {
-      res = TermList(var, false);
-    }
-    return res;
-  }
-
-  bool bind(unsigned var, TermList term)
-  {
-    TermList* aux;
-    return _map.getValuePtr(var,aux,term) || *aux==term;
-  }
-  void specVar(unsigned var, TermList term)
-  { ASSERTION_VIOLATION; }
-
-  void reset() { _map.reset(); }
-private:
-  DHMap<unsigned, TermList> _map;
-};
-
-};
-
 /**
  * Obtain a substitution by matching @b matchedInstance onto @b matchedBase
  * and return @b resultBase after application of that substitution
@@ -61,8 +33,6 @@ private:
 TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
     TermList matchedInstance, TermList resultBase)
 {
-  using namespace __MU_Aux;
-
   static MapBinderAndApplicator bap;
   bap.reset();
 
@@ -73,8 +43,6 @@ TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
 Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
       Literal* matchedInstance, Formula* resultBase)
 {
-  using namespace __MU_Aux;
-
   static MapBinderAndApplicator bap;
   bap.reset();
 

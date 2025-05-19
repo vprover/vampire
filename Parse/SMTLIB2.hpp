@@ -25,6 +25,7 @@
 
 #include "Shell/LispParser.hpp"
 
+#define USER_ERROR_EXPR(msg) USER_ERROR(std::string(msg)+" in top-level expression '"+_topLevelExpr->toString()+"'")
 
 namespace Parse {
 
@@ -48,8 +49,6 @@ public:
 
   /** Parse from an open stream */
   void parse(std::istream& str);
-  /** Parse a ready lisp expression */
-  void parse(LExpr* bench);
 
   /** Formulas obtained during parsing:
    *  1) equations collected from "define-fun"
@@ -117,37 +116,26 @@ private:
   void readDeclareSort(const std::string& name, const std::string& arity);
 
   /**
-   * Sort definition is a macro (with arguments) for a complex sort expression.
-   *
-   * We don't parse the definition until it is used.
-   *
-   * Then a lookup context is created mapping
-   * symbolic arguments from the definition to actual arguments from the invocation
-   * and the invocation is parsed as the defined body in this context.
+   * Maps smtlib name of a defined sort to its arity and its sort term.
+   * The sort term is assumed to contain X1,...,Xn where n is the arity.
    */
-  struct SortDefinition {
-    SortDefinition() : args(0), body(0) {}
-    SortDefinition(LExprList* args, LExpr* body)
-     : args(args), body(body) {}
-
-    LExprList* args;
-    LExpr* body;
-  };
-
-  /**
-   * Maps smtlib name of a defined sort to its SortDefinition struct.
-   */
-  DHMap<std::string,SortDefinition> _sortDefinitions;
+  DHMap<std::string,std::pair<unsigned,TermList>> _sortDefinitions;
 
   /**
    * Handle "define-sort" entry.
    */
-  void readDefineSort(const std::string& name, LExprList* args, LExpr* body);
+  void readDefineSort(const std::string& name, LExpr* args, LExpr* body);
 
   /**
    * Helper funtion to check that a parsed sort is indeed a sort.
    */
   TermList parseSort(LExpr* sExpr);
+
+  /**
+   * Normalizes type variables in a stack of argument sorts and result sort.
+   * Returns the stack of type variables before normalization. 
+   */
+  TermStack normalizeFunctionSorts(TermStack& argSorts, TermList& resSort);
 
   /**
    * Some built-in symbols represent functions with result of sort Bool.
@@ -169,7 +157,6 @@ private:
     FS_IS_INT,
     FS_NOT,
     FS_OR,
-    FS_PAR,
     FS_TRUE,
     FS_XOR,
 
@@ -197,6 +184,7 @@ private:
     TS_INT,
     TS_REAL,
     TS_ABS,
+    TS_AS,
     TS_DIV,
     TS_ITE,
     TS_LET,
@@ -239,13 +227,14 @@ private:
    * and return it.
    */
   DeclaredSymbol declareFunctionOrPredicate(const std::string& name, TermList rangeSort, const TermStack& argSorts, unsigned taArity);
+  unsigned declareTypeCon(const std::string& name, unsigned arity);
 
   /**
    * Handle "declare-fun" entry.
    *
    * Declaring a function just extends the signature.
    */
-  void readDeclareFun(const std::string& name, LExprList* iSorts, LExpr* oSort, unsigned taArity);
+  void readDeclareFun(const std::string& name, LExpr* iSorts, LExpr* oSort);
 
   /**
    * Handle "define-fun[-rec]" entry.
@@ -253,17 +242,17 @@ private:
    * Defining a function extends the signature and adds the new function's definition into _formulas.
    * Additionally, the "define-fun-rec" variant allows the defined function to be present inside the definition, allowing recursion.
    */
-  void readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive);
+  void readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort, LExpr* body, bool recursive);
   /**
    * Handle "define-funs-rec" entry.
    *
    * Same as "define-fun-rec" (see above), except it defines possibly multiple functions at the same time which can use each other.
    */
-  void readDefineFunsRec(LExprList* declarations, LExprList* definitions);
+  void readDefineFunsRec(LExpr* declarations, LExpr* definitions);
 
-  void readDeclareDatatype(LExpr* sort, LExprList* datatype);
+  void readDeclareDatatype(std::string name, LExpr* datatype);
 
-  void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
+  void readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codatatype = false);
 
   TermAlgebraConstructor* buildTermAlgebraConstructor(std::string constrName, TermList taSort,
                                                       Stack<std::string> destructorNames, TermStack argSorts);
@@ -278,8 +267,6 @@ private:
     }
 
     bool isSeparator() { return sort.isSpecialVar() && formula && !frm; }
-
-    bool isSharedTerm() { return !formula && (!trm.isTerm() || trm.term()->shared()); }
 
     /** Construct ParseResult from a formula */
     ParseResult(Formula* frm) : sort(AtomicSort::boolSort()), formula(true), frm(frm) {}
@@ -309,13 +296,13 @@ private:
      */
     TermList asTerm(TermList& resTrm);
     /**
-     * Records a label for the formula represented by this `ParserResult`,
+     * Records a label for the formula represented by this `ParseResult`,
      * resulting from a ":named" SMT-LIB2 annotation.
      */
     void setLabel(std::string l){ label = l; }
     /**
      * Helper that attaches a label to a `Formula`
-     * if a label is recorded for this `ParserResult`.
+     * if a label is recorded for this `ParseResult`.
      * Returns the formula.
      */
     Formula* attachLabelToFormula(Formula* frm);
@@ -340,13 +327,31 @@ private:
   typedef std::pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<std::string,SortedTerm> TermLookup;
-  typedef Stack<TermLookup*> Scopes;
+  typedef Stack<TermLookup*> Lookups;
   /** Stack of parsing contexts:
    * for variables from quantifiers and
    * for symbols bound by let (which are variables from smtlib perspective,
    * but require a true function/predicate symbol by vampire )
    */
-  Scopes _scopes;
+  Lookups _lookups;
+  /**
+   * Permitted by SMTLIB 2.7, users can declare sort parameters ranging over
+   * sort terms and use statements with prenex polymorphism, that is, these
+   * global sort parameters can appear in (almost) any statement, implicitly
+   * universally quantified. We collect them in this structure globally.
+   */
+  TermLookup _globalSortParamLookup;
+
+  /**
+   * Helper function maintaining lookups (see above).
+   */
+  inline void pushLookup() {
+    _lookups.push(new TermLookup());
+  }
+  inline void popLookup() {
+    delete _lookups.pop();
+  }
+  void tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort);
 
   /**
    * Stack of partial results used by parseTermOrFormula below.
@@ -370,11 +375,11 @@ private:
     // these two are intermediate cases for handling let
     PO_LET_PREPARE_LOOKUP, // takes LExpr* (the whole let expression again, why not)
     PO_LET_END,            // takes LExpr* (the whole let expression again, why not)
-    PO_MATCH_CASE_START,   // takes LExpr*, a list containing the matched term, pattern, case
-    PO_MATCH_CASE_END,     // takes LExpr*, a list containing the matched term, pattern, case
+    PO_MATCH_CASE,         // takes LExpr*, a list containing the pattern and body
     PO_MATCH_END,          // takes LExpr* (the whole match again)
     PO_QUANT,              // takes LExpr* (the whole quantified expression again)
     PO_POP_LOOKUP,         // takes nothing
+    PO_AS_END,             // takes LExpr* (the whole as expression again)
   };
   /**
    * Main smtlib term parsing stack.
@@ -388,10 +393,10 @@ private:
   [[noreturn]] void complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp);
 
   /**
-   * Read `[vars]` from a `(par ([vars]) body)` block into `lookup`.
+   * Read `[vars]` from a `(par ([vars]) body)` block into the topmost lookup.
    * Note that `rdr.next()` gives `body` after the function returns.
    */
-  void readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts = nullptr);
+  void readTypeParameters(ErrorThrowingLispListReader& rdr, TermStack& ts);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
@@ -399,14 +404,11 @@ private:
 
   bool isTermAlgebraConstructor(const std::string& name);
   void parseMatchBegin(LExpr* exp);
-  void parseMatchCaseStart(LExpr* exp);
-  void parseMatchCaseEnd(LExpr* exp);
+  void parseMatchCase(LExpr* exp);
   void parseMatchEnd(LExpr* exp);
 
   void parseQuantBegin(LExpr* exp);
   void parseQuantEnd(LExpr* exp);
-
-  void parseParametric(LExpr* exp);
 
   void parseAnnotatedTerm(LExpr* exp);
 
@@ -515,7 +517,7 @@ private:
   /**
    * Toplevel parsing dispatch for a benchmark.
    */
-  void readBenchmark(LExprList* bench);
+  void readBenchmark(LExpr* bench);
 };
 
 }
