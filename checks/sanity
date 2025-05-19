@@ -28,7 +28,7 @@ check_szs_status() {
 	shift
 	echo $@
 	out=`cd checks && $vampire $@`
-	szs=`echo "$out" | egrep "^% SZS status $status for .+$"`
+	szs=`echo "$out" | grep -E "^% SZS status $status for .+$"`
 	if test -z "$szs"
 	then
 		echo "SZS check failed: should have been SZS $status"
@@ -43,7 +43,7 @@ check_smtcomp_status() {
 	shift
 	echo $@
 	out=`cd checks && $vampire $@`
-	result=`echo "$out" | egrep "^$status$"`
+	result=`echo "$out" | grep -E "^$status$"`
 	if test -z "$result"
 	then
 		echo "$SMT check failed: should have been $status"
