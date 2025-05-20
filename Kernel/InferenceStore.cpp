@@ -1146,7 +1146,7 @@ protected:
     if (r < RealConstantType(0)) {
       out << "(-";
     }
-    if (r.denominator() != IntegerConstantType(1)) {
+    if (r.denominator() == 1) {
       out << r.numerator().abs() << ".0";
     } else {
       out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
