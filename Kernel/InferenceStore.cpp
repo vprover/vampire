@@ -1143,15 +1143,15 @@ protected:
   }
 
   static void outputNumeral(std::ostream& out, RealConstantType const& r) {
-    if (r < RealConstantType(0)) {
-      out << "(-";
+    if (r < 0) {
+      out << "(- ";
     }
     if (r.denominator() == 1) {
       out << r.numerator().abs() << ".0";
     } else {
       out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
     }
-    if (r < RealConstantType(0)) {
+    if (r < 0) {
       out << ")";
     }
   }
