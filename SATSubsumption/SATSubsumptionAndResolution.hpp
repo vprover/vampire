@@ -17,6 +17,7 @@
 #include <cstdint>
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Lib/Slice.hpp"
 #include <chrono>
 
@@ -509,6 +510,10 @@ public:
   bool checkSubsumptionResolutionWithLiteral(Kernel::Clause *sidePremise,
                                              Kernel::Clause *mainPremise,
                                              unsigned resolutionLiteral);
+
+  // return the substitution required for the last subsumption resolution
+  // precondition: the last subsumption resolution succeeded
+  SimpleSubstitution getBindingsForSubsumptionResolutionWithLiteral();
 
   /**
    * Creates a clause that is the subsumption resolution of @b mainPremise and @b sidePremise on @b m_j.
