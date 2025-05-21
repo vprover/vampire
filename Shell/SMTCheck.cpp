@@ -789,9 +789,10 @@ static void satRefutation(std::ostream &out, SortMap &conclSorts, Unit *concl) {
   }
 }
 
-static void alascaFourierMotzkin(std::ostream &out, SortMap &conclSorts, Clause *concl) {
+template<class Rule>
+static void alascaBinInf(std::ostream &out, SortMap &conclSorts, Clause *concl) {
   auto [left, right] = getParents<2>(concl);
-  const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<ALASCA::FourierMotzkin>>(concl);
+  const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<Rule>>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
   ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
@@ -807,27 +808,6 @@ static void alascaFourierMotzkin(std::ostream &out, SortMap &conclSorts, Clause 
   outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
   outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
   outputConclusion(out, conclSorts, concl->asClause());
-}
-
-static void alascaSuperposition(std::ostream &out, SortMap &conclSorts, Clause *concl) {
-  auto [left, right] = getParents<2>(concl);
-  const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<ALASCA::SuperpositionConf>>(concl);
-
-  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
-  RobSubstitution &subst = uwa.subs();
-
-  subst.apply(fm.left.literal(), 0);
-  subst.apply(fm.right.literal(), 1);
-  for (unsigned i = 0; i < left->length(); i++)
-    subst.apply((*left)[i], 0);
-  for (unsigned i = 0; i < right->length(); i++)
-    subst.apply((*right)[i], 1);
-
-  outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
-  outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
-  outputConclusion(out, conclSorts, concl->asClause());
-
 }
 
 static SortMap outputSkolemsAndGetSorts(std::ostream &out, Unit *u)
@@ -1043,10 +1023,10 @@ void outputStep(std::ostream &out, Unit *u)
       satRefutation(out, conclSorts, u);
       break;
     case InferenceRule::ALASCA_FOURIER_MOTZKIN:
-      alascaFourierMotzkin(out, conclSorts, u->asClause());
+      alascaBinInf<ALASCA::FourierMotzkinConf>(out, conclSorts, u->asClause());
       break;
     case InferenceRule::ALASCA_SUPERPOSITION:
-      alascaSuperposition(out, conclSorts, u->asClause());
+      alascaBinInf<ALASCA::SuperpositionConf>(out, conclSorts, u->asClause());
       break;
     default:
       sorry = true;
