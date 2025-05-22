@@ -46,7 +46,7 @@
 #include "Lib/Recycled.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 22
+#define TERM_DIST_VAR_BITS 19
 // maximum number that fits in a TERM_DIST_VAR_BITS-bit unsigned integer
 #define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
@@ -324,27 +324,29 @@ private:
   // but it was *not* portable because the layout of the bitfield is not guaranteed
   //
   // now we use a manual bitfield, as follows
+#define MK_FIELD(typ, name, Name, NAME, start, size) \
+  static constexpr unsigned NAME##_BITS_START = start; \
+  static constexpr unsigned NAME##_BITS_END = NAME##_BITS_START + size; \
+  BITFIELD64_GET_AND_SET(typ, name, Name, NAME)
+
+  MK_FIELD(unsigned, tag, Tag, TAG, 0, 2)
+  MK_FIELD(bool, polarity, Polarity, POLARITY, TAG_BITS_END, 1)
+  MK_FIELD(bool, shared, Shared, SHARED, POLARITY_BITS_END, 1)
+  MK_FIELD(bool, literal, Literal, LITERAL, SHARED_BITS_END, 1)
+  MK_FIELD(bool, sort, Sort, SORT, LITERAL_BITS_END, 1)
+  MK_FIELD(bool, hasTermVar, HasTermVar, HAS_TERM_VAR, SORT_BITS_END, 1)
+  MK_FIELD(bool, hasDBIndex, HasDBIndex, HAS_DB_INDEX, HAS_TERM_VAR_BITS_END, 1)
+  MK_FIELD(bool, hasRedex, HasRedex, HAS_REDEX, HAS_DB_INDEX_BITS_END, 1)
+  MK_FIELD(bool, hasLambda, HasLambda, HAS_LAMBDA, HAS_REDEX_BITS_END, 1)
+  MK_FIELD(unsigned, order, Order, ORDER, HAS_LAMBDA_BITS_END, 3)
+  MK_FIELD(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR, ORDER_BITS_END, TERM_DIST_VAR_BITS)
+  MK_FIELD(uint32_t, id, Id, ID, DISTINCT_VAR_BITS_END, 32)
+#undef MK_FIELD
+
   static constexpr unsigned
-    TAG_BITS_START = 0,
-    TAG_BITS_END = TAG_BITS_START + 2,
-    POLARITY_BITS_START = TAG_BITS_END,
-    POLARITY_BITS_END = POLARITY_BITS_START + 1,
-    SHARED_BITS_START = POLARITY_BITS_END,
-    SHARED_BITS_END = SHARED_BITS_START + 1,
-    LITERAL_BITS_START = SHARED_BITS_END,
-    LITERAL_BITS_END = LITERAL_BITS_START + 1,
-    SORT_BITS_START = LITERAL_BITS_END,
-    SORT_BITS_END = SORT_BITS_START + 1,
-    HAS_TERM_VAR_BITS_START = SORT_BITS_END,
-    HAS_TERM_VAR_BITS_END = HAS_TERM_VAR_BITS_START + 1,
-    ORDER_BITS_START = HAS_TERM_VAR_BITS_END,
-    ORDER_BITS_END = ORDER_BITS_START + 3,
-    DISTINCT_VAR_BITS_START = ORDER_BITS_END,
-    DISTINCT_VAR_BITS_END = DISTINCT_VAR_BITS_START + TERM_DIST_VAR_BITS,
-    ID_BITS_START = DISTINCT_VAR_BITS_END,
-    ID_BITS_END = ID_BITS_START + 32,
     TERM_BITS_START = 0,
     TERM_BITS_END = CHAR_BIT * sizeof(Term *);
+  BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
 
   // various properties we want to check
   static_assert(TAG_BITS_START == 0, "tag must be the least significant bits");
@@ -353,17 +355,7 @@ private:
   static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
   static_assert(AO_INCOMPARABLE < 8, "must be able to squash orderings into 3 bits");
 
-  // getters and setters
-  BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
-  BITFIELD64_GET_AND_SET(bool, polarity, Polarity, POLARITY)
-  BITFIELD64_GET_AND_SET(bool, shared, Shared, SHARED)
-  BITFIELD64_GET_AND_SET(bool, literal, Literal, LITERAL)
-  BITFIELD64_GET_AND_SET(bool, sort, Sort, SORT)
-  BITFIELD64_GET_AND_SET(bool, hasTermVar, HasTermVar, HAS_TERM_VAR)
-  BITFIELD64_GET_AND_SET(unsigned, order, Order, ORDER)
-  BITFIELD64_GET_AND_SET(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR)
-  BITFIELD64_GET_AND_SET(uint32_t, id, Id, ID)
-  BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
+
   // end bitfield
 
   friend class Indexing::TermSharing;
@@ -791,6 +783,50 @@ public:
                                : TermKind::TERM; }
   /** true if the term is an application */
   bool isApplication() const;
+  /** true if the term is a lambda term */
+  bool isLambdaTerm() const;
+  /** true if the term is a redex */
+  bool isRedex();
+
+  void setHasRedex(bool b)
+  {
+    ASS(shared() && !isSort());
+    _args[0]._setHasRedex(b);
+  }
+  /** true if term contains redex */
+  bool hasRedex() const
+  {
+    ASS(shared());
+    return _args[0]._hasRedex();
+  }
+  /** returns the head of an applicative term */
+  TermList head();
+  /** returns empty option if not a De Bruijn index and index otherwise */
+  Option<unsigned> deBruijnIndex() const;
+
+  void setHasDBIndex(bool b)
+  {
+    ASS(shared() && !isSort());
+    _args[0]._setHasDBIndex(b);
+  }
+  /** returns true if term contains De Bruijn index */
+  bool hasDBIndex() const
+  {
+    ASS(shared());
+    return _args[0]._hasDBIndex();
+  }
+
+  void setHasLambda(bool b)
+  {
+    ASS(shared() && !isSort());
+    _args[0]._setHasLambda(b);
+  }
+  /** true if term contains redex */
+  bool hasLambda() const
+  {
+    ASS(shared());
+    return _args[0]._hasLambda();
+  }
 
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
