@@ -1916,8 +1916,21 @@ void Options::init()
     _functionExtensionality.addProblemConstraint(hasHigherOrder());
     _functionExtensionality.tag(OptionTag::HIGHER_ORDER);
 
-    _casesSimp = BoolOptionValue("cases_simp","cs",false);
-    _casesSimp.description=
+    _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly", "cnfonf", CNFOnTheFly::EAGER,
+                                                             {"eager",
+                                                              "lazy_gen",
+                                                              "lazy_simp",
+                                                              "lazy_not_gen",
+                                                              "lazy_not_gen_be_off",
+                                                              "lazy_not_be_gen",
+                                                              "off"});
+    _clausificationOnTheFly.description = "Various options linked to clausification on the fly";
+    _lookup.insert(&_clausificationOnTheFly);
+    _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
+    _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
+
+    _casesSimp = BoolOptionValue("cases_simp", "cs", false);
+    _casesSimp.description =
     "FOOL Paramodulation with two conclusion as a simplification";
     _casesSimp.onlyUsefulWith(_cases.is(equal(false)));
     _lookup.insert(&_casesSimp);

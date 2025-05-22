@@ -202,6 +202,10 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case SKOLEMISING_FORMULA_INDEX:
+    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
+    isGenerating = false;
+    break;
 
    case ACYCLICITY_INDEX:
     res = new AcyclicityIndex(new TermSubstitutionTree());

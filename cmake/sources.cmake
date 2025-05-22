@@ -220,6 +220,8 @@ set(SOURCES
     Inferences/BoolEqToDiseq.hpp
     Inferences/BoolSimp.cpp
     Inferences/BoolSimp.hpp
+    Inferences/CNFOnTheFly.cpp
+    Inferences/CNFOnTheFly.hpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp

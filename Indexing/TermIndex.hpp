@@ -149,5 +149,14 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class SkolemisingFormulaIndex
+: public TermIndex<TermWithValue<TermList>>
+{
+public:
+  SkolemisingFormulaIndex(TermIndexingStructure<TermWithValue<TermList>>* is) : TermIndex(is)
+  {}
+  void insertFormula(TermList formula, TermList skolem);
+};
+
 } // namespace Indexing
 #endif /* __TermIndex__ */

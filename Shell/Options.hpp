@@ -2314,32 +2314,14 @@ public:
 
   //Higher-order Options
 
-  // bool addCombAxioms() const { return _addCombAxioms.actualValue; }
-  // bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
-  // bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
-  // bool pragmatic() const { return _pragmatic.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
-  // bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
-  // int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
-  // CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
-  // PISet piSet() const { return _piSet.actualValue; }
-  // Narrow narrow() const { return _narrow.actualValue; }
-  // bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
-  // bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
-  // bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
+  CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
-  // bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
-  // bool complexVarCondition() const { return _complexVarCondition.actualValue; }
-  // // For unit testing
-  // void useCombSup() {
-  //   _combinatorySuperposition.actualValue = true;
-  //   _complexVarCondition.actualValue = true;
-  // }
 
 private:
 
@@ -2763,6 +2745,7 @@ private:
   BoolOptionValue _injectivity;
   BoolOptionValue _choiceReasoning;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
+  ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
