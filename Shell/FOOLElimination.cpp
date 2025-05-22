@@ -164,16 +164,6 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 }
 
 Formula* FOOLElimination::process(Formula* formula) {
-  if (!_polymorphic) {
-    Formula* processedFormula = toEquality(TermList(Term::createFormula(formula)));
-
-    if (env.options->showPreprocessing()) {
-      reportProcessed(formula->toString(), processedFormula->toString());
-    }
-
-    return processedFormula;
-  }
-
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
