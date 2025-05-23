@@ -789,6 +789,7 @@ public:
   bool isLiteral() const { return _args[0]._literal(); }
   /** True if the term is, in fact, a sort */
   bool isSort() const { return _args[0]._sort(); }
+  bool isArrowSort() const;
   TermKind kind() const { return isSort() ? TermKind::SORT 
                                : isLiteral() ? TermKind::LITERAL
                                : TermKind::TERM; }
