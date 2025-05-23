@@ -157,6 +157,7 @@ class Signature
     unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
+    int _dbIndex;
 
   public:
     /** standard constructor */
@@ -270,6 +271,17 @@ class Signature
 
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
+
+    void setDBIndex(int index) {
+      _dbIndex = index;
+    }
+
+    Option<unsigned> dbIndex() const {
+      if (_dbIndex > -1)
+        return Option<unsigned>(static_cast<unsigned>(_dbIndex));
+
+      return {};
+    }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -532,8 +544,11 @@ class Signature
   unsigned addNameFunction(unsigned arity);
   void addEquality();
   unsigned getApp();
+  unsigned getLam();
   unsigned getDiff();
   unsigned getChoice();
+  unsigned getDeBruijnIndex(int index);
+  unsigned getPlaceholder();
   /**
    * For a function f with result type t, this introduces a predicate
    * $def_f with the type t x t. This is used to track expressions of
@@ -771,15 +786,27 @@ class Signature
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
-    return (con == _arrayCon && _arrayCon != UINT_MAX);    
+    return con == _arrayCon && _arrayCon != UINT_MAX;
   }
 
   bool isArrowCon(unsigned con) const{
-    return (con == _arrowCon && _arrowCon != UINT_MAX);    
+    return con == _arrowCon && _arrowCon != UINT_MAX;
   }
   
   bool isAppFun(unsigned fun) const{
-    return (fun == _appFun && _appFun != UINT_MAX);
+    return fun == _appFun && _appFun != UINT_MAX;
+  }
+
+  bool isLamFun(unsigned fun) const {
+    return fun == _lamFun && _lamFun != UINT_MAX;
+  }
+
+  bool isChoiceFun(unsigned fun) const{
+    return fun == _choiceFun && _choiceFun != UINT_MAX;
+  }
+
+  bool isPlaceholder(unsigned fun) const{
+    return fun == _placeholderFun && _placeholderFun != UINT_MAX;
   }
 
   bool isFnDefPred(unsigned p) const{
@@ -1066,6 +1093,9 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
+  unsigned _lamFun;
+  unsigned _choiceFun;
+  unsigned _placeholderFun;
   DHSet<unsigned> _fnDefPreds;
   DHMap<unsigned,unsigned> _boolDefPreds;
 

@@ -262,11 +262,22 @@ public:
   bool isBoolSort();
   bool isArraySort();
   bool isTupleSort();
-  bool isApplication() const;
   bool containsSubterm(TermList v) const;
   bool containsAllVariablesOf(TermList t) const;
   bool ground() const;
   bool isSafe() const;
+
+  /* Higher-order terms */
+  bool isApplication() const;
+  bool isLambdaTerm() const;
+  bool isRedex() const;
+
+  Option<unsigned> deBruijnIndex() const;
+  TermList lhs() const;
+  TermList rhs() const;
+  TermList lambdaBody() const;
+  TermList head() const;
+  /* End higher-order terms */
 
 #if VDEBUG
   void assertValid() const;
@@ -786,45 +797,43 @@ public:
   /** true if the term is a lambda term */
   bool isLambdaTerm() const;
   /** true if the term is a redex */
-  bool isRedex();
+  bool isRedex() const;
 
-  void setHasRedex(bool b)
-  {
-    ASS(shared() && !isSort());
+  void setHasRedex(bool b) {
+    ASS(shared() && !isSort())
+
     _args[0]._setHasRedex(b);
   }
+
   /** true if term contains redex */
-  bool hasRedex() const
-  {
-    ASS(shared());
+  bool hasRedex() const {
+    ASS(shared())
     return _args[0]._hasRedex();
   }
-  /** returns the head of an applicative term */
-  TermList head();
   /** returns empty option if not a De Bruijn index and index otherwise */
   Option<unsigned> deBruijnIndex() const;
 
-  void setHasDBIndex(bool b)
-  {
+  void setHasDBIndex(bool b) {
     ASS(shared() && !isSort());
     _args[0]._setHasDBIndex(b);
   }
+
   /** returns true if term contains De Bruijn index */
-  bool hasDBIndex() const
-  {
-    ASS(shared());
+  bool hasDBIndex() const {
+    ASS(shared())
+
     return _args[0]._hasDBIndex();
   }
 
-  void setHasLambda(bool b)
-  {
-    ASS(shared() && !isSort());
+  void setHasLambda(bool b) {
+    ASS(shared() && !isSort())
+
     _args[0]._setHasLambda(b);
   }
   /** true if term contains redex */
-  bool hasLambda() const
-  {
-    ASS(shared());
+  bool hasLambda() const {
+    ASS(shared())
+
     return _args[0]._hasLambda();
   }
 
