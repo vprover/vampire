@@ -439,6 +439,8 @@ set(SOURCES
     Kernel/UnificationWithAbstraction.hpp
     Kernel/Unit.cpp
     Kernel/Unit.hpp
+    Kernel/HOL/HOL.cpp
+    Kernel/HOL/HOL.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
