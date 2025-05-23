@@ -109,19 +109,69 @@ void Term::destroyNonShared()
   }
 }
 
+bool TermList::ground() const
+{ return isTerm() && term()->ground(); }
+
 /**
  * Return true if the term does not contain any unshared proper term.
  *
  * Not containing an unshared term also means that there are no
  * if-then-else or let...in expressions.
  */
-bool TermList::isSafe() const
-{
+bool TermList::isSafe() const {
   return isVar() || term()->shared();
 }
 
-bool TermList::ground() const 
-{ return isTerm() && term()->ground(); }
+bool TermList::isApplication() const {
+  return !isVar() && term()->isApplication();
+}
+
+bool TermList::isLambdaTerm() const {
+  return !isVar() && term()->isLambdaTerm();
+}
+
+bool TermList::isRedex() const {
+  return isApplication() && lhs().isLambdaTerm();
+}
+
+Option<unsigned> TermList::deBruijnIndex() const {
+  if (isVar())
+    return {};
+
+  return term()->deBruijnIndex();
+}
+
+TermList TermList::lhs() const {
+  ASS(isApplication())
+
+  return *term()->nthArgument(2);
+}
+
+TermList TermList::rhs() const {
+  ASS(isApplication())
+
+  return *term()->nthArgument(3);
+}
+
+TermList TermList::lambdaBody() const {
+  ASS(isLambdaTerm())
+
+  return *term()->nthArgument(2);
+}
+
+TermList TermList::head() const {
+  if (!isApplication() && !isLambdaTerm())
+    return *this;
+
+  TermList trm = *this;
+  while (trm.isLambdaTerm()) {
+    trm = trm.lambdaBody();
+  }
+  while (trm.isApplication()) {
+    trm = trm.lhs();
+  }
+  return trm;
+}
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -263,14 +313,6 @@ bool AtomicSort::isArraySort() const {
 
 bool AtomicSort::isTupleSort() const {
   return env.signature->isTupleCon(_functor);
-}
-
-bool TermList::isApplication() const {
-  return !isVar() && term()->isApplication();
-}
-
-bool Term::isApplication() const {
-  return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);
 }
 
 unsigned Term::numTypeArguments() const {
@@ -827,6 +869,37 @@ const std::string& Term::functionName() const
 
   return env.signature->functionName(_functor);
 } // Term::functionName
+
+bool Term::isApplication() const {
+  return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);
+}
+
+bool Term::isLambdaTerm() const {
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
+}
+
+bool Term::isRedex() const {
+  // was:
+  // return TermList(this).isRedex();
+  // tl = TermList(this)
+  // ASS_EQ(tl.tag(), REF) ==> !tl.isVar()
+
+  // but then, the function is not const because of this.
+
+  // tl.isRedex() == isApplication() && lhs().isLambdaTerm();
+  // tl.lhs() == ASS(isApplication()); return *term()->nthArgument(2);
+
+  // tl.isLambdaTerm() == !isVar() && term()->isLambdaTerm();
+  // tl.isApplication() == !isVar() && term()->isApplication();
+
+  return isApplication() && nthArgument(2)->isLambdaTerm();
+}
+
+Option<unsigned> Term::deBruijnIndex() const {
+  if (isSort() || isLiteral() || isSpecial())
+    return {};
+  return env.signature->getFunction(_functor)->dbIndex();
+}
 
 /**
  * Return the print name of the type constructor symbol of this sort.
