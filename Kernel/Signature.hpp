@@ -76,17 +76,6 @@ class Signature
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
   
-  //Order is important
-  //Narrow.cpp relies on it
-  enum Combinator {
-    S_COMB,
-    B_COMB,
-    C_COMB,
-    I_COMB,
-    K_COMB,
-    NOT_COMB
-  };
-  
   enum Proxy {
     AND,
     OR,
@@ -168,8 +157,6 @@ class Signature
     unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
-    /** combinator type */
-    Combinator _comb;
 
   public:
     /** standard constructor */
@@ -283,9 +270,6 @@ class Signature
 
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
-
-    inline void setComb(Combinator comb){ _comb = comb; }
-    inline Combinator combinator(){ return _comb; }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -997,65 +981,6 @@ class Signature
   } //TODO merge with above?  
 
   //TODO make all these names protected
-
-  unsigned getCombinator(Combinator c){
-    bool added = false;
-    unsigned comb;
-    
-    auto convert = [] (Combinator cb) { 
-      switch(cb){
-        case S_COMB:
-          return "sCOMB";
-        case C_COMB:
-          return "cCOMB";
-        case B_COMB:
-          return "bCOMB";
-        case K_COMB:
-          return "kCOMB";
-        default:
-          return "iCOMB";
-      }
-    };
-    
-    std::string name = convert(c);
-    if(c == S_COMB || c == B_COMB || c == C_COMB){
-      comb = addFunction(name,3, added);
-    } else if ( c == K_COMB) {
-      comb = addFunction(name,2, added);      
-    } else {
-      comb = addFunction(name,1, added);
-    }
-
-    if(added){
-      unsigned typeArgsArity = 3;
-      TermList x0 = TermList(0, false);
-      TermList x1 = TermList(1, false);
-      TermList x2 = TermList(2, false);
-      TermList t0 = AtomicSort::arrowSort(x1, x2);
-      TermList t1 = AtomicSort::arrowSort(x0, t0);
-      TermList t2 = AtomicSort::arrowSort(x0, x1);
-      TermList t3 = AtomicSort::arrowSort(x0, x2);
-      TermList sort; 
-      if(c == S_COMB){
-        sort = AtomicSort::arrowSort(t1, t2, t3);
-      }else if(c == C_COMB){
-        sort = AtomicSort::arrowSort(t1, x1, t3);
-      }else if(c == B_COMB){
-        sort = AtomicSort::arrowSort(t0, t2, t3);
-      }else if(c == K_COMB){
-        typeArgsArity = 2;
-        sort = AtomicSort::arrowSort(x0, x1 , x0);
-      }else if(c == I_COMB){
-        typeArgsArity = 1;
-        sort = AtomicSort::arrowSort(x0, x0);
-      }    
-
-      Symbol* sym = getFunction(comb);
-      sym->setType(OperatorType::getConstantsType(sort, typeArgsArity));
-      sym->setComb(c);
-    } 
-    return comb;
-  }
 
   void incrementFormulaCount(Term* t);
   void decrementFormulaCount(Term* t);

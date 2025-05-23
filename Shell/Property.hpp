@@ -220,7 +220,6 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
-  bool hasCombs() const { return _hasCombs;}
   bool hasArrowSort() const { return _hasArrowSort; }
   bool hasApp() const { return _hasApp; }
   bool hasAppliedVar() const { return _hasAppliedVar; }
@@ -228,7 +227,7 @@ public:
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
   bool hasAnswerLiteral() const { return _hasAnswerLiteral; }
-  bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() ||
+  bool higherOrder() const { return hasApp() || hasLogicalProxy() ||
                                     hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const {
@@ -334,7 +333,6 @@ public:
 
 
   bool _hasFOOL;
-  bool _hasCombs;
   bool _hasArrowSort;
   bool _hasApp;
   bool _hasAppliedVar;

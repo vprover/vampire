@@ -211,7 +211,6 @@ private:
   mutable MaybeBool _hasNumerals;
   mutable MaybeBool _hasAlascaArithmetic;
   mutable MaybeBool _hasFOOL;
-  mutable MaybeBool _hasCombs;
   mutable MaybeBool _hasApp;
   mutable MaybeBool _hasAppliedVar;
   mutable MaybeBool _hasLogicalProxy;

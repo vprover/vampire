@@ -35,7 +35,6 @@
 
 #include "LPO.hpp"
 #include "KBO.hpp"
-#include "SKIKBO.hpp"
 #include "TermOrderingDiagram.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
@@ -136,10 +135,6 @@ struct AllIncomparableOrdering : Ordering {
  */
 Ordering* Ordering::create(Problem& prb, const Options& opt)
 {
-  if(env.options->combinatorySup() || env.options->lambdaFreeHol()){
-    return new SKIKBO(prb, opt, env.options->lambdaFreeHol());
-  }
-
   Ordering* out;
   switch (opt.termOrdering()) {
   case Options::TermOrdering::KBO:
