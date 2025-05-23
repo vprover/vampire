@@ -746,16 +746,16 @@ public:
     FALSE_TRUE_NOT_EQ_NOT_EQ = 3
   };
 
-  enum class Narrow : unsigned int {
-    ALL = 0,
-    SK = 1,
-    SKI = 2,
-    OFF = 3
-  };
-
   enum class ProblemExportSyntax : unsigned int {
     SMTLIB = 0,
     API_CALLS = 1,
+  };
+
+  enum class HPrinting : unsigned int {
+    RAW = 0,
+    DB_INDICES = 1,
+    PRETTY = 2,
+    TPTP = 3
   };
 
     //==========================================================
@@ -2314,6 +2314,9 @@ public:
 
   //Higher-order Options
 
+  HPrinting holPrinting() const { return _holPrinting.actualValue; }
+  void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
+
   // bool addCombAxioms() const { return _addCombAxioms.actualValue; }
   // bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   // bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
@@ -2759,6 +2762,7 @@ private:
 
 
   //Higher-order options
+  ChoiceOptionValue<HPrinting> _holPrinting;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
   BoolOptionValue _choiceReasoning;
