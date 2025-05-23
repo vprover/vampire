@@ -33,7 +33,6 @@
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/BitUtils.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Portability.hpp"
@@ -125,6 +124,21 @@ struct VarNumber {
   IMPL_COMPARISONS_FROM_TUPLE(VarNumber);
 };
 
+enum class Proxy {
+  AND,
+  OR,
+  IMP,
+  FORALL,
+  EXISTS,
+  IFF,
+  XOR,
+  NOT,
+  PI,
+  SIGMA,
+  EQUALS,
+  NOT_PROXY
+};
+
 /**
  * Class containing either a pointer to a compound term or
  * a variable number or a functor.
@@ -134,7 +148,7 @@ public:
   /* default constructor, satisfying isEmpty() */
   TermList() : _content(FUN) {}
   /** creates a term list containing a pointer to a term */
-  explicit TermList(Term* t) : _content(0) {
+  explicit TermList(const Term* t) : _content(0) {
     // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
     // dead-store eliminated on 64-bit
     _setTerm(t);
@@ -271,6 +285,8 @@ public:
   bool isApplication() const;
   bool isLambdaTerm() const;
   bool isRedex() const;
+  bool isProxy(Proxy proxy) const;
+  bool isChoice() const;
 
   Option<unsigned> deBruijnIndex() const;
   TermList lhs() const;
@@ -799,6 +815,14 @@ public:
   bool isLambdaTerm() const;
   /** true if the term is a redex */
   bool isRedex() const;
+  bool isProxy(Proxy proxy) const;
+  bool isChoice() const;
+
+  TermList lambdaBody() const {
+    ASS(isLambdaTerm())
+
+    return *nthArgument(2);
+  }
 
   void setHasRedex(bool b) {
     ASS(shared() && !isSort())

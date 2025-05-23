@@ -26,7 +26,10 @@ namespace HOL {
     return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
   }
 
-  std::string toString(const Kernel::Term* term, bool topLevel);
+  std::string toString(const Kernel::Term& term, bool topLevel);
+
+  TermList matrix(TermList t);
+  void getHeadAndArgs(TermList term, TermList& head, Kernel::TermStack & args);
 
 } // namespace HOL
 

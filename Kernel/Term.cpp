@@ -134,6 +134,14 @@ bool TermList::isRedex() const {
   return isApplication() && lhs().isLambdaTerm();
 }
 
+bool TermList::isProxy(Proxy proxy) const {
+  return !isVar() && term()->isProxy(proxy);
+}
+
+bool TermList::isChoice() const {
+  return !isVar() && term()->isChoice();
+}
+
 Option<unsigned> TermList::deBruijnIndex() const {
   if (isVar())
     return {};
@@ -712,7 +720,7 @@ std::string Term::toString(bool topLevel) const
   }
 
   if (env.higherOrder() && env.options->holPrinting() != Options::HPrinting::RAW) {
-    return HOL::toString(this, topLevel);
+    return HOL::toString(*this, topLevel);
   }
 
   if (isSort() && static_cast<AtomicSort *>(const_cast<Term *>(this))->isArrowSort()) {
@@ -913,6 +921,14 @@ bool Term::isLambdaTerm() const {
 
 bool Term::isRedex() const {
   return isApplication() && nthArgument(2)->isLambdaTerm();
+}
+
+bool Term::isProxy(Proxy proxy) const {
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == proxy;
+}
+
+bool Term::isChoice() const {
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
 }
 
 Option<unsigned> Term::deBruijnIndex() const {
