@@ -293,6 +293,9 @@ public:
   TermList rhs() const;
   TermList lambdaBody() const;
   TermList head() const;
+  std::pair<TermList, TermList> asPair();
+  TermList domain();
+  TermList result();
   /* End higher-order terms */
 
 #if VDEBUG

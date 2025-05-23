@@ -53,6 +53,7 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tHOL_Printing.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp

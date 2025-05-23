@@ -181,6 +181,24 @@ TermList TermList::head() const {
   return trm;
 }
 
+std::pair<TermList, TermList> TermList::asPair() {
+  ASS(isArrowSort())
+
+  return {domain(), result()};
+}
+
+TermList TermList::domain() {
+  ASS(isArrowSort())
+
+  return *term()->nthArgument(0);
+}
+
+TermList TermList::result(){
+  ASS(isArrowSort())
+
+  return *term()->nthArgument(1);
+}
+
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
  * either both are the same variable or both are complex terms with the
