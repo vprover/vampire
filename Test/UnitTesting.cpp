@@ -223,9 +223,12 @@ std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t)
 int main(int argc, const char** argv) 
 {
   using namespace Lib;
-  using namespace std;
 
   bool success;
+  if (argc < 2) {
+    std::cerr << "missing argument" << std::endl;
+    return -1;
+  }
   auto cmd = std::string(argv[1]);
   auto args = Stack<std::string>(argc - 2);
   for (int i = 2; i < argc; i++) {
@@ -236,7 +239,7 @@ int main(int argc, const char** argv)
   } else if (cmd == "run") {
     success = Test::UnitTesting::instance().run(args);
   } else {
-    cerr << "unknown command: " << cmd << endl;
+    std::cerr << "unknown command: " << cmd << std::endl;
     success = false;
   }
   return success ? 0 : -1;
