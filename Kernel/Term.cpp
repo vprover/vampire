@@ -711,6 +711,10 @@ std::string Term::toString(bool topLevel) const
     return "$tType";
   }
 
+  if (env.higherOrder() && env.options->holPrinting() != Options::HPrinting::RAW) {
+    return HOL::toString(this, topLevel);
+  }
+
   if (isSort() && static_cast<AtomicSort *>(const_cast<Term *>(this))->isArrowSort()) {
     ASS(arity() == 2);
     std::string res;
@@ -894,6 +898,10 @@ const std::string& Term::functionName() const
 
   return env.signature->functionName(_functor);
 } // Term::functionName
+
+bool Term::isArrowSort() const {
+  return isSort() && env.signature->isArrowCon(_functor);
+}
 
 bool Term::isApplication() const {
   return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);
