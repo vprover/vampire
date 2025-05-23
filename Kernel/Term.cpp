@@ -23,7 +23,7 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
-#include "Lib/Metaiterators.hpp"
+#include "Kernel/HOL/HOL.hpp"
 
 #include "Term.hpp"
 
@@ -688,6 +688,15 @@ std::string TermList::toString(bool topLevel) const
   if (isVar()) {
     return Term::variableToString(*this);
   }
+  if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
+    if (HOL::isTrue(*this)) {
+      return "⊤";
+    }
+    if (HOL::isFalse(*this)) {
+      return "⊥";
+    }
+  }
+
   return term()->toString(topLevel);
 } // TermList::toString
 
