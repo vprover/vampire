@@ -246,10 +246,10 @@ TermList ApplicativeHelper::getHead(Term* t)
   return trm;
 }
 
-Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
+Proxy ApplicativeHelper::getProxy(const TermList t)
 {
   if(t.isVar()){
-    return Signature::NOT_PROXY;
+    return Proxy::NOT_PROXY;
   }
   return env.signature->getFunction(t.term()->functor())->proxy();
 }

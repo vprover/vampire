@@ -76,21 +76,6 @@ class Signature
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
   
-  enum Proxy {
-    AND,
-    OR,
-    IMP,
-    FORALL,
-    EXISTS,
-    IFF,
-    XOR,
-    NOT,
-    PI,
-    SIGMA,
-    EQUALS,
-    NOT_PROXY
-  };  
-  
   class Symbol {
   
   protected:
@@ -951,7 +936,7 @@ class Signature
       TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
       Symbol * sym = getFunction(eqProxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
-      sym->setProxy(EQUALS);
+      sym->setProxy(Proxy::EQUALS);
     }
     return eqProxy;  
   }
@@ -961,18 +946,18 @@ class Signature
     bool added = false;
     
     auto convert = [] (std::string name) { 
-      if(name == "vIMP"){ return IMP; }
-      else if(name == "vAND"){ return AND; }
-      else if(name == "vOR"){ return OR; }
-      else if(name == "vIFF"){ return IFF; }
-      else{ return XOR; }
+      if(name == "vIMP"){ return Proxy::IMP; }
+      else if(name == "vAND"){ return Proxy::AND; }
+      else if(name == "vOR"){ return Proxy::OR; }
+      else if(name == "vIFF"){ return Proxy::IFF; }
+      else{ return Proxy::XOR; }
     };
 
     unsigned proxy = addFunction(name,0, added);
-    if(added){
-      TermList bs = AtomicSort::boolSort();
-      TermList result = AtomicSort::arrowSort(bs, bs, bs);
-      Symbol * sym = getFunction(proxy);
+    if (added) {
+      auto bs = AtomicSort::boolSort();
+      auto result = AtomicSort::arrowSort(bs, bs, bs);
+      auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(convert(name));
     }
@@ -987,7 +972,7 @@ class Signature
       TermList result = AtomicSort::arrowSort(bs, bs);
       Symbol * sym = getFunction(notProxy);
       sym->setType(OperatorType::getConstantsType(result));
-      sym->setProxy(NOT);
+      sym->setProxy(Proxy::NOT);
     }
     return notProxy;  
   } //TODO merge with above?
@@ -996,13 +981,13 @@ class Signature
   unsigned getPiSigmaProxy(std::string name){
     bool added = false;
     unsigned proxy = addFunction(name,1, added);
-    if(added){
-      TermList tv = TermList(0, false);
-      TermList result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
+    if (added) {
+      auto tv = TermList(0, false);
+      auto result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
       result = AtomicSort::arrowSort(result, AtomicSort::boolSort());
-      Symbol * sym = getFunction(proxy);
+      auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
-      sym->setProxy(name == "vPI" ? PI : SIGMA);
+      sym->setProxy(name == "vPI" ? Proxy::PI : Proxy::SIGMA);
     }
     return proxy;  
   } //TODO merge with above?  

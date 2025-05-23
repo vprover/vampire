@@ -60,7 +60,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _tuple(0),
     _computable(1),
     _letBound(0),
-    _prox(NOT_PROXY),
+    _prox(Proxy::NOT_PROXY),
     _dbIndex(-1)
 {
   if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {

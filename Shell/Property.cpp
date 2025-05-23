@@ -702,8 +702,8 @@ void Property::scan(TermList ts,bool unit,bool goal)
       }
     }
 
-    if(func->proxy() != Signature::NOT_PROXY){
-      if(func->proxy() == Signature::PI || func->proxy() == Signature::SIGMA){
+    if(func->proxy() != Proxy::NOT_PROXY){
+      if(func->proxy() == Proxy::PI || func->proxy() == Proxy::SIGMA) {
         ASS(t->arity() == 1);
         TermList sort = *t->nthArgument(0);
         if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
