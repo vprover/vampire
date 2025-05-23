@@ -1906,6 +1906,12 @@ void Options::init()
     _choiceReasoning.onlyUsefulWith(_choiceAxiom.is(equal(false))); //no point having two together
     _choiceReasoning.tag(OptionTag::HIGHER_ORDER);
 
+    _injectivity = BoolOptionValue("injectivity", "inj", false);
+    _injectivity.description = "Attempts to identify injective functions and postulates a left-inverse";
+    _lookup.insert(&_injectivity);
+    _injectivity.addProblemConstraint(hasHigherOrder());
+    _injectivity.tag(OptionTag::HIGHER_ORDER);
+
     // TODO we have two ways of enabling function extensionality abstraction atm:
     // this option, and `-uwa`.
     // We should sort this out before merging into master.
@@ -1946,6 +1952,13 @@ void Options::init()
     _lookup.insert(&_cases);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _cases.tag(OptionTag::HIGHER_ORDER);
+
+    _newTautologyDel = BoolOptionValue("new_taut_del", "ntd", false);
+    _newTautologyDel.description =
+        "Delete clauses with literals of the form false != true or t = true \\/ t = false";
+    _lookup.insert(&_newTautologyDel);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
+    _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
 
 //*********************** InstGen  ***********************
 // TODO not really InstGen any more, just global subsumption
