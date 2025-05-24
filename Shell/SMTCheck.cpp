@@ -67,16 +67,16 @@ static std::ostream &operator<<(std::ostream &out, SMTNumeral<real> num) {
 }
 
 struct Escaped {
-  const std::string &name;
+  const char *name;
 };
 
 static std::ostream &operator<<(std::ostream &out, Escaped escaped) {
   out << "|_";
-  for(char c : escaped.name)
-    if(c == '|')
+  for(const char *c = escaped.name; *c; c++)
+    if(*c == '|')
       out << '#';
     else
-      out << c;
+      out << *c;
   return out << '|';
 }
 
@@ -89,7 +89,7 @@ struct FunctionName {
 static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   auto f = name.symbol;
   if(!f->interpreted())
-    return out << Escaped {f->name()};
+    return out << Escaped {f->name().c_str()};
   if(f->integerConstant())
     return out << SMTNumeral<false> {f->integerValue()};
   if(f->rationalConstant() || f->realConstant()) {
@@ -214,7 +214,7 @@ struct PredicateName {
 static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   auto p = name.symbol;
   if(!p->interpreted())
-    return out << Escaped {p->name()};
+    return out << Escaped {p->name().c_str()};
   auto *interpreted = static_cast<Signature::InterpretedSymbol *>(p);
   switch(interpreted->getInterpretation()) {
   case Theory::EQUAL:
@@ -383,6 +383,7 @@ static std::ostream &operator<<(std::ostream &out, Args args)
           case Theory::RAT_TO_REAL:
           case Theory::REAL_TO_RAT:
           case Theory::REAL_TO_REAL:
+            // these do nothing in SMT-LIB, skip them by 'forgetting' there is a function here
             // disgusting hack: use recursion to break the paren-closing invariant,
             out << Args { term->args(), args.conclSorts, args.otherSorts };
             // treat `current` like a variable,
@@ -753,7 +754,6 @@ static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
   outputPremise(out, conclSorts, split);
   for (Unit *u : iterTraits(parents)) {
     Clause *component = env.proofExtra.get<Indexing::SplitDefinitionExtra>(u).component;
-    // TODO dubious: need substitution
     SortMap otherSorts;
     SortHelper::collectVariableSorts(component, otherSorts);
     out << "(assert (= " << Split {component->splits()->sval()} << " (or";

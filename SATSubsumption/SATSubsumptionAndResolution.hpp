@@ -511,8 +511,10 @@ public:
                                              Kernel::Clause *mainPremise,
                                              unsigned resolutionLiteral);
 
-  // return the substitution required for the last subsumption resolution
-  // precondition: the last subsumption resolution succeeded
+  /**
+   * @brief Return the substitution required for the last subsumption resolution.
+   * @note precondition: the last subsumption resolution succeeded
+   */
   SimpleSubstitution getBindingsForSubsumptionResolutionWithLiteral();
 
   /**

@@ -981,11 +981,10 @@ SimpleSubstitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSu
     // there could be non-match vars with the (only existing) indirect encoding
     if(!_matchSet.isMatchVar(lit.var()))
       continue;
-    // extra guard for below
+    // extra guard for below: happens with a nullary predicate as there is no associated binding
     if(lit.var().index() >= _bindingsManager.size())
       continue;
     auto b = _bindingsManager.get_bindings(lit.var());
-    // TODO put a bit in the Match to indicate which way an equation is oriented
     for(auto binding_index = b.index; binding_index < b.end(); binding_index++) {
       auto [var, term] = _bindingsManager.get_single_binding(binding_index);
       ALWAYS(subst.bind(var, term))
