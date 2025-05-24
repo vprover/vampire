@@ -24,6 +24,8 @@
 #include "TermIterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
+#include <unordered_map>
+
 namespace Kernel {
 
 using namespace Lib;
@@ -662,6 +664,37 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
 inline TermList AppliedTerm::apply() const {
   return aboveVar ? SubstHelper::apply(term, *applicator) 
                   : term;
+}
+
+// a variable-term map that complies with the requirements for MatchingUtils and SubstHelper
+struct SimpleSubstitution
+{
+  std::unordered_map<unsigned, TermList> bindings;
+
+  TermList apply(unsigned var) {
+    if(auto bound = bindings.find(var); bound != bindings.end())
+      return bound->second;
+    return TermList(var, false);
+  }
+
+  void reset() { bindings.clear(); }
+
+  bool bind(unsigned var, TermList term)
+  {
+    auto [it, inserted] = bindings.insert({var, term});
+    return inserted || it->second == term;
+  }
+
+  void specVar(unsigned var, TermList term) { ASSERTION_VIOLATION; }
+};
+
+inline std::ostream &operator<<(std::ostream &out, const SimpleSubstitution &subst) {
+  out << "[";
+  for(auto [left, right] : subst.bindings) {
+    out << " " << left << " -> " << right;
+  }
+  out << "]";
+  return out;
 }
 
 #endif /* __SubstHelper__ */

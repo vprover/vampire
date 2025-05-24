@@ -374,6 +374,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
+         Shell/SMTCheck.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Debug/TimeProfiling.o\

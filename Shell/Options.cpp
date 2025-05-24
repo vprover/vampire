@@ -308,7 +308,7 @@ void Options::init()
     _problemName.description="";
     //_lookup.insert(&_problemName);
 
-    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck"});
+    _proof = ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck"});
     _proof.description=
       "Specifies whether proof (or similar e.g. model/saturation) will be output and in which format:\n"
       "- off gives no proof output\n"
@@ -316,9 +316,11 @@ void Options::init()
       "- proofcheck will output proof as a sequence of TPTP problems to allow for proof-checking by external solvers\n"
       "- tptp gives TPTP output\n"
       "- property is a developmental option. It allows developers to output statistics about the proof using a ProofPrinter "
-      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n";
+      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"
+      "- smtcheck produces a ground SMT script for proof checking\n";
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
+    _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
 
     _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","msp",true);
     _minimizeSatProofs.description="Perform unsat core minimization when a sat solver finds a clause set UNSAT\n"

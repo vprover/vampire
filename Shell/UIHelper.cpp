@@ -40,6 +40,7 @@
 #include "LaTeX.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
+#include "SMTCheck.hpp"
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"

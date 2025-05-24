@@ -42,6 +42,7 @@
 
 #include "CASC/PortfolioMode.hpp"
 #include "Shell/CommandLine.hpp"
+
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
