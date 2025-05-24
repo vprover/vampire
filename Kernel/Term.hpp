@@ -355,8 +355,8 @@ private:
   //
   // now we use a manual bitfield, as follows
 #define MK_FIELD(typ, name, Name, NAME, start, size) \
-  static constexpr unsigned NAME##_BITS_START = start; \
-  static constexpr unsigned NAME##_BITS_END = NAME##_BITS_START + size; \
+  static constexpr unsigned NAME## _BITS_START = start; \
+  static constexpr unsigned NAME## _BITS_END = NAME## _BITS_START + size; \
   BITFIELD64_GET_AND_SET(typ, name, Name, NAME)
 
   MK_FIELD(unsigned, tag, Tag, TAG, 0, 2)
@@ -419,12 +419,12 @@ public:
   static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND  =  std::numeric_limits<unsigned>::max() - unsigned(SPECIAL_FUNCTOR_LAST);
   static SpecialFunctor toSpecialFunctor(unsigned f) {
     ASS_GE(f, SPECIAL_FUNCTOR_LOWER_BOUND);
-    unsigned result = std::numeric_limits<unsigned>::max() - unsigned(f);
+    unsigned result = std::numeric_limits<unsigned>::max() - f;
     ASS_LE(result, unsigned(SPECIAL_FUNCTOR_LAST))
     return SpecialFunctor(result);
   }
   static unsigned toNormalFunctor(SpecialFunctor f) 
-  { return std::numeric_limits<unsigned>::max() - unsigned(f); }
+  { return std::numeric_limits<unsigned>::max() - static_cast<unsigned>(f); }
 
   class SpecialTermData
   {
@@ -477,8 +477,13 @@ public:
       return specialFunctor() == SpecialFunctor::LET ? _letData.functor : _letTupleData.functor;
     }
     VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
+    void setLambdaVars(VList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
     SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
+    void setLambdaVarSorts(SList* sorts) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._sorts = sorts; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
+    void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
+    void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
+    void setLambdaSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.sort = sort; }
     VList* getVariables() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.variables; }
     VList* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
@@ -776,7 +781,7 @@ public:
 
   void setHasTermVar(bool b)
   {
-    ASS(shared() && !isSort());
+    ASS(shared())
     _args[0]._setHasTermVar(b);
   }
 

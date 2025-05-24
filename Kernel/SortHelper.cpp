@@ -54,20 +54,30 @@ OperatorType* SortHelper::getType(Term const* t)
  * 
  * @author Ahmed Bhayat
  */
-void SortHelper::getTypeSub(const Term* t, Substitution& subst)
+bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   TermList* typeArg;
   OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
   unsigned typeArgsArity = ot->numTypeArguments();
   //cout << "typeArgsArity " << typeArgsArity << endl;
 
+  bool resultShared = true;
   typeArg = const_cast<TermList*>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
+
+    // when working with substitution trees we sometimes need to find the sort
+    // of terms within the tree. These terms can contain special variables
+    // and may therefore not be shared.
+    if (typeArg->isSpecialVar() || (typeArg->isTerm() && !typeArg->term()->shared())) {
+      resultShared = false;
+    }
     subst.bind(var.var(), *typeArg);
+
     typeArg = typeArg->next();
-  }  
+  }
+  return resultShared;
 } // getTypeSub
 
 /**
@@ -89,7 +99,7 @@ TermList SortHelper::getResultSort(const Term* t)
   }
 
   Substitution subst;
-  getTypeSub(t, subst);
+  bool shared = getTypeSub(t, subst);
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
 
@@ -113,7 +123,7 @@ TermList SortHelper::getResultSort(const Term* t)
     (result.isTerm() && (result.term()->isSuper() || result.term()->ground())) ||
     sym->letBound()
   )
-  return SubstHelper::apply(result, subst);
+  return SubstHelper::apply(result, subst, !shared);
 }
 
 TermList SortHelper::getResultSortMono(const Term* t)
@@ -236,8 +246,8 @@ TermList SortHelper::getArgSort(Term const* t, unsigned argIndex)
     return AtomicSort::superSort();
   }
   
-  getTypeSub(t, subst);
-  return SubstHelper::apply(ot->arg(argIndex), subst);
+  bool shared = getTypeSub(t, subst);
+  return SubstHelper::apply(ot->arg(argIndex), subst, !shared);
 } // getArgSort
 
 /* returns the sort of the nth term argument */
@@ -316,6 +326,13 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
 
            res = getEqualityArgumentSort(lit); 
            return true;
+         }
+         if (lit->isTwoVarEquality()) {
+           TermList sort = lit->twoVarEqSort();
+           if (sort.containsSubterm(varTerm)) {
+             res = AtomicSort::superSort();
+             return true;
+           }
          }
       }
       if(tryGetVariableSortTerm(varTerm, lit, res, false)){
@@ -882,7 +899,7 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
   unsigned arity = t->arity();
   Substitution subst;
   getTypeSub(t, subst);
-  for (unsigned i=0; i<arity; i++) {
+  for (unsigned i = 0; i < arity; i++) {
     TermList arg = *t->nthArgument(i);
     if (!arg.isTerm()) { continue; }
     Term* ta = arg.term();

@@ -16,12 +16,13 @@
 #include "Kernel/Formula.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
+using Kernel::Term;
 
-std::string toStringAux(const Kernel::Term& term, bool topLevel, IndexVarStack& st);
+std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st);
 
 static std::string termToStr(TermList t, bool topLevel, IndexVarStack& st){
   if (t.isVar())
-    return Kernel::Term::variableToString(t);
+    return Term::variableToString(t);
 
   return toStringAux(*t.term(), topLevel, st);
 }
@@ -36,7 +37,7 @@ static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
   return false;
 }
 
-static std::string lambdaToString(const Kernel::Term::SpecialTermData* sd, bool pretty)
+static std::string lambdaToString(const Term::SpecialTermData* sd, bool pretty)
 {
   Kernel::VList *vars = sd->getLambdaVars();
   Kernel::SList * sorts = sd->getLambdaVarSorts();
@@ -51,7 +52,7 @@ static std::string lambdaToString(const Kernel::Term::SpecialTermData* sd, bool 
   while (vs.hasNext()) {
     varList += first ? "" : ", ";
     first = false;
-    varList += Kernel::Term::variableToString(vs.next()) + " : ";
+    varList += Term::variableToString(vs.next()) + " : ";
     varList += ss.next().toString();
   }
   varList += pretty ? "" : "]";
@@ -60,7 +61,7 @@ static std::string lambdaToString(const Kernel::Term::SpecialTermData* sd, bool 
   return "(" + lambda + varList + " : (" + lambdaExp.toString() + "))";
 }
 
-std::string toStringAux(const Kernel::Term& term, bool topLevel, IndexVarStack& st) {
+std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st) {
 
   using Shell::Options;
   using namespace Kernel;
@@ -236,10 +237,53 @@ std::string toStringAux(const Kernel::Term& term, bool topLevel, IndexVarStack& 
   return res;
 }
 
-std::string HOL::toString(const Kernel::Term& term, bool topLevel) {
+std::string HOL::toString(const Term& term, bool topLevel) {
   IndexVarStack st;
 
   return toStringAux(term, topLevel, st);
+}
+
+TermList HOL::app(TermList sort, TermList head, TermList arg) {
+  auto s1 = getNthArg(sort, 1);
+  auto s2 = getResultAppliedToNArgs(sort, 1);
+
+  return app(s1, s2, head, arg);
+}
+
+TermList HOL::app(TermList head, TermList arg) {
+  ASS(head.isTerm())
+
+  return app(Kernel::SortHelper::getResultSort(head.term()), head, arg);
+}
+
+TermList HOL::app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared) {
+  static Kernel::TermStack args;
+
+  args.reset();
+  args.push(s1);
+  args.push(s2);
+  args.push(arg1);
+  args.push(arg2);
+
+  unsigned app = env.signature->getApp();
+  if (shared) {
+    return TermList(Term::create(app, 4, args.begin()));
+  }
+  return TermList(Term::createNonShared(app, 4, args.begin()));
+}
+
+Term* HOL::mkLambda(unsigned var, TermList varSort, Kernel::TypedTermList body) {
+  auto s = new (0, sizeof(Term::SpecialTermData)) Term;
+  s->makeSymbol(Term::toNormalFunctor(Kernel::SpecialFunctor::LAMBDA), 0);
+  //should store body of lambda in args
+  auto sp = s->getSpecialData();
+  sp->setLambdaExp(body.untyped());
+  sp->setLambdaExpSort(body.sort());
+  sp->setLambdaVars(new Kernel::VList(var));
+  sp->setLambdaVarSorts(new Kernel::SList(varSort));
+  sp->setLambdaSort(Kernel::AtomicSort::arraySort(varSort, body.sort()));
+
+  return s;
 }
 
 TermList HOL::matrix(TermList t) {
@@ -259,4 +303,38 @@ void HOL::getHeadAndArgs(TermList term, TermList& head, Kernel::TermStack& args)
     term = term.lhs();
   }
   head = term;
+}
+
+/** indexed from 1 */
+TermList HOL::getNthArg(TermList arrowSort, unsigned argNum) {
+  ASS(argNum > 0)
+
+  TermList res;
+  while (argNum >= 1) {
+    ASS(arrowSort.isArrowSort())
+
+    res = arrowSort.domain();
+    arrowSort = arrowSort.result();
+    argNum--;
+  }
+  return res;
+}
+
+/** indexed from 1 */
+TermList HOL::getResultAppliedToNArgs(TermList arrowSort, unsigned argNum) {
+  while (argNum > 0) {
+    ASS(arrowSort.isArrowSort());
+    arrowSort = arrowSort.result();
+    argNum--;
+  }
+  return arrowSort;
+}
+
+unsigned HOL::getArity(TermList sort) {
+  unsigned arity = 0;
+  while (sort.isArrowSort()) {
+    sort = sort.result();
+    arity++;
+  }
+  return arity;
 }

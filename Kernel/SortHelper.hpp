@@ -87,7 +87,7 @@ public:
 
   static OperatorType* getType(Term const* t);
 
-  static void getTypeSub(const Term* t, Substitution& subst);
+  static bool getTypeSub(const Term* t, Substitution& subst);
 
   static bool areSortsValid(Clause* cl);
   static bool areSortsValid(Term* t);
