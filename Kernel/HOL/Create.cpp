@@ -53,7 +53,7 @@ Term* HOL::create::lambda(unsigned var, TermList varSort, Kernel::TypedTermList 
   sp->setLambdaExpSort(body.sort());
   sp->setLambdaVars(new Kernel::VList(var));
   sp->setLambdaVarSorts(new Kernel::SList(varSort));
-  sp->setLambdaSort(Kernel::AtomicSort::arraySort(varSort, body.sort()));
+  sp->setLambdaSort(Kernel::AtomicSort::arrowSort(varSort, body.sort()));
 
   return s;
 }

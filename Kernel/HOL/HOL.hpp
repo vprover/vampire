@@ -49,7 +49,7 @@ namespace HOL::create {
     return app(app(sort, head, arg1), arg2);
   }
 
-  inline TermList HOL::app2(TermList head, TermList arg1, TermList arg2) {
+  inline TermList app2(TermList head, TermList arg1, TermList arg2) {
     ASS(head.isTerm())
 
     return app2(Kernel::SortHelper::getResultSort(head.term()), head, arg1, arg2);
