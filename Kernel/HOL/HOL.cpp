@@ -162,11 +162,11 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   bool hasArgs = args.size();
 
   std::string headStr;
-  if(head.isVar() || (head.deBruijnIndex().isSome() && !printDB) || head.isLambdaTerm() || head.term()->isSpecial())
+  if (head.isVar() || (head.deBruijnIndex().isSome() && !printDB) || head.isLambdaTerm() || head.term()->isSpecial())
     headStr = termToStr(head, false, st);
-  if (head.isChoice())
+  else if (head.isChoice())
     headStr = pretty ? "ε" : "@@+";
-  if (HOL::isTrue(head))
+  else if (HOL::isTrue(head))
     headStr = pretty ? "⊤" : "$true";
   else if (HOL::isFalse(head))
     headStr = pretty ? "⊥" : "$false";
