@@ -28,7 +28,6 @@
 
 TEST_FUN(hol_print_1) {
   env.setHigherOrder(true);
-  env.options->setHolPrinting(Options::HPrinting::RAW);
 
   DECL_ATOMIC_SORT(srt)
   DECL_ARROW_SORT(fSrt, srt, srt)
@@ -36,12 +35,19 @@ TEST_FUN(hol_print_1) {
   DECL_VAR(x1, 1)
   DECL_CONST(f, fSrt)
 
+  auto zero = TermList(HOL::create::lambda({0, 1}, {fSrt, srt}, {x1, srt}));
+  ASS_EQ(zero.toString(true), "(^[X0 : (srt > srt), X1 : srt] : (X1))")
+  ASS_EQ(HOL::convert::toNameless(zero).toString(true), "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y1))))")
+
+  auto one = TermList(HOL::create::lambda({0, 1}, {fSrt, srt}, {HOL::create::app(fSrt, x0, x1), srt}));
+  ASS_EQ(one.toString(true), "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))")
+  ASS_EQ(HOL::convert::toNameless(one).toString(true), "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y0 @ Y1))))")
+
   auto t1 = HOL::create::app(f, x1);
-  auto t2 = TermList(HOL::create::lambda(x1.var(), srt, {t1, srt}));
+  ASS_EQ(t1.toString(true), "f @ X1")
+  ASS_EQ(HOL::convert::toNameless(t1).toString(true), "f @ X1")
 
-  std::cout << t1 << std::endl;
-  std::cout << t2 << std::endl;
-
-  std::cout << HOL::convert::toNameless(t1) << std::endl;
-  std::cout << HOL::convert::toNameless(t2) << std::endl;
+  auto t2 = TermList(HOL::create::lambda({x1.var()}, {srt}, {t1, srt}));
+  ASS_EQ(t2.toString(true), "(^[X1 : srt] : ((f @ X1)))")
+  ASS_EQ(HOL::convert::toNameless(t2).toString(true), "(^[Y0 : srt]: (f @ Y0))")
 }
