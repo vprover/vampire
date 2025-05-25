@@ -28,6 +28,7 @@
 
 TEST_FUN(hol_print_1) {
   env.setHigherOrder(true);
+  env.options->setHolPrinting(Options::HPrinting::RAW);
 
   DECL_ATOMIC_SORT(srt)
   DECL_ARROW_SORT(fSrt, srt, srt)
@@ -35,8 +36,12 @@ TEST_FUN(hol_print_1) {
   DECL_VAR(x1, 1)
   DECL_CONST(f, fSrt)
 
-  // auto term = HOL::mkLambda(x1.var(), srt, {HOL::app(f, x1), srt});
-  auto term = HOL::app(f, x1);
+  auto t1 = HOL::create::app(f, x1);
+  auto t2 = TermList(HOL::create::lambda(x1.var(), srt, {t1, srt}));
 
-  std::cout << term.toString(true) << std::endl;
+  std::cout << t1 << std::endl;
+  std::cout << t2 << std::endl;
+
+  std::cout << HOL::convert::toNameless(t1) << std::endl;
+  std::cout << HOL::convert::toNameless(t2) << std::endl;
 }

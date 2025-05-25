@@ -18,7 +18,7 @@
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
 using Kernel::Term;
 
-std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st);
+static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st);
 
 static std::string termToStr(TermList t, bool topLevel, IndexVarStack& st){
   if (t.isVar())

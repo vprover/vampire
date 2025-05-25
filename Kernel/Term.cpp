@@ -605,22 +605,21 @@ std::string Term::headToString() const
       case SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
+        ASS_EQ(VList::length(vars), SList::length(sorts))
+
         TermList lambdaExp = sd->getLambdaExp();
 
-        std::string varList = "[";
+        std::string varList;
 
         VList::Iterator vs(vars);
         SList::Iterator ss(sorts);
-        bool first = true;
-        while(vs.hasNext()) {
-          if (!first){
-            varList += ", ";
-          }else{ first = false; }
-          varList += Term::variableToString(vs.next()) + " : ";
+        while (vs.hasNext()) {
+          varList += variableToString(vs.next()) + " : ";
           varList += ss.next().toString();
+          if (vs.hasNext())
+            varList += ", ";
         }
-        varList += "]";
-        return "(^" + varList + " : (" + lambdaExp.toString() + "))";
+        return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
       }
       case SpecialFunctor::MATCH: {
         // we simply let the arguments be written out

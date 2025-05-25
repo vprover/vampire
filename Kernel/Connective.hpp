@@ -26,7 +26,7 @@ namespace Kernel {
  * @warning The order should not be changed. It is essentially used 
  *          in several functions: normalisation and output functions.
  */
-enum class Connective
+enum Connective
 {
   /** atomic formula or literal */
   LITERAL = 0u,

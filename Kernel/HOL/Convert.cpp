@@ -47,36 +47,36 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map);
 
 static TermList toNameless(TermList term, VarToIndexMap& map) {
   if (term.isVar()) {
-    if (auto p = map.find(term.var(), p); p != map.end())
-      return HOL::getDeBruijnIndex(p->first, p->second);
+    if (const auto p = map.find(term.var()); p != map.end()) {
+      const auto& [index, sort] = p->second;
+      return HOL::getDeBruijnIndex(index, sort);
+    }
 
     return term;
   }
 
-  auto t = term.term();
+  const auto t = term.term();
   if (t->isSpecial()) {
     switch (t->specialFunctor()) {
       case Kernel::SpecialFunctor::FORMULA:
         return toNameless(t->getSpecialData()->getFormula(), map);
 
       case Kernel::SpecialFunctor::LAMBDA: {
-        auto sd = t->getSpecialData();
-        auto sorts = sd->getLambdaVarSorts();
-        auto vars = sd->getLambdaVars();
+        const auto sd = t->getSpecialData();
+        const auto sorts = sd->getLambdaVarSorts();
+        const auto vars = sd->getLambdaVars();
 
-        auto eliminated = toNameless(vars, sorts, sd->getLambdaExp(), sd->getLambdaExpSort(), map);
+        const auto eliminated = toNameless(vars, sorts, sd->getLambdaExp(), sd->getLambdaExpSort(), map);
         ASS_REP2(eliminated.isVar() || sortOf(eliminated) == sd->getSort(), t->toString(), eliminated.toString())
         return eliminated;
       }
-
       default:
         ASSERTION_VIOLATION;
     }
   }
 
-  if (!t->isApplication()) {
+  if (!t->isApplication())
     return term;
-  }
 
   //must be of the form app(s1, s2, arg1, arg2)
   auto s1 = *t->nthArgument(0);
@@ -90,9 +90,15 @@ static TermList toNameless(TermList term, VarToIndexMap& map) {
 static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
   using Kernel::Connective;
 
-  Connective conn = formula->connective();
+  static const std::unordered_map<Connective, std::string> strMap {
+    {Connective::IFF, "vIFF"},
+    {Connective::IMP, "vIMP"},
+    {Connective::XOR, "vXOR"},
+    {Connective::AND, "vAND"},
+    {Connective::OR,  "vOR"}
+  };
 
-  switch (conn) {
+  switch (const auto conn = formula->connective()) {
     case Connective::LITERAL: {
       Kernel::Literal *lit = formula->literal();
       ASS(lit->isEquality()) // Is this a valid assumption?
@@ -110,12 +116,7 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
       auto *lhs = formula->left();
       auto *rhs = formula->right();
 
-      std::string name =
-          conn == Connective::IFF ? "vIFF" :
-          conn == Connective::IMP ? "vIMP" :
-                                    "vXOR";
-
-      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
+      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(strMap.at(conn))));
       const auto form1 = toNameless(lhs, map);
       const auto form2 = toNameless(rhs, map);
 
@@ -126,7 +127,7 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
       Kernel::FormulaList::Iterator argsIt(formula->args());
 
       const std::string name = conn == Connective::AND ? "vAND" : "vOR";
-      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
+      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(strMap.at(conn))));
 
       TermList appTerm;
       unsigned count = 1;
@@ -143,7 +144,7 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
       return appTerm;
     }
     case Connective::NOT: {
-      TermList form = toNameless(formula->uarg(), map);
+      const auto form = toNameless(formula->uarg(), map);
       return HOL::create::app(HOL::create::neg(), form);
     }
     case Connective::FORALL:
@@ -159,9 +160,9 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
         if (s == Kernel::AtomicSort::superSort()) {
           USER_ERROR("Vampire does not support full TH1. This benchmark is either outside of the TH1 fragment, or outside of the fragment supported by Vampire");
         }
-        auto var = Kernel::VList::singleton(v);
-        auto sort = Kernel::SList::singleton(s);
-        auto t = TermList(Term::createLambda(form, var, sort, Kernel::AtomicSort::boolSort()));
+        const auto var = Kernel::VList::singleton(v);
+        const auto sort = Kernel::SList::singleton(s);
+        const auto t = TermList(Term::createLambda(form, var, sort, Kernel::AtomicSort::boolSort()));
         form = HOL::create::app(conn == Connective::FORALL ? HOL::create::pi(s) :
                                                              HOL::create::sigma(s), t);
       }

@@ -941,19 +941,19 @@ class Signature
     return eqProxy;  
   }
 
-  unsigned getBinaryProxy(std::string name){
+  unsigned getBinaryProxy(const std::string& name) {
     ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
     
-    auto convert = [] (std::string name) { 
-      if(name == "vIMP"){ return Proxy::IMP; }
-      else if(name == "vAND"){ return Proxy::AND; }
-      else if(name == "vOR"){ return Proxy::OR; }
-      else if(name == "vIFF"){ return Proxy::IFF; }
-      else{ return Proxy::XOR; }
+    constexpr auto convert = [] (const std::string& name) {
+      if (name == "vIMP") return Proxy::IMP;
+      if (name == "vAND") return Proxy::AND;
+      if (name == "vOR") return Proxy::OR;
+      if (name == "vIFF") return Proxy::IFF;
+      return Proxy::XOR;
     };
 
-    unsigned proxy = addFunction(name,0, added);
+    unsigned proxy = addFunction(name, 0, added);
     if (added) {
       auto bs = AtomicSort::boolSort();
       auto result = AtomicSort::arrowSort(bs, bs, bs);
