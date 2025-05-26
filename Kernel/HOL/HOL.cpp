@@ -219,7 +219,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   if (!topLevel && hasArgs)
     res += "(";
 
-  static constexpr std::initializer_list proxies = {
+  static constexpr auto proxies = std::initializer_list<Proxy> {
       Proxy::AND, Proxy::OR, Proxy::IFF, Proxy::EQUALS, Proxy::IMP, Proxy::XOR
   };
 
