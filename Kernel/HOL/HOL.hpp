@@ -17,6 +17,10 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/TypedTermList.hpp"
 
+/**
+ * This namespace contains several helper functions to deal with higher-order terms.
+ * It will eventually replace the legacy ApplicativeHelper
+ */
 namespace HOL {
 
   using Kernel::Term;

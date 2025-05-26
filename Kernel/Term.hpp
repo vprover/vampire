@@ -355,8 +355,8 @@ private:
   //
   // now we use a manual bitfield, as follows
 #define MK_FIELD(typ, name, Name, NAME, start, size) \
-  static constexpr unsigned NAME## _BITS_START = start; \
-  static constexpr unsigned NAME## _BITS_END = NAME## _BITS_START + size; \
+  static constexpr unsigned NAME##_BITS_START = start; \
+  static constexpr unsigned NAME##_BITS_END = NAME##_BITS_START + size; \
   BITFIELD64_GET_AND_SET(typ, name, Name, NAME)
 
   MK_FIELD(unsigned, tag, Tag, TAG, 0, 2)

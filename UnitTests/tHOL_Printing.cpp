@@ -12,28 +12,24 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
 
-#define DECL_ATOMIC_SORT(name) \
-  TermList name = TermList(AtomicSort::createConstant(#name));
+TermList mkAtomicSort(const std::string& name) {
+  return TermList(AtomicSort::createConstant(name));
+}
 
-#define DECL_ARROW_SORT(name, from, to) \
-  TermList name = TermList(AtomicSort::arrowSort(from, to));
-
-#define DECL_VAR(name, index) \
-  TermList name = TermList::var(index);
-
-#define DECL_CONST(name, sort) \
-  unsigned name ## Index = env.signature->addFunction(#name, 0); \
-  env.signature->getFunction(name ## Index)->setType(OperatorType::getFunctionType({}, sort)); \
-  TermList name = TermList(Term::createConstant(name ## Index));
+TermList mkConst(const std::string& name, TermList sort) {
+  unsigned nameIndex = env.signature->addFunction(name, 0);
+  env.signature->getFunction(nameIndex)->setType(OperatorType::getFunctionType({}, sort));
+  return TermList(Term::createConstant(nameIndex));
+}
 
 TEST_FUN(hol_print_1) {
   env.setHigherOrder(true);
 
-  DECL_ATOMIC_SORT(srt)
-  DECL_ARROW_SORT(fSrt, srt, srt)
-  DECL_VAR(x0, 0)
-  DECL_VAR(x1, 1)
-  DECL_CONST(f, fSrt)
+  auto srt = mkAtomicSort("srt");
+  auto fSrt = TermList(AtomicSort::arrowSort(srt, srt));
+  auto x0 = TermList::var(0);
+  auto x1 = TermList::var(1);
+  auto f = mkConst("f", fSrt);
 
   auto zero = TermList(HOL::create::lambda({0, 1}, {fSrt, srt}, {x1, srt}));
   ASS_EQ(zero.toString(true), "(^[X0 : (srt > srt), X1 : srt] : (X1))")
