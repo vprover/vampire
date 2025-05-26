@@ -186,7 +186,7 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() && !env.getMainProblem()->isHigherOrder()) {
+      if (literal->isEquality() && (!env.getMainProblem()->isHigherOrder() || env.options->equalityToEquivalence())) {
         ASS_EQ(literal->arity(), 2);
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);

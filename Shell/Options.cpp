@@ -1929,6 +1929,14 @@ void Options::init()
     _functionExtensionality.addProblemConstraint(hasHigherOrder());
     _functionExtensionality.tag(OptionTag::HIGHER_ORDER);
 
+    _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
+    _equalityToEquivalence.description=
+      "Equality between boolean terms changed to equivalence \n"
+      "t1 : $o = t2 : $o is changed to t1 <=> t2";
+    _lookup.insert(&_equalityToEquivalence);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
+    _equalityToEquivalence.tag(OptionTag::HIGHER_ORDER);
+
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";

@@ -2330,7 +2330,7 @@ public:
   // CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   // PISet piSet() const { return _piSet.actualValue; }
   // Narrow narrow() const { return _narrow.actualValue; }
-  // bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
+  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   // bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   // bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
@@ -2767,6 +2767,7 @@ private:
   BoolOptionValue _injectivity;
   BoolOptionValue _choiceReasoning;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
+  BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
