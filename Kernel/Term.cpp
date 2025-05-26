@@ -796,21 +796,31 @@ std::string Literal::toString() const
   if (isEquality()) {
     const TermList* lhs = args();
     std::string s = lhs->toString();
-    if (isPositive()) {
-      s += " = ";
-    }
-    else {
-      s += " != ";
+
+    if (env.higherOrder() &&
+        env.options->holPrinting() != Options::HPrinting::RAW &&
+        lhs->isApplication()) {
+      s = "(" + s + ")";
     }
 
-    std::string res = s + lhs->next()->toString();
-    if (env.getMainProblem() == nullptr || env.getMainProblem()->isHigherOrder() || 
-       (SortHelper::getEqualityArgumentSort(this) == AtomicSort::boolSort())){
-      res = "("+res+")";
+    std::string eqSym = isPositive() ? " = " : " != ";
+    if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
+      eqSym = isPositive() ? " ≈ " : " ≉ ";
     }
-    /*if(isTwoVarEquality()){
-      res += "___ sort: " + twoVarEqSort().toString();
-    }*/
+    s += eqSym;
+
+    auto rhs = lhs->next()->toString();
+    if (env.higherOrder() &&
+        env.options->holPrinting() != Options::HPrinting::RAW &&
+        lhs->next()->isApplication()) {
+      rhs = "(" + rhs + ")";
+    }
+
+    std::string res = s + rhs;
+    if (env.higherOrder() ||
+        SortHelper::getEqualityArgumentSort(this).isBoolSort()) {
+      res = "(" + res + ")";
+    }
 
     return res;
   }
@@ -837,9 +847,16 @@ std::string Literal::toString() const
   }
 #endif // NICE_THEORY_OUTPUT
 
-
   Stack<const TermList*> stack(64);
-  std::string s = polarity() ? "" : "~";
+  std::string s = "";
+  if (polarity() == 0) { /* negative polarity */
+    if (env.options->holPrinting() == Options::HPrinting::PRETTY) {
+      s = "¬";
+    } else {
+      s = "~";
+    }
+  }
+
   unsigned proj;
   if (Theory::tuples()->findProjection(functor(), true, proj)) {
     return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
@@ -847,12 +864,11 @@ std::string Literal::toString() const
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
-  if (_arity) {
+  if (_arity > 0) {
     s += '(' + args()->asArgsToString(); // will also print the ')'
   }
   return s;
 } // Literal::toString
-
 
 /**
  * Return the print name of the function symbol of this term.
@@ -862,7 +878,7 @@ const std::string& Term::functionName() const
 {
 #if VDEBUG
   static std::string nonexisting("<function does not exists>");
-  if (_functor>=static_cast<unsigned>(env.signature->functions())) {
+  if (_functor >= env.signature->functions()) {
     return nonexisting;
   }
 #endif
@@ -879,19 +895,6 @@ bool Term::isLambdaTerm() const {
 }
 
 bool Term::isRedex() const {
-  // was:
-  // return TermList(this).isRedex();
-  // tl = TermList(this)
-  // ASS_EQ(tl.tag(), REF) ==> !tl.isVar()
-
-  // but then, the function is not const because of this.
-
-  // tl.isRedex() == isApplication() && lhs().isLambdaTerm();
-  // tl.lhs() == ASS(isApplication()); return *term()->nthArgument(2);
-
-  // tl.isLambdaTerm() == !isVar() && term()->isLambdaTerm();
-  // tl.isApplication() == !isVar() && term()->isApplication();
-
   return isApplication() && nthArgument(2)->isLambdaTerm();
 }
 
@@ -908,7 +911,7 @@ const std::string& AtomicSort::typeConName() const
 {
 #if VDEBUG
   static std::string nonexisting("<type constructor does not exists>");
-  if (_functor>=static_cast<unsigned>(env.signature->typeCons())) {
+  if (_functor >= env.signature->typeCons()) {
     return nonexisting;
   }
 #endif
@@ -924,7 +927,7 @@ const std::string& Literal::predicateName() const
 {
 #if VDEBUG
   static std::string nonexisting("<predicate does not exists>");
-  if (_functor>=static_cast<unsigned>(env.signature->predicates())) {
+  if (_functor >= env.signature->predicates()) {
     return nonexisting;
   }
 #endif

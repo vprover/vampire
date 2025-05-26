@@ -1893,6 +1893,19 @@ void Options::init()
 
 //*********************** Higher-order  ***********************
 
+    _holPrinting = ChoiceOptionValue("pretty_hol_printing",
+                                     "php",
+                                     HPrinting::TPTP,
+                                     {"raw", "db", "pretty", "tptp"});
+    _holPrinting.description =
+        "Various methods of printing higher-order terms: \n"
+        " -raw : prints the internal representation of terms \n"
+        " -pretty : converts internal representation to something resembling textbook notation \n"
+        " -tptp : matches tptp standards \n"
+        " -db : same as tptp, except that De Bruijn indices printed instead of named variables";
+    _lookup.insert(&_holPrinting);
+    _holPrinting.tag(OptionTag::HIGHER_ORDER);
+
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
