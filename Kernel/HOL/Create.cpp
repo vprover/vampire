@@ -18,13 +18,7 @@ using Kernel::Term;
 TermList HOL::create::app(TermList sort, TermList head, TermList arg) {
   ASS(sort.isArrowSort())
 
-  auto s1 = getNthArg(sort, 1);
-  auto s2 = getResultAppliedToNArgs(sort, 1);
-
-  // auto s1 = sort.domain();
-  // auto s2 = sort.result();
-
-  return app(s1, s2, head, arg);
+  return app(sort.domain(), sort.result(), head, arg);
 }
 
 TermList HOL::create::app(TermList head, TermList arg) {
