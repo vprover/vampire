@@ -39,7 +39,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
-#include "Shell/ConditionalRedundancyHandler.hpp"
+#include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -81,7 +81,7 @@ template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
           ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
           PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls,
-          ConditionalRedundancyHandler const* condRedHandler)
+          PartialRedundancyHandler const* parRedHandler)
 {
   DEBUG_RESOLUTION(0, "lhs: ", *queryLit, " (clause: ", queryCl->number(), ")")
   DEBUG_RESOLUTION(0, "rhs: ", *resultLit, " (clause: ", resultCl->number(), ")")
@@ -218,8 +218,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (nConstraints == 0 && condRedHandler) {
-    if (!condRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
+  if (nConstraints == 0 && parRedHandler) {
+    if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
       return 0;
     }
   }
@@ -258,7 +258,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
   return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs,
       [&](){ return uwa.computeConstraintLiterals(); },
       opts, doAfterCheck, salg->getPassiveClauseContainer(),
-      &salg->getOrdering(), &salg->getLiteralSelector(), &salg->condRedHandler());
+      &salg->getOrdering(), &salg->getLiteralSelector(), &salg->parRedHandler());
 }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)

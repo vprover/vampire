@@ -38,11 +38,11 @@ void Z3MainLoop::init()
 MainLoopResult Z3MainLoop::runImpl()
 {
   if(!_prb.getProperty()->allNonTheoryClausesGround()){
-    return MainLoopResult(Statistics::INAPPROPRIATE);
+    return MainLoopResult(TerminationReason::INAPPROPRIATE);
   }
 
   SAT2FO s2f;
-  Z3Interfacing solver(_opt,s2f, /* unsat core */ false, /* export smtlib problem */ "", Shell::Options::ProblemExportSyntax::SMTLIB);
+  Z3Interfacing solver(_opt,s2f, /* unsat core */ false, /* export smtlib problem */ "", Options::ProblemExportSyntax::SMTLIB);
 
  ClauseIterator cit(_prb.clauseIterator());
  while(cit.hasNext()){
@@ -65,10 +65,10 @@ MainLoopResult Z3MainLoop::runImpl()
 
  SATSolver::Status status = solver.solve(UINT_MAX);
 
- Statistics::TerminationReason reason = Statistics::UNKNOWN; 
-                
- if(status == SATSolver::Status::UNSATISFIABLE){ reason = Statistics::REFUTATION; }
- if(status == SATSolver::Status::SATISFIABLE){ reason = Statistics::SATISFIABLE; }
+ TerminationReason reason = TerminationReason::UNKNOWN;
+
+ if(status == SATSolver::Status::UNSATISFIABLE){ reason = TerminationReason::REFUTATION; }
+ if(status == SATSolver::Status::SATISFIABLE){ reason = TerminationReason::SATISFIABLE; }
 
  return MainLoopResult(reason);
 }

@@ -408,9 +408,11 @@ private:
   {
     SharedSet* ss = static_cast<SharedSet*>(obj);
     
+    IGNORE_MAYBE_UNINITIALIZED(
     // calculate the same thing as in operator new
     size_t size=sizeof(SharedSet)+ss->_size*sizeof(T);
     size-=sizeof(T);
+    )
   
     DEALLOC_KNOWN(obj, size,"SharedSet");
   }
@@ -433,7 +435,7 @@ private:
   }
   static unsigned hash(const T* arr, size_t len)
   {
-    static_assert(std::is_arithmetic<T>::value || std::is_pointer<T>::value, "T must be safely hashable");
+    static_assert(std::is_arithmetic<T>::value, "T must be safely hashable");
     return DefaultHash::hashBytes(
       reinterpret_cast<const unsigned char *>(arr),
       sizeof(T) * len

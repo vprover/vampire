@@ -156,10 +156,36 @@ bool InductionHelper::isInductionClause(Clause* c) {
 
 bool InductionHelper::isInductionLiteral(Literal* l) {
   static bool negOnly = env.options->inductionNegOnly();
-  return ((!negOnly || l->isNegative() || 
-           (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
-          ) && l->ground()
+  return (!negOnly || l->isNegative() ||
+          (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
          );
+}
+
+bool InductionHelper::isGroundInductionLiteral(Literal* l) {
+  return (l->ground() && isInductionLiteral(l));
+}
+
+bool inductionLiteralHasAdmissibleVariables(Literal* l) {
+  if (l->getDistinctVars() != 1) {
+    return false;
+  }
+  for (unsigned idx = 0; idx < l->arity(); ++idx) {
+    if (l->nthArgument(idx)->isVar()) {
+      return SortHelper::getArgSort(l, idx) != AtomicSort::boolSort();
+    } else {
+      VariableWithSortIterator vi(l->nthArgument(idx)->term());
+      if (vi.hasNext()) {
+        return vi.next().second != AtomicSort::boolSort();
+      }
+    }
+  }
+  ASSERTION_VIOLATION_REP("No variables in a literal which should contain one variable!");
+  return true;
+}
+
+bool InductionHelper::isNonGroundInductionLiteral(Literal* l) {
+  static bool groundOnly = env.options->inductionGroundOnly();
+  return (!groundOnly && !l->ground() && inductionLiteralHasAdmissibleVariables(l) && isInductionLiteral(l));
 }
 
 bool InductionHelper::isInductionTermFunctor(unsigned f) {

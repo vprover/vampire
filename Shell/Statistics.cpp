@@ -29,162 +29,13 @@
 
 #include "Options.hpp"
 #include "Statistics.hpp"
+#include <chrono>
 
 
 using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
-
-/**
- * Initialise statistics.
- * @since 02/01/2008 Manchester
- */
-Statistics::Statistics()
-  : inputClauses(0),
-    inputFormulas(0),
-    formulaNames(0),
-    initialClauses(0),
-    splitInequalities(0),
-    purePredicates(0),
-    trivialPredicates(0),
-    unusedPredicateDefinitions(0),
-    functionDefinitions(0),
-    selectedBySine(0),
-    sineIterations(0),
-    blockedClauses(0),
-    factoring(0),
-    resolution(0),
-    urResolution(0),
-    cResolution(0),
-    forwardSuperposition(0),
-    backwardSuperposition(0),
-    cSelfSuperposition(0),
-    cForwardSuperposition(0),
-    cBackwardSuperposition(0),
-    selfSuperposition(0),
-    equalityFactoring(0),
-    equalityResolution(0),
-    forwardExtensionalityResolution(0),
-    backwardExtensionalityResolution(0),
-    theoryInstSimp(0),
-    theoryInstSimpCandidates(0),
-    theoryInstSimpTautologies(0),
-    theoryInstSimpLostSolution(0),
-    theoryInstSimpEmptySubstitution(0),
-    maxInductionDepth(0),
-    structInduction(0),
-    structInductionInProof(0),
-    intInfInduction(0),
-    intInfInductionInProof(0),
-    intFinInduction(0),
-    intFinInductionInProof(0),
-    intDBInduction(0),
-    intDBInductionInProof(0),
-    intInfUpInduction(0),
-    intInfUpInductionInProof(0),
-    intFinUpInduction(0),
-    intFinUpInductionInProof(0),
-    intDBUpInduction(0),
-    intDBUpInductionInProof(0),
-    intInfDownInduction(0),
-    intInfDownInductionInProof(0),
-    intFinDownInduction(0),
-    intFinDownInductionInProof(0),
-    intDBDownInduction(0),
-    intDBDownInductionInProof(0),
-    inductionApplication(0),
-    inductionApplicationInProof(0),
-    generalizedInductionApplication(0),
-    generalizedInductionApplicationInProof(0),
-    argumentCongruence(0),
-    narrow(0),
-    forwardSubVarSup(0),
-    backwardSubVarSup(0),
-    selfSubVarSup(0),
-    negativeExtensionality(0),
-    primitiveInstantiations(0),
-    choiceInstances(0),
-    proxyEliminations(0),
-    leibnizElims(0),
-    booleanSimps(0),
-    skippedSuperposition(0),
-    skippedResolution(0),
-    skippedEqualityResolution(0),
-    skippedEqualityFactoring(0),
-    skippedFactoring(0),
-    skippedInferencesDueToOrderingConstraints(0),
-    skippedInferencesDueToAvatarConstraints(0),
-    skippedInferencesDueToLiteralConstraints(0),
-    duplicateLiterals(0),
-    trivialInequalities(0),
-    forwardSubsumptionResolution(0),
-    backwardSubsumptionResolution(0),
-    forwardDemodulations(0),
-    forwardDemodulationsToEqTaut(0),
-    backwardDemodulations(0),
-    backwardDemodulationsToEqTaut(0),
-    forwardSubsumptionDemodulations(0),
-    forwardSubsumptionDemodulationsToEqTaut(0),
-    backwardSubsumptionDemodulations(0),
-    backwardSubsumptionDemodulationsToEqTaut(0),
-    forwardLiteralRewrites(0),
-    condensations(0),
-    globalSubsumption(0),
-    interpretedSimplifications(0),
-
-    asgViolations(0),
-    asgCnt(0),
-
-    gveViolations(0),
-    gveCnt(0),
-
-    evaluationIncomp(0),
-    evaluationGreater(0),
-    evaluationCnt(0),
-    innerRewrites(0),
-    innerRewritesToEqTaut(0),
-    deepEquationalTautologies(0),
-    simpleTautologies(0),
-    equationalTautologies(0),
-    forwardSubsumed(0),
-    backwardSubsumed(0),
-    taDistinctnessSimplifications(0),
-    taDistinctnessTautologyDeletions(0),
-    taInjectivitySimplifications(0),
-    taNegativeInjectivitySimplifications(0),
-    taAcyclicityGeneratedDisequalities(0),
-    generatedClauses(0),
-    passiveClauses(0),
-    activeClauses(0),
-    extensionalityClauses(0),
-    discardedNonRedundantClauses(0),
-    inferencesBlockedForOrderingAftercheck(0),
-    smtReturnedUnknown(false),
-    smtDidNotEvaluate(false),
-    inferencesSkippedDueToColors(0),
-    finalPassiveClauses(0),
-    finalActiveClauses(0),
-    finalExtensionalityClauses(0),
-    splitClauses(0),
-    splitComponents(0),
-    uniqueComponents(0),
-    satClauses(0),
-    unitSatClauses(0),
-    binarySatClauses(0),
-
-    satSplits(0),
-    satSplitRefutations(0),
-
-    smtFallbacks(0),
-
-    satPureVarsEliminated(0),
-    terminationReason(UNKNOWN),
-    refutation(0),
-    saturatedSet(0),
-    phase(INITIALIZATION)
-{
-} // Statistics::Statistics
 
 void Statistics::explainRefutationNotFound(std::ostream& out)
 {
@@ -214,7 +65,7 @@ void Statistics::print(std::ostream& out)
 
   bool separable=false;
 #define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
-#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << endl; separable = true; }
+#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << text << ": " << (num) << endl; separable = true; }
 #define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
 
   addCommentSignForSZS(out);
@@ -229,38 +80,38 @@ void Statistics::print(std::ostream& out)
   addCommentSignForSZS(out);
   out << "Termination reason: ";
   switch(terminationReason) {
-  case Statistics::REFUTATION:
+  case TerminationReason::REFUTATION:
     out << "Refutation";
     break;
-  case Statistics::TIME_LIMIT:
+  case TerminationReason::TIME_LIMIT:
     out << "Time limit";
     break;
-  case Statistics::INSTRUCTION_LIMIT:
+  case TerminationReason::INSTRUCTION_LIMIT:
     out << "Instruction limit";
     break;
-  case Statistics::MEMORY_LIMIT:
+  case TerminationReason::MEMORY_LIMIT:
     out << "Memory limit";
     break;
-  case Statistics::ACTIVATION_LIMIT:
+  case TerminationReason::ACTIVATION_LIMIT:
     out << "Activation limit";
     break;
-  case Statistics::REFUTATION_NOT_FOUND:
+  case TerminationReason::REFUTATION_NOT_FOUND:
     explainRefutationNotFound(out);
     break;
-  case Statistics::SATISFIABLE:
+  case TerminationReason::SATISFIABLE:
     out << "Satisfiable";
     break;
-  case Statistics::UNKNOWN:
+  case TerminationReason::UNKNOWN:
     out << "Unknown";
     break;
-  case Statistics::INAPPROPRIATE:
+  case TerminationReason::INAPPROPRIATE:
     out << "Inappropriate";
     break;
   default:
     ASSERTION_VIOLATION;
   }
   out << endl;
-  if (phase!=FINALIZATION) {
+  if (phase!=ExecutionPhase::FINALIZATION) {
     addCommentSignForSZS(out);
     out << "Termination phase: " << phaseToString(phase) << endl;
   }
@@ -273,7 +124,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Input formulas", inputFormulas);
   SEPARATOR;
 
-  HEADING("Preprocessing",formulaNames+purePredicates+trivialPredicates+
+  HEADING("Preprocessing",formulaNames+skolemFunctions+purePredicates+trivialPredicates+
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+blockedClauses+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
@@ -367,7 +218,7 @@ void Statistics::print(std::ostream& out)
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
       +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
-      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication);
+      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication+nonGroundInductionApplication);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
   COND_OUT("Binary resolution with abstraction",cResolution);
@@ -412,6 +263,8 @@ void Statistics::print(std::ostream& out)
   COND_OUT("InductionApplicationsInProof",inductionApplicationInProof);
   COND_OUT("GeneralizedInductionApplications",generalizedInductionApplication);
   COND_OUT("GeneralizedInductionApplicationsInProof",generalizedInductionApplicationInProof);
+  COND_OUT("NonGroundInductionApplications",nonGroundInductionApplication);
+  COND_OUT("NonGroundInductionApplicationsInProof",nonGroundInductionApplicationInProof);
   COND_OUT("Argument congruence", argumentCongruence);
   COND_OUT("Negative extensionality", negativeExtensionality);
   COND_OUT("Primitive substitutions", primitiveInstantiations);
@@ -446,11 +299,10 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
 
-  HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
+  HEADING("AVATAR",splitClauses+splitComponents+satSplits+
         satSplitRefutations);
   COND_OUT("Split clauses", splitClauses);
   COND_OUT("Split components", splitComponents);
-  COND_OUT("Unique components", uniqueComponents);
   //COND_OUT("Sat splits", satSplits); // same as split clauses
   COND_OUT("Sat splitting refutations", satSplitRefutations);
   COND_OUT("SMT fallbacks",smtFallbacks);
@@ -509,76 +361,74 @@ void Statistics::print(std::ostream& out)
 const char* Statistics::phaseToString(ExecutionPhase p)
 {
   switch(p) {
-  case INITIALIZATION:
+  case ExecutionPhase::INITIALIZATION:
     return "Initialization";
-  case PARSING:
+  case ExecutionPhase::PARSING:
     return "Parsing";
-  case PROPERTY_SCANNING:
+  case ExecutionPhase::PROPERTY_SCANNING:
     return "Property scanning";
-  case NORMALIZATION:
+  case ExecutionPhase::NORMALIZATION:
     return "Normalization";
-  case SHUFFLING:
+  case ExecutionPhase::SHUFFLING:
     return "shuffling";
-  case SINE_SELECTION:
+  case ExecutionPhase::SINE_SELECTION:
     return "SInE selection";
-  case INCLUDING_THEORY_AXIOMS:
+  case ExecutionPhase::INCLUDING_THEORY_AXIOMS:
     return "Including theory axioms";
-  case PREPROCESS_1:
+  case ExecutionPhase::PREPROCESS_1:
     return "Preprocessing 1";
-  case PREDIACTE_DEFINITION_MERGING:
+  case ExecutionPhase::PREDIACTE_DEFINITION_MERGING:
     return "Predicate definition merging";
-  case PREDICATE_DEFINITION_INLINING:
+  case ExecutionPhase::PREDICATE_DEFINITION_INLINING:
     return "Predicate definition inlining";
-  case UNUSED_PREDICATE_DEFINITION_REMOVAL:
+  case ExecutionPhase::UNUSED_PREDICATE_DEFINITION_REMOVAL:
     return "Unused predicate definition removal";
-  case BLOCKED_CLAUSE_ELIMINATION:
+  case ExecutionPhase::BLOCKED_CLAUSE_ELIMINATION:
     return "Blocked clause elimination";
-  case TWEE:
+  case ExecutionPhase::TWEE:
     return "Twee Goal Transformation";
-  case ANSWER_LITERAL: 
+  case ExecutionPhase::ANSWER_LITERAL:
     return "Answer literal addition";
-  case PREPROCESS_2:
+  case ExecutionPhase::PREPROCESS_2:
     return "Preprocessing 2";
-  case NEW_CNF:
+  case ExecutionPhase::NEW_CNF:
     return "NewCNF";
-  case NAMING:
+  case ExecutionPhase::NAMING:
     return "Naming";
-  case PREPROCESS_3:
+  case ExecutionPhase::PREPROCESS_3:
     return "Preprocessing 3";
-  case CLAUSIFICATION:
+  case ExecutionPhase::CLAUSIFICATION:
     return "Clausification";
-  case FUNCTION_DEFINITION_ELIMINATION:
+  case ExecutionPhase::FUNCTION_DEFINITION_ELIMINATION:
     return "Function definition elimination";
-  case INEQUALITY_SPLITTING:
+  case ExecutionPhase::INEQUALITY_SPLITTING:
     return "Inequality splitting";
-  case EQUALITY_RESOLUTION_WITH_DELETION:
+  case ExecutionPhase::EQUALITY_RESOLUTION_WITH_DELETION:
     return "Equality resolution with deletion";
-  case EQUALITY_PROXY:
+  case ExecutionPhase::EQUALITY_PROXY:
     return "Equality proxy";
-  case GENERAL_SPLITTING:
+  case ExecutionPhase::GENERAL_SPLITTING:
     return "General splitting";
-  case SATURATION:
+  case ExecutionPhase::SATURATION:
     return "Saturation";
-  case FINALIZATION:
+  case ExecutionPhase::FINALIZATION:
     return "Finalization";
-  case UNKNOWN_PHASE:
+  case ExecutionPhase::UNKNOWN_PHASE:
     return "Unknown";
-  case PREPROCESSING: 
+  case ExecutionPhase::PREPROCESSING:
     return "BP Preprocessing ";
-  case SOLVING:
+  case ExecutionPhase::SOLVING:
     return "Solving with Conflict Resolution";
-  case SAT_SOLVING:
+  case ExecutionPhase::SAT_SOLVING:
 	  return "SAT Solving";
-  case FMB_PREPROCESSING:
+  case ExecutionPhase::FMB_PREPROCESSING:
           return "Finite model building preprocessing";
-  case FMB_CONSTRAINT_GEN:
+  case ExecutionPhase::FMB_CONSTRAINT_GEN:
           return "Finite model building constraint generation";
-  case FMB_SOLVING:
+  case ExecutionPhase::FMB_SOLVING:
           return "Finite model building SAT solving";
   default:
     ASSERTION_VIOLATION;
     return "Invalid ExecutionPhase value";
   }
 }
-
-

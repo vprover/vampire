@@ -50,6 +50,20 @@ using namespace Indexing;
 
 typedef Stack<SplitLevel> SplitLevelStack;
 
+struct SplitClauseExtra : public InferenceExtra {
+  SATClause *clause;
+  SplitClauseExtra(SATClause *clause) : clause(clause) {}
+  void output(std::ostream &out) const override;
+};
+
+struct SplitDefinitionExtra : public InferenceExtra {
+  Clause *component;
+  SplitDefinitionExtra(Clause *component) : component(component) {
+    component->incRefCnt();
+  }
+  void output(std::ostream &out) const override;
+};
+
 class Splitter;
 
 /**
@@ -167,7 +181,7 @@ private:
     Clause* component;
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
-    Stack<ConditionalRedundancyEntry*> conditionalRedundancyEntries;
+    Stack<PartialRedundancyEntry*> partialRedundancyEntries;
     bool active;
 
     USE_ALLOCATOR(SplitRecord);
@@ -185,7 +199,7 @@ public:
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
-  void addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e);
+  void addPartialRedundancyEntry(SplitSet* splits, PartialRedundancyEntry* e);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);

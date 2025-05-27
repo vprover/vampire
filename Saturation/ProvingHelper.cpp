@@ -55,15 +55,15 @@ using namespace Shell;
     runVampireSaturationImpl(prb, opt);
   }
   catch(const std::bad_alloc &) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env.statistics->terminationReason=TerminationReason::MEMORY_LIMIT;
     env.statistics->refutation=0;
   }
   catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
+    env.statistics->terminationReason=TerminationReason::TIME_LIMIT;
     env.statistics->refutation=0;
   }
   catch(ActivationLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
+    env.statistics->terminationReason=TerminationReason::ACTIVATION_LIMIT;
     env.statistics->refutation=0;
   }
 }
@@ -88,7 +88,11 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   // (no randomness in parsing, for the peace of mind - parsing was done by the master process!)
   // the main reason being that we want to stay in sync with what vampire mode does
   // cf getPreprocessedProblem in vampire.cpp
-  Lib::Random::setSeed(opt.randomSeed());
+  if (opt.randomSeed() != 0) {
+    Lib::Random::setSeed(opt.randomSeed());
+  } else {
+    Lib::Random::resetSeed();
+  }
 
   try
   {
@@ -102,15 +106,15 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
     runVampireSaturationImpl(prb, opt);
   }
   catch(const std::bad_alloc &) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env.statistics->terminationReason=TerminationReason::MEMORY_LIMIT;
     env.statistics->refutation=0;
   }
   catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
+    env.statistics->terminationReason=TerminationReason::TIME_LIMIT;
     env.statistics->refutation=0;
   }
   catch(ActivationLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
+    env.statistics->terminationReason=TerminationReason::ACTIVATION_LIMIT;
     env.statistics->refutation=0;
   }
 }
@@ -131,11 +135,13 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   //after options have been read. Equality Proxy can introduce poly in mono.
   env.sharing->setPoly();
 
-  env.statistics->phase=Statistics::SATURATION;
+  env.options->resolveAwayAutoValues(prb);
+
+  env.statistics->phase=ExecutionPhase::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
-  env.statistics->phase=Statistics::FINALIZATION;
+  env.statistics->phase=ExecutionPhase::FINALIZATION;
   Timer::disableLimitEnforcement();
   sres.updateStatistics();
 }

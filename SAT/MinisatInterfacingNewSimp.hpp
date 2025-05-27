@@ -103,7 +103,7 @@ public:
     return (_assumptions.size() > 0);
   };
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool) override;
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
 
   virtual SATClause* getRefutation() override { ASSERTION_VIOLATION; }
 

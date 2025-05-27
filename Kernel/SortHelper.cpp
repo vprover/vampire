@@ -727,7 +727,7 @@ void SortHelper::normaliseSort(VList* qVars, TermList& sort)
   sort = SubstHelper::apply(sort, subst);
 }
 
-void SortHelper::normaliseArgSorts(TermStack& qVars, TermStack& argSorts)
+void SortHelper::normaliseArgSorts(const TermStack& qVars, TermStack& argSorts)
 {
   Substitution subst;
   for(unsigned i = 0; i < qVars.size(); i++){
@@ -1029,4 +1029,3 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
   }
   return true;
 } // areSortsValid 
-

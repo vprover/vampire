@@ -220,7 +220,6 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
-  bool hasCombs() const { return _hasCombs;}
   bool hasArrowSort() const { return _hasArrowSort; }
   bool hasApp() const { return _hasApp; }
   bool hasAppliedVar() const { return _hasAppliedVar; }
@@ -228,7 +227,7 @@ public:
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
   bool hasAnswerLiteral() const { return _hasAnswerLiteral; }
-  bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() ||
+  bool higherOrder() const { return hasApp() || hasLogicalProxy() ||
                                     hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const {
@@ -248,8 +247,13 @@ public:
   }
 
   bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
-
+  template<class Numeral>
+  bool isNonLinear() const { return isNonLinear((Numeral*)nullptr); }
  private:
+  bool isNonLinear(IntegerConstantType*) const { return _nonLinearInt; }
+  bool isNonLinear(RationalConstantType*) const { return _nonLinearRat; }
+  bool isNonLinear(RealConstantType*) const { return _nonLinearReal; }
+
   static bool hasXEqualsY(const Clause* c);
   static bool hasXEqualsY(const Formula*);
 
@@ -316,14 +320,19 @@ public:
   unsigned _sortsUsed;
   Array<bool> _usesSort;
 
+
+  friend struct Setter;
+
   /** Makes sense for all interpretations, but for polymorphic ones we also keep
    *  the more precise information about which monomorphisations are present (see below).
    */
   DArray<bool> _interpretationPresence;
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
+
+
+
   bool _hasFOOL;
-  bool _hasCombs;
   bool _hasArrowSort;
   bool _hasApp;
   bool _hasAppliedVar;
@@ -340,6 +349,12 @@ public:
   bool _allClausesGround;
   bool _allNonTheoryClausesGround;
   bool _allQuantifiersEssentiallyExistential;
+  bool _hasNumeralsInt;
+  bool _hasNumeralsRat;
+  bool _hasNumeralsReal;
+  bool _nonLinearInt;
+  bool _nonLinearRat;
+  bool _nonLinearReal;
   SMTLIBLogic _smtlibLogic;
 }; // class Property
 

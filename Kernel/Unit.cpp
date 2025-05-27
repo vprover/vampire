@@ -59,7 +59,39 @@ Unit::Unit(Kind kind, Inference inf)
     _inheritedColor(COLOR_INVALID),
     _inference(std::move(inf))
 {
+
 } // Unit::Unit
+  //
+
+void Unit::doUnitTracing() {
+#if VAMPIRE_CLAUSE_TRACING
+  // TODO make unsigned
+  if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
+    traverseParentsPost(
+        [&](unsigned depth, Unit* unit) {
+          std::cout << "backward trace " <<  number() << ": " << Output::repeat("| ", depth) << unit->toString() << std::endl;
+      });
+  }
+
+  // forward tracing
+  // TODO make unsigned
+  static int traceFwd = env.options->traceForward();
+  if (traceFwd != -1) {
+
+    bool doTrace = false;
+    auto infit = inference().iterator();
+    while (inference().hasNext(infit)) {
+      if (inference().next(infit)->number() == unsigned(traceFwd)) {
+        doTrace = true;
+        break;
+      }
+    }
+    if (doTrace) {
+      std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
+    }
+  }
+#endif // VAMPIRE_CLAUSE_TRACING
+}
 
 void Unit::incRefCnt()
 {
@@ -229,7 +261,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
         current->setInputType(uit);
         inf.setPureTheoryDescendant(isPureTheoryDescendant);
       } else if (inf.rule() == InferenceRule::AVATAR_DEFINITION) {
-        // don't touch _pureTheoryDescendant for AVATAR_DEFINITIONs (a split theory consequence is again a theory consequence)
+        // don't touch _pureTheoryDescendant for AVATAR_DEFINITIONs - in general, they are no longer theory consequences (see Splitter.cpp around l. 1251)
         current->setInputType(UnitInputType::AXIOM); // AVATAR_DEFINITION might have inherited goaledness from its causal parent, which we want to reset
       } else {
         // no premises and not InferenceRule::AVATAR_DEFINITION

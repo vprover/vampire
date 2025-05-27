@@ -127,8 +127,6 @@ protected:
   {
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
-    static bool combSup = env.options->combinatorySup();
-
     static DArray<Literal*> litArr(64);
     static Set<unsigned> maxTermHeads;
     maxTermHeads.reset();
@@ -138,26 +136,13 @@ protected:
     LiteralList* maximals=0;
     Literal* singleSelected=0; //If equals to 0 in the end, all maximal
 
-    if(combSup){ 
-      fillMaximals(maximals, litArr); 
-      LiteralList::Iterator maxIt(maximals);
-      while(maxIt.hasNext()){
-        Literal* lit = maxIt.next();
-        TermList t0 = *lit->nthArgument(0);
-        TermList t1 = *lit->nthArgument(1);
-        TermList h0 = ApplicativeHelper::getHead(t0);  
-        TermList h1 = ApplicativeHelper::getHead(t1);
-        if(h0.isVar()){ maxTermHeads.insert(h0.var()); }
-        if(h1.isVar()){ maxTermHeads.insert(h1.var()); }
-      }
-    }
     //literals will be selected.
     bool allSelected=false;
 
     if(isNegativeForSelection(litArr[0])) {
       singleSelected=litArr[0];
     } else {
-      if(!combSup){ fillMaximals(maximals, litArr); }
+      fillMaximals(maximals, litArr);
       unsigned besti=0;
       LiteralList* nextMax=maximals;
       while(true) {

@@ -20,22 +20,29 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "AcyclicityIndex.hpp"
+#include "Kernel/OrderingUtils.hpp"
 #include "CodeTreeInterfaces.hpp"
-#include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
+#include "Inferences/ALASCA/Demodulation.hpp"
+#include "Inferences/ALASCA/FourierMotzkin.hpp"
+#include "Inferences/ALASCA/Superposition.hpp"
+#include "Inferences/ALASCA/BinaryResolution.hpp"
+#include "Inferences/ALASCA/Coherence.hpp"
 
 #include "Shell/Statistics.hpp"
 
 #include "IndexManager.hpp"
+#include "Kernel/ALASCA.hpp"
+#include "Kernel/ALASCA/Index.hpp"
 
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) 
-  : _alg(alg) 
+IndexManager::IndexManager(SaturationAlgorithm* alg)
+  : _alg(alg)
   , _uwa(AbstractionOracle::create())
   , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 { }
@@ -105,7 +112,6 @@ Index* IndexManager::create(IndexType t)
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 
   bool isGenerating;
-                   
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
     res = new BinaryResolutionIndex(new LiteralSubstitutionTree());
@@ -136,55 +142,80 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case ALASCA_FWD_DEMODULATION_SUBST_TREE:
+    res = new AlascaIndex<ALASCA::Demodulation::Lhs>();
+    isGenerating = false;
+    break;
+
+  case ALASCA_BWD_DEMODULATION_SUBST_TREE:
+    res = new AlascaIndex<ALASCA::Demodulation::Rhs>();
+    isGenerating = false;
+    break;
+
+  case ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE:
+    res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Lhs>();
+    isGenerating = true;
+    break;
+
+  case ALASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE:
+    res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Rhs>();
+    isGenerating = true;
+    break;
+
+  case ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::BinaryResolution::Lhs>();
+    isGenerating = true;
+    break;
+
+  case ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::BinaryResolution::Rhs>();
+    isGenerating = true;
+    break;
+
+  case ALASCA_SUPERPOSITION_LHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::Superposition::Lhs>();
+    isGenerating = true;
+    break;
+
+  case ALASCA_SUPERPOSITION_RHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::Superposition::Rhs>();
+    isGenerating = true;
+    break;
+
+  case ALASCA_COHERENCE_LHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Lhs>();
+    isGenerating = true;
+    break;
+
+  case ALASCA_COHERENCE_RHS_SUBST_TREE:
+    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Rhs>();
+    isGenerating = true;
+    break;
+
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
     res = new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
     isGenerating = true;
     break;
+
   case SUPERPOSITION_LHS_SUBST_TREE:
     res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-    
-  case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
-    //using a substitution tree to store variable.
-    //TODO update
-    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
-    isGenerating = true;
-    break;
-  case SUB_VAR_SUP_LHS_SUBST_TREE:
-    res = new SubVarSupLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
-    isGenerating = true;
-    break;
-  
+
   case SKOLEMISING_FORMULA_INDEX:
     res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
     isGenerating = false;
     break;
 
-  case NARROWING_INDEX:
-    res = new NarrowingIndex(new Indexing::TermSubstitutionTree<TermWithValue<Literal*>>()); 
-    isGenerating = true;
-    break; 
-
-  case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new Indexing::TermSubstitutionTree<TermWithoutValue>()); 
-    isGenerating = true;
-    break;  
    case ACYCLICITY_INDEX:
     res = new AcyclicityIndex(new TermSubstitutionTree());
     isGenerating = true;
-    break; 
+    break;
 
-  case DEMODULATION_SUBTERM_SUBST_TREE: {
-    auto tis = new TermSubstitutionTree();
-    if (env.options->combinatorySup()) {
-      res = new DemodulationSubtermIndexImpl<true>(tis,_alg->getOptions());
-    } else {
-      res = new DemodulationSubtermIndexImpl<false>(tis,_alg->getOptions());
-    }
+  case DEMODULATION_SUBTERM_SUBST_TREE:
+    res = new DemodulationSubtermIndexImpl(new TermSubstitutionTree(),_alg->getOptions());
     isGenerating = false;
     break;
-  }
   case DEMODULATION_LHS_CODE_TREE:
     res = new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
@@ -207,11 +238,6 @@ Index* IndexManager::create(IndexType t)
 
   case REWRITE_RULE_SUBST_TREE:
     res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg->getOrdering());
-    isGenerating = false;
-    break;
-
-  case GLOBAL_SUBSUMPTION_INDEX:
-    res = new GroundingIndex(_alg->getOptions());
     isGenerating = false;
     break;
 

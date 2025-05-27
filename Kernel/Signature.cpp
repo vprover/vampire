@@ -15,6 +15,7 @@
 #include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Shell/Options.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -39,6 +40,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _usageCount(0),
     _unitUsageCount(0),
     _interpreted(interpreted ? 1 : 0),
+    _linMul(0),
     _introduced(0),
     _protected(0),
     _skip(0),
@@ -49,6 +51,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _answerPredicate(0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),
+    _termAlgebraDiscriminator(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
@@ -57,8 +60,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _tuple(0),
     _computable(1),
     _letBound(0),
-    _prox(NOT_PROXY),
-    _comb(NOT_COMB)
+    _prox(NOT_PROXY)
 {
   if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
@@ -84,6 +86,16 @@ void Signature::Symbol::destroyFnSymbol()
   }
   else if (interpreted()) {
     delete static_cast<InterpretedSymbol*>(this);
+  }
+  else if (linMul()) {
+    forAnyNumTraits([&](auto n) {
+        if (auto s = Signature::tryLinMulSym<typename decltype(n)::ConstantType>(this)) {
+          delete &*s;
+          return true;
+        } else {
+          return false;
+        }
+    });
   }
   else {
     delete this;

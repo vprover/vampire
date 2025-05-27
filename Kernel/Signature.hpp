@@ -52,7 +52,7 @@ class Signature
     , std::string // <- string-constant
     // (number, arity). 
     // if arity = 0 we mean a numeral constant
-    // if arity = 1 we mean a linear multiplication (this is not yet merged into master but will come with alasca)
+    // if arity = 1 we mean a linear multiplication
     , std::pair<IntegerConstantType, unsigned> 
     , std::pair<RationalConstantType, unsigned> 
     , std::pair<RealConstantType, unsigned> 
@@ -75,17 +75,6 @@ class Signature
   static const unsigned REAL_SRT_CON=4;
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
-  
-  //Order is important
-  //Narrow.cpp relies on it
-  enum Combinator {
-    S_COMB,
-    B_COMB,
-    C_COMB,
-    I_COMB,
-    K_COMB,
-    NOT_COMB
-  };
   
   enum Proxy {
     AND,
@@ -126,6 +115,7 @@ class Signature
 
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
+    unsigned _linMul : 1;
     /** symbol that doesn't come from input problem, but was introduced by Vampire */
     unsigned _introduced : 1;
     /** protected symbols aren't subject to any kind of preprocessing elimination */
@@ -167,8 +157,6 @@ class Signature
     unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
-    /** combinator type */
-    Combinator _comb;
 
   public:
     /** standard constructor */
@@ -195,6 +183,7 @@ class Signature
     void markEqualityProxy() { _equalityProxy=1; }
     /** mark predicate as (polarity) flipped */
     void markFlipped() { _wasFlipped=1; }
+    void markLinMul() { _linMul=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
@@ -282,9 +271,6 @@ class Signature
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
 
-    inline void setComb(Combinator comb){ _comb = comb; }
-    inline Combinator combinator(){ return _comb; }
-
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
       
@@ -298,19 +284,42 @@ class Signature
     inline bool realConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::realSort(); }
 
-    /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
+  private:
+    bool numeralConstant(RealConstantType*) const { return realConstant(); }
+    bool numeralConstant(RationalConstantType*) const { return rationalConstant(); }
+    bool numeralConstant(IntegerConstantType*) const { return integerConstant(); }
+  public:
+
+    /** template version of {integer,rational,real}Constant */
+    template<class Number> bool numeralConstant() const
+    { return numeralConstant((Number*)nullptr); }
+
+    /** return true if an interpreted number */
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
 
+    inline bool linMul() const
+    { return _linMul; }
+
     /** Return value of an integer constant */
-    inline IntegerConstantType integerValue() const
+    inline IntegerConstantType const& integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
     /** Return value of a rational constant */
-    inline RationalConstantType rationalValue() const
+    inline RationalConstantType const& rationalValue() const
     { ASS(rationalConstant()); return static_cast<const RationalSymbol*>(this)->_ratValue; }
     /** Return value of a real constant */
-    inline RealConstantType realValue() const
+    inline RealConstantType const& realValue() const
     { ASS(realConstant()); return static_cast<const RealSymbol*>(this)->_realValue; }
+
+  private:
+    RealConstantType const& numeralValue(RealConstantType*) const { return realValue(); }
+    RationalConstantType const& numeralValue(RationalConstantType*) const { return rationalValue(); }
+    IntegerConstantType const& numeralValue(IntegerConstantType*) const { return integerValue(); }
+  public:
+
+    /** template version of {integer,rational,real}Value */
+    template<class Number> auto const& numeralValue() const
+    { return numeralValue((Number*)nullptr); }
 
     const List<unsigned>* distinctGroups() const { return _distinctGroups; }
     /** This takes the symbol number of this symbol as the symbol doesn't know it
@@ -357,6 +366,58 @@ class Signature
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
   };
+
+  class AnyLinMulSym 
+    : public Symbol {
+  public:
+    enum Type { Int, Rat, Real, } type;
+  private:
+    static Type typeOf(IntegerConstantType*) { return Int; }
+    static Type typeOf(RationalConstantType*) { return Rat; }
+    static Type typeOf(RealConstantType*) { return Real; }
+
+    static auto sortOf(IntegerConstantType *) { return AtomicSort::intSort(); }
+    static auto sortOf(RationalConstantType *) { return AtomicSort::rationalSort(); }
+    static auto sortOf(RealConstantType *) { return AtomicSort::realSort(); }
+
+  public:
+
+    template<class Numeral>
+    auto isType() const { return typeOf<Numeral>() == type; }
+    template<class Numeral>
+    static auto typeOf() { return typeOf((Numeral*)0); }
+    template<class Numeral>
+    static auto sortOf() { return sortOf((Numeral*)0); }
+
+    template<class... Args>
+    AnyLinMulSym(Type type, Args... args) : Symbol(std::move(args)...), type(type) 
+    { markLinMul(); }
+  };
+
+  template<class Numeral>
+  class LinMulSym
+  : public AnyLinMulSym
+  {
+    friend class Signature;
+    friend class Symbol;
+    Numeral _value;
+
+  public:
+    static std::string name(Numeral n) { return Output::toString(n); }
+    LinMulSym(Numeral val)
+    : AnyLinMulSym(
+        AnyLinMulSym::typeOf<Numeral>(),
+        name(val),
+        /*             arity */ 1, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ true, 
+        /*             super */ false),
+      _value(std::move(val))
+    {
+      setType(OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()));
+    }
+  };
+
 
   class IntegerSymbol
   : public Symbol
@@ -520,6 +581,40 @@ class Signature
   void noteOccurrence(RationalConstantType const&)  { _rationals++; }
   void noteOccurrence(RealConstantType const&)  { _reals++; }
  public:
+
+  template<class Numeral>
+  unsigned addLinMul(Numeral const& number) {
+    auto key = SymbolKey(std::make_pair(number, unsigned(1)));
+    unsigned result;
+    if (_funNames.find(key, result)) {
+      return result;
+    }
+    noteOccurrence(number);
+    result = _funs.length();
+    Symbol* sym = new LinMulSym<Numeral>(number);
+    auto s = AnyLinMulSym::sortOf<Numeral>();
+    sym->setType(OperatorType::getFunctionType({s}, s));
+    _funs.push(sym);
+    _funNames.insert(key,result);
+    return result;
+  }
+
+  template<class Numeral>
+  static Lib::Option<LinMulSym<Numeral>&> tryLinMulSym(Symbol* sym) {
+    return someIf(sym->linMul() && static_cast<LinMulSym<Numeral>*>(sym)->template isType<Numeral>(),
+        [&]() -> LinMulSym<Numeral>& { return *static_cast<LinMulSym<Numeral>*>(sym); });
+  }
+
+  template<class Numeral>
+  Lib::Option<Numeral const&> tryLinMul(unsigned f) {
+    if (f >= Term::SPECIAL_FUNCTOR_LOWER_BOUND) return {};
+    if (auto sym = tryLinMulSym<Numeral>(getFunction(f))) {
+      return Option<Numeral const&>(sym->_value);
+    } else {
+      return {};
+    }
+  }
+
 
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const std::string& name);
   unsigned addInterpretedFunction(Interpretation itp, const std::string& name)
@@ -886,65 +981,6 @@ class Signature
   } //TODO merge with above?  
 
   //TODO make all these names protected
-
-  unsigned getCombinator(Combinator c){
-    bool added = false;
-    unsigned comb;
-    
-    auto convert = [] (Combinator cb) { 
-      switch(cb){
-        case S_COMB:
-          return "sCOMB";
-        case C_COMB:
-          return "cCOMB";
-        case B_COMB:
-          return "bCOMB";
-        case K_COMB:
-          return "kCOMB";
-        default:
-          return "iCOMB";
-      }
-    };
-    
-    std::string name = convert(c);
-    if(c == S_COMB || c == B_COMB || c == C_COMB){
-      comb = addFunction(name,3, added);
-    } else if ( c == K_COMB) {
-      comb = addFunction(name,2, added);      
-    } else {
-      comb = addFunction(name,1, added);
-    }
-
-    if(added){
-      unsigned typeArgsArity = 3;
-      TermList x0 = TermList(0, false);
-      TermList x1 = TermList(1, false);
-      TermList x2 = TermList(2, false);
-      TermList t0 = AtomicSort::arrowSort(x1, x2);
-      TermList t1 = AtomicSort::arrowSort(x0, t0);
-      TermList t2 = AtomicSort::arrowSort(x0, x1);
-      TermList t3 = AtomicSort::arrowSort(x0, x2);
-      TermList sort; 
-      if(c == S_COMB){
-        sort = AtomicSort::arrowSort(t1, t2, t3);
-      }else if(c == C_COMB){
-        sort = AtomicSort::arrowSort(t1, x1, t3);
-      }else if(c == B_COMB){
-        sort = AtomicSort::arrowSort(t0, t2, t3);
-      }else if(c == K_COMB){
-        typeArgsArity = 2;
-        sort = AtomicSort::arrowSort(x0, x1 , x0);
-      }else if(c == I_COMB){
-        typeArgsArity = 1;
-        sort = AtomicSort::arrowSort(x0, x0);
-      }    
-
-      Symbol* sym = getFunction(comb);
-      sym->setType(OperatorType::getConstantsType(sort, typeArgsArity));
-      sym->setComb(c);
-    } 
-    return comb;
-  }
 
   void incrementFormulaCount(Term* t);
   void decrementFormulaCount(Term* t);

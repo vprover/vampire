@@ -27,6 +27,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -38,8 +39,8 @@
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-using namespace Shell;
 
+namespace Shell {
 
 /**
  * Add the unit @c to @c problem and output it, if the option show_theory_axioms is on.
@@ -54,15 +55,9 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
   if(opt_level != Options::TheoryAxiomLevel::ON && level != CHEAP){ return; }
 
   if (env.options->showTheoryAxioms()) {
-    Unit* qunit = unit;
-    Formula* f = 0;
-    if(unit->isClause()){
-      f = Formula::fromClause(static_cast<Clause*>(unit));
-      qunit = new FormulaUnit(f,unit->inference());
-    }
-    cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << qunit->toString() << "\n";
-    if(f){ f->destroy(); } 
+    cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
   }
+
   if(!unit->isClause()){
     _prb.reportFormulasAdded();
   }
@@ -341,7 +336,7 @@ void TheoryAxioms::addPlusOneGreater(Interpretation plus, TermList oneElement,
 /**
  * Add axioms for addition, unary minus and ordering
  */
-void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
+void TheoryAxioms::addAdditionAndOrderingAxioms(TermList sort, Interpretation plus, Interpretation unaryMinus,
     TermList zeroElement, TermList oneElement, Interpretation less)
 {
   addCommutativeGroupAxioms(plus, unaryMinus, zeroElement);
@@ -368,26 +363,99 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
   addTheoryClauseFromLits({mmxEqx}, InferenceRule::THA_MINUS_MINUS_X, EXPENSIVE);
 }
 
+
+void _addAlascaAxioms(IntTraits num, Problem& prb)
+{
+  Property* prop = prb.getProperty();
+  if (prop->hasInterpretedOperation(num.addI) 
+   || prop->hasInterpretedOperation(num.minusI)
+   || prop->hasInterpretedOperation(num.dividesI)
+   || prop->hasInterpretedOperation(num.mulI)) {
+    // TODO add axioms for addition
+  }
+}
+
+
+struct AlascaAxioms {
+
+
+#define AXIOM_CONTEXT __ALLOW_UNUSED(                                                     \
+    auto x = TermList::var(0);                                                            \
+    auto y = TermList::var(1);                                                            \
+    auto z = TermList::var(2);                                                            \
+    auto addAx = [&](std::initializer_list<Literal*> clause) {                            \
+      ax.addTheoryClauseFromLits(clause,                                                  \
+          InferenceRule::THA_ALASCA, TheoryAxioms::EXPENSIVE);                             \
+    };                                                                                    \
+    auto add = [&](auto l, auto r) -> TermList { return num.add(l,r); };                  \
+    auto mul = [&](auto l, auto r) -> TermList { return num.mul(l,r); };                  \
+    auto numeral = [&](auto x) -> TermList { return num.constantTl(x); };                 \
+    auto greater = [&](TermList x) { return num.greater(true, x, numeral(0)); };          \
+    auto geq     = [&](TermList x) { return num.geq    (true, x, numeral(0)); };          \
+    auto minus   = [&](auto x) -> TermList { return num.minus(x); };                      \
+    auto floor   = [&](auto x) -> TermList { return num.floor(x); };                      \
+  )
+   
+ 
+  template<class NumTraits>
+  static void addNonLinearAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax) {
+    AXIOM_CONTEXT
+    addAx({num.eq(true, add(x,add(y,z)), add(add(x,y),z))});
+    addAx({num.eq(true, add(x,y), add(x,y))});
+    addAx({num.eq(true, mul(x, add(y,z)), add(mul(x, y),mul(x, z)))});
+    //      x >  0 /\  y <  z -> x * y < x * z
+    // <=> ~x >  0 \/ ~y <  z \/ x * y < x * z
+    // <=>  x <= 0 \/  y >= z \/ x * y < x * z
+    // <=> -x >= 0 \/  y - z >= 0 \/ x * z - x * y > 0
+    addAx({ geq(minus(x)), geq(add(y, minus(z))), greater(add(mul(x,z), minus(mul(x,y)))) });
+    //      x <  0 /\  y <  z -> x * y > x * z
+    // <=> ~x <  0 \/ ~y <  z \/ x * y > x * z
+    // <=>  x >= 0 \/  y >= z \/ x * y > x * z
+    // <=>  x >= 0 \/  y - z >= 0 \/ x * y - x * z > 0
+    addAx({ geq(x), geq(add(y, minus(z))), greater(add(mul(x,y), minus(mul(x,z)))) });
+  }
+
+  template<class NumTraits>
+  static void addAlascaAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax)
+  {
+    Property* prop = prb.getProperty();
+    if (prop->isNonLinear<typename NumTraits::ConstantType>()) {
+      addNonLinearAxioms(num, prb, ax);
+    }
+  }
+};
+
+
+void TheoryAxioms::addAlascaAxioms()
+{
+  forEachNumTraits([&](auto n) { return AlascaAxioms::addAlascaAxioms(n, _prb, *this); });
+}
+
+
 /**
  * Add axioms for addition, multiplication, unary minus and ordering
  */
 void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plus, Interpretation unaryMinus,
     TermList zeroElement, TermList oneElement, Interpretation less, Interpretation multiply)
 {
-  TermList srt = theory->getOperationSort(plus);
-  ASS_EQ(srt, theory->getOperationSort(unaryMinus));
-  ASS_EQ(srt, theory->getOperationSort(less));
-  ASS_EQ(srt, theory->getOperationSort(multiply));
 
-  addAdditionAndOrderingAxioms(plus, unaryMinus, zeroElement, oneElement, less);
+  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
+  auto srt = theory->getOperationSort(plus);
+  TermList x(0,false);
+  if (!env.options->alasca()) {
 
-  addCommutativity(multiply);
-  addAssociativity(multiply);
-  addRightIdentity(multiply, oneElement);
+    ASS_EQ(srt, theory->getOperationSort(unaryMinus));
+    ASS_EQ(srt, theory->getOperationSort(less));
+    ASS_EQ(srt, theory->getOperationSort(multiply));
+
+    addAdditionAndOrderingAxioms(srt, plus, unaryMinus, zeroElement, oneElement, less);
+
+    addCommutativity(multiply);
+    addAssociativity(multiply);
+    addRightIdentity(multiply, oneElement);
+  }
 
   //axiom( X0*zero==zero );
-  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
-  TermList x(0,false);
   TermList xMulZero(Term::create2(mulFun, x, zeroElement));
   Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
   addTheoryClauseFromLits({xEqXMulZero}, InferenceRule::THA_TIMES_ZERO, EXPENSIVE);
@@ -889,6 +957,10 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
  */
 void TheoryAxioms::apply()
 {
+  if (env.options->alasca()) {
+    addAlascaAxioms();
+    return;
+  }
   Property* prop = _prb.getProperty();
   bool modified = false;
   bool haveIntPlus =
@@ -933,7 +1005,7 @@ void TheoryAxioms::apply()
       }
     }
     else {
-      addAdditionAndOrderingAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
+      addAdditionAndOrderingAxioms(IntTraits::sort(), Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
 				   Theory::INT_LESS);
     }
     addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS);
@@ -968,7 +1040,7 @@ void TheoryAxioms::apply()
       }
     }
     else {
-      addAdditionAndOrderingAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
+      addAdditionAndOrderingAxioms(RatTraits::sort(), Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
 				   Theory::RAT_LESS);
     }
     if(haveRatFloor || haveRatRound){
@@ -1015,7 +1087,7 @@ void TheoryAxioms::apply()
       }
     }
     else {
-      addAdditionAndOrderingAxioms(Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
+      addAdditionAndOrderingAxioms(RealTraits::sort(), Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
 				   Theory::REAL_LESS);
     }
     if(haveRealFloor || haveRealRound){
@@ -1098,8 +1170,7 @@ void TheoryAxioms::applyFOOL() {
   addTheoryClauseFromLits({tneqf},InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE,CHEAP);
 
   // Do not add the finite domain axiom if --fool_paradomulation on
-  if (env.options->FOOLParamodulation() || env.options->cases() ||
-      env.options->casesSimp()) {
+  if (env.options->FOOLParamodulation()) {
     return;
   }
 
@@ -1354,3 +1425,5 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
   }
   return added;
 }
+
+} // namespace Shell

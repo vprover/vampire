@@ -53,6 +53,9 @@ namespace Kernel {
 
 namespace Shell {
 
+typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
+typedef List<Binding> BindingList;
+
 /**
  * Class implementing the NewCNF transformation.
  * @since 19/11/2015 Manchester
@@ -64,7 +67,7 @@ public:
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
-  void clausify(FormulaUnit* unit, Stack<Clause*>& output);
+  void clausify(FormulaUnit* unit, Stack<Clause*>& output, DHMap<unsigned, Term*>* bindings = nullptr);
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;
@@ -82,10 +85,6 @@ private:
    * from the input does not compromise correctness.
    */
   Deque<Formula*> _queue;
-
-  typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
-
-  typedef List<Binding> BindingList;
 
   // all allocations of shared BindingLists should go via BindingStore so that they get destroyed in the end
   struct BindingStore {

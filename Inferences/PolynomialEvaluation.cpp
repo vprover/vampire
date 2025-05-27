@@ -14,9 +14,11 @@
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...)  // DBG(__VA_ARGS__)
 using namespace Lib;
 
 
@@ -24,9 +26,14 @@ namespace Inferences {
 
 using LitSimplResult = SimplifyingGeneratingLiteralSimplification::Result;
 
-PolynomialEvaluation::~PolynomialEvaluation() {}
+PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 
-PolynomialEvaluation::PolynomialEvaluation(Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering) {}
+
+PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) 
+  : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
+  // TODO we have an additional step of normalization here. simplify!
+  , _alwaysEvaluate(env.options->alasca())
+  {}
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
@@ -50,7 +57,7 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
   }
 }
 
-PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit) 
+PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Literal* lit) 
 {
   TIME_TRACE("polynomial evaluation");
 
@@ -58,15 +65,16 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
   auto anyChange = false;
   for (unsigned i = 0; i < lit->numTermArguments(); i++) {
     auto term = lit->termArg(i);
-    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
-    auto ev = evaluate(norm);
-    anyChange = anyChange || ev.isSome();
-    terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));
+    bool simplified;
+    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)), simplified);
+    auto ev = _inner.evaluate(norm);
+    anyChange = anyChange || ev.isSome() || simplified;
+    terms.push(std::move(ev) || norm);
   }
-  auto simplified = tryEvalPredicate(lit, terms.begin());
+  auto simplified = _inner.tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
 
-  return anyChange 
+  return anyChange || _alwaysEvaluate
       ? std::move(simplified)
         .unwrapOrElse([&]()
           { return LitSimplResult::literal(createLiteral(lit, terms.begin())); })
@@ -76,17 +84,18 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
 #include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
 Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const {
-  DEBUG("evaluating: ", orig->toString());
+  auto impl = [&]() {
+
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate(orig, evaluatedArgs); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return Option<LitSimplResult>();
-#define HANDLE_NUM_CASES(NUM)                                                                                 \
-      HANDLE_CASE(NUM ## _IS_INT)                                                                             \
-      HANDLE_CASE(NUM ## _IS_RAT)                                                                             \
-      HANDLE_CASE(NUM ## _IS_REAL)                                                                            \
-      HANDLE_CASE(NUM ## _GREATER)                                                                            \
-      HANDLE_CASE(NUM ## _GREATER_EQUAL)                                                                      \
-      HANDLE_CASE(NUM ## _LESS)                                                                               \
+#define HANDLE_NUM_CASES(NUM)                                                             \
+      HANDLE_CASE(NUM ## _IS_INT)                                                         \
+      HANDLE_CASE(NUM ## _IS_RAT)                                                         \
+      HANDLE_CASE(NUM ## _IS_REAL)                                                        \
+      HANDLE_CASE(NUM ## _GREATER)                                                        \
+      HANDLE_CASE(NUM ## _GREATER_EQUAL)                                                  \
+      HANDLE_CASE(NUM ## _LESS)                                                           \
       HANDLE_CASE(NUM ## _LESS_EQUAL) 
 
   auto sym = env.signature->getPredicate(orig->functor());
@@ -104,13 +113,15 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
       /* integer predicates */
       HANDLE_CASE(INT_DIVIDES)
-
-      case Kernel::Theory::ARRAY_BOOL_SELECT: break;
+      case Interpretation::ARRAY_BOOL_SELECT:
+        return Option<LitSimplResult>();
 
       case ANY_INTERPRETED_FUNCTION: 
       case Kernel::Theory::INVALID_INTERPRETATION: 
         ASSERTION_VIOLATION_REP(inter)
     }
+    WARN("unexpected interpreted predicate: ", *orig, " (inter: ", inter, ")")
+    ASSERTION_VIOLATION
     return Option<LitSimplResult>();
   } else {
     return Option<LitSimplResult>();
@@ -119,52 +130,59 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 #undef HANDLE_CASE
 #undef IGNORE_CASE
 #undef HANDLE_NUM_CASES
+
+  };
+  auto out = impl();
+  DEBUG("evaluated: ", orig->toString(), " ==> ", out);
+  return out;
 }
 
-#include "Inferences/FunctionEvaluation.cpp"
+#include "Inferences/FunctionEvaluation.hpp"
+
 
 Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
 {
   try {
     switch (i) {
 
-#define CONSTANT_CASE_2(Num, func, expr)                                                                      \
-      case Num##Traits:: func ## I:                                                                           \
-        {                                                                                                     \
-          using Const = typename Num##Traits::ConstantType;                                                   \
-          return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });              \
-        }                                                                                                     \
+#define CONSTANT_CASE_2(Num, func, expr)                                                  \
+    case Num##Traits:: func ## I:                                                         \
+      {                                                                                   \
+        using Const = typename Num##Traits::ConstantType;                                 \
+        return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });              \
+      }                                                                                   \
 
-#define CASE(inter)                                                                                           \
-      case inter: return FunctionEvaluator<inter>::simplify(evalArgs);
+#define CASE(inter)                                                                       \
+    case inter: return FunctionEvaluator<inter>::simplify(evalArgs);
 
-#define QUOTIENT_REMAINDER_CASES(X)                                                                           \
-      CASE(Theory::INT_QUOTIENT_  ## X)                                                                       \
-      CASE(Theory::INT_REMAINDER_ ## X)
+#define QUOTIENT_REMAINDER_CASES(X)                                                       \
+    CASE(Theory::INT_QUOTIENT_  ## X)                                                     \
+    CASE(Theory::INT_REMAINDER_ ## X)
 
-#define FRAC_CASE(Num)                                                                                        \
-      CASE(Num##Traits::divI)
+#define FRAC_CASE(Num)                                                                    \
+    CASE(Num##Traits::divI)                                                               \
+    CASE(Num##Traits::floorI)                                                             \
 
-#define NUM_CASE(Num)                                                                                         \
-      case Num ## Traits::minusI: return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
+#define NUM_CASE(Num)                                                                     \
+    case Num ## Traits::minusI: return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
 
-      NUM_CASE(Int)
-      NUM_CASE(Rat)
-      NUM_CASE(Real)
-      QUOTIENT_REMAINDER_CASES(E)
-      QUOTIENT_REMAINDER_CASES(T)
-      QUOTIENT_REMAINDER_CASES(F)
+    NUM_CASE(Int)
+    NUM_CASE(Rat)
+    NUM_CASE(Real)
+    QUOTIENT_REMAINDER_CASES(E)
+    QUOTIENT_REMAINDER_CASES(T)
+    QUOTIENT_REMAINDER_CASES(F)
 
-      FRAC_CASE(Rat)
-      FRAC_CASE(Real)
+    FRAC_CASE(Rat)
+    FRAC_CASE(Real)
 
-  // TODO evaluate conversion functions
-  // TODO evaluate INT_ABS
-  // TODO evaluate INT_SUCCESSOR
-  // TODO evaluate FRAC_QUOTIENT
-  // TODO evaluate FRAC_ROUND
-  // TODO evaluate NUM_TO_NUM
-  // TODO evaluate NUM_TRUNCATE
+// TODO evaluate conversion functions
+// TODO evaluate INT_ABS
+// TODO evaluate INT_SUCCESSOR
+// TODO evaluate FRAC_QUOTIENT
+// TODO evaluate FRAC_ROUND
+// TODO evaluate NUM_TO_NUM
+// TODO evaluate NUM_TRUNCATE
 
 #undef NUM_CASE
 #undef QUOTIENT_REMAINDER_CASES
@@ -189,18 +207,18 @@ Option<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const
 { return evaluate(PolyNf::normalize(term)); }
 
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs);
+PolyNf simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros);
 
 template<class Number>
-Monom<Number> simplifyMonom(Monom<Number> const&, PolyNf* simplifiedArgs);
+Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros);
 
-AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
-{ return p.apply([&](auto& p) { return AnyPoly(perfect(simplifyPoly(*p, ts))); }); }
+PolyNf simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
+{ return p.apply([&](auto& p) {
+    return simplifyPoly(*p, ts, removeZeros); }); }
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
-  DEBUG("evaluating ", normalized)
-  static Memo::Hashed<PolyNf, PolyNf, StlHash> memo;
+  static MemoNonVars<PolyNf, PolyNf> memo;
   auto out = BottomUpEvaluation<PolyNf, PolyNf>()
     .function(
         [&](PolyNf orig, PolyNf* ts) -> PolyNf 
@@ -220,78 +238,101 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
               { return PolyNf(v); },
 
               [&](AnyPoly p) 
-              { return PolyNf(simplifyPoly(p, ts)); }
+              { return PolyNf(simplifyPoly(p, ts, /*removeZeros=*/true)); }
           );
         })
-    .memo(memo)
+    .memo<decltype(memo)&>(memo)
     .apply(normalized);
-  if (out == normalized) {
-    return Option<PolyNf>();
-  } else {
-    return Option<PolyNf>(out);
-  }
+  auto outOpt = someIf(out != normalized, [&]() { return out; });
+  DEBUG("evaluated ", normalized, " ==> ", outOpt)
+  return outOpt;
 }
 
-// template<class Config>
-// PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
-// { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
-
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
+PolyNf PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bool removeZeros)
 { 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
-  try {
 
-    // first we simplify all the monoms containted in this polynom
-    Stack<Monom> out;
-    {
-      auto offs = 0;
-      for (unsigned i = 0; i < in.nSummands(); i++) {
-        auto monom  = in.summandAt(i);
-        auto simpl = simplifyMonom(monom, &simplifiedArgs[offs]);
-        if (simpl.numeral == Number::constant(0)) {
-          /* we don't add it */
-        } else {
-          out.push(simpl);
-        }
-        offs += monom.factors->nFactors();
+  // then we sort them by their monom, in order to add up the coefficients efficiently
+  std::sort(summands.begin(), summands.end());
+
+  // add up the coefficients (in place)
+  {
+    auto offs = 0;
+    for (unsigned i = 0; i < summands.size(); i++) { 
+      auto monom = summands[i];
+      auto numeral = monom.numeral;
+      auto factors = monom.factors;
+      while ( i + 1 < summands.size() && summands[i+1].factors == factors ) {
+        numeral = numeral + summands[i+1].numeral;
+        i++;
       }
+      if (!removeZeros || numeral != Number::constant(0)) 
+        summands[offs++] = Monom(numeral, factors);
     }
+    summands.truncate(offs);
+  }
 
-    // then we sort them by their monom, in order to add up the coefficients efficiently
-    std::sort(out.begin(), out.end());
-
-    // add up the coefficient (in place)
-    {
-      auto offs = 0;
-      for (unsigned i = 0; i < out.size(); i++) { 
-        auto monom = out[i];
-        auto numeral = monom.numeral;
-        auto factors = monom.factors;
-        while ( i + 1 < out.size() && out[i+1].factors == factors ) {
-          numeral = numeral + out[i+1].numeral;
-          i++;
-        }
-        if (numeral != Number::constant(0)) 
-          out[offs++] = Monom(numeral, factors);
-      }
-      out.truncate(offs);
-
-    }
-
-    auto poly = Polynom(std::move(out));
+  if (summands.size() == 1 
+      && summands[0].numeral == 1
+      && summands[0].factors->nFactors() == 1
+      && summands[0].factors->factorAt(0).power == 1
+      ) {
+    return summands[0].factors->factorAt(0).term;
+  } else {
+    auto poly = Polynom(std::move(summands));
     poly.integrity();
-    return poly;
-  } catch (DivByZeroException&) { 
-    // TODO can we remove this?
-    return in.replaceTerms(simplifiedArgs);
+    return PolyNf(AnyPoly(perfect(std::move(poly))));
   }
 }
 
+template PolyNf PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands, bool removeZeros);
+template PolyNf PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands, bool removeZeros);
+template PolyNf PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands, bool removeZeros);
+
+
 
 template<class Number>
-Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs) 
+PolyNf simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros)
+{
+  using Monom   = Monom<Number>;
+
+
+  // first we simplify all the monoms containted in this polynom
+  Stack<Monom> sum;
+  {
+    auto offs = 0;
+    for (unsigned i = 0; i < in.nSummands(); i++) {
+      auto monom  = in.summandAt(i);
+      auto simpl = simplifyMonom(monom, &simplifiedArgs[offs], removeZeros);
+
+      if (simpl.isZeroMul() && removeZeros) {
+        /* we don't add it */
+      } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
+        /* k * (t1 + ... tn) ==> k * t1 + ... k * tn */
+        auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
+        for (auto fac : poly->iterSummands()) {
+          fac.numeral = fac.numeral * simpl.numeral;
+          ASS(!removeZeros || fac.numeral != Number::constant(0))
+          sum.push(fac);
+        }
+      } else {
+        sum.push(simpl);
+      }
+      offs += monom.factors->nFactors();
+    }
+  }
+
+  return PolynomialEvaluation::simplifySummation(std::move(sum), removeZeros);
+}
+
+
+/** Simplifies the factors of a monom. 
+ * In exact this means, that all the numeral factors are collapsed into one numeral (e.g. 3*4*3*x ==> 36*x)
+ */
+template<class Number>
+Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros)
 { 
 
   using Numeral      = typename Number::ConstantType;
@@ -308,44 +349,69 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
     return out;
   };
 
+  
   auto& facs = *in.factors;
+  auto numeral = in.numeral;
   Stack<MonomFactor> args(facs.nFactors());
   for (unsigned i = 0; i < facs.nFactors(); i++) {
-    args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
+    auto power = facs.factorAt(i).power;
+    if (auto poly_ = simplifiedArgs[i].downcast<Number>()) {
+      auto& poly = **poly_;
+      if (poly.nSummands() == 1) {
+        numeral *= pow(poly.summandAt(0).numeral, power);
+        args.loadFromIterator(
+            poly.summandAt(0).factors->iter()
+            .map([&](auto fac) { fac.power *= power; return fac; }));
+        continue;
+      }
+    }
+    args.push(MonomFactor(simplifiedArgs[i], power));
   }
 
   std::sort(args.begin(), args.end());
 
   auto offs = 0;
-  auto numeral = in.numeral;
-  for (unsigned i = 0; i < facs.nFactors(); i++) {
+  bool needsSorting = false;
+
+  for (unsigned i = 0; i < args.size(); i++) {
     auto& arg = args[i];
     auto c = arg.term.template tryNumeral<Number>();
     if (c.isSome()) {
       // arg is a number constant
-      numeral = numeral * pow(c.unwrap(), arg.power);
+      auto num2 = pow(c.unwrap(), arg.power);
+      numeral = numeral * num2;
     } else {
       // arg is a non-number term
       auto term  = arg.term;
       auto power = arg.power;
-      while (i + 1 < facs.nFactors() && args[i + 1].term == term) {
+      while (i + 1 < args.size() && args[i + 1].term == term) {
         power += args[i + 1].power;
         i++;
       }
-      if (power != 0)
+      if (power != 0) {
         args[offs++] = MonomFactor(term, power);
+      }
     }
   }
+  args.truncate(offs);
 
+  if (needsSorting) {
+    std::sort(args.begin(), args.end());
+  }
 
-  if (numeral == Numeral(0)) {
+  if (numeral == Numeral(0) && removeZeros) {
     return Monom::zero();
   } else {
-    args.truncate(offs);
-    return Monom(numeral, perfect(MonomFactors(std::move(args)))); 
+    return Monom(numeral, perfect(MonomFactors(std::move(args))));
   }
 }
 
 
+TermList PolynomialEvaluation::evaluateToTerm(Term* in) const
+{
+  auto norm = PolyNf::normalize(in);
+  auto eval = evaluate(in) || norm;
+  return eval.denormalize();
+}
 
 } // Inferences
