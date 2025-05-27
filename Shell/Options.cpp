@@ -527,7 +527,7 @@ void Options::init()
     _generalSplitting.tag(OptionTag::PREPROCESSING);
     _generalSplitting.addProblemConstraint(mayHaveNonUnits());
 
-    _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",false);
+    _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
     _unusedPredicateDefinitionRemoval.description="Attempt to remove predicate definitions. A predicate definition is a formula of the form ![X1,..,Xn] : (p(X1,..,XN) <=> F) where p is not equality and does not occur in F and X1,..,XN are the free variables of F. If p has only positive (negative) occurrences then <=> in the definition can be replaced by => (<=). If p does not occur in the rest of the problem the definition can be removed.";
     _lookup.insert(&_unusedPredicateDefinitionRemoval);
     _unusedPredicateDefinitionRemoval.tag(OptionTag::PREPROCESSING);
