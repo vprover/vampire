@@ -408,7 +408,6 @@ class NonVariableNonTypeIterator
   : public IteratorCore<Term*>
 {
 public:
-  NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
   /**
    * If @c includeSelf is false, then only proper subterms of @c term will be included.
    */
