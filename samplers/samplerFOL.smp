@@ -6,76 +6,122 @@
 # PREPROCESSING
 
 # blocked_clause_elimination
-> bce ~cat off:5,on:1
+> bce ~cat off:575,on:425
 
 # equality_proxy
-> ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
+> ep ~cat off:602,RS:123,R:97,RSTC:90,RST:88
 # mono_ep -- no polymorphic games for the GNN
 # ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
-> erd ~cat on:10,off:1
+> erd ~cat on:604,off:396
 
 # function_definition_elimination
-> fde ~cat all:5,none:1,unused:1
+> fde ~cat all:404,unused:323,none:273
 
 # general_splitting
-> gsp ~cat off:8,on:1
+> gsp ~cat off:588,on:412
 
 # newcnf
-> newcnf ~cat on:9,off:25
+> newcnf ~cat off:519,on:481
 
 # inline_let -- this is probably irrelevant on TPTP anyway
-newcnf=on > ile ~cat off:10,on:1
+newcnf=on > ile ~cat on:522,off:478
 
 # naming
-> $nm ~cat Z:1,NZ:5
-$nm=Z > nm ~set 0
-$nm=NZ > nm ~sgd 0.07,2
+> $nm ~cat 13_17:125,7_9:119,3_4:116,18_24:105,10_12:98,2:95,5_6:93,25_34:85,0:85,35_234:79
+$nm=13_17 > nm ~ui 13,17
+$nm=7_9 > nm ~ui 7,9
+$nm=3_4 > nm ~ui 3,4
+$nm=18_24 > nm ~ui 18,24
+$nm=10_12 > nm ~ui 10,12
+$nm=2 > nm ~set 2
+$nm=5_6 > nm ~ui 5,6
+$nm=25_34 > nm ~ui 25,34
+$nm=0 > nm ~set 0
+$nm=35_234 > nm ~ui 35,100
+# the higher the more like another 0 (stopping at 100, arbitrarily)
 
 # inequality_splitting
-> $ins ~cat ZERO:2,ONE:1,OTHER:1
-$ins=ZERO > ins ~set 0
-$ins=ONE > ins ~set 1
-$ins=OTHER > ins ~sgd 0.4,2
+> $ins ~cat 6_7:140,8_10:134,0:127,1:116,5:97,2:92,3:92,4:87,11_15:82,16_115:32
+$ins=6_7 > ins ~ui 6,7
+$ins=8_10 > ins ~ui 8,10
+$ins=0 > ins ~set 0
+$ins=1 > ins ~set 1
+$ins=5 > ins ~set 5
+$ins=2 > ins ~set 2
+$ins=3 > ins ~set 3
+$ins=4 > ins ~set 4
+$ins=11_15 > ins ~ui 11,15
+$ins=16_115 > ins ~ui 16,25
+# the higher the more like another 0 (stopping at 25, arbitrarily)
 
 # random_polarities
-> rp ~cat off:3,on:1
+> rp ~cat off:698,on:302
 
 # twee_goal_transformation
-> tgt ~cat off:10,ground:6,full:5
+> tgt ~cat off:458,full:276,ground:266
 
 # set_of_support
-> sos ~cat off:80,on:17,all:10
+> sos ~cat off:544,on:281,all:176
 
 # sine_selection
-> ss ~cat off:1182,included:135,axioms:392
+> ss ~cat off:375,axioms:343,included:282
 
 # sine_depth
-ss!=off > sd ~cat 0:45,1:13,2:12,3:5,4:4,5:4,7:3,10:2,12:1,15:1
+ss!=off > $sd ~cat 1:233,2:202,6_15:167,3:123,4:112,5:95,0:69
+ss!=off $sd=1 > sd ~set 1
+ss!=off $sd=2 > sd ~set 2
+ss!=off $sd=6_15 > sd ~ui 6,15
+ss!=off $sd=3 > sd ~set 3
+ss!=off $sd=4 > sd ~set 4
+ss!=off $sd=5 > sd ~set 5
+ss!=off $sd=0 > sd ~set 0
 
 # sine_generality_threshold
-ss!=off > sgt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
+ss!=off > $sgt ~cat 2_5:204,0:159,6_10:135,16_20:134,31_50:97,11_15:96,51_150:93,21_30:82
+ss!=off $sgt=2_5 > sgt ~ui 2,5
+ss!=off $sgt=0 > sgt ~set 0
+ss!=off $sgt=6_10 > sgt ~ui 6,10
+ss!=off $sgt=16_20 > sgt ~ui 16,20
+ss!=off $sgt=31_50 > sgt ~ui 31,50
+ss!=off $sgt=11_15 > sgt ~ui 11,15
+ss!=off $sgt=51_150 > sgt ~ui 51,100
+ss!=off $sgt=21_30 > sgt ~ui 21,30
 
 # sine_tolerance
-ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
+ss!=off > $st ~cat 1.0+0.2:263,2.0+1.0:169,5.0+2.0:125,1.2+0.8:120,3.0+1.0:114,4.0+1.0:108,-1.0:52,7.0+3.0:49
+ss!=off $st=1.0+0.2 > st ~uf 1.0,1.2
+ss!=off $st=2.0+1.0 > st ~uf 2.0,3.0
+ss!=off $st=5.0+2.0 > st ~uf 5.0,7.0
+ss!=off $st=1.2+0.8 > st ~uf 1.2,2.0
+ss!=off $st=3.0+1.0 > st ~uf 3.0,4.0
+ss!=off $st=4.0+1.0 > st ~uf 4.0,5.0
+ss!=off $st=-1.0 > st ~set -1.0
+ss!=off $st=7.0+3.0 > st ~uf 7.0,10.0
 
 # unused_predicate_definition_removal
-> updr ~cat on:16,off:1
+> updr ~cat on:515,off:485
 
 # SATURATION
 
 # saturation_algorithms - no games with fmb for NN experiments
-> sa ~cat lrs:600,discount:572,otter:236
+> sa ~cat discount:425,lrs:337,otter:238
 
 # lrs_first_time_check
-> $lftc ~cat N:5,Y:1
-sa=lrs $lftc=Y > lftc ~ui 5,95
+sa=lrs > $lftc ~cat 5:227,6_10:114,11_20:107,67_82:100,21_30:99,51_66:97,31_40:88,83_100:85,41_50:83
+sa=lrs $lftc=5 > lftc ~set 5
+sa=lrs $lftc=6_10 > lftc ~ui 6,10
+sa=lrs $lftc=11_20 > lftc ~ui 11,20
+sa=lrs $lftc=67_82 > lftc ~ui 67,82
+sa=lrs $lftc=21_30 > lftc ~ui 21,30
+sa=lrs $lftc=51_66 > lftc ~ui 51,66
+sa=lrs $lftc=31_40 > lftc ~ui 31,40
+sa=lrs $lftc=83_100 > lftc ~ui 83,100
+sa=lrs $lftc=41_50 > lftc ~ui 41,50
 
 # literal selection
-> $s ~cat POS:4,NEG:1
-$s=POS > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
-$s=NEG > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
+> s ~cat 1011:107,1010:81,1002:63,1003:30,1004:28,1666:11,11:70,10:52,2:41,21:20,3:20,4:18,1:13,35:10,20:8,22:8,34:7,666:7,33:6,32:6,30:5,31:5,-1011:77,-1010:58,-1002:45,-1003:22,-1004:20,-1666:8,-11:30,-10:22,-2:17,-21:9,-3:8,-4:8,-1:6,-35:4,-20:4,-22:3,-34:3,-666:3,-33:3,-32:3,-30:2,-31:2,0:30
 
 # lookahaed_delay
 > $ls ~set off:1
@@ -92,20 +138,38 @@ $ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
 # $awr=A > awr ~set 1:0
 # $awr=W > awr ~set 0:1
 # $awr=AW > awr ~u2r -10;4;:
-> awr ~u2r -10;4;:
+> $awr ~cat -12.0+2.0:50,-10.0+1.0:52,-9.0+1.0:44,-8.0+1.0:46,-7.0+1.0:60,-6.0+1.0:62,-5.0+1.0:71,-4.0+1.0:92,-3.0+1.0:83,-2.0+1.0:91,-1.0+1.0:85,0.0+1.0:108,1.0+1.0:67,2.0+1.0:60,3.0+1.0:78,4.0+2.0:50
+$awr=-12.0+2.0 > awr ~u2r -12.0;-10.0;:
+$awr=-10.0+1.0 > awr ~u2r -10.0;-9.0;:
+$awr=-9.0+1.0 > awr ~u2r -9.0;-8.0;:
+$awr=-8.0+1.0 > awr ~u2r -8.0;-7.0;:
+$awr=-7.0+1.0 > awr ~u2r -7.0;-6.0;:
+$awr=-6.0+1.0 > awr ~u2r -6.0;-5.0;:
+$awr=-5.0+1.0 > awr ~u2r -5.0;-4.0;:
+$awr=-4.0+1.0 > awr ~u2r -4.0;-3.0;:
+$awr=-3.0+1.0 > awr ~u2r -3.0;-2.0;:
+$awr=-2.0+1.0 > awr ~u2r -2.0;-1.0;:
+$awr=-1.0+1.0 > awr ~u2r -1.0;0.0;:
+$awr=0.0+1.0 > awr ~u2r 0.0;1.0;:
+$awr=1.0+1.0 > awr ~u2r 1.0;2.0;:
+$awr=2.0+1.0 > awr ~u2r 2.0;3.0;:
+$awr=3.0+1.0 > awr ~u2r 3.0;4.0;:
+$awr=4.0+2.0 > awr ~u2r 4.0;6.0;:
+# added 2 below and 2 above the original range, as the ends were not necessarily trailing towards zero ...
 
 # random_awr
-> rawr ~cat on:4,off:1
+> rawr ~cat off:628,on:372
 
 # lrs_weight_limit_only
-sa=lrs > lwlo ~cat off:5,on:1
+sa=lrs > lwlo ~cat on:536,off:464
 
 # lrs_retroactive_deletes
-sa=lrs > lrd ~cat off:3,on:1
+sa=lrs > lrd ~cat off:525,on:475
 
 # lrs_preemptive_deletes - this is the core of LRS (neural guidance doesn't like it though)
-npcc=off sa=lrs > lpd ~cat off:1,on:10
-npcc=on sa=lrs > lpd ~cat off:3,on:1
+npcc=off sa=lrs > lpd ~cat on:568,off:432
+npcc=on  sa=lrs > lpd ~cat off:4,on:1
+# leaving the latter untouched; as there are no data yet from the neural strats
 
 # lrs_estimate_correction_coef
 # > $lecc ~cat 1:1
@@ -115,150 +179,197 @@ npcc=on sa=lrs > lpd ~cat off:3,on:1
 # TODO: leaving out weird timing dependent options
 
 # nongoal_weight_coefficient
-> $nwc ~cat 1:2,666:1
-$nwc=1 > nwc ~cat 1:1
-$nwc!=1 > nwc ~uf 0.5,15.0
-# TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
+> $nwc ~cat 1.0:206,5.0+2.0:102,3.0+2.0:100,9.0+2.0:96,13.0+2.0:96,7.0+2.0:94,11.0+2.0:94,15.0+5.0:80,1.0+1.0:78,2.0+1.0:76,0.5+0.5:58
+$nwc=1.0 > nwc ~set 1
+$nwc=5.0+2.0 > nwc ~uf 5.0,7.0
+$nwc=3.0+2.0 > nwc ~uf 3.0,5.0
+$nwc=9.0+2.0 > nwc ~uf 9.0,11.0
+$nwc=13.0+2.0 > nwc ~uf 13.0,15.0
+$nwc=7.0+2.0 > nwc ~uf 7.0,9.0
+$nwc=11.0+2.0 > nwc ~uf 11.0,13.0
+$nwc=15.0+5.0 > nwc ~uf 15.0,20.0
+$nwc=1.0+1.0 > nwc ~uf 1.0,2.0
+$nwc=2.0+1.0 > nwc ~uf 2.0,3.0
+$nwc=0.5+0.5 > nwc ~uf 0.5,1.0
+# ADDED a 15.0+5.0 interval that was not in the data before (1.0's freq is probably too high - an artefact of defaultation, but let's keep it for now)
 
-# restrict_nwc_to_goal_constants
-nwc!=1 > rnwc ~cat off:5,on:1
+# restrict_nwc_to_goal_constants (careful, even if we write 1.0 into "nwc" we will still read "1" in vampire)
+nwc!=1 > rnwc ~cat off:503,on:497
 
 # literal_maximality_aftercheck
-> lma ~cat off:500,on:83
+> lma ~cat on:511,off:489
 
 # POSITIVE LITERAL SPLIT QUEUE
-> plsq ~cat off:4,on:1
+> plsq ~cat off:611,on:389
 
 # positive_literal_split_queue_layered_arrangement
-plsq=on > plsql ~cat on:66,off:162
+plsq=on > plsql ~cat off:569,on:431
 
 # positive_literal_split_queue_cutoffs
-plsq=on > plsqc ~cat 0:117,1:92,2:19,3:5,4:1
+plsq=on > plsqc ~cat 0:405,1:296,2:138,3:93,4:69
 
 # positive_literal_split_queue_ratios
-plsq=on > plsqr ~u2r -5;7;,
+plsq=on > $plsqr ~cat -5.0+1.0:85,-4.0+1.0:69,-3.0+1.0:49,-2.0+1.0:128,-1.0+1.0:67,0.0+1.0:51,1.0+1.0:68,2.0+1.0:68,3.0+1.0:104,4.0+1.0:89,5.0+1.0:125,6.0+1.0:96
+plsq=on $plsqr=-5.0+1.0 > plsqr ~u2r -5.0;-4.0;,
+plsq=on $plsqr=-4.0+1.0 > plsqr ~u2r -4.0;-3.0;,
+plsq=on $plsqr=-3.0+1.0 > plsqr ~u2r -3.0;-2.0;,
+plsq=on $plsqr=-2.0+1.0 > plsqr ~u2r -2.0;-1.0;,
+plsq=on $plsqr=-1.0+1.0 > plsqr ~u2r -1.0;0.0;,
+plsq=on $plsqr=0.0+1.0 > plsqr ~u2r 0.0;1.0;,
+plsq=on $plsqr=1.0+1.0 > plsqr ~u2r 1.0;2.0;,
+plsq=on $plsqr=2.0+1.0 > plsqr ~u2r 2.0;3.0;,
+plsq=on $plsqr=3.0+1.0 > plsqr ~u2r 3.0;4.0;,
+plsq=on $plsqr=4.0+1.0 > plsqr ~u2r 4.0;5.0;,
+plsq=on $plsqr=5.0+1.0 > plsqr ~u2r 5.0;6.0;,
+plsq=on $plsqr=6.0+1.0 > plsqr ~u2r 6.0;7.0;,
 
 # INFERENCES
 
 # superposition (don't turn this off at home!)
-> sup ~cat on:100,off:1
+> sup ~cat on:749,off:251
 
 # simultaneous_superposition
-sup=on > sims ~cat on:5,off:1
+sup=on > sims ~cat on:522,off:478
 
 # superposition_from_variables
-sup=on > sfv ~cat on:38,off:1
+sup=on > sfv ~cat off:535,on:465
 
 # code_tree_subsumption
-> cts ~cat on:3,off:1
+> cts ~cat on:662,off:338
 
 # forward_subsumption
-> fs ~cat on:500,off:31
+> fs ~cat on:807,off:193
 
 # forward_subsumption_resolution
-fs=off > fsr ~cat off:1
-fs=on  > fsr ~cat on:500,off:193
+fs=off > fsr ~set off
+fs=on > fsr ~cat on:615,off:385
 
 # forward_subsumption_demodulation
-> fsd ~cat off:500,on:90
+> fsd ~cat off:623,on:377
 
 # forward_subsumption_demodulation_max_matches
-fsd=on > fsdmm ~cat 0:10,1:3,2:2,3:1
+fsd=on > fsdmm ~cat 0:228,1:188,2:275,3:309,4:100,5:100
+# adding 4:100,5:100, because 3 got the largest
 
 # backward_demodulation
-> bd ~cat all:500,off:245,preordered:91
+> bd ~cat off:381,all:316,preordered:303
 
 # backward_subsumption
-fs!=off > bs ~cat off:500,unit_only:74,on:64
+fs!=off > bs ~cat off:468,unit_only:284,on:248
 
 # backward_subsumption_resolution
-> bsr ~cat off:500,unit_only:118,on:75
+> bsr ~cat off:471,unit_only:285,on:244
 
 # backward_subsumption_demodulation
-> bsd ~cat off:500,on:74
+> bsd ~cat off:596,on:404
 
 # backward_subsumption_demodulation_max_matches
-bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
+bsd=on > bsdmm ~cat 0:154,1:264,3:223,2:359,3:100,4:100
+# adding 3:100,4:100, because 2 got the largest
 
 # condensation
-> cond ~cat off:500,on:89,fast:61
+> cond ~cat off:367,fast:357,on:276
 
 # equational_tautology_removal
-> etr ~cat off:500,on:30
+> etr ~cat off:537,on:463
 
 # extensionality_resolution
-ins=0 > er ~cat off:500,known:25,filter:26
+ins=0 > er ~cat off:367,known:356,filter:278
 
 # extensionality_allow_pos_eq
-er=filter > erape ~cat off:3,on:1
+er=filter > erape ~cat on:551,off:449
 
 # extensionality_max_length
-er!=off > erml ~cat 0:3,2:1,3:1
+er!=off > erml ~cat 3:610,0:208,2:181,4:100,5:100
+# added 4:100,5:100, as 3 was the max
 
 # fool_paramodulation
-> foolp ~cat off:10,on:1
+> foolp ~cat on:528,off:472
 
 # forward_demodulation
-> fd ~cat all:500,off:41,preordered:168
+> fd ~cat all:408,preordered:359,off:233
 
 # demodulation_redundancy_check
 > $demod ~set 0
 fd!=off > $demod ~set 1
 bd!=off > $demod ~set 1
-$demod=1 > drc ~cat encompass:500,ordering:500,off:354
+$demod=1 > drc ~cat off:400,encompass:328,ordering:272
 
 # forward_demodulation_term_ordering_diagrams
 fd!=off > fdtod ~cat on:1,off:1
 
 # demodulation_only_equational
-$demod=1 > doe ~cat on:1,off:1
+$demod=1 > doe ~cat off:562,on:438
 
 # forward_literal_rewriting
-> flr ~cat off:8,on:1
+> flr ~cat off:592,on:408
 
 # function_definition_introduction
-> fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
+> $fdi ~cat 0:531,2:56,4:54,8:52,16:46,32:44,64:42,128:41,512:40,256:39,1024:33
+$fdi=0 > fdi ~set 0
+$fdi=2 > fdi ~set 2
+$fdi=4 > fdi ~set 4
+$fdi=8 > fdi ~set 8
+$fdi=16 > fdi ~set 16
+$fdi=32 > fdi ~set 32
+$fdi=64 > fdi ~set 64
+$fdi=128 > fdi ~set 128
+$fdi=512 > fdi ~set 512
+$fdi=256 > fdi ~set 256
+$fdi=1024 > fdi ~set 1024
+# kicked out 1, as it seemed silly
 
 # inner_rewriting
-> irw ~cat off:165,on:6
+> irw ~cat on:514,off:486
 
 # SINE LEVELS and shit
 
 # sine_to_age
-> s2a ~cat off:2,on:1
+> s2a ~cat off:584,on:416
 
 # sine_level_split_queue
-> slsq ~cat off:5,on:1
+> slsq ~cat off:608,on:392
 
 # sine_level_split_queue_layered_arrangement
-slsq=on > slsql ~cat on:1,off:1
+slsq=on > slsql ~cat off:505,on:495
 
 # sine_level_split_queue_cutoffs
-slsq=on > slsqc ~cat 0:10,1:10,2:6,3:3,4:1
+slsq=on > slsqc ~cat 0:268,1:249,2:179,3:139,4:114,5:51
 
 # sine_level_split_queue_ratios
-slsq=on > slsqr ~u2r -5;2;,
+slsq=on > $slsqr ~cat -7+2.0:100,-5.0+1.0:120,-4.0+1.0:117,-3.0+1.0:126,-2.0+1.0:135,-1.0+1.0:143,0.0+1.0:162,1.0+1.0:198,2.0+2.0:100
+slsq=on $slsqr=-7+2.0 > slsqr ~u2r -7.0;-5.0;,
+slsq=on $slsqr=-5.0+1.0 > slsqr ~u2r -5.0;-4.0;,
+slsq=on $slsqr=-4.0+1.0 > slsqr ~u2r -4.0;-3.0;,
+slsq=on $slsqr=-3.0+1.0 > slsqr ~u2r -3.0;-2.0;,
+slsq=on $slsqr=-2.0+1.0 > slsqr ~u2r -2.0;-1.0;,
+slsq=on $slsqr=-1.0+1.0 > slsqr ~u2r -1.0;0.0;,
+slsq=on $slsqr=0.0+1.0 > slsqr ~u2r 0.0;1.0;,
+slsq=on $slsqr=1.0+1.0 > slsqr ~u2r 1.0;2.0;,
+slsq=on $slsqr=2.0+2.0 > slsqr ~u2r 2.0;4.0;,
+# added buffer zones of size 2 at both ends
 
 # ORDERING
 
 # term_ordering
-> to ~cat kbo:13,lpo:4
+> to ~cat kbo:565,lpo:435
 
 # symbol_precedence
-> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
+> sp ~cat reverse_frequency:118,arity:104,const_min:102,const_frequency:100,frequency:96,reverse_arity:86,unary_first:85,weighted_frequency:85,unary_frequency:77,const_max:76,occurrence:70
 # symbol_precedence_boost
-> spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
+> spb ~cat units:183,goal:182,none:167,intro:162,non_intro:161,goal_then_units:145
 
 # kbo_max_zero
-to=kbo > kmz ~cat off:200,on:1
+to=kbo > kmz ~cat on:542,off:458
+
 # kbo_weight_scheme
-to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv_arity:5,inv_frequency:8,frequency:2
+to=kbo > kws ~cat precedence:191,const:165,inv_frequency:153,inv_arity:138,inv_arity_squared:116,frequency:106,arity_squared:93,inv_precedence:38,arity:5
 
 # literal_comparison_mode
-> lcm ~cat standard:500,reverse:66,predicate:51
+> lcm ~cat standard:368,predicate:339,reverse:293
 
 # sine_to_pred_levels
-lcm=standard > s2pl ~cat off:50,on:2,no:3
+lcm=standard > s2pl ~cat off:413,no:296,on:291
 
 # SINE LEVELS - configure (must come after sine_to_age & slsq & s2pl)
 
@@ -271,58 +382,75 @@ s2pl!=off > $sine_heurs ~set on
 # now configure (stealing the values from sine proper, which is not ideal, but should do)
 
 # sine_to_age_generality_threshold
-$sine_heurs=on > s2agt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
+$sine_heurs=on > $s2agt ~cat 0:174,2_5:162,6_10:144,31_50:124,51_150:120,16_20:105,11_15:98,21_30:73
+$sine_heurs=on $s2agt=0 > s2agt ~set 0
+$sine_heurs=on $s2agt=2_5 > s2agt ~ui 2,5
+$sine_heurs=on $s2agt=6_10 > s2agt ~ui 6,10
+$sine_heurs=on $s2agt=31_50 > s2agt ~ui 31,50
+$sine_heurs=on $s2agt=51_150 > s2agt ~ui 51,100
+$sine_heurs=on $s2agt=16_20 > s2agt ~ui 16,20
+$sine_heurs=on $s2agt=11_15 > s2agt ~ui 11,15
+$sine_heurs=on $s2agt=21_30 > s2agt ~ui 21,30
 
 # sine_to_age_tolerance
-$sine_heurs=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
+$sine_heurs=on > $s2at ~cat 1.0+0.2:218,2.0+1.0:177,5.0+2.0:130,4.0+1.0:122,3.0+1.0:106,7.0+3.0:88,-1.0:80,1.2+0.8:79
+$sine_heurs=on $s2at=1.0+0.2 > s2at ~uf 1.0,1.2
+$sine_heurs=on $s2at=2.0+1.0 > s2at ~uf 2.0,3.0
+$sine_heurs=on $s2at=5.0+2.0 > s2at ~uf 5.0,7.0
+$sine_heurs=on $s2at=4.0+1.0 > s2at ~uf 4.0,5.0
+$sine_heurs=on $s2at=3.0+1.0 > s2at ~uf 3.0,4.0
+$sine_heurs=on $s2at=7.0+3.0 > s2at ~uf 7.0,10.0
+$sine_heurs=on $s2at=-1.0 > s2at ~set -1.0
+$sine_heurs=on $s2at=1.2+0.8 > s2at ~uf 1.2,2.0
 
 # AVATAR
-> av ~cat on:15,off:4
+> av ~cat on:576,off:424
 
 # partial_redundancy_check
-> prc ~cat on:3,off:5
+> prc ~cat off:532,on:468
 
 # partial_redundancy_ordering_constraints
-prc=on > proc ~cat on:1,off:1
+prc=on > proc ~cat off:524,on:476
 
 # partial_redundancy_avatar_constraints
-av=on prc=on > prac ~cat on:1,off:1
+av=on prc=on > prac ~cat on:551,off:449
 
 # partial_redundancy_literal_constraints
-prc=on > prlc ~cat on:1,off:1
+prc=on > prlc ~cat off:515,on:485
 
 # sat_solver
 av=on > sas ~cat minisat:10,cadical:7
 
 # avatar_add_complementary
-av=on > aac ~cat none:147,ground:600
+av=on > aac ~cat ground:521,none:479
 
 # avatar_buffered_solver
-av=on > abs ~cat on:63,off:300
+av=on > abs ~cat off:578,on:422
 
 # avatar_congruence_closure
-sas!=z3 av=on > acc ~cat off:600,on:58
+sas!=z3 > acc ~cat off:588,on:358
+# droped "model:54", because we hates it!
 
 # cc_unsat_cores
-acc!=off > ccuc ~cat first:1,small_ones:1,all:3
+acc!=off > ccuc ~cat small_ones:376,first:354,all:269
 
 # avatar_minimize_model
-av=on > amm ~cat all:600,sco:32,off:69
+av=on > amm ~cat sco:353,off:333,all:314
 
 # avatar_eager_removal
-av=on amm=all > aer ~cat on:300,off:1
+av=on amm=all > aer ~cat off:503,on:497
 
 # avatar_delete_deactivated
-av=on > add ~cat on:300,large:55,off:8
+av=on > add ~cat large:403,off:309,on:288
 
 # avatar_fast_restart
-av=on > afr ~cat off:10,on:1
+av=on > afr ~cat on:536,off:464
 
 # avatar_literal_polarity_advice
-av=on > alpa ~cat none:300,false:13,true:6,random:4
+av=on > alpa ~cat none:420,false:245,true:197,random:138
 
 # avatar_nonsplittable_components
-av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
+av=on > anc ~cat known:327,none:324,all_dependent:192,all:157
 
 # avatar_turn_off_time_frac
 # sa!=fmb av=on > $atotf ~cat 1:10,666:1
@@ -331,18 +459,38 @@ av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 # TODO: leaving out weird timing dependent options
 
 # avatar_flush_period
-av=on > $afp ~cat 0:15,666:1
-av=on $afp=0 > afp ~cat 0:1
-av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
+av=on > $afp ~cat 0:223,1000000:107,40000:100,10000:96,100000:89,1000:79,4000:75,10:74,2000:57,50:50,300:49
+av=on $afp=0 > afp ~set 0
+av=on $afp=1000000 > afp ~set 1000000
+av=on $afp=40000 > afp ~set 40000
+av=on $afp=10000 > afp ~set 10000
+av=on $afp=100000 > afp ~set 100000
+av=on $afp=1000 > afp ~set 1000
+av=on $afp=4000 > afp ~set 4000
+av=on $afp=10 > afp ~set 10
+av=on $afp=2000 > afp ~set 2000
+av=on $afp=50 > afp ~set 50
+av=on $afp=300 > afp ~set 300
+# probably a good candidate for removal, as it doesn't seem to be doing much! (TODO: prove it!)
 
 # avatar_flush_quotient
-afp!=0 > afq ~uf 1.0,3.0
+afp!=0 > $afq ~cat 3.0+1.0:100,2.75+0.25:172,2.5+0.25:138,1.25+0.25:137,1.0+0.25:125,2.25+0.25:119,1.5+0.25:109,2.0+0.25:102,1.75+0.25:98
+afp!=0 $afq=2.75+0.25 > afq ~uf 2.75,3.0
+afp!=0 $afq=2.5+0.25 > afq ~uf 2.5,2.75
+afp!=0 $afq=1.25+0.25 > afq ~uf 1.25,1.5
+afp!=0 $afq=1.0+0.25 > afq ~uf 1.0,1.25
+afp!=0 $afq=2.25+0.25 > afq ~uf 2.25,2.5
+afp!=0 $afq=1.5+0.25 > afq ~uf 1.5,1.75
+afp!=0 $afq=2.0+0.25 > afq ~uf 2.0,2.25
+afp!=0 $afq=1.75+0.25 > afq ~uf 1.75,2.0
+afp!=0 $afq=3.0+1.0 > afq ~uf 3.0,4.0
+# added the last one; however, this is also a good candidate for removal, I think
 
 # nonliterals_in_clause_weight
-av=on > nicw ~cat off:600,on:76
+av=on > nicw ~cat off:553,on:447
 
 # split_at_activation
-av=on > sac ~cat off:3,on:1
+av=on > sac ~cat off:528,on:472
 
 # Michael's clause cleaving TODO
 # intent=sat av=on > cm ~cat on:1
@@ -350,39 +498,48 @@ av=on > sac ~cat off:3,on:1
 # BACK TO INFERENCES
 
 # unit_resulting_resolution
-av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
-av=off > urr ~cat off:1200,ec_only:162,on:340
+av=on  > urr ~cat off:434,ec_only:250,on:167,full:150
+av=off > urr ~cat off:560,ec_only:243,on:197
 
 # binary_resolution
-> br ~cat on:8,off:1
+> br ~cat on:716,off:284
 
 # AVATAR SPLIT QUEUE
 
 # avatar_split_queue
-av=on > avsq ~cat off:5,on:1
+av=on > avsq ~cat off:642,on:358
 
 # avatar_split_queue_layered_arrangement
-avsq=on > avsql ~cat off:4,on:1
+avsq=on > avsql ~cat off:699,on:301
 
 # avatar_split_queue_cutoffs
-avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+avsq=on > avsqc ~cat 0:435,2:144,1:143,3:109,5:108,4:62
 
 # avatar_split_queue_ratios
-avsq=on > avsqr ~u2r -5;3;,
+avsq=on > $avsqr ~cat -5.0+1.0:90,-4.0+1.0:190,-3.0+1.0:91,-2.0+1.0:100,-1.0+1.0:71,0.0+1.0:156,1.0+1.0:108,2.0+1.0:82,3.0+1.0:113
+avsq=on $avsqr=-5.0+1.0 > avsqr ~u2r -5.0;-4.0;,
+avsq=on $avsqr=-4.0+1.0 > avsqr ~u2r -4.0;-3.0;,
+avsq=on $avsqr=-3.0+1.0 > avsqr ~u2r -3.0;-2.0;,
+avsq=on $avsqr=-2.0+1.0 > avsqr ~u2r -2.0;-1.0;,
+avsq=on $avsqr=-1.0+1.0 > avsqr ~u2r -1.0;0.0;,
+avsq=on $avsqr=0.0+1.0 > avsqr ~u2r 0.0;1.0;,
+avsq=on $avsqr=1.0+1.0 > avsqr ~u2r 1.0;2.0;,
+avsq=on $avsqr=2.0+1.0 > avsqr ~u2r 2.0;3.0;,
+avsq=on $avsqr=3.0+1.0 > avsqr ~u2r 3.0;4.0;,
 
 # GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
 # global_subsumption
-> gs ~cat off:5,on:1
+> gs ~cat off:665,on:335
 
 # global_subsumption_explicit_minim
-gs=on > gsem ~cat randomized:50,on:5,off:17
+gs=on> gsem ~cat on:412,randomized:336,off:253
 
 # global_subsumption_sat_solver_power
-gs=on > gsssp ~cat propagation_only:20,full:1
+gs=on > gsssp ~cat propagation_only:576,full:424
 
 # global_subsumption_avatar_assumptions
-gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
+gs=on av=on > gsaa ~cat off:400,from_current:380,full_model:221
 
 # MISC
 
-> uhcvi ~cat off:1,on:1
+> uhcvi ~cat on:540,off:460
