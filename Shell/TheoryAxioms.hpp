@@ -29,12 +29,10 @@ using namespace Kernel;
 
 class TheoryAxioms {
 public:
-  TheoryAxioms(Problem& prb) :
-    _prb(prb)
-  {} 
+  TheoryAxioms(Problem& prb) : _prb(prb) {}
 
-static unsigned const CHEAP = 0;
-static unsigned const EXPENSIVE = 1;
+  static unsigned const CHEAP = 0;
+  static unsigned const EXPENSIVE = 1;
 
   void apply();
 
