@@ -117,8 +117,9 @@ sa=lrs $lftc=67_82 > lftc ~ui 67,82
 sa=lrs $lftc=21_30 > lftc ~ui 21,30
 sa=lrs $lftc=51_66 > lftc ~ui 51,66
 sa=lrs $lftc=31_40 > lftc ~ui 31,40
-sa=lrs $lftc=83_100 > lftc ~ui 83,100
+sa=lrs $lftc=83_100 > lftc ~ui 83,99
 sa=lrs $lftc=41_50 > lftc ~ui 41,50
+# careful, must be less than 100 (is in "per cent")
 
 # literal selection
 > s ~cat 1011:107,1010:81,1002:63,1003:30,1004:28,1666:11,11:70,10:52,2:41,21:20,3:20,4:18,1:13,35:10,20:8,22:8,34:7,666:7,33:6,32:6,30:5,31:5,-1011:77,-1010:58,-1002:45,-1003:22,-1004:20,-1666:8,-11:30,-10:22,-2:17,-21:9,-3:8,-4:8,-1:6,-35:4,-20:4,-22:3,-34:3,-666:3,-33:3,-32:3,-30:2,-31:2,0:30
@@ -428,7 +429,7 @@ av=on > aac ~cat ground:521,none:479
 av=on > abs ~cat off:578,on:422
 
 # avatar_congruence_closure
-sas!=z3 > acc ~cat off:588,on:358
+sas!=z3 av=on > acc ~cat off:588,on:358
 # droped "model:54", because we hates it!
 
 # cc_unsat_cores
