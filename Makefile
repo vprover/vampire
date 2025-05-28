@@ -205,7 +205,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/ApplicativeHelper.o\
         Kernel/OperatorType.o\
         Kernel/SubformulaIterator.o\
-        Kernel/Substitution.o\
         Kernel/Term.o\
         Kernel/PolynomialNormalizer.o\
         Kernel/Polynomial.o\
@@ -430,7 +429,6 @@ LIB_DEP = Indexing/TermSharing.o\
       Kernel/OperatorType.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
-	  Kernel/Substitution.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\
