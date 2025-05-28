@@ -97,7 +97,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
       TermList* tt = t->nthArgument(i);
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
-        if(i < typeArity) {
+        if(i >= typeArity) {
           hasTermVar = true;
         }
         vars++;
@@ -163,12 +163,10 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
     }
     unsigned weight = 1;
     unsigned vars = 0;
-    bool hasTermVar = false;
 
     for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
-        hasTermVar = true;
         vars++;
         weight += 1;
       }
@@ -179,14 +177,12 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
   
         vars += r->numVarOccs();
         weight += r->weight();
-        hasTermVar |= r->hasTermVar();
       }
     }
     sort->markShared();
     sort->setId(_sorts.size());
     sort->setNumVarOccs(vars);
     sort->setWeight(weight);
-    sort->setHasTermVar(hasTermVar);
 
     ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
     if (!SortHelper::allTopLevelArgsAreSorts(sort)){
