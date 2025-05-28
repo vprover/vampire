@@ -306,18 +306,7 @@ $demod=1 > doe ~cat off:562,on:438
 > flr ~cat off:592,on:408
 
 # function_definition_introduction
-> $fdi ~cat 0:531,2:56,4:54,8:52,16:46,32:44,64:42,128:41,512:40,256:39,1024:33
-$fdi=0 > fdi ~set 0
-$fdi=2 > fdi ~set 2
-$fdi=4 > fdi ~set 4
-$fdi=8 > fdi ~set 8
-$fdi=16 > fdi ~set 16
-$fdi=32 > fdi ~set 32
-$fdi=64 > fdi ~set 64
-$fdi=128 > fdi ~set 128
-$fdi=512 > fdi ~set 512
-$fdi=256 > fdi ~set 256
-$fdi=1024 > fdi ~set 1024
+> fdi ~cat 0:531,2:56,4:54,8:52,16:46,32:44,64:42,128:41,512:40,256:39,1024:33
 # kicked out 1, as it seemed silly
 
 # inner_rewriting
@@ -533,7 +522,7 @@ avsq=on $avsqr=3.0+1.0 > avsqr ~u2r 3.0;4.0;,
 > gs ~cat off:665,on:335
 
 # global_subsumption_explicit_minim
-gs=on> gsem ~cat on:412,randomized:336,off:253
+gs=on > gsem ~cat on:412,randomized:336,off:253
 
 # global_subsumption_sat_solver_power
 gs=on > gsssp ~cat propagation_only:576,full:424
