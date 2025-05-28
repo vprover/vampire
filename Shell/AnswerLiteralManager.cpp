@@ -519,6 +519,8 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   ALWAYS(it.hasNext());
   pair<unsigned, pair<Clause*, Literal*>> p = it.next();
   Literal* origLit = p.second.second;
+  while (p.first > 0 && !proofNums.contains(p.first) && it.hasNext()) p = it.next();
+  ASS(p.first == 0 || proofNums.contains(p.first));
   unsigned arity = origLit->arity();
   Stack<TermList> sorts(arity);
   for (unsigned i = 0; i < arity; i++) {
@@ -528,10 +530,10 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   while(it.hasNext()) {
     p = it.next();
     ASS(p.second.first != nullptr);
-    ASS(p.first == p.second.first->number());
     if (!proofNums.contains(p.first)) {
       continue;
     }
+    ASS(p.first == p.second.first->number());
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {

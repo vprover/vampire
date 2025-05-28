@@ -26,6 +26,9 @@ void LiteralInferenceExtra::output(std::ostream &out) const {
 void TwoLiteralInferenceExtra::output(std::ostream &out) const {
   selectedLiteral.output(out);
   out << ",other=(" << otherLiteral->toString() << ')';
+  if (conditionLiteral) {
+    out << ",condition=(" << conditionLiteral->toString() << ")";
+  }
 }
 
 void RewriteInferenceExtra::output(std::ostream &out) const {

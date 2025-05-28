@@ -747,15 +747,6 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* cl = cl0;
 
-  Clause *simplCl = _immediateSimplifier->simplify(cl);
-  if (simplCl != cl) {
-    if (simplCl) {
-      addNewClause(simplCl);
-    }
-    onClauseReduction(cl, &simplCl, 1, 0);
-    return 0;
-  }
-
   ClauseIterator cIt = _immediateSimplifier->simplifyMany(cl);
   if (cIt.hasNext()) {
     while (cIt.hasNext()) {
@@ -772,6 +763,15 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       addNewClause(simpedCl);
     }
     onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
+    return 0;
+  }
+
+  Clause *simplCl = _immediateSimplifier->simplify(cl);
+  if (simplCl != cl) {
+    if (simplCl) {
+      addNewClause(simplCl);
+    }
+    onClauseReduction(cl, &simplCl, 1, 0);
     return 0;
   }
 
@@ -1844,6 +1844,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
   } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
     res->addFront(new UncomputableAnswerLiteralRemoval());
     res->addFront(new MultipleAnswerLiteralRemoval());
+    res->addFrontMany(new AnswerLiteralJoiner());
   }
   return res;
 }

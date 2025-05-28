@@ -12,9 +12,11 @@
  * Implements classes UncomputableAnswerLiteralRemoval and UndesiredAnswerLiteralRemoval.
  */
 
+#include "Inferences/ProofExtra.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Parse/TPTP.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 
 #include "InvalidAnswerLiteralRemovals.hpp"
 
@@ -105,6 +107,75 @@ Clause* UndesiredAnswerLiteralRemoval::simplify(Clause* cl)
   }
 
   return cl;
+}
+
+ClauseIterator AnswerLiteralJoiner::simplifyMany(Clause* cl)
+{
+  // TODO(hzzv): start simple, only trigger for Sup:
+  if (cl->inference().rule() != InferenceRule::SUPERPOSITION) {
+    return ClauseIterator::getEmpty();
+  }
+  int numAnsLits = 0;
+  unsigned idx[2];
+  for (unsigned i = 0; i < cl->length(); ++i) {
+    if ((*cl)[i]->isAnswerLiteral()) {
+      ASS(numAnsLits < 2);
+      idx[numAnsLits] = i;
+      numAnsLits++;
+    }
+  }
+  if (numAnsLits < 2) {
+    return ClauseIterator::getEmpty();
+  }
+  ASS_EQ(numAnsLits, 2);
+  //std::cout << "performed sup with AL: " << cl->toString() << std::endl;
+  //std::cout << "proof extra: " << env.proofExtra.find(cl)->toString() << std::endl;
+
+  const TwoLiteralRewriteInferenceExtra* se = static_cast<const TwoLiteralRewriteInferenceExtra*>(env.proofExtra.find(cl));
+  ASS(se != nullptr);
+  ASS(se->selected.otherLiteral->isEquality());
+  ClauseStack res;
+  // We build two options for the joined answer literal.
+  // Note: we do not guarantee that the resulting answer literal is computable.
+  // That needs to be checked by anoter immediate simplification rule.
+  // 1. Unified answer literal:
+  RobSubstitution subst;
+  bool iteNeeded = false;
+  if (subst.unifyArgs((*cl)[idx[0]], 0, (*cl)[idx[1]], 0)) {
+    LiteralStack lits(cl->length()-1);
+    for (unsigned i = 0; i < cl->length(); ++i) {
+      // Apply the substitution on all literals except one of the answer literals
+      if (i != idx[0]) {
+        Literal* lit = subst.apply((*cl)[i], 0);
+        if (lit != (*cl)[i]) {
+          iteNeeded = true;
+        }
+        lits.push(subst.apply((*cl)[i], 0));
+      }
+    }
+    Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_UNIFICATION, cl));
+    res.push(Clause::fromStack(lits, inf));
+    //std::cout << "unified clause: " << res.top()->toString() << std::endl;
+  } else {
+    iteNeeded = true;
+  }
+  // 2. If-then-else answer literal:
+  if (iteNeeded) {
+    LiteralStack lits(cl->length()-1);
+    for (unsigned i = 0; i < cl->length(); ++i) {
+      // Apply the substitution on all literals except the answer literals
+      if ((i != idx[0]) && (i != idx[1])) {
+        lits.push((*cl)[i]);
+      }
+    }
+    lits.push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(se->selected.conditionLiteral, (*cl)[idx[0]], (*cl)[idx[1]]));
+    //std::cout << "ITE literal: " << lits.top()->toString() << std::endl;
+    Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_ITE, cl));
+    res.push(Clause::fromStack(lits, inf));
+    //std::cout << "ITE clause: " << res.top()->toString() << std::endl;
+  }
+
+  return getPersistentIterator(pvi(ClauseStack::Iterator(res)));
 }
 
 }

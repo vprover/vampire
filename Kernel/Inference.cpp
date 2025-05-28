@@ -617,6 +617,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "answer literal with input var skolemisation";
   case InferenceRule::ANSWER_LITERAL_REMOVAL:
     return "answer literal removal";
+  case InferenceRule::ANSWER_LITERAL_UNIFICATION:
+    return "answer literal unification";
+  case InferenceRule::ANSWER_LITERAL_ITE:
+    return "answer literal if-then-else";
   case InferenceRule::AVATAR_ASSERTION_REINTRODUCTION:
     return "avatar assertion reintroduction";
   case InferenceRule::RECTIFY:

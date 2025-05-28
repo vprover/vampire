@@ -56,6 +56,15 @@ private:
   Clause* _avoiders;
 };
 
+// TODO(hzzv): rename the file?
+class AnswerLiteralJoiner
+: public ImmediateSimplificationEngine
+{
+public:
+  ClauseIterator simplifyMany(Clause* cl) override;
+  Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
+};
+
 }
 
 #endif // __InvalidAnswerLiteralRemovals__
