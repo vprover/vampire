@@ -694,6 +694,8 @@ std::string TermList::asArgsToString() const
     res += t->headToString();
 
     if (t->arity()) {
+      res += '(';
+
       stack.push(t->args());
     }
   }

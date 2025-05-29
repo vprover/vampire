@@ -66,15 +66,13 @@ bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
-
     // when working with substitution trees we sometimes need to find the sort
     // of terms within the tree. These terms can contain special variables
     // and may therefore not be shared.
     if (typeArg->isSpecialVar() || (typeArg->isTerm() && !typeArg->term()->shared())) {
       resultShared = false;
     }
-    subst.bind(var.var(), *typeArg);
-
+    ALWAYS(subst.bind(var.var(), *typeArg));
     typeArg = typeArg->next();
   }
   return resultShared;
@@ -445,7 +443,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
               auto var = vit.next();
               TermList sort = AtomicSort::superSort();
               if (i < type->numTypeArguments()) {
-                subst.bind(type->quantifiedVar(i).var(), TermList(var, false));
+                ALWAYS(subst.bind(type->quantifiedVar(i).var(), TermList(var, false)));
               } else {
                 sort = SubstHelper::apply(type->arg(i),subst);
               }
@@ -482,7 +480,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
               auto var = vit.next();
               TermList sort = AtomicSort::superSort();
               if (i < type->numTypeArguments()) {
-                subst.bind(type->quantifiedVar(i).var(), TermList(var, false));
+                ALWAYS(subst.bind(type->quantifiedVar(i).var(), TermList(var, false)));
               } else {
                 sort = SubstHelper::apply(type->arg(i),subst);
               }
@@ -722,7 +720,7 @@ void SortHelper::normaliseArgSorts(VList* qVars, TermStack& argSorts)
   unsigned i = 0;
   while(qVars){
     unsigned var = qVars->head();
-    subst.bind(var, TermList(i++, false));
+    ALWAYS(subst.bind(var, TermList(i++, false)));
     qVars = qVars->tail();
   }
 
@@ -737,7 +735,7 @@ void SortHelper::normaliseSort(VList* qVars, TermList& sort)
   unsigned i = 0;
   while(qVars){
     unsigned var = qVars->head();
-    subst.bind(var, TermList(i++, false));
+    ALWAYS(subst.bind(var, TermList(i++, false)));
     qVars = qVars->tail();
   }
 
@@ -748,7 +746,7 @@ void SortHelper::normaliseArgSorts(const TermStack& qVars, TermStack& argSorts)
 {
   Substitution subst;
   for(unsigned i = 0; i < qVars.size(); i++){
-    subst.bind(qVars[i].var(), TermList(i, false));
+    ALWAYS(subst.bind(qVars[i].var(), TermList(i, false)));
   }
 
   for(unsigned i = 0; i < argSorts.size(); i++){
@@ -760,7 +758,7 @@ void SortHelper::normaliseSort(TermStack qVars, TermList& sort)
 {
   Substitution subst;
   for(unsigned i = 0; i < qVars.size(); i++){
-    subst.bind(qVars[i].var(), TermList(i, false));
+    ALWAYS(subst.bind(qVars[i].var(), TermList(i, false)));
   }
 
   sort = SubstHelper::apply(sort, subst);

@@ -418,7 +418,6 @@ set(SOURCES
     Kernel/SubformulaIterator.cpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
-    Kernel/Substitution.cpp
     Kernel/Substitution.hpp
     Kernel/Term.cpp
     Kernel/Term.hpp
