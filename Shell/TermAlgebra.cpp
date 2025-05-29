@@ -231,7 +231,7 @@ void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
   ASS_EQ(sort->functor(), t->functor());
   for (unsigned i = 0; i < sort->arity(); i++) {
     ASS(t->nthArgument(i)->isVar());
-    subst.bind(t->nthArgument(i)->var(), *sort->nthArgument(i));
+    ALWAYS(subst.bind(t->nthArgument(i)->var(), *sort->nthArgument(i)));
   }
 }
 
