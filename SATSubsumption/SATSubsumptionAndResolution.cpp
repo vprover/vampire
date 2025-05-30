@@ -998,7 +998,7 @@ SimpleSubstitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSu
         // 2. with flipped arguments
         // use this property to work out which match is intended by the model
         unsigned index = var.index();
-        if(index && _matchSet.isMatchVar(subsat::Var(index - 1))) {
+        if(index) {
           Match previous = _matchSet.getMatchForVar(subsat::Var(index - 1));
           reverseArgs = match.i == previous.i && match.j == previous.j;
         }
@@ -1008,10 +1008,12 @@ SimpleSubstitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSu
         reverseArgs = true;
     }
 
-    if(reverseArgs)
-      ALWAYS(MatchingUtils::matchReversedArgs(l, k, subst))
-    else
-      ALWAYS(MatchingUtils::matchArgs(l, k, subst))
+    if(reverseArgs) {
+      ALWAYS(MatchingUtils::matchReversedArgs(l, k, subst));
+    }
+    else {
+      ALWAYS(MatchingUtils::matchArgs(l, k, subst));
+    }
   }
   return subst;
 }
