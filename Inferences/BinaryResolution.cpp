@@ -38,7 +38,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -142,11 +141,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-  Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
-  Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
-  bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
-
   RStack<Literal*> resLits;
 
   Literal* queryLitAfter = 0;
@@ -158,7 +152,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   resLits->loadFromIterator(constraints->iterFifo());
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
-    if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
+    if(curr!=queryLit) {
       Literal* newLit = subs->applyToQuery(curr);
       if(hasAgeLimitStrike) {
         wlb+=newLit->weight() - curr->weight();
@@ -192,7 +186,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*resultCl)[i];
-    if(curr!=resultLit && (!bothHaveAnsLit || curr!=dAnsLit)) {
+    if(curr!=resultLit) {
       Literal* newLit = subs->applyToResult(curr);
       if(hasAgeLimitStrike) {
         wlb+=newLit->weight() - curr->weight();
@@ -224,14 +218,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-   if (bothHaveAnsLit) {
-     Literal* newLitC = subs->applyToQuery(cAnsLit);
-     Literal* newLitD = subs->applyToResult(dAnsLit);
-     bool cNeg = queryLit->isNegative();
-     Literal* condLit = cNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit);
-     resLits->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC));
-   }
-
   if(nConstraints != 0){
     env.statistics->cResolution++;
   }
@@ -241,8 +227,21 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause *cl = Clause::fromStack(*resLits, inf);
-  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+    Literal *qAnsLit = queryCl->getAnswerLiteral(), *rAnsLit = resultCl->getAnswerLiteral();
+    Literal* sqAnsLit = qAnsLit ? subs->applyToQuery(qAnsLit) : nullptr;
+    Literal* srAnsLit = rAnsLit ? subs->applyToResult(rAnsLit) : nullptr;
+    bool queryNeg = queryLit->isNegative();
+    env.proofExtra.insert(cl, new BinaryResolutionExtra(
+      queryLit,
+      resultLit,
+      queryNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit),
+      queryNeg ? sqAnsLit : srAnsLit,
+      queryNeg ? srAnsLit : sqAnsLit
+    ));
+  } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
+  }
 
   return cl;
 

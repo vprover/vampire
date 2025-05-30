@@ -57,6 +57,7 @@
 #include "Inferences/DistinctEqualitySimplifier.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/AnswerLiteralProcessors.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionAndResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
@@ -73,7 +74,6 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
-#include "Inferences/InvalidAnswerLiteralRemovals.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"

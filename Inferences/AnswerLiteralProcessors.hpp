@@ -8,12 +8,12 @@
  * and in the source directory
  */
 /**
- * @file InvalidAnswerLiteralRemovals.hpp
+ * @file AnswerLiteralProcessors.hpp
  * Defines classes for removing clauses with invalid answer literals.
  */
 
-#ifndef __InvalidAnswerLiteralRemovals__
-#define __InvalidAnswerLiteralRemovals__
+#ifndef __AnswerLiteralProcessors__
+#define __AnswerLiteralProcessors__
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
@@ -67,4 +67,4 @@ public:
 
 }
 
-#endif // __InvalidAnswerLiteralRemovals__
+#endif // __AnswerLiteralProcessors__

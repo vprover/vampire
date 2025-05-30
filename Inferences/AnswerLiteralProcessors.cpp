@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * @file InvalidAnswerLiteralRemovals.cpp
+ * @file AnswerLiteralProcessors.cpp
  * Implements classes UncomputableAnswerLiteralRemoval and UndesiredAnswerLiteralRemoval.
  */
 
@@ -18,7 +18,7 @@
 #include "Parse/TPTP.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
 
-#include "InvalidAnswerLiteralRemovals.hpp"
+#include "AnswerLiteralProcessors.hpp"
 
 namespace Inferences
 {
@@ -111,8 +111,10 @@ Clause* UndesiredAnswerLiteralRemoval::simplify(Clause* cl)
 
 ClauseIterator AnswerLiteralJoiner::simplifyMany(Clause* cl)
 {
-  // TODO(hzzv): start simple, only trigger for Sup:
-  if (cl->inference().rule() != InferenceRule::SUPERPOSITION) {
+  // TODO(hzzv): support also URR
+  if ((cl->inference().rule() != InferenceRule::SUPERPOSITION) &&
+      (cl->inference().rule() != InferenceRule::RESOLUTION) &&
+      (cl->inference().rule() != InferenceRule::CONSTRAINED_RESOLUTION)) {
     return ClauseIterator::getEmpty();
   }
   int numAnsLits = 0;
@@ -131,9 +133,23 @@ ClauseIterator AnswerLiteralJoiner::simplifyMany(Clause* cl)
   //std::cout << "performed sup with AL: " << cl->toString() << std::endl;
   //std::cout << "proof extra: " << env.proofExtra.find(cl)->toString() << std::endl;
 
-  const TwoLiteralRewriteInferenceExtra* se = static_cast<const TwoLiteralRewriteInferenceExtra*>(env.proofExtra.find(cl));
-  ASS(se != nullptr);
-  ASS(se->selected.otherLiteral->isEquality());
+  // Get synthesis information
+  const TwoLiteralInferenceExtra::SynthesisExtra* synExtra = nullptr;
+  if (cl->inference().rule() == InferenceRule::SUPERPOSITION) {
+    const TwoLiteralRewriteInferenceExtra* extra = static_cast<const TwoLiteralRewriteInferenceExtra*>(env.proofExtra.find(cl));
+    ASS(extra != nullptr);
+    ASS(extra->selected.otherLiteral->isEquality());
+    synExtra = &(extra->selected.synthesisExtra);
+  } else if ((cl->inference().rule() == InferenceRule::RESOLUTION) ||
+             (cl->inference().rule() == InferenceRule::CONSTRAINED_RESOLUTION)) {
+    const TwoLiteralInferenceExtra* extra = static_cast<const TwoLiteralInferenceExtra*>(env.proofExtra.find(cl));
+    ASS(extra != nullptr);
+    synExtra = &(extra->synthesisExtra);
+  }
+  ASS(synExtra != nullptr);
+  ASS(synExtra->condition != nullptr);
+  ASS(synExtra->thenLit != nullptr);
+  ASS(synExtra->elseLit != nullptr);
   ClauseStack res;
   // We build two options for the joined answer literal.
   // Note: we do not guarantee that the resulting answer literal is computable.
@@ -141,11 +157,11 @@ ClauseIterator AnswerLiteralJoiner::simplifyMany(Clause* cl)
   // 1. Unified answer literal:
   RobSubstitution subst;
   bool iteNeeded = false;
-  if (subst.unifyArgs((*cl)[idx[0]], 0, (*cl)[idx[1]], 0)) {
+  if (subst.unifyArgs(synExtra->thenLit, 0, synExtra->elseLit, 0)) {
     LiteralStack lits(cl->length()-1);
     for (unsigned i = 0; i < cl->length(); ++i) {
-      // Apply the substitution on all literals except one of the answer literals
-      if (i != idx[0]) {
+      // Apply the substitution on all literals except the answer literals
+      if ((i != idx[0]) && (i != idx[1])) {
         Literal* lit = subst.apply((*cl)[i], 0);
         if (lit != (*cl)[i]) {
           iteNeeded = true;
@@ -153,6 +169,8 @@ ClauseIterator AnswerLiteralJoiner::simplifyMany(Clause* cl)
         lits.push(subst.apply((*cl)[i], 0));
       }
     }
+    // Add also the unified answer literal
+    lits.push(subst.apply(synExtra->thenLit, 0));
     Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_UNIFICATION, cl));
     res.push(Clause::fromStack(lits, inf));
     //std::cout << "unified clause: " << res.top()->toString() << std::endl;
@@ -168,7 +186,8 @@ ClauseIterator AnswerLiteralJoiner::simplifyMany(Clause* cl)
         lits.push((*cl)[i]);
       }
     }
-    lits.push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(se->selected.conditionLiteral, (*cl)[idx[0]], (*cl)[idx[1]]));
+    // Create the if-then-else literal based on the stored condition
+    lits.push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(synExtra->condition, synExtra->thenLit, synExtra->elseLit));
     //std::cout << "ITE literal: " << lits.top()->toString() << std::endl;
     Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_ITE, cl));
     res.push(Clause::fromStack(lits, inf));

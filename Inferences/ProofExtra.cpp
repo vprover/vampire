@@ -26,8 +26,13 @@ void LiteralInferenceExtra::output(std::ostream &out) const {
 void TwoLiteralInferenceExtra::output(std::ostream &out) const {
   selectedLiteral.output(out);
   out << ",other=(" << otherLiteral->toString() << ')';
-  if (conditionLiteral) {
-    out << ",condition=(" << conditionLiteral->toString() << ")";
+  if (synthesisExtra.condition) {
+    out << ",condition=(" << synthesisExtra.condition->toString() << ")";
+  }
+  if (synthesisExtra.thenLit) {
+    ASS(synthesisExtra.elseLit);
+    out << ",thenLit=(" << synthesisExtra.thenLit->toString() << ")";
+    out << ",elseLit=(" << synthesisExtra.elseLit->toString() << ")";
   }
 }
 

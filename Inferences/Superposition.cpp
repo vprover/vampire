@@ -422,8 +422,7 @@ Clause* Superposition::performSuperposition(
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
 
-      // Do not do simultaneous superposition within answer literals
-      if (doSimS && !curr->isAnswerLiteral()) {
+      if (doSimS) {
         currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
       }
 
@@ -521,15 +520,25 @@ Clause* Superposition::performSuperposition(
   inf_destroyer.disable(); // ownership passed to the the clause below
   auto clause = Clause::fromStack(*res, inf);
 
-  if((env.options->proofExtra() == Options::ProofExtra::FULL) ||
-     (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS))
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+    Literal *rwAnsLit = rwClause->getAnswerLiteral(), *eqAnsLit = eqClause->getAnswerLiteral();
     env.proofExtra.insert(clause, new SuperpositionExtra(
       rwLit,
       eqLit,
       eqLHS,
       rwTerm,
-      subst->apply(eqLit, eqIsResult)
+      subst->apply(eqLit, eqIsResult),
+      rwAnsLit ? subst->apply(rwAnsLit, !eqIsResult) : nullptr,
+      eqAnsLit ? subst->apply(eqAnsLit, eqIsResult) : nullptr
     ));
+  } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
+    env.proofExtra.insert(clause, new SuperpositionExtra(
+      rwLit,
+      eqLit,
+      eqLHS,
+      rwTerm
+    ));
+  }
 
   return clause;
 }

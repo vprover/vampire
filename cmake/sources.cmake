@@ -199,6 +199,8 @@ set(SOURCES
     Inferences/ALASCA/VariableElimination.cpp
     Inferences/ALASCA/VariableElimination.hpp
     Inferences/ALASCA/VirasInterfacing.hpp
+    Inferences/AnswerLiteralProcessors.cpp
+    Inferences/AnswerLiteralProcessors.hpp
     Inferences/ArgCong.cpp
     Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -292,8 +294,6 @@ set(SOURCES
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/InvalidAnswerLiteralRemovals.cpp
-    Inferences/InvalidAnswerLiteralRemovals.hpp
     Inferences/LfpRule.hpp
     Inferences/Narrow.cpp
     Inferences/Narrow.hpp

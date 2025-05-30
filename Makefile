@@ -289,6 +289,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ALASCA/BwdDemodulation.o\
          Inferences/ALASCA/FourierMotzkin.o\
          Inferences/ALASCA/TermFactoring.o\
+         Inferences/AnswerLiteralProcessors.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
@@ -304,7 +305,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/ProofExtra.o\
          SATSubsumption/SATSubsumptionAndResolution.o\
