@@ -70,6 +70,9 @@ enum TermTag {
   /** special variable */
   SPEC_VAR = 3u,
 };
+// number of bits occupied by a TermTag
+const unsigned TERM_TAG_BITS = 2;
+static_assert(SPEC_VAR < 1 << TERM_TAG_BITS, "TermTag must fit within TERM_TAG_BITS");
 
 enum ArgumentOrderVals {
   /**
@@ -90,9 +93,11 @@ enum ArgumentOrderVals {
   AO_EQUAL=3,
   AO_INCOMPARABLE=4,
 };
+const unsigned ARGUMENT_ORDER_BITS = 3;
+static_assert(AO_INCOMPARABLE < 1 << ARGUMENT_ORDER_BITS, "ArgumentOrderVals must fit within ARGUMENT_ORDER_BITS");
 
 inline std::ostream& operator<<(std::ostream& out, ArgumentOrderVals const& self)
-{ 
+{
   switch(self) {
     case AO_UNKNOWN: return out << "UNKNOWN";
     case AO_GREATER: return out << "GREATER";
@@ -357,7 +362,7 @@ private:
   BITFIELD(64,
     BITFIELD_MEMBER(uint32_t, _id, _setId, 32,
     BITFIELD_MEMBER(uint32_t, _distinctVars, _setDistinctVars, TERM_DIST_VAR_BITS,
-    BITFIELD_MEMBER(unsigned, _order, _setOrder, 3,
+    BITFIELD_MEMBER(unsigned, _order, _setOrder, ARGUMENT_ORDER_BITS,
     BITFIELD_MEMBER(bool, _hasLambda, _setHasLambda, 1,
     BITFIELD_MEMBER(bool, _hasRedex, _setHasRedex, 1,
     BITFIELD_MEMBER(bool, _hasDeBruijnIndex, _setHasDeBruijnIndex, 1,
@@ -366,14 +371,13 @@ private:
     BITFIELD_MEMBER(bool, _literal, _setLiteral, 1,
     BITFIELD_MEMBER(bool, _shared, _setShared, 1,
     BITFIELD_MEMBER(bool, _polarity, _setPolarity, 1,
-    BITFIELD_MEMBER(unsigned, _tag, _setTag, 2,
+    BITFIELD_MEMBER(unsigned, _tag, _setTag, TERM_TAG_BITS,
     END_BITFIELD
   )))))))))))))
   BITFIELD_PTR_GET(Term, _term, 0)
   BITFIELD_PTR_SET(Term, _setTerm, 0)
 
   static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
-  static_assert(AO_INCOMPARABLE < 8, "must be able to squash orderings into 3 bits");
 
   friend class Indexing::TermSharing;
   friend class Term;
