@@ -53,6 +53,8 @@ public:
     FUN_RIGHT_OFS = 3,
     FUN_UNEXPANDED = 4,
   };
+  static const unsigned ENTRY_TAG_BITS = 3;
+  static_assert(FUN_UNEXPANDED < 1 << ENTRY_TAG_BITS, "EntryTag should fit within ENTRY_TAG_BITS");
 
   struct Entry
   {
@@ -73,14 +75,13 @@ public:
 
     uint64_t _content;
     BITFIELD(64,
-      BITFIELD_MEMBER(unsigned, _number, _setNumber, 27,
-      BITFIELD_MEMBER(unsigned, _tag, _setTag, 3,
+      BITFIELD_MEMBER(unsigned, _number, _setNumber, CHAR_BIT * sizeof(unsigned) - ENTRY_TAG_BITS,
+      BITFIELD_MEMBER(unsigned, _tag, _setTag, ENTRY_TAG_BITS,
       END_BITFIELD
     )))
     BITFIELD_PTR_GET(Term, _term, 0)
     BITFIELD_PTR_SET(Term, _setTerm, 0)
     static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
-    static_assert(FUN_UNEXPANDED < 8, "must be able to squash tags into 3 bits");
   };
 
   inline Entry& operator[](size_t i) { ASS_L(i,_length); return _data[i]; }

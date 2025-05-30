@@ -162,6 +162,8 @@ public:
     CHECK_VAR = 5,
     SEARCH_STRUCT = 6,
   };
+  static const unsigned INSTRUCTION_BITS = 3;
+  static_assert(SEARCH_STRUCT < 1 << INSTRUCTION_BITS, "Instruction should fit within INSTRUCTION_BITS");
 
   /** Structure containing a single instruction and its arguments */
   struct CodeOp
@@ -220,16 +222,15 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
 
     BITFIELD(64,
-      BITFIELD_MEMBER(unsigned, _arg, _setArg, 61,
-      BITFIELD_MEMBER(unsigned, _instruction, _setInstruction, 3,
+      BITFIELD_MEMBER(unsigned, _arg, _setArg, CHAR_BIT * sizeof(unsigned) - INSTRUCTION_BITS,
+      BITFIELD_MEMBER(unsigned, _instruction, _setInstruction, INSTRUCTION_BITS,
       END_BITFIELD
     )))
     static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
-    static_assert(SEARCH_STRUCT < 8, "must be able to squash instructions into 3 bits");
     template<class T>
-    BITFIELD_PTR_GET(T, _data, 3)
+    BITFIELD_PTR_GET(T, _data, INSTRUCTION_BITS)
     template<class T>
-    BITFIELD_PTR_SET(T, _setData, 3)
+    BITFIELD_PTR_SET(T, _setData, INSTRUCTION_BITS)
 
   private:
     // bitfield
