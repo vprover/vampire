@@ -146,7 +146,7 @@ Formula* InductionContext::getFormula(const std::vector<TermList>& r, bool oppos
     replacementMap.insert(make_pair(ph,r[i]));
     if (subst) {
       ASS(r[i].isVar());
-      subst->bind(r[i].var(), ph);
+      ALWAYS(subst->bind(r[i].var(), ph));
     }
   }
   TermReplacement tr(replacementMap);
@@ -157,7 +157,7 @@ Formula* InductionContext::getFormulaWithFreeVar(const std::vector<TermList>& r,
 {
   Formula* replaced = getFormula(r, opposite, subst);
   Substitution s;
-  s.bind(freeVar, freeVarSub);
+  ALWAYS(s.bind(freeVar, freeVarSub));
   return SubstHelper::apply(replaced, s);
 }
 
@@ -174,7 +174,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermL
     replacementMap.insert(make_pair(ph,r[i]));
     if (subst) {
       ASS(r[i].isVar());
-      subst->bind(r[i].var(), ph);
+      ALWAYS(subst->bind(r[i].var(), ph));
     }
   }
   SkolemSquashingTermReplacement tr(replacementMap, var);
@@ -186,7 +186,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermL
       unsigned v;
       Term* t;
       it.next(t, v);
-      subst->bind(v,t);
+      ALWAYS(subst->bind(v,t));
     }
   }
   if (varList) {
@@ -1588,7 +1588,7 @@ void InductionClauseIterator::performRecursionInduction(const InductionContext& 
   for (unsigned i = 0; i < header->numTypeArguments(); i++) {
     auto arg = *header->nthArgument(i);
     ASS(arg.isVar());
-    typeSubst.bind(arg.var(),typeArgs[i]);
+    ALWAYS(typeSubst.bind(arg.var(),typeArgs[i]));
   }
 
   for (const auto& b : templ->branches()) {
@@ -1705,7 +1705,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   Term* xSkolem = bindings.get(xvar, nullptr);
   ASS(xSkolem != nullptr);
   ASS(freeVarSubst != nullptr);
-  freeVarSubst->bind(int(freeVar), SubstHelper::apply<Substitution>(xSkolem, subst));
+  ALWAYS(freeVarSubst->bind(int(freeVar), SubstHelper::apply<Substitution>(xSkolem, subst)));
 
   e->add(std::move(hyp_clauses), std::move(subst));
   return;

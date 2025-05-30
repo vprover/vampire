@@ -78,7 +78,7 @@ struct ArgCong::ResultFn
       subst.reset();
       alpha1 = TermList(_freshVar+1, false);
       alpha2 = TermList(_freshVar+2, false);
-      subst.bind(eqSort.var(), AtomicSort::arrowSort(alpha1, alpha2));
+      ALWAYS(subst.bind(eqSort.var(), AtomicSort::arrowSort(alpha1, alpha2)));
     } else {
       alpha1 = *eqSort.term()->nthArgument(0);
       alpha2 = *eqSort.term()->nthArgument(1);

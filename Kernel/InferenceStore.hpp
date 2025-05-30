@@ -75,13 +75,14 @@ public:
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, UnitList* units);
+  struct ProofPrinter;
 
 private:
-  struct ProofPrinter;
   struct TPTPProofPrinter;
   struct Smt2ProofCheckPrinter;
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
+  struct SMTCheckPrinter;
 
   ProofPrinter* createProofPrinter(std::ostream& out);
 

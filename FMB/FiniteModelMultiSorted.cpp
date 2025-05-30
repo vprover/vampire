@@ -904,7 +904,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
      unsigned srtU = srt.term()->functor();
      for(unsigned c=1;c<=_sizes[srtU];c++){
        Substitution s;
-       s.bind(var,getDomainConstant(c,srtU));
+       ALWAYS(s.bind(var,getDomainConstant(c,srtU)));
        Formula* next_sub = SubstHelper::apply(next,s);
        next_sub = SimplifyFalseTrue::simplify(next_sub);
        next_sub = Flattening::flatten(next_sub);

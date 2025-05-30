@@ -105,16 +105,6 @@ AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
  */
 bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
-  if(env.options->prioritiseClausesProducedByLongReduction()){
-    if(c1->inference().reductions() < c2->inference().reductions()){
-      return false;
-    }
-
-    if(c2->inference().reductions() < c1->inference().reductions()){
-      return true;
-    }
-  }
-
   Comparison weightCmp=compareWeight(c1, c2, _opt);
   if (weightCmp!=EQUAL) {
     return weightCmp==LESS;

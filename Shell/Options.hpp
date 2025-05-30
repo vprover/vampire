@@ -553,8 +553,8 @@ public:
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,
     GOAL = 1,
-    UNIT = 2,
-    GOAL_UNIT = 3,
+    UNITS = 2,
+    GOAL_THEN_UNITS = 3,
     NON_INTRO = 4,
     INTRO = 5,
   };
@@ -576,6 +576,7 @@ public:
     TPTP = 3,
     PROPERTY = 4,
     SMT2_PROOFCHECK = 5,
+    SMTCHECK = 6
   };
 
   /** Values for --equality_proxy */
@@ -1233,8 +1234,8 @@ virtual std::string getStringOfActual() const override {
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
 NonGoalWeightOptionValue(){}
-NonGoalWeightOptionValue(std::string l, std::string s, float def) :
-OptionValue(l,s,def), numerator(1), denominator(1) {};
+NonGoalWeightOptionValue(std::string l, std::string s) :
+OptionValue(l,s,10.0), numerator(10), denominator(1) {};
 
 bool setValue(const std::string& value);
 
@@ -2010,7 +2011,6 @@ public:
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
-  void setMaxXX(unsigned max) { _maximumXXNarrows.actualValue = max; }
 
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   std::string include() const { return _include.actualValue; }
@@ -2336,32 +2336,14 @@ public:
 
   //Higher-order Options
 
-  bool addCombAxioms() const { return _addCombAxioms.actualValue; }
-  bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
-  bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
-  bool pragmatic() const { return _pragmatic.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
-  bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
-  int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
-  PISet piSet() const { return _piSet.actualValue; }
-  Narrow narrow() const { return _narrow.actualValue; }
-  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
-  bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
-  bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
-  bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
-  bool complexVarCondition() const { return _complexVarCondition.actualValue; }
-  // For unit testing
-  void useCombSup() {
-    _combinatorySuperposition.actualValue = true;
-    _complexVarCondition.actualValue = true;
-  }
 
   class StratFeatureIterator {
     const Options& _opts;
@@ -2902,28 +2884,15 @@ private:
 
 
   //Higher-order options
-  BoolOptionValue _addCombAxioms;
-  BoolOptionValue _addProxyAxioms;
-  BoolOptionValue _combinatorySuperposition;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
-  BoolOptionValue _pragmatic;
   BoolOptionValue _choiceReasoning;
-  BoolOptionValue _priortyToLongReducts;
-  IntOptionValue  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
-  ChoiceOptionValue<PISet> _piSet;
-  ChoiceOptionValue<Narrow> _narrow;
-  BoolOptionValue _equalityToEquivalence;
-  BoolOptionValue _complexBooleanReasoning;
-  BoolOptionValue _booleanEqTrick;
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
-  BoolOptionValue _lambdaFreeHol;
-  BoolOptionValue _complexVarCondition;
 
 }; // class Options
 
