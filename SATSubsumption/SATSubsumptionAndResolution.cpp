@@ -69,7 +69,6 @@
    */
 
 #include "Kernel/Matcher.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Shell/Statistics.hpp"
@@ -971,9 +970,9 @@ bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWith
   return (_solver.solve() == subsat::Result::Sat);
 }
 
-SimpleSubstitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSubsumptionResolutionWithLiteral()
+Substitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSubsumptionResolutionWithLiteral()
 {
-  SimpleSubstitution subst;
+  Substitution subst;
   _solver.get_model(_model);
   for(auto lit : _model) {
     if(lit.is_negative())
@@ -987,6 +986,9 @@ SimpleSubstitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSu
     Match match = _matchSet.getMatchForVar(var);
     Literal *l = (*_sidePremise)[match.i];
     Literal *k = (*_mainPremise)[match.j];
+    // matchArgs doesn't like nullary for some reason
+    if(!l->arity())
+      continue;
 
     // problem: with equality literals, they can be match straight or reversed
     bool reverseArgs = false;

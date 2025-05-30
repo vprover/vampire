@@ -515,7 +515,7 @@ public:
    * @brief Return the substitution required for the last subsumption resolution.
    * @note precondition: the last subsumption resolution succeeded
    */
-  SimpleSubstitution getBindingsForSubsumptionResolutionWithLiteral();
+  Substitution getBindingsForSubsumptionResolutionWithLiteral();
 
   /**
    * Creates a clause that is the subsumption resolution of @b mainPremise and @b sidePremise on @b m_j.
