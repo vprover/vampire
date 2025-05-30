@@ -71,6 +71,9 @@ enum TermTag {
   /** special variable */
   SPEC_VAR = 3u,
 };
+// number of bits occupied by a TermTag
+const unsigned TERM_TAG_BITS = 2;
+static_assert(SPEC_VAR < 1 << TERM_TAG_BITS, "TermTag must fit within TERM_TAG_BITS");
 
 enum ArgumentOrderVals {
   /**
@@ -91,9 +94,11 @@ enum ArgumentOrderVals {
   AO_EQUAL=3,
   AO_INCOMPARABLE=4,
 };
+const unsigned ARGUMENT_ORDER_BITS = 3;
+static_assert(AO_INCOMPARABLE < 1 << ARGUMENT_ORDER_BITS, "ArgumentOrderVals must fit within ARGUMENT_ORDER_BITS");
 
 inline std::ostream& operator<<(std::ostream& out, ArgumentOrderVals const& self)
-{ 
+{
   switch(self) {
     case AO_UNKNOWN: return out << "UNKNOWN";
     case AO_GREATER: return out << "GREATER";
@@ -282,14 +287,13 @@ public:
 private:
   std::string asArgsToString() const;
 
-  // the actual content of a TermList
-  // this packs several things in:
-  // 1. a Term *
-  // 2. metadata (see below) such that _tag() is the lowest two bits of (1)
-  // 3. "other", rarely used and handled specially
-  uint64_t _content;
-
-  // metadata used to be defined as this bitfield:
+  /*
+   * the actual content of a TermList, defined as a bitfield
+   * 1. a Term *
+   * 2. metadata (see below) such that _tag() is the lowest two bits of (1)
+   * 3. "other", rarely used and handled specially
+   * metadata used to be defined as this bitfield:
+   */
 #if 0
   struct {
     /** a TermTag indicating what is stored here */
@@ -321,50 +325,26 @@ private:
     unsigned id : 32;
     } _info;
 #endif
-  // but it was *not* portable because the layout of the bitfield is not guaranteed
-  //
-  // now we use a manual bitfield, as follows
-  static constexpr unsigned
-    TAG_BITS_START = 0,
-    TAG_BITS_END = TAG_BITS_START + 2,
-    POLARITY_BITS_START = TAG_BITS_END,
-    POLARITY_BITS_END = POLARITY_BITS_START + 1,
-    SHARED_BITS_START = POLARITY_BITS_END,
-    SHARED_BITS_END = SHARED_BITS_START + 1,
-    LITERAL_BITS_START = SHARED_BITS_END,
-    LITERAL_BITS_END = LITERAL_BITS_START + 1,
-    SORT_BITS_START = LITERAL_BITS_END,
-    SORT_BITS_END = SORT_BITS_START + 1,
-    HAS_TERM_VAR_BITS_START = SORT_BITS_END,
-    HAS_TERM_VAR_BITS_END = HAS_TERM_VAR_BITS_START + 1,
-    ORDER_BITS_START = HAS_TERM_VAR_BITS_END,
-    ORDER_BITS_END = ORDER_BITS_START + 3,
-    DISTINCT_VAR_BITS_START = ORDER_BITS_END,
-    DISTINCT_VAR_BITS_END = DISTINCT_VAR_BITS_START + TERM_DIST_VAR_BITS,
-    ID_BITS_START = DISTINCT_VAR_BITS_END,
-    ID_BITS_END = ID_BITS_START + 32,
-    TERM_BITS_START = 0,
-    TERM_BITS_END = CHAR_BIT * sizeof(Term *);
+  // but it was *not* portable because the layout of the bitfield is not guaranteed - see BitUtils.hpp
+  // (and this *did* bite us on PowerPC somehow)
 
-  // various properties we want to check
-  static_assert(TAG_BITS_START == 0, "tag must be the least significant bits");
-  static_assert(TERM_BITS_START == 0, "term must be the least significant bits");
-  static_assert(ID_BITS_END == 64, "whole thing must fit 64 bits exactly");
+  uint64_t _content;
+  BITFIELD(64,
+    BITFIELD_MEMBER(uint32_t, _id, _setId, 32,
+    BITFIELD_MEMBER(uint32_t, _distinctVars, _setDistinctVars, TERM_DIST_VAR_BITS,
+    BITFIELD_MEMBER(unsigned, _order, _setOrder, ARGUMENT_ORDER_BITS,
+    BITFIELD_MEMBER(bool, _hasTermVar, _setHasTermVar, 1,
+    BITFIELD_MEMBER(bool, _sort, _setSort, 1,
+    BITFIELD_MEMBER(bool, _literal, _setLiteral, 1,
+    BITFIELD_MEMBER(bool, _shared, _setShared, 1,
+    BITFIELD_MEMBER(bool, _polarity, _setPolarity, 1,
+    BITFIELD_MEMBER(unsigned, _tag, _setTag, TERM_TAG_BITS,
+    END_BITFIELD
+  ))))))))))
+  BITFIELD_PTR_GET(Term, _term, 0)
+  BITFIELD_PTR_SET(Term, _setTerm, 0)
+
   static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
-  static_assert(AO_INCOMPARABLE < 8, "must be able to squash orderings into 3 bits");
-
-  // getters and setters
-  BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
-  BITFIELD64_GET_AND_SET(bool, polarity, Polarity, POLARITY)
-  BITFIELD64_GET_AND_SET(bool, shared, Shared, SHARED)
-  BITFIELD64_GET_AND_SET(bool, literal, Literal, LITERAL)
-  BITFIELD64_GET_AND_SET(bool, sort, Sort, SORT)
-  BITFIELD64_GET_AND_SET(bool, hasTermVar, HasTermVar, HAS_TERM_VAR)
-  BITFIELD64_GET_AND_SET(unsigned, order, Order, ORDER)
-  BITFIELD64_GET_AND_SET(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR)
-  BITFIELD64_GET_AND_SET(uint32_t, id, Id, ID)
-  BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
-  // end bitfield
 
   friend class Indexing::TermSharing;
   friend class Term;
