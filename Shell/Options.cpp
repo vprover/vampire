@@ -2088,11 +2088,8 @@ void Options::init()
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
     // if minimize is off then makes no difference
-    // if minimize is sco then we could have a conflict clause added infinitely often
+    // if minimize is sco then we could have a conflict clause added infinitely often (we actually protect against this in Splitter, be ignoring aer even if turned on)
     _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
-    // actually, with amm=sco:aer=off, we can also (wrongly) saturate finitely - let's make this part of the constraint hard
-    // (Problems/SWV/SWV608-1.p --decode Problems/SWV/SWV608-1.p --decode ott-1_1:40_tgt=full:plsq=on:sp=frequency:lcm=predicate:gs=on:bd=off:rawr=on:afp=1000:afq=2.0:irw=on:fsd=on:aer=off:si=on:rtra=on:amm=sco_30 --random_seed XXX)
-    _splittingEagerRemoval.addHardConstraint(If(equal(false)).then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
 
     _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
     _splittingFastRestart.description="";
