@@ -81,7 +81,7 @@ public:
 
   /** creates an empty list */
   static List* empty ()
-  { return 0; }
+  { return nullptr; }
 
   /** true if the list is empty */
   static bool isEmpty (const List* l)

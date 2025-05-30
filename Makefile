@@ -217,6 +217,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Theory.o\
         Kernel/Signature.o\
         Kernel/Unit.o\
+        Kernel/HOL/HOL.o\
+        Kernel/HOL/Create.o\
+        Kernel/HOL/Convert.o\
         Kernel/InterpretedLiteralEvaluator.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\

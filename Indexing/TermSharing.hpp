@@ -96,7 +96,6 @@ private:
   friend class Kernel::Term;
   friend class Kernel::Literal;
   friend class Kernel::AtomicSort;
-  int sumRedLengths(TermStack& args);
   static bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */

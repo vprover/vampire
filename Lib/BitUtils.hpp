@@ -124,7 +124,7 @@ public:
 
   #define BITFIELD64_GET_AND_SET_PTR(type, name, Name, NAME) \
     type _##name() const { return reinterpret_cast<type>(BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content)); } \
-    void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content, reinterpret_cast<uint64_t>(val)); }
+    void _set##Name(const type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content, reinterpret_cast<uint64_t>(val)); }
 };
 
 };

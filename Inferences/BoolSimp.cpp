@@ -71,7 +71,7 @@ bool BoolSimp::areComplements(TermList t1, TermList t2){
   ApplicativeHelper::getHeadAndArgs(t1, head, args);
   if(!head.isVar()){
     sym = env.signature->getFunction(head.term()->functor());
-    if(sym->proxy() == Signature::NOT){
+    if(sym->proxy() == Proxy::NOT){
       ASS(args.size() == 1);
       if(args[0] == t2){ return true;}
     }
@@ -80,7 +80,7 @@ bool BoolSimp::areComplements(TermList t1, TermList t2){
   ApplicativeHelper::getHeadAndArgs(t2, head, args);
   if(!head.isVar()){
     sym = env.signature->getFunction(head.term()->functor());
-    if(sym->proxy() == Signature::NOT){
+    if (sym->proxy() == Proxy::NOT) {
       ASS(args.size() == 1);
       if(args[0] == t1){ return true;}
     }
@@ -110,7 +110,7 @@ TermList BoolSimp::boolSimplify(TermList term){
 
   Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
   switch(sym->proxy()){
-    case Signature::AND:{
+    case Proxy::AND: {
       ASS(args.size() == 2);
       if(args[1] == fols || args[0] == fols){ return fols; }
       if(args[1] == troo){ return args[0]; } else 
@@ -119,7 +119,7 @@ TermList BoolSimp::boolSimplify(TermList term){
       if(areComplements(args[0], args[1])){ return fols; }
       break;
     }
-    case Signature::OR:{
+    case Proxy::OR: {
       ASS(args.size() == 2);
       if(args[0] == troo || args[1] == troo){ return troo; }
       if(args[0] == fols){  return args[1]; }else
@@ -128,7 +128,7 @@ TermList BoolSimp::boolSimplify(TermList term){
       if(areComplements(args[0], args[1])){ return troo; }  
       break;    
     }
-    case Signature::IMP:{
+    case Proxy::IMP:{
       ASS(args.size() == 2);   
       if(args[1] == troo){ return args[0]; }
       if(args[1] == fols){ return troo; }
@@ -138,7 +138,7 @@ TermList BoolSimp::boolSimplify(TermList term){
       if(args[0] == fols){ return negate(args[1]); }
       break;
     }
-    case Signature::IFF:{
+    case Proxy::IFF:{
       ASS(args.size() == 2);
       if(args[0] == troo){ return args[1]; } else
       if(args[1] == troo){ return args[0]; } 
@@ -148,21 +148,21 @@ TermList BoolSimp::boolSimplify(TermList term){
       if(areComplements(args[0], args[1])){ return fols; }
       break;     
     }
-    case Signature::NOT:{
+    case Proxy::NOT:{
       ASS(args.size() == 1);
       if(args[0] == troo){ return fols; }
       if(args[0] == fols){ return troo; }
       ApplicativeHelper::getHeadAndArgs(args[0], head, args);
       if(!head.isVar()){
         sym = env.signature->getFunction(head.term()->functor());
-        if(sym->proxy() == Signature::NOT){
+        if(sym->proxy() == Proxy::NOT){
           ASS(args.size() == 1);
           return args[0];
         }
       }
       break;
     }
-    case Signature::EQUALS:{
+    case Proxy::EQUALS:{
       ASS(args.size() == 2);
       if(args[0] == args[1]){ return troo; }
       /*if(args[0].isTerm() && args[0].term()->ground() && 

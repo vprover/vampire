@@ -39,7 +39,7 @@ using namespace Indexing;
 static Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d = 0, Literal* e = 0);
 static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
 static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
-static InferenceRule convert(Signature::Proxy cnst);
+static InferenceRule convert(Proxy cnst);
 static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
 
 typedef ApplicativeHelper AH;
@@ -436,13 +436,13 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       Literal* rhsTroo = Literal::createEquality(true, rhs, troo, boolSort);
       Literal* rhsFols = Literal::createEquality(true, rhs, fols, boolSort);
       if(lit->polarity()){
-        Clause* res1 = replaceLits(c, lit, lhsTroo, convert(Signature::IFF), true, rhsFols);
-        Clause* res2 = replaceLits(c, lit, lhsFols, convert(Signature::IFF), true, rhsTroo);
+        Clause* res1 = replaceLits(c, lit, lhsTroo, convert(Proxy::IFF), true, rhsFols);
+        Clause* res2 = replaceLits(c, lit, lhsFols, convert(Proxy::IFF), true, rhsTroo);
         resultStack.push(res1);
         resultStack.push(res2);
       } else {
-        Clause* res1 = replaceLits(c, lit, lhsTroo, convert(Signature::XOR), true, rhsTroo);
-        Clause* res2 = replaceLits(c, lit, lhsFols, convert(Signature::XOR), true, rhsFols);
+        Clause* res1 = replaceLits(c, lit, lhsTroo, convert(Proxy::XOR), true, rhsTroo);
+        Clause* res2 = replaceLits(c, lit, lhsFols, convert(Proxy::XOR), true, rhsFols);
         resultStack.push(res1);
         resultStack.push(res2);
       }
@@ -452,19 +452,19 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     }
 
     AH::getHeadAndArgs(term, head, args);
-    Signature::Proxy prox = AH::getProxy(head);
-    if(prox == Signature::NOT_PROXY || prox == Signature::IFF ||
-       prox == Signature::XOR){
+    Proxy prox = AH::getProxy(head);
+    if(prox == Proxy::NOT_PROXY || prox == Proxy::IFF ||
+       prox == Proxy::XOR){
       continue;
     }
 
-    if(generating && !gen && prox != Signature::NOT){
+    if(generating && !gen && prox != Proxy::NOT){
       continue;
     }
 
     bool positive = AH::isTrue(boolVal) == lit->polarity();
 
-    if((prox == Signature::OR) && (args.size() == 2)){
+    if((prox == Proxy::OR) && (args.size() == 2)){
       if(positive){
         Literal* l1 = Literal::createEquality(true, args[0], troo, boolSort);
         Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
@@ -482,7 +482,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       }
     }
   
-    if((prox == Signature::AND) && (args.size() == 2)){
+    if((prox == Proxy::AND) && (args.size() == 2)){
       if(positive){
         Literal* l1 = Literal::createEquality(true, args[0], troo, boolSort);
         Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
@@ -500,7 +500,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       }
     }
 
-    if((prox == Signature::IMP) && (args.size() == 2)){
+    if((prox == Proxy::IMP) && (args.size() == 2)){
       if(positive){
         Literal* l1 = Literal::createEquality(true, args[1], fols, boolSort);
         Literal* l2 = Literal::createEquality(true, args[0], troo, boolSort);
@@ -518,7 +518,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       }
     }
 
-    if((prox == Signature::EQUALS) && (args.size() == 2)){
+    if((prox == Proxy::EQUALS) && (args.size() == 2)){
       TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
       Literal* l1 = Literal::createEquality(positive, args[0], args[1], srt);
       Clause* res = replaceLits(c, lit, l1, convert(prox), false);
@@ -526,7 +526,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       goto afterLoop;
     }
 
-    if((prox == Signature::NOT) && (args.size())){
+    if((prox == Proxy::NOT) && (args.size())){
       TermList rhs = positive ? fols : troo;
       Literal* l1 = Literal::createEquality(true, args[0], rhs, boolSort);
       Clause* res = replaceLits(c, lit, l1, convert(prox), false);
@@ -534,14 +534,14 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       goto afterLoop;
     }
 
-    if((prox == Signature::PI || prox == Signature::SIGMA ) && (args.size())){
+    if((prox == Proxy::PI || prox == Proxy::SIGMA ) && (args.size())){
       TermList rhs = positive ? troo : fols; 
       TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
       TermList newTerm;
       InferenceRule rule;
-      if((prox == Signature::PI && positive) || 
-         (prox == Signature::SIGMA && !positive)){
-        rule = convert(Signature::PI);
+      if((prox == Proxy::PI && positive) ||
+         (prox == Proxy::SIGMA && !positive)){
+        rule = convert(Proxy::PI);
         newTerm = piRemoval(args[0], c, srt);
       } else {
         ASS(term.isTerm());
@@ -563,7 +563,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           }
           newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
         }
-        rule = convert(Signature::SIGMA);
+        rule = convert(Proxy::SIGMA);
       }
       Literal* l1 = Literal::createEquality(true, newTerm, rhs, boolSort);
       Clause* res = replaceLits(c, lit, l1, rule, false);
@@ -602,15 +602,15 @@ Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool inc
   return out;
 }
 
-InferenceRule convert(Signature::Proxy cnst){
+InferenceRule convert(Proxy cnst) {
   switch(cnst){
-    case Signature::PI:
+    case Proxy::PI:
       return InferenceRule::VPI_ELIMINATION;
-    case Signature::SIGMA:
+    case Proxy::SIGMA:
       return InferenceRule::VSIGMA_ELIMINATION;
-    case Signature::EQUALS:
+    case Proxy::EQUALS:
       return InferenceRule::HOL_EQUALITY_ELIMINATION;
-    case Signature::NOT:
+    case Proxy::NOT:
       return InferenceRule::HOL_NOT_ELIMINATION;
     default:
       return InferenceRule::BINARY_CONN_ELIMINATION;   
@@ -715,10 +715,10 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
     bool positive = AH::isTrue(boolVal) == lit->polarity();
 
     AH::getHeadAndArgs(term, head, args);
-    Signature::Proxy prox = AH::getProxy(head);
+    Proxy prox = AH::getProxy(head);
 
-    if((prox == Signature::IFF || prox == Signature::XOR) && (args.size() == 2)){
-      bool polarity = (prox == Signature::IFF) == positive;
+    if((prox == Proxy::IFF || prox == Proxy::XOR) && (args.size() == 2)){
+      bool polarity = (prox == Proxy::IFF) == positive;
       Literal* l1 = Literal::createEquality(polarity, args[0], args[1], boolSort);
       Clause* res = replaceLits(c, lit, l1, convert(prox), false);
       return res;
