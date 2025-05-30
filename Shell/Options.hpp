@@ -553,8 +553,8 @@ public:
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,
     GOAL = 1,
-    UNIT = 2,
-    GOAL_UNIT = 3,
+    UNITS = 2,
+    GOAL_THEN_UNITS = 3,
     NON_INTRO = 4,
     INTRO = 5,
   };
