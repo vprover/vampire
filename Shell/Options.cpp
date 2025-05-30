@@ -2209,9 +2209,9 @@ void Options::init()
     _literalComparisonMode.addProblemConstraint(mayHaveNonUnits());
     _literalComparisonMode.addProblemConstraint(notJustEquality());
 
-    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
+    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc"); // default 10.0 is hard-wired to the constructor
     _nonGoalWeightCoefficient.description=
-             "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
+             "coefficient that will multiply the weight of non-conjecture clauses (those marked as 'axiom' in TPTP)";
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.onlyUsefulWith(ProperSaturationAlgorithm());
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);

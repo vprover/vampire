@@ -1228,8 +1228,8 @@ virtual std::string getStringOfActual() const override {
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
 NonGoalWeightOptionValue(){}
-NonGoalWeightOptionValue(std::string l, std::string s, float def) :
-OptionValue(l,s,def), numerator(1), denominator(1) {};
+NonGoalWeightOptionValue(std::string l, std::string s) :
+OptionValue(l,s,10.0), numerator(10), denominator(1) {};
 
 bool setValue(const std::string& value);
 
