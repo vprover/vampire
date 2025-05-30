@@ -747,6 +747,9 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* cl = cl0;
 
+  // Note: simplifyMany() has to go before simplify(), since the former
+  // postprocesses clauses with answer literals, while the latter deletes
+  // those which are invalid even after postprocessing.
   ClauseIterator cIt = _immediateSimplifier->simplifyMany(cl);
   if (cIt.hasNext()) {
     while (cIt.hasNext()) {
