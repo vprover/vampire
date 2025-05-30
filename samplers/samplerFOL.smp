@@ -106,6 +106,22 @@ ss!=off $st=7.0+3.0 > st ~uf 7.0,10.0
 # unused_predicate_definition_removal
 > updr ~cat on:515,off:485
 
+# NEURAL CLAUSE SELECTION (disabled for now)
+
+# neural_clause_evaluation_model
+# > ncem ~cat TODO
+
+# neural_clause_evaluation_model_generalized_search_direction
+# ncem=GSDMODEL > ncem_gsd ~cat 0:272,1:344,2:221,3:371,4:345,5:225,6:297,7:196
+
+# neural_passive_clause_container
+# > npcc ~set on
+
+# npcc_temperature
+# > $npcct ~cat zero:5,blend:1
+# $npcct=zero > npcct ~set 0
+# $npcct!=zero > npcct ~uf 0.0,1.5
+
 # SATURATION
 
 # saturation_algorithms - no games with fmb for NN experiments
