@@ -28,6 +28,9 @@
 # inline_let -- this is probably irrelevant on TPTP anyway
 newcnf=on > ile ~cat on:522,off:478
 
+# function_definition_rewriting
+newcnf=on erd=on > fnrw ~cat off:3,on:1
+
 # naming
 > $nm ~cat 13_17:125,7_9:119,3_4:116,18_24:105,10_12:98,2:95,5_6:93,25_34:85,0:85,35_234:79
 $nm=13_17 > nm ~ui 13,17
@@ -533,3 +536,11 @@ gs=on av=on > gsaa ~cat off:400,from_current:380,full_model:221
 # MISC
 
 > uhcvi ~cat on:540,off:460
+
+# goal guessing does something even for TPTP, so why not
+
+# guess_the_goal
+> gtg ~cat off:10,all:1,exists_top:1,exists_all:1,exists_sym:1,position:1
+
+# guess_the_goal_limit
+gtg!=off > gtgl ~ui 1,5
