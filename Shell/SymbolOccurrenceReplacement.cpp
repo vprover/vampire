@@ -73,7 +73,7 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
     VList::Iterator fvit(_argVars);
     while (fvit.hasNext()) {
       unsigned var = fvit.next();
-      ALWAYS(substitution.bind(var, process(*arg)));
+      substitution.bindUnbound(var, process(*arg));
       arg = arg->next();
     }
   } else {
@@ -117,7 +117,7 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
         VList::Iterator fvit(_argVars);
         while (fvit.hasNext()) {
           unsigned var = fvit.next();
-          ALWAYS(substitution.bind(var, process(*arg)));
+          substitution.bindUnbound(var, process(*arg));
           arg = arg->next();
         }
       } else {

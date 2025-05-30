@@ -454,7 +454,7 @@ Formula* Skolem::skolemise (Formula* f)
 
         env.statistics->skolemFunctions++;
 
-        ALWAYS(_subst.bind(v,skolemTerm));
+        _subst.bindUnbound(v,skolemTerm);
 
         if (env.options->showSkolemisations()) {
           std::cout << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v

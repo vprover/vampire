@@ -622,7 +622,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
       if(!subst.findBinding(var,fc)){
         Term* fc = _instantiationConstants.freshConstant(sort);
         ASS_EQ(SortHelper::getResultSort(fc), sort);
-        subst.bind(var,fc);
+        subst.bindUnbound(var,fc);
         vars.push(var);
       }
     }

@@ -30,6 +30,7 @@
 #include "Term.hpp"
 #include "Matcher.hpp"
 #include "MLVariant.hpp"
+#include "TermIterators.hpp"
 
 #if VDEBUG
 #include <iostream>

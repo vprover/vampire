@@ -40,10 +40,17 @@ public:
 
   /**
    * Bind `v` to `t`.
-   * If v was already present, do nothing and return false.
+   * Succeeds and returns true if `v` is either not bound or already bound to `t`.
+   * Returns false otherwise, leaving the substitution untouched.
    */
-  bool bind(unsigned v, TermList t) { return _map.insert(v, t); }
-  bool bind(unsigned int v, Term *t) { return bind(v, TermList(t)); }
+  bool bind(unsigned v, TermList t) { return _map.findOrInsert(v, t) == t; }
+  bool bind(unsigned v, Term *t) { return bind(v, TermList(t)); }
+
+  /**
+   * Bind `v` to `t`: `v` must not be bound to anything.
+   */
+  void bindUnbound(unsigned v, TermList t) { ALWAYS(_map.insert(v, t)); }
+  void bindUnbound(unsigned int v, Term *t) { bindUnbound(v, TermList(t)); }
 
   /**
    * Bind `v` to `t`, regardless of what was there before (if anything).
@@ -56,6 +63,9 @@ public:
    * Otherwise return false and do nothing.
    */
   bool findBinding(unsigned v, TermList &out) const { return _map.find(v, out); }
+
+  // variable/term pairs
+  auto items() { return _map.items(); }
 
   /**
    * Return result of application of the substitution to variable @c var
