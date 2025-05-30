@@ -978,17 +978,40 @@ SimpleSubstitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSu
   for(auto lit : _model) {
     if(lit.is_negative())
       continue;
+
+    auto var = lit.var();
     // there could be non-match vars with the (only existing) indirect encoding
-    if(!_matchSet.isMatchVar(lit.var()))
+    if(!_matchSet.isMatchVar(var))
       continue;
-    // extra guard for below: happens with a nullary predicate as there is no associated binding
-    if(lit.var().index() >= _bindingsManager.size())
-      continue;
-    auto b = _bindingsManager.get_bindings(lit.var());
-    for(auto binding_index = b.index; binding_index < b.end(); binding_index++) {
-      auto [var, term] = _bindingsManager.get_single_binding(binding_index);
-      ALWAYS(subst.bind(var, term))
+
+    Match match = _matchSet.getMatchForVar(var);
+    Literal *l = (*_sidePremise)[match.i];
+    Literal *k = (*_mainPremise)[match.j];
+
+    // problem: with equality literals, they can be match straight or reversed
+    bool reverseArgs = false;
+    if(l->isEquality() && MatchingUtils::matchReversedArgs(l, k)) {
+      if(MatchingUtils::matchArgs(l, k)) {
+        // difficult case: both are possible
+        // hack: there will be two _sequential_ variables for the same literal/literal pair:
+        // 1. with normal argument order
+        // 2. with flipped arguments
+        // use this property to work out which match is intended by the model
+        unsigned index = var.index();
+        if(index && _matchSet.isMatchVar(subsat::Var(index - 1))) {
+          Match previous = _matchSet.getMatchForVar(subsat::Var(index - 1));
+          reverseArgs = match.i == previous.i && match.j == previous.j;
+        }
+      }
+      // only reversed is possible
+      else
+        reverseArgs = true;
     }
+
+    if(reverseArgs)
+      ALWAYS(MatchingUtils::matchReversedArgs(l, k, subst))
+    else
+      ALWAYS(MatchingUtils::matchArgs(l, k, subst))
   }
   return subst;
 }

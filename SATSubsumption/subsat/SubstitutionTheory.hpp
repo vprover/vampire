@@ -210,10 +210,6 @@ public:
     m_bindings.reserve(bool_var_count);
   }
 
-  std::pair<VampireVar, VampireTerm> get_single_binding(uint32_t index) {
-    return m_bindings_storage[index];
-  }
-
   friend class SubstitutionTheory;
 
 private:
