@@ -219,31 +219,20 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
 
-    static constexpr unsigned
-      INSTRUCTION_BITS_START = 0,
-      INSTRUCTION_BITS_END = INSTRUCTION_BITS_START + 3,
-      ARG_BITS_START = INSTRUCTION_BITS_END,
-      ARG_BITS_END = CHAR_BIT * sizeof(uint64_t),
-      DATA_BITS_START = INSTRUCTION_BITS_END,
-      DATA_BITS_END = CHAR_BIT * sizeof(void *);
-
+    BITFIELD(64,
+      BITFIELD_MEMBER(unsigned, _arg, _setArg, 61,
+      BITFIELD_MEMBER(unsigned, _instruction, _setInstruction, 3,
+      END_BITFIELD
+    )))
     static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
     static_assert(SEARCH_STRUCT < 8, "must be able to squash instructions into 3 bits");
-
-    // getters and setters
-    BITFIELD64_GET_AND_SET(unsigned, instruction, Instruction, INSTRUCTION)
-    BITFIELD64_GET_AND_SET(unsigned, arg, Arg, ARG)
-    template<class T> T* _data() const {
-      static_assert(alignof(T)>SEARCH_STRUCT);
-      return reinterpret_cast<T*>(BitUtils::getBits<DATA_BITS_START, DATA_BITS_END>(this->_content));
-    }
-    template<class T> void _setData(T* data) {
-      static_assert(alignof(T)>SEARCH_STRUCT);
-      BitUtils::setBits<DATA_BITS_START, DATA_BITS_END>(this->_content, reinterpret_cast<uint64_t>(data));
-    }
-    // end bitfield
+    template<class T>
+    BITFIELD_PTR_GET(T, _data, 3)
+    template<class T>
+    BITFIELD_PTR_SET(T, _setData, 3)
 
   private:
+    // bitfield
     uint64_t _content;
 
     /**

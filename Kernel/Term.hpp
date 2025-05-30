@@ -312,14 +312,13 @@ public:
 private:
   std::string asArgsToString() const;
 
-  // the actual content of a TermList
-  // this packs several things in:
-  // 1. a Term *
-  // 2. metadata (see below) such that _tag() is the lowest two bits of (1)
-  // 3. "other", rarely used and handled specially
-  uint64_t _content;
-
-  // metadata used to be defined as this bitfield:
+  /*
+   * the actual content of a TermList, defined as a bitfield
+   * 1. a Term *
+   * 2. metadata (see below) such that _tag() is the lowest two bits of (1)
+   * 3. "other", rarely used and handled specially
+   * metadata used to be defined as this bitfield:
+   */
 #if 0
   struct {
     /** a TermTag indicating what is stored here */
@@ -351,42 +350,30 @@ private:
     unsigned id : 32;
     } _info;
 #endif
-  // but it was *not* portable because the layout of the bitfield is not guaranteed
-  //
-  // now we use a manual bitfield, as follows
-#define MK_FIELD(typ, name, Name, NAME, start, size) \
-  static constexpr unsigned NAME##_BITS_START = start; \
-  static constexpr unsigned NAME##_BITS_END = NAME##_BITS_START + size; \
-  BITFIELD64_GET_AND_SET(typ, name, Name, NAME)
+  // but it was *not* portable because the layout of the bitfield is not guaranteed - see BitUtils.hpp
+  // (and this *did* bite us on PowerPC somehow)
 
-  MK_FIELD(unsigned, tag, Tag, TAG, 0, 2)
-  MK_FIELD(bool, polarity, Polarity, POLARITY, TAG_BITS_END, 1)
-  MK_FIELD(bool, shared, Shared, SHARED, POLARITY_BITS_END, 1)
-  MK_FIELD(bool, literal, Literal, LITERAL, SHARED_BITS_END, 1)
-  MK_FIELD(bool, sort, Sort, SORT, LITERAL_BITS_END, 1)
-  MK_FIELD(bool, hasTermVar, HasTermVar, HAS_TERM_VAR, SORT_BITS_END, 1)
-  MK_FIELD(bool, hasDeBruijnIndex, HasDeBruijnIndex, HAS_DE_BRUIJN_INDEX, HAS_TERM_VAR_BITS_END, 1)
-  MK_FIELD(bool, hasRedex, HasRedex, HAS_REDEX, HAS_DE_BRUIJN_INDEX_BITS_END, 1)
-  MK_FIELD(bool, hasLambda, HasLambda, HAS_LAMBDA, HAS_REDEX_BITS_END, 1)
-  MK_FIELD(unsigned, order, Order, ORDER, HAS_LAMBDA_BITS_END, 3)
-  MK_FIELD(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR, ORDER_BITS_END, TERM_DIST_VAR_BITS)
-  MK_FIELD(uint32_t, id, Id, ID, DISTINCT_VAR_BITS_END, 32)
-#undef MK_FIELD
+  uint64_t _content;
+  BITFIELD(64,
+    BITFIELD_MEMBER(uint32_t, _id, _setId, 32,
+    BITFIELD_MEMBER(uint32_t, _distinctVars, _setDistinctVars, TERM_DIST_VAR_BITS,
+    BITFIELD_MEMBER(unsigned, _order, _setOrder, 3,
+    BITFIELD_MEMBER(bool, _hasLambda, _setHasLambda, 1,
+    BITFIELD_MEMBER(bool, _hasRedex, _setHasRedex, 1,
+    BITFIELD_MEMBER(bool, _hasDeBruijnIndex, _setHasDeBruijnIndex, 1,
+    BITFIELD_MEMBER(bool, _hasTermVar, _setHasTermVar, 1,
+    BITFIELD_MEMBER(bool, _sort, _setSort, 1,
+    BITFIELD_MEMBER(bool, _literal, _setLiteral, 1,
+    BITFIELD_MEMBER(bool, _shared, _setShared, 1,
+    BITFIELD_MEMBER(bool, _polarity, _setPolarity, 1,
+    BITFIELD_MEMBER(unsigned, _tag, _setTag, 2,
+    END_BITFIELD
+  )))))))))))))
+  BITFIELD_PTR_GET(Term, _term, 0)
+  BITFIELD_PTR_SET(Term, _setTerm, 0)
 
-  static constexpr unsigned
-    TERM_BITS_START = 0,
-    TERM_BITS_END = CHAR_BIT * sizeof(Term *);
-  BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
-
-  // various properties we want to check
-  static_assert(TAG_BITS_START == 0, "tag must be the least significant bits");
-  static_assert(TERM_BITS_START == 0, "term must be the least significant bits");
-  static_assert(ID_BITS_END == 64, "whole thing must fit 64 bits exactly");
   static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
   static_assert(AO_INCOMPARABLE < 8, "must be able to squash orderings into 3 bits");
-
-
-  // end bitfield
 
   friend class Indexing::TermSharing;
   friend class Term;
