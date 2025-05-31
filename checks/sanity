@@ -95,18 +95,18 @@ check_szs_status Theorem -t 1d -sas z3 -nwc 5.0 -br off Problems/DAT/DAT005_1.p
 check_szs_status Theorem -t 1d -alasca on -alascai on -thf on Problems/DAT/DAT023_1.p
 check_szs_status Theorem -t 1d -tha off Problems/DAT/DAT042_1.p
 check_szs_status Theorem -t 1d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -canc force Problems/DAT/DAT043_1.p
-check_szs_status Theorem -t 5d -sa discount -s 2 -awr 1:32 -to lpo -s2a on -s2agt 20 Problems/HWV/HWV087_2.p
-check_szs_status Theorem -t 1d -sa discount -awr 1:32 -to lpo -sp const_frequency -sos all -sac on Problems/ITP/ITP319_1.p
+check_szs_status Theorem -t 5d -sa discount -s 2 -awr 1:32 -to lpo -s2a on -s2agt 20 -bd all Problems/HWV/HWV087_2.p
+check_szs_status Theorem -t 1d -sa discount -awr 1:32 -to lpo -sp const_frequency -sos all -sac on -lma off Problems/ITP/ITP319_1.p
 check_szs_status Theorem -t 1d -sa discount -tha off -nwc 5.0 -gtg exists_sym -gtgl 5 Problems/ITP/ITP320_1.p
-check_szs_status Theorem -t 1d -to lpo -spb goal_then_units Problems/ITP/ITP412_1.p
+check_szs_status Theorem -t 1d -to lpo -spb goal_then_units -sp arity Problems/ITP/ITP412_1.p
 check_szs_status Theorem -t 1d -gve force -uwa one_side_interpreted -ep R Problems/NUM/NUM919_1.p
-check_szs_status ContradictoryAxioms -t 1d -s 1011 -thi all -uwa ground -br off Problems/PLA/PLA046_1.p
+check_szs_status ContradictoryAxioms -t 1d -s 1011 -thi all -uwa ground -br off -nwc 1.0 Problems/PLA/PLA046_1.p
 check_szs_status Theorem -t 1d -s 1002 -to kbo -kws inv_frequency -sas z3 -nwc 5.0 -gtg exists_all Problems/PLA/PLA050_1.p
-check_szs_status Theorem -t 1d -sa discount -s 1002 -to lpo -tha off -canc force -fsr off -fdi 10 Problems/SEV/SEV425_1.p
-check_szs_status Theorem -t 1d -isp bottom -to lpo -sas z3 -fd preordered -ev force Problems/SWC/SWC478_1.p
-check_szs_status Theorem --decode ott+11_1:1_to=lpo:thi=all:sas=z3:fdtod=on:sp=const_max:foolp=on:gtgl=5:asg=cautious:gtg=all:rawr=on_1 Problems/SWC/SWC482_1.p
+check_szs_status Theorem -t 1d -sa discount -s 1002 -to lpo -tha off -canc force -fsr off -fdi 10 -nwc 1.0 Problems/SEV/SEV425_1.p
+check_szs_status Theorem -t 1d -isp bottom -to lpo -sas z3 -fd preordered -ev force -bd all -nwc 1.0 -sp arity Problems/SWC/SWC478_1.p
+check_szs_status Theorem --decode ott+11_1:1_to=lpo:thi=all:sas=z3:bd=all:fdtod=on:sp=const_max:foolp=on:gtgl=5:asg=cautious:gtg=all:rawr=on_1 -lma off -uhcvi off -aer on -add on -nwc 1.0  Problems/SWC/SWC482_1.p
 check_szs_status Theorem -t 1d -s 1011 -to lpo -sp unary_frequency -tha off -newcnf on -s2a on -doe on Problems/SWW/SWW587_2.p
-check_szs_status Theorem -t 3d -s 1011 -tgt full -fde none -nm 0 Problems/SWW/SWW605_2.p
+check_szs_status Theorem -t 3d -s 1011 -tgt full -fde none -nm 0 -bd all -sp arity -lma off -aer on -add on -nwc 1.0 Problems/SWW/SWW605_2.p
 check_szs_status Theorem --decode ott+10_1:1024_to=kbo:norm_ineq=on:fde=unused:sas=z3:sos=on:tha=off:nm=16_1 Problems/SWW/SWW617_2.p
 check_szs_status Theorem -t 1d -t 1d -sas z3 -fs off -slsq off -s2a on -ep RSTC -fsr off -alasca on Problems/SWW/SWW620_2.p
 check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
