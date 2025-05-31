@@ -94,8 +94,10 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
 
   ClauseIterator replacements;
   ClauseIterator premises;
+  Clause* replacement = nullptr;
 
-  ASS_EQ(fgj.perform(cl, premises), joinable);
+  ASS_EQ(fgj.perform(cl, replacement, premises), joinable);
+  ASS(!replacement);
 
   // tear down saturation algorithm
   fgj.InferenceEngine::detach();
