@@ -553,8 +553,8 @@ public:
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,
     GOAL = 1,
-    UNIT = 2,
-    GOAL_UNIT = 3,
+    UNITS = 2,
+    GOAL_THEN_UNITS = 3,
     NON_INTRO = 4,
     INTRO = 5,
   };
@@ -1234,8 +1234,8 @@ virtual std::string getStringOfActual() const override {
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
 NonGoalWeightOptionValue(){}
-NonGoalWeightOptionValue(std::string l, std::string s, float def) :
-OptionValue(l,s,def), numerator(1), denominator(1) {};
+NonGoalWeightOptionValue(std::string l, std::string s) :
+OptionValue(l,s,10.0), numerator(10), denominator(1) {};
 
 bool setValue(const std::string& value);
 

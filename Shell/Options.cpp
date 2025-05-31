@@ -614,7 +614,7 @@ void Options::init()
     _newCNF.addProblemConstraint(onlyFirstOrder());
     _newCNF.tag(OptionTag::PREPROCESSING);
 
-    _inlineLet = BoolOptionValue("inline_let","ile",false);
+    _inlineLet = BoolOptionValue("inline_let","ile",true);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
     _inlineLet.onlyUsefulWith(_newCNF.is(equal(true)));
@@ -1064,7 +1064,7 @@ void Options::init()
     _positiveLiteralSplitQueueLayeredArrangement.onlyUsefulWith(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
-    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",true);
     _literalMaximalityAftercheck.description =
                                    "For efficiency we perform maximality checks before applying substitutions. Sometimes this can "
                                    "lead to generating more clauses than needed for completeness. Set this on to add the checks "
@@ -1590,7 +1590,7 @@ void Options::init()
     _lookup.insert(&_instantiation);
 
     _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
-                  Demodulation::ALL,
+                  Demodulation::OFF,
                   {"all","off","preordered"});
     _backwardDemodulation.description=
        "Oriented rewriting of kept clauses by newly derived unit equalities\n"
@@ -1698,7 +1698,7 @@ void Options::init()
     _demodulationOnlyEquational.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationOnlyEquational.addProblemConstraint(hasEquality());
 
-    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
+    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",true);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses";
     _lookup.insert(&_extensionalityAllowPosEq);
@@ -1980,7 +1980,7 @@ void Options::init()
     _globalSubsumptionSatSolverPower.onlyUsefulWith(_globalSubsumption.is(equal(true)));
 
     _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
-        GlobalSubsumptionExplicitMinim::RANDOMIZED,{"off","on","randomized"});
+        GlobalSubsumptionExplicitMinim::ON,{"off","on","randomized"});
     _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global subsumption reduction.";
     _lookup.insert(&_globalSubsumptionExplicitMinim);
     _globalSubsumptionExplicitMinim.tag(OptionTag::INFERENCES);
@@ -1997,7 +1997,7 @@ void Options::init()
     _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_globalSubsumption.is(equal(true)));
     _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",false);
+    _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",true);
     _useHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection (affects avatar).";
     _lookup.insert(&_useHashingVariantIndex);
     _useHashingVariantIndex.tag(OptionTag::OTHER);
@@ -2039,7 +2039,7 @@ void Options::init()
     _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
                                                   then(_termOrdering.is(notEqual(TermOrdering::ALL_INCOMPARABLE))));
 
-    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
+    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::SMALL_ONES,
                                                      {"first", "small_ones", "all"});
     _ccUnsatCores.description="";
     _lookup.insert(&_ccUnsatCores);
@@ -2064,17 +2064,14 @@ void Options::init()
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",true);
+    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",false);
     _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
     // if minimize is off then makes no difference
-    // if minimize is sco then we could have a conflict clause added infinitely often
+    // if minimize is sco then we could have a conflict clause added infinitely often (we actually protect against this in Splitter, be ignoring aer even if turned on)
     _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
-    // actually, with amm=sco:aer=off, we can also (wrongly) saturate finitely - let's make this part of the constraint hard
-    // (Problems/SWV/SWV608-1.p --decode Problems/SWV/SWV608-1.p --decode ott-1_1:40_tgt=full:plsq=on:sp=frequency:lcm=predicate:gs=on:bd=off:rawr=on:afp=1000:afq=2.0:irw=on:fsd=on:aer=off:si=on:rtra=on:amm=sco_30 --random_seed XXX)
-    _splittingEagerRemoval.addHardConstraint(If(equal(false)).then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
 
     _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
     _splittingFastRestart.description="";
@@ -2089,7 +2086,7 @@ void Options::init()
     _splittingBufferedSolver.onlyUsefulWith(_splitting.is(equal(true)));
 
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
-                                                                        SplittingDeleteDeactivated::ON,{"on","large","off"});
+                                                                        SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"});
 
     _splittingDeleteDeactivated.description="";
     _lookup.insert(&_splittingDeleteDeactivated);
@@ -2191,9 +2188,9 @@ void Options::init()
     _literalComparisonMode.addProblemConstraint(mayHaveNonUnits());
     _literalComparisonMode.addProblemConstraint(notJustEquality());
 
-    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
+    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc"); // default 10.0 is hard-wired to the constructor
     _nonGoalWeightCoefficient.description=
-             "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
+             "coefficient that will multiply the weight of non-conjecture clauses (those marked as 'axiom' in TPTP)";
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.onlyUsefulWith(ProperSaturationAlgorithm());
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
@@ -2275,7 +2272,7 @@ void Options::init()
           .then(_alasca.is(equal(true)))); // <- alasca must be enabled, because the orderings rely on AlascaState to be set
     _lookup.insert(&_termOrdering);
 
-    _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
+    _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::FREQUENCY,
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
