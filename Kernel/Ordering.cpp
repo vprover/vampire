@@ -253,9 +253,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-TermOrderingDiagramUP Ordering::createTermOrderingDiagram() const
+TermOrderingDiagramUP Ordering::createTermOrderingDiagram(bool ground) const
 {
-  return std::make_unique<TermOrderingDiagram>(*this);
+  return std::make_unique<TermOrderingDiagram>(*this, ground);
 }
 
 //////////////////////////////////////////////////

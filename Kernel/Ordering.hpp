@@ -104,7 +104,7 @@ public:
   { return compare(t1, t2); }
 
   /** Creates optimised object for ordering checks. @see TermOrderingDiagram. */
-  virtual TermOrderingDiagramUP createTermOrderingDiagram() const;
+  virtual TermOrderingDiagramUP createTermOrderingDiagram(bool ground = false) const;
 
   virtual void show(std::ostream& out) const = 0;
 

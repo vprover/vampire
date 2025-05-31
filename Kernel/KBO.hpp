@@ -165,7 +165,7 @@ public:
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
   Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const override;
-  TermOrderingDiagramUP createTermOrderingDiagram() const override;
+  TermOrderingDiagramUP createTermOrderingDiagram(bool ground = false) const override;
 
 protected:
   unsigned computeWeight(AppliedTerm tt) const;
