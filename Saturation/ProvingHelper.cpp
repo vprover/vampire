@@ -55,15 +55,15 @@ using namespace Shell;
     runVampireSaturationImpl(prb, opt);
   }
   catch(const std::bad_alloc &) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env.statistics->terminationReason=TerminationReason::MEMORY_LIMIT;
     env.statistics->refutation=0;
   }
   catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
+    env.statistics->terminationReason=TerminationReason::TIME_LIMIT;
     env.statistics->refutation=0;
   }
   catch(ActivationLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
+    env.statistics->terminationReason=TerminationReason::ACTIVATION_LIMIT;
     env.statistics->refutation=0;
   }
 }
@@ -106,15 +106,15 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
     runVampireSaturationImpl(prb, opt);
   }
   catch(const std::bad_alloc &) {
-    env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
+    env.statistics->terminationReason=TerminationReason::MEMORY_LIMIT;
     env.statistics->refutation=0;
   }
   catch(TimeLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::TIME_LIMIT;
+    env.statistics->terminationReason=TerminationReason::TIME_LIMIT;
     env.statistics->refutation=0;
   }
   catch(ActivationLimitExceededException&) {
-    env.statistics->terminationReason=Statistics::ACTIVATION_LIMIT;
+    env.statistics->terminationReason=TerminationReason::ACTIVATION_LIMIT;
     env.statistics->refutation=0;
   }
 }
@@ -137,11 +137,11 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 
   env.options->resolveAwayAutoValues(prb);
 
-  env.statistics->phase=Statistics::SATURATION;
+  env.statistics->phase=ExecutionPhase::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
-  env.statistics->phase=Statistics::FINALIZATION;
+  env.statistics->phase=ExecutionPhase::FINALIZATION;
   Timer::disableLimitEnforcement();
   sres.updateStatistics();
 }

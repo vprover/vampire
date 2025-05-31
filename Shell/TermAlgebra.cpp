@@ -231,32 +231,9 @@ void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
   ASS_EQ(sort->functor(), t->functor());
   for (unsigned i = 0; i < sort->arity(); i++) {
     ASS(t->nthArgument(i)->isVar());
-    subst.bind(t->nthArgument(i)->var(), *sort->nthArgument(i));
+    ALWAYS(subst.bind(t->nthArgument(i)->var(), *sort->nthArgument(i)));
   }
 }
-
-class Binder
-{
-public:
-  TermList apply(unsigned var) {
-    TermList res;
-    if(!_map.find(var, res)) {
-      res = TermList(var, false);
-    }
-    return res;
-  }
-
-  bool bind(unsigned var, TermList term)
-  {
-    TermList* aux;
-    return _map.getValuePtr(var,aux,term) || *aux==term;
-  }
-
-  void specVar(unsigned var, TermList term)
-  { ASSERTION_VIOLATION; }
-
-  DHMap<unsigned, TermList> _map;
-};
 
 void TermAlgebra::excludeTermFromAvailables(TermStack& availables, TermList e, unsigned& var)
 {
@@ -271,7 +248,7 @@ void TermAlgebra::excludeTermFromAvailables(TermStack& availables, TermList e, u
   TermStack temp;
   while (availables.isNonEmpty()) {
     auto p = availables.pop();
-    Binder subst;
+    MatchingUtils::MapBinderAndApplicator subst;
     // if e is an instance of p, the remaining
     // instances of p are added
     if (MatchingUtils::matchTerms(p, e, subst)) {

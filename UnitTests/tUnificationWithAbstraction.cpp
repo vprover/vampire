@@ -2453,3 +2453,34 @@ ROB_UNIFY_TEST_FAIL(floor_test_16,
     a - floor(-a),
     num(0))
 
+
+TEST_FUN(bug05) {
+  for (auto mode : {
+      Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR
+      }) {
+    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode));
+    NUMBER_SUGAR(Rat)
+    DECL_DEFAULT_VARS
+    DECL_DEFAULT_SORT_VARS
+    DECL_POLY_CONST(a, 1, alpha)
+    DECL_CONST(b, Rat)
+
+    uwa.unify(x, 2, RatTraits::sort(), 0);
+    uwa.unify(a(x), 2, b + 3, 0);
+  }
+}
+
+TEST_FUN(bug06) {
+  for (auto mode : {
+      Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR
+      }) {
+    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode));
+    NUMBER_SUGAR(Rat)
+    DECL_DEFAULT_VARS
+    DECL_DEFAULT_SORT_VARS
+    DECL_POLY_CONST(a, 1, alpha)
+    DECL_CONST(b, Rat)
+
+    uwa.unify(a(x), 2, b + 3, 0);
+  }
+}

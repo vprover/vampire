@@ -43,54 +43,6 @@ LispParser::Expression* LispParser::parse()
   return result;
 } // parse()
 
-///**
-// * @since 26/08/2009 Redmond
-// */
-//void LispParser::parse(List** expr)
-//{
-//  Token t;
-//  for (;;) {
-//    _lexer.readToken(t);
-//    switch (t.tag) {
-//    case TT_RPAR:
-//      if (_balance == 0) {
-//	throw ParserException("unmatched right parenthesis",t);
-//      }
-//      _balance--;
-//      return;
-//    case TT_LPAR:
-//      _balance++;
-//      {
-//	Expression* subexpr = new Expression(LIST);
-//	parse(&subexpr->list);
-//	List* sub = new List(subexpr);
-//	*expr = sub;
-//	expr = sub->tailPtr();
-//      }
-//      break;
-//    case TT_NAME:
-//    case TT_INTEGER:
-//    case TT_REAL:
-//    {
-//      Expression* subexpr = new Expression(ATOM,t.text);
-//      List* sub = new List(subexpr);
-//      *expr = sub;
-//      expr = sub->tailPtr();
-//      break;
-//    }
-//    case TT_EOF:
-//      if (_balance == 0) {
-//	return;
-//      }
-//      throw ParserException("unmatched left parenthesis",t);
-//#if VDEBUG
-//    default:
-//      ASS(false);
-//#endif
-//    }
-//  }
-//} // parse()
-
 /**
  * @since 26/08/2009 Redmond
  */
@@ -118,7 +70,7 @@ void LispParser::parse(EList** expr0)
       case TT_LPAR:
         _balance++;
         {
-	  Expression* subexpr = new Expression(LIST);
+	  Expression* subexpr = new Expression(LIST, t.line, t.col);
 	  EList* sub = new EList(subexpr);
 	  *expr = sub;
 	  expr = sub->tailPtr();
@@ -131,7 +83,7 @@ void LispParser::parse(EList** expr0)
       case TT_INTEGER:
       case TT_REAL:
       {
-        Expression* subexpr = new Expression(ATOM,t.text);
+        Expression* subexpr = new Expression(ATOM, t.text, t.line, t.col);
         EList* sub = new EList(subexpr);
         *expr = sub;
         expr = sub->tailPtr();
@@ -184,97 +136,58 @@ std::string LispParser::Expression::toString(bool outerParentheses) const
   ASSERTION_VIOLATION;
 } // LispParser::Expression::toString
 
-/**
- * If expression corresponds to a unary function named @c funcionName,
- * return true and assign its argument to @c arg. Otherwise return false.
- */
-bool LispParser::Expression::get1Arg(std::string functionName, Expression*& arg)
+string LispParser::Expression::highlightSubexpression(Expression* se) const
 {
-  if(!isList()) {
-    return false;
+  ASS_EQ(tag, LIST);
+
+  static Expression space(ATOM, " ");
+  string res1;
+  string res2;
+  Stack<const Expression*> todo;
+  todo.push(this);
+
+  while (todo.isNonEmpty()) {
+    auto expr = todo.pop();
+    if (!expr) {
+      res1 += ')';
+      res2 += ' ';
+      continue;
+    }
+    if (expr == se) {
+      auto sres = expr->toString();
+      res1 += sres;
+      res2 += string(sres.size(), '^');
+      continue;
+    }
+    switch (expr->tag) {
+      case ATOM: {
+        res1 += expr->str;
+        res2 += string(expr->str.size(), ' ');
+        break;
+      }
+      case LIST: {
+        res1 += '(';
+        res2 += ' ';
+        Stack<const Expression*> inner;
+        for (EList* l = expr->list; l; l = l->tail()) {
+          inner.push(l->head());
+          if (l->tail()) {
+            inner.push(&space);
+          }
+        }
+        inner.push(nullptr);
+        todo.loadFromIterator(inner.iter());
+        break;
+      }
+    }
   }
+  return res1 + "\n" + res2;
+} // LispParser::Expression::highlightSubexpression
 
-  EList::Iterator args(list);
-  if(!args.hasNext()) { return false; }
-  std::string name = args.next()->str;
-  if(name!=functionName) { return false; }
-
-  if(!args.hasNext()) { return false; }
-  Expression* tmpArg = args.next();
-
-  if(args.hasNext()) { return false; }
-
-  arg = tmpArg;
-  return true;
-}
-
-/**
- * If expression corresponds to a binary function named @c funcionName,
- * return true and assign its arguments to @c arg1 and @c arg2. Otherwise
- * return false.
- */
-bool LispParser::Expression::get2Args(std::string functionName, Expression*& arg1, Expression*& arg2)
+string LispParser::Expression::getPosition() const
 {
-  if(!isList()) {
-    return false;
-  }
-
-  EList::Iterator args(list);
-  if(!args.hasNext()) { return false; }
-  std::string name = args.next()->str;
-  if(name!=functionName) { return false; }
-
-  if(!args.hasNext()) { return false; }
-  Expression* tmpArg1 = args.next();
-
-  if(!args.hasNext()) { return false; }
-  Expression* tmpArg2 = args.next();
-
-  if(args.hasNext()) { return false; }
-
-  arg1 = tmpArg1;
-  arg2 = tmpArg2;
-  return true;
-}
-
-/**
- * If expression is a list of two elements, return true and assign them
- * into @c el1 and @c el2.
- */
-bool LispParser::Expression::getPair(Expression*& el1, Expression*& el2)
-{
-  if(!isList()) {
-    return false;
-  }
-
-  EList::Iterator args(list);
-  if(!args.hasNext()) { return false; }
-  Expression* tmpEl1 = args.next();
-
-  if(!args.hasNext()) { return false; }
-  Expression* tmpEl2 = args.next();
-
-  if(args.hasNext()) { return false; }
-
-  el1 = tmpEl1;
-  el2 = tmpEl2;
-  return true;
-}
-
-bool LispParser::Expression::getSingleton(Expression*& el)
-{
-  if(!isList()) {
-    return false;
-  }
-
-  EList::Iterator args(list);
-  if(!args.hasNext()) { return false; }
-  Expression* tmpEl = args.next();
-
-  if(args.hasNext()) { return false; }
-
-  el = tmpEl;
-  return true;
+  ASS(line != -1 && col != -1);
+  return "line " + Int::toString(line) + " col " + Int::toString(col);
 }
 
 /**
@@ -300,173 +213,52 @@ void LispParser::Exception::cry(std::ostream& out) const
 } // Exception::cry
 
 ///////////////////////
-// LispListReader
+// ErrorThrowingLispListReader
 //
 
-void LispListReader::lispError(LExpr* expr, std::string reason)
+LExpr* ErrorThrowingLispListReader::readExpr()
 {
-  if(expr) {
-    USER_ERROR(reason+": "+expr->toString());
+  if (!it.hasNext()) {
+    USER_ERROR("Unexpected end of list at " + e->getPosition() + "\n" + root->highlightSubexpression(e));
   }
-  else {
-    USER_ERROR(reason+": <eol>");
-  }
-}
-
-/**
- * Report error with the current lisp element
- */
-void LispListReader::lispCurrError(std::string reason)
-{
-  if(hasNext()) {
-    lispError(peekAtNext(), reason);
-  }
-  else {
-    lispError(0, reason);
-  }
-}
-
-LExpr* LispListReader::peekAtNext()
-{
-  ASS(hasNext());
-
-  return it.peekAtNext();
-}
-
-LExpr* LispListReader::readNext()
-{
-  ASS(hasNext());
-
   return it.next();
 }
 
-bool LispListReader::tryReadAtom(std::string& atom)
+string ErrorThrowingLispListReader::readAtom()
 {
-  if(!hasNext()) { return false; }
+  auto exp = readExpr();
+  if (!exp->isAtom()) {
+    USER_ERROR("Expected atom at " + exp->getPosition() + "\n" + root->highlightSubexpression(exp));
+  }
+  return exp->str;
+}
 
-  LExpr* next = peekAtNext();
-  if(next->isAtom()) {
-    atom = next->str;
-    ALWAYS(readNext()==next);
+LExpr* ErrorThrowingLispListReader::readList()
+{
+  auto exp = readExpr();
+  if (!exp->isList()) {
+    USER_ERROR("Expected list at " + exp->getPosition() + "\n" + root->highlightSubexpression(exp));
+  }
+  return exp;
+}
+
+bool ErrorThrowingLispListReader::tryAcceptAtom(std::string atom)
+{
+  if (!it.hasNext()) { return false; }
+
+  auto n = it.peekAtNext();
+  if(n->isAtom() && n->str==atom) {
+    ALWAYS(it.next()==n);
     return true;
   }
   return false;
 }
 
-std::string LispListReader::readAtom()
+void ErrorThrowingLispListReader::acceptEOL()
 {
-  std::string atm;
-  if(!tryReadAtom(atm)) {
-    lispCurrError("atom expected");
+  if (it.hasNext()) {
+    USER_ERROR("Expected end of list at " + e->getPosition() + "\n" + root->highlightSubexpression(e));
   }
-  return atm;
-}
-
-bool LispListReader::tryAcceptAtom(std::string atom)
-{
-  if(!hasNext()) { return false; }
-
-  LExpr* next = peekAtNext();
-  if(next->isAtom() && next->str==atom) {
-    ALWAYS(readNext()==next);
-    return true;
-  }
-  return false;
-}
-
-void LispListReader::acceptAtom(std::string atom)
-{
-  if(!tryAcceptAtom(atom)) {
-    lispCurrError("atom \""+atom+"\" expected");
-  }
-}
-
-bool LispListReader::tryReadListExpr(LExpr*& e)
-{
-  if(!hasNext()) { return false; }
-
-  LExpr* next = peekAtNext();
-  if(next->isList()) {
-    e = next;
-    ALWAYS(readNext()==next);
-    return true;
-  }
-  return false;
-}
-
-LExpr* LispListReader::readListExpr()
-{
-  LExpr* list;
-  if(!tryReadListExpr(list)) {
-    lispCurrError("list expected");
-  }
-  return list;
-}
-
-bool LispListReader::tryReadList(LExprList*& list)
-{
-  LExpr* lstExpr;
-  if(tryReadListExpr(lstExpr)) {
-    list = lstExpr->list;
-    return true;
-  }
-  return false;
-}
-
-LExprList* LispListReader::readList()
-{
-  return readListExpr()->list;
-}
-
-bool LispListReader::tryAcceptList()
-{
-  LExprList* lst;
-  return tryReadList(lst);
-}
-void LispListReader::acceptList()
-{
-  readList();
-}
-
-void LispListReader::acceptEOL()
-{
-  if(hasNext()) {
-    lispCurrError("<eol> expected");
-  }
-}
-
-bool LispListReader::lookAheadAtom(std::string atom)
-{
-  if(!hasNext()) { return false; }
-  LExpr* next = peekAtNext();
-  return next->isAtom() && next->str==atom;
-}
-
-bool LispListReader::tryAcceptCurlyBrackets()
-{
-  LExpr* next = peekAtNext();
-  if(!next->isAtom() || next->str!="{") {
-    return false;
-  }
-  unsigned depth = 1;
-  readNext();
-  while(depth!=0 && hasNext()) {
-    next = readNext();
-
-    if(!next->isAtom()) {
-      continue;
-    }
-    if(next->str=="{") {
-      depth++;
-    }
-    else if(next->str=="}") {
-      depth--;
-    }
-  }
-  if(depth!=0) {
-    lispCurrError("unpaired opening curly bracket");
-  }
-  return true;
 }
 
 }

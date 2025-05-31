@@ -27,6 +27,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/SMTCheck.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -594,7 +595,12 @@ protected:
       }
       std::string axiomName;
       if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
-	      axiomName="unknown";
+        // Giles' ucore extraction code parses labels from smtlib files, let's try printing these too
+        if (!us->isClause() && us->getFormula()->hasLabel()) {
+          axiomName = us->getFormula()->getLabel();
+        } else {
+	        axiomName="unknown";
+        }
       }
       inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
     }
@@ -1522,6 +1528,24 @@ protected:
   }
 };
 
+struct InferenceStore::SMTCheckPrinter
+: public InferenceStore::ProofPrinter
+{
+  SMTCheckPrinter(ostream& out, InferenceStore* is)
+  : ProofPrinter(out, is) {}
+
+  void print()
+  {
+    SMTCheck::outputSignature(out);
+    ProofPrinter::print();
+  }
+
+  void printStep(Unit* u)
+  {
+    SMTCheck::outputStep(out, u);
+  }
+};
+
 InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& out)
 {
   switch(env.options->proof()) {
@@ -1537,9 +1561,10 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& o
     return new ProofPropertyPrinter(out,this);
   case Options::Proof::OFF:
     return 0;
+  case Shell::Options::Proof::SMTCHECK:
+    return new SMTCheckPrinter(out, this);
   }
   ASSERTION_VIOLATION;
-  return 0;
 }
 
 /**

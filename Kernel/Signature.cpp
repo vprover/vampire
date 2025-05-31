@@ -51,6 +51,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _answerPredicate(0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),
+    _termAlgebraDiscriminator(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
@@ -59,8 +60,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _tuple(0),
     _computable(1),
     _letBound(0),
-    _prox(NOT_PROXY),
-    _comb(NOT_COMB)
+    _prox(NOT_PROXY)
 {
   if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";

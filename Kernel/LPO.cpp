@@ -64,21 +64,6 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
   return (predicatePrecedence(p1) > predicatePrecedence(p2)) ? GREATER : LESS;
 } // LPO::comparePredicates()
 
-Ordering::Result LPO::comparePrecedences(const Term* t1, const Term* t2) const
-{
-  if (t1->isSort() && t2->isSort()) {
-    return compareTypeConPrecedences(t1->functor(), t2->functor());
-  }
-  // type constuctor symbols are less than function symbols
-  if (t1->isSort()) {
-    return LESS;
-  }
-  if (t2->isSort()) {
-    return GREATER;
-  }
-  return compareFunctionPrecedences(t1->functor(), t2->functor());
-} // LPO::comparePrecedences
-
 Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
 {
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));

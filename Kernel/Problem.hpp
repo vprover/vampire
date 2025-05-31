@@ -80,12 +80,11 @@ public:
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
   void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition);
- 
+
   DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
   DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
   DHMap<unsigned,Unit*> getPartiallyEliminatedPredicates(){ return _partiallyDeletedPredicates;}
   FunctionDefinitionHandler& getFunctionDefinitionHandler(){ return *_fnDefHandler; }
-  
 
   bool isPropertyUpToDate() const { return _propertyValid; }
   Property* getProperty() const;
@@ -212,7 +211,6 @@ private:
   mutable MaybeBool _hasNumerals;
   mutable MaybeBool _hasAlascaArithmetic;
   mutable MaybeBool _hasFOOL;
-  mutable MaybeBool _hasCombs;
   mutable MaybeBool _hasApp;
   mutable MaybeBool _hasAppliedVar;
   mutable MaybeBool _hasLogicalProxy;

@@ -33,8 +33,6 @@ using namespace Shell;
 
 struct MainLoopResult
 {
-  typedef Statistics::TerminationReason TerminationReason;
-
   MainLoopResult(TerminationReason reason)
   : terminationReason(reason), refutation(0), saturatedSet(0) {}
   MainLoopResult(TerminationReason reason, Clause* ref)

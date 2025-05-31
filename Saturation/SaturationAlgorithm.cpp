@@ -82,20 +82,13 @@
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
-#include "Inferences/Narrow.hpp"
-#include "Inferences/PrimitiveInstantiation.hpp"
 #include "Inferences/Choice.hpp"
-#include "Inferences/ElimLeibniz.hpp"
-#include "Inferences/SubVarSup.hpp"
-#include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/CombinatorDemodISE.hpp"
-#include "Inferences/CombinatorNormalisationISE.hpp"
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
@@ -1267,15 +1260,15 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {
-    MainLoopResult::TerminationReason termReason =
-        isComplete() ? Statistics::SATISFIABLE : Statistics::REFUTATION_NOT_FOUND;
+    TerminationReason termReason =
+        isComplete() ? TerminationReason::SATISFIABLE : TerminationReason::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);
 
     // if (termReason == Statistics::REFUTATION_NOT_FOUND){
     //   Shell::UIHelper::outputSaturatedSet(cout, pvi(UnitList::Iterator(collectSaturatedSet())));
     // }
 
-    if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
+    if (termReason == TerminationReason::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
       res.saturatedSet = collectSaturatedSet();
 
       if (_splitter) {
@@ -1495,29 +1488,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution());
   }
 
-  if (opt.combinatorySup()) {
-    gie->addFront(new ArgCong());
-    gie->addFront(new NegativeExt()); // TODO add option
-    if (opt.narrow() != Options::Narrow::OFF) {
-      gie->addFront(new Narrow());
-    }
-    if (!opt.pragmatic()) {
-      gie->addFront(new SubVarSup());
-    }
-  }
-
-  if(prb.hasFOOL() &&
-    prb.isHigherOrder() && env.options->booleanEqTrick()){
-  //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
-    gie->addFront(new BoolEqToDiseq());
-  }
-
-  if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
-     prb.isHigherOrder() && !opt.lambdaFreeHol()){
-    gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
-    gie->addFront(new ElimLeibniz());
-  }
-
   if (env.options->choiceReasoning()) {
     gie->addFront(new Choice());
   }
@@ -1539,13 +1509,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Cases());
   }
 
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      gie->addFront(new LazyClausificationGIE());
-    }
-  }
 
   if (opt.injectivityReasoning()) {
     gie->addFront(new Injectivity());
@@ -1654,14 +1617,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   // create simplification engine
 
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      res->addSimplifierToFront(new LazyClausification());
-    }
-  }
-
   // create forward simplification engine
   if (mayHaveEquality && opt.innerRewriting()) {
     res->addForwardSimplifierToFront(new InnerRewriting());
@@ -1690,12 +1645,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        if (opt.combinatorySup()) {
-          res->addForwardSimplifierToFront(new ForwardDemodulationImpl<true>());
-        }
-        else {
-          res->addForwardSimplifierToFront(new ForwardDemodulationImpl<false>());
-        }
+        res->addForwardSimplifierToFront(new ForwardDemodulationImpl());
         break;
       case Options::Demodulation::OFF:
         break;
@@ -1784,28 +1734,12 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       break;
   }
 
-  if (env.options->combinatorySup()) {
-    res->addFront(new CombinatorDemodISE());
-    res->addFront(new CombinatorNormalisationISE());
-  }
-
   if (env.options->choiceReasoning()) {
     res->addFront(new ChoiceDefinitionISE());
   }
 
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.isHigherOrder() && !env.options->addProxyAxioms()){
-    if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
-      /*res->addFrontMany(new ProxyISE());
-      res->addFront(new OrImpAndProxyISE());
-      res->addFront(new NotProxyISE());
-      res->addFront(new EqualsProxyISE());
-      res->addFront(new PiSigmaProxyISE());*/
-      res->addFrontMany(new EagerClausificationISE());
-    }
-    else {
-      res->addFront(new IFFXORRewriterISE());
-    }
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
+    HOL_ERROR;
     res->addFront(new BoolSimp());
   }
 

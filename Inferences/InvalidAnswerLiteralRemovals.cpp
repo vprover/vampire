@@ -13,6 +13,7 @@
  */
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Parse/TPTP.hpp"
 
 #include "InvalidAnswerLiteralRemovals.hpp"
@@ -50,9 +51,38 @@ Clause* MultipleAnswerLiteralRemoval::simplify(Clause* cl)
 
 UndesiredAnswerLiteralRemoval::UndesiredAnswerLiteralRemoval(const std::string& avoidThese)
 {
-  // TODO: catch parsing exceptions and complain properly
-  _avoiders = Parse::TPTP::parseClauseFromString(avoidThese);
-  // std::cout << "Got: " << _avoiders->toString() << std::endl;
+  Formula* top_fla = static_cast<FormulaUnit*>(Parse::TPTP::parseFormulaFromString(avoidThese))->formula();
+  Formula* fla = top_fla;
+
+  while (fla->connective() == FORALL || fla->connective() == EXISTS) {
+    fla = fla->qarg();
+  }
+  if (fla->connective() != OR && fla->connective() != LITERAL) {
+    goto error;
+  }
+
+  {
+    Stack<Literal*> disjuncts;
+    if (fla->connective() == LITERAL) {
+      disjuncts.push(fla->literal());
+    } else {
+      FormulaList* args = fla->args();
+      while (args) {
+        auto arg = args->head();
+        if (arg->connective() != LITERAL)
+          goto error;
+        disjuncts.push(arg->literal());
+        args = args->tail();
+      }
+    }
+
+    _avoiders = Clause::fromStack(disjuncts,Inference(NonspecificInference0(UnitInputType::ASSUMPTION,InferenceRule::INPUT)));
+
+    return;
+  }
+
+  error:
+    USER_ERROR("Invalid format of the question avoider formula: "+top_fla->toString());
 }
 
 Clause* UndesiredAnswerLiteralRemoval::simplify(Clause* cl)

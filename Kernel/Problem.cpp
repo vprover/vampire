@@ -228,7 +228,7 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 }
 
 /**
- * Register a predicate that has been partially eliminated i.e. <=> replaced by => 
+ * Register a predicate that has been partially eliminated i.e. <=> replaced by =>
  *
  * This information may be used during model output
  */
@@ -243,7 +243,7 @@ void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
 void Problem::refreshProperty() const
 {
   TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
-  ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
+  ScopedLet<ExecutionPhase> phaseLet(env.statistics->phase, ExecutionPhase::PROPERTY_SCANNING);
 
   auto oldProp = _property;
   _propertyValid = true;
@@ -272,7 +272,6 @@ void Problem::readDetailsFromProperty() const
         || _property->hasInterpretedOperation(n.floorI);
         });
   _hasFOOL = _property->hasFOOL();
-  _hasCombs = _property->hasCombs();
   _hasApp = _property->hasApp();
   _hasAppliedVar = _property->hasAppliedVar();
   _hasLogicalProxy = _property->hasLogicalProxy();
@@ -301,7 +300,6 @@ void Problem::invalidateEverything()
   _hasNumerals = MaybeBool::Unknown;
   _hasAlascaArithmetic = MaybeBool::Unknown;
   _hasFOOL = MaybeBool::Unknown;
-  _hasCombs = MaybeBool::Unknown;
   _hasApp = MaybeBool::Unknown;
   _hasAppliedVar = MaybeBool::Unknown;
 
@@ -325,7 +323,6 @@ void Problem::invalidateByRemoval()
   _hasNumerals.mightBecameFalse();
   _hasAlascaArithmetic.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
-  _hasCombs.mightBecameFalse();
   _hasAppliedVar.mightBecameFalse();
   _hasLogicalProxy.mightBecameFalse();
   _hasPolymorphicSym.mightBecameFalse();
@@ -350,7 +347,7 @@ Property* Problem::getProperty() const
 bool Problem::hasFormulas() const
 {
   if(!mayHaveFormulas()) { return false; }
-  if(!_hasFormulas.known()) { refreshProperty(); }  
+  if(!_hasFormulas.known()) { refreshProperty(); }
   ASS(_hasFormulas.known());
   return _hasFormulas.value();
 }
@@ -393,13 +390,6 @@ bool Problem::hasFOOL() const
   if(!_hasFOOL.known()) { refreshProperty(); }
   return _hasFOOL.value();
 }
-
-bool Problem::hasCombs() const
-{
-  if(!_hasCombs.known()) { refreshProperty(); }
-  return _hasCombs.value();
-}
-
 
 bool Problem::hasApp() const
 {

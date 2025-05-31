@@ -522,8 +522,6 @@ public:
   static Term* foolTrue(); 
   static Term* foolFalse(); 
 
-  VList* freeVariables() const;
-
   /** Return number of bytes before the start of the term that belong to it */
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }
 
@@ -1264,6 +1262,14 @@ private:
 //      find a better place for this?
 bool positionIn(TermList& subterm,TermList* term, std::string& position);
 bool positionIn(TermList& subterm,Term* term, std::string& position);
+
+/**
+ * Hash used to make hashing over shared terms deterministic.
+ */
+struct SharedTermHash {
+  static bool equals(Term* t1, Term* t2) { return t1==t2; }
+  static unsigned hash(Term* t) { return t->getId(); }
+};
 
 } // namespace Kernel
 

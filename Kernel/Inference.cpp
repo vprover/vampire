@@ -259,26 +259,10 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
 
   out << ", incl: " << self._included;
   out << ", ptd: " << self._isPureTheoryDescendant;
-  if(env.options->addCombAxioms()){
-    out << ", cad: " << self._combAxiomsDescendant;
-  }
-  if(env.options->addProxyAxioms()){
-     out << ", pad: " << self._proxyAxiomsDescendant;
-  }
-  if(env.options->addCombAxioms() && env.options->addProxyAxioms()){
-    out << ", had: " << self._holAxiomsDescendant;
-  }
-  out << ", id: " << self._inductionDepth;
-  if(env.options->maxXXNarrows() > 0){
-    out << ", xxNarrs " << self._XXNarrows;
-  }
-  if(env.options->prioritiseClausesProducedByLongReduction()){
-    out << ", redLen " << self._reductions;
-  }
   out << ", sl: " << self._sineLevel;
   out << ", age: " << self._age;
-  out << ", thAx:" << (int)(self.th_ancestors);
-  out << ", allAx:" << (int)(self.all_ancestors);
+  out << ", thAx:" << static_cast<int>(self.th_ancestors);
+  out << ", allAx:" << static_cast<int>(self.all_ancestors);
 
   return out;
 }
@@ -938,6 +922,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "induction hyperresolution";
   case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
     return "generalized induction hyperresolution";
+  case InferenceRule::FREE_VAR_INDUCTION_HYPERRESOLUTION:
+    return "induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:

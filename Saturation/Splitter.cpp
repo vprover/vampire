@@ -58,7 +58,7 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-void SplitClauseExtra::output(std::ostream &out) const {
+void SATClauseExtra::output(std::ostream &out) const {
   out << "sat_clause_recorded";
 }
 
@@ -473,8 +473,6 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     while(it.hasNext()) {
       Literal* lit = it.next();
 
-      // cout << lit->toString() << endl;
-
       ASS(lit->isPositive());
       ASS(lit->isEquality());
       ASS(lit->ground());
@@ -585,7 +583,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   ASS(removedComps.isEmpty());
 
   unsigned maxSatVar = _parent.maxSatVar();
-  
+
   SATSolver::Status stat;
   {
     TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
@@ -602,7 +600,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   }
   if(stat == SATSolver::Status::UNKNOWN){
     env.statistics->smtReturnedUnknown=true;
-    throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+    throw MainLoop::MainLoopFinishedException(TerminationReason::REFUTATION_NOT_FOUND);
   }
   ASS_EQ(stat,SATSolver::Status::SATISFIABLE);
 
@@ -616,7 +614,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
      */
     if (asgn == SATSolver::VarAssignment::NOT_KNOWN) {
       env.statistics->smtDidNotEvaluate=true;
-      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
+      throw MainLoop::MainLoopFinishedException(TerminationReason::REFUTATION_NOT_FOUND);
     }
 
     updateSelection(i, asgn, addedComps, removedComps);
@@ -632,12 +630,7 @@ std::string Splitter::splPrefix = "";
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
   _clausesAdded(false), _haveBranchRefutation(false)
-{
-  if(env.options->proof()==Options::Proof::TPTP){
-    unsigned spl = env.signature->addFreshFunction(0,"spl");
-    splPrefix = env.signature->functionName(spl)+"_";
-  }
-}
+{}
 
 Splitter::~Splitter()
 {
@@ -740,6 +733,13 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
 }
 std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
+  if (splPrefix.empty()) {
+    if(env.options->proof()==Options::Proof::TPTP){
+      unsigned spl = env.signature->addFreshFunction(0,"spl");
+      splPrefix = env.signature->functionName(spl)+"_";
+    }
+  }
+
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
     lit = lit.opposite();
@@ -975,7 +975,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(scl, new SplitClauseExtra(nsClause));
+      env.proofExtra.insert(scl, new SATClauseExtra(nsClause));
 
     nsClause->setInference(new FOConversionInference(scl));
 
@@ -1164,7 +1164,7 @@ bool Splitter::doSplitting(Clause* cl)
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
-    env.proofExtra.insert(scl, new SplitClauseExtra(splitClause));
+    env.proofExtra.insert(scl, new SATClauseExtra(splitClause));
 
   splitClause->setInference(new FOConversionInference(scl));
 
@@ -1664,6 +1664,8 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInference1(InferenceRule::AVATAR_CONTRADICTION_CLAUSE,cl));
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(scl, new SATClauseExtra(confl));
 
   confl->setInference(new FOConversionInference(scl));
   

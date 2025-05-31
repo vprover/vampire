@@ -89,47 +89,6 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
 	env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
     Color color = COLOR_TRANSPARENT;
-
-    if(env.options->combinatorySup()){ 
-      int maxRedLength = -1;
-      TermList head;
-      TermStack args;
-      AH::getHeadAndArgs(t, head, args);
-      if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
-        maxRedLength = sumRedLengths(args);
-      } else {
-        switch(AH::getComb(head)){
-          case Signature::B_COMB:
-            if(!AH::isComb(AH::getHead(args[args.size()-1]))  &&
-               !AH::isComb(AH::getHead(args[args.size()-2]))){
-              maxRedLength = sumRedLengths(args);
-              maxRedLength = maxRedLength == -1 ? -1 : maxRedLength + 1;
-            }
-            break;
-          case Signature::S_COMB:
-            if(!AH::isComb(AH::getHead(args[args.size()-1]))  &&
-               !AH::isComb(AH::getHead(args[args.size()-2]))){
-              maxRedLength = sumRedLengths(args);
-              maxRedLength = maxRedLength == -1 ? -1 : maxRedLength + 1;
-              if(maxRedLength != -1 && args[args.size() - 3].isTerm()){
-                maxRedLength += args[args.size() - 3].term()->maxRedLength();
-              }
-            }
-            break;
-          case Signature::C_COMB:
-          case Signature::I_COMB:
-          case Signature::K_COMB:
-            if(!AH::isComb(AH::getHead(args[args.size()-1]))){
-              maxRedLength = sumRedLengths(args);
-              maxRedLength = maxRedLength == -1 ? -1 : maxRedLength + 1;
-            }
-            break;
-          default:
-            ASSERTION_VIOLATION;
-        }
-      }
-      t->setMaxRedLen(maxRedLength);
-    }
     
     unsigned typeArity = t->numTypeArguments();
     for (unsigned i = 0; i < t->arity(); i++) {
