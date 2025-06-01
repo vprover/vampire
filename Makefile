@@ -299,6 +299,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/ProofExtra.o\
+         Inferences/ForwardGroundJoinability.o\
          SATSubsumption/SATSubsumptionAndResolution.o\
          SATSubsumption/subsat/constraint.o\
          SATSubsumption/subsat/log.o\
