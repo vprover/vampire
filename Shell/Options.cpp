@@ -1065,9 +1065,8 @@ void Options::init()
 
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",true);
     _literalMaximalityAftercheck.description =
-                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can "
-                                   "lead to generating more clauses than needed for completeness. Set this on to add the checks "
-                                   "afterwards as well.";
+                                   "Allows to disable a secondary (literal maximality) ordering check (in the superposition calculus) after a substitution is applied."
+                                   " The check costs something but sometimes helps to skip some generating inferences";
     _lookup.insert(&_literalMaximalityAftercheck);
     _literalMaximalityAftercheck.onlyUsefulWith(ProperSaturationAlgorithm());
     _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
