@@ -132,7 +132,7 @@ public:
      * and if $nm is set to NZ, samples from a shifted geometric distribution with p=0.07 and a shift=2. (So 2 gets selected with a probability p,
      * 3 with a probability p(1-p), ... and 2+i with a probability p(1-p)^i).
      */
-    void sampleStrategy(const std::string& samplerFileName);
+    void sampleStrategy(const std::string& samplerFileName, Property* prop);
 
     /**
      * Return the problem name
