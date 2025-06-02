@@ -48,6 +48,7 @@
 
 #include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Property.hpp"
 
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -2982,7 +2983,7 @@ std::string Options::strategySamplingLookup(std::string optname, DHMap<std::stri
   return "";
 }
 
-void Options::sampleStrategy(const std::string& strategySamplerFilename)
+void Options::sampleStrategy(const std::string& strategySamplerFilename, Shell::Property* prop)
 {
   std::ifstream input(strategySamplerFilename.c_str());
 
@@ -2996,6 +2997,12 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
     : std::mt19937(_randomStrategySeed.actualValue);
   // map of local variables (fake options)
   DHMap<std::string,std::string> fakes;
+
+  // fill the fakes with some builtins - used for conditional sampling based on prop
+  fakes.set("@cat",prop->categoryString());
+  for (unsigned i = 1, n = 2; i <= 25; i++, n *= 2){
+    fakes.set("@atoms_leq_2^"+Int::toString(i),Int::toString(unsigned(prop->atoms() <= n)));
+  }
 
   std::string line; // parsed lines
   Stack<std::string> pieces; // temp stack used for splitting
