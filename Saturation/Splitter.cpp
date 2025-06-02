@@ -73,10 +73,12 @@ void SplitDefinitionExtra::output(std::ostream &out) const {
 
 void SplittingBranchSelector::init()
 {
-  _eagerRemoval = _parent.getOptions().splittingEagerRemoval() &&
-    // if minimize is off then makes no difference; if minimize is sco then we could completeness issues
-    // (Problems/SWV/SWV608-1.p --decode Problems/SWV/SWV608-1.p --decode ott-1_1:40_tgt=full:plsq=on:sp=frequency:lcm=predicate:gs=on:bd=off:rawr=on:afp=1000:afq=2.0:irw=on:fsd=on:aer=off:si=on:rtra=on:amm=sco_30 --random_seed XXX)
-    (_parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::ALL);
+  // we need _eagerRemoval (aer) true, unless SplittingMinimizeModel is ALL
+  // if minimize is off then aer makes no difference;
+  // if minimize is sco then we could completeness issues
+  // (Problems/SWV/SWV608-1.p --decode Problems/SWV/SWV608-1.p --decode ott-1_1:40_tgt=full:plsq=on:sp=frequency:lcm=predicate:gs=on:bd=off:rawr=on:afp=1000:afq=2.0:irw=on:fsd=on:aer=off:si=on:rtra=on:amm=sco_30 --random_seed XXX)
+  _eagerRemoval = _parent.getOptions().splittingEagerRemoval() ||
+    (_parent.getOptions().splittingMinimizeModel() != Options::SplittingMinimizeModel::ALL);
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){

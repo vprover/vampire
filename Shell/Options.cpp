@@ -2086,8 +2086,9 @@ void Options::init()
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
-    // if minimize is off then makes no difference
-    // if minimize is sco then we could have a conflict clause added infinitely often (we actually protect against this in Splitter, be ignoring aer even if turned on)
+    // if minimize is off then aer makes no difference
+    // if minimize is sco then aer=off could lead to a conflict clause added infinitely often
+    // (we actually protect against the problematic combination in Splitter, by ignoring aer=off even if requested)
     _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
 
     _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
