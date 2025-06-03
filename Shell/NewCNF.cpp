@@ -178,10 +178,10 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
     GenLit negativeCondition = GenLit(condition, NEGATIVE);
 
     Substitution thenSubst;
-    ALWAYS(thenSubst.bind(variable, thenBranch));
+    thenSubst.bindUnbound(variable, thenBranch);
 
     Substitution elseSubst;
-    ALWAYS(elseSubst.bind(variable, elseBranch));
+    elseSubst.bindUnbound(variable, elseBranch);
 
     List<LPair>* processedLiterals(0);
 
@@ -270,7 +270,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
         GenLit negCondition = GenLit(condition, NEGATIVE);
 
         Substitution subst;
-        ALWAYS(subst.bind(matchVar, branch));
+        subst.bindUnbound(matchVar, branch);
 
         Literal *branchLiteral = SubstHelper::apply(literal, subst);
 
@@ -498,7 +498,7 @@ void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* 
 {
   // turn b into a singleton substitution
   static Substitution subst;
-  ALWAYS(subst.bind(b.first,b.second));
+  subst.bindUnbound(b.first,b.second);
 
   // to go through the bindings from the end, put them on a stack...
   static Stack<BindingList*> st(5);
@@ -1329,10 +1329,10 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
     Formula* skolem   = skolems.pop();
 
     Substitution thenSubst;
-    ALWAYS(thenSubst.bind(variable, Term::foolTrue()));
+    thenSubst.bindUnbound(variable, Term::foolTrue());
 
     Substitution elseSubst;
-    ALWAYS(elseSubst.bind(variable, Term::foolFalse()));
+    elseSubst.bindUnbound(variable, Term::foolFalse());
 
     List<List<GenLit>*>* processedGenClauses(0);
 
@@ -1376,7 +1376,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
       Formula* naming = new AtomicFormula(createNamingLiteral(skolem, vars));
 
       Substitution skolemSubst;
-      ALWAYS(skolemSubst.bind(variable, Term::createFormula(skolem)));
+      skolemSubst.bindUnbound(variable, Term::createFormula(skolem));
 
       bool addedDefinition = false;
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
@@ -1486,7 +1486,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     BindingList::Iterator bit(gc->bindings);
     while (bit.hasNext()) {
       Binding b = bit.next();
-      ALWAYS(subst->bind(b.first, b.second));
+      subst->bindUnbound(b.first, b.second);
     }
     _substitutionsByBindings.insert(gc->bindings, subst);
   }
