@@ -76,7 +76,6 @@ Property::Property()
     _hasNonDefaultSorts(false),
     _sortsUsed(0),
     _hasFOOL(false),
-    _hasCombs(false),
     _hasArrowSort(false),
     _hasApp(false),
     _hasAppliedVar(false),
@@ -703,9 +702,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       }
     }
 
-    if(func->combinator() != Signature::NOT_COMB){
-      _hasCombs = true;
-    } else if(func->proxy() != Signature::NOT_PROXY){
+    if(func->proxy() != Signature::NOT_PROXY){
       if(func->proxy() == Signature::PI || func->proxy() == Signature::SIGMA){
         ASS(t->arity() == 1);
         TermList sort = *t->nthArgument(0);

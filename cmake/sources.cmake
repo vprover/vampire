@@ -71,7 +71,6 @@ set(UNIT_TESTS
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSKIKBO.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
@@ -237,10 +236,6 @@ set(SOURCES
     Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
-    Inferences/CombinatorDemodISE.cpp
-    Inferences/CombinatorDemodISE.hpp
-    Inferences/CombinatorNormalisationISE.cpp
-    Inferences/CombinatorNormalisationISE.hpp
     Inferences/Condensation.cpp
     Inferences/Condensation.hpp
     Inferences/DefinitionIntroduction.cpp
@@ -249,8 +244,6 @@ set(SOURCES
     Inferences/DemodulationHelper.hpp
     Inferences/DistinctEqualitySimplifier.cpp
     Inferences/DistinctEqualitySimplifier.hpp
-    Inferences/ElimLeibniz.cpp
-    Inferences/ElimLeibniz.hpp
     Inferences/EqualityFactoring.cpp
     Inferences/EqualityFactoring.hpp
     Inferences/EqualityResolution.cpp
@@ -295,20 +288,14 @@ set(SOURCES
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
     Inferences/LfpRule.hpp
-    Inferences/Narrow.cpp
-    Inferences/Narrow.hpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp
     Inferences/PolynomialEvaluation.cpp
     Inferences/PolynomialEvaluation.hpp
-    Inferences/PrimitiveInstantiation.cpp
-    Inferences/PrimitiveInstantiation.hpp
     Inferences/ProofExtra.cpp
     Inferences/ProofExtra.hpp
     Inferences/PushUnaryMinus.cpp
     Inferences/PushUnaryMinus.hpp
-    Inferences/SubVarSup.cpp
-    Inferences/SubVarSup.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/SubsumptionDemodulationHelper.hpp
     Inferences/Superposition.cpp
@@ -419,8 +406,6 @@ set(SOURCES
     Kernel/RndLiteralSelector.hpp
     Kernel/RobSubstitution.cpp
     Kernel/RobSubstitution.hpp
-    Kernel/SKIKBO.cpp
-    Kernel/SKIKBO.hpp
     Kernel/Signature.cpp
     Kernel/Signature.cpp
     Kernel/Signature.hpp
@@ -432,7 +417,6 @@ set(SOURCES
     Kernel/SubformulaIterator.cpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
-    Kernel/Substitution.cpp
     Kernel/Substitution.hpp
     Kernel/Term.cpp
     Kernel/Term.hpp
@@ -672,8 +656,6 @@ set(SOURCES
     Shell/InterpretedNormalizer.hpp
     Shell/LaTeX.cpp
     Shell/LaTeX.hpp
-    Shell/LambdaElimination.cpp
-    Shell/LambdaElimination.hpp
     Shell/Lexer.cpp
     Shell/Lexer.cpp
     Shell/Lexer.hpp
@@ -704,6 +686,8 @@ set(SOURCES
     Shell/Property.hpp
     Shell/Rectify.cpp
     Shell/Rectify.hpp
+    Shell/SMTCheck.hpp
+    Shell/SMTCheck.cpp
     Shell/SMTLIBLogic.hpp
     Shell/Shuffling.cpp
     Shell/Shuffling.hpp

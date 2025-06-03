@@ -178,7 +178,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
         Kernel/QKbo.o\
-        Kernel/SKIKBO.o\
         Kernel/ALASCA/Signature.o\
         Kernel/ALASCA/SelectionPrimitves.o\
         Kernel/ALASCA/State.o\
@@ -206,7 +205,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/ApplicativeHelper.o\
         Kernel/OperatorType.o\
         Kernel/SubformulaIterator.o\
-        Kernel/Substitution.o\
         Kernel/Term.o\
         Kernel/PolynomialNormalizer.o\
         Kernel/Polynomial.o\
@@ -253,16 +251,12 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ExtensionalityResolution.o\
          Inferences/ArgCong.o\
          Inferences/NegativeExt.o\
-         Inferences/Narrow.o\
-         Inferences/SubVarSup.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/FunctionDefinitionRewriting.o\
          Inferences/FOOLParamodulation.o\
          Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\
-         Inferences/CombinatorDemodISE.o\
-         Inferences/CombinatorNormalisationISE.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
@@ -299,9 +293,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/CasesSimp.o\
          Inferences/Cases.o\
          Inferences/BoolSimp.o\
-         Inferences/PrimitiveInstantiation.o\
          Inferences/Choice.o\
-         Inferences/ElimLeibniz.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
@@ -358,7 +350,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
-         Shell/LambdaElimination.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
@@ -374,6 +365,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
+         Shell/SMTCheck.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Debug/TimeProfiling.o\
@@ -438,7 +430,6 @@ LIB_DEP = Indexing/TermSharing.o\
       Kernel/OperatorType.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
-	  Kernel/Substitution.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\

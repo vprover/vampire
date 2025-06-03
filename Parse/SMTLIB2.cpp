@@ -1474,7 +1474,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     VList::FIFO vars;
     Substitution subst;
     for (unsigned i = 0; i < exprT->arity(); i++) {
-      subst.bind(exprT->nthArgument(i)->var(),TermList::var(_nextVar));
+      ALWAYS(subst.bind(exprT->nthArgument(i)->var(),TermList::var(_nextVar)));
       vars.pushBack(_nextVar++);
     }
 
@@ -1584,7 +1584,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
   for (unsigned i = 0; i < type->arity(); i++) {
     if (i < type->numTypeArguments()) {
       auto typeArg = *matchedTermSort.term()->nthArgument(i);
-      subst.bind(type->quantifiedVar(i).var(),typeArg);
+      ALWAYS(subst.bind(type->quantifiedVar(i).var(),typeArg));
       patternArgs.push(typeArg);
       continue;
     }
@@ -1682,7 +1682,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
       LOG2("CASE missing ", pattern);
       ASS(varPattern.isVar());
       Substitution subst;
-      subst.bind(varPattern.var(), pattern);
+      ALWAYS(subst.bind(varPattern.var(), pattern));
       matchArgs.push(pattern);
       matchArgs.push(SubstHelper::apply(varBody, subst));
     }
@@ -1796,7 +1796,7 @@ bool SMTLIB2::parseAsSortDefinition(const std::string& id, LExpr* exp)
     }
     TermList arg;
     ALWAYS(_results.pop().asTerm(arg) == AtomicSort::superSort());
-    subst.bind(i, arg);
+    ALWAYS(subst.bind(i, arg));
   }
   _results.push(ParseResult(AtomicSort::superSort(), SubstHelper::apply(def->second, subst)));
   return true;
@@ -1893,7 +1893,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
       _todo.pop();
       ASS(!isSort);
       TermList resSort;
-      auto sort = _results.pop().asTerm(resSort);
+      DEBUG_CODE(auto sort =) _results.pop().asTerm(resSort);
       ASS_EQ(sort, AtomicSort::superSort());
       if (!MatchingUtils::matchTerms(type->result(), resSort, subst)) {
         complainAboutArgShortageOrWrongSorts("user defined symbol",exp);

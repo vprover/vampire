@@ -78,7 +78,6 @@ struct TwoLiteralRewriteInferenceExtra : public InferenceExtra {
     Kernel::Literal *thenLit = nullptr,
     Kernel::Literal *elseLit = nullptr)
     : selected(selected, other, condition, thenLit, elseLit), rewrite(lhs, rewritten) {}
-
   virtual void output(std::ostream &out) const override;
 
   // selected literals
