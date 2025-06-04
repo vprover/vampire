@@ -405,9 +405,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             continue;
           }
 
-          // TODO higher-order support not yet implemented; see forward demodulation
-          //      (maybe it's enough to just use the different iterator)
-          // ASS(!env.options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
             TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'

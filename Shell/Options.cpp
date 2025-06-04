@@ -1625,7 +1625,6 @@ void Options::init()
     _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _backwardSubsumptionDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
     _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-    // _backwardSubsumptionDemodulation.onlyUsefulWith(_combinatorySuperposition.is(equal(false)));  TODO
 
     _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
     _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
@@ -1813,7 +1812,6 @@ void Options::init()
     _forwardSubsumptionDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-    // _forwardSubsumptionDemodulation.onlyUsefulWith(_combinatorySuperposition.is(equal(false)));  TODO
 
     _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
     _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";
