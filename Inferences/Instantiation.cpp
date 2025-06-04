@@ -162,13 +162,13 @@ void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
 
         // we are okay
         Substitution s1;
-        ALWAYS(s1.bind(var,t));
+        s1.bindUnbound(var,t);
         subs.push(s1);
         if(lit->polarity()){
          t = tryGetDifferentValue(t);
          if(t){
            Substitution s2;
-           ALWAYS(s2.bind(var,t));
+           s2.bindUnbound(var,t);
            subs.push(s2);
          }
         }
@@ -244,7 +244,7 @@ public:
       DArray<Term*>* cans;
       if(candidates.find(v,cans) && cans->size()!=0){
         unsigned at = current.get(v);
-        ALWAYS(sub.bind(v,(* cans)[at]));
+        sub.bindUnbound(v,(* cans)[at]);
       }
     }
     //cout << "sub is " << sub.toString() << endl;

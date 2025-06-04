@@ -691,6 +691,8 @@ set(SOURCES
     Shell/Property.hpp
     Shell/Rectify.cpp
     Shell/Rectify.hpp
+    Shell/SMTCheck.hpp
+    Shell/SMTCheck.cpp
     Shell/SMTLIBLogic.hpp
     Shell/Shuffling.cpp
     Shell/Shuffling.hpp

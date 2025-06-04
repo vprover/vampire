@@ -26,7 +26,7 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
     unsigned var = vit.next();
     ASS(tit.hasNext());
     TermList arg = tit.next();
-    ALWAYS(substitution.bind(var, arg));
+    substitution.bindUnbound(var, arg);
   }
   ASS(!tit.hasNext());
 
@@ -51,7 +51,7 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
     while (bit.hasNext()) {
       unsigned boundVar = bit.next();
       unsigned freshVar = ++_freshVarOffset;
-      ALWAYS(substitution.bind(boundVar, TermList(freshVar, false)));
+      substitution.bindUnbound(boundVar, TermList(freshVar, false));
       List<pair<unsigned, unsigned>>::push(make_pair(boundVar, freshVar), _varRenames);
     }
   }
