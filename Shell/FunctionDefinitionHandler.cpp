@@ -270,9 +270,9 @@ bool RecursionTemplate::finalize()
         return TermList::var(*ptr);
       } else {
         auto tsort = SortHelper::getResultSort(t.term());
-        MatchingUtils::MapBinderAndApplicator binder;
+        Substitution binder;
         ALWAYS(MatchingUtils::matchTerms(tsort, sort, binder));
-        iterTraits(binder._map.items()).forEach([&](const auto& kv) {
+        iterTraits(binder.items()).forEach([&](const auto& kv) {
           ASS(kv.second.isVar());
           renaming.insert(kv.first,kv.second.var());
         });

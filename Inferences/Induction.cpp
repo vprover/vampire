@@ -119,7 +119,7 @@ TermList SkolemSquashingTermReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
-Formula* InductionContext::getFormula(const InductionUnit& unit, const TypeBinder& typeBinder, unsigned& var, VList** varList, Substitution* subst) const
+Formula* InductionContext::getFormula(const InductionUnit& unit, const Substitution& typeBinder, unsigned& var, VList** varList, Substitution* subst) const
 {
   auto hyps = FormulaList::empty();
   for (const auto& lit : unit.conditions) {
@@ -167,7 +167,7 @@ Formula* InductionContext::getFormula(const std::vector<TermList>& r, Substituti
     replacementMap.insert(make_pair(ph,r[i]));
     if (subst) {
       ASS(r[i].isVar());
-      subst->bind(r[i].var(), ph);
+      subst->bindUnbound(r[i].var(), ph);
     }
   }
   TermReplacement tr(replacementMap);
@@ -178,7 +178,7 @@ Formula* InductionContext::getFormulaWithFreeVar(const std::vector<TermList>& r,
 {
   Formula* replaced = getFormula(r, subst);
   Substitution s;
-  s.bind(freeVar, freeVarSub);
+  s.bindUnbound(freeVar, freeVarSub);
   return SubstHelper::apply(replaced, s);
 }
 
@@ -195,7 +195,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermL
     replacementMap.insert(make_pair(ph,r[i]));
     if (subst) {
       ASS(r[i].isVar());
-      subst->bind(r[i].var(), ph);
+      subst->bindUnbound(r[i].var(), ph);
     }
   }
   SkolemSquashingTermReplacement tr(replacementMap, var);
@@ -207,7 +207,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermL
       unsigned v;
       Term* t;
       it.next(t, v);
-      subst->bind(v,t);
+      subst->bindUnbound(v,t);
     }
   }
   if (varList) {
@@ -1315,7 +1315,7 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
   // cout << "using template" << endl;
   // cout << *templ << endl;
 
-  static TypeBinder typeBinder;
+  static Substitution typeBinder;
   typeBinder.reset();
 
   ASS_EQ(context._indTerms.size(), templ->sorts.size());
@@ -1433,7 +1433,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   Term* xSkolem = bindings.get(xvar, nullptr);
   ASS(xSkolem != nullptr);
   ASS(freeVarSubst != nullptr);
-  freeVarSubst->bind(int(freeVar), SubstHelper::apply<Substitution>(xSkolem, subst));
+  freeVarSubst->bindUnbound(int(freeVar), SubstHelper::apply<Substitution>(xSkolem, subst));
 
   e->add(std::move(hyp_clauses), std::move(subst));
   return;

@@ -1170,8 +1170,7 @@ void TheoryAxioms::applyFOOL() {
   addTheoryClauseFromLits({tneqf},InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE,CHEAP);
 
   // Do not add the finite domain axiom if --fool_paradomulation on
-  if (env.options->FOOLParamodulation() || env.options->cases() ||
-      env.options->casesSimp()) {
+  if (env.options->FOOLParamodulation()) {
     return;
   }
 

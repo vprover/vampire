@@ -116,8 +116,6 @@ private:
   unsigned& _v; // fresh variable counter supported by caller
 };
 
-using TypeBinder = MatchingUtils::MapBinderAndApplicator;
-
 /**
  * Class representing an induction. This includes:
  * - induction terms in @b _indTerms,
@@ -144,7 +142,7 @@ struct InductionContext {
   // These functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
-  Formula* getFormula(const InductionUnit& unit, const TypeBinder& typeBinder, unsigned& var, VList** varList = nullptr, Substitution* subst = nullptr) const;
+  Formula* getFormula(const InductionUnit& unit, const Substitution& typeBinder, unsigned& var, VList** varList = nullptr, Substitution* subst = nullptr) const;
   Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
 
   // Return some free variable that occurs in the induction literals.

@@ -566,8 +566,6 @@ std::string Term::headToString() const
     if (!isSort() && Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
-    bool print = (isLiteral() || isSort() ||
-                 (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB)) && arity();
     std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
@@ -581,7 +579,7 @@ std::string Term::headToString() const
     } else {
       name = functionName();
     }
-    return name + (print ? "(" : "");
+    return name;
   }
 }
 
@@ -629,6 +627,8 @@ std::string TermList::asArgsToString() const
     res += t->headToString();
 
     if (t->arity()) {
+      res += '(';
+
       stack.push(t->args());
     }
   }
@@ -658,25 +658,19 @@ std::string TermList::toString(bool topLevel) const
  */
 std::string Term::toString(bool topLevel) const
 {
-  bool printArgs = true;
-
-  if(isSuper()){
+  if (isSuper()) {
     return "$tType";
   }
 
-  if(!isSpecial() && !isLiteral()){
-    if(isSort() && static_cast<AtomicSort*>(const_cast<Term*>(this))->isArrowSort()){
-      ASS(arity() == 2);
-      std::string res;
-      TermList arg1 = *(nthArgument(0));
-      TermList arg2 = *(nthArgument(1));
-      res += topLevel ? "" : "(";
-      res += arg1.toString(false) + " > " + arg2.toString();
-      res += topLevel ? "" : ")";
-      return res;
-    }
-
-    printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
+  if (isSort() && static_cast<AtomicSort *>(const_cast<Term *>(this))->isArrowSort()) {
+    ASS(arity() == 2);
+    std::string res;
+    TermList arg1 = *(nthArgument(0));
+    TermList arg2 = *(nthArgument(1));
+    res += topLevel ? "" : "(";
+    res += arg1.toString(false) + " > " + arg2.toString();
+    res += topLevel ? "" : ")";
+    return res;
   }
 
 #if NICE_THEORY_OUTPUT
@@ -742,8 +736,8 @@ std::string Term::toString(bool topLevel) const
   std::stringstream out;
   out << headToString();
   
-  if (_arity && printArgs) {
-    out << Output::interleaved(',', anyArgIter(this)) << ")";
+  if (_arity) {
+    out << "(" << Output::interleaved(',', anyArgIter(this)) << ")";
   }
   return out.str();
 } // Term::toString

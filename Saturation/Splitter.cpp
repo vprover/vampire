@@ -58,7 +58,7 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-void SplitClauseExtra::output(std::ostream &out) const {
+void SATClauseExtra::output(std::ostream &out) const {
   out << "sat_clause_recorded";
 }
 
@@ -975,7 +975,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(scl, new SplitClauseExtra(nsClause));
+      env.proofExtra.insert(scl, new SATClauseExtra(nsClause));
 
     nsClause->setInference(new FOConversionInference(scl));
 
@@ -1164,7 +1164,7 @@ bool Splitter::doSplitting(Clause* cl)
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
-    env.proofExtra.insert(scl, new SplitClauseExtra(splitClause));
+    env.proofExtra.insert(scl, new SATClauseExtra(splitClause));
 
   splitClause->setInference(new FOConversionInference(scl));
 
@@ -1664,6 +1664,8 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInference1(InferenceRule::AVATAR_CONTRADICTION_CLAUSE,cl));
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(scl, new SATClauseExtra(confl));
 
   confl->setInference(new FOConversionInference(scl));
   
