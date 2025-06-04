@@ -365,8 +365,8 @@ private:
   MK_FIELD(bool, literal, Literal, LITERAL, SHARED_BITS_END, 1)
   MK_FIELD(bool, sort, Sort, SORT, LITERAL_BITS_END, 1)
   MK_FIELD(bool, hasTermVar, HasTermVar, HAS_TERM_VAR, SORT_BITS_END, 1)
-  MK_FIELD(bool, hasDBIndex, HasDBIndex, HAS_DB_INDEX, HAS_TERM_VAR_BITS_END, 1)
-  MK_FIELD(bool, hasRedex, HasRedex, HAS_REDEX, HAS_DB_INDEX_BITS_END, 1)
+  MK_FIELD(bool, hasDeBruijnIndex, HasDeBruijnIndex, HAS_DE_BRUIJN_INDEX, HAS_TERM_VAR_BITS_END, 1)
+  MK_FIELD(bool, hasRedex, HasRedex, HAS_REDEX, HAS_DE_BRUIJN_INDEX_BITS_END, 1)
   MK_FIELD(bool, hasLambda, HasLambda, HAS_LAMBDA, HAS_REDEX_BITS_END, 1)
   MK_FIELD(unsigned, order, Order, ORDER, HAS_LAMBDA_BITS_END, 3)
   MK_FIELD(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR, ORDER_BITS_END, TERM_DIST_VAR_BITS)
@@ -846,16 +846,16 @@ public:
   /** returns empty option if not a De Bruijn index and index otherwise */
   Option<unsigned> deBruijnIndex() const;
 
-  void setHasDBIndex(bool b) {
+  void setHasDeBruijnIndex(bool b) {
     ASS(shared() && !isSort());
-    _args[0]._setHasDBIndex(b);
+    _args[0]._setHasDeBruijnIndex(b);
   }
 
   /** returns true if term contains De Bruijn index */
-  bool hasDBIndex() const {
+  bool hasDeBruijnIndex() const {
     ASS(shared())
 
-    return _args[0]._hasDBIndex();
+    return _args[0]._hasDeBruijnIndex();
   }
 
   void setHasLambda(bool b) {

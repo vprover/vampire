@@ -142,7 +142,7 @@ class Signature
     unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
-    int _dbIndex;
+    int _deBruijnIndex;
 
   public:
     /** standard constructor */
@@ -257,13 +257,13 @@ class Signature
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
 
-    void setDBIndex(int index) {
-      _dbIndex = index;
+    void setDeBruijnIndex(int index) {
+      _deBruijnIndex = index;
     }
 
-    Option<unsigned> dbIndex() const {
-      if (_dbIndex > -1)
-        return Option<unsigned>(static_cast<unsigned>(_dbIndex));
+    Option<unsigned> deBruijnIndex() const {
+      if (_deBruijnIndex > -1)
+        return Option<unsigned>(static_cast<unsigned>(_deBruijnIndex));
 
       return {};
     }

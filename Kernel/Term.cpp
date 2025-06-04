@@ -953,7 +953,7 @@ bool Term::isChoice() const {
 Option<unsigned> Term::deBruijnIndex() const {
   if (isSort() || isLiteral() || isSpecial())
     return {};
-  return env.signature->getFunction(_functor)->dbIndex();
+  return env.signature->getFunction(_functor)->deBruijnIndex();
 }
 
 /**

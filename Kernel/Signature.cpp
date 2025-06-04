@@ -61,7 +61,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _computable(1),
     _letBound(0),
     _prox(Proxy::NOT_PROXY),
-    _dbIndex(-1)
+    _deBruijnIndex(-1)
 {
   if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
@@ -640,7 +640,7 @@ unsigned Signature::getDeBruijnIndex(int index) {
     auto alpha = TermList(0, false);
     auto sym = getFunction(fun);
     sym->setType(OperatorType::getConstantsType(alpha, 1));
-    sym->setDBIndex(index);
+    sym->setDeBruijnIndex(index);
   }
   return fun;
 }

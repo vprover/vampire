@@ -87,7 +87,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
-    bool hasDBIndex = t->deBruijnIndex().isSome();
+    bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
     bool hasRedex = t->isRedex();
     bool hasLambda = t->isLambdaTerm();
     Color color = COLOR_TRANSPARENT;
@@ -112,7 +112,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         vars += r->numVarOccs();
         weight += r->weight();
         hasTermVar |= r->hasTermVar();
-        hasDBIndex |= r->hasDBIndex();
+        hasDeBruijnIndex |= r->hasDeBruijnIndex();
         hasRedex   |= r->hasRedex();
         hasLambda  |= r->hasLambda();
         if (env.colorUsed) {
@@ -135,7 +135,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     }
 
     t->setHasRedex(hasRedex);
-    t->setHasDBIndex(hasDBIndex);
+    t->setHasDeBruijnIndex(hasDeBruijnIndex);
     t->setHasLambda(hasLambda);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
