@@ -37,41 +37,31 @@ using namespace Kernel;
  */
 OperatorType* SortHelper::getType(Term const* t)
 {
-  if (t->isLiteral()) {
+  if (t->isLiteral())
     return env.signature->getPredicate(t->functor())->predType();
-  } else if (t->isSort()) {
+
+  if (t->isSort())
     return env.signature->getTypeCon(t->functor())->typeConType();
-  }
+
   return env.signature->getFunction(t->functor())->fnType();
 } // getType
 
-/**
- * This function achieves the following. Let t = f<a1, a2>(t1, t2)
- * where ai are type arguments and ti are terms arguments. Let f have
- * type !>[X, Y]: (s1 * s2) > s3. The function returns the subsitution
- * \sigma = [X -> a1, Y -> a2]. The type of t is is s3\sigma, the type of
- * t1 s1\sigma and the type of t2 s2\sigma 
- * 
- * @author Ahmed Bhayat
- */
 bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
-  TermList* typeArg;
-  OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
+  OperatorType* ot       = getType(t);
   unsigned typeArgsArity = ot->numTypeArguments();
-  //cout << "typeArgsArity " << typeArgsArity << endl;
 
   bool resultShared = true;
-  typeArg = const_cast<TermList*>(t->args());
+  auto *typeArg = const_cast<TermList *>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
     // when working with substitution trees we sometimes need to find the sort
     // of terms within the tree. These terms can contain special variables
     // and may therefore not be shared.
-    if (typeArg->isSpecialVar() || (typeArg->isTerm() && !typeArg->term()->shared())) {
+    if (typeArg->isSpecialVar() || (typeArg->isTerm() && !typeArg->term()->shared()))
       resultShared = false;
-    }
+
     ALWAYS(subst.bind(var.var(), *typeArg));
     typeArg = typeArg->next();
   }
