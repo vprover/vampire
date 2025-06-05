@@ -33,7 +33,6 @@
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/BitUtils.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Portability.hpp"
@@ -46,7 +45,7 @@
 #include "Lib/Recycled.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 22
+#define TERM_DIST_VAR_BITS 19
 // maximum number that fits in a TERM_DIST_VAR_BITS-bit unsigned integer
 #define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
@@ -125,6 +124,21 @@ struct VarNumber {
   IMPL_COMPARISONS_FROM_TUPLE(VarNumber);
 };
 
+enum class Proxy {
+  AND,
+  OR,
+  IMP,
+  FORALL,
+  EXISTS,
+  IFF,
+  XOR,
+  NOT,
+  PI,
+  SIGMA,
+  EQUALS,
+  NOT_PROXY
+};
+
 /**
  * Class containing either a pointer to a compound term or
  * a variable number or a functor.
@@ -134,7 +148,7 @@ public:
   /* default constructor, satisfying isEmpty() */
   TermList() : _content(FUN) {}
   /** creates a term list containing a pointer to a term */
-  explicit TermList(Term* t) : _content(0) {
+  explicit TermList(const Term* t) : _content(0) {
     // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
     // dead-store eliminated on 64-bit
     _setTerm(t);
@@ -262,11 +276,27 @@ public:
   bool isBoolSort();
   bool isArraySort();
   bool isTupleSort();
-  bool isApplication() const;
   bool containsSubterm(TermList v) const;
   bool containsAllVariablesOf(TermList t) const;
   bool ground() const;
   bool isSafe() const;
+
+  /* Higher-order terms */
+  bool isApplication() const;
+  bool isLambdaTerm() const;
+  bool isRedex() const;
+  bool isProxy(Proxy proxy) const;
+  bool isChoice() const;
+
+  Option<unsigned> deBruijnIndex() const;
+  TermList lhs() const;
+  TermList rhs() const;
+  TermList lambdaBody() const;
+  TermList head() const;
+  std::pair<TermList, TermList> asPair();
+  TermList domain();
+  TermList result();
+  /* End higher-order terms */
 
 #if VDEBUG
   void assertValid() const;
@@ -324,27 +354,29 @@ private:
   // but it was *not* portable because the layout of the bitfield is not guaranteed
   //
   // now we use a manual bitfield, as follows
+#define MK_FIELD(typ, name, Name, NAME, start, size) \
+  static constexpr unsigned NAME##_BITS_START = start; \
+  static constexpr unsigned NAME##_BITS_END = NAME##_BITS_START + size; \
+  BITFIELD64_GET_AND_SET(typ, name, Name, NAME)
+
+  MK_FIELD(unsigned, tag, Tag, TAG, 0, 2)
+  MK_FIELD(bool, polarity, Polarity, POLARITY, TAG_BITS_END, 1)
+  MK_FIELD(bool, shared, Shared, SHARED, POLARITY_BITS_END, 1)
+  MK_FIELD(bool, literal, Literal, LITERAL, SHARED_BITS_END, 1)
+  MK_FIELD(bool, sort, Sort, SORT, LITERAL_BITS_END, 1)
+  MK_FIELD(bool, hasTermVar, HasTermVar, HAS_TERM_VAR, SORT_BITS_END, 1)
+  MK_FIELD(bool, hasDeBruijnIndex, HasDeBruijnIndex, HAS_DE_BRUIJN_INDEX, HAS_TERM_VAR_BITS_END, 1)
+  MK_FIELD(bool, hasRedex, HasRedex, HAS_REDEX, HAS_DE_BRUIJN_INDEX_BITS_END, 1)
+  MK_FIELD(bool, hasLambda, HasLambda, HAS_LAMBDA, HAS_REDEX_BITS_END, 1)
+  MK_FIELD(unsigned, order, Order, ORDER, HAS_LAMBDA_BITS_END, 3)
+  MK_FIELD(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR, ORDER_BITS_END, TERM_DIST_VAR_BITS)
+  MK_FIELD(uint32_t, id, Id, ID, DISTINCT_VAR_BITS_END, 32)
+#undef MK_FIELD
+
   static constexpr unsigned
-    TAG_BITS_START = 0,
-    TAG_BITS_END = TAG_BITS_START + 2,
-    POLARITY_BITS_START = TAG_BITS_END,
-    POLARITY_BITS_END = POLARITY_BITS_START + 1,
-    SHARED_BITS_START = POLARITY_BITS_END,
-    SHARED_BITS_END = SHARED_BITS_START + 1,
-    LITERAL_BITS_START = SHARED_BITS_END,
-    LITERAL_BITS_END = LITERAL_BITS_START + 1,
-    SORT_BITS_START = LITERAL_BITS_END,
-    SORT_BITS_END = SORT_BITS_START + 1,
-    HAS_TERM_VAR_BITS_START = SORT_BITS_END,
-    HAS_TERM_VAR_BITS_END = HAS_TERM_VAR_BITS_START + 1,
-    ORDER_BITS_START = HAS_TERM_VAR_BITS_END,
-    ORDER_BITS_END = ORDER_BITS_START + 3,
-    DISTINCT_VAR_BITS_START = ORDER_BITS_END,
-    DISTINCT_VAR_BITS_END = DISTINCT_VAR_BITS_START + TERM_DIST_VAR_BITS,
-    ID_BITS_START = DISTINCT_VAR_BITS_END,
-    ID_BITS_END = ID_BITS_START + 32,
     TERM_BITS_START = 0,
     TERM_BITS_END = CHAR_BIT * sizeof(Term *);
+  BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
 
   // various properties we want to check
   static_assert(TAG_BITS_START == 0, "tag must be the least significant bits");
@@ -353,17 +385,7 @@ private:
   static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
   static_assert(AO_INCOMPARABLE < 8, "must be able to squash orderings into 3 bits");
 
-  // getters and setters
-  BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
-  BITFIELD64_GET_AND_SET(bool, polarity, Polarity, POLARITY)
-  BITFIELD64_GET_AND_SET(bool, shared, Shared, SHARED)
-  BITFIELD64_GET_AND_SET(bool, literal, Literal, LITERAL)
-  BITFIELD64_GET_AND_SET(bool, sort, Sort, SORT)
-  BITFIELD64_GET_AND_SET(bool, hasTermVar, HasTermVar, HAS_TERM_VAR)
-  BITFIELD64_GET_AND_SET(unsigned, order, Order, ORDER)
-  BITFIELD64_GET_AND_SET(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR)
-  BITFIELD64_GET_AND_SET(uint32_t, id, Id, ID)
-  BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
+
   // end bitfield
 
   friend class Indexing::TermSharing;
@@ -397,12 +419,12 @@ public:
   static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND  =  std::numeric_limits<unsigned>::max() - unsigned(SPECIAL_FUNCTOR_LAST);
   static SpecialFunctor toSpecialFunctor(unsigned f) {
     ASS_GE(f, SPECIAL_FUNCTOR_LOWER_BOUND);
-    unsigned result = std::numeric_limits<unsigned>::max() - unsigned(f);
+    unsigned result = std::numeric_limits<unsigned>::max() - f;
     ASS_LE(result, unsigned(SPECIAL_FUNCTOR_LAST))
     return SpecialFunctor(result);
   }
   static unsigned toNormalFunctor(SpecialFunctor f) 
-  { return std::numeric_limits<unsigned>::max() - unsigned(f); }
+  { return std::numeric_limits<unsigned>::max() - static_cast<unsigned>(f); }
 
   class SpecialTermData
   {
@@ -455,8 +477,13 @@ public:
       return specialFunctor() == SpecialFunctor::LET ? _letData.functor : _letTupleData.functor;
     }
     VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
+    void setLambdaVars(VList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
     SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
+    void setLambdaVarSorts(SList* sorts) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._sorts = sorts; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
+    void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
+    void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
+    void setLambdaSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.sort = sort; }
     VList* getVariables() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.variables; }
     VList* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
@@ -754,7 +781,7 @@ public:
 
   void setHasTermVar(bool b)
   {
-    ASS(shared() && !isSort());
+    ASS(shared() && !isSort())
     _args[0]._setHasTermVar(b);
   }
 
@@ -786,11 +813,62 @@ public:
   bool isLiteral() const { return _args[0]._literal(); }
   /** True if the term is, in fact, a sort */
   bool isSort() const { return _args[0]._sort(); }
+  bool isArrowSort() const;
   TermKind kind() const { return isSort() ? TermKind::SORT 
                                : isLiteral() ? TermKind::LITERAL
                                : TermKind::TERM; }
   /** true if the term is an application */
   bool isApplication() const;
+  /** true if the term is a lambda term */
+  bool isLambdaTerm() const;
+  /** true if the term is a redex */
+  bool isRedex() const;
+  bool isProxy(Proxy proxy) const;
+  bool isChoice() const;
+
+  TermList lambdaBody() const {
+    ASS(isLambdaTerm())
+
+    return *nthArgument(2);
+  }
+
+  void setHasRedex(bool b) {
+    ASS(shared() && !isSort())
+
+    _args[0]._setHasRedex(b);
+  }
+
+  /** true if term contains redex */
+  bool hasRedex() const {
+    ASS(shared())
+    return _args[0]._hasRedex();
+  }
+  /** returns empty option if not a De Bruijn index and index otherwise */
+  Option<unsigned> deBruijnIndex() const;
+
+  void setHasDeBruijnIndex(bool b) {
+    ASS(shared() && !isSort());
+    _args[0]._setHasDeBruijnIndex(b);
+  }
+
+  /** returns true if term contains De Bruijn index */
+  bool hasDeBruijnIndex() const {
+    ASS(shared())
+
+    return _args[0]._hasDeBruijnIndex();
+  }
+
+  void setHasLambda(bool b) {
+    ASS(shared() && !isSort())
+
+    _args[0]._setHasLambda(b);
+  }
+  /** true if term contains redex */
+  bool hasLambda() const {
+    ASS(shared())
+
+    return _args[0]._hasLambda();
+  }
 
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)

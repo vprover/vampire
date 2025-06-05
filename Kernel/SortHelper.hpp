@@ -87,7 +87,19 @@ public:
 
   static OperatorType* getType(Term const* t);
 
-  static void getTypeSub(const Term* t, Substitution& subst);
+  /**
+   * This function achieves the following. Let t = f<a1, a2>(t1, t2)
+   * where ai are type arguments and ti are terms arguments. Let f have
+   * type !>[X, Y]: (s1 * s2) > s3. The function returns the substitution
+   * \sigma = [X -> a1, Y -> a2]. The type of t is s3\sigma, the type of
+   * t1 s1\sigma and the type of t2 s2\sigma
+   *
+   * The function returns true, if all the replacement terms in the substitution
+   * are shared.
+   *
+   * @author Ahmed Bhayat
+   */
+  static bool getTypeSub(const Term *t, Substitution &subst);
 
   static bool areSortsValid(Clause* cl);
   static bool areSortsValid(Term* t);

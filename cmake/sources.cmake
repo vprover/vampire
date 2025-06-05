@@ -53,6 +53,7 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tHOL_Printing.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -440,6 +441,10 @@ set(SOURCES
     Kernel/UnificationWithAbstraction.hpp
     Kernel/Unit.cpp
     Kernel/Unit.hpp
+    Kernel/HOL/HOL.cpp
+    Kernel/HOL/Create.cpp
+    Kernel/HOL/Convert.cpp
+    Kernel/HOL/HOL.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp

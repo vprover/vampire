@@ -76,21 +76,6 @@ class Signature
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
   
-  enum Proxy {
-    AND,
-    OR,
-    IMP,
-    FORALL,
-    EXISTS,
-    IFF,
-    XOR,
-    NOT,
-    PI,
-    SIGMA,
-    EQUALS,
-    NOT_PROXY
-  };  
-  
   class Symbol {
   
   protected:
@@ -157,6 +142,7 @@ class Signature
     unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
+    int _deBruijnIndex;
 
   public:
     /** standard constructor */
@@ -270,6 +256,17 @@ class Signature
 
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
+
+    void setDeBruijnIndex(int index) {
+      _deBruijnIndex = index;
+    }
+
+    Option<unsigned> deBruijnIndex() const {
+      if (_deBruijnIndex > -1)
+        return Option<unsigned>(static_cast<unsigned>(_deBruijnIndex));
+
+      return {};
+    }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -532,8 +529,11 @@ class Signature
   unsigned addNameFunction(unsigned arity);
   void addEquality();
   unsigned getApp();
+  unsigned getLam();
   unsigned getDiff();
   unsigned getChoice();
+  unsigned getDeBruijnIndex(int index);
+  unsigned getPlaceholder();
   /**
    * For a function f with result type t, this introduces a predicate
    * $def_f with the type t x t. This is used to track expressions of
@@ -771,15 +771,27 @@ class Signature
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
-    return (con == _arrayCon && _arrayCon != UINT_MAX);    
+    return con == _arrayCon && _arrayCon != UINT_MAX;
   }
 
   bool isArrowCon(unsigned con) const{
-    return (con == _arrowCon && _arrowCon != UINT_MAX);    
+    return con == _arrowCon && _arrowCon != UINT_MAX;
   }
   
   bool isAppFun(unsigned fun) const{
-    return (fun == _appFun && _appFun != UINT_MAX);
+    return fun == _appFun && _appFun != UINT_MAX;
+  }
+
+  bool isLamFun(unsigned fun) const {
+    return fun == _lamFun && _lamFun != UINT_MAX;
+  }
+
+  bool isChoiceFun(unsigned fun) const{
+    return fun == _choiceFun && _choiceFun != UINT_MAX;
+  }
+
+  bool isPlaceholder(unsigned fun) const{
+    return fun == _placeholderFun && _placeholderFun != UINT_MAX;
   }
 
   bool isFnDefPred(unsigned p) const{
@@ -924,28 +936,28 @@ class Signature
       TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
       Symbol * sym = getFunction(eqProxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
-      sym->setProxy(EQUALS);
+      sym->setProxy(Proxy::EQUALS);
     }
     return eqProxy;  
   }
 
-  unsigned getBinaryProxy(std::string name){
+  unsigned getBinaryProxy(const std::string& name) {
     ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
     
-    auto convert = [] (std::string name) { 
-      if(name == "vIMP"){ return IMP; }
-      else if(name == "vAND"){ return AND; }
-      else if(name == "vOR"){ return OR; }
-      else if(name == "vIFF"){ return IFF; }
-      else{ return XOR; }
+    constexpr auto convert = [] (const std::string& name) {
+      if (name == "vIMP") return Proxy::IMP;
+      if (name == "vAND") return Proxy::AND;
+      if (name == "vOR") return Proxy::OR;
+      if (name == "vIFF") return Proxy::IFF;
+      return Proxy::XOR;
     };
 
-    unsigned proxy = addFunction(name,0, added);
-    if(added){
-      TermList bs = AtomicSort::boolSort();
-      TermList result = AtomicSort::arrowSort(bs, bs, bs);
-      Symbol * sym = getFunction(proxy);
+    unsigned proxy = addFunction(name, 0, added);
+    if (added) {
+      auto bs = AtomicSort::boolSort();
+      auto result = AtomicSort::arrowSort(bs, bs, bs);
+      auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(convert(name));
     }
@@ -960,7 +972,7 @@ class Signature
       TermList result = AtomicSort::arrowSort(bs, bs);
       Symbol * sym = getFunction(notProxy);
       sym->setType(OperatorType::getConstantsType(result));
-      sym->setProxy(NOT);
+      sym->setProxy(Proxy::NOT);
     }
     return notProxy;  
   } //TODO merge with above?
@@ -969,13 +981,13 @@ class Signature
   unsigned getPiSigmaProxy(std::string name){
     bool added = false;
     unsigned proxy = addFunction(name,1, added);
-    if(added){
-      TermList tv = TermList(0, false);
-      TermList result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
+    if (added) {
+      auto tv = TermList(0, false);
+      auto result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
       result = AtomicSort::arrowSort(result, AtomicSort::boolSort());
-      Symbol * sym = getFunction(proxy);
+      auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
-      sym->setProxy(name == "vPI" ? PI : SIGMA);
+      sym->setProxy(name == "vPI" ? Proxy::PI : Proxy::SIGMA);
     }
     return proxy;  
   } //TODO merge with above?  
@@ -1066,6 +1078,9 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
+  unsigned _lamFun;
+  unsigned _choiceFun;
+  unsigned _placeholderFun;
   DHSet<unsigned> _fnDefPreds;
   DHMap<unsigned,unsigned> _boolDefPreds;
 

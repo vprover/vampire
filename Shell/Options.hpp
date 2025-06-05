@@ -747,16 +747,16 @@ public:
     FALSE_TRUE_NOT_EQ_NOT_EQ = 3
   };
 
-  enum class Narrow : unsigned int {
-    ALL = 0,
-    SK = 1,
-    SKI = 2,
-    OFF = 3
-  };
-
   enum class ProblemExportSyntax : unsigned int {
     SMTLIB = 0,
     API_CALLS = 1,
+  };
+
+  enum class HPrinting : unsigned int {
+    RAW = 0,
+    DB_INDICES = 1,
+    PRETTY = 2,
+    TPTP = 3
   };
 
     //==========================================================
@@ -2315,11 +2315,15 @@ public:
 
   //Higher-order Options
 
+  HPrinting holPrinting() const { return _holPrinting.actualValue; }
+  void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
+
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
+  bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -2742,11 +2746,13 @@ private:
 
 
   //Higher-order options
+  ChoiceOptionValue<HPrinting> _holPrinting;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
   BoolOptionValue _choiceReasoning;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
+  BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;

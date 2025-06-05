@@ -1627,7 +1627,6 @@ void Options::init()
     _backwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _backwardSubsumptionDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
     _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-    // _backwardSubsumptionDemodulation.onlyUsefulWith(_combinatorySuperposition.is(equal(false)));  TODO
 
     _backwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0);
     _backwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).";
@@ -1815,7 +1814,6 @@ void Options::init()
     _forwardSubsumptionDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
     _forwardSubsumptionDemodulation.tag(OptionTag::INFERENCES);
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
-    // _forwardSubsumptionDemodulation.onlyUsefulWith(_combinatorySuperposition.is(equal(false)));  TODO
 
     _forwardSubsumptionDemodulationMaxMatches = UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0);
     _forwardSubsumptionDemodulationMaxMatches.description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).";
@@ -1895,6 +1893,19 @@ void Options::init()
 
 //*********************** Higher-order  ***********************
 
+    _holPrinting = ChoiceOptionValue("pretty_hol_printing",
+                                     "php",
+                                     HPrinting::TPTP,
+                                     {"raw", "db", "pretty", "tptp"});
+    _holPrinting.description =
+        "Various methods of printing higher-order terms: \n"
+        " -raw : prints the internal representation of terms \n"
+        " -pretty : converts internal representation to something resembling textbook notation \n"
+        " -tptp : matches tptp standards \n"
+        " -db : same as tptp, except that De Bruijn indices printed instead of named variables";
+    _lookup.insert(&_holPrinting);
+    _holPrinting.tag(OptionTag::HIGHER_ORDER);
+
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
@@ -1937,8 +1948,15 @@ void Options::init()
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
-    _casesSimp = BoolOptionValue("cases_simp", "cs", false);
-    _casesSimp.description =
+    _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
+    _equalityToEquivalence.description=
+      "Equality between boolean terms changed to equivalence \n"
+      "t1 : $o = t2 : $o is changed to t1 <=> t2";
+    _lookup.insert(&_equalityToEquivalence);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
+
+    _casesSimp = BoolOptionValue("cases_simp","cs",false);
+    _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";
     _casesSimp.onlyUsefulWith(_cases.is(equal(false)));
     _lookup.insert(&_casesSimp);

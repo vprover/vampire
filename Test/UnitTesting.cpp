@@ -182,6 +182,20 @@ TestAdder::TestAdder(const char* unitId, TestProc proc, const char* name)
  */
 bool TestUnit::spawnTest(TestProc proc)
 {
+  if (UnitTesting::instance().getSingleThreaded()) {
+    try {
+      proc();
+    } catch (Lib::Exception& e) {
+      e.cry(std::cerr);
+      return false;
+    } catch (std::exception& e) {
+      std::cerr << e.what() << std::endl;
+      return false;
+    }
+
+    return true;
+  }
+
   auto mp = Multiprocessing::instance();
   pid_t fres = mp->fork();
   if(fres == 0) {
@@ -198,7 +212,7 @@ bool TestUnit::spawnTest(TestProc proc)
   } else {
     int childRes;
     Multiprocessing::instance()->waitForChildTermination(childRes);
-    return  childRes == 0;
+    return childRes == 0;
   }
 }
 
@@ -223,20 +237,29 @@ std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t)
 int main(int argc, const char** argv) 
 {
   using namespace Lib;
-  using namespace std;
 
   bool success;
+  if (argc < 2) {
+    std::cerr << "missing argument" << std::endl;
+    return -1;
+  }
+
   auto cmd = std::string(argv[1]);
   auto args = Stack<std::string>(argc - 2);
   for (int i = 2; i < argc; i++) {
     args.push(std::string(argv[i]));
   }
+  if (args.top() == "--singlethreaded") {
+    Test::UnitTesting::instance().setSingleThreaded(true);
+    args.pop();
+  }
+
   if (cmd == "ls") {
     success = Test::UnitTesting::instance().listTests(args);
   } else if (cmd == "run") {
     success = Test::UnitTesting::instance().run(args);
   } else {
-    cerr << "unknown command: " << cmd << endl;
+    std::cerr << "unknown command: " << cmd << std::endl;
     success = false;
   }
   return success ? 0 : -1;
