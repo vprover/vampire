@@ -271,251 +271,6 @@ protected:
 ///                                                                    ///
 //////////////////////////////////////////////////////////////////////////
 
-/**
- * Iterator that yields the arguments of @b
- * applicative term in left-right order. Rather non-
- * standardly, the iterator also has a function head() 
- * that can be called at any time to return the head 
- * of @b applicative term
- */
-class ApplicativeArgsIt
-  : public IteratorCore<TermList>
-{
-public:
-  ApplicativeArgsIt(const TermList term, bool returnTypeArgs = true)
-  {
-    if(returnTypeArgs){
-      ApplicativeHelper::getHeadAndAllArgs(term, _head, _stack);
-    } else {
-      ApplicativeHelper::getHeadSortAndArgs(term, _head, _headSort, _stack);      
-    }
-    _argNum = _stack.size();
-  }
-
-  bool hasNext(){
-    return !_stack.isEmpty();
-  }
-  /** Return next arg of _head
-   * @warning hasNext() must have been called before */
-  TermList next()
-  {
-    ASS(!_stack.isEmpty());
-    return _stack.pop();
-  }
-
-  TermList head(){
-    return _head ;
-  }
-
-  TermList headSort(){
-    return _headSort;
-  }
-
-  unsigned argNum(){
-    return _argNum;
-  }
-
-  bool isVar(){
-    return _head.isVar() && !_argNum;
-  }
-
-  bool varHead(){
-    return _head.isVar();
-  }
-
-  unsigned headNum(){
-    if(_head.isVar()){
-      return _head.var();
-    }
-    return _head.term()->functor();
-  }
-
-protected:
-  TermStack _stack;
-  TermList _head;
-  TermList _headSort;
-  unsigned _argNum;
-};
-
-class TopLevelVarLikeTermIterator
-  : public IteratorCore<Term*>
-{
-public:
-  TopLevelVarLikeTermIterator(Term* term)
-  {
-    _next = 0;
-    if(term->isApplication() && !term->ground()){
-      _stack.push(term);
-    }
-  }
-
-  bool hasNext();
-
-  Term* next()
-  {
-    ASS(_next);
-    Term* res = _next;
-    _next = 0;
-    return res;
-  }
-
-private:
-  Stack<Term*> _stack;
-  Term* _next;
-};
-
-class TopLevelVarIterator
-  : public IteratorCore<TermList>
-{
-public:
-  TopLevelVarIterator(TermList t);
-  
-  bool hasNext();
-
-  TermList next()
-  {
-    ASS(!_next.isEmpty());
-    TermList res = _next;
-    _next = TermList::empty();
-    return res;
-  }
-
-private:
-  TermStack _stack;
-  TermList _next;
-};
-
-
-class RewritableVarsIt
-{
-public: //includeSelf for compatibility
-  DECL_ELEMENT_TYPE(TypedTermList);
-  RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) :  _next(), _stack(8)
-  {
-    _unstableVars = unstableVars;
-    if(t->isLiteral()){
-      TermList t0 = *t->nthArgument(0);
-      TermList t1 = *t->nthArgument(1);
-      if(!t0.isVar()){ 
-        _stack.push(t0);
-        _sorts.push(SortHelper::getResultSort(t0.term()));
-      }
-      if(!t1.isVar()){ 
-        _stack.push(t1); 
-        _sorts.push(SortHelper::getResultSort(t1.term()));
-      }      
-      return;      
-    }     
-    _stack.push(TermList(t));
-    _sorts.push(SortHelper::getResultSort(t));
-  }
-
-  bool hasNext();
-  TypedTermList next(){
-    ASS(_next.isSome());
-    ASS(_next->isVar());
-    return *_next.take();
-  }
-private:
-  Option<TypedTermList> _next;
-  Stack<TermList> _stack;
-  Stack<TermList> _sorts;
-  DHSet<unsigned>* _unstableVars;
-};
-
-class UnstableVarIt
-  : public IteratorCore<TermList>
-{
-public: 
-  UnstableVarIt(Term* t) : _stable(8), _stack(8)
-  {
-    _next = TermList::empty();
-    if(t->isLiteral()){
-      _stack.push(*t->nthArgument(0));
-      _stack.push(*t->nthArgument(1));
-      _stable.push(true);
-      _stable.push(true);   
-      return;      
-    }
-    _stable.push(true);
-    _stack.push(TermList(t)); 
-  }
-  
-  bool hasNext();
-  TermList next()
-  {
-    ASS(!_next.isEmpty());
-    TermList res = _next;
-    _next = TermList::empty();
-    return res;
-  }
-
-private:
-  TermList _next;
-  Stack<bool> _stable;
-  Stack<TermList> _stack;
-};
-
-class FirstOrderSubtermIt
-: public IteratorCore<Term*>
-{
-public:
-  FirstOrderSubtermIt(Term* term, bool includeSelf=false) 
-  : _stack(8), _added(0)
-  {
-    if(term->isLiteral()){
-      TermList t0 = *term->nthArgument(0);
-      TermList t1 = *term->nthArgument(1);
-      if(!t0.isVar()){ _stack.push(t0.term()); }
-      if(!t1.isVar()){ _stack.push(t1.term()); }      
-      return;      
-    } 
-    _stack.push(term);
-    if (!includeSelf) {
-      FirstOrderSubtermIt::next();
-    }
-  }
-
-  bool hasNext(){ return !_stack.isEmpty(); }
-  Term* next();
-  void right();
-
-private:
-  Stack<Term*> _stack;
-  int _added;
-};
-
-
-class NarrowableSubtermIt
-: public IteratorCore<TermList>
-{
-public:
-  NarrowableSubtermIt(Term* term, bool includeSelf=false) 
-  : _used(true), _stack(8)
-  {
-    if(term->isLiteral()){
-      TermList t0 = *term->nthArgument(0);
-      TermList t1 = *term->nthArgument(1);
-      if(!t0.isVar()){ _stack.push(t0.term()); }
-      if(!t1.isVar()){ _stack.push(t1.term()); }      
-      return;      
-    } 
-    _stack.push(term);
-    //TODO
-  }
-
-  bool hasNext();
-  TermList next(){
-    ASS(!_used);
-    _used = true;
-    return _next;
-  }
-
-private:
-  bool _used;
-  TermList _next;
-  Stack<Term*> _stack;
-};
 
 /*
  *  Returns Boolean subterms of a term.
@@ -524,16 +279,16 @@ class BooleanSubtermIt
 : public IteratorCore<TermList>
 {
 public:
-  BooleanSubtermIt(Term* term, bool includeSelf=false) 
+  BooleanSubtermIt(Term* term, bool includeSelf=false)
   : _used(true), _stack(8)
   {
     if(term->isLiteral()){
       TermList t0 = *term->nthArgument(0);
       TermList t1 = *term->nthArgument(1);
       if(!t0.isVar()){ _stack.push(t0.term()); }
-      if(!t1.isVar()){ _stack.push(t1.term()); }      
-      return;      
-    } 
+      if(!t1.isVar()){ _stack.push(t1.term()); }
+      return;
+    }
     _stack.push(term);
   }
 
@@ -653,7 +408,6 @@ class NonVariableNonTypeIterator
   : public IteratorCore<Term*>
 {
 public:
-  NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
   /**
    * If @c includeSelf is false, then only proper subterms of @c term will be included.
    */

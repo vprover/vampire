@@ -55,7 +55,7 @@ TEST_GENERATION(test_02,
 TEST_GENERATION(test_03,
     Generation::AsymmetricTest()
       .input(     clause({  selected(x != f(a)), selected(p(x))  }))
-      .expected( exactly( clause({  p(f(a))                              })))
+      .expected( exactly())
     )
 
 TEST_GENERATION(test_04,
@@ -74,4 +74,10 @@ TEST_GENERATION(test_06,
     Generation::AsymmetricTest()
       .input(     clause({  selected(f(g(x)) != f(x))  }))
       .expected( exactly())
+    )
+
+TEST_GENERATION(test_07,
+    Generation::AsymmetricTest()
+      .input(     clause({  selected(x != f(a)), selected(x != a)  }))
+      .expected( exactly( clause({  f(a) != a  })))
     )

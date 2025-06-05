@@ -42,6 +42,7 @@
 
 #include "CASC/PortfolioMode.hpp"
 #include "Shell/CommandLine.hpp"
+
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -124,7 +125,8 @@ Problem *doProving(Problem* problem)
 {
   // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
-    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->sampleStrategy(env.options->strategySamplerFilename(),
+      problem->getProperty());
   }
 
   env.options->setForcedOptionValues();
@@ -446,7 +448,8 @@ void clausifyMode(Problem* problem, bool theory)
   simplifier.addFront(new DuplicateLiteralRemovalISE());
 
   if (!env.options->strategySamplerFilename().empty()) {
-    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->sampleStrategy(env.options->strategySamplerFilename(),
+      problem->getProperty());
   }
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));

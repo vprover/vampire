@@ -58,7 +58,7 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-void SplitClauseExtra::output(std::ostream &out) const {
+void SATClauseExtra::output(std::ostream &out) const {
   out << "sat_clause_recorded";
 }
 
@@ -72,7 +72,12 @@ void SplitDefinitionExtra::output(std::ostream &out) const {
 
 void SplittingBranchSelector::init()
 {
-  _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
+  // we need _eagerRemoval (aer) true, unless SplittingMinimizeModel is ALL
+  // if minimize is off then aer makes no difference;
+  // if minimize is sco then we could completeness issues
+  // (Problems/SWV/SWV608-1.p --decode Problems/SWV/SWV608-1.p --decode ott-1_1:40_tgt=full:plsq=on:sp=frequency:lcm=predicate:gs=on:bd=off:rawr=on:afp=1000:afq=2.0:irw=on:fsd=on:aer=off:si=on:rtra=on:amm=sco_30 --random_seed XXX)
+  _eagerRemoval = _parent.getOptions().splittingEagerRemoval() ||
+    (_parent.getOptions().splittingMinimizeModel() != Options::SplittingMinimizeModel::ALL);
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
@@ -974,7 +979,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(scl, new SplitClauseExtra(nsClause));
+      env.proofExtra.insert(scl, new SATClauseExtra(nsClause));
 
     nsClause->setInference(new FOConversionInference(scl));
 
@@ -1163,7 +1168,7 @@ bool Splitter::doSplitting(Clause* cl)
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
-    env.proofExtra.insert(scl, new SplitClauseExtra(splitClause));
+    env.proofExtra.insert(scl, new SATClauseExtra(splitClause));
 
   splitClause->setInference(new FOConversionInference(scl));
 
@@ -1665,6 +1670,8 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInference1(InferenceRule::AVATAR_CONTRADICTION_CLAUSE,cl));
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(scl, new SATClauseExtra(confl));
 
   confl->setInference(new FOConversionInference(scl));
   

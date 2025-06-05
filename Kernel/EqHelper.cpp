@@ -190,49 +190,6 @@ TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& o
   return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
 }
 
-VirtualIterator<Term*> EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
-{
-  return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord);
-}
-
-TermIterator EqHelper::getNarrowableSubtermIterator(Literal* lit, const Ordering& ord)
-{
-  return getRewritableSubtermIterator<NarrowableSubtermIt>(lit, ord);
-} 
-
-/*
- * Function is used in the higher-order inference SubVarSup
- */
-VirtualIterator<TypedTermList> EqHelper::getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord)
-{
-  ASS(lit->isEquality());
-    
-  TermList sel;
-  switch(ord.getEqualityArgumentOrder(lit)) {
-  case Ordering::INCOMPARABLE: {
-    return pvi(iterTraits(RewritableVarsIt(unstableVars, lit))
-      .unique()
-      .persistent());
-  }
-  case Ordering::EQUAL:
-  case Ordering::GREATER:
-    sel=*lit->nthArgument(0);
-    break;
-  case Ordering::LESS:
-    sel=*lit->nthArgument(1);
-    break;
-#if VDEBUG
-  default:
-    ASSERTION_VIOLATION;
-#endif
-  }
-  if (!sel.isTerm()) {
-    return VirtualIterator<TypedTermList>::getEmpty();
-  }
-  return pvi(iterTraits(RewritableVarsIt(unstableVars, sel.term(), true)).unique().persistent());
-} 
-
-
 /**
  * Return iterator on subterms of a literal, that can be rewritten by
  * superposition.
@@ -325,58 +282,6 @@ VirtualIterator<TypedTermList> EqHelper::getSuperpositionLHSIterator(Literal* li
   }
   else {
     return pvi( getFilteredIterator(getLHSIterator(lit, ord), IsNonVariable()) );
-  }
-}
-
-
-
-VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord)
-{
-  ASS(lit->isEquality());
-
-  TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
-
-  if (eqSort.isVar() || eqSort.isArrowSort()) {
-    if (lit->isNegative()) {
-      return VirtualIterator<TypedTermList>::getEmpty();
-    }
-
-    TermList t0=*lit->nthArgument(0);
-    TermList t1=*lit->nthArgument(1);
-    TermList t0Head = ApplicativeHelper::getHead(t0);
-    TermList t1Head = ApplicativeHelper::getHead(t1);
-    bool t0hisVarOrComb = ApplicativeHelper::isComb(t0Head) || t0Head.isVar();
-    bool t1hisVarOrComb = ApplicativeHelper::isComb(t1Head) || t1Head.isVar();
-
-    switch(ord.getEqualityArgumentOrder(lit))
-    {
-    case Ordering::INCOMPARABLE:
-      if(t0hisVarOrComb && t1hisVarOrComb){
-        return pvi(iterItems(TypedTermList(t0,eqSort), TypedTermList(t1,eqSort)));
-      } else if( t0hisVarOrComb ){
-        return pvi(getSingletonIterator(TypedTermList(t1,eqSort)));
-      } else if( t1hisVarOrComb ) {
-        return pvi(getSingletonIterator(TypedTermList(t0,eqSort)));
-      }
-      break;
-    case Ordering::GREATER:
-      if(t1hisVarOrComb){
-        return pvi(getSingletonIterator(TypedTermList(t0,eqSort)));
-      }
-      break;
-    case Ordering::LESS:
-      if(t0hisVarOrComb){
-        return pvi(getSingletonIterator(TypedTermList(t1,eqSort)));
-      }
-      break;
-    case Ordering::EQUAL:
-      //there should be no equality literals of equal terms
-    default:
-      ASSERTION_VIOLATION;
-    }
-    return VirtualIterator<TypedTermList>::getEmpty();
-  } else {
-    return VirtualIterator<TypedTermList>::getEmpty();
   }
 }
 

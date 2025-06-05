@@ -96,8 +96,7 @@ void ForwardDemodulation::detach()
   ForwardSimplificationEngine::detach();
 }
 
-template <bool combinatorySupSupport>
-bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
 
@@ -119,9 +118,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
     if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
-    typename std::conditional<!combinatorySupSupport,
-      NonVariableNonTypeIterator,
-      FirstOrderSubtermIt>::type it(lit);
+    NonVariableNonTypeIterator it(lit);
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
@@ -239,10 +236,5 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
   return false;
 }
-
-// This is necessary for templates defined in cpp files.
-// We are happy to do it for ForwardDemodulationImpl, since it (at the moment) has only two specializations:
-template class ForwardDemodulationImpl<false>;
-template class ForwardDemodulationImpl<true>;
 
 }
