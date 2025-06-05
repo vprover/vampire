@@ -53,14 +53,23 @@ template<class R>
 class GenerationTester;
 }
 
+class ClauseMatchConfig {
+public:
+  virtual Clause* normalize(Kernel::Clause* c)
+  { return c; }
+
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs)
+  { return TestUtils::eqModACRect(lhs, rhs); }
+};
+
+
 class ContainsStackMatcher {
   Stack<ClausePattern> _patterns;
 
 public:
   ContainsStackMatcher(Stack<ClausePattern> self) : _patterns(self) {}
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  bool matches(Stack<Kernel::Clause*> sRes, ClauseMatchConfig& simpl) 
   { 
     return iterTraits(_patterns.iter())
       .all([&](auto& p) {
@@ -95,9 +104,9 @@ public:
         .map([&](auto& c) { return c.mapClauses(fun); })
         .template collect<Stack>()); }
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
-  { return TestUtils::permEq(_patterns, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); }); }
+  bool matches(Stack<Kernel::Clause*> sRes, ClauseMatchConfig& simpl) 
+  { return TestUtils::permEq(_patterns, sRes, [&](auto exp, auto res) { 
+      return exp.matches(simpl, res); }); }
 
   friend std::ostream& operator<<(std::ostream& out, ExactlyStackMatcher const& self)
   { return out << "exactly: " << self._patterns; }
@@ -112,8 +121,7 @@ public:
   TodoStackMatcher mapClauses(F fun) const 
   { return TodoStackMatcher(); }
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  bool matches(Stack<Kernel::Clause*> sRes, ClauseMatchConfig& simpl) 
   { return false; }
 
   friend std::ostream& operator<<(std::ostream& out, TodoStackMatcher const& self)
@@ -129,8 +137,7 @@ public:
   template<class F>
   WithoutDuplicatesMatcher mapClauses(F fun) const;
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl);
+  bool matches(Stack<Kernel::Clause*> sRes, ClauseMatchConfig& simpl);
 
   friend std::ostream& operator<<(std::ostream& out, WithoutDuplicatesMatcher const& self)
   { return out << "without duplicates: " << *self._inner; }
@@ -152,8 +159,7 @@ public:
   StackMatcher mapClauses(F fun) const 
   { return apply([&](auto x) { return StackMatcher(x.mapClauses(fun)); }); }
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  bool matches(Stack<Kernel::Clause*> sRes, ClauseMatchConfig& simpl) 
   { return apply([&](auto& self) { return self.matches(sRes, simpl); }); }
 
   friend std::ostream& operator<<(std::ostream& out, StackMatcher const& self)
@@ -163,24 +169,6 @@ public:
 template<class F>
 WithoutDuplicatesMatcher WithoutDuplicatesMatcher::mapClauses(F fun) const 
 { return make_shared(_inner->mapClauses(fun)); }
-
-
-template<class Rule>
-bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl)
-{ 
-  Stack<Stack<Literal*>> clauses;
-  for (auto c : sRes) {
-    clauses.push(c->iterLits().collect<Stack<Literal*>>().sorted());
-  }
-  clauses.sort();
-  clauses.dedup();
-  Stack<Kernel::Clause*> newRes;
-  for (auto& c : clauses) {
-    newRes.push(Clause::fromStack(c, Inference(FromInput(UnitInputType::ASSUMPTION))));
-  }
-
-  return _inner->matches(std::move(newRes), simpl); 
-}
 
 template<class... As>
 StackMatcher exactly(As... as) 
@@ -200,12 +188,29 @@ StackMatcher contains(As... as)
 inline StackMatcher none() 
 { return ExactlyStackMatcher(Stack<ClausePattern>()); }
 
+inline bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, ClauseMatchConfig& simpl)
+{ 
+  Stack<Stack<Literal*>> clauses;
+  for (auto c : sRes) {
+    clauses.push(c->iterLits().collect<Stack<Literal*>>().sorted());
+  }
+  clauses.sort();
+  clauses.dedup();
+  Stack<Kernel::Clause*> newRes;
+  for (auto& c : clauses) {
+    newRes.push(Clause::fromStack(c, Inference(FromInput(UnitInputType::ASSUMPTION))));
+  }
+
+  return _inner->matches(std::move(newRes), simpl); 
+}
+
+
 namespace Generation {
 class AsymmetricTest;
 class SymmetricTest;
 
 template<class Rule>
-class GenerationTester
+class GenerationTester : public ClauseMatchConfig
 {
 protected:
   Rule _rule;
@@ -215,13 +220,6 @@ public:
   GenerationTester(Rule rule) 
     : _rule(std::move(rule)) 
   {  }
-
-  virtual Clause* normalize(Kernel::Clause* c)
-  { return c; }
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs)
-  { return TestUtils::eqModACRect(lhs, rhs); }
-
   friend class AsymmetricTest;
   friend class SymmetricTest;
 };

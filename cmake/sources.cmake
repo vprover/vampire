@@ -36,6 +36,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_Normalization.cpp
     UnitTests/tALASCA_Superposition.cpp
     UnitTests/tALASCA_TautologyDeletion.cpp
+    UnitTests/tALASCA_InequalityFactoringSimplification.cpp
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_SubtermFactoring.cpp
     UnitTests/tALASCA_VIRAS.cpp

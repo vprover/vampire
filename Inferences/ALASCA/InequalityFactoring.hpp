@@ -378,6 +378,7 @@ struct InequalityFactoringDemod : ImmediateSimplificationEngine
       }
     )
 #undef CHECK_SETS
+
     
     auto contextLits = [l1,l2,cl]() { 
        ASS(l1 < l2) 
@@ -414,6 +415,9 @@ struct InequalityFactoringDemod : ImmediateSimplificationEngine
     //  -t2 ~>1 0 \/ t1 + t2 >1 0
     //   t2 ~>2  0 \/ t1 >2 0
 
+    auto sym1 = *itp1_is_superset ? itp1.symbol() : itp2.symbol();
+    auto sym2 = *itp1_is_superset ? itp2.symbol() : itp1.symbol();
+
 
     auto t1 = NumTraits::sum(arrayIter(t1s).map([](auto m) { return m.toTerm(); }));
     auto t2 = NumTraits::sum(arrayIter(t2s).map([](auto m) { return m.toTerm(); }));
@@ -434,12 +438,9 @@ struct InequalityFactoringDemod : ImmediateSimplificationEngine
     } else {
 
 
-      auto gtsim1 = [&](bool b, auto t) {
-        return createLiteral<NumTraits>(b ? itp1.symbol() : itp2.symbol(), t);
-      };
+      auto gtsim1 = [&](bool b, auto t) { return createLiteral<NumTraits>(b ? sym1 : sym2, t); };
 
       auto gtsim2 = [&](bool b, auto t) { return gtsim1(!b, t); };
-
 
       return some(SArray::fromItems(
       //  -t2 ~>1 0 \/ t1 + t2 >1 0
