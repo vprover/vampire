@@ -55,6 +55,7 @@ namespace Kernel {
   std::ostream& operator<<(std::ostream& out, TermList const& self);
   std::ostream& operator<<(std::ostream& out, Literal const& self);
   bool operator<(TermList const&,TermList const&);
+  bool operator<=(TermList const& l,TermList const& r);
 
 using namespace Lib;
 

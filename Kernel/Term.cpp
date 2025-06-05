@@ -1744,6 +1744,9 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   }
 }
 
+bool Kernel::operator<=(const TermList& lhs, const TermList& rhs)
+{ return (lhs == rhs) || (lhs < rhs); }
+
 bool Literal::rightArgOrder(TermList const& lhs, TermList const& rhs)
 { return !Indexing::TermSharing::argNormGt(lhs,rhs); }
 

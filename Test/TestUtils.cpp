@@ -173,7 +173,7 @@ bool TestUtils::isAC(Theory::Interpretation i)
 }
 
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
-{ return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
+{ return lhs == nullptr ? rhs == nullptr : permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
 
 bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
 { return lhs->isPositive() == rhs->isPositive() 

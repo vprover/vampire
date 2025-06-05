@@ -231,27 +231,27 @@ AbstractionOracle::AbstractionResult uwa_ac(AbstractingUnifier& au, TermSpec con
         .constr(eq(sum(S1.allTerms()), sum(S2.allTerms()))));
   }
 
-  auto singleVarCase1 = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
-    return someIf(S1.vars->size() == 1 && S2.vars->size() == 0, [&]() {
-        if (surplus1.size() > 0) {
-          return AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
-              .constr(eq(sum(S1.allTerms()), sum(S2.allTerms()))));
-        }
-        auto sz1 = S1.vars->size();
-        auto sz2 = S2.vars->size() + surplus2->size();
-        if (sz1 > sz2) {
-          return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{});
-        }
-        auto sum1 = sum(iterTraits(S1.vars->iter()).cloned());
-        auto sum2 = sum(iterTraits(S2.vars->iter()).cloned(), arrayIter(*surplus2).cloned());
-        auto constr = eq(sum1, sum2);
-        return AbstractionOracle::AbstractionResult(eqIfBalancedAnd()
-            .unify(constr));
-    });
-  };
-
-  if (auto res = singleVarCase1(S1, surplus1, S2, surplus2)) { return std::move(*res); }
-  if (auto res = singleVarCase1(S2, surplus2, S1, surplus1)) { return std::move(*res); }
+  // auto singleVarCase1 = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
+  //   return someIf(S1.vars->size() == 1 && S2.vars->size() == 0, [&]() {
+  //       if (surplus1.size() > 0) {
+  //         return AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
+  //             .constr(eq(sum(S1.allTerms()), sum(S2.allTerms()))));
+  //       }
+  //       auto sz1 = S1.vars->size();
+  //       auto sz2 = S2.vars->size() + surplus2->size();
+  //       if (sz1 > sz2) {
+  //         return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{});
+  //       }
+  //       auto sum1 = sum(iterTraits(S1.vars->iter()).cloned());
+  //       auto sum2 = sum(iterTraits(S2.vars->iter()).cloned(), arrayIter(*surplus2).cloned());
+  //       auto constr = eq(sum1, sum2);
+  //       return AbstractionOracle::AbstractionResult(eqIfBalancedAnd()
+  //           .unify(constr));
+  //   });
+  // };
+  //
+  // if (auto res = singleVarCase1(S1, surplus1, S2, surplus2)) { return std::move(*res); }
+  // if (auto res = singleVarCase1(S2, surplus2, S1, surplus1)) { return std::move(*res); }
 
   auto multiVarOneSide = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
     return someIf(S1.vars->size() >= 1 && S2.vars.size() == 0, [&]() {

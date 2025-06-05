@@ -245,6 +245,7 @@ enum class InferenceRule : unsigned char {
   ALASCA_ABSTRACTION,
   ALASCA_FLOOR_ELIMINATION,
   ALASCA_INEQUALITY_MERGING,
+  ALASCA_LITERAL_FACTORING_SIMPL,
   CANCELLATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,

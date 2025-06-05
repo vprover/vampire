@@ -189,7 +189,7 @@ struct CoherenceDemodConf
 
   CoherenceDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
 
-  static const char* name() { return "alasca superposition demodulation"; }
+  static const char* name() { return "alasca coherence demodulation"; }
 
   // a clause of the form ⌊...⌋ = j s + u
   struct Condition {

@@ -32,6 +32,7 @@ using namespace Inferences::ALASCA;
   DECL_CONST(b, Num)                                                                      \
   DECL_CONST(c, Num)                                                                      \
   DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(f2, {Num}, Num)                                                                \
   DECL_FUNC(g, {Num, Num}, Num)                                                           \
   DECL_PRED(p, {Num})                                                                     \
   DECL_PRED(p0, {})                                                                       \
@@ -136,6 +137,12 @@ TEST_SIMPLIFICATION(basic09,
       .toSimplify  ({    clause(   { p( f(g(a,a)))                   }   ) })
       .expected(    {    clause(   { p(3 * a)                        }   ) })
     )
+TEST_SIMPLIFICATION(basic10,
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
+      .simplifyWith({    clause(   { 0 == -2 * f(x) + a }   ) })
+      .toSimplify  ({    clause(   { p(f(b)) }   ) })
+      .expected    ({    clause(   { p(frac(1,2) * a) }   ) })
+    )
 
 // checking `C[sσ] ≻ (±ks + t ≈ 0)σ`
 TEST_SIMPLIFICATION(ordering01,
@@ -213,6 +220,47 @@ TEST_SIMPLIFICATION(bug03,
       .expectNotApplicable()
     )
 
+//   ;- unit id: 296
+// (assert (forall ((x0 Real))(or false
+//   (> (* (-(/ 1.0 1.0)) (ff (skx x0))) (/ 0.0 1.0))
+//   (>= (+ delta (* (/ 2.0 1.0) (skx x0))) (/ 0.0 1.0))
+//   (>= (skx x0) (/ 0.0 1.0))
+//   )))
+//
+// ;- unit id: 746
+// (assert (forall ((x0 Real))(or false
+//   (= (/ 0.0 1.0) (+ delta (* (-(/ 2.0 1.0)) (skx x0))))
+//   )))
+//
+//
+// ;- rule: alasca superposition demodulation
+//
+// ;- unit id: 767
+// (assert (not (or false
+//   (> (* (-(/ 1.0 1.0)) (ff (* 1.0 delta))) (/ 0.0 1.0))
+//   (>= (+ delta (* (/ 2.0 1.0) (* 1.0 delta))) (/ 0.0 1.0))
+//   (>= (* 1.0 delta) (/ 0.0 1.0))
+//   )))
+// (check-sat)
+TEST_SIMPLIFICATION(bug04,
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
+      //   (= (/ 0.0 1.0) (+ delta (* (-(/ 2.0 1.0)) (skx x0))))
+      .simplifyWith({    clause(   { 0 == -2 * f(x) + a }   ) })
+      .toSimplify  ({    clause(   {
+        //   (> (* (-(/ 1.0 1.0)) (ff (skx x0))) (/ 0.0 1.0))
+        -1 * f2(f(x)) > 0,
+        //   (>= (+ delta (* (/ 2.0 1.0) (skx x0))) (/ 0.0 1.0))
+        a + -2 * f(x) >= 0,
+        //   (>= (skx x0) (/ 0.0 1.0))
+        f(x) >= 0
+          }   ) })
+      .expected    ({    clause(   { 
+        -1 * f2(frac(1,2) * a) > 0,
+        a + -2 * (frac(1,2) * a) >= 0,
+        frac(1,2) * a >= 0
+          }   ) })
+    )
+
 /////////////////////////////////
 // coherence demod tests
 /////////////////////////////////
@@ -263,3 +311,12 @@ TEST_SIMPLIFICATION(demod_basic_06,
       .toSimplify  ({    clause(   { p(floor(f(a) + f(b))) }   ) })
       .expectNotApplicable()
     )
+
+
+// // checking `sσ ≻ uσ`
+// TEST_SIMPLIFICATION(demod_ir_basic_01,
+//     ALASCA_Demod_TestCase<IndequalityDemodulation<RatTraits>>()
+//       .simplifyWith({    clause(   { isInt(f(x) + f(y))  }   ) })
+//       .toSimplify  ({    clause(   { p(floor(f(a) + f(b))) }   ) })
+//       .expectNotApplicable()
+//     )
