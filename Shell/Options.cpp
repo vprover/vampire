@@ -2273,6 +2273,13 @@ void Options::init()
     _lookup.insert(&_activationLimit);
     _activationLimit.tag(OptionTag::SATURATION);
 
+    // Even if AUTO_KBO resolves to "qkbo" or "lakbo", we still allow KBO suboptions (and possible ignore them)
+    // this is better than the default (to=auto_kbo) warning whenever we touch "kws" or "kmz" ...
+    auto KboLike = [this] {
+      return Or(_termOrdering.is(equal(TermOrdering::KBO)),
+                _termOrdering.is(equal(TermOrdering::AUTO_KBO)));
+    };
+
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::AUTO_KBO,
                                                     {"auto_kbo","kbo","qkbo","lakbo","lpo","incomp"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
@@ -2321,13 +2328,13 @@ void Options::init()
                                           "precedence","inv_precedence","frequency","inv_frequency"});
     _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overridden by the function_weights option if used.";
     _kboWeightGenerationScheme.setExperimental();
-    _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboWeightGenerationScheme.onlyUsefulWith(KboLike());
     _kboWeightGenerationScheme.tag(OptionTag::SATURATION);
     _lookup.insert(&_kboWeightGenerationScheme);
 
     _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
     _kboMaxZero.setExperimental();
-    _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboMaxZero.onlyUsefulWith(KboLike());
     _kboMaxZero.tag(OptionTag::SATURATION);
     _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
@@ -2337,7 +2344,7 @@ void Options::init()
                                      {"error","warning" });
     _kboAdmissabilityCheck.description = "Choose to emit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
     _kboAdmissabilityCheck.setExperimental();
-    _kboAdmissabilityCheck.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboAdmissabilityCheck.onlyUsefulWith(KboLike());
     _kboAdmissabilityCheck.tag(OptionTag::SATURATION);
     _lookup.insert(&_kboAdmissabilityCheck);
 
@@ -2368,7 +2375,7 @@ void Options::init()
       "If this option is empty all weights default to 1.\n"
       ;
     _functionWeights.setExperimental();
-    _functionWeights.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _functionWeights.onlyUsefulWith(KboLike());
     _lookup.insert(&_functionWeights);
 
     _typeConPrecedence = StringOptionValue("type_con_precedence","tcp","");
