@@ -2824,31 +2824,24 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
     std::cout << "% WARNING: Found an assert-synth command but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
   }
 
-  auto fvars = VList::empty();
-  auto fsorts = SList::empty();
-  auto fRdr = READER(forall);
-  while (fRdr.hasNext()) {
-    auto pRdr = READER(fRdr.readList());
-    auto name = pRdr.readAtom();
-    auto var = TermList::var(_nextVar++);
-    auto sort = parseSort(pRdr.readExpr());
-    tryInsertIntoCurrentLookup(name, var, sort);
-    VList::push(var.var(), fvars);
-    SList::push(sort, fsorts);
-  }
+  auto parseVarList = [this](LExpr* lexp) {
+    auto vars = VList::empty();
+    auto sorts = SList::empty();
+    auto rdr = READER(lexp);
+    while (rdr.hasNext()) {
+      auto pRdr = READER(rdr.readList());
+      auto name = pRdr.readAtom();
+      auto var = TermList::var(_nextVar++);
+      auto sort = parseSort(pRdr.readExpr());
+      tryInsertIntoCurrentLookup(name, var, sort);
+      VList::push(var.var(), vars);
+      SList::push(sort, sorts);
+    }
+    return make_pair(vars, sorts);
+  };
 
-  auto evars = VList::empty();
-  auto esorts = SList::empty();
-  auto eRdr = READER(exist);
-  while (eRdr.hasNext()) {
-    auto pRdr = READER(eRdr.readList());
-    auto name = pRdr.readAtom();
-    auto var = TermList::var(_nextVar++);
-    auto sort = parseSort(pRdr.readExpr());
-    tryInsertIntoCurrentLookup(name, var, sort);
-    VList::push(var.var(), evars);
-    SList::push(sort, esorts);
-  }
+  auto [fvars, fsorts] = parseVarList(forall);
+  auto [evars, esorts] = parseVarList(exist);
   ParseResult res = parseTermOrFormula(body,false/*isSort*/);
 
   Formula* fla;
