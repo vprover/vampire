@@ -854,4 +854,47 @@ Literal* SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, Literal
   return Literal::create(l1->functor(), l1->arity(), l1->polarity(), args.begin());
 }
 
+TermList SynthesisALManager::ComputableSelfTransformer::transformSubterm(TermList trm) {
+  if (failed) {
+    // Transformation already failed, do not attempt further.
+    return trm;
+  }
+  if (trm.isVar() || trm.term()->computableOrVar()) {
+    // Variables and computable terms do not have to be transformed.
+    return trm;
+  }
+  SynthesisALManager* synthMan = static_cast<SynthesisALManager*>(SynthesisALManager::getInstance());
+  if (!synthMan->isITE(trm)) {
+    // We can only transform if-then-elses.
+    // However, we do not fail here, because trm might be used in
+    // a condition of an if-then else and be later removed.
+    return trm;
+  }
+  TermList thenBranch = *trm.term()->nthArgument(1), elseBranch = *trm.term()->nthArgument(2);
+  if ((thenBranch.isTerm() && !thenBranch.term()->computableOrVar()) ||
+      (elseBranch.isTerm() && !elseBranch.term()->computableOrVar())) {
+    // Uncomputability occurs in one of the branches, it cannot be made computable.
+    failed = true;
+    return trm;
+  }
+  // Uncomputability occurs in the condition.
+  ASS(!trm.term()->nthArgument(0)->term()->computableOrVar());
+  TermList res;
+  if (synthMan->unifyConsideringITE(subst, thenBranch, elseBranch, res)) {
+    return res;
+  }
+  failed = true;
+  return trm;
+}
+
+Literal* SynthesisALManager::selfUnifyToRemoveUncomputableConditions(Literal* l, RobSubstitution* subst) {
+  ASS(l->isAnswerLiteral());
+  ComputableSelfTransformer cst(subst);
+  Literal* transformed = cst.transformLiteral(l);
+  if (cst.failed || !transformed->computableOrVar()) {
+    return nullptr;
+  }
+  return transformed;
+}
+
 }

@@ -144,12 +144,14 @@ public:
 
   Literal* unifyConsideringITE(RobSubstitution* subst, Literal* l1, Literal* l2);
 
+  bool unifyConsideringITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res);
+
+  Literal* selfUnifyToRemoveUncomputableConditions(Literal* l, RobSubstitution* subst);
+
 protected:
   void recordSkolemBinding(Term*,unsigned,std::string) override;
 
 private:
-  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
-
   class ConjectureSkolemReplacement : public TermTransformer {
    public:
     ConjectureSkolemReplacement() : _skolemToVar() {}
@@ -163,6 +165,17 @@ private:
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
   };
+
+  class ComputableSelfTransformer : public BottomUpTermTransformer {
+   public:
+    ComputableSelfTransformer(RobSubstitution* s) : failed(false), subst(s) {}
+    bool failed;
+    RobSubstitution* subst;
+   protected:
+    TermList transformSubterm(TermList trm) override;
+  };
+
+  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
 
   Formula* getConditionFromClause(Clause* cl);
 
@@ -187,8 +200,6 @@ private:
   }
 
   bool unifyTermWithBothBranches(RobSubstitution* subst, TermList& t, TermList& branch1, TermList& branch2, TermList& res);
-
-  bool unifyConsideringITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res);
 
   ConjectureSkolemReplacement _skolemReplacement;
 
