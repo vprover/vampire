@@ -26,8 +26,40 @@ namespace Kernel {
 
 // TermOrderingDiagram
 
-TermOrderingDiagram::TermOrderingDiagram(const Ordering& ord)
-: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _appl(nullptr)
+static Ordering::Result kGtPtr = Ordering::GREATER;
+static Ordering::Result kEqPtr = Ordering::EQUAL;
+static Ordering::Result kLtPtr = Ordering::LESS;
+
+TermOrderingDiagram* TermOrderingDiagram::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs)
+{
+  static Map<tuple<TermList,TermList>,TermOrderingDiagram*> cache; // TODO this leaks now
+
+  TermOrderingDiagram** ptr;
+  if (cache.getValuePtr({ lhs, rhs }, ptr, nullptr)) {
+    *ptr = ord.createTermOrderingDiagram(/*ground*/true).release();
+    (*ptr)->_source = Branch(lhs, rhs);
+    (*ptr)->_source.node()->gtBranch  = Branch(&kGtPtr, (*ptr)->_sink);
+    (*ptr)->_source.node()->eqBranch  = Branch(&kEqPtr, (*ptr)->_sink);
+    (*ptr)->_source.node()->ngeBranch = Branch(&kLtPtr, (*ptr)->_sink);
+  }
+  return *ptr;
+}
+
+bool TermOrderingDiagram::extendVarsGreater(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct& po_struct)
+{
+  Traversal<AppliedNodeIterator,POStruct> traversal(tod, appl, po_struct);
+  Branch* b;
+  while (traversal.next(b, po_struct)) {
+    if (b->node()->data) {
+      return true;
+    }
+  }
+  return false;
+}
+
+TermOrderingDiagram::TermOrderingDiagram(const Ordering& ord, bool ground)
+: _ord(ord), _source(nullptr, Branch()), _sink(_source),
+  _curr(&_source), _prev(nullptr), _appl(nullptr), _ground(ground)
 {
   _sink.node()->ready = true;
 }
@@ -45,6 +77,7 @@ void* TermOrderingDiagram::next()
 {
   ASS(_appl);
   ASS(_curr);
+  ASS(!_ground);
 
   for (;;) {
     processCurrentNode();
@@ -165,7 +198,15 @@ void TermOrderingDiagram::processCurrentNode()
       if (node->refcnt > 1) {
         *_curr = Branch(node->data, node->alternative);
       }
-      _curr->node()->trace = getCurrentTrace();
+      auto trace = getCurrentTrace();
+      // If this happens this branch is invalid.
+      // Since normal execution cannot reach it,
+      // we can put a "success" here.
+      if (!trace) {
+        *_curr = _sink;
+        return;
+      }
+      _curr->node()->trace = trace;
       _curr->node()->ready = true;
       return;
     }
@@ -200,6 +241,15 @@ void TermOrderingDiagram::processVarNode()
 {
   auto node = _curr->node();
   auto trace = getCurrentTrace();
+
+  // If this happens this branch is invalid.
+  // Since normal execution cannot reach it,
+  // we can put a "success" here.
+  if (!trace) {
+    *_curr = _sink;
+    return;
+  }
+
   Ordering::Result val;
   if (trace->get(node->lhs, node->rhs, val)) {
     if (val == Ordering::GREATER) {
@@ -227,6 +277,14 @@ void TermOrderingDiagram::processPolyNode()
 {
   auto node = _curr->node();
   auto trace = getCurrentTrace();
+
+  // If this happens this branch is invalid.
+  // Since normal execution cannot reach it,
+  // we can put a "success" here.
+  if (!trace) {
+    *_curr = _sink;
+    return;
+  }
 
   unsigned pos = 0;
   unsigned neg = 0;
@@ -315,7 +373,12 @@ const TermOrderingDiagram::Trace* TermOrderingDiagram::getCurrentTrace()
       } else if (_curr == &_prev->node()->gtBranch) {
         res = Ordering::GREATER;
       } else {
-        res = Ordering::INCOMPARABLE;
+        ASS_EQ(_curr, &_prev->node()->ngeBranch);
+        if (_ground) {
+          res = Ordering::LESS;
+        } else {
+          res = Ordering::INCOMPARABLE;
+        }
       }
       return Trace::set(_prev->node()->trace, { lhs, rhs, res });
     }
@@ -449,6 +512,170 @@ const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int 
     poly.defaultHash(),
     [&](Polynomial* p) { return *p == poly; },
     unused);
+}
+
+// Traversal
+
+template<class Iterator, typename ...Args>
+TermOrderingDiagram::Traversal<Iterator,Args...>::Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl, Args... initial)
+  : _tod(tod), _appl(appl), _rootIsSuccess(_tod && handleBranch(&_tod->_source, std::forward<Args>(initial)...)) {}
+
+template<class Iterator, typename ...Args>
+bool TermOrderingDiagram::Traversal<Iterator,Args...>::next(Branch*& branch, Args&... args)
+{
+  ASS(_tod);
+  if (_rootIsSuccess) {
+    _rootIsSuccess = false;
+    branch = &_tod->_source;
+    return true;
+  }
+  while (_path->isNonEmpty()) {
+    auto curr = &_path->top().first;
+    auto it   = &_path->top().second;
+    // go down as much as possible
+    Result res;
+    while (it->next(res, args...)) {
+      auto node = (*curr)->node();
+
+      ASS_NEQ(node->tag,Node::T_DATA);
+      auto next = &node->getBranch(res);
+      if (handleBranch(next, args...)) {
+        branch = next;
+        return true;
+      }
+      curr = &_path->top().first;
+      it   = &_path->top().second;
+    }
+    // failure, go back up
+    _path->pop();
+  }
+  return false;
+}
+
+template<class Iterator, typename ...Args>
+bool TermOrderingDiagram::Traversal<Iterator,Args...>::handleBranch(Branch* b, Args... args)
+{
+  ASS(_tod);
+  auto prev = _path->isEmpty() ? nullptr : _path->top().first;
+  ASS(!prev || b == &prev->node()->gtBranch
+            || b == &prev->node()->eqBranch
+            || b == &prev->node()->ngeBranch);
+  ASS(prev  || b == &_tod->_source);
+
+  _tod->_prev = prev;
+  _tod->_curr = b;
+  _tod->processCurrentNode();
+
+  if (b->node()->tag == Node::T_DATA) {
+    return true;
+  }
+  _path->push({ b, Iterator(_tod->_ord, _appl, b->node(), std::forward<Args>(args)...) });
+  return false;
+}
+
+template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::DefaultIterator>;
+template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct>;
+template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::AppliedNodeIterator,POStruct>;
+
+TermOrderingDiagram::NodeIterator::NodeIterator(const Ordering&, const SubstApplicator*, Node* node, POStruct initial)
+  : initial(initial)
+{
+  ASS(node->ready);
+  if (node->tag == Node::T_TERM) {
+    auto lhs = node->lhs;
+    auto rhs = node->rhs;
+    ASS(lhs.isVar() || rhs.isVar());
+    if (lhs.isVar() && rhs.isVar()) {
+      // x ? y
+      bps.push({ { { lhs, rhs, Result::GREATER } }, Result::GREATER });
+      bps.push({ { { lhs, rhs, Result::EQUAL   } }, Result::EQUAL   });
+      bps.push({ { { lhs, rhs, Result::LESS    } }, Result::LESS    });
+    } else if (lhs.isVar()) {
+      ASS(rhs.isTerm());
+      DHSet<TermList> seen;
+      // x ? t[y_1,...,y_n]
+      VariableIterator vit(rhs.term());
+      while (vit.hasNext()) {
+        auto v = vit.next();
+        if (!seen.insert(v)) {
+          continue;
+        }
+        // x ≤ y_i ⇒ x < t[y_1,...,y_n]
+        bps.push({ { { lhs, v, Result::LESS    } }, Result::LESS });
+        bps.push({ { { lhs, v, Result::EQUAL   } }, Result::LESS });
+      }
+    } else if (rhs.isVar()) {
+      ASS(lhs.isTerm());
+      DHSet<TermList> seen;
+      // s[x_1,...,x_n] ? y
+      VariableIterator vit(lhs.term());
+      while (vit.hasNext()) {
+        auto v = vit.next();
+        if (!seen.insert(v)) {
+          continue;
+        }
+        // x_i ≥ y ⇒ s[x_1,...,x_n] > y
+        bps.push({ { { v, rhs, Result::GREATER } }, Result::GREATER });
+        bps.push({ { { v, rhs, Result::EQUAL   } }, Result::GREATER });
+      }
+    }
+  }
+}
+
+bool TermOrderingDiagram::NodeIterator::next(Result& res, POStruct& pos)
+{
+  while (bps.isNonEmpty()) {
+    auto bp = bps.pop();
+    POStruct ext = initial;
+    if (tryExtend(ext, bp.cons)) {
+      res = bp.r;
+      pos = ext;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool TermOrderingDiagram::NodeIterator::tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons)
+{
+  for (const auto& con : cons) {
+    // already contains relation
+    Ordering::Result res;
+    if (po_struct.tpo->get(con.lhs, con.rhs, res) && res == con.rel) {
+      continue;
+    }
+    auto ext = TermPartialOrdering::set(po_struct.tpo, con);
+    // extension failed
+    if (!ext) {
+      return false;
+    }
+    ASS(ext->isGround());
+    // relation did not change
+    if (ext == po_struct.tpo) {
+      continue;
+    }
+    po_struct.tpo = ext;
+    po_struct.cons.push(con);
+  }
+  return true;
+}
+
+TermOrderingDiagram::AppliedNodeIterator::AppliedNodeIterator(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial)
+  : termNode(node->tag==Node::T_TERM),
+    traversal(termNode ? createForSingleComparison(ord,
+      AppliedTerm(node->lhs, appl, true).apply(),
+      AppliedTerm(node->rhs, appl, true).apply()) : nullptr, appl, initial) {}
+
+bool TermOrderingDiagram::AppliedNodeIterator::next(Result& res, POStruct& pos)
+{
+  if (termNode) {
+    Branch* b;
+    if (traversal.next(b, pos)) {
+      res = *static_cast<Result*>(b->node()->data);
+      return true;
+    }
+  }
+  return false;
 }
 
 // Printing

@@ -232,9 +232,9 @@ Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, uns
   return GREATER;
 }
 
-TermOrderingDiagramUP LPO::createTermOrderingDiagram() const
+TermOrderingDiagramUP LPO::createTermOrderingDiagram(bool ground) const
 {
-  return make_unique<TermOrderingDiagramLPO>(*this);
+  return make_unique<TermOrderingDiagramLPO>(*this, ground);
 }
 
 void LPO::showConcrete(std::ostream&) const 

@@ -24,7 +24,7 @@ class TermOrderingDiagramLPO
 : public TermOrderingDiagram
 {
 public:
-  TermOrderingDiagramLPO(const Ordering& ord) : TermOrderingDiagram(ord) {}
+  TermOrderingDiagramLPO(const Ordering& ord, bool ground) : TermOrderingDiagram(ord, ground) {}
 
   void processTermNode() override;
 };

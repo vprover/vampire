@@ -109,3 +109,7 @@ check_szs_status Theorem -t 3d -s 1011 -tgt full -fde none -nm 0 Problems/SWW/SW
 check_szs_status Theorem --decode ott+10_1:1024_to=kbo:norm_ineq=on:fde=unused:sas=z3:sos=on:tha=off:nm=16_1 Problems/SWW/SWW617_2.p
 check_szs_status Theorem -t 1d -t 1d -sas z3 -fs off -slsq off -s2a on -ep RSTC -fsr off -alasca on Problems/SWW/SWW620_2.p
 check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
+
+# Forward ground joinability
+check_szs_status Satisfiable -fgj on Problems/SWV/SWV021-1.p
+check_szs_status Unsatisfiable -fgj on Problems/SWW/SWW436-1.p

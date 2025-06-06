@@ -60,6 +60,7 @@ class PartialOrdering
 public:
   /** Get relation between two elements with IDs @b x and @b y. */
   PoComp get(size_t x, size_t y) const;
+  bool isGround() const { return _isGround; }
 
   /** Get empty partial ordering. */
   static const PartialOrdering* getEmpty();
@@ -92,6 +93,7 @@ private:
 
   size_t _size = 0;
   std::vector<PoComp> _array;
+  bool _isGround = true;
 };
 
 };

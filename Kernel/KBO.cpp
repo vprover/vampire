@@ -870,9 +870,9 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) co
   return res;
 }
 
-TermOrderingDiagramUP KBO::createTermOrderingDiagram() const
+TermOrderingDiagramUP KBO::createTermOrderingDiagram(bool ground) const
 {
-  return make_unique<TermOrderingDiagramKBO>(*this);
+  return make_unique<TermOrderingDiagramKBO>(*this, ground);
 }
 
 int KBO::symbolWeight(const Term* t) const

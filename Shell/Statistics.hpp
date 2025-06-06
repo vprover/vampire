@@ -298,6 +298,8 @@ public:
   unsigned forwardSubsumed = 0;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed = 0;
+  /** number of forward ground joinable clauses */
+  unsigned forwardGroundJoinable = 0;
 
   /** statistics of term algebra rules */
   unsigned taDistinctnessSimplifications = 0;

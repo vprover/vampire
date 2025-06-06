@@ -1,0 +1,89 @@
+%------------------------------------------------------------------------------
+% File     : SWV013-0 : TPTP v9.0.0. Released v5.2.0.
+% Domain   : Software Verification
+% Axioms   : Lists in Separation Logic
+% Version  : [Nav11] axioms.
+% English  : Axioms for proving entailments between separation logic formulas
+%            with list predicates.
+
+% Refs     : [BCO05] Berdine et al. (2005), Symbolic Execution with Separat
+%          : [RN11]  Rybalchenko & Navarro Perez (2011), Separation Logic +
+%          : [Nav11] Navarro Perez (2011), Email to Geoff Sutcliffe
+% Source   : [Nav11]
+% Names    : SepLogicLists [Nav11]
+
+% Status   : Satisfiable
+% Syntax   : Number of clauses     :   11 (   4 unt;   3 nHn;   9 RR)
+%            Number of literals    :   21 (   8 equ;   9 neg)
+%            Maximal clause size   :    3 (   1 avg)
+%            Maximal term depth    :    5 (   2 avg)
+%            Number of predicates  :    2 (   1 usr;   0 prp; 1-2 aty)
+%            Number of functors    :    4 (   4 usr;   1 con; 0-2 aty)
+%            Number of variables   :   38 (   9 sgn)
+% SPC      : 
+
+% Comments :
+%------------------------------------------------------------------------------
+%----S * T * Sigma = T * S * Sigma.
+cnf(associative_commutative,axiom,
+    sep(S,sep(T,Sigma)) = sep(T,sep(S,Sigma)) ).
+
+%----lseg(X, X) * Sigma = Sigma.
+cnf(normalization,axiom,
+    sep(lseg(X,X),Sigma) = Sigma ).
+
+%----next(nil, Y) * Sigma --> bot.
+cnf(wellformedness_1,axiom,
+    ~ heap(sep(next(nil,Y),Sigma)) ).
+
+%----lseg(nil, Y) * Sigma --> Y = nil.
+cnf(wellformedness_2,axiom,
+    ( ~ heap(sep(lseg(nil,Y),Sigma))
+    | Y = nil ) ).
+
+%----next(X, Y) * next(X, Z) * Sigma --> bot.
+cnf(wellformedness_3,axiom,
+    ~ heap(sep(next(X,Y),sep(next(X,Z),Sigma))) ).
+
+%----next(X, Y) * lseg(X, Z) * Sigma --> X = Z.
+cnf(wellformedness_4,axiom,
+    ( ~ heap(sep(next(X,Y),sep(lseg(X,Z),Sigma)))
+    | X = Z ) ).
+
+%----lseg(X, Y) * lseg(X, Z) * Sigma --> X = Y, X = Z.
+cnf(wellformedness_5,axiom,
+    ( ~ heap(sep(lseg(X,Y),sep(lseg(X,Z),Sigma)))
+    | X = Y
+    | X = Z ) ).
+
+%----next(X, Z) * Sigma --> X = Z, lseg(X, Z) * Sigma. (REDUNDANT: U2 + NORM)
+%cnf(unfolding_1,axiom,
+%   ( ~ heap(sep(next(X, Z), Sigma))
+%   | X = Z
+%   | heap(sep(lseg(X, Z), Sigma)) )).
+
+%----next(X, Y) * lseg(Y, Z) * Sigma --> X = Y, lseg(X, Z) * Sigma.
+cnf(unfolding_2,axiom,
+    ( ~ heap(sep(next(X,Y),sep(lseg(Y,Z),Sigma)))
+    | X = Y
+    | heap(sep(lseg(X,Z),Sigma)) ) ).
+
+%----lseg(X, Y) * lseg(Y, nil) * Sigma --> lseg(X, nil) * Sigma.
+cnf(unfolding_3,axiom,
+    ( ~ heap(sep(lseg(X,Y),sep(lseg(Y,nil),Sigma)))
+    | heap(sep(lseg(X,nil),Sigma)) ) ).
+
+%----lseg(X, Y) * lseg(Y, Z) * next(Z, W) * Sigma --> 
+%----    lseg(X, Z) * next(Z, W) * Sigma.
+cnf(unfolding_4,axiom,
+    ( ~ heap(sep(lseg(X,Y),sep(lseg(Y,Z),sep(next(Z,W),Sigma))))
+    | heap(sep(lseg(X,Z),sep(next(Z,W),Sigma))) ) ).
+
+%----lseg(X, Y) * lseg(Y, Z) * lseg(Z, W) * Sigma --> 
+%----    Z = W, lseg(X, Z) * lseg(Z, W) * Sigma.
+cnf(unfolding_5,axiom,
+    ( ~ heap(sep(lseg(X,Y),sep(lseg(Y,Z),sep(lseg(Z,W),Sigma))))
+    | Z = W
+    | heap(sep(lseg(X,Z),sep(lseg(Z,W),Sigma))) ) ).
+
+%------------------------------------------------------------------------------

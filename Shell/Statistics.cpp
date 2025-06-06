@@ -197,7 +197,7 @@ void Statistics::print(std::ostream& out)
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
-      forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
+      forwardSubsumed+backwardSubsumed+forwardGroundJoinable+forwardDemodulationsToEqTaut+
       forwardSubsumptionDemodulationsToEqTaut+backwardSubsumptionDemodulationsToEqTaut+
       backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
@@ -205,6 +205,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Deep equational tautologies", deepEquationalTautologies);
   COND_OUT("Forward subsumptions", forwardSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
+  COND_OUT("Forward ground joinable", forwardGroundJoinable);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
   COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
