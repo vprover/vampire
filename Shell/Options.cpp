@@ -1354,6 +1354,16 @@ void Options::init()
     _alascaAbstraction.setExperimental();
     _alascaAbstraction.onlyUsefulWith(_alasca.is(equal(true)));
 
+    _alascaIneqFacDemod = BoolOptionValue("alasca_ineq_fac_simpl","alascaifs",true);
+    _alascaIneqFacDemod.description=
+            "Enables the alascas inequality factoring simplification rule."
+            "\n";
+    _lookup.insert(&_alascaIneqFacDemod);
+    _alascaIneqFacDemod.tag(OptionTag::INFERENCES);
+    _alascaIneqFacDemod.setExperimental();
+    _alascaIneqFacDemod.onlyUsefulWith(_alasca.is(equal(true)));
+
+
     _alascaDemodulationFwd = BoolOptionValue("alasca_demodulation_fwd","alascadf",true);
     _alascaDemodulationFwd.description=
             "Enables the alascas demodulation rules for forward simplifications."

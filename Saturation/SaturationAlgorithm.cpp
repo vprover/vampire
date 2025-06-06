@@ -1631,7 +1631,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
 
     // TODO properly create an option for that, make it a simplifying rule
-    ise->addFrontMany(new ALASCA::InequalityFactoringDemod(shared));
+    if (env.options->alascaIneqFacDemod())
+      ise->addFrontMany(new ALASCA::InequalityFactoringDemod(shared));
     // TODO properly create an option for that, make it a simplifying rule
     ise->addFront(new ALASCA::TautologyDeletion(shared));
     ise->addFront(new ALASCA::Normalization());
