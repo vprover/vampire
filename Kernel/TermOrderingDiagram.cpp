@@ -518,11 +518,12 @@ const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int 
 
 template<class Iterator, typename ...Args>
 TermOrderingDiagram::Traversal<Iterator,Args...>::Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl, Args... initial)
-  : _tod(tod), _appl(appl), _rootIsSuccess(handleBranch(&_tod->_source, std::forward<Args>(initial)...)) {}
+  : _tod(tod), _appl(appl), _rootIsSuccess(_tod && handleBranch(&_tod->_source, std::forward<Args>(initial)...)) {}
 
 template<class Iterator, typename ...Args>
 bool TermOrderingDiagram::Traversal<Iterator,Args...>::next(Branch*& branch, Args&... args)
 {
+  ASS(_tod);
   if (_rootIsSuccess) {
     _rootIsSuccess = false;
     branch = &_tod->_source;
@@ -554,6 +555,7 @@ bool TermOrderingDiagram::Traversal<Iterator,Args...>::next(Branch*& branch, Arg
 template<class Iterator, typename ...Args>
 bool TermOrderingDiagram::Traversal<Iterator,Args...>::handleBranch(Branch* b, Args... args)
 {
+  ASS(_tod);
   auto prev = _path->isEmpty() ? nullptr : _path->top().first;
   ASS(!prev || b == &prev->node()->gtBranch
             || b == &prev->node()->eqBranch
