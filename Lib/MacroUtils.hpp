@@ -15,4 +15,7 @@
 #define __CONCAT_IDENTS(A, B) A ## B
 #define CONCAT_IDENTS(A, B) __EXPAND(__CONCAT_IDENTS)(A, B)
 
+#define CAR(x, ...) x
+#define CDR(x, ...) __VA_ARGS__
+
 #endif // __MacroUtils__

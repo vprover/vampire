@@ -117,16 +117,67 @@ public:
     )
     bits |= data;
   }
-
-  #define BITFIELD64_GET_AND_SET(type, name, Name, NAME) \
-    type _##name() const { return BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content); } \
-    void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content, val); }
-
-  #define BITFIELD64_GET_AND_SET_PTR(type, name, Name, NAME) \
-    type _##name() const { return reinterpret_cast<type>(BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content)); } \
-    void _set##Name(const type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content, reinterpret_cast<uint64_t>(val)); }
 };
 
 };
+
+/*
+ * Following macros allow defining a bitfield with a specific layout.
+ * Normal bitfields like
+ * struct {
+ *  bool foo: 1
+ *  unsigned bar: 2
+ * }
+ * have no defined order of bits, so `foo` might end up above or below `bar`.
+ *
+ * This is fine (and preferred) if you just want to stuff bits into a structure somehow,
+ * but if you care abut the order, you need to bit-twiddle manually.
+ *
+ * You might care about the order to achieve pointer tagging,
+ * where the lower bits of an aligned pointer (i.e. always zero)
+ * are used to encode information, masking it out when the original pointer is needed.
+ */
+
+// base case for the end of a bitfield: read as a pair (0, <empty code>)
+#define END_BITFIELD 0,
+
+/*
+ * Defines a bitfield member. Only useful in the context of BITFIELD.
+ * Takes five (!) parameters:
+ * 1. The type of the member.
+ * 2. getter name.
+ * 3. setter name.
+ * 4. The number of bits the field should occupy.
+ * 5. The rest of the bitfield - this looks a bit weird, but it's necessary for the macro to work.
+ *
+ * The implementation is a bit odd - try implementing one yourself to see why!
+ * Each invocation of BITFIELD_MEMBER (and END_BITFIELD) expands to a _pair_:
+ * - the width in bits of the member and the rest, taken together
+ * - the code required for the bitfield
+ * These pairs are projected out using the CAR/CDR macros.
+ */
+#define BITFIELD_MEMBER(type, getter, setter, width, rest) width + CAR(rest),\
+  type getter() const { return BitUtils::getBits<CAR(rest), CAR(rest) + width>(this->_content); }\
+  void setter(type val) { BitUtils::setBits<CAR(rest), CAR(rest) + width>(this->_content, val); }\
+  CDR(rest)
+
+/*
+ * Generate a bitfield inside a structure.
+ * See Kernel/Term.hpp for example usage.
+ *
+ * It assumes an unsigned field `_content` of `bits` bits.
+ * For each BITFIELD_MEMBER 'foo' of type T (typically unsigned/bool), it generates two methods:
+ * T _foo() const;
+ * void _setFoo(T val);
+ */
+#define BITFIELD(bits, members)\
+  static_assert(bits >= CAR(members), "bitfield must have less than " #bits "bits");\
+  CDR(members)
+
+// generate code treating a whole bitfield as a pointer, masking out lower `mask` bits
+#define BITFIELD_PTR_GET(type, getter, mask) \
+  type *getter() const { return reinterpret_cast<type *>(BitUtils::getBits<mask, CHAR_BIT * sizeof(type *)>(this->_content)); }
+#define BITFIELD_PTR_SET(type, setter, mask) \
+  void setter(const type *val) { BitUtils::setBits<mask, CHAR_BIT * sizeof(type *)>(this->_content, reinterpret_cast<uint64_t>(val)); }
 
 #endif /* __BitUtils__ */
