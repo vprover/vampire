@@ -515,8 +515,8 @@ struct InequalityFactoringDemod : ImmediateSimplificationEngine
           auto it2 = *foundIt2;
           auto k2_s = itp2.term().summandAt(it2); 
           auto pm_s = k1_s.numeral().sign() == Sign::Pos ? s : NumTraits::minus(s);
-          auto t1 = NumTraits::linMul(1 / k1_s.numeral().abs(), NumTraits::sum(itp1.term().iterSummands().dropNth(it1).map([](auto m) { return m.toTerm(); })));
-          auto t2 = NumTraits::linMul(1 / k2_s.numeral().abs(), NumTraits::sum(itp2.term().iterSummands().dropNth(it2).map([](auto m) { return m.toTerm(); })));
+          auto t1 = NumTraits::linMul(-1 / k1_s.numeral().abs(), NumTraits::sum(itp1.term().iterSummands().dropNth(it1).map([](auto m) { return m.toTerm(); })));
+          auto t2 = NumTraits::linMul(-1 / k2_s.numeral().abs(), NumTraits::sum(itp2.term().iterSummands().dropNth(it2).map([](auto m) { return m.toTerm(); })));
           if (itp1.symbol() == itp2.symbol()) {
 
             auto gtsim = [&](auto l, auto r) {

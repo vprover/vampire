@@ -86,3 +86,14 @@ TEST_SIMPLIFY(bug1,
           clause({   -f2(x,y)  >= 0, x + -y            >  0 })
           ))
     )
+
+TEST_SIMPLIFY(bug2,
+    SimplificationMany::Success()
+      .input(    clause({  x - a >= 0, -a - f(x) >= 0, -x -f(x) >= 0   }))
+      .expected( exactly(
+          clause({ x + -a >= 0, -x + a > 0, -a + -f(x) >= 0 }), 
+          clause({ x + -a >= 0, x + -a > 0, -x + -f(x) >= 0 })
+          // clause({ -(-f2(x,y)) >  0, x + -y + -f2(x,y) >= 0 }),
+          // clause({   -f2(x,y)  >= 0, x + -y            >  0 })
+          ))
+    )
