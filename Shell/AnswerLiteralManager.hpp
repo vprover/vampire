@@ -16,6 +16,7 @@
 #define __AnswerLiteralManager__
 
 #include <map>
+#include <set>
 
 #include "Forwards.hpp"
 
@@ -141,6 +142,12 @@ public:
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
+  bool isITE(TermList& tl) {
+    return tl.isTerm() && (iteFunctors.count(tl.term()->functor()) > 0);
+  }
+
+  Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
+
 protected:
   void recordSkolemBinding(Term*,unsigned,std::string) override;
 
@@ -165,15 +172,14 @@ private:
 
   Term* translateToSynthesisConditionTerm(Literal* l);
 
-  static Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
-
-  static unsigned getITEFunctionSymbol(TermList sort) {
+  unsigned getITEFunctionSymbol(TermList sort) {
     std::string name = "$ite_" + sort.toString();
     bool added = false;
     unsigned fn = env.signature->addFunction(name, 3, added);
     if (added) {
       Signature::Symbol* sym = env.signature->getFunction(fn);
       sym->setType(OperatorType::getFunctionType({AtomicSort::defaultSort(), sort, sort}, sort));
+      iteFunctors.insert(fn);
     }
     return fn;
   }
@@ -183,6 +189,8 @@ private:
   List<std::pair<unsigned,std::pair<Clause*, Literal*>>>* _answerPairs = nullptr;
 
   Literal* _lastAnsLit = nullptr;
+
+  std::set<unsigned> iteFunctors;
 };
 
 }

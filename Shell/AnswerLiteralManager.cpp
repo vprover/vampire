@@ -750,7 +750,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
     Term* t = trm.term();
     if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
       TermList sort = env.signature->getFunction(t->functor())->fnType()->arg(1);
-      if (t->functor() == getITEFunctionSymbol(sort)) {
+      if (t->functor() == static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
         std::string condName = tcond->functionName();

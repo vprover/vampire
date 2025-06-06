@@ -56,13 +56,15 @@ private:
   Clause* _avoiders;
 };
 
-// TODO(hzzv): rename the file?
-class AnswerLiteralJoiner
+class SynthesisAnswerLiteralProcessor
 : public ImmediateSimplificationEngine
 {
 public:
-  ClauseIterator simplifyMany(Clause* cl) override;
-  Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
+  Clause* simplify(Clause* premise) override;
+private:
+  bool unifyTermWithBothBranches(RobSubstitution* subst, TermList& t, TermList& branch1, TermList& branch2, TermList& res);
+  bool unifyWithITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res);
+  Literal* unifyWithITE(RobSubstitution* subst, Literal* l1, Literal* l2);
 };
 
 }
