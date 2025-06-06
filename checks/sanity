@@ -79,6 +79,7 @@ check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
 check_szs_status Unsatisfiable -t 2 parse/smtlib2-parametric-datatypes.smt2
 check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
+check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
 
 # Arithmetic
 check_szs_status Theorem -t 1d -s 32 -tgt ground -sas z3 -tha some -nm 6 Problems/ANA/ANA135_1.p

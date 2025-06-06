@@ -479,6 +479,13 @@ private:
   /**
    * Unofficial command
    *
+   * Used for synthesis based on forall-exist formulas.
+   */
+  void readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body);
+
+  /**
+   * Unofficial command
+   *
    * Behaves like assert, but marks body clause as external theory axiom.
    * Assumes that body is already fully simplified (as this is usual the case for theory axioms).
    */
