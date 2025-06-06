@@ -771,4 +771,87 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
   return trm;
 }
 
+bool SynthesisALManager::unifyTermWithBothBranches(RobSubstitution* subst, TermList& t, TermList& branch1, TermList& branch2, TermList& res) {
+  TermList r;
+  if (!unifyConsideringITE(subst, branch1, t, r) || !unifyConsideringITE(subst, branch2, r, res)) {
+    return false;
+  }
+  return true;
+}
+
+bool SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res) {
+  if (subst->unify(t1, 0, t2, 0)) {
+    res = subst->apply(t1, 0);
+    return true;
+  }
+  if (isITE(t1)) {
+    if (isITE(t2)) {
+      // Both terms are if-then-elses. To unify them, their then-branches
+      // and their else-branches must be unifiable separately into r1, r2; and:
+      // - either their conditions must be unifiable,
+      // - or r1 and r2 must be unifiable.
+      // Unify the branches separately:
+      TermList r1, r2;
+      if (!unifyConsideringITE(subst, *t1.term()->nthArgument(1), *t2.term()->nthArgument(1), r1) ||
+          !unifyConsideringITE(subst, *t1.term()->nthArgument(2), *t2.term()->nthArgument(2), r2)) {
+        return false;
+      }
+      // Check if the conditions are unifiable:
+      // TODO(hzzv): take equality into account.
+      TermList cond1 = *t1.term()->nthArgument(0), cond2 = *t2.term()->nthArgument(0);
+      if ((cond1.term()->functor() != cond2.term()->functor()) ||
+          !subst->unifyArgs(cond1.term(), 0, cond2.term(), 0)) {
+        // The conditions do not unify, so we need to try to unify the two branches:
+        return unifyConsideringITE(subst, r1, r2, res);
+      } else {
+        // Conditions unify, create a new if-then-else:
+        Term* cond = subst->apply(cond1, 0).term();
+        res = TermList(createRegularITE(cond, subst->apply(r1, 0), subst->apply(r2, 0), env.signature->getFunction(t1.term()->functor())->fnType()->result()));
+        return true;
+      }
+    } else {
+      // t2 is not an if-then-else. That means it must unify with both branches of t1.
+      return unifyTermWithBothBranches(subst, t2, *t1.term()->nthArgument(1), *t1.term()->nthArgument(2), res);
+    }
+  } else if (isITE(t2)) {
+    // Case symmetric to the one just above: t1 must unify with both branches of t2.
+    return unifyTermWithBothBranches(subst, t1, *t2.term()->nthArgument(1), *t2.term()->nthArgument(2), res);
+  } else {
+    // Neither of t1, t2 is an if-then-else, and t1, t2 do not straightforwardly unify. Fail.
+    // TODO(hzzv): as of now, ITEs never occur as arguments of non-ITE functions, so in
+    // this case, neither t1 nor t2 contain any ITEs, and hence it is sufficient to fail.
+    // Once we start introducing ITEs within other functions, implement recursion here too.
+    return false;
+  }
+}
+
+Literal* SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, Literal* l1, Literal* l2) {
+  ASS_EQ(l1->functor(), l2->functor());
+  // First try regular unification without any consideration to if-then-elses.
+  if (subst->unifyArgs(l1, 0, l2, 0)) {
+    return subst->apply(l1, 0);
+  }
+  // Regular unification failed, try unification considering if-then-elses
+  // for each answer literal argument separately.
+  Stack<TermList> args;
+  for (unsigned i = 0; i < l1->arity(); ++i) {
+    TermList arg;
+    if (!unifyConsideringITE(subst, *l1->nthArgument(i), *l2->nthArgument(i), arg)) {
+      return nullptr;
+    }
+    args.push(arg);
+  }
+  // All unifications succeeded.
+  // Since the `subst` changes in the process, apply in on all `args`.
+  Stack<TermList>::RefIterator it(args);
+  while (it.hasNext()) {
+    TermList& arg = it.next();
+    TermList argSub = subst->apply(arg, 0);
+    if (arg != argSub) {
+      it.replace(argSub);
+    }
+  }
+  return Literal::create(l1->functor(), l1->arity(), l1->polarity(), args.begin());
+}
+
 }

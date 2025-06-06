@@ -142,11 +142,7 @@ public:
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
-  bool isITE(TermList& tl) {
-    return tl.isTerm() && (iteFunctors.count(tl.term()->functor()) > 0);
-  }
-
-  Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
+  Literal* unifyConsideringITE(RobSubstitution* subst, Literal* l1, Literal* l2);
 
 protected:
   void recordSkolemBinding(Term*,unsigned,std::string) override;
@@ -172,6 +168,8 @@ private:
 
   Term* translateToSynthesisConditionTerm(Literal* l);
 
+  Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
+
   unsigned getITEFunctionSymbol(TermList sort) {
     std::string name = "$ite_" + sort.toString();
     bool added = false;
@@ -183,6 +181,14 @@ private:
     }
     return fn;
   }
+
+  bool isITE(TermList& tl) {
+    return tl.isTerm() && (iteFunctors.count(tl.term()->functor()) > 0);
+  }
+
+  bool unifyTermWithBothBranches(RobSubstitution* subst, TermList& t, TermList& branch1, TermList& branch2, TermList& res);
+
+  bool unifyConsideringITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res);
 
   ConjectureSkolemReplacement _skolemReplacement;
 

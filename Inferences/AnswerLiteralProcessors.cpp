@@ -110,89 +110,6 @@ Clause* UndesiredAnswerLiteralRemoval::simplify(Clause* cl)
   return cl;
 }
 
-bool SynthesisAnswerLiteralProcessor::unifyTermWithBothBranches(RobSubstitution* subst, TermList& t, TermList& branch1, TermList& branch2, TermList& res) {
-  TermList r;
-  if (!unifyWithITE(subst, branch1, t, r) || !unifyWithITE(subst, branch2, r, res)) {
-    return false;
-  }
-  return true;
-}
-
-bool SynthesisAnswerLiteralProcessor::unifyWithITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res) {
-  if (subst->unify(t1, 0, t2, 0)) {
-    res = subst->apply(t1, 0);
-    return true;
-  }
-  SynthesisALManager* synthMan = static_cast<SynthesisALManager*>(SynthesisALManager::getInstance());
-  if (synthMan->isITE(t1)) {
-    if (synthMan->isITE(t2)) {
-      // Both terms to unify are if-then-elses.
-      // Their then-branches and their else-branches must be unifiable separately into r1, r2; and:
-      // - either their conditions must be unifiable,
-      // - or r1 and r2 must be unifiable.
-      // Check the conditions:
-      TermList cond1 = *t1.term()->nthArgument(0), cond2 = *t2.term()->nthArgument(0);
-      if (cond1.term()->functor() != cond2.term()->functor()) {
-        return false;
-      }
-      bool allShouldUnify = true;
-      if (subst->unifyArgs(cond1.term(), 0, cond2.term(), 0)) {
-        allShouldUnify = false;
-      }
-      // Unify the branches separately:
-      TermList r1, r2;
-      if (!unifyWithITE(subst, *t1.term()->nthArgument(1), *t2.term()->nthArgument(1), r1) ||
-          !unifyWithITE(subst, *t1.term()->nthArgument(2), *t2.term()->nthArgument(2), r2)) {
-        return false;
-      }
-      if (allShouldUnify) {
-        // Unify the two branches together:
-        if (!unifyWithITE(subst, r1, r2, res)) {
-          return false;
-        }
-        return true;
-      } else {
-        // Create a new if-then-else:
-        Term* cond = subst->apply(cond1, 0).term();
-        res = TermList(synthMan->createRegularITE(cond, r1, r2, env.signature->getFunction(t1.term()->functor())->fnType()->result()));
-        return true;
-      }
-    } else {
-      // t2 is not an if-then-else. That means it must unify with both branches of t1.
-      return unifyTermWithBothBranches(subst, t2, *t1.term()->nthArgument(1), *t1.term()->nthArgument(2), res);
-    }
-  } else if (synthMan->isITE(t2)) {
-    // Case symmetric to the one just above: t1 must unify with both branches of t2.
-    return unifyTermWithBothBranches(subst, t1, *t2.term()->nthArgument(1), *t2.term()->nthArgument(2), res);
-  } else {
-    return false;
-  }
-}
-
-Literal* SynthesisAnswerLiteralProcessor::unifyWithITE(RobSubstitution* subst, Literal* l1, Literal* l2) {
-  ASS_EQ(l1->functor(), l2->functor());
-  if (subst->unifyArgs(l1, 0, l2, 0)) {
-    return subst->apply(l1, 0);
-  }
-  Stack<TermList> args;
-  for (unsigned i = 0; i < l1->arity(); ++i) {
-    TermList arg;
-    if (!unifyWithITE(subst, *l1->nthArgument(i), *l2->nthArgument(i), arg)) {
-      return nullptr;
-    }
-    args.push(arg);
-  }
-  Stack<TermList>::RefIterator it(args);
-  while (it.hasNext()) {
-    TermList& arg = it.next();
-    TermList argSub = subst->apply(arg, 0);
-    if (arg != argSub) {
-      it.replace(argSub);
-    }
-  }
-  return Literal::create(l1->functor(), l1->arity(), l1->polarity(), args.begin());
-}
-
 Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
 {
   if ((cl->inference().rule() == InferenceRule::ANSWER_LITERAL_ITE) ||
@@ -283,7 +200,7 @@ Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
   } else {
     // Condition is not computable, try unifying the two answer literals
     RobSubstitution subst;
-    Literal* resAnsLit = unifyWithITE(&subst, synExtra->thenLit, synExtra->elseLit);
+    Literal* resAnsLit = static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->unifyConsideringITE(&subst, synExtra->thenLit, synExtra->elseLit);
     if (resAnsLit) {
       LiteralStack lits(cl->length()-1);
       for (unsigned i = 0; i < cl->length(); ++i) {

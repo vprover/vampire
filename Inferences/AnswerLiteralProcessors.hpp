@@ -61,10 +61,6 @@ class SynthesisAnswerLiteralProcessor
 {
 public:
   Clause* simplify(Clause* premise) override;
-private:
-  bool unifyTermWithBothBranches(RobSubstitution* subst, TermList& t, TermList& branch1, TermList& branch2, TermList& res);
-  bool unifyWithITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res);
-  Literal* unifyWithITE(RobSubstitution* subst, Literal* l1, Literal* l2);
 };
 
 }
