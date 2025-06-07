@@ -625,6 +625,9 @@ protected:
       if (rule==InferenceRule::SKOLEMIZE) {
 	      statusStr="status(esa),"+getNewSymbols("skolem",us);
       }
+      else if(rule==InferenceRule::NEGATED_CONJECTURE) {
+	      statusStr="status(cth)";
+      }
 
       inferenceStr="inference("+tptpRuleName(rule);
 
