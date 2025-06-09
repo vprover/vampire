@@ -112,5 +112,5 @@ check_szs_status Theorem -t 1d -t 1d -sas z3 -fs off -slsq off -s2a on -ep RSTC 
 check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
 
 # Forward ground joinability
-check_szs_status Satisfiable -fgj on Problems/SWV/SWV021-1.p
-check_szs_status Unsatisfiable -fgj on Problems/SWW/SWW436-1.p
+check_szs_status Satisfiable -t 5d -fgj on Problems/SWV/SWV021-1.p
+check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
