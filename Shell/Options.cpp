@@ -31,7 +31,6 @@
 
 // Visual does not know the round function
 #include <cmath>
-#include <filesystem>
 #include <fstream>
 #include <random>
 
@@ -2048,8 +2047,7 @@ void Options::init()
     _splittingAddComplementary.tag(OptionTag::AVATAR);
     _splittingAddComplementary.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingCongruenceClosure = ChoiceOptionValue<SplittingCongruenceClosure>("avatar_congruence_closure","acc",
-                                                                                SplittingCongruenceClosure::OFF,{"model","off","on"});
+    _splittingCongruenceClosure = BoolOptionValue("avatar_congruence_closure", "acc", false);
     _splittingCongruenceClosure.description="Use a congruence closure decision procedure on top of the AVATAR SAT solver. This ensures that models produced by AVATAR satisfy the theory of uninterpreted functions.";
     _lookup.insert(&_splittingCongruenceClosure);
     _splittingCongruenceClosure.tag(OptionTag::AVATAR);
@@ -2058,17 +2056,13 @@ void Options::init()
     _splittingCongruenceClosure.onlyUsefulWith(_satSolver.is(notEqual(SatSolver::Z3)));
 #endif
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
-    _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
-                                                  then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
-    _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
-                                                  then(_termOrdering.is(notEqual(TermOrdering::ALL_INCOMPARABLE))));
 
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
     _ccUnsatCores.description="";
     _lookup.insert(&_ccUnsatCores);
     _ccUnsatCores.tag(OptionTag::AVATAR);
-    _ccUnsatCores.onlyUsefulWith(_splittingCongruenceClosure.is(notEqual(SplittingCongruenceClosure::OFF)));
+    _ccUnsatCores.onlyUsefulWith(_splittingCongruenceClosure.is(equal(true)));
 
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "avatar_literal_polarity_advice","alpa",
