@@ -17,11 +17,7 @@
 #ifndef __Environment__
 #define __Environment__
 
-#include <iostream>
-
 #include "Forwards.hpp"
-#include "Exception.hpp"
-#include "DHMap.hpp"
 #include "Kernel/Problem.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/ProofExtra.hpp"
@@ -71,10 +67,22 @@ public:
    * be explicitly passed to all the functions interested in knowning...)
    */
   Kernel::Problem* getMainProblem() { return _problem; }
-  void setMainProblem(Kernel::Problem* p) { _problem = p; }
+  void setMainProblem(Kernel::Problem* p) {
+    _problem = p;
+    _higherOrder = _problem->isHigherOrder();
+  }
+
+  bool higherOrder() const {
+    return _higherOrder;
+  }
+
+  void setHigherOrder(bool value) {
+    _higherOrder = value;
+  }
 
 private:
   Kernel::Problem* _problem;
+  bool _higherOrder;
 }; // class Environment
 
 extern Environment env;

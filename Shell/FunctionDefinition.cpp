@@ -359,7 +359,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
     if (env.options->showPreprocessing()) {
       std::cout << "[PP] fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs) << std::endl;
     }
-    env.statistics->functionDefinitions++;
+    env.statistics->eliminatedFunctionDefinitions++;
   }
 
   UnitList::DelIterator unfoldIterator(units);

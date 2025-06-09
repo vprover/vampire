@@ -171,7 +171,7 @@ void EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
       vars2.push(v2);
     } else {
       TermList var = symbolType->quantifiedVar(i);
-      localSubst.bind(var.var(), v1);
+      localSubst.bindUnbound(var.var(), v1);
       vars1.push(v1);
       vars2.push(v1);
     }

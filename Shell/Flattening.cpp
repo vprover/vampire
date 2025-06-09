@@ -185,7 +185,7 @@ Formula* Flattening::innerFlatten (Formula* f)
       }
 
       // arg is a quantified formula with the same quantifier
-      // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
+      // the sort list is either empty (if one of the parts have empty sorts) or the concatenation
       SList* sl = SList::empty();
       if(f->sorts() && arg->sorts()){
         sl = SList::append(f->sorts(), arg->sorts());

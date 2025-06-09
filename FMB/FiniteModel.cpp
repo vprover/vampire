@@ -518,7 +518,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
 
      for(unsigned c=1;c<=_size;c++){
        Substitution s;
-       s.bind(var,getDomainConstant(c));
+       s.bindUnbound(var,getDomainConstant(c));
        Formula* next_sub = SubstHelper::apply(next,s);
        next_sub = SimplifyFalseTrue::simplify(next_sub);
        next_sub = Flattening::flatten(next_sub); 

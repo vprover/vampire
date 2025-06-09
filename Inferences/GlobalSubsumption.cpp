@@ -53,7 +53,7 @@ GlobalSubsumption::GlobalSubsumption(const Options& opts) :
   _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
   _splitter(0)
 {
-  _solver = new MinisatInterfacing(opts,true);
+  _solver = new MinisatInterfacing;
   _grounder = new GlobalSubsumptionGrounder(*_solver);
 }
 

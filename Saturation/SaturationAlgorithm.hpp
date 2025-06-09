@@ -86,6 +86,7 @@ public:
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  void addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
   void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
@@ -223,6 +224,7 @@ protected:
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
+  FwSimplList* _expensiveFwSimplifiers;
 
   //Simplification occurs at the same point in the loop
   //as forward and backward simplification, but does not involve

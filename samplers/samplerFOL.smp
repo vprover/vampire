@@ -294,7 +294,7 @@ bsd=on > bsdmm ~cat 0:154,1:264,3:223,2:359,3:100,4:100
 ins=0 > er ~cat off:367,known:356,filter:278
 
 # extensionality_allow_pos_eq
-er=filter > erape ~cat on:551,off:449
+er=filter > eape ~cat on:551,off:449
 
 # extensionality_max_length
 er!=off > erml ~cat 3:610,0:208,2:181,4:100,5:100
@@ -317,6 +317,9 @@ fd!=off > fdtod ~cat on:1,off:1
 
 # demodulation_only_equational
 $demod=1 > doe ~cat off:562,on:438
+
+# forward_ground_joinability
+sa!=fmb > fgj ~cat on:1,off:1
 
 # forward_literal_rewriting
 > flr ~cat off:592,on:408
@@ -435,7 +438,6 @@ av=on > abs ~cat off:578,on:422
 
 # avatar_congruence_closure
 sas!=z3 av=on > acc ~cat off:588,on:358
-# droped "model:54", because we hates it!
 
 # cc_unsat_cores
 acc!=off > ccuc ~cat small_ones:376,first:354,all:269

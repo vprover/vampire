@@ -101,7 +101,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
+	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
 	       TermUnificationRetriever(fsi)) );
       break;
     }

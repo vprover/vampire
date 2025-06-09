@@ -126,14 +126,14 @@ void Statistics::print(std::ostream& out)
   SEPARATOR;
 
   HEADING("Preprocessing",formulaNames+skolemFunctions+purePredicates+trivialPredicates+
-    unusedPredicateDefinitions+functionDefinitions+selectedBySine+
+    unusedPredicateDefinitions+eliminatedFunctionDefinitions+selectedBySine+
     sineIterations+blockedClauses+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
-  COND_OUT("Function definitions", functionDefinitions);
+  COND_OUT("Function definitions", eliminatedFunctionDefinitions);
   COND_OUT("Selected by SInE selection", selectedBySine);
   COND_OUT("SInE iterations", sineIterations);
   COND_OUT("Blocked clauses", blockedClauses);
@@ -198,7 +198,7 @@ void Statistics::print(std::ostream& out)
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
-      forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
+      forwardSubsumed+backwardSubsumed+forwardGroundJoinable+forwardDemodulationsToEqTaut+
       forwardSubsumptionDemodulationsToEqTaut+backwardSubsumptionDemodulationsToEqTaut+
       backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
@@ -206,6 +206,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Deep equational tautologies", deepEquationalTautologies);
   COND_OUT("Forward subsumptions", forwardSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
+  COND_OUT("Forward ground joinable", forwardGroundJoinable);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
   COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
@@ -219,7 +220,8 @@ void Statistics::print(std::ostream& out)
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
       +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
-      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication+nonGroundInductionApplication);
+      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication+nonGroundInductionApplication
+      +introducedFunctionDefinitions);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
   COND_OUT("Binary resolution with abstraction",cResolution);
@@ -275,6 +277,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Forward sub-variable superposition", forwardSubVarSup);
   COND_OUT("Backward sub-variable superposition", backwardSubVarSup);
   COND_OUT("Self sub-variable superposition", selfSubVarSup);
+  COND_OUT("Introduced function definitions", introducedFunctionDefinitions);
   SEPARATOR;
 
   HEADING("Redundant Inferences",

@@ -236,7 +236,7 @@ public:
 
   /**
    * If there is no value stored under @b key in the map,
-   * insert pair (key,value) and return true. Otherwise, 
+   * insert pair (key,value) and return true. Otherwise,
    * return false.
    */
   bool insert(Key key, Val val)
@@ -877,13 +877,14 @@ public:
   friend std::ostream& operator<<(std::ostream& out, DHMap const& self) 
   {
     auto iter = self.items();
-    auto write = [&](auto itm) { out << itm.first << " -> " << itm.second; };
+    // auto write = [&](auto itm) { out << itm.first << " -> " << itm.second; };
+    auto write_pythonic = [&](auto itm) { out << '"' << itm.first << '"' << " : "  << '"' << itm.second  << '"'; };
     out << "{ ";
     if (iter.hasNext()) {
-      write(iter.next());
+      write_pythonic(iter.next());
       while (iter.hasNext()) {
         out << ", ";
-        write(iter.next());
+        write_pythonic(iter.next());
       }
     }
     return out << " }";

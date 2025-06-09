@@ -65,14 +65,9 @@ public:
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
   static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
   static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args); 
-  static bool isComb(const TermList t);
-  static Signature::Combinator getComb(const TermList t);
-  static Signature::Proxy getProxy(const TermList t);
+  static Proxy getProxy(const TermList t);
   static TermList getHead(TermList t);
   static TermList getHead(Term* t);  
-  static bool isUnderApplied(TermList head, unsigned argNum);
-  static bool isExactApplied(TermList head, unsigned argNum);
-  static bool isOverApplied(TermList head, unsigned argNum);
   static bool isSafe(TermStack& args);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);

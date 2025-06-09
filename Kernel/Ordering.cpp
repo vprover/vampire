@@ -35,7 +35,6 @@
 
 #include "LPO.hpp"
 #include "KBO.hpp"
-#include "SKIKBO.hpp"
 #include "TermOrderingDiagram.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
@@ -136,10 +135,6 @@ struct AllIncomparableOrdering : Ordering {
  */
 Ordering* Ordering::create(Problem& prb, const Options& opt)
 {
-  if(env.options->combinatorySup() || env.options->lambdaFreeHol()){
-    return new SKIKBO(prb, opt, env.options->lambdaFreeHol());
-  }
-
   Ordering* out;
   switch (opt.termOrdering()) {
   case Options::TermOrdering::KBO:
@@ -258,9 +253,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-TermOrderingDiagramUP Ordering::createTermOrderingDiagram() const
+TermOrderingDiagramUP Ordering::createTermOrderingDiagram(bool ground) const
 {
-  return std::make_unique<TermOrderingDiagram>(*this);
+  return std::make_unique<TermOrderingDiagram>(*this, ground);
 }
 
 //////////////////////////////////////////////////
@@ -553,11 +548,11 @@ struct BoostWrapper : public SymbolComparator
         if(g1 && !g2){ res = GREATER; }
         else if(!g1 && g2){ res = LESS; }
         break;
-      case Options::SymbolPrecedenceBoost::UNIT:
+      case Options::SymbolPrecedenceBoost::UNITS:
         if(u1 && !u2){ res = GREATER; }
         else if(!u1 && u2){ res = LESS; }
         break;
-      case Options::SymbolPrecedenceBoost::GOAL_UNIT:
+      case Options::SymbolPrecedenceBoost::GOAL_THEN_UNITS:
         if(g1 && !g2){ res = GREATER; }
         else if(!g1 && g2){ res = LESS; }
         else if(u1 && !u2){ res = GREATER; }

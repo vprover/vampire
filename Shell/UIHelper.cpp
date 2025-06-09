@@ -40,6 +40,7 @@
 #include "LaTeX.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
+#include "SMTCheck.hpp"
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
@@ -365,7 +366,7 @@ void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inpu
  * No preprocessing is performed on the units.
  *
  * The Options object should intentionally not be part of this game,
- * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning options
+ * as any form of "conditional parsing" compromises the effective use of the corresponding conditioning options
  * as a part of strategy development and use in portfolios. In other words, if you need getInputProblem or the parse* functions
  * to depend on an option, think twice, and if really needed, make it an explicit argument of that function.
  */
@@ -378,11 +379,7 @@ Problem* UIHelper::getInputProblem()
   res->setSMTLIBLogic(topPiece._smtLibLogic);
 
   if(res->isHigherOrder())
-    USER_ERROR(
-      "This version of Vampire is not yet HOLy.\n\n"
-      "Support for higher-order logic is currently on the ahmed-new-hol branch.\n"
-      "HOL should be coming to mainline 'soon'."
-    );
+    HOL_ERROR;
 
   env.setMainProblem(res);
   return res;

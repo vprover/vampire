@@ -30,28 +30,24 @@
 namespace Lib
 {
 
-using namespace std;
-using namespace Kernel;
-using namespace Indexing;
-using namespace Shell;
-
 /**
  * @since 06/05/2007 Manchester
  */
 Environment::Environment()
-  : signature(0),
-    sharing(0),
+  : signature(nullptr),
+    sharing(nullptr),
     maxSineLevel(1),
     predicateSineLevels(nullptr),
     inferenceAgeCorrections(toNumber(InferenceRule::INTERNAL_INFERNCE_LAST)),
     colorUsed(false),
-    _problem(0)
+    _problem(nullptr),
+    _higherOrder(false)
 {
   options = new Options;
 
   statistics = new Statistics;
   signature = new Signature;
-  sharing = new TermSharing;
+  sharing = new Indexing::TermSharing;
 
   for (unsigned i = toNumber(InferenceRule::GENERIC_GENERATING_INFERNCE); i < toNumber(InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST); i++) {
     inferenceAgeCorrections[i] = 1.0;
@@ -77,7 +73,7 @@ Environment::~Environment()
   delete sharing;
   delete signature;
   delete statistics;
-  if (predicateSineLevels) delete predicateSineLevels;
+  delete predicateSineLevels;
   delete options;
 }
 
@@ -87,7 +83,7 @@ Environment::~Environment()
 int Environment::remainingTime() const
 {
   // If time limit is set to 0 then assume we always have an hour left
-  if(options->timeLimitInDeciseconds() == 0){
+  if (options->timeLimitInDeciseconds() == 0) {
     return 3600000;
   }
   return options->timeLimitInDeciseconds()*100 - Timer::elapsedMilliseconds();

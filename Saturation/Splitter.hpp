@@ -35,7 +35,6 @@
 #include "SAT/SATSolver.hpp"
 
 #include "DP/DecisionProcedure.hpp"
-#include "DP/SimpleCongruenceClosure.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -50,9 +49,9 @@ using namespace Indexing;
 
 typedef Stack<SplitLevel> SplitLevelStack;
 
-struct SplitClauseExtra : public InferenceExtra {
+struct SATClauseExtra : public InferenceExtra {
   SATClause *clause;
-  SplitClauseExtra(SATClause *clause) : clause(clause) {}
+  SATClauseExtra(SATClause *clause) : clause(clause) {}
   void output(std::ostream &out) const override;
 };
 
@@ -71,7 +70,7 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent), _solverIsSMT(false)  {}
+  SplittingBranchSelector(Splitter& parent) : _parent(parent), _solverIsSMT(false)  {}
   ~SplittingBranchSelector(){
 #if VZ3
 _solver=0;
@@ -93,42 +92,27 @@ private:
   friend class Splitter;
 
   SATSolver::Status processDPConflicts();
-  SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
 
   void handleSatRefutation();
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-
-  float assertedGroundPositiveEqualityCompomentMaxAge();
 
   //options
   bool _eagerRemoval;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
   bool _minSCO; // minimize wrt splitting clauses only
-  bool _ccModel;
 
   Splitter& _parent;
 
   bool _solverIsSMT;
   ScopedPtr<SATSolver> _solver;
   ScopedPtr<DecisionProcedure> _dp;
-  // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
-  ScopedPtr<SimpleCongruenceClosure> _dpModel;
-  
+
   /**
    * Contains selected component names (splitlevels)
    */
   ArraySet _selected;
-  
-  /**
-   * Keeps track of positive ground equalities true in the last ccmodel.
-   */
-  ArraySet _trueInCCModel;
-
-#if VDEBUG
-  unsigned lastCheckedVar;
-#endif
 };
 
 
@@ -274,7 +258,7 @@ private:
   unsigned _flushPeriod;
   float _flushQuotient;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
-  Options::SplittingCongruenceClosure _congruenceClosure;
+  bool _congruenceClosure;
   bool _shuffleComponents;
 #if VZ3
   bool hasSMTSolver;
