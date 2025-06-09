@@ -20,7 +20,20 @@
 
 #include "Ordering.hpp"
 
+namespace Inferences {
+  class ForwardGroundJoinability;
+}
+
 namespace Kernel {
+
+struct POStruct {
+  POStruct() = default;
+  POStruct(const TermPartialOrdering* tpo)
+    : tpo(tpo), cons() {}
+
+  const TermPartialOrdering* tpo = nullptr;
+  Stack<TermOrderingConstraint> cons;
+};
 
 /**
  * Class implementing term ordering diagrams which handle the following
@@ -37,7 +50,10 @@ namespace Kernel {
 struct TermOrderingDiagram
 {
 public:
-  TermOrderingDiagram(const Ordering& ord);
+  static TermOrderingDiagram* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs);
+  static bool extendVarsGreater(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct& po_struct);
+
+  TermOrderingDiagram(const Ordering& ord, bool ground);
   virtual ~TermOrderingDiagram();
 
   /** Has to be called each time a new retrieval is started. */
@@ -177,6 +193,72 @@ protected:
   Branch* _curr;
   Branch* _prev;
   const SubstApplicator* _appl;
+  bool _ground;
+
+  friend class Inferences::ForwardGroundJoinability;
+
+public:
+  template<class Iterator, typename ...Args>
+  struct Traversal {
+    Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl, Args... initial);
+    bool next(Branch*& b, Args&... args);
+    bool handleBranch(Branch* b, Args... args);
+
+  private:
+    TermOrderingDiagram* _tod;
+    const SubstApplicator* _appl;
+    Recycled<Stack<std::pair<Branch*,Iterator>>> _path;
+    bool _rootIsSuccess;
+  };
+
+  struct DefaultIterator {
+    DefaultIterator(const Ordering&, const SubstApplicator*, Node*) {}
+    bool next(Result& res) {
+      if (curr == Result::INCOMPARABLE) {
+        return false;
+      }
+      res = curr;
+      switch (curr) {
+        case Result::GREATER:
+          curr = Result::EQUAL;
+          break;
+        case Result::EQUAL:
+          curr = Result::LESS;
+          break;
+        case Result::LESS:
+          curr = Result::INCOMPARABLE;
+          break;
+        case Result::INCOMPARABLE:
+          ASSERTION_VIOLATION;
+      }
+      return true;
+    }
+    Result curr = Result::GREATER;
+  };
+
+  struct NodeIterator {
+    NodeIterator(const Ordering&, const SubstApplicator*, Node* node, POStruct initial);
+    bool next(Result& res, POStruct& pos);
+
+  private:
+    bool tryExtend(POStruct& po_struct, const Stack<TermOrderingConstraint>& cons);
+
+    POStruct initial;
+    struct BranchingPoint {
+      Stack<TermOrderingConstraint> cons;
+      Result r;
+    };
+    Stack<BranchingPoint> bps;
+  };
+
+  struct AppliedNodeIterator {
+    AppliedNodeIterator(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial);
+    bool next(Result& res, POStruct& pos);
+
+  private:
+    bool termNode;
+    Traversal<NodeIterator,POStruct> traversal;
+  };
 };
 
 } // namespace Kernel

@@ -180,6 +180,9 @@ fd!=off > fdtod ~cat on:1,off:1
 # demodulation_only_equational
 $drc=1 > doe ~cat on:1,off:1
 
+# forward_ground_joinability
+sa!=fmb > fgj ~cat on:1,off:1
+
 # forward_literal_rewriting
 > flr ~cat off:8,on:1
 

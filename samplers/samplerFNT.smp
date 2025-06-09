@@ -157,6 +157,9 @@ sa!=fmb fd!=off > fdtod ~cat on:1,off:1
 # demodulation_only_equational
 sa!=fmb $drc=1 > doe ~cat on:1,off:1
 
+# forward_ground_joinability
+sa!=fmb > fgj ~cat on:1,off:1
+
 # function_definition_introduction
 sa!=fmb > fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
 

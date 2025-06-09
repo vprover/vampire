@@ -265,7 +265,6 @@ public:
   virtual bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) = 0;
 };
 
-
 struct BwSimplificationRecord
 {
   BwSimplificationRecord() {}

@@ -1788,6 +1788,12 @@ void Options::init()
     _forwardDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
     _forwardDemodulation.tag(OptionTag::INFERENCES);
 
+    _forwardGroundJoinability = BoolOptionValue("forward_ground_joinability","fgj",false);
+    _forwardGroundJoinability.description="Perform forward ground joinability.";
+    _lookup.insert(&_forwardGroundJoinability);
+    _forwardGroundJoinability.onlyUsefulWith(ProperSaturationAlgorithm());
+    _forwardGroundJoinability.tag(OptionTag::INFERENCES);
+
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
     _lookup.insert(&_forwardLiteralRewriting);

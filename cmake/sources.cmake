@@ -50,6 +50,7 @@ set(UNIT_TESTS
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tEqualityResolution.cpp
+    UnitTests/tForwardGroundJoinability.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
@@ -259,6 +260,8 @@ set(SOURCES
     Inferences/FastCondensation.hpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardDemodulation.hpp
+    Inferences/ForwardGroundJoinability.cpp
+    Inferences/ForwardGroundJoinability.hpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.cpp
