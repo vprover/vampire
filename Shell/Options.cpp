@@ -160,7 +160,7 @@ void Options::init()
     };
 
     _intent = ChoiceOptionValue<Intent>("intent","intent",Intent::UNSAT,{"unsat","sat"});
-    _intent.description = "Discribes what the system should be striving to show."
+    _intent.description = "Describes what the system should be striving to show."
       " By default a prover tries to show `unsat` and find a refutation (a proof of the negated conjecture)."
       " Discovering a finite saturations while using a complete strategy and thus testifying satisfiability is a nice bonus in that case."
       " On the other hand, with the intent `sat` the main focus is on finding models."
@@ -576,7 +576,7 @@ void Options::init()
     "Generality of a symbol is the number of input formulas in which a symbol appears."
     " If the generality of a symbol is smaller than the threshold, it is always included into the D-relation with formulas in which it appears."
     " Note that with the default value (0) this actually never happens."
-    " (And with 1, there would be no difference, because the 1 is used up on the occurence in the already included unit.)";
+    " (And with 1, there would be no difference, because the 1 is used up on the occurrence in the already included unit.)";
     _lookup.insert(&_sineGeneralityThreshold);
     _sineGeneralityThreshold.tag(OptionTag::PREPROCESSING);
     // Captures that if the value is not default then sineSelection must be on
@@ -629,7 +629,7 @@ void Options::init()
 
     _latexUseDefaultSymbols = BoolOptionValue("latex_use_default_symbols","",true);
     _latexUseDefaultSymbols.description="Interpreted symbols such as product have default LaTeX symbols"
-        " that can be used. They can be overriden in the normal way. This option can turn them off";
+        " that can be used. They can be overridden in the normal way. This option can turn them off";
     _latexUseDefaultSymbols.tag(OptionTag::OUTPUT);
     _lookup.insert(&_latexUseDefaultSymbols);
 
@@ -762,7 +762,7 @@ void Options::init()
 #if VAMPIRE_CLAUSE_TRACING
 
     _traceBackward = IntOptionValue("trace_bwd","",0);
-    _traceBackward.description = "The id of a clause you want to see all predecesors (unites used to derive the clause).";
+    _traceBackward.description = "The id of a clause you want to see all predecessors (unites used to derive the clause).";
     _lookup.insert(&_traceBackward);
     _traceBackward.tag(OptionTag::OUTPUT);
 
@@ -1148,7 +1148,7 @@ void Options::init()
     _simulatedTimeLimit.tag(OptionTag::LRS);
 
     _lrsEstimateCorrectionCoef = FloatOptionValue("lrs_estimate_correction_coef","lecc",1.0);
-    _lrsEstimateCorrectionCoef.description = "Make lrs more (<1.0) or less (>1.0) agressive by multiplying by this coef its estimate of how many clauses are still reachable.";
+    _lrsEstimateCorrectionCoef.description = "Make lrs more (<1.0) or less (>1.0) aggressive by multiplying by this coef its estimate of how many clauses are still reachable.";
     _lookup.insert(&_lrsEstimateCorrectionCoef);
     _lrsEstimateCorrectionCoef.tag(OptionTag::LRS);
     _lrsEstimateCorrectionCoef.addConstraint(greaterThan(0.0f));
@@ -1278,9 +1278,9 @@ void Options::init()
     _pushUnaryMinus.tag(OptionTag::THEORIES);
 
     auto addRecommendationConstraint = [](auto& opt, auto constr) {
-      // MS: TODO: implement meaninful soft warnings / reminsders to the effect
+      // MS: TODO: implement meaningful soft warnings / reminsders to the effect
       // -- this option should best be combined with those values of those other options
-      // -- however, note that with alasca on by default but silently disabled when runnining on non-arith problems
+      // -- however, note that with alasca on by default but silently disabled when running on non-arith problems
       //    the warnings should only appear when alasca really kicks in, i.e.
       //    only when "env.options->alasca() && prb.hasAlascaArithmetic()"
     };
@@ -1391,7 +1391,7 @@ void Options::init()
     "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
                                  \
     - simple: will only evaluate expressions built from interpreted constants only.\
-    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
+    - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the original clause.  \
     - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
     ";
     _lookup.insert(&_evaluationMode);
@@ -2251,7 +2251,7 @@ void Options::init()
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
                                                                   {"auto","plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
-       " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
+       " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for synthesising programs from proofs.";
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
@@ -3125,7 +3125,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
       StringUtils::dropEmpty(pieces);
 
       if (pieces.size() != 3) {
-        USER_ERROR("Sampling file parse error -- ~u2r sampler expects exatly three simecolon-separated arguments but got: "+args);
+        USER_ERROR("Sampling file parse error -- ~u2r sampler expects exactly three simecolon-separated arguments but got: "+args);
       }
       if (pieces[2].length() != 1) {
         USER_ERROR("Sampling file parse error -- the third argument of the ~u2r sampler needs to be a single character and not: "+pieces[2]);
@@ -3152,7 +3152,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
       StringUtils::dropEmpty(pieces);
 
       if (pieces.size() != 2) {
-        USER_ERROR("Sampling file parse error -- ~sgd sampler expects exatly two comma-separated arguments but got: "+args);
+        USER_ERROR("Sampling file parse error -- ~sgd sampler expects exactly two comma-separated arguments but got: "+args);
       }
       double prob;
       int offset;
@@ -3169,7 +3169,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
       StringUtils::dropEmpty(pieces);
 
       if (pieces.size() != 2) {
-        USER_ERROR("Sampling file parse error -- ~uf sampler expects exatly two comma-separated arguments but got: "+args);
+        USER_ERROR("Sampling file parse error -- ~uf sampler expects exactly two comma-separated arguments but got: "+args);
       }
       float low,high;
       if (!Int::stringToFloat(pieces[0].c_str(),low) || !Int::stringToFloat(pieces[1].c_str(),high)) {
@@ -3185,7 +3185,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
       StringUtils::dropEmpty(pieces);
 
       if (pieces.size() != 2) {
-        USER_ERROR("Sampling file parse error -- ~ui sampler expects exatly two comma-separated arguments but got: "+args);
+        USER_ERROR("Sampling file parse error -- ~ui sampler expects exactly two comma-separated arguments but got: "+args);
       }
       int low,high;
       if (!Int::stringToInt(pieces[0].c_str(),low) || !Int::stringToInt(pieces[1].c_str(),high)) {
@@ -3484,7 +3484,7 @@ void Options::resolveAwayAutoValues(const Problem& prb)
 
   if (unificationWithAbstraction() == Shell::Options::UnificationWithAbstraction::AUTO) {
     if (alasca() && prb.hasAlascaArithmetic() &&
-      !partialRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constaint
+      !partialRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constraint
       setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
     } else {
       setUWA(Shell::Options::UnificationWithAbstraction::OFF);

@@ -334,7 +334,7 @@ FormulaList* FOOLElimination::process(FormulaList* formulas) {
  * formula-inside-term special case of term. That is, the formula $ite(C, A, B),
  * where A, B and C are all formulas, is stored as $formula{$ite(C, $term{A}, $term{B})}.
  * The processing of an $ite-term should be different, depending on whether or
- * not it occures directly under $formula. In the former case, we should unpack
+ * not it occurs directly under $formula. In the former case, we should unpack
  * A and B from $term and introduce a fresh predicate symbol, whereas in the
  * latter case we should introduce a fresh function symbol. So, the context
  * argument tells the process function if the term is inside of a $formula.
