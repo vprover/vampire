@@ -620,12 +620,6 @@ public:
     NONE = 1
   };
 
-  enum class SplittingCongruenceClosure : unsigned int {
-    MODEL = 0,
-    OFF = 1,
-    ON = 2
-  };
-
   enum class SplittingNonsplittableComponents : unsigned int {
     ALL = 0,
     ALL_DEPENDENT = 1,
@@ -2293,7 +2287,7 @@ public:
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
-  SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
+  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
@@ -2671,7 +2665,7 @@ private:
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
-  ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
+  BoolOptionValue _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
