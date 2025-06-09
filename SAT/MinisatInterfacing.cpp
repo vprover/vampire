@@ -19,18 +19,11 @@
 namespace SAT
 {
 
-using namespace Shell;  
-using namespace Lib;  
-  
+using namespace Shell;
+using namespace Lib;
+
 using namespace Minisat;
-  
-MinisatInterfacing::MinisatInterfacing(const Shell::Options& opts, bool generateProofs):
-  _status(Status::SATISFIABLE)
-{
-  // TODO: consider tuning minisat's options to be set for _solver
-  // (or even forwarding them to vampire's options)  
-}
-  
+
 /**
  * Make the solver handle clauses with variables up to @b newVarCnt
  * (but see vampireVar2Minisat!)
