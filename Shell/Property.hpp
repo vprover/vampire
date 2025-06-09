@@ -164,6 +164,8 @@ public:
   std::string toString() const;
   std::string toSpider(const std::string& problemName) const;
 
+  DHMap<std::string,std::string> toDict() const;
+
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
   /** Total number of formulas in the problem */

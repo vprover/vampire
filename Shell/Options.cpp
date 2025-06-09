@@ -759,6 +759,12 @@ void Options::init()
     _lookup.insert(&_showSimplOrdering);
     _showSimplOrdering.tag(OptionTag::OUTPUT);
 
+    _showPropDict = BoolOptionValue("show_property_dict","",false);
+    _showPropDict.description = "Display a (python-formatted) dictionary summing up the main properties of the parsed problem.";
+    _lookup.insert(&_showPropDict);
+    _showPropDict.setExperimental();
+    _showPropDict.tag(OptionTag::OUTPUT);
+
 #if VAMPIRE_CLAUSE_TRACING
 
     _traceBackward = IntOptionValue("trace_bwd","",0);
@@ -2990,7 +2996,7 @@ std::string Options::strategySamplingLookup(std::string optname, DHMap<std::stri
   return "";
 }
 
-void Options::sampleStrategy(const std::string& strategySamplerFilename, Shell::Property* prop)
+void Options::sampleStrategy(const std::string& strategySamplerFilename, DHMap<std::string,std::string> fakes)
 {
   std::ifstream input(strategySamplerFilename.c_str());
 
@@ -3002,14 +3008,6 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename, Shell::
   auto rng = _randomStrategySeed.actualValue == 0
     ? std::mt19937((std::random_device())())
     : std::mt19937(_randomStrategySeed.actualValue);
-  // map of local variables (fake options)
-  DHMap<std::string,std::string> fakes;
-
-  // fill the fakes with some builtins - used for conditional sampling based on prop
-  fakes.set("@cat",prop->categoryString());
-  for (unsigned i = 1, n = 2; i <= 25; i++, n *= 2){
-    fakes.set("@atoms_leq_2^"+Int::toString(i),Int::toString(unsigned(prop->atoms() <= n)));
-  }
 
   std::string line; // parsed lines
   Stack<std::string> pieces; // temp stack used for splitting
