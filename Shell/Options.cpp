@@ -1702,7 +1702,7 @@ void Options::init()
     _demodulationOnlyEquational.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationOnlyEquational.addProblemConstraint(hasEquality());
 
-    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",true);
+    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","eape",true);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses";
     _lookup.insert(&_extensionalityAllowPosEq);

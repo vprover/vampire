@@ -4120,7 +4120,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     propNZbig14.push("lrs+10_8:1_sil=256000:st=3.0:s2a=on:i=3083:s2at=1.2:ss=axioms:sd=15_0");
     propNZbig14.push("lrs+10_1:64_sil=16000:tgt=full:sp=reverse_frequency:slsq=on:i=4105:kws=precedence:slsql=off:ss=axioms:bs=unit_only:prc=on:spb=goal_0");
     propNZbig14.push("lrs+10_1:4_sil=32000:tgt=full:fde=unused:sp=const_frequency:nwc=10.0:i=9762:fdtod=on:rawr=on:bd=preordered:to=lpo_0");
-    propNZbig14.push("lrs+10_1:27_bsr=unit_only:to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=9874:bs=on:fdtod=on:uhcvi=on:rawr=on:prc=on:er=filter:erape=on:erml=3_0");
+    propNZbig14.push("lrs+10_1:27_bsr=unit_only:to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=9874:bs=on:fdtod=on:uhcvi=on:rawr=on:prc=on:er=filter:eape=on:erml=3_0");
     propNZbig14.push("lrs+10_1:4_sil=16000:tgt=ground:lwlo=on:s2a=on:i=7263:s2at=2.0_0");
     propNZbig14.push("lrs+10_2:3_drc=ordering:sil=128000:fde=none:s2a=on:i=13654:s2at=3.0:lwlo=on:bd=off_0");
     propNZbig14.push("lrs+10_1:16_sil=256000:tgt=full:spb=intro:i=41528:kws=precedence:ss=axioms:prc=on:proc=on:st=3.0:sp=const_frequency_0");
@@ -4128,7 +4128,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     propNZbig14.push("ott+10_1:6_sil=512000:tgt=ground:fde=unused:sp=const_min:spb=goal:nwc=1.1:i=95210:kws=precedence:fdtod=on_0");
     propNZbig14.push("lrs+10_1:32_drc=ordering:sil=64000:tgt=full:sp=frequency:lwlo=on:i=51758:prc=on:proc=on_0");
     propNZbig14.push("lrs+10_2:23_sil=256000:tgt=full:s2a=on:i=126830:s2at=2.0:prc=on:fdtod=on_0");
-    propNZbig14.push("lrs+10_1:24_bsr=unit_only:to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=67476:bs=on:fdtod=on:rawr=on:prc=on:er=filter:erape=on:nwc=3.0:ss=axioms:st=6.0:urr=ec_only_0");
+    propNZbig14.push("lrs+10_1:24_bsr=unit_only:to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=67476:bs=on:fdtod=on:rawr=on:prc=on:er=filter:eape=on:nwc=3.0:ss=axioms:st=6.0:urr=ec_only_0");
     propNZbig14.push("lrs+10_1:3_sil=256000:tgt=full:fd=preordered:s2a=on:i=85601:s2at=4.0_0");
 
     // total_instr 925697
@@ -4310,7 +4310,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("dis+1010_16550053:1048576_drc=ordering:to=lpo:ccuc=small_ones:sil=4000:fde=none:plsq=on:avsql=on:plsqr=34063,1048576:sp=const_min:sos=on:acc=on:plsql=on:nwc=10.3787:avsq=on:i=349:sd=1:avsqr=1084175,1048576:nm=0:amm=off:ss=axioms:bce=on:rawr=on:sup=off:bd=off_0");
     feqAtomsG2800.push("lrs+2_1:1_drc=ordering:sil=2000:sos=all:st=5.0:i=193:bd=off:av=off:ss=axioms:sd=2:sup=off_0");
     feqAtomsG2800.push("lrs+1002_1:1_drc=ordering:sil=64000:sos=on:urr=ec_only:flr=on:st=3.0:i=632:sd=1:ep=RS:nm=16:ss=axioms_0");
-    feqAtomsG2800.push("lrs+1011_4801913:1048576_drc=ordering:sfv=off:sil=2000:plsqc=1:plsq=on:plsqr=98277,1048576:etr=on:sp=const_max:lma=on:erape=on:urr=full:rp=on:nwc=23.4614:lwlo=on:st=2.5:i=440:add=large:bs=unit_only:sd=2:kws=inv_arity_squared:nm=17:amm=sco:ss=axioms:er=filter:sgt=50:rawr=on:anc=none_0");
+    feqAtomsG2800.push("lrs+1011_4801913:1048576_drc=ordering:sfv=off:sil=2000:plsqc=1:plsq=on:plsqr=98277,1048576:etr=on:sp=const_max:lma=on:eape=on:urr=full:rp=on:nwc=23.4614:lwlo=on:st=2.5:i=440:add=large:bs=unit_only:sd=2:kws=inv_arity_squared:nm=17:amm=sco:ss=axioms:er=filter:sgt=50:rawr=on:anc=none_0");
     feqAtomsG2800.push("lrs-1011_4:1_drc=ordering:bsr=unit_only:sil=4000:sp=occurrence:lsd=20:newcnf=on:i=730:kws=inv_arity_squared:rawr=on:rp=on:alpa=false:nwc=3.0_0");
     feqAtomsG2800.push("lrs+1002_8:1_drc=ordering:sil=16000:plsq=on:sos=on:urr=on:plsql=on:st=1.2:i=228:sd=2:ss=axioms_0");
     feqAtomsG2800.push("lrs+10_8:1_to=lpo:sil=4000:sos=on:urr=on:newcnf=on:i=1008:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
@@ -4425,7 +4425,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
 
     feqAtomsG180.push("dis+1011_3:1_drc=ordering:sil=256000:tgt=ground:sac=on:i=109:sd=1:ss=included_0");
     feqAtomsG180.push("dis+1010_1:1_drc=ordering:sil=2000:nwc=3.0:s2a=on:i=132:ins=5:fsr=off:ss=axioms:sd=2:fd=off_0");
-    feqAtomsG180.push("dis+1010_159245:1048576_to=lpo:sil=2000:etr=on:sp=unary_frequency:spb=goal:rnwc=on:nwc=10.9066:st=2:i=124:sd=1:nm=3:av=off:ss=axioms:rawr=on:foolp=on:sgt=5:cond=fast:er=filter:erape=on:erml=2:s2a=on_0");
+    feqAtomsG180.push("dis+1010_159245:1048576_to=lpo:sil=2000:etr=on:sp=unary_frequency:spb=goal:rnwc=on:nwc=10.9066:st=2:i=124:sd=1:nm=3:av=off:ss=axioms:rawr=on:foolp=on:sgt=5:cond=fast:er=filter:eape=on:erml=2:s2a=on_0");
     feqAtomsG180.push("lrs+1011_1:1_drc=ordering:sil=16000:sos=on:erd=off:i=126:nm=2:ep=RST_0");
     feqAtomsG180.push("lrs+1011_1:1_drc=ordering:sil=8000:sp=occurrence:nwc=10.0:st=1.5:i=145:ss=axioms:sgt=4_0");
     feqAtomsG180.push("ott+1002_2835555:1048576_drc=ordering:to=lpo:sil=2000:sos=on:fs=off:nwc=10.3801:avsqc=3:updr=off:avsq=on:st=2:s2a=on:i=173:s2at=3:afp=10000:aac=none:avsqr=13357983,1048576:bd=off:nm=13:ins=2:fsr=off:amm=sco:afq=1.16719:ss=axioms:rawr=on:fd=off_0");
@@ -5121,7 +5121,7 @@ void Schedules::getAlascaAwareAriSchedule(const Shell::Property& property, Sched
   quick.push("dis+1010_1:1_ev=force:fde=unused:fsd=on:fsdmm=1:gtg=exists_sym:gtgl=2:sil=128000:sp=reverse_arity:tha=off:thi=all:to=lpo:i=198:si=on:rtra=on:lma=off:bd=all:aer=on:add=on_0");
   quick.push("lrs-1011_1:1_ep=RS:fs=off:fsr=off:prc=on:sil=128000:tha=off:to=kbo:i=7196:si=on:rtra=on:lma=off:bd=all:uhcvi=off:aer=on:add=on:nwc=1.0:sp=arity_0");
   quick.push("dis+666_1:5_ins=2:nwc=2.0:s2a=on:s2agt=20:sil=128000:spb=non_intro:ss=axioms:st=2.0:thi=all:to=lpo:i=355:si=on:rtra=on:lma=off:bd=all:uhcvi=off:aer=on:add=on:sp=arity_0");
-  quick.push("ott+10_1:1_asg=cautious:er=filter:nm=0:rawr=on:sas=z3:tgt=full:thi=neg_eq:thitd=on:to=lpo:i=1434:si=on:rtra=on:alasca=on:lma=off:bd=all:erape=off:aer=on:add=on:nwc=1.0:sp=arity_0");
+  quick.push("ott+10_1:1_asg=cautious:er=filter:nm=0:rawr=on:sas=z3:tgt=full:thi=neg_eq:thitd=on:to=lpo:i=1434:si=on:rtra=on:alasca=on:lma=off:bd=all:eape=off:aer=on:add=on:nwc=1.0:sp=arity_0");
   quick.push("dis+1010_1:1_abs=on:br=off:drc=ordering:kws=inv_frequency:nm=20:nwc=5.0:sas=z3:sil=128000:spb=goal:tgt=ground:to=kbo:i=397:si=on:rtra=on:lma=off:bd=all:uhcvi=off:aer=on:add=on:sp=arity_0");
   // Improves by expected 26.73542158755427 probs costing 39976 Mi
   // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
@@ -5135,7 +5135,7 @@ void Schedules::getAlascaAwareAriSchedule(const Shell::Property& property, Sched
   quick.push("lrs+10_1:1_ep=R:norm_ineq=on:sd=12:sil=128000:ss=axioms:st=2.0:to=kbo:i=4777:si=on:rtra=on:lma=off:bd=all:uhcvi=off:aer=on:add=on:nwc=1.0:sp=arity_0");
   quick.push("ott+1011_4:1_drc=off:ev=off:fdtod=on:nicw=on:sil=128000:sp=weighted_frequency:tgt=ground:thi=overlap:thitd=on:to=lpo:i=1203:si=on:rtra=on:lma=off:bd=all:uhcvi=off:aer=on:add=on:nwc=1.0_0");
   quick.push("dis+10_1:1_aac=none:abs=on:amm=off:doe=on:gtg=position:nm=0:norm_ineq=on:plsq=on:plsqc=2:plsqr=2,1:sas=z3:sil=128000:tgt=ground:to=kbo:i=6072:si=on:rtra=on:lma=off:bd=all:uhcvi=off:add=on:nwc=1.0:sp=arity_0");
-  quick.push("lrs+11_1:1_avsq=on:avsqr=17,4:canc=force:er=filter:fd=off:gtg=exists_top:sac=on:sas=z3:slsq=on:thi=all:to=lpo:i=10547:si=on:rtra=on:erape=off:uhcvi=off:aer=on:add=on:nwc=1.0:sp=arity_0");
+  quick.push("lrs+11_1:1_avsq=on:avsqr=17,4:canc=force:er=filter:fd=off:gtg=exists_top:sac=on:sas=z3:slsq=on:thi=all:to=lpo:i=10547:si=on:rtra=on:eape=off:uhcvi=off:aer=on:add=on:nwc=1.0:sp=arity_0");
   quick.push("lrs+21_1:1_s2a=on:s2at=5.0:sil=128000:spb=goal:taea=off:thi=overlap:to=kbo:urr=on:i=981:si=on:rtra=on:bd=all:uhcvi=off:aer=on:add=on:nwc=1.0:sp=arity_0");
   quick.push("lrs+11_1:1_avsq=on:avsql=on:avsqr=1,16:drc=ordering:norm_ineq=on:plsq=on:rawr=on:sas=z3:tha=off:urr=on:i=2633:si=on:rtra=on:lma=off:bd=all:uhcvi=off:aer=on:add=on:sp=arity_0");
   quick.push("dis+1010_1:1_ev=force:fde=unused:fsd=on:fsdmm=1:gtg=exists_sym:gtgl=2:sil=128000:sp=reverse_arity:tha=off:thi=all:to=lpo:i=198:si=on:rtra=on:lma=off:bd=all:aer=on:add=on_0");
