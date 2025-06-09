@@ -388,17 +388,17 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if (!unifier->usesUwa()) {
-    parRedHandler.insertSuperposition(
-      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
-  }
-
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
   static bool doSimS = getOptions().simulatenousSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
+    // Save this superposition conclusion despite immediately being removed.
+    if (!unifier->usesUwa()) {
+      parRedHandler.insertSuperposition(
+        eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+    }
     return 0;
   }
 
@@ -494,6 +494,11 @@ Clause* Superposition::performSuperposition(
         res->push(currAfter);
       }
     }
+  }
+
+  if (!unifier->usesUwa()) {
+    parRedHandler.insertSuperposition(
+      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 
   res->loadFromIterator(unifier->computeConstraintLiterals()->iter());
