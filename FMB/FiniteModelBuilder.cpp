@@ -256,11 +256,7 @@ bool FiniteModelBuilder::reset(){
 
   // Create a new SAT solver
   if (env.options->satSolver() == Options::SatSolver::MINISAT)
-    try {
-      _solver = new MinisatInterfacingNewSimp(_opt, true);
-    } catch(const Minisat::OutOfMemoryException &) {
-     MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
-    }
+    _solver = new MinisatInterfacingNewSimp;
   else if (env.options->satSolver() == Options::SatSolver::CADICAL) {
     _solver = new CadicalInterfacing(_opt,true);
   } else {

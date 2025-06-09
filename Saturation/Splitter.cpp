@@ -77,7 +77,7 @@ void SplittingBranchSelector::init()
 
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
-      _solver = new MinisatInterfacing(_parent.getOptions(),true);
+      _solver = new MinisatInterfacing;
       break;
     case Options::SatSolver::CADICAL:
       _solver = new CadicalInterfacing(_parent.getOptions(),true);
@@ -89,7 +89,7 @@ void SplittingBranchSelector::init()
         _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
-          SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
+          SATSolver* fallback = new MinisatInterfacing;
           _solver = new FallbackSolverWrapper(_solver.release(),fallback);
         }
       }
