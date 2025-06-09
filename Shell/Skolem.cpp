@@ -198,7 +198,7 @@ void Skolem::preskolemise (Formula* f)
     {
       VList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        ALWAYS(_varOccs.insert(vs.next(),{false /* = univeral*/,BoolList::empty()})); // ALWAYS, because we are rectified
+        ALWAYS(_varOccs.insert(vs.next(),{false /* = universal*/,BoolList::empty()})); // ALWAYS, because we are rectified
       }
       preskolemise(f->qarg());
       vs.reset(f->vars());
@@ -364,7 +364,7 @@ Formula* Skolem::skolemise (Formula* f)
       VarSet* dep = depInfo.univ;
 
       /*
-       * Universals occuring below are not enough,
+       * Universals occurring below are not enough,
        * because some existential from above could depend on them
        * and its corresponding skolem will bring them here...
        *

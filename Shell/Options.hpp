@@ -873,7 +873,7 @@ private:
         bool experimental;
         bool is_set;
 
-        // Checking constraits
+        // Checking constraints
         virtual bool checkConstraints() = 0;
         virtual bool checkProblemConstraints(Property* prop) = 0;
 
@@ -922,7 +922,7 @@ private:
             else{ out << "\tno description provided!" << std::endl; }
         }
 
-        // Used to determine wheter the value of an option should be copied when
+        // Used to determine whether the value of an option should be copied when
         // the Options object is copied.
         bool _should_copy;
         bool shouldCopy() const { return _should_copy; }
@@ -1203,7 +1203,7 @@ void addConstraintIfNotDefault(AbstractWrappedConstraintUP c){
     addConstraint(If(isNotDefaultRatio()).then(unwrap<int>(c)));
 }
 
-bool readRatio(const char* val,char seperator);
+bool readRatio(const char* val,char separator);
 bool setValue(const std::string& value) override {
     return readRatio(value.c_str(),sep);
 }
@@ -2077,7 +2077,7 @@ public:
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
-  // TODO make alasca independent of normal eveluation
+  // TODO make alasca independent of normal evaluation
   bool useACeval() const { return _useACeval.actualValue; }
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }

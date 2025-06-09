@@ -428,7 +428,7 @@ void Preprocess::preprocess(Problem& prb)
 
    if (env.options->alascaIntegerConversion()) {
      if (env.options->showPreprocessing())
-        std::cout << "performing integer coversion" << std::endl;
+        std::cout << "performing integer conversion" << std::endl;
 
      AlascaPreprocessor alasca(InequalityNormalizer::global());
      alasca.integerConversion(prb);
