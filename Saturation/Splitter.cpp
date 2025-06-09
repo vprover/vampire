@@ -1249,7 +1249,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
 
     // adding a component should mean "recompute model" (even if we actually don't end up adding a clause)
     // this is connected to the subtle case in handleNonSplittable
-    // and the fact we now maintian the _already_added filter and don't add a clause for second time there
+    // and the fact we now maintain the _already_added filter and don't add a clause for second time there
     // (the case where this might be needed is for a (conditional) ground clause
     // swallowed up by handleNonSplittable, while the corresponding prop variable is already true in the model,
     // because the complementary component was already introduced and considered in the past - requires aac=none to manifest)

@@ -296,8 +296,8 @@ unsigned SimpleCongruenceClosure::convertFO(TermList trm)
   }
 
   FOConversionWorker wrk(*this);
-  SafeRecursion<TermList,unsigned,FOConversionWorker> convertor(wrk);
-  return convertor(trm);
+  SafeRecursion<TermList,unsigned,FOConversionWorker> converter(wrk);
+  return converter(trm);
 }
 
 /**

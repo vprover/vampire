@@ -1046,7 +1046,7 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
       std::string constrName;
       auto constr = dtypeRdr.readExpr();
       if (constr->isAtom()) {
-        // atom, construtor of arity 0
+        // atom, constructor of arity 0
         constrName = constr->str;
       } else {
         ASS(constr->isList());
