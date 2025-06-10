@@ -752,7 +752,7 @@ struct FloorUwaState {
       auto compare = [](auto& l, auto& r) { return TermSpec::compare(l.first, r.first,
           [](auto& t) -> auto& { return t; }); };
       //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      // TODO create option for "deep" compare using a differnt deref clsoure
+      // TODO create option for "deep" compare using a different deref clsoure
       l.sort([&](auto& l, auto& r) { return compare(l, r) < 0; });
       r.sort([&](auto& l, auto& r) { return compare(l, r) < 0; });
       size_t li = 0;

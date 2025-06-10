@@ -224,7 +224,7 @@ private:
 
     /**
      * Lexicographic traversal of two terms with same top symbol,
-     * i.e. traversing their symbols in lockstep, as descibed in
+     * i.e. traversing their symbols in lockstep, as described in
      * the Loechner et al. paper above. It performs a bidirectional
      * comparison between the two terms, i.e. we can get any value
      * of @b Result.

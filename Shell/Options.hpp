@@ -302,7 +302,7 @@ public:
     DIAGONAL,       // f(1) g(2) h(3) f(2) g(3) h(1) f(3) g(1) h(2)
   };
   enum class FMBSymbolOrders : unsigned int {
-    OCCURENCE,
+    OCCURRENCE,
     INPUT_USAGE,
     PREPROCESSED_USAGE
   };

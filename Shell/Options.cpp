@@ -853,7 +853,7 @@ void Options::init()
     _fmbSymmetryRatio.tag(OptionTag::FMB);
 
     _fmbSymmetryOrderSymbols = ChoiceOptionValue<FMBSymbolOrders>("fmb_symmetry_symbol_order","fmbsso",
-                                                     FMBSymbolOrders::OCCURENCE,
+                                                     FMBSymbolOrders::OCCURRENCE,
                                                      {"occurence","input_usage","preprocessed_usage"});
     _fmbSymmetryOrderSymbols.description = "The order of symbols considered for symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
     _lookup.insert(&_fmbSymmetryOrderSymbols);

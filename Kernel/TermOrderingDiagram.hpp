@@ -61,7 +61,7 @@ public:
 
   /** After calling @b init, repeated calls to @b next results in all
    *  user-defined (non-null) data that has true corresponding ordering
-   *  constraints, or in null when no further such data can be retreived. */
+   *  constraints, or in null when no further such data can be retrieved. */
   void* next();
 
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */

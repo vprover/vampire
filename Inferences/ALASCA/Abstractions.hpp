@@ -290,7 +290,7 @@ public:
     : _shared(std::move(shared))
   {  }
 
-  // TODO theory make sure that variables can be shielded or unshielded or not top-level containted
+  // TODO theory make sure that variables can be shielded or unshielded or not top-level contained
 
   bool simplify(Clause* premise, Path& path, Set<TermList>& topLevelVars) {
     auto baseDepth = path.depth();

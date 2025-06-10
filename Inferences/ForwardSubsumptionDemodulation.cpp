@@ -478,7 +478,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               // Conditions 1 and 2 are quite obvious (for 2, recall that lhsS > rhsS).
               // Condition 3 will be checked now.
               //
-              // For perfomance reasons, we do not perform an exact check of mclΘ < cl.
+              // For performance reasons, we do not perform an exact check of mclΘ < cl.
               // Using the notation from above, we already know that C <= CΘ for the subsumption part.
               // If we can show that lΘ=rΘ < L[lΘ] \/ D, we can conclude that lΘ=rΘ \/ CΘ < L[lΘ] \/ C \/ D.
               //                     ^^^^^   ^^^^^                            ^^^^^^^^^^^   ^^^^^^^^^^^^^^^

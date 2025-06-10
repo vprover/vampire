@@ -30,7 +30,7 @@ namespace Kernel {
 using namespace Shell;
 
 /*
- * Turns an iterator with TermList elemenst to an iterator of TypedTermList elements
+ * Turns an iterator with TermList elements to an iterator of TypedTermList elements
  * with the sort of the provided equality literal.
  *
  * Computes the sort exactly once, so it's wastful to call if the the iterator is empty.
@@ -87,7 +87,7 @@ Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 }
 
 /**
- * Replace all occurences of the subterm  @b tSrc by @b tDest in the term/literal
+ * Replace all occurrences of the subterm  @b tSrc by @b tDest in the term/literal
  * @b lit, and return the result
  *
  * Cannot be used to replace a sort

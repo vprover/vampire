@@ -253,11 +253,11 @@ NormalizationResult wrapNumeral(ConstantType c)
 }
 
 template<class NumTraits>
-Option<NormalizationResult> normalizeDiv(NormalizationResult& lhs, NormalizationResult& rhs, bool& simplfied) {
+Option<NormalizationResult> normalizeDiv(NormalizationResult& lhs, NormalizationResult& rhs, bool& simplified) {
   auto num = rhs.apply(TryNumeral<NumTraits>{});
   if (num.isSome() && *num != 0 ) {
     auto inv = wrapNumeral(1 / *num);
-    return Option<NormalizationResult>(normalizeMul<NumTraits>(inv, lhs, simplfied));
+    return Option<NormalizationResult>(normalizeMul<NumTraits>(inv, lhs, simplified));
   } else {
     return Option<NormalizationResult>();
   }
