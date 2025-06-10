@@ -42,7 +42,7 @@ smt_z3_range
 z3_extract_proofs
 	The mode expects two arguments: a file name containing a Z3 problem,
 	and a prefix of a file name that will be used for saving proofs 
-	extracted from the problem. The proble should contain (check-sat)
+	extracted from the problem. The problem should contain (check-sat)
 	commands, the (get-proof) commands to obtain proofs will be added 
 	automatically.
 	

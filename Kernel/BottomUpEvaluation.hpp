@@ -302,7 +302,7 @@ public:
    *    // (optional)
    *    // this can be set to define for which terms recursing can be skipped. 
    *    // In this case we do it for shared terms if the function returns a value (non-empty Option) 
-   *    // the evalution does not recurse but just use the result. If the returned option is empty 
+   *    // the evaluation does not recurse but just use the result. If the returned option is empty
    *    // the term is recursively evaluated as usual.
    *    .evNonRec([](auto& t) { return t.shared() ? Option<size_t>(t.weight) : Option<size_t>()); })
    *

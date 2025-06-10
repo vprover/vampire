@@ -292,7 +292,7 @@ private:
   /** true if there was a refutation added to the SAT solver */
   bool _haveBranchRefutation;
 
-  /* as there can be both limits, it's hard to covert between them,
+  /* as there can be both limits, it's hard to convert between them,
    * and we terminate at the earlier one, let's just keep checking both. */
   unsigned _stopSplittingAtTime; // time elapsed in milliseconds
 #if VAMPIRE_PERF_EXISTS

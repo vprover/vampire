@@ -82,7 +82,7 @@ def evaluate(str):
         if x == '':
             continue
         if isArray(x, str) == True:
-            #in case the operand is an array treat it more carefull
+            #in case the operand is an array treat it more careful
             op = pop_stack(operands)
             operands.append(x+"["+op+"]")
         else:

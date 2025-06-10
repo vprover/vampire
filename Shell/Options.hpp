@@ -112,7 +112,7 @@ public:
     /**
      * Sample a random strategy from a distribution described by the given file.
      *
-     * The format of the sampler file should be easy to understant (Look for examples samplerFOL.txt, samplerFNT.txt, samplerSMT.txt under vampire root).
+     * The format of the sampler file should be easy to understand (Look for examples samplerFOL.txt, samplerFNT.txt, samplerSMT.txt under vampire root).
      * The file describes a sequence of sampling rules (one on each line, barring empty lines and comment lines starting with a #),
      * which are executed in order, and each rule (provided its preconditions are satisfied) triggers
      * sampling of a value for a particular option from a specified distribution.
@@ -1181,7 +1181,7 @@ std::string getStringOfValue(float value) const{ return Lib::Int::toString(value
 
 /**
 * Ratios have two actual values and two default values
-* Therefore, we often need to tread them specially
+* Therefore, we often need to treat them specially
 * @author Giles
 */
 struct RatioOptionValue : public OptionValue<int> {

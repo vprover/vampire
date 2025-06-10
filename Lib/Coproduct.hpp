@@ -152,7 +152,7 @@ constexpr unsigned bitMask(unsigned i)
 template<class... As>
 class Coproduct;
 
-/** This namespace constains helper classes and functions to implement the coproduct */
+/** This namespace contains helper classes and functions to implement the coproduct */
 namespace CoproductImpl {
 
   template<class... As>

@@ -1316,7 +1316,7 @@ void FiniteModelBuilder::addUseModelSize(unsigned size)
   return;
 /*
 
-  // Only do thise if we have unary functions at most
+  // Only do this if we have unary functions at most
   if(_maxArity>1) return;
 
   static SATLiteralStack satClauseLits;
