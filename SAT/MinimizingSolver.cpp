@@ -62,10 +62,10 @@ void MinimizingSolver::addClauseIgnoredInPartialModel(SATClause* cl)
   _assignmentValid = false;
 }
 
-SATSolver::Status MinimizingSolver::solve(unsigned conflictCountLimit) 
+SATSolver::Status MinimizingSolver::solveLimited(unsigned conflictCountLimit)
 {
   _assignmentValid = false;
-  return _inner->solve(conflictCountLimit);
+  return _inner->solveLimited(conflictCountLimit);
 }
 
 SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)

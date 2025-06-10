@@ -48,7 +48,7 @@ public:
 
   virtual void addClause(SATClause* cl) override;
   virtual void addClauseIgnoredInPartialModel(SATClause* cl) override;
-  virtual Status solve(unsigned conflictCountLimit) override;
+  virtual Status solveLimited(unsigned conflictCountLimit) override;
   
   virtual VarAssignment getAssignment(unsigned var) override;
   virtual bool isZeroImplied(unsigned var) override;

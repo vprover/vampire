@@ -63,7 +63,7 @@ MainLoopResult Z3MainLoop::runImpl()
    solver.addClause(sc);
  }
 
- SATSolver::Status status = solver.solve(UINT_MAX);
+ SATSolver::Status status = solver.solveLimited(UINT_MAX);
 
  TerminationReason reason = TerminationReason::UNKNOWN;
 

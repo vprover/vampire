@@ -43,13 +43,14 @@ using FuncId = unsigned;
 /** runs z3 on a bunch of vampire literals as assumptions, and checks the status afterwards */
 void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, SATSolver::Status expected, Stack<Literal*> assumptions) 
 {
+  SATLiteralStack assms;
   for (auto a : assumptions) {
     // Stack<SATLiteral> clause{s2f.toSAT(a)};
     // z3.addClause(SATClause::fromStack(clause));
-    z3.addAssumption(s2f.toSAT(a));
+    assms.push(s2f.toSAT(a));
   }
 
-  auto status = z3.solve();
+  auto status = z3.solveUnderAssumptions(assms);
   if(status != expected) {
     cout << "[ input    ] " << endl;
     for (auto a : assumptions) {
@@ -63,7 +64,6 @@ void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, SATSolver::Status expected
     }
     exit(-1);
   }
-  z3.retractAllAssumptions();
 }
 
 void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions)
@@ -217,11 +217,12 @@ TEST_FUN(solve__dty__03_03) {
 
 void checkInstantiation(SAT::Z3Interfacing& z3, SAT2FO& s2f, Stack<Literal*> assumptions, TermList toInstantiate, TermList expected)
 {
+  SATLiteralStack assms;
   for (auto a : assumptions) {
-    z3.addAssumption(s2f.toSAT(a));
+    assms.push(s2f.toSAT(a));
   }
 
-  auto status = z3.solve();
+  auto status = z3.solveUnderAssumptions(assms);
   ASS_EQ(status, SATSolver::Status::SATISFIABLE);
   auto result = z3.evaluateInModel(toInstantiate.term());
   if (result != expected.term()) {
@@ -235,7 +236,6 @@ void checkInstantiation(SAT::Z3Interfacing& z3, SAT2FO& s2f, Stack<Literal*> ass
     cout << "[ model         ] " <<  z3.getModel() << endl;
     exit(-1);
   }
-  z3.retractAllAssumptions();
 }
 
 

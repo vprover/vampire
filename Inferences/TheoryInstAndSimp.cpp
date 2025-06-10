@@ -563,7 +563,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       });
     }
 
-    DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0);
+    DEBUG_CODE(auto res =) _solver->solveUnderAssumptionsLimited(theoryLits, 0);
     ASS_EQ(res, SATSolver::Status::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
@@ -647,7 +647,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
-  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0);
+  SATSolver::Status status = _solver->solveUnderAssumptionsLimited(skolemized.lits, 0);
 
   if(status == SATSolver::Status::UNSATISFIABLE) {
     DEBUG("unsat")
@@ -717,7 +717,7 @@ struct InstanceFn
         redundant = true;
       } else {
         auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
-        auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0);
+        auto status = parent->_solver->solveUnderAssumptionsLimited(skolem.lits, 0);
         // we have an unsat solution without guards
         redundant = status == SATSolver::Status::UNSATISFIABLE;
       }

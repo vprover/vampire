@@ -114,7 +114,7 @@ void BufferedSolver::flushUnadded()
  *
  * @author Martin
  */
-SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
+SATSolver::Status BufferedSolver::solveLimited(unsigned conflictCountLimit)
 {
   // BufferedSolver does not support "UNKNOWN" status as
   // it needs _inner to have either a model or to be provably unsat
@@ -133,7 +133,7 @@ SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
     if(!checkAndRecordImplied(cl)){
       RSTAT_CTR_INC("solver_buffer_miss");
       flushUnadded();
-      return (_lastStatus = _inner->solve(conflictCountLimit));
+      return (_lastStatus = _inner->solveLimited(conflictCountLimit));
     }
   }
 
