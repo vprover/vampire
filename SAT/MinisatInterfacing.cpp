@@ -40,30 +40,26 @@ unsigned MinisatInterfacing::newVar()
   return minisatVar2Vampire(_solver.newVar());
 }
 
-SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+SATSolver::Status MinisatInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
-  ASS(!hasAssumptions());
-
   // load assumptions:
+  _assumptions.clear();
   SATLiteralStack::ConstIterator it(assumps);
   while (it.hasNext()) {
     _assumptions.push(vampireLit2Minisat(it.next()));
   }
 
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
-
-  if (_status == Status::UNSATISFIABLE) {
-    // unload minisat's internal conflict clause to _failedAssumptionBuffer
-    _failedAssumptionBuffer.reset();
-    Minisat::LSet& conflict = _solver.conflict;
-    for (int i = 0; i < conflict.size(); i++) {
-      _failedAssumptionBuffer.push(minisatLit2Vampire(conflict[i]).opposite());
-    }
-  }
-
-  _assumptions.clear();
-
   return _status;
+}
+
+SATLiteralStack MinisatInterfacing::failedAssumptions() {
+  ASS_EQ(_status, Status::UNSATISFIABLE)
+
+  SATLiteralStack result;
+  for (int i = 0; i < _solver.conflict.size(); i++)
+    result.push(minisatLit2Vampire(_solver.conflict[i]).opposite());
+  return result;
 }
 
 /**
@@ -94,14 +90,11 @@ void MinisatInterfacing::addClause(SATClause* cl)
 {
   // store to later generate the refutation
   PrimitiveProofRecordingSATSolver::addClause(cl);
-  
-  // TODO: consider measuring time
-  
-  ASS_EQ(_assumptions.size(),0);
 
+  // TODO: consider measuring time
   static vec<Lit> mcl;
   mcl.clear();
-    
+
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {
     SATLiteral l = (*cl)[i];
@@ -114,15 +107,11 @@ void MinisatInterfacing::addClause(SATClause* cl)
 /**
  * Perform solving and return status.
  */
-SATSolver::Status MinisatInterfacing::solve(unsigned conflictCountLimit)
+SATSolver::Status MinisatInterfacing::solveLimited(unsigned conflictCountLimit)
 {
+  _assumptions.clear();
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
   return _status;
-}
-
-void MinisatInterfacing::addAssumption(SATLiteral lit)
-{
-  _assumptions.push(vampireLit2Minisat(lit));
 }
 
 SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
