@@ -104,7 +104,7 @@ TEST_FUN(examples__match_02) {
 }
 
 TEST_FUN(examples__compare) {
-  // Coproducts are orderd first by tag, then by value.
+  // Coproducts are ordered first by tag, then by value.
   using Co = Coproduct<int, double>;
   ASS(Co(1) < Co(1.0))
   ASS(Co(2) < Co(1.0))
@@ -115,7 +115,7 @@ TEST_FUN(examples__compare) {
 
 
 // TEST_FUN(examples__zip_variants) {
-//   // Coproducts are orderd first by tag, then by value.
+//   // Coproducts are ordered first by tag, then by value.
 //   using Co = Coproduct<int, double>;
 //   std::tuple<int&&> x = std::make_tuple<int&&>(1);
 //

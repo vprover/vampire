@@ -640,7 +640,7 @@ void Solver::rebuildOrderHeap()
 |  simplify : [void]  ->  [bool]
 |  
 |  Description:
-|    Simplify the clause database according to the current top-level assigment. Currently, the only
+|    Simplify the clause database according to the current top-level assignment. Currently, the only
 |    thing done here is the removal of satisfied clauses, but more things can be put here.
 |________________________________________________________________________________________________@*/
 bool Solver::simplify()
@@ -700,7 +700,7 @@ bool Solver::simplify()
 |    NOTE! Use negative value for 'nof_conflicts' indicate infinity.
 |  
 |  Output:
-|    'l_True' if a partial assigment that is consistent with respect to the clauseset is found. If
+|    'l_True' if a partial assignment that is consistent with respect to the clauseset is found. If
 |    all variables are decision variables, this means that the clause set is satisfiable. 'l_False'
 |    if the clause set is unsatisfiable. 'l_Undef' if the bound on number of conflicts is reached.
 |________________________________________________________________________________________________@*/

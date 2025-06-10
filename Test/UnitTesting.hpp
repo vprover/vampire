@@ -47,7 +47,7 @@ public:
 
   /** Runs all tests of this TestUnit
    *
-   * returns true iff all tests of the unit were successfull.
+   * returns true iff all tests of the unit were successful.
    */
   bool run(std::ostream& out);
   bool runTestsWithNameSubstring(std::string const& pref, std::ostream& out);
