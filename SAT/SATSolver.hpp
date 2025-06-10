@@ -268,7 +268,7 @@ public:
       // load all but i-th
       for (unsigned j = 0; j < sz; j++) {
         if (j != i) {
-          assumptions.push(failed[i]);
+          assumptions.push(failed[j]);
         }
       }
 
