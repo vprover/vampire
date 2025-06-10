@@ -172,7 +172,7 @@ template <typename T>
 
 /* __UNREACHABLE: this point in the code is statically unreachable */
 #if defined(__GNUC__)
-// __builtin_unreachable if the GNU dialect is availble: GCC, Clang, ICC
+// __builtin_unreachable if the GNU dialect is available: GCC, Clang, ICC
 #define __UNREACHABLE        \
   {                          \
     __builtin_unreachable(); \

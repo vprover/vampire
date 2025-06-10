@@ -206,7 +206,7 @@ public:
    * List-like structure of @b BacktrackObject objects representing
    * backtrackable changes stored in this object
    *
-   * The backtrackable strucure is built by pointers in
+   * The backtrackable structure is built by pointers in
    * @b BacktrackObject::_next
    */
   BacktrackObject* _boList;

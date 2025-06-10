@@ -319,7 +319,7 @@ static_assert(std::is_trivially_destructible<Watch>::value, "");
 ///
 /// For virtual binary clauses (where binary clauses are only stored in the watchlists),
 /// the binary clause's other literal is the blocking literal while the
-/// cosntraint reference will be an invalid reference.
+/// constraint reference will be an invalid reference.
 class Watch final {
 #if SUBSAT_BLOCKING
   Lit blocking_lit = Lit::invalid();

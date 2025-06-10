@@ -41,7 +41,7 @@ public:
    *
    * @param formulaBuffer is FIFO to which newly parsed Formulas will be added (via pushBack);
    *
-   *  if left unspeficied, and empty fifo is created and used instead.
+   *  if left unspecified, and empty fifo is created and used instead.
    *  (use this default behaviour if you do not want to collect formulas
    *  from multiple parser calls)
    */
@@ -127,7 +127,7 @@ private:
   void readDefineSort(const std::string& name, LExpr* args, LExpr* body);
 
   /**
-   * Helper funtion to check that a parsed sort is indeed a sort.
+   * Helper function to check that a parsed sort is indeed a sort.
    */
   TermList parseSort(LExpr* sExpr);
 
@@ -447,7 +447,7 @@ private:
    *
    * Ignored feature:
    * - quantifier patterns: " (forall (( x0 A) (x1 A) (x2 A)) (! (=> (and (r x0 x1) (r x1 x2 )) (r x0 x2 )) : pattern ((r x0 x1) (r x1 x2 )) : pattern ((p x0 a)) ))
-   *  the patter information is lost and the pattern data is not checked semantically.
+   *  the pattern information is lost and the pattern data is not checked semantically.
    *
    * Violates standard:
    * - requires variables under a single quantifier to be distinct

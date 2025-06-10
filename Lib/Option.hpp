@@ -366,7 +366,7 @@ public:
   auto orElse(Clsr clsr) REF -> Option                                                    \
   { return this->isSome() ? MOVE(*this) : clsr(); }                                       \
                                                                                           \
-  /** Returns the value of this, if this is Some, or uses the closure to create a value othewise. */\
+  /** Returns the value of this, if this is Some, or uses the closure to create a value otherwise. */\
   template<class Clsr,                                                                    \
            typename std::enable_if<std::is_same< typename std::invoke_result<Clsr>::type  \
                                       , A                                                 \

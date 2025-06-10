@@ -32,7 +32,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 namespace Minisat {
 
 //=================================================================================================
-// Simple layer on top of malloc/realloc to catch out-of-memory situtaions and provide some typing:
+// Simple layer on top of malloc/realloc to catch out-of-memory situations and provide some typing:
 
 class OutOfMemoryException{};
 static inline void* xrealloc(void *ptr, size_t size)
