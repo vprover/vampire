@@ -498,7 +498,7 @@ Ordering::Result PrecedenceOrdering::comparePrecedences(const Term* t1, const Te
   if (t1->isSort() && t2->isSort()) {
     return compareTypeConPrecedences(t1->functor(), t2->functor());
   }
-  // type constuctor symbols are less than function symbols
+  // type constructor symbols are less than function symbols
   if (t1->isSort()) {
     return LESS;
   }

@@ -591,7 +591,7 @@ Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool inc
   for (auto l : iterTraits(c->iterLits())) {
     lits->push(l == a ? b : l);
   }
-  // adding new literals at differrent places...
+  // adding new literals at different places...
   if (d) { lits->push(d); }
   if (e) { lits->push(e); }
   

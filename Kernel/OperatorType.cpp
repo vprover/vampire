@@ -27,7 +27,7 @@ using namespace Kernel;
 /**
  * Pre-initialise an OperatorKey.
  *
- * If @c sorts is is NULL, all arguments will be initalized by the default sort,
+ * If @c sorts is is NULL, all arguments will be initialized by the default sort,
  * otherwise, by sorts from the array @c sorts
  * @author Andrei Voronkov
  */

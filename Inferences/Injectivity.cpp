@@ -10,7 +10,7 @@
 /**
  * @file Injectivity.cpp
  * Every Injective function has a left-inverse
- * creates a Skolem to act as left-inverse funcion
+ * creates a Skolem to act as left-inverse function
  */
 
 #include "Lib/Environment.hpp"

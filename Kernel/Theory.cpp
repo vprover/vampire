@@ -1118,7 +1118,7 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
 
 
 /**
- * This function creates a type for converion function @c i.
+ * This function creates a type for conversion function @c i.
  *
  * @c i must be a type conversion operation.
  */
@@ -1762,7 +1762,7 @@ std::ostream& operator<<(std::ostream& out, RealConstantType const& self)
 
 
 /**
- * We try and get a LaTeX special name for an interpeted function/predicate.
+ * We try and get a LaTeX special name for an interpreted function/predicate.
  * Note: the functions may not necessarily be interpreted in the sense that we treat
  *       them as interpreted in Vampire. They are just called that here as we have an
  *       interpretation for them. So we can have LaTeX symbols for any predicate or

@@ -43,8 +43,8 @@ namespace Kernel {
  *   This is all fine and easy as long as we want to iterate the arguments of some Term* or Literal*.
  *   But if we want to iterate some `TermList` that is not an argument of a Term* we need to somehow make 
  *   it still conform with the invariants expected by `TermList::next` (i.e. it being a pointer with 
- *   an adress where all the adresses before being TermList s as well and the list of TermLists before 
- *   the current adress is terminated by an empty TermList).
+ *   an address where all the addresses before being TermList s as well and the list of TermLists before
+ *   the current address is terminated by an empty TermList).
  *   In order to achieve this the stack _aux is used, which is populated with whatever thing we want to 
  *   iterate that is not an argument to a Term*, and then a pointer to that thing is passed pushed onto 
  *   the _stack.  This means though that stack might contain pointers to TermList s that do not live on 
@@ -187,7 +187,7 @@ struct OrdVarNumberExtractorFn
  * - The iterator is NOT compatible with special terms
  * - The itertaor is NOT compatible with literals
  * - For situations where it can be guaranteed that a term is not special
- *   this iterator should be prefered to VariableIterator used in conjunction
+ *   this iterator should be preferred to VariableIterator used in conjunction
  *   with SortHelper::collectVariableSorts as it is more efficient.
  */
 class VariableWithSortIterator

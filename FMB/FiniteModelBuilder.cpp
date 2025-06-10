@@ -348,7 +348,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
     // f(1)g(1)f(2)g(2)f(3)g(3)
     case Options::FMBWidgetOrders::ARGUMENT_FIRST:
       arg_first=true;
-      // now use diagional code but don't do the diagonal
+      // now use diagonal code but don't do the diagonal
 
     // If diagonal then we do f(1)g(2)h(3)f(2)g(3)h(1)f(3)g(1)h(2)
     case Options::FMBWidgetOrders::DIAGONAL:
@@ -679,7 +679,7 @@ void FiniteModelBuilder::init()
           while(children.hasNext()){
             unsigned child = children.next();
             if(child==parent) continue;
-            //cout << "max of " << parent << " inherets child " << child << endl;
+            //cout << "max of " << parent << " inherits child " << child << endl;
             _distinctSortMaxs[parent] = max(_distinctSortMaxs[parent],_distinctSortMaxs[child]);
           }
         }
@@ -737,8 +737,8 @@ void FiniteModelBuilder::init()
     }
 
     // Fragile, change if extend FMBSymbolOrders as it assumes that the values that
-    //          are not occurence depend on usage (as per FMBSymmetryFunctionComparator)
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURENCE){
+    //          are not occurrence depend on usage (as per FMBSymmetryFunctionComparator)
+    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURRENCE){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
@@ -1074,7 +1074,7 @@ instanceLabel:
               satClauseLits.push(SATLiteral(marker_offsets[i]+val-2,0));
             }
           }
-          // cout << "Clause finised" << endl;
+          // cout << "Clause finished" << endl;
         } else {
           for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
             if (varDistinctSortsMaxes.get(i,0)) {

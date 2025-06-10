@@ -368,7 +368,7 @@ bool DisagreementSetIterator::hasNext()
       _stack.push(tt->next());
     }
     if(!_disjunctVariables && ss->sameContent(tt)) {
-      //if content is the same, neighter weightDiff nor varDiffs would change
+      //if content is the same, neither weightDiff nor varDiffs would change
       continue;
     }
     if(TermList::sameTopFunctor(*ss,*tt)) {

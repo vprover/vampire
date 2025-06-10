@@ -279,7 +279,7 @@ public:
    * recursion, but an explicit Stack.
    *
    * The term to be evaluated will be traversed using a BottomUpChildIter<Arg>, which needs to be 
-   * specialized for whatever structure you want to evalute. Implementations for `Kernel::TermList`, and 
+   * specialized for whatever structure you want to evaluate. Implementations for `Kernel::TermList`, and
    * `Kernel::PolyNf` are provided below and for `z3::expr` is provided in `Z3Interfacing`. 
    *
    * It is to be used as follows (this example computes the weight of a term):
@@ -289,7 +289,7 @@ public:
    *  return BottomUpEvaluation<TermList, size_t>()
    *                         // ^^^^^^^^  ^^^^^^--> result type
    *                         //    +--> type to evaluate
-   *    // sets the function that will be used to evalute recursively
+   *    // sets the function that will be used to evaluate recursively
    *    .function(
    *      [](auto const& orig, size_t* sizes) -> size_t
    *         //          ^^^^  ^^^^^-> results of evaluating its arguments recursively
@@ -317,7 +317,7 @@ public:
    *    // with BottomUpChildIter. this context needs to be passed here.
    *    // .context(AutoDerefTermSpec::Context { .subs = this, })
    *
-   *    // applys the evaluation
+   *    // applies the evaluation
    *    .apply(someTerm)
    *    ;
    * ```

@@ -65,7 +65,7 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
 }
 
 /**
- * Records informations needed for outputting proofs of general splitting
+ * Records information needed for outputting proofs of general splitting
  */
 void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 {
@@ -981,7 +981,7 @@ protected:
            //                    => div(m, n) = floor(m/n)
            "            (div m n)                           \n"
            //            m/n <= 0 => we need ceiling(m/n)
-           //                     => -n is negativ
+           //                     => -n is negative
            //                     => div(-m,-n) = floor(-m/-n)
            "            (div (- m) (- n))                   \n"
            "       )                                        \n"
