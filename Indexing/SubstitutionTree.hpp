@@ -708,7 +708,7 @@ public:
         _maxVar = weight(query) - 1;
         if(_specVars.size()<nextSpecVar) {
           //_specVars can get really big, but it was introduced instead of hash table
-          //during optimizations, as it raised performance by abour 5%.
+          //during optimizations, as it raised performance by about 5%.
           _specVars.ensure(std::max(static_cast<unsigned>(_specVars.size()*2), nextSpecVar));
         }
         _bindings.ensure(weight(query));

@@ -378,7 +378,7 @@ public:
   { return this->isSome() ? MOVE(*this).unwrap() : clsr(); }                              \
                                                                                           \
    /**                                                                                    \
-   * applies a function to the value of this closure if ther is one. the function is expected to return\
+   * applies a function to the value of this closure if there is one. the function is expected to return\
    * another option. the resulting Option<Option<Result>> will then be flattened to an Option<Result>.\
    *                                                                                      \
    * This function is the same as flatMap/andThen/(>>=)  in other programming languages with monads.\

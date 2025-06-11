@@ -322,7 +322,7 @@ FormulaList* FOOLElimination::process(FormulaList* formulas) {
 /**
  * Processes a list of terms.
  *
- * Takes a context argument (whos value is either TERM_CONTEXT or
+ * Takes a context argument (whose value is either TERM_CONTEXT or
  * FORMULA_CONTEXT) and rather than returning the result of processing, writes
  * it to termResult (when context is TERM_CONTEXT) or formulaResult (when
  * context is FORMULA_CONTEXT). In other words, the result of processing is

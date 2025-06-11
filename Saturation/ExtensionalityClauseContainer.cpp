@@ -47,7 +47,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   TermList sort;
 
   if (_onlyKnown) {
-    // We only match agains specific extensionality axiom patterns (e.g. set,
+    // We only match against specific extensionality axiom patterns (e.g. set,
     // array, ...).
     if(!TheoryFinder::matchKnownExtensionality(c))
       return 0;

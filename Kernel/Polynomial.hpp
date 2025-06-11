@@ -252,7 +252,7 @@ public:
   /** tries to turn this polynom into a polynom of the given NumTraits. */
   template<class NumTraits> Option<Perfect<Polynom<NumTraits>> const&> downcast() const&;
 
-  /** returns wether this is a Polynom of the given NumTraits. */
+  /** returns whether this is a Polynom of the given NumTraits. */
   template<class NumTraits> bool isType() const;
 
   /** if this polynom has the right sort, and consist of a single summand that is a numeral, then this numeral

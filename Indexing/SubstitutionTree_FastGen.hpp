@@ -44,7 +44,7 @@ struct SubstitutionTree<LeafData_>::GenMatcher::Binder
   : _parent(parent), _maxVar(parent->_maxVar) {}
   /**
    * Ensure variable @b var is bound to @b term. Return false iff
-   * it is not possible. If a new binding was creater, push @b var
+   * it is not possible. If a new binding was created, push @b var
    * onto parent's @b _boundVars stack.
    */
   bool bind(unsigned var, TermList term)

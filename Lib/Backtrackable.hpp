@@ -259,7 +259,7 @@ private:
  *
  * If, in a similar manner, object changes should be ignored for a period
  * of time, the @b bdDoNotRecord function can be called instead
- * of te @b bdRecord one. (The previous state is again restored
+ * of the @b bdRecord one. (The previous state is again restored
  * by a call to the @b bdDone function.)
  */
 class Backtrackable

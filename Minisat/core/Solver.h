@@ -227,7 +227,7 @@ protected:
     vec<Var>            free_vars;
 
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which it is
-    // used, exept 'seen' which is used in several places.
+    // used, except 'seen' which is used in several places.
     //
     VMap<char>          seen;
     vec<ShrinkStackElem>analyze_stack;
