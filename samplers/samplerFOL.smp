@@ -421,7 +421,7 @@ intent=sat sa=fmb $fmbss=1 > fmbss ~cat 1:1
 intent=sat sa=fmb $fmbss=666 > fmbss ~sgd 0.1,1
 
 # fmb_symmetry_symbol_order
-sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1
+sa=fmb > fmbsso ~cat occurrence:22,input_usage:1,preprocessed_usage:1
 
 # fmb_symmetry_ratio
 sa=fmb > fmbsr ~uf 1.0,2.5
