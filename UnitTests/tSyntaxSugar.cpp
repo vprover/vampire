@@ -9,7 +9,7 @@
  */
 /**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
  *
- * @autor Johannes Schoisswohl
+ * @author Johannes Schoisswohl
  * @date 2020-04-29
  */
 
@@ -23,7 +23,7 @@ void perform_test(const A&...)
 TEST_FUN(some_meaningful_testname) {
   
   NUMBER_SUGAR(Real) // <- imports syntax sugar for +, *, /, and other 
-                     //    intepreted functions & predicates on reals
+                     //    interpreted functions & predicates on reals
 
   DECL_DEFAULT_VARS  // <- creates variables x ... variable X0
                      //                      y ... variable X1

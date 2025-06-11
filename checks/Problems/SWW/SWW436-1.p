@@ -5,7 +5,7 @@
 % Version  : Especial.
 % English  : A randomly generated entailment with n program variables.
 %            Negated equalities and list segments are added at random, with
-%            specific paramenters so that about half of the generated
+%            specific parameters so that about half of the generated
 %            entailments are valid (or, equivalently, F is unsatisfiable).
 %            Normalization and well-formedness axioms should be enough to
 %            decide these entailments.

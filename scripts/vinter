@@ -90,7 +90,7 @@ function ensure_exec_presence() {
 	fi
 	
 	if [ ! -f "$CUR_VAL" ]; then 
-		rep_usage_error "$DEF exacutable not found: $CUR_VAL"
+		rep_usage_error "$DEF executable not found: $CUR_VAL"
 	fi
 }
 

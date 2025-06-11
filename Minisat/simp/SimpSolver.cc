@@ -711,7 +711,7 @@ bool SimpSolver::eliminate(bool turn_off_elim)
                     ok = false; goto cleanup; }
                 frozen[elim] = was_frozen; }
 
-            // At this point, the variable may have been set by assymetric branching, so check it
+            // At this point, the variable may have been set by asymmetric branching, so check it
             // again. Also, don't eliminate frozen variables:
             if (use_elim && value(elim) == l_Undef && !frozen[elim] && !eliminateVar(elim)){
                 ok = false; goto cleanup; }

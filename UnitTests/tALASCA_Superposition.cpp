@@ -102,16 +102,16 @@ Stack<std::function<Indexing::Index*()>> alascaSuperpositionIndices()
     [](){ return new AlascaIndex<Superposition::Rhs>();},
   }; }
 
-auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultanious = false)
+auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultaneous = false)
 { 
   auto s = testAlascaState(uwa);
   auto n = ALASCA::Normalization(s);
-  return alascaSimplRule(s,Superposition(s, simultanious), n); 
+  return alascaSimplRule(s,Superposition(s, simultaneous), n);
 }
 
 
 
-REGISTER_GEN_TESTER(AlascaGenerationTester<Superposition>(testSuperposition(UWA_MODE, /* simultanious superpos */ false)))
+REGISTER_GEN_TESTER(AlascaGenerationTester<Superposition>(testSuperposition(UWA_MODE, /* simultaneous superpos */ false)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -238,7 +238,7 @@ TEST_GENERATION(self_applications_run_only_once,
 TEST_GENERATION(ordering1_ok_1_simult,
     Generation::SymmetricTest()
       .indices(alascaSuperpositionIndices())
-      .rule(move_to_heap(testSuperposition(UWA_MODE, /*simultanious=*/ true)))
+      .rule(move_to_heap(testSuperposition(UWA_MODE, /*simultaneous=*/ true)))
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
       .expected(exactly(  clause({ f(0) != 0, f(0) != 0 }) 
@@ -335,7 +335,7 @@ TEST_GENERATION(uninterpreted_pred_2,
       .expected(exactly( clause({           p(1)     , f(f(b)) > 0 }) ))
     )
 
-TEST_GENERATION(uninterpreted_pred_3, // TODO couldn't we replace all occurences of f(x) instead of the maximal one
+TEST_GENERATION(uninterpreted_pred_3, // TODO couldn't we replace all occurrences of f(x) instead of the maximal one
     Generation::SymmetricTest()
       .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected(   f(x) - 1 == 0 )      })

@@ -13,7 +13,7 @@ def split_line(line):
     #print s                                                                                                                                                                 
     return (s[0],s1)
 
-def swap(str): # swaps the postitions ( eg: X2 : integer => integer X2 )                                                                                                  
+def swap(str): # swaps the positions ( eg: X2 : integer => integer X2 )
     part1 = str[0]
     spl = part1.split(" ",2); # splitted[2] is the part which interests us!                                                                                                   
     splitted = spl[2].split(","); # split in individual groups eg X21:$int
@@ -32,7 +32,7 @@ def swap(str): # swaps the postitions ( eg: X2 : integer => integer X2 )
 def introduceNegation(str):
     str= str.replace("~","!")
     return str
-#check if the number of open paranthesis is equal with the closed ones
+#check if the number of open parenthesis is equal with the closed ones
 def balance_paranthesis(string):
     res = 0
     for x in string:
@@ -41,7 +41,7 @@ def balance_paranthesis(string):
         if x==")":
             res = res-1
     return res
-#replace the | with it's or correspondance || and the & with &&
+#replace the | with it's or correspondence || and the & with &&
 #after this step, get rid of the sG functions ( just remove them from the invariant)
 def introduceORAND(str):
     afterOR = str.replace("|","||")

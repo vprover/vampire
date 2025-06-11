@@ -16,7 +16,7 @@
  *
  * \see UnitTests/tEqualityResolution.cpp, for usage a example
  *
- * Don't rely on any part of the interface, but the things containted in the examples,
+ * Don't rely on any part of the interface, but the things contained in the examples,
  * because it's rather unstable.
  */
 
