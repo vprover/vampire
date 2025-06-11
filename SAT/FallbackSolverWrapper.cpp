@@ -44,14 +44,14 @@ void FallbackSolverWrapper::addClause(SATClause* cl)
  *
  * @author Giles 
  */
-SATSolver::Status FallbackSolverWrapper::solve(unsigned conflictCountLimit)
+SATSolver::Status FallbackSolverWrapper::solveLimited(unsigned conflictCountLimit)
 {
   // Currently always run the _inner solver to see if we can use it
-  Status status = _inner->solve(conflictCountLimit);
+  Status status = _inner->solveLimited(conflictCountLimit);
 
   // Check if we need to use _fallback
   if(status == Status::UNKNOWN){
-    status = _fallback->solve(conflictCountLimit);
+    status = _fallback->solveLimited(conflictCountLimit);
     _usingFallback = true;
     ASS(status != Status::UNKNOWN);
     env.statistics->smtFallbacks++;

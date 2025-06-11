@@ -28,28 +28,27 @@ CadicalInterfacing::CadicalInterfacing(const Shell::Options& opts, bool generate
   _solver.set("stabilizeonly",1);
 }
 
-SATSolver::Status CadicalInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+SATSolver::Status CadicalInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
-  ASS(!hasAssumptions());
-
   // load assumptions:
   SATLiteralStack::ConstIterator it(assumps);
+  _assumptions.clear();
   while (it.hasNext()) {
     _assumptions.push_back(vampire2Cadical(it.next()));
   }
 
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
-
-  if (_status == Status::UNSATISFIABLE) {
-    // unload minisat's internal conflict clause to _failedAssumptionBuffer
-    _failedAssumptionBuffer.reset();
-    for(int i : _assumptions)
-      if(_solver.failed(i))
-        _failedAssumptionBuffer.push(cadical2Vampire(i).opposite());
-  }
-
-  _assumptions.clear();
   return _status;
+}
+
+SATLiteralStack CadicalInterfacing::failedAssumptions() {
+  ASS_EQ(_status, Status::UNSATISFIABLE)
+
+  SATLiteralStack result;
+  for(int v : _assumptions)
+    if(_solver.failed(v))
+      result.push(cadical2Vampire(v).opposite());
+  return result;
 }
 
 /**
@@ -94,15 +93,11 @@ void CadicalInterfacing::addClause(SATClause* cl)
 /**
  * Perform solving and return status.
  */
-SATSolver::Status CadicalInterfacing::solve(unsigned conflictCountLimit)
+SATSolver::Status CadicalInterfacing::solveLimited(unsigned conflictCountLimit)
 {
+  _assumptions.clear();
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
   return _status;
-}
-
-void CadicalInterfacing::addAssumption(SATLiteral lit)
-{
-  _assumptions.push_back(vampire2Cadical(lit));
 }
 
 SATSolver::VarAssignment CadicalInterfacing::getAssignment(unsigned var)

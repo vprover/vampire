@@ -30,6 +30,7 @@ public:
     DONT_CARE,  // to represent partial models
     NOT_KNOWN
   };
+
   enum class Status {
     SATISFIABLE,
     UNSATISFIABLE,
@@ -84,9 +85,11 @@ public:
    * the number of conflicts, and in case it is reached, stop with
    * solving and assign the status to UNKNOWN.
    */
-  virtual Status solve(unsigned conflictCountLimit) = 0;
+  virtual Status solveLimited(unsigned conflictCountLimit) = 0;
 
-  Status solve(bool onlyPropagate=false) { return solve(onlyPropagate ? 0u : UINT_MAX); }
+  Status solve(bool onlyPropagate = false) {
+    return solveLimited(onlyPropagate ? 0 : std::numeric_limits<unsigned>::max());
+  }
 
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
@@ -206,108 +209,47 @@ inline std::ostream& operator<<(std::ostream& out, SATSolver::VarAssignment cons
   }
 }
 
-class SATSolverWithAssumptions:
-      public SATSolver {
+
+class SATSolverWithAssumptions: public SATSolver {
 public:
-
-  // The first three functions represent the original TWLSolver-style of interface ...
-
-  /**
-   * Add assumption to the solver. Perhaps process partially,
-   * but mainly ensure the assumption is considered during the next calls to solve()
-   */
-  virtual void addAssumption(SATLiteral lit) = 0;
-
-  /**
-   * Retract all the assumptions added so far.
-   * The solver becomes assumption-free.
-   *
-   * Note: this may destroy the model computed during a previous call to solve
-   * (as it currently does in TWL).
-   */
-  virtual void retractAllAssumptions() = 0;
-
-  /**
-   * Test whether any assumptions are currently registered by the solver.
-   */
-  virtual bool hasAssumptions() const = 0;
-
-  // ... a better alternative could be the interface below.
-
-  // It is currently implemented in terms of the one above
-  // (but may be overridden in SATSolver implementations).
-  // Note the the below interface allows the solver
-  // to identify a subset of the given assumptions that were only needed for
-  // previous contradiction to be derived.
-
-  // Note also, however, that solveUnderAssumptions cannot guarantee
-  // access to the model after it returns SATISFIABLE, as it uses retractAllAssumptions
-  // to clean in the end.
-
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) {
-    ASS(!hasAssumptions());
-    _failedAssumptionBuffer.reset();
-
-    Status res = solve(conflictCountLimit);
-    if (res == Status::UNSATISFIABLE) {
-      return res;
-    }
-
-    SATLiteralStack::ConstIterator it(assumps);
-    while (it.hasNext()) {
-      SATLiteral lit = it.next();
-      addAssumption(lit);
-      _failedAssumptionBuffer.push(lit);
-
-      res = solve(conflictCountLimit);
-      if (res == Status::UNSATISFIABLE) {
-        break;
-      }
-    }
-
-    retractAllAssumptions();
-    return res;
-  }
-
   /**
    * Solve under the given set of assumptions @b assumps.
+   *
    * If UNSATISFIABLE is returned, a subsequent call to
    * failedAssumptions() returns a subset of these
    * that are already sufficient for the unsatisfiability.
-   *
-   * @b onlyPropagate suggests that a limited (and potentially incomplete)
-   * solving strategy should be employed which only performs unit propagation.
    */
+  virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) = 0;
+
   Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false) {
-    return solveUnderAssumptions(assumps,onlyPropagate ? 0u : UINT_MAX);
+    return solveUnderAssumptionsLimited(assumps,onlyPropagate ? 0u : UINT_MAX);
   }
 
   /**
-   * When solveUnderAssumptions(assumps) returns UNSATISFIABLE,
-   * failedAssumptions contain a subset of assumps that is sufficient
-   * for this UNSATISFIABLE status.
+   * Return a list of failed assumptions from the last solverUnderAssumptions call.
+   * Assumes the last call returned UNSAT
+   *
+   * Usually corresponds to the solver's internal unsat core.
    */
-  virtual const SATLiteralStack& failedAssumptions() {
-    return _failedAssumptionBuffer;
-  }
+  virtual SATLiteralStack failedAssumptions() = 0;
 
   /**
    * Apply fixpoint minimization to already obtained failed assumption set
    * and return the result (as failedAssumptions).
    */
-  const SATLiteralStack& explicitlyMinimizedFailedAssumptions(bool onlyPropagate=false, bool randomize = false) {
+  SATLiteralStack explicitlyMinimizedFailedAssumptions(bool onlyPropagate=false, bool randomize = false) {
     return explicitlyMinimizedFailedAssumptions(onlyPropagate ? 0u : UINT_MAX, randomize);
   }
 
-  virtual const SATLiteralStack& explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize) {
-    // assumes solveUnderAssumptions(...,conflictCountLimit,...) just returned UNSAT and initialized _failedAssumptionBuffer
+  // TODO this could be done much more efficiently
+  SATLiteralStack explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize) {
+    // assumes solveUnderAssumptions(...,conflictCountLimit,...) just returned UNSAT
 
-    ASS(!hasAssumptions());
-
-    unsigned sz = _failedAssumptionBuffer.size();
+    SATLiteralStack failed = failedAssumptions();
+    unsigned sz = failed.size();
 
     if (!sz) { // a special case. Because of the bloody unsigned (see below)!
-      return _failedAssumptionBuffer;
+      return failed;
     }
 
     if (randomize) {
@@ -315,36 +257,33 @@ public:
       // not to bias minimization from one side or another
       for(unsigned i=sz-1; i>0; i--) {
         unsigned tgtPos=Random::getInteger(i+1);
-        std::swap(_failedAssumptionBuffer[i], _failedAssumptionBuffer[tgtPos]);
+        std::swap(failed[i], failed[tgtPos]);
       }
     }
 
+    SATLiteralStack assumptions;
     unsigned i = 0;
     while (i < sz) {
+      assumptions.reset();
       // load all but i-th
       for (unsigned j = 0; j < sz; j++) {
         if (j != i) {
-          addAssumption(_failedAssumptionBuffer[j]);
+          assumptions.push(failed[j]);
         }
       }
 
-      if (solve(conflictCountLimit) == Status::UNSATISFIABLE) {
+      if (solveUnderAssumptionsLimited(assumptions, conflictCountLimit) == Status::UNSATISFIABLE) {
         // leave out forever by overwriting by the last one (buffer shrinks implicitly)
-        _failedAssumptionBuffer[i] = _failedAssumptionBuffer[--sz];
+        failed[i] = failed[--sz];
       } else {
         // move on
         i++;
       }
-
-      retractAllAssumptions();
     }
 
-    _failedAssumptionBuffer.truncate(sz);
-    return _failedAssumptionBuffer;
+    failed.truncate(sz);
+    return failed;
   }
-
-protected:
-  SATLiteralStack _failedAssumptionBuffer;
 };
 
 /**

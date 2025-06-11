@@ -41,8 +41,8 @@ public:
     _solver.simplify();
   }
 
-  virtual Status solve(unsigned conflictCountLimit) override;
-  
+  virtual Status solveLimited(unsigned conflictCountLimit) override;
+
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -79,22 +79,9 @@ public:
     bool mpol = pol ? false : true; 
     _solver.suggestPolarity(vampireVar2Minisat(var),mpol);
   }
-  
-  /**
-   * Add an assumption into the solver.
-   */
-  virtual void addAssumption(SATLiteral lit) override;
-  
-  virtual void retractAllAssumptions() override {
-    _assumptions.clear();
-    _status = Status::UNKNOWN;
-  };
-  
-  virtual bool hasAssumptions() const override {
-    return (_assumptions.size() > 0);
-  };
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  SATLiteralStack failedAssumptions() override;
 
   /**
    * Use minisat and solving under assumptions to minimize the given set of premises (= unsat core extraction).

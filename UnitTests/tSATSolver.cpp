@@ -192,28 +192,19 @@ void testInterface(SATSolverWithAssumptions &s) {
   }
   cout << endl;
 
-  s.addAssumption(getLit('d'));
-  s.addAssumption(getLit('a'));
-  ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
-  s.retractAllAssumptions();
-  ASS(!s.hasAssumptions());
-  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
+  SATLiteralStack assumptions;
+  assumptions.push(getLit('d'));
+  assumptions.push(getLit('a'));
+  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::SATISFIABLE);
+  assumptions.reset();
 
-  ASS(!s.hasAssumptions());
-  s.addAssumption(getLit('A'));
-  ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::Status::UNSATISFIABLE);
-  s.retractAllAssumptions();
-  ASS(!s.hasAssumptions());
-  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
+  assumptions.push(getLit('A'));
+  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::UNSATISFIABLE);
+  assumptions.reset();
 
-  s.addAssumption(getLit('a'));
-  ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
-  s.retractAllAssumptions();
-  ASS(!s.hasAssumptions());
-  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
+  assumptions.push(getLit('a'));
+  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::SATISFIABLE);
+  assumptions.reset();
 
   ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
 }
