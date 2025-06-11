@@ -1374,7 +1374,7 @@ protected:
         outputFormula(out, f->uarg());
         out  << ")";
         return;
-                 
+
       case AND: outputCon("and"); return;
       case OR : outputCon("or" ); return;
       case IFF: outputBin("=" ); return;

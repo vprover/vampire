@@ -163,7 +163,7 @@ def convertS(String):
                     returnV.append(evaluate(infix))
         except e: 
             print e
-            
+
     #print returnV
     return returnV
 

@@ -2538,7 +2538,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
           }
           args.push(arg);
           Formula* res = new AtomicFormula(Literal::create(c->discriminator(),args.size(),true,args.begin()));
-          
+
           _results.push(ParseResult(res));
           return;
         }

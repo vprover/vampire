@@ -74,7 +74,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
     poly.apply([&](auto& poly) {
       for (auto monom : poly->iterSummands()) {
         for (auto factor : monom.factors->iter()) {
-          
+
           auto var = factor.term.tryVar();
           if (var.isSome()) {
             auto numeral = FlatMeetLattice<AnyNumber<Numeral>>(AnyNumber<Numeral>(monom.numeral));

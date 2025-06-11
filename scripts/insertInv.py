@@ -6,16 +6,16 @@ import string
 import infXpostFx
 
 def split_line(line):
-    # return a tuple (loop invariant) , (![...] and the rest)                                                                                                                
+    # return a tuple (loop invariant) , (![...] and the rest)
     s= line.split(",",1)
     s1 = s[1].strip("\n")
     s1 = s1.replace(").","")
-    #print s                                                                                                                                                                 
+    #print s
     return (s[0],s1)
 
 def swap(str): # swaps the positions ( eg: X2 : integer => integer X2 )
     part1 = str[0]
-    spl = part1.split(" ",2); # splitted[2] is the part which interests us!                                                                                                   
+    spl = part1.split(" ",2); # splitted[2] is the part which interests us!
     splitted = spl[2].split(","); # split in individual groups eg X21:$int
     outputF = ''
     for j in range(len(splitted)):
@@ -68,10 +68,10 @@ def replaceConnectives(string):
 #and also translate the invariant into the syntax for FramaC - call for the other package
 ## infXpostFx.convertS(string)
 def quantify(line):
-   # replace the ![X..] with \forall and for each variable define the type eg:                                                                                               
-   # \forall integer X1                                                                                                                                                      
+   # replace the ![X..] with \forall and for each variable define the type eg:
+   # \forall integer X1
    firstStep = line.split("]:",1);
-   #in case the invariant has no quantified variables, return the invariant                                                                                                  
+   #in case the invariant has no quantified variables, return the invariant
    if len(firstStep) == 1:
        tempSplit = firstStep[0].split("|")
        final = infXpostFx.convertS(tempSplit)
@@ -82,7 +82,7 @@ def quantify(line):
        final = []
        final.append(FIN)
        return final
-   else: #the other case: ![..]:invariant                                                                                                                                    
+   else: #the other case: ![..]:invariant
      forall = firstStep[0]
      forall = forall.replace("![","\\forall ")
      integers = forall
@@ -105,30 +105,30 @@ def ensure_dir(name):
         os.makedirs(d)
 
 #create the actual invariant list which has to be printed in the C file
-def work(lines):                                                                                                                                                             
+def work(lines):
     done= False      
-    i=0                                                                                                                                                                      
+    i=0
     linv = ["/*@ \n"]
     while not done:
         finalInv=""
         try:        
             l1 = split_line(lines[i])
-            l2 = quantify(l1[1]) # position two is the actual invariant                                                                                                      
+            l2 = quantify(l1[1]) # position two is the actual invariant
             if len(l2)==1:
                 conn = replaceConnectives(l2[0].strip("\n"))
                 finalInv = l1[0] + " " + conn + ";\n"
-            else:                    
+            else:
                 l3 = swap(l2)
                 conn = replaceConnectives(l2[1].strip("\n"))
-                finalInv = l1[0]+ "\f" + l3 + conn + ";\n" #l2[1].strip("\n") +";\n"                                                                       
+                finalInv = l1[0]+ "\f" + l3 + conn + ";\n" #l2[1].strip("\n") +";\n"
                 finalInv = finalInv.replace("<","<=")
                 finalInv = finalInv.replace(">",">=")
             linv.append(finalInv)
             i = i + 1
-        except IndexError,e:                                                                                                                                                 
-            print "%s main while loop" %e                                                                                                                               
-            print "tried %s records" % i                                                                                                                                     
-            done = True                                                                                                                                                      
+        except IndexError,e:
+            print "%s main while loop" %e
+            print "tried %s records" % i
+            done = True
     linv.append("*/\n")
     return linv
 

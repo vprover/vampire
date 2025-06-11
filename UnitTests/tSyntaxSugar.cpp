@@ -46,7 +46,7 @@ TEST_FUN(some_other_meaningful_testname) {
 
 
 TEST_FUN(uninterpreted_and_interpreted_stuff) {
-  NUMBER_SUGAR(Rat)                
+  NUMBER_SUGAR(Rat)
   DECL_DEFAULT_VARS
 
   DECL_SORT(alpha)     // <- creates an uninterpred sort 
@@ -100,10 +100,10 @@ TEST_FUN(watch_out_for_this) {
 
 
 TEST_FUN(get_functors) {
-  NUMBER_SUGAR(Rat)                 
+  NUMBER_SUGAR(Rat)
   DECL_FUNC( fn  , {Rat, Rat}, Rat)
-  DECL_PRED( pred, {Rat})          
-  DECL_CONST(cons, Rat)           
+  DECL_PRED( pred, {Rat})
+  DECL_CONST(cons, Rat)
 
   // we can query the functors of functionsm, constants and predicates 
   unsigned fnFunctor   = fn.functor(); 

@@ -74,7 +74,7 @@ class LookAheadIterator(object):
                 self.reserve = []
         def __iter__(self):
                 return self
-                
+
         def hasNext(self):
                 if self.reserve:
                         return True
@@ -96,7 +96,7 @@ class LookAheadIterator(object):
                 res = self.next()
                 self.reserve.append(res)
                 return res
-                        
+
 
 def getMatch(strList,regex):
         for s in strList:
@@ -177,7 +177,7 @@ def printTable(labels,maps,lblCnt=1):
         
         def keyCmp(k1,k2):
                 return cmp(getSortKey(k1),getSortKey(k2))
-                
+
         
         keyLst.sort(keyCmp)
         
@@ -203,7 +203,7 @@ class Bench(object):
                 self.lines = []
                 self.name = None
                 self.kind = None
-                
+
                 #the ones below contain true if they are approximate or error
                 self.origSz = None
                 self.origCnt = None
@@ -230,7 +230,7 @@ class Bench(object):
                         if reMinimErrorLines.match(line) or reApproxVal.match(line):
                                 approx = True
                                 continue
-                        
+
                         resVal = None
                         if reMinimFail.match(line):
                                 resVal = trMinimFail
@@ -268,16 +268,16 @@ class Bench(object):
                 try:
                         lineIt = LookAheadIterator(self.lines)
                         self.readName(lineIt.next())
-                        
+
                         if reIgnoredName.match(self.name):
                                 raise IncompleteBenchmark()
-                        
+
                         while lineIt.hasNext() and not reOldItp.match(lineIt.peek()) and not reOrigWeight.match(lineIt.peek()):
                                 lineIt.next()
-                                
+
                         if not lineIt.hasNext():
                                 raise EarlyRecEnd(trNotSolved)
-                        
+
                         self.tryAcceptInterpolant(lineIt, reOldItp)
                         self.readValue(lineIt, reOrigWeight, "origSz")
                         self.readValue(lineIt, reMinWeight, "minSz")
@@ -348,7 +348,7 @@ class GroupingPostprocessor(object):
                         return "1,000 -- 10,000"
                 else:
                         return ">10,000"
-                
+
         def __call__(self,map):
                 keys = list(map.keys())
                 for k in keys:
@@ -365,7 +365,7 @@ class DeletingPostprocessor(object):
         def __init__(self,flds):
                 self.flds=flds
         def __call__(self,map):
-                
+
                 for k in self.flds:
                         if k in map:
                                 del map[k]
@@ -389,7 +389,7 @@ class CountingObserver(Observer):
         def observe(self,bench):
                 val = self.getter(bench)
                 updateCounter(self.ctr,val)
-                
+
         def display(self):
                 self.postproc(self.ctr)
         

@@ -333,7 +333,7 @@ def runAccordingToOptions(args):
             if start != 0:
                 for i in range(s-1, start-1):
                     fout.write(fin[i])
-            
+
         for i in range(s-1, len(fin)):
             fout.write(fin[i])
         fout.close()

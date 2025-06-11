@@ -98,7 +98,7 @@ void MinisatInterfacing::addClause(SATClause* cl)
   // TODO: consider measuring time
   
   ASS_EQ(_assumptions.size(),0);
-                
+
   static vec<Lit> mcl;
   mcl.clear();
     

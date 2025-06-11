@@ -557,11 +557,11 @@ unsigned Theory::getArity(Interpretation i)
   case ARRAY_BOOL_SELECT:
 
     return 2;
-          
+
   case ARRAY_STORE:
 
     return 3;
-          
+
   default:
     ASSERTION_VIOLATION_REP(i);
   }
@@ -635,7 +635,7 @@ bool Theory::isFunction(Interpretation i)
   case REAL_CEILING:
   case REAL_TRUNCATE:
   case REAL_ROUND:
-          
+
   case ARRAY_SELECT:
   case ARRAY_STORE:
 

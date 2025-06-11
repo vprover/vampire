@@ -1331,7 +1331,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
               //  SATLiteral sat_lit = getLiteralFromName(sl);
               //  if(!_branchSelector.isZeroImplied(sat_lit)) return false;
               //}
-              //return true; // all okay              
+              //return true; // all okay
               return premise->splits()->isSubsetOf(replacement->splits()); 
             } ));
   } else {
@@ -1641,7 +1641,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
         
         rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
         _sa->addNewClause(rcl);
-              
+
         // TODO: keep statistics in release ?
         // RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
         RSTAT_CTR_INC("total_unfrozen");

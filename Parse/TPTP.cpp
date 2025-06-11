@@ -1614,7 +1614,7 @@ void TPTP::holTerm()
           break;
         case T_DEFAULT_TYPE:
           _termLists.push(AtomicSort::defaultSort());
-          break;             
+          break;
         default:
           ASSERTION_VIOLATION;
       }
@@ -2876,7 +2876,7 @@ void TPTP::term()
           break;
         case T_DEFAULT_TYPE:
           _termLists.push(AtomicSort::defaultSort());
-          break;             
+          break;
         default:
           ASSERTION_VIOLATION;
       }
@@ -4220,7 +4220,7 @@ void TPTP::readTypeArgs(unsigned arity)
       _termLists.push(readArrowSort());
       consumeToken(T_RPAR);
     } else {
-      _termLists.push(readArrowSort());            
+      _termLists.push(readArrowSort());
     }
   }
 }

@@ -1114,7 +1114,7 @@ instanceLabel:
             }
             use[arity]=grounding[lit->nthArgument(1)->var()];
             satClauseLits.push(getSATLiteral(functor,use,lit->polarity(),true));
-            
+
           }else{
             unsigned functor = lit->functor();
             unsigned arity = lit->arity();

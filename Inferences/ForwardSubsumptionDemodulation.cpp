@@ -608,7 +608,7 @@ isRedundant:
                 ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
                   && !isAlascaOrdering ) {
-                
+
                 // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
                 ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
               }

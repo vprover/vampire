@@ -951,7 +951,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
                 bool evaluated = evaluateGroundLiteral(lit);
                 return evaluated ? Formula::trueFormula() : Formula::falseFormula(); 
             }
-                
+
                 case FALSE:
                 case TRUE:
                     return formula;
@@ -972,7 +972,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
                 }
                 return new JunctionFormula(formula->connective(),newArgs); 
             }
-                
+
                 case IMP:
                 case XOR:
                 case IFF:
@@ -981,10 +981,10 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
                 Formula* right = formula->right();
                 Formula* newLeft = partialEvaluate(left);
                 Formula* newRight = partialEvaluate(right);
-                
+
                 return new BinaryFormula(formula->connective(),newLeft,newRight); 
             }
-                
+
                 case FORALL:
                 case EXISTS:
             {
