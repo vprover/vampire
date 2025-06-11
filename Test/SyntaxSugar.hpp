@@ -384,14 +384,14 @@ public:
   TermSugar sort(SortId s) { _srt = s; return *this; }
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
-    unsigned f = env.signature->addFunction(name,0);                                                                
+    unsigned f = env.signature->addFunction(name,0);
 
     env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr()));
     if (skolem) {
       env.signature->getFunction(f)->markSkolem();
     }
-    return TermSugar(TermList(Term::createConstant(f)));                                                          
-  }                                                                                                                 
+    return TermSugar(TermList(Term::createConstant(f)));
+  }
 
   operator TypedTermList() const { return TypedTermList(TermList(*this), sort()); }
 };

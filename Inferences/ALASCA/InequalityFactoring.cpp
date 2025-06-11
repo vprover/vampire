@@ -242,7 +242,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
                   concatIters(applyRule(max,other).intoIter(), 
                     applyRule(other, max).intoIter())
                   ); 
-                  
+
           });
       }));
 }

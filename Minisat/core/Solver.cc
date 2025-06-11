@@ -404,11 +404,11 @@ bool Solver::litRedundant(Lit p)
         if (i < (uint32_t)c->size()){
             // Checking 'p'-parents 'l':
             Lit l = (*c)[i];
-            
+
             // Variable at level 0 or previously removable:
             if (level(var(l)) == 0 || seen[var(l)] == seen_source || seen[var(l)] == seen_removable){
                 continue; }
-            
+
             // Check variable can not be removed for some local reason:
             if (reason(var(l)) == CRef_Undef || seen[var(l)] == seen_failed){
                 stack.push(ShrinkStackElem(0, p));
@@ -417,7 +417,7 @@ bool Solver::litRedundant(Lit p)
                         seen[var(stack[i].l)] = seen_failed;
                         analyze_toclear.push(stack[i].l);
                     }
-                    
+
                 return false;
             }
 
@@ -435,7 +435,7 @@ bool Solver::litRedundant(Lit p)
 
             // Terminate with success if stack is empty:
             if (stack.size() == 0) break;
-            
+
             // Continue with top element on stack:
             i  = stack.last().i;
             p  = stack.last().l;

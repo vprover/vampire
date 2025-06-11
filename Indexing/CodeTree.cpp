@@ -558,8 +558,8 @@ CodeTree::~CodeTree()
 
   while(top_ops.isNonEmpty()) {
     CodeOp* top_op = top_ops.pop();
-            
-    if (top_op->isSearchStruct()) {            
+
+    if (top_op->isSearchStruct()) {
       if(top_op->alternative()) {
         top_ops.push(top_op->alternative());
       }
@@ -613,7 +613,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
     auto kv = top_ops.pop();
     CodeOp* top_op = kv.first;
     unsigned depth = kv.second;
-            
+
     if (top_op->isSearchStruct()) {
       visitor(top_op, depth); // visit the landingOp inside the SearchStruct
       
@@ -626,7 +626,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
           top_ops.push(make_pair(ss->targets[i],depth+1));
         }
-      }              
+      }
     } else {
       CodeBlock* cb=firstOpToCodeBlock(top_op);
 

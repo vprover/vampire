@@ -1337,7 +1337,7 @@ public:
           _svStack.push(inode->childVar);
           _leafData = {};
           DEBUG_QUERY(1, "entering node: S", _svStack.top())
-          
+
           _nodeIterators.push(_algo.template selectPotentiallyUnifiableChildren<LeafData>(inode));
           if (backtrackable) {
             _bdStack.top().addClosure([&]() { 

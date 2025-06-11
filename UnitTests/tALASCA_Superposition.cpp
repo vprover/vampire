@@ -376,7 +376,7 @@ TEST_GENERATION(bug01a,
                           // ==> { z + -g2(f2(x, z), x) > 0 , 0 == x }
                           // (3) {y -> x, z -> y}
                           // ==> { y + -g2(f2(x, y), x) > 0, 0 == x  }
-                          
+
                 ,        clause({ selected( 0 == f2(x, z) + f2(x, y) + -f2(x, (y + z)) ) })
                 })
       .expected(exactly( 
@@ -398,7 +398,7 @@ TEST_GENERATION(bug01b,
                           // ==> { z + -g2((x * z), x) > 0 , 0 == x }
                           // (3) {y -> x, z -> y}
                           // ==> { y + -g2((x * y), x) > 0, 0 == x  }
-                          
+
                 ,        clause({ selected( 0 == (x * z) + (x * y) + -(x * (y + z)) ) })
                 })
       .expected(exactly( 

@@ -329,7 +329,7 @@ namespace Inferences {
 
       premises.reset(qres->premises);
 
-      while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {              
+      while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {
         Literal *l = literals.next();
         Clause *p = premises.next();
         Clause *c = clausesTheta.next();

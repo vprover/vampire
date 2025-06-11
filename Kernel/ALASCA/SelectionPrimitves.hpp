@@ -48,7 +48,7 @@ namespace Kernel {
     { return range(0, clause()->size())
               .filter([&](auto i) { return i != litIdx; }) 
               .map([&](auto i) { return (*clause())[i]; }); }
-              
+
     auto asTuple() const
     { return std::make_tuple(cl->number(), litIdx); }
 

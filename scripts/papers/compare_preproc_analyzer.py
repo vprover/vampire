@@ -13,7 +13,7 @@ def readInpVal(v):
                 return intInfty
         else:
                 return int(v)
-                
+
 
 class Rec:
         idx = 0
@@ -60,7 +60,7 @@ class Observable:
                 self.allEqualCnt = 0
                 self.allTO = 0
                 self.arraysInitialized = False
-                
+
         def initArrays(self):
                 #we cannot do this in the constructor as then we don't know the strategy count
                 for i in range(0,strategyCnt):
