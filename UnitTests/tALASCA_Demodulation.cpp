@@ -182,6 +182,13 @@ TEST_SIMPLIFICATION(sum03,
       .expected(    {    clause(   { p(    - a           )  }   ) })
     )
 
+TEST_SIMPLIFICATION(sum_of_vars_01,
+    ALASCA_Demod_TestCase<SuperpositionDemodConf>()
+      .simplifyWith({    clause(   { 0 == x - y + g(x,y) }       ) })
+      .toSimplify  ({    clause(   { p(g(x, y))  }   ) })
+      .expected(    {    clause(   { p(y - x)  }   ) })
+    )
+
 
 TEST_SIMPLIFICATION(bug01,
     ALASCA_Demod_TestCase<SuperpositionDemodConf>()
@@ -311,6 +318,7 @@ TEST_SIMPLIFICATION(demod_basic_06,
       .toSimplify  ({    clause(   { p(floor(f(a) + f(b))) }   ) })
       .expectNotApplicable()
     )
+
 
 
 // // checking `sσ ≻ uσ`

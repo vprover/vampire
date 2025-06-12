@@ -40,6 +40,12 @@ template<class T         > struct GenSubstitutionTree_<T, TypedTermList> { using
 template<class T>
 using GenSubstitutionTree = typename GenSubstitutionTree_<T, KeyType<T>>::Type;
 
+enum class PremiseType {
+  BinInf,
+  SimplCondition,
+  SimplToSimpl,
+};
+
 template<class T>
 class AlascaIndex : public Indexing::Index
 {
@@ -71,10 +77,22 @@ public:
 // #define INSERT_FIND_ASSERTION(...) __VA_ARGS__
 #define INSERT_FIND_ASSERTION(...) {}
 
+
+  template<class C, std::enable_if_t<C::premiseType == PremiseType::BinInf, bool> = true>
+  bool premiseFilter(C const& t) {
+    return binInfPreUnificationCheck(t, _shared->ordering, [](auto x) {});
+  }
+
+  template<class C, std::enable_if_t<C::premiseType != PremiseType::BinInf, bool> = true>
+  bool premiseFilter(C const& t) 
+  { return true; }
+
   virtual void handleClause(Clause* c, bool adding) final override
   {
     TIME_TRACE(_maintainanceStr.c_str())
-    for (auto appl : T::iter(*_shared, c)) {
+    for (auto appl : T::iter(*_shared, c)
+                         .filter([&](auto& x) { return premiseFilter(x); })
+                         ) {
       if (adding) {
         INSERT_FIND_ASSERTION(DEBUG_CODE( 
           auto k = appl.key(); 

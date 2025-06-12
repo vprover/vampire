@@ -57,6 +57,7 @@ struct BinaryResolutionConf
     Literal* key() const { return literal(); }
 
     SelectionCriterion literalMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    static constexpr PremiseType premiseType = PremiseType::BinInf;
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel)  {
       return SelectedAtomicLiteral::iter(shared.ordering, sel)
@@ -81,6 +82,7 @@ struct BinaryResolutionConf
     Literal* key() const { return Literal::positiveLiteral(literal()); }
 
     SelectionCriterion literalMaximality() const { return SelectionCriterion::NOT_LESS; }
+    static constexpr PremiseType premiseType = PremiseType::BinInf;
 
     static auto iter(AlascaState& shared, __SelectedLiteral sel)  {
       return SelectedAtomicLiteral::iter(shared.ordering, sel)

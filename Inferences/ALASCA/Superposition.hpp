@@ -65,6 +65,7 @@ struct SuperpositionConf
     }
 
     SelectionCriterion            literalMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    static constexpr PremiseType premiseType = PremiseType::BinInf;
     SelectionCriterion    localAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
     SelectionCriterion   globalAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
 
@@ -124,6 +125,7 @@ struct SuperpositionConf
     }
 
     SelectionCriterion            literalMaximality() const { return          literalMaximality(*this); }
+    static constexpr PremiseType premiseType = PremiseType::BinInf;
     SelectionCriterion    localAtomicTermMaximality() const { return  localAtomicTermMaximality(*this); }
     SelectionCriterion   globalAtomicTermMaximality() const { return globalAtomicTermMaximality(*this); }
 

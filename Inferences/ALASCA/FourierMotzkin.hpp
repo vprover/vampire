@@ -61,8 +61,9 @@ struct FourierMotzkinConf
     }
 
     SelectionCriterion          literalMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    static constexpr PremiseType premiseType = PremiseType::BinInf;
     SelectionCriterion  localAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
-    SelectionCriterion globalAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
+    SelectionCriterion globalAtomicTermMaximality() const { return SelectionCriterion::NOT_LESS; }
 
     // TODO 2 deprecate/generalize
     static auto iter(AlascaState& shared, Clause* cl)
@@ -91,6 +92,7 @@ struct FourierMotzkinConf
     }
 
     SelectionCriterion          literalMaximality() const { return SelectionCriterion::NOT_LESS; }
+    static constexpr PremiseType premiseType = PremiseType::BinInf;
     SelectionCriterion  localAtomicTermMaximality() const { return SelectionCriterion::NOT_LEQ; }
     SelectionCriterion globalAtomicTermMaximality() const { return SelectionCriterion::NOT_LESS; }
 

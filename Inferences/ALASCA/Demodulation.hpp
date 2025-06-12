@@ -57,26 +57,28 @@ struct SuperpositionDemodConf
   static const char* name() { return "alasca superposition demodulation"; }
 
   struct Condition {
-    TypedTermList bigger;
-    TermList smaller;
-    Clause* cl;
+    static constexpr PremiseType premiseType = PremiseType::SimplCondition;
+    // TypedTermList bigger;
+    // TermList smaller;
+    // Clause* cl;
+    SelectedEquality self; // <- TODO reduce redundant memory
 
-    Clause* clause() const { return cl; }
-    TypedTermList key() const { return bigger; };
-    auto asTuple() const { return std::tie(bigger, smaller); };
+    Clause* clause() const { return self.clause(); }
+    TypedTermList key() const { return self.biggerSide(); };
+    auto asTuple() const { return std::tie(self); };
     IMPL_COMPARISONS_FROM_TUPLE(Condition);
-    auto smallerSide() const { return smaller; }
-    auto biggerSide() const { return bigger; }
+    auto smallerSide() const { return self.smallerSide(); }
+    auto biggerSide() const { return self.biggerSide(); }
 
     friend std::ostream& operator<<(std::ostream& out, Condition const& self)
-    { return out << self.bigger << " -> " << self.smaller; }
+    { return out << self.self; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     { return ifElseIter(cl->size() != 1 || !(*cl)[0]->isEquality()
         , []() { return iterItems<Condition>(); }
         , [&]() { return SuperpositionConf::Lhs::iter(shared, cl)
                           .map([](auto lhs) { 
-                              return Condition { .bigger = lhs.biggerSide(), .smaller = lhs.smallerSide(), .cl = lhs.clause()  }; }); }); }
+                              return Condition { .self = lhs,  }; }); }); }
     // TODO optimization: filter out cases smaller contains a variable not contained in bigger.
 
     static const char* name() { return "superposition demod condition"; }
@@ -84,6 +86,7 @@ struct SuperpositionDemodConf
   };
 
   struct ToSimpl {
+    static constexpr PremiseType premiseType = PremiseType::SimplToSimpl;
     Term* term;
     Clause* cl;
     Clause* clause() const { return cl; }
@@ -135,8 +138,14 @@ struct SuperpositionDemodConf
     auto t = cond.smallerSide();
     auto tσ = sigma(t);
 
-    check_side_condition("sσ ≻ tσ", 
-        _shared->greater(TermList(sσ), tσ))
+    // check_side_condition("sσ ≻ tσ", 
+    //     _shared->greater(TermList(sσ), tσ))
+
+    for (auto ti : cond.self.smallerAtoms()) {
+      auto tiσ = sigma(ti);
+      check_side_condition("sσ ≻ tiσ", 
+          _shared->greater(TermList(sσ), tiσ))
+    }
 
     auto condσ = Literal::createEquality(true, sσ, tσ, sσ.sort());
     check_side_condition("C[sσ] ≻ (s ≈ t)σ", 
@@ -193,6 +202,7 @@ struct CoherenceDemodConf
 
   // a clause of the form ⌊...⌋ = j s + u
   struct Condition {
+    static constexpr PremiseType premiseType = PremiseType::SimplCondition;
     typename CoherenceConf<NumTraits>::Lhs self;
 
     Clause* clause() const { return self.clause(); }
@@ -224,6 +234,7 @@ struct CoherenceDemodConf
 
   // a clause of the form D \/ L[⌊k s + t⌋]
   struct ToSimpl {
+    static constexpr PremiseType premiseType = PremiseType::SimplToSimpl;
     Clause* cl;
     Term* toRewrite; // <- the term ⌊k s + t⌋
     AlascaTermItp<NumTraits> ks_t; // <- the term k s + t

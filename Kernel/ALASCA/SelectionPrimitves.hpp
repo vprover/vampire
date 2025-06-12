@@ -344,9 +344,6 @@ namespace Kernel {
   {
     SelectedEquality(SelectedAtomicTerm self) : SelectedAtomicTerm(std::move(self)) {}
 
-    static TermList smallerSide(SelectedAtomicTermUF const& self) 
-    { return self.smallerSide(); }
-
     template<class C>
     static TermList div(IntTraits, TermList const& l, C const& r) 
     { return IntTraits::quotientF(l, IntTraits::constantTl(r)); }
@@ -355,9 +352,19 @@ namespace Kernel {
     static TermList div(NumTraits, TermList const& l, C const& r) 
     { return NumTraits::linMul(1 / r, l); }
 
+    static TermList smallerSide(SelectedAtomicTermUF const& self) 
+    { return self.smallerSide(); }
+
     template<class NumTraits>
     static TermList smallerSide(SelectedAtomicTermItp<NumTraits> const& l) 
     { return div(NumTraits{}, l.contextTermSum(), -l.numeral()); }
+
+    static auto smallerAtoms(SelectedAtomicTermUF const& self) 
+    { return iterItems(self.smallerSide()); }
+
+    template<class NumTraits>
+    static auto smallerAtoms(SelectedAtomicTermItp<NumTraits> const& l) 
+    { return l.contextTerms().map([](auto t) { return t.atom(); }); }
 
   public:
     static Option<SelectedEquality> from(SelectedAtomicTerm self) {
@@ -367,6 +374,7 @@ namespace Kernel {
         return {};
       }
     }
+
 
     static auto iter(Ordering* ord, __SelectedLiteral const& sel, OrderingUtils::SelectionCriterion selLit, OrderingUtils::SelectionCriterion selTerm) {
       return SelectedAtomicTerm::iter(ord, sel, selTerm)
@@ -378,6 +386,7 @@ namespace Kernel {
    
     TypedTermList biggerSide() const { return apply([](auto& x) { return x.selectedAtomicTerm(); }); }
     TermList smallerSide() const { return apply([](auto x) { return smallerSide(x); }); }
+    auto smallerAtoms() const { return coproductIter(applyCo([](auto& x) { return smallerAtoms(x); })); }
   };
 
   struct SelectedAtom : Coproduct<SelectedAtomicTerm, SelectedAtomicLiteral> {

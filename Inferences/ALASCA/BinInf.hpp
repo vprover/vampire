@@ -270,6 +270,48 @@ auto all(A1 a1, A2 a2, As... as)
 { return And(a1, all(a2, as...)); }
 
 } // namespace ApplicabilityCheck
+
+template <typename T, typename = void>
+struct has_atomicTermMaximality : std::false_type {};
+template <typename T>
+struct has_atomicTermMaximality<T, std::void_t<decltype(std::declval<T>().localAtomicTermMaximality())>> : std::true_type {};
+
+
+template<class C, std::enable_if_t<has_atomicTermMaximality<C>::value, bool> = true>
+static auto binInfApplicabilityChecks(C const& c) {
+  return ApplicabilityCheck::all(
+      ApplicabilityCheck::any(
+        ApplicabilityCheck::BGSelected{},
+        ApplicabilityCheck::all(
+          ApplicabilityCheck::LiteralMaximalityConstraint { .max = c.literalMaximality(), },
+          ApplicabilityCheck::TermMaximalityConstraint { .max = c.globalAtomicTermMaximality(), .local = false, }
+        )
+      ),
+      ApplicabilityCheck::TermMaximalityConstraint { .max = c.localAtomicTermMaximality() , .local = true, }
+  );
+}
+
+
+template<class C, std::enable_if_t<!has_atomicTermMaximality<C>::value, bool> = true>
+static auto binInfApplicabilityChecks(C const& c) {
+  return ApplicabilityCheck::all(
+      ApplicabilityCheck::any(
+        ApplicabilityCheck::BGSelected{},
+        ApplicabilityCheck::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
+      )
+  );
+}
+
+template<class Prem, class FailLogger>
+bool binInfPreUnificationCheck(Prem const& prem, Ordering* ord, FailLogger logger) 
+{ 
+  using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
+  auto empty = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+  return binInfApplicabilityChecks(prem)
+    .checkAfterUnif(std::make_pair(&prem, VarBanks::query), ord, empty, logger);
+}
+
+
  
 template<class Rule>
 struct BinInf
@@ -343,11 +385,6 @@ public:
   using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
 
   template <typename T, typename = void>
-  struct has_atomicTermMaximality : std::false_type {};
-  template <typename T>
-  struct has_atomicTermMaximality<T, std::void_t<decltype(std::declval<T>().localAtomicTermMaximality())>> : std::true_type {};
-
-  template <typename T, typename = void>
   struct has_binApplicabilityChecks : std::false_type {};
   template <typename T>
   struct has_binApplicabilityChecks<T, 
@@ -364,29 +401,14 @@ public:
   static auto binApplicabilityChecks(R const& rule, Lhs const& lhs, Rhs const& rhs) 
   { return ApplicabilityCheck::Constant<true>{}; }
 
+  template<class Prem, class FailLogger>
+  bool binInfPreUnificationCheck(Prem const& prem, FailLogger logger) 
+  { 
+    auto empty = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+    return binInfApplicabilityChecks(prem)
+      .checkAfterUnif(std::make_pair(&prem, VarBanks::query), _shared->ordering, empty, logger);
+  }
 
-  template<class C, std::enable_if_t<has_atomicTermMaximality<C>::value, bool> = true>
-  static auto applicabilityChecks(C const& c) {
-    return ApplicabilityCheck::all(
-        ApplicabilityCheck::any(
-          ApplicabilityCheck::BGSelected{},
-          ApplicabilityCheck::all(
-            ApplicabilityCheck::LiteralMaximalityConstraint { .max = c.literalMaximality(), },
-            ApplicabilityCheck::TermMaximalityConstraint { .max = c.globalAtomicTermMaximality(), .local = false, }
-          )
-        ),
-        ApplicabilityCheck::TermMaximalityConstraint { .max = c.localAtomicTermMaximality() , .local = true, }
-    );
-  }
-  template<class C, std::enable_if_t<!has_atomicTermMaximality<C>::value, bool> = true>
-  static auto applicabilityChecks(C const& c) {
-    return ApplicabilityCheck::all(
-        ApplicabilityCheck::any(
-          ApplicabilityCheck::BGSelected{},
-          ApplicabilityCheck::LiteralMaximalityConstraint { .max = c.literalMaximality(), }
-        )
-    );
-  }
 
   template<class FailLogger>
   bool postUnificationCheck(Lhs const& lhs, unsigned lhsVarBank, 
@@ -398,8 +420,8 @@ public:
     auto prems = std::make_tuple(std::make_pair(&lhs, lhsVarBank),
                                  std::make_pair(&rhs, rhsVarBank));
     auto check = Check::all(
-        Check::premiseN<0>(applicabilityChecks(lhs)),
-        Check::premiseN<1>(applicabilityChecks(rhs)),
+        Check::premiseN<0>(binInfApplicabilityChecks(lhs)),
+        Check::premiseN<1>(binInfApplicabilityChecks(rhs)),
         binApplicabilityChecks(_rule, lhs, rhs)
         );
     return check.checkAfterUnif(prems, _shared->ordering, unif, logger);
@@ -420,6 +442,8 @@ public:
 
     DEBUG(0, _rule.name())
     for (auto const& lhs : Lhs::iter(*_shared, premise)) {
+      if (!binInfPreUnificationCheck(lhs, [](auto&& msg) { DEBUG(2, "no lhs: ", msg); })) 
+        continue;
       DEBUG(0, "lhs: ", lhs, " (", lhs.clause()->number(), ")")
       for (auto rhs_sigma : _rhs->template find<VarBanks>(&sigma, lhs.key())) {
         auto& rhs   = *rhs_sigma.data;
@@ -441,6 +465,8 @@ public:
     ASS_REP(sigma.isEmpty(), sigma)
 
     for (auto const& rhs : Rhs::iter(*_shared, premise)) {
+      if (!binInfPreUnificationCheck(rhs, [](auto&& msg) { DEBUG(2, "no rhs: ", msg); })) 
+        continue;
       DEBUG(0, "rhs: ", rhs, " (", rhs.clause()->number(), ")")
       for (auto lhs_sigma : _lhs->template find<VarBanks>(&sigma, rhs.key())) {
         auto& lhs   = *lhs_sigma.data;
