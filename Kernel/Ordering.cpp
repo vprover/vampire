@@ -548,11 +548,11 @@ struct BoostWrapper : public SymbolComparator
         if(g1 && !g2){ res = GREATER; }
         else if(!g1 && g2){ res = LESS; }
         break;
-      case Options::SymbolPrecedenceBoost::UNIT:
+      case Options::SymbolPrecedenceBoost::UNITS:
         if(u1 && !u2){ res = GREATER; }
         else if(!u1 && u2){ res = LESS; }
         break;
-      case Options::SymbolPrecedenceBoost::GOAL_UNIT:
+      case Options::SymbolPrecedenceBoost::GOAL_THEN_UNITS:
         if(g1 && !g2){ res = GREATER; }
         else if(!g1 && g2){ res = LESS; }
         else if(u1 && !u2){ res = GREATER; }

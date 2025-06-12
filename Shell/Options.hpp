@@ -132,7 +132,7 @@ public:
      * and if $nm is set to NZ, samples from a shifted geometric distribution with p=0.07 and a shift=2. (So 2 gets selected with a probability p,
      * 3 with a probability p(1-p), ... and 2+i with a probability p(1-p)^i).
      */
-    void sampleStrategy(const std::string& samplerFileName);
+    void sampleStrategy(const std::string& samplerFileName, DHMap<std::string,std::string> fakes = DHMap<std::string,std::string>());
 
     /**
      * Return the problem name
@@ -553,8 +553,8 @@ public:
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,
     GOAL = 1,
-    UNIT = 2,
-    GOAL_UNIT = 3,
+    UNITS = 2,
+    GOAL_THEN_UNITS = 3,
     NON_INTRO = 4,
     INTRO = 5,
   };
@@ -1228,8 +1228,8 @@ virtual std::string getStringOfActual() const override {
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
 NonGoalWeightOptionValue(){}
-NonGoalWeightOptionValue(std::string l, std::string s, float def) :
-OptionValue(l,s,def), numerator(1), denominator(1) {};
+NonGoalWeightOptionValue(std::string l, std::string s) :
+OptionValue(l,s,10.0), numerator(10), denominator(1) {};
 
 bool setValue(const std::string& value);
 
@@ -2036,6 +2036,8 @@ public:
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
   bool showInduction() const { return showAll() || _showInduction.actualValue; }
   bool showSimplOrdering() const { return showAll() || _showSimplOrdering.actualValue; }
+  bool showPropDict() const { return _showPropDict.actualValue; }
+
 #if VAMPIRE_CLAUSE_TRACING
   int traceBackward() { return _traceBackward.actualValue; }
   int traceForward() { return _traceForward.actualValue; }
@@ -2633,6 +2635,7 @@ private:
   BoolOptionValue _showFMBsortInfo;
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
+  BoolOptionValue _showPropDict;
 #if VAMPIRE_CLAUSE_TRACING
   // TODO make unsigned option value
   IntOptionValue _traceBackward;

@@ -48,6 +48,7 @@
 
 #include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Property.hpp"
 
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -613,7 +614,7 @@ void Options::init()
     _newCNF.addProblemConstraint(onlyFirstOrder());
     _newCNF.tag(OptionTag::PREPROCESSING);
 
-    _inlineLet = BoolOptionValue("inline_let","ile",false);
+    _inlineLet = BoolOptionValue("inline_let","ile",true);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
     _inlineLet.onlyUsefulWith(_newCNF.is(equal(true)));
@@ -757,6 +758,12 @@ void Options::init()
     _showSimplOrdering.description = "Display the used simplification ordering's parameters.";
     _lookup.insert(&_showSimplOrdering);
     _showSimplOrdering.tag(OptionTag::OUTPUT);
+
+    _showPropDict = BoolOptionValue("show_property_dict","",false);
+    _showPropDict.description = "Display a (python-formatted) dictionary summing up the main properties of the parsed problem.";
+    _lookup.insert(&_showPropDict);
+    _showPropDict.setExperimental();
+    _showPropDict.tag(OptionTag::OUTPUT);
 
 #if VAMPIRE_CLAUSE_TRACING
 
@@ -1063,11 +1070,10 @@ void Options::init()
     _positiveLiteralSplitQueueLayeredArrangement.onlyUsefulWith(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
-    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
+    _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",true);
     _literalMaximalityAftercheck.description =
-                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can "
-                                   "lead to generating more clauses than needed for completeness. Set this on to add the checks "
-                                   "afterwards as well.";
+                                   "Allows to disable a secondary (literal maximality) ordering check (in the superposition calculus) after a substitution is applied."
+                                   " The check costs something but sometimes helps to skip some generating inferences";
     _lookup.insert(&_literalMaximalityAftercheck);
     _literalMaximalityAftercheck.onlyUsefulWith(ProperSaturationAlgorithm());
     _literalMaximalityAftercheck.tag(OptionTag::SATURATION);
@@ -1589,7 +1595,7 @@ void Options::init()
     _lookup.insert(&_instantiation);
 
     _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
-                  Demodulation::ALL,
+                  Demodulation::OFF,
                   {"all","off","preordered"});
     _backwardDemodulation.description=
        "Oriented rewriting of kept clauses by newly derived unit equalities\n"
@@ -1677,7 +1683,7 @@ void Options::init()
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
-    _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",false);
+    _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",true);
     _forwardDemodulationTermOrderingDiagrams.description=
        "Use term ordering diagrams (TODs) to runtime specialize post-ordering checks in forward demodulation.";
     _lookup.insert(&_forwardDemodulationTermOrderingDiagrams);
@@ -1696,7 +1702,7 @@ void Options::init()
     _demodulationOnlyEquational.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationOnlyEquational.addProblemConstraint(hasEquality());
 
-    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
+    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","eape",true);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses";
     _lookup.insert(&_extensionalityAllowPosEq);
@@ -2003,7 +2009,7 @@ void Options::init()
     _globalSubsumptionSatSolverPower.onlyUsefulWith(_globalSubsumption.is(equal(true)));
 
     _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
-        GlobalSubsumptionExplicitMinim::RANDOMIZED,{"off","on","randomized"});
+        GlobalSubsumptionExplicitMinim::ON,{"off","on","randomized"});
     _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global subsumption reduction.";
     _lookup.insert(&_globalSubsumptionExplicitMinim);
     _globalSubsumptionExplicitMinim.tag(OptionTag::INFERENCES);
@@ -2020,7 +2026,7 @@ void Options::init()
     _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_globalSubsumption.is(equal(true)));
     _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",false);
+    _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",true);
     _useHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection (affects avatar).";
     _lookup.insert(&_useHashingVariantIndex);
     _useHashingVariantIndex.tag(OptionTag::OTHER);
@@ -2057,7 +2063,7 @@ void Options::init()
 #endif
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
 
-    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
+    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::SMALL_ONES,
                                                      {"first", "small_ones", "all"});
     _ccUnsatCores.description="";
     _lookup.insert(&_ccUnsatCores);
@@ -2082,17 +2088,15 @@ void Options::init()
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",true);
+    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",false);
     _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
-    // if minimize is off then makes no difference
-    // if minimize is sco then we could have a conflict clause added infinitely often
+    // if minimize is off then aer makes no difference
+    // if minimize is sco then aer=off could lead to a conflict clause added infinitely often
+    // (we actually protect against the problematic combination in Splitter, by ignoring aer=off even if requested)
     _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
-    // actually, with amm=sco:aer=off, we can also (wrongly) saturate finitely - let's make this part of the constraint hard
-    // (Problems/SWV/SWV608-1.p --decode Problems/SWV/SWV608-1.p --decode ott-1_1:40_tgt=full:plsq=on:sp=frequency:lcm=predicate:gs=on:bd=off:rawr=on:afp=1000:afq=2.0:irw=on:fsd=on:aer=off:si=on:rtra=on:amm=sco_30 --random_seed XXX)
-    _splittingEagerRemoval.addHardConstraint(If(equal(false)).then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
 
     _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
     _splittingFastRestart.description="";
@@ -2107,7 +2111,7 @@ void Options::init()
     _splittingBufferedSolver.onlyUsefulWith(_splitting.is(equal(true)));
 
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
-                                                                        SplittingDeleteDeactivated::ON,{"on","large","off"});
+                                                                        SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"});
 
     _splittingDeleteDeactivated.description="";
     _lookup.insert(&_splittingDeleteDeactivated);
@@ -2209,9 +2213,9 @@ void Options::init()
     _literalComparisonMode.addProblemConstraint(mayHaveNonUnits());
     _literalComparisonMode.addProblemConstraint(notJustEquality());
 
-    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
+    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc"); // default 10.0 is hard-wired to the constructor
     _nonGoalWeightCoefficient.description=
-             "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
+             "coefficient that will multiply the weight of non-conjecture clauses (those marked as 'axiom' in TPTP)";
     _lookup.insert(&_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.onlyUsefulWith(ProperSaturationAlgorithm());
     _nonGoalWeightCoefficient.tag(OptionTag::SATURATION);
@@ -2275,6 +2279,13 @@ void Options::init()
     _lookup.insert(&_activationLimit);
     _activationLimit.tag(OptionTag::SATURATION);
 
+    // Even if AUTO_KBO resolves to "qkbo" or "lakbo", we still allow KBO suboptions (and possibly ignore them)
+    // this is better than the default (to=auto_kbo) warning whenever we touch "kws" or "kmz" ...
+    auto KboLike = [this] {
+      return Or(_termOrdering.is(equal(TermOrdering::KBO)),
+                _termOrdering.is(equal(TermOrdering::AUTO_KBO)));
+    };
+
     _termOrdering = ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::AUTO_KBO,
                                                     {"auto_kbo","kbo","qkbo","lakbo","lpo","incomp"});
     _termOrdering.description="The term ordering used by Vampire to orient equations and order literals.\n"
@@ -2293,7 +2304,7 @@ void Options::init()
           .then(_alasca.is(equal(true)))); // <- alasca must be enabled, because the orderings rely on AlascaState to be set
     _lookup.insert(&_termOrdering);
 
-    _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
+    _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::FREQUENCY,
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
@@ -2323,13 +2334,13 @@ void Options::init()
                                           "precedence","inv_precedence","frequency","inv_frequency"});
     _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overridden by the function_weights option if used.";
     _kboWeightGenerationScheme.setExperimental();
-    _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboWeightGenerationScheme.onlyUsefulWith(KboLike());
     _kboWeightGenerationScheme.tag(OptionTag::SATURATION);
     _lookup.insert(&_kboWeightGenerationScheme);
 
     _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
     _kboMaxZero.setExperimental();
-    _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboMaxZero.onlyUsefulWith(KboLike());
     _kboMaxZero.tag(OptionTag::SATURATION);
     _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
@@ -2339,7 +2350,7 @@ void Options::init()
                                      {"error","warning" });
     _kboAdmissabilityCheck.description = "Choose to emit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
     _kboAdmissabilityCheck.setExperimental();
-    _kboAdmissabilityCheck.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboAdmissabilityCheck.onlyUsefulWith(KboLike());
     _kboAdmissabilityCheck.tag(OptionTag::SATURATION);
     _lookup.insert(&_kboAdmissabilityCheck);
 
@@ -2370,7 +2381,7 @@ void Options::init()
       "If this option is empty all weights default to 1.\n"
       ;
     _functionWeights.setExperimental();
-    _functionWeights.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _functionWeights.onlyUsefulWith(KboLike());
     _lookup.insert(&_functionWeights);
 
     _typeConPrecedence = StringOptionValue("type_con_precedence","tcp","");
@@ -2985,7 +2996,7 @@ std::string Options::strategySamplingLookup(std::string optname, DHMap<std::stri
   return "";
 }
 
-void Options::sampleStrategy(const std::string& strategySamplerFilename)
+void Options::sampleStrategy(const std::string& strategySamplerFilename, DHMap<std::string,std::string> fakes)
 {
   std::ifstream input(strategySamplerFilename.c_str());
 
@@ -2997,8 +3008,6 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
   auto rng = _randomStrategySeed.actualValue == 0
     ? std::mt19937((std::random_device())())
     : std::mt19937(_randomStrategySeed.actualValue);
-  // map of local variables (fake options)
-  DHMap<std::string,std::string> fakes;
 
   std::string line; // parsed lines
   Stack<std::string> pieces; // temp stack used for splitting
