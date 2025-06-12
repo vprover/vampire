@@ -409,6 +409,17 @@ Stack<__SelectedLiteral> AlascaSelector::computeSelected(Clause* cl, Ordering* o
   DEBUG(0, "     all atoms: ", *cl)
   ASS(cl->size() > 0)
   auto out = _mode.apply([&](auto token) { return AlascaSelectorDispatch{*this}.computeSelected(token, cl, ord); });
+#if VAMPIRE_CLAUSE_TRACING
+  auto fwd = env.options->traceForward();
+  if (fwd > 0 && unsigned(fwd) == cl->number()) {
+    for (auto& sel : out) {
+      std::cout << "forward trace " << fwd << ": selected: " << sel << std::endl;
+    }
+    if (out.size() == 0) {
+      std::cout << "forward trace " << fwd << ": selected: nothing" << std::endl;
+    }
+  }
+#endif
   DEBUG(0, "selected atoms: ", out)
   return out;
 }
