@@ -2312,6 +2312,7 @@ public:
   bool alascaSkelOrd() const { return _alascaSkelOrd.actualValue; }
   bool viras() const { return _viras.actualValue; }
   bool alascaIneqFacDemod() const { return _alascaIneqFacDemod.actualValue; }
+  bool alascaIneqMerging() const { return _alascaIneqMerging.actualValue; }
   bool alascaDemodulationFwd() const { return _alascaDemodulationFwd.actualValue; }
   bool alascaDemodulationBwd() const { return _alascaDemodulationBwd.actualValue; }
   bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
@@ -2764,6 +2765,7 @@ private:
   BoolOptionValue _alascaDemodulationBwd;
   BoolOptionValue _alascaDemodulationFwd;
   BoolOptionValue _alascaIneqFacDemod;
+  BoolOptionValue _alascaIneqMerging;
   BoolOptionValue _alascaStrongNormalization;
   BoolOptionValue _alascaIntegerConversion;
   BoolOptionValue _alascaAbstraction;

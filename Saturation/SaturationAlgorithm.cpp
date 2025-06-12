@@ -1611,13 +1611,17 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         );
     if (env.options->alascaDemodulationFwd()) {
       res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
-      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
-      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
+      if (prb.hasAlascaMixedArithmetic()) {
+        res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
+        res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
+      }
     }
     if (env.options->alascaDemodulationBwd()) {
       res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
-      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
-      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
+      if (prb.hasAlascaMixedArithmetic()) {
+        res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
+        res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
+      }
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
     // TODO add an option for this
@@ -1634,7 +1638,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (env.options->alascaIneqFacDemod())
       ise->addFrontMany(new ALASCA::InequalityFactoringDemod(shared));
     // TODO properly create an option for that, make it a simplifying rule
-    ise->addFront(new ALASCA::TautologyDeletion(shared));
+    if (env.options->alascaIneqMerging())
+      ise->addFront(new ALASCA::TautologyDeletion(shared));
     ise->addFront(new ALASCA::Normalization());
     // TODO check when the other one is better
     if (env.options->viras()) {
@@ -1649,22 +1654,26 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new ALASCA::InequalityFactoring(shared));
     sgi->push(new ALASCA::EqFactoring(shared));
     sgi->push(new ALASCA::FourierMotzkin(shared));
-    sgi->push(new ALASCA::FloorFourierMotzkin<RatTraits>(shared));
-    sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared));
-    sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
-    sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
+    if (prb.hasAlascaMixedArithmetic()) {
+      sgi->push(new ALASCA::FloorFourierMotzkin<RatTraits>(shared));
+      sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared));
+      sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
+      sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
+    }
     if (env.options->superposition()) {
       sgi->push(new ALASCA::Superposition(shared));
     }
     if (env.options->binaryResolution()) {
       sgi->push(new ALASCA::BinaryResolution(shared));
     }
-    sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared));
-    sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared));
-    sgi->push(new ALASCA::Coherence<RatTraits>(shared));
-    sgi->push(new ALASCA::Coherence<RealTraits>(shared));
-    sgi->push(new ALASCA::FloorBounds<RatTraits>(shared));
-    sgi->push(new ALASCA::FloorBounds<RealTraits>(shared));
+    if (prb.hasAlascaMixedArithmetic()) {
+      sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared));
+      sgi->push(new ALASCA::CoherenceNormalization<RealTraits>(shared));
+      sgi->push(new ALASCA::Coherence<RatTraits>(shared));
+      sgi->push(new ALASCA::Coherence<RealTraits>(shared));
+      sgi->push(new ALASCA::FloorBounds<RatTraits>(shared));
+      sgi->push(new ALASCA::FloorBounds<RealTraits>(shared));
+    }
     alascaState = shared.get();
   }
 

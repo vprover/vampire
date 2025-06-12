@@ -1363,6 +1363,15 @@ void Options::init()
     _alascaIneqFacDemod.setExperimental();
     _alascaIneqFacDemod.onlyUsefulWith(_alasca.is(equal(true)));
 
+    _alascaIneqMerging = BoolOptionValue("alasca_ineq_merging","alascaim",true);
+    _alascaIneqMerging.description=
+            "Enables the alascas inequality merging simplification rule."
+            "\n";
+    _lookup.insert(&_alascaIneqMerging);
+    _alascaIneqMerging.tag(OptionTag::INFERENCES);
+    _alascaIneqMerging.setExperimental();
+    _alascaIneqMerging.onlyUsefulWith(_alasca.is(equal(true)));
+
 
     _alascaDemodulationFwd = BoolOptionValue("alasca_demodulation_fwd","alascadf",true);
     _alascaDemodulationFwd.description=
