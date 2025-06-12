@@ -14,11 +14,6 @@
 #ifndef __MinisatInterfacingNewSimp__
 #define __MinisatInterfacingNewSimp__
 
-// For limitMemory
-#include <csignal>
-#include <sys/time.h>
-#include <sys/resource.h>
-
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
@@ -31,8 +26,6 @@ class MinisatInterfacingNewSimp : public SATSolverWithAssumptions
 {
 public:
   static const unsigned VAR_MAX;
-
-	MinisatInterfacingNewSimp(const Shell::Options& opts, bool generateProofs=false);
 
   /**
    * Can be called only when all assumptions are retracted
@@ -107,8 +100,6 @@ public:
 
   virtual SATClause* getRefutation() override { ASSERTION_VIOLATION; }
 
-  static void reportMinisatOutOfMemory();
-
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
   
@@ -127,29 +118,13 @@ protected:
   
   /* sign=trun in minisat means "negated" in vampire */
   const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
-    return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);            
+    return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);
   }
   
 private:
-  Status _status;
-  Minisat::vec<Minisat::Lit> _assumptions;  
+  Status _status = Status::SATISFIABLE;
+  Minisat::vec<Minisat::Lit> _assumptions;
   Minisat::SimpSolver _solver;
-
-  //Copied from Minisat/utils/System.cc
-  static void limitMemory(uint64_t max_mem_mb)
-  {
-      // Set limit on virtual memory:
-      if (max_mem_mb != 0){
-          rlim_t new_mem_lim = (rlim_t)max_mem_mb * 1024*1024;
-          rlimit rl;
-          getrlimit(RLIMIT_AS, &rl);
-          if (rl.rlim_max == RLIM_INFINITY || new_mem_lim < rl.rlim_max){
-              rl.rlim_cur = new_mem_lim;
-              if (setrlimit(RLIMIT_AS, &rl) == -1)
-                  printf("%% WARNING! Could not set resource limit: Virtual memory.\n");
-          }
-      }
-  }
 };
 
 }//end SAT namespace

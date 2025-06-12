@@ -130,7 +130,7 @@ template<class AbelianGroup>
 public:
   using ConstantType = typename AbelianGroup::ConstantType;
 
-  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
+  ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpretation)) { }
   const unsigned _fun; 
 
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
@@ -255,7 +255,7 @@ class IntLess {
 /**
  * Interpreted equality has to be treated specially. We do not have separate
  * predicate symbols for different kinds of equality so the sorts must be 
- * detected and the correct intepretation of constants carried out.
+ * detected and the correct interpretation of constants carried out.
  *
  * Equality is only decided between constant terms.
  *
@@ -437,7 +437,7 @@ public:
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
 
-    if (theory->isPolymorphic(interp)) { return false; } // typed evaulator not for polymorphic stuff
+    if (theory->isPolymorphic(interp)) { return false; } // typed evaluator not for polymorphic stuff
 
     TermList opSort = theory->getOperationSort(interp);
     return opSort==T::getSort();
@@ -598,7 +598,7 @@ public:
 protected:
   /** Tries to simplify a term involving unary minus. 
    * the term to be simplified is uminus(innner)
-   * uminus functor argument is passed for the sake of perfomance
+   * uminus functor argument is passed for the sake of performance
    */
   bool trySimplifyUnaryMinus(const unsigned& uminus_functor, const TermList& inner, TermList& result)
   { 
@@ -962,7 +962,7 @@ struct AbelianGroup;
 /** Creates an instance of struct AbelianGroup<oper>, for the use in ACFunEvaluator. */
 #define IMPL_OPERATOR(oper, type, identity, eval) \
   template<> struct AbelianGroup<oper> { \
-    const static Theory::Interpretation interpreation = oper; \
+    const static Theory::Interpretation interpretation = oper; \
     using ConstantType = type; \
     const static type IDENTITY; \
     static type groundEval(type l, type r) { return eval; } \
@@ -970,15 +970,15 @@ struct AbelianGroup;
   }; \
   const type     AbelianGroup<oper>::IDENTITY = identity; \
 
-/* int opeators */
+/* int operators */
 IMPL_OPERATOR(Theory::INT_MULTIPLY, IntegerConstantType, IntegerConstantType(1), l * r)
 IMPL_OPERATOR(Theory::INT_PLUS, IntegerConstantType, IntegerConstantType(0), l + r)
 
-/* rational opeators */
+/* rational operators */
 IMPL_OPERATOR(Theory::RAT_MULTIPLY, RationalConstantType, RationalConstantType(1), l * r)
 IMPL_OPERATOR(Theory::RAT_PLUS, RationalConstantType, RationalConstantType(0), l + r)
 
-/* real opeators */
+/* real operators */
 IMPL_OPERATOR(Theory::REAL_MULTIPLY, RealConstantType, RealConstantType(RationalConstantType(1)), l * r)
 IMPL_OPERATOR(Theory::REAL_PLUS, RealConstantType, RealConstantType(RationalConstantType(0)), l + r)
 
@@ -1037,11 +1037,11 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
   // balance applies further checks
 
   // we can only rebalance for equality. 
-  // (Inequalities would be possible as well but this would interfer with the normalization ( t < s ==> 0 < s - t ))
+  // (Inequalities would be possible as well but this would interfere with the normalization ( t < s ==> 0 < s - t ))
   if (!lit->isEquality()) return false;
   ASS_EQ(lit->numTermArguments(), 2)
 
-  // one side must be a constant and the other interpretted
+  // one side must be a constant and the other interpreted
   // the other side can contain at most one variable or uninterpreted subterm 
   // but we do not check this second condition here, instead we detect it in balance
   TermList t1 = lit->termArg(0);

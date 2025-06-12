@@ -52,7 +52,7 @@ URResolution::URResolution(bool full)
 : _full(full), _selectedOnly(false), _unitIndex(0), _nonUnitIndex(0) {}
 
 /**
- * Creates URResolution object with explicitely supplied
+ * Creates URResolution object with explicitly supplied
  * settings and indexes
  *
  * For objects created using this constructor it is not allowed

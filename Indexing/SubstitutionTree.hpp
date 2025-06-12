@@ -157,7 +157,7 @@ template<class LD> std::ostream& operator<<(std::ostream& out, Output::Multiline
 /**
  * Class of substitution trees. 
  *
- * We can either store typed terms, or literals in a subtitution tree.
+ * We can either store typed terms, or literals in a substitution tree.
  * Classically we'd think of inserting/removing only one term t into a substitution tree. 
  * This can be understood as inserting the substitution { S0 -> t } into the tree.
  *
@@ -708,7 +708,7 @@ public:
         _maxVar = weight(query) - 1;
         if(_specVars.size()<nextSpecVar) {
           //_specVars can get really big, but it was introduced instead of hash table
-          //during optimizations, as it raised performance by abour 5%.
+          //during optimizations, as it raised performance by about 5%.
           _specVars.ensure(std::max(static_cast<unsigned>(_specVars.size()*2), nextSpecVar));
         }
         _bindings.ensure(weight(query));
@@ -782,7 +782,7 @@ public:
 
     /**
      * creates the bindings that need to be set for querying the given `term` from a substitution tree.
-     * This means the root speical variables of the substitution tree need to be set to the right values.
+     * This means the root special variables of the substitution tree need to be set to the right values.
      * In the case of a term this means { S0 -> term, S0 -> sortOfTerm  }
      * In the case of a literal this means { S0 -> arg0, ..., SN -> argN  }
      */
@@ -1278,7 +1278,7 @@ public:
         if(_nodeIterators.isEmpty()) {
           //There are no node iterators in the stack, so there's nowhere
           //to look for the next leaf.
-          //This shouldn't hapen during the regular retrieval process, but it
+          //This shouldn't happen during the regular retrieval process, but it
           //can happen when there are no literals inserted for a predicate,
           //or when predicates with zero arity are encountered.
           ASS(_bdStack.isEmpty());
@@ -1337,7 +1337,7 @@ public:
           _svStack.push(inode->childVar);
           _leafData = {};
           DEBUG_QUERY(1, "entering node: S", _svStack.top())
-          
+
           _nodeIterators.push(_algo.template selectPotentiallyUnifiableChildren<LeafData>(inode));
           if (backtrackable) {
             _bdStack.top().addClosure([&]() { 
@@ -1370,7 +1370,7 @@ public:
    * of implementing finding variable variants, equal terms (modulo some theory), etc using the same interface.
    *
    * The interface all RetrievalAlgorithms must conform to is documented at the example of class RobUnification.
-   * Retrieval from a SubstitutionTree is preformed incrementally. We start first by inserting some query terms. 
+   * Retrieval from a SubstitutionTree is performed incrementally. We start first by inserting some query terms.
    * This is done by Algorithm::bindQuerySpecialVar.
    *
    */ 
@@ -1442,7 +1442,7 @@ public:
         void denormalize(Renaming& norm)
         { _subs.denormalize(norm, VarBanks::normInternal, VarBanks::internal); }
 
-        /** whenever we arrive at a leave we return the currrent witness for the current leave term to unify
+        /** whenever we arrive at a leave we return the current witness for the current leave term to unify
          * with the query term. The unifier is queried using this function.  */
         Unifier unifier() { return ResultSubstitution::fromSubstitution(&_subs, VarBanks::query, VarBanks::internal); }
 
@@ -1465,7 +1465,7 @@ public:
 
         /** 
          * Returns an iterator over all child nodes of n that should be attempted for unification.
-         * This is only an optimization. One could allways return n->allChildren(), but in the case 
+         * This is only an optimization. One could always return n->allChildren(), but in the case
          * of syntactic unificaiton we can use SkipList (i.e. n->childByTop(...)) in order to skip 
          * unnecessary unification attempts.
          */

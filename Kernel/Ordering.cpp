@@ -253,9 +253,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-TermOrderingDiagramUP Ordering::createTermOrderingDiagram() const
+TermOrderingDiagramUP Ordering::createTermOrderingDiagram(bool ground) const
 {
-  return std::make_unique<TermOrderingDiagram>(*this);
+  return std::make_unique<TermOrderingDiagram>(*this, ground);
 }
 
 //////////////////////////////////////////////////
@@ -498,7 +498,7 @@ Ordering::Result PrecedenceOrdering::comparePrecedences(const Term* t1, const Te
   if (t1->isSort() && t2->isSort()) {
     return compareTypeConPrecedences(t1->functor(), t2->functor());
   }
-  // type constuctor symbols are less than function symbols
+  // type constructor symbols are less than function symbols
   if (t1->isSort()) {
     return LESS;
   }
@@ -548,11 +548,11 @@ struct BoostWrapper : public SymbolComparator
         if(g1 && !g2){ res = GREATER; }
         else if(!g1 && g2){ res = LESS; }
         break;
-      case Options::SymbolPrecedenceBoost::UNIT:
+      case Options::SymbolPrecedenceBoost::UNITS:
         if(u1 && !u2){ res = GREATER; }
         else if(!u1 && u2){ res = LESS; }
         break;
-      case Options::SymbolPrecedenceBoost::GOAL_UNIT:
+      case Options::SymbolPrecedenceBoost::GOAL_THEN_UNITS:
         if(g1 && !g2){ res = GREATER; }
         else if(!g1 && g2){ res = LESS; }
         else if(u1 && !u2){ res = GREATER; }

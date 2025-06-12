@@ -59,7 +59,7 @@ namespace Kernel {
  *
  * =====
  *
- * For a complete picture build the doxygen documentaion.
+ * For a complete picture build the doxygen documentation.
  *
  */
 template<class ConstantType>

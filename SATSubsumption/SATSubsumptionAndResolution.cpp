@@ -47,7 +47,7 @@
    *
    * ----- Subsumption Resolution: -----
    * Let L and M be two clauses considered as sets. L and M are said to be the base and instance
-   * of a subsumption resolution inference, respectively iif
+   * of a subsumption resolution inference, respectively iff
    *    there exists a substitution σ,
    *                 a set of literal L' included in L
    *                 a literal m' in M
@@ -69,7 +69,6 @@
    */
 
 #include "Kernel/Matcher.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Shell/Statistics.hpp"
@@ -268,7 +267,7 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
  * subsumption resolution.
  *
  * TODO: functorSet is initialized from _mainPremise which is the same for the whole forward loop.
- *       we could re-use it for multiple pruning checks instead of filling it everytime.
+ *       we could re-use it for multiple pruning checks instead of filling it every time.
  *
  * @return true if subsumption resolution is impossible, false if we don't know
  */
@@ -971,9 +970,9 @@ bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWith
   return (_solver.solve() == subsat::Result::Sat);
 }
 
-SimpleSubstitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSubsumptionResolutionWithLiteral()
+Substitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSubsumptionResolutionWithLiteral()
 {
-  SimpleSubstitution subst;
+  Substitution subst;
   _solver.get_model(_model);
   for(auto lit : _model) {
     if(lit.is_negative())
@@ -987,6 +986,9 @@ SimpleSubstitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSu
     Match match = _matchSet.getMatchForVar(var);
     Literal *l = (*_sidePremise)[match.i];
     Literal *k = (*_mainPremise)[match.j];
+    // matchArgs doesn't like nullary for some reason
+    if(!l->arity())
+      continue;
 
     // problem: with equality literals, they can be match straight or reversed
     bool reverseArgs = false;

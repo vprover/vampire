@@ -176,7 +176,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
       OperatorType* ot = OperatorType::getConstantsType(sort);
       skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
-      ALWAYS(subst.bind(var, skTerm));
+      subst.bindUnbound(var, skTerm);
       recordSkolemBinding(skTerm, var, questionVars ? questionVars->get(var) : TermList(var,false).toString() );
     }
     out = SubstHelper::apply(out, subst);
@@ -721,7 +721,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
         if (done.count(v) == 0) {
           done.insert(v);
           if (vsort == AtomicSort::intSort()) {
-            ALWAYS(s.bind(v, zero));
+            s.bindUnbound(v, zero);
           } else {
             std::string name = "cz_" + vsort.toString();
             unsigned czfn;
@@ -730,7 +730,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
               env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
             }
             TermList res(Term::createConstant(czfn));
-            ALWAYS(s.bind(v, res));
+            s.bindUnbound(v, res);
           }
         }
       }

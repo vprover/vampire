@@ -284,7 +284,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
             	      << ": $tType" << " )." << endl;
 
   }
-} */ //TODO fix this function. At te moment, not sure how important it is
+} */ //TODO fix this function. At the moment, not sure how important it is
 
 /**
  * Makes sure that only the needed headers in the @param u are printed out on the output

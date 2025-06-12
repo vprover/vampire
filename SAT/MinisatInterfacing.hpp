@@ -25,8 +25,6 @@ namespace SAT{
 class MinisatInterfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 
-	MinisatInterfacing(const Shell::Options& opts, bool generateProofs=false);
-
   /**
    * Can be called only when all assumptions are retracted
    *
@@ -132,12 +130,12 @@ protected:
   
   /* sign=true in minisat means "negated" in vampire */
   const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
-    return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);            
+    return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);
   }
   
 private:
-  Status _status;
-  Minisat::vec<Minisat::Lit> _assumptions;  
+  Status _status = Status::SATISFIABLE;
+  Minisat::vec<Minisat::Lit> _assumptions;
   Minisat::Solver _solver;
 };
 

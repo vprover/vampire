@@ -251,7 +251,7 @@ protected:
     // sorts can never contain interpreted functions
     // this is a stopgap solution until PR that changes how termTransformer works
     // is merged
-    // WARNING current implementation entails unecessary traversal of sort subterms
+    // WARNING current implementation entails unnecessary traversal of sort subterms
     if(trm.isTerm() && trm.term()->isSort()) return trm;
 
   start:
@@ -498,7 +498,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 }
 
 /**
- * Return true if interpretatioin @c itp is trivial and shold just be
+ * Return true if interpretatioin @c itp is trivial and should just be
  * removed as an identity (in case of functions), or replaced by $true
  * (in case of predicates)
  */

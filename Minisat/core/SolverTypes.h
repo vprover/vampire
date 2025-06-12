@@ -338,7 +338,7 @@ public:
 
 
 //=================================================================================================
-// OccLists -- a class for maintaining occurence lists with lazy deletion:
+// OccLists -- a class for maintaining occurrence lists with lazy deletion:
 
 template<class K, class Vec, class Deleted, class MkIndex = MkIndexDefault<K> >
 class OccLists

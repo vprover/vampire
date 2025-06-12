@@ -531,9 +531,9 @@ struct Identity {
   Literal *operator()(Literal *l) { return l; }
 };
 
-struct DoSimpleSubst {
-  SimpleSubstitution &subst;
-  DoSimpleSubst(SimpleSubstitution &subst) : subst(subst) {}
+struct DoSubst {
+  Substitution &subst;
+  DoSubst(Substitution &subst) : subst(subst) {}
   Literal *operator()(Literal *l) { return SubstHelper::apply(l, subst); }
 };
 
@@ -624,7 +624,7 @@ static void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause
   auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
 
   outputPremise(out, conclSorts, left->asClause());
-  outputPremise(out, conclSorts, right->asClause(), DoSimpleSubst(subst));
+  outputPremise(out, conclSorts, right->asClause(), DoSubst(subst));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
@@ -707,7 +707,7 @@ static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermLis
 
   // TODO this is waaay overkill, but it's very hard to work out which way a demodulator was used
   // consult MH about how best to do this
-  SimpleSubstitution subst;
+  Substitution subst;
   if (!MatchingUtils::matchTerms(demodulator->termArg(0), target, subst))
     return false;
   TermList rhsSubst = SubstHelper::apply(demodulator->termArg(1), subst);
@@ -724,7 +724,7 @@ static void demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl)
   auto [left, right] = getParents<2>(concl);
   auto rw = env.proofExtra.get<Inferences::RewriteInferenceExtra>(concl);
 
-  SimpleSubstitution subst;
+  Substitution subst;
   Literal *rightLit = (*right)[0];
   TermList target = rw.rewritten;
   TermList from = rightLit->termArg(!isL2RDemodulatorFor(rightLit, left, target, concl));
@@ -734,7 +734,7 @@ static void demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl)
   ALWAYS(MatchingUtils::matchTerms(from, target, subst))
 
   outputPremise(out, conclSorts, left->asClause());
-  outputPremise(out, conclSorts, right->asClause(), DoSimpleSubst(subst));
+  outputPremise(out, conclSorts, right->asClause(), DoSubst(subst));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 

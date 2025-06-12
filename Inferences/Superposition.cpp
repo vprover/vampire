@@ -282,7 +282,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   unsigned finalLitWeight = rwLitSWeight+(rwrBalance*rwrCnt);
   if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numPositiveLiteralsLowerBound, inf)) {
     env.statistics->discardedNonRedundantClauses++;
-    RSTAT_CTR_INC("superpositions weight skipped after rewrited literal weight retrieval");
+    RSTAT_CTR_INC("superpositions weight skipped after rewritten literal weight retrieval");
     return false;
   }
 
@@ -387,17 +387,17 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if (!unifier->usesUwa()) {
-    parRedHandler.insertSuperposition(
-      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
-  }
-
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
   static bool doSimS = getOptions().simulatenousSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
+    // Save this superposition conclusion despite immediately being removed.
+    if (!unifier->usesUwa()) {
+      parRedHandler.insertSuperposition(
+        eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+    }
     return 0;
   }
 
@@ -488,6 +488,11 @@ Clause* Superposition::performSuperposition(
         res->push(currAfter);
       }
     }
+  }
+
+  if (!unifier->usesUwa()) {
+    parRedHandler.insertSuperposition(
+      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 
   res->loadFromIterator(unifier->computeConstraintLiterals()->iter());

@@ -220,12 +220,12 @@ template<class C> void BalanceIter<C>::incrementPath()
           incPeak();
           if (!peak().inBounds()) {
             /* index invalidated.  */
-            
+
             do {
                 _path.pop();
                 DEBUG("pop()")
                 inc();
-                
+
             } while (!_path.isEmpty() && !peak().inBounds());
           }
       }

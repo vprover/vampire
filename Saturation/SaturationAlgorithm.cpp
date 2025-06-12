@@ -72,6 +72,7 @@
 #include "Inferences/Factoring.hpp"
 #include "Inferences/FunctionDefinitionRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
+#include "Inferences/ForwardGroundJoinability.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
@@ -215,7 +216,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _partialRedundancyHandler(), _generatedClauseCount(0),
@@ -295,6 +296,11 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
   while (_fwSimplifiers) {
     ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
+    fse->detach();
+    delete fse;
+  }
+  while (_expensiveFwSimplifiers) {
+    ForwardSimplificationEngine* fse = FwSimplList::pop(_expensiveFwSimplifiers);
     fse->detach();
     delete fse;
   }
@@ -1274,7 +1280,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
   /*
    * Only after processing the whole input (with the first call to doUnprocessedLoop)
-   * it is time to recored for LRS the start time (and instrs) for the first iteration.
+   * it is time to record for LRS the start time (and instrs) for the first iteration.
    */
   if (env.statistics->activations == 0) {
     _lrsStartTime = Timer::elapsedMilliseconds();
@@ -1295,6 +1301,22 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
   if (!handleClauseBeforeActivation(cl)) {
     return;
+  }
+
+  FwSimplList::Iterator fsit(_expensiveFwSimplifiers);
+  while (fsit.hasNext()) {
+    ForwardSimplificationEngine *fse = fsit.next();
+    Clause *replacement = 0;
+    auto premises = ClauseIterator::getEmpty();
+
+    if (fse->perform(cl, replacement, premises)) {
+      if (replacement) {
+        addNewClause(replacement);
+      }
+      onClauseReduction(cl, nullptr, 0, premises);
+      removeSelected(cl);
+      return;
+    }
   }
 
   activate(cl);
@@ -1373,6 +1395,12 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
 void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngine *fwSimplifier)
 {
   FwSimplList::push(fwSimplifier, _fwSimplifiers);
+  fwSimplifier->attach(this);
+}
+
+void SaturationAlgorithm::addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine *fwSimplifier)
+{
+  FwSimplList::push(fwSimplifier, _expensiveFwSimplifiers);
   fwSimplifier->attach(this);
 }
 
@@ -1611,6 +1639,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (mayHaveEquality) {
+    if (opt.forwardGroundJoinability()) {
+      res->addExpensiveForwardSimplifierToFront(new ForwardGroundJoinability());
+    }
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
