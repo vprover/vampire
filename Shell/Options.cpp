@@ -1683,7 +1683,7 @@ void Options::init()
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
-    _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",false);
+    _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",true);
     _forwardDemodulationTermOrderingDiagrams.description=
        "Use term ordering diagrams (TODs) to runtime specialize post-ordering checks in forward demodulation.";
     _lookup.insert(&_forwardDemodulationTermOrderingDiagrams);
@@ -2279,7 +2279,7 @@ void Options::init()
     _lookup.insert(&_activationLimit);
     _activationLimit.tag(OptionTag::SATURATION);
 
-    // Even if AUTO_KBO resolves to "qkbo" or "lakbo", we still allow KBO suboptions (and possible ignore them)
+    // Even if AUTO_KBO resolves to "qkbo" or "lakbo", we still allow KBO suboptions (and possibly ignore them)
     // this is better than the default (to=auto_kbo) warning whenever we touch "kws" or "kmz" ...
     auto KboLike = [this] {
       return Or(_termOrdering.is(equal(TermOrdering::KBO)),
