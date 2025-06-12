@@ -47,7 +47,7 @@
    *
    * ----- Subsumption Resolution: -----
    * Let L and M be two clauses considered as sets. L and M are said to be the base and instance
-   * of a subsumption resolution inference, respectively iif
+   * of a subsumption resolution inference, respectively iff
    *    there exists a substitution σ,
    *                 a set of literal L' included in L
    *                 a literal m' in M
@@ -267,7 +267,7 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
  * subsumption resolution.
  *
  * TODO: functorSet is initialized from _mainPremise which is the same for the whole forward loop.
- *       we could re-use it for multiple pruning checks instead of filling it everytime.
+ *       we could re-use it for multiple pruning checks instead of filling it every time.
  *
  * @return true if subsumption resolution is impossible, false if we don't know
  */
@@ -968,4 +968,54 @@ bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWith
 
   _model.clear();
   return (_solver.solve() == subsat::Result::Sat);
+}
+
+Substitution SATSubsumption::SATSubsumptionAndResolution::getBindingsForSubsumptionResolutionWithLiteral()
+{
+  Substitution subst;
+  _solver.get_model(_model);
+  for(auto lit : _model) {
+    if(lit.is_negative())
+      continue;
+
+    auto var = lit.var();
+    // there could be non-match vars with the (only existing) indirect encoding
+    if(!_matchSet.isMatchVar(var))
+      continue;
+
+    Match match = _matchSet.getMatchForVar(var);
+    Literal *l = (*_sidePremise)[match.i];
+    Literal *k = (*_mainPremise)[match.j];
+    // matchArgs doesn't like nullary for some reason
+    if(!l->arity())
+      continue;
+
+    // problem: with equality literals, they can be match straight or reversed
+    bool reverseArgs = false;
+    if(l->isEquality() && MatchingUtils::matchReversedArgs(l, k)) {
+      if(MatchingUtils::matchArgs(l, k)) {
+        // difficult case: both are possible
+        // hack: there will be two _sequential_ variables for the same literal/literal pair:
+        // 1. with normal argument order
+        // 2. with flipped arguments
+        // use this property to work out which match is intended by the model
+        unsigned index = var.index();
+        if(index) {
+          Match previous = _matchSet.getMatchForVar(subsat::Var(index - 1));
+          reverseArgs = match.i == previous.i && match.j == previous.j;
+        }
+      }
+      // only reversed is possible
+      else
+        reverseArgs = true;
+    }
+
+    if(reverseArgs) {
+      ALWAYS(MatchingUtils::matchReversedArgs(l, k, subst));
+    }
+    else {
+      ALWAYS(MatchingUtils::matchArgs(l, k, subst));
+    }
+  }
+  return subst;
 }

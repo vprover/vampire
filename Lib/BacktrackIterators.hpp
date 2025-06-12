@@ -34,7 +34,7 @@ namespace Lib {
  * combinations of choices (which are enumerated by Fn).
  *
  * ChoiceArr is an array-like class containing elements
- * that correspont to choice points. Let ChoicePoint
+ * that correspond to choice points. Let ChoicePoint
  * denote type of a single choice point.
  *
  * Fn is a functor which enumerates all possible successive

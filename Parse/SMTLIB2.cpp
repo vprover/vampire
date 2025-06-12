@@ -276,6 +276,18 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("assert-synth")) {
+
+      auto forall = ibRdr.readList();
+      auto exist = ibRdr.readList();
+      auto body = ibRdr.readExpr();
+      readAssertSynth(forall, exist, body);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("assert-theory")) {
 
       auto body = ibRdr.readExpr();
@@ -1034,7 +1046,7 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
       std::string constrName;
       auto constr = dtypeRdr.readExpr();
       if (constr->isAtom()) {
-        // atom, construtor of arity 0
+        // atom, constructor of arity 0
         constrName = constr->str;
       } else {
         ASS(constr->isList());
@@ -1474,7 +1486,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     VList::FIFO vars;
     Substitution subst;
     for (unsigned i = 0; i < exprT->arity(); i++) {
-      subst.bind(exprT->nthArgument(i)->var(),TermList::var(_nextVar));
+      subst.bindUnbound(exprT->nthArgument(i)->var(),TermList::var(_nextVar));
       vars.pushBack(_nextVar++);
     }
 
@@ -1584,7 +1596,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
   for (unsigned i = 0; i < type->arity(); i++) {
     if (i < type->numTypeArguments()) {
       auto typeArg = *matchedTermSort.term()->nthArgument(i);
-      subst.bind(type->quantifiedVar(i).var(),typeArg);
+      subst.bindUnbound(type->quantifiedVar(i).var(),typeArg);
       patternArgs.push(typeArg);
       continue;
     }
@@ -1682,7 +1694,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
       LOG2("CASE missing ", pattern);
       ASS(varPattern.isVar());
       Substitution subst;
-      subst.bind(varPattern.var(), pattern);
+      subst.bindUnbound(varPattern.var(), pattern);
       matchArgs.push(pattern);
       matchArgs.push(SubstHelper::apply(varBody, subst));
     }
@@ -1796,7 +1808,7 @@ bool SMTLIB2::parseAsSortDefinition(const std::string& id, LExpr* exp)
     }
     TermList arg;
     ALWAYS(_results.pop().asTerm(arg) == AtomicSort::superSort());
-    subst.bind(i, arg);
+    subst.bindUnbound(i, arg);
   }
   _results.push(ParseResult(AtomicSort::superSort(), SubstHelper::apply(def->second, subst)));
   return true;
@@ -1863,7 +1875,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
   unsigned arity = symbol->arity();
 
   TermStack termArgs;
-  MatchingUtils::MapBinderAndApplicator subst;
+  Substitution subst;
   for (unsigned i = numTypeArgs; i < arity; i++) {
     if (_results.isEmpty() || _results.top().isSeparator()) {
       complainAboutArgShortageOrWrongSorts("user defined symbol",exp);
@@ -1913,7 +1925,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
     // means the result sort contains some free variable, and the user
     // must enclose it in an (as <term> <sort>) block.
     // Note that the 'as' is handled just above.
-    if (!subst._map.find(typeVar, typeVarS)) {
+    if (!subst.findBinding(typeVar, typeVarS)) {
       USER_ERROR_EXPR("User defined term "+exp->toString()+" has ambiguous sort, use (as "+exp->toString()+" <sort>) block to disambiguate");
     }
     args.push(typeVarS);
@@ -2526,7 +2538,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
           }
           args.push(arg);
           Formula* res = new AtomicFormula(Literal::create(c->discriminator(),args.size(),true,args.begin()));
-          
+
           _results.push(ParseResult(res));
           return;
         }
@@ -2798,6 +2810,48 @@ void SMTLIB2::readAssertNot(LExpr* body)
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
 
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
+  fu = new FormulaUnit(new NegatedFormula(fla),
+                       FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
+  _formulas.pushBack(fu);
+}
+
+void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
+{
+  pushLookup();
+
+  if (env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
+    std::cout << "% WARNING: Found an assert-synth command but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
+  }
+
+  auto parseVarList = [this](LExpr* lexp) {
+    auto vars = VList::empty();
+    auto sorts = SList::empty();
+    auto rdr = READER(lexp);
+    while (rdr.hasNext()) {
+      auto pRdr = READER(rdr.readList());
+      auto name = pRdr.readAtom();
+      auto var = TermList::var(_nextVar++);
+      auto sort = parseSort(pRdr.readExpr());
+      tryInsertIntoCurrentLookup(name, var, sort);
+      VList::push(var.var(), vars);
+      SList::push(sort, sorts);
+    }
+    return make_pair(vars, sorts);
+  };
+
+  auto [fvars, fsorts] = parseVarList(forall);
+  auto [evars, esorts] = parseVarList(exist);
+  ParseResult res = parseTermOrFormula(body,false/*isSort*/);
+
+  Formula* fla;
+  if (!res.asFormula(fla)) {
+    USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
+  }
+  popLookup();
+
+  fla = new QuantifiedFormula(Connective::EXISTS, evars, esorts, fla);
+  fla = new QuantifiedFormula(Connective::FORALL, fvars, fsorts, fla);
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));

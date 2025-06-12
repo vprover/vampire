@@ -234,7 +234,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
                   arrayIter(Stack<Clause*>{}),
 
                   // both are selected (= maximal)
-                  // we skip one of the applicaiton to avoid duplicate results
+                  // we skip one of the application to avoid duplicate results
                   selIdx->contains(key(other)),
                   applyRule(other, max).intoIter(),
 
@@ -242,7 +242,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
                   concatIters(applyRule(max,other).intoIter(), 
                     applyRule(other, max).intoIter())
                   ); 
-                  
+
           });
       }));
 }

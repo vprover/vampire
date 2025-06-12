@@ -518,7 +518,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
 
      for(unsigned c=1;c<=_size;c++){
        Substitution s;
-       s.bind(var,getDomainConstant(c));
+       s.bindUnbound(var,getDomainConstant(c));
        Formula* next_sub = SubstHelper::apply(next,s);
        next_sub = SimplifyFalseTrue::simplify(next_sub);
        next_sub = Flattening::flatten(next_sub); 
@@ -566,7 +566,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 bool evaluated = evaluateGroundLiteral(lit);
                 return evaluated ? Formula::trueFormula() : Formula::falseFormula(); 
             }
-                
+
                 case FALSE:
                 case TRUE:
                     return formula;
@@ -587,7 +587,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 }
                 return new JunctionFormula(formula->connective(),newArgs); 
             }
-                
+
                 case IMP:
                 case XOR:
                 case IFF:
@@ -596,10 +596,10 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 Formula* right = formula->right();
                 Formula* newLeft = partialEvaluate(left,depth+1);
                 Formula* newRight = partialEvaluate(right,depth+1);
-                
+
                 return new BinaryFormula(formula->connective(),newLeft,newRight); 
             }
-                
+
                 case FORALL:
                 case EXISTS:
             {

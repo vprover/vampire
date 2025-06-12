@@ -205,7 +205,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/ApplicativeHelper.o\
         Kernel/OperatorType.o\
         Kernel/SubformulaIterator.o\
-        Kernel/Substitution.o\
         Kernel/Term.o\
         Kernel/PolynomialNormalizer.o\
         Kernel/Polynomial.o\
@@ -218,6 +217,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Theory.o\
         Kernel/Signature.o\
         Kernel/Unit.o\
+        Kernel/HOL/HOL.o\
+        Kernel/HOL/Create.o\
+        Kernel/HOL/Convert.o\
         Kernel/InterpretedLiteralEvaluator.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
@@ -300,6 +302,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/ProofExtra.o\
+         Inferences/ForwardGroundJoinability.o\
          SATSubsumption/SATSubsumptionAndResolution.o\
          SATSubsumption/subsat/constraint.o\
          SATSubsumption/subsat/log.o\
@@ -366,6 +369,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
+         Shell/SMTCheck.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Debug/TimeProfiling.o\
@@ -430,7 +434,6 @@ LIB_DEP = Indexing/TermSharing.o\
       Kernel/OperatorType.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
-	  Kernel/Substitution.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\
@@ -515,7 +518,7 @@ version.cpp: .git/HEAD .git/index Makefile
 # separate directory for object files implementation
 
 # different directory for each configuration, so there is no need for "make clean"
-SED_CMD='s/.*[(].*/detached/' # if branch name contains an opening bracket, replace it with detached (in order to avoid a crash during linking). This covers at least the case '(HEAD' occuring if one is in detached state, and '(no' occuring if one currently performs a rebase.
+SED_CMD='s/.*[(].*/detached/' # if branch name contains an opening bracket, replace it with detached (in order to avoid a crash during linking). This covers at least the case '(HEAD' occurring if one is in detached state, and '(no' occurring if one currently performs a rebase.
 BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f 2 | sed -e $(SED_CMD)  )
 COM_CNT=$(shell git rev-list HEAD --count)
 CONF_ID := obj/$(shell echo -n "$(BRANCH) $(XFLAGS)"|sum|cut -d ' ' -f1)X

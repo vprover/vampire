@@ -170,7 +170,7 @@ public:
    * If the value is not present, a new value will be inserted. The new value will be 
    * created using the closure `create`. If a new value has been inserted the bool `inserted` will be set to true, or to false otherwise.
    * When checking whether the is already in the map the closure `isCorrectVal` is used to 
-   * compare the value in the map to the one to be inserted. This funciton can be used 
+   * compare the value in the map to the one to be inserted. This function can be used
    * in order to avoid allocating a new value when it is already present in the map.
    * a pseudo-code use case for this:
    *

@@ -213,7 +213,7 @@ private:
     bool isEmpty() { return !_infoData; }
     union {
       struct {
-	/** 1 if first collision occured on this entry during some insertion */
+	/** 1 if first collision occurred on this entry during some insertion */
 	unsigned collision : 1;
 	unsigned deleted : 1;
 	unsigned multiplicity : 30;
@@ -341,7 +341,7 @@ private:
 
     bool collisionBefore=res->_info.collision;
 
-    //mark the entry where the collision occured
+    //mark the entry where the collision occurred
     res->_info.collision=1;
 
     unsigned h2=Hash2::hash(val)%_capacity;

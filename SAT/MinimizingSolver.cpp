@@ -167,7 +167,7 @@ void MinimizingSolver::processUnprocessedAndFillHeap()
   
   for(unsigned var=1; var<=_varCnt; var++) {
     ASS(!_heap.contains(var));
-    if(_unsClCnt[var]>0) {            
+    if(_unsClCnt[var]>0) {
       _heap.addToEnd(var);      
     }
   }

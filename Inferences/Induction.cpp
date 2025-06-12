@@ -146,7 +146,7 @@ Formula* InductionContext::getFormula(const std::vector<TermList>& r, bool oppos
     replacementMap.insert(make_pair(ph,r[i]));
     if (subst) {
       ASS(r[i].isVar());
-      subst->bind(r[i].var(), ph);
+      subst->bindUnbound(r[i].var(), ph);
     }
   }
   TermReplacement tr(replacementMap);
@@ -157,7 +157,7 @@ Formula* InductionContext::getFormulaWithFreeVar(const std::vector<TermList>& r,
 {
   Formula* replaced = getFormula(r, opposite, subst);
   Substitution s;
-  s.bind(freeVar, freeVarSub);
+  s.bindUnbound(freeVar, freeVarSub);
   return SubstHelper::apply(replaced, s);
 }
 
@@ -174,7 +174,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermL
     replacementMap.insert(make_pair(ph,r[i]));
     if (subst) {
       ASS(r[i].isVar());
-      subst->bind(r[i].var(), ph);
+      subst->bindUnbound(r[i].var(), ph);
     }
   }
   SkolemSquashingTermReplacement tr(replacementMap, var);
@@ -186,7 +186,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermL
       unsigned v;
       Term* t;
       it.next(t, v);
-      subst->bind(v,t);
+      subst->bindUnbound(v,t);
     }
   }
   if (varList) {
@@ -1001,7 +1001,7 @@ void InductionClauseIterator::resolveClauses(InductionContext context, Induction
  *   set of clauses that differ only in one literal pairwise, and this
  *   literal is the complement of a literal from the set of toResolve
  *   after applying subst
- * These contraints give a partitioning of clauses, where each partition
+ * These constraints give a partitioning of clauses, where each partition
  * has a sequence of resolutions with the clauses from context, s.t.
  * only the literals not in toResolve nor in the conclusion are present
  * in the resulting clause. We find this partition and return it in form
@@ -1467,7 +1467,7 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
              & (!x : smallerThanY(x) -> smallerThanY(destructor(x))) 
              & !z : smallerThanY(z) => ~L[z]
  *
- * i.e. we add a new special predicat that is true when its argument is smaller than Y
+ * i.e. we add a new special predicate that is true when its argument is smaller than Y
  *
  */
 void InductionClauseIterator::performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e)
@@ -1588,7 +1588,7 @@ void InductionClauseIterator::performRecursionInduction(const InductionContext& 
   for (unsigned i = 0; i < header->numTypeArguments(); i++) {
     auto arg = *header->nthArgument(i);
     ASS(arg.isVar());
-    typeSubst.bind(arg.var(),typeArgs[i]);
+    typeSubst.bindUnbound(arg.var(),typeArgs[i]);
   }
 
   for (const auto& b : templ->branches()) {
@@ -1705,7 +1705,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   Term* xSkolem = bindings.get(xvar, nullptr);
   ASS(xSkolem != nullptr);
   ASS(freeVarSubst != nullptr);
-  freeVarSubst->bind(int(freeVar), SubstHelper::apply<Substitution>(xSkolem, subst));
+  freeVarSubst->bindUnbound(int(freeVar), SubstHelper::apply<Substitution>(xSkolem, subst));
 
   e->add(std::move(hyp_clauses), std::move(subst));
   return;

@@ -46,7 +46,7 @@ enum class UnitInputType : unsigned char {
   CLAIM = 4,
   /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
   EXTENSIONALITY_AXIOM = 5,
-  /** Used to seperate model definitions in model_check mode, should not appear in proof search */
+  /** Used to separate model definitions in model_check mode, should not appear in proof search */
   MODEL_DEFINITION = 6,
   /** Used to mark axiom that arrived later from an external source */
   EXTERNAL_SOURCE = 7
@@ -74,7 +74,7 @@ UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
  *     inference should inherit from one of these.
  *  5) In SaturationAlgorithm.hpp update the createFromOptions() function
  *     to attach the new inference to the relevant (generating, simplifying, ...)
- *     front. This ensures that the inference is actaully carried out during
+ *     front. This ensures that the inference is actually carried out during
  *     the saturation loop.
  *  6) If the new inference involves an index of some sort then the following
  *     needs to be done:
@@ -320,7 +320,7 @@ enum class InferenceRule : unsigned char {
   FREE_VAR_INDUCTION_HYPERRESOLUTION,
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
-  /* inequality factoring rule of the ALASCA Calculs */
+  /* inequality factoring rule of the ALASCA Calculus */
   ALASCA_FOURIER_MOTZKIN,
   ALASCA_INTEGER_FOURIER_MOTZKIN,
   ALASCA_TERM_FACTORING,
@@ -564,7 +564,7 @@ enum class InferenceRule : unsigned char {
 
   FUNC_EXT_AXIOM,
 
-  /** beginning of proxy funxtion axioms marker --*/
+  /** beginning of proxy function axioms marker --*/
   PROXY_AXIOM,
   /* Equality proxy axiom */
   EQUALITY_PROXY_AXIOM,

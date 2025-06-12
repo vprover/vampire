@@ -47,7 +47,7 @@ public:
 
   /** Runs all tests of this TestUnit
    *
-   * returns true iff all tests of the unit were successfull.
+   * returns true iff all tests of the unit were successful.
    */
   bool run(std::ostream& out);
   bool runTestsWithNameSubstring(std::string const& pref, std::ostream& out);
@@ -81,7 +81,8 @@ class UnitTesting
 {
   static UnitTesting* _instance;
   Stack<TestUnit> _units;
-  UnitTesting() : _units() {}
+  UnitTesting() : _units(), _singleThreaded(false) {}
+  bool _singleThreaded;
 public:
   static UnitTesting& instance();
 
@@ -91,6 +92,8 @@ public:
   bool run(Stack<std::string>const& args);
   bool runUnit(std::string const& args);
   bool runTest(std::string const& unit, std::string const& testCase);
+  void setSingleThreaded(bool b) { _singleThreaded = b; }
+  bool getSingleThreaded() { return _singleThreaded; }
 };
 
 std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t);

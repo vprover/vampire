@@ -65,7 +65,7 @@ public:
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);  
   static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
   static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args); 
-  static Signature::Proxy getProxy(const TermList t);
+  static Proxy getProxy(const TermList t);
   static TermList getHead(TermList t);
   static TermList getHead(Term* t);  
   static bool isSafe(TermStack& args);

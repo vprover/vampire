@@ -56,7 +56,7 @@ class FiniteModelMultiSorted {
   void initTables();
 
   // captures the encoding of the functions offetsand predicates in our tables
-  // - offets are either _f_offsets or _p_offsets
+  // - offsets are either _f_offsets or _p_offsets
   // - s is either an f or p index from env->signature
   // - sig is the symbols corresponding type signature
   // - var is an index to use into _f_interpretation/_p_interpretation
