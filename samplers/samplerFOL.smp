@@ -3,70 +3,22 @@
 # set $has_z3 to false, if you want to sample without it
 > $has_z3 ~set false
 
-# PREPROCESSING
+# PREPROCESSING - try to have this in the order of the Preprocess pipeline
 
-# blocked_clause_elimination
-> bce ~cat off:575,on:425
+# guess_the_goal -- does something even for TPTP, so why not
+> gtg ~cat off:20,all:1,exists_top:1,exists_all:1,exists_sym:1,position:1
 
-# equality_proxy
-> ep ~cat off:602,RS:123,R:97,RSTC:90,RST:88
-# mono_ep -- no polymorphic games for the GNN
-# ep!=off > mep ~cat on:10,off:1
+# guess_the_goal_limit
+gtg!=off > gtgl ~ui 1,5
 
-# equality_resolution_with_deletion
-> erd ~cat on:604,off:396
-
-# function_definition_elimination
-> fde ~cat all:404,unused:323,none:273
-
-# general_splitting
-> gsp ~cat off:588,on:412
-
-# newcnf
-> newcnf ~cat off:519,on:481
-
-# inline_let -- this is probably irrelevant on TPTP anyway
-newcnf=on > ile ~cat on:522,off:478
-
-# naming
-> $nm ~cat 13_17:125,7_9:119,3_4:116,18_24:105,10_12:98,2:95,5_6:93,25_34:85,0:85,35_234:79
-$nm=13_17 > nm ~ui 13,17
-$nm=7_9 > nm ~ui 7,9
-$nm=3_4 > nm ~ui 3,4
-$nm=18_24 > nm ~ui 18,24
-$nm=10_12 > nm ~ui 10,12
-$nm=2 > nm ~set 2
-$nm=5_6 > nm ~ui 5,6
-$nm=25_34 > nm ~ui 25,34
-$nm=0 > nm ~set 0
-$nm=35_234 > nm ~ui 35,100
-# the higher the more like another 0 (stopping at 100, arbitrarily)
-
-# inequality_splitting
-> $ins ~cat 6_7:140,8_10:134,0:127,1:116,5:97,2:92,3:92,4:87,11_15:82,16_115:32
-$ins=6_7 > ins ~ui 6,7
-$ins=8_10 > ins ~ui 8,10
-$ins=0 > ins ~set 0
-$ins=1 > ins ~set 1
-$ins=5 > ins ~set 5
-$ins=2 > ins ~set 2
-$ins=3 > ins ~set 3
-$ins=4 > ins ~set 4
-$ins=11_15 > ins ~ui 11,15
-$ins=16_115 > ins ~ui 16,25
-# the higher the more like another 0 (stopping at 25, arbitrarily)
-
-# random_polarities
-> rp ~cat off:698,on:302
-
-# twee_goal_transformation
-> tgt ~cat off:458,full:276,ground:266
-
-# set_of_support
-> sos ~cat off:544,on:281,all:176
+# fool_paramodulation - influences fool elimination
+> foolp ~cat on:528,off:472
+# TODO: could condition on @hasFOOL
 
 # sine_selection
-> ss ~cat off:375,axioms:343,included:282
+# > ss ~cat off:375,axioms:344,included:281
+@atoms_leq_2^10=1 > ss ~cat off:462,included:272,axioms:266
+@atoms_leq_2^10=0 > ss ~cat axioms:436,included:313,off:250
 
 # sine_depth
 ss!=off > $sd ~cat 1:233,2:202,6_15:167,3:123,4:112,5:95,0:69
@@ -101,7 +53,89 @@ ss!=off $st=-1.0 > st ~set -1.0
 ss!=off $st=7.0+3.0 > st ~uf 7.0,10.0
 
 # unused_predicate_definition_removal
-> updr ~cat on:515,off:485
+# > updr ~cat on:515,off:485
+@atoms_leq_2^6=1 > updr ~cat off:552,on:448
+@atoms_leq_2^6=0 > updr ~cat on:535,off:465
+
+# newcnf
+# > newcnf ~cat off:548,on:452
+@hasEquality=1 > newcnf ~cat off:535,on:465
+@hasEquality=0 > newcnf ~cat off:683,on:317
+
+# inline_let -- this is probably irrelevant on TPTP anyway
+# newcnf=on > ile ~cat on:522,off:478
+# unlike foolp, which does something weird even without fool, this one does nothing without lets
+
+# naming
+> $nm ~cat 7_9:121,13_17:120,3_4:118,2:105,18_24:102,10_12:97,5_6:94,0:93,35_234:77,25_34:73
+$nm=7_9 > nm ~ui 7,9
+$nm=13_17 > nm ~ui 13,17
+$nm=3_4 > nm ~ui 3,4
+$nm=2 > nm ~set 2
+$nm=18_24 > nm ~ui 18,24
+$nm=10_12 > nm ~ui 10,12
+$nm=5_6 > nm ~ui 5,6
+$nm=0 > nm ~set 0
+$nm=35_234 > nm ~ui 35,100
+$nm=25_34 > nm ~ui 25,34
+# the higher the more like another 0 (stopping at 100, arbitrarily)
+
+# PREPROCESSING - CNF reached!
+
+# function_definition_elimination
+# > fde ~cat all:404,unused:323,none:273
+@atoms_leq_2^19=1 > fde ~cat all:404,unused:323,none:273
+# this other case was actually "unused"-only; but let's preserve the possibility to change mind
+@atoms_leq_2^19=0 > fde ~cat unused:48,none:1,all:1
+
+# inequality_splitting
+> $ins ~cat 6_7:136,0:135,8_10:134,1:119,5:100,2:88,3:87,4:87,11_15:79,16_115:35
+$ins=6_7 > ins ~ui 6,7
+$ins=0 > ins ~set 0
+$ins=8_10 > ins ~ui 8,10
+$ins=1 > ins ~set 1
+$ins=5 > ins ~set 5
+$ins=2 > ins ~set 2
+$ins=3 > ins ~set 3
+$ins=4 > ins ~set 4
+$ins=11_15 > ins ~ui 11,15
+$ins=16_115 > ins ~ui 16,25
+# the higher the more like another 0 (stopping at 25, arbitrarily)
+
+# equality_resolution_with_deletion
+# > erd ~cat on:614,off:386
+@atoms_leq_2^6=1 > erd ~cat on:514,off:486
+@atoms_leq_2^6=0 > erd ~cat on:638,off:362
+
+# general_splitting
+# > gsp ~cat off:588,on:412
+@atoms_leq_2^8=1 > gsp ~cat off:532,on:468
+@atoms_leq_2^8=0 > gsp ~cat off:629,on:371
+
+# twee_goal_transformation
+# > tgt ~cat off:458,full:276,ground:266
+@atoms_leq_2^9=1 > tgt ~cat off:406,full:312,ground:283
+@atoms_leq_2^9=0 > tgt ~cat off:542,ground:237,full:222
+
+# equality_proxy
+# > ep ~cat off:632,RS:117,R:90,RSTC:83,RST:78
+@atoms_leq_2^4=1 > ep ~cat off:938,RSTC:62,RST:1,RS:1,R:1
+@atoms_leq_2^4=0 > ep ~cat off:609,RS:125,R:97,RSTC:86,RST:83
+# bumped 0->1 for the small case
+
+# mono_ep -- no polymorphic games for the GNN
+# ep!=off > mep ~cat on:10,off:1
+
+# blocked_clause_elimination
+# > bce ~cat off:575,on:425
+@atoms_leq_2^11=1 > bce ~cat off:507,on:493
+@atoms_leq_2^11=0 > bce ~cat off:717,on:283
+
+# random_polarities
+# > rp ~cat off:698,on:302
+@cat=HNE > rp ~cat off:49,on:1
+@cat!=HNE > rp ~cat off:695,on:305
+# bumped a bit zero in the cat=HNE case
 
 # NEURAL CLAUSE SELECTION (disabled for now)
 
@@ -121,8 +155,17 @@ ss!=off $st=7.0+3.0 > st ~uf 7.0,10.0
 
 # SATURATION
 
+# set_of_support
+# > sos ~cat off:544,on:281,all:176
+@atoms_leq_2^3=1 > sos ~cat off:791,all:209,on:10
+@atoms_leq_2^3=0 > sos ~cat off:534,on:289,all:177
+# bumped the small case's on from 0->10
+
 # saturation_algorithms - no games with fmb for NN experiments
-> sa ~cat discount:425,lrs:337,otter:238
+# > sa ~cat discount:425,lrs:337,otter:238
+@atoms_leq_2^17=1 > sa ~cat discount:419,lrs:342,otter:239
+@atoms_leq_2^17=0 > sa ~cat discount:613,otter:387,lrs:10
+# bumped the large case's lrs 0->10
 
 # lrs_first_time_check
 sa=lrs > $lftc ~cat 5:227,6_10:114,11_20:107,67_82:100,21_30:99,51_66:97,31_40:88,83_100:85,41_50:83
@@ -138,7 +181,10 @@ sa=lrs $lftc=41_50 > lftc ~ui 41,50
 # careful, must be less than 100 (is in "per cent")
 
 # literal selection
-> s ~cat 1011:107,1010:81,1002:63,1003:30,1004:28,1666:11,11:70,10:52,2:41,21:20,3:20,4:18,1:13,35:10,20:8,22:8,34:7,666:7,33:6,32:6,30:5,31:5,-1011:77,-1010:58,-1002:45,-1003:22,-1004:20,-1666:8,-11:30,-10:22,-2:17,-21:9,-3:8,-4:8,-1:6,-35:4,-20:4,-22:3,-34:3,-666:3,-33:3,-32:3,-30:2,-31:2,0:30
+# > s ~cat 1011:107,1010:81,1002:63,1003:30,1004:28,1666:11,11:70,10:52,2:41,21:20,3:20,4:18,1:13,35:10,20:8,22:8,34:7,666:7,33:6,32:6,30:5,31:5,-1011:77,-1010:58,-1002:45,-1003:22,-1004:20,-1666:8,-11:30,-10:22,-2:17,-21:9,-3:8,-4:8,-1:6,-35:4,-20:4,-22:3,-34:3,-666:3,-33:3,-32:3,-30:2,-31:2,0:30
+tgt!=off > s ~cat 1011:119,1010:86,-1011:86,11:82,-1010:62,10:59,1002:57,0:52,-1002:41,2:40,-11:33,1003:31,-10:24,-1003:22,21:21,3:21,1004:18,-2:16,20:13,-1004:13,4:13,1:12,35:10,34:10,-21:9,-3:8,32:8,22:6,-20:5,-4:5,-1:5,-35:4,-34:4,-32:3,-22:2,1666:1,30:1,33:1,666:1,31:1,-1666:1,-30:1,-33:1,-666:1,-31:1
+tgt=off > s ~cat 1011:105,1010:81,-1011:75,11:68,1002:67,-1010:58,10:51,-1002:48,2:43,1004:32,1003:31,-11:30,-1004:23,-10:22,-1003:22,21:21,4:20,3:20,-2:19,1:14,1666:13,35:11,-1666:9,-21:9,22:9,-4:9,-3:9,666:8,33:7,30:6,20:6,34:6,-1:6,31:5,32:5,-35:5,-22:4,-666:3,-33:3,-30:3,-20:3,-34:3,-31:2,-32:2,0:1
+# bumping 0->1
 
 # lookahaed_delay
 > $ls ~set off
@@ -175,18 +221,29 @@ $awr=4.0+2.0 > awr ~u2r 4.0;6.0;:
 # added 2 below and 2 above the original range, as the ends were not necessarily trailing towards zero ...
 
 # random_awr
-> rawr ~cat off:628,on:372
+# > rawr ~cat off:628,on:372
+@atoms_leq_2^4=1 > rawr ~cat off:776,on:224
+@atoms_leq_2^4=0 > rawr ~cat off:598,on:402
 
 # lrs_weight_limit_only
-sa=lrs > lwlo ~cat on:536,off:464
+# sa=lrs > lwlo ~cat on:536,off:464
+@cat=EPR sa=lrs > lwlo ~cat off:1000,on:10
+@cat!=EPR sa=lrs > lwlo ~cat on:539,off:461
+# bumped the EPR case 0->10
 
 # lrs_retroactive_deletes
-sa=lrs > lrd ~cat off:525,on:475
+# sa=lrs > lrd ~cat off:525,on:475
+@atoms_leq_2^18=1 sa=lrs > lrd ~cat off:523,on:477
+@atoms_leq_2^18=0 sa=lrs > lrd ~cat off:1000,on:10
+# bumped the large case 0->10
 
 # lrs_preemptive_deletes - this is the core of LRS (neural guidance doesn't like it though)
-npcc=off sa=lrs > lpd ~cat on:568,off:432
+# npcc=off sa=lrs > lpd ~cat on:568,off:432
+npcc=off @atoms_leq_2^18=1 sa=lrs > lpd ~cat on:568,off:432
+npcc=off @atoms_leq_2^18=0 sa=lrs > lpd ~cat on:1000,off:10
 npcc=on  sa=lrs > lpd ~cat off:4,on:1
-# leaving the latter untouched; as there are no data yet from the neural strats
+# bumped the large case 0->10
+# leaving the last untouched; as there are no data yet from the neural strats
 
 # lrs_estimate_correction_coef
 # > $lecc ~cat 1:1
@@ -196,12 +253,12 @@ npcc=on  sa=lrs > lpd ~cat off:4,on:1
 # TODO: leaving out weird timing dependent options
 
 # nongoal_weight_coefficient
-> $nwc ~cat 1.0:206,5.0+2.0:102,3.0+2.0:100,9.0+2.0:96,13.0+2.0:96,7.0+2.0:94,11.0+2.0:94,15.0+5.0:80,1.0+1.0:78,2.0+1.0:76,0.5+0.5:58
-$nwc=1.0 > nwc ~set 1
+> $nwc ~cat 1.0:207,5.0+2.0:101,3.0+2.0:101,13.0+2.0:96,9.0+2.0:95,7.0+2.0:94,11.0+2.0:92,15.0+5.0:80,1.0+1.0:79,2.0+1.0:76,0.5+0.5:58
+$nwc=1.0 > nwc ~set 1.0
 $nwc=5.0+2.0 > nwc ~uf 5.0,7.0
 $nwc=3.0+2.0 > nwc ~uf 3.0,5.0
-$nwc=9.0+2.0 > nwc ~uf 9.0,11.0
 $nwc=13.0+2.0 > nwc ~uf 13.0,15.0
+$nwc=9.0+2.0 > nwc ~uf 9.0,11.0
 $nwc=7.0+2.0 > nwc ~uf 7.0,9.0
 $nwc=11.0+2.0 > nwc ~uf 11.0,13.0
 $nwc=15.0+5.0 > nwc ~uf 15.0,20.0
@@ -211,19 +268,33 @@ $nwc=0.5+0.5 > nwc ~uf 0.5,1.0
 # ADDED a 15.0+5.0 interval that was not in the data before (1.0's freq is probably too high - an artefact of defaultation, but let's keep it for now)
 
 # restrict_nwc_to_goal_constants (careful, even if we write 1.0 into "nwc" we will still read "1" in vampire)
-nwc!=1 > rnwc ~cat off:503,on:497
+# nwc!=1 > rnwc ~cat off:522,on:478
+@cat=HNE nwc!=1 > rnwc ~cat on:1000,off:10
+@cat!=HNE nwc!=1 > rnwc ~cat off:526,on:474
+# bumped the HNE case
 
 # literal_maximality_aftercheck
-> lma ~cat on:511,off:489
+# > lma ~cat on:511,off:489
+@hasGoal=1 > lma ~cat on:509,off:491
+@hasGoal=0 > lma ~cat on:1000,off:10
+# bumped the non-goal case
 
 # POSITIVE LITERAL SPLIT QUEUE
-> plsq ~cat off:611,on:389
+# > plsq ~cat off:611,on:389
+@atoms_leq_2^6=1 > plsq ~cat off:557,on:443
+@atoms_leq_2^6=0 > plsq ~cat off:627,on:373
 
 # positive_literal_split_queue_layered_arrangement
-plsq=on > plsql ~cat off:569,on:431
+# plsq=on > plsql ~cat off:569,on:431
+@cat=EPR plsq=on > plsql ~cat off:1000,on:10
+@cat!=EPR plsq=on > plsql ~cat off:564,on:436
+# bumped the EPR case
 
 # positive_literal_split_queue_cutoffs
-plsq=on > plsqc ~cat 0:405,1:296,2:138,3:93,4:69
+# plsq=on > plsqc ~cat 0:405,1:296,2:138,3:93,4:69
+@atoms_leq_2^13=1 plsq=on > plsqc ~cat 0:393,1:290,2:147,3:97,4:73
+@atoms_leq_2^13=0 plsq=on > plsqc ~cat 0:593,1:407,2:5,3:5,4:5
+# bumped the large case
 
 # positive_literal_split_queue_ratios
 plsq=on > $plsqr ~cat -5.0+1.0:85,-4.0+1.0:69,-3.0+1.0:49,-2.0+1.0:128,-1.0+1.0:67,0.0+1.0:51,1.0+1.0:68,2.0+1.0:68,3.0+1.0:104,4.0+1.0:89,5.0+1.0:125,6.0+1.0:96
@@ -243,55 +314,94 @@ plsq=on $plsqr=6.0+1.0 > plsqr ~u2r 6.0;7.0;,
 # INFERENCES
 
 # superposition (don't turn this off at home!)
-> sup ~cat on:749,off:251
+# > sup ~cat on:749,off:251
+@atoms_leq_2^5=1 > sup ~cat on:1000,off:10
+@atoms_leq_2^5=0 > sup ~cat on:752,off:248
+# bumped the small case
 
 # simultaneous_superposition
-sup=on > sims ~cat on:522,off:478
+# sup=on > sims ~cat on:537,off:463
+@atoms_leq_2^19=1 sup=on > sims ~cat on:539,off:461
+@atoms_leq_2^19=0 sup=on > sims ~cat off:1000,on:10
+# bumped the large case
 
 # superposition_from_variables
-sup=on > sfv ~cat off:535,on:465
+# sup=on > sfv ~cat off:538,on:462
+@atoms_leq_2^19=1 sup=on > sfv ~cat off:539,on:461
+@atoms_leq_2^19=0 sup=on > sfv ~cat on:1000,off:10
+# bumped the large case
 
 # code_tree_subsumption
-> cts ~cat on:662,off:338
+@cat=HNE > cts ~cat on:1000,off:10
+@cat!=HNE > cts ~cat on:656,off:344
+# bumped the HNE case
 
 # forward_subsumption
-> fs ~cat on:807,off:193
+# > fs ~cat on:807,off:193
+@atoms_leq_2^9=1 > fs ~cat on:868,off:132
+@atoms_leq_2^9=0 > fs ~cat on:757,off:243
 
 # forward_subsumption_resolution
 fs=off > fsr ~set off
-fs=on > fsr ~cat on:615,off:385
+# fs=on > fsr ~cat on:615,off:385
+@atoms_leq_2^5=1 fs=on > fsr ~cat off:543,on:457
+@atoms_leq_2^5=0 fs=on > fsr ~cat on:648,off:352
 
 # forward_subsumption_demodulation
-> fsd ~cat off:623,on:377
+# > fsd ~cat off:647,on:353
+@atoms_leq_2^18=1 > fsd ~cat off:646,on:354
+@atoms_leq_2^18=0 > fsd ~cat off:1000,on:10
+# bumped the large case
 
 # forward_subsumption_demodulation_max_matches
-fsd=on > fsdmm ~cat 0:228,1:188,2:275,3:309,4:100,5:100
-# adding 4:100,5:100, because 3 got the largest
+# fsd=on > fsdmm ~cat 0:216,1:180,2:291,3:314,4:100,5:100 # was adding 4:100,5:100, because 3 got the largest
+@cat=FEQ  fsd=on > fsdmm ~cat 0:186,1:176,2:202,3:436,4:100,5:100
+@cat!=FEQ fsd=on > fsdmm ~cat 0:325,1:205,2:469,3:100,4:50,5:50
+# padded with 4:100,5:100, resp 3:100,4:50,5:50
 
 # backward_demodulation
-> bd ~cat off:381,all:316,preordered:303
+# > bd ~cat off:384,all:315,preordered:301
+@hasEquality=1 > bd ~cat off:381,all:318,preordered:300
+@hasEquality=0 > bd ~cat off:571,preordered:429,all:10
+# with @hasEquality=0, bd only becomes relevan after tgt, but then preordered is always better?
 
 # backward_subsumption
-fs!=off > bs ~cat off:468,unit_only:284,on:248
+# fs!=off > bs ~cat off:468,unit_only:284,on:248
+@atoms_leq_2^18=1 fs!=off > bs ~cat off:465,unit_only:286,on:249
+@atoms_leq_2^18=0 fs!=off > bs ~cat off:750,on:250,unit_only:10
+# bumped the large case
 
 # backward_subsumption_resolution
-> bsr ~cat off:471,unit_only:285,on:244
+# > bsr ~cat off:471,unit_only:285,on:244
+bs=off > bsr ~cat off:501,unit_only:262,on:237
+bs!=off > bsr ~cat unit_only:427,on:310,off:263
 
 # backward_subsumption_demodulation
-> bsd ~cat off:596,on:404
+# > bsd ~cat off:605,on:395
+sa=lrs > bsd ~cat off:687,on:313
+sa!=lrs > bsd ~cat off:541,on:459
 
 # backward_subsumption_demodulation_max_matches
-bsd=on > bsdmm ~cat 0:154,1:264,3:223,2:359,3:100,4:100
+bsd=on > bsdmm ~cat 0:164,1:242,2:382,3:212,3:100,4:100
 # adding 3:100,4:100, because 2 got the largest
 
 # condensation
-> cond ~cat off:367,fast:357,on:276
+# > cond ~cat off:367,fast:357,on:276
+@atoms_leq_2^18=1 > cond ~cat off:367,fast:356,on:278
+@atoms_leq_2^18=0 > cond ~cat fast:586,off:414,on:10
+# bumping the large case
 
 # equational_tautology_removal
-> etr ~cat off:537,on:463
+# > etr ~cat off:553,on:447
+@cat=EPR  > etr ~cat on:1000,off:10
+@cat!=EPR > etr ~cat off:554,on:446
+# bumed the EPR case
 
 # extensionality_resolution
-ins=0 > er ~cat off:367,known:356,filter:278
+# ins=0 > er ~cat off:383,known:350,filter:267
+@atoms_leq_2^3=1 ins=0 > er ~cat filter:542,known:458,off:10
+@atoms_leq_2^3=0 ins=0 > er ~cat off:388,known:350,filter:262
+# bumped the small case
 
 # extensionality_allow_pos_eq
 er=filter > eape ~cat on:551,off:449
@@ -300,36 +410,47 @@ er=filter > eape ~cat on:551,off:449
 er!=off > erml ~cat 3:610,0:208,2:181,4:100,5:100
 # added 4:100,5:100, as 3 was the max
 
-# fool_paramodulation
-> foolp ~cat on:528,off:472
-
 # forward_demodulation
-> fd ~cat all:408,preordered:359,off:233
+# > fd ~cat all:418,preordered:363,off:219
+@atoms_leq_2^6=1 > fd ~cat all:540,preordered:377,off:83
+@atoms_leq_2^6=0 > fd ~cat preordered:379,all:352,off:269
 
 # demodulation_redundancy_check
 > $demod ~set 0
 fd!=off > $demod ~set 1
 bd!=off > $demod ~set 1
-$demod=1 > drc ~cat off:400,encompass:328,ordering:272
+# $demod=1 > drc ~cat off:405,encompass:329,ordering:266
+@atoms_leq_2^19=1 $demod=1 > drc ~cat off:404,encompass:329,ordering:266
+@atoms_leq_2^19=0 $demod=1 > drc ~cat off:1000,ordering:10,encompass:10
+# bumped the big case
 
 # forward_demodulation_term_ordering_diagrams
 fd!=off > fdtod ~cat on:1,off:1
 
 # demodulation_only_equational
-$demod=1 > doe ~cat off:562,on:438
+# $demod=1 > doe ~cat off:568,on:432
+@atoms_leq_2^19=1 $demod=1 > doe ~cat off:567,on:433
+@atoms_leq_2^19=0 $demod=1 > doe ~cat off:1000,on:10
+# bumped the big case
 
 # forward_ground_joinability
-sa!=fmb > fgj ~cat on:1,off:1
+> fgj ~cat on:1,off:1
 
 # forward_literal_rewriting
-> flr ~cat off:592,on:408
+# > flr ~cat off:592,on:408
+@atoms_leq_2^18=1 > flr ~cat off:587,on:413
+@atoms_leq_2^18=0 > flr ~cat off:1000,on:10
+# bumped the big case
 
 # function_definition_introduction
-> fdi ~cat 0:531,2:56,4:54,8:52,16:46,32:44,64:42,128:41,512:40,256:39,1024:33
+> fdi ~cat 0:577,2:47,4:49,8:49,16:34,32:38,64:40,128:42,256:45,512:26,1024:34
 # kicked out 1, as it seemed silly
 
 # inner_rewriting
-> irw ~cat on:514,off:486
+# > irw ~cat on:511,off:489
+@atoms_leq_2^19=1 > irw ~cat on:512,off:488
+@atoms_leq_2^19=0 > irw ~cat off:1000,on:10
+# bumped the big case
 
 # SINE LEVELS and shit
 
@@ -337,10 +458,15 @@ sa!=fmb > fgj ~cat on:1,off:1
 > s2a ~cat off:584,on:416
 
 # sine_level_split_queue
-> slsq ~cat off:608,on:392
+# > slsq ~cat off:610,on:390
+@atoms_leq_2^14=1 > slsq ~cat off:591,on:409
+@atoms_leq_2^14=0 > slsq ~cat off:715,on:285
 
 # sine_level_split_queue_layered_arrangement
-slsq=on > slsql ~cat off:505,on:495
+# slsq=on > slsql ~cat off:505,on:495
+@atoms_leq_2^17=1 slsq=on > slsql ~cat off:509,on:491
+@atoms_leq_2^17=0 slsq=on > slsql ~cat on:1000,off:10
+# bumped the big case
 
 # sine_level_split_queue_cutoffs
 slsq=on > slsqc ~cat 0:268,1:249,2:179,3:139,4:114,5:51
@@ -361,34 +487,52 @@ slsq=on $slsqr=2.0+2.0 > slsqr ~u2r 2.0;4.0;,
 # ORDERING
 
 # term_ordering
-> to ~cat kbo:565,lpo:435
+# > to ~cat kbo:565,lpo:435
+tgt!=off > to ~cat kbo:610,lpo:390
+tgt=off  > to ~cat kbo:537,lpo:463
 
 # symbol_precedence
-> sp ~cat reverse_frequency:118,arity:104,const_min:102,const_frequency:100,frequency:96,reverse_arity:86,unary_first:85,weighted_frequency:85,unary_frequency:77,const_max:76,occurrence:70
+# > sp ~cat reverse_frequency:118,arity:104,const_min:102,const_frequency:100,frequency:96,reverse_arity:86,unary_first:85,weighted_frequency:85,unary_frequency:77,const_max:76,occurrence:70
+@atoms_leq_2^15=1 > sp ~cat reverse_frequency:122,arity:105,const_min:103,const_frequency:101,frequency:98,weighted_frequency:86,unary_first:85,reverse_arity:83,unary_frequency:80,const_max:78,occurrence:58
+@atoms_leq_2^15=0 > sp ~cat occurrence:199,reverse_arity:167,arity:136,unary_first:114,const_min:107,frequency:107,const_frequency:95,weighted_frequency:73,const_max:1,unary_frequency:1,reverse_frequency:1
+# micro-bump the big case's unary_frequency:1,reverse_frequency:1
+
 # symbol_precedence_boost
-> spb ~cat units:183,goal:182,none:167,intro:162,non_intro:161,goal_then_units:145
+# > spb ~cat units:183,goal:182,none:167,intro:162,non_intro:161,goal_then_units:145
+@atoms_leq_2^18=1 > spb ~cat units:183,goal:181,none:166,intro:162,non_intro:160,goal_then_units:146
+@atoms_leq_2^18=0 > spb ~cat goal:373,none:349,non_intro:277,goal_then_units:5,units:5,intro:5
+# bump the large a little: 0 -> goal_then_units:5,units:5,intro:5
 
 # kbo_max_zero
-to=kbo > kmz ~cat on:542,off:458
+# to=kbo > kmz ~cat on:542,off:458
+@atoms_leq_2^15=1 to=kbo > kmz ~cat on:531,off:469
+@atoms_leq_2^15=0 to=kbo > kmz ~cat on:1000,off:10
+# bumped the large case
 
 # kbo_weight_scheme
-to=kbo > kws ~cat precedence:191,const:165,inv_frequency:153,inv_arity:138,inv_arity_squared:116,frequency:106,arity_squared:93,inv_precedence:38,arity:5
+# to=kbo > kws ~cat precedence:191,const:165,inv_frequency:153,inv_arity:138,inv_arity_squared:116,frequency:106,arity_squared:93,inv_precedence:38,arity:5
+@atoms_leq_2^15=1 to=kbo > kws ~cat precedence:194,const:163,inv_frequency:152,inv_arity:138,inv_arity_squared:113,frequency:106,arity_squared:95,inv_precedence:39,arity:5
+@atoms_leq_2^15=0 to=kbo > kws ~cat const:244,inv_arity_squared:207,inv_frequency:201,inv_arity:184,frequency:135,precedence:30,arity_squared:5,inv_precedence:5,arity:5
+# the 5s at the ends are bumps from 0
 
 # literal_comparison_mode
-> lcm ~cat standard:368,predicate:339,reverse:293
+# > lcm ~cat standard:368,predicate:339,reverse:293
+@atoms_leq_2^18=1 > lcm ~cat standard:369,predicate:337,reverse:294
+@atoms_leq_2^18=0 > lcm ~cat predicate:586,standard:414,reverse:5
+# the 5 at the end is a bump from 0
 
 # sine_to_pred_levels
-lcm=standard > s2pl ~cat off:413,no:296,on:291
+# lcm=standard > s2pl ~cat off:413,no:296,on:291
+@atoms_leq_2^12=1 lcm=standard > s2pl ~cat on:337,off:332,no:331
+@atoms_leq_2^12=0 lcm=standard > s2pl ~cat off:593,no:230,on:178
 
-# SINE LEVELS - configure (must come after sine_to_age & slsq & s2pl)
+# SINE LEVELS - (must come after sine_to_age & slsq & s2pl)
 
 # set $s2a as the disjunction: s2a=on | slsq=on | s2pl!=off
 > $sine_heurs ~set off
 s2a=on    > $sine_heurs ~set on
 slsq=on   > $sine_heurs ~set on
 s2pl!=off > $sine_heurs ~set on
-
-# now configure (stealing the values from sine proper, which is not ideal, but should do)
 
 # sine_to_age_generality_threshold
 $sine_heurs=on > $s2agt ~cat 0:174,2_5:162,6_10:144,31_50:124,51_150:120,16_20:105,11_15:98,21_30:73
@@ -413,31 +557,54 @@ $sine_heurs=on $s2at=-1.0 > s2at ~set -1.0
 $sine_heurs=on $s2at=1.2+0.8 > s2at ~uf 1.2,2.0
 
 # AVATAR
-> av ~cat on:576,off:424
+# > av ~cat on:576,off:424
+sos!=off > av ~cat on:638,off:362
+sos=off  > av ~cat on:552,off:448
 
 # partial_redundancy_check
-> prc ~cat off:532,on:468
+> prc ~cat off:528,on:472
+@cat=HNE > prc ~cat off:1000,on:5
+@cat!=HNE > prc ~cat off:527,on:473
+# bumping HNE, but this means no equality, so the statistics is probably right!
 
 # partial_redundancy_ordering_constraints
-prc=on > proc ~cat off:524,on:476
+# prc=on > proc ~cat off:524,on:476
+ep!=off prc=on > proc ~cat off:1000,on:5
+ep=off prc=on > proc ~cat off:518,on:482
+# bumping ep!=off, but this means no equality, so the statistics is probably right!
 
 # partial_redundancy_avatar_constraints
-av=on prc=on > prac ~cat on:551,off:449
+# av=on prc=on > prac ~cat on:551,off:449
+@atoms_leq_2^3=1 av=on prc=on > prac ~cat on:1000,off:5
+@atoms_leq_2^3=0 av=on prc=on > prac ~cat on:544,off:456
+# bumped the super small case
 
 # partial_redundancy_literal_constraints
-prc=on > prlc ~cat off:515,on:485
+# prc=on > prlc ~cat off:515,on:485
+@hasEquality=1 prc=on > prlc ~cat off:517,on:483
+@hasEquality=0 prc=on > prlc ~cat on:1000,off:5
+# bumping @hasEquality=0, but this means no equality (unless tgt), so the statistics is probably right!
 
 # sat_solver
 av=on > sas ~cat minisat:10,cadical:7
 
 # avatar_add_complementary
 av=on > aac ~cat ground:521,none:479
+@hasGoal=1 av=on > aac ~cat ground:522,none:478
+@hasGoal=0 av=on > aac ~cat none:1000,ground:5
+# bumped the @hasGoal=0 case
 
 # avatar_buffered_solver
-av=on > abs ~cat off:578,on:422
+# av=on > abs ~cat off:578,on:422
+@atoms_leq_2^19=1 av=on > abs ~cat off:576,on:424
+@atoms_leq_2^19=0 av=on > abs ~cat off:1000,on:5
+# bumped the large case
 
 # avatar_congruence_closure
-sas!=z3 av=on > acc ~cat off:588,on:358
+# sas!=z3 av=on > acc ~cat off:588,on:358
+ss!=off av=on > acc ~cat off:601,on:399
+ss=off  av=on > acc ~cat off:588,on:344
+# delete records about the "model" value
 
 # cc_unsat_cores
 acc!=off > ccuc ~cat small_ones:376,first:354,all:269
@@ -450,15 +617,27 @@ av=on amm=all > aer ~cat off:503,on:497
 
 # avatar_delete_deactivated
 av=on > add ~cat large:403,off:309,on:288
+@cat=EPR  av=on > add ~cat large:613,on:387,off:5
+@cat!=EPR av=on > add ~cat large:400,off:313,on:287
+# boosted the EPR case 0->5
 
 # avatar_fast_restart
-av=on > afr ~cat on:536,off:464
+# av=on > afr ~cat on:536,off:464
+@cat=EPR av=on > afr ~cat on:1000,off:5
+@cat!=EPR av=on > afr ~cat on:534,off:466
+# boosted the EPR case 0->5
 
 # avatar_literal_polarity_advice
-av=on > alpa ~cat none:420,false:245,true:197,random:138
+# av=on > alpa ~cat none:420,false:245,true:197,random:138
+@atoms_leq_2^14=1 av=on > alpa ~cat none:406,false:244,true:203,random:146
+@atoms_leq_2^14=0 av=on > alpa ~cat none:559,false:283,true:158,random:5
+# boosted the large case
 
 # avatar_nonsplittable_components
-av=on > anc ~cat known:327,none:324,all_dependent:192,all:157
+# av=on > anc ~cat known:327,none:324,all_dependent:192,all:157
+@cat=EPR  av=on > anc ~cat known:633,all:194,all_dependent:174,none:5
+@cat!=EPR av=on > anc ~cat none:328,known:323,all_dependent:193,all:156
+# boosted the EPR case 0->5
 
 # avatar_turn_off_time_frac
 # sa!=fmb av=on > $atotf ~cat 1:10,666:1
@@ -467,7 +646,9 @@ av=on > anc ~cat known:327,none:324,all_dependent:192,all:157
 # TODO: leaving out weird timing dependent options
 
 # avatar_flush_period
-av=on > $afp ~cat 0:223,1000000:107,40000:100,10000:96,100000:89,1000:79,4000:75,10:74,2000:57,50:50,300:49
+# av=on > $afp ~cat 0:223,1000000:107,40000:100,10000:96,100000:89,1000:79,4000:75,10:74,2000:57,50:50,300:49
+@cat=EPR  av=on > $afp ~cat 0:599,10:181,300:130,10000:57,50:34,100000:5,1000:5,40000:5,4000:5,2000:5,1000000:5
+@cat!=EPR av=on > $afp ~cat 0:218,1000000:109,40000:101,10000:97,100000:90,1000:79,4000:76,10:73,2000:58,50:50,300:49
 av=on $afp=0 > afp ~set 0
 av=on $afp=1000000 > afp ~set 1000000
 av=on $afp=40000 > afp ~set 40000
@@ -480,6 +661,7 @@ av=on $afp=2000 > afp ~set 2000
 av=on $afp=50 > afp ~set 50
 av=on $afp=300 > afp ~set 300
 # probably a good candidate for removal, as it doesn't seem to be doing much! (TODO: prove it!)
+# boosted the EPR case 0->5
 
 # avatar_flush_quotient
 afp!=0 > $afq ~cat 3.0+1.0:100,2.75+0.25:172,2.5+0.25:138,1.25+0.25:137,1.0+0.25:125,2.25+0.25:119,1.5+0.25:109,2.0+0.25:102,1.75+0.25:98
@@ -507,10 +689,12 @@ av=on > sac ~cat off:528,on:472
 
 # unit_resulting_resolution
 av=on  > urr ~cat off:434,ec_only:250,on:167,full:150
-av=off > urr ~cat off:560,ec_only:243,on:197
+av!=on > urr ~cat off:560,ec_only:243,on:197
 
 # binary_resolution
-> br ~cat on:716,off:284
+# > br ~cat on:716,off:284
+urr=off  > br ~cat on:790,off:210
+urr!=off > br ~cat on:540,off:460
 
 # AVATAR SPLIT QUEUE
 
@@ -537,10 +721,16 @@ avsq=on $avsqr=3.0+1.0 > avsqr ~u2r 3.0;4.0;,
 
 # GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
 # global_subsumption
-> gs ~cat off:665,on:335
+# > gs ~cat off:665,on:335
+@atoms_leq_2^19=1 > gs ~cat off:664,on:336
+@atoms_leq_2^19=0 > gs ~cat off:1000,on:10
+# bumped the large case
 
 # global_subsumption_explicit_minim
-gs=on > gsem ~cat on:412,randomized:336,off:253
+# gs=on > gsem ~cat on:412,randomized:336,off:253
+@atoms_leq_2^6=1 gs=on > gsem ~cat off:1000,on:5,randomized:5
+@atoms_leq_2^6=0 gs=on > gsem ~cat on:429,randomized:338,off:233
+# bumped the small case
 
 # global_subsumption_sat_solver_power
 gs=on > gsssp ~cat propagation_only:576,full:424
@@ -550,12 +740,8 @@ gs=on av=on > gsaa ~cat off:400,from_current:380,full_model:221
 
 # MISC
 
-> uhcvi ~cat on:540,off:460
+# use_hashing_clause_variant_index
+# > uhcvi ~cat on:540,off:460
+@atoms_leq_2^4=1 > uhcvi ~cat off:543,on:457
+@atoms_leq_2^4=0 > uhcvi ~cat on:553,off:447
 
-# goal guessing does something even for TPTP, so why not
-
-# guess_the_goal
-> gtg ~cat off:10,all:1,exists_top:1,exists_all:1,exists_sym:1,position:1
-
-# guess_the_goal_limit
-gtg!=off > gtgl ~ui 1,5
