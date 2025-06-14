@@ -41,7 +41,7 @@ const long long MEGA = 1 << 20;
 static int PERF_FD = -1; // the file descriptor we later read the info from
 static long long LAST_INSTRUCTION_COUNT_READ = -1;
 
-// conveniece wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
+// convenience wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
 static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags)
 {
   int ret = syscall(__NR_perf_event_open, hw_event, pid, cpu,group_fd, flags);

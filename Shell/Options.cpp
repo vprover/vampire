@@ -866,8 +866,8 @@ void Options::init()
     _fmbSymmetryRatio.tag(OptionTag::FMB);
 
     _fmbSymmetryOrderSymbols = ChoiceOptionValue<FMBSymbolOrders>("fmb_symmetry_symbol_order","fmbsso",
-                                                     FMBSymbolOrders::OCCURENCE,
-                                                     {"occurence","input_usage","preprocessed_usage"});
+                                                     FMBSymbolOrders::OCCURRENCE,
+                                                     {"occurrence","input_usage","preprocessed_usage"});
     _fmbSymmetryOrderSymbols.description = "The order of symbols considered for symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
     _lookup.insert(&_fmbSymmetryOrderSymbols);
     _fmbSymmetryOrderSymbols.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
@@ -1786,7 +1786,7 @@ void Options::init()
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
-    _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",false);
+    _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",true);
     _forwardDemodulationTermOrderingDiagrams.description=
        "Use term ordering diagrams (TODs) to runtime specialize post-ordering checks in forward demodulation.";
     _lookup.insert(&_forwardDemodulationTermOrderingDiagrams);
@@ -2382,7 +2382,7 @@ void Options::init()
     _lookup.insert(&_activationLimit);
     _activationLimit.tag(OptionTag::SATURATION);
 
-    // Even if AUTO_KBO resolves to "qkbo" or "lakbo", we still allow KBO suboptions (and possible ignore them)
+    // Even if AUTO_KBO resolves to "qkbo" or "lakbo", we still allow KBO suboptions (and possibly ignore them)
     // this is better than the default (to=auto_kbo) warning whenever we touch "kws" or "kmz" ...
     auto KboLike = [this] {
       return Or(_termOrdering.is(equal(TermOrdering::KBO)),
@@ -3082,7 +3082,7 @@ void Options::strategySamplingAssign(std::string optname, std::string value, DHM
  */
 std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes)
 {
-  if (optname[0] == '$') {
+  if (optname[0] == '$' || optname[0] == '@') {
     std::string* foundVal = fakes.findPtr(optname);
     if (!foundVal) {
       USER_ERROR("Sampling file processing error -- unassigned fake option: " + optname);

@@ -53,7 +53,7 @@ class SimpSolver : public Solver {
     bool    addClause (Lit p, Lit q, Lit r); // Add a ternary clause to the solver.
     bool    addClause (Lit p, Lit q, Lit r, Lit s); // Add a quaternary clause to the solver. 
     bool    addClause_(      vec<Lit>& ps);
-    bool    substitute(Var v, Lit x);  // Replace all occurences of v with x (may cause a contradiction).
+    bool    substitute(Var v, Lit x);  // Replace all occurrences of v with x (may cause a contradiction).
 
     // Variable mode:
     // 
@@ -75,7 +75,7 @@ class SimpSolver : public Solver {
     bool    solve       (Lit p, Lit q, Lit r, bool do_simp = true, bool turn_off_simp = false);
     bool    eliminate   (bool turn_off_elim = false);  // Perform variable elimination based simplification. 
 
-    // Memory managment:
+    // Memory management:
     //
     virtual void garbageCollect();
 
@@ -106,7 +106,7 @@ class SimpSolver : public Solver {
         const LMap<int>& n_occ;
         explicit ElimLt(const LMap<int>& no) : n_occ(no) {}
 
-        // TODO: are 64-bit operations here noticably bad on 32-bit platforms? Could use a saturating
+        // TODO: are 64-bit operations here noticeably bad on 32-bit platforms? Could use a saturating
         // 32-bit implementation instead then, but this will have to do for now.
         uint64_t cost  (Var x)        const { return (uint64_t)n_occ[mkLit(x)] * (uint64_t)n_occ[~mkLit(x)]; }
         bool operator()(Var x, Var y) const { return cost(x) < cost(y); }

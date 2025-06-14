@@ -88,8 +88,8 @@ public:
    * (AWPassiveClauseContainer will keep these, because it only deletes those clauses which both queues consider bad.)
    *
    * On the other hand, the above pair of functions (mayBeAbleToDiscriminateChildrenOnLimits and allChildrenNecessarilyExceedLimits)
-   * as implemented (and not bluntly inhertied from SingleQueuePassiveClauseContainer)
-   * are now probably able to improve performace a tiny bit.
+   * as implemented (and not bluntly inherited from SingleQueuePassiveClauseContainer)
+   * are now probably able to improve performance a tiny bit.
    */
 
   bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
@@ -121,7 +121,7 @@ public:
 
   bool mayBeAbleToDiscriminateChildrenOnLimits() const override { return limitsActive(); }
   bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const override {
-    // TODO: this is an ungly copy-pase from AWPassiveClauseContainer::allChildrenNecessarilyExceedLimits
+    // TODO: this is an ugly copy-pase from AWPassiveClauseContainer::allChildrenNecessarilyExceedLimits
 
     // creating a fake inference to represent our current (pessimistic) estimate potential
     // FromInput - so that there is no Unit ownership issue
@@ -220,8 +220,8 @@ private:
   /*
    * An experiment showed that maintaining the tiebreaker _weightSelectionMaxAge
    * and doing the corresponding extra check (in fulfilsWeightLimit) didn't lead to a better performance
-   * (a possible explanation: it's better to be careful on the weight queue about age as "all small clauses, no matter how old/young are potentially usefull"
-   * while at the same time, it's better to be more agressive with deletions on the age queue, as the large clauses there are probably useless)
+   * (a possible explanation: it's better to be careful on the weight queue about age as "all small clauses, no matter how old/young are potentially useful"
+   * while at the same time, it's better to be more aggressive with deletions on the age queue, as the large clauses there are probably useless)
    */
   bool ageLimited() const;
   bool weightLimited() const;

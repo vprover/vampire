@@ -72,7 +72,7 @@ bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
  * Return the sort of a non-variable term t. This function cannot be applied
  * to a special term, such as if-then-else.
  *
- * The return sort is calculated by applying the relavant type substitution
+ * The return sort is calculated by applying the relevant type substitution
  * to return sort of the type of the head symbol of t. For monomorphic problems,
  * it is more efficient to use getResultSortMono since the substitution will always
  * be empty.
@@ -280,7 +280,7 @@ TermList SortHelper::getTermSort(TermList trm, Literal* lit)
 /**
  * Return sort of variable @c var in term or literal @c t
  *
- * Variable @c var must occurr in @c t.
+ * Variable @c var must occur in @c t.
  */
 TermList SortHelper::getVariableSort(TermList var, Term* t)
 {
@@ -755,7 +755,7 @@ void SortHelper::normaliseSort(TermStack qVars, TermList& sort)
 }
 
 /**
- * If variable @c var occurrs in term @c t, set @c result to its
+ * If variable @c var occurs in term @c t, set @c result to its
  * sort and return true. Otherwise return false.
  * @since 04/05/2013 Manchester, new NonVariableIterator is used
  * @author Andrei Voronkov
@@ -1001,7 +1001,7 @@ bool SortHelper::areSortsValid(Term* t0)
 /**
  * Return true iff the argument sorts are valid in term or literal @c t0.
  * @c varSorts contains sorts of variables -- this map is used to check sorts of variables in the
- * term, and also is extended by sorts of variables that occurr for the first time.
+ * term, and also is extended by sorts of variables that occur for the first time.
  * @since 04/05/2013 Manchester, new NonVariableIterator is used
  * @author Andrei Voronkov
  */

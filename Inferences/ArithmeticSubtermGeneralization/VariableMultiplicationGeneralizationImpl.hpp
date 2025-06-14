@@ -19,7 +19,7 @@ using namespace std;
 *    ------------ 
 *    C[X0]
 *    where 
-*    - all occurences of Xi are in terms of the form `X0 ⋅ X1 ⋅ ... ⋅ Xn`
+*    - all occurrences of Xi are in terms of the form `X0 ⋅ X1 ⋅ ... ⋅ Xn`
 *    - X0 /= Xi (for i /= 0)
 *    - all Xi are distinct variables
 *    - sound due to substitution { X1 -> 1 ..., XN -> 1 }
@@ -174,7 +174,7 @@ struct Preprocess
 };
 
 /** 
- * A polymorphic closure to bottom-up evaluate clause bottom-up that replaces all occurences of the factors in the field `toRem`
+ * A polymorphic closure to bottom-up evaluate clause bottom-up that replaces all occurrences of the factors in the field `toRem`
  */
 struct Generalize 
 {
@@ -261,7 +261,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
     if (maybeRegion.isInit()) {
       auto& region = maybeRegion.unwrap();
 
-      /* one variable with power one needs to be kept, per varible region */
+      /* one variable with power one needs to be kept, per variable region */
       auto var = iterTraits(region.iter())
         .map([](auto& x) { return x; })
         .filter([](auto& p) { return p.apply([](auto& t){ return t.tryVar(); }).isSome(); })

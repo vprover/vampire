@@ -498,7 +498,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 }
 
 /**
- * Return true if interpretatioin @c itp is trivial and shold just be
+ * Return true if interpretatioin @c itp is trivial and should just be
  * removed as an identity (in case of functions), or replaced by $true
  * (in case of predicates)
  */

@@ -106,25 +106,29 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
 #define TEST_AC_KBO_JOINABLE(name, cl, axioms)                 \
   TEST_FUN(joinable_ac_kbo_##name) {                           \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
-    joinabilityTest(axioms, cl, true, true);       \
+    auto ax = axioms; /* this forces the evaluation order */   \
+    joinabilityTest(ax, cl, true, true);                       \
   }
 
 #define TEST_AC_KBO_NONJOINABLE(name, cl, axioms)              \
   TEST_FUN(nonjoinable_ac_kbo_##name) {                        \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
-    joinabilityTest(axioms, cl, false, true);      \
+    auto ax = axioms; /* this forces the evaluation order */   \
+    joinabilityTest(ax, cl, false, true);                      \
   }
 
 #define TEST_AC_LPO_JOINABLE(name, cl, axioms)                 \
   TEST_FUN(joinable_ac_lpo_##name) {                           \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
-    joinabilityTest(axioms, cl, true, false);      \
+    auto ax = axioms; /* this forces the evaluation order */   \
+    joinabilityTest(ax, cl, true, false);                      \
   }
 
 #define TEST_AC_LPO_NONJOINABLE(name, cl, axioms)              \
   TEST_FUN(nonjoinable_ac_lpo_##name) {                        \
     __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                           \
-    joinabilityTest(axioms, cl, false, false);     \
+    auto ax = axioms; /* this forces the evaluation order */   \
+    joinabilityTest(ax, cl, false, false);                     \
   }
 
 // KBO

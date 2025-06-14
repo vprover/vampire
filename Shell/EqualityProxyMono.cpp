@@ -281,7 +281,8 @@ Clause* EqualityProxyMono::apply(Clause* cl)
     res = Clause::fromStack(*resLits,
         NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_REPLACEMENT, prems));
   }
-  // TODO isn't this done atomatically
+
+  // TODO isn't this done automatically
   res->adaptAgeFrom(cl->age()); // MS: this seems useless; as long as EqualityProxy is only operating as a part of preprocessing, age is going to 0 anyway
 
   return res;

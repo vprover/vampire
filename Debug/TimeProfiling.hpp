@@ -27,7 +27,7 @@ namespace Shell {
  * Time traces are stored in a tree starting with a root node that measures the runtime of the whole
  * probram execution, and subtrees that correspond to calls to TIME_TRACE.
  * The parameter \param name is a human-readable name to be presented when the time trace is being
- * outputed.
+ * outputted.
  * If you want two blocks to contribute to the same node in the tree, they have to occur in the same
  * subtree, and have to have the same const char* name. Note that just specifying the same literal
  * twice does not guarantee that const char* are the same, even though that is the case for some
@@ -37,7 +37,7 @@ namespace Shell {
  * end of a program execution, that presents the sum of all the runtimes a node was encountered on
  * any branch of the tree.
  *
- * It is important to note that calls to this macro may preform allocations (i.e. the first time
+ * It is important to note that calls to this macro may perform allocations (i.e. the first time
  * when it is called on a certain level of the trace tree). Therefore it should be avoided in
  * recursive functions.
  * Further it should be noted that the macro introduces some overhead, hence it should also be
@@ -50,7 +50,7 @@ namespace Shell {
 
 /**
  * same as TIME_TRACE, but measures the time it takes for an expression to be evaluated. the
- * arguments ... are the experssion to be time profiled.
+ * arguments ... are the expression to be time profiled.
  */
 #define TIME_TRACE_EXPR(name, ...)                                                                  \
   [&](){ TIME_TRACE(name); return __VA_ARGS__; }()

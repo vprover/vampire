@@ -118,7 +118,7 @@ protected:
   
   /* sign=trun in minisat means "negated" in vampire */
   const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
-    return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);            
+    return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);
   }
   
 private:

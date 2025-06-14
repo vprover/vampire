@@ -87,7 +87,7 @@ bool FormulaVarIterator::hasNext()
             Literal* lit = const_cast<Literal*>(f->literal());
             if(lit->isTwoVarEquality()){
               _instructions.push(FVI_TERM_LIST);
-              _termLists.push(lit->twoVarEqSort());              
+              _termLists.push(lit->twoVarEqSort());
             }
             _instructions.push(FVI_TERM);
             _terms.push(lit);

@@ -124,7 +124,7 @@ public:
   virtual void ensureVarCount(unsigned newVarCnt) {}
 
   /**
-   * Allocate a slot for a new (previosly unused) variable in the solver
+   * Allocate a slot for a new (previously unused) variable in the solver
    * and return the variable.
    *
    * Variables start from 1 and keep increasing by 1.

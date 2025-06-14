@@ -1836,7 +1836,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
   /*
    * Only after processing the whole input (with the first call to doUnprocessedLoop)
-   * it is time to recored for LRS the start time (and instrs) for the first iteration.
+   * it is time to record for LRS the start time (and instrs) for the first iteration.
    */
   if (env.statistics->activations == 0) {
     _lrsStartTime = Timer::elapsedMilliseconds();

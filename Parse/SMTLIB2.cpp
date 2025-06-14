@@ -1046,7 +1046,7 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
       std::string constrName;
       auto constr = dtypeRdr.readExpr();
       if (constr->isAtom()) {
-        // atom, construtor of arity 0
+        // atom, constructor of arity 0
         constrName = constr->str;
       } else {
         ASS(constr->isList());
@@ -2538,7 +2538,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
           }
           args.push(arg);
           Formula* res = new AtomicFormula(Literal::create(c->discriminator(),args.size(),true,args.begin()));
-          
+
           _results.push(ParseResult(res));
           return;
         }

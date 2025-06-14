@@ -283,7 +283,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   unsigned finalLitWeight = rwLitSWeight+(rwrBalance*rwrCnt);
   if(passiveClauseContainer->exceedsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numPositiveLiteralsLowerBound, inf)) {
     env.statistics->discardedNonRedundantClauses++;
-    RSTAT_CTR_INC("superpositions weight skipped after rewrited literal weight retrieval");
+    RSTAT_CTR_INC("superpositions weight skipped after rewritten literal weight retrieval");
     return false;
   }
 

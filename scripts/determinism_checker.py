@@ -19,7 +19,7 @@ and prints out a message when their outputs start to differ.
 differ.
 
 This script is particularly useful in combination with the "-tr"
-options of Vampire which enable tracing ouputs. For example,
+options of Vampire which enable tracing outputs. For example,
 "-tr sa" prints out details of all newly generated, processed, 
 activated and simplified clauses. List of all possible arguments
 to the "-tr" option can be obtained by running "-tr help".
@@ -115,10 +115,10 @@ try:
         if ln1==ln2:
             if not ln1:
                 raise Finished("Both vampires terminated")
-            
+
             if printTraces:
                 print trimEOL(ln1)
-            
+
             continue
         if not ln1:
             raise Finished("First vampire terminated")
@@ -133,7 +133,7 @@ try:
             print "v1: %s" % trimEOL(ln1)
             print "v2: %s" % trimEOL(ln2)
             raise Finished("Second vampire terminated in the middle of a line")
-            
+
         
         print "Vampire outputs differ:"
         print

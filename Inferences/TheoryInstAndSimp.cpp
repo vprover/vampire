@@ -130,7 +130,7 @@ bool TheoryInstAndSimp::isSupportedSort(SortId sort)
   Wraps around interpretePredicate to support interpreted equality
  */
 bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
-  //check equality spearately (X=Y needs special handling)
+  //check equality separately (X=Y needs special handling)
   if (lit->isEquality()) {
     return isSupportedSort(SortHelper::getEqualityArgumentSort(lit));
   }
@@ -742,7 +742,7 @@ struct InstanceFn
 
 Stack<Literal*> computeGuards(Stack<Literal*> const& lits) 
 {
-  /* finds the constructor for a given distructor */
+  /* finds the constructor for a given destructor */
   auto findConstructor = [](TermAlgebra* ta, unsigned destructor, bool predicate) -> TermAlgebraConstructor* 
   {
     // TODO get rid of this wasteful search for the right constructor, and use some sort of hashing instead
@@ -912,12 +912,12 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   Stack<Literal*> selectedLiterals = selectTheoryLiterals(premise);
   selectedLiterals = filterLiterals(std::move(selectedLiterals), _mode);
 
-  // if there are no eligable theory literals selected then there is nothing to do
+  // if there are no eligible theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
     return empty;
   }
 
-  // we have an eligable candidate
+  // we have an eligible candidate
   env.statistics->theoryInstSimpCandidates++;
 #if VTIME_PROFILING
   static const char* THEORY_INST_SIMP = "theory instantiation";

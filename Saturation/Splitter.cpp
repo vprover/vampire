@@ -1257,7 +1257,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
 
     // adding a component should mean "recompute model" (even if we actually don't end up adding a clause)
     // this is connected to the subtle case in handleNonSplittable
-    // and the fact we now maintian the _already_added filter and don't add a clause for second time there
+    // and the fact we now maintain the _already_added filter and don't add a clause for second time there
     // (the case where this might be needed is for a (conditional) ground clause
     // swallowed up by handleNonSplittable, while the corresponding prop variable is already true in the model,
     // because the complementary component was already introduced and considered in the past - requires aac=none to manifest)
@@ -1339,7 +1339,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
               //  SATLiteral sat_lit = getLiteralFromName(sl);
               //  if(!_branchSelector.isZeroImplied(sat_lit)) return false;
               //}
-              //return true; // all okay              
+              //return true; // all okay
               return premise->splits()->isSubsetOf(replacement->splits()); 
             } ));
   } else {
@@ -1649,7 +1649,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
         
         rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
         _sa->addNewClause(rcl);
-              
+
         // TODO: keep statistics in release ?
         // RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
         RSTAT_CTR_INC("total_unfrozen");

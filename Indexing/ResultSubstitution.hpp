@@ -137,6 +137,6 @@ public:
   { self.output(out); return out; }
 };
 
-}; // namepace Indexing
+}; // namespace Indexing
 
 #endif /* __ResultSubstitution__ */

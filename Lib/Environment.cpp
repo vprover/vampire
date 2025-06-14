@@ -78,7 +78,7 @@ Environment::~Environment()
 }
 
 /**
- * Return remaining time in miliseconds.
+ * Return remaining time in milliseconds.
  */
 int Environment::remainingTime() const
 {
