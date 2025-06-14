@@ -2979,7 +2979,7 @@ void Options::strategySamplingAssign(std::string optname, std::string value, DHM
  */
 std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes)
 {
-  if (optname[0] == '$') {
+  if (optname[0] == '$' || optname[0] == '@') {
     std::string* foundVal = fakes.findPtr(optname);
     if (!foundVal) {
       USER_ERROR("Sampling file processing error -- unassigned fake option: " + optname);
