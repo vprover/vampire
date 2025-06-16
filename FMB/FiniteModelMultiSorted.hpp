@@ -76,7 +76,7 @@ class FiniteModelMultiSorted {
 public:
 
   // sortSizes is a map from vampire sorts (defined in Kernel/Sorts) to the size of that sort
-  FiniteModelMultiSorted(DArray<unsigned> sortSizes) : _sizes(sortSizes) {
+  FiniteModelMultiSorted(DArray<unsigned> sortSizes) : _sizes(std::move(sortSizes)) {
     initTables();
   }
 

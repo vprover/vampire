@@ -1892,8 +1892,7 @@ void FiniteModelBuilder::onModelFound()
     vampireSortSizes[vSort] = size;
   }
 
-  // TODO can we get rid of this clone() and pass a reference instead(?)
-  FiniteModelMultiSorted model(vampireSortSizes.clone());
+  FiniteModelMultiSorted model(vampireSortSizes.clone()); // need a clone, because FiniteModelMultiSorted may want to modify its version later
 
   //Record interpretation of constants and functions
   for(unsigned f=0;f<env.signature->functions();f++){
