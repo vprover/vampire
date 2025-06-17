@@ -150,7 +150,7 @@ Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
           }
         }
         // Add the unified answer literal
-        lits.push(newAnsLit);
+        lits.push(subst.apply(newAnsLit, 0));
         ASS(lits.top()->computableOrVar());
         Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_UNIFICATION, cl));
         return Clause::fromStack(lits, inf);
@@ -172,19 +172,17 @@ Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
   // Get synthesis information
   const TwoLiteralInferenceExtra::SynthesisExtra* synExtra = nullptr;
   if (cl->inference().rule() == InferenceRule::SUPERPOSITION) {
-    const TwoLiteralRewriteInferenceExtra* extra = static_cast<const TwoLiteralRewriteInferenceExtra*>(env.proofExtra.find(cl));
-    ASS(extra != nullptr);
-    ASS(extra->selected.otherLiteral->isEquality());
-    synExtra = &(extra->selected.synthesisExtra);
+    const TwoLiteralRewriteInferenceExtra& extra = env.proofExtra.get<TwoLiteralRewriteInferenceExtra>(cl);
+    ASS(extra.selected.otherLiteral->isEquality());
+    synExtra = &(extra.selected.synthesisExtra);
   } else if ((cl->inference().rule() == InferenceRule::RESOLUTION) ||
              (cl->inference().rule() == InferenceRule::CONSTRAINED_RESOLUTION)) {
-    const TwoLiteralInferenceExtra* extra = static_cast<const TwoLiteralInferenceExtra*>(env.proofExtra.find(cl));
-    ASS(extra != nullptr);
-    synExtra = &(extra->synthesisExtra);
+    const TwoLiteralInferenceExtra& extra = env.proofExtra.get<TwoLiteralInferenceExtra>(cl);
+    synExtra = &(extra.synthesisExtra);
   }
-  Literal *thenLit = synExtra->thenLit, *elseLit = synExtra->elseLit;
   ASS(synExtra != nullptr);
-  ASS(synExtra->condition != nullptr);
+  Literal *thenLit = synExtra->thenLit, *elseLit = synExtra->elseLit, *condition = synExtra->condition;
+  ASS(condition != nullptr);
   ASS(thenLit != nullptr);
   ASS(elseLit != nullptr);
   ASS_EQ(thenLit->arity(), elseLit->arity());
@@ -199,35 +197,33 @@ Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
     if (!thenLit) {
       return nullptr;
     }
-    elseLit = subst.apply(elseLit, 0);
   }
   if (!elseLit->computableOrVar()) {
     elseLit = synthMan->selfUnifyToRemoveUncomputableConditions(elseLit, &subst);
     if (!elseLit) {
       return nullptr;
     }
-    thenLit = subst.apply(thenLit, 0);
   }
   ASS(thenLit->computableOrVar());
   ASS(elseLit->computableOrVar());
 
+
   // We will try to join `thenLit` and `elseLit`.
   // We assume that which symbols are uncomputable is the same for all answer literal arguments.
   // Let "thenLit = ~ans(t1, ..., tN)" and "elseLit = ~ans(e1, ..., eN)".
-  // We might have already used `subst` to make these two literals computable.
-  // Thus, we compute `condition = (synExtra->condition)subst`, then:
+  // Note that we already might have changed one of the answer literals and computed `subst`
+  // which syntactically unifies them. Now:
   // - if `condition` is computable, then the joined answer literal is:
   //    ~ans(ite(condition, t1, e1), ..., ite(condition, tN, eN)),
-  // - else if `M = mgu(thenLit, elseLit)`, then the joined answer literal is:
-  //    (thenLit)M,
-  // - otherwise we cannot join the answer literal, and so we fail and return nullptr.
-  // If we computed the joined answer literal, we also apply `subst` (and possibly `M`)
-  // on all the other non-answer literals in the clause.
+  // - else if `thenLit` and `elseLit` are unifiable (modulo ITE) by extending `subst`,
+  //   the joined answer literal is:
+  //    thenLit,
+  // - otherwise we cannot join the answer literals, and so we fail and return nullptr.
+  // If we computed the joined answer literal, we apply `subst` on the whole resulting clause.
   // TODO(hzzv): make this work for different arguments admitting different (un)computable symbols.
   Literal* newAnsLit = nullptr;
-  Literal* condition = subst.apply(synExtra->condition, 0);
   InferenceRule rule;
-  if (condition->computableOrVar()) {
+  if ((thenLit != elseLit) && condition->computableOrVar()) {
     // Condition is computable, join the answer literals using if-then-else
     newAnsLit = synthMan->makeITEAnswerLiteral(condition, thenLit, elseLit);
     rule = InferenceRule::ANSWER_LITERAL_ITE;
@@ -238,19 +234,19 @@ Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
     rule = InferenceRule::ANSWER_LITERAL_UNIFICATION;
   }
   if (newAnsLit) {
-    ASS(newAnsLit->computableOrVar());
     // New answer literal was constructed.
-    // Copy over all other literals, apply on them the substitution,
-    // and add the new answer literal.
+    // Copy over all other literals, and add the new answer literal, applying `subst` on all.
     LiteralStack lits(cl->length()-1);
     for (unsigned i = 0; i < cl->length(); ++i) {
       if ((i != idx[0]) && (i != idx[1])) {
         lits.push(subst.apply((*cl)[i], 0));
       }
     }
-    lits.push(newAnsLit);
+    lits.push(subst.apply(newAnsLit, 0));
+    ASS(lits.top()->computableOrVar());
     Inference inf(SimplifyingInference1(rule, cl));
-    return Clause::fromStack(lits, inf);
+    Clause* c = Clause::fromStack(lits, inf);
+    return c;
   }
   // The answer literals cannot be joined.
   return nullptr;

@@ -773,7 +773,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
 
 bool SynthesisALManager::unifyTermWithBothBranches(RobSubstitution* subst, TermList& t, TermList& branch1, TermList& branch2, TermList& res) {
   TermList r;
-  if (!unifyConsideringITE(subst, branch1, t, r) || !unifyConsideringITE(subst, branch2, r, res)) {
+  if (!unifyConsideringITE(subst, branch1, t, r) || !unifyConsideringITE(subst, branch2, t, res)) {
     return false;
   }
   return true;
@@ -781,7 +781,7 @@ bool SynthesisALManager::unifyTermWithBothBranches(RobSubstitution* subst, TermL
 
 bool SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res) {
   if (subst->unify(t1, 0, t2, 0)) {
-    res = subst->apply(t1, 0);
+    res = t1;
     return true;
   }
   if (isITE(t1)) {
@@ -805,8 +805,8 @@ bool SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, TermList& t
         return unifyConsideringITE(subst, r1, r2, res);
       } else {
         // Conditions unify, create a new if-then-else:
-        Term* cond = subst->apply(cond1, 0).term();
-        res = TermList(createRegularITE(cond, subst->apply(r1, 0), subst->apply(r2, 0), env.signature->getFunction(t1.term()->functor())->fnType()->result()));
+        ASS(cond1.isTerm());
+        res = TermList(createRegularITE(cond1.term(), r1, r2, env.signature->getFunction(t1.term()->functor())->fnType()->result()));
         return true;
       }
     } else {
@@ -829,7 +829,7 @@ Literal* SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, Literal
   ASS_EQ(l1->functor(), l2->functor());
   // First try regular unification without any consideration to if-then-elses.
   if (subst->unifyArgs(l1, 0, l2, 0)) {
-    return subst->apply(l1, 0);
+    return l1;
   }
   // Regular unification failed, try unification considering if-then-elses
   // for each answer literal argument separately.
@@ -841,16 +841,7 @@ Literal* SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, Literal
     }
     args.push(arg);
   }
-  // All unifications succeeded.
-  // Since the `subst` changes in the process, apply in on all `args`.
-  Stack<TermList>::RefIterator it(args);
-  while (it.hasNext()) {
-    TermList& arg = it.next();
-    TermList argSub = subst->apply(arg, 0);
-    if (arg != argSub) {
-      it.replace(argSub);
-    }
-  }
+  // All unifications succeeded. Return the literal *before applying subst* and the computed subst.
   return Literal::create(l1->functor(), l1->arity(), l1->polarity(), args.begin());
 }
 
@@ -891,10 +882,7 @@ Literal* SynthesisALManager::selfUnifyToRemoveUncomputableConditions(Literal* l,
   ASS(l->isAnswerLiteral());
   ComputableSelfTransformer cst(subst);
   Literal* transformed = cst.transformLiteral(l);
-  if (cst.failed || !transformed->computableOrVar()) {
-    return nullptr;
-  }
-  return transformed;
+  return ((cst.failed || !transformed->computableOrVar()) ? nullptr : transformed);
 }
 
 }

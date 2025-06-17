@@ -30,9 +30,10 @@ void TwoLiteralInferenceExtra::output(std::ostream &out) const {
     out << ",condition=(" << synthesisExtra.condition->toString() << ")";
   }
   if (synthesisExtra.thenLit) {
-    ASS(synthesisExtra.elseLit);
-    out << ",thenLit=(" << synthesisExtra.thenLit->toString() << ")";
-    out << ",elseLit=(" << synthesisExtra.elseLit->toString() << ")";
+    out << ",thenLit=(" << synthesisExtra.thenLit->toString() << "," << synthesisExtra.thenLit << ")";
+  }
+  if (synthesisExtra.elseLit) {
+    out << ",elseLit=(" << synthesisExtra.elseLit->toString() << "," << synthesisExtra.elseLit << ")";
   }
 }
 
