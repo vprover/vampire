@@ -53,6 +53,7 @@ struct EqResWithDeletionExtra : public InferenceExtra {
   std::unordered_set<Literal *> resolved;
   EqResWithDeletionExtra(std::unordered_set<Literal *> resolved) : resolved(resolved) {}
   void output(std::ostream &out) const override;
+  void tptp(std::ostream &out) const override;
 };
 
 };

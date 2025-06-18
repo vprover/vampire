@@ -26,12 +26,20 @@ namespace Lib {
 struct InferenceExtra {
   virtual ~InferenceExtra() {};
 
-  // for debug printing only, specific output formats should downcast and handle individually
+  // default output
   virtual void output(std::ostream &out) const = 0;
+  // TPTP output
+  virtual void tptp(std::ostream &out) const = 0;
 
   std::string toString() const {
     std::stringstream ss;
-    this->output(ss);
+    output(ss);
+    return ss.str();
+  }
+
+  std::string toTPTPString() const {
+    std::stringstream ss;
+    tptp(ss);
     return ss.str();
   }
 };

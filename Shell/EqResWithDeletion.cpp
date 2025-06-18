@@ -144,7 +144,19 @@ void EqResWithDeletionExtra::output(std::ostream &out) const {
     out << "(" << l->toString() << ")";
   }
   out << "]";
-
 }
+
+void EqResWithDeletionExtra::tptp(std::ostream &out) const {
+  bool first = true;
+  out << "resolved([";
+  for(Literal *l : resolved) {
+    if(!first)
+      out << ",";
+    first = false;
+    out << "(" << l->toString() << ")";
+  }
+  out << "])";
+}
+
 
 }

@@ -985,4 +985,16 @@ void FunctionDefinitionExtra::output(std::ostream &out) const {
   out << "]";
 }
 
+void FunctionDefinitionExtra::tptp(std::ostream &out) const {
+  bool first = true;
+  out << "targets([";
+  for(Term *t : lhs) {
+    if(!first)
+      out << ",";
+    first = false;
+    out << t->toString();
+  }
+  out << "])";
+}
+
 }

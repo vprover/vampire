@@ -52,6 +52,10 @@ struct BinInfExtra : public InferenceExtra {
   void output(std::ostream &out) const override {
     out << "left=(" << left << "),right=(" << right << ")";
   }
+
+  void tptp(std::ostream &out) const override {
+    out << "left(" << left << "),right(" << right << ")";
+  }
 };
 
 template<class Rule>

@@ -27,7 +27,8 @@ namespace Inferences {
 struct LiteralInferenceExtra : public InferenceExtra {
   LiteralInferenceExtra(Kernel::Literal *selected) : selectedLiteral(selected) {}
 
-  virtual void output(std::ostream &out) const override;
+  void output(std::ostream &out) const override;
+  void tptp(std::ostream &out) const override;
 
   // the literal from the main premise
   Kernel::Literal *selectedLiteral;
@@ -38,7 +39,8 @@ struct TwoLiteralInferenceExtra : public InferenceExtra {
   TwoLiteralInferenceExtra(Kernel::Literal *selected, Kernel::Literal *other)
     : selectedLiteral(selected), otherLiteral(other) {}
 
-  virtual void output(std::ostream &out) const override;
+  void output(std::ostream &out) const override;
+  void tptp(std::ostream &out) const override;
 
   // selected literal
   LiteralInferenceExtra selectedLiteral;
@@ -50,7 +52,8 @@ struct RewriteInferenceExtra : public InferenceExtra {
   RewriteInferenceExtra(Kernel::TermList lhs, Kernel::TermList target)
     : lhs(lhs), rewritten(target) {}
 
-  virtual void output(std::ostream &out) const override;
+  void output(std::ostream &out) const override;
+  void tptp(std::ostream &out) const override;
 
   // the LHS used to rewrite with
   Kernel::TermList lhs;
@@ -65,7 +68,8 @@ struct TwoLiteralRewriteInferenceExtra : public InferenceExtra {
     Kernel::TermList lhs,
     Kernel::TermList rewritten)
     : selected(selected, other), rewrite(lhs, rewritten) {}
-  virtual void output(std::ostream &out) const override;
+  void output(std::ostream &out) const override;
+  void tptp(std::ostream &out) const override;
 
   // selected literals
   TwoLiteralInferenceExtra selected;
