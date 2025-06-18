@@ -63,8 +63,16 @@ void SATClauseExtra::output(std::ostream &out) const {
   out << "sat_clause_recorded";
 }
 
+void SATClauseExtra::tptp(std::ostream &out) const {
+  // TODO what is sensible here?
+}
+
 void SplitDefinitionExtra::output(std::ostream &out) const {
   out << component->number();
+}
+
+void SplitDefinitionExtra::tptp(std::ostream &out) const {
+  // TODO what is sensible here?
 }
 
 /////////////////////////////

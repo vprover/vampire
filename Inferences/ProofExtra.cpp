@@ -23,13 +23,26 @@ void LiteralInferenceExtra::output(std::ostream &out) const {
   out << "selected=(" << selectedLiteral->toString() << ')';
 }
 
+void LiteralInferenceExtra::tptp(std::ostream &out) const {
+  out << "selected(" << selectedLiteral->toString() << ')';
+}
+
 void TwoLiteralInferenceExtra::output(std::ostream &out) const {
   selectedLiteral.output(out);
   out << ",other=(" << otherLiteral->toString() << ')';
 }
 
+void TwoLiteralInferenceExtra::tptp(std::ostream &out) const {
+  selectedLiteral.tptp(out);
+  out << ",other(" << otherLiteral->toString() << ')';
+}
+
 void RewriteInferenceExtra::output(std::ostream &out) const {
   out << "lhs=" << lhs << ",target=" << rewritten;
+}
+
+void RewriteInferenceExtra::tptp(std::ostream &out) const {
+  out << "lhs(" << lhs << "),target(" << rewritten << ')';
 }
 
 void TwoLiteralRewriteInferenceExtra::output(std::ostream &out) const {
@@ -37,5 +50,12 @@ void TwoLiteralRewriteInferenceExtra::output(std::ostream &out) const {
   out << ',';
   rewrite.output(out);
 }
+
+void TwoLiteralRewriteInferenceExtra::tptp(std::ostream &out) const {
+  selected.tptp(out);
+  out << ',';
+  rewrite.tptp(out);
+}
+
 
 } // namespace Inferences

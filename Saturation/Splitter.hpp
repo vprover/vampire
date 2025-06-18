@@ -53,6 +53,7 @@ struct SATClauseExtra : public InferenceExtra {
   SATClause *clause;
   SATClauseExtra(SATClause *clause) : clause(clause) {}
   void output(std::ostream &out) const override;
+  void tptp(std::ostream &out) const override;
 };
 
 struct SplitDefinitionExtra : public InferenceExtra {
@@ -61,6 +62,7 @@ struct SplitDefinitionExtra : public InferenceExtra {
     component->incRefCnt();
   }
   void output(std::ostream &out) const override;
+  void tptp(std::ostream &out) const override;
 };
 
 class Splitter;

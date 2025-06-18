@@ -119,6 +119,7 @@ struct FunctionDefinitionExtra : public InferenceExtra {
   std::vector<Term *> lhs;
   FunctionDefinitionExtra(std::vector<Term *> lhs) : lhs(lhs) {}
   void output(std::ostream &out) const override;
+  void tptp(std::ostream &out) const override;
 };
 
 }

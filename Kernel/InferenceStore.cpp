@@ -634,10 +634,15 @@ protected:
       else if(rule==InferenceRule::NEGATED_CONJECTURE) {
 	      statusStr="status(cth)";
       }
+      else
+	      statusStr="status(thm)";
 
       inferenceStr="inference("+tptpRuleName(rule);
 
-      inferenceStr+=",["+statusStr+"],[";
+      inferenceStr+=",["+statusStr;
+      if(auto *extra = env.proofExtra.find(us))
+        inferenceStr += "," + extra->toTPTPString();
+      inferenceStr += "],[";
       bool first=true;
       while(parents.hasNext()) {
         Unit* prem=parents.next();
