@@ -36,6 +36,8 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/InferenceStore.hpp"
 
+#include "Lib/Environment.hpp"
+
 #include "TweeGoalTransformation.hpp"
 
 using Kernel::Clause;

@@ -14,6 +14,7 @@
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "Signature.hpp"
+#include "Lib/Environment.hpp"
 
 namespace Kernel {
 

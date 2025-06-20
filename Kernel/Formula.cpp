@@ -17,6 +17,8 @@
 #include "Clause.hpp"
 #include "SubformulaIterator.hpp"
 #include "FormulaVarIterator.hpp"
+#include "Lib/Environment.hpp"
+
 
 namespace Kernel {
 
@@ -467,6 +469,32 @@ Formula* Formula::fromClause(Clause* cl)
 
   Formula* res=JunctionFormula::generalJunction(OR, resLst);
   return Formula::quantify(res);
+}
+
+Formula* BoolTermFormula::create(TermList ts)
+{
+  if (ts.isVar()) {
+    return new BoolTermFormula(ts);
+  }
+
+  Term* term = ts.term();
+  if (term->isSpecial()) {
+    Term::SpecialTermData *sd = term->getSpecialData();
+    switch (sd->specialFunctor()) {
+      case SpecialFunctor::FORMULA:
+        return sd->getFormula();
+      default:
+        return new BoolTermFormula(ts);
+    }
+  } else {
+    unsigned functor = term->functor();
+    if (env.signature->isFoolConstantSymbol(true, functor)) {
+      return new Formula(true);
+    } else {
+      ASS(env.signature->isFoolConstantSymbol(false, functor));
+      return new Formula(false);
+    }
+  }
 }
 
 std::ostream& operator<< (std::ostream& out, const Formula& f)
