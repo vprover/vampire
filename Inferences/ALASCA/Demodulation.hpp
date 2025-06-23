@@ -89,6 +89,10 @@ struct SuperpositionDemodConf
     static constexpr PremiseType premiseType = PremiseType::SimplToSimpl;
     Term* term;
     Clause* cl;
+    unsigned lit;
+
+    Literal* literal() const { return (*cl)[lit]; }
+    auto contextLiterals() const { return cl->iterLits().dropNth(lit); }
     Clause* clause() const { return cl; }
     mutable Option<unsigned> _firstFreshVar = {};
     TypedTermList key() const { return term; };
@@ -102,11 +106,11 @@ struct SuperpositionDemodConf
 
     static auto iter(AlascaState& shared, Clause* cl)
     { 
-      return iterTraits(cl->iterLits())
-        .flatMap([=](auto lit) {
+      return iterTraits(cl->iterLits().zipWithIndex())
+        .flatMap([=](auto lit_idx) {
             // TODO remove the new stuff and virtualization here
-            return iterTraits(vi(new NonVariableNonTypeIterator(lit)))
-              .map([=](Term* t) -> ToSimpl { return ToSimpl { .term = t, .cl = cl, }; });
+            return iterTraits(vi(new NonVariableNonTypeIterator(lit_idx.first)))
+              .map([=](Term* t) -> ToSimpl { return ToSimpl { .term = t, .cl = cl, .lit = unsigned(lit_idx.second), }; });
         });
     }
 
@@ -173,6 +177,34 @@ struct SuperpositionDemodConf
     DEBUG(1, "result: ", *cl)
     DEBUG(1, "")
     return some(cl);
+
+
+    // auto condσ = Literal::createEquality(true, sσ, tσ, sσ.sort());
+    // check_side_condition("L[sσ] ≻ (s ≈ t)σ", 
+    //      /* optimization for alasca literal ordering:
+    //       * if we have some literal L[sσ] ∈ C[sσ] that is not a positive equality, 
+    //       * then we know that  L[sσ] ≻ (s ≈ t)σ  in alasca's literal ordering */
+    //     (_shared->ordering->isAlascaLiteralOrdering() && 
+    //        /* check L[sσ] ≻ (s ≈ t)σ */
+    //        !simpl.literal()->isEquality() || simpl.literal()->isNegative()
+    //
+    //    || _shared->greater(simpl.literal(), condσ)
+    //    )
+    //     )
+    //
+    // auto cl =  Clause::fromIterator(
+    //         concatIters(
+    //           simpl.contextLiterals().cloned(),
+    //           iterItems(EqHelper::replace(simpl.literal(), sσ, tσ))
+    //         ),
+    //         Inference(SimplifyingInference2(
+    //             Kernel::InferenceRule::ALASCA_SUPERPOSITION_DEMOD, 
+    //             simpl.clause(), cond.clause()))
+    //         );
+    // DEBUG(1, "result: ", *cl)
+    // DEBUG(1, "")
+    // return some(cl);
+
   }
 };
 
