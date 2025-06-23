@@ -345,8 +345,46 @@ using LookaheadComparator =
 	    Composite<LeastDistinctVariables, 
                       LexComparator>>>>;
 
+namespace ALASCA {
 
-}
-}
+
+#define MK_ALASCA_COMPARATOR(Name)                                                        \
+  struct Name \
+  {                                                                                       \
+    static auto typeName() { return #Name;  }                                             \
+  };                                                                                      \
+
+
+MK_ALASCA_COMPARATOR(IsUwaConstraint)
+MK_ALASCA_COMPARATOR(CntSummandsMax)
+MK_ALASCA_COMPARATOR(CntSummandsAll)
+MK_ALASCA_COMPARATOR(TheoryComplexityMax)
+MK_ALASCA_COMPARATOR(TheoryComplexityAll)
+MK_ALASCA_COMPARATOR(NumberOfVarsMax)
+MK_ALASCA_COMPARATOR(NumberOfVarsAll)
+MK_ALASCA_COMPARATOR(SizeMax)
+MK_ALASCA_COMPARATOR(SizeAll)
+
+template<class UninterCase, class InterCase, class Fallback>
+struct IfUninterpreted : public LiteralComparator
+{
+  Comparison compare(Literal* l1, Literal* l2) { return Comparison::EQUAL; }
+  static auto typeName() 
+  { 
+    return Output::catOwned("IfUninterpretd<", 
+      UninterCase::name(), 
+      ", ",  
+      std::apply([](auto... val) { return std::make_tuple(decltype(val)::name()...); }, std::declval<InterCase>()),
+      ", ",  
+      Fallback::name(), ">");  
+  }
+};
+
+
+
+} // ALASCA
+
+} // LiteralComparators 
+} // Kernel 
 
 #endif /* __CompositeLiteralComparator__ */

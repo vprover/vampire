@@ -77,7 +77,7 @@ auto asymSelectionTest() {
       Lib::make_shared(InequalityNormalizer()),
       nullptr,
      /*uwaFixdPointIteration=*/ false,
-     AlascaSelector::fromType<SelectorMode>());
+     LiteralSelectors::selectorMode<SelectorMode>());
 
   auto rule = new CompositeSGI();
   TypeList::List<Rules...>::forEach([&](auto token) {
@@ -266,7 +266,7 @@ TEST_FUN(best_01) {
       Lib::make_shared(InequalityNormalizer()),
       nullptr,
      /*uwaFixdPointIteration=*/ false,
-     AlascaSelector::fromType<SelectorMode>());
+     LiteralSelectors::selectorMode<SelectorMode>());
 
   auto sel = state->selected(cl)
     .map([](auto& s) { return s.litIdx(); })

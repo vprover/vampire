@@ -124,6 +124,9 @@ bool TermList::isSafe() const
 bool TermList::ground() const 
 { return isTerm() && term()->ground(); }
 
+unsigned TermList::getDistinctVars()
+{ return isVar() ? 1 : term()->getDistinctVars(); }
+
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
  * either both are the same variable or both are complex terms with the

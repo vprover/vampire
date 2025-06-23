@@ -1309,10 +1309,20 @@ void Options::init()
             )));
 
 
+
     _alascaSkelOrd = BoolOptionValue("alasca-skel-ord","alasca-so",false);
     _alascaSkelOrd.description="Turns an the term ordering into an alasca-compatible term ordering.";
     _lookup.insert(&_alascaSkelOrd);
     addRecommendationConstraint(_alascaSkelOrd, Or(
+           _alasca.is(equal(true))
+           ));
+
+
+
+    _alascaSelection = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection","alasca-s",AlascaSelectionMode::OFF, {"off","on","inv"});
+    _alascaSelection.description="Turns an alasca's specific selection strategy to wrap the usual selection option in it.";
+    _lookup.insert(&_alascaSelection);
+    addRecommendationConstraint(_alascaSelection, Or(
            _alasca.is(equal(true))
            ));
 

@@ -268,6 +268,10 @@ public:
   bool containsAllVariablesOf(TermList t) const;
   bool ground() const;
   bool isSafe() const;
+  // the number of _distinct_ variables within the term
+  unsigned getDistinctVars();
+
+
 
 #if VDEBUG
   void assertValid() const;

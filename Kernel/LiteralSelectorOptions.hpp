@@ -58,6 +58,30 @@ namespace LiteralSelectors {
     , LexComparator
     >;
 
+
+  using AlascaComparator = CompositeN
+    < ColoredFirst
+    , ALASCA::IfUninterpreted<
+      // compare uninterpreted literals by
+      Comparator10,
+      // compare interpreted literals by
+      std::tuple<
+          ALASCA::IsUwaConstraint
+        , ALASCA::CntSummandsMax
+        , ALASCA::CntSummandsAll
+        , ALASCA::TheoryComplexityMax
+        , ALASCA::TheoryComplexityAll
+        , ALASCA::NumberOfVarsMax
+        , ALASCA::NumberOfVarsAll
+        , ALASCA::SizeMax
+        , ALASCA::SizeAll
+        >,
+      // fallback for interpreted
+      LexComparator
+        >
+    >;
+
+
   template<unsigned i, class T> 
   struct OptionValue {
     using type = T;
@@ -71,6 +95,7 @@ using OptionValues = TL::List<
   , OptionValue<2, CompleteBestLiteralSelector<Comparator2>>
   , OptionValue<3, CompleteBestLiteralSelector<Comparator3>>
   , OptionValue<4, CompleteBestLiteralSelector<Comparator4>>
+  , OptionValue<5, CompleteBestLiteralSelector<AlascaComparator>>
   , OptionValue<10, CompleteBestLiteralSelector<Comparator10>>
   , OptionValue<11, GenericLookaheadLiteralSelector</* complete */ true>>
 
@@ -84,6 +109,7 @@ using OptionValues = TL::List<
   , OptionValue<33, GenericELiteralSelector<3>>
   , OptionValue<34, GenericELiteralSelector<4>>
   , OptionValue<35, GenericELiteralSelector<5>>
+
 
   , OptionValue<666, GenericRndLiteralSelector</* complte */ true>>
 

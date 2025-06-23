@@ -129,7 +129,7 @@ public:
                     .inspect([](auto& unif) { DEBUG(0, "  unif: ", unif); })
                     .filter([=](auto& unif) { 
                         // TODO 2 remove this call and replace by DSL call
-                        return _shared->selector.postUnificationCheck(sel, /* varBank */ 0, std::get<1>(unif), _shared->ordering, [](auto&& msg) { DEBUG(0, "  no result: ", msg) }); })
+                        return _shared->selector.postUnificationCheck(sel, /* varBank */ 0, std::get<1>(unif), [](auto&& msg) { DEBUG(0, "  no result: ", msg) }); })
                     .map([sel](auto i_unif) {
                         return applyRule(sel, std::get<0>(i_unif), std::get<1>(i_unif));
                     })

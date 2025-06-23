@@ -24,31 +24,66 @@ namespace Kernel {
     LiteralSelectors::SelectorMode _mode;
     bool _reversePolarity;
     Inferences::SimplifyingGeneratingInference* _inf = nullptr;
-
-    AlascaSelector(LiteralSelectors::SelectorMode mode, bool reversePolarity)
-      : _mode(std::move(mode))
-      , _reversePolarity(reversePolarity) {}
+    Ordering* ord;
 
     friend struct AlascaSelectorDispatch;
   public:
 
+    AlascaSelector(Ordering* ord, LiteralSelectors::SelectorMode mode, bool reversePolarity)
+      : _mode(std::move(mode))
+      , _reversePolarity(reversePolarity) 
+      , ord(ord) 
+      {}
+
+#if VDEBUG
+    void setOrdering(Ordering* ord) { this->ord = ord; }
+#endif
+
     void setLookaheadInferenceEngine(Inferences::SimplifyingGeneratingInference* inf) { _inf = inf; }
 
-    template<class LiteralSelector>
-    static AlascaSelector fromType(bool reverseLcm = false)
-    { return AlascaSelector(LiteralSelectors::SelectorMode(TL::Token<LiteralSelector>{}), reverseLcm); }
+    // template<class LiteralSelector>
+    // static AlascaSelector fromType(Ordering* ord, bool reverseLcm = false)
+    // { return AlascaSelector(ord, LiteralSelectors::SelectorMode(TL::Token<LiteralSelector>{}), reverseLcm); }
 
-    static Option<AlascaSelector> fromNumber(int number) {
+    static Option<AlascaSelector> fromNumber(Ordering* ord, int number) {
       return LiteralSelectors::getSelectorType(abs(number))
         .map([&](auto mode) {
-            return AlascaSelector(std::move(mode), number < 0);
+            return AlascaSelector(ord, std::move(mode), number < 0);
         });
     }
+
     // TODO make an array class that doesn't have any capacity slack
     Map<Clause* , Stack<__SelectedLiteral>> _cache;
-    Stack<__SelectedLiteral> computeSelected(Clause* cl, Ordering* ord) const;
+    mutable Map<TypedTermList, Stack<unsigned>> _maxAtoms;
+    Stack<__SelectedLiteral> computeSelected(Clause* cl) const;
   public:
-    auto selected(Clause* cl, Ordering* ord)
+
+    template<class NumTraits>
+    Stack<unsigned> const& maxAtomsNotLessStack(AlascaTermItp<NumTraits> const& t) const {
+      auto key = t.toTerm();
+      if (auto val = _maxAtoms.tryGet(key)) {
+        return *val;
+      } else {
+       auto stack = OrderingUtils::maxElems(t.nSummands(),
+                      [=](unsigned l, unsigned r)
+                      { return ord->compare(t.summandAt(l).atom(), t.summandAt(r).atom()); },
+                      [&](unsigned i)
+                      { return t.summandAt(i).atom(); },
+                      SelectionCriterion::NOT_LESS)
+              .collectStack();
+
+        return _maxAtoms.insert(key, std::move(stack));
+      }
+    }
+
+
+    template<class NumTraits>
+    auto maxAtomsNotLess(AlascaTermItp<NumTraits> const& t) const 
+    { return arrayIter(maxAtomsNotLessStack(t))
+        .map([=](auto i) { return t.summandAt(i); }); }
+
+
+    auto selected(Clause* cl)
     {
       // return assertionViolation<DummyIter<__SelectedLiteral>>();
 
@@ -56,14 +91,13 @@ namespace Kernel {
       if (auto out = _cache.tryGet(cl)) {
         return arrayIter(*out);
       } else {
-        auto const& value = _cache.insert(cl, computeSelected(cl, ord));
+        auto const& value = _cache.insert(cl, computeSelected(cl));
         return arrayIter(value);
-      }
-    }
+      } }
 
     // TODO 2 deprecate
     template<class Selected, class FailLogger>
-    bool postUnificationCheck(Selected const& sel, unsigned varBank, AbstractingUnifier& unif, Ordering* ord, FailLogger logger) {
+    bool postUnificationCheck(Selected const& sel, unsigned varBank, AbstractingUnifier& unif, FailLogger logger) {
       if (!AlascaOrderingUtils::atomLocalMaxAfterUnif(ord, sel, sel.localAtomicTermMaximality(), unif, varBank
             , [&](auto msg) { logger(Output::cat("atom not maximal: ", msg)); })) {
         return false;

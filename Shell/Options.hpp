@@ -709,6 +709,12 @@ public:
     OFF,
   };
 
+  enum class AlascaSelectionMode : unsigned int {
+    OFF,
+    ON,
+    INV,
+  };
+
   enum class KboWeightGenerationScheme : unsigned int {
     CONST = 0,
     RANDOM = 1,
@@ -2309,6 +2315,7 @@ public:
   EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
   bool alasca() const { return _alasca.actualValue; }
+  AlascaSelectionMode alascaSelection() { return _alascaSelection.actualValue; }
   bool alascaSkelOrd() const { return _alascaSkelOrd.actualValue; }
   bool viras() const { return _viras.actualValue; }
   bool alascaIneqFacDemod() const { return _alascaIneqFacDemod.actualValue; }
@@ -2797,6 +2804,8 @@ private:
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
   BoolOptionValue _complexVarCondition;
+
+  ChoiceOptionValue<AlascaSelectionMode> _alascaSelection;
 
 }; // class Options
 

@@ -145,7 +145,7 @@ namespace Kernel {
     }
 
     auto selected(Clause* cl)
-    { return selector.selected(cl, ordering); }
+    { return selector.selected(cl); }
 
     Option<AbstractingUnifier> unify(TermList lhs, TermList rhs) const
     { return AbstractingUnifier::unify(lhs, 0, rhs, 0, uwaMode(), uwaFixedPointIteration); }
@@ -157,7 +157,8 @@ namespace Kernel {
     std::shared_ptr<InequalityNormalizer> strongNormalization = Lib::make_shared(InequalityNormalizer()),
     Ordering* ordering = nullptr,
     bool uwaFixdPointIteration = false,
-    AlascaSelector sel = AlascaSelector::fromType<MaximalLiteralSelector>()
+    LiteralSelectors::SelectorMode mode = LiteralSelectors::selectorMode<MaximalLiteralSelector>()
+    // AlascaSelector sel = AlascaSelector::fromType<MaximalLiteralSelector>(nullptr)
     );
 #endif
 
