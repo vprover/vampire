@@ -126,7 +126,7 @@ class Rec(object):
                         if reMinimErrorLines.match(line) or reApproxVal.match(line):
                                 approx = True
                                 continue
-                        
+
                         resVal = None
                         if reMinimFail.match(line):
                                 resVal = trMinimFail
@@ -139,11 +139,11 @@ class Rec(object):
                         self.__dict__[valName] = (resVal, approx)
                         return
                 raise IncompleteBenchmark()
-                
+
         def process(self):
                 lineIt = self.lines.__iter__()
                 line = lineIt.next()
-                
+
                 try:
                         self.checkForResLimits(line)
                         if reNonLocalUnit.match(line):
@@ -157,8 +157,8 @@ class Rec(object):
                                 self.derLocal = True
                         else:
                                 raise ProcError("derivation locality not output on the first line")
-                
-                
+
+
                         self.readValue(lineIt, reOrigWeight, "origSz")
                         self.readValue(lineIt, reMinWeight, "minSz")
                         self.readValue(lineIt, reOrigCount, "origCnt")
@@ -176,7 +176,7 @@ class Rec(object):
                                 raise ProcError(str(ere)+" without error result")
                 except StopIteration:
                         raise ProcError("more lines expected")
-                        
+
 
 class Bench(object):
         def __init__(self):
@@ -202,7 +202,7 @@ class Bench(object):
                                         break
                                 else:
                                         curr.addLine(line)
-                                        
+
                         if not reBlueStart.match(lineIt.next()):
                                 raise ProcError("no blue start match")
                         curr = self.blueRec = Rec()
@@ -268,7 +268,7 @@ class CountingObserver(Observer):
                 updateCounter(self.blueCtr,blueVal)
                 updateCounter(self.allCtr,redVal)
                 updateCounter(self.allCtr,blueVal)
-                
+
                 betterVal = None
                 if isinstance(redVal,int):
                         if isinstance(blueVal,int):
@@ -278,7 +278,7 @@ class CountingObserver(Observer):
                 else:
                         betterVal = blueVal
                 updateCounter(self.betterCtr,betterVal)
-                
+
         def display(self):
                 self.postproc(self.allCtr)
                 self.postproc(self.redCtr)
@@ -308,7 +308,7 @@ class ComparingObserver(Observer):
                         redVal = redVal[0]
                 if isinstance(blueVal,tuple):
                         blueVal = blueVal[0]
-                
+
                 if isinstance(redVal,int):
                         if isinstance(blueVal,int):
                                 if redVal==blueVal:
@@ -327,7 +327,7 @@ class ComparingObserver(Observer):
                                 if redVal==blueVal:
                                         failVal = redVal
                                 updateCounter(self.bothFail,failVal)
-                
+
         def display(self):
                 print self.name
                 print "red\t", self.redBetter
@@ -348,7 +348,7 @@ class LocGetter(object):
                         #here we don't know if it was timeout during localization or initial interpolant getting
                         return None
                 return False
-                
+
 class FldGetter(object):
         def __init__(self,fldName):
                 self.fldName = fldName

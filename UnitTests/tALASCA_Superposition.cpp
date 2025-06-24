@@ -106,7 +106,7 @@ auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultaniou
 
 
 
-REGISTER_GEN_TESTER(AlascaGenerationTester<Superposition>(testSuperposition(UWA_MODE, /* simultanious superpos */ false)))
+REGISTER_GEN_TESTER(AlascaGenerationTester<Superposition>(testSuperposition(UWA_MODE, /* simultaneous superpos */ false)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -233,7 +233,7 @@ TEST_GENERATION(self_applications_run_only_once,
 TEST_GENERATION(ordering1_ok_1_simult,
     Generation::SymmetricTest()
       .indices(alascaSuperpositionIndices())
-      .rule(move_to_heap(testSuperposition(UWA_MODE, /*simultanious=*/ true)))
+      .rule(move_to_heap(testSuperposition(UWA_MODE, /*simultaneous=*/ true)))
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
       .expected(exactly(  clause({ f(0) != 0, f(0) != 0 }) 
@@ -330,7 +330,7 @@ TEST_GENERATION(uninterpreted_pred_2,
       .expected(exactly( clause({           p(1)     , f(f(b)) > 0 }) ))
     )
 
-TEST_GENERATION(uninterpreted_pred_3, // TODO couldn't we replace all occurences of f(x) instead of the maximal one
+TEST_GENERATION(uninterpreted_pred_3, // TODO couldn't we replace all occurrences of f(x) instead of the maximal one
     Generation::SymmetricTest()
       .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected(   f(x) - 1 == 0 )      })
@@ -371,7 +371,7 @@ TEST_GENERATION(bug01a,
                           // ==> { z + -g2(f2(x, z), x) > 0 , 0 == x }
                           // (3) {y -> x, z -> y}
                           // ==> { y + -g2(f2(x, y), x) > 0, 0 == x  }
-                          
+
                 ,        clause({ selected( 0 == f2(x, z) + f2(x, y) + -f2(x, (y + z)) ) })
                 })
       .expected(exactly( 
@@ -393,7 +393,7 @@ TEST_GENERATION(bug01b,
                           // ==> { z + -g2((x * z), x) > 0 , 0 == x }
                           // (3) {y -> x, z -> y}
                           // ==> { y + -g2((x * y), x) > 0, 0 == x  }
-                          
+
                 ,        clause({ selected( 0 == (x * z) + (x * y) + -(x * (y + z)) ) })
                 })
       .expected(exactly( 

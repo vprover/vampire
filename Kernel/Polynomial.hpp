@@ -49,7 +49,7 @@
 namespace Kernel {
 
 // TODO use this newtype in Term.hpp
-/** newtype for wrapping varible ids */
+/** newtype for wrapping variable ids */
 class Variable 
 {
   unsigned _num;
@@ -148,7 +148,7 @@ template<class Number> class MonomFactors;
 class AnyPoly;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// class declartions for PolyNf
+// class declarations for PolyNf
 /////////////////////////////////////////////////////////
 
 /** 
@@ -254,7 +254,7 @@ public:
   /** tries to turn this polynom into a polynom of the given NumTraits. */
   template<class NumTraits> Option<Perfect<Polynom<NumTraits>> const&> downcast() const&;
 
-  /** returns wether this is a Polynom of the given NumTraits. */
+  /** returns whether this is a Polynom of the given NumTraits. */
   template<class NumTraits> bool isType() const;
 
   /** if this polynom has the right sort, and consist of a single summand that is a numeral, then this numeral
@@ -388,7 +388,7 @@ public:
 
 /** 
  * Represents a factor in a monom. Each unique term contained in the monom is stored 
- * together with the number of occurences of the term within that monom.
+ * together with the number of occurrences of the term within that monom.
  *
  * e.g. a term like (x * x * a * x) is represented as 
  * MonomFactors { MonomFactor(x, 3), MonomFactor(a, 1) }
@@ -479,7 +479,7 @@ public:
   bool isOne() const;
 
 
-  /** if this MonomFactors consist of a single variable if will be returnd  */
+  /** if this MonomFactors consist of a single variable if will be returned  */
   Option<Variable> tryVar() const;
 
   /** performs an integrity check on the datastructure, only has an effect in debug mode */
@@ -630,7 +630,7 @@ public:
   PolyNf next();
 };
 
-/** convienent constructor for IterArgsPnf */
+/** convenient constructor for IterArgsPnf */
 IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
 
 } // namespace Kernel
@@ -928,7 +928,7 @@ template<> struct std::hash<Kernel::PolyNf>
 };
 
 /////////////////////////////////////////////////////////
-// impl MonomFactor  tempalte stuff
+// impl MonomFactor  template stuff
 ////////////////////////////
 
 namespace Kernel {
@@ -995,7 +995,7 @@ struct std::hash<Kernel::MonomFactor<NumTraits>>
 
 
 /////////////////////////////////////////////////////////
-// impl MonomFactors  tempalte stuff
+// impl MonomFactors  template stuff
 ////////////////////////////
 
 namespace Kernel {
@@ -1207,7 +1207,7 @@ struct std::hash<Kernel::MonomFactors<NumTraits>>
 
 
 /////////////////////////////////////////////////////////
-// impl Polynom tempalte stuff
+// impl Polynom template stuff
 ////////////////////////////
 
 namespace Kernel {

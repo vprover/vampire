@@ -17,15 +17,9 @@
 #define __Matcher__
 
 #include "Forwards.hpp"
-
-#include "Lib/Backtrackable.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Term.hpp"
-#include "TermIterators.hpp"
 #include "SortHelper.hpp"
 
 namespace Kernel {
@@ -47,8 +41,8 @@ public:
 
   static bool match(Literal* base, Literal* instance, bool complementary)
   {
-    static MapBinder binder;
-    return match(base, instance, complementary, binder);
+    static Substitution subst;
+    return match(base, instance, complementary, subst);
   }
 
   /**
@@ -126,39 +120,7 @@ public:
   template<class Binder>
   static bool matchReversedArgs(Literal* base, Literal* instance, Binder& binder);
 
-  template<class Map>
-  struct MapRefBinder
-  {
-    MapRefBinder(Map& map) : _map(map) {}
-
-    bool bind(unsigned var, TermList term)
-    {
-      TermList* aux;
-      return _map.getValuePtr(var,aux,term) || *aux==term;
-    }
-    void specVar(unsigned var, TermList term)
-    { ASSERTION_VIOLATION; }
-    void reset() { _map.reset(); }
-  private:
-    Map& _map;
-  };
-
-private:
-  typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
-  struct MapBinder
-  {
-    bool bind(unsigned var, TermList term)
-    {
-      TermList* aux;
-      return _map.getValuePtr(var,aux,term) || *aux==term;
-    }
-    void specVar(unsigned var, TermList term)
-    { ASSERTION_VIOLATION; }
-    void reset() { _map.reset(); }
-  private:
-    BindingMap _map;
-  };
-
+  //typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
 };
 
 /**

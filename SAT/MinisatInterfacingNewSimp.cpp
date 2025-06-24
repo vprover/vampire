@@ -35,25 +35,6 @@ using namespace Lib;
 using namespace Minisat;
 
 const unsigned MinisatInterfacingNewSimp::VAR_MAX = std::numeric_limits<Minisat::Var>::max() / 2;
-  
-MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts, bool generateProofs):
-  _status(Status::SATISFIABLE)
-{
-  // TODO: consider tuning minisat's options to be set for _solver
-  // (or even forwarding them to vampire's options)  
-  //_solver.mem_lim(opts.memoryLimit()*2);
-  limitMemory(opts.memoryLimit()*1);
-}
-
-void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
-  reportSpiderStatus('m');
-  std::cout << "Minisat ran out of memory" << endl;
-  if(env.statistics) {
-    env.statistics->print(std::cout);
-  }
-  Debug::Tracer::printStack();
-  System::terminateImmediately(1);
-}
 
 /**
  * Make the solver handle clauses with variables up to @b newVarCnt
@@ -66,7 +47,7 @@ void MinisatInterfacingNewSimp::ensureVarCount(unsigned newVarCnt)
       _solver.newVar();
     }
   } catch (Minisat::OutOfMemoryException&){
-    reportMinisatOutOfMemory();
+    throw std::bad_alloc();
   }
 }
 
@@ -126,7 +107,7 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
       _status = Status::UNKNOWN;
     }
   }catch(Minisat::OutOfMemoryException&){
-    reportMinisatOutOfMemory();
+    throw std::bad_alloc();
   }
 }
 
@@ -151,7 +132,7 @@ void MinisatInterfacingNewSimp::addClause(SATClause* cl)
     }
     _solver.addClause(mcl);
   } catch (Minisat::OutOfMemoryException&){
-      reportMinisatOutOfMemory();
+    throw std::bad_alloc();
   }
 }
 

@@ -233,7 +233,7 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   auto cl = _queues[currIndex]->popSelected();
   ASS(cl->store() == Clause::PASSIVE);
 
-  // note: for a non-layered arrangement, the clause only occured in _queues[currIndex] (from which it was just removed using popSelected(), so we don't need any additional clause-removal
+  // note: for a non-layered arrangement, the clause only occurred in _queues[currIndex] (from which it was just removed using popSelected(), so we don't need any additional clause-removal
   if (_layeredArrangement)
   {
     // remove clause from all queues

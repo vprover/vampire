@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * Defines functions and structres that are shared by all ALASCA inference rules in order to select literals, terms, etc.
+ * Defines functions and structures that are shared by all ALASCA inference rules in order to select literals, terms, etc.
  */
 
 #ifndef __ALASCA_State__

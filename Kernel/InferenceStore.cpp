@@ -27,6 +27,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/SMTCheck.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -64,7 +65,7 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
 }
 
 /**
- * Records informations needed for outputting proofs of general splitting
+ * Records information needed for outputting proofs of general splitting
  */
 void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 {
@@ -624,6 +625,9 @@ protected:
       if (rule==InferenceRule::SKOLEMIZE) {
 	      statusStr="status(esa),"+getNewSymbols("skolem",us);
       }
+      else if(rule==InferenceRule::NEGATED_CONJECTURE) {
+	      statusStr="status(cth)";
+      }
 
       inferenceStr="inference("+tptpRuleName(rule);
 
@@ -977,7 +981,7 @@ protected:
            //                    => div(m, n) = floor(m/n)
            "            (div m n)                           \n"
            //            m/n <= 0 => we need ceiling(m/n)
-           //                     => -n is negativ
+           //                     => -n is negative
            //                     => div(-m,-n) = floor(-m/-n)
            "            (div (- m) (- n))                   \n"
            "       )                                        \n"
@@ -1370,7 +1374,7 @@ protected:
         outputFormula(out, f->uarg());
         out  << ")";
         return;
-                 
+
       case AND: outputCon("and"); return;
       case OR : outputCon("or" ); return;
       case IFF: outputBin("=" ); return;
@@ -1527,6 +1531,24 @@ protected:
   }
 };
 
+struct InferenceStore::SMTCheckPrinter
+: public InferenceStore::ProofPrinter
+{
+  SMTCheckPrinter(ostream& out, InferenceStore* is)
+  : ProofPrinter(out, is) {}
+
+  void print()
+  {
+    SMTCheck::outputSignature(out);
+    ProofPrinter::print();
+  }
+
+  void printStep(Unit* u)
+  {
+    SMTCheck::outputStep(out, u);
+  }
+};
+
 InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& out)
 {
   switch(env.options->proof()) {
@@ -1542,9 +1564,10 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& o
     return new ProofPropertyPrinter(out,this);
   case Options::Proof::OFF:
     return 0;
+  case Shell::Options::Proof::SMTCHECK:
+    return new SMTCheckPrinter(out, this);
   }
   ASSERTION_VIOLATION;
-  return 0;
 }
 
 /**

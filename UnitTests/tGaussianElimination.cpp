@@ -77,7 +77,7 @@ public:
 REGISTER_SIMPL_TESTER(GveSimplTester)
 
 /**
- * NECESSARY: We neet to tell the simplification tester which syntax sugar to import for creating terms & clauses. 
+ * NECESSARY: We need to tell the simplification tester which syntax sugar to import for creating terms & clauses.
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
  */
 #define MY_SYNTAX_SUGAR                                                                   \

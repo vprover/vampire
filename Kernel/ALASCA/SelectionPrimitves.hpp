@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * Defines functions and structres that are shared by all ALASCA inference rules in order to select literals, terms, etc.
+ * Defines functions and structures that are shared by all ALASCA inference rules in order to select literals, terms, etc.
  */
 
 #ifndef __ALASCA_SelectionPrimitives__
@@ -47,7 +47,7 @@ namespace Kernel {
     { return range(0, clause()->size())
               .filter([&](auto i) { return i != litIdx; }) 
               .map([&](auto i) { return (*clause())[i]; }); }
-              
+
     auto asTuple() const
     { return std::make_tuple(cl->number(), litIdx); }
 

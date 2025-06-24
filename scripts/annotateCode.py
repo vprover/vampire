@@ -69,7 +69,7 @@ def execute_commands(cmds):
 #parse the command line arguments and create an object containing all the information passed as command line
 
 def createCommands(args):
-    commnadLine = ""
+    commandline = ""
     parser = argparse.ArgumentParser(description = "Annotate C code with invariants")
     parser.add_argument('analyzer', metavar = 'ANALYZER',
                         help= "analyzer executable ")
@@ -151,7 +151,7 @@ def createCom(arg,tempFileName):
         sys.exit(1)
     return commandLine 
 
-#count the number of occurences of a string in an array of strings
+#count the number of occurrences of a string in an array of strings
 def getNoOccurance(inst, arg):
     counter = 0
     for i in inst:
@@ -275,7 +275,7 @@ def runAccordingToOptions(args):
                 sourceOrganization.append(x)
             elif "Function number:" in x:
                 sourceOrganization.append(x)
-    #occurences of while 
+    #occurrences of while
     noWhiles = getNoOccurance(sourceOrganization, "WHILE")
     #number of functions 
     noFunctions = getNoOccurance(sourceOrganization, "Function")
@@ -333,7 +333,7 @@ def runAccordingToOptions(args):
             if start != 0:
                 for i in range(s-1, start-1):
                     fout.write(fin[i])
-            
+
         for i in range(s-1, len(fin)):
             fout.write(fin[i])
         fout.close()
@@ -356,7 +356,7 @@ def runAccordingToOptions(args):
             inv = tempF.readlines()
             tempF.close()
             if len(inv)==0:
-                print "Error: the while you try to analyze does not exist, functio: ", i
+                print "Error: the while you try to analyze does not exist, function: ", i
                 sys.exit(-1)
             invariant = insertInv.work(inv)
             for x in invariant: 

@@ -78,7 +78,7 @@ Option<Clause*> TermFactoring::applyRule(
 
 #define check_side_condition(cond, cond_code)                                                       \
     if (!(cond_code)) {                                                                             \
-      DEBUG("side condition not fulfiled: " cond)                                                   \
+      DEBUG("side condition not fulfilled: " cond)                                                  \
       return nothing();                                                                             \
     }                                                                                               \
 

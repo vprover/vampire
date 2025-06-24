@@ -108,7 +108,7 @@ public:
 
   /**
    * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
-   * as well as the information wether the premise was made redundant.
+   * as well as the information whether the premise was made redundant.
    */
   virtual ClauseGenerationResult generateSimplify(Clause* premise)  = 0;
 };
@@ -266,7 +266,6 @@ public:
 
   virtual const char* name() const = 0;
 };
-
 
 struct BwSimplificationRecord
 {

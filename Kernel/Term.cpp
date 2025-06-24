@@ -24,7 +24,7 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
-#include "Lib/Metaiterators.hpp"
+#include "Kernel/HOL/HOL.hpp"
 
 #include "Term.hpp"
 
@@ -110,19 +110,95 @@ void Term::destroyNonShared()
   }
 }
 
+bool TermList::ground() const
+{ return isTerm() && term()->ground(); }
+
 /**
  * Return true if the term does not contain any unshared proper term.
  *
  * Not containing an unshared term also means that there are no
  * if-then-else or let...in expressions.
  */
-bool TermList::isSafe() const
-{
+bool TermList::isSafe() const {
   return isVar() || term()->shared();
 }
 
-bool TermList::ground() const 
-{ return isTerm() && term()->ground(); }
+bool TermList::isApplication() const {
+  return !isVar() && term()->isApplication();
+}
+
+bool TermList::isLambdaTerm() const {
+  return !isVar() && term()->isLambdaTerm();
+}
+
+bool TermList::isRedex() const {
+  return isApplication() && lhs().isLambdaTerm();
+}
+
+bool TermList::isProxy(Proxy proxy) const {
+  return !isVar() && term()->isProxy(proxy);
+}
+
+bool TermList::isChoice() const {
+  return !isVar() && term()->isChoice();
+}
+
+Option<unsigned> TermList::deBruijnIndex() const {
+  if (isVar())
+    return {};
+
+  return term()->deBruijnIndex();
+}
+
+TermList TermList::lhs() const {
+  ASS(isApplication())
+
+  return *term()->nthArgument(2);
+}
+
+TermList TermList::rhs() const {
+  ASS(isApplication())
+
+  return *term()->nthArgument(3);
+}
+
+TermList TermList::lambdaBody() const {
+  ASS(isLambdaTerm())
+
+  return *term()->nthArgument(2);
+}
+
+TermList TermList::head() const {
+  if (!isApplication() && !isLambdaTerm())
+    return *this;
+
+  TermList trm = *this;
+  while (trm.isLambdaTerm()) {
+    trm = trm.lambdaBody();
+  }
+  while (trm.isApplication()) {
+    trm = trm.lhs();
+  }
+  return trm;
+}
+
+std::pair<TermList, TermList> TermList::asPair() {
+  ASS(isArrowSort())
+
+  return {domain(), result()};
+}
+
+TermList TermList::domain() {
+  ASS(isArrowSort())
+
+  return *term()->nthArgument(0);
+}
+
+TermList TermList::result(){
+  ASS(isArrowSort())
+
+  return *term()->nthArgument(1);
+}
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -264,14 +340,6 @@ bool AtomicSort::isArraySort() const {
 
 bool AtomicSort::isTupleSort() const {
   return env.signature->isTupleCon(_functor);
-}
-
-bool TermList::isApplication() const {
-  return !isVar() && term()->isApplication();
-}
-
-bool Term::isApplication() const {
-  return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);
 }
 
 unsigned Term::numTypeArguments() const {
@@ -538,22 +606,21 @@ std::string Term::headToString() const
       case SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
+        ASS_EQ(VList::length(vars), SList::length(sorts))
+
         TermList lambdaExp = sd->getLambdaExp();
 
-        std::string varList = "[";
+        std::string varList;
 
         VList::Iterator vs(vars);
         SList::Iterator ss(sorts);
-        bool first = true;
-        while(vs.hasNext()) {
-          if (!first){
-            varList += ", ";
-          }else{ first = false; }
-          varList += Term::variableToString(vs.next()) + " : ";
+        while (vs.hasNext()) {
+          varList += variableToString(vs.next()) + " : ";
           varList += ss.next().toString();
+          if (vs.hasNext())
+            varList += ", ";
         }
-        varList += "]";
-        return "(^" + varList + " : (" + lambdaExp.toString() + "))";
+        return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
       }
       case SpecialFunctor::MATCH: {
         // we simply let the arguments be written out
@@ -567,8 +634,6 @@ std::string Term::headToString() const
     if (!isSort() && Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
-    bool print = (isLiteral() || isSort() ||
-                 (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB)) && arity();
     std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
@@ -582,7 +647,7 @@ std::string Term::headToString() const
     } else {
       name = functionName();
     }
-    return name + (print ? "(" : "");
+    return name;
   }
 }
 
@@ -630,6 +695,8 @@ std::string TermList::asArgsToString() const
     res += t->headToString();
 
     if (t->arity()) {
+      res += '(';
+
       stack.push(t->args());
     }
   }
@@ -649,6 +716,15 @@ std::string TermList::toString(bool topLevel) const
   if (isVar()) {
     return Term::variableToString(*this);
   }
+  if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
+    if (HOL::isTrue(*this)) {
+      return "⊤";
+    }
+    if (HOL::isFalse(*this)) {
+      return "⊥";
+    }
+  }
+
   return term()->toString(topLevel);
 } // TermList::toString
 
@@ -659,25 +735,23 @@ std::string TermList::toString(bool topLevel) const
  */
 std::string Term::toString(bool topLevel) const
 {
-  bool printArgs = true;
-
-  if(isSuper()){
+  if (isSuper()) {
     return "$tType";
   }
 
-  if(!isSpecial() && !isLiteral()){
-    if(isSort() && static_cast<AtomicSort*>(const_cast<Term*>(this))->isArrowSort()){
-      ASS(arity() == 2);
-      std::string res;
-      TermList arg1 = *(nthArgument(0));
-      TermList arg2 = *(nthArgument(1));
-      res += topLevel ? "" : "(";
-      res += arg1.toString(false) + " > " + arg2.toString();
-      res += topLevel ? "" : ")";
-      return res;
-    }
+  if (env.higherOrder() && env.options->holPrinting() != Options::HPrinting::RAW) {
+    return HOL::toString(*this, topLevel);
+  }
 
-    printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
+  if (isSort() && static_cast<AtomicSort *>(const_cast<Term *>(this))->isArrowSort()) {
+    ASS(arity() == 2);
+    std::string res;
+    TermList arg1 = *(nthArgument(0));
+    TermList arg2 = *(nthArgument(1));
+    res += topLevel ? "" : "(";
+    res += arg1.toString(false) + " > " + arg2.toString();
+    res += topLevel ? "" : ")";
+    return res;
   }
 
 #if NICE_THEORY_OUTPUT
@@ -743,8 +817,8 @@ std::string Term::toString(bool topLevel) const
   std::stringstream out;
   out << headToString();
   
-  if (_arity && printArgs) {
-    out << Output::interleaved(',', anyArgIter(this)) << ")";
+  if (_arity) {
+    out << "(" << Output::interleaved(',', anyArgIter(this)) << ")";
   }
   return out.str();
 } // Term::toString
@@ -763,21 +837,31 @@ std::string Literal::toString() const
   if (isEquality()) {
     const TermList* lhs = args();
     std::string s = lhs->toString();
-    if (isPositive()) {
-      s += " = ";
-    }
-    else {
-      s += " != ";
+
+    if (env.higherOrder() &&
+        env.options->holPrinting() != Options::HPrinting::RAW &&
+        lhs->isApplication()) {
+      s = "(" + s + ")";
     }
 
-    std::string res = s + lhs->next()->toString();
-    if (env.getMainProblem() == nullptr || env.getMainProblem()->isHigherOrder() || 
-       (SortHelper::getEqualityArgumentSort(this) == AtomicSort::boolSort())){
-      res = "("+res+")";
+    std::string eqSym = isPositive() ? " = " : " != ";
+    if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
+      eqSym = isPositive() ? " ≈ " : " ≉ ";
     }
-    /*if(isTwoVarEquality()){
-      res += "___ sort: " + twoVarEqSort().toString();
-    }*/
+    s += eqSym;
+
+    auto rhs = lhs->next()->toString();
+    if (env.higherOrder() &&
+        env.options->holPrinting() != Options::HPrinting::RAW &&
+        lhs->next()->isApplication()) {
+      rhs = "(" + rhs + ")";
+    }
+
+    std::string res = s + rhs;
+    if (env.higherOrder() ||
+        SortHelper::getEqualityArgumentSort(this).isBoolSort()) {
+      res = "(" + res + ")";
+    }
 
     return res;
   }
@@ -804,9 +888,16 @@ std::string Literal::toString() const
   }
 #endif // NICE_THEORY_OUTPUT
 
-
   Stack<const TermList*> stack(64);
-  std::string s = polarity() ? "" : "~";
+  std::string s = "";
+  if (polarity() == 0) { /* negative polarity */
+    if (env.options->holPrinting() == Options::HPrinting::PRETTY) {
+      s = "¬";
+    } else {
+      s = "~";
+    }
+  }
+
   unsigned proj;
   if (Theory::tuples()->findProjection(functor(), true, proj)) {
     return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
@@ -814,12 +905,11 @@ std::string Literal::toString() const
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
-  if (_arity) {
+  if (_arity > 0) {
     s += '(' + args()->asArgsToString(); // will also print the ')'
   }
   return s;
 } // Literal::toString
-
 
 /**
  * Return the print name of the function symbol of this term.
@@ -829,13 +919,43 @@ const std::string& Term::functionName() const
 {
 #if VDEBUG
   static std::string nonexisting("<function does not exists>");
-  if (_functor>=static_cast<unsigned>(env.signature->functions())) {
+  if (_functor >= env.signature->functions()) {
     return nonexisting;
   }
 #endif
 
   return env.signature->functionName(_functor);
 } // Term::functionName
+
+bool Term::isArrowSort() const {
+  return isSort() && env.signature->isArrowCon(_functor);
+}
+
+bool Term::isApplication() const {
+  return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);
+}
+
+bool Term::isLambdaTerm() const {
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
+}
+
+bool Term::isRedex() const {
+  return isApplication() && nthArgument(2)->isLambdaTerm();
+}
+
+bool Term::isProxy(Proxy proxy) const {
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == proxy;
+}
+
+bool Term::isChoice() const {
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
+}
+
+Option<unsigned> Term::deBruijnIndex() const {
+  if (isSort() || isLiteral() || isSpecial())
+    return {};
+  return env.signature->getFunction(_functor)->deBruijnIndex();
+}
 
 /**
  * Return the print name of the type constructor symbol of this sort.
@@ -844,7 +964,7 @@ const std::string& AtomicSort::typeConName() const
 {
 #if VDEBUG
   static std::string nonexisting("<type constructor does not exists>");
-  if (_functor>=static_cast<unsigned>(env.signature->typeCons())) {
+  if (_functor >= env.signature->typeCons()) {
     return nonexisting;
   }
 #endif
@@ -860,7 +980,7 @@ const std::string& Literal::predicateName() const
 {
 #if VDEBUG
   static std::string nonexisting("<predicate does not exists>");
-  if (_functor>=static_cast<unsigned>(env.signature->predicates())) {
+  if (_functor >= env.signature->predicates()) {
     return nonexisting;
   }
 #endif

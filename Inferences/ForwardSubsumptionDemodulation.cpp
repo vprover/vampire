@@ -404,9 +404,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             continue;
           }
 
-          // TODO higher-order support not yet implemented; see forward demodulation
-          //      (maybe it's enough to just use the different iterator)
-          ASS(!env.options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
             TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
@@ -480,7 +477,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               // Conditions 1 and 2 are quite obvious (for 2, recall that lhsS > rhsS).
               // Condition 3 will be checked now.
               //
-              // For perfomance reasons, we do not perform an exact check of mclΘ < cl.
+              // For performance reasons, we do not perform an exact check of mclΘ < cl.
               // Using the notation from above, we already know that C <= CΘ for the subsumption part.
               // If we can show that lΘ=rΘ < L[lΘ] \/ D, we can conclude that lΘ=rΘ \/ CΘ < L[lΘ] \/ C \/ D.
               //                     ^^^^^   ^^^^^                            ^^^^^^^^^^^   ^^^^^^^^^^^^^^^
@@ -610,7 +607,7 @@ isRedundant:
                 ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
                   && !isAlascaOrdering ) {
-                
+
                 // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
                 ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
               }

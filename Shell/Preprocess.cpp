@@ -48,7 +48,6 @@
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
-#include "LambdaElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
@@ -193,23 +192,17 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
-    LambdaElimination::addFunctionExtensionalityAxiom(prb);
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
+    HOL_ERROR;
   }
 
-  if(env.options->choiceAxiom()){
-    LambdaElimination::addChoiceAxiom(prb);
+  if (env.options->choiceAxiom()) {
+    HOL_ERROR;
   }
 
-  prb.getProperty();
+  (void)prb.getProperty();
 
-  if ((prb.hasCombs() || prb.hasAppliedVar()) && env.options->addCombAxioms()){
-    LambdaElimination::addCombinatorAxioms(prb);
-  }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
-    LambdaElimination::addProxyAxioms(prb);
-  }
 
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it

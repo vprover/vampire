@@ -299,7 +299,7 @@ PolyNf simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool remo
   using Monom   = Monom<Number>;
 
 
-  // first we simplify all the monoms containted in this polynom
+  // first we simplify all the monoms contained in this polynom
   Stack<Monom> sum;
   {
     auto offs = 0;

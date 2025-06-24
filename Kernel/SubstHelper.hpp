@@ -24,6 +24,8 @@
 #include "TermIterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
+#include <unordered_map>
+
 namespace Kernel {
 
 using namespace Lib;
@@ -505,7 +507,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     } else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());
       if(shouldShare) {
-        result=Term::create(trm,argLst);          
+        result=Term::create(trm,argLst);
       } else {
         //At the memoent all sorts should be shared.
         result=Term::createNonShared(trm,argLst);

@@ -201,7 +201,7 @@ public:
     //Now at the position _lastBubbleIndex is the smallest element
     //of the heap, so we know that it will bubble up to the first
     //position[1]. (There's only one way to do that, so the heap will
-    //be exactly the same as before the popping occured.)
+    //be exactly the same as before the popping occurred.)
     //
     //[1] or, to be precise, to such position, that all elements
     //above will be equal to it.

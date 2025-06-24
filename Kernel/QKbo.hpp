@@ -11,7 +11,7 @@
  * @file QKbo.hpp
  *
  * Defines a Knuth-Bendix Ordering for linear arithmetic. This ignores numeral multiplications,
- * (i.e. it considers terms t and nt where n is a numeral as equaivalent). Further it is not sensitive to
+ * (i.e. it considers terms t and nt where n is a numeral as equivalent). Further it is not sensitive to
  * bracketing or permuting of multiplications and additions.
  */
 

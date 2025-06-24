@@ -209,7 +209,7 @@ void check_eval(Lit orig_, Lit expected_) {
       check_eval(( formula ), ( expected ));                                              \
     }                                                                                     \
 
-/** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
+/** Tests for evaluations that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected)                                          \
   NUM_TEST(Rat , name, formula, expected)                                                 \
   NUM_TEST(Real, name, formula, expected)                                                 \

@@ -51,6 +51,7 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _answerPredicate(0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),
+    _termAlgebraDiscriminator(0),
     _inGoal(0),
     _inUnit(0),
     _inductionSkolem(0),
@@ -59,8 +60,8 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _tuple(0),
     _computable(1),
     _letBound(0),
-    _prox(NOT_PROXY),
-    _comb(NOT_COMB)
+    _prox(Proxy::NOT_PROXY),
+    _deBruijnIndex(-1)
 {
   if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
@@ -234,6 +235,9 @@ Signature::Signature ():
     _arrayCon(UINT_MAX),
     _arrowCon(UINT_MAX),
     _appFun(UINT_MAX),
+    _lamFun(UINT_MAX),
+    _choiceFun(UINT_MAX),
+    _placeholderFun(UINT_MAX),
     _termAlgebras()
 {
   ALWAYS(createDistinctGroup() == STRING_DISTINCT_GROUP);
@@ -536,27 +540,42 @@ unsigned Signature::getApp()
 {
   bool added = false;
   unsigned app = addFunction("vAPP", 4, added);
-  if(added){
+  if (added) {
     _appFun = app;
-    TermList tv1 = TermList(0, false);
-    TermList tv2 = TermList(1, false);
-    TermList arrowType = AtomicSort::arrowSort(tv1, tv2);
-    OperatorType* ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, 2);
-    Symbol* sym = getFunction(app);
+    auto tv1 = TermList(0, false);
+    auto tv2 = TermList(1, false);
+    auto arrowType = AtomicSort::arrowSort(tv1, tv2);
+    auto ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, 2);
+    auto sym = getFunction(app);
     sym->setType(ot);
   }
   return app;
 }
 
-unsigned Signature::getDiff(){
+unsigned Signature::getLam() {
   bool added = false;
-  unsigned diff = addFunction("diff",2, added);      
-  if(added){
-    TermList alpha = TermList(0, false);
-    TermList beta = TermList(1, false);
-    TermList alphaBeta = AtomicSort::arrowSort(alpha, beta);
-    TermList result = AtomicSort::arrowSort(alphaBeta, alphaBeta, alpha);
-    Symbol * sym = getFunction(diff);
+  unsigned lam = addFunction("vLAM", 3, added);
+  if (added) {
+    _lamFun = lam;
+    auto tv1 = TermList(0, false);
+    auto tv2 = TermList(1, false);
+    auto arrowType = AtomicSort::arrowSort(tv1, tv2);
+    auto ot = OperatorType::getFunctionType({tv2}, arrowType, 2);
+    auto sym = getFunction(lam);
+    sym->setType(ot);
+  }
+  return lam;
+}
+
+unsigned Signature::getDiff() {
+  bool added = false;
+  unsigned diff = addFunction("diff", 2, added);
+  if (added) {
+    auto alpha = TermList(0, false);
+    auto beta = TermList(1, false);
+    auto alphaBeta = AtomicSort::arrowSort(alpha, beta);
+    auto result = AtomicSort::arrowSort(alphaBeta, alphaBeta, alpha);
+    auto sym = getFunction(diff);
     sym->setType(OperatorType::getConstantsType(result, 2));
   }
   return diff;
@@ -600,18 +619,42 @@ unsigned Signature::getBoolDef(unsigned fn)
   return p;
 }
 
-unsigned Signature::getChoice(){
+unsigned Signature::getChoice() {
   bool added = false;
   unsigned choice = addFunction("vEPSILON",1, added);      
-  if(added){
-    TermList alpha = TermList(0, false);
-    TermList bs = AtomicSort::boolSort();
-    TermList alphaBs = AtomicSort::arrowSort(alpha, bs);
-    TermList result = AtomicSort::arrowSort(alphaBs, alpha);
-    Symbol * sym = getFunction(choice);
+  if (added) {
+    auto alpha = TermList(0, false);
+    auto bs = AtomicSort::boolSort();
+    auto alphaBs = AtomicSort::arrowSort(alpha, bs);
+    auto result = AtomicSort::arrowSort(alphaBs, alpha);
+    auto sym = getFunction(choice);
     sym->setType(OperatorType::getConstantsType(result, 1));
   }
   return choice;
+}
+
+unsigned Signature::getDeBruijnIndex(int index) {
+  bool added = false;
+  unsigned fun = addFunction("db" + Int::toString(index), 1, added);
+  if (added) {
+    auto alpha = TermList(0, false);
+    auto sym = getFunction(fun);
+    sym->setType(OperatorType::getConstantsType(alpha, 1));
+    sym->setDeBruijnIndex(index);
+  }
+  return fun;
+}
+
+unsigned Signature::getPlaceholder() {
+  if (_placeholderFun != UINT_MAX)
+    return _placeholderFun;
+
+  unsigned fun = addFreshFunction(1,"ph");
+  _placeholderFun = fun;
+  auto alpha = TermList(0, false);
+  auto sym = getFunction(fun);
+  sym->setType(OperatorType::getConstantsType(alpha, 1));
+  return fun;
 }
 
 void Signature::incrementFormulaCount(Term* t){

@@ -165,7 +165,7 @@ public:
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
   Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const override;
-  TermOrderingDiagramUP createTermOrderingDiagram() const override;
+  TermOrderingDiagramUP createTermOrderingDiagram(bool ground = false) const override;
 
 protected:
   unsigned computeWeight(AppliedTerm tt) const;
@@ -224,7 +224,7 @@ private:
 
     /**
      * Lexicographic traversal of two terms with same top symbol,
-     * i.e. traversing their symbols in lockstep, as descibed in
+     * i.e. traversing their symbols in lockstep, as described in
      * the Loechner et al. paper above. It performs a bidirectional
      * comparison between the two terms, i.e. we can get any value
      * of @b Result.
