@@ -28,221 +28,147 @@
 
 namespace Kernel {
 
-#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
+template<class T>
+struct AlascaAtomComparatorByLiteralKey { static constexpr bool enabled = false; };
 
-template<class QComparator>
-struct AlascaAtomComparator;
+#define BY_LITERAL_KEY(Type, body)                                                        \
+  template<>                                                                              \
+  struct AlascaAtomComparatorByLiteralKey<Type>                                           \
+  {                                                                                       \
+    static constexpr bool enabled = true;                                                 \
+    template<class Self>                                                                  \
+    static auto getLiteralKey(TL::Token<Type>, Self const& self, __SelectedLiteral const& x) \
+    body                                                                                  \
+  };                                                                                      \
 
-template<class C1, class C2>
-struct AlascaAtomComparator<LiteralComparators::Composite<C1, C2>> {
-  AlascaSelector const& self;
+BY_LITERAL_KEY(LiteralComparators::ColoredFirst, 
+  { return x.literal()->color() != COLOR_TRANSPARENT; })
 
-  template<class T>
-  bool operator()(T const& l, T const& r) const {
-    return AlascaAtomComparator<C1>{.self = self}(l, r) ? /* less */ true
-         : AlascaAtomComparator<C1>{.self = self}(r, l) ? /* greater */ false
-         : AlascaAtomComparator<C2>{.self = self}(l, r);
-  } 
+BY_LITERAL_KEY(LiteralComparators::NoPositiveEquality, 
+  { return !(x.literal()->isEquality() && x.literal()->isPositive()); })
 
-  template<class T>
-  auto dbg(T const& t) {
-    return std::make_tuple(AlascaAtomComparator<C1>{.self = self}.dbg(t), AlascaAtomComparator<C2>{.self = self}.dbg(t));
-  }
+// TODO this should be isNegativeForSelection (?)
+BY_LITERAL_KEY(LiteralComparators::Negative, 
+  { return x.literal()->isNegative(); })
 
-};
+BY_LITERAL_KEY(LiteralComparators::NegativeEquality, 
+  { return x.literal()->isEquality() && x.literal()->isNegative(); })
 
-template<class C>
-struct AlascaAtomComparator<LiteralComparators::Inverse<C>> {
-  AlascaSelector const& self;
+BY_LITERAL_KEY(LiteralComparators::MaximalSize, 
+  { return x.literal()->weight(); })
 
-  template<class T>
-  bool operator()(T const& l, T const& r) const 
-  { return AlascaAtomComparator<C>{.self = self}(r, l); } 
+BY_LITERAL_KEY(LiteralComparators::LeastVariables, 
+  { return -int(x.literal()->numVarOccs()); })
 
-  template<class T>
-  auto dbg(T const& t) {
-    return Output::catOwned("inverse(", AlascaAtomComparator<C>{.self = self}.dbg(t), ")");
-  }
-
-
-};
-
-template<class By>
-struct AlascaAtomComparatorByKey {
-  template<class T>
-  bool operator()(T const& l, T const& r) const  
-  { return By::getKey(l) < By::getKey(r); }
-
-  template<class T>
-  auto dbg(T const& t) {
-    return By::getKey(t);
-  }
-
-
-};
-
-
-struct NotTransparent 
-{
-  template<class T>
-  static auto getKey(T const& x)  { return x.literal()->color() != COLOR_TRANSPARENT; }
-};
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::ColoredFirst> 
-  : public AlascaAtomComparatorByKey<NotTransparent> 
-{ AlascaSelector const& self; };
-
-
-struct NoPositiveEquality {
-  template<class T>
-  static auto getKey(T const& x)  { return !(x.literal()->isEquality() && x.literal()->isPositive()); }
-};
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::NoPositiveEquality> 
-  : public AlascaAtomComparatorByKey<NoPositiveEquality>
-{ AlascaSelector const& self; };
-
-struct IsNegative {
-  template<class T>
-  static auto getKey(T const& x) { 
-      // TODO this should be isNegativeForSelection
-      return x.literal()->isNegative(); }
-};
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::Negative> 
-  : public AlascaAtomComparatorByKey<IsNegative> 
-{ AlascaSelector const& self; };
-
-struct IsNegativeEquality {
-  template<class T>
-  static auto getKey(T const& x) { return x.literal()->isEquality() && x.literal()->isNegative(); }
-};
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::NegativeEquality> 
-  : public AlascaAtomComparatorByKey<IsNegativeEquality> 
-{ AlascaSelector const& self; };
-
-
-struct Weight {
-  static unsigned weight(Term* t) { return t->weight(); }
-  static unsigned weight(TermList t) { return t.weight(); }
-
-  static auto getKey(SelectedAtom const& x) { return x.selectedAtom().apply([](auto x) { return weight(x); }); }
-  static auto getKey(__SelectedLiteral const& x) { return weight(x.literal()); }
-};
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::MaximalSize> 
-  : public AlascaAtomComparatorByKey<Weight> 
-{ AlascaSelector const& self; };
-
-struct MinusVariables {
-  static int numVarOccs(Term* t) { return t->numVarOccs(); }
-  static int numVarOccs(TermList t) { return t.isVar() ? 1 : numVarOccs(t.term()); }
-
-  static auto getKey(SelectedAtom const& x) { return -int(x.selectedAtom().apply([](auto x) { return numVarOccs(x); })); }
-  static auto getKey(__SelectedLiteral const& x) { return numVarOccs(x.literal()); }
-};
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::LeastVariables> 
-  : public AlascaAtomComparatorByKey<MinusVariables> 
-{ AlascaSelector const& self; };
-
-struct MinusDistinctVariables {
-
-  static int getDistinctVars(Term* t) { return t->getDistinctVars(); }
-  static int getDistinctVars(TermList t) { return t.isVar() ? 1 : getDistinctVars(t.term()); }
-
-  static auto getKey(SelectedAtom const& x) { return -int(x.selectedAtom().apply([](auto x) { return getDistinctVars(x); })); }
-  static auto getKey(__SelectedLiteral const& x) { return -int(getDistinctVars(x.literal())); }
-};
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::LeastDistinctVariables> 
-  : public AlascaAtomComparatorByKey<MinusDistinctVariables> 
-{ AlascaSelector const& self; };
-
-struct MinusTopLevelVariables {
+BY_LITERAL_KEY(LiteralComparators::LeastDistinctVariables, 
+  { return -int(x.literal()->getDistinctVars()); })
 
   /* top level variables here does not mean alasca top level variables (e.g. x in `k x + t`), 
    * but mean variables that are arguments to the outer most function/predicate (e.g. x in `p(x, f(y))`) */
+BY_LITERAL_KEY(LiteralComparators::LeastTopLevelVariables,
+  { return -int(anyArgIter(x.literal()).filter([](auto t) { return t.isVar(); }).count()); })
 
-  static int varArgCount(Term* t) { return anyArgIter(t).filter([](auto t) { return t.isVar(); }).count(); }
-  static int varArgCount(TermList t) { return std::numeric_limits<int>::max() - 1; }
 
-  static auto getKey(SelectedAtom const& x) { return -int(x.selectedAtom().apply([](auto x) { return varArgCount(x); })); }
-  static auto getKey(__SelectedLiteral const& x) { return -int(varArgCount(x.literal())); }
-};
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::LeastTopLevelVariables> 
-  : public AlascaAtomComparatorByKey<MinusTopLevelVariables> 
-{ AlascaSelector const& self; };
-
-template<>
-struct AlascaAtomComparator<LiteralComparators::LexComparator> {
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
+struct NewAlascaAtomComparator {
   AlascaSelector const& self;
 
+  NewAlascaAtomComparator(AlascaSelector const& self) : self(self) {}
+
+
+  template<class C1, class C2>
+  Comparison compare(TL::Token<LiteralComparators::Composite<C1, C2>>, __SelectedLiteral const& l, __SelectedLiteral const& r) const {
+    auto res = compare(TL::Token<C1>{}, l, r);
+    return res != Comparison::EQUAL ? res : compare(TL::Token<C2>{}, l, r);
+  } 
+
+  template<class C>
+  Comparison compare(TL::Token<LiteralComparators::Inverse<C>>, __SelectedLiteral const& l, __SelectedLiteral const& r) const 
+  { return compare(TL::Token<C>{}, r, l); } 
+
+
+  // bool getLiteralKey(TL::Token<LiteralComparators::ColoredFirst>, __SelectedLiteral const& x) const 
+  // { return x.literal()->color() != COLOR_TRANSPARENT; }
+  //
+  // bool getLiteralKey(TL::Token<LiteralComparators::NoPositiveEquality>, __SelectedLiteral const& x) const 
+  // { return !(x.literal()->isEquality() && x.literal()->isPositive()); }
+  //
+  // bool getLiteralKey(TL::Token<LiteralComparators::Negative>, __SelectedLiteral const& x) const 
+  //     // TODO this should be isNegativeForSelection (?)
+  // { return x.literal()->isNegative(); }
+  //
+  // bool getLiteralKey(TL::Token<LiteralComparators::NegativeEquality>, __SelectedLiteral const& x) const 
+  // { return x.literal()->isEquality() && x.literal()->isNegative(); }
+  //
+  // unsigned getLiteralKey(TL::Token<LiteralComparators::MaximalSize>, __SelectedLiteral const& x) const 
+  // { return x.literal()->weight(); }
+  //
+  // int getLiteralKey(TL::Token<LiteralComparators::LeastVariables>, __SelectedLiteral const& x) const 
+  // { return -int(x.literal()->numVarOccs()); }
+  //
+  // int getLiteralKey(TL::Token<LiteralComparators::LeastDistinctVariables>, __SelectedLiteral const& x) const 
+  // { return -int(x.literal()->getDistinctVars()); }
+  //
+  // /* top level variables here does not mean alasca top level variables (e.g. x in `k x + t`), 
+  //  * but mean variables that are arguments to the outer most function/predicate (e.g. x in `p(x, f(y))`) */
+  // int getLiteralKey(TL::Token<LiteralComparators::LeastTopLevelVariables>, __SelectedLiteral const& x) const 
+  // { return -int(anyArgIter(x.literal()).filter([](auto t) { return t.isVar(); }).count()); }
+
+  template<class C, std::enable_if_t<AlascaAtomComparatorByLiteralKey<C>::enabled, bool> = true>
+  Comparison compare(TL::Token<C> c, __SelectedLiteral const& l, __SelectedLiteral const& r) const  
+  // { return Int::compare(getLiteralKey(c, l), getLiteralKey(c, r)); }
+  { return Int::compare(
+      AlascaAtomComparatorByLiteralKey<C>::getLiteralKey(c, self, l), 
+      AlascaAtomComparatorByLiteralKey<C>::getLiteralKey(c, self, r)); }
+
   template<class T>
-  bool operator()(T const& l, T const& r) const 
+  Comparison compare(TL::Token<LiteralComparators::LexComparator>, T const& l, T const& r) const 
   { 
     // TODO this is not implemented as the LexComparator, as i don't think the lex comparator has any good semantic point to it, but is only there fore tie-breaking. this can be done way more cheaply
-    return l < r;
+    return l == r ? Comparison::EQUAL
+         : l < r ? Comparison::LESS
+         : Comparison::GREATER;
   }
 
-  template<class T>
-  auto dbg(T const& x) 
-  { return "lex"; }
+  // template<class T>
+  // auto dbg(T const& x) 
+  // { return "lex"; }
 
-};
-
-struct GetKey {
-
-};
-
-template<class Uninter, class FallBack, class... Inter>
-struct AlascaAtomComparator<LiteralComparators::ALASCA::IfUninterpreted<Uninter,std::tuple<Inter...>, FallBack>> { 
-  AlascaSelector const& self;
-
-  bool operator()(__SelectedLiteral const& l, __SelectedLiteral const& r) const 
+  template<class Uninter, class FallBack, class... Inter>
+  Comparison compare(TL::Token<LiteralComparators::ALASCA::IfUninterpreted<Uninter,std::tuple<Inter...>, FallBack>> c, __SelectedLiteral const& l, __SelectedLiteral const& r) const 
   { 
     auto norml = InequalityNormalizer::normalize(l.literal()).asItp();
     auto normr = InequalityNormalizer::normalize(r.literal()).asItp();
 
     if (norml.isSome() == normr.isSome()) {
       return norml.isSome() 
-        ? compareItp(*norml, *normr, Inter{}...) 
-        : AlascaAtomComparator<Uninter>{.self = self}(l, r);
+        ? compareItp(c, *norml, *normr, TL::Token<Inter>{}...)
+        : compare(TL::Token<Uninter>{}, l, r);
     } else {
-      auto res = normr.isSome();
+      auto res = normr.isSome() ? Comparison::LESS : Comparison::GREATER;
       switch (env.options->alascaSelection()) {
         case Shell::Options::AlascaSelectionMode::OFF:
           ASSERTION_VIOLATION
         case Shell::Options::AlascaSelectionMode::ON:
           return res;
         case Shell::Options::AlascaSelectionMode::INV:
-          return !res;
+          return revert(res);
       }
     }
   }
 
   template<class NumTraits>
-  bool getKey(LiteralComparators::ALASCA::IsUwaConstraint const&, AlascaLiteralItp<NumTraits> const& lit) const {
+  bool getKey(TL::Token<LiteralComparators::ALASCA::IsUwaConstraint>, AlascaLiteralItp<NumTraits> const& lit) const {
     // TODO
     return false;
   }
 
   template<class NumTraits>
-  unsigned getKey(LiteralComparators::ALASCA::CntSummandsMax const&, AlascaLiteralItp<NumTraits> const& lit) const 
+  unsigned getKey(TL::Token<LiteralComparators::ALASCA::CntSummandsMax> const&, AlascaLiteralItp<NumTraits> const& lit) const 
   { return self.maxAtomsNotLessStack(lit.term()).size(); }
 
   template<class NumTraits>
-  unsigned getKey(LiteralComparators::ALASCA::CntSummandsAll const&, AlascaLiteralItp<NumTraits> const& lit) const 
+  unsigned getKey(TL::Token<LiteralComparators::ALASCA::CntSummandsAll> const&, AlascaLiteralItp<NumTraits> const& lit) const 
   { return lit.term().nSummands(); }
 
   unsigned theoryComplexity(AnyAlascaTerm t) const {
@@ -274,7 +200,6 @@ struct AlascaAtomComparator<LiteralComparators::ALASCA::IfUninterpreted<Uninter,
     { _self.sort(); }
   };
 
-
   static Comparison compare(MultiSetUnsigned const& l_, MultiSetUnsigned const& r_)
   { 
     auto& l = l_._self;
@@ -288,50 +213,50 @@ struct AlascaAtomComparator<LiteralComparators::ALASCA::IfUninterpreted<Uninter,
   }
 
   template<class NumTraits>
-  MultiSetUnsigned getKey(LiteralComparators::ALASCA::TheoryComplexityAll const&, AlascaLiteralItp<NumTraits> const& lit) const 
+  MultiSetUnsigned getKey(TL::Token<LiteralComparators::ALASCA::TheoryComplexityAll>, AlascaLiteralItp<NumTraits> const& lit) const 
   { return MultiSetUnsigned(lit.term().iterSummands()
       .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
       .collectStack()); }
 
   template<class NumTraits>
-  MultiSetUnsigned getKey(LiteralComparators::ALASCA::TheoryComplexityMax const&, AlascaLiteralItp<NumTraits> const& lit) const 
+  MultiSetUnsigned getKey(TL::Token<LiteralComparators::ALASCA::TheoryComplexityMax>, AlascaLiteralItp<NumTraits> const& lit) const 
   { return MultiSetUnsigned(self.maxAtomsNotLess(lit.term())
       .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
       .collectStack()); }
 
   template<class NumTraits>
-  MultiSetUnsigned getKey(LiteralComparators::ALASCA::SizeAll const&, AlascaLiteralItp<NumTraits> const& lit) const 
+  MultiSetUnsigned getKey(TL::Token<LiteralComparators::ALASCA::SizeAll>, AlascaLiteralItp<NumTraits> const& lit) const 
   { return MultiSetUnsigned(lit.term().iterSummands()
       .map([&](auto x) { return x.atom().weight(); })
       .collectStack()); }
 
   template<class NumTraits>
-  MultiSetUnsigned getKey(LiteralComparators::ALASCA::SizeMax const&, AlascaLiteralItp<NumTraits> const& lit) const 
+  MultiSetUnsigned getKey(TL::Token<LiteralComparators::ALASCA::SizeMax>, AlascaLiteralItp<NumTraits> const& lit) const 
   { return MultiSetUnsigned(self.maxAtomsNotLess(lit.term())
       .map([&](auto x) { return x.atom().weight(); })
       .collectStack()); }
 
-
   template<class NumTraits>
-  MultiSetUnsigned getKey(LiteralComparators::ALASCA::NumberOfVarsAll const&, AlascaLiteralItp<NumTraits> const& lit) const 
+  MultiSetUnsigned getKey(TL::Token<LiteralComparators::ALASCA::NumberOfVarsAll>, AlascaLiteralItp<NumTraits> const& lit) const 
   { return MultiSetUnsigned(lit.term().iterSummands()
       .map([&](auto x) { return x.atom().getDistinctVars(); })
       .collectStack()); }
 
   template<class NumTraits>
-  MultiSetUnsigned getKey(LiteralComparators::ALASCA::NumberOfVarsMax const&, AlascaLiteralItp<NumTraits> const& lit) const 
+  MultiSetUnsigned getKey(TL::Token<LiteralComparators::ALASCA::NumberOfVarsMax>, AlascaLiteralItp<NumTraits> const& lit) const 
   { return MultiSetUnsigned(self.maxAtomsNotLess(lit.term())
       .map([&](auto x) { return x.atom().getDistinctVars(); })
       .collectStack()); }
-
 
   template<class Cmp>
-  auto getKey(Cmp const& cmp, AlascaLiteralItpAny const& lit) const
+  auto getKey(TL::Token<Cmp> cmp, AlascaLiteralItpAny const& lit) const
   { return lit.apply([&](auto& lit) { return getKey(cmp, lit); }); }
 
-  bool compareItp(AlascaLiteralItpAny const& l, AlascaLiteralItpAny const& r) const {
-    return AlascaAtomComparator<FallBack>{.self = self}(l, r);
-  }
+  template<class Uninter, class FallBack, class Tup>
+  Comparison compareItp(
+      TL::Token<LiteralComparators::ALASCA::IfUninterpreted<Uninter, Tup, FallBack>> const& c, 
+      AlascaLiteralItpAny const& l, AlascaLiteralItpAny const& r) const 
+  { return compare(TL::Token<FallBack>{}, l, r); }
 
   static Comparison compare(bool const& l, bool const& r) 
   { return Int::compare(l,r); }
@@ -342,20 +267,37 @@ struct AlascaAtomComparator<LiteralComparators::ALASCA::IfUninterpreted<Uninter,
   template<class T>
   static Comparison compare(T const& l, T const& r);
 
-  template<class T, class... Ts>
-  bool compareItp(AlascaLiteralItpAny const& l, AlascaLiteralItpAny const& r, T t, Ts... ts) const {
-    auto kl = getKey(t, l);
-    auto kr = getKey(t, r);
-    // TODO inversion
-    switch (compare(kl, kr)) {
-    case Comparison::EQUAL:
-      return compareItp(l, r, std::move(ts)...);
-    case Comparison::GREATER: return false;
-    case Comparison::LESS:    return true;
+  template<class T>
+  Options::AlascaSelectionMode optionValue(T const&t) const;
+
+  template<class Uninter, class FallBack, class Tup, class T, class... Ts>
+  Comparison compareItp(
+      TL::Token<LiteralComparators::ALASCA::IfUninterpreted<Uninter, Tup, FallBack>> cmp,
+      AlascaLiteralItpAny const& l, AlascaLiteralItpAny const& r, T t, Ts... ts) const {
+    auto res = [&]() {
+      auto kl = getKey(t, l);
+      auto kr = getKey(t, r);
+      auto res = compare(kl, kr);
+      return res != Comparison::EQUAL 
+           ? res 
+           : compareItp(cmp, l, r, std::move(ts)...);
+    };
+    switch (optionValue(t)) {
+      case Options::AlascaSelectionMode::OFF: return Comparison::EQUAL;
+      case Options::AlascaSelectionMode::ON: return res();
+      case Options::AlascaSelectionMode::INV: return revert(res());
     }
     ASSERTION_VIOLATION
   }
+
+  template<class Cmp>
+  auto toCmpClosure(Cmp cmp_) const {
+    return [this,cmp = std::move(cmp_)](auto const& l, auto const& r) -> bool
+    { return this->compare(cmp, l, r) == Comparison::LESS; };
+  }
 };
+
+
  
 
 struct AlascaSelectorDispatch {
@@ -514,11 +456,10 @@ struct AlascaSelectorDispatch {
   // TODO create another complete best selector that selects first the best unproductive ones and then the best productive ones
 
   template<class QComparator>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>>, Clause* cl) 
+  Stack<__SelectedLiteral> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>> token, Clause* cl) 
   {
     auto negative = iterSelectable(cl).collectRStack();
-    negative->sort([&](auto const& l, auto const& r) 
-        { return AlascaAtomComparator<QComparator>{.self = self}(r,l); });
+    negative->sort(NewAlascaAtomComparator(self).toCmpClosure(TL::Token<QComparator>{}));
     if (negative->size() != 0) {
       return selectBG(negative[0]);
     } else {
@@ -527,8 +468,9 @@ struct AlascaSelectorDispatch {
   }
 
   template<class QComparator>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<BestLiteralSelector<QComparator>>, Clause* cl) 
-  { return selectBG(iterAll(cl, /*bgSelected*/ true).maxBy(AlascaAtomComparator<QComparator>{.self = self}).unwrap()); }
+  Stack<__SelectedLiteral> computeSelected(TL::Token<BestLiteralSelector<QComparator>> token, Clause* cl) 
+  { return selectBG(iterAll(cl, /*bgSelected*/ true)
+      .maxBy(NewAlascaAtomComparator(self).toCmpClosure(TL::Token<QComparator>{})).unwrap()); }
 
   template<bool complete>
   Stack<__SelectedLiteral> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Clause* cl) 
@@ -561,7 +503,7 @@ struct AlascaSelectorDispatch {
     }
 
     auto best = arrayIter(*leastResults)
-      .maxBy(AlascaAtomComparator<LiteralComparators::LookaheadComparator>{.self = self})
+      .maxBy(NewAlascaAtomComparator(self).toCmpClosure(TL::Token<LiteralComparators::LookaheadComparator>{}))
       .unwrap();
 
     return selectBG(best);

@@ -63,6 +63,8 @@ public:
     _c2.attachSelector(selector);
   }
   static auto typeName() { return Output::catOwned("Composite(", Comp1::typeName(), ", ", Comp2::typeName(), ")");  }
+  Comp1 const& comp1() const { return _c1; }
+  Comp2 const& comp2() const { return _c1; }
 private:
   Comp1 _c1;
   Comp2 _c2;
@@ -91,6 +93,7 @@ public:
     _c.attachSelector(selector);
   }
   static auto typeName() { return Output::catOwned("Inverse(", Comp::typeName(), ")");  }
+  Comp const& inner() const { return _c; }
 private:
   Comp _c;
 };
