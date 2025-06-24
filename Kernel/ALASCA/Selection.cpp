@@ -149,7 +149,7 @@ struct AlascaComparator {
   BY_INTERPRETED_KEY(IsUwaConstraint,
     {
       // TODO
-      return false;
+      return lit.symbol() == AlascaPredicate::NEQ;
     })
 
   BY_INTERPRETED_KEY(CntSummandsMax,
