@@ -2316,6 +2316,24 @@ public:
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
   bool alasca() const { return _alasca.actualValue; }
   AlascaSelectionMode alascaSelection() { return _alascaSelection.actualValue; }
+
+#define ALASCA_SELECTION_ORDERING_OPTIONS(FUN) \
+  FUN(IsUwaConstraint)\
+  FUN(CntSummandsMax)\
+  FUN(CntSummandsAll)\
+  FUN(TheoryComplexityAll)\
+  FUN(TheoryComplexityMax)\
+  FUN(SizeAll)\
+  FUN(SizeMax)\
+  FUN(NumberOfVarsAll)\
+  FUN(NumberOfVarsMax)\
+
+#define FUN(Name) AlascaSelectionMode alascaSelection ## Name() { return _alascaSelection ## Name.actualValue; }
+
+  ALASCA_SELECTION_ORDERING_OPTIONS(FUN);
+
+#undef FUN
+
   bool alascaSkelOrd() const { return _alascaSkelOrd.actualValue; }
   bool viras() const { return _viras.actualValue; }
   bool alascaIneqFacDemod() const { return _alascaIneqFacDemod.actualValue; }
@@ -2807,6 +2825,12 @@ private:
 
   ChoiceOptionValue<AlascaSelectionMode> _alascaSelection;
 
+
+#define FUN(X) ChoiceOptionValue<AlascaSelectionMode> _alascaSelection ## X;
+
+  ALASCA_SELECTION_ORDERING_OPTIONS(FUN)
+
+#undef FUN
 }; // class Options
 
 // Allow printing of enums

@@ -1318,13 +1318,25 @@ void Options::init()
            ));
 
 
+    auto alascaSelectionModeValues = OptionChoiceValues({"off","on","inv"});
 
-    _alascaSelection = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection","alasca-s",AlascaSelectionMode::OFF, {"off","on","inv"});
+    _alascaSelection = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection","alasca-s",AlascaSelectionMode::OFF, alascaSelectionModeValues);
     _alascaSelection.description="Turns an alasca's specific selection strategy to wrap the usual selection option in it.";
     _lookup.insert(&_alascaSelection);
     addRecommendationConstraint(_alascaSelection, Or(
            _alasca.is(equal(true))
            ));
+
+#define FUN(Name)                                                                         \
+    _alascaSelection ## Name = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection-" #Name,"alasca-s-" #Name,AlascaSelectionMode::OFF, alascaSelectionModeValues); \
+    _alascaSelection ## Name.description="Makes alasca selection sort selectable terms by " #Name " and uses the biggest of them."; \
+    _lookup.insert(&_alascaSelection ## Name);                                             \
+    _alascaSelection ## Name .onlyUsefulWith(_alascaSelection.is(notEqual(AlascaSelectionMode::OFF)));\
+
+
+    ALASCA_SELECTION_ORDERING_OPTIONS(FUN);
+
+#undef FUN
 
     _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
     _viras.description= "Enables the VIRAS quantifier elimination to be used in ALASCA. The VIRAS method is explained in the LPAR2024 paper \"VIRAS: Conflict-Driven Quantifier Elimination for Integer-Real Arithmetic\"\n";
@@ -1438,7 +1450,7 @@ void Options::init()
     _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
        "arithmetic_subterm_generalizations", "asg",
        ArithmeticSimplificationMode::OFF);
-    _arithmeticSubtermGeneralizations.description = "\
+    _arithmeticSubtermGeneralizations.description = "                                     \
           Enables various generalization rules for arithmetic terms as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
           In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
@@ -1450,9 +1462,9 @@ void Options::init()
                                                         EvaluationMode::SIMPLE,
                                                         {"off","simple","force","cautious"});
     _evaluationMode.description=
-    "Chooses the algorithm used to simplify interpreted integer, rational, and real terms. \
-                                 \
-    - simple: will only evaluate expressions built from interpreted constants only.\
+    "Chooses the algorithm used to simplify interpreted integer, rational, and real terms.\
+                                                                                          \
+    - simple: will only evaluate expressions built from interpreted constants only.       \
     - cautious: will evaluate abstract expressions to a weak polynomial normal form. This is more powerful but may fail in some rare cases where the resulting polynomial is not strictly smaller than the initial one wrt. the simplification ordering. In these cases a new clause with the normal form term will be added to the search space instead of replacing the orignal clause.  \
     - force: same as `cautious`, but ignoring the simplification ordering and replacing the hypothesis with the normal form clause in any case. \
     ";
