@@ -1381,7 +1381,7 @@ void Options::init()
     _alascaAbstraction.setExperimental();
     _alascaAbstraction.onlyUsefulWith(_alasca.is(equal(true)));
 
-    _alascaIneqFacDemod = BoolOptionValue("alasca_ineq_fac_simpl","alascaifs",true);
+    _alascaIneqFacDemod = BoolOptionValue("alasca_ineq_fac_simpl","alascaifs",false);
     _alascaIneqFacDemod.description=
             "Enables the alascas inequality factoring simplification rule."
             "\n";
