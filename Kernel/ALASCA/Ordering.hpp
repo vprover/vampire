@@ -241,7 +241,7 @@ struct SkelOrd
     // TODO make this nicer
 
     Option<Ordering::Result> resultItp = forAnyNumTraits([&](auto n) -> Option<Ordering::Result> {
-        auto isOne = [](auto option) { return option.isSome() && option.unwrap() == 1; };
+        // auto isOne = [](auto option) { return option.isSome() && option.unwrap() == 1; };
         // auto isZero = [](auto option) { return option.isSome() && option.unwrap() == 0; };
         if (asig(n).isAdd(t0) || asig(n).isAdd(t1)) {
           auto mulExt = [&](auto l, auto r) { return OrderingUtils::mulExt(l, r, 

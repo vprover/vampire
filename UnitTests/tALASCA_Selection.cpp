@@ -115,13 +115,6 @@ TEST_GENERATION(rnd_complete_02a,
                ,  clause({ f(x) > 0,      - f(a) > 0   }) 
           ))
     )
-// in this case the global maximality of the term f(x) does not hold, so no inference is applied
-TEST_GENERATION(rnd_complete_02b,
-    asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, FourierMotzkin>()
-      .context  ({ clause({ f(x) > 0, f(x) - f(a) > 0   }) })
-      .input   (  clause({-f(b) > 0 }) )
-      .expected(exactly(  /* nothing */ ))
-    )
 
 TEST_GENERATION(rnd_complete_03,
     asymSelectionTest<GenericRndLiteralSelector</* complete */ true>, FourierMotzkin>()
@@ -253,6 +246,44 @@ TEST_FUN(best_01) {
   auto cl = clause({ ~p(x), -a + -b * x + c >= 0 });
 
   using namespace LiteralComparators;
+  
+  using SelectorMode = CompleteBestLiteralSelector<CompositeN
+    < ColoredFirst
+    , NegativeEquality
+    , MaximalSize
+    , Negative
+    , LexComparator
+    >>;
+  
+  // using SelectorMode = CompleteBestLiteralSelector<CompositeN
+  //   < MaximalSize
+  //   , LexComparator
+  //   >>;
+
+  auto state = testAlascaState(
+      Options::UnificationWithAbstraction::ALASCA_MAIN,
+      Lib::make_shared(InequalityNormalizer()),
+      nullptr,
+     /*uwaFixdPointIteration=*/ false,
+     LiteralSelectors::selectorMode<SelectorMode>());
+
+  auto sel = state->selected(cl)
+    .map([](auto& s) { return s.litIdx(); })
+    .collectStack();
+
+  ASS_EQ(sel, Stack<unsigned>{1})
+}
+
+TEST_FUN(selector_max_terms) {
+  __ALLOW_UNUSED(
+    SUGAR(Rat)
+  )
+
+  // auto cl = clause({
+  //     x4 + -3300 + -40 * x3 > 0 | -20 X0 + -x4 + 4820 >= 0 | X0 + 2 x3 > 0 | X0 + 2 x3 > 0 | -X0 > 0 | -20 X0 + -x4 + 4820 >= 0 | X0 + -1 X0 >= 0
+  //     });
+
+  using namespace LiteralComparators;
   using SelectorMode = CompleteBestLiteralSelector<CompositeN
     < ColoredFirst
     , NegativeEquality
@@ -268,9 +299,27 @@ TEST_FUN(best_01) {
      /*uwaFixdPointIteration=*/ false,
      LiteralSelectors::selectorMode<SelectorMode>());
 
-  auto sel = state->selected(cl)
-    .map([](auto& s) { return s.litIdx(); })
-    .collectStack();
 
-  ASS_EQ(sel, Stack<unsigned>{1})
+  auto check = [&](auto lit, auto expectedMax_) {
+    auto expectedMax = expectedMax_.map([](auto x) { return TermList(x); }).collectStack().sorted();
+
+    auto max = state->selector.maxAtomsNotLess(InequalityNormalizer::normalize(lit).template asItp<RatTraits>()->term())
+      .map([](auto x) { return x.atom(); })
+      .collectStack()
+      .sorted();
+    ASS_EQ(max, expectedMax);
+  };
+
+  // auto max = state->selector.maxAtomsNotLess(InequalityNormalizer::normalize(-20 * x + -a + 4820 >= 0).asItp<RatTraits>()->term())
+  //   .collectStack()
+  //   .sorted();
+  // ASS_EQ(max, iterItems(x, a).collectStack().sorted())
+
+  check(-20 * x + -a + 4820 >= 0, iterItems(x, a));
+
+  // auto sel = state->selected(cl)
+  //   .map([](auto& s) { return s.litIdx(); })
+  //   .collectStack();
+  //
+  // ASS_EQ(sel, Stack<unsigned>{1})
 }

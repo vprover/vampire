@@ -72,7 +72,8 @@ namespace Kernel {
                       SelectionCriterion::NOT_LESS)
               .collectStack();
 
-        return _maxAtoms.insert(key, std::move(stack));
+        auto& out = _maxAtoms.insert(key, std::move(stack));
+        return out;
       }
     }
 

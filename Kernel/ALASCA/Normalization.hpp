@@ -221,8 +221,14 @@ namespace Kernel {
     template<class NumTraits>
     static Option<AlascaLiteralItpAny> asItp(AlascaLiteralItp<NumTraits> const& n) { return some(AlascaLiteralItpAny(n)); }
     static Option<AlascaLiteralItpAny> asItp(AlascaLiteralUF             const& n) { return {}; }
+
     auto asItp() const -> Option<AlascaLiteralItpAny>
     { return apply([](auto& x) { return asItp(x); }); }
+
+    template<class NumTraits>
+    auto asItp() const -> Option<AlascaLiteralItp<NumTraits>>
+    { return as<AlascaLiteralItp<NumTraits>>().toOwned(); }
+    // { return asItp().flatMap([](auto x) { return x.template as<AlascaLiteralItp<NumTraits>>(); }); }
 
     Literal* toLiteral() const 
     { return apply([](auto x) { return x.toLiteral(); }); }

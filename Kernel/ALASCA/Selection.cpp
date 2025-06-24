@@ -28,12 +28,16 @@
 
 namespace Kernel {
 
-struct MultiSetUnsigned {
-  Stack<unsigned> _self;
-  MultiSetUnsigned(MultiSetUnsigned&&) = default;
-  MultiSetUnsigned(Stack<unsigned> self) : _self(std::move(self)) 
+template<class T>
+struct TotalComparableMultiset {
+  Stack<T> _self;
+  TotalComparableMultiset(TotalComparableMultiset&&) = default;
+  TotalComparableMultiset(Stack<T> self) : _self(std::move(self)) 
   { _self.sort(); }
 };
+
+template<class T>
+TotalComparableMultiset(Stack<T>) -> TotalComparableMultiset<T>;
 
 
 template<class T>
@@ -45,8 +49,8 @@ struct AlascaComparatorByLiteralKey { static constexpr bool enabled = false; };
   {                                                                                       \
     static constexpr bool enabled = true;                                                 \
     template<class Self>                                                                  \
-    static auto getLiteralKey(TL::Token<Type>, Self const& self, __SelectedLiteral const& x) \
-    body                                                                                  \
+    static auto getKey(TL::Token<Type>, Self const& self, __SelectedLiteral const& x)     \
+      body                                                                                \
   };                                                                                      \
 
 BY_LITERAL_KEY(LiteralComparators::ColoredFirst, 
@@ -94,40 +98,11 @@ struct AlascaComparator {
   Comparison compare(TL::Token<LiteralComparators::Inverse<C>>, __SelectedLiteral const& l, __SelectedLiteral const& r) const 
   { return compare(TL::Token<C>{}, r, l); } 
 
-
-  // bool getLiteralKey(TL::Token<LiteralComparators::ColoredFirst>, __SelectedLiteral const& x) const 
-  // { return x.literal()->color() != COLOR_TRANSPARENT; }
-  //
-  // bool getLiteralKey(TL::Token<LiteralComparators::NoPositiveEquality>, __SelectedLiteral const& x) const 
-  // { return !(x.literal()->isEquality() && x.literal()->isPositive()); }
-  //
-  // bool getLiteralKey(TL::Token<LiteralComparators::Negative>, __SelectedLiteral const& x) const 
-  //     // TODO this should be isNegativeForSelection (?)
-  // { return x.literal()->isNegative(); }
-  //
-  // bool getLiteralKey(TL::Token<LiteralComparators::NegativeEquality>, __SelectedLiteral const& x) const 
-  // { return x.literal()->isEquality() && x.literal()->isNegative(); }
-  //
-  // unsigned getLiteralKey(TL::Token<LiteralComparators::MaximalSize>, __SelectedLiteral const& x) const 
-  // { return x.literal()->weight(); }
-  //
-  // int getLiteralKey(TL::Token<LiteralComparators::LeastVariables>, __SelectedLiteral const& x) const 
-  // { return -int(x.literal()->numVarOccs()); }
-  //
-  // int getLiteralKey(TL::Token<LiteralComparators::LeastDistinctVariables>, __SelectedLiteral const& x) const 
-  // { return -int(x.literal()->getDistinctVars()); }
-  //
-  // /* top level variables here does not mean alasca top level variables (e.g. x in `k x + t`), 
-  //  * but mean variables that are arguments to the outer most function/predicate (e.g. x in `p(x, f(y))`) */
-  // int getLiteralKey(TL::Token<LiteralComparators::LeastTopLevelVariables>, __SelectedLiteral const& x) const 
-  // { return -int(anyArgIter(x.literal()).filter([](auto t) { return t.isVar(); }).count()); }
-
   template<class C, std::enable_if_t<AlascaComparatorByLiteralKey<C>::enabled, bool> = true>
   Comparison compare(TL::Token<C> c, __SelectedLiteral const& l, __SelectedLiteral const& r) const  
-  // { return Int::compare(getLiteralKey(c, l), getLiteralKey(c, r)); }
   { return Int::compare(
-      AlascaComparatorByLiteralKey<C>::getLiteralKey(c, self, l), 
-      AlascaComparatorByLiteralKey<C>::getLiteralKey(c, self, r)); }
+      AlascaComparatorByLiteralKey<C>::getKey(c, self, l), 
+      AlascaComparatorByLiteralKey<C>::getKey(c, self, r)); }
 
   template<class T>
   Comparison compare(TL::Token<LiteralComparators::LexComparator>, T const& l, T const& r) const 
@@ -137,10 +112,6 @@ struct AlascaComparator {
          : l < r ? Comparison::LESS
          : Comparison::GREATER;
   }
-
-  // template<class T>
-  // auto dbg(T const& x) 
-  // { return "lex"; }
 
   template<class Uninter, class FallBack, class... Inter>
   Comparison compare(TL::Token<LiteralComparators::ALASCA::IfUninterpreted<Uninter,std::tuple<Inter...>, FallBack>> c, __SelectedLiteral const& l, __SelectedLiteral const& r) const 
@@ -187,55 +158,58 @@ struct AlascaComparator {
   BY_INTERPRETED_KEY(CntSummandsAll, 
     { return lit.term().nSummands(); })
 
-  unsigned theoryComplexity(AnyAlascaTerm t) const {
-    unsigned total = 0;
+  std::pair<unsigned, unsigned> theoryComplexity(AnyAlascaTerm t) const {
+    unsigned totalNumerals = 0;
+    unsigned totalPlus     = 0;
     for (auto t : t.bottomUpIter()) {
       if (auto sum = t.asSum()) {
         sum->apply([&](auto& sum) {
-            ASS(sum.nSummands() > 0)
-            total += sum.nSummands() - 1;
-            for (auto monom : sum.iterSummands()) {
-              if (monom.numeral() != 1) {
-                total += 1;
+            if (sum.nSummands() == 0) {
+              totalNumerals += 1;
+            } else {
+              totalPlus += sum.nSummands() - 1;
+              for (auto monom : sum.iterSummands()) {
+                if (monom.numeral() != 1) {
+                  totalNumerals += 1;
+                }
               }
             }
         });
       }
     }
-    return total;
+    return std::make_pair(totalPlus, totalNumerals);
   }
 
-  unsigned theoryComplexity(TypedTermList t) const {
-    return theoryComplexity(InequalityNormalizer::normalize(t));
-  }
+  auto theoryComplexity(TypedTermList t) const 
+  { return theoryComplexity(InequalityNormalizer::normalize(t)); }
 
   BY_INTERPRETED_KEY(TheoryComplexityAll,
-      { return MultiSetUnsigned(lit.term().iterSummands()
+      { return TotalComparableMultiset(lit.term().iterSummands()
           .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
           .collectStack()); })
 
   BY_INTERPRETED_KEY(TheoryComplexityMax,
-      { return MultiSetUnsigned(self.maxAtomsNotLess(lit.term())
+      { return TotalComparableMultiset(self.maxAtomsNotLess(lit.term())
           .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
           .collectStack()); })
 
   BY_INTERPRETED_KEY(SizeAll,
-      { return MultiSetUnsigned(lit.term().iterSummands()
+      { return TotalComparableMultiset(lit.term().iterSummands()
           .map([&](auto x) { return x.atom().weight(); })
           .collectStack()); })
 
   BY_INTERPRETED_KEY(SizeMax,
-      { return MultiSetUnsigned(self.maxAtomsNotLess(lit.term())
+      { return TotalComparableMultiset(self.maxAtomsNotLess(lit.term())
           .map([&](auto x) { return x.atom().weight(); })
           .collectStack()); })
 
   BY_INTERPRETED_KEY(NumberOfVarsAll,
-      { return MultiSetUnsigned(lit.term().iterSummands()
+      { return TotalComparableMultiset(lit.term().iterSummands()
           .map([&](auto x) { return x.atom().getDistinctVars(); })
           .collectStack()); })
 
   BY_INTERPRETED_KEY(NumberOfVarsMax,
-      { return MultiSetUnsigned(self.maxAtomsNotLess(lit.term())
+      { return TotalComparableMultiset(self.maxAtomsNotLess(lit.term())
           .map([&](auto x) { return x.atom().getDistinctVars(); })
           .collectStack()); })
 
@@ -249,16 +223,26 @@ struct AlascaComparator {
       AlascaLiteralItpAny const& l, AlascaLiteralItpAny const& r) const 
   { return compare(TL::Token<FallBack>{}, l, r); }
 
-  static Comparison compare(MultiSetUnsigned const& l_, MultiSetUnsigned const& r_)
+  template<class T>
+  static Comparison compare(TotalComparableMultiset<T> const& l_, TotalComparableMultiset<T> const& r_)
   { 
     auto& l = l_._self;
     auto& r = r_._self;
     for (auto i : range(0, std::min(l.size(), r.size()))) {
-      if (l[i] != r[i]) {
-        return l[i] < r[i] ? Comparison::LESS : Comparison::GREATER;
+      switch (compare(l[i], r[i])) {
+        case Comparison::EQUAL: break;
+        case Comparison::LESS: return Comparison::LESS;
+        case Comparison::GREATER: return Comparison::GREATER;
       }
     }
     return Int::compare(l.size(), r.size());
+  }
+
+  template<class L, class R>
+  static Comparison compare(std::pair<L, R> const& l, std::pair<L, R> const& r) 
+  { 
+    auto res = compare(l.first, r.first);
+    return res == Comparison::EQUAL ? compare(l.second, r.second) : res;
   }
 
   template<class T>
@@ -454,7 +438,7 @@ struct AlascaSelectorDispatch {
   Stack<__SelectedLiteral> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>> token, Clause* cl) 
   {
     auto negative = iterSelectable(cl).collectRStack();
-    negative->sort(AlascaComparator(self).toCmpClosure(TL::Token<QComparator>{}));
+    negative->sort(AlascaComparator(self).toCmpClosure(TL::Token<LiteralComparators::Inverse<QComparator>>{}));
     if (negative->size() != 0) {
       return selectBG(negative[0]);
     } else {
