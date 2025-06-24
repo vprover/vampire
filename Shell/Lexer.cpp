@@ -29,16 +29,25 @@ using namespace Lib;
  * @since 27/07/2004 Torrevieja
  */
 Lexer::Lexer (istream& in)
-  : _charBuffer(512),
-    _charCursor(0),
-    _stream(in),
-    _eof(false),
-    _lineNumber(1),
-    _lookAheadChar(0)
+  : _charBuffer(512), _stream(in)
 {
   readNextChar();
 } // Lexer::Lexer
 
+bool Lexer::handleChar()
+{
+  if (_lastCharacter == '\n') {
+    _colNumber = 0;
+    _lineNumber++;
+  } else {
+    _colNumber++;
+  }
+  if (_lastCharacter == -1) {
+    _eof = true;
+    return false;
+  }
+  return true;
+}
 
 /**
  * Reads next character into _lastCharacter.
@@ -51,11 +60,7 @@ bool Lexer::readNextChar ()
   if (_lookAheadChar) {
     _lastCharacter = _lookAheadChar;
     _lookAheadChar = 0;
-    if (_lastCharacter == -1) {
-      _eof = true;
-      return false;
-    }
-    return true;
+    return handleChar();
   }
 
   if (_eof) {
@@ -63,15 +68,7 @@ bool Lexer::readNextChar ()
   }
 
   _lastCharacter = _stream.get();
-  if (_lastCharacter == -1) {
-    _eof = true;
-    return false;
-  }
-
-  if (_lastCharacter == '\n') {
-    _lineNumber++;
-  }
-  return true;
+  return handleChar();
 } // Lexer::readNextChar
 
 

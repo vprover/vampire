@@ -87,7 +87,7 @@ bool RobSubstitution::matchArgs(Term* base,int baseIndex,
  * would give the same result as first renaming variables and then applying
  * the substitution in @b normalIndex.
  *
- * @warning All variables, that occured in some term that was matched or unified
+ * @warning All variables, that occurred in some term that was matched or unified
  * in @b normalIndex, must be also present in the @b normalizer.
  */
 void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)

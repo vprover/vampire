@@ -27,7 +27,7 @@ class TermOrderingDiagramKBO
 : public TermOrderingDiagram
 {
 public:
-  TermOrderingDiagramKBO(const Ordering& ord) : TermOrderingDiagram(ord) {}
+  TermOrderingDiagramKBO(const Ordering& ord, bool ground) : TermOrderingDiagram(ord, ground) {}
 
   void processTermNode() override;
 };

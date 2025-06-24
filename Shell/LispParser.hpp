@@ -56,27 +56,20 @@ public:
     std::string str;
     /** list of expressions */
     List<Expression*>* list;
+    int line;
+    int col;
     /** build a list expressions with the list initially empty */
-    explicit Expression(Tag t)
-      : tag(t),
-	str("?"),
-	list(0)
-    {}
+    explicit Expression(Tag t, int line = -1, int col = -1)
+      : tag(t), str("?"), list(0), line(line), col(col) {}
     /** build a string-values expression */
-    Expression(Tag t,std::string s)
-      : tag(t),
-	str(s),
-	list(0)
-    {}
+    Expression(Tag t, std::string s, int line = -1, int col = -1)
+      : tag(t), str(s), list(0), line(line), col(col) {}
     std::string toString(bool outerParentheses=true) const;
+    std::string highlightSubexpression(Expression* expr) const;
+    std::string getPosition() const;
 
     bool isList() const { return tag==LIST; }
     bool isAtom() const { return tag==ATOM; }
-
-    bool get2Args(std::string functionName, Expression*& arg1, Expression*& arg2);
-    bool get1Arg(std::string functionName, Expression*& arg);
-    bool getPair(Expression*& el1, Expression*& el2);
-    bool getSingleton(Expression*& el);
   };
 
   typedef Lib::List<Expression*> EList;
@@ -111,112 +104,25 @@ typedef LispParser::Expression LExpr;
 typedef List<LExpr*> LExprList;
 
 
-class LispListReader {
+class ErrorThrowingLispListReader {
 public:
-  explicit LispListReader(LExpr* e) : it(nullptr)
-  {
-    if(!e->isList()) {
-      lispError(e, "list expected");
-    }
-    it = LExprList::Iterator(e->list);
-  }
-  explicit LispListReader(LExprList* list) : it(list) {}
-
-  [[noreturn]] void lispError(LExpr* expr, std::string reason="error");
-  [[noreturn]] void lispCurrError(std::string reason="error");
+  ErrorThrowingLispListReader(LExpr* e, LExpr* root)
+    : e(e), root(root), it(LExprList::Iterator(e->list))
+  { ASS(e->isList()); }
 
   bool hasNext() { return it.hasNext(); }
-  LExpr* peekAtNext();
-  LExpr* readNext();
-  LExpr* next() { return readNext(); }
 
-  bool tryReadAtom(std::string& atom);
+  LExpr* readExpr();
   std::string readAtom();
-
-  bool tryReadListExpr(LExpr*& e);
-  LExpr* readListExpr();
-
-  bool tryReadList(LExprList*& list);
-  LExprList* readList();
+  LExpr* readList();
 
   bool tryAcceptAtom(std::string atom);
-  void acceptAtom(std::string atom);
-  void acceptAtom() { readAtom(); }
-
-  bool tryAcceptList();
-  void acceptList();
-
   void acceptEOL();
 
-  bool lookAheadAtom(std::string atom);
-
-  bool tryAcceptCurlyBrackets();
 private:
+  LExpr* e;
+  LExpr* root;
   LExprList::Iterator it;
-};
-
-class LispListWriter
-{
-public:
-  LispListWriter()
-  {
-#if VDEBUG
-    _destroyed = false;
-#endif
-  }
-
-#if VDEBUG
-  ~LispListWriter()
-  {
-    _destroyed = true;
-  }
-#endif
-
-  LispListWriter& operator<<(std::string s)
-  {
-    _elements.push(new LExpr(LispParser::ATOM, s));
-    return *this;
-  }
-
-  LispListWriter& operator<<(LExpr* e)
-  {
-    _elements.push(e);
-    return *this;
-  }
-
-  LispListWriter& operator<<(const LispListWriter& e)
-  {
-    _elements.push(e.get());
-    return *this;
-  }
-
-  LispListWriter& append(LExprList* lst)
-  {
-    _elements.loadFromIterator(LExprList::Iterator(lst));
-    return *this;
-  }
-
-  LExprList* getList() const
-  {
-    ASS(!_destroyed);
-
-    LExprList* res = 0;
-    LExprList::pushFromIterator(Stack<LExpr*>::TopFirstIterator(_elements), res);
-    return res;
-  }
-
-  LExpr* get() const
-  {
-    LExpr* res = new LExpr(LispParser::LIST);
-    res->list = getList();
-    return res;
-  }
-
-private:
-#if VDEBUG
-  bool _destroyed;
-#endif
-  Stack<LExpr*> _elements;
 };
 
 }

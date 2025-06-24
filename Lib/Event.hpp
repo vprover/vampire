@@ -30,7 +30,7 @@ typedef SmartPtr<SubscriptionObject> SubscriptionData;
 class BaseEvent
 {
 public:
-  /** Return true iif there are no subscribers of this event */
+  /** Return true if there are no subscribers of this event */
   bool isEmpty()
   {
     return !_handlers;

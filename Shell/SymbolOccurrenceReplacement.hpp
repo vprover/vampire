@@ -39,7 +39,7 @@ class SymbolOccurrenceReplacement {
         if(isPredicate){
           ASS(VList::length(argVars) == env.signature->getPredicate(symbol)->arity());
         } else {
-          ASS(VList::length(argVars) == env.signature->getFunction(symbol)->arity());            
+          ASS(VList::length(argVars) == env.signature->getFunction(symbol)->arity());
         }
         // The implementation of this class doesn't requite argVars to be
         // non-empty, however, its use case expects this constraint

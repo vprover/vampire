@@ -66,7 +66,7 @@ protected:
   // rat and real versions only
   // note when using this we might need to add a side condition that B is positive if this is under lesseq, or B is negative if we switch the polarity
   template<typename ConstantType>
-  bool balanceMultiply(Interpretation divide,ConstantType zero,             
+  bool balanceMultiply(Interpretation divide,ConstantType zero,
                        Term* AmultiplyB, TermList A, TermList C, TermList& result,
                        bool& swap);
 

@@ -60,7 +60,7 @@ public:
     bool    addClause (Lit p, Lit q);                           // Add a binary clause to the solver. 
     bool    addClause (Lit p, Lit q, Lit r);                    // Add a ternary clause to the solver. 
     bool    addClause (Lit p, Lit q, Lit r, Lit s);             // Add a quaternary clause to the solver. 
-    bool    addClause_(      vec<Lit>& ps);                     // Add a clause to the solver without making superflous internal copy. Will
+    bool    addClause_(      vec<Lit>& ps);                     // Add a clause to the solver without making superfluous internal copy. Will
                                                                 // change the passed vector 'ps'.
 
     // Solving:
@@ -111,7 +111,7 @@ public:
     int     nFreeVars  ()      const;
     void    printStats ()      const;       // Print some current statistics to standard output.
 
-    // Resource contraints:
+    // Resource constraints:
     //
     void    setConfBudget(int64_t x);
     void    setPropBudget(int64_t x);
@@ -119,7 +119,7 @@ public:
     void    interrupt();          // Trigger a (potentially asynchronous) interruption of the solver.
     void    clearInterrupt();     // Clear interrupt indicator flag.
 
-    // Memory managment:
+    // Memory management:
     //
     virtual void garbageCollect();
     void    checkGarbage(double gf);
@@ -148,7 +148,7 @@ public:
 
     int       restart_first;      // The initial restart limit.                                                                (default 100)
     double    restart_inc;        // The factor with which the restart limit is multiplied in each restart.                    (default 1.5)
-    double    learntsize_factor;  // The intitial limit for learnt clauses is a factor of the original clauses.                (default 1 / 3)
+    double    learntsize_factor;  // The initial limit for learnt clauses is a factor of the original clauses.                 (default 1 / 3)
     double    learntsize_inc;     // The limit for learnt clauses is multiplied with this factor each restart.                 (default 1.1)
 
     int       learntsize_adjust_start_confl;
@@ -197,7 +197,7 @@ protected:
     //
     vec<CRef>           clauses;          // List of problem clauses.
     vec<CRef>           learnts;          // List of learnt clauses.
-    vec<Lit>            trail;            // Assignment stack; stores all assigments made in the order they were made.
+    vec<Lit>            trail;            // Assignment stack; stores all assignments made in the order they were made.
     vec<int>            trail_lim;        // Separator indices for different decision levels in 'trail'.
     vec<Lit>            assumptions;      // Current set of assumptions provided to solve by the user.
 
@@ -227,7 +227,7 @@ protected:
     vec<Var>            free_vars;
 
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which it is
-    // used, exept 'seen' wich is used in several places.
+    // used, except 'seen' which is used in several places.
     //
     VMap<char>          seen;
     vec<ShrinkStackElem>analyze_stack;
@@ -238,7 +238,7 @@ protected:
     double              learntsize_adjust_confl;
     int                 learntsize_adjust_cnt;
 
-    // Resource contraints:
+    // Resource constraints:
     //
     int64_t             conflict_budget;    // -1 means no budget.
     int64_t             propagation_budget; // -1 means no budget.
@@ -385,7 +385,7 @@ inline bool     Solver::withinBudget() const {
            (conflict_budget    < 0 || conflicts < (uint64_t)conflict_budget) &&
            (propagation_budget < 0 || propagations < (uint64_t)propagation_budget); }
 
-// FIXME: after the introduction of asynchronous interrruptions the solve-versions that return a
+// FIXME: after the introduction of asynchronous interruptions the solve-versions that return a
 // pure bool do not give a safe interface. Either interrupts must be possible to turn off here, or
 // all calls to solve must return an 'lbool'. I'm not yet sure which I prefer.
 inline bool     Solver::solve         ()                    { budgetOff(); assumptions.clear(); return solve_() == l_True; }

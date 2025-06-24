@@ -1,0 +1,67 @@
+%------------------------------------------------------------------------------
+% File     : DAT002_0 : TPTP v9.0.0. Released v5.0.0.
+% Domain   : Data Structures
+% Axioms   : Integer collections
+% Version  : [Wal10] axioms.
+% English  : 
+
+% Refs     : [PW06]  Prevosto & Waldmann (2006), SPASS+T
+%          : [Wal10] Waldmann (2010), Email to Geoff Sutcliffe
+% Source   : [Wal10]
+% Names    : 
+
+% Status   : Satisfiable
+% Syntax   : Number of formulae    :   10 (   3 unt;   5 typ;   0 def)
+%            Number of atoms       :    9 (   2 equ)
+%            Maximal formula atoms :    3 (   0 avg)
+%            Number of connectives :    7 (   3   ~;   1   |;   1   &)
+%                                         (   2 <=>;   0  =>;   0  <=;   0 <~>)
+%            Maximal formula depth :    7 (   5 avg)
+%            Maximal term depth    :    2 (   1 avg)
+%            Number arithmetic     :    7 (   0 atm;   0 fun;   0 num;   7 var)
+%            Number of types       :    3 (   1 usr;   1 ari)
+%            Number of type conns  :    6 (   3   >;   3   *;   0   +;   0  <<)
+%            Number of predicates  :    2 (   1 usr;   0 prp; 2-2 aty)
+%            Number of functors    :    3 (   3 usr;   1 con; 0-2 aty)
+%            Number of variables   :   11 (  11   !;   0   ?;  11   :)
+% SPC      : TFF_SAT_RFO_SEQ_SAR
+
+% Comments : 
+%------------------------------------------------------------------------------
+tff(collection_type,type,
+    collection: $tType ).
+
+tff(empty_type,type,
+    empty: collection ).
+
+tff(add_type,type,
+    add: ( $int * collection ) > collection ).
+
+tff(remove_type,type,
+    remove: ( $int * collection ) > collection ).
+
+tff(in_type,type,
+    in: ( $int * collection ) > $o ).
+
+tff(ax1,axiom,
+    ! [U: $int] : ~ in(U,empty) ).
+
+tff(ax2,axiom,
+    ! [V: $int,W: collection] : in(V,add(V,W)) ).
+
+tff(ax3,axiom,
+    ! [X: $int,Y: collection] : ~ in(X,remove(X,Y)) ).
+
+tff(ax4,axiom,
+    ! [Z: $int,X1: collection,X2: $int] :
+      ( ( in(Z,X1)
+        | ( Z = X2 ) )
+    <=> in(Z,add(X2,X1)) ) ).
+
+tff(ax5,axiom,
+    ! [X3: $int,X4: collection,X5: $int] :
+      ( ( in(X3,X4)
+        & ( X3 != X5 ) )
+    <=> in(X3,remove(X5,X4)) ) ).
+
+%------------------------------------------------------------------------------

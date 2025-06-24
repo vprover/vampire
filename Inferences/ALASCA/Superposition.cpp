@@ -62,7 +62,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
 
 #define check_side_condition(cond, cond_code)                                             \
     if (!(cond_code)) {                                                                   \
-      DEBUG(2, "side condition not fulfiled: ", cond)                                     \
+      DEBUG(2, "side condition not fulfilled: ", cond)                                    \
       return nothing();                                                                   \
     }                                                                                     \
 

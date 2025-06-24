@@ -50,7 +50,6 @@
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
-#include "LambdaElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
@@ -77,10 +76,6 @@ using namespace Shell;
 void Preprocess::preprocess(Problem& prb)
 {
   env.options->resolveAwayAutoValues0();
-
-  if(env.options->choiceReasoning()){
-    env.signature->addChoiceOperator(env.signature->getChoice());
-  }
 
   if (env.options->showPreprocessing()) {
     std::cout << "preprocessing started" << std::endl;
@@ -177,23 +172,17 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
-    LambdaElimination::addFunctionExtensionalityAxiom(prb);
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
+    HOL_ERROR;
   }
 
-  if(env.options->choiceAxiom()){
-    LambdaElimination::addChoiceAxiom(prb);
+  if (env.options->choiceAxiom()) {
+    HOL_ERROR;
   }
 
-  prb.getProperty();
+  (void)prb.getProperty();
 
-  if ((prb.hasCombs() || prb.hasAppliedVar()) && env.options->addCombAxioms()){
-    LambdaElimination::addCombinatorAxioms(prb);
-  }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
-    LambdaElimination::addProxyAxioms(prb);
-  }
 
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
@@ -439,7 +428,7 @@ void Preprocess::preprocess(Problem& prb)
 
    if (env.options->alascaIntegerConversion()) {
      if (env.options->showPreprocessing())
-        std::cout << "performing integer coversion" << std::endl;
+        std::cout << "performing integer conversion" << std::endl;
 
      AlascaPreprocessor alasca(InequalityNormalizer::global());
      alasca.integerConversion(prb);

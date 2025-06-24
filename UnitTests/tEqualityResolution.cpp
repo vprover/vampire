@@ -21,7 +21,7 @@ using namespace Test;
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Inferences::EqualityResolution>(EqualityResolution()))
 
 /**
- * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 
+ * NECESSARY: We need to tell the tester which syntax sugar to import for creating terms & clauses.
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
  */
 #define MY_SYNTAX_SUGAR                                                                                       \
@@ -55,7 +55,7 @@ TEST_GENERATION(test_02,
 TEST_GENERATION(test_03,
     Generation::AsymmetricTest()
       .input(     clause({  selected(x != f(a)), selected(p(x))  }))
-      .expected( exactly( clause({  p(f(a))                              })))
+      .expected( exactly())
     )
 
 TEST_GENERATION(test_04,
@@ -74,4 +74,10 @@ TEST_GENERATION(test_06,
     Generation::AsymmetricTest()
       .input(     clause({  selected(f(g(x)) != f(x))  }))
       .expected( exactly())
+    )
+
+TEST_GENERATION(test_07,
+    Generation::AsymmetricTest()
+      .input(     clause({  selected(x != f(a)), selected(x != a)  }))
+      .expected( exactly( clause({  f(a) != a  })))
     )

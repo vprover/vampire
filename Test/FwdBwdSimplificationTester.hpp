@@ -16,7 +16,7 @@
  *
  * \see UnitTests/tEqualityResolution.cpp, for usage a example
  *
- * Don't rely on any part of the interface, but the things containted in the examples,
+ * Don't rely on any part of the interface, but the things contained in the examples,
  * because it's rather unstable.
  */
 
@@ -117,7 +117,7 @@ public:
 
   void runFwd() 
   {
-    // set up clause container and indexing strucure
+    // set up clause container and indexing structure
     auto container =  PlainClauseContainer();
 
     ForwardSimplificationEngine& fwd = *this->fwd().unwrap();
@@ -177,7 +177,7 @@ public:
 
   void runBwd() 
   {
-    // set up clause container and indexing strucure
+    // set up clause container and indexing structure
     auto container =  PlainClauseContainer();
 
     BackwardSimplificationEngine& bwd = *this->bwd().unwrap();

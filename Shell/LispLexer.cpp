@@ -64,8 +64,8 @@ void LispLexer::skipWhiteSpacesAndComments ()
 
     default:
       if (comment) {
-	readNextChar();
-	break;
+        readNextChar();
+        break;
       }
       return;
     }
@@ -87,6 +87,7 @@ void LispLexer::readToken (Token& token)
     return;
   }
   token.line = _lineNumber;
+  token.col = _colNumber;
 
   switch (_lastCharacter) {
   case '(':
@@ -194,7 +195,7 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing, char 
     }
     else {
       if (escape && _lastCharacter!=closing && _lastCharacter!=escapeChar) {
-	throw LexerException((std::string)"invalid escape sequence in quoted string ", *this);
+        throw LexerException((std::string)"invalid escape sequence in quoted string ", *this);
       }
       escape=false;
       saveLastChar();
