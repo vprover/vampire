@@ -78,7 +78,7 @@ namespace LiteralSelectors {
         >,
       // fallback for interpreted
       LexComparator
-        >
+      >
     >;
 
 
@@ -110,12 +110,12 @@ using OptionValues = TL::List<
   , OptionValue<34, GenericELiteralSelector<4>>
   , OptionValue<35, GenericELiteralSelector<5>>
 
-
   , OptionValue<666, GenericRndLiteralSelector</* complte */ true>>
 
   , OptionValue<1002, BestLiteralSelector<Comparator2>>
   , OptionValue<1003, BestLiteralSelector<Comparator3>>
   , OptionValue<1004, BestLiteralSelector<Comparator4>>
+  , OptionValue<1005, BestLiteralSelector<AlascaComparator>>
   , OptionValue<1010, BestLiteralSelector<Comparator10>>
   , OptionValue<1011, GenericLookaheadLiteralSelector</* complete */ false>>
   , OptionValue<1666, GenericRndLiteralSelector</* complete */ false>>

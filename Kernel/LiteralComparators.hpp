@@ -21,6 +21,7 @@
 
 #include "LiteralSelector.hpp"
 #include "Renaming.hpp"
+#include "Shell/Options.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
@@ -358,15 +359,9 @@ namespace ALASCA {
   };                                                                                      \
 
 
-MK_ALASCA_COMPARATOR(IsUwaConstraint)
-MK_ALASCA_COMPARATOR(CntSummandsMax)
-MK_ALASCA_COMPARATOR(CntSummandsAll)
-MK_ALASCA_COMPARATOR(TheoryComplexityMax)
-MK_ALASCA_COMPARATOR(TheoryComplexityAll)
-MK_ALASCA_COMPARATOR(NumberOfVarsMax)
-MK_ALASCA_COMPARATOR(NumberOfVarsAll)
-MK_ALASCA_COMPARATOR(SizeMax)
-MK_ALASCA_COMPARATOR(SizeAll)
+ALASCA_SELECTION_ORDERING_OPTIONS(MK_ALASCA_COMPARATOR)
+
+#undef MK_ALASCA_COMPARATOR
 
 template<class UninterCase, class InterCase, class Fallback>
 struct IfUninterpreted : public LiteralComparator

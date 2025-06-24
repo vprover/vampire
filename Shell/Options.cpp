@@ -931,6 +931,7 @@ void Options::init()
     " 2     - ColoredFirst, MaximalSize then Lexicographical\n"
     " 3     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastDistinctVariables then Lexicographical\n"
     " 4     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastVariables, MaximalSize then Lexicographical\n"
+    " 5     - alasca mode\n"
     " 10    - ColoredFirst, NegativeEquality, MaximalSize, Negative then Lexicographical\n"
     " 11    - Lookahead\n"
     " 666   - Random\n"
@@ -1320,18 +1321,22 @@ void Options::init()
 
     auto alascaSelectionModeValues = OptionChoiceValues({"off","on","inv"});
 
-    _alascaSelection = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection","alasca-s",AlascaSelectionMode::OFF, alascaSelectionModeValues);
+    _alascaSelection = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection","alasca-s",AlascaSelectionMode::ON, alascaSelectionModeValues);
     _alascaSelection.description="Turns an alasca's specific selection strategy to wrap the usual selection option in it.";
     _lookup.insert(&_alascaSelection);
+    _alascaSelection.addHardConstraint(notEqual(AlascaSelectionMode::OFF));
     addRecommendationConstraint(_alascaSelection, Or(
            _alasca.is(equal(true))
            ));
 
 #define FUN(Name)                                                                         \
-    _alascaSelection ## Name = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection-" #Name,"alasca-s-" #Name,AlascaSelectionMode::OFF, alascaSelectionModeValues); \
+    _alascaSelection ## Name = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection-" #Name,"alasca-s-" #Name,AlascaSelectionMode::ON, alascaSelectionModeValues); \
     _alascaSelection ## Name.description="Makes alasca selection sort selectable terms by " #Name " and uses the biggest of them."; \
-    _lookup.insert(&_alascaSelection ## Name);                                             \
-    _alascaSelection ## Name .onlyUsefulWith(_alascaSelection.is(notEqual(AlascaSelectionMode::OFF)));\
+    _lookup.insert(&_alascaSelection ## Name);                                            \
+    _alascaSelection ## Name .onlyUsefulWith(Or(                                          \
+          _selection.is(equal(5)),                                                        \
+          _selection.is(equal(-5))                                                       \
+          ));                                                                             \
 
 
     ALASCA_SELECTION_ORDERING_OPTIONS(FUN);
