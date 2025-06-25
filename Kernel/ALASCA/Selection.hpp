@@ -28,6 +28,7 @@ namespace Kernel {
 
     friend struct AlascaSelectorDispatch;
   public:
+    AlascaSelector(AlascaSelector &&) = default;
 
     AlascaSelector(Ordering* ord, LiteralSelectors::SelectorMode mode, bool reversePolarity)
       : _mode(std::move(mode))
@@ -53,9 +54,10 @@ namespace Kernel {
     }
 
     // TODO make an array class that doesn't have any capacity slack
-    Map<Clause* , Stack<__SelectedLiteral>> _cache;
+    /* we store a boolean for every clause, marking whether the given clauses's literals have been BachmairGanzinger-selected, or whether the selected literals are just maximal. true means BG selected, false means maximal, no entry means selection hasn't taken place yet. */
+    Map<unsigned , bool> _isBgSelected;
     mutable Map<TypedTermList, Stack<unsigned>> _maxAtoms;
-    Stack<__SelectedLiteral> computeSelected(Clause* cl) const;
+    bool computeSelected(Clause* cl) const;
   public:
 
     template<class NumTraits>
@@ -84,17 +86,15 @@ namespace Kernel {
         .map([=](auto i) { return t.summandAt(i); }); }
 
 
+    bool getSelection(Clause* cl);
     auto selected(Clause* cl)
-    {
-      // return assertionViolation<DummyIter<__SelectedLiteral>>();
-
-      
-      if (auto out = _cache.tryGet(cl)) {
-        return arrayIter(*out);
-      } else {
-        auto const& value = _cache.insert(cl, computeSelected(cl));
-        return arrayIter(value);
-      } }
+    { 
+      auto bgSelected = getSelection(cl);
+      return range(0, cl->numSelected())
+        .map([cl, bgSelected](auto i) {
+            return __SelectedLiteral(cl, i, bgSelected);
+        });
+    }
 
     // TODO 2 deprecate
     template<class Selected, class FailLogger>

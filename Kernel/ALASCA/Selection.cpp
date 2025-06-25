@@ -278,16 +278,15 @@ struct AlascaComparator {
 
 
  
-
 struct AlascaSelectorDispatch {
   AlascaSelector const& self;
 
   template<unsigned i>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<GenericELiteralSelector<i>>, Clause* cl) 
+  RStack<__SelectedLiteral> computeSelected(TL::Token<GenericELiteralSelector<i>>, Clause* cl) 
   { throw UserErrorException("E literal selector not supported for alasca (yet)"); }
 
   template<unsigned i>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<GenericSpassLiteralSelector<i>>, Clause* cl) 
+  RStack<__SelectedLiteral> computeSelected(TL::Token<GenericSpassLiteralSelector<i>>, Clause* cl) 
   { throw UserErrorException("Spass literal selector not supported for alasca (yet)"); }
 
   // auto iterUnproductive(Stack<SelectedAtom> const& atoms) const
@@ -415,9 +414,9 @@ struct AlascaSelectorDispatch {
 
   template<class Iter>
   auto bgSelected(bool bgSelected, Iter iter) const
-  { return iter.map([&](auto x) { x.setBGSelected(bgSelected); return x; })
-      .inspect([](auto& x) { return x.isBGSelected(); })
-      .collectStack(); }
+  { return iter
+      .map([&](auto x) { x.setBGSelected(bgSelected); return x; })
+      .collectRStack(); }
 
   auto selectMax(Clause* const& atoms) const 
   { return bgSelected(false, iterMaxLits(atoms)); }
@@ -435,7 +434,7 @@ struct AlascaSelectorDispatch {
   // TODO create another complete best selector that selects first the best unproductive ones and then the best productive ones
 
   template<class QComparator>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>> token, Clause* cl) 
+  RStack<__SelectedLiteral> computeSelected(TL::Token<CompleteBestLiteralSelector<QComparator>> token, Clause* cl) 
   {
     auto negative = iterSelectable(cl).collectRStack();
     negative->sort(AlascaComparator(self).toCmpClosure(TL::Token<LiteralComparators::Inverse<QComparator>>{}));
@@ -447,12 +446,12 @@ struct AlascaSelectorDispatch {
   }
 
   template<class QComparator>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<BestLiteralSelector<QComparator>> token, Clause* cl) 
+  RStack<__SelectedLiteral> computeSelected(TL::Token<BestLiteralSelector<QComparator>> token, Clause* cl) 
   { return selectBG(iterAll(cl, /*bgSelected*/ true)
       .maxBy(AlascaComparator(self).toCmpClosure(TL::Token<QComparator>{})).unwrap()); }
 
   template<bool complete>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Clause* cl) 
+  RStack<__SelectedLiteral> computeSelected(TL::Token<GenericLookaheadLiteralSelector<complete>>, Clause* cl) 
   {
     ASS_REP(self._inf, "inference engine must be set when using lookahead selection")
 
@@ -490,7 +489,7 @@ struct AlascaSelectorDispatch {
 
 
   template<bool complete>
-  Stack<__SelectedLiteral> computeSelected(TL::Token<GenericRndLiteralSelector<complete>>, Clause* atoms) {
+  RStack<__SelectedLiteral> computeSelected(TL::Token<GenericRndLiteralSelector<complete>>, Clause* atoms) {
     if (complete) {
       RStack<__SelectedLiteral> negative;
       negative->loadFromIterator(iterSelectable(atoms));
@@ -507,43 +506,75 @@ struct AlascaSelectorDispatch {
   }
 
 
-  Stack<__SelectedLiteral> computeSelected(TL::Token<MaximalLiteralSelector>, Clause* atoms) 
+  RStack<__SelectedLiteral> computeSelected(TL::Token<MaximalLiteralSelector>, Clause* atoms) 
   { return selectMax(atoms); }
 
-  Stack<__SelectedLiteral> computeSelected(TL::Token<TotalLiteralSelector>, Clause* cl) {
-    return iterAll(cl, /* bgSelected */ true) .collectStack();
+  RStack<__SelectedLiteral> computeSelected(TL::Token<TotalLiteralSelector>, Clause* cl) {
+    return iterAll(cl, /* bgSelected */ true) .collectRStack();
   }
 };
 
 
-Stack<__SelectedLiteral> AlascaSelector::computeSelected(Clause* cl) const
+bool AlascaSelector::computeSelected(Clause* cl) const
 {
   DEBUG(0, "     all atoms: ", *cl)
-  ASS(cl->size() > 0)
-  auto out = _mode.apply([&](auto token) { return AlascaSelectorDispatch{*this}.computeSelected(token, cl); });
+  if (cl->size() == 0) return false;
+  auto selected = _mode.apply([&](auto token) { return AlascaSelectorDispatch{*this}.computeSelected(token, cl); });
+  auto bg = selected[0].isBGSelected();
+  for (auto x : *selected) {
+    ASS_EQ(x.isBGSelected(), bg)
+  }
+  Recycled<Set<unsigned>> selIdx;
+  RStack<Literal*> litUnsel;
+  RStack<Literal*> litSel;
+  for (auto l : *selected) {
+    selIdx->insert(l.litIdx());
+    litSel->push(l.literal());
+  }
+  for (unsigned i : range(0, cl->size())) {
+    if (!selIdx->contains(i)) {
+      litUnsel->push((*cl)[i]);
+    }
+  }
+  cl->setSelected(litSel.size());
+  for (auto i : range(0, litSel.size())) {
+    (*cl)[i] = litSel[i];
+  }
+
+  for (auto i : range(0, litUnsel.size())) {
+    (*cl)[litSel.size() + i] = litUnsel[i];
+  }
+
+  auto outputSelected = [&]() {
+    return Output::catOwned(
+        bg ? "BG-" : "",
+      "selected: {",
+      "[",
+      arrayIter(*litSel).map([](auto* x) { return Output::ptr(x); }).output(", "),
+      "]  ",
+      arrayIter(*litUnsel).map([](auto* x) { return Output::ptr(x); }).output(", "),
+      "}");
+  };
+
 #if VAMPIRE_CLAUSE_TRACING
   auto fwd = env.options->traceForward();
   if (fwd > 0 && unsigned(fwd) == cl->number()) {
-    for (auto& sel : out) {
-      std::cout << "forward trace " << fwd << ": selected: " << sel << std::endl;
-    }
-    if (out.size() == 0) {
-      std::cout << "forward trace " << fwd << ": selected: nothing" << std::endl;
-    }
+    std::cout << "forward trace " << fwd << ": "
+      << outputSelected()
+      << std::endl;
   }
 #endif
-  DEBUG(0, "selected atoms: ", out)
-  return out;
+  DEBUG(0, "selected atoms: ", outputSelected())
+  return bg;
 }
 
-
-// Stack<SelectedAtom> AlascaSelector::computeSelected(Stack<SelectedAtom> atoms, Ordering* ord) const
-// {
-//   DEBUG(0, "     all atoms: ", atoms)
-//   ASS(atoms.size() > 0)
-//   auto out = _mode.apply([&](auto token) { return AlascaSelectorDispatch{*this}.computeSelected(token, std::move(atoms), ord); });
-//   DEBUG(0, "selected atoms: ", out)
-//   return out;
-// }
+bool AlascaSelector::getSelection(Clause* cl)
+{
+  if (auto out = _isBgSelected.tryGet(cl->number())) {
+    return *out;
+  } else {
+    return _isBgSelected.insert(cl->number(), computeSelected(cl));
+  } 
+}
 
 } // namespace Kernel

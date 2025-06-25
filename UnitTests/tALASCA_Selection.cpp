@@ -268,7 +268,7 @@ TEST_FUN(best_01) {
      LiteralSelectors::selectorMode<SelectorMode>());
 
   auto sel = state->selected(cl)
-    .map([](auto& s) { return s.litIdx(); })
+    .map([](auto s) { return s.litIdx(); })
     .collectStack();
 
   ASS_EQ(sel, Stack<unsigned>{1})

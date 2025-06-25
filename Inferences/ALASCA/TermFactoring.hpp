@@ -73,13 +73,13 @@ public:
               .flatMap([&shared](auto selected) { return iter(shared, selected); }); }
     
     auto iterSecond(AlascaState& shared) {
-      return coproductIter(this->applyCo([shared](auto self) {
+      return coproductIter(this->applyCo([&shared](auto self) {
         auto t1 = self.selectedSummand();
         auto termIdx = self.termIdx();
         return range(0, self.alascaLiteral().term().nSummands())
            .dropNth(termIdx)
            .filter([termIdx](auto i) { return i < termIdx;  }) // <- symmetry breaking
-           .filterMap([shared,self,t1](auto i) {
+           .filterMap([&shared,self,t1](auto i) {
              auto t2 = self.alascaLiteral().term().summandAt(i);
              return someIf(/* no unshielded vars */ !t2.atom().isVar(),
                  [&](){ return shared.unify(t1.atom(), t2.atom());
