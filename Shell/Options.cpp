@@ -1428,6 +1428,15 @@ void Options::init()
     _alascaSubtermFactoring.setExperimental();
     _alascaSubtermFactoring.onlyUsefulWith(_alasca.is(equal(true)));
 
+
+    _alascaVariableEliminationDelay  = BoolOptionValue("alasca_variable_elimination_delay","alasca-ve-delay",true);
+    _alascaVariableEliminationDelay.description=
+            "Enables delaying alasca's varaiable elimination rule application. This means it will not be performed if there is a selected literal.";
+    _lookup.insert(&_alascaVariableEliminationDelay);
+    _alascaVariableEliminationDelay.tag(OptionTag::INFERENCES);
+    _alascaVariableEliminationDelay.setExperimental();
+    _alascaVariableEliminationDelay.onlyUsefulWith(_alasca.is(equal(true)));
+
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
        ArithmeticSimplificationMode::OFF);

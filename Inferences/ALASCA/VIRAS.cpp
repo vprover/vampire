@@ -74,7 +74,13 @@ void traverseLiraVars(TermList self, F f) {
 }
 
 Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(Clause* premise) 
-{ return forAnyNumTraits([&](auto n) { return apply(n, premise); }); }
+{ 
+  if (env.options->alascaVariableEliminationDelay()
+      && iterTraits(_shared->selected(premise)).any([](auto l) { return l.isBGSelected(); })) {
+    return {};
+  }
+  return forAnyNumTraits([&](auto n) { return apply(n, premise); }); 
+}
 
 template<class NumTraits>
 Option<VirtualIterator<Clause*>> VirasQuantifierElimination::apply(NumTraits n, Clause* premise) {

@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/ALASCA/State.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 #include "Shell/Options.hpp"
@@ -31,20 +32,14 @@ using namespace Indexing;
 using namespace Saturation;
 
 class VariableElimination
-: public SimplifyingGeneratingInference
 {
 public:
   USE_ALLOCATOR(VariableElimination);
 
   VariableElimination(VariableElimination&&) = default;
-  VariableElimination(std::shared_ptr<AlascaState> shared, bool simplify = true) 
+  VariableElimination(std::shared_ptr<AlascaState> shared)
     : _shared(std::move(shared))
-    , _simplify(simplify)
   {  }
-
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
-
 
   template<class NumTraits>
   struct FoundVarInLiteral {
@@ -88,13 +83,11 @@ public:
 
   Option<AnyFoundVariable> findUnshieldedVar(Clause* premise) const;
 
+
                             ClauseIterator applyRule(Clause* premise, FoundVariable<IntTraits> found) const { return ClauseIterator::getEmpty(); };
   template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
 
-  ClauseGenerationResult generateSimplify(Clause* premise)  final override;
-  
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
-  { return lookeaheadResultDoesNotDependOnSelection(); }
+  Option<ClauseIterator> apply(Clause* cl) const;
 
 private:
 
@@ -104,7 +97,64 @@ private:
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
   std::shared_ptr<AlascaState> _shared;
-  const bool _simplify;
+};
+
+class VariableEliminationSGI
+: public SimplifyingGeneratingInference
+{
+public:
+  USE_ALLOCATOR(VariableEliminationSGI);
+
+  VariableEliminationSGI(VariableEliminationSGI&&) = default;
+
+  explicit VariableEliminationSGI(std::shared_ptr<AlascaState> state)
+    : _inner(std::move(state))
+  {  }
+
+  void attach(SaturationAlgorithm* salg) final override {}
+  void detach() final override {}
+
+  ClauseGenerationResult generateSimplify(Clause* premise)  final override;
+  
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
+  { return lookeaheadResultDoesNotDependOnSelection(); }
+
+private:
+  VariableElimination _inner;
+};
+
+class VariableEliminationISE
+: public ImmediateSimplificationEngine
+{
+public:
+  USE_ALLOCATOR(VariableEliminationISE);
+
+  VariableEliminationISE(VariableEliminationISE&&) = default;
+  VariableEliminationISE(std::shared_ptr<AlascaState> shared)
+    : _inner(std::move(shared))
+  {  }
+
+  void attach(SaturationAlgorithm* salg) final override {}
+  void detach() final override {}
+
+
+  // TODO fix class hierarchy so we don't need this ASSERTION_VIOLATION
+  Clause* simplify(Clause* premise) final override { ASSERTION_VIOLATION_REP("should only be used with simplifyMany")  }
+  ClauseIterator simplifyMany(Clause* premise) final override
+  {
+    if (auto result = _inner.apply(premise)) {
+      if (result->hasNext()) {
+        return *result;
+      } else {
+        return pvi(iterItems<Clause*>(nullptr));
+      }
+    } else {
+      return VirtualIterator<Clause*>::getEmpty();
+    }
+  }
+  
+private:
+  VariableElimination _inner;
 };
 
 } // namespace ALASCA 

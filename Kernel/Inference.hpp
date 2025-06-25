@@ -273,6 +273,7 @@ enum class InferenceRule : unsigned char {
   COMBINATOR_NORMALISE,
   /* negative extnsionality */
   CASES_SIMP,
+  ALASCA_VARIABLE_ELIMINATION,
   ALASCA_VIRAS_QE,
 
   BOOL_SIMP,
@@ -333,7 +334,6 @@ enum class InferenceRule : unsigned char {
   ALASCA_SUPERPOSITION,
   ALASCA_COHERENCE,
   ALASCA_COHERENCE_NORMALIZATION,
-  ALASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */

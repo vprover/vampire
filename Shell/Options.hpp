@@ -2344,6 +2344,7 @@ public:
   bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
   bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
   bool alascaSubtermFactoring() const { return _alascaSubtermFactoring.actualValue; }
+  bool alascaVariableEliminationDelay() const { return _alascaVariableEliminationDelay.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return _arithmeticSubtermGeneralizations.actualValue; }
@@ -2795,6 +2796,7 @@ private:
   BoolOptionValue _alascaIntegerConversion;
   BoolOptionValue _alascaAbstraction;
   BoolOptionValue _alascaSubtermFactoring;
+  BoolOptionValue _alascaVariableEliminationDelay;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 

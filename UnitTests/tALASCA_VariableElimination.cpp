@@ -53,7 +53,7 @@ using namespace Inferences::ALASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-REGISTER_GEN_TESTER(AlascaGenerationTester<VariableElimination>())
+REGISTER_GEN_TESTER(AlascaGenerationTester<VariableEliminationSGI>())
 
 /////////////////////////////////////////////////////////
 // Basic tests

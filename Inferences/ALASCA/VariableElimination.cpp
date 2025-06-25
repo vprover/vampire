@@ -25,17 +25,7 @@
 
 namespace Inferences {
 namespace ALASCA {
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// INDEXING STUFF
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
-void VariableElimination::attach(SaturationAlgorithm* salg) 
-{ }
-
-void VariableElimination::detach() 
-{ }
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ACTUAL RULE
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,14 +93,28 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
   return out;
 }
 
-SimplifyingGeneratingInference::ClauseGenerationResult VariableElimination::generateSimplify(Clause* premise) 
+Option<ClauseIterator> VariableElimination::apply(Clause* premise) const
 {
-  TIME_TRACE("alasca variable elimination generate")
+  TIME_TRACE("alasca variable elimination apply")
+  if (env.options->alascaVariableEliminationDelay()
+      && iterTraits(_shared->selected(premise)).any([](auto l) { return l.isBGSelected(); })) {
+    return {};
+  }
   auto var = this->findUnshieldedVar(premise);
   if (var.isSome()) {
+    return some(std::move(var).unwrap().apply([&](auto var) { return applyRule(premise, std::move(var)); }));
+  } else {
+    return {};
+  }
+}
+
+
+SimplifyingGeneratingInference::ClauseGenerationResult VariableEliminationSGI::generateSimplify(Clause* premise) 
+{
+  if (auto iter = _inner.apply(premise)) {
     return ClauseGenerationResult {
-      .clauses          = std::move(var).unwrap().apply([&](auto var) { return applyRule(premise, std::move(var)); }),
-      .premiseRedundant = _simplify,
+      .clauses          = std::move(*iter),
+      .premiseRedundant = true,
     };
   } else {
     return ClauseGenerationResult {
@@ -347,7 +351,7 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
           }
         }
 
-        return Clause::fromStack(concl, Inference(GeneratingInference1(Kernel::InferenceRule::ALASCA_VARIABLE_ELIMINATION, premise)));
+        return Clause::fromStack(concl, Inference(SimplifyingInference1(Kernel::InferenceRule::ALASCA_VARIABLE_ELIMINATION, premise)));
       }));
 }
 
