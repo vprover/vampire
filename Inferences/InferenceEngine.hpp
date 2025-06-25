@@ -376,7 +376,7 @@ public:
 
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   { return pvi(iterTraits(_inners->iter())
-      .flatMap([&](auto gi) { return gi->lookaheadResultEstimation(selection); })); }
+      .flatMap([selection](auto gi) { return gi->lookaheadResultEstimation(selection); })); }
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
@@ -398,8 +398,8 @@ public:
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override
   {
     return pvi(concatIters(
-          arrayIter(_simplifiers).flatMap([&](auto i) { return i->lookaheadResultEstimation(selection); }),
-          arrayIter(_generators).flatMap([&](auto i) { return i->lookaheadResultEstimation(selection); })
+          arrayIter(_simplifiers).flatMap([selection](auto i) { return i->lookaheadResultEstimation(selection); }),
+          arrayIter(_generators).flatMap([selection](auto i) { return i->lookaheadResultEstimation(selection); })
     ));
   }
 private:

@@ -391,7 +391,7 @@ struct AlascaSelectorDispatch {
       : iterAllIndices(cl).collectRStack();
 
     auto gens = arrayIter(*selectable)
-      .map([&](auto& lit) { return self._inf->lookaheadResultEstimation(__SelectedLiteral(cl, lit, /* bgSelected */ true)); })
+      .map([&](auto lit) { return self._inf->lookaheadResultEstimation(__SelectedLiteral(cl, lit, /* bgSelected */ true)); })
       .collectRStack();
 
     if (gens->isEmpty()) {
