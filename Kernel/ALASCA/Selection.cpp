@@ -471,6 +471,7 @@ bool AlascaSelector::computeSelected(Clause* cl) const
   for (auto i : range(0, litUnsel.size())) {
     (*cl)[litSel.size() + i] = litUnsel[i];
   }
+  cl->notifyLiteralReorder();
 
   auto outputSelected = [&]() {
     return Output::catOwned(
