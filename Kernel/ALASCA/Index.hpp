@@ -47,12 +47,23 @@ enum class PremiseType {
 };
 
 template<class T>
+struct IndexOptions {
+  std::tuple<> value;
+};
+
+
+template<class T>
 class AlascaIndex : public Indexing::Index
 {
+  static std::string _lookupStr;
+  static std::string _maintainanceStr;
+  GenSubstitutionTree<T> _index;
+  std::shared_ptr<Kernel::AlascaState> _shared;
 public:
   USE_ALLOCATOR(AlascaIndex);
 
-  AlascaIndex()
+  template<class... Args>
+  AlascaIndex(Args... args)
     : _index()
     , _shared()
   {}
@@ -77,22 +88,29 @@ public:
 // #define INSERT_FIND_ASSERTION(...) __VA_ARGS__
 #define INSERT_FIND_ASSERTION(...) {}
 
-
   template<class C, std::enable_if_t<C::premiseType == PremiseType::BinInf, bool> = true>
-  bool premiseFilter(C const& t) {
-    return binInfPreUnificationCheck(t, _shared->ordering, [](auto x) {});
+  auto iter(Clause* cl) 
+  { 
+    return T::iter(*_shared, cl)
+            .filter([&](T const& t) { return binInfPreUnificationCheck(t, _shared->ordering, [](auto x) {}); }); 
   }
 
-  template<class C, std::enable_if_t<C::premiseType != PremiseType::BinInf, bool> = true>
-  bool premiseFilter(C const& t) 
-  { return true; }
+  template<class C, std::enable_if_t<C::premiseType == PremiseType::SimplCondition, bool> = true>
+  auto iter(Clause* cl) 
+  { return iter<C>(cl, /* forward */ true); }
+
+  template<class C, std::enable_if_t<C::premiseType == PremiseType::SimplToSimpl, bool> = true>
+  auto iter(Clause* cl) 
+  { return iter<C>(cl, /* forward */ false); }
+
+  template<class C>
+  auto iter(Clause* cl, bool fwd) 
+  { return T::iter(*_shared, cl, fwd);  }
 
   virtual void handleClause(Clause* c, bool adding) final override
   {
     TIME_TRACE(_maintainanceStr.c_str())
-    for (auto appl : T::iter(*_shared, c)
-                         .filter([&](auto& x) { return premiseFilter(x); })
-                         ) {
+    for (auto appl : iter<T>(c)) {
       if (adding) {
         INSERT_FIND_ASSERTION(DEBUG_CODE( 
           auto k = appl.key(); 
@@ -123,11 +141,6 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, AlascaIndex const& self)
   { return out << self._index; }
-private:
-  GenSubstitutionTree<T> _index;
-  std::shared_ptr<Kernel::AlascaState> _shared;
-  static std::string _lookupStr;
-  static std::string _maintainanceStr;
 };
 
 template<class T> std::string AlascaIndex<T>::_lookupStr = T::name() + std::string(" lookup");

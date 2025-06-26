@@ -52,18 +52,14 @@ inline auto __firstFreshVar(Option<unsigned>& cache, Clause* cl) {
 struct SuperpositionDemodConf
 {
   std::shared_ptr<AlascaState> _shared;
-  bool _preordered;
 
-  SuperpositionDemodConf(std::shared_ptr<AlascaState> shared, bool preordered) : _shared(shared), _preordered(preordered) {  }
+  SuperpositionDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
 
   static const char* name() { return "alasca superposition demodulation"; }
 
   struct Condition {
     static constexpr PremiseType premiseType = PremiseType::SimplCondition;
-    // TypedTermList bigger;
-    // TermList smaller;
-    // Clause* cl;
-    SelectedEquality self; // <- TODO reduce redundant memory
+    SelectedEquality self;
 
     Clause* clause() const { return self.clause(); }
     TypedTermList key() const { return self.biggerSide(); };
@@ -75,12 +71,23 @@ struct SuperpositionDemodConf
     friend std::ostream& operator<<(std::ostream& out, Condition const& self)
     { return out << self.self; }
 
-    static auto iter(AlascaState& shared, Clause* cl)
-    { return ifElseIter(cl->size() != 1 || !(*cl)[0]->isEquality()
+    static auto iter(AlascaState& shared, Clause* cl, bool forward)
+    { 
+      // TODO
+      static bool fwdPreord = env.options->alascaDemodulationFwd() == Options::Demodulation::PREORDERED;
+      static bool bwdPreord = env.options->alascaDemodulationBwd() == Options::Demodulation::PREORDERED;
+      bool preord = forward ? fwdPreord : bwdPreord;
+      return ifElseIter(cl->size() != 1 || !(*cl)[0]->isEquality()
         , []() { return iterItems<Condition>(); }
         , [&]() { return SuperpositionConf::Lhs::iter(shared, cl)
                           .map([](auto lhs) { 
-                              return Condition { .self = lhs,  }; }); }); }
+                              return Condition { .self = lhs,  }; })
+                          .filter([&shared, preord](auto cond) { return !preord || 
+                                    cond.self.smallerAtoms()
+                                    .all([&shared, cond](auto ti) { 
+                                       return shared.greater(cond.biggerSide(), ti);
+                                    });
+                               }); }); }
     // TODO optimization: filter out cases smaller contains a variable not contained in bigger.
 
     static const char* name() { return "superposition demod condition"; }
@@ -106,7 +113,7 @@ struct SuperpositionDemodConf
     friend std::ostream& operator<<(std::ostream& out, ToSimpl const& self)
     { return out << *self.clause() << "[ " << *self.term << " ]"; }
 
-    static auto iter(AlascaState& shared, Clause* cl)
+    static auto iter(AlascaState& shared, Clause* cl, bool forward)
     { 
       return iterTraits(cl->iterLits().zipWithIndex())
         .flatMap([=](auto lit_idx) {
@@ -131,7 +138,8 @@ struct SuperpositionDemodConf
   Option<Clause*> apply(
       Condition const& cond,
       ToSimpl const& simpl,
-      Sigma sigma
+      Sigma sigma,
+      bool forward
       ) const 
   {
     DEBUG(1, "cond:   ", cond)
@@ -147,10 +155,15 @@ struct SuperpositionDemodConf
     // check_side_condition("sσ ≻ tσ", 
     //     _shared->greater(TermList(sσ), tσ))
 
-    for (auto ti : cond.self.smallerAtoms()) {
-      auto tiσ = sigma(ti);
-      check_side_condition("sσ ≻ tiσ", 
-          _shared->greater(TermList(sσ), tiσ))
+    static bool fwdPreord = env.options->alascaDemodulationFwd() == Options::Demodulation::PREORDERED;
+    static bool bwdPreord = env.options->alascaDemodulationBwd() == Options::Demodulation::PREORDERED;
+    bool preord = forward ? fwdPreord : bwdPreord;
+    if (!preord) {
+      for (auto ti : cond.self.smallerAtoms()) {
+        auto tiσ = sigma(ti);
+        check_side_condition("sσ ≻ tiσ", 
+            _shared->greater(TermList(sσ), tiσ))
+      }
     }
 
     auto condσ = Literal::createEquality(true, sσ, tσ, sσ.sort());
@@ -247,7 +260,7 @@ struct CoherenceDemodConf
     friend std::ostream& operator<<(std::ostream& out, Condition const& self)
     { return out << self.self; }
 
-    static auto iter(AlascaState& shared, Clause* cl)
+    static auto iter(AlascaState& shared, Clause* cl, bool forward)
     { return ifElseIter(cl->size() != 1 || !(*cl)[0]->isEquality() 
         , []() { return iterItems<Condition>(); }
         , [&]() { return CoherenceConf<NumTraits>::Lhs::iter(shared, cl)
@@ -287,7 +300,7 @@ struct CoherenceDemodConf
     friend std::ostream& operator<<(std::ostream& out, ToSimpl const& self)
     { return out << *self.clause() << "[ " << *self.toRewrite << " ]"; }
 
-    static auto iter(AlascaState& shared, Clause* cl)
+    static auto iter(AlascaState& shared, Clause* cl, bool forward)
     { 
       return iterTraits(cl->iterLits())
         .flatMap([&shared, cl](Literal* lit) {
@@ -332,7 +345,8 @@ struct CoherenceDemodConf
   Option<Clause*> apply(
       Condition const& cond,
       ToSimpl const& simpl,
-      Sigma sigma
+      Sigma sigma,
+      bool forward
       ) const 
   {
     auto j = cond.self.j();

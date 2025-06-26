@@ -2352,6 +2352,8 @@ public:
   bool alascaIneqMerging() const { return _alascaIneqMerging.actualValue; }
   Demodulation alascaDemodulationFwd() const { return _alascaDemodulationFwd.actualValue; }
   Demodulation alascaDemodulationBwd() const { return _alascaDemodulationBwd.actualValue; }
+  void alascaDemodulationFwd(Demodulation val) { _alascaDemodulationFwd.actualValue = val; }
+  void alascaDemodulationBwd(Demodulation val) { _alascaDemodulationBwd.actualValue = val; }
   bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
   bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
   bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }

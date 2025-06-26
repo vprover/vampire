@@ -48,9 +48,9 @@ using namespace Inferences::ALASCA;
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
 template<class Rule, class... Args>
-inline auto ALASCA_Demod_TestCase(Args... args)  {
+inline auto ALASCA_Demod_TestCase()  {
   auto state = testAlascaState();
-  auto rule = move_to_heap(BinSimpl<Rule>(state, args...));
+  auto rule = move_to_heap(BinSimpl<Rule>(state));
   ALASCA::Normalization norm(state);
   return FwdBwdSimplification::TestCase()
     .fwd(rule)
@@ -60,27 +60,35 @@ inline auto ALASCA_Demod_TestCase(Args... args)  {
     .normalize([norm = std::move(norm)](auto c) mutable { return norm.simplify(c); });
 }
 
+auto ALASCA_Demod_TestCase_SuperpositionDemodConf(bool preordered)  {
+
+  auto val = preordered ? Options::Demodulation::PREORDERED : Options::Demodulation::ALL;
+  env.options->alascaDemodulationFwd(val);
+  env.options->alascaDemodulationBwd(val);
+  return ALASCA_Demod_TestCase<SuperpositionDemodConf>();
+}
+
 #define TEST_SIMPLIFICATION_SuperpositionDemodConf_both(testname, ...)              \
                                                                                           \
   TEST_SIMPLIFICATION(testname,                                                           \
-      ALASCA_Demod_TestCase<SuperpositionDemodConf>(/* preordered */ false)               \
+      ALASCA_Demod_TestCase_SuperpositionDemodConf(/* preordered */ false)               \
         __VA_ARGS__                                                                       \
       )                                                                                   \
                                                                                           \
   TEST_SIMPLIFICATION(testname ## _preordered,                                             \
-      ALASCA_Demod_TestCase<SuperpositionDemodConf>(/* preordered */ true)                \
+      ALASCA_Demod_TestCase_SuperpositionDemodConf(/* preordered */ true)                \
         __VA_ARGS__                                                                       \
       )                                                                                   \
 
 #define TEST_SIMPLIFICATION_SuperpositionDemodConf_preorderedNotApplicable(testname, ...)              \
                                                                                           \
   TEST_SIMPLIFICATION(testname,                                                           \
-      ALASCA_Demod_TestCase<SuperpositionDemodConf>(/* preordered */ false)               \
+      ALASCA_Demod_TestCase_SuperpositionDemodConf(/* preordered */ false)               \
         __VA_ARGS__                                                                       \
       )                                                                                   \
                                                                                           \
   TEST_SIMPLIFICATION(testname ## _preordered,                                             \
-      ALASCA_Demod_TestCase<SuperpositionDemodConf>(/* preordered */ true)                \
+      ALASCA_Demod_TestCase_SuperpositionDemodConf(/* preordered */ true)                \
         __VA_ARGS__                                                                       \
         .expectNotApplicable() \
       )                                                                                   \
@@ -154,7 +162,7 @@ TEST_SIMPLIFICATION_SuperpositionDemodConf_both(basic09,
       .expected(    {    clause(   { p(3 * a)                        }   ) })
     )
 TEST_SIMPLIFICATION(basic10,
-    ALASCA_Demod_TestCase<SuperpositionDemodConf>(/* preordered */ false)
+    ALASCA_Demod_TestCase_SuperpositionDemodConf(/* preordered */ false)
       .simplifyWith({    clause(   { 0 == -2 * f(x) + a }   ) })
       .toSimplify  ({    clause(   { p(f(b)) }   ) })
       .expected    ({    clause(   { p(frac(1,2) * a) }   ) })

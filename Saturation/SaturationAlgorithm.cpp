@@ -1610,7 +1610,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         AlascaSelector::fromNumber(&ordering, opt.selection()).unwrap()
         );
     auto addFwdDemod = [&](bool preordered) {
-      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared, preordered));
+      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
       if (prb.hasAlascaMixedArithmetic()) {
         res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
         res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
@@ -1624,7 +1624,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
 
     auto addBwdDemod = [&](bool preordered) {
-      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared, preordered));
+      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
       if (prb.hasAlascaMixedArithmetic()) {
         res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
         res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));

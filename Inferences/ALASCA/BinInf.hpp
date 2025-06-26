@@ -685,8 +685,8 @@ private:
   virtual const char* name() const final override { return Rule::name(); } 
   std::shared_ptr<AlascaState> _shared;
   Rule _rule;
-  static_assert(std::is_same_v<ToSimpl  , ELEMENT_TYPE(decltype(ToSimpl::iter(assertionViolation<AlascaState&>(), assertionViolation<Clause*>())))>);
-  static_assert(std::is_same_v<Condition, ELEMENT_TYPE(decltype(Condition::iter(assertionViolation<AlascaState&>(), assertionViolation<Clause*>())))>);
+  static_assert(std::is_same_v<ToSimpl  , ELEMENT_TYPE(decltype(ToSimpl::iter(assertionViolation<AlascaState&>(), assertionViolation<Clause*>(), assertionViolation<bool>())))>);
+  static_assert(std::is_same_v<Condition, ELEMENT_TYPE(decltype(Condition::iter(assertionViolation<AlascaState&>(), assertionViolation<Clause*>(), assertionViolation<bool>())))>);
   AlascaIndex<ToSimpl>* _toSimpl;
   AlascaIndex<Condition>* _condition;
   auto salg() const { return ForwardSimplificationEngine::_salg; }
@@ -747,11 +747,12 @@ public:
 
   /* forward */ 
   virtual bool perform(Clause* toSimpl, Clause*& concl, ClauseIterator& conditions) final override {
-    for (auto simpl : ToSimpl::iter(*_shared, toSimpl)) {
+    bool forward = true;
+    for (auto simpl : ToSimpl::iter(*_shared, toSimpl, forward)) {
       for (auto sigma_cond : _condition->generalizations(simpl, /* retrieveSubstitution */ true)) {
         auto& sigma = sigma_cond.unifier;
         auto& cond = *sigma_cond.data;
-        if (auto res = _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundResult(t); })) {
+        if (auto res = _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundResult(t); }, forward)) {
           concl = *res;
           conditions = pvi(getSingletonIterator(cond.clause()));
           return true;
@@ -763,6 +764,7 @@ public:
 
   /* backward */ 
   virtual void perform(Clause* condClause, BwSimplificationRecordIterator& simplifications) final override {
+    bool forward = false;
 
     /* in some simplification diamond rewrites can happen.
      * examples: clause p(f(a), f(b)) and f(x) = x
@@ -777,17 +779,17 @@ public:
     auto _alreadySimplified = std::make_unique<Set<Clause*>>();
     auto alreadySimplified = _alreadySimplified.get();
 
-    auto result = Condition::iter(*_shared, condClause)
-      .flatMap([this,alreadySimplified](auto cond) {
+    auto result = Condition::iter(*_shared, condClause, forward)
+      .flatMap([this,alreadySimplified,forward](auto cond) {
           return _toSimpl->instances(cond, /* retrieveSubstitution */ true)
-            .filterMap([this,cond,alreadySimplified](auto sigma_simpl) -> Option<BwSimplificationRecord> {
+            .filterMap([this,cond,alreadySimplified,forward](auto sigma_simpl) -> Option<BwSimplificationRecord> {
                 auto& sigma = sigma_simpl.unifier;
                 auto& simpl = *sigma_simpl.data;
 
                 if (alreadySimplified->contains(simpl.clause())) {
                   return {};
                 }
-                if (auto concl = _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundQuery(t); })) {
+                if (auto concl = _rule.apply(cond, simpl, [&](auto t) { return sigma->applyToBoundQuery(t); }, forward)) {
                   alreadySimplified->insert(simpl.clause());
                   return some(BwSimplificationRecord(simpl.clause(), *concl));
                 } else {
