@@ -1609,20 +1609,34 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         env.options->unificationWithAbstractionFixedPointIteration(),
         AlascaSelector::fromNumber(&ordering, opt.selection()).unwrap()
         );
-    if (env.options->alascaDemodulationFwd()) {
-      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
+    auto addFwdDemod = [&](bool preordered) {
+      res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared, preordered));
       if (prb.hasAlascaMixedArithmetic()) {
         res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
         res->addForwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
       }
+    };
+
+    switch (env.options->alascaDemodulationFwd()) {
+      case Options::Demodulation::ALL: addFwdDemod(/*preordered=*/ false); break;
+      case Options::Demodulation::OFF: break;
+      case Options::Demodulation::PREORDERED: addFwdDemod(/*preordered=*/ true); break;
     }
-    if (env.options->alascaDemodulationBwd()) {
-      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared));
+
+    auto addBwdDemod = [&](bool preordered) {
+      res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::SuperpositionDemodConf>(shared, preordered));
       if (prb.hasAlascaMixedArithmetic()) {
         res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RealTraits>>(shared));
         res->addBackwardSimplifierToFront(new Inferences::ALASCA::BinSimpl<ALASCA::CoherenceDemodConf<RatTraits>>(shared));
       }
+    };
+
+    switch (env.options->alascaDemodulationBwd()) {
+      case Options::Demodulation::ALL: addBwdDemod(/*preordered=*/ false); break;
+      case Options::Demodulation::OFF: break;
+      case Options::Demodulation::PREORDERED: addBwdDemod(/*preordered=*/ true); break;
     }
+
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
     // TODO add an option for this
     ise->addFront(new ALASCA::FloorElimination(shared));

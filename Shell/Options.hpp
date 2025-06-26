@@ -786,6 +786,7 @@ private:
     void strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string>& fakes);
     std::string strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes);
 
+
     /**
      * These store the names of the choices for an option.
      * They can be declared using initializer lists i.e. {"on","off","half_on"}
@@ -825,6 +826,17 @@ private:
     private:
         Stack<std::string> _names;
     };
+
+    template<class T> 
+    struct ChoiceOption {};
+ 
+    template<>
+    struct ChoiceOption<Demodulation>  {
+      static OptionChoiceValues optionChoiceValues() {
+        return {"all","off","preordered"};
+      }
+    };
+ 
 
     // Declare constraints here so they can be referred to, but define them below
     template<typename T>
@@ -1074,7 +1086,7 @@ private:
         ChoiceOptionValue(){}
         ChoiceOptionValue(std::string l, std::string s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
-        ChoiceOptionValue(std::string l, std::string s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
+        ChoiceOptionValue(std::string l, std::string s,T d) : ChoiceOptionValue(l,s,d, ChoiceOption<T>::optionChoiceValues()) {}
         
         bool setValue(const std::string& value){
             // makes reasonable assumption about ordering of every enum
@@ -2338,8 +2350,8 @@ public:
   bool viras() const { return _viras.actualValue; }
   bool alascaIneqFacDemod() const { return _alascaIneqFacDemod.actualValue; }
   bool alascaIneqMerging() const { return _alascaIneqMerging.actualValue; }
-  bool alascaDemodulationFwd() const { return _alascaDemodulationFwd.actualValue; }
-  bool alascaDemodulationBwd() const { return _alascaDemodulationBwd.actualValue; }
+  Demodulation alascaDemodulationFwd() const { return _alascaDemodulationFwd.actualValue; }
+  Demodulation alascaDemodulationBwd() const { return _alascaDemodulationBwd.actualValue; }
   bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
   bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
   bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
@@ -2788,8 +2800,8 @@ private:
   BoolOptionValue _alasca;
   BoolOptionValue _alascaSkelOrd;
   BoolOptionValue _viras;
-  BoolOptionValue _alascaDemodulationBwd;
-  BoolOptionValue _alascaDemodulationFwd;
+  ChoiceOptionValue<Demodulation> _alascaDemodulationBwd;
+  ChoiceOptionValue<Demodulation> _alascaDemodulationFwd;
   BoolOptionValue _alascaIneqFacDemod;
   BoolOptionValue _alascaIneqMerging;
   BoolOptionValue _alascaStrongNormalization;

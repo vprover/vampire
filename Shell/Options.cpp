@@ -1400,7 +1400,7 @@ void Options::init()
     _alascaIneqMerging.onlyUsefulWith(_alasca.is(equal(true)));
 
 
-    _alascaDemodulationFwd = BoolOptionValue("alasca_demodulation_fwd","alascadf",true);
+    _alascaDemodulationFwd = ChoiceOptionValue<Demodulation>("alasca_demodulation_fwd","alascadf",Demodulation::ALL);
     _alascaDemodulationFwd.description=
             "Enables the alascas demodulation rules for forward simplifications."
             "\n";
@@ -1410,7 +1410,7 @@ void Options::init()
     _alascaDemodulationFwd.onlyUsefulWith(_alasca.is(equal(true)));
 
 
-    _alascaDemodulationBwd = BoolOptionValue("alasca_demodulation_bwd","alascadb",true);
+    _alascaDemodulationBwd = ChoiceOptionValue<Demodulation>("alasca_demodulation_bwd","alascadb",Demodulation::ALL);
     _alascaDemodulationBwd.description =
             "Enables the alascas demodulation rules for backward simplifications."
             "\n";
@@ -1677,9 +1677,7 @@ void Options::init()
     _instantiation.tag(OptionTag::THEORIES);
     _lookup.insert(&_instantiation);
 
-    _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
-                  Demodulation::ALL,
-                  {"all","off","preordered"});
+    _backwardDemodulation = ChoiceOptionValue<Demodulation>("backward_demodulation","bd", Demodulation::ALL);
     _backwardDemodulation.description=
        "Oriented rewriting of kept clauses by newly derived unit equalities\n"
        "s = t     L[sθ] \\/ C\n"
@@ -1866,7 +1864,7 @@ void Options::init()
     _lookup.insert(&_termAlgebraCyclicityCheck);
     _termAlgebraCyclicityCheck.tag(OptionTag::THEORIES);
 
-    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
+    _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL);
     _forwardDemodulation.description=
     "Oriented rewriting of newly derived clauses by kept unit equalities\n"
     "s = t     L[sθ] \\/ C\n"

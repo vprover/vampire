@@ -52,7 +52,9 @@ inline auto __firstFreshVar(Option<unsigned>& cache, Clause* cl) {
 struct SuperpositionDemodConf
 {
   std::shared_ptr<AlascaState> _shared;
-  SuperpositionDemodConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
+  bool _preordered;
+
+  SuperpositionDemodConf(std::shared_ptr<AlascaState> shared, bool preordered) : _shared(shared), _preordered(preordered) {  }
 
   static const char* name() { return "alasca superposition demodulation"; }
 

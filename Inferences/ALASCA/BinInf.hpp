@@ -695,8 +695,9 @@ public:
 
   BinSimpl(BinSimpl&&) = default;
 
-  BinSimpl(std::shared_ptr<AlascaState> shared)
-    : BinSimpl(shared, Rule(shared))
+  template<class... Args>
+  BinSimpl(std::shared_ptr<AlascaState> shared, Args... args)
+    : BinSimpl(shared, Rule(shared, std::move(args)...))
   {  }
 
   BinSimpl(std::shared_ptr<AlascaState> shared, Rule rule)
