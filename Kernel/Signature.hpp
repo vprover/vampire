@@ -836,8 +836,10 @@ class Signature
     if(!_foolConstantsDefined){
       _foolFalse = addFunction("$$false",0); 
       getFunction(_foolFalse)->setType(OperatorType::getConstantsType(AtomicSort::boolSort()));
+      getFunction(_foolFalse)->markIntroduced();
       _foolTrue = addFunction("$$true",0);
       getFunction(_foolTrue)->setType(OperatorType::getConstantsType(AtomicSort::boolSort()));
+      getFunction(_foolTrue)->markIntroduced();
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;
