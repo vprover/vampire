@@ -2839,6 +2839,7 @@ private:
   BoolOptionValue _lambdaFreeHol;
   BoolOptionValue _complexVarCondition;
 
+  // TODO remove
   ChoiceOptionValue<AlascaSelectionMode> _alascaSelection;
 
 

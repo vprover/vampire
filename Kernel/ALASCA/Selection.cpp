@@ -49,7 +49,7 @@ struct AlascaComparatorByLiteralKey { static constexpr bool enabled = false; };
   {                                                                                       \
     static constexpr bool enabled = true;                                                 \
     template<class Self>                                                                  \
-    static auto getKey(TL::Token<Type>, Self const& self, Literal* lit)     \
+    static auto getKey(TL::Token<Type>, Self const& self, Literal* lit)                   \
       body                                                                                \
   };                                                                                      \
 
@@ -115,114 +115,209 @@ struct AlascaComparator {
          : Comparison::GREATER;
   }
 
-  template<class Uninter, class FallBack, class... Inter>
-  Comparison compare(TL::Token<LiteralComparators::ALASCA::IfUninterpreted<Uninter,std::tuple<Inter...>, FallBack>> c, unsigned const& l, unsigned const& r) const 
+  template<class FallBack, class... Inter>
+  Comparison compare(TL::Token<LiteralComparators::ALASCA::Comparator<std::tuple<Inter...>, FallBack>> c, unsigned const& l, unsigned const& r) const 
   { 
-    auto norml = InequalityNormalizer::normalize(lit(l)).asItp();
-    auto normr = InequalityNormalizer::normalize(lit(r)).asItp();
-
-    if (norml.isSome() == normr.isSome()) {
-      return norml.isSome() 
-        ? compareItp(c, *norml, *normr, TL::Token<Inter>{}...)
-        : compare(TL::Token<Uninter>{}, l, r);
-    } else {
-      auto res = normr.isSome() ? Comparison::LESS : Comparison::GREATER;
-      switch (env.options->alascaSelection()) {
-        case Shell::Options::AlascaSelectionMode::OFF:
-          ASSERTION_VIOLATION
-        case Shell::Options::AlascaSelectionMode::ON:
-          return res;
-        case Shell::Options::AlascaSelectionMode::INV:
-          return revert(res);
-      }
-    }
+    auto norml = InequalityNormalizer::normalize(lit(l));
+    auto normr = InequalityNormalizer::normalize(lit(r));
+    return compareItp(c, norml, normr, TL::Token<Inter>{}...);
   }
 
-#define BY_INTERPRETED_KEY(Type, body)                                                    \
+#define BY_INTERPRETED_KEY(Type, clsrLit, clsrItp) \
+  auto getKey(TL::Token<LiteralComparators::ALASCA::Type>, Literal* lit) const \
+  { return clsrLit(lit); }                                                                \
+                                                                                      \
   template<class NumTraits>                                                               \
   auto getKey(TL::Token<LiteralComparators::ALASCA::Type>, AlascaLiteralItp<NumTraits> const& lit) const \
-    body                                                                                  \
+  { return clsrItp(lit); }                                                                \
                                                                                           \
   Options::AlascaSelectionMode optionValue(TL::Token<LiteralComparators::ALASCA::Type>) const { \
     static Options::AlascaSelectionMode val = env.options->alascaSelection ## Type();     \
     return val;                                                                           \
   }                                                                                       \
 
+
+  auto maxEqTermsArray(Literal* lit) const {
+    using Out = SmallArray<TermList, 2>;
+    ASS(lit->isEquality())
+    switch (self.ord->getEqualityArgumentOrder(lit)) {
+      case Ordering::Result::EQUAL: return Out::fromItems();
+      case Ordering::Result::LESS: return Out::fromItems(lit->termArg(1));
+      case Ordering::Result::GREATER: return Out::fromItems(lit->termArg(0));
+      case Ordering::Result::INCOMPARABLE: return Out::fromItems(
+          lit->termArg(0),
+          lit->termArg(1)
+         );
+    }
+    ASSERTION_VIOLATION
+  }
+
+  auto maxEqTerms(Literal* lit) const { return arrayIter(maxEqTermsArray(lit)); }
+  auto maxEqTermsTyped(Literal* lit) const { 
+    return maxEqTerms(lit)
+      .map([lit](TermList t) { return TypedTermList(t, lit->eqArgSort()); });
+
+  }
+
   BY_INTERPRETED_KEY(IsUwaConstraint,
-    {
-      // TODO
+    [&](Literal* lit) -> bool { return false; },
+    [&](auto& lit) -> bool {
+      // TODO ?
       return lit.symbol() == AlascaPredicate::NEQ;
     })
 
   BY_INTERPRETED_KEY(CntSummandsMax,
-      { return self.maxAtomsNotLessStack(lit.term()).size(); })
+    [&](Literal* lit) -> unsigned { 
+      if (lit->isEquality()) {
+        switch (self.ord->getEqualityArgumentOrder(lit)) {
+          case Ordering::Result::EQUAL: return 0;
+          case Ordering::Result::LESS: return 1;
+          case Ordering::Result::GREATER: return 1;
+          case Ordering::Result::INCOMPARABLE: return 2;
+        }
+      } else {
+        return 1;
+      }
+    },
+    [&](auto& lit) -> unsigned 
+    { return self.maxAtomsNotLessStack(lit.term()).size(); })
 
   BY_INTERPRETED_KEY(CntSummandsAll, 
+    [&](Literal* lit) -> unsigned { 
+      if (lit->isEquality()) {
+        return 2;
+      } else {
+        return 1;
+      }
+    }, 
+    [&](auto& lit) -> unsigned 
     { return lit.term().nSummands(); })
 
-  std::pair<unsigned, unsigned> theoryComplexity(AnyAlascaTerm t) const {
-    unsigned totalNumerals = 0;
+  unsigned theoryComplexity(AnyAlascaTerm t) const {
+    // unsigned totalNumerals = 0;
     unsigned totalPlus     = 0;
     for (auto t : t.bottomUpIter()) {
       if (auto sum = t.asSum()) {
         sum->apply([&](auto& sum) {
             if (sum.nSummands() == 0) {
-              totalNumerals += 1;
+              // totalNumerals += 1;
             } else {
               totalPlus += sum.nSummands() - 1;
-              for (auto monom : sum.iterSummands()) {
-                if (monom.numeral() != 1) {
-                  totalNumerals += 1;
-                }
-              }
+              // for (auto monom : sum.iterSummands()) {
+              //   if (monom.numeral() != 1) {
+              //     totalNumerals += 1;
+              //   }
+              // }
             }
         });
       }
     }
-    return std::make_pair(totalPlus, totalNumerals);
+    return totalPlus;
+    // return std::make_pair(totalPlus, totalNumerals);
   }
 
   auto theoryComplexity(TypedTermList t) const 
   { return theoryComplexity(InequalityNormalizer::normalize(t)); }
 
   BY_INTERPRETED_KEY(TheoryComplexityAll,
-      { return TotalComparableMultiset(lit.term().iterSummands()
-          .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
-          .collectStack()); })
+    [&](Literal* lit) {
+      return anyArgIterTyped(lit)
+                .map([&](auto x) { return theoryComplexity(x); })
+                .sum();
+    },
+    [&](auto& lit) -> unsigned { 
+      return lit.term().iterSummands()
+        .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
+        .sum(); })
 
   BY_INTERPRETED_KEY(TheoryComplexityMax,
-      { return TotalComparableMultiset(self.maxAtomsNotLess(lit.term())
-          .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
-          .collectStack()); })
+    [&](Literal* lit) {
+      if (lit->isEquality()) {
+        return maxEqTermsTyped(lit)
+                  .map([&](auto x) { return theoryComplexity(x); })
+                  .sum();
+      } else {
+        return anyArgIterTyped(lit)
+                  .map([&](auto x) { return theoryComplexity(x); })
+                  .sum();
+      }
+    },
+    [&](auto& lit){ 
+      return self.maxAtomsNotLess(lit.term())
+        .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
+        .sum(); 
+    })
 
   BY_INTERPRETED_KEY(SizeAll,
-      { return TotalComparableMultiset(lit.term().iterSummands()
+    [&](Literal* lit) {
+      if (lit->isEquality()) {
+        return anyArgIter(lit)
+                  .map([](auto x) { return x.weight(); })
+                  .sum();
+      } else {
+        return lit->weight();
+      }
+    },
+      [&](auto& lit){ return lit.term().iterSummands()
           .map([&](auto x) { return x.atom().weight(); })
-          .collectStack()); })
+          .sum(); })
 
   BY_INTERPRETED_KEY(SizeMax,
-      { return TotalComparableMultiset(self.maxAtomsNotLess(lit.term())
-          .map([&](auto x) { return x.atom().weight(); })
-          .collectStack()); })
+    [&](Literal* lit) {
+      if (lit->isEquality()) {
+        return maxEqTerms(lit)
+                  .map([](auto x) { return x.weight(); })
+                  .sum();
+      } else {
+        return anyArgIter(lit)
+                  .map([](auto x) { return x.weight(); })
+                  .sum();
+      }
+    },
+    [&](auto& lit){ 
+      return self.maxAtomsNotLess(lit.term())
+        .map([&](auto x) { return x.atom().weight(); })
+        .sum(); 
+     })
 
   BY_INTERPRETED_KEY(NumberOfVarsAll,
-      { return TotalComparableMultiset(lit.term().iterSummands()
-          .map([&](auto x) { return x.atom().getDistinctVars(); })
-          .collectStack()); })
+    [&](Literal* lit) {
+      // TODO
+      return 0;
+    },
+    [&](auto& lit){ 
+      return 0;
+      // return TotalComparableMultiset(lit.term().iterSummands()
+      //     .map([&](auto x) { return x.atom().getDistinctVars(); })
+      //     .collectStack()); 
+    })
 
   BY_INTERPRETED_KEY(NumberOfVarsMax,
-      { return TotalComparableMultiset(self.maxAtomsNotLess(lit.term())
-          .map([&](auto x) { return x.atom().getDistinctVars(); })
-          .collectStack()); })
+    [&](Literal* lit) {
+    return 0;
+    },
+      [&](auto& lit){ 
+      return 0;
+      // return TotalComparableMultiset(self.maxAtomsNotLess(lit.term())
+      //     .map([&](auto x) { return x.atom().getDistinctVars(); })
+      //     .collectStack()); 
+      })
 
   template<class Cmp>
-  auto getKey(TL::Token<Cmp> cmp, AlascaLiteralItpAny const& lit) const
-  { return lit.apply([&](auto& lit) { return getKey(cmp, lit); }); }
+  auto getKey(TL::Token<Cmp> cmp, AlascaLiteral const& lit) const
+  { 
+    auto itp = lit.asItp();
+    if (itp.isSome()) {
+      return itp->apply([&](auto& lit) { return getKey(cmp, lit); });
+    } else {
+      return getKey(cmp, lit.toLiteral());
+    }
+  }
 
-  template<class Uninter, class FallBack, class Tup>
+  template<class FallBack, class Tup>
   Comparison compareItp(
-      TL::Token<LiteralComparators::ALASCA::IfUninterpreted<Uninter, Tup, FallBack>> const& c, 
-      AlascaLiteralItpAny const& l, AlascaLiteralItpAny const& r) const 
+      TL::Token<LiteralComparators::ALASCA::Comparator<Tup, FallBack>> const& c, 
+      AlascaLiteral const& l, AlascaLiteral const& r) const 
   { return compare(TL::Token<FallBack>{}, l, r); }
 
   template<class T>
@@ -251,10 +346,10 @@ struct AlascaComparator {
   static Comparison compare(T const& l, T const& r) 
   { return Int::compare(l,r); }
 
-  template<class Uninter, class FallBack, class Tup, class T, class... Ts>
+  template<class FallBack, class Tup, class T, class... Ts>
   Comparison compareItp(
-      TL::Token<LiteralComparators::ALASCA::IfUninterpreted<Uninter, Tup, FallBack>> cmp,
-      AlascaLiteralItpAny const& l, AlascaLiteralItpAny const& r, T t, Ts... ts) const {
+      TL::Token<LiteralComparators::ALASCA::Comparator<Tup, FallBack>> cmp,
+      AlascaLiteral const& l, AlascaLiteral const& r, T t, Ts... ts) const {
     auto res = [&]() {
       auto kl = getKey(t, l);
       auto kr = getKey(t, r);

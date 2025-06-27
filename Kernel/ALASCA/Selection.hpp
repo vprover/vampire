@@ -26,6 +26,7 @@ namespace Kernel {
     Inferences::SimplifyingGeneratingInference* _inf = nullptr;
     Ordering* ord;
 
+    friend struct AlascaComparator;
     friend struct AlascaSelectorDispatch;
   public:
     AlascaSelector(AlascaSelector &&) = default;

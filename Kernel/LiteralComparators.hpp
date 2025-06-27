@@ -363,15 +363,13 @@ ALASCA_SELECTION_ORDERING_OPTIONS(MK_ALASCA_COMPARATOR)
 
 #undef MK_ALASCA_COMPARATOR
 
-template<class UninterCase, class InterCase, class Fallback>
-struct IfUninterpreted : public LiteralComparator
+template<class InterCase, class Fallback>
+struct Comparator : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2) { return Comparison::EQUAL; }
   static auto typeName() 
   { 
-    return Output::catOwned("IfUninterpretd<", 
-      UninterCase::name(), 
-      ", ",  
+    return Output::catOwned("ALASCA::Comparator<", 
       std::apply([](auto... val) { return std::make_tuple(decltype(val)::name()...); }, std::declval<InterCase>()),
       ", ",  
       Fallback::name(), ">");  

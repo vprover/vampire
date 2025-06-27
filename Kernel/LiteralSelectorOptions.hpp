@@ -61,10 +61,7 @@ namespace LiteralSelectors {
 
   using AlascaComparator = CompositeN
     < ColoredFirst
-    , ALASCA::IfUninterpreted< // <- uninterpreted first
-      // compare uninterpreted literals by
-      Comparator10,
-      // compare interpreted literals by
+    , ALASCA::Comparator< // <- uninterpreted first
       std::tuple<
           ALASCA::IsUwaConstraint
           /* probability of unifying variables */
