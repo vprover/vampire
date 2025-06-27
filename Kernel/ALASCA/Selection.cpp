@@ -281,28 +281,62 @@ struct AlascaComparator {
         .sum(); 
      })
 
-  BY_INTERPRETED_KEY(NumberOfVarsAll,
+
+  // unif prob:
+  //   min(vars * (1/signatureSize)^(termSize - 1))
+  //
+  //   <-> min(log(vars * (1/signatureSize)^(termSize - 1)))
+  //   <-> min(log(vars) + log(1/signatureSize) * (termSize - 1))
+  //   <-> min(log(vars) +  -log(signatureSize) * (termSize - 1))
+  double logProbability(TermList t) const {
+    return log(double(t.getDistinctVars())) 
+         - log(double(env.signature->functions())) * (double(t.weight()) - 1);
+  }
+
+  double logProbability(Literal* t) const {
+    return log(double(t->getDistinctVars())) 
+         - log(double(env.signature->functions())) * (double(t->weight()) - 2) 
+         - log(double(env.signature->predicates())) ;
+  }
+
+  // unif prob:
+  //   min(vars * (1/signatureSize)^(termSize - 1))
+  //
+  //   <-> min(log(vars * (1/signatureSize)^(termSize - 1)))
+  //   <-> min(log(vars) + log(1/signatureSize) * (termSize - 1))
+  //   <-> min(log(vars) +  -log(signatureSize) * (termSize - 1))
+
+  BY_INTERPRETED_KEY(LogUnifProbabilityOfAllAtoms,
     [&](Literal* lit) {
-      // TODO
-      return 0;
+      if (lit->isEquality()) {
+        return anyArgIter(lit)
+          .map([&](TermList t) { return -logProbability(t); })
+          .sum();
+      } else {
+        return -logProbability(lit);
+      }
     },
     [&](auto& lit){ 
-      return 0;
-      // return TotalComparableMultiset(lit.term().iterSummands()
-      //     .map([&](auto x) { return x.atom().getDistinctVars(); })
-      //     .collectStack()); 
+      return lit.term().iterSummands()
+          .map([&](auto x) { return -logProbability(x.atom()); })
+          .sum();
     })
 
-  BY_INTERPRETED_KEY(NumberOfVarsMax,
+  BY_INTERPRETED_KEY(LogUnifProbabilityOfMaxAtoms,
     [&](Literal* lit) {
-    return 0;
+      if (lit->isEquality()) {
+        return maxEqTerms(lit)
+          .map([&](TermList t) { return -logProbability(t); })
+          .sum();
+      } else {
+        return -logProbability(lit);
+      }
     },
-      [&](auto& lit){ 
-      return 0;
-      // return TotalComparableMultiset(self.maxAtomsNotLess(lit.term())
-      //     .map([&](auto x) { return x.atom().getDistinctVars(); })
-      //     .collectStack()); 
-      })
+    [&](auto& lit){ 
+      return self.maxAtomsNotLess(lit.term())
+          .map([&](auto x) { return -logProbability(x.atom()); })
+          .sum();
+    })
 
   template<class Cmp>
   auto getKey(TL::Token<Cmp> cmp, AlascaLiteral const& lit) const

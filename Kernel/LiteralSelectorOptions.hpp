@@ -66,14 +66,14 @@ namespace LiteralSelectors {
           ALASCA::IsUwaConstraint
           /* probability of unifying variables */
           // number of top level vars (?)
-        , ALASCA::NumberOfMaxAtoms
-        , ALASCA::NumberOfAllAtoms
+        // , ALASCA::NumberOfMaxAtoms
+        // , ALASCA::NumberOfAllAtoms
         , ALASCA::TheoryComplexityOfMaxAtoms
         , ALASCA::TheoryComplexityOfAllAtoms
-        , ALASCA::NumberOfVarsMax // <- distinct ones 
-        , ALASCA::NumberOfVarsAll
-        , ALASCA::SizeOfMaxAtoms
-        , ALASCA::SizeOfAllAtoms
+        , ALASCA::LogUnifProbabilityOfMaxAtoms // <- distinct ones 
+        , ALASCA::LogUnifProbabilityOfAllAtoms
+        // , ALASCA::SizeOfMaxAtoms
+        // , ALASCA::SizeOfAllAtoms
         >,
       // fallback for interpreted
       LexComparator

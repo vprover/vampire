@@ -2336,8 +2336,8 @@ public:
   FUN(TheoryComplexityOfMaxAtoms)\
   FUN(SizeOfAllAtoms)\
   FUN(SizeOfMaxAtoms)\
-  FUN(NumberOfVarsAll)\
-  FUN(NumberOfVarsMax)\
+  FUN(LogUnifProbabilityOfAllAtoms)\
+  FUN(LogUnifProbabilityOfMaxAtoms)\
 
 #define FUN(Name) AlascaSelectionMode alascaSelection ## Name() { return _alascaSelection ## Name.actualValue; }
 
