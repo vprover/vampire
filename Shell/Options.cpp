@@ -1321,14 +1321,6 @@ void Options::init()
 
     auto alascaSelectionModeValues = OptionChoiceValues({"off","on","inv"});
 
-    _alascaSelection = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection","alasca-s",AlascaSelectionMode::ON, alascaSelectionModeValues);
-    _alascaSelection.description="Turns an alasca's specific selection strategy to wrap the usual selection option in it.";
-    _lookup.insert(&_alascaSelection);
-    _alascaSelection.addHardConstraint(notEqual(AlascaSelectionMode::OFF));
-    addRecommendationConstraint(_alascaSelection, Or(
-           _alasca.is(equal(true))
-           ));
-
 #define FUN(Name)                                                                         \
     _alascaSelection ## Name = ChoiceOptionValue<AlascaSelectionMode>("alasca-selection-" #Name,"alasca-s-" #Name,AlascaSelectionMode::ON, alascaSelectionModeValues); \
     _alascaSelection ## Name.description="Makes alasca selection sort selectable terms by " #Name " and uses the biggest of them."; \

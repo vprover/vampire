@@ -166,7 +166,7 @@ struct AlascaComparator {
       return lit.symbol() == AlascaPredicate::NEQ;
     })
 
-  BY_INTERPRETED_KEY(CntSummandsMax,
+  BY_INTERPRETED_KEY(NumberOfMaxAtoms,
     [&](Literal* lit) -> unsigned { 
       if (lit->isEquality()) {
         switch (self.ord->getEqualityArgumentOrder(lit)) {
@@ -182,7 +182,7 @@ struct AlascaComparator {
     [&](auto& lit) -> unsigned 
     { return self.maxAtomsNotLessStack(lit.term()).size(); })
 
-  BY_INTERPRETED_KEY(CntSummandsAll, 
+  BY_INTERPRETED_KEY(NumberOfAllAtoms, 
     [&](Literal* lit) -> unsigned { 
       if (lit->isEquality()) {
         return 2;
@@ -219,36 +219,37 @@ struct AlascaComparator {
   auto theoryComplexity(TypedTermList t) const 
   { return theoryComplexity(InequalityNormalizer::normalize(t)); }
 
-  BY_INTERPRETED_KEY(TheoryComplexityAll,
-    [&](Literal* lit) {
-      return anyArgIterTyped(lit)
+  BY_INTERPRETED_KEY(TheoryComplexityOfAllAtoms,
+    [&](Literal* lit) -> int {
+      return -int(anyArgIterTyped(lit)
                 .map([&](auto x) { return theoryComplexity(x); })
-                .sum();
+                .sum());
     },
-    [&](auto& lit) -> unsigned { 
-      return lit.term().iterSummands()
+    [&](auto& lit) -> int { 
+      return -int(lit.term().iterSummands()
         .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
-        .sum(); })
-
-  BY_INTERPRETED_KEY(TheoryComplexityMax,
-    [&](Literal* lit) {
-      if (lit->isEquality()) {
-        return maxEqTermsTyped(lit)
-                  .map([&](auto x) { return theoryComplexity(x); })
-                  .sum();
-      } else {
-        return anyArgIterTyped(lit)
-                  .map([&](auto x) { return theoryComplexity(x); })
-                  .sum();
-      }
-    },
-    [&](auto& lit){ 
-      return self.maxAtomsNotLess(lit.term())
-        .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
-        .sum(); 
+        .sum()); 
     })
 
-  BY_INTERPRETED_KEY(SizeAll,
+  BY_INTERPRETED_KEY(TheoryComplexityOfMaxAtoms,
+    [&](Literal* lit) -> int {
+      if (lit->isEquality()) {
+        return -int(maxEqTermsTyped(lit)
+                  .map([&](auto x) { return theoryComplexity(x); })
+                  .sum());
+      } else {
+        return -int(anyArgIterTyped(lit)
+                  .map([&](auto x) { return theoryComplexity(x); })
+                  .sum());
+      }
+    },
+    [&](auto& lit) -> int { 
+      return -int(self.maxAtomsNotLess(lit.term())
+          .map([&](auto x) { return theoryComplexity(TypedTermList(x.atom(), NumTraits::sort())); })
+          .sum()); 
+    })
+
+  BY_INTERPRETED_KEY(SizeOfAllAtoms,
     [&](Literal* lit) {
       if (lit->isEquality()) {
         return anyArgIter(lit)
@@ -262,7 +263,7 @@ struct AlascaComparator {
           .map([&](auto x) { return x.atom().weight(); })
           .sum(); })
 
-  BY_INTERPRETED_KEY(SizeMax,
+  BY_INTERPRETED_KEY(SizeOfMaxAtoms,
     [&](Literal* lit) {
       if (lit->isEquality()) {
         return maxEqTerms(lit)

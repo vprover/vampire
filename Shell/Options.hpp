@@ -2327,16 +2327,15 @@ public:
   EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
   bool alasca() const { return _alasca.actualValue; }
-  AlascaSelectionMode alascaSelection() { return _alascaSelection.actualValue; }
 
 #define ALASCA_SELECTION_ORDERING_OPTIONS(FUN) \
   FUN(IsUwaConstraint)\
-  FUN(CntSummandsMax)\
-  FUN(CntSummandsAll)\
-  FUN(TheoryComplexityAll)\
-  FUN(TheoryComplexityMax)\
-  FUN(SizeAll)\
-  FUN(SizeMax)\
+  FUN(NumberOfMaxAtoms)\
+  FUN(NumberOfAllAtoms)\
+  FUN(TheoryComplexityOfAllAtoms)\
+  FUN(TheoryComplexityOfMaxAtoms)\
+  FUN(SizeOfAllAtoms)\
+  FUN(SizeOfMaxAtoms)\
   FUN(NumberOfVarsAll)\
   FUN(NumberOfVarsMax)\
 
@@ -2838,10 +2837,6 @@ private:
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
   BoolOptionValue _complexVarCondition;
-
-  // TODO remove
-  ChoiceOptionValue<AlascaSelectionMode> _alascaSelection;
-
 
 #define FUN(X) ChoiceOptionValue<AlascaSelectionMode> _alascaSelection ## X;
 

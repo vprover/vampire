@@ -61,19 +61,19 @@ namespace LiteralSelectors {
 
   using AlascaComparator = CompositeN
     < ColoredFirst
-    , ALASCA::Comparator< // <- uninterpreted first
+    , ALASCA::Comparator<
       std::tuple<
           ALASCA::IsUwaConstraint
           /* probability of unifying variables */
           // number of top level vars (?)
-        , ALASCA::CntSummandsMax
-        , ALASCA::CntSummandsAll
-        , ALASCA::TheoryComplexityMax // <-sum instead of multiset
-        , ALASCA::TheoryComplexityAll
+        , ALASCA::NumberOfMaxAtoms
+        , ALASCA::NumberOfAllAtoms
+        , ALASCA::TheoryComplexityOfMaxAtoms
+        , ALASCA::TheoryComplexityOfAllAtoms
         , ALASCA::NumberOfVarsMax // <- distinct ones 
         , ALASCA::NumberOfVarsAll
-        , ALASCA::SizeMax // <- bigger first
-        , ALASCA::SizeAll
+        , ALASCA::SizeOfMaxAtoms
+        , ALASCA::SizeOfAllAtoms
         >,
       // fallback for interpreted
       LexComparator
