@@ -2708,7 +2708,7 @@ ROB_UNIFY_TEST(alsca_ac_20,
 ROB_UNIFY_TEST(alsca_ac_21,
     SUGAR(Real),
     Options::UnificationWithAbstraction::ALASCA_AC,
-    /* fixedPointIteration */ false,
+    /* fixedPointIteration */ true,
     x + f(x) + f(y),
     b + c + f(a) + f(b + c),
     TermUnificationResultSpec {

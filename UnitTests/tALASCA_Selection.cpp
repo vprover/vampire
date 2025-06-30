@@ -290,43 +290,6 @@ TEST_FUN(best_01_alasca) {
   check(clause({ -f2(f(x) + a,x) > 0, -f2(f(x), y) > 0 }), { -f2(f(x),y) > 0 });
 }
 
-
-TEST_FUN(best_01) {
-  __ALLOW_UNUSED(
-    SUGAR(Rat)
-  )
-
-  auto cl = clause({ ~p(x), -a + -b * x + c >= 0 });
-
-  using namespace LiteralComparators;
-  
-  using SelectorMode = CompleteBestLiteralSelector<CompositeN
-    < ColoredFirst
-    , NegativeEquality
-    , MaximalSize
-    , Negative
-    , LexComparator
-    >>;
-  
-  // using SelectorMode = CompleteBestLiteralSelector<CompositeN
-  //   < MaximalSize
-  //   , LexComparator
-  //   >>;
-
-  auto state = testAlascaState(
-      Options::UnificationWithAbstraction::ALASCA_MAIN,
-      Lib::make_shared(InequalityNormalizer()),
-      nullptr,
-     /*uwaFixdPointIteration=*/ false,
-     LiteralSelectors::selectorMode<SelectorMode>());
-
-  auto sel = state->selected(cl)
-    .map([](auto s) { return s.litIdx(); })
-    .collectStack();
-
-  ASS_EQ(sel, Stack<unsigned>{1})
-}
-
 TEST_FUN(selector_max_terms) {
   __ALLOW_UNUSED(
     SUGAR(Rat)

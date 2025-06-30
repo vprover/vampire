@@ -38,7 +38,7 @@
 #include "Debug/Tracer.hpp"
 #define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
-#define DEBUG_UWA(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
+#define DEBUG_UWA(LVL, ...) if (LVL < 3) DBG(__VA_ARGS__)
 
 template<class T>
 auto tuple_flatten(T t) 
@@ -214,73 +214,62 @@ AbstractionOracle::AbstractionResult uwa_ac(AbstractingUnifier& au, TermSpec con
     return eqIf;
   };
 
-  auto singleVarCase0 = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
+  // ao({𝑥},𝑇′)
+  auto ao3_4 = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
     return someIf(S1.vars->size() == 1 && S1.termCnt() == 0, [&]() {
         ASS(didCancel)
-        return AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
+        auto var = S1.vars[0];
+        auto out = S2.allTerms().any([&](auto t) { return au.occurs(var, t); }) 
+            ? AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual())
+            : AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
             .unify(eq(sum(S1.allTerms()), sum(S2.allTerms()))));
+        DEBUG_UWA(0, "ao3/4: ", out);
+        return out;
     });
   };
 
 
-  if (auto res = singleVarCase0(S1, surplus1, S2, surplus2)) { return std::move(*res); }
-  if (auto res = singleVarCase0(S2, surplus2, S1, surplus1)) { return std::move(*res); }
+  if (auto res = ao3_4(S1, surplus1, S2, surplus2)) { return std::move(*res); }
+  if (auto res = ao3_4(S2, surplus2, S1, surplus1)) { return std::move(*res); }
 
-  if (S1.vars->size() > 0 && S2.vars.size() > 0) {
-    return AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
-        .constr(eq(sum(S1.allTerms()), sum(S2.allTerms()))));
-  }
-
-  // auto singleVarCase1 = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
-  //   return someIf(S1.vars->size() == 1 && S2.vars->size() == 0, [&]() {
-  //       if (surplus1.size() > 0) {
-  //         return AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
-  //             .constr(eq(sum(S1.allTerms()), sum(S2.allTerms()))));
-  //       }
-  //       auto sz1 = S1.vars->size();
-  //       auto sz2 = S2.vars->size() + surplus2->size();
-  //       if (sz1 > sz2) {
-  //         return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{});
-  //       }
-  //       auto sum1 = sum(iterTraits(S1.vars->iter()).cloned());
-  //       auto sum2 = sum(iterTraits(S2.vars->iter()).cloned(), arrayIter(*surplus2).cloned());
-  //       auto constr = eq(sum1, sum2);
-  //       return AbstractionOracle::AbstractionResult(eqIfBalancedAnd()
-  //           .unify(constr));
-  //   });
-  // };
-  //
-  // if (auto res = singleVarCase1(S1, surplus1, S2, surplus2)) { return std::move(*res); }
-  // if (auto res = singleVarCase1(S2, surplus2, S1, surplus1)) { return std::move(*res); }
-
-  auto multiVarOneSide = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
-    return someIf(S1.vars->size() >= 1 && S2.vars.size() == 0, [&]() {
-        auto iter1 = concatIters(
-            iterTraits(S1.vars->iter()).cloned(),
-            arrayIter(*surplus1).cloned());
-        auto sz1 = S1.vars->size() + surplus1->size();
-        auto iter2 = arrayIter(*surplus2).cloned();
-        auto sz2 = surplus2->size();
-        if (sz1 > sz2) {
-          return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{});
+  auto ao5_6 = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
+    return someIf(S1.vars->size() == 0 && S2.vars->size() == 0, [&]() {
+        DEBUG_UWA(0, "ao5/6");
+        if (surplus1.size() != 0 || surplus2.size() != 0) {
+          return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual());
+        } else {
+          return AbstractionOracle::AbstractionResult(eqIfBalancedAnd());
         }
-        return AbstractionOracle::AbstractionResult(eqIfBalancedAnd()
-            .constr(eq(sum(iter1), sum(iter2))));
     });
   };
 
-  if (auto res = multiVarOneSide(S1, surplus1, S2, surplus2)) { return std::move(*res); }
-  if (auto res = multiVarOneSide(S2, surplus2, S1, surplus1)) { return std::move(*res); }
-
-  ASS(S1.vars.size() == 0)
-  ASS(S2.vars.size() == 0)
-
-  if (surplus1.size() != 0 || surplus2.size() != 0) return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{});
-  else return AbstractionOracle::AbstractionResult(eqIfBalancedAnd());
+  if (auto res = ao5_6(S1, surplus1, S2, surplus2)) { return std::move(*res); }
+  if (auto res = ao5_6(S2, surplus2, S1, surplus1)) { return std::move(*res); }
 
 
-  ASSERTION_VIOLATION
+  auto ao7_8 = [&,didCancel](MSet& S1, auto& surplus1, MSet& S2, auto& surplus2) {
+        DEBUG_UWA(0, "ao7/8")
+    return someIf(S1.vars->size() >= 1 && S1.termCnt() + S1.vars->size() > 1
+               && S2.vars->size() == 0, [&]() {
+ 
 
+        if (iterTraits(fs->iter()).all([&](auto f) { return S1.terms->get(f).size() <= S2.terms->get(f).size(); })
+          && S1.vars->size() + surplus1->size() <= surplus2->size()) {
+          return AbstractionOracle::AbstractionResult(eqIfBalancedAnd()
+                   .constr(eq(sum(concatIters(iterTraits(S1.vars->iter()).cloned()),
+                                              arrayIter(*surplus1).cloned()), 
+                              sum(arrayIter(*surplus2).cloned()))));
+        } else {
+          return AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual());
+        }
+    });
+  };
+
+  if (auto res = ao7_8(S1, surplus1, S2, surplus2)) { return std::move(*res); }
+  if (auto res = ao7_8(S2, surplus2, S1, surplus1)) { return std::move(*res); }
+
+  return AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
+      .constr(eq(sum(S1.allTerms()), sum(S2.allTerms()))));
 }
 
 Option<AbstractionOracle::AbstractionResult> uwa_ac(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2) {
