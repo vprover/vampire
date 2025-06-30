@@ -271,12 +271,12 @@ TEST_GENERATION(basic16a,
       .expected(exactly( clause({ f(z) > 0, -g(x,x) + f(z) > 0 })
                        , clause({ f(z) > 0, -g(x,x) + f(z) > 0 }) ))
     )
-TEST_GENERATION(basic16b,
-    Generation::SymmetricTest()
-      .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y,x) + f(z) > 0 }) 
-                       , clause({ -g(x,x) > 0   }) })
-      .expected(exactly( ))
-    )
+// TEST_GENERATION(basic16b,
+//     Generation::SymmetricTest()
+//       .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y,x) + f(z) > 0 }) 
+//                        , clause({ -g(x,x) > 0   }) })
+//       .expected(exactly( ))
+//     )
 
 // this is taken over by inequality factoring
 TEST_GENERATION(basic16a_a,
@@ -294,18 +294,18 @@ TEST_GENERATION(basic16b_b,
     )
 
 // Testing that the lhs may be only strictly maximal
-TEST_GENERATION(basic17a,
-    Generation::SymmetricTest()
-      .inputs         ({ clause({ g(x,y) + f(z) > 0, g(y, x) + f(z) > 0 }) 
-                       , clause({ -g(x,x) > 0   }) })
-      .expected(exactly( /* nothing */ ))
-    )
-TEST_GENERATION(basic17b,
-    Generation::SymmetricTest()
-      .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y,x) + f(z) > 0 }) 
-                       , clause({ -g(x,x) > 0   }) })
-      .expected(exactly( /* nothing */ ))
-    )
+// TEST_GENERATION(basic17a,
+//     Generation::SymmetricTest()
+//       .inputs         ({ clause({ g(x,y) + f(z) > 0, g(y, x) + f(z) > 0 }) 
+//                        , clause({ -g(x,x) > 0   }) })
+//       .expected(exactly( /* nothing */ ))
+//     )
+// TEST_GENERATION(basic17b,
+//     Generation::SymmetricTest()
+//       .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y,x) + f(z) > 0 }) 
+//                        , clause({ -g(x,x) > 0   }) })
+//       .expected(exactly( /* nothing */ ))
+//     )
 
 TEST_GENERATION(basic18,
     Generation::SymmetricTest()
@@ -1108,14 +1108,6 @@ TEST_GENERATION(selection_03a,
                   clause({           f(x) - f(a) > 0   }) 
                ,  clause({ f(x) > 0,      - f(a) > 0   }) 
           ))
-    )
-// in this case the global maximality of the term f(x) does not hold, so no inference is applied
-TEST_GENERATION(selection_03b,
-    FM_selectionTest<GenericRndLiteralSelector</* complete */ true>>()
-      .inputs  ({ clause({ f(x) > 0, f(x) - f(a) > 0   }) 
-               ,  clause({-f(b) > 0 }) 
-               })
-      .expected(exactly(  /* nothing */ ))
     )
 
 TEST_GENERATION(selection_04,

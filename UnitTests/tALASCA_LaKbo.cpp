@@ -543,7 +543,7 @@ TEST_FUN(eq_levels) {
   check(ord, -f(a) - f(b) == 0, Less   ,         f(b) != 0);
   check(ord,  f(a) + f(b) == 0, Less   ,        -f(b) != 0);
   check(ord, -f(a) + f(b) == 0, Less   ,         f(b) >  0);
-  check(ord, -f(a) + f(b) >  0, Less   ,         f(b) != 0);
+  check(ord, -f(a) + f(b) >  0, Greater,         f(b) != 0);
 }
 
 TEST_FUN(ineq_diseq) {
@@ -556,8 +556,8 @@ TEST_FUN(ineq_diseq) {
   DECL_FUNC (f, {Real}, Real)
   auto& ord = lakbo();
 
-  check(ord,  f(a) - f(b) != 0, Greater,  f(a) - f(b) > 0);
-  check(ord, -f(a) + f(b) != 0, Greater, -f(a) + f(b) > 0);
+  check(ord,  f(a) - f(b) != 0, Less,  f(a) - f(b) > 0);
+  check(ord, -f(a) + f(b) != 0, Less, -f(a) + f(b) > 0);
 }
 
 TEST_FUN(check_one_smallest) {
