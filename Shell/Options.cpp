@@ -1327,7 +1327,7 @@ void Options::init()
     _lookup.insert(&_alascaSelection ## Name);                                            \
     _alascaSelection ## Name .onlyUsefulWith(Or(                                          \
           _selection.is(equal( 1005)),                                                    \
-          _selection.is(equal(-1005))                                                     \
+          _selection.is(equal(-1005)),                                                    \
           _selection.is(equal(    5)),                                                    \
           _selection.is(equal(-   5))                                                     \
           ));                                                                             \
