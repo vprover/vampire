@@ -286,6 +286,8 @@ TEST_FUN(best_01_alasca) {
   check(clause({ -f2(a,b) > 0, -f2(x, x) > 0 }), { -f2(a,b) > 0 });
   check(clause({ -f2(a,b) > 0, -f2(x, x) > 0 }), { -f2(a,b) > 0 });
   check(clause({ -f2(f(x),x) > 0, -f2(f(x), y) > 0 }), { -f2(f(x),x) > 0 });
+
+  check(clause({ -f2(f(x) + a,x) > 0, -f2(f(x), y) > 0 }), { -f2(f(x),y) > 0 });
 }
 
 

@@ -239,7 +239,7 @@ struct AlascaComparator {
 
   BY_INTERPRETED_KEY(TheoryComplexityOfAllAtoms,
     [&](Literal* lit) -> int {
-      return -int(anyArgIterTyped(lit)
+      return -int(termArgIterTyped(lit)
                 .map([&](auto x) { return theoryComplexity(x); })
                 .sum());
     },
@@ -256,7 +256,7 @@ struct AlascaComparator {
                   .map([&](auto x) { return theoryComplexity(x); })
                   .sum());
       } else {
-        return -int(anyArgIterTyped(lit)
+        return -int(termArgIterTyped(lit)
                   .map([&](auto x) { return theoryComplexity(x); })
                   .sum());
       }
