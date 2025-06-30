@@ -1326,8 +1326,10 @@ void Options::init()
     _alascaSelection ## Name.description="Makes alasca selection sort selectable terms by " #Name " and uses the biggest of them."; \
     _lookup.insert(&_alascaSelection ## Name);                                            \
     _alascaSelection ## Name .onlyUsefulWith(Or(                                          \
-          _selection.is(equal(5)),                                                        \
-          _selection.is(equal(-5))                                                       \
+          _selection.is(equal( 1005)),                                                    \
+          _selection.is(equal(-1005))                                                     \
+          _selection.is(equal(    5)),                                                    \
+          _selection.is(equal(-   5))                                                     \
           ));                                                                             \
 
 
