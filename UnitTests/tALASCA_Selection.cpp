@@ -8,6 +8,7 @@
  * and in the source directory
  */
 
+#include "Debug/Assertion.hpp"
 #include "Inferences/ALASCA/IntegerFourierMotzkin.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Kernel/ALASCA/Selection.hpp"
@@ -25,6 +26,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/AlascaTestUtils.hpp"
 #include "Test/GenerationTester.hpp"
+#include <initializer_list>
 
 using namespace std;
 using namespace Kernel;
@@ -46,6 +48,7 @@ using namespace Inferences::ALASCA;
   DECL_FUNC(f, {Num}, Num)                                                                \
   DECL_FUNC(g, {Num}, Num)                                                                \
   DECL_FUNC(f2, {Num, Num}, Num)                                                          \
+  DECL_FUNC(f3, {Num, Num, Num}, Num)                                                     \
   DECL_FUNC(g2, {Num, Num}, Num)                                                          \
   DECL_CONST(a, Num)                                                                      \
   DECL_CONST(a0, Num)                                                                     \
@@ -55,7 +58,7 @@ using namespace Inferences::ALASCA;
   DECL_CONST(b, Num)                                                                      \
   DECL_CONST(c, Num)                                                                      \
   DECL_PRED(r, {Num,Num})                                                                 \
-  DECL_PRED(p, {Num})                                                                 \
+  DECL_PRED(p, {Num})                                                                     \
   DECL_SORT(srt)                                                                          \
   DECL_CONST(au, srt)                                                                     \
   DECL_CONST(bu, srt)                                                                     \
@@ -237,6 +240,54 @@ TEST_GENERATION(lookahead_05,
                   clause({  g(x) > 0, a0 > 0 }) 
           ))
     )
+
+TEST_FUN(best_01_alasca) {
+  __ALLOW_UNUSED(
+    SUGAR(Rat)
+  )
+
+
+  using namespace LiteralComparators;
+  
+  using SelectorMode = CompleteBestLiteralSelector<
+     LiteralSelectors::AlascaComparator
+    >;
+  auto state = testAlascaState(
+      Options::UnificationWithAbstraction::ALASCA_MAIN,
+      Lib::make_shared(InequalityNormalizer()),
+      nullptr,
+     /*uwaFixdPointIteration=*/ false,
+     LiteralSelectors::selectorMode<SelectorMode>());
+
+
+  auto check = [&state](Clause* cl, Stack<Literal*> expected) {
+    expected.sort();
+
+    auto sel = state->selected(cl)
+      .map([](auto s) { return s.literal(); })
+      .collectStack()
+      .sorted();
+
+
+    if (sel == expected) {
+      std::cout << "[ OK ] " << *cl << std::endl;
+    } else {
+      std::cout << "[ FAIL ] " << *cl << std::endl;
+      std::cout << "[   is ] " << pretty(sel) << std::endl;
+      std::cout << "[  exp ] " << pretty(expected) << std::endl;
+      exit(-1);
+    }
+  };
+  check(clause({ ~p(x), -f(a) >= 0 }), {-f(a) >= 0});
+  check(clause({ ~p(a), -a >= 0 }), { ~p(a) });
+  check(clause({ ~p(a), -f(x) >= 0 }), { ~p(a) });
+  check(clause({ -a > 0, -f(a) > 0 }), { -f(a) > 0 });
+  check(clause({ -f2(x,y) > 0, -f2(x, x) > 0 }), { -f2(x,x) > 0 });
+  check(clause({ -f2(a,b) > 0, -f2(x, x) > 0 }), { -f2(a,b) > 0 });
+  check(clause({ -f2(a,b) > 0, -f2(x, x) > 0 }), { -f2(a,b) > 0 });
+  check(clause({ -f2(f(x),x) > 0, -f2(f(x), y) > 0 }), { -f2(f(x),x) > 0 });
+}
+
 
 TEST_FUN(best_01) {
   __ALLOW_UNUSED(

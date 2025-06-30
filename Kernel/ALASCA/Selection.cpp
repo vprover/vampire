@@ -28,6 +28,24 @@
 
 namespace Kernel {
 
+#define ENABLE_DEBUG_KEYS 0
+
+#if ENABLE_DEBUG_KEYS
+
+#  define DEBUG_KEYS(name, input, body)                                                   \
+    {                                                                                     \
+      auto __result = [&]() { body }();                                                   \
+      DBG(name, "(", Output::ptr(input), ") = ", __result);                               \
+      return __result;                                                                    \
+    }                                                                                     \
+
+#else
+
+#  define DEBUG_KEYS(name, input, body)                                                   \
+   { body }                                                                               \
+
+#endif //  ENABLE_DEBUG_KEYS
+
 template<class T>
 struct TotalComparableMultiset {
   Stack<T> _self;
@@ -50,7 +68,7 @@ struct AlascaComparatorByLiteralKey { static constexpr bool enabled = false; };
     static constexpr bool enabled = true;                                                 \
     template<class Self>                                                                  \
     static auto getKey(TL::Token<Type>, Self const& self, Literal* lit)                   \
-      body                                                                                \
+     DEBUG_KEYS(#Type, lit, body)                                                         \
   };                                                                                      \
 
 BY_LITERAL_KEY(LiteralComparators::ColoredFirst, 
@@ -123,13 +141,13 @@ struct AlascaComparator {
     return compareItp(c, norml, normr, TL::Token<Inter>{}...);
   }
 
-#define BY_INTERPRETED_KEY(Type, clsrLit, clsrItp) \
-  auto getKey(TL::Token<LiteralComparators::ALASCA::Type>, Literal* lit) const \
-  { return clsrLit(lit); }                                                                \
-                                                                                      \
+#define BY_INTERPRETED_KEY(Type, clsrLit, clsrItp)                                        \
+  auto getKey(TL::Token<LiteralComparators::ALASCA::Type>, Literal* lit) const            \
+  DEBUG_KEYS(#Type, lit, return clsrLit(lit);)                                            \
+                                                                                          \
   template<class NumTraits>                                                               \
   auto getKey(TL::Token<LiteralComparators::ALASCA::Type>, AlascaLiteralItp<NumTraits> const& lit) const \
-  { return clsrItp(lit); }                                                                \
+  DEBUG_KEYS(#Type, lit, return clsrItp(lit);)                                            \
                                                                                           \
   Options::AlascaSelectionMode optionValue(TL::Token<LiteralComparators::ALASCA::Type>) const { \
     static Options::AlascaSelectionMode val = env.options->alascaSelection ## Type();     \
@@ -281,6 +299,11 @@ struct AlascaComparator {
         .sum(); 
      })
 
+  // unif prob with ground terms
+  //   size(t) - distinctVars(t)
+  unsigned probPowers(TermList t) const { return t.weight() - t.getDistinctVars(); }
+  unsigned probPowers(Literal* l) const { return l->weight() - l->getDistinctVars(); }
+
 
   // unif prob:
   //   min(vars * (1/signatureSize)^(termSize - 1))
@@ -310,15 +333,15 @@ struct AlascaComparator {
     [&](Literal* lit) {
       if (lit->isEquality()) {
         return anyArgIter(lit)
-          .map([&](TermList t) { return -logProbability(t); })
+          .map([&](TermList t) { return probPowers(t); })
           .sum();
       } else {
-        return -logProbability(lit);
+        return probPowers(lit);
       }
     },
     [&](auto& lit){ 
       return lit.term().iterSummands()
-          .map([&](auto x) { return -logProbability(x.atom()); })
+          .map([&](auto x) { return probPowers(x.atom()); })
           .sum();
     })
 
@@ -326,15 +349,15 @@ struct AlascaComparator {
     [&](Literal* lit) {
       if (lit->isEquality()) {
         return maxEqTerms(lit)
-          .map([&](TermList t) { return -logProbability(t); })
+          .map([&](TermList t) { return probPowers(t); })
           .sum();
       } else {
-        return -logProbability(lit);
+        return probPowers(lit);
       }
     },
     [&](auto& lit){ 
       return self.maxAtomsNotLess(lit.term())
-          .map([&](auto x) { return -logProbability(x.atom()); })
+          .map([&](auto x) { return probPowers(x.atom()); })
           .sum();
     })
 
