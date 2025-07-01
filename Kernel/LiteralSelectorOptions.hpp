@@ -64,16 +64,10 @@ namespace LiteralSelectors {
     , ALASCA::Comparator<
       std::tuple<
           ALASCA::IsUwaConstraint
-          /* probability of unifying variables */
-          // number of top level vars (?)
-        // , ALASCA::NumberOfMaxAtoms
-        // , ALASCA::NumberOfAllAtoms
+        , ALASCA::LogUnifProbabilityOfMaxAtoms
+        , ALASCA::LogUnifProbabilityOfAllAtoms
         , ALASCA::TheoryComplexityOfMaxAtoms
         , ALASCA::TheoryComplexityOfAllAtoms
-        , ALASCA::LogUnifProbabilityOfMaxAtoms // <- distinct ones 
-        , ALASCA::LogUnifProbabilityOfAllAtoms
-        // , ALASCA::SizeOfMaxAtoms
-        // , ALASCA::SizeOfAllAtoms
         >,
       // fallback for interpreted
       LexComparator
