@@ -5321,6 +5321,8 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("dis+1002_1:10_slsqr=1,8:sil=256000:tgt=full:drc=off:sp=arity:nwc=3.02:slsq=on:i=215443:s2at=5.98:ins=20:fsr=off:gtg=position:bs=on:ss=included:sd=10:st=1.0137499_0");
     // total_instr 1792902
     // len(covered) 1037
+  } else {
+    quick.push("lrs+10_1:1__10");
   }
 
 }

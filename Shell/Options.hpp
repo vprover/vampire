@@ -2201,6 +2201,8 @@ public:
   bool randomTraversals() const { return _randomTraversals.actualValue; }
   bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
   void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
+  bool shuffleOnScheduleRepeats() const { return _shuffleOnScheduleRepeats.actualValue; }
+  void enableShuffling() { _shuffleInput.actualValue = true; _randomTraversals.actualValue = true; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2578,6 +2580,7 @@ private:
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
   BoolOptionValue _randomizSeedForPortfolioWorkers;
+  BoolOptionValue _shuffleOnScheduleRepeats;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;

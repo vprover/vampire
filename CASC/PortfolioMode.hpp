@@ -50,7 +50,7 @@ private:
 
   bool runSchedule(Schedule schedule);
   bool runScheduleAndRecoverProof(Schedule schedule);
-  [[noreturn]] void runSlice(std::string sliceCode, int remainingTime);
+  [[noreturn]] void runSlice(std::string sliceCode, int remainingTime, bool scheduleRepeat);
   [[noreturn]] void runSlice(Options& strategyOpt);
 
 #if VDEBUG

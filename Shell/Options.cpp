@@ -217,6 +217,12 @@ void Options::init()
     _lookup.insert(&_randomizSeedForPortfolioWorkers);
     _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
 
+    _shuffleOnScheduleRepeats = BoolOptionValue("shuffle_on_schedule_repeats","",true);
+    _shuffleOnScheduleRepeats.description = "In portfolio mode, when we run out of strategies in the selected schedule, we restart from the beginning while doubling the limits,"
+                                             " under this option, we also force si=on:rtra=on to increase the change that the repeated strategies `do something else`.";
+    _lookup.insert(&_shuffleOnScheduleRepeats);
+    _shuffleOnScheduleRepeats.onlyUsefulWith(UsingPortfolioTechnology());
+
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
     _lookup.insert(&_decode);

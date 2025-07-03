@@ -242,16 +242,11 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
     schedule.loadFromIterator(main.iterFifo());
     schedule.loadFromIterator(fallback.iterFifo());
-    addScheduleExtra(main,schedule,"si=on:rtra=on");
-    addScheduleExtra(fallback,schedule,"si=on:rtra=on");
 
   } else if (env.options->schedule() == Options::Schedule::CASC_SAT) {
 
     schedule.loadFromIterator(main.iterFifo());
     schedule.loadFromIterator(fallback.iterFifo());
-    // randomize and use the new fmb option
-    addScheduleExtra(main,schedule,"si=on:rtra=on");
-    addScheduleExtra(fallback,schedule,"si=on:rtra=on");
 
   } else if (env.options->schedule() == Options::Schedule::SMTCOMP) {
     // Normally we do main fallback main_extra fallback_extra
@@ -268,13 +263,10 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
     ASS(fallback.isEmpty());
 
     schedule.loadFromIterator(main.iterFifo());
-    addScheduleExtra(main,schedule,"rp=on:de=on"); // random polarities, demodulation encompassment
-
   } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_SAT) {
     ASS(fallback.isEmpty());
 
     schedule.loadFromIterator(main.iterFifo());
-    addScheduleExtra(main,schedule,"rp=on:fmbksg=on:de=on"); // random polarities, demodulation encompassment for saturation, fmbksg for the fmb's
   } else {
     // all other schedules just get loaded plain
 
@@ -292,10 +284,10 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 /**
  * Take strategy strings from @param sOld, update their time (and instruction) limit,
  * multiplying it by @param limit_multiplier and put the new strings into @param sNew.
- * 
+ *
  * @author Giles, Martin
  */
-void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier) 
+void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier)
 {
   ASS(limit_multiplier >= 0)
   Schedule::BottomFirstIterator it(sOld);
@@ -337,9 +329,9 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
 }
 
 /**
- * Take strategy strings from @param sOld and update them by adding @param extra 
+ * Take strategy strings from @param sOld and update them by adding @param extra
  * as additional option settings, pushing the new strings into @param sNew.
- * 
+ *
  * @author Giles, Martin
  */
 void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::string extra)
@@ -435,6 +427,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   Set<pid_t> processes;
   bool success = false;
   int remainingTime;
+  bool scheduleRepeat = false;
   while(remainingTime = env.remainingTime() / 100, remainingTime > 0)
   {
     // running under capacity, wake up more tasks
@@ -445,7 +438,8 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       if(!it.hasNext()) {
         Schedule next;
         rescaleScheduleLimits(schedule, next, 2.0);
-        schedule = next;
+        scheduleRepeat = true;
+        schedule = std::move(next);
         it = Schedule::BottomFirstIterator(schedule);
       }
       ALWAYS(it.hasNext());
@@ -456,7 +450,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       if(process == 0)
       {
         TIME_TRACE_NEW_ROOT("child process")
-        runSlice(code, remainingTime);
+        runSlice(code, remainingTime, scheduleRepeat);
         ASSERTION_VIOLATION; // should not return
       }
       ALWAYS(processes.insert(process));
@@ -583,7 +577,7 @@ unsigned PortfolioMode::getSliceTime(const std::string &sliceCode)
 /**
  * Run a slice given by its code using the specified time limit.
  */
-void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
+void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds, bool scheduleRepeat)
 {
   TIME_TRACE("run slice");
 
@@ -605,6 +599,9 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
       // but here we want each worker to have their own seed
       opt.setRandomSeed(std::random_device()());
       // ... unless a strategy sets a seed explicitly, just below
+    }
+    if (scheduleRepeat && env.options->shuffleOnScheduleRepeats()) {
+      opt.enableShuffling();
     }
     opt.readFromEncodedOptions(sliceCode);
     opt.setTimeLimitInDeciseconds(sliceTime);
