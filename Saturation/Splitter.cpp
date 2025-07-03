@@ -575,6 +575,7 @@ void Splitter::init(SaturationAlgorithm* sa)
 
   _fastRestart = opts.splittingFastRestart();
   _deleteDeactivated = opts.splittingDeleteDeactivated();
+  _cleaveNonsplittables = opts.cleaveNonsplittables();
 
   if (opts.useHashingVariantIndex()) {
     _componentIdx = new HashingClauseVariantIndex();
@@ -779,8 +780,36 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
   return true;
 }
 
+void Splitter::conjectureSingleton(Literal* theLit, Clause* orig)
+{
+  unsigned db_before = _db.size();
+
+  Clause *compCl;
+  SplitLevel compName = tryGetComponentNameOrAddNew(1, &theLit, orig, compCl);
+  SATLiteral nameLit = getLiteralFromName(compName);
+  _branchSelector.trySetTrue(nameLit);
+  _db[compName]->sticky = true;
+
+  // detect whether a component was added
+  if(db_before < _db.size()) {
+    if (_showSplitting)
+      std::cout << "[AVATAR] conjectures: "<< compCl->toString() << std::endl;
+
+    // we added a literal that we want to be true in the SAT solver
+    // this isn't exactly adding a clause, but we want to recompute a model at some point soon
+    _clausesAdded = true;
+  }
+}
+
 bool Splitter::handleNonSplittable(Clause* cl)
 {
+  if (_cleaveNonsplittables && cl->length() > 1) {
+    auto it = cl->iterLits();
+    while (it.hasNext()) {
+      conjectureSingleton(it.next(),cl);
+    }
+  }
+
   SplitLevel compName;
   Clause* compCl;
   if(!shouldAddClauseForNonSplittable(cl, compName, compCl)) {
@@ -892,7 +921,7 @@ std::string Splitter::splitsToString(SplitSet* splits)
  *
  * This is implemented using the Union-Find algorithm.
  *
- * Comment by Giles. 
+ * Comment by Giles.
  */
 bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 {
@@ -1001,7 +1030,7 @@ bool Splitter::doSplitting(Clause* cl)
   static SATLiteralStack satClauseLits;
   satClauseLits.reset();
 
-  // Add literals for existing constraints 
+  // Add literals for existing constraints
   collectDependenceLits(cl->splits(), satClauseLits);
 
   UnitList* ps = 0;
@@ -1010,6 +1039,14 @@ bool Splitter::doSplitting(Clause* cl)
   unsigned compCnt = comps.size();
   for(unsigned i=0; i<compCnt; ++i) {
     const LiteralStack& comp = comps[i];
+
+    if (_cleaveNonsplittables && comp.size() > 1) {
+      auto it = comp.iter();
+      while (it.hasNext()) {
+        conjectureSingleton(it.next(),cl);
+      }
+    }
+
     Clause* compCl;
     SplitLevel compName = tryGetComponentNameOrAddNew(comp, cl, compCl);
     SATLiteral nameLit = getLiteralFromName(compName);

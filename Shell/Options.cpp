@@ -2054,6 +2054,12 @@ void Options::init()
     _splitAtActivation.onlyUsefulWith(_splitting.is(equal(true)));
     _splitAtActivation.tag(OptionTag::AVATAR);
 
+    _cleaveNonsplittables = BoolOptionValue("cleave_nonsplittables","cn",false);
+    _cleaveNonsplittables.description="Tentatively propose single-literal component strengthenings. Sometimes useful for bringing about finite saturations.";
+    _lookup.insert(&_cleaveNonsplittables);
+    _cleaveNonsplittables.onlyUsefulWith(_splitting.is(equal(true)));
+    _cleaveNonsplittables.tag(OptionTag::AVATAR);
+
     _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","aac",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"});
     _splittingAddComplementary.description="";

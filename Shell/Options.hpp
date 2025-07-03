@@ -2282,6 +2282,7 @@ public:
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
+  bool cleaveNonsplittables() const{ return _cleaveNonsplittables.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
   SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
@@ -2672,6 +2673,7 @@ private:
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
+  BoolOptionValue _cleaveNonsplittables;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   BoolOptionValue _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
