@@ -3422,6 +3422,10 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_decode);
     forbidden.insert(&_sampleStrategy);
     forbidden.insert(&_normalize);
+    forbidden.insert(&_outputAxiomNames);
+    forbidden.insert(&_randomizSeedForPortfolioWorkers);
+    forbidden.insert(&_schedule);
+    forbidden.insert(&_scheduleFile);
 
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
@@ -3437,8 +3441,7 @@ std::string Options::generateEncodedOptions() const
   bool first=true;
   while(options.hasNext()){
     AbstractOptionValue* option = options.next();
-    // TODO do we want to also filter by !isDefault?
-    if(!forbidden.contains(option) && option->is_set && !option->isDefault()){
+    if (!forbidden.contains(option) && !option->isDefault()){
       std::string name = option->shortName;
       if(name.empty()) name = option->longName;
       if(!first){ res<<":";}else{first=false;}

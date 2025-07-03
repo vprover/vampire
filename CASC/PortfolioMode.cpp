@@ -639,7 +639,7 @@ void PortfolioMode::runSlice(Options& opt)
   opt.checkGlobalOptionConstraints();
 
   if (outputAllowed()) {
-    addCommentSignForSZS(cout) << opt.testId() << " on " << opt.problemName() <<
+    addCommentSignForSZS(cout) << opt.generateEncodedOptions() << " on " << opt.problemName() <<
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
 #if VAMPIRE_PERF_EXISTS
       "/" << opt.instructionLimit() << "Mi" <<
