@@ -560,8 +560,9 @@ void dispatchByMode(Problem* problem)
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
     env.options->setOutputAxiomNames(true);
-    env.options->setNormalize(true);
-    env.options->setRandomizeSeedForPortfolioWorkers(false);
+
+    // env.options->setNormalize(true);
+    // env.options->setRandomizeSeedForPortfolioWorkers(false);
 
     if (CASC::PortfolioMode::perform(problem)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
