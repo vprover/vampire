@@ -458,7 +458,7 @@ Formula* Formula::quantify(Formula* f)
  * Return formula equal to @b cl
  * that has all variables quantified
  */
-Formula* Formula::fromClause(Clause* cl)
+Formula* Formula::fromClause(Clause* cl, bool closed)
 {
   FormulaList* resLst=0;
   unsigned clen=cl->length();
@@ -468,7 +468,7 @@ Formula* Formula::fromClause(Clause* cl)
   }
 
   Formula* res=JunctionFormula::generalJunction(OR, resLst);
-  return Formula::quantify(res);
+  return closed ? Formula::quantify(res) : res;
 }
 
 Formula* BoolTermFormula::create(TermList ts)

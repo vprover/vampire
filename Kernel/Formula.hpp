@@ -89,7 +89,7 @@ public:
   std::string getLabel(){ return _label;}
   void label(std::string l){ _label=l; }
 
-  static Formula* fromClause(Clause* cl);
+  static Formula* fromClause(Clause* cl,bool closed = true);
 
   static Formula* quantify(Formula* f);
 
