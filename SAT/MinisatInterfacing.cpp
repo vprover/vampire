@@ -74,6 +74,7 @@ void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
 {
   // TODO: consider calling simplify(); or only from time to time?
 
+  std::cout << "minisat solve\n";
   _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
   lbool res = _solver.solveLimited(_assumptions);
 
@@ -101,6 +102,7 @@ void MinisatInterfacing::addClause(SATClause* cl)
 
   static vec<Lit> mcl;
   mcl.clear();
+  std::cout << "minisat clause: " << *cl << '\n';
     
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {
@@ -127,6 +129,7 @@ void MinisatInterfacing::addAssumption(SATLiteral lit)
 
 SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
 {
+  std::cout << "minisat getAssignment " << var << '\n';
 	ASS_EQ(_status, Status::SATISFIABLE);
 	ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   lbool res;
@@ -134,14 +137,17 @@ SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
   Minisat::Var mvar = vampireVar2Minisat(var);
   if (mvar < _solver.model.size()) {
     if ((res = _solver.modelValue(mvar)) == l_True) {
+      std::cout << "true\n";
       return VarAssignment::TRUE;
     } else if (res == l_False) {
+      std::cout << "false\n";
       return VarAssignment::FALSE;
     } else {
       ASSERTION_VIOLATION;
       return VarAssignment::NOT_KNOWN;
     }
   } else { // new vars have been added but the model didn't grow yet
+    std::cout << "don't-care\n";
     return VarAssignment::DONT_CARE;
   }
 }

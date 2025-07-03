@@ -247,7 +247,7 @@ private:
 
   bool allSplitLevelsActive(SplitSet* s);
 
-  void conjecture(unsigned, Literal **);
+  void conjecture(Clause *, unsigned, Literal **);
 
   //settings
   bool _showSplitting;

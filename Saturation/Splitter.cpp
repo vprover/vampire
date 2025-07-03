@@ -451,7 +451,9 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
 
   RSTAT_CTR_INC("ssat_sat_clauses");
 
+  std::cout << "SAT clause: " << *cl << '\n';
   if (branchRefutation && _minSCO) {
+    std::cout << "ignore\n";
     _solver->addClauseIgnoredInPartialModel(cl);
   } else {
     _solver->addClause(cl);
@@ -487,6 +489,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    std::cout << i << " -> " << asgn << '\n';
 
     /**
      * This may happen with the current version of z3 when evaluating expressions like (0 == 1/0).
@@ -1074,16 +1077,13 @@ void Splitter::doConjecturing(Clause *cl) {
     return;
   }
 
-  if(LiteralList::length(maximal) > 1)
-    std::cout << cl->toString() << std::endl;
-
   Stack<Literal *> lits;
   LiteralList::Iterator it(maximal);
   while(it.hasNext())
     lits.push(it.next());
   LiteralList::destroy(maximal);
 
-  conjecture(lits.length(), lits.begin());
+  conjecture(cl, lits.length(), lits.begin());
 }
 
 /**
@@ -1746,12 +1746,12 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 /**
  * conjecture that the clause `literals` holds, backtracking it only if necessary
  */
-void Splitter::conjecture(unsigned length, Literal **literals)
+void Splitter::conjecture(Clause *orig, unsigned length, Literal **literals)
 {
   unsigned db_before = _db.size();
 
   Clause *compCl;
-  SplitLevel compName = tryGetComponentNameOrAddNew(length, literals, nullptr, compCl);
+  SplitLevel compName = tryGetComponentNameOrAddNew(length, literals, orig, compCl);
   SATLiteral nameLit = getLiteralFromName(compName);
   _branchSelector.trySetTrue(nameLit);
 

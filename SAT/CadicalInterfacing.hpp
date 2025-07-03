@@ -81,6 +81,8 @@ public:
     _solver.phase(vampire2Cadical(pol, var));
   }
 
+  virtual void setPolarity(unsigned var, unsigned pol) override { suggestPolarity(var, pol); }
+
   /**
    * Add an assumption into the solver.
    */
