@@ -2101,6 +2101,7 @@ void Options::init()
     _lookup.insert(&_splittingMinimizeModel);
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
+    _splittingMinimizeModel.addHardConstraint(If(equal(SplittingMinimizeModel::SCO)).then(_cleaveNonsplittables.is(notEqual(true))));
 
     _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",false);
     _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
