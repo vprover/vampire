@@ -399,8 +399,10 @@ public:
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
+    CASC_2025,
     CASC_SAT,
     CASC_SAT_2024,
+    CASC_SAT_2025,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,

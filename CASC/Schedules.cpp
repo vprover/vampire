@@ -5196,3 +5196,136 @@ void Schedules::getAlascaAwareAriSchedule(const Shell::Property& property, Sched
   // Improves by expected 0.0 probs costing 0 Mi
   // Overall score 1199.1195958042465 probs on average / budget 807745 Mi
 }
+
+
+void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  unsigned atoms = property.atoms();
+  Property::Category cat = property.category();
+  unsigned long props = property.props();
+
+  if (property.hasNumerals() || property.hasInterpretedOperations()) {
+    // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
+
+    getAlascaAwareAriSchedule(property,quick);
+
+  } else if (cat == Property::Category::UEQ) {
+    quick.push("lrs+10_1:1_sil=4000:st=3.0:i=102:sd=2:ss=axioms:sgt=8_0");
+    quick.push("lrs+10_4:1_sil=4000:urr=on:s2agt=8:br=off:i=116:bd=all:erd=off:s2a=on_0");
+    quick.push("lrs+10_1:32_to=lpo:sil=8000:sp=arity:nwc=1.0:i=121:bd=all:fgj=on:spb=goal_then_units_0");
+    quick.push("lrs+10_1:4096_sil=32000:nwc=20.0:slsqc=1:slsq=on:s2a=on:i=145:ins=20:kws=precedence:bd=all:fsr=off_0");
+    quick.push("lrs+10_1:2_to=lpo:sil=32000:sp=reverse_frequency:fd=preordered:i=146:spb=goal:sims=off:lftc=80_0");
+    quick.push("lrs+10_1:8_sil=2000:drc=off:i=259:fgj=on:bd=preordered:lftc=80_0");
+    quick.push("lrs-11_23:64_sfv=off:to=lpo:sil=4000:tgt=ground:sp=const_min:sos=all:spb=goal:fd=preordered:nwc=1.0:flr=on:i=105:lcm=predicate:ss=axioms:st=1.3838510873:aac=none:add=off:urr=on:lftc=40_0");
+    quick.push("dis+10_1:1024_slsqr=13,1:to=kbo:sil=64000:tgt=ground:sims=off:s2agt=8:slsqc=1:slsq=on:i=695:s2at=1.5:bd=preordered:ins=1:av=off:cts=off:ss=included:sd=20:rawr=on:doe=on_0");
+    quick.push("lrs+10_1:1_to=lpo:sil=32000:sp=reverse_frequency:spb=goal:i=107:bd=all:ins=1_0");
+    quick.push("lrs-1010_1:16_sil=2000:tgt=full:i=109:kws=precedence:spb=intro_0");
+    quick.push("lrs-1003_277:185_to=lpo:sil=32000:sp=reverse_frequency:rnwc=on:i=109:bs=on:newcnf=on:spb=intro:drc=off:irw=on:urr=on_0");
+    quick.push("lrs+10_1:7_sil=4000:tgt=full:i=159:fgj=on:fsr=off:kws=inv_frequency:gtg=all:gtgl=2:acc=on:sac=on_0");
+    quick.push("dis+10_1:4_to=lpo:sil=8000:sp=reverse_frequency:i=258:fgj=on:ins=10:prc=on:bd=all_0");
+    quick.push("lrs+10_1:1_to=lpo:sil=4000:plsq=on:sp=const_min:bsr=unit_only:fd=preordered:slsqc=1:slsq=on:i=277:fsr=off:drc=off:ss=axioms_0");
+    quick.push("dis+10_11:29_sil=32000:tgt=ground:drc=off:fde=none:sp=reverse_frequency:nwc=1.0:i=1089:fgj=on:gtg=exists_sym:gtgl=5:fsr=off:slsq=on:slsqr=1,12_0");
+    quick.push("lrs-1011_1:16_anc=all_dependent:sil=2000:acc=on:sac=on:avsq=on:i=396:avsqr=1,2:drc=off:bsr=unit_only_0");
+    quick.push("lrs+10_1:8_slsqr=1,4:sil=2000:slsqc=1:slsq=on:i=2299:bd=all_0");
+    quick.push("lrs+10_5:1_to=lpo:sil=4000:i=136:bd=preordered:ss=included:sgt=6:gtg=all:sos=on_0");
+    quick.push("dis+10_1:6_to=lpo:sil=64000:tgt=full:fde=none:sp=arity:nwc=1.2:i=643:gtgl=4:ins=7:av=off:gtg=exists_sym:bs=unit_only:bd=all_0");
+    quick.push("lrs+10_1:1024_to=lpo:sil=128000:tgt=full:prc=on:sp=unary_first:sos=on:fs=off:spb=non_intro:fd=preordered:i=241:fgj=on:bd=preordered:ins=5:fsr=off:ss=included:sgt=8:s2a=on_0");
+    quick.push("lrs+10_1:4_sil=8000:tgt=full:drc=off:sp=unary_frequency:kmz=on:i=3474:kws=precedence:fgj=on:fsr=off:bd=preordered:lwlo=on:lrd=on:ss=included:sgt=8_0");
+    quick.push("ott+1666_2:3_to=lpo:sil=16000:fde=unused:sp=reverse_frequency:bce=on:i=545:bs=on:bd=all:fdi=128:drc=off:s2pl=on:ins=25:flr=on:slsq=on:nm=70:afp=300:avsq=on:avsqc=1:avsqr=1,16_0");
+    quick.push("lrs+10_1:2_to=lpo:sil=8000:fde=none:sp=const_frequency:spb=goal:fd=preordered:nwc=1.0:i=599:bd=preordered:drc=off_0");
+    quick.push("lrs+10_1:1_sil=2000:sos=on:rnwc=on:nwc=0.5:br=off:i=402:ep=RSTC:gsp=on:ss=included:sgt=16:urr=on_0");
+    quick.push("lrs+11_1:1024_sil=2000:drc=off:flr=on:s2a=on:i=1473:sd=2:av=off:ss=axioms:sgt=4:gs=on:gsem=off:fgj=on_0");
+    quick.push("ott+1002_64:1_to=lpo:sil=8000:tgt=full:sp=unary_frequency:nwc=3.0:cts=off:i=764:bd=all:fsr=off:rnwc=on_0");
+    quick.push("lrs-1011_1:36_sil=2000:tgt=ground:drc=off:spb=units:fd=preordered:i=1788:slsq=on:sims=off:lftc=100:lwlo=on_0");
+    quick.push("lrs+10_1:7_sil=2000:tgt=full:sp=const_max:fd=preordered:i=486:kws=precedence:bd=preordered:ss=axioms_0");
+    quick.push("dis+10_1:16_to=lpo:sil=32000:tgt=full:sp=reverse_arity:spb=goal_then_units:s2agt=8:slsqc=1:slsq=on:i=312:fdi=4:prc=on:proc=on_0");
+    quick.push("lrs-1011_1:1_sfv=off:sil=32000:tgt=ground:nwc=18.0:i=8297:kws=precedence:bd=preordered:fgj=on:lwlo=on:slsq=on:slsqr=1,16:s2agt=16:s2at=4.0:uhcvi=off:slsql=off:drc=off_0");
+    quick.push("lrs+1010_1:1_sil=4000:plsq=on:plsqc=1:plsqr=5877107,1048576:s2a=on:i=1446:s2at=3.74:ins=3:ss=axioms:sd=5:sgt=32:st=1.0386:to=lpo:lcm=predicate:aac=none:afr=on:anc=all_dependent:afp=4000:afq=5.0:lrd=on:spb=intro:irw=on_0");
+    quick.push("dis+10_1:64_to=lpo:sil=2000:prc=on:drc=ordering:sp=occurrence:fd=preordered:slsqc=1:slsq=on:i=469:gtgl=5:slsql=off:gtg=exists_sym:proc=on:rawr=on:fgj=on_0");
+    quick.push("lrs+10_1:3_to=lpo:sil=2000:i=492_0");
+    quick.push("lrs+10_1:12_sil=8000:tgt=full:drc=off:i=548:fgj=on:ins=5:fsr=off:ss=included_0");
+    quick.push("lrs+10_1:10_sil=32000:tgt=full:drc=off:nwc=1.0:st=5.0:i=26919:bd=preordered:ss=included:gtg=exists_top:sp=unary_first:kmz=on_0");
+    quick.push("dis+10_1:8_sil=64000:tgt=full:prc=on:sp=reverse_frequency:nwc=1.2:kmz=on:i=722:bd=all:gtg=all_0");
+    quick.push("lrs+11_1:1_to=lpo:sil=16000:tgt=ground:sos=all:spb=non_intro:nwc=2.0:i=798:bd=preordered:nm=10:ins=10:gtg=all:gtgl=2:av=off:urr=on:prc=on_0");
+    quick.push("lrs-1011_1:64_sil=64000:tgt=full:fde=none:spb=goal:nwc=1.0:i=2310:kws=inv_precedence:bd=preordered:doe=on:drc=off:cond=on:irw=on:av=off_0");
+    quick.push("dis+10_1:3_sil=8000:sos=all:fs=off:i=844:fgj=on:fsr=off:s2a=on:s2at=3.0_0");
+    quick.push("dis+10_1:20_sil=2000:tgt=ground:prc=on:spb=non_intro:i=921:fsr=off_0");
+    quick.push("lrs+10_1:1024_sil=8000:tgt=full:prc=on:sp=arity:i=968:ss=included:proc=on:s2a=on:rawr=on_0");
+    quick.push("lrs+10_1:3_sil=32000:prc=on:drc=off:sos=on:i=993:fsr=off:ss=axioms:sgt=10_0");
+    quick.push("lrs+10_1:1_to=lpo:sil=2000:tgt=ground:spb=non_intro:st=5.0:i=1020:ss=axioms:lftc=80_0");
+    quick.push("dis+10_1:4_slsqr=64,1:sil=4000:sp=occurrence:slsqc=1:slsq=on:st=2.0:s2a=on:i=1941:s2at=1.2:ss=axioms_0");
+    quick.push("lrs-1010_3:1_to=lpo:sil=4000:tgt=ground:sp=unary_frequency:spb=goal_then_units:i=1021:fgj=on:bd=preordered:fdi=16:gtg=all:nicw=on:er=known:prc=on:proc=on:acc=on_0");
+    quick.push("lrs+10_1:7_to=lpo:sil=8000:tgt=ground:prc=on:sp=unary_frequency:s2agt=8:slsq=on:s2a=on:i=1074:fgj=on:slsql=off:bd=preordered_0");
+    quick.push("lrs+10_4:7_sil=8000:drc=off:lftc=14:slsq=on:lwlo=on:i=2097:fgj=on:bd=all:rawr=on_0");
+    quick.push("ott+10_1:32_slsqr=17,16:sil=4000:tgt=full:prc=on:sp=reverse_frequency:spb=goal:slsqc=3:slsq=on:i=2384:kws=inv_precedence:fgj=on:bd=preordered:kmz=on_0");
+    quick.push("dis+1002_1:2_to=kbo:sil=2000:tgt=ground:fde=unused:sp=reverse_frequency:spb=goal:nwc=3.0:kmz=on:i=1353:kws=inv_precedence:bd=preordered_0");
+    quick.push("dis+10_1:1024_slsqr=8,1:sil=32000:tgt=ground:sp=unary_first:spb=non_intro:slsqc=2:slsq=on:i=2697:bs=on:kws=inv_precedence:slsql=off:prc=on_0");
+    quick.push("lrs+1010_1:2_to=lpo:sil=4000:tgt=full:sp=reverse_frequency:spb=goal_then_units:acc=on:fd=preordered:sac=on:i=1415:gtgl=2:gtg=exists_sym_0");
+    quick.push("lrs+10_1:50_to=lpo:sil=16000:fde=unused:fdtod=off:sp=const_min:spb=goal:fd=preordered:i=6107:bd=all:ins=10:drc=off:slsq=on:slsqc=4:s2at=6.0:gs=on:lma=off_0");
+    quick.push("lrs+10_1:28_sil=2000:tgt=full:drc=ordering:i=1733_0");
+    quick.push("lrs+10_1:13_to=lpo:sil=64000:drc=off:fde=none:sp=reverse_arity:i=3540:fgj=on:bd=preordered:fsr=off_0");
+    quick.push("dis+1011_1:5_sil=2000:prc=on:drc=off:sos=on:i=1845:kws=precedence:proc=on:spb=goal:fgj=on_0");
+    quick.push("lrs+10_1:35_sil=8000:tgt=full:drc=ordering:i=1914:bd=all:plsq=on:plsql=on:plsqc=3:plsqr=392909,1048576:slsq=on:slsql=off:slsqc=1:slsqr=1,4_0");
+    quick.push("lrs+10_32:1_sil=8000:st=3.0:i=2203:ss=axioms:sd=14_0");
+    quick.push("lrs-1011_1:2048_sil=4000:tgt=ground:sp=const_frequency:spb=goal:i=2243:bs=on:gtg=all:gtgl=3:lftc=80:ss=axioms:st=3.0:sos=all:drc=off:slsq=on:kws=arity_squared:lrd=on:fde=none:ins=25_0");
+    quick.push("lrs+10_7:25_sil=16000:prc=on:sp=arity:kmz=on:slsq=on:i=6637:kws=frequency:ins=10:proc=on_0");
+    quick.push("ott+11_1:14_sil=128000:tgt=full:drc=off:fde=unused:spb=goal:nwc=2.0:i=40504:gtg=all:bd=preordered:gtgl=5:slsq=on:slsqc=2:slsqr=4,1:s2at=10.0_0");
+    quick.push("ott+1010_137:524288_sil=16000:tgt=full:sp=const_frequency:fd=preordered:nwc=15.4:s2a=on:i=2373:s2at=4.0:kws=frequency:bd=preordered:gtg=position:spb=non_intro:rnwc=on:updr=off:foolp=on:ss=included:sgt=30:st=1.5:prc=on:bs=on:sfv=off:br=off_0");
+    quick.push("lrs+10_8:1_sil=64000:drc=off:fd=preordered:i=13125:kws=inv_precedence:bd=preordered:ins=10:lftc=50:lrd=on_0");
+    quick.push("lrs+11_1:1_sil=16000:tgt=full:sp=arity:acc=on:i=2824:kws=frequency:avsq=on:avsqr=1,32:s2pl=on:cond=fast_0");
+    quick.push("lrs+10_2:1_sil=8000:tgt=full:spb=goal_then_units:lftc=10:lwlo=on:lrd=on:s2a=on:i=5652:fgj=on:bd=all:ins=10_0");
+    quick.push("lrs+10_1:2_to=lpo:sil=32000:sp=unary_frequency:i=3212:fgj=on:prc=on:lwlo=on_0");
+    quick.push("lrs+10_1:7_to=lpo:sil=64000:tgt=ground:drc=off:fde=none:sp=const_frequency:slsqc=4:slsq=on:i=4290:bd=all:gtg=exists_sym_0");
+    quick.push("lrs+10_3:56_anc=all:to=lpo:sil=8000:tgt=ground:drc=ordering:fde=unused:sp=reverse_frequency:fs=off:nicw=on:s2a=on:i=4364:gtgl=3:fgj=on:bd=preordered:fsr=off:gtg=all:fdi=64_0");
+    quick.push("lrs+10_15:158_sil=8000:drc=off:st=3.0:i=4619:bd=preordered:gtg=exists_top:fdi=1024:ss=axioms:fsr=off:ins=1_0");
+    quick.push("lrs+10_13:32_sil=8000:tgt=ground:spb=goal_then_units:slsq=on:lwlo=on:lrd=on:s2a=on:i=4825:fgj=on:ins=10_0");
+    quick.push("lrs+10_5:18_sil=8000:tgt=full:lftc=40:lwlo=on:s2a=on:i=4848:s2at=2.0:bs=unit_only:kws=inv_precedence:bd=all:ins=5:av=off:lrd=on_0");
+    quick.push("lrs+10_16:1_to=lpo:sil=16000:prc=on:drc=ordering:sp=reverse_frequency:lwlo=on:i=10688:bd=all:slsq=on:slsqr=1,16_0");
+    quick.push("ott+10_3:8_sil=16000:tgt=ground:drc=off:i=11250:fgj=on:fsr=off:ss=axioms_0");
+    quick.push("dis-1010_1:16_sil=64000:tgt=ground:spb=non_intro:i=12032:kws=frequency:slsq=on:slsqr=2,1_0");
+    quick.push("lrs+11_1:14_sil=64000:tgt=full:sp=reverse_frequency:sos=on:i=25743:gtgl=5:kws=inv_frequency:bd=preordered:fsr=off:gtg=exists_all_0");
+    quick.push("lrs+10_3:2_to=lpo:sil=64000:tgt=ground:drc=off:sp=occurrence:nwc=1.0:i=6609:gtgl=4:fgj=on:bd=all:ins=10:gtg=exists_all:fdi=256_0");
+    quick.push("lrs+10_1:12_to=lpo:sil=32000:tgt=full:sp=const_frequency:spb=goal_then_units:nwc=1.0:i=6923:bd=preordered:drc=off_0");
+    quick.push("lrs+10_1:4096_to=lpo:sil=32000:drc=off:fde=none:sp=unary_first:i=27667:bd=preordered_0");
+    quick.push("lrs+10_1:40_to=lpo:sil=64000:tgt=full:drc=off:sp=const_frequency:spb=goal_then_units:fd=preordered:i=8085:bd=all:ss=axioms_0");
+    quick.push("dis+10_1:2048_to=lpo:sil=8000:sp=arity:i=8162:gtgl=2:bd=preordered:av=off:gtg=exists_sym:bs=on:uhcvi=off:spb=goal_then_units:fgj=on_0");
+    quick.push("lrs+10_1:16_to=lpo:sil=32000:tgt=ground:drc=off:fde=none:sp=const_min:spb=goal:nwc=1.0:i=8285:bd=preordered_0");
+    quick.push("ott+10_1:24_to=lpo:sil=32000:tgt=full:sp=const_min:fd=preordered:i=8431:gtgl=2:fsr=off:gtg=exists_sym_0");
+    quick.push("lrs-1011_1:4096_to=lpo:sil=16000:spb=goal_then_units:fd=preordered:nwc=2.0:lftc=10:i=8745:bd=preordered:uhcvi=off_0");
+    quick.push("lrs+10_1:5_sil=32000:tgt=ground:drc=ordering:sp=const_min:spb=goal:fd=preordered:i=9075:kws=inv_precedence:fgj=on:bd=preordered:ins=10_0");
+    quick.push("ott+10_5:4_slsqr=1,128:sil=128000:drc=off:fde=none:slsq=on:s2a=on:i=45460:s2at=5.0:fgj=on:slsql=off_0");
+    quick.push("dis+10_1:16_to=lpo:sil=32000:tgt=full:fde=none:sp=arity:lma=off:s2a=on:i=9286:s2at=3.0:ins=5:bd=all:slsq=on:slsql=off:slsqr=4,1_0");
+    quick.push("dis+10_1:177_sil=32000:tgt=full:drc=off:sp=const_frequency:spb=goal:kmz=on:i=20486:bs=on:kws=inv_frequency:fgj=on:bd=all:fsr=off:rawr=on_0");
+    quick.push("lrs+10_1:7_sil=64000:tgt=ground:prc=on:sp=unary_first:spb=non_intro:i=13349:kws=precedence:ss=included:bd=all:sd=5:lwlo=on:proc=on:uhcvi=off:sgt=8_0");
+    quick.push("lrs+10_1:12_sil=16000:sp=unary_first:kmz=on:i=13576:kws=precedence:bd=preordered:prc=on:gtg=exists_sym_0");
+    quick.push("dis+10_1:32_sil=64000:tgt=ground:sp=const_min:sos=all:spb=non_intro:i=14811:fgj=on:bd=all:fsr=off:gtg=position:s2a=on:s2agt=8_0");
+    quick.push("lrs+10_9:56_sil=128000:sp=const_min:gs=on:nwc=1.0:kmz=on:lftc=10:lwlo=on:lrd=on:i=45792:bd=preordered_0");
+    quick.push("lrs+10_2:3_sil=128000:sp=const_frequency:sos=all:lma=off:lftc=20:i=47734:bd=all:s2a=on:s2at=20.0:drc=off:fsr=off_0");
+    quick.push("lrs+10_1:5_sil=64000:tgt=ground:sp=unary_first:kmz=on:i=32929:gtgl=4:kws=precedence:bd=all:gtg=exists_all:lwlo=on:lrd=on_0");
+    quick.push("ott+10_1:2048_sil=32000:drc=off:fd=off:slsqc=3:slsq=on:i=16814:bd=all:ins=10:ss=axioms:rawr=on_0");
+    quick.push("ott-1010_1:6_sil=32000:drc=off:i=18265:kws=precedence:bd=preordered:ins=7:fgj=on:lma=off:irw=on:gsp=on_0");
+    quick.push("ott+10_3:16_to=lpo:sil=64000:drc=off:sp=const_frequency:i=21040:fgj=on:bd=all_0");
+    quick.push("lrs+10_1:1_sil=64000:tgt=full:sp=const_min:spb=intro:lwlo=on:st=3.0:i=21093:kws=inv_precedence:bd=preordered:ins=10:ss=included:bs=on_0");
+    quick.push("lrs+10_1:1_sil=128000:tgt=full:sp=const_min:spb=intro:lwlo=on:lrd=on:s2a=on:i=131601:s2at=5.0:bs=on:kws=precedence:kmz=on:drc=off:fdtod=off_0");
+    quick.push("dis+10_1:6_to=lpo:sil=128000:spb=goal_then_units:slsq=on:i=28291:bd=preordered:rnwc=on_0");
+    quick.push("lrs+10_32:1_sil=64000:tgt=ground:prc=on:drc=ordering:spb=non_intro:gs=on:slsqc=2:sac=on:lftc=24:slsq=on:lwlo=on:lrd=on:s2a=on:i=30524:gtgl=4:fgj=on:slsql=off:bd=preordered:ins=2:gtg=exists_sym:ss=axioms:acc=on:fsr=off_0");
+    quick.push("lrs+10_1:4_sil=128000:tgt=full:drc=off:sp=unary_first:spb=goal_then_units:i=67450:kws=precedence:bd=preordered_0");
+    quick.push("lrs+10_3:2_to=lpo:sil=128000:sp=const_frequency:sos=all:lwlo=on:lrd=on:i=38230:gtgl=2:bd=preordered:gtg=exists_all:fdi=256:rnwc=on_0");
+    quick.push("lrs+10_1:32_sil=128000:tgt=full:spb=goal:nwc=5.0:lftc=40:i=77974:gtgl=5:kws=arity_squared:bd=preordered:gtg=all:sos=all_0");
+    quick.push("lrs+10_1:128_slsqr=1,16:sil=128000:sp=const_frequency:nwc=1.0:s2agt=16:kmz=on:lftc=16:slsq=on:i=51051:kws=frequency:doe=on:bd=all:ins=3:slsqc=3:foolp=on_0");
+    quick.push("lrs+10_1:1_slsqr=1,16:to=lpo:sil=64000:tgt=full:fde=none:sp=const_min:spb=intro:fd=preordered:slsqc=4:lftc=50:slsq=on:lrd=on:i=54909:bs=unit_only:bd=preordered:ins=2:ss=included:sgt=16:gs=on:rawr=on_0");
+    quick.push("ott+10_1:20_sil=256000:sp=const_frequency:i=62466:bs=unit_only:kws=inv_arity_squared:bd=preordered:rawr=on:slsq=on:slsqc=3_0");
+    quick.push("lrs+10_1:10_to=lpo:sil=256000:tgt=full:drc=ordering:spb=goal_then_units:s2a=on:i=71821:ins=10:ss=axioms:gtg=all:bd=all:prc=on_0");
+    quick.push("dis+1010_1:32_to=lpo:sil=128000:tgt=ground:spb=goal_then_units:acc=on:avsq=on:i=137444:afp=10:bd=preordered:amm=off:bs=unit_only:bsd=on:aac=none_0");
+    quick.push("lrs+10_1:8_to=lpo:sil=256000:tgt=full:fde=none:sp=const_max:sos=on:i=158426:gtgl=5:fgj=on:bd=all:gtg=all:ss=included:sgt=16_0");
+    quick.push("dis+1002_1:10_slsqr=1,8:sil=256000:tgt=full:drc=off:sp=arity:nwc=3.02:slsq=on:i=215443:s2at=5.98:ins=20:fsr=off:gtg=position:bs=on:ss=included:sd=10:st=1.0137499_0");
+    // total_instr 1792902
+    // len(covered) 1037
+  }
+
+}
+
+void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+
+}

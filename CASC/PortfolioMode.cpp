@@ -372,13 +372,21 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getSnakeTptpSatSchedule(prop,quick);
     break;
 
-  case Options::Schedule::CASC_2024:
+  case Options::Schedule::CASC_2025:
   case Options::Schedule::CASC:
+    Schedules::getCasc2025Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_SAT_2025:
+  case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2025Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_2024:
     Schedules::getCasc2024Schedule(prop,quick,fallback);
     break;
 
   case Options::Schedule::CASC_SAT_2024:
-  case Options::Schedule::CASC_SAT:
     Schedules::getCascSat2024Schedule(prop,quick,fallback);
     break;
 
