@@ -802,13 +802,14 @@ void Splitter::conjectureSingleton(Literal* theLit, Clause* orig)
   Clause *compCl;
   SplitLevel compName = tryGetComponentNameOrAddNew(1, &theLit, orig, compCl);
   SATLiteral nameLit = getLiteralFromName(compName);
-  _branchSelector.trySetTrue(nameLit);
-  _db[compName]->sticky = true;
 
   // detect whether a component was added
   if(db_before < _db.size()) {
     if (_showSplitting)
       std::cout << "[AVATAR] conjectures: "<< compCl->toString() << std::endl;
+
+    _branchSelector.trySetTrue(nameLit);
+    _db[compName]->sticky = true;
 
     // we added a literal that we want to be true in the SAT solver
     // this isn't exactly adding a clause, but we want to recompute a model at some point soon
@@ -830,6 +831,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
   if(!shouldAddClauseForNonSplittable(cl, compName, compCl)) {
     return false;
   }
+  _db[compName]->sticky = false; // unsticky an actual component (so that it respects eager removals)
 
   // OK, we will handle the clause, this means for the FO part we will pretend it was redundant
   // and instead we will record information about it in the SAT solver
@@ -1064,6 +1066,7 @@ bool Splitter::doSplitting(Clause* cl)
 
     Clause* compCl;
     SplitLevel compName = tryGetComponentNameOrAddNew(comp, cl, compCl);
+    _db[compName]->sticky = false; // unsticky an actual component (so that it respects eager removals)
     SATLiteral nameLit = getLiteralFromName(compName);
     satClauseLits.push(nameLit);
 
