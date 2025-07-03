@@ -190,6 +190,20 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
   out << "# SZS output end Saturation." << endl;
 } // outputSaturatedSet
 
+void UIHelper::outputInterferences(std::ostream& out, const Problem& prob)
+{
+  addCommentSignForSZS(out);
+  out << "# SZS output start Definitions and Model Updates." << endl;
+
+  auto ii = prob.intereferences.iter(); // LIFO is the key here!
+  while (ii.hasNext()) {
+    ii.next()->outputDefinition(out);
+  }
+
+  addCommentSignForSZS(out);
+  out << "# SZS output end Definitions and Model Updates." << endl;
+} // outputInterferences
+
 // String utility function that probably belongs elsewhere
 static bool hasEnding (std::string const &fullString, std::string const &ending) {
   if (fullString.length() >= ending.length()) {
@@ -609,6 +623,7 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
         */
   {
     outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
+    outputInterferences(out,*env.getMainProblem());
   }
 }
 

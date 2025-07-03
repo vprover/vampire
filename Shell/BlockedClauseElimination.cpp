@@ -146,6 +146,7 @@ void BlockedClauseElimination::apply(Problem& prb)
     if (env.options->showPreprocessing()) {
       cout << "[PP] Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
     }
+    prb.addEliminatedBlockedClause(cl,cand->litIdx);
 
     env.statistics->blockedClauses++;
     modified = true;

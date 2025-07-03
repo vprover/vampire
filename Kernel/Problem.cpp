@@ -192,39 +192,42 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
   //TODO copy the deleted maps
 }
 
+void Problem::FunDef::outputDefinition(std::ostream& out)
+{
+  out << "for all inputs,\n    define " << _head->toString() << " := " << _body->toString() << std::endl;
+}
+
+void Problem::PredDef::outputDefinition(std::ostream& out)
+{
+  out << "for all inputs,\n    define " << _head->toString() << " := " << _body->toString() << std::endl;
+}
+
+void Problem::CondFlip::outputDefinition(std::ostream& out)
+{
+  out << "for all groundings,\n    whenever " << _cond->toString() << " is "
+    << (_neg ? "false" : "true") <<  ", set " << _val->toString() << " to true" << std::endl;
+}
+
 /**
  * Register a trivial predicate that has been removed from the problem
  *
  * Trivial predicates are the predicates whose all occurrences
  * can be assigned either true or false.
  *
- * This information may be used during model output
+ * This information may be used during model output.
  */
 void Problem::addTrivialPredicate(unsigned pred, bool assignment)
 {
-  ALWAYS(_trivialPredicates.insert(pred, assignment));
-}
+  // create linear literal (~)pred(X0,X1,...X_arity)
+  TermStack args;
+  for (unsigned v = 0; v < env.signature->getPredicate(pred)->arity(); v++) {
+    args.push(TermList(v,false));
+  }
+  Literal* l = Literal::create(pred, args.size(), true, args.begin());
 
-/**
- * Register a function that has been eliminated from the problem
- *
- * This information may be used during model output
- */
-void Problem::addEliminatedFunction(unsigned func, Literal* definition)
-{
-  ASS(definition->isEquality());
+  auto res = new PredDef(l,new Formula(assignment));
 
-  _deletedFunctions.insert(func,definition);
-}
-
-/**
- * Register a predicate that has been eliminated from the problem
- *
- * This information may be used during model output
- */
-void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
-{
-  _deletedPredicates.insert(pred,definition);
+  intereferences.push(res);
 }
 
 /**
@@ -232,9 +235,101 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
  *
  * This information may be used during model output
  */
-void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
+void Problem::addPartiallyEliminatedPredicate(unsigned pred, Formula* remainingImplication)
 {
-  _partiallyDeletedPredicates.insert(pred,definition);
+  Formula* f;
+  bool isQuantified=remainingImplication->connective()==FORALL;
+  if(isQuantified) {
+    f=remainingImplication->qarg();
+  } else {
+    f=remainingImplication;
+  }
+  ASS_EQ(f->connective(),IMP)
+
+  Formula* cond;
+  Literal* new_atom_val;
+  bool neg = false;
+  if (f->left()->connective()==LITERAL && f->left()->literal()->functor()==pred) {
+    new_atom_val =f->left()->literal();
+    cond = f->right();
+  } else {
+    ASS(f->right()->connective()==LITERAL && f->right()->literal()->functor()==pred)
+    new_atom_val = Literal::complementaryLiteral(f->right()->literal());
+    if (f->left()->connective()==NOT) {
+      cond = f->left()->uarg();
+    } else {
+      cond = f->left();
+      neg = true;
+    }
+  }
+
+  auto res = new CondFlip(cond,neg,new_atom_val);
+  intereferences.push(res);
+}
+
+/**
+ * Register a predicate that has been eliminated from the problem
+ *
+ * This information may be used during model output
+ */
+void Problem::addEliminatedPredicate(unsigned pred, Formula* def)
+{
+  Formula* f;
+  bool isQuantified=def->connective()==FORALL;
+  if(isQuantified) {
+    f=def->qarg();
+  } else {
+    f=def;
+  }
+  ASS_EQ(f->connective(),IFF)
+
+  Formula* lhs;
+  Formula* rhs;
+  if(f->left()->connective()==LITERAL && f->left()->literal()->functor()==pred) {
+    lhs=f->left();
+    rhs=f->right();
+  } else {
+    lhs = f->right();
+    rhs = f->left();
+  }
+  ASS(lhs->connective()==LITERAL && lhs->literal()->functor()==pred)
+
+  auto res = new PredDef(lhs->literal(),rhs);
+  intereferences.push(res);
+}
+
+/**
+ * Register a function that has been eliminated from the problem
+ *
+ * This information may be used during model output
+ */
+void Problem::addEliminatedFunction(unsigned func, Literal* definition) {
+  ASS(definition->isEquality());
+  TermList* args = definition->args();
+  ASS(!args->isVar())
+  Term* l = args->term();
+  args = args->next();
+  ASS(!args->isVar())
+  Term* r = args->term();
+
+  Intereference* res;
+  if (l->functor() == func) {
+    res = new FunDef(l,r);
+  } else {
+    ASS(r->functor() == func)
+    res = new FunDef(r,l);
+  }
+
+  intereferences.push(res);
+}
+
+void Problem::addEliminatedBlockedClause(Clause* cl, unsigned blockedLiteralIndex) {
+  Literal* bll = (*cl)[blockedLiteralIndex];
+  Formula* cond= Formula::fromClause(cl,/* closed= */false);
+
+  auto res = new CondFlip(cond,true,bll);
+
+  intereferences.push(res);
 }
 
 /**

@@ -20,8 +20,11 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/MaybeBool.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Shell/SMTLIBLogic.hpp"
+
+#include "Kernel/Formula.hpp"
 
 namespace Kernel {
 
@@ -67,23 +70,58 @@ public:
   bool hadIncompleteTransformation() const { return _hadIncompleteTransformation; }
   void reportIncompleteTransformation() { _hadIncompleteTransformation = true; }
 
-  typedef DHMap<unsigned,bool> TrivialPredicateMap;
-  void addTrivialPredicate(unsigned pred, bool assignment);
+  enum class IntereferenceKind : unsigned char {
+    FUN_DEF = 0,
+    PRED_DEF = 1,
+    COND_FLIP = 2,
+  };
+
+  /* Intereference (satisfiability-preserving-only transformations) recording */
+  struct Intereference {
+    IntereferenceKind _kind;
+    Intereference(IntereferenceKind kind) : _kind(kind) {}
+
+    virtual void outputDefinition(std::ostream&) = 0;
+  };
+
+  struct FunDef : public Intereference {
+    Term* _head;
+    Term* _body;
+    FunDef(Term* head, Term* body) : Intereference(IntereferenceKind::FUN_DEF), _head(head), _body(body) {}
+
+    void outputDefinition(std::ostream&) override;
+  };
+
+  struct PredDef : public Intereference {
+    Literal* _head;
+    Formula* _body;
+    PredDef(Literal* head, Formula* body) : Intereference(IntereferenceKind::PRED_DEF), _head(head), _body(body) {}
+
+    void outputDefinition(std::ostream&) override;
+  };
+
+  struct CondFlip : public Intereference {
+    Formula* _cond;
+    bool _neg;
+    Literal* _val;
+
+    CondFlip(Formula* cond, bool neg, Literal* val) : Intereference(IntereferenceKind::COND_FLIP), _cond(cond), _neg(neg), _val(val) {}
+
+    void outputDefinition(std::ostream&) override;
+  };
+
   /**
-   * Return map of trivial predicates into their assignments.
-   *
-   * Trivial predicates are the predicates whose all occurrences
-   * can be assigned either true or false.
-   */
-  const TrivialPredicateMap& trivialPredicates() const { return _trivialPredicates; }
+   * Pushing here during preprocessing,
+   * replaying backwards to get a model of the original signature.
+  */
+  Stack<Intereference*> intereferences;
 
+  void addTrivialPredicate(unsigned pred, bool assignment);
+  void addPartiallyEliminatedPredicate(unsigned pred, Formula* remainingImplication);
+  void addEliminatedPredicate(unsigned pred, Formula* definition);
   void addEliminatedFunction(unsigned func, Literal* definition);
-  void addEliminatedPredicate(unsigned pred, Unit* definition);
-  void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition);
+  void addEliminatedBlockedClause(Clause* cl, unsigned blockedLiteralIndex);
 
-  DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
-  DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
-  DHMap<unsigned,Unit*> getPartiallyEliminatedPredicates(){ return _partiallyDeletedPredicates;}
   FunctionDefinitionHandler& getFunctionDefinitionHandler(){ return *_fnDefHandler; }
 
   bool isPropertyUpToDate() const { return _propertyValid; }
@@ -118,7 +156,7 @@ public:
   bool mayHaveInequalityResolvableWithDeletion() const { return _mayHaveInequalityResolvableWithDeletion; }
   bool mayHaveXEqualsY() const { return _mayHaveXEqualsY; }
 
-  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) {
     _smtlibLogic = smtLibLogic;
   }
   SMTLIBLogic getSMTLIBLogic() const {
@@ -190,14 +228,9 @@ private:
   void readDetailsFromProperty() const;
 
   UnitList* _units;
-  DHMap<unsigned,Literal*> _deletedFunctions;
-  DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates;
   ScopedPtr<FunctionDefinitionHandler> _fnDefHandler;
 
   bool _hadIncompleteTransformation;
-
-  DHMap<unsigned,bool> _trivialPredicates;
 
   mutable bool _mayHaveEquality;
   mutable bool _mayHaveFormulas;
