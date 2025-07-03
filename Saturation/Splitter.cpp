@@ -337,7 +337,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   if(!_dp) {
     return SATSolver::Status::SATISFIABLE;
   }
-  
+
   SAT2FO& s2f = _parent.satNaming();
   static LiteralStack gndAssignment;
   static LiteralStack unsatCore;
@@ -345,10 +345,10 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   while (true) { // breaks inside
     {
       TIME_TRACE("congruence closure");
-    
+
       gndAssignment.reset();
       // collects only ground literals, because it known only about them ...
-      s2f.collectAssignment(*_solver, gndAssignment); 
+      s2f.collectAssignment(*_solver, gndAssignment);
       // ... moreover, _dp->addLiterals will filter the set anyway
 
       _dp->reset();
@@ -396,39 +396,54 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(satVar, true));
   SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
 
+  bool posUsed = _parent.isUsedName(posLvl);
+  bool negUsed = _parent.isUsedName(negLvl);
+
   switch(asgn) {
   case SATSolver::VarAssignment::TRUE:
-    if(!_selected.find(posLvl) && _parent.isUsedName(posLvl)) {
+    if(posUsed && !_selected.find(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
     }
-    if(_selected.find(negLvl)) {
+    if(negUsed && _selected.find(negLvl)) {
       _selected.remove(negLvl);
       removedComps.push(negLvl);
     }
     break;
   case SATSolver::VarAssignment::FALSE:
-    if(!_selected.find(negLvl) && _parent.isUsedName(negLvl)) {
+    if(negUsed && !_selected.find(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
     }
-    if(_selected.find(posLvl)) {
+    if(posUsed && _selected.find(posLvl)) {
       _selected.remove(posLvl);
       removedComps.push(posLvl);
     }
     break;
   case SATSolver::VarAssignment::DONT_CARE:
+  {
+    bool posSticky = posUsed && _parent.isSticky(posLvl);
+    bool negSticky = negUsed && _parent.isSticky(negLvl);
     if(_eagerRemoval) {
-      if(_selected.find(posLvl)) {
+      if(posUsed && !posSticky && _selected.find(posLvl) ) {
         _selected.remove(posLvl);
         removedComps.push(posLvl);
       }
-      if(_selected.find(negLvl)) {
+      if(negUsed && !negSticky && _selected.find(negLvl)) {
         _selected.remove(negLvl);
         removedComps.push(negLvl);
       }
     }
+    if(posSticky && !_selected.find(posLvl) ) {
+      _selected.insert(posLvl);
+      addedComps.push(posLvl);
+    }
+    if(negSticky && !_selected.find(negLvl) ) {
+      _selected.insert(negLvl);
+      addedComps.push(negLvl);
+    }
     break;
+  }
   default:
     ASSERTION_VIOLATION;
   }

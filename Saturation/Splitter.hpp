@@ -176,14 +176,14 @@ private:
 
     USE_ALLOCATOR(SplitRecord);
   };
-  
+
 public:
   Splitter();
   ~Splitter();
 
   const Options& getOptions() const;
   Ordering& getOrdering() const;
-  
+
   void init(SaturationAlgorithm* sa);
 
   bool doSplitting(Clause* cl);
@@ -205,6 +205,10 @@ public:
     ASS_L(name,_db.size());
     return (_db[name] != 0);
   }
+  bool isSticky(SplitLevel name) const {
+    ASS_L(name,_db.size());
+    return _db[name]->sticky;
+  }
   Clause* getComponentClause(SplitLevel name) const;
 
   SplitLevel splitLevelCnt() const { return _db.size(); }
@@ -224,7 +228,7 @@ public:
 
 private:
   friend class SplittingBranchSelector;
-  
+
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
 
   bool shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl);
