@@ -651,6 +651,11 @@ void Options::init()
     _lookup.insert(&_printClausifierPremises);
     _printClausifierPremises.tag(OptionTag::OUTPUT);
 
+    _replaceDomainElements = BoolOptionValue("replace_domain_elements","",false);
+    _replaceDomainElements.description="When printing a finite model, try hard to look for constants from the original formulation to use instead of domain elements.";
+    _lookup.insert(&_replaceDomainElements);
+    _replaceDomainElements.tag(OptionTag::OUTPUT);
+
     _showAll = BoolOptionValue("show_everything","",false);
     _showAll.description="Turn (almost) all of the showX commands on";
     _lookup.insert(&_showAll);

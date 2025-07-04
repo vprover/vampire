@@ -148,6 +148,8 @@ std::string FiniteModelMultiSorted::toString()
 
   bool printIntroduced = false;
 
+  bool replaceDomainConstants = env.options->replaceDomainElements();
+
   static DArray<DArray<std::string>> cnames;
   cnames.ensure(env.signature->typeCons());
 
@@ -173,7 +175,7 @@ std::string FiniteModelMultiSorted::toString()
     // Domain constant declarations
     for(unsigned i=1;i<=size;i++){
       modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
-      int frep = sortRepr[s][i];
+      int frep = replaceDomainConstants ? sortRepr[s][i] : -1;
       std::string cname = (frep >= 0) ? env.signature->functionName(frep) : append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
       cnames[s][i]=cname;
       modelStm << cname << ":" << sortName << ")." << endl;
