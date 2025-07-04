@@ -5383,5 +5383,59 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
 
 void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick, Schedule& fallback)
 {
-
+  quick.push("dis+11_61:31_drc=ordering:bsr=unit_only:sil=16000:sp=frequency:rp=on:newcnf=on:i=102:uhcvi=on:rawr=on:abs=on:lsd=5:add=off_0");
+  quick.push("dis+10_1:1_sil=32000:i=103:fgj=on:sp=arity_0");
+  quick.push("ott+1_1:1_to=lpo:sil=16000:sp=reverse_arity:i=131:erd=off_0");
+  quick.push("ott+11_1:1_sil=16000:i=142:newcnf=on:av=off_0");
+  quick.push("ott-3_1:16_to=lpo:sil=16000:sp=arity:abs=on:rp=on:i=159:amm=off:bs=unit_only:fd=off:nicw=on:fsr=off_0");
+  quick.push("fmb+10_1:1_sil=8000:fde=unused:fmbes=contour:i=1282:nm=2:fmbswr=0_0");
+  quick.push("ott+10_1:1_sil=32000:tgt=ground:i=175:av=off_0");
+  quick.push("dis+4_1:4096_sil=128000:sas=cadical:i=295:nm=16:acc=on:avsq=on:bsr=unit_only:s2a=on:s2at=2.7:bs=unit_only:slsq=on:slsqc=3:slsqr=8,1:gs=on:fsr=off_0");
+  quick.push("dis+11_1:3_drc=ordering:bsr=unit_only:sil=2000:rp=on:newcnf=on:i=1196:kws=precedence:lsd=100_0");
+  quick.push("fmb+10_1:1_sil=32000:sas=cadical:fmbss=16:fmbsr=2.30978:i=2174:fmbas=function_0");
+  quick.push("fmb+10_1:1_sil=32000:i=5951:newcnf=on_0");
+  quick.push("dis+10_1:32_sil=64000:cn=on:i=776:bsr=on:gsp=on:fsr=off:afr=on:tgt=ground:bd=all:sac=on:doe=on_0");
+  quick.push("ott-30_1:1024_drc=ordering:sil=4000:alpa=true:newcnf=on:i=1006:bs=unit_only:ins=1:amm=off_0");
+  quick.push("ott+10_1:1_sil=16000:i=3206:amm=off:plsq=on:plsqc=2:tgt=full_0");
+  quick.push("fmb+10_1:1_sil=32000:sas=cadical:i=577:newcnf=on:fmbss=7:updr=off:fmbas=off:fmbsso=input_usage_0");
+  quick.push("fmb+10_1:1_sil=16000:sas=cadical:i=16715:nm=2:gsp=on_0");
+  quick.push("fmb+10_1:1_sil=16000:sas=cadical:fmbss=20:i=9515:nm=5_0");
+  quick.push("dis+21_1:1_sil=32000:sas=cadical:i=4397:amm=off_0");
+  quick.push("ott-21_1:1_sil=16000:i=4717:fs=off:fsr=off:av=off_0");
+  quick.push("ott+11_1:64_drc=ordering:sil=4000:rp=on:i=1059:bd=off:fsr=off_0");
+  quick.push("fmb+10_1:1_sil=32000:tgt=full:sas=cadical:fmbss=8:i=1075_0");
+  quick.push("dis-11_1:1_sil=16000:sp=reverse_frequency:alpa=true:i=3471:aac=none_0");
+  quick.push("fmb+10_1:1_sil=16000:sas=cadical:bce=on:fmbss=77:i=6324_0");
+  quick.push("fmb+10_1:1_sil=64000:tgt=full:fmbsr=1.6:i=60861:ins=10:bce=on:fmbss=7_0");
+  quick.push("fmb+10_1:1_sil=32000:fmbss=14:i=1807:erd=off_0");
+  quick.push("ott+11_1:1_sil=16000:i=2251:nm=2:fsd=on:s2a=on:kws=inv_arity_squared:fsr=off:gs=on:s2at=3.0_0");
+  quick.push("dis-4_1:1_drc=ordering:sil=16000:sp=const_frequency:sac=on:newcnf=on:i=4419_0");
+  quick.push("ott+32_1:1_sil=16000:sp=const_max:i=13467:bd=preordered:fsd=on:bce=on:bsd=on_0");
+  quick.push("fmb+10_1:1_sil=128000:i=107156:sas=cadical_0");
+  quick.push("ott-22_1:32_sil=16000:sp=weighted_frequency:i=4591:kws=inv_arity:nm=10:alpa=false:fdi=4:avsq=on:avsqr=1,16:tgt=full:ins=9:add=off:rnwc=on:fdtod=off_0");
+  quick.push("fmb+10_1:1_sil=32000:sas=cadical:bce=on:i=5497:nm=2:fmbss=17_0");
+  quick.push("fmb+10_1:1_fmbas=predicate:sil=16000:fmbss=10:fmbsr=1.2:i=5529:newcnf=on_0");
+  quick.push("ott+4_1:1_sil=16000:sp=arity:gs=on:i=8173:av=off_0");
+  quick.push("dis+10_16:1_sil=16000:i=9155:fsr=off:uhcvi=off_0");
+  quick.push("fmb+10_1:1_fmbas=predicate:sil=64000:sas=cadical:fmbss=15:fmbsr=2.0:i=46332:tgt=full_0");
+  quick.push("dis+10_1:64_to=lpo:sil=32000:urr=on:sac=on:i=29340:spb=intro_0");
+  quick.push("ott-3_1:8_sil=64000:i=20139:bs=on_0");
+  quick.push("ott+10_8:1_sil=16000:sp=arity:gs=on:i=11404:gsaa=full_model_0");
+  quick.push("fmb+10_1:1_fmbas=predicate:sil=64000:tgt=ground:fmbss=7:fmbsr=2.0:i=38692_0");
+  quick.push("ott-11_1:1_sil=16000:sac=on:i=14134:alpa=false_0");
+  quick.push("fmb+10_1:1_sil=32000:tgt=ground:fmbss=10:fmbsr=1.3:i=28243_0");
+  quick.push("dis+33_1:16_sil=32000:sac=on:i=15851:nm=0_0");
+  quick.push("dis+10_1:28_sil=64000:cn=on:i=33677:sac=on:kws=inv_arity_squared:gs=on:add=on:kmz=on:fdi=8_0");
+  quick.push("dis+4_1:1024_sil=32000:avsql=on:sp=occurrence:abs=on:avsqc=1:avsq=on:i=17627:add=on:gs=on:gsaa=from_current:amm=off_0");
+  quick.push("fmb+10_1:1_sil=64000:sas=cadical:bce=on:fmbsr=2.0:i=24827:tgt=ground:fmbss=9_0");
+  quick.push("fmb+10_1:1_sil=32000:sas=cadical:fmbss=16:i=26857:ins=20_0");
+  quick.push("ott+10_1:1_sil=64000:gs=on:i=28120:fsr=off:plsq=on:plsqc=4:bs=on:bsr=unit_only_0");
+  quick.push("ott+21_1:1_sil=64000:i=60955:gsp=on:fsr=off_0");
+  quick.push("fmb+10_1:1_sil=128000:fmbss=21:newcnf=on:i=44625:gsp=on_0");
+  quick.push("fmb+10_1:1_sil=64000:fmbsr=1.4:i=52533:nm=64:fmbss=7:ins=2:fmbes=smt:bce=on_0");
+  quick.push("fmb+10_1:1_sil=128000:i=112490:ins=7:uhcvi=off:fmbss=7_0");
+  quick.push("fmb+10_1:1_sil=256000:i=225729:tgt=full:fmbsr=1.3:fmbss=10_0");
+  quick.push("fmb+10_1:1_sil=256000:i=154031:fmbes=contour_0");
+  // total_instr 1273060
+  // len(covered) 2195
 }
