@@ -5333,9 +5333,9 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("fmb+10_1:1_sil=16000:sas=cadical:fmbss=17:i=1049:bce=on:fmbas=function_0");
     quick.push("lrs+21_1:1_sil=32000:i=876:kws=precedence:fs=off:fsr=off_0");
     quick.push("lrs+4_2:3_slsqr=1,8:to=lpo:sil=2000:tgt=full:plsq=on:plsqr=4,31:sp=const_min:urr=on:flr=on:slsq=on:i=536:nm=0:gs=on:gsem=randomized:fd=preordered:foolp=on:fsd=on:s2pl=no:gsssp=full_0");
-    quick.push("fmb+10_1:1_sil=256000:i=1290:fmbes=contour_0");
+    quick.push("fmb+10_1:1_sil=8000:fde=unused:fmbes=contour:i=1282:nm=2:fmbswr=0_0");
     quick.push("lrs+11_1:128_sil=16000:sp=unary_first:urr=on:lcm=predicate:nwc=0.5:sac=on:i=13848:aac=none_0");
-    quick.push("dis-2_1:1_sil=32000:cn=on:i=879:fsr=off:newcnf=on:anc=none_0");
+    quick.push("ott-30_1:1024_drc=ordering:sil=4000:alpa=true:newcnf=on:i=660:bs=unit_only:ins=1:amm=off_0");
     quick.push("lrs+10_1:1_sil=16000:sp=occurrence:bce=on:st=2.0:i=12985:sd=12:ss=axioms:sgt=16_0");
     quick.push("lrs+1002_1:7_sil=2000:urr=on:nwc=1.0:i=741:av=off:slsq=on:slsql=off:slsqc=3:s2at=2.0_0");
     quick.push("dis-21_1:2048_sil=4000:spb=units:abs=on:lcm=reverse:rp=on:sac=on:i=1055:aac=none:amm=off:rawr=on:avsq=on:avsqc=3_0");
@@ -5357,7 +5357,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("dis+10_1:1_sil=32000:erd=off:s2agt=16:slsqc=4:slsq=on:i=19826:av=off:fd=off_0");
     quick.push("fmb+10_1:1_sil=256000:i=150115:sas=cadical_0");
     quick.push("lrs+2_1:4_sil=8000:s2agt=13:s2a=on:i=9303:nm=0_0");
-    quick.push("dis+20_4:1_sil=32000:sas=z3:abs=on:sac=on:i=3999:amm=off:anc=none:afp=50:afq=2.0:bce=on_0");
+    quick.push("dis+21_1:1_drc=ordering:sil=4000:gs=on:sac=on:newcnf=on:gsem=off:i=3792:gsaa=full_model:abs=on:anc=none_0");
     quick.push("dis+10_1:1_sil=128000:plsq=on:plsqc=1:plsqr=128,1:i=87927:lcm=reverse:amm=off:abs=on:alpa=true:gs=on:prc=on:prlc=on:spb=goal:fs=off:fsr=off:etr=on_0");
     quick.push("lrs+35_2149:524288_anc=all_dependent:sil=16000:urr=on:rp=on:br=off:slsqc=1:alpa=false:slsq=on:st=5.0:avsq=on:s2a=on:i=6958:s2at=2.0:avsqr=1,16:ss=axioms:afr=on:sgt=32_0");
     quick.push("dis+22_1:128_sil=64000:urr=on:sac=on:i=21694:aac=none:lcm=predicate_0");
@@ -5366,14 +5366,14 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("ott+10_614377:524288_anc=all:bsr=on:sil=16000:plsq=on:plsqr=2225731,262144:avsq=on:i=12528:add=on:avsqr=1472515,1048576:aer=on:uhcvi=off:rawr=on_0");
     quick.push("lrs+2_1:14_sil=32000:s2agt=16:s2a=on:i=26936:nicw=on:abs=on:aac=none:fd=off_0");
     quick.push("dis+10_1:28_sil=64000:cn=on:i=33677:sac=on:kws=inv_arity_squared:gs=on:add=on:kmz=on:fdi=8_0");
-    quick.push("ott+4_1:1_sil=64000:sp=arity:i=22472_0");
+    quick.push("ott-3_1:8_sil=64000:i=19178:bs=on_0");
     quick.push("ott+10_1:91_sil=64000:tgt=ground:plsq=on:plsqc=2:sp=weighted_frequency:spb=goal:lcm=predicate:s2a=on:i=68455:s2at=2.4:fgj=on:foolp=on:abs=on:kws=frequency:bce=on:doe=on:sup=off_0");
     quick.push("ott+10_1:1_sil=64000:gs=on:i=28120:fsr=off:plsq=on:plsqc=4:bs=on:bsr=unit_only_0");
     quick.push("lrs+35_1:128_prlc=on:sil=128000:prc=on:sas=cadical:sp=unary_first:fs=off:spb=units:abs=on:urr=ec_only:bce=on:lcm=predicate:fd=off:nwc=1.0:s2agt=128:st=-1.0:s2a=on:prac=on:i=31289:sd=2:aac=none:fsr=off:amm=off:ss=axioms:kws=frequency:plsq=on:plsqr=128,1:avsq=on:avsqc=3_0");
     quick.push("lrs+10_1:1_sil=256000:urr=on:br=off:sac=on:i=215231:plsq=on:plsqc=2:plsqr=67919915,1048576_0");
     quick.push("dis-1010_1:256_sil=64000:sas=cadical:sp=unary_first:spb=intro:lcm=predicate:nwc=16.0:sac=on:cond=fast:i=56658:drc=off:fdi=2:plsq=on:avsq=on:avsqc=2:aac=none:bd=preordered:ss=included_0");
     quick.push("ott+11_2:1_bsr=on:sil=128000:plsq=on:plsqc=2:plsqr=16065853,524288:spb=goal:sac=on:i=95799:add=on:doe=on:bs=unit_only:bd=all:nm=4:aer=on:uhcvi=off:gsp=on:rawr=on:s2a=on:s2at=2.0:lsd=10:prc=on:prac=on_0");
-    // total_instr 1037618
+    // total_instr 1033890
     // len(covered) 1777
   } else {
     quick.push("lrs+10_1:1__10");
