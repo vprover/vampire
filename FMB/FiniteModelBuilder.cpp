@@ -1777,8 +1777,15 @@ MainLoopResult FiniteModelBuilder::runImpl()
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
         } else {
-          return MainLoopResult(TerminationReason::REFUTATION,
-              Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
+          if (_startModelSize <= 1) {
+            return MainLoopResult(TerminationReason::REFUTATION,
+                Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
+          } else {
+            if(outputAllowed()) {
+              cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;
+            }
+            goto gave_up;
+          }
         }
       } else { // i.e. (!_xmass)
         static Constraint_Generator_Vals nogood;
