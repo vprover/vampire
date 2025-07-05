@@ -5383,6 +5383,11 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
 
 void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick, Schedule& fallback)
 {
+  quick.push("fmb+10_1:1_drc=ordering:sil=256000:i=98885:tgt=full:fmbsr=1.3:fmbss=10:sas=cadical_0");
+  quick.push("ott+10_10:1_drc=ordering:add=off:afr=on:amm=off:anc=all:bd=off:bs=on:fsr=off:irw=on:lma=on:msp=off:nm=4:nwc=4.0:sac=on:sp=reverse_frequency:i=99418_0");
+  quick.push("fmb+10_1:1_drc=ordering:sil=256000:fmbes=contour:i=214858:bce=on:sas=cadical_0");
+  quick.push("fmb+10_1:1_drc=ordering:sil=256000:fmbss=23:fmbes=contour:newcnf=on:sas=cadical:fmbsr=1.14:i=152523:nm=2:gsp=on:rp=on_0");
+
   quick.push("dis+11_61:31_drc=ordering:bsr=unit_only:sil=16000:sp=frequency:rp=on:newcnf=on:i=102:uhcvi=on:rawr=on:abs=on:lsd=5:add=off_0");
   quick.push("dis+10_1:1_sil=32000:i=103:fgj=on:sp=arity_0");
   quick.push("ott+1_1:1_to=lpo:sil=16000:sp=reverse_arity:i=131:erd=off_0");
