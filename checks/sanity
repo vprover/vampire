@@ -68,8 +68,8 @@ check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 
 # Integer induction problems
-check_szs_status Unsatisfiable -ind int -alasca off induction/int_invariant_infinite_geq3_val3.smt2
-check_szs_status Unsatisfiable -ind int -alasca off induction/int_invariant_finite_a_to_b.smt2
+check_szs_status Unsatisfiable -ind int induction/int_invariant_infinite_geq3_val3.smt2
+check_szs_status Unsatisfiable -ind int induction/int_invariant_finite_a_to_b.smt2
 # disabled until we have a known strategy
 #check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 induction/int_power_0_all_0.smt2
 #check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 induction/int_sum_y_geq_0.smt2
