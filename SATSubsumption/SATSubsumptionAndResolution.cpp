@@ -47,7 +47,7 @@
    *
    * ----- Subsumption Resolution: -----
    * Let L and M be two clauses considered as sets. L and M are said to be the base and instance
-   * of a subsumption resolution inference, respectively iif
+   * of a subsumption resolution inference, respectively iff
    *    there exists a substitution σ,
    *                 a set of literal L' included in L
    *                 a literal m' in M
@@ -267,7 +267,7 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
  * subsumption resolution.
  *
  * TODO: functorSet is initialized from _mainPremise which is the same for the whole forward loop.
- *       we could re-use it for multiple pruning checks instead of filling it everytime.
+ *       we could re-use it for multiple pruning checks instead of filling it every time.
  *
  * @return true if subsumption resolution is impossible, false if we don't know
  */

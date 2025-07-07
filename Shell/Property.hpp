@@ -164,6 +164,8 @@ public:
   std::string toString() const;
   std::string toSpider(const std::string& problemName) const;
 
+  DHMap<std::string,std::string> toDict() const;
+
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
   /** Total number of formulas in the problem */
@@ -207,7 +209,7 @@ public:
 
   bool hasInterpretedOperation(Interpretation i) const {
     if(i >= _interpretationPresence.size()){ return false; }
-    return _interpretationPresence[i]; 
+    return _interpretationPresence[i];
   }
   bool hasInterpretedOperation(Interpretation i, OperatorType* type) const {
     return _polymorphicInterpretations.find(std::make_pair(i,type));
@@ -238,12 +240,12 @@ public:
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
-  
-  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
-    _smtlibLogic = smtLibLogic; 
+
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) {
+    _smtlibLogic = smtLibLogic;
   }
-  SMTLIBLogic getSMTLIBLogic() const { 
-    return _smtlibLogic; 
+  SMTLIBLogic getSMTLIBLogic() const {
+    return _smtlibLogic;
   }
 
   bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
@@ -302,7 +304,7 @@ public:
   int _totalNumberOfVariables;
   /** Maximal number of variables in a clause */
   int _maxVariablesInClause;
-  /** Symbols in this formula, used during counting 
+  /** Symbols in this formula, used during counting
       Functions are positive, predicates stored in the negative part
   **/
   DHSet<int> _symbolsInFormula;

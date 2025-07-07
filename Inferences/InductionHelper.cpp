@@ -57,7 +57,7 @@ bool isIntegerComparisonLiteral(Literal* lit) {
       // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
 
       // Equality proxy may generate useless congruence axioms for the likes of INT_GREATER
-      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ingore)
+      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ignore)
       ASS_EQ(env.options->equalityProxy(),Options::EqualityProxy::RSTC);
     default:
       // Not an integer comparison.

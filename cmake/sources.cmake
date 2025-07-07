@@ -50,9 +50,11 @@ set(UNIT_TESTS
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tEqualityResolution.cpp
+    UnitTests/tForwardGroundJoinability.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tHOL_Printing.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -258,6 +260,8 @@ set(SOURCES
     Inferences/FastCondensation.hpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardDemodulation.hpp
+    Inferences/ForwardGroundJoinability.cpp
+    Inferences/ForwardGroundJoinability.hpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.cpp
@@ -442,6 +446,10 @@ set(SOURCES
     Kernel/UnificationWithAbstraction.hpp
     Kernel/Unit.cpp
     Kernel/Unit.hpp
+    Kernel/HOL/HOL.cpp
+    Kernel/HOL/Create.cpp
+    Kernel/HOL/Convert.cpp
+    Kernel/HOL/HOL.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp

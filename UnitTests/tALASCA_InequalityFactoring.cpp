@@ -265,7 +265,7 @@ TEST_GENERATION(alasca_bug3,
 
   // f(x) + y <= 0 <=> -f(x) - y >= 0
 
-// testing differet symbols
+// testing different symbols
 TEST_GENERATION(check_symbols_01,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( f(x) + a > 0 ), selected(f(x) + b > 0)   }) })

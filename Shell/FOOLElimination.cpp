@@ -196,7 +196,7 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() && !env.getMainProblem()->isHigherOrder()) {
+      if (literal->isEquality() && (!env.getMainProblem()->isHigherOrder() || env.options->equalityToEquivalence())) {
         ASS_EQ(literal->arity(), 2);
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -322,7 +322,7 @@ FormulaList* FOOLElimination::process(FormulaList* formulas) {
 /**
  * Processes a list of terms.
  *
- * Takes a context argument (whos value is either TERM_CONTEXT or
+ * Takes a context argument (whose value is either TERM_CONTEXT or
  * FORMULA_CONTEXT) and rather than returning the result of processing, writes
  * it to termResult (when context is TERM_CONTEXT) or formulaResult (when
  * context is FORMULA_CONTEXT). In other words, the result of processing is
@@ -334,7 +334,7 @@ FormulaList* FOOLElimination::process(FormulaList* formulas) {
  * formula-inside-term special case of term. That is, the formula $ite(C, A, B),
  * where A, B and C are all formulas, is stored as $formula{$ite(C, $term{A}, $term{B})}.
  * The processing of an $ite-term should be different, depending on whether or
- * not it occures directly under $formula. In the former case, we should unpack
+ * not it occurs directly under $formula. In the former case, we should unpack
  * A and B from $term and introduce a fresh predicate symbol, whereas in the
  * latter case we should introduce a fresh function symbol. So, the context
  * argument tells the process function if the term is inside of a $formula.

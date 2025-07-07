@@ -1177,7 +1177,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     def = new JunctionFormula(OR, fs);
   }
   if (VList::isNonEmpty(vs)) {
-    //TODO do we know the sorts of the free variabls vs?
+    //TODO do we know the sorts of the free variables vs?
     def = new QuantifiedFormula(FORALL, vs, 0, def);
   }
   Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));

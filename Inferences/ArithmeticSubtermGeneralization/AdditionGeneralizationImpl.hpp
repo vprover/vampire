@@ -19,7 +19,7 @@ using namespace std;
  *   ------------ 
  *   C[X]
  *   where 
- *   - all occurences of X are in terms of the form `X + d`
+ *   - all occurrences of X are in terms of the form `X + d`
  *   - sound due to substitution X -> X - d
  *   - generalization since obviously
  */
@@ -112,7 +112,7 @@ struct Preprocess
 
 
 /** 
- * A polymorphic closure to bottom-up evaluate clause bottom-up that replaces all occurences of the factors in the field `toRem`
+ * A polymorphic closure to bottom-up evaluate clause bottom-up that replaces all occurrences of the factors in the field `toRem`
  */
 struct Generalize 
 {

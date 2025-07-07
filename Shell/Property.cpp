@@ -702,8 +702,8 @@ void Property::scan(TermList ts,bool unit,bool goal)
       }
     }
 
-    if(func->proxy() != Signature::NOT_PROXY){
-      if(func->proxy() == Signature::PI || func->proxy() == Signature::SIGMA){
+    if(func->proxy() != Proxy::NOT_PROXY){
+      if(func->proxy() == Proxy::PI || func->proxy() == Proxy::SIGMA) {
         ASS(t->arity() == 1);
         TermList sort = *t->nthArgument(0);
         if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
@@ -1076,5 +1076,25 @@ std::string Property::toSpider(const std::string& problemName) const
     + problemName +
     + "';";
 } // Property::toSpider
+
+/**
+ * Reflect the state of Property into a "python-style" representation
+ * as a dictionary of key-valey (string) pairs. In particular,
+ * Options::sampleStrategy is eagerly waiting for this to be able to do property-conditioned sampling.
+ */
+DHMap<std::string,std::string> Property::toDict() const
+{
+  DHMap<std::string,std::string> result;
+  result.set("@hasFormulas",Int::toString(hasFormulas()));
+  result.set("@hasEquality",Int::toString(equalityAtoms()>0));
+  result.set("@hasFOOL",Int::toString(hasFOOL()));
+  result.set("@hasGoal",Int::toString(hasGoal()));
+
+  result.set("@cat",categoryString());
+  for (unsigned i = 1, n = 2; i <= 25; i++, n *= 2){
+    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString(unsigned(atoms() <= n)));
+  }
+  return result;
+} // Property::toDict
 
 } // namespace Shell

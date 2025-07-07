@@ -296,8 +296,8 @@ unsigned SimpleCongruenceClosure::convertFO(TermList trm)
   }
 
   FOConversionWorker wrk(*this);
-  SafeRecursion<TermList,unsigned,FOConversionWorker> convertor(wrk);
-  return convertor(trm);
+  SafeRecursion<TermList,unsigned,FOConversionWorker> converter(wrk);
+  return converter(trm);
 }
 
 /**
@@ -854,7 +854,7 @@ void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalF
     while (idx-->0) {
       CPair pair = _cInfos[d].namedPair;
       ASS(pair !=CPair(0,0)); 
-      args[idx] = normalForms.get(deref(pair.second));             
+      args[idx] = normalForms.get(deref(pair.second));
       ASS(args[idx].isTerm());
       d = pair.first;
     }
@@ -905,7 +905,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     
     cInfo.processed = false;    
     cInfo.half_normalized = false;
-    cInfo.normalForm = TermList::empty();                
+    cInfo.normalForm = TermList::empty();
     
     if (cInfo.sigSymbol != NO_SIG_SYMBOL) { // either a symbol ...
       // cout << " is sigsym ";
@@ -960,7 +960,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     if (!rInfo.processed) {
       //cout << "Class not processed yet." << endl;
       ConstInfo& cInfo = _cInfos[c];
-                  
+
       rInfo.processed = true;
       if (!cInfo.normalForm.isEmpty()) { // Are we considering a class with true terms (not partial applications)?
         // c was the smallest candidate from this class,
@@ -969,7 +969,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
       }
 
       Stack<unsigned>::Iterator rUseIt(rInfo.upEdges);
-      while(rUseIt.hasNext()) {                
+      while(rUseIt.hasNext()) {
         unsigned s = rUseIt.next(); // a super-term refers to a term in our class
 
         // Giles suggested an optimization: don't consider terms from already normalized classes as candidates
@@ -982,17 +982,17 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
         
         // cout << "superterm " << s;
         
-        if (sInfo.half_normalized) {                     
+        if (sInfo.half_normalized) {
           // now becomes fully
           computeConstsNormalForm(s,normalForms);
-          
+
           //cout << " gets its normal form " << sInfo.normalForm.toString();
-          
+
           // and can be inserted among candidates
           candidates.insert(s);
         } else {
           //cout << " becoming half_normalized";
-          
+
           sInfo.half_normalized = true;
         }
         

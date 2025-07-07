@@ -795,7 +795,7 @@ TEST_GENERATION_INDUCTION(int_test_8,
                         TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 1) })
     )
 
-// given a suitable strictness, induction is applied on a term occuring only
+// given a suitable strictness, induction is applied on a term occurring only
 // as one of the top-level arguments of "<"
 // (any strictness with comparison strictness = none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(int_test_9,
@@ -826,8 +826,8 @@ TEST_GENERATION_INDUCTION(int_test_9,
                         TEST_FN_ASS_EQ(env.statistics->intInfDownInduction, 1) })
     )
 
-// given the default strictness, induction is applied on a term occuring in only
-// one of the arguments of "<", but not to a term occuring only as a top-level
+// given the default strictness, induction is applied on a term occurring in only
+// one of the arguments of "<", but not to a term occurring only as a top-level
 // argument of "<" (the "sK6" in context)
 // (any strictness with comparison strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(int_test_10,
@@ -847,7 +847,7 @@ TEST_GENERATION_INDUCTION(int_test_10,
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1) })
     )
 
-// given the default suitable strictness, no induction is applied on a term occuring only
+// given the default suitable strictness, no induction is applied on a term occurring only
 // as one of the top-level arguments of "<"
 // (any strictness with comparison strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(int_test_11,
@@ -861,7 +861,7 @@ TEST_GENERATION_INDUCTION(int_test_11,
       .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
 
-// given the default strictness, induction is applied on a term occuring only
+// given the default strictness, induction is applied on a term occurring only
 // as one of the top-level arguments of "="
 // (any strictness with equality strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(int_test_12,
@@ -881,7 +881,7 @@ TEST_GENERATION_INDUCTION(int_test_12,
                         TEST_FN_ASS_EQ(env.statistics->intInfUpInduction, 1) })
     )
 
-// given a suitable strictness, no induction is applied on a term occuring only
+// given a suitable strictness, no induction is applied on a term occurring only
 // as one of the top-level arguments of "="
 // (any strictness with equality strictness != none works the same)
 TEST_GENERATION_INDUCTION(int_test_13,

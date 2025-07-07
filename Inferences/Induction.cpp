@@ -1003,7 +1003,7 @@ void InductionClauseIterator::resolveClauses(InductionContext context, Induction
  *   set of clauses that differ only in one literal pairwise, and this
  *   literal is the complement of a literal from the set of toResolve
  *   after applying subst
- * These contraints give a partitioning of clauses, where each partition
+ * These constraints give a partitioning of clauses, where each partition
  * has a sequence of resolutions with the clauses from context, s.t.
  * only the literals not in toResolve nor in the conclusion are present
  * in the resulting clause. We find this partition and return it in form

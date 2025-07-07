@@ -124,7 +124,7 @@ struct BackwardDemodulation::ResultFn
     }
 
     if(_cl==qr.data->clause || _removed->find(qr.data->clause)) {
-      //the retreived clause was already replaced during this
+      //the retrieved clause was already replaced during this
       //backward demodulation
       return BwSimplificationRecord(0);
     }

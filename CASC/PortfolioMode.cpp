@@ -290,7 +290,7 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 };
 
 /**
- * Take strategy strings from @param sOld, update their time (and intruction) limit, 
+ * Take strategy strings from @param sOld, update their time (and instruction) limit,
  * multiplying it by @param limit_multiplier and put the new strings into @param sNew.
  * 
  * @author Giles, Martin
@@ -696,7 +696,7 @@ void PortfolioMode::runSlice(Options& opt)
     addCommentSignForSZS(cout) << "First to succeed." << endl;
 
   if (_path.empty()) {
-    // we already failed above in accesssing the file (let's not try opening or reporting the empty name)
+    // we already failed above in accessing the file (let's not try opening or reporting the empty name)
     UIHelper::outputResult(cout);
   } else {
     std::ofstream output(_path);

@@ -366,7 +366,7 @@ void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inpu
  * No preprocessing is performed on the units.
  *
  * The Options object should intentionally not be part of this game,
- * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning options
+ * as any form of "conditional parsing" compromises the effective use of the corresponding conditioning options
  * as a part of strategy development and use in portfolios. In other words, if you need getInputProblem or the parse* functions
  * to depend on an option, think twice, and if really needed, make it an explicit argument of that function.
  */

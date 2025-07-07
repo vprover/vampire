@@ -123,9 +123,14 @@ void explainException(Exception& exception)
 [[nodiscard]]
 Problem *doProving(Problem* problem)
 {
+  if (env.options->showPropDict()) {
+    cout << "% Prop: " << problem->getProperty()->toDict() << endl;
+  }
+
   // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
-    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->sampleStrategy(env.options->strategySamplerFilename(),
+      problem->getProperty()->toDict());
   }
 
   env.options->setForcedOptionValues();
@@ -447,7 +452,8 @@ void clausifyMode(Problem* problem, bool theory)
   simplifier.addFront(new DuplicateLiteralRemovalISE());
 
   if (!env.options->strategySamplerFilename().empty()) {
-    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->sampleStrategy(env.options->strategySamplerFilename(),
+      problem->getProperty()->toDict());
   }
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
