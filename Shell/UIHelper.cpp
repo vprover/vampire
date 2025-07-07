@@ -608,22 +608,19 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
   }
-  if (!env.statistics->model.empty()) {
-    if (szsOutputMode()) {
-	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+  if (env.options->proof() != Options::Proof::OFF) {
+    if (!env.statistics->model.empty()) {
+      if (szsOutputMode()) {
+        out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+      }
+      out << env.statistics->model;
+      if (szsOutputMode()) {
+        out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
+      }
+    } else {
+      outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
+      outputInterferences(out,*env.getMainProblem());
     }
-    out << env.statistics->model;
-    if (szsOutputMode()) {
-	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
-    }
-  }
-  else //if (env.statistics->saturatedSet)
-       /* -- MS: it's never incorrect to print the empty one, in fact this prevents us from losing
-        * points at CASC when the input gets completely emptied, by e.g. preprocessing
-        */
-  {
-    outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
-    outputInterferences(out,*env.getMainProblem());
   }
 }
 
