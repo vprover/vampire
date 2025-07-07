@@ -2078,6 +2078,7 @@ void FiniteModelBuilder::onModelFound()
   }
 
   model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
+  model.restoreEliminatedDefinitions(env.getMainProblem());
 
 #if 0
   //Evaluate removed functions and constants

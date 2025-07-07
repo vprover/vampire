@@ -55,7 +55,7 @@ class FiniteModelMultiSorted {
   // also cleans sortRepr (to be filled up from scratch)
   void initTables();
 
-  // captures the encoding of the functions offetsand predicates in our tables
+  // captures the encoding of the functions offsets and predicates in our tables
   // - offsets are either _f_offsets or _p_offsets
   // - s is either an f or p index from env->signature
   // - sig is the symbols corresponding type signature
@@ -91,10 +91,29 @@ public:
   bool evaluateGroundLiteral(Literal* literal);
 
   void eliminateSortFunctionsAndPredicates(const Stack<unsigned>& sortFunctions, const Stack<unsigned>& sortPredicates);
+  void restoreEliminatedDefinitions(Kernel::Problem* prob);
 
   std::string toString();
 
 private:
+  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst);
+  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst);
+  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst);
+
+  // if term evaluation encounters a missing record, it assumes the correspondig symbol has been implicitly eliminated
+  // (e.g., eliminated unused function definition f(X) = g(X,c) might have eliminated c, if it did not occur anywhere else)
+  // such symbols are restored (just after restoreEliminatedDefinitions; although, formally it should happen before) in the simplest possible way:
+  // functions == 1 (the first domain element of the respective sort) everwhere
+  // predicates == false everywhere
+  Set<unsigned> _implicitlyEliminatedFunctions;
+  Set<unsigned> _implicitlyEliminatedPredicates;
+
+  void restoreEliminatedFunDef(Problem::FunDef*);
+  void restoreImplicitlyEliminatedFun(unsigned f);
+  void restoreEliminatedPredDef(Problem::PredDef*);
+  void restoreImplicitlyEliminatedPred(unsigned p);
+  void restoreViaCondFlip(Problem::CondFlip*);
+
   Formula* partialEvaluate(Formula* formula);
   // currently private as requires formula to be rectified
   bool evaluate(Formula* formula,unsigned depth=0);
@@ -103,6 +122,9 @@ private:
   DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
   DHMap<Term*,std::pair<unsigned,unsigned>> _domainConstantsRev;
 public:
+
+
+
   Term* getDomainConstant(unsigned c, unsigned srt)
   {
     Term* t;
@@ -128,6 +150,9 @@ public:
   {
     return _domainConstantsRev.find(t);
   }
+
+
+
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {
       return std::string(prefix);
