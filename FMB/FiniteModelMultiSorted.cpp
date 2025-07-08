@@ -486,6 +486,10 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
     ASS_G(args[i],0)
   }
 
+  if(lit->isEquality()){
+    return (args[0]==args[1]) == lit->polarity();
+  }
+
   unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
 
   ASS_L(var, _p_interpretation.size());
@@ -1150,6 +1154,10 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
 
         if((isForall && !res) || (!isForall && res)) {
           early = true;
+
+          // cout << "early for " << args << endl;
+          // cout << "subst was " << subst << endl;
+
           break;
         }
 
