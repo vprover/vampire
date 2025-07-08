@@ -119,7 +119,8 @@ TermList SkolemSquashingTermReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
-Formula* InductionContext::getFormula(const InductionUnit& unit, const Substitution& typeBinder, unsigned& var, VList** varList, Substitution* subst) const
+Formula* InductionContext::getFormula(
+  const InductionUnit& unit, const Substitution& typeBinder, unsigned& var, VList** varsReplacingSkolems, Substitution* subst) const
 {
   auto hyps = FormulaList::empty();
   for (const auto& lit : unit.conditions) {
@@ -136,7 +137,7 @@ Formula* InductionContext::getFormula(const InductionUnit& unit, const Substitut
   for (const auto& t : unit.F_terms) {
     ts.push_back(SubstHelper::apply(t, typeBinder));
   }
-  auto right = getFormulaWithSquashedSkolems(ts, var, varList, subst);
+  auto right = getFormulaWithSquashedSkolems(ts, var, varsReplacingSkolems, subst);
   return left ? new BinaryFormula(Connective::IMP, left, right) : right;
 };
 
@@ -182,8 +183,8 @@ Formula* InductionContext::getFormulaWithFreeVar(const std::vector<TermList>& r,
   return SubstHelper::apply(replaced, s);
 }
 
-Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermList>& r,
-  unsigned& var, VList** varList, Substitution* subst) const
+Formula* InductionContext::getFormulaWithSquashedSkolems(
+  const std::vector<TermList>& r, unsigned& var, VList** varsReplacingSkolems, Substitution* subst) const
 {
   const bool strengthenHyp = env.options->inductionStrengthenHypothesis();
   if (!strengthenHyp) {
@@ -210,11 +211,11 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const std::vector<TermL
       subst->bindUnbound(v,t);
     }
   }
-  if (varList) {
+  if (varsReplacingSkolems) {
     // The variables replacing the Skolems after calling transform
     // are needed for quantification if varList is non-null, collect them
     for (unsigned i = temp; i < var; i++) {
-      VList::push(i,*varList);
+      VList::push(i,*varsReplacingSkolems);
     }
   }
   return res;
@@ -1312,9 +1313,6 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
   FormulaList* formulas = FormulaList::empty();
   std::vector<TermList> ts(context._indTerms.size(), TermList());
 
-  // cout << "using template" << endl;
-  // cout << *templ << endl;
-
   static Substitution typeBinder;
   typeBinder.reset();
 
@@ -1326,11 +1324,13 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
   for (const auto& c : templ->cases) {
     FormulaList* hyps = FormulaList::empty();
     for (const auto& hyp : c.hypotheses) {
-      auto hypVars = VList::empty();
-      auto hypF = context.getFormula(hyp, typeBinder, var, &hypVars);
-      // quantify each hypotheses with variables replacing Skolems explicitly
-      if (hypVars) {
-        hypF = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), hypF);
+      auto varsReplacingSkolems = VList::empty();
+      auto hypF = context.getFormula(hyp, typeBinder, var, &varsReplacingSkolems);
+      // The variables replacing Skolems are used in a similar manner to strengthen
+      // hypotheses as condUnivVars in InductionUnit and hypUnivVars in InductionCase,
+      // but they are different for each hypothesis, so we quantify them here.
+      if (varsReplacingSkolems) {
+        hypF = new QuantifiedFormula(Connective::FORALL, varsReplacingSkolems, SList::empty(), hypF);
       }
       FormulaList::push(hypF, hyps);
     }
@@ -1349,7 +1349,6 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
   Substitution subst;
   auto conclusion = context.getFormula(templ->conclusion, typeBinder, var, nullptr, &subst);
   Formula* induction_formula = new BinaryFormula(Connective::IMP, indPremise, Formula::quantify(conclusion));
-  // cout << *induction_formula << endl;
 
   auto cls = produceClauses(induction_formula, templ->rule, context);
   e->add(std::move(cls), std::move(subst));

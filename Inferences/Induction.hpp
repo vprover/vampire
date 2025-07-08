@@ -142,7 +142,9 @@ struct InductionContext {
   // These functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
-  Formula* getFormula(const InductionUnit& unit, const Substitution& typeBinder, unsigned& var, VList** varList = nullptr, Substitution* subst = nullptr) const;
+  Formula* getFormula(
+    const InductionUnit& unit, const Substitution& typeBinder, unsigned& var,
+    VList** varsReplacingSkolems = nullptr, Substitution* subst = nullptr) const;
   Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
 
   // Return some free variable that occurs in the induction literals.
@@ -174,7 +176,8 @@ struct InductionContext {
   std::unordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
 private:
   Formula* getFormula(const std::vector<TermList>& r, Substitution* subst) const;
-  Formula* getFormulaWithSquashedSkolems(const std::vector<TermList>& r, unsigned& var, VList** varList, Substitution* subst) const;
+  Formula* getFormulaWithSquashedSkolems(
+    const std::vector<TermList>& r, unsigned& var, VList** varsReplacingSkolems, Substitution* subst) const;
   /**
    * Creates a formula which corresponds to the disjunction of conjunction
    * of opposites of selected literals for each clause in @b _cls, where we

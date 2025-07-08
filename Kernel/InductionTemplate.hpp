@@ -30,6 +30,10 @@ using VStack = Stack<unsigned>;
  * @b F_terms is the list of terms t_1,...,t_n,
  * @b conditions is the list of literals l_1,...,l_m, and
  * @b condUnivVars is the list of variables x_1,...,x_k.
+ *
+ * Note that x_1,...,x_k are quantified in the left-hand side of the implication,
+ * while the rest of the variables remain free to be quantified in the containing
+ * induction case (see below). See for example @b TermAlgebra::getInductionTemplateTwo.
  */
 struct InductionUnit
 {
@@ -49,7 +53,10 @@ struct InductionUnit
  * of the form ∀(∀ x_1,...,x_k.(U_1 ⋀ ... ⋀ U_m) → U), where
  * @b conclusion is the unit U,
  * @b hypotheses is the list of units U_1,...,U_n, and
- * @b hypUnivVars is the list of variables x_,...,x_k.
+ * @b hypUnivVars is the list of variables x_1,...,x_k.
+ *
+ * Note that x_1,...,x_k are quantified in the left-hand side of the implication,
+ * and the rest of the free variables are universally quantified over the entire case.
  */
 struct InductionCase
 {
@@ -65,8 +72,10 @@ struct InductionCase
 /**
  * An induction formula template corresponding to ∀F(C_1 ⋀ ... ⋀ C_n → C),
  * where @b cases is the list C_1,...,C_n and @b conclusion is C.
- * The sorts of @b F_terms members must equal to @b sorts and variables
+ * The sorts of @b F_terms members must be equal to @b sorts and variables
  * not in @b sorts can only appear in at most one case or in the conclusion.
+ * 
+ * See @b InductionClauseIterator::performInduction for the actual instantiation of the formula.
  */
 struct InductionTemplate
 {

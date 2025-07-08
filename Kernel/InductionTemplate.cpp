@@ -22,7 +22,7 @@ using namespace std;
 namespace Kernel {
 
 template<typename S, typename T>
-ostream& outputImplication(ostream& out, const Stack<S>& antecedent, const T& succeedent, bool outerParentheses = true)
+ostream& outputImplication(ostream& out, const Stack<S>& antecedent, const T& succedent, bool outerParentheses = true)
 {
   if (outerParentheses && antecedent.isNonEmpty()) {
     out << "(";
@@ -42,7 +42,7 @@ ostream& outputImplication(ostream& out, const Stack<S>& antecedent, const T& su
   if (antecedent.isNonEmpty()) {
     out << " => ";
   }
-  out << succeedent;
+  out << succedent;
   if (outerParentheses && antecedent.isNonEmpty()) {
     out << ")";
   }
