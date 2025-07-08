@@ -116,7 +116,7 @@ private:
 
   Formula* partialEvaluate(Formula* formula);
   // currently private as requires formula to be rectified
-  bool evaluate(Formula* formula,unsigned depth=0);
+  bool evaluateOld(Formula* formula,unsigned depth=0);
 
   // the pairs of <constant number, sort>
   DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;

@@ -1042,7 +1042,9 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
 
   formula = partialEvaluate(formula);
   formula = SimplifyFalseTrue::simplify(formula);
-  return evaluate(formula);
+
+  DHMap<unsigned,unsigned> subst;
+  return evaluateFormula(formula,subst);
 }
 
 /**
@@ -1194,7 +1196,7 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
  * TODO: This is recursive, which could be problematic in the long run
  *
  */
-bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
+bool FiniteModelMultiSorted::evaluateOld(Formula* formula,unsigned depth)
 {
 #if DEBUG_MODEL
   for(unsigned i=0;i<depth;i++){ cout << "."; }
@@ -1222,7 +1224,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
     case TRUE:
       return true;
     case NOT:
-      return !evaluate(formula->uarg(),depth+1);
+      return !evaluateOld(formula->uarg(),depth+1);
     case AND:
       isAnd=true;
     case OR:
@@ -1231,7 +1233,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
         FormulaList::Iterator fit(args);
         while(fit.hasNext()){
           Formula* arg = fit.next();
-          bool res = evaluate(arg,depth+1);
+          bool res = evaluateOld(arg,depth+1);
           if(isAnd && !res) return false;
           if(!isAnd && res) return true;
         }
@@ -1246,9 +1248,9 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
     {
       Formula* left = formula->left();
       Formula* right = formula->right();
-      bool left_res = evaluate(left,depth+1);
+      bool left_res = evaluateOld(left,depth+1);
       if(isImp && !left_res) return true;
-      bool right_res = evaluate(right,depth+1);
+      bool right_res = evaluateOld(right,depth+1);
 
 #if DEBUG_MODEL
       cout << "left_res is " << left_res << ", right_res is " << right_res << endl;
@@ -1286,7 +1288,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
        next_sub = SimplifyFalseTrue::simplify(next_sub);
        next_sub = Flattening::flatten(next_sub);
 
-       bool res = evaluate(next_sub,depth+1);
+       bool res = evaluateOld(next_sub,depth+1);
 
        //TODO try and limit memory issues!
        //     ideally delete the bits introduced by the application of SubstHelper::apply
