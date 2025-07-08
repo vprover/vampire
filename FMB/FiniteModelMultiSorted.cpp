@@ -26,6 +26,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"
@@ -1003,7 +1004,100 @@ void FiniteModelMultiSorted::restoreImplicitlyEliminatedPred(unsigned p)
 
 void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 {
-  cf->outputDefinition(cout);
+  // cf->outputDefinition(cout);
+
+  DHMap<unsigned,TermList> sortMap;
+  SortHelper::collectVariableSorts(cf->_val,sortMap);
+  unsigned arity = sortMap.size();
+
+  // cout << "arity: " << arity << " " << sortMap << endl;
+
+  // we need to existentially close cond for all variables except those of _val
+  VList* freeVars = freeVariables(cf->_cond);
+
+  // cout << "freeVars: " << *freeVars << endl;
+
+  {
+    // now filter freeVars and drop all mentioned by _val
+    VList** l = &freeVars;
+    while (*l) {
+      unsigned var = (*l)->head();
+      if (sortMap.findPtr(var)) { // drop this one
+        VList* dead = *l;
+        *l = (*l)->tail(); // keep l where it is, but reconnect *l
+        delete dead;
+      } else { // simply move on with l
+        l = (*l)->tailPtr();
+      }
+    }
+  }
+
+  // cout << "filtered: " << *freeVars << endl;
+
+  Formula* closedCond = freeVars ? new QuantifiedFormula(EXISTS,freeVars,0,cf->_cond) : cf->_cond;
+
+  // cout << "closedCond: " << closedCond->toString() << endl;
+
+  static DArray<unsigned> vars;
+  vars.ensure(arity);
+  static DArray<unsigned> sorts;
+  sorts.ensure(arity);
+
+  unsigned i = 0;
+  DHMap<unsigned,TermList>::Iterator it(sortMap); // non-deterministic order OK?
+  while (it.hasNext()) {
+    unsigned var;
+    TermList srt;
+    it.next(var,srt);
+    vars[i] = var;
+    sorts[i] = srt.term()->functor();
+    i++;
+  }
+
+  static DHMap<unsigned,unsigned> subst;
+  static DArray<unsigned> args;
+  args.ensure(arity);
+  // start with all 1s
+  for(unsigned i=0;i<arity;i++){
+    args[i]=1;
+    subst.set(vars[i],args[i]);
+  }
+
+  unsigned p = cf->_val->functor();
+  ASS_NEQ(p,0) // equality cannot be flipped!
+  unsigned p_arity = env.signature->predicateArity(p);
+  static DArray<unsigned> inner_args;
+  inner_args.ensure(p_arity);
+
+  for(;;) {
+    if (evaluateFormula(closedCond,subst) != cf->_neg) {
+      // cout << " do the flip for " << args << endl;
+      // do the flip
+      for(unsigned j=0;j<p_arity;j++){
+        inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst);
+      }
+      unsigned var = args2var(inner_args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+      ASS_L(var, _p_interpretation.size());
+      // cout << " before " << (unsigned)_p_interpretation[var] << endl;
+      _p_interpretation[var] = (cf->_val->isPositive() ? INTP_TRUE : INTP_FALSE);
+      // cout << "  after " << (unsigned)_p_interpretation[var] << endl;
+    }
+
+    unsigned i;
+    for(i=0;i<arity;i++) {
+      args[i]++;
+      if(args[i] <= _sizes[sorts[i]]) {
+        subst.set(vars[i],args[i]); // update subst with the inc
+        break;
+      }
+      args[i]=1;
+      subst.set(vars[i],args[i]); // update subst with the dec
+    }
+    if (i == arity) {
+      break;
+    }
+  }
+  // cout << endl;
 }
 
 void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
