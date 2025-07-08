@@ -180,15 +180,16 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
   // take the respective schedules from our "Tablets of Stone"
   Schedule main;
-  getSchedules(prop,main);
-  
-  /** 
+  Schedule champions;
+  getSchedules(prop,main,champions);
+
+  /**
    * The idea next is to create extra schedules based on the just loaded ones
    * mainly by adding new options that are not yet included in the schedules
    * into a copy of an official schedule to be appended after it (so as not to disturb the original).
-   * 
+   *
    * The expectation is that the code below will be updated before each competition submission
-   * 
+   *
    * Note that the final schedule is longer and longer with each copy,
    * so consider carefully which selected options (and combinations) to "try on top" of it.
    */
@@ -247,7 +248,17 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
     USER_ERROR("The schedule is empty.");
   }
 
-  return runScheduleAndRecoverProof(std::move(schedule));
+  // depending on _numWorkers, we use a certain number of champions to go first (and run for very long)
+  // - champions are selected to cover as much as possible by themselves
+  // - at the same time, "quick" is build so that it covers (again) even those problems covered by champions,
+  //   but does not go after them as eagerly as those that remained truly uncovered
+  unsigned numChamps = _numWorkers / 2;
+  while (champions.size() > numChamps) {
+    champions.pop();
+  }
+  champions.loadFromIterator(schedule.iterFifo());
+
+  return runScheduleAndRecoverProof(std::move(champions));
 };
 
 /**
@@ -319,7 +330,7 @@ void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::
   }
 }
 
-void PortfolioMode::getSchedules(const Property& prop, Schedule& quick)
+void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule& champions)
 {
   switch(env.options->schedule()) {
   case Options::Schedule::FILE:
@@ -335,7 +346,7 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick)
 
   case Options::Schedule::CASC_2025:
   case Options::Schedule::CASC:
-    Schedules::getCasc2025Schedule(prop,quick);
+    Schedules::getCasc2025Schedule(prop,quick,champions);
     break;
 
   case Options::Schedule::CASC_SAT_2025:
