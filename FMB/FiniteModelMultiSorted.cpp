@@ -1029,7 +1029,7 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
   }
 }
 
-bool FiniteModelMultiSorted::evaluate(Unit* unit)
+bool FiniteModelMultiSorted::evaluate(Unit* unit, bool expectingPartial)
 {
   Formula* formula = 0;
   if(unit->isClause()){
@@ -1048,7 +1048,11 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
   formula = SimplifyFalseTrue::simplify(formula);
 
   DHMap<unsigned,unsigned> subst;
-  return evaluateFormula(formula,subst);
+  bool res = evaluateFormula(formula,subst);
+  if (!expectingPartial && (_implicitlyEliminatedFunctions.size() > 0 || _implicitlyEliminatedPredicates.size() > 0)) {
+    USER_ERROR("Encountered an undefined symbol while evaluating a Unit");
+  }
+  return res;
 }
 
 /**
