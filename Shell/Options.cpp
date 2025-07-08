@@ -3449,6 +3449,7 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_proof);
     forbidden.insert(&_inputSyntax);
     forbidden.insert(&_multicore);
+    forbidden.insert(&_statistics);
 #if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
