@@ -180,8 +180,7 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
   // take the respective schedules from our "Tablets of Stone"
   Schedule main;
-  Schedule fallback;
-  getSchedules(prop,main,fallback);
+  getSchedules(prop,main);
   
   /** 
    * The idea next is to create extra schedules based on the just loaded ones
@@ -237,41 +236,11 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
     }
   };
 
-  // now various ways of creating schedule extension based on their "age and flavour"
-  if (env.options->schedule() == Options::Schedule::CASC) {
-
-    schedule.loadFromIterator(main.iterFifo());
-    schedule.loadFromIterator(fallback.iterFifo());
-
-  } else if (env.options->schedule() == Options::Schedule::CASC_SAT) {
-
-    schedule.loadFromIterator(main.iterFifo());
-    schedule.loadFromIterator(fallback.iterFifo());
-
-  } else if (env.options->schedule() == Options::Schedule::SMTCOMP) {
-    // Normally we do main fallback main_extra fallback_extra
-    // However, in SMTCOMP mode the fallback is universal for all
-    // logics e.g. it's not very strong. Therefore, in SMTCOMP
-    // mode we do main main_extra fallback fallback_extra
-
+  if (env.options->schedule() == Options::Schedule::SMTCOMP) {
     schedule.loadFromIterator(main.iterFifo());
     additionsSinceTheLastSpiderings(main,schedule);
-    schedule.loadFromIterator(fallback.iterFifo());
-    additionsSinceTheLastSpiderings(fallback,schedule);
-
-  } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_UNS) {
-    ASS(fallback.isEmpty());
-
-    schedule.loadFromIterator(main.iterFifo());
-  } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_SAT) {
-    ASS(fallback.isEmpty());
-
-    schedule.loadFromIterator(main.iterFifo());
-  } else {
-    // all other schedules just get loaded plain
-
-    schedule.loadFromIterator(main.iterFifo());
-    schedule.loadFromIterator(fallback.iterFifo());
+  } else { // all other schedules get loaded plain
+    schedule = std::move(main);
   }
 
   if (schedule.isEmpty()) {
@@ -350,7 +319,7 @@ void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::
   }
 }
 
-void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule& fallback)
+void PortfolioMode::getSchedules(const Property& prop, Schedule& quick)
 {
   switch(env.options->schedule()) {
   case Options::Schedule::FILE:
@@ -366,25 +335,25 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
 
   case Options::Schedule::CASC_2025:
   case Options::Schedule::CASC:
-    Schedules::getCasc2025Schedule(prop,quick,fallback);
+    Schedules::getCasc2025Schedule(prop,quick);
     break;
 
   case Options::Schedule::CASC_SAT_2025:
   case Options::Schedule::CASC_SAT:
-    Schedules::getCascSat2025Schedule(prop,quick,fallback);
+    Schedules::getCascSat2025Schedule(prop,quick);
     break;
 
   case Options::Schedule::CASC_2024:
-    Schedules::getCasc2024Schedule(prop,quick,fallback);
+    Schedules::getCasc2024Schedule(prop,quick);
     break;
 
   case Options::Schedule::CASC_SAT_2024:
-    Schedules::getCascSat2024Schedule(prop,quick,fallback);
+    Schedules::getCascSat2024Schedule(prop,quick);
     break;
 
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:
-    Schedules::getSmtcomp2018Schedule(prop,quick,fallback);
+    Schedules::getSmtcomp2018Schedule(prop,quick);
     break;
 
   case Options::Schedule::LTB_HH4_2017:
@@ -403,19 +372,19 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getLtb2017DefaultSchedule(prop,quick);
     break;
   case Options::Schedule::INDUCTION:
-    Schedules::getInductionSchedule(prop,quick,fallback);
+    Schedules::getInductionSchedule(prop,quick);
     break;
   case Options::Schedule::INTEGER_INDUCTION:
-    Schedules::getIntegerInductionSchedule(prop,quick,fallback);
+    Schedules::getIntegerInductionSchedule(prop,quick);
     break;
   case Options::Schedule::INTIND_OEIS:
-    Schedules::getIntindOeisSchedule(prop,quick,fallback);
+    Schedules::getIntindOeisSchedule(prop,quick);
     break;
   case Options::Schedule::STRUCT_INDUCTION:
-    Schedules::getStructInductionSchedule(prop,quick,fallback);
+    Schedules::getStructInductionSchedule(prop,quick);
     break;
   case Options::Schedule::STRUCT_INDUCTION_TIP:
-    Schedules::getStructInductionTipSchedule(prop,quick,fallback);
+    Schedules::getStructInductionTipSchedule(prop,quick);
     break;
   }
 }

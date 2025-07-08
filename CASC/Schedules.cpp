@@ -66,7 +66,7 @@ void Schedules::getScheduleFromFile(const std::string& filename, Schedule& quick
 
 // Regex matching the first part of a strategy ([a-z]{3}[\+\-][0-9]+_([0-9]+:){0,1}[0-9]+_)
 
-void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick)
 {
   switch (property.getSMTLIBLogic()) {
   case SMTLIBLogic::AUFDTLIA:
@@ -367,7 +367,6 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs+1010_2:3_drc=ordering:aac=none:acc=on:add=off:afr=on:afp=40000:afq=1.0:amm=sco:anc=none:bs=unit_only:bce=on:ccuc=first:fsr=off:fde=unused:gs=on:gsem=off:ile=on:nm=4:nwc=1:stl=30:sos=on:sp=reverse_arity:uhcvi=on_148");
     break;
 
-    
   case SMTLIBLogic::AUFNIRA:
     quick.push("dis+11_2_drc=ordering:add=large:afp=1000:afq=1.1:anc=none:fsr=off:fde=none:ile=on:irw=on:lma=on:nm=64:nwc=1:sas=z3:sos=all:sac=on_5");
     quick.push("lrs+10_8_drc=ordering:afr=on:afp=4000:afq=1.1:amm=sco:anc=none:bsr=on:cond=on:gs=on:gsem=off:irw=on:lma=on:nm=64:newcnf=on:nwc=1:nicw=on:sas=z3:stl=30:sac=on:tha=off:urr=on:updr=off_2");
@@ -499,6 +498,8 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
   case SMTLIBLogic::UNDEFINED:
     throw UserErrorException("This version cannot be used with this logic!");
   }
+
+  Schedule& fallback = quick;
 
   fallback.push("dis+1002_5:1_drc=ordering:aac=none:afr=on:afp=4000:afq=1.1:amm=sco:anc=none:bsr=on:br=off:cond=on:fsr=off:gsp=on:gs=on:gsem=on:inw=on:ile=on:irw=on:lma=on:nm=32:newcnf=on:nwc=1.1:sas=z3:sp=reverse_arity:tha=off:urr=on_600");
   fallback.push("lrs+1011_3:1_drc=ordering:aac=none:add=large:afp=1000:afq=2.0:fsr=off:gs=on:gsaa=from_current:gsem=on:ile=on:nm=4:nwc=1.5:sas=z3:sp=reverse_arity:tha=off:uwa=interpreted_only:uhcvi=on_300");
@@ -1329,13 +1330,13 @@ void Schedules::getLtb2017DefaultSchedule(const Property& property, Schedule& sc
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
-void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
+void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& quick) {
   bool struct_induction = (property.props() & (Property::PR_HAS_DT_CONSTRUCTORS | Property::PR_HAS_CDT_CONSTRUCTORS));
   bool integer_induction = (property.props() & Property::PR_HAS_INTEGERS);
   if (!struct_induction && integer_induction) {
-    getIntegerInductionSchedule(property, quick, fallback);
+    getIntegerInductionSchedule(property, quick);
   } else if (struct_induction && !integer_induction) {
-    getStructInductionSchedule(property, quick, fallback);
+    getStructInductionSchedule(property, quick);
   } else if (struct_induction && integer_induction) {
     quick.push("dis+1002_1_drc=ordering:aac=none:anc=all:ind=both:sos=theory:sac=on:sstl=1:to=lpo_30");
     quick.push("lrs+10_1_drc=ordering:av=off:br=off:ind=both:urr=on_89");
@@ -1371,7 +1372,7 @@ void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& 
     quick.push("lrs+10_1_drc=ordering_90");
   }
 
-  fallback.push("lrs+10_1_drc=ordering_50");
+  quick.push("lrs+10_1_drc=ordering_50");
 }
 
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
@@ -1380,7 +1381,7 @@ void Schedules::getInductionSchedule(const Shell::Property& property, Schedule& 
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
-void Schedules::getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
+void Schedules::getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick) {
   quick.push("lrs+10_1_drc=ordering:iik=one:ind=int:indoct=on_100");
   quick.push("lrs+11_1_drc=off:iik=one:ind=int:indoct=on:sos=theory:sstl=1:to=lpo:uwa=one_side_interpreted_100");
   quick.push("lrs+10_1_asg=force:canc=force:drc=off:ev=force:gve=force:iik=one:ind=int:indmd=1:intindstcomp=none:pum=on:to=lpo:urr=on_100");
@@ -1403,10 +1404,10 @@ void Schedules::getIntegerInductionSchedule(const Shell::Property& property, Sch
   quick.push("lrs+10_1_drc=ordering:iik=one:ind=int_30");
   quick.push("lrs+4_5_drc=off:iik=one:ind=int:plsq=on:to=lpo_100");
 
-  fallback.push("lrs+10_1_drc=ordering:iik=one:ind=int_50");
+  quick.push("lrs+10_1_drc=ordering:iik=one:ind=int_50");
 }
 
-void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
+void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule& quick) {
   // oeisBenchConverted_shuf_4241.txt (fitting to 1/7th of the whole benchmark, that is to 4241 problems)
   // Sub-schedule for 10000Mi strat cap / 10000Mi overall limit
    quick.push("ott+1011_1:1_alpa=false:asg=cautious:drc=off:ins=1:sac=on:sp=unary_frequency:thi=overlap:to=lpo:uwa=interpreted_only:i=492:si=on:rtra=on_0");
@@ -1621,7 +1622,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
 // quicksort/sortedness/lemma6:         lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on:indao=on_89
 // quicksort/sortedness/lemma7:         lrs+10_1_ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence:indao=on:nui=on_89
 
-void Schedules::getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
+void Schedules::getStructInductionSchedule(const Shell::Property& property, Schedule& quick) {
   // Ran on all_fair.txt
   // Sub-schedule for 2000Mi strat cap / 2000Mi overall limit
    quick.push("ott+10_1:4_av=off:drc=off:ind=struct:indgen=on:newcnf=on:nui=on:uwa=ground:i=10:si=on:rtra=on_0");
@@ -1847,7 +1848,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
   // Overall score 6682.615103801281 probs on average / budget 3780367 Mi
 }
 
-void Schedules::getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
+void Schedules::getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick) {
   // Ran on tipvampire231219_nolemmas.txt
   // Sub-schedule for 2000Mi strat cap / 2000Mi overall limit
    quick.push("lrs+10_1:1024_drc=ordering:fnrw=on:gtg=all:gtgl=3:ind=struct:indao=on:indc=goal:indoct=on:newcnf=on:sac=on:sp=unary_first:i=43:si=on:rtra=on_0");
@@ -3914,7 +3915,7 @@ void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedul
   // Overall score 2081.1804482430707 probs on average / budget 9091993 Mi
 }
 
-void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick)
 {
   unsigned atoms = property.atoms();
   Property::Category cat = property.category();
@@ -3927,6 +3928,8 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
 
   } else if (cat == Property::Category::UEQ) {
     // The UEQ division: Unit EQuality clause normal form theo rems (unsatisfiable clause sets)
+
+    Schedule fallback;
 
     auto [propZsmall10,propZbig10,propNZsmall14,propNZbig14] = (props == 0) ?
         (atoms <= 10 ? std::tie(quick,fallback,fallback,fallback) : std::tie(fallback,quick,fallback,fallback)) :
@@ -4133,6 +4136,8 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
 
     // total_instr 925697
     // len(covered) 138
+
+    quick.fromIterator(fallback.iterFifo());
 
   } else {
     // The FOF division: First-Order Form theorems (axioms with a provable conjecture).
@@ -4903,77 +4908,77 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     if (cat == Property::FNE) {
       quick = std::move(fne);
 
-      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
-      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
-      fallback.loadFromIterator(feqAtomsG180.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      quick.loadFromIterator(feqAtomsG18000.iterFifo());
+      quick.loadFromIterator(feqAtomsG2800.iterFifo());
+      quick.loadFromIterator(feqAtomsG180.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
 
     } else if (atoms > 18000) {
       quick = std::move(feqAtomsG18000);
 
-      fallback.loadFromIterator(fne.iterFifo());
-      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
-      fallback.loadFromIterator(feqAtomsG180.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      quick.loadFromIterator(fne.iterFifo());
+      quick.loadFromIterator(feqAtomsG2800.iterFifo());
+      quick.loadFromIterator(feqAtomsG180.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
 
     } else if (atoms > 2800) {
       quick = std::move(feqAtomsG2800);
 
-      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
-      fallback.loadFromIterator(feqAtomsG180.iterFifo());
-      fallback.loadFromIterator(fne.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      quick.loadFromIterator(feqAtomsG18000.iterFifo());
+      quick.loadFromIterator(feqAtomsG180.iterFifo());
+      quick.loadFromIterator(fne.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
 
     } else if (atoms > 180) {
       quick = std::move(feqAtomsG180);
 
-      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
-      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
-      fallback.loadFromIterator(fne.iterFifo());
+      quick.loadFromIterator(feqAtomsG2800.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      quick.loadFromIterator(feqAtomsG18000.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      quick.loadFromIterator(fne.iterFifo());
 
     } else if (props == 0) {
       quick = std::move(feqAtomsL180propZ);
 
-      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
-      fallback.loadFromIterator(feqAtomsG180.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
-      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
-      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
-      fallback.loadFromIterator(fne.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      quick.loadFromIterator(feqAtomsG180.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      quick.loadFromIterator(feqAtomsG2800.iterFifo());
+      quick.loadFromIterator(feqAtomsG18000.iterFifo());
+      quick.loadFromIterator(fne.iterFifo());
 
     } else if (atoms > 50) {
       quick = std::move(feqAtomsL180propNZatomsG50);
 
-      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
-      fallback.loadFromIterator(feqAtomsG180.iterFifo());
-      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
-      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
-      fallback.loadFromIterator(fne.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      quick.loadFromIterator(feqAtomsG180.iterFifo());
+      quick.loadFromIterator(feqAtomsG2800.iterFifo());
+      quick.loadFromIterator(feqAtomsG18000.iterFifo());
+      quick.loadFromIterator(fne.iterFifo());
 
     } else {
       quick = std::move(feqAtomsL180propNZtiny);
 
-      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
-      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
-      fallback.loadFromIterator(feqAtomsG180.iterFifo());
-      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
-      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
-      fallback.loadFromIterator(fne.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      quick.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      quick.loadFromIterator(feqAtomsG180.iterFifo());
+      quick.loadFromIterator(feqAtomsG2800.iterFifo());
+      quick.loadFromIterator(feqAtomsG18000.iterFifo());
+      quick.loadFromIterator(fne.iterFifo());
     }
   }
 }
 
-void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick)
 {
   // The TFN division: Typed (monomorphic) First-order Non-theorems (axioms with a countersatisfiable conjecture, and satisfiable axiom sets).
 
@@ -5198,7 +5203,7 @@ void Schedules::getAlascaAwareAriSchedule(const Shell::Property& property, Sched
 }
 
 
-void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick)
 {
   unsigned atoms = property.atoms();
   Property::Category cat = property.category();
@@ -5381,7 +5386,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
 
 }
 
-void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick)
 {
   quick.push("fmb+10_1:1_drc=ordering:sil=256000:i=98885:tgt=full:fmbsr=1.3:fmbss=10:sas=cadical_0");
   quick.push("ott+10_10:1_drc=ordering:add=off:afr=on:amm=off:anc=all:bd=off:bs=on:fsr=off:irw=on:lma=on:msp=off:nm=4:nwc=4.0:sac=on:sp=reverse_frequency:i=99418_0");

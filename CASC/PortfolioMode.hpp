@@ -46,7 +46,7 @@ private:
   unsigned getSliceTime(const std::string &sliceCode);
   bool searchForProof();
   bool prepareScheduleAndPerform(const Shell::Property& prop);
-  void getSchedules(const Property& prop, Schedule& quick, Schedule& fallback);
+  void getSchedules(const Property& prop, Schedule& quick);
 
   bool runSchedule(Schedule schedule);
   bool runScheduleAndRecoverProof(Schedule schedule);
