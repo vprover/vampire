@@ -327,7 +327,7 @@ fModelLabel:
     if(arity>0) continue;
     Signature::Symbol* symb = env.signature->getPredicate(p);
     if(!printIntroduced && symb->introduced()) continue;
-    if(symb->usageCnt() == 0) continue;
+    // if(symb->usageCnt() == 0) continue;
     std::string name = symb->name();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o)."<<endl;
     char res = _p_interpretation[_p_offsets[p]];
