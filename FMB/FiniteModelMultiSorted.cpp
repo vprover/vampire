@@ -983,7 +983,9 @@ void FiniteModelMultiSorted::restoreImplicitlyEliminatedPred(unsigned p)
 
   OperatorType* ot = env.signature->getPredicate(p)->fnType();
   for(;;) {
-    addPredicateDefinition(p,args,false);
+    unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+    if (_p_interpretation[var] == INTP_UNDEF) // default only conditionally (some flips may have already been done)
+      _p_interpretation[var] = INTP_FALSE;
 
     unsigned i;
     for(i=0;i<arity;i++) {
