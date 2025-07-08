@@ -873,8 +873,9 @@ void FiniteModelMultiSorted::restoreEliminatedFunDef(Problem::FunDef* fd)
   }
 
   static DArray<unsigned> args;
-  static DHMap<unsigned,unsigned> subst;
   args.ensure(arity);
+  static DHMap<unsigned,unsigned> subst;
+  subst.reset();
   // start with all 1s
   for(unsigned i=0;i<arity;i++){
     args[i]=1;
@@ -941,8 +942,9 @@ void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
   }
 
   static DArray<unsigned> args;
-  static DHMap<unsigned,unsigned> subst;
   args.ensure(arity);
+  static DHMap<unsigned,unsigned> subst;
+  subst.reset();
   // start with all 1s
   for(unsigned i=0;i<arity;i++){
     args[i]=1;
