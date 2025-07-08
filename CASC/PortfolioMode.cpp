@@ -351,7 +351,7 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
 
   case Options::Schedule::CASC_SAT_2025:
   case Options::Schedule::CASC_SAT:
-    Schedules::getCascSat2025Schedule(prop,quick);
+    Schedules::getCascSat2025Schedule(prop,quick,champions);
     break;
 
   case Options::Schedule::CASC_2024:

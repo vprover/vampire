@@ -31,7 +31,7 @@ public:
   static void getCascSat2024Schedule(const Shell::Property& property, Schedule& quick);
 
   static void getCasc2025Schedule(const Shell::Property& property, Schedule& quick, Schedule& champions);
-  static void getCascSat2025Schedule(const Shell::Property& property, Schedule& quick);
+  static void getCascSat2025Schedule(const Shell::Property& property, Schedule& quick, Schedule& champions);
 
   static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick);
 
