@@ -1113,6 +1113,8 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
       VList* vs = formula->vars();
       SList* ss = formula->sorts(); // let's assume first these are filled
 
+      // cout << "will do FORALL/EXISTS for " << formula->toString() << endl;
+
       unsigned arity = VList::length(vs);
       DArray<unsigned> args;
       DArray<unsigned> old_vals;
@@ -1130,7 +1132,6 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
           srt = ss->head();
           ss = ss->tail();
         } else {
-          TermList srt;
           if(!SortHelper::tryGetVariableSort(var,formula,srt)){
             USER_ERROR("Failed to get sort of "+Lib::Int::toString(var)+" in "+formula->toString());
           }
