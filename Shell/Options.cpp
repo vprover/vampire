@@ -3448,6 +3448,7 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
     forbidden.insert(&_inputSyntax);
+    forbidden.insert(&_multicore);
 #if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
