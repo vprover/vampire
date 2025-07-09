@@ -954,7 +954,7 @@ void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
 
   OperatorType* ot = env.signature->getPredicate(p)->fnType();
   for(;;) {
-    bool val = evaluateFormula(pd->_body,subst);
+    bool val = (evaluateFormula(pd->_body,subst) == pd->_head->isPositive());
     addPredicateDefinition(p,args,val);
 
     unsigned i;
