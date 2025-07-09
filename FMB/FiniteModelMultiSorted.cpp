@@ -1041,10 +1041,12 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 
   DHMap<unsigned,TermList> sortMap;
   SortHelper::collectVariableSorts(cf->_val,sortMap);
+  SortHelper::collectVariableSorts(cf->_cond,sortMap); // in bce, cond can have extra variables; we could treat them existentially, but this may be wrong for _fixedPoint-ers
   unsigned arity = sortMap.size();
 
   // cout << "arity: " << arity << " " << sortMap << endl;
 
+  /*
   // we need to existentially close cond for all variables except those of _val
   VList* freeVars = freeVariables(cf->_cond);
 
@@ -1064,12 +1066,12 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
       }
     }
   }
-
   // cout << "filtered: " << *freeVars << endl;
 
   Formula* closedCond = freeVars ? new QuantifiedFormula(EXISTS,freeVars,0,cf->_cond) : cf->_cond;
 
   // cout << "closedCond: " << closedCond->toString() << endl;
+  */
 
   static DArray<unsigned> vars;
   vars.ensure(arity);
@@ -1107,7 +1109,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
     inner_args.ensure(p_arity);
 
     for(;;) {
-      if (evaluateFormula(closedCond,subst) != cf->_neg) {
+      if (evaluateFormula(cf->_cond,subst) != cf->_neg) {
         // cout << " do the flip for " << args << endl;
         // do the flip
         for(unsigned j=0;j<p_arity;j++){
