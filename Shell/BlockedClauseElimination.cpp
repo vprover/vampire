@@ -54,7 +54,7 @@ void BlockedClauseElimination::apply(Problem& prb)
   TIME_TRACE("blocked clause elimination");
 
   bool modified = false;
-  bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();
+  bool equationally = _forceEquationally || (prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms());
 
   DArray<Stack<Candidate*>> positive(env.signature->predicates());
   DArray<Stack<Candidate*>> negative(env.signature->predicates());
