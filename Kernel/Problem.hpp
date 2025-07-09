@@ -113,8 +113,10 @@ public:
     Formula* _cond;
     bool _neg;
     Literal* _val;
+    bool _fixedPoint;
 
-    CondFlip(Formula* cond, bool neg, Literal* val) : Intereference(IntereferenceKind::COND_FLIP), _cond(cond), _neg(neg), _val(val) {}
+    CondFlip(Formula* cond, bool neg, Literal* val, bool fixedPoint = false)
+      : Intereference(IntereferenceKind::COND_FLIP), _cond(cond), _neg(neg), _val(val), _fixedPoint(fixedPoint) {}
 
     void outputDefinition(std::ostream&) override;
   };

@@ -1087,49 +1087,58 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
     i++;
   }
 
-  static DHMap<unsigned,unsigned> subst;
-  static DArray<unsigned> args;
-  args.ensure(arity);
-  // start with all 1s
-  for(unsigned i=0;i<arity;i++){
-    args[i]=1;
-    subst.set(vars[i],args[i]);
-  }
+  bool flipped;
+  do {
+    flipped = false;
 
-  unsigned p = cf->_val->functor();
-  ASS_NEQ(p,0) // equality cannot be flipped!
-  unsigned p_arity = env.signature->predicateArity(p);
-  static DArray<unsigned> inner_args;
-  inner_args.ensure(p_arity);
-
-  for(;;) {
-    if (evaluateFormula(closedCond,subst) != cf->_neg) {
-      // cout << " do the flip for " << args << endl;
-      // do the flip
-      for(unsigned j=0;j<p_arity;j++){
-        inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst);
-      }
-      unsigned var = args2var(inner_args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
-      ASS_L(var, _p_interpretation.size());
-      // cout << " before " << (unsigned)_p_interpretation[var] << endl;
-      _p_interpretation[var] = (cf->_val->isPositive() ? INTP_TRUE : INTP_FALSE);
-      // cout << "  after " << (unsigned)_p_interpretation[var] << endl;
+    static DHMap<unsigned,unsigned> subst;
+    static DArray<unsigned> args;
+    args.ensure(arity);
+    // start with all 1s
+    for(unsigned i=0;i<arity;i++){
+      args[i]=1;
+      subst.set(vars[i],args[i]);
     }
 
-    unsigned i;
-    for(i=0;i<arity;i++) {
-      args[i]++;
-      if(args[i] <= _sizes[sorts[i]]) {
-        subst.set(vars[i],args[i]); // update subst with the inc
+    unsigned p = cf->_val->functor();
+    ASS_NEQ(p,0) // equality cannot be flipped!
+    unsigned p_arity = env.signature->predicateArity(p);
+    static DArray<unsigned> inner_args;
+    inner_args.ensure(p_arity);
+
+    for(;;) {
+      if (evaluateFormula(closedCond,subst) != cf->_neg) {
+        // cout << " do the flip for " << args << endl;
+        // do the flip
+        for(unsigned j=0;j<p_arity;j++){
+          inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst);
+        }
+        unsigned var = args2var(inner_args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+        ASS_L(var, _p_interpretation.size());
+
+        char before = _p_interpretation[var];
+        char after = (cf->_val->isPositive() ? INTP_TRUE : INTP_FALSE);
+        // cout << " before " << (unsigned)_p_interpretation[var] << endl;
+        _p_interpretation[var] = after;
+        // cout << "  after " << (unsigned)_p_interpretation[var] << endl;
+        flipped |= (before != after);
+      }
+
+      unsigned i;
+      for(i=0;i<arity;i++) {
+        args[i]++;
+        if(args[i] <= _sizes[sorts[i]]) {
+          subst.set(vars[i],args[i]); // update subst with the inc
+          break;
+        }
+        args[i]=1;
+        subst.set(vars[i],args[i]); // update subst with the dec
+      }
+      if (i == arity) {
         break;
       }
-      args[i]=1;
-      subst.set(vars[i],args[i]); // update subst with the dec
     }
-    if (i == arity) {
-      break;
-    }
-  }
+  } while (cf->_fixedPoint && flipped);
   // cout << endl;
 }
 

@@ -210,7 +210,11 @@ void Problem::GlobalFlip::outputDefinition(std::ostream& out)
 
 void Problem::CondFlip::outputDefinition(std::ostream& out)
 {
-  out << "for all groundings,\n    whenever " << _cond->toString() << " is "
+  out << "for all groundings,";
+  if (_fixedPoint) {
+    out << " until fixed point,";
+  }
+  out << "\n    whenever " << _cond->toString() << " is "
     << (_neg ? "false" : "true") <<  ", set " << _val->toString() << " to true" << std::endl;
 }
 
@@ -341,7 +345,16 @@ void Problem::addEliminatedBlockedClause(Clause* cl, unsigned blockedLiteralInde
   Literal* bll = (*cl)[blockedLiteralIndex];
   Formula* cond= Formula::fromClause(cl,/* closed= */false);
 
-  auto res = new CondFlip(cond,true,bll);
+  bool needsFixpoint = false;
+  for (unsigned i = 0; i < cl->size(); i++) {
+    Literal* other = (*cl)[i];
+    if (other->functor() == bll->functor() && other->polarity() != bll->polarity()) {
+      needsFixpoint = true;
+      break;
+    }
+  }
+
+  auto res = new CondFlip(cond,true,bll,needsFixpoint);
 
   intereferences.push(res);
 }
