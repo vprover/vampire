@@ -102,7 +102,7 @@ public:
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual void insertSuperposition(
-    Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
+    Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual bool handleResolution(
@@ -134,7 +134,7 @@ public:
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
 
   void insertSuperposition(
-    Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
+    Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const override;
 
   /** Returns false if resolution should be skipped. */
@@ -144,9 +144,8 @@ public:
   void checkEquations(Clause* cl) const override;
 
 private:
-  bool isSuperpositionPremiseRedundant(
-    Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
-    const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
+  bool compareWithSuperpositionPremise(
+    Clause* rwCl, Literal* rwLitS, TermList rwTerm, TermList rwTermS, TermList tgtTermS, Clause* eqCl, TermList eqLHS, OrderingConstraints& cons) const;
 
   LiteralSet getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
 
