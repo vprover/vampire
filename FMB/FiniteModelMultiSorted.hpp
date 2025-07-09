@@ -112,6 +112,7 @@ private:
   void restoreImplicitlyEliminatedFun(unsigned f);
   void restoreEliminatedPredDef(Problem::PredDef*);
   void restoreImplicitlyEliminatedPred(unsigned p);
+  void restoreGlobalPredicateFlip(Problem::GlobalFlip*);
   void restoreViaCondFlip(Problem::CondFlip*);
 
   Formula* partialEvaluate(Formula* formula);

@@ -1002,6 +1002,39 @@ void FiniteModelMultiSorted::restoreImplicitlyEliminatedPred(unsigned p)
   }
 }
 
+void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
+{
+  unsigned p = gf->_pred;
+  unsigned arity = env.signature->predicateArity(p);
+
+  static DArray<unsigned> args;
+  args.ensure(arity);
+  // start with all 1s
+  for(unsigned i=0;i<arity;i++){ args[i]=1;}
+
+  OperatorType* ot = env.signature->getPredicate(p)->fnType();
+  for(;;) {
+    unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+    if (_p_interpretation[var] == INTP_TRUE) {
+      _p_interpretation[var] = INTP_FALSE;
+    } else { // includes INTP_UNDEF, which is implicitly false
+      _p_interpretation[var] = INTP_TRUE;
+    }
+
+    unsigned i;
+    for(i=0;i<arity;i++) {
+      args[i]++;
+      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
+        break;
+      }
+      args[i]=1;
+    }
+    if (i == arity) {
+      break;
+    }
+  }
+}
+
 void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 {
   // cf->outputDefinition(cout);
@@ -1111,6 +1144,9 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
         break;
       case Problem::IntereferenceKind::PRED_DEF:
         restoreEliminatedPredDef(static_cast<Problem::PredDef*>(i));
+        break;
+      case Problem::IntereferenceKind::GLOB_FLIP:
+        restoreGlobalPredicateFlip(static_cast<Problem::GlobalFlip*>(i));
         break;
       case Problem::IntereferenceKind::COND_FLIP:
         restoreViaCondFlip(static_cast<Problem::CondFlip*>(i));

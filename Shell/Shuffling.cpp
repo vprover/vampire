@@ -49,6 +49,7 @@ void Shuffling::polarityFlip(Problem& prb)
       flippage[p] = Random::getBit();
       if (flippage[p]) {
         pSymb->markFlipped();
+        prb.addFlippedPredicate(p);
       }
     } else {
       flippage[p] = false;

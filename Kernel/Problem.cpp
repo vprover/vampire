@@ -202,6 +202,12 @@ void Problem::PredDef::outputDefinition(std::ostream& out)
   out << "for all inputs,\n    define " << _head->toString() << " := " << _body->toString() << std::endl;
 }
 
+void Problem::GlobalFlip::outputDefinition(std::ostream& out)
+{
+  out << "globally flip the polarity of every occurrence of predicate \""
+    << env.signature->predicateName(_pred) << "\"" << std::endl;
+}
+
 void Problem::CondFlip::outputDefinition(std::ostream& out)
 {
   out << "for all groundings,\n    whenever " << _cond->toString() << " is "
@@ -296,6 +302,14 @@ void Problem::addEliminatedPredicate(unsigned pred, Formula* def)
 
   auto res = new PredDef(lhs->literal(),rhs);
   intereferences.push(res);
+}
+
+/**
+ * Register a predicate with flipped polarity.
+ */
+void Problem::addFlippedPredicate(unsigned pred)
+{
+  intereferences.push(new GlobalFlip(pred));
 }
 
 /**

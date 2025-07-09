@@ -73,7 +73,8 @@ public:
   enum class IntereferenceKind : unsigned char {
     FUN_DEF = 0,
     PRED_DEF = 1,
-    COND_FLIP = 2,
+    GLOB_FLIP = 2,  // backs up random_polarities
+    COND_FLIP = 3,  // backs up partially  predicates (Plaisted-Greenbaum-style p<=>q reduced to, e.g. p=>q) and eliminated blocked clauses
   };
 
   /* Intereference (satisfiability-preserving-only transformations) recording */
@@ -100,6 +101,14 @@ public:
     void outputDefinition(std::ostream&) override;
   };
 
+  struct GlobalFlip : public Intereference {
+    unsigned _pred;
+
+    GlobalFlip(unsigned pred) : Intereference(IntereferenceKind::GLOB_FLIP), _pred(pred) {}
+
+    void outputDefinition(std::ostream&) override;
+  };
+
   struct CondFlip : public Intereference {
     Formula* _cond;
     bool _neg;
@@ -119,6 +128,7 @@ public:
   void addTrivialPredicate(unsigned pred, bool assignment);
   void addPartiallyEliminatedPredicate(unsigned pred, Formula* remainingImplication);
   void addEliminatedPredicate(unsigned pred, Formula* definition);
+  void addFlippedPredicate(unsigned pred);
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedBlockedClause(Clause* cl, unsigned blockedLiteralIndex);
 
