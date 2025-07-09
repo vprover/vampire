@@ -1872,6 +1872,9 @@ void FiniteModelBuilder::onModelFound()
     return;
   }
 
+  // Prevent timing out whilst the model is being printed
+  Timer::disableLimitEnforcement();
+
   reportSpiderStatus('-');
   if(outputAllowed()){
     cout << "% Finite Model Found!" << endl;
@@ -1883,8 +1886,6 @@ void FiniteModelBuilder::onModelFound()
         << " for " << _opt.problemName() << endl << flush;
     UIHelper::satisfiableStatusWasAlreadyOutput = true;
   }
-  // Prevent timing out whilst the model is being printed
-  Timer::disableLimitEnforcement();
 
   DArray<unsigned> vampireSortSizes;
   vampireSortSizes.ensure(env.signature->typeCons());
