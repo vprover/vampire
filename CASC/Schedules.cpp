@@ -5205,9 +5205,7 @@ void Schedules::getAlascaAwareAriSchedule(const Shell::Property& property, Sched
 
 void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, Schedule& champions)
 {
-  unsigned atoms = property.atoms();
   Property::Category cat = property.category();
-  unsigned long props = property.props();
 
   if (property.hasNumerals() || property.hasInterpretedOperations()) {
     // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).

@@ -1231,7 +1231,7 @@ DHMap<std::string,std::string> Property::toDict() const
 
   result.set("@cat",categoryString());
   for (unsigned i = 1, n = 2; i <= 25; i++, n *= 2){
-    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString(unsigned(atoms() <= n)));
+    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString((unsigned)atoms() <= n));
   }
   return result;
 } // Property::toDict
