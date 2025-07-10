@@ -461,7 +461,7 @@ void UIHelper::outputResult(std::ostream& out)
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
       ASS(refutation->isClause());
-      AnswerLiteralManager::getInstance()->tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation),std::cout);
+      AnswerLiteralManager::getInstance()->tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation),out);
     }
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
       ASS(refutation->isClause());
