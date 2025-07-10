@@ -1158,6 +1158,13 @@ void Options::init()
     _lookup.insert(&_lrsRetroactiveDeletes);
     _lrsRetroactiveDeletes.tag(OptionTag::LRS);
 
+    _lrsPreemptiveDeletes = BoolOptionValue("lrs_preemptive_deletes","lpd",true);
+    _lrsPreemptiveDeletes.description = "If false, LRS will not use limits to delete clauses entering passive."
+     " (Only the retroactive deletes might apply.)";
+    _lrsPreemptiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _lookup.insert(&_lrsPreemptiveDeletes);
+    _lrsPreemptiveDeletes.tag(OptionTag::LRS);
+
     _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
     "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
@@ -3450,6 +3457,7 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_inputSyntax);
     forbidden.insert(&_multicore);
     forbidden.insert(&_statistics);
+    forbidden.insert(&_forcedOptions);
 #if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
