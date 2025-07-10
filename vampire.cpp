@@ -686,14 +686,14 @@ void interactiveMetamode()
       prb = UIHelper::getInputProblem();
     } else if (line.rfind("tptp ",0) == 0) {
       try {
-        UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::TPTP);
+        UIHelper::parseString(line.substr(5),Options::InputSyntax::TPTP);
         prb = UIHelper::getInputProblem();
       } catch (ParsingRelatedException& exception) {
         explainException(exception);
       }
     } else if (line.rfind("smt2 ",0) == 0) {
       try {
-        UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::SMTLIB2);
+        UIHelper::parseString(line.substr(5),Options::InputSyntax::SMTLIB2);
         prb = UIHelper::getInputProblem();
       } catch (ParsingRelatedException& exception) {
         explainException(exception);

@@ -237,7 +237,7 @@ void UIHelper::tryParseSMTLIB2(istream& input)
 #endif
 }
 
-void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyntax inputSyntax)
+void UIHelper::parseString(const std::string& lineToParse, Options::InputSyntax inputSyntax)
 {
   LoadedPiece newPiece = _loadedPieces.top();  // copy everything
   newPiece._id = lineToParse;

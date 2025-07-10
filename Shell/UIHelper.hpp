@@ -48,7 +48,7 @@ private:
   static void tryParseTPTP(std::istream& input);
   static void tryParseSMTLIB2(std::istream& input);
 public:
-  static void parseSingleLine(const std::string& lineToParse, Options::InputSyntax inputSyntax);
+  static void parseString(const std::string& lineToParse, Options::InputSyntax inputSyntax);
 
   static void parseStream(std::istream& input, Options::InputSyntax inputSyntax, bool verbose, bool preferSMTonAuto);
   static void parseStandardInput(Options::InputSyntax inputSyntax);
