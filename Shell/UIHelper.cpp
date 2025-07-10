@@ -237,10 +237,10 @@ void UIHelper::tryParseSMTLIB2(istream& input)
 #endif
 }
 
-void UIHelper::parseString(const std::string& lineToParse, Options::InputSyntax inputSyntax)
+void UIHelper::parseString(const std::string& tag, const std::string& lineToParse, Options::InputSyntax inputSyntax)
 {
   LoadedPiece newPiece = _loadedPieces.top();  // copy everything
-  newPiece._id = lineToParse;
+  newPiece._id = tag;
   _loadedPieces.push(std::move(newPiece));
 
   ScopedLet<ExecutionPhase> localAssing(env.statistics->phase,ExecutionPhase::PARSING);
@@ -382,6 +382,17 @@ Problem* UIHelper::getInputProblem()
     HOL_ERROR;
 
   env.setMainProblem(res);
+  return res;
+}
+
+std::vector<std::string> UIHelper::getLoadedPiecesTags()
+{
+  std::vector<std::string> res;
+  res.reserve(_loadedPieces.size()-1);
+  auto it = _loadedPieces.iterFifo();
+  while (it.hasNext()) {
+    res.push_back(it.next()._id);
+  }
   return res;
 }
 
