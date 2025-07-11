@@ -19,7 +19,7 @@
 
 #include "Vampire.hpp"
 
-namespace Vampire {
+namespace Interface {
 
 using namespace Lib;
 using namespace Kernel;
@@ -52,4 +52,4 @@ bool popTeories(unsigned popCnt) {
 }
 
 
-} //namespace Vampire
+} //namespace Interface
