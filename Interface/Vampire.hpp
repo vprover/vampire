@@ -34,7 +34,7 @@ enum class ProverStatus : unsigned {
     SUCCEEDED, // proof / answer / saturated set / finite model / ... to pick up via getSolution()
     FAILED,    // timeout / another resource-out / saturated by incomplete strategy / error
     SIGNALLED, // can call lastSignal to check its number
-    ERROR,     // waitpid misbehabed; will need debugging!
+    ERROR,     // probably waitpid misbehabed; will need debugging!
 };
 
 ProverStatus getStatus();

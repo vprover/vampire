@@ -12,6 +12,8 @@
  * Implements class Vampire.
  */
 
+#include <sys/wait.h>
+
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
@@ -86,8 +88,8 @@ ProverStatus getStatus() {
       }
   } else if (result == -1) {
       perror("waitpid");
-      return ProverStatus::ERROR;
   }
+  return ProverStatus::ERROR;
 }
 
 bool runProver(std::string commandLine) {
