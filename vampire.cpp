@@ -78,8 +78,8 @@ void interactiveMetamode()
           UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
           prb = UIHelper::getInputProblem();
         }
-        Interface::dispatchByMode(prb.ptr());
-        exit(Interface::vampireReturnValue);
+        dispatchByMode(prb.ptr());
+        exit(vampireReturnValue);
       }
     } else if (line.rfind("load",0) == 0) {
       Stack<std::string> pieces;
@@ -200,7 +200,7 @@ int main(int argc, char* argv[])
       }
 #endif
 
-      Interface::dispatchByMode(UIHelper::getInputProblem());
+      dispatchByMode(UIHelper::getInputProblem());
     }
 
 #if CHECK_LEAKS
@@ -210,7 +210,7 @@ int main(int argc, char* argv[])
   }
 #if VZ3
   catch (z3::exception& exception) {
-    Interface::vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     if (outputAllowed()) {
       cout << "Z3 exception:\n" << exception.msg() << endl;
     }
@@ -218,24 +218,24 @@ int main(int argc, char* argv[])
   }
 #endif
   catch (UserErrorException& exception) {
-    Interface::vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
     explainException(exception);
   }
 catch (Parse::TPTP::ParseErrorException& exception) {
-    Interface::vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
     explainException(exception);
   }
   catch (Exception& exception) {
-    Interface::vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
     explainException(exception);
   } catch (std::bad_alloc& _) {
-    Interface::vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
     std::cout << "Insufficient system memory" << '\n';
   }
 
-  return Interface::vampireReturnValue;
+  return vampireReturnValue;
 } // main

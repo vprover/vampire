@@ -18,8 +18,6 @@
 
 #include "Kernel/Problem.hpp"
 
-namespace Interface {
-
 /**
  * Return value is non-zero unless we were successful.
  *
@@ -41,7 +39,5 @@ namespace Interface {
 extern int vampireReturnValue;
 
 void dispatchByMode(Kernel::Problem* problem);
-
-}
 
 #endif /* __Modes__ */

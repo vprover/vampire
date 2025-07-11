@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-namespace Interface {
+namespace Vampire {
 
 void init(); // please call this at the start
 bool loadTPTP(std::string tag, std::string theory); // returns true on success; state should remain consistent anyway
@@ -31,4 +31,4 @@ bool runProver(std::string commandLine); // will only return true and actually r
 
 }
 
-#endif /* __Interface__ */
+#endif /* __Vampire__ */

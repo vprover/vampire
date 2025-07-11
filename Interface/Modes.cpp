@@ -48,8 +48,6 @@ using namespace std;
 
 #include "FMB/ModelCheck.hpp"
 
-namespace Interface {
-
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -220,7 +218,7 @@ void preprocessMode(Problem* problem, bool theory)
 void modelCheckMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
-  
+
   if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
@@ -461,7 +459,7 @@ void clausifyMode(Problem* problem, bool theory)
     auto c = Clause::fromLiterals({
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
-      }, 
+      },
       NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
     std::cout << TPTPPrinter::toString(c) << "\n";
   }
@@ -603,4 +601,3 @@ void dispatchByMode(Problem* problem)
   }
 }
 
-} //namespace Interface

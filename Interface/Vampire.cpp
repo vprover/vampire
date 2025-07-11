@@ -26,7 +26,7 @@
 #include "Vampire.hpp"
 #include "Modes.hpp"
 
-namespace Interface {
+namespace Vampire {
 
 using namespace Lib;
 using namespace Kernel;
@@ -88,4 +88,4 @@ bool runProver(std::string commandLine) {
 }
 
 
-} //namespace Interface
+} //namespace Vampire
