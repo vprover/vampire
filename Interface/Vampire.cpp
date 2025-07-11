@@ -58,13 +58,48 @@ bool popTeories(unsigned popCnt) {
   return res;
 }
 
+static int last_signal = 0;
+static pid_t proving_child = 0;
+
+ProverStatus getStatus() {
+  if (proving_child == 0) {
+    return ProverStatus::READY;
+  }
+
+  int status;
+  pid_t result = waitpid(proving_child, &status, WNOHANG);
+
+  if (result == 0) {
+      return ProverStatus::RUNNING;
+  } else if (result == proving_child) {
+      // Child has exited (or changed state)
+      if (WIFEXITED(status)) {
+          int exit_code = WEXITSTATUS(status);
+          if (exit_code == 0) {
+            return ProverStatus::SUCCEEDED;
+          } else {
+            return ProverStatus::FAILED;
+          }
+      } else if (WIFSIGNALED(status)) {
+          last_signal = WTERMSIG(status);
+          return ProverStatus::SIGNALLED;
+      }
+  } else if (result == -1) {
+      perror("waitpid");
+      return ProverStatus::ERROR;
+  }
+}
+
 bool runProver(std::string commandLine) {
   Options& opts = *Lib::env.options;
+
+  if (!proving_child) {
+    return false;
+  }
 
   pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
   ASS_NEQ(process, -1);
   if(process == 0) {
-    Timer::reinitialise(); // start our timer (in the child)
     UIHelper::unsetExpecting(); // probably garbage at this point
 
     Stack<std::string> pieces;
@@ -76,15 +111,21 @@ bool runProver(std::string commandLine) {
     }
     Shell::CommandLine cl(argv.size(), argv.begin());
     cl.interpret(opts);
+
+    Timer::reinitialise(); // start our timer (in the child)
+
     if (!opts.inputFile().empty()) {
       UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
       prb = UIHelper::getInputProblem();
     }
+
     dispatchByMode(prb.ptr());
     exit(vampireReturnValue);
   } else {
-
+    // remember our child; it also means that we are busy proving
+    proving_child = process;
   }
+  return true;
 }
 
 
