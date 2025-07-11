@@ -331,6 +331,22 @@ public:
   } // Stack::push()
 
   /**
+   * Construct new element on the stack,
+   * similarly to STL's emplace functions
+   */
+  template <typename... Args>
+  inline
+  void emplace(Args&&... args)
+  {
+    if (_cursor == _end) {
+      expand();
+    }
+    ASS(_cursor < _end);
+    ::new(_cursor) C(std::forward<Args>(args)...);
+    _cursor++;
+  } // Stack::emplace()
+
+  /**
    * Pop the stack and return the popped element.
    * @since 11/03/2006 Bellevue
    */

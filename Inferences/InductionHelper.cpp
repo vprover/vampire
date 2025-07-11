@@ -171,6 +171,8 @@ bool inductionLiteralHasAdmissibleVariables(Literal* l) {
   }
   for (unsigned idx = 0; idx < l->arity(); ++idx) {
     if (l->nthArgument(idx)->isVar()) {
+      // NewCNF handles Booleans in some special way, which
+      // interferes with our clausification and resolution.
       return SortHelper::getArgSort(l, idx) != AtomicSort::boolSort();
     } else {
       VariableWithSortIterator vi(l->nthArgument(idx)->term());
