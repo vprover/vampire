@@ -502,7 +502,7 @@ void axiomSelectionMode(Problem* problem)
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
-void dispatchByMode(Problem* problem)
+void dispatchByMode(Problem* problem, std::ostream& out)
 {
   switch (env.options->mode())
   {

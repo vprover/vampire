@@ -12,7 +12,14 @@
  * Implements class Vampire.
  */
 
+#include "Vampire.hpp"
+#include "Modes.hpp"
+
 #include <sys/wait.h>
+
+#include <filesystem>
+namespace fs = std::filesystem;
+#include <fstream>
 
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Environment.hpp"
@@ -25,8 +32,6 @@
 #include "Shell/Options.hpp"
 #include "Shell/CommandLine.hpp"
 
-#include "Vampire.hpp"
-#include "Modes.hpp"
 
 namespace Vampire {
 
@@ -92,6 +97,8 @@ ProverStatus getStatus() {
   return ProverStatus::ERROR;
 }
 
+static std::filesystem::path path;
+
 bool runProver(std::string commandLine) {
   Options& opts = *Lib::env.options;
 
@@ -99,10 +106,14 @@ bool runProver(std::string commandLine) {
     return false;
   }
 
+  path = fs::temp_directory_path() / "vampire-output";
+
   pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
   ASS_NEQ(process, -1);
   if(process == 0) {
     UIHelper::unsetExpecting(); // probably garbage at this point
+
+    std::ofstream output(path);
 
     Stack<std::string> pieces;
     StringUtils::splitStr(commandLine.c_str(),' ',pieces);
@@ -121,7 +132,7 @@ bool runProver(std::string commandLine) {
       prb = UIHelper::getInputProblem();
     }
 
-    dispatchByMode(prb.ptr());
+    dispatchByMode(prb.ptr(), output);
     exit(vampireReturnValue);
   } else {
     // remember our child; it also means that we are busy proving

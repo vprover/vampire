@@ -78,7 +78,7 @@ void interactiveMetamode()
           UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
           prb = UIHelper::getInputProblem();
         }
-        dispatchByMode(prb.ptr());
+        dispatchByMode(prb.ptr(),std::cout);
         exit(vampireReturnValue);
       }
     } else if (line.rfind("load",0) == 0) {
@@ -200,7 +200,7 @@ int main(int argc, char* argv[])
       }
 #endif
 
-      dispatchByMode(UIHelper::getInputProblem());
+      dispatchByMode(UIHelper::getInputProblem(),std::cout);
     }
 
 #if CHECK_LEAKS

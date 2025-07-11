@@ -16,6 +16,8 @@
 #ifndef __Modes__
 #define __Modes__
 
+#include <ostream>
+
 #include "Kernel/Problem.hpp"
 
 /**
@@ -38,6 +40,6 @@
  */
 extern int vampireReturnValue;
 
-void dispatchByMode(Kernel::Problem* problem);
+void dispatchByMode(Kernel::Problem* problem, std::ostream& out);
 
 #endif /* __Modes__ */
