@@ -271,6 +271,6 @@ add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
 ################################################################
 # A static library containing all of vampire exect vampire.cpp
 ################################################################
-add_library(vampirelib STATIC EXCLUDE_FROM_ALL $<TARGET_OBJECTS:common>)
+add_library(vampirelib SHARED EXCLUDE_FROM_ALL $<TARGET_OBJECTS:common>)
 
 set_target_properties(vampirelib PROPERTIES OUTPUT_NAME "vampire")
