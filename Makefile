@@ -388,6 +388,8 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/UIHelper.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
+         Interface/Vampire.o\
+         Interface/Modes.o\
          version.o
 
 PARSE_OBJ = Parse/SMTLIB2.o\
@@ -404,6 +406,7 @@ CASC_OBJ = CASC/PortfolioMode.o\
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
 	   FMB/Monotonicity.o\
+	   FMB/ModelCheck.o\
 	   FMB/FunctionRelationshipInference.o\
 	   FMB/FiniteModel.o\
 	   FMB/FiniteModelMultiSorted.o\

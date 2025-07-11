@@ -126,6 +126,7 @@ set(SOURCES
     FMB/FunctionRelationshipInference.cpp
     FMB/FunctionRelationshipInference.hpp
     FMB/ModelCheck.hpp
+    FMB/ModelCheck.cpp
     FMB/Monotonicity.cpp
     FMB/Monotonicity.hpp
     FMB/SortInference.cpp
@@ -312,8 +313,10 @@ set(SOURCES
     Inferences/TheoryInstAndSimp.hpp
     Inferences/URResolution.cpp
     Inferences/URResolution.hpp
-    Interactive/Vampire.cpp
-    Interactive/Vampire.hpp
+    Interface/Vampire.cpp
+    Interface/Vampire.hpp
+    Interface/Modes.cpp
+    Interface/Modes.hpp
     Kernel/ALASCA.hpp
     Kernel/ALASCA/Index.hpp
     Kernel/ALASCA/Normalization.hpp

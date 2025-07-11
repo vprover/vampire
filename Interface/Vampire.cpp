@@ -13,11 +13,18 @@
  */
 
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Sys/Multiprocessing.hpp"
+#include "Lib/Timer.hpp"
+
 #include "Kernel/Problem.hpp"
+
 #include "Shell/UIHelper.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/CommandLine.hpp"
 
 #include "Vampire.hpp"
+#include "Modes.hpp"
 
 namespace Interface {
 
@@ -25,7 +32,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-ScopedPtr<Kernel::Problem> prb;
+static ScopedPtr<Kernel::Problem> prb;
 
 void init() {
   prb = UIHelper::getInputProblem();
@@ -49,6 +56,35 @@ bool popTeories(unsigned popCnt) {
   bool res = UIHelper::popLoadedPieces(popCnt);
   prb = UIHelper::getInputProblem();
   return res;
+}
+
+bool runProver(std::string commandLine) {
+  Options& opts = *Lib::env.options;
+
+  pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
+  ASS_NEQ(process, -1);
+  if(process == 0) {
+    Timer::reinitialise(); // start our timer (in the child)
+    UIHelper::unsetExpecting(); // probably garbage at this point
+
+    Stack<std::string> pieces;
+    StringUtils::splitStr(commandLine.c_str(),' ',pieces);
+    StringUtils::dropEmpty(pieces);
+    Stack<const char*> argv(pieces.size());
+    for(auto it = pieces.iterFifo(); it.hasNext();) {
+      argv.push(it.next().c_str());
+    }
+    Shell::CommandLine cl(argv.size(), argv.begin());
+    cl.interpret(opts);
+    if (!opts.inputFile().empty()) {
+      UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
+      prb = UIHelper::getInputProblem();
+    }
+    dispatchByMode(prb.ptr());
+    exit(vampireReturnValue);
+  } else {
+
+  }
 }
 
 

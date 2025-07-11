@@ -23,6 +23,7 @@
 
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Signature.hpp"
 
 
 namespace FMB {
