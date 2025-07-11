@@ -312,8 +312,8 @@ set(SOURCES
     Inferences/TheoryInstAndSimp.hpp
     Inferences/URResolution.cpp
     Inferences/URResolution.hpp
-    Interactive/Interface.cpp
-    Interactive/Interface.hpp
+    Interactive/Vampire.cpp
+    Interactive/Vampire.hpp
     Kernel/ALASCA.hpp
     Kernel/ALASCA/Index.hpp
     Kernel/ALASCA/Normalization.hpp

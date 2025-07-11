@@ -13,13 +13,13 @@
  *  @since 10/07/2025
  */
 
-#ifndef __Interface__
-#define __Interface__
+#ifndef __Vampire__
+#define __Vampire__
 
 #include <string>
 #include <vector>
 
-namespace Interactive {
+namespace Vampire {
 
 void init(); // please call this at the start
 
@@ -33,4 +33,4 @@ bool popTeories(unsigned popCnt); // will try to pop popCnt many theories from t
 
 }
 
-#endif /* __Interface__ */
+#endif /* __Vampire__ */

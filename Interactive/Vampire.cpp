@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file Interface.cpp
- * Implements class Interface.
+ * @file Vampire.cpp
+ * Implements class Vampire.
  */
 
 #include "Lib/ScopedPtr.hpp"
@@ -17,9 +17,9 @@
 #include "Shell/UIHelper.hpp"
 #include "Shell/Options.hpp"
 
-#include "Interface.hpp"
+#include "Vampire.hpp"
 
-namespace Interactive {
+namespace Vampire {
 
 using namespace Lib;
 using namespace Kernel;
@@ -52,4 +52,4 @@ bool popTeories(unsigned popCnt) {
 }
 
 
-} //namespace Interactive
+} //namespace Vampire
