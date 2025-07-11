@@ -49,6 +49,7 @@ endif()
 
 # wrap up common object files so not built multiple times for each target
 add_library(common OBJECT ${SOURCES})
+set_target_properties(common PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 ################################################################
 # compiler configuration
