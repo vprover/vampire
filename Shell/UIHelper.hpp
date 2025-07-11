@@ -59,7 +59,7 @@ public:
 
   static std::vector<std::string> getLoadedPiecesTags();
   static void listLoadedPieces(std::ostream& out);
-  static void popLoadedPiece(int numPops);
+  static bool popLoadedPieces(int numPops);
 
   static void outputResult(std::ostream& out);
 

@@ -710,7 +710,7 @@ void interactiveMetamode()
       if (pieces.size() > 1) {
         Int::stringToInt(pieces[1],numPops);
       }
-      UIHelper::popLoadedPiece(numPops);
+      UIHelper::popLoadedPieces(numPops);
       prb = UIHelper::getInputProblem();
     } else {
       cout << "Unreconginzed command! Try 'run [options] [filename_to_load]', 'load <filenames>', 'tptp <one_line_input_in_tptp>',\n"

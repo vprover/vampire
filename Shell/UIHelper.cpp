@@ -405,14 +405,17 @@ void UIHelper::listLoadedPieces(std::ostream& out)
   }
 }
 
-void UIHelper::popLoadedPiece(int numPops)
+bool UIHelper::popLoadedPieces(int numPops)
 {
   while (numPops-- > 0) {
     if (_loadedPieces.size() > 1) {
       _loadedPieces.pop();
       UnitList::destroy(_loadedPieces.top()._units.clipAtLast());
+    } else {
+      return false;
     }
   }
+  return true;
 }
 
 /**
