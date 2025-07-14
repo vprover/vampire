@@ -133,7 +133,7 @@ bool runProver(std::string commandLine) {
       prb = UIHelper::getInputProblem();
     }
 
-    dispatchByMode(prb.ptr(), output);
+    dispatchByMode(prb.release(), output); // we release, otherwise the child will try to delete this in the end, which will break
     exit(vampireReturnValue);
   } else {
     // remember our child; it also means that we are busy proving
