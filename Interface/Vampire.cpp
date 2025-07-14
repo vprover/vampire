@@ -102,7 +102,8 @@ static std::filesystem::path path;
 bool runProver(std::string commandLine) {
   Options& opts = *Lib::env.options;
 
-  if (!proving_child) {
+  if (proving_child) {
+    // std::cout << "proving_child is " << proving_child << std::endl;
     return false;
   }
 
