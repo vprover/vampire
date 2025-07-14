@@ -59,7 +59,7 @@ std::vector<std::string> listTheories() {
   return UIHelper::getLoadedPiecesTags();
 }
 
-bool popTeories(unsigned popCnt) {
+bool popTheories(unsigned popCnt) {
   bool res = UIHelper::popLoadedPieces(popCnt);
   prb = UIHelper::getInputProblem();
   return res;
