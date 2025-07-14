@@ -178,30 +178,38 @@ void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string
 
 void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 {
-  addCommentSignForSZS(out);
-  out << "# SZS output start Saturation." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output start Saturation." << endl;
+  } else {
+    out << "# Saturated clause set:" << endl;
+  }
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
     out << TPTPPrinter::toString(cl) << endl;
   }
 
-  addCommentSignForSZS(out);
-  out << "# SZS output end Saturation." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output end Saturation." << endl;
+  }
 } // outputSaturatedSet
 
 void UIHelper::outputInterferences(std::ostream& out, const Problem& prob)
 {
-  addCommentSignForSZS(out);
-  out << "# SZS output start Definitions and Model Updates." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output start Definitions and Model Updates." << endl;
+  } else {
+    out << "# Restored definitions and other model updates:" << endl;
+  }
 
   auto ii = prob.intereferences.iter(); // LIFO is the key here!
   while (ii.hasNext()) {
     ii.next()->outputDefinition(out);
   }
 
-  addCommentSignForSZS(out);
-  out << "# SZS output end Definitions and Model Updates." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output end Definitions and Model Updates." << endl;
+  }
 } // outputInterferences
 
 // String utility function that probably belongs elsewhere
@@ -612,6 +620,8 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
     if (!env.statistics->model.empty()) {
       if (szsOutputMode()) {
         out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+      } else {
+        out << "# Finite Model:" << endl;
       }
       out << env.statistics->model;
       if (szsOutputMode()) {
