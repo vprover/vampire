@@ -29,12 +29,12 @@ bool popTheories(unsigned popCnt); // will try to pop popCnt many theories from 
 bool runProver(std::string commandLine); // will only return true and actually run, if the prover is not running already (or the result of the previous call has not been retrieved yet)
 
 enum class ProverStatus : unsigned {
-    READY,
-    RUNNING,
-    SUCCEEDED, // proof / answer / saturated set / finite model / ... to pick up via getSolution()
-    FAILED,    // timeout / another resource-out / saturated by incomplete strategy / error
-    SIGNALLED, // can call lastSignal to check its number
-    ERROR,     // probably waitpid misbehabed; will need debugging!
+    READY = 0,
+    RUNNING = 1,
+    SUCCEEDED = 2, // proof / answer / saturated set / finite model / ... to pick up via getSolution()
+    FAILED = 3,    // timeout / another resource-out / saturated by incomplete strategy / error
+    SIGNALLED = 4, // can call lastSignal to check its number
+    ERROR = 5,     // probably waitpid misbehabed; will need debugging!
 };
 
 ProverStatus getStatus();

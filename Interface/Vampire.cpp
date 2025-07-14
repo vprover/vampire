@@ -67,6 +67,28 @@ bool popTheories(unsigned popCnt) {
 
 static int last_signal = 0;
 static pid_t proving_child = 0;
+static std::string last_output;
+
+int lastSignal() {
+  return last_signal;
+}
+
+static std::filesystem::path path;
+
+static void retrieveOutput() {
+  std::ifstream file(path);
+  if (!file) {
+    last_output = "ERROR: Could not read from output temporary " + path.string();
+  } else {
+    std::ostringstream ss;
+    ss << file.rdbuf();
+    last_output = ss.str();
+  }
+}
+
+std::string getSolution() {
+  return last_output;
+}
 
 ProverStatus getStatus() {
   if (proving_child == 0) {
@@ -79,12 +101,15 @@ ProverStatus getStatus() {
   if (result == 0) {
       return ProverStatus::RUNNING;
   } else if (result == proving_child) {
+      proving_child = 0; // or could signalled be still revived? (e.g. after CTRL+Z?)
       // Child has exited (or changed state)
       if (WIFEXITED(status)) {
           int exit_code = WEXITSTATUS(status);
           if (exit_code == 0) {
+            retrieveOutput();
             return ProverStatus::SUCCEEDED;
           } else {
+            retrieveOutput();
             return ProverStatus::FAILED;
           }
       } else if (WIFSIGNALED(status)) {
@@ -96,8 +121,6 @@ ProverStatus getStatus() {
   }
   return ProverStatus::ERROR;
 }
-
-static std::filesystem::path path;
 
 bool runProver(std::string commandLine) {
   Options& opts = *Lib::env.options;

@@ -313,7 +313,7 @@ Problem *doProving(Problem* problem)
   return prb;
 }
 
-void vampireMode(Problem* problem)
+void vampireMode(Problem* problem, std::ostream& out)
 {
   if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
@@ -321,7 +321,7 @@ void vampireMode(Problem* problem)
 
   ScopedPtr<Problem> prb(doProving(problem));
 
-  UIHelper::outputResult(std::cout);
+  UIHelper::outputResult(out);
 
   if (env.statistics->terminationReason == TerminationReason::REFUTATION
       || env.statistics->terminationReason == TerminationReason::SATISFIABLE) {
@@ -514,7 +514,7 @@ void dispatchByMode(Problem* problem, std::ostream& out)
     break;
   case Options::Mode::CONSEQUENCE_ELIMINATION:
   case Options::Mode::VAMPIRE:
-    vampireMode(problem);
+    vampireMode(problem,out);
     break;
 
   case Options::Mode::CASC:
