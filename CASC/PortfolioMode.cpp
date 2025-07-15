@@ -53,12 +53,11 @@
 using namespace Lib;
 using namespace CASC;
 using Lib::Sys::Multiprocessing;
-using std::cout;
 using std::cerr;
 using std::endl;
 namespace fs = std::filesystem;
 
-PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()) {
+PortfolioMode::PortfolioMode(Problem* problem, std::ostream& out) : _out(out), _prb(problem), _slowness(env.options->slowness()) {
   unsigned cores = std::thread::hardware_concurrency();
   cores = cores < 1 ? 1 : cores;
   _numWorkers = std::min(cores, env.options->multicore());
@@ -94,9 +93,9 @@ PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.op
  * The function that does all the job: reads the input files and runs
  * Vampires to solve problems.
  */
-bool PortfolioMode::perform(Problem* problem)
+bool PortfolioMode::perform(Problem* problem, std::ostream& out)
 {
-  PortfolioMode pm(problem);
+  PortfolioMode pm(problem,out);
 
   bool resValue;
   try {
@@ -109,27 +108,27 @@ bool PortfolioMode::perform(Problem* problem)
 
   if (outputAllowed()) {
     if (resValue) {
-      addCommentSignForSZS(cout);
-      cout<<"Success in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
+      addCommentSignForSZS(out);
+      out<<"Success in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
     }
     else {
-      addCommentSignForSZS(cout);
-      cout<<"Proof not found in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
+      addCommentSignForSZS(out);
+      out<<"Proof not found in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
       if (env.remainingTime()/100>0) {
-        addCommentSignForSZS(cout);
-        cout<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
+        addCommentSignForSZS(out);
+        out<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
       }
       else {
         //From time to time we may also be terminating in the timeLimitReached()
         //function in Lib/Timer.cpp in case the time runs out. We, however, output
         //the same string there as well.
-        addCommentSignForSZS(cout);
-        cout<<"SZS status Timeout for "<<env.options->problemName()<<endl;
+        addCommentSignForSZS(out);
+        out<<"SZS status Timeout for "<<env.options->problemName()<<endl;
       }
     }
 #if VTIME_PROFILING
     if (env.options && env.options->timeStatistics()) {
-      TimeTrace::instance().printPretty(cout);
+      TimeTrace::instance().printPretty(out);
     }
 #endif // VTIME_PROFILING
   }
@@ -182,14 +181,14 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
   Schedule main;
   Schedule fallback;
   getSchedules(prop,main,fallback);
-  
-  /** 
+
+  /**
    * The idea next is to create extra schedules based on the just loaded ones
    * mainly by adding new options that are not yet included in the schedules
    * into a copy of an official schedule to be appended after it (so as not to disturb the original).
-   * 
+   *
    * The expectation is that the code below will be updated before each competition submission
-   * 
+   *
    * Note that the final schedule is longer and longer with each copy,
    * so consider carefully which selected options (and combinations) to "try on top" of it.
    */
@@ -292,10 +291,10 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 /**
  * Take strategy strings from @param sOld, update their time (and instruction) limit,
  * multiplying it by @param limit_multiplier and put the new strings into @param sNew.
- * 
+ *
  * @author Giles, Martin
  */
-void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier) 
+void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier)
 {
   ASS(limit_multiplier >= 0)
   Schedule::BottomFirstIterator it(sOld);
@@ -460,7 +459,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
     pid_t process = Multiprocessing::instance()->poll_children(exited, signalled, code);
 
     /*
-    cout << "Child " << process
+    _out << "Child " << process
         << " exit " << exited
         << " sig " << signalled << " code " << code << endl;
         */
@@ -476,8 +475,8 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       }
     } else if (signalled) {
       // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
-      Shell::addCommentSignForSZS(cout);
-      cout<<"Child killed by signal " << code << endl;
+      Shell::addCommentSignForSZS(_out);
+      _out<<"Child killed by signal " << code << endl;
       ALWAYS(processes.remove(process));
     }
   }
@@ -514,10 +513,10 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
     bool openSucceeded = !input.fail();
 
     if (openSucceeded) {
-      cout << input.rdbuf();
+      _out << input.rdbuf();
     } else {
       if (outputAllowed()) {
-        addCommentSignForSZS(cout) << "Failed to restore proof from tempfile " << _path << endl;
+        addCommentSignForSZS(_out) << "Failed to restore proof from tempfile " << _path << endl;
       }
     }
 
@@ -543,8 +542,8 @@ unsigned PortfolioMode::getSliceTime(const std::string &sliceCode)
 
   if (sliceTime == 0 && !Timer::instructionLimitingInPlace()) {
     if (outputAllowed()) {
-      addCommentSignForSZS(cout);
-      cout << "WARNING: time unlimited strategy and instruction limiting not in place - attempting to translate instructions to time" << endl;
+      addCommentSignForSZS(_out);
+      _out << "WARNING: time unlimited strategy and instruction limiting not in place - attempting to translate instructions to time" << endl;
     }
 
     size_t bidx = sliceCode.find(":i=");
@@ -592,13 +591,13 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
     Options& opt = *env.options;
 
     // opt.randomSeed() would normally be inherited from the parent
-    // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;
+    // addCommentSignForSZS(_out) << "runSlice - seed before setting: " << opt.randomSeed() << endl;
     if (env.options->randomizeSeedForPortfolioWorkers()) {
       // but here we want each worker to have their own seed
       opt.setRandomSeed(std::random_device()());
       // ... unless a strategy sets a seed explicitly, just below
     }
-    opt.readFromEncodedOptions(sliceCode);
+    opt.readFromEncodedOptions(sliceCode,_out);
     opt.setTimeLimitInDeciseconds(sliceTime);
     int stl = opt.simulatedTimeLimit();
     if (stl) {
@@ -627,11 +626,11 @@ void PortfolioMode::runSlice(Options& opt)
 
   //we have already performed the normalization (or don't care about it)
   opt.setNormalize(false);
-  opt.setForcedOptionValues();
-  opt.checkGlobalOptionConstraints();
+  opt.setForcedOptionValues(_out);
+  opt.checkGlobalOptionConstraints(_out);
 
   if (outputAllowed()) {
-    addCommentSignForSZS(cout) << opt.testId() << " on " << opt.problemName() <<
+    addCommentSignForSZS(_out) << opt.testId() << " on " << opt.problemName() <<
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
 #if VAMPIRE_PERF_EXISTS
       "/" << opt.instructionLimit() << "Mi" <<
@@ -649,7 +648,7 @@ void PortfolioMode::runSlice(Options& opt)
 
   if(!succeeded) {
     if(outputAllowed())
-      UIHelper::outputResult(cout);
+      UIHelper::outputResult(_out);
     exit(EXIT_FAILURE);
   }
 
@@ -681,7 +680,7 @@ void PortfolioMode::runSlice(Options& opt)
   // can conclude we didn't get the lock
   if(!outputResult) {
     if (Lib::env.options && Lib::env.options->multicore() != 1)
-      addCommentSignForSZS(cout) << "Also succeeded, but the first one will report." << endl;
+      addCommentSignForSZS(_out) << "Also succeeded, but the first one will report." << endl;
 
     // we succeeded in some sense, but we failed to print a proof
     // (only because the other Vampire beat us to it)
@@ -693,21 +692,21 @@ void PortfolioMode::runSlice(Options& opt)
   // at this point, we should be go for launch
   ASS(succeeded && outputResult)
   if (outputAllowed() && env.options->multicore() != 1)
-    addCommentSignForSZS(cout) << "First to succeed." << endl;
+    addCommentSignForSZS(_out) << "First to succeed." << endl;
 
   if (_path.empty()) {
     // we already failed above in accessing the file (let's not try opening or reporting the empty name)
-    UIHelper::outputResult(cout);
+    UIHelper::outputResult(_out);
   } else {
     std::ofstream output(_path);
     if(output.fail()) {
       // failed to open file, fallback to stdout
-      addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
-      UIHelper::outputResult(cout);
+      addCommentSignForSZS(_out) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
+      UIHelper::outputResult(_out);
     } else {
       UIHelper::outputResult(output);
       if(outputAllowed())
-        addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
+        addCommentSignForSZS(_out) << "Solution written to " << _path << endl;
     }
   }
 

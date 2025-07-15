@@ -2696,7 +2696,7 @@ void Options::output (std::ostream& str) const
 } // Options::output (std::ostream& str) const
 
 template<typename T>
-bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
+bool Options::OptionValue<T>::checkProblemConstraints(Property* prop, ostream& out){
     Lib::Stack<OptionProblemConstraintUP>::RefIterator it(_prob_constraints);
     while(it.hasNext()){
       OptionProblemConstraintUP& con = it.next();
@@ -2711,7 +2711,7 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
          switch(env.options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:
-           cout << "% WARNING: " << longName << con->msg() << endl;
+           out << "% WARNING: " << longName << con->msg() << endl;
          }
          return false;
       }
@@ -3221,7 +3221,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename, DHMap<s
  * opt1=val1:opt2=val2:...:optn=valN,
  * for example bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=sat:ssnc=none
  */
-void Options::readOptionsString(std::string optionsString,bool assign)
+void Options::readOptionsString(std::string optionsString, std::ostream& out, bool assign)
 {
   // repeatedly look for param=value
   while (optionsString != "") {
@@ -3252,8 +3252,8 @@ void Options::readOptionsString(std::string optionsString,bool assign)
                 break;
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
-                  addCommentSignForSZS(std::cout);
-                  std::cout << "% WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  addCommentSignForSZS(out);
+                  out << "% WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3275,8 +3275,8 @@ void Options::readOptionsString(std::string optionsString,bool assign)
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
-          addCommentSignForSZS(std::cout);
-          std::cout << "% WARNING: option "<< param << " not known." << endl;
+          addCommentSignForSZS(out);
+          out << "% WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -3298,7 +3298,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
  *        in deciseconds
  * @throws UserErrorException if the test id is incorrect
  */
-void Options::readFromEncodedOptions (std::string testId)
+void Options::readFromEncodedOptions (std::string testId, ostream& out)
 {
   _testId.actualValue = testId;
 
@@ -3358,13 +3358,13 @@ void Options::readFromEncodedOptions (std::string testId)
   }
   testId = testId.substr(index+1);
   //now read the rest of the options
-  readOptionsString(testId);
+  readOptionsString(testId,out);
 } // Options::readFromTestId
 
-void Options::setForcedOptionValues()
+void Options::setForcedOptionValues(std::ostream& out)
 {
   if(_forcedOptions.actualValue.empty()) return;
-  readOptionsString(_forcedOptions.actualValue);
+  readOptionsString(_forcedOptions.actualValue,out);
 }
 
 /**
@@ -3592,17 +3592,17 @@ bool Options::complete(const Problem& prb) const
  *
  * The function is called after all options are parsed.
  */
-bool Options::checkGlobalOptionConstraints(bool fail_early)
+bool Options::checkGlobalOptionConstraints(ostream& out, bool fail_early)
 {
   //Check forbidden options
-  readOptionsString(_forbiddenOptions.actualValue,false);
+  readOptionsString(_forbiddenOptions.actualValue,out,false);
 
   bool result = true;
 
   // Check recorded option constraints
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
   while(options.hasNext()){
-    result = options.next()->checkConstraints() && result;
+    result = options.next()->checkConstraints(out) && result;
     if(fail_early && !result) return result;
   }
 
@@ -3610,7 +3610,7 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
 }
 
 template <typename T>
-bool Options::OptionValue<T>::checkConstraints()
+bool Options::OptionValue<T>::checkConstraints(ostream& out)
 {
   typename Lib::Stack<OptionValueConstraintUP<T>>::RefIterator it(_constraints);
   while (it.hasNext()) {
@@ -3629,11 +3629,11 @@ bool Options::OptionValue<T>::checkConstraints()
       case BadOption::HARD:
         USER_ERROR("\nBroken Constraint: " + con->msg(*this));
       case BadOption::SOFT:
-        cout << "WARNING Broken Constraint: " + con->msg(*this) << endl;
+        out << "WARNING Broken Constraint: " + con->msg(*this) << endl;
         return false;
       case BadOption::FORCED:
         if (con->force(this)) {
-          cout << "Forced constraint " + con->msg(*this) << endl;
+          out << "Forced constraint " + con->msg(*this) << endl;
           break;
         }
         else {
@@ -3657,7 +3657,7 @@ bool Options::OptionValue<T>::checkConstraints()
  * With before_preprocessing off, it's all the remaining ones.
  *
  **/
-bool Options::checkProblemOptionConstraints(Property* prop, bool before_preprocessing, bool fail_early)
+bool Options::checkProblemOptionConstraints(ostream& out, Property* prop, bool before_preprocessing, bool fail_early)
 {
   bool result = true;
 
@@ -3670,7 +3670,7 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
       continue;
     }
 
-    result = opt->checkProblemConstraints(prop) && result;
+    result = opt->checkProblemConstraints(prop, out) && result;
     if(fail_early && !result) return result;
   }
 

@@ -34,9 +34,9 @@ using namespace Lib;
 using namespace Shell;
 
 class PortfolioMode {
-  PortfolioMode(Kernel::Problem* problem);
+  PortfolioMode(Kernel::Problem* problem, std::ostream& out);
 public:
-  static bool perform(Kernel::Problem* problem);
+  static bool perform(Kernel::Problem* problem, std::ostream& out);
 
   static void rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier);
   static void addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::string extra);
@@ -59,6 +59,8 @@ private:
   unsigned _numWorkers;
   // file that will contain a proof
   std::filesystem::path _path;
+
+  std::ostream& _out;
 
   /**
    * Problem that is being solved.

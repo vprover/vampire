@@ -150,6 +150,7 @@ bool runProver(std::string commandLine) {
     cl.interpret(opts);
 
     Timer::reinitialise(); // start our timer (in the child)
+    Timer::setOutput(output);
 
     if (!opts.inputFile().empty()) {
       UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);

@@ -54,8 +54,8 @@ void Schedules::getScheduleFromFile(const std::string& filename, Schedule& quick
     }
     Options opts;
     try {
-      opts.readFromEncodedOptions(line);
-      opts.checkGlobalOptionConstraints();
+      opts.readFromEncodedOptions(line,std::cout);
+      opts.checkGlobalOptionConstraints(std::cout);
     }
     catch (...) {
       USER_ERROR("Bad strategy: " + line);

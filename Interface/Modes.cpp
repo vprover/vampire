@@ -259,7 +259,7 @@ void outputMode(Problem* problem)
  * The problem is modified destructively.
  */
 [[nodiscard]]
-Problem* preprocessProblem(Problem* prb)
+Problem* preprocessProblem(Problem* prb, std::ostream& out)
 {
   // Here officially starts preprocessing of vampireMode
   // and that's the moment we want to set the random seed (no randomness in parsing, for the peace of mind)
@@ -275,7 +275,7 @@ Problem* preprocessProblem(Problem* prb)
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
-    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ true);
+    env.options->checkProblemOptionConstraints(out, prb->getProperty(), /*before_preprocessing = */ true);
   }
 
   Shell::Preprocess prepro(*env.options);
@@ -287,7 +287,7 @@ Problem* preprocessProblem(Problem* prb)
 
 
 [[nodiscard]]
-Problem *doProving(Problem* problem)
+Problem *doProving(Problem* problem, std::ostream& out)
 {
   if (env.options->showPropDict()) {
     cout << "% Prop: " << problem->getProperty()->toDict() << endl;
@@ -299,14 +299,14 @@ Problem *doProving(Problem* problem)
       problem->getProperty()->toDict());
   }
 
-  env.options->setForcedOptionValues();
-  env.options->checkGlobalOptionConstraints();
+  env.options->setForcedOptionValues(out);
+  env.options->checkGlobalOptionConstraints(out);
 
-  Problem *prb = preprocessProblem(problem);
+  Problem *prb = preprocessProblem(problem,out);
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
-    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
+    env.options->checkProblemOptionConstraints(out, prb->getProperty(), /*before_preprocessing = */ false);
   }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
@@ -319,7 +319,7 @@ void vampireMode(Problem* problem, std::ostream& out)
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  ScopedPtr<Problem> prb(doProving(problem));
+  ScopedPtr<Problem> prb(doProving(problem,out));
 
   UIHelper::outputResult(out);
 
@@ -329,7 +329,7 @@ void vampireMode(Problem* problem, std::ostream& out)
   }
 } // vampireMode
 
-void spiderMode(Problem* problem)
+void spiderMode(Problem* problem, ostream& out)
 {
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
@@ -343,7 +343,7 @@ void spiderMode(Problem* problem)
   bool exceptionRaised = false;
   ScopedPtr<Problem> prb;
   try {
-    prb = doProving(problem);
+    prb = doProving(problem,out);
   } catch (Exception& e) {
     exception = &e;
     exceptionRaised = true;
@@ -412,7 +412,7 @@ void spiderMode(Problem* problem)
   exception->cry(std::cout);
 } // spiderMode
 
-void clausifyMode(Problem* problem, bool theory)
+void clausifyMode(Problem* problem, std::ostream& out, bool theory)
 {
   CompositeISE simplifier;
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
@@ -424,7 +424,7 @@ void clausifyMode(Problem* problem, bool theory)
       problem->getProperty()->toDict());
   }
 
-  ScopedPtr<Problem> prb(preprocessProblem(problem));
+  ScopedPtr<Problem> prb(preprocessProblem(problem,out));
 
   //outputSymbolDeclarations deals with sorts as well for now
   //UIHelper::outputSortDeclarations(std::cout);
@@ -510,7 +510,7 @@ void dispatchByMode(Problem* problem, std::ostream& out)
     axiomSelectionMode(problem);
     break;
   case Options::Mode::SPIDER:
-    spiderMode(problem);
+    spiderMode(problem, out);
     break;
   case Options::Mode::CONSEQUENCE_ELIMINATION:
   case Options::Mode::VAMPIRE:
@@ -531,7 +531,7 @@ void dispatchByMode(Problem* problem, std::ostream& out)
     env.options->setNormalize(true);
     env.options->setRandomizeSeedForPortfolioWorkers(false);
 
-    if (CASC::PortfolioMode::perform(problem)) {
+    if (CASC::PortfolioMode::perform(problem,out)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     break;
@@ -555,7 +555,7 @@ void dispatchByMode(Problem* problem, std::ostream& out)
     // to prevent from terminating by time limit
     env.options->setTimeLimitInSeconds(100000);
 
-    if (CASC::PortfolioMode::perform(problem)){
+    if (CASC::PortfolioMode::perform(problem,out)){
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     else {
@@ -566,7 +566,7 @@ void dispatchByMode(Problem* problem, std::ostream& out)
   case Options::Mode::PORTFOLIO:
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
-    if (CASC::PortfolioMode::perform(problem)) {
+    if (CASC::PortfolioMode::perform(problem,out)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     break;
@@ -575,11 +575,11 @@ void dispatchByMode(Problem* problem, std::ostream& out)
     break;
 
   case Options::Mode::CLAUSIFY:
-    clausifyMode(problem,false);
+    clausifyMode(problem,out,false);
     break;
 
   case Options::Mode::TCLAUSIFY:
-    clausifyMode(problem,true);
+    clausifyMode(problem,out,true);
     break;
 
   case Options::Mode::OUTPUT:

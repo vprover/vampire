@@ -92,8 +92,8 @@ public:
     void output (std::ostream&) const;
 
     // Dealing with encoded options. Used by --decode option
-    void readFromEncodedOptions (std::string testId);
-    void readOptionsString (std::string testId,bool assign=true);
+    void readFromEncodedOptions (std::string testId, std::ostream& out);
+    void readOptionsString (std::string testId, std::ostream& out, bool assign=true);
     std::string generateEncodedOptions() const;
 
     // compile away auto-values; called BEFORE preprocessing
@@ -105,9 +105,9 @@ public:
     bool complete(const Problem&) const;
 
     // deal with constraints
-    void setForcedOptionValues(); // not currently used effectively
-    bool checkGlobalOptionConstraints(bool fail_early=false);
-    bool checkProblemOptionConstraints(Property*, bool before_preprocessing, bool fail_early=false);
+    void setForcedOptionValues(std::ostream& out); // not currently used effectively
+    bool checkGlobalOptionConstraints(std::ostream& out, bool fail_early=false);
+    bool checkProblemOptionConstraints(std::ostream& out, Property*, bool before_preprocessing, bool fail_early=false);
 
     /**
      * Sample a random strategy from a distribution described by the given file.
@@ -868,8 +868,8 @@ private:
         bool is_set;
 
         // Checking constraints
-        virtual bool checkConstraints() = 0;
-        virtual bool checkProblemConstraints(Property* prop) = 0;
+        virtual bool checkConstraints(std::ostream& out) = 0;
+        virtual bool checkProblemConstraints(Property* prop, std::ostream& out) = 0;
 
         // Tagging: options can be filtered by mode and are organised by Tag in showOptions
         void tag(OptionTag tag){ ASS(_tag==OptionTag::LAST_TAG);_tag=tag; }
@@ -1018,7 +1018,7 @@ private:
             _constraints.push(std::move(tc));
         }
         // This checks the constraints and may cause a UserError
-        bool checkConstraints();
+        bool checkConstraints(std::ostream& out);
 
         // Produces a separate constraint object based on this option
         /// Useful for IfThen constraints and onlyUsefulWith i.e. _splitting.is(equal(true))
@@ -1029,7 +1029,7 @@ private:
         bool hasProblemConstraints(){
           return !supress_problemconstraints && !_prob_constraints.isEmpty();
         }
-        virtual bool checkProblemConstraints(Property* prop);
+        virtual bool checkProblemConstraints(Property* prop, std::ostream& out);
 
         virtual void output(std::ostream& out, bool linewrap) const {
             AbstractOptionValue::output(out,linewrap);
@@ -1060,7 +1060,7 @@ private:
         ChoiceOptionValue(std::string l, std::string s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
         ChoiceOptionValue(std::string l, std::string s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
-        
+
         bool setValue(const std::string& value){
             // makes reasonable assumption about ordering of every enum
             int index = choices.find(value.c_str());
@@ -1295,7 +1295,7 @@ DecodeOptionValue(std::string l,std::string s,Options* p):
 OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
 
 bool setValue(const std::string& value){
-    parent->readFromEncodedOptions(value);
+    parent->readFromEncodedOptions(value,std::cout);
     return true;
 }
 virtual std::string getStringOfValue(std::string value) const{ return value; }

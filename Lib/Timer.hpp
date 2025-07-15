@@ -27,6 +27,7 @@ namespace Timer {
   //
   // should be called exactly once per process as it internally spawns a std::thread
   void reinitialise(bool tryInitInstructionLimiting=true);
+  void setOutput(std::ostream& newOut);
 
   // disables exit on resource out: call when a proof has been found!
   // permanently disabled per-process

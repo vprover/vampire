@@ -60,6 +60,12 @@ enum LimitType {
 // without the consequence of locking ourselves)
 static std::recursive_mutex EXIT_LOCK;
 
+static std::ostream* out = &std::cout;
+
+void Timer::setOutput(std::ostream& newOut) {
+  out = &newOut;
+}
+
 // called by timer_thread to exit the entire process
 // functions called here should be thread-safe
 [[noreturn]] static void limitReached(LimitType whichLimit)
@@ -85,27 +91,27 @@ static std::recursive_mutex EXIT_LOCK;
   // probably OK as we don't output anything in other parts of Vampire during search
   reportSpiderStatus('t');
   if (outputAllowed()) {
-    addCommentSignForSZS(std::cout);
-    std::cout << REACHED[whichLimit];
+    addCommentSignForSZS(*out);
+    (*out) << REACHED[whichLimit];
 
     if (UIHelper::portfolioParent) { // the boss
-      addCommentSignForSZS(std::cout);
-      std::cout << "Proof not found in time ";
-      Timer::printMSString(std::cout,Timer::elapsedMilliseconds());
+      addCommentSignForSZS(*out);
+      (*out) << "Proof not found in time ";
+      Timer::printMSString(*out,Timer::elapsedMilliseconds());
 
 #if VAMPIRE_PERF_EXISTS
       if (LAST_INSTRUCTION_COUNT_READ > -1) {
-        std::cout << " nor after " << LAST_INSTRUCTION_COUNT_READ << " (user) instruction executed.";
+        (*out) << " nor after " << LAST_INSTRUCTION_COUNT_READ << " (user) instruction executed.";
       }
 #endif
-      std::cout << std::endl;
+      (*out) << std::endl;
 
       if (szsOutputMode()) {
-        std::cout << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << std::endl;
+        (*out) << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << std::endl;
       }
     } else // the actual child
       if (env.statistics) {
-        env.statistics->print(std::cout);
+        env.statistics->print(*out);
     }
   }
 
