@@ -96,9 +96,10 @@ ProverStatus getStatus() {
     return ProverStatus::READY;
   }
 
-  std::cout << "getStatus on child: " << proving_child << std::endl;
-
   int status;
+
+  std::cout << "getStatus on child: " << proving_child << " and status is " << status << std::endl;
+
   pid_t result = waitpid(proving_child, &status, WNOHANG);
 
   std::cout << "waitpid returned " << result << " and status is " << status << std::endl;
