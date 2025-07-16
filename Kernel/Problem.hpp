@@ -77,46 +77,46 @@ public:
     COND_FLIP = 3,  // backs up partially eliminated predicates (Plaisted-Greenbaum-style p<=>q reduced to, e.g. p=>q) and eliminated blocked clauses
   };
 
-  /* Intereference (satisfiability-preserving-only transformations) recording */
-  struct Intereference {
+  /* Interference (satisfiability-preserving-only transformations) recording */
+  struct Interference {
     IntereferenceKind _kind;
-    Intereference(IntereferenceKind kind) : _kind(kind) {}
+    Interference(IntereferenceKind kind) : _kind(kind) {}
 
     virtual void outputDefinition(std::ostream&) = 0;
   };
 
-  struct FunDef : public Intereference {
+  struct FunDef : public Interference {
     Term* _head;
     Term* _body;
-    FunDef(Term* head, Term* body) : Intereference(IntereferenceKind::FUN_DEF), _head(head), _body(body) {}
+    FunDef(Term* head, Term* body) : Interference(IntereferenceKind::FUN_DEF), _head(head), _body(body) {}
 
     void outputDefinition(std::ostream&) override;
   };
 
-  struct PredDef : public Intereference {
+  struct PredDef : public Interference {
     Literal* _head;
     Formula* _body;
-    PredDef(Literal* head, Formula* body) : Intereference(IntereferenceKind::PRED_DEF), _head(head), _body(body) {}
+    PredDef(Literal* head, Formula* body) : Interference(IntereferenceKind::PRED_DEF), _head(head), _body(body) {}
 
     void outputDefinition(std::ostream&) override;
   };
 
-  struct GlobalFlip : public Intereference {
+  struct GlobalFlip : public Interference {
     unsigned _pred;
 
-    GlobalFlip(unsigned pred) : Intereference(IntereferenceKind::GLOB_FLIP), _pred(pred) {}
+    GlobalFlip(unsigned pred) : Interference(IntereferenceKind::GLOB_FLIP), _pred(pred) {}
 
     void outputDefinition(std::ostream&) override;
   };
 
-  struct CondFlip : public Intereference {
+  struct CondFlip : public Interference {
     Formula* _cond;
     bool _neg;
     Literal* _val;
     bool _fixedPoint;
 
     CondFlip(Formula* cond, bool neg, Literal* val, bool fixedPoint = false)
-      : Intereference(IntereferenceKind::COND_FLIP), _cond(cond), _neg(neg), _val(val), _fixedPoint(fixedPoint) {}
+      : Interference(IntereferenceKind::COND_FLIP), _cond(cond), _neg(neg), _val(val), _fixedPoint(fixedPoint) {}
 
     void outputDefinition(std::ostream&) override;
   };
@@ -125,7 +125,7 @@ public:
    * Pushing here during preprocessing,
    * replaying backwards to get a model of the original signature.
   */
-  Stack<Intereference*> intereferences;
+  Stack<Interference*> interferences;
 
   void addTrivialPredicate(unsigned pred, bool assignment);
   void addPartiallyEliminatedPredicate(unsigned pred, Formula* remainingImplication);

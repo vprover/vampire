@@ -237,7 +237,7 @@ void Problem::addTrivialPredicate(unsigned pred, bool assignment)
 
   auto res = new PredDef(l,new Formula(assignment));
 
-  intereferences.push(res);
+  interferences.push(res);
 }
 
 /**
@@ -274,7 +274,7 @@ void Problem::addPartiallyEliminatedPredicate(unsigned pred, Formula* remainingI
   }
 
   auto res = new CondFlip(cond,neg,new_atom_val);
-  intereferences.push(res);
+  interferences.push(res);
 }
 
 /**
@@ -305,7 +305,7 @@ void Problem::addEliminatedPredicate(unsigned pred, Formula* def)
   ASS(lhs->connective()==LITERAL && lhs->literal()->functor()==pred)
 
   auto res = new PredDef(lhs->literal(),rhs);
-  intereferences.push(res);
+  interferences.push(res);
 }
 
 /**
@@ -313,7 +313,7 @@ void Problem::addEliminatedPredicate(unsigned pred, Formula* def)
  */
 void Problem::addFlippedPredicate(unsigned pred)
 {
-  intereferences.push(new GlobalFlip(pred));
+  interferences.push(new GlobalFlip(pred));
 }
 
 /**
@@ -330,7 +330,7 @@ void Problem::addEliminatedFunction(unsigned func, Literal* definition) {
   ASS(!args->isVar())
   Term* r = args->term();
 
-  Intereference* res;
+  Interference* res;
   if (l->functor() == func) {
     res = new FunDef(l,r);
   } else {
@@ -338,7 +338,7 @@ void Problem::addEliminatedFunction(unsigned func, Literal* definition) {
     res = new FunDef(r,l);
   }
 
-  intereferences.push(res);
+  interferences.push(res);
 }
 
 void Problem::addEliminatedBlockedClause(Clause* cl, unsigned blockedLiteralIndex) {
@@ -356,7 +356,7 @@ void Problem::addEliminatedBlockedClause(Clause* cl, unsigned blockedLiteralInde
 
   auto res = new CondFlip(cond,true,bll,needsFixpoint);
 
-  intereferences.push(res);
+  interferences.push(res);
 }
 
 /**

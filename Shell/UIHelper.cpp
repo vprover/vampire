@@ -202,7 +202,7 @@ void UIHelper::outputInterferences(std::ostream& out, const Problem& prob)
     out << "# Restored definitions and other model updates:" << endl;
   }
 
-  auto ii = prob.intereferences.iter(); // LIFO is the key here!
+  auto ii = prob.interferences.iter(); // LIFO is the key here!
   while (ii.hasNext()) {
     ii.next()->outputDefinition(out);
   }

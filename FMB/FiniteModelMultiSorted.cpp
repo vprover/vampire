@@ -1146,9 +1146,9 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 
 void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
 {
-  auto ii = prob->intereferences.iter(); // LIFO is the key here!
+  auto ii = prob->interferences.iter(); // LIFO is the key here!
   while (ii.hasNext()) {
-    Problem::Intereference* i = ii.next();
+    Problem::Interference* i = ii.next();
     switch (i->_kind) {
       case Problem::IntereferenceKind::FUN_DEF:
         restoreEliminatedFunDef(static_cast<Problem::FunDef*>(i));
