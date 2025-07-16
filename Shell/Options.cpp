@@ -3666,6 +3666,7 @@ bool Options::OptionValue<T>::checkConstraints()
       case BadOption::HARD:
         USER_ERROR("\nBroken Constraint: " + con->msg(*this));
       case BadOption::SOFT:
+        addCommentSignForSZS(cout);
         cout << "WARNING Broken Constraint: " + con->msg(*this) << endl;
         return false;
       case BadOption::FORCED:
