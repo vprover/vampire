@@ -96,8 +96,12 @@ ProverStatus getStatus() {
     return ProverStatus::READY;
   }
 
+  std::cout << "getStatus on child: " << proving_child << std::endl;
+
   int status;
   pid_t result = waitpid(proving_child, &status, WNOHANG);
+
+  std::cout << "waitpid returned " << result << " and status is " << status << std::endl;
 
   if (result == 0) {
       return ProverStatus::RUNNING;
@@ -108,16 +112,28 @@ ProverStatus getStatus() {
           int exit_code = WEXITSTATUS(status);
           if (exit_code == 0) {
             retrieveOutput();
+
+            std::cout << " which meant SUCCEEDED" << std::endl;
+
             return ProverStatus::SUCCEEDED;
           } else {
+
+            std::cout << " which meant FAILED" << std::endl;
+
             retrieveOutput();
             return ProverStatus::FAILED;
           }
       } else if (WIFSIGNALED(status)) {
           last_signal = WTERMSIG(status);
+
+          std::cout << " which meant SIGNALLED with " << last_signal << std::endl;
+
           return ProverStatus::SIGNALLED;
       }
   } else if (result == -1) {
+
+      std::cout << " which meant waitpid error" << std::endl;
+
       perror("waitpid");
   }
   return ProverStatus::ERROR;
@@ -140,13 +156,13 @@ bool runProver(std::string query, std::string config) {
   Options& opts = *Lib::env.options;
 
   if (proving_child) {
-    // std::cout << "proving_child is " << proving_child << std::endl;
+    std::cout << "runProver will Fail, proving_child is already set to " << proving_child << std::endl;
     return false;
   }
 
   path = fs::temp_directory_path() / "vampire-output";
 
-  // std::cout << "out path is " << path << std::endl;
+  std::cout << "our path is " << path << std::endl;
 
   pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
   ASS_NEQ(process, -1);
@@ -183,6 +199,8 @@ bool runProver(std::string query, std::string config) {
   } else {
     // remember our child; it also means that we are busy proving
     proving_child = process;
+
+    std::cout << "success, runProver got a new child: " << proving_child << std::endl;
   }
   return true;
 }
