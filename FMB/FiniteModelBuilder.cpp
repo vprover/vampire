@@ -1828,6 +1828,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
                 Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
           } else {
             if(outputAllowed()) {
+              addCommentSignForSZS(cout);
               cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;
             }
             goto gave_up;
@@ -1849,6 +1850,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   // reset returned false, we can't represent all the variables; giving up!
 
   if(outputAllowed()){
+    addCommentSignForSZS(cout);
     cout << "Cannot represent all propositional literals internally" <<endl;
   }
 
