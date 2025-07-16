@@ -74,7 +74,7 @@ public:
     FUN_DEF = 0,
     PRED_DEF = 1,
     GLOB_FLIP = 2,  // backs up random_polarities
-    COND_FLIP = 3,  // backs up partially  predicates (Plaisted-Greenbaum-style p<=>q reduced to, e.g. p=>q) and eliminated blocked clauses
+    COND_FLIP = 3,  // backs up partially eliminated predicates (Plaisted-Greenbaum-style p<=>q reduced to, e.g. p=>q) and eliminated blocked clauses
   };
 
   /* Intereference (satisfiability-preserving-only transformations) recording */
