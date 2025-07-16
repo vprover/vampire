@@ -26,7 +26,7 @@ bool loadTPTP(std::string tag, std::string theory); // returns true on success; 
 std::vector<std::string> listTheories();
 bool popTheories(unsigned popCnt); // will try to pop popCnt many theories from the theory stack; returns true if there were enough theories on the stack to pop, even in the false case theories will be popped
 
-bool runProver(std::string commandLine); // will only return true and actually run, if the prover is not running already (or the result of the previous call has not been retrieved yet)
+bool runProver(std::string query, std::string config); // will only return true and actually run, if the prover is not running already (or the result of the previous call has not been retrieved yet)
 
 enum class ProverStatus : unsigned {
     READY = 0,

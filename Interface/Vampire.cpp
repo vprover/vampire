@@ -122,7 +122,7 @@ ProverStatus getStatus() {
   return ProverStatus::ERROR;
 }
 
-bool runProver(std::string commandLine) {
+bool runProver(std::string query, std::string config) {
   Options& opts = *Lib::env.options;
 
   if (proving_child) {
@@ -140,9 +140,10 @@ bool runProver(std::string commandLine) {
     std::ofstream output(path);
 
     Stack<std::string> pieces;
-    StringUtils::splitStr(commandLine.c_str(),' ',pieces);
+    StringUtils::splitStr(config.c_str(),' ',pieces);
     StringUtils::dropEmpty(pieces);
-    Stack<const char*> argv(pieces.size());
+    Stack<const char*> argv(pieces.size()+1);
+    argv.push("./vampire"); // vampire expects argv[0] to be the executable (it will mostly ignore)
     for(auto it = pieces.iterFifo(); it.hasNext();) {
       argv.push(it.next().c_str());
     }
@@ -152,10 +153,14 @@ bool runProver(std::string commandLine) {
     Timer::reinitialise(); // start our timer (in the child)
     Timer::setOutput(output);
 
+    loadTPTP("query",query);
+
+    /*
     if (!opts.inputFile().empty()) {
       UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
       prb = UIHelper::getInputProblem();
     }
+    */
 
     dispatchByMode(prb.release(), output); // we release, otherwise the child will try to delete this in the end, which will break
     exit(vampireReturnValue);
