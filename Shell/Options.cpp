@@ -1165,6 +1165,8 @@ void Options::init()
     _lrsPreemptiveDeletes = BoolOptionValue("lrs_preemptive_deletes","lpd",true);
     _lrsPreemptiveDeletes.description = "If false, LRS will not use limits to delete clauses entering passive."
      " (Only the retroactive deletes might apply.)";
+     // Under lrd=off:lpd=off, we don't have any LRS anymore (and are back to Otter, essentially), so the value of this option is questionable.
+     // (Still, it's currently used in a few strategies in Schedules.)
     _lrsPreemptiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
     _lookup.insert(&_lrsPreemptiveDeletes);
     _lrsPreemptiveDeletes.tag(OptionTag::LRS);
