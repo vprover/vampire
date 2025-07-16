@@ -48,7 +48,7 @@ public:
 
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
-  ProofExtra proofExtra;
+  ProofExtra* proofExtra;
 
   /** Time remaining until the end of the time-limit in milliseconds */
   int remainingTime() const;

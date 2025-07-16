@@ -99,7 +99,7 @@ start_applying:
   cl = Clause::fromStack(*resLits,
       SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
-    env.proofExtra.insert(cl, new EqResWithDeletionExtra(std::move(resolved)));
+    env.proofExtra->insert(cl, new EqResWithDeletionExtra(std::move(resolved)));
   goto start_applying;
 }
 

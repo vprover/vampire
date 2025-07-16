@@ -67,7 +67,7 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
     }
     replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, premise));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(replacement, new LiteralInferenceExtra((*cl)[resolvedQueryLit]));
+      env.proofExtra->insert(replacement, new LiteralInferenceExtra((*cl)[resolvedQueryLit]));
     premises = pvi(getSingletonIterator(premise));
     env.statistics->forwardSubsumptionResolution++;
     cm.reset();

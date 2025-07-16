@@ -120,7 +120,7 @@ struct EqualityResolution::ResultFn
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(cl, new EqualityResolutionExtra(lit));
+      env.proofExtra->insert(cl, new EqualityResolutionExtra(lit));
     return cl;
   }
 private:

@@ -849,7 +849,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(scl, new SATClauseExtra(nsClause));
+      env.proofExtra->insert(scl, new SATClauseExtra(nsClause));
 
     nsClause->setInference(new FOConversionInference(scl));
 
@@ -1038,7 +1038,7 @@ bool Splitter::doSplitting(Clause* cl)
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
-    env.proofExtra.insert(scl, new SATClauseExtra(splitClause));
+    env.proofExtra->insert(scl, new SATClauseExtra(splitClause));
 
   splitClause->setInference(new FOConversionInference(scl));
 
@@ -1132,7 +1132,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
           NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
 
   if(posName == name && env.options->proofExtra() == Options::ProofExtra::FULL)
-    env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
+    env.proofExtra->insert(def_u, new SplitDefinitionExtra(compCl));
 
   // propagate running sums:
   // - we have certain values we propagate from the parents of a clause d to d. These values are mainly used to guide saturation.
@@ -1523,7 +1523,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInference1(InferenceRule::AVATAR_CONTRADICTION_CLAUSE,cl));
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
-    env.proofExtra.insert(scl, new SATClauseExtra(confl));
+    env.proofExtra->insert(scl, new SATClauseExtra(confl));
 
   confl->setInference(new FOConversionInference(scl));
   

@@ -262,7 +262,7 @@ protected:
       }
 
       if(env.options->proofExtra() == Options::ProofExtra::FULL) {
-        auto *extra = env.proofExtra.find(cs);
+        auto *extra = env.proofExtra->find(cs);
         if(extra)
           out
             << (first ? ' ' : ',')

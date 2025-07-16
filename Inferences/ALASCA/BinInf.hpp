@@ -141,7 +141,7 @@ public:
           DEBUG(0, "    result: ", *res)
           out.push(res);
           if(env.options->proofExtra() == Options::ProofExtra::FULL)
-            env.proofExtra.insert(res, new BinInfExtra<Rule>(lhs, rhs));
+            env.proofExtra->insert(res, new BinInfExtra<Rule>(lhs, rhs));
         }
         DEBUG(0, "")
       }
@@ -160,7 +160,7 @@ public:
             DEBUG(0, "    result: ", *res)
             out.push(res);
             if(env.options->proofExtra() == Options::ProofExtra::FULL)
-              env.proofExtra.insert(res, new BinInfExtra<Rule>(lhs, rhs));
+              env.proofExtra->insert(res, new BinInfExtra<Rule>(lhs, rhs));
           }
           DEBUG(0, "")
         }

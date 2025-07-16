@@ -103,7 +103,7 @@ public:
     env.statistics->factoring++;
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
+      env.proofExtra->insert(cl, new FactoringExtra(l1, l2));
     return cl;
   }
 private:

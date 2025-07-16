@@ -538,7 +538,7 @@ Clause* Superposition::performSuperposition(
   auto clause = Clause::fromStack(*res, inf);
 
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
-    env.proofExtra.insert(clause, new SuperpositionExtra(
+    env.proofExtra->insert(clause, new SuperpositionExtra(
       rwLit,
       eqLit,
       eqLHS,

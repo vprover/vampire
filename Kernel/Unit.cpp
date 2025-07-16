@@ -201,7 +201,7 @@ std::string Unit::inferenceAsString() const
 
   // print extra if present
   if(env.options->proofExtra() == Options::ProofExtra::FULL) {
-    auto *extra = env.proofExtra.find(this);
+    auto *extra = env.proofExtra->find(this);
     if(extra) {
       if(!first)
         result += ',';

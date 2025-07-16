@@ -48,6 +48,8 @@ Environment::Environment()
   signature = new Signature;
   sharing = new Indexing::TermSharing;
 
+  proofExtra = new ProofExtra;
+
   //view comment in Signature.cpp
   signature->addEquality();
   // These functions are called here in order to ensure the order
@@ -69,6 +71,7 @@ Environment::~Environment()
   delete statistics;
   delete predicateSineLevels;
   delete options;
+  delete proofExtra;
 }
 
 /**

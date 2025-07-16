@@ -590,7 +590,7 @@ static void trivial(std::ostream &out, SortMap &conclSorts, Clause *concl)
 static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
-  const auto &br = env.proofExtra.get<Inferences::BinaryResolutionExtra>(concl);
+  const auto &br = env.proofExtra->get<Inferences::BinaryResolutionExtra>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
   Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
@@ -615,7 +615,7 @@ static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
 static void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
-  auto sr = env.proofExtra.get<Inferences::LiteralInferenceExtra>(concl);
+  auto sr = env.proofExtra->get<Inferences::LiteralInferenceExtra>(concl);
   Literal *m = sr.selectedLiteral;
 
   // reconstruct match by calling into the SATSR code
@@ -630,7 +630,7 @@ static void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause
 
 static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl) {
   auto [premise] = getParents<1>(concl);
-  const auto &fact = env.proofExtra.get<Inferences::FactoringExtra>(concl);
+  const auto &fact = env.proofExtra->get<Inferences::FactoringExtra>(concl);
 
   RobSubstitution subst;
   Literal *selected = fact.selectedLiteral.selectedLiteral;
@@ -649,7 +649,7 @@ static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl) {
 
 static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *concl) {
   auto [premise] = getParents<1>(concl);
-  const auto &res = env.proofExtra.get<Inferences::EqualityResolutionExtra>(concl);
+  const auto &res = env.proofExtra->get<Inferences::EqualityResolutionExtra>(concl);
 
   RobSubstitution subst;
   Literal *selected = res.selectedLiteral;
@@ -668,7 +668,7 @@ static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *c
 static void superposition(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
-  auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(concl);
+  auto sup = env.proofExtra->get<Inferences::SuperpositionExtra>(concl);
 
   // compute unifier for selected literals
   RobSubstitution subst;
@@ -722,7 +722,7 @@ static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermLis
 static void demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
-  auto rw = env.proofExtra.get<Inferences::RewriteInferenceExtra>(concl);
+  auto rw = env.proofExtra->get<Inferences::RewriteInferenceExtra>(concl);
 
   Substitution subst;
   Literal *rightLit = (*right)[0];
@@ -742,7 +742,7 @@ static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
 {
   ASS(conclSorts.isEmpty())
 
-  SATClause *sat = env.proofExtra.get<Indexing::SATClauseExtra>(concl).clause;
+  SATClause *sat = env.proofExtra->get<Indexing::SATClauseExtra>(concl).clause;
   std::unordered_set<unsigned> seen;
   for(SATLiteral l : sat->iter())
     if(seen.insert(l.var()).second)
@@ -753,7 +753,7 @@ static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
   Clause *split = parents.next()->asClause();
   outputPremise(out, conclSorts, split);
   for (Unit *u : iterTraits(parents)) {
-    Clause *component = env.proofExtra.get<Indexing::SplitDefinitionExtra>(u).component;
+    Clause *component = env.proofExtra->get<Indexing::SplitDefinitionExtra>(u).component;
     SortMap otherSorts;
     SortHelper::collectVariableSorts(component, otherSorts);
     out << "(assert (= " << Split {component->splits()->sval()} << " (or";
@@ -774,13 +774,13 @@ static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
 static void satRefutation(std::ostream &out, SortMap &conclSorts, Unit *concl) {
   std::unordered_set<unsigned> seen;
   for(Unit *u : iterTraits(concl->getParents()))
-    for(SATLiteral l : env.proofExtra.get<Indexing::SATClauseExtra>(u).clause->iter())
+    for(SATLiteral l : env.proofExtra->get<Indexing::SATClauseExtra>(u).clause->iter())
       if(seen.insert(l.var()).second)
         out << "(declare-const sp" << l.var() << " Bool)\n";
 
   for(Unit *u : iterTraits(concl->getParents())) {
     out << "(assert (or";
-    for(SATLiteral l : env.proofExtra.get<Indexing::SATClauseExtra>(u).clause->iter())
+    for(SATLiteral l : env.proofExtra->get<Indexing::SATClauseExtra>(u).clause->iter())
       out
         << ' ' << (l.polarity() ? "" : "(not ")
         << "sp" << l.var()
@@ -792,7 +792,7 @@ static void satRefutation(std::ostream &out, SortMap &conclSorts, Unit *concl) {
 template<class Rule>
 static void alascaBinInf(std::ostream &out, SortMap &conclSorts, Clause *concl) {
   auto [left, right] = getParents<2>(concl);
-  const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<Rule>>(concl);
+  const auto &fm = env.proofExtra->get<ALASCA::BinInfExtra<Rule>>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
   ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
