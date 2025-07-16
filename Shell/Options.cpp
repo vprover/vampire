@@ -652,6 +652,10 @@ void Options::init()
     _printClausifierPremises.tag(OptionTag::OUTPUT);
 
     _replaceDomainElements = BoolOptionValue("replace_domain_elements","",false);
+    // Note that while we have the code in place thanks to Giles, Geoff didn't like the functionality
+    // (and, arguably, since it in general incomplete in the sense that sometimes the domain elements are anyway necessary,
+    // it's a bit ugly for its non-uniformity and for mixing syntax - the constants - with semantics - domain elements)
+    // To sum up, we have a feature maybe nobody really likes? A candidate for removal.
     _replaceDomainElements.description="When printing a finite model, try hard to look for constants from the original formulation to use instead of domain elements.";
     _lookup.insert(&_replaceDomainElements);
     _replaceDomainElements.tag(OptionTag::OUTPUT);
