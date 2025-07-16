@@ -2201,8 +2201,8 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
-  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizeSeedForPortfolioWorkers.actualValue = val; }
   bool shuffleOnScheduleRepeats() const { return _shuffleOnScheduleRepeats.actualValue; }
   void enableShuffling() { _shuffleInput.actualValue = true; _randomTraversals.actualValue = true; }
 
@@ -2583,7 +2583,7 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
-  BoolOptionValue _randomizSeedForPortfolioWorkers;
+  BoolOptionValue _randomizeSeedForPortfolioWorkers;
   BoolOptionValue _shuffleOnScheduleRepeats;
 
   IntOptionValue _naming;

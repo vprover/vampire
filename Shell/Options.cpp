@@ -212,10 +212,10 @@ void Options::init()
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
 
-    _randomizSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
-    _randomizSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
-    _lookup.insert(&_randomizSeedForPortfolioWorkers);
-    _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
+    _randomizeSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
+    _randomizeSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
+    _lookup.insert(&_randomizeSeedForPortfolioWorkers);
+    _randomizeSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
 
     _shuffleOnScheduleRepeats = BoolOptionValue("shuffle_on_schedule_repeats","",true);
     _shuffleOnScheduleRepeats.description = "In portfolio mode, when we run out of strategies in the selected schedule, we restart from the beginning while doubling the limits,"
@@ -3454,7 +3454,7 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_sampleStrategy);
     forbidden.insert(&_normalize);
     forbidden.insert(&_outputAxiomNames);
-    forbidden.insert(&_randomizSeedForPortfolioWorkers);
+    forbidden.insert(&_randomizeSeedForPortfolioWorkers);
     forbidden.insert(&_schedule);
     forbidden.insert(&_scheduleFile);
 
