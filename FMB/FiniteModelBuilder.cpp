@@ -1782,6 +1782,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
                 Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
           } else {
             if(outputAllowed()) {
+              addCommentSignForSZS(cout);
               cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;
             }
             goto gave_up;
