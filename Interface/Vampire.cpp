@@ -18,6 +18,11 @@
 #include <sys/wait.h>
 #include <csignal>
 
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <iostream>
+#include <thread>
+
 #include <filesystem>
 namespace fs = std::filesystem;
 #include <fstream>
@@ -96,9 +101,9 @@ ProverStatus getStatus() {
     return ProverStatus::READY;
   }
 
-  int status;
+  std::cout << "getStatus on child: " << proving_child << std::endl;
 
-  std::cout << "getStatus on child: " << proving_child << " and status is " << status << std::endl;
+  int status = 0;
 
   pid_t result = waitpid(proving_child, &status, WNOHANG);
 
@@ -165,10 +170,16 @@ bool runProver(std::string query, std::string config) {
 
   std::cout << "our path is " << path << std::endl;
 
+  std::cerr << "[Parent] PID: " << getpid() 
+          << ", TID: " << syscall(SYS_gettid) << std::endl;
+
   pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
   ASS_NEQ(process, -1);
   if(process == 0) {
     UIHelper::unsetExpecting(); // probably garbage at this point
+
+    std::cerr << "[Child] PID: " << getpid() 
+          << ", TID: " << syscall(SYS_gettid) << std::endl;
 
     std::ofstream output(path);
 
