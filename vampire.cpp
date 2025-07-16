@@ -11,6 +11,7 @@
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
  */
 
+#include "Interface/Vampire.hpp"
 #include "Interface/Modes.hpp"
 
 #include <iostream>
@@ -45,12 +46,12 @@ void interactiveMetamode()
   Options& opts = *env.options;
   opts.setInteractive(false); // so that we don't pass the interactivity on to the workers
 
-  ScopedPtr<Problem> prb;
   if (!opts.inputFile().empty()) {
     UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
     opts.resetInputFile();
   } // no parsing of the whole cin in interactiveMetamode
-  prb = UIHelper::getInputProblem();
+
+  Vampire::init();
 
   while (true) {
     std::string line;
@@ -58,7 +59,11 @@ void interactiveMetamode()
       cout << "Bye." << endl;
       break;
     } else if (line.rfind("run",0) == 0) {
+      bool res = Vampire::runProver("",line.substr(3));
+      cout << "runProver returned " << res << endl;
+
       // the whole running happens in a child (don't modify our options, don't crash here when parsing option rubbish, etc.)
+      /*
       pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
@@ -81,6 +86,14 @@ void interactiveMetamode()
         dispatchByMode(prb.ptr(),std::cout);
         exit(vampireReturnValue);
       }
+      */
+    } else if (line.rfind("stat",0) == 0) {
+      cout << Vampire::getStatus() << endl;
+    } else if (line.rfind("stop",0) == 0) {
+      cout << Vampire::stopProver() << endl;
+    } else if (line.rfind("soln",0) == 0) {
+      cout << Vampire::getSolution() << endl;
+
     } else if (line.rfind("load",0) == 0) {
       Stack<std::string> pieces;
       StringUtils::splitStr(line.c_str(),' ',pieces);
@@ -90,25 +103,22 @@ void interactiveMetamode()
       while (it.hasNext()) {
         UIHelper::parseFile(it.next(),opts.inputSyntax(),true);
       }
-      prb = UIHelper::getInputProblem();
+      Vampire::init();
     } else if (line.rfind("tptp ",0) == 0) {
-      try {
-        std::string theory = line.substr(5);
-        UIHelper::parseString(/* we tag the oneliner by itself*/ theory,theory,Options::InputSyntax::TPTP);
-        prb = UIHelper::getInputProblem();
-      } catch (ParsingRelatedException& exception) {
-        explainException(exception);
-      }
+      std::string theory = line.substr(5);
+      cout << "loadTPTP returned " << Vampire::loadTPTP(theory,theory) << endl;
     } else if (line.rfind("smt2 ",0) == 0) {
       try {
         std::string theory = line.substr(5);
         UIHelper::parseString(/* we tag the oneliner by itself*/ theory,theory,Options::InputSyntax::SMTLIB2);
-        prb = UIHelper::getInputProblem();
       } catch (ParsingRelatedException& exception) {
         explainException(exception);
       }
     } else if (line.rfind("list",0) == 0) {
-      UIHelper::listLoadedPieces(cout);
+      auto thList = Vampire::listTheories();
+      for (auto thTag : thList) {
+        cout << thTag << endl;
+      }
     } else if (line.rfind("pop",0) == 0) {
       Stack<std::string> pieces;
       StringUtils::splitStr(line.c_str(),' ',pieces);
@@ -117,8 +127,7 @@ void interactiveMetamode()
       if (pieces.size() > 1) {
         Int::stringToInt(pieces[1],numPops);
       }
-      UIHelper::popLoadedPieces(numPops);
-      prb = UIHelper::getInputProblem();
+      Vampire::popTheories(numPops);
     } else {
       cout << "Unreconginzed command! Try 'run [options] [filename_to_load]', 'load <filenames>', 'tptp <one_line_input_in_tptp>',\n"
               "'smt2 <one_line_input_in_smt2>' 'pop [how_many_levels] (one is default)', 'list', or 'exit'." << endl;
