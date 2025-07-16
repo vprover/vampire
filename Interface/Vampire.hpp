@@ -28,6 +28,8 @@ bool popTheories(unsigned popCnt); // will try to pop popCnt many theories from 
 
 bool runProver(std::string query, std::string config); // will only return true and actually run, if the prover is not running already (or the result of the previous call has not been retrieved yet)
 
+bool stopProver();
+
 enum class ProverStatus : unsigned {
     READY = 0,
     RUNNING = 1,

@@ -16,6 +16,7 @@
 #include "Modes.hpp"
 
 #include <sys/wait.h>
+#include <csignal>
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -122,6 +123,19 @@ ProverStatus getStatus() {
   return ProverStatus::ERROR;
 }
 
+bool stopProver() {
+  if (proving_child == 0) {
+    return false;
+  } else {
+    int res = ::kill(proving_child, SIGINT);
+    return res == 0;
+    // if(res!=0) {
+    //   ASS_EQ(res,-1);
+    //   SYSTEM_FAIL("Call to kill() function failed.", errno);
+    // }
+  }
+}
+
 bool runProver(std::string query, std::string config) {
   Options& opts = *Lib::env.options;
 
@@ -131,6 +145,8 @@ bool runProver(std::string query, std::string config) {
   }
 
   path = fs::temp_directory_path() / "vampire-output";
+
+  // std::cout << "out path is " << path << std::endl;
 
   pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
   ASS_NEQ(process, -1);
