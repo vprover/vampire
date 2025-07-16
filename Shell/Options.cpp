@@ -219,7 +219,7 @@ void Options::init()
 
     _shuffleOnScheduleRepeats = BoolOptionValue("shuffle_on_schedule_repeats","",true);
     _shuffleOnScheduleRepeats.description = "In portfolio mode, when we run out of strategies in the selected schedule, we restart from the beginning while doubling the limits,"
-                                             " under this option, we also force si=on:rtra=on to increase the change that the repeated strategies `do something else`.";
+                                             " under this option, we also force si=on:rtra=on to increase the chance that the repeated strategies `do something else`.";
     _lookup.insert(&_shuffleOnScheduleRepeats);
     _shuffleOnScheduleRepeats.onlyUsefulWith(UsingPortfolioTechnology());
 
