@@ -100,10 +100,10 @@ private:
   bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst);
   bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst);
 
-  // if term evaluation encounters a missing record, it assumes the correspondig symbol has been implicitly eliminated
+  // if term evaluation encounters a missing record, it assumes the corresponding symbol has been implicitly eliminated
   // (e.g., eliminated unused function definition f(X) = g(X,c) might have eliminated c, if it did not occur anywhere else)
   // such symbols are restored (just after restoreEliminatedDefinitions; although, formally it should happen before) in the simplest possible way:
-  // functions == 1 (the first domain element of the respective sort) everwhere
+  // functions == 1 (the first domain element of the respective sort) everywhere
   // predicates == false everywhere
   Set<unsigned> _implicitlyEliminatedFunctions;
   Set<unsigned> _implicitlyEliminatedPredicates;

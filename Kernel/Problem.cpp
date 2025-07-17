@@ -231,7 +231,7 @@ void Problem::addTrivialPredicate(unsigned pred, bool assignment)
   // create linear literal (~)pred(X0,X1,...X_arity)
   TermStack args;
   for (unsigned v = 0; v < env.signature->getPredicate(pred)->arity(); v++) {
-    args.push(TermList(v,false));
+    args.push(TermList::var(v));
   }
   Literal* l = Literal::create(pred, args.size(), true, args.begin());
 
@@ -302,7 +302,8 @@ void Problem::addEliminatedPredicate(unsigned pred, Formula* def)
     lhs = f->right();
     rhs = f->left();
   }
-  ASS(lhs->connective()==LITERAL && lhs->literal()->functor()==pred)
+  ASS_EQ(lhs->connective(),LITERAL)
+  ASS_EQ(lhs->literal()->functor(),pred)
 
   auto res = new PredDef(lhs->literal(),rhs);
   interferences.push(res);
