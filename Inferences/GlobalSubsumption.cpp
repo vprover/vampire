@@ -163,11 +163,11 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
     // it should always be UNSAT with full assumps,
     // but we may not get that far with limited solving power (_uprOnly)
 
-    const SATLiteralStack& failed = _solver->failedAssumptions();
+    SATLiteralStack failed = _solver->failedAssumptions();
 
     if (failed.size() < assumps.size()) {
       // proper subset sufficed for UNSAT - that's the interesting case
-      const SATLiteralStack& failedFinal = _explicitMinim ? _solver->explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : failed;
+      SATLiteralStack failedFinal = _explicitMinim ? _solver->explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : std::move(failed);
 
       static LiteralStack survivors;
       survivors.reset();
