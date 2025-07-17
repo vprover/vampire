@@ -23,6 +23,9 @@ namespace Vampire {
 
 void init(); // please call this at the start
 bool loadTPTP(std::string tag, std::string theory); // returns true on success; state should remain consistent anyway
+
+bool parseTPTP(std::string filename);
+
 std::vector<std::string> listTheories();
 bool popTheories(unsigned popCnt); // will try to pop popCnt many theories from the theory stack; returns true if there were enough theories on the stack to pop, even in the false case theories will be popped
 

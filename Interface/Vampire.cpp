@@ -61,6 +61,16 @@ bool loadTPTP(std::string tag, std::string theory) {
   return true;
 }
 
+bool parseTPTP(std::string filename) {
+  try {
+    UIHelper::parseFile(filename,Options::InputSyntax::TPTP,true);
+    prb = UIHelper::getInputProblem();
+    return true;
+  } catch (ParsingRelatedException& exception) {
+    return false;
+  }
+}
+
 std::vector<std::string> listTheories() {
   return UIHelper::getLoadedPiecesTags();
 }
