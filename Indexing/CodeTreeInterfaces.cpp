@@ -186,7 +186,7 @@ template class CodeTreeTIS<DemodulatorData>;
 
 void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
 {
-  TIME_TRACE("codetree subsumption index maintanance");
+  TIME_TRACE("codetree subsumption index maintenance");
 
   if(adding) {
     _ct.insert(cl);

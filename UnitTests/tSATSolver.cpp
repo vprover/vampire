@@ -130,7 +130,7 @@ void testProofWithAssumptions(SATSolver& s)
 
 TEST_FUN(testProofWithAssums)
 {
-  MinisatInterfacing s(*env.options,true);
+  MinisatInterfacing s;
   testProofWithAssumptions(s);
 }
 
@@ -221,7 +221,7 @@ void testInterface(SATSolverWithAssumptions &s) {
 TEST_FUN(testSATSolverInterface)
 { 
   cout << endl << "Minisat" << endl;
-  MinisatInterfacing sMini(*env.options,true);
+  MinisatInterfacing sMini;
   testInterface(sMini);
 
   /* Not fully conforming - does not support zeroImplied and resource-limited solving
@@ -279,7 +279,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
 TEST_FUN(testSolvingUnderAssumptions)
 {
   cout << endl << "Minisat" << endl;
-  MinisatInterfacing sMini(*env.options,true);
+  MinisatInterfacing sMini;
   testAssumptions(sMini);
 
   /*cout << endl << "Z3" << endl;

@@ -182,13 +182,14 @@ find_package(
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
     PATHS
+      ${Z3_DIR}
       ${CMAKE_SOURCE_DIR}/z3/build/
 )
 
 if (Z3_FOUND)
   message(STATUS "found Z3 " ${Z3_VERSION_STRING})
   include_directories(${Z3_CXX_INCLUDE_DIRS})
-  link_directories(z3/build/)
+  link_directories(${Z3_DIR})
   link_libraries(z3)
   add_compile_definitions(VZ3=1)
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})

@@ -193,7 +193,7 @@ public:
     SIMPLE_FORMULA,
     /** build formula from a connective and one or more formulas */
     END_FORMULA,
-    /** read a formula that whould be put inside a term */
+    /** read a formula that would be put inside a term */
     FORMULA_INSIDE_TERM,
     /** */
     TERM_INFIX,
@@ -325,7 +325,7 @@ public:
    * @param unitBuffer is FIFO of units to which newly parsed Clauses/Formulas
    *   will be added (via pushBack);
    *
-   *  if left unspeficied, and empty fifo is created and used instead.
+   *  if left unspecified, and empty fifo is created and used instead.
    *  (use this default behaviour if you do not want to collect formulas
    *   from multiple parser calls)
    */
@@ -333,7 +333,7 @@ public:
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
-  static Clause* parseClauseFromString(const std::string& str);
+  static Unit* parseFormulaFromString(const std::string& str);
   /** Return the list of parsed units */
   UnitList* units() const { return _units.list(); }
   /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
@@ -621,7 +621,7 @@ private:
   Stack<LetSymbols> _letSymbols;
   Stack<LetSymbols> _letTypedSymbols;
 
-  /** Record wheter a formula or term has been pushed more recently */
+  /** Record whether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
 
   /** finds if the symbol has been defined in an enclosing $let */

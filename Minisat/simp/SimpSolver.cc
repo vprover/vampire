@@ -569,7 +569,7 @@ bool SimpSolver::eliminateVar(Var v)
     for (int i = 0; i < cls.size(); i++)
         (find(ca[cls[i]], mkLit(v)) ? pos : neg).push(cls[i]);
 
-    // Check wether the increase in number of clauses stays within the allowed ('grow'). Moreover, no
+    // Check whether the increase in number of clauses stays within the allowed ('grow'). Moreover, no
     // clause must exceed the limit on the maximal clause size (if it is set):
     //
     int cnt         = 0;
@@ -695,7 +695,7 @@ bool SimpSolver::eliminate(bool turn_off_elim)
         // printf("  ## (time = %6.2f s) ELIM: vars = %d\n", cpuTime(), elim_heap.size());
         for (int cnt = 0; !elim_heap.empty(); cnt++){
             Var elim = elim_heap.removeMin();
-            
+
             if (asynch_interrupt) break;
 
             if (isEliminated(elim) || value(elim) != l_Undef) continue;
@@ -711,7 +711,7 @@ bool SimpSolver::eliminate(bool turn_off_elim)
                     ok = false; goto cleanup; }
                 frozen[elim] = was_frozen; }
 
-            // At this point, the variable may have been set by assymetric branching, so check it
+            // At this point, the variable may have been set by asymmetric branching, so check it
             // again. Also, don't eliminate frozen variables:
             if (use_elim && value(elim) == l_Undef && !frozen[elim] && !eliminateVar(elim)){
                 ok = false; goto cleanup; }

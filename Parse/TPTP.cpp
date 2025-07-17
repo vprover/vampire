@@ -74,16 +74,16 @@ UnitList* TPTP::parse(istream& input)
   return parser.units();
 }
 
-Clause* TPTP::parseClauseFromString(const std::string& str)
+Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input);
   parser._lastInputType = UnitInputType::AXIOM;
-  parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
+  parser._bools.push(true);     // true is what fof/tff normally pushes (but we start "from the middle")
   parser._strings.push("dummy_name");
   parser._states.push(END_FOF);  // this is what does the clause building
   parser.parseImpl(FORMULA);
-  return parser._units.list()->head()->asClause();
+  return parser._units.list()->head();
 }
 
 /**
@@ -131,7 +131,7 @@ void TPTP::parse()
  */
 void TPTP::parseImpl(State initialState)
 {
-  // bulding tokens one by one
+  // building tokens one by one
   _cend = 0;
   _tend = 0;
   currentFile.lineNumber = 1;
@@ -1401,7 +1401,7 @@ void TPTP::tff()
           symbol->setType(ot);  
           _typeConstructorArities.insert(nm, arity);
         }       
-        //cout << "added type constuctor " + nm + " of type " + symbol->fnType()->toString() << endl;
+        //cout << "added type constructor " + nm + " of type " + symbol->fnType()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
         }
@@ -1526,7 +1526,7 @@ void TPTP::holFormula()
     _states.push(HOL_FORMULA);
     return;
     
-  //higher order syntax wierdly allows (~) @ (...)
+  //higher order syntax weirdly allows (~) @ (...)
   case T_RPAR: {
     ASS(_connectives.top() == NOT);
     _connectives.pop();
@@ -1614,7 +1614,7 @@ void TPTP::holTerm()
           break;
         case T_DEFAULT_TYPE:
           _termLists.push(AtomicSort::defaultSort());
-          break;             
+          break;
         default:
           ASSERTION_VIOLATION;
       }
@@ -2876,7 +2876,7 @@ void TPTP::term()
           break;
         case T_DEFAULT_TYPE:
           _termLists.push(AtomicSort::defaultSort());
-          break;             
+          break;
         default:
           ASSERTION_VIOLATION;
       }
@@ -3211,7 +3211,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
 TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
-{ //TODO update to deal with wierd /\ @ ... syntax
+{ //TODO update to deal with weird /\ @ ... syntax
   ASS_GE(_termLists.size(), arity);
 
   unsigned fun;
@@ -3280,7 +3280,7 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
 }
 
 /**
- * Build a formula from previousy built subformulas
+ * Build a formula from previously built subformulas
  * @since 10/04/2011 Manchester
  */
 void TPTP::endFormula()
@@ -3300,7 +3300,7 @@ void TPTP::endFormula()
     break;
   case NOT:
     f = _formulas.pop();
-    // This gets rid of the annoying step in proof output where ~(L) is flattend to (~L)
+    // This gets rid of the annoying step in proof output where ~(L) is flattened to (~L)
     if(f->connective()==LITERAL){
       Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
       Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
@@ -3485,7 +3485,7 @@ void TPTP::endTermAsFormula()
 } // endTermAsFormula
 
 /**
- * Build a type from previousy built types
+ * Build a type from previously built types
  * @since 14/07/2011 Manchester
  */
 void TPTP::endType()
@@ -3678,7 +3678,7 @@ void TPTP::endFof()
 *
 * Now instead of returning it directly, we turn it into an equivalence
 * with a fresh predicate symbol (of name nm) and return that one.
-* The new symbo is marked not to be eliminated during preprocessing.
+* The new symbol is marked not to be eliminated during preprocessing.
 */
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
 {
@@ -4220,7 +4220,7 @@ void TPTP::readTypeArgs(unsigned arity)
       _termLists.push(readArrowSort());
       consumeToken(T_RPAR);
     } else {
-      _termLists.push(readArrowSort());            
+      _termLists.push(readArrowSort());
     }
   }
 }

@@ -148,7 +148,7 @@ bool PortfolioMode::searchForProof()
     TIME_TRACE(TimeTrace::PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
-    ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
+    ScopedLet<ExecutionPhase> phaseLet(env.statistics->phase,ExecutionPhase::NORMALIZATION);
 
     if (env.options->normalize()) { // set explicitly by CASC(SAT) and SMTCOMP modes
       Normalisation().normalise(*_prb);
@@ -290,7 +290,7 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 };
 
 /**
- * Take strategy strings from @param sOld, update their time (and intruction) limit, 
+ * Take strategy strings from @param sOld, update their time (and instruction) limit,
  * multiplying it by @param limit_multiplier and put the new strings into @param sNew.
  * 
  * @author Giles, Martin
@@ -644,8 +644,8 @@ void PortfolioMode::runSlice(Options& opt)
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 
   bool succeeded =
-    env.statistics->terminationReason == Statistics::REFUTATION ||
-    env.statistics->terminationReason == Statistics::SATISFIABLE;
+    env.statistics->terminationReason == TerminationReason::REFUTATION ||
+    env.statistics->terminationReason == TerminationReason::SATISFIABLE;
 
   if(!succeeded) {
     if(outputAllowed())
@@ -696,7 +696,7 @@ void PortfolioMode::runSlice(Options& opt)
     addCommentSignForSZS(cout) << "First to succeed." << endl;
 
   if (_path.empty()) {
-    // we already failed above in accesssing the file (let's not try opening or reporting the empty name)
+    // we already failed above in accessing the file (let's not try opening or reporting the empty name)
     UIHelper::outputResult(cout);
   } else {
     std::ofstream output(_path);

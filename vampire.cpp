@@ -42,6 +42,7 @@
 
 #include "CASC/PortfolioMode.hpp"
 #include "Shell/CommandLine.hpp"
+
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -122,9 +123,14 @@ void explainException(Exception& exception)
 [[nodiscard]]
 Problem *doProving(Problem* problem)
 {
+  if (env.options->showPropDict()) {
+    cout << "% Prop: " << problem->getProperty()->toDict() << endl;
+  }
+
   // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
-    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->sampleStrategy(env.options->strategySamplerFilename(),
+      problem->getProperty()->toDict());
   }
 
   env.options->setForcedOptionValues();
@@ -349,8 +355,8 @@ void vampireMode(Problem* problem)
 
   UIHelper::outputResult(std::cout);
 
-  if (env.statistics->terminationReason == Statistics::REFUTATION
-      || env.statistics->terminationReason == Statistics::SATISFIABLE) {
+  if (env.statistics->terminationReason == TerminationReason::REFUTATION
+      || env.statistics->terminationReason == TerminationReason::SATISFIABLE) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
   }
 } // vampireMode
@@ -384,21 +390,21 @@ void spiderMode(Problem* problem)
 
   if (!exceptionRaised) {
     switch (env.statistics->terminationReason) {
-    case Statistics::REFUTATION:
+    case TerminationReason::REFUTATION:
       reportSpiderStatus('+');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
-    case Statistics::TIME_LIMIT:
+    case TerminationReason::TIME_LIMIT:
       reportSpiderStatus('t');
       break;
-    case Statistics::MEMORY_LIMIT:
+    case TerminationReason::MEMORY_LIMIT:
       reportSpiderStatus('m');
       break;
-    case Statistics::UNKNOWN:
-    case Statistics::INAPPROPRIATE:
+    case TerminationReason::UNKNOWN:
+    case TerminationReason::INAPPROPRIATE:
       reportSpiderStatus('u');
       break;
-    case Statistics::REFUTATION_NOT_FOUND:
+    case TerminationReason::REFUTATION_NOT_FOUND:
       if (env.statistics->discardedNonRedundantClauses > 0) {
         reportSpiderStatus('n');
       }
@@ -406,7 +412,7 @@ void spiderMode(Problem* problem)
         reportSpiderStatus('i');
       }
       break;
-    case Statistics::SATISFIABLE:
+    case TerminationReason::SATISFIABLE:
       reportSpiderStatus('-');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
@@ -446,7 +452,8 @@ void clausifyMode(Problem* problem, bool theory)
   simplifier.addFront(new DuplicateLiteralRemovalISE());
 
   if (!env.options->strategySamplerFilename().empty()) {
-    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->sampleStrategy(env.options->strategySamplerFilename(),
+      problem->getProperty()->toDict());
   }
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
@@ -507,15 +514,15 @@ void axiomSelectionMode(Problem* problem)
 
   // reorder units
   if (env.options->normalize()) {
-    env.statistics->phase = Statistics::NORMALIZATION;
+    env.statistics->phase = ExecutionPhase::NORMALIZATION;
     Normalisation norm;
     norm.normalise(*prb);
   }
 
-  env.statistics->phase = Statistics::SINE_SELECTION;
+  env.statistics->phase = ExecutionPhase::SINE_SELECTION;
   Shell::SineSelector(*env.options).perform(*prb);
 
-  env.statistics->phase = Statistics::FINALIZATION;
+  env.statistics->phase = ExecutionPhase::FINALIZATION;
 
   UnitList::Iterator uit(prb->units());
   while (uit.hasNext()) {

@@ -34,7 +34,7 @@ namespace Shell
 bool DistinctProcessor::isDistinctPred(Literal* l)
 {
   //this is a hacky way to check for disctnct predicates,
-  //needs to be fixed once we have a proper sopport for
+  //needs to be fixed once we have a proper support for
   //these in the signature
 
   //Moreover, this check turned out to be bottleneck, so it

@@ -50,7 +50,6 @@
 #include "SineUtils.hpp"
 #include "Statistics.hpp"
 #include "FOOLElimination.hpp"
-#include "LambdaElimination.hpp"
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
@@ -78,10 +77,6 @@ void Preprocess::preprocess(Problem& prb)
 {
   env.options->resolveAwayAutoValues0();
 
-  if(env.options->choiceReasoning()){
-    env.signature->addChoiceOperator(env.signature->getChoice());
-  }
-
   if (env.options->showPreprocessing()) {
     std::cout << "preprocessing started" << std::endl;
     UnitList::Iterator uit(prb.units());
@@ -92,7 +87,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
-    env.statistics->phase=Statistics::ANSWER_LITERAL;
+    env.statistics->phase=ExecutionPhase::ANSWER_LITERAL;
     if (env.options->showPreprocessing())
       std::cout << "answer literal addition" << std::endl;
 
@@ -115,7 +110,7 @@ void Preprocess::preprocess(Problem& prb)
    * in profileMode() in vampire.cpp and PortfolioMode::searchForProof()
    * to preserve reproducibility out of casc mode when using --decode */
   if (_options.normalize()) { // reorder units
-    env.statistics->phase=Statistics::NORMALIZATION;
+    env.statistics->phase=ExecutionPhase::NORMALIZATION;
     if (env.options->showPreprocessing())
       std::cout << "normalization" << std::endl;
 
@@ -124,7 +119,7 @@ void Preprocess::preprocess(Problem& prb)
 
   if (_options.shuffleInput()) {
     TIME_TRACE(TimeTrace::SHUFFLING);
-    env.statistics->phase=Statistics::SHUFFLING;
+    env.statistics->phase=ExecutionPhase::SHUFFLING;
 
     if (env.options->showPreprocessing())
       std::cout << "shuffling1" << std::endl;
@@ -148,7 +143,7 @@ void Preprocess::preprocess(Problem& prb)
 
     // Add theory axioms if needed
     if(_options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
-      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      env.statistics->phase=ExecutionPhase::INCLUDING_THEORY_AXIOMS;
       if (env.options->showPreprocessing())
         std::cout << "adding theory axioms" << std::endl;
 
@@ -177,23 +172,17 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
-    LambdaElimination::addFunctionExtensionalityAxiom(prb);
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
+    HOL_ERROR;
   }
 
-  if(env.options->choiceAxiom()){
-    LambdaElimination::addChoiceAxiom(prb);
+  if (env.options->choiceAxiom()) {
+    HOL_ERROR;
   }
 
-  prb.getProperty();
+  (void)prb.getProperty();
 
-  if ((prb.hasCombs() || prb.hasAppliedVar()) && env.options->addCombAxioms()){
-    LambdaElimination::addCombinatorAxioms(prb);
-  }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
-    LambdaElimination::addProxyAxioms(prb);
-  }
 
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
@@ -204,7 +193,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
-    env.statistics->phase=Statistics::SINE_SELECTION;
+    env.statistics->phase=ExecutionPhase::SINE_SELECTION;
 
     if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {
       env.predicateSineLevels = new DHMap<unsigned,unsigned>();
@@ -216,7 +205,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.sineSelection()!=Options::SineSelection::OFF) {
-    env.statistics->phase=Statistics::SINE_SELECTION;
+    env.statistics->phase=ExecutionPhase::SINE_SELECTION;
     if (env.options->showPreprocessing())
       std::cout << "sine selection" << std::endl;
 
@@ -237,7 +226,7 @@ void Preprocess::preprocess(Problem& prb)
 
   if (_options.shuffleInput()) {
    TIME_TRACE(TimeTrace::SHUFFLING);
-    env.statistics->phase=Statistics::SHUFFLING;
+    env.statistics->phase=ExecutionPhase::SHUFFLING;
     if (env.options->showPreprocessing())
       std::cout << "shuffling2" << std::endl;
 
@@ -257,7 +246,7 @@ void Preprocess::preprocess(Problem& prb)
   // - unused definitions
   // I think TrivialPredicateRemoval just removes pures
   if (_options.unusedPredicateDefinitionRemoval()) {
-    env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
+    env.statistics->phase=ExecutionPhase::UNUSED_PREDICATE_DEFINITION_REMOVAL;
     if (env.options->showPreprocessing())
       std::cout << "unused predicate definition removal" << std::endl;
 
@@ -274,7 +263,7 @@ void Preprocess::preprocess(Problem& prb)
 
   if (_options.shuffleInput()) {
     TIME_TRACE(TimeTrace::SHUFFLING);
-    env.statistics->phase=Statistics::SHUFFLING;
+    env.statistics->phase=ExecutionPhase::SHUFFLING;
     if (env.options->showPreprocessing())
       std::cout << "shuffling3" << std::endl;
 
@@ -323,7 +312,7 @@ void Preprocess::preprocess(Problem& prb)
 
 
   if (prb.mayHaveFunctionDefinitions()) {
-    env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
+    env.statistics->phase=ExecutionPhase::FUNCTION_DEFINITION_ELIMINATION;
     if (env.options->showPreprocessing())
       std::cout << "function definition elimination" << std::endl;
 
@@ -341,7 +330,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "inequality splitting" << std::endl;
 
-    env.statistics->phase=Statistics::INEQUALITY_SPLITTING;
+    env.statistics->phase=ExecutionPhase::INEQUALITY_SPLITTING;
     InequalitySplitting is(_options);
     is.perform(prb);
   }
@@ -365,7 +354,7 @@ void Preprocess::preprocess(Problem& prb)
 //   }
 
    if (_options.equalityResolutionWithDeletion() && prb.mayHaveInequalityResolvableWithDeletion() ) {
-     env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
+     env.statistics->phase=ExecutionPhase::EQUALITY_RESOLUTION_WITH_DELETION;
      if (env.options->showPreprocessing())
       std::cout << "equality resolution with deletion" << std::endl;
 
@@ -386,7 +375,7 @@ void Preprocess::preprocess(Problem& prb)
          std::cout << "WARNING: Not using GeneralSplitting currently not compatible with polymorphic/higher-order inputs." << endl;
        }
      } else {
-       env.statistics->phase=Statistics::GENERAL_SPLITTING;
+       env.statistics->phase=ExecutionPhase::GENERAL_SPLITTING;
        if (env.options->showPreprocessing())
          std::cout << "general splitting" << std::endl;
 
@@ -396,7 +385,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if(env.options->tweeGoalTransformation() != Options::TweeGoalTransformation::OFF) {
-     env.statistics->phase = Statistics::TWEE;
+     env.statistics->phase = ExecutionPhase::TWEE;
      if(env.options->showPreprocessing())
        std::cout << "twee goal transformation" << std::endl;
 
@@ -405,7 +394,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
-     env.statistics->phase=Statistics::EQUALITY_PROXY;
+     env.statistics->phase=ExecutionPhase::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        std::cout << "equality proxy" << std::endl;
 
@@ -439,14 +428,14 @@ void Preprocess::preprocess(Problem& prb)
 
    if (env.options->alascaIntegerConversion()) {
      if (env.options->showPreprocessing())
-        std::cout << "performing integer coversion" << std::endl;
+        std::cout << "performing integer conversion" << std::endl;
 
      AlascaPreprocessor alasca(InequalityNormalizer::global());
      alasca.integerConversion(prb);
    }
 
    if (_options.blockedClauseElimination()) {
-     env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
+     env.statistics->phase=ExecutionPhase::BLOCKED_CLAUSE_ELIMINATION;
      if(env.options->showPreprocessing())
        std::cout << "blocked clause elimination" << std::endl;
 
@@ -456,7 +445,7 @@ void Preprocess::preprocess(Problem& prb)
 
    if (_options.shuffleInput()) {
      TIME_TRACE(TimeTrace::SHUFFLING);
-     env.statistics->phase=Statistics::SHUFFLING;
+     env.statistics->phase=ExecutionPhase::SHUFFLING;
      if (env.options->showPreprocessing())
        std::cout << "shuffling4" << std::endl;
 
@@ -466,7 +455,7 @@ void Preprocess::preprocess(Problem& prb)
 
    if (_options.randomPolarities()) {
      TIME_TRACE(TimeTrace::SHUFFLING);
-     env.statistics->phase=Statistics::SHUFFLING;
+     env.statistics->phase=ExecutionPhase::SHUFFLING;
      if (env.options->showPreprocessing())
        std::cout << "flipping polarities" << std::endl;
 
@@ -507,7 +496,7 @@ void Preprocess::preprocess(Problem& prb)
  */
 void Preprocess::preprocess1 (Problem& prb)
 {
-  ScopedLet<Statistics::ExecutionPhase> epLet(env.statistics->phase, Statistics::PREPROCESS_1);
+  ScopedLet<ExecutionPhase> epLet(env.statistics->phase, ExecutionPhase::PREPROCESS_1);
 
   bool formulasSimplified = false;
 
@@ -558,7 +547,7 @@ void Preprocess::preprocess1 (Problem& prb)
  */
 void Preprocess::preprocess2(Problem& prb)
 {
-  env.statistics->phase=Statistics::PREPROCESS_2;
+  env.statistics->phase=ExecutionPhase::PREPROCESS_2;
 
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
@@ -587,7 +576,7 @@ void Preprocess::naming(Problem& prb)
 {
   ASS(_options.naming());
 
-  env.statistics->phase=Statistics::NAMING;
+  env.statistics->phase=ExecutionPhase::NAMING;
   UnitList::DelIterator us(prb.units());
   //TODO fix the below
   Naming naming(_options.naming(),false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
@@ -613,7 +602,7 @@ void Preprocess::naming(Problem& prb)
  */
 void Preprocess::newCnf(Problem& prb)
 {
-  env.statistics->phase=Statistics::NEW_CNF;
+  env.statistics->phase=ExecutionPhase::NEW_CNF;
 
   // TODO: this is an ugly copy-paste of "Preprocess::clausify"
 
@@ -708,7 +697,7 @@ void Preprocess::preprocess3 (Problem& prb)
 {
   bool modified = false;
 
-  env.statistics->phase=Statistics::PREPROCESS_3;
+  env.statistics->phase=ExecutionPhase::PREPROCESS_3;
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
@@ -726,7 +715,7 @@ void Preprocess::preprocess3 (Problem& prb)
 
 void Preprocess::clausify(Problem& prb)
 {
-  env.statistics->phase=Statistics::CLAUSIFICATION;
+  env.statistics->phase=ExecutionPhase::CLAUSIFICATION;
 
   //we check if we haven't discovered an empty clause during preprocessing
   Unit* emptyClause = 0;

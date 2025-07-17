@@ -27,6 +27,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/SMTCheck.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -64,7 +65,7 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
 }
 
 /**
- * Records informations needed for outputting proofs of general splitting
+ * Records information needed for outputting proofs of general splitting
  */
 void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 {
@@ -434,6 +435,14 @@ protected:
       }
     case InferenceRule::NEGATED_CONJECTURE:
       return "negated_conjecture";
+    case InferenceRule::AVATAR_DEFINITION:
+    case InferenceRule::FUNCTION_DEFINITION:
+    case InferenceRule::FOOL_ITE_DEFINITION:
+    case InferenceRule::FOOL_LET_DEFINITION:
+    case InferenceRule::FOOL_FORMULA_DEFINITION:
+    case InferenceRule::FOOL_MATCH_DEFINITION:
+    case InferenceRule::GENERAL_SPLITTING_COMPONENT:
+      return "definition";
     default:
       return "plain";
     }
@@ -565,9 +574,6 @@ protected:
     UnitIterator parents= us->getParents();
 
     switch(rule) {
-    //case Inference::AVATAR_COMPONENT:
-    //  printSplittingComponentIntroduction(us);
-    //  return;
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
       printGeneralSplittingComponent(us);
       return;
@@ -607,7 +613,8 @@ protected:
       std::string newSymbolInfo;
       if (hasNewSymbols(us)) {
         std::string newSymbOrigin;
-        if (rule == InferenceRule::FUNCTION_DEFINITION ||
+        if (
+          rule == InferenceRule::FUNCTION_DEFINITION ||
           rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
           rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) {
           newSymbOrigin = "definition";
@@ -616,13 +623,16 @@ protected:
         }
 	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
       }
-      inferenceStr="introduced("+tptpRuleName(rule)+",["+newSymbolInfo+"])";
+      inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
     }
     else {
       ASS(parents.hasNext());
       std::string statusStr;
       if (rule==InferenceRule::SKOLEMIZE) {
 	      statusStr="status(esa),"+getNewSymbols("skolem",us);
+      }
+      else if(rule==InferenceRule::NEGATED_CONJECTURE) {
+	      statusStr="status(cth)";
       }
 
       inferenceStr="inference("+tptpRuleName(rule);
@@ -731,38 +741,12 @@ protected:
 
     SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     std::ostringstream originStm;
-    originStm << "introduced(" << tptpRuleName(rule)
-	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
-	      << "])";
+    originStm << "introduced(definition,["
+	      << getNewSymbols("naming",getSingletonIterator(nameSymbol))
+	      << "],[" << tptpRuleName(rule) << "])";
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
   }
-
-  void printSplittingComponentIntroduction(Unit* us)
-  {
-    ASS(us->isClause());
-
-    Clause* cl=us->asClause();
-    ASS(cl->splits());
-    ASS_EQ(cl->splits()->size(),1);
-
-    InferenceRule rule=InferenceRule::AVATAR_COMPONENT;
-
-    std::string defId=tptpDefId(us);
-    std::string splitPred = splitsToString(cl->splits());
-    std::string defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
-
-    out<<getFofString(tptpUnitId(us), getFormulaString(us),
-      "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
-
-    std::stringstream originStm;
-    originStm << "introduced(" << tptpRuleName(rule)
-        << ",[" << getNewSymbols("naming",splitPred)
-        << "])";
-
-    out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
-  }
-
 };
 
 struct InferenceStore::ProofCheckPrinter
@@ -977,7 +961,7 @@ protected:
            //                    => div(m, n) = floor(m/n)
            "            (div m n)                           \n"
            //            m/n <= 0 => we need ceiling(m/n)
-           //                     => -n is negativ
+           //                     => -n is negative
            //                     => div(-m,-n) = floor(-m/-n)
            "            (div (- m) (- n))                   \n"
            "       )                                        \n"
@@ -1370,7 +1354,7 @@ protected:
         outputFormula(out, f->uarg());
         out  << ")";
         return;
-                 
+
       case AND: outputCon("and"); return;
       case OR : outputCon("or" ); return;
       case IFF: outputBin("=" ); return;
@@ -1527,6 +1511,24 @@ protected:
   }
 };
 
+struct InferenceStore::SMTCheckPrinter
+: public InferenceStore::ProofPrinter
+{
+  SMTCheckPrinter(ostream& out, InferenceStore* is)
+  : ProofPrinter(out, is) {}
+
+  void print()
+  {
+    SMTCheck::outputSignature(out);
+    ProofPrinter::print();
+  }
+
+  void printStep(Unit* u)
+  {
+    SMTCheck::outputStep(out, u);
+  }
+};
+
 InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& out)
 {
   switch(env.options->proof()) {
@@ -1542,9 +1544,10 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& o
     return new ProofPropertyPrinter(out,this);
   case Options::Proof::OFF:
     return 0;
+  case Shell::Options::Proof::SMTCHECK:
+    return new SMTCheckPrinter(out, this);
   }
   ASSERTION_VIOLATION;
-  return 0;
 }
 
 /**

@@ -38,9 +38,9 @@
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
 #include "LaTeX.hpp"
-#include "LispLexer.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
+#include "SMTCheck.hpp"
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
@@ -243,7 +243,7 @@ void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyn
   newPiece._id = lineToParse;
   _loadedPieces.push(std::move(newPiece));
 
-  ScopedLet<Statistics::ExecutionPhase> localAssing(env.statistics->phase,Statistics::PARSING);
+  ScopedLet<ExecutionPhase> localAssing(env.statistics->phase,ExecutionPhase::PARSING);
 
   std::istringstream stream(lineToParse);
   try {
@@ -344,7 +344,7 @@ void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inpu
   _loadedPieces.push(std::move(newPiece));
 
   TIME_TRACE(TimeTrace::PARSING);
-  ScopedLet<Statistics::ExecutionPhase> localAssing(env.statistics->phase,Statistics::PARSING);
+  ScopedLet<ExecutionPhase> localAssing(env.statistics->phase,ExecutionPhase::PARSING);
 
   ifstream input(inputFile.c_str());
   if (input.fail()) {
@@ -366,7 +366,7 @@ void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inpu
  * No preprocessing is performed on the units.
  *
  * The Options object should intentionally not be part of this game,
- * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning options
+ * as any form of "conditional parsing" compromises the effective use of the corresponding conditioning options
  * as a part of strategy development and use in portfolios. In other words, if you need getInputProblem or the parse* functions
  * to depend on an option, think twice, and if really needed, make it an explicit argument of that function.
  */
@@ -379,11 +379,7 @@ Problem* UIHelper::getInputProblem()
   res->setSMTLIBLogic(topPiece._smtLibLogic);
 
   if(res->isHigherOrder())
-    USER_ERROR(
-      "This version of Vampire is not yet HOLy.\n\n"
-      "Support for higher-order logic is currently on the ahmed-new-hol branch.\n"
-      "HOL should be coming to mainline 'soon'."
-    );
+    HOL_ERROR;
 
   env.setMainProblem(res);
   return res;
@@ -419,7 +415,7 @@ void UIHelper::popLoadedPiece(int numPops)
 void UIHelper::outputResult(std::ostream& out)
 {
   switch (env.statistics->terminationReason) {
-  case Statistics::REFUTATION: {
+  case TerminationReason::REFUTATION: {
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unsat" << endl;
       return;
@@ -519,7 +515,7 @@ void UIHelper::outputResult(std::ostream& out)
     ASS(!s_expecting_sat);
     break;
   }
-  case Statistics::TIME_LIMIT:
+  case TerminationReason::TIME_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -527,7 +523,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Time limit reached!\n";
     break;
-  case Statistics::INSTRUCTION_LIMIT:
+  case TerminationReason::INSTRUCTION_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -535,7 +531,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Instruction limit reached!\n";
     break;
-  case Statistics::MEMORY_LIMIT:
+  case TerminationReason::MEMORY_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -543,7 +539,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Memory limit exceeded!\n";
     break;
-  case Statistics::ACTIVATION_LIMIT: {
+  case TerminationReason::ACTIVATION_LIMIT: {
     addCommentSignForSZS(out);
     out << "Activation limit reached!\n";
 
@@ -551,7 +547,7 @@ void UIHelper::outputResult(std::ostream& out)
 
     break;
   }
-  case Statistics::REFUTATION_NOT_FOUND:
+  case TerminationReason::REFUTATION_NOT_FOUND:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -559,7 +555,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
     break;
-  case Statistics::SATISFIABLE:
+  case TerminationReason::SATISFIABLE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "sat" << endl;
       return;
@@ -569,7 +565,7 @@ void UIHelper::outputResult(std::ostream& out)
     ASS(!s_expecting_unsat);
 
     break;
-  case Statistics::INAPPROPRIATE:
+  case TerminationReason::INAPPROPRIATE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;
@@ -577,7 +573,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Terminated due to inappropriate strategy.\n";
     break;
-  case Statistics::UNKNOWN:
+  case TerminationReason::UNKNOWN:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;
       return;

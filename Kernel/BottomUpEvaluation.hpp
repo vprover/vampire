@@ -279,7 +279,7 @@ public:
    * recursion, but an explicit Stack.
    *
    * The term to be evaluated will be traversed using a BottomUpChildIter<Arg>, which needs to be 
-   * specialized for whatever structure you want to evalute. Implementations for `Kernel::TermList`, and 
+   * specialized for whatever structure you want to evaluate. Implementations for `Kernel::TermList`, and
    * `Kernel::PolyNf` are provided below and for `z3::expr` is provided in `Z3Interfacing`. 
    *
    * It is to be used as follows (this example computes the weight of a term):
@@ -289,7 +289,7 @@ public:
    *  return BottomUpEvaluation<TermList, size_t>()
    *                         // ^^^^^^^^  ^^^^^^--> result type
    *                         //    +--> type to evaluate
-   *    // sets the function that will be used to evalute recursively
+   *    // sets the function that will be used to evaluate recursively
    *    .function(
    *      [](auto const& orig, size_t* sizes) -> size_t
    *         //          ^^^^  ^^^^^-> results of evaluating its arguments recursively
@@ -302,7 +302,7 @@ public:
    *    // (optional)
    *    // this can be set to define for which terms recursing can be skipped. 
    *    // In this case we do it for shared terms if the function returns a value (non-empty Option) 
-   *    // the evalution does not recurse but just use the result. If the returned option is empty 
+   *    // the evaluation does not recurse but just use the result. If the returned option is empty
    *    // the term is recursively evaluated as usual.
    *    .evNonRec([](auto& t) { return t.shared() ? Option<size_t>(t.weight) : Option<size_t>()); })
    *
@@ -317,7 +317,7 @@ public:
    *    // with BottomUpChildIter. this context needs to be passed here.
    *    // .context(AutoDerefTermSpec::Context { .subs = this, })
    *
-   *    // applys the evaluation
+   *    // applies the evaluation
    *    .apply(someTerm)
    *    ;
    * ```

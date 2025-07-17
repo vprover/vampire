@@ -233,6 +233,7 @@ public:
   TokenType tag;
   std::string text;
   int line;
+  int col;
 
   static std::string toString (TokenType);
 };

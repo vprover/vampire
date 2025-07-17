@@ -256,11 +256,7 @@ bool FiniteModelBuilder::reset(){
 
   // Create a new SAT solver
   if (env.options->satSolver() == Options::SatSolver::MINISAT)
-    try {
-      _solver = new MinisatInterfacingNewSimp(_opt, true);
-    } catch(const Minisat::OutOfMemoryException &) {
-     MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
-    }
+    _solver = new MinisatInterfacingNewSimp;
   else if (env.options->satSolver() == Options::SatSolver::CADICAL) {
     _solver = new CadicalInterfacing(_opt,true);
   } else {
@@ -352,7 +348,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
     // f(1)g(1)f(2)g(2)f(3)g(3)
     case Options::FMBWidgetOrders::ARGUMENT_FIRST:
       arg_first=true;
-      // now use diagional code but don't do the diagonal
+      // now use diagonal code but don't do the diagonal
 
     // If diagonal then we do f(1)g(2)h(3)f(2)g(3)h(1)f(3)g(1)h(2)
     case Options::FMBWidgetOrders::DIAGONAL:
@@ -401,7 +397,7 @@ void FiniteModelBuilder::init()
 
   if(!_prb.units()) return;
 
-  env.statistics->phase = Statistics::FMB_PREPROCESSING;
+  env.statistics->phase = ExecutionPhase::FMB_PREPROCESSING;
 
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_nonstrict;
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_strict;
@@ -683,7 +679,7 @@ void FiniteModelBuilder::init()
           while(children.hasNext()){
             unsigned child = children.next();
             if(child==parent) continue;
-            //cout << "max of " << parent << " inherets child " << child << endl;
+            //cout << "max of " << parent << " inherits child " << child << endl;
             _distinctSortMaxs[parent] = max(_distinctSortMaxs[parent],_distinctSortMaxs[child]);
           }
         }
@@ -741,8 +737,8 @@ void FiniteModelBuilder::init()
     }
 
     // Fragile, change if extend FMBSymbolOrders as it assumes that the values that
-    //          are not occurence depend on usage (as per FMBSymmetryFunctionComparator)
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURENCE){
+    //          are not occurrence depend on usage (as per FMBSymmetryFunctionComparator)
+    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURRENCE){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
@@ -1078,7 +1074,7 @@ instanceLabel:
               satClauseLits.push(SATLiteral(marker_offsets[i]+val-2,0));
             }
           }
-          // cout << "Clause finised" << endl;
+          // cout << "Clause finished" << endl;
         } else {
           for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
             if (varDistinctSortsMaxes.get(i,0)) {
@@ -1118,7 +1114,7 @@ instanceLabel:
             }
             use[arity]=grounding[lit->nthArgument(1)->var()];
             satClauseLits.push(getSATLiteral(functor,use,lit->polarity(),true));
-            
+
           }else{
             unsigned functor = lit->functor();
             unsigned arity = lit->arity();
@@ -1320,7 +1316,7 @@ void FiniteModelBuilder::addUseModelSize(unsigned size)
   return;
 /*
 
-  // Only do thise if we have unary functions at most
+  // Only do this if we have unary functions at most
   if(_maxArity>1) return;
 
   static SATLiteralStack satClauseLits;
@@ -1523,13 +1519,13 @@ MainLoopResult FiniteModelBuilder::runImpl()
 {
   if(!_isAppropriate){
     // give up!
-    return MainLoopResult(Statistics::INAPPROPRIATE);
+    return MainLoopResult(TerminationReason::INAPPROPRIATE);
   }
   if(!_prb.units()){
-    return MainLoopResult(Statistics::SATISFIABLE);
+    return MainLoopResult(TerminationReason::SATISFIABLE);
   }
 
-  env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
+  env.statistics->phase = ExecutionPhase::FMB_CONSTRAINT_GEN;
 
   if(outputAllowed()){
       bool doPrinting = false;
@@ -1563,7 +1559,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       if(outputAllowed()){
         cout << "% fmb_start_size (= " << _startModelSize << ") larger than a detected sort maximum size!" << endl;
       }
-      return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
+      return MainLoopResult(TerminationReason::REFUTATION_NOT_FOUND);
      }
   }
   for(unsigned s=0;s<_sortedSignature->sorts;s++) {
@@ -1606,7 +1602,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     cout << "SYM DEFS" << endl;
 #endif
     addNewSymmetryAxioms();
-    
+
 #if VTRACE_FMB
     cout << "TOTAL DEFS" << endl;
 #endif
@@ -1629,7 +1625,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
       _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
 
-      env.statistics->phase = Statistics::FMB_SOLVING;
+      env.statistics->phase = ExecutionPhase::FMB_SOLVING;
 
       static SATLiteralStack assumptions(_distinctSortSizes.size());
       assumptions.reset();
@@ -1651,7 +1647,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
         _solver->randomizeForNextAssignment(_curMaxVar);
       }
       satResult = _solver->solveUnderAssumptions(assumptions);
-      env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
+      env.statistics->phase = ExecutionPhase::FMB_CONSTRAINT_GEN;
     }
 
     // if the clauses are satisfiable then we have found a finite model
@@ -1690,7 +1686,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
       }
 
       onModelFound();
-      return MainLoopResult(Statistics::SATISFIABLE);
+      return MainLoopResult(TerminationReason::SATISFIABLE);
     }
 
     unsigned clauseSetSize = _clausesToBeAdded.size();
@@ -1782,7 +1778,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
         } else {
-          return MainLoopResult(Statistics::REFUTATION,
+          return MainLoopResult(TerminationReason::REFUTATION,
               Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
         }
       } else { // i.e. (!_xmass)
@@ -1821,7 +1817,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
         if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
           if (_dsaEnumerator->isFmbComplete(_distinctSortSizes.size())) {
-            return MainLoopResult(Statistics::REFUTATION,
+            return MainLoopResult(TerminationReason::REFUTATION,
                 Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
           } else {
             if(outputAllowed()) {
@@ -1860,7 +1856,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   }
   */
 
-  return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
+  return MainLoopResult(TerminationReason::REFUTATION_NOT_FOUND);
 }
 
 void FiniteModelBuilder::onModelFound()
