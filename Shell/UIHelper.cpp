@@ -138,42 +138,7 @@ bool UIHelper::spiderOutputDone = false;
 
 void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string prefix)
 {
-#if 1
   InferenceStore::instance()->outputProof(cerr, units);
-#else
-  Stack<UnitSpec> prems;
-  Stack<UnitSpec> toDo;
-  DHSet<UnitSpec> seen;
-
-  //get the units to start with
-  UnitList::Iterator uit(units);
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-    toDo.push(UnitSpec(u));
-  }
-
-  while (toDo.isNonEmpty()) {
-    UnitSpec us = toDo.pop();
-    UnitSpecIterator pars = InferenceStore::instance()->getParents(us);
-    while (pars.hasNext()) {
-      UnitSpec par = pars.next();
-      if (seen.contains(par)) {
-	continue;
-      }
-      prems.push(par);
-      toDo.push(par);
-      seen.insert(par);
-    }
-  }
-
-  std::sort(prems.begin(), prems.end(), UIHelper::unitSpecNumberComparator);
-
-  Stack<UnitSpec>::BottomFirstIterator premIt(prems);
-  while (premIt.hasNext()) {
-    UnitSpec prem = premIt.next();
-    out << prefix << prem.toString() << endl;
-  }
-#endif
 }
 
 void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
