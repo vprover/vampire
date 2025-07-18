@@ -61,7 +61,6 @@ namespace Parse {
 using namespace std;
 
 static const char* PAR = "par";
-static const char* TYPECON_POSTFIX = "()";
 
 SMTLIB2::SMTLIB2(UnitList::FIFO formulaBuffer)
 : _logicSet(false),
@@ -145,7 +144,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
 
       auto name = ibRdr.readAtom();
       // // We strictly disallow shadowing, as opposed to the standard
-      if (isAlreadyKnownSymbol(name)) {
+      if (isAlreadyKnownSort(name)) {
         USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort parameter: "+name);
       }
       ASS_EQ(_globalSortParamLookup.size(),_nextVar);
@@ -482,8 +481,8 @@ void SMTLIB2::readLogic(const std::string& logicStr)
 
 void SMTLIB2::readDeclareSort(const std::string& name, const std::string& arity)
 {
-  std::string pName = name + TYPECON_POSTFIX;
-  if (isAlreadyKnownSymbol(pName)) {
+  std::string pName = name;
+  if (isAlreadyKnownSort(pName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol: "+name);
   }
 
@@ -501,8 +500,8 @@ void SMTLIB2::readDeclareSort(const std::string& name, const std::string& arity)
 
 void SMTLIB2::readDefineSort(const std::string& name, LExpr* args, LExpr* body)
 {
-  std::string pName = name + TYPECON_POSTFIX;
-  if (isAlreadyKnownSymbol(pName)) {
+  std::string pName = name;
+  if (isAlreadyKnownSort(pName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol: "+name);
   }
 
@@ -591,10 +590,6 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "+",
     "-",
     "/",
-    "Array",
-    "Bool",
-    "Int",
-    "Real",
     "abs",
     AS,
     "div",
@@ -620,7 +615,28 @@ SMTLIB2::TermSymbol SMTLIB2::getBuiltInTermSymbol(const std::string& str)
   return static_cast<TermSymbol>(resInt);
 }
 
-bool SMTLIB2::isAlreadyKnownSymbol(const std::string& name)
+const char *SMTLIB2::s_typeSymbolNameStrings[] = {
+    "Array",
+    "Bool",
+    "Int",
+    "Real",
+};
+
+SMTLIB2::TypeSymbol SMTLIB2::getBuiltInTypeSymbol(const std::string& str)
+{
+  static NameArray typeSymbolNames(s_typeSymbolNameStrings, sizeof(s_typeSymbolNameStrings)/sizeof(char*));
+  ASS_EQ(typeSymbolNames.length, TS_USER_TYPE);
+
+  int resInt = typeSymbolNames.tryToFind(str.c_str());
+  if(resInt==-1) {
+    return TS_USER_TYPE;
+  }
+  return static_cast<TypeSymbol>(resInt);
+}
+
+
+
+bool SMTLIB2::isAlreadyKnownFunction(const std::string& name)
 {
   if (getBuiltInFormulaSymbol(name) != FS_USER_PRED_SYMBOL) {
     return true;
@@ -630,7 +646,20 @@ bool SMTLIB2::isAlreadyKnownSymbol(const std::string& name)
     return true;
   }
 
-  if (_declaredSymbols.find(name)) {
+  if(_declaredSymbols.find(name)) {
+    return true;
+  }
+
+  return false;
+}
+
+bool SMTLIB2::isAlreadyKnownSort(const std::string& name)
+{
+  if (getBuiltInTypeSymbol(name) != TS_USER_TYPE) {
+    return true;
+  }
+
+  if(_declaredSorts.find(name)) {
     return true;
   }
 
@@ -642,9 +671,10 @@ bool SMTLIB2::isAlreadyKnownSymbol(const std::string& name)
   return false;
 }
 
+
 void SMTLIB2::readDeclareFun(const std::string& name, LExpr* iSorts, LExpr* oSort)
 {
-  if (isAlreadyKnownSymbol(name)) {
+  if (isAlreadyKnownFunction(name)) {
     USER_ERROR_EXPR("Redeclaring function symbol: "+name);
   }
 
@@ -696,7 +726,7 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const std::string& n
   ASS(added);
   sym->setType(type);
 
-  DeclaredSymbol res = make_pair(symNum,type->isFunctionType()?SymbolType::FUNCTION:SymbolType::PREDICATE);
+  DeclaredSymbol res = make_pair(symNum,!type->isFunctionType());
 
   LOG2("declareFunctionOrPredicate -name ",name);
   LOG2("declareFunctionOrPredicate -symNum ",symNum);
@@ -720,7 +750,7 @@ unsigned SMTLIB2::declareTypeCon(const std::string& name, unsigned arity)
   LOG2("declareTypeCon -symNum ",symNum);
   LOG2("declareTypeCon -type ",type->toString());
 
-  ALWAYS(_declaredSymbols.insert(name, { symNum, SymbolType::TYPECON }));
+  ALWAYS(_declaredSorts.insert(name, symNum));
   return symNum;
 }
 
@@ -728,7 +758,7 @@ unsigned SMTLIB2::declareTypeCon(const std::string& name, unsigned arity)
 
 void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort, LExpr* body, bool recursive)
 {
-  if (isAlreadyKnownSymbol(name)) {
+  if (isAlreadyKnownFunction(name)) {
     USER_ERROR_EXPR("Redeclaring function symbol: "+name);
   }
 
@@ -781,8 +811,7 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
   }
 
   unsigned symbIdx = fun.first;
-  ASS(fun.second != SymbolType::TYPECON);
-  bool isTrueFun = fun.second==SymbolType::FUNCTION;
+  bool isTrueFun = !fun.second;
 
   TermStack args = typeVars;
   args.loadFromIterator(TermStack::BottomFirstIterator(termArgs));
@@ -833,7 +862,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
     Declaration decl;
     auto declRdr = READER(declsRdr.readList());
     auto name = declRdr.readAtom();
-    if (isAlreadyKnownSymbol(name)) {
+    if (isAlreadyKnownFunction(name)) {
       USER_ERROR_EXPR("Redeclaring function symbol: "+name);
     }
     auto iArgs = declRdr.readList();
@@ -881,8 +910,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
     }
 
     unsigned symbIdx = decl.sym.first;
-    ASS(decl.sym.second != SymbolType::TYPECON);
-    bool isTrueFun = decl.sym.second==SymbolType::FUNCTION;
+    bool isTrueFun = !decl.sym.second;
 
     Literal* lit;
     Signature::Symbol* sym;
@@ -930,8 +958,8 @@ void SMTLIB2::readTypeParameters(ErrorThrowingLispListReader& rdr, TermStack& ts
 void SMTLIB2::readDeclareDatatype(string name, LExpr *datatype)
 {
   // first declare the sort
-  std::string dtypeName = name+TYPECON_POSTFIX;
-  if (isAlreadyKnownSymbol(dtypeName)) {
+  std::string dtypeName = name;
+  if (isAlreadyKnownSort(dtypeName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: " + dtypeName);
   }
   auto dtypeRdr = READER(datatype);
@@ -993,8 +1021,8 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
   while (dtypesNamesRdr.hasNext()) {
     auto dtypeNRdr = READER(dtypesNamesRdr.readList());
 
-    auto dtypeName = dtypeNRdr.readAtom()+TYPECON_POSTFIX;
-    if (isAlreadyKnownSymbol(dtypeName)) {
+    auto dtypeName = dtypeNRdr.readAtom();
+    if (isAlreadyKnownSort(dtypeName)) {
       USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: "+dtypeName);
     }
     unsigned arity;
@@ -1078,7 +1106,7 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
 
 TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(std::string constrName, TermList taSort,
                                                              Stack<std::string> destructorNames, TermStack argSorts) {
-  if (isAlreadyKnownSymbol(constrName)) {
+  if (isAlreadyKnownFunction(constrName)) {
     USER_ERROR_EXPR("Redeclaring function symbol: " + constrName);
   }
 
@@ -1096,14 +1124,14 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(std::string constrN
 
   LOG1("build constructor "+constrName+": "+constructorType->toString());
 
-  ALWAYS(_declaredSymbols.insert(constrName, make_pair(functor, SymbolType::FUNCTION)));
+  ALWAYS(_declaredSymbols.insert(constrName, make_pair(functor, false)));
 
   Lib::Array<unsigned> destructorFunctors(arity);
   for (unsigned i = 0; i < arity; i++) {
     std::string destructorName = destructorNames[i];
     TermList destructorSort = argSorts[i];
 
-    if (isAlreadyKnownSymbol(destructorName)) {
+    if (isAlreadyKnownFunction(destructorName)) {
       USER_ERROR_EXPR("Redeclaring function symbol: " + destructorName);
     }
 
@@ -1123,7 +1151,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(std::string constrN
     destSym->setType(destructorType);
     destSym->markTermAlgebraDest();
 
-    ALWAYS(_declaredSymbols.insert(destructorName, make_pair(destructorFunctor, isPredicate ? SymbolType::PREDICATE : SymbolType::FUNCTION)));
+    ALWAYS(_declaredSymbols.insert(destructorName, make_pair(destructorFunctor, isPredicate)));
 
     destructorFunctors[i] = destructorFunctor;
   }
@@ -1299,7 +1327,7 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
 
 void SMTLIB2::tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort)
 {
-  // if (isAlreadyKnownSymbol(name) ||
+  // if (isAlreadyKnownFunction(name) ||
   //   iterTraits(Lookups::ConstRefIterator(_lookups)).any([&](const auto& lookup) {
   //     return lookup->findPtr(name)!=nullptr;
   //   }))
@@ -1503,7 +1531,7 @@ bool SMTLIB2::isTermAlgebraConstructor(const std::string &name)
 {
   if (_declaredSymbols.find(name)) {
     DeclaredSymbol &s = _declaredSymbols.get(name);
-    return (s.second==SymbolType::FUNCTION && env.signature->getTermAlgebraConstructor(s.first));
+    return (!s.second && env.signature->getTermAlgebraConstructor(s.first));
   }
 
   return false;
@@ -1601,7 +1629,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
       continue;
     }
     auto argExp = tRdr.readExpr();
-    if (!argExp->isAtom() || isAlreadyKnownSymbol(argExp->str)) {
+    if (!argExp->isAtom() || isAlreadyKnownFunction(argExp->str)) {
       USER_ERROR_EXPR("Nested ctors ("+argExp->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
     }
     auto var = TermList::var(_nextVar++);
@@ -1796,7 +1824,7 @@ bool SMTLIB2::parseAsScopeLookup(const std::string& id)
 
 bool SMTLIB2::parseAsSortDefinition(const std::string& id, LExpr* exp)
 {
-  std::string pId = id + TYPECON_POSTFIX;
+  std::string pId = id;
   auto def = _sortDefinitions.findPtr(pId);
   if (!def) {
     return false;
@@ -1844,31 +1872,24 @@ bool SMTLIB2::parseAsSpecConstant(const std::string& id)
 bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isSort)
 {
   DeclaredSymbol sym;
-  if (!_declaredSymbols.find(id+(isSort?TYPECON_POSTFIX:""),sym)) {
+  if(!isSort && !_declaredSymbols.find(id,sym))
     return false;
-  }
-  ASS(sym.second != SymbolType::TYPECON || isSort);
+  if(isSort && !_declaredSorts.find(id,sym.first))
+    return false;
 
   unsigned symbIdx = sym.first;
+  bool isPred = sym.second;
   Signature::Symbol* symbol = nullptr;
   OperatorType* type = nullptr;
-  switch (sym.second)
-  {
-  case SymbolType::FUNCTION: {
-    symbol = env.signature->getFunction(symbIdx);
-    type = symbol->fnType();
-    break;
-  }
-  case SymbolType::PREDICATE: {
-    symbol = env.signature->getPredicate(symbIdx);
-    type = symbol->predType();
-    break;
-  }
-  case SymbolType::TYPECON: {
+  if(isSort) {
     symbol = env.signature->getTypeCon(symbIdx);
     type = symbol->typeConType();
-    break;
-  }
+  } else if(isPred) {
+    symbol = env.signature->getPredicate(symbIdx);
+    type = symbol->predType();
+  } else {
+    symbol = env.signature->getFunction(symbIdx);
+    type = symbol->fnType();
   }
 
   unsigned numTypeArgs = type->numTypeArguments();
@@ -1932,25 +1953,17 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
   }
   args.loadFromIterator(TermStack::BottomFirstIterator(termArgs));
 
-  switch (sym.second)
-  {
-  case SymbolType::FUNCTION: {
-    TermList res = TermList(Term::create(symbIdx,arity,args.begin()));
-    TermList sort = SortHelper::getResultSort(res.term());
-    _results.push(ParseResult(sort,res));
-    break;
-  }
-  case SymbolType::TYPECON: {
+  if(isSort) {
     TermList res = TermList(AtomicSort::create(symbIdx,arity,args.begin()));
     TermList sort = SortHelper::getResultSort(res.term());
     _results.push(ParseResult(sort,res));
-    break;
-  }
-  case SymbolType::PREDICATE: {
+  } else if(isPred) {
     Formula* res = new AtomicFormula(Literal::create(symbIdx,arity,true,args.begin()));
     _results.push(ParseResult(res));
-    break;
-  }
+  } else {
+    TermList res = TermList(Term::create(symbIdx,arity,args.begin()));
+    TermList sort = SortHelper::getResultSort(res.term());
+    _results.push(ParseResult(sort,res));
   }
 
   return true;
@@ -2443,6 +2456,14 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
 
       return true;
     }
+    default:
+      ASS_EQ(ts,TS_USER_FUNCTION);
+      break;
+  }
+
+  // try built-in type symbols
+  TypeSymbol tts = getBuiltInTypeSymbol(id);
+  switch(tts) {
     case TS_ARRAY:
     {
       TermList indexSort;
@@ -2474,9 +2495,11 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
       return true;
     }
     default:
-      ASS_EQ(ts,TS_USER_FUNCTION);
-      return false;
+      ASS_EQ(tts,TS_USER_TYPE);
+      break;
   }
+
+  return false;
 }
 
 void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
@@ -2519,7 +2542,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 
     if (_declaredSymbols.find(consName)) {
       DeclaredSymbol& s = _declaredSymbols.get(consName);
-      if (s.second==SymbolType::FUNCTION) {
+      if (!s.second) {
         TermAlgebraConstructor* c = env.signature->getTermAlgebraConstructor(s.first);
         if (c) /* else the symbol is not a TA constructor */ {
           TermList sort = c->rangeSort();
@@ -2872,24 +2895,9 @@ void SMTLIB2::readAssertTheory(LExpr* body)
 }
 
 Signature::Symbol* SMTLIB2::getSymbol(DeclaredSymbol& s) {
-  Signature::Symbol* sym = nullptr;
-  switch (s.second)
-  {
-  case SymbolType::FUNCTION: {
-    sym = env.signature->getFunction(s.first);
-    break;
-  }
-  case SymbolType::PREDICATE: {
-    sym = env.signature->getPredicate(s.first);
-    break;
-  }
-  case SymbolType::TYPECON: {
-    sym = env.signature->getTypeCon(s.first);
-    break;
-  }
-  }
-
-  return sym;
+  return s.second
+    ? env.signature->getPredicate(s.first)
+    : env.signature->getFunction(s.first);
 }
 
 void SMTLIB2::colorSymbol(const std::string& name, Color color)
