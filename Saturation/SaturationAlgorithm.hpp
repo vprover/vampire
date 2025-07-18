@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -31,7 +30,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
-#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 

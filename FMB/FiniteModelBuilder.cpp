@@ -1702,7 +1702,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
     {
       // _solver->explicitlyMinimizedFailedAssumptions(false,true); // TODO: try adding this in
-      const SATLiteralStack& failed = _solver->failedAssumptions();
+      SATLiteralStack failed = _solver->failedAssumptions();
 
       if (_xmass) {
         unsigned domToGrow = UINT_MAX;

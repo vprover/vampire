@@ -331,7 +331,7 @@ std::string LaTeX::toString (Literal* l) const
 
   //Check if this symbol has an interpreted LaTeX name
   // this should be true for all known interpreted symbols and any recorded symbols
-  std::string template_str = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
+  std::string template_str = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isPositive());
 
   if(template_str.empty()){
     std::string res;
@@ -495,9 +495,13 @@ std::string LaTeX::toString (TermList* terms,bool single) const
      //Check if this symbol has an interpreted LaTeX name
      // this should be true for all known interpreted symbols and any recorded symbols
       std::string template_str = theory->tryGetInterpretedLaTeXName(trm->functor(),false);
-   
+
       if(template_str.empty()){
-        result += symbolToString(trm->functor(), false) + toString(trm->args());
+        if(trm->isSpecial())
+          // not ideal, but what can you do
+          result += trm->toString();
+        else
+          result += symbolToString(trm->functor(), false) + toString(trm->args());
       }
       else{
         // replace arguments in the template, arg0 replaces a0 etc.
