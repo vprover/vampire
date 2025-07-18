@@ -3,7 +3,7 @@
 ################################################################
 cmake_minimum_required (VERSION 3.14.0)
 
-project(Vampire)
+project(Vampire LANGUAGES CXX)
 
 # version
 set(VAMPIRE_VERSION_NUMBER 4.9)
@@ -84,7 +84,9 @@ endif()
 
 # Cygwin-specific
 if (CYGWIN)
- add_compile_definitions(_BSD_SOURCE)
+  add_compile_definitions(_BSD_SOURCE)
+  # somehow Cygwin fails to link, saying that we have multiple definitions of some (inline) functions
+  add_link_options(LINKER:--allow-multiple-definition)
 endif()
 
 # below here configure flags for specific compilers

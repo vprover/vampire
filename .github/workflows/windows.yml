@@ -1,0 +1,40 @@
+name: windows-action
+on:
+  push:
+    branches:
+      - windows-action
+jobs:
+  build:
+    runs-on: windows-2025
+    steps:
+    - name: Checkout Tree
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Install Cygwin
+      id: cygwin
+      uses: cygwin/cygwin-install-action@v6
+      with:
+        packages: gcc-g++,make,cmake
+    - name: Configure and Build Vampire
+      working-directory: ${{ runner.workspace }}/vampire
+      # use Cygwin bash, not whatever bash is lying around on Windows for some reason
+      shell: bash
+      # the >- YAML operator and && are important for CR/LF reasons
+      # I cannot even begin to describe the abject despair I feel typing CR/LF in 2025
+      run: >-
+        mkdir -p build &&
+        cmake -B build -DBUILD_SHARED_LIBS=0 -DCMAKE_CXX_COMPILER=g++ -DCCACHE_PROGRAM=OFF &&
+        make -j8 -C build vampire
+    - name: Obtain Cygwin DLL
+      working-directory: ${{ runner.workspace }}/vampire
+      run: mv ${{ steps.cygwin.outputs.root }}/bin/cygwin1.dll build/cygwin1.dll
+    - name: Upload Vampire
+      uses: actions/upload-artifact@v4
+      with:
+        name: vampire
+        # sneaky wildcard also catches vampire.exe, vampire.app, vampire.com...
+        path: |
+          ${{ runner.workspace }}/vampire/build/vampire*
+          ${{ runner.workspace }}/vampire/build/cygwin1.dll*
+        overwrite: true
