@@ -3577,6 +3577,12 @@ bool Options::complete(const Problem& prb) const
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
+  /* // TODO: make sure we lift the following incompleteness marking, when merging with casc2025
+  if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::ENCOMPASS &&
+      _partialRedundancyOrderingConstraints.actualValue == true) {
+    return false;
+  }
+  */
   if (!_superpositionFromVariables.actualValue) {
     return false;
   }
