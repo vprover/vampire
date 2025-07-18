@@ -275,3 +275,7 @@ add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
 add_library(vampirelib SHARED EXCLUDE_FROM_ALL $<TARGET_OBJECTS:common>)
 
 set_target_properties(vampirelib PROPERTIES OUTPUT_NAME "vampire")
+
+add_executable(test_lib EXCLUDE_FROM_ALL test_lib.cpp)
+target_include_directories(test_lib PRIVATE Interface)
+target_link_libraries(test_lib PRIVATE vampirelib pthread)
