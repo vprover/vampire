@@ -16,8 +16,12 @@
 #define __FunctionDefinitionHandler__
 
 #include "Forwards.hpp"
+
 #include "Indexing/CodeTreeInterfaces.hpp"
+
+#include "Kernel/InductionTemplate.hpp"
 #include "Kernel/TermTransformer.hpp"
+
 #include "TermAlgebra.hpp"
 
 namespace Shell {
@@ -31,15 +35,13 @@ using namespace Lib;
  * including recursive calls and the active argument positions
  * which are not variables in some branch.
  */
-struct InductionTemplate {
-  USE_ALLOCATOR(InductionTemplate);
-  InductionTemplate() = default;
-  InductionTemplate(const Term* t);
+struct RecursionTemplate {
+  RecursionTemplate() = default;
+  RecursionTemplate(const Term* t);
 
   void addBranch(std::vector<Term*>&& recursiveCalls, Term* header);
   bool finalize();
   const std::vector<bool>& inductionPositions() const { return _indPos; }
-  bool matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const;
 
   /**
    * Stores the template for a recursive case
@@ -59,6 +61,7 @@ struct InductionTemplate {
   };
 
   const std::vector<Branch>& branches() const { return _branches; }
+  const InductionTemplate* templ() const { return _templ.get(); }
 
   std::string toString() const;
 
@@ -74,13 +77,12 @@ private:
 
   std::vector<Branch> _branches;
   std::vector<bool> _indPos;
+  std::unique_ptr<const InductionTemplate> _templ;
 };
 
 class FunctionDefinitionHandler
 {
 public:
-  USE_ALLOCATOR(FunctionDefinitionHandler);
-
   bool static isHandlerEnabled(const Options& opts)
   {
     return opts.functionDefinitionRewriting() ||
@@ -103,19 +105,21 @@ public:
     return _is->getGeneralizations(t, true);
   }
 
-  InductionTemplate* getInductionTemplate(Term* t) {
+  const RecursionTemplate* getRecursionTemplate(Term* t) const {
     auto fn = t->functor();
     auto st = t->isLiteral() ? SymbolType::PRED : SymbolType::FUNC;
     return _templates.findPtr(std::make_pair(fn, st));
   }
 
+  const InductionTemplate* matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const;
+
 private:
   ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;
-  DHMap<std::pair<unsigned, SymbolType>, InductionTemplate> _templates;
+  DHMap<std::pair<unsigned, SymbolType>, RecursionTemplate> _templates;
 };
 
 /**
- * This class generates the induction templates based on
+ * This class generates the recursion templates based on
  * the marked recursive function definitions from the parser.
  */
 struct InductionPreprocessor {
