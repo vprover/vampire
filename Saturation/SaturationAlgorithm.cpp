@@ -912,7 +912,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   TIME_TRACE("forward simplification");
 
-  if (_passive->exceedsAllLimits(cl)) {
+  if (env.options->lrsPreemptiveDeletes() && _passive->exceedsAllLimits(cl)) {
     RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;

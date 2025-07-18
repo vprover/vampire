@@ -178,17 +178,39 @@ void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string
 
 void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 {
-  addCommentSignForSZS(out);
-  out << "# SZS output start Saturation." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output start Saturation." << endl;
+  } else {
+    out << "# Saturated clause set:" << endl;
+  }
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
     out << TPTPPrinter::toString(cl) << endl;
   }
 
-  addCommentSignForSZS(out);
-  out << "# SZS output end Saturation." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output end Saturation." << endl;
+  }
 } // outputSaturatedSet
+
+void UIHelper::outputInterferences(std::ostream& out, const Problem& prob)
+{
+  if (szsOutputMode()) {
+    out << "% SZS output start Definitions and Model Updates." << endl;
+  } else {
+    out << "# Restored definitions and other model updates:" << endl;
+  }
+
+  auto ii = prob.interferences.iter(); // LIFO is the key here!
+  while (ii.hasNext()) {
+    ii.next()->outputDefinition(out);
+  }
+
+  if (szsOutputMode()) {
+    out << "% SZS output end Definitions and Model Updates." << endl;
+  }
+} // outputInterferences
 
 // String utility function that probably belongs elsewhere
 static bool hasEnding (std::string const &fullString, std::string const &ending) {
@@ -594,21 +616,21 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
   }
-  if (!env.statistics->model.empty()) {
-    if (szsOutputMode()) {
-	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+  if (env.options->proof() != Options::Proof::OFF) {
+    if (!env.statistics->model.empty()) {
+      if (szsOutputMode()) {
+        out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+      } else {
+        out << "# Finite Model:" << endl;
+      }
+      out << env.statistics->model;
+      if (szsOutputMode()) {
+        out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
+      }
+    } else {
+      outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
+      outputInterferences(out,*env.getMainProblem());
     }
-    out << env.statistics->model;
-    if (szsOutputMode()) {
-	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
-    }
-  }
-  else //if (env.statistics->saturatedSet)
-       /* -- MS: it's never incorrect to print the empty one, in fact this prevents us from losing
-        * points at CASC when the input gets completely emptied, by e.g. preprocessing
-        */
-  {
-    outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
   }
 }
 

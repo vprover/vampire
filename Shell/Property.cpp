@@ -139,11 +139,15 @@ void Property::add(UnitList* units)
     dropProp(PR_ESSENTIALLY_GROUND);
   }
 
+  if ((_maxFunArity == 0) && onlyExistsForallPrefix(units)) {
+    addProp(PR_ESSENTIALLY_BSR);
+  }
+
   // information about sorts is read from the environment, not from the problem
   if (env.signature->hasSorts()) {
     addProp(PR_SORTS);
   }
-    
+
   // information about interpreted constant is read from the signature
   if (env.signature->strings()) {
     addProp(PR_HAS_STRINGS);
@@ -1059,6 +1063,139 @@ bool Property::hasXEqualsY(const Formula* f)
   return false;
 } // Property::hasXEqualsY(const Formula* f)
 
+
+/**
+ * True if f should clausify to only introduce constants as Skolems.
+ *
+ * @warning Works correctly only closed formulas!
+ */
+bool Property::onlyExistsForallPrefix(UnitList* units)
+{
+  Stack<const Formula*> forms;
+  Stack<int> pols; // polarities
+  Stack<int> states; // states: no commitment yet (0) - exists block (1) - forall block (2) - bailout (returns false)
+
+  UnitList::Iterator us(units);
+  while (us.hasNext()) {
+    Unit* unit = us.next();
+    if (unit->isClause()) continue;
+    const Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+
+    forms.push(f);
+    pols.push(1);
+    states.push(0);
+
+    while (!forms.isEmpty()) {
+      f = forms.pop();
+      int pol = pols.pop();
+      int state = states.pop();
+
+      switch (f->connective()) {
+      case LITERAL:
+        // we are good with this one
+        break;
+
+      case AND:
+      case OR:
+        {
+          FormulaList::Iterator fs(f->args());
+          while (fs.hasNext()) {
+            forms.push(fs.next());
+            pols.push(pol);
+            states.push(state);
+          }
+        }
+        break;
+
+      case IMP:
+        forms.push(f->left());
+        pols.push(-pol);
+        states.push(state);
+        forms.push(f->right());
+        pols.push(pol);
+        states.push(state);
+        break;
+
+      case IFF:
+      case XOR:
+        forms.push(f->left());
+        pols.push(0);
+        states.push(state);
+        forms.push(f->right());
+        pols.push(0);
+        states.push(state);
+        break;
+
+      case NOT:
+        forms.push(f->uarg());
+        pols.push(-pol);
+        states.push(state);
+        break;
+
+      case FORALL:
+        if (pol == 1) {
+          forms.push(f->qarg());
+          pols.push(pol);
+          states.push(2); // in the forall bit now
+        } else if (pol == -1) {
+          if (state >= 2) { // exists below forall
+            return false;
+          }
+          forms.push(f->qarg());
+          pols.push(pol);
+          states.push(1); // in the exists bit now
+        } else { // pol == 0
+          if (state <= 1) { // we will do both polarities now, so, conservatibely, we are "already" in the forall part
+            forms.push(f->qarg());
+            pols.push(pol);
+            states.push(2); // in the forall bit now
+          } else {
+            return false;
+          }
+        }
+        break;
+
+      case EXISTS:
+        if (pol == -1) {
+          forms.push(f->qarg());
+          pols.push(pol);
+          states.push(2); // in the forall bit now
+        } else if (pol == 1) {
+          if (state >= 2) { // exists below forall
+            return false;
+          }
+          forms.push(f->qarg());
+          pols.push(pol);
+          states.push(1); // in the exists bit now
+        } else { // pol == 0
+          if (state <= 1) { // we will do both polarities now, so, conservatibely, we are "already" in the forall part
+            forms.push(f->qarg());
+            pols.push(pol);
+            states.push(2); // in the forall bit now
+          } else {
+            return false;
+          }
+        }
+        break;
+
+        case TRUE:
+        case FALSE:
+          break;
+
+        case BOOL_TERM:
+          return false; // FOOL stuff is out
+
+        case NAME:
+        case NOCONN:
+          ASSERTION_VIOLATION;
+        }
+      }
+  }
+
+  return true;
+} // Property::onlyExistsForallPrefix(UnitList* units)
+
+
 /**
  * Transforms the property to an SQL command asserting this
  * property to the Spider database. An example of a command is
@@ -1089,10 +1226,12 @@ DHMap<std::string,std::string> Property::toDict() const
   result.set("@hasEquality",Int::toString(equalityAtoms()>0));
   result.set("@hasFOOL",Int::toString(hasFOOL()));
   result.set("@hasGoal",Int::toString(hasGoal()));
+  result.set("@essentiallyGround",Int::toString(hasProp(PR_ESSENTIALLY_GROUND)));
+  result.set("@essentiallyBSR",Int::toString(hasProp(PR_ESSENTIALLY_BSR)));
 
   result.set("@cat",categoryString());
   for (unsigned i = 1, n = 2; i <= 25; i++, n *= 2){
-    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString(unsigned(atoms() <= n)));
+    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString((unsigned)atoms() <= n));
   }
   return result;
 } // Property::toDict

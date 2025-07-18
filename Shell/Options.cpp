@@ -174,8 +174,10 @@ void Options::init()
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
          "casc_2024",
+         "casc_2025",
          "casc_sat",
          "casc_sat_2024",
+         "casc_sat_2025",
          "file",
          "induction",
          "integer_induction",
@@ -210,10 +212,16 @@ void Options::init()
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
 
-    _randomizSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
-    _randomizSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
-    _lookup.insert(&_randomizSeedForPortfolioWorkers);
-    _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
+    _randomizeSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
+    _randomizeSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
+    _lookup.insert(&_randomizeSeedForPortfolioWorkers);
+    _randomizeSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
+
+    _shuffleOnScheduleRepeats = BoolOptionValue("shuffle_on_schedule_repeats","",true);
+    _shuffleOnScheduleRepeats.description = "In portfolio mode, when we run out of strategies in the selected schedule, we restart from the beginning while doubling the limits,"
+                                             " under this option, we also force si=on:rtra=on to increase the chance that the repeated strategies `do something else`.";
+    _lookup.insert(&_shuffleOnScheduleRepeats);
+    _shuffleOnScheduleRepeats.onlyUsefulWith(UsingPortfolioTechnology());
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -642,6 +650,15 @@ void Options::init()
     _printClausifierPremises.description="Output how the clausified problem was derived.";
     _lookup.insert(&_printClausifierPremises);
     _printClausifierPremises.tag(OptionTag::OUTPUT);
+
+    _replaceDomainElements = BoolOptionValue("replace_domain_elements","",false);
+    // Note that while we have the code in place thanks to Giles, Geoff didn't like the functionality
+    // (and, arguably, since it in general incomplete in the sense that sometimes the domain elements are anyway necessary,
+    // it's a bit ugly for its non-uniformity and for mixing syntax - the constants - with semantics - domain elements)
+    // To sum up, we have a feature maybe nobody really likes? A candidate for removal.
+    _replaceDomainElements.description="When printing a finite model, try hard to look for constants from the original formulation to use instead of domain elements.";
+    _lookup.insert(&_replaceDomainElements);
+    _replaceDomainElements.tag(OptionTag::OUTPUT);
 
     _showAll = BoolOptionValue("show_everything","",false);
     _showAll.description="Turn (almost) all of the showX commands on";
@@ -1144,6 +1161,15 @@ void Options::init()
     _lrsRetroactiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
     _lookup.insert(&_lrsRetroactiveDeletes);
     _lrsRetroactiveDeletes.tag(OptionTag::LRS);
+
+    _lrsPreemptiveDeletes = BoolOptionValue("lrs_preemptive_deletes","lpd",true);
+    _lrsPreemptiveDeletes.description = "If false, LRS will not use limits to delete clauses entering passive."
+     " (Only the retroactive deletes might apply.)";
+     // Under lrd=off:lpd=off, we don't have any LRS anymore (and are back to Otter, essentially), so the value of this option is questionable.
+     // (Still, it's currently used in a few strategies in Schedules.)
+    _lrsPreemptiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _lookup.insert(&_lrsPreemptiveDeletes);
+    _lrsPreemptiveDeletes.tag(OptionTag::LRS);
 
     _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
@@ -2039,6 +2065,12 @@ void Options::init()
     _splitAtActivation.onlyUsefulWith(_splitting.is(equal(true)));
     _splitAtActivation.tag(OptionTag::AVATAR);
 
+    _cleaveNonsplittables = BoolOptionValue("cleave_nonsplittables","cn",false);
+    _cleaveNonsplittables.description="Tentatively propose single-literal component strengthenings. Sometimes useful for bringing about finite saturations.";
+    _lookup.insert(&_cleaveNonsplittables);
+    _cleaveNonsplittables.onlyUsefulWith(_splitting.is(equal(true)));
+    _cleaveNonsplittables.tag(OptionTag::AVATAR);
+
     _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","aac",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"});
     _splittingAddComplementary.description="";
@@ -2080,6 +2112,7 @@ void Options::init()
     _lookup.insert(&_splittingMinimizeModel);
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
+    _splittingMinimizeModel.addHardConstraint(If(equal(SplittingMinimizeModel::SCO)).then(_cleaveNonsplittables.is(notEqual(true))));
 
     _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",false);
     _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
@@ -2972,7 +3005,7 @@ void Options::strategySamplingAssign(std::string optname, std::string value, DHM
  */
 std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes)
 {
-  if (optname[0] == '$') {
+  if (optname[0] == '$' || optname[0] == '@') {
     std::string* foundVal = fakes.findPtr(optname);
     if (!foundVal) {
       USER_ERROR("Sampling file processing error -- unassigned fake option: " + optname);
@@ -3413,10 +3446,17 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_decode);
     forbidden.insert(&_sampleStrategy);
     forbidden.insert(&_normalize);
+    forbidden.insert(&_outputAxiomNames);
+    forbidden.insert(&_randomizeSeedForPortfolioWorkers);
+    forbidden.insert(&_schedule);
+    forbidden.insert(&_scheduleFile);
 
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
     forbidden.insert(&_inputSyntax);
+    forbidden.insert(&_multicore);
+    forbidden.insert(&_statistics);
+    forbidden.insert(&_forcedOptions);
 #if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
@@ -3428,8 +3468,7 @@ std::string Options::generateEncodedOptions() const
   bool first=true;
   while(options.hasNext()){
     AbstractOptionValue* option = options.next();
-    // TODO do we want to also filter by !isDefault?
-    if(!forbidden.contains(option) && option->is_set && !option->isDefault()){
+    if (!forbidden.contains(option) && !option->isDefault()){
       std::string name = option->shortName;
       if(name.empty()) name = option->longName;
       if(!first){ res<<":";}else{first=false;}
@@ -3570,12 +3609,7 @@ bool Options::complete(const Problem& prb) const
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
-  /* // TODO: make sure we lift the following incompleteness marking, when merging with casc2025
-  if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::ENCOMPASS &&
-      _partialRedundancyOrderingConstraints.actualValue == true) {
-    return false;
-  }
-  */
+
   if (!_superpositionFromVariables.actualValue) {
     return false;
   }
@@ -3628,6 +3662,7 @@ bool Options::OptionValue<T>::checkConstraints()
       case BadOption::HARD:
         USER_ERROR("\nBroken Constraint: " + con->msg(*this));
       case BadOption::SOFT:
+        addCommentSignForSZS(cout);
         cout << "WARNING Broken Constraint: " + con->msg(*this) << endl;
         return false;
       case BadOption::FORCED:
