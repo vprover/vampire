@@ -390,6 +390,7 @@ std::vector<std::string> UIHelper::getLoadedPiecesTags()
   std::vector<std::string> res;
   res.reserve(_loadedPieces.size()-1);
   auto it = _loadedPieces.iterFifo();
+  ALWAYS(it.next()._id.empty()); // skip the first, empty, entry
   while (it.hasNext()) {
     res.push_back(it.next()._id);
   }
