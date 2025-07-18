@@ -217,7 +217,7 @@ bool runProver(std::string query, std::string config) {
     */
 
     dispatchByMode(prb.release(), output); // we release, otherwise the child will try to delete this in the end, which will break
-    exit(vampireReturnValue);
+    std::_Exit(vampireReturnValue);
   } else {
     // remember our child; it also means that we are busy proving
     proving_child = process;
