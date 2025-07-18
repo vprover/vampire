@@ -276,7 +276,8 @@ add_library(vampirelib SHARED EXCLUDE_FROM_ALL $<TARGET_OBJECTS:common>)
 
 set_target_properties(vampirelib PROPERTIES OUTPUT_NAME "vampire")
 set_target_properties(vampirelib PROPERTIES
-    INSTALL_RPATH "$ORIGIN/z3/build"
+  INSTALL_RPATH "$ORIGIN"
+  BUILD_WITH_INSTALL_RPATH TRUE
 )
 
 add_executable(test_lib EXCLUDE_FROM_ALL test_lib.cpp)
