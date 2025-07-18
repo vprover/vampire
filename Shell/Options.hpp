@@ -644,12 +644,6 @@ public:
     FULL
   };
 
-  enum class GlobalSubsumptionExplicitMinim : unsigned int {
-    OFF,
-    ON,
-    RANDOMIZED
-  };
-
   enum class GlobalSubsumptionAvatarAssumptions : unsigned int {
     OFF,
     FROM_CURRENT,
@@ -2218,7 +2212,6 @@ public:
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
   GlobalSubsumptionSatSolverPower globalSubsumptionSatSolverPower() const { return _globalSubsumptionSatSolverPower.actualValue; }
-  GlobalSubsumptionExplicitMinim globalSubsumptionExplicitMinim() const { return _globalSubsumptionExplicitMinim.actualValue; }
   GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
 
   /** true if calling set() on non-existing options does not result in a user error */
@@ -2498,7 +2491,6 @@ private:
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
-  ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
   ChoiceOptionValue<GoalGuess> _guessTheGoal;
   UnsignedOptionValue _guessTheGoalLimit;

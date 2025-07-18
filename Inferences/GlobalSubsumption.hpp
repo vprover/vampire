@@ -55,11 +55,6 @@ private:
   bool _uprOnly;
 
   /**
-   * Explicitly minimize the obtained assumption set.
-   */
-  bool _explicitMinim;
-
-  /**
    * Randomize order for explicit minimization.
    */
   bool _randomizeMinim;

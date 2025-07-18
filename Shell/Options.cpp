@@ -2008,13 +2008,6 @@ void Options::init()
     _globalSubsumptionSatSolverPower.tag(OptionTag::INFERENCES);
     _globalSubsumptionSatSolverPower.onlyUsefulWith(_globalSubsumption.is(equal(true)));
 
-    _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
-        GlobalSubsumptionExplicitMinim::ON,{"off","on","randomized"});
-    _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global subsumption reduction.";
-    _lookup.insert(&_globalSubsumptionExplicitMinim);
-    _globalSubsumptionExplicitMinim.tag(OptionTag::INFERENCES);
-    _globalSubsumptionExplicitMinim.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-
     _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
         GlobalSubsumptionAvatarAssumptions::OFF,{"off","from_current","full_model"});
     _globalSubsumptionAvatarAssumptions.description=

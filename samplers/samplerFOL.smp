@@ -380,9 +380,6 @@ sa!=fmb avsq=on > avsqr ~u2r -5;3;,
 # global_subsumption
 sa!=fmb > gs ~cat off:5,on:1
 
-# global_subsumption_explicit_minim
-sa!=fmb gs=on > gsem ~cat randomized:50,on:5,off:17
-
 # global_subsumption_sat_solver_power
 sa!=fmb gs=on > gsssp ~cat propagation_only:20,full:1
 

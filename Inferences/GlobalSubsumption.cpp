@@ -48,8 +48,7 @@ using namespace Saturation;
 
 GlobalSubsumption::GlobalSubsumption(const Options& opts) :
   _uprOnly(opts.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY),
-  _explicitMinim(opts.globalSubsumptionExplicitMinim()!=Options::GlobalSubsumptionExplicitMinim::OFF),
-  _randomizeMinim(opts.globalSubsumptionExplicitMinim()==Options::GlobalSubsumptionExplicitMinim::RANDOMIZED),
+  _randomizeMinim(opts.randomTraversals()),
   _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
   _splitter(0)
 {
@@ -167,7 +166,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 
     if (failed.size() < assumps.size()) {
       // proper subset sufficed for UNSAT - that's the interesting case
-      SATLiteralStack failedFinal = _explicitMinim ? _solver->explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : std::move(failed);
+      SATLiteralStack failedFinal = _solver->explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim);
 
       static LiteralStack survivors;
       survivors.reset();
