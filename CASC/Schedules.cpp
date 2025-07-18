@@ -26,6 +26,7 @@
 #include "Schedules.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include <fstream>
 
@@ -5210,9 +5211,15 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
   if (property.hasNumerals() || property.hasInterpretedOperations()) {
     // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
 
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected arithmetic, will pick strategies from an ALASCA-aware ARI schedule." << std::endl;
+
     getAlascaAwareAriSchedule(property,quick);
 
   } else if (cat == Property::Category::UEQ) {
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected a unit-equality problem, will run specialized UEQ schedule." << std::endl;
+
     champions.push("lrs+10_1:1_tgt=full:lwlo=on:lrd=on:fgj=on:ins=10:urr=on_0");
     champions.push("dis+10_1:10_tgt=ground:drc=off:spb=goal:i=245130:fgj=on:rawr=on:fsr=off_0");
     champions.push("ott+10_1:14_tgt=full:drc=off:fde=unused:spb=goal:nwc=2.0:i=275269:gtg=all:bd=preordered:gtgl=5:slsq=on:slsqc=2:slsqr=4,1:s2at=10.0_0");
@@ -5312,6 +5319,9 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
   } else if (!property.hasFOOL() && // the two checks below assume CNF + FOL, so let's exclude foolish stuff (which won't be at CASC anyway, but for the benefit of our users)
     (property.hasProp(Property::PR_ESSENTIALLY_BSR) || property.hasProp(Property::PR_ESSENTIALLY_GROUND)) ) { // Geoff's EPR contains UF_QF (the second disjunct)
 
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected 'Essentially Bernays–Schönfinkel–Ramsey OR Essentially ground' problem, will run a specialized EPR schedule (with support for satisfiability detection)." << std::endl;
+
     champions.push("lrs+1_1:1024_to=lpo:sp=weighted_frequency:abs=on:amm=off_0");
     champions.push("fmb+10_1:1_i=150016:sas=cadical_0");
     champions.push("ott+11_2:1_bsr=on:plsq=on:plsqc=2:plsqr=16065853,524288:spb=goal:sac=on:i=250008:add=on:doe=on:bs=unit_only:bd=all:nm=4:aer=on:uhcvi=off:gsp=on:rawr=on:s2a=on:s2at=2.0:lsd=10:prc=on:prac=on_0");
@@ -5369,6 +5379,9 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     // len(covered) 1780
 
   } else if (property.formulas() > 0) { // any other FOF
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected formulas, will run a generic FOF schedule." << std::endl;
+
     champions.push("lrs+1011_1:1_sp=occurrence:st=6.0:sd=4:ss=included_0");
     champions.push("dis+1010_1:16_tgt=full:drc=ordering:sp=reverse_frequency:nwc=1.0:i=261632:kws=inv_arity_squared:ins=1:av=off:fsd=on_0");
     champions.push("lrs+10_1:1_sp=unary_first:i=272356:sd=1:bd=all:ss=included:urr=on:s2a=on:s2agt=32_0");
@@ -5739,6 +5752,9 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     // len(covered) 6701
 
   } else { // any other CNF
+    addCommentSignForSZS(std::cout);
+    std::cout << "Input is clausal, will run a generic CNF schedule." << std::endl;
+
     champions.push("dis+10_1:4_tgt=ground:prc=on:sp=reverse_frequency:spb=intro:nwc=1.5:gtg=exists_sym:proc=on:fd=preordered:kws=inv_precedence_0");
     champions.push("lrs+20_1:7_to=lpo:spb=goal_then_units:s2agt=36:flr=on:s2a=on:i=273701:s2at=2.8:s2pl=no_0");
     champions.push("dis+1010_1:16_tgt=full:drc=ordering:sp=reverse_frequency:nwc=1.0:i=262784:kws=inv_arity_squared:ins=1:av=off:fsd=on_0");
@@ -5999,6 +6015,9 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
 
 void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick, Schedule& champions)
 {
+  addCommentSignForSZS(std::cout);
+  std::cout << "Will run a generic schedule for satisfiability detection." << std::endl;
+
   champions.push("fmb+10_1:1_sas=cadical:bce=on:rp=on_0");
   champions.push("dis+11_61:31_drc=ordering:bsr=unit_only:sp=frequency:rp=on:newcnf=on:i=135531:uhcvi=on:rawr=on:abs=on:lsd=5:add=off_0");
   champions.push("dis+10_1:161_sil=256000:gs=on:alpa=true:sac=on:cn=on:gsem=randomized:i=88024:add=on:uhcvi=off:rawr=on:slsq=on:plsq=on:plsqr=61199697,1048576_0");
