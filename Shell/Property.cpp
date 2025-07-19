@@ -139,11 +139,15 @@ void Property::add(UnitList* units)
     dropProp(PR_ESSENTIALLY_GROUND);
   }
 
+  if ((_maxFunArity == 0) && onlyExistsForallPrefix(units)) {
+    addProp(PR_ESSENTIALLY_BSR);
+  }
+
   // information about sorts is read from the environment, not from the problem
   if (env.signature->hasSorts()) {
     addProp(PR_SORTS);
   }
-    
+
   // information about interpreted constant is read from the signature
   if (env.signature->strings()) {
     addProp(PR_HAS_STRINGS);
@@ -1059,6 +1063,101 @@ bool Property::hasXEqualsY(const Formula* f)
   return false;
 } // Property::hasXEqualsY(const Formula* f)
 
+
+/**
+ * True if f should clausify to only introduce constants as Skolems.
+ *
+ * @warning Works correctly only closed formulas!
+ */
+bool Property::onlyExistsForallPrefix(UnitList* units)
+{
+  struct Rec {
+    const Formula* form;
+    int pol; // polarities
+    int state; // states: no commitment yet (0) - exists block (1) - forall block (2) - bailout (returns false)
+  };
+  Stack<Rec> recs;
+
+  UnitList::Iterator us(units);
+  while (us.hasNext()) {
+    Unit* unit = us.next();
+    if (unit->isClause()) continue;
+    const Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+
+    recs.push({f,1,0});
+
+    while (!recs.isEmpty()) {
+      int eff_pol;
+      auto [f,pol,state] = recs.pop();
+
+      switch (f->connective()) {
+      case LITERAL:
+        // we are good with this one
+        break;
+
+      case AND:
+      case OR:
+        {
+          FormulaList::Iterator fs(f->args());
+          while (fs.hasNext()) {
+            recs.push({fs.next(),pol,state});
+          }
+        }
+        break;
+
+      case IMP:
+        recs.push({f->left(),-pol,state});
+        recs.push({f->right(),pol,state});
+        break;
+
+      case IFF:
+      case XOR:
+        recs.push({f->left(),0,state});
+        recs.push({f->right(),0,state});
+        break;
+
+      case NOT:
+        recs.push({f->uarg(),-pol,state});
+        break;
+
+      case EXISTS:
+        eff_pol = -pol;
+      case FORALL:
+        eff_pol = pol;
+        if (eff_pol == 1) {
+          recs.push({f->qarg(),pol,2}); // in the forall bit now
+        } else if (eff_pol == -1) {
+          if (state >= 2) { // exists below forall
+            return false;
+          }
+          recs.push({f->qarg(),pol,1}); // in the exists bit now
+        } else { // pol == 0
+          if (state <= 1) { // we will do both polarities now, so, conservatibely, we are "already" in the forall part
+            recs.push({f->qarg(),pol,2}); // in the forall bit now
+          } else {
+            return false;
+          }
+        }
+        break;
+
+        case TRUE:
+        case FALSE:
+          break;
+
+        case BOOL_TERM:
+          return false; // FOOL stuff is out
+
+        case NAME:
+        case NOCONN:
+          ASSERTION_VIOLATION;
+        }
+      }
+  }
+
+  return true;
+} // Property::onlyExistsForallPrefix(UnitList* units)
+
+
 /**
  * Transforms the property to an SQL command asserting this
  * property to the Spider database. An example of a command is
@@ -1089,10 +1188,12 @@ DHMap<std::string,std::string> Property::toDict() const
   result.set("@hasEquality",Int::toString(equalityAtoms()>0));
   result.set("@hasFOOL",Int::toString(hasFOOL()));
   result.set("@hasGoal",Int::toString(hasGoal()));
+  result.set("@essentiallyGround",Int::toString(hasProp(PR_ESSENTIALLY_GROUND)));
+  result.set("@essentiallyBSR",Int::toString(hasProp(PR_ESSENTIALLY_BSR)));
 
   result.set("@cat",categoryString());
   for (unsigned i = 1, n = 2; i <= 25; i++, n *= 2){
-    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString(unsigned(atoms() <= n)));
+    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString((unsigned)atoms() <= n));
   }
   return result;
 } // Property::toDict

@@ -26,6 +26,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"
@@ -114,6 +115,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 
   unsigned arity = args.size();
 
+  // this is just for collecting names for domain elements (not used unless replace_domain_elements==true)
   if(arity==0 && !env.signature->getFunction(f)->introduced()){
     TermList srt = env.signature->getFunction(f)->fnType()->result();
     unsigned srtU = srt.term()->functor();
@@ -148,6 +150,8 @@ std::string FiniteModelMultiSorted::toString()
 
   bool printIntroduced = false;
 
+  bool replaceDomainConstants = env.options->replaceDomainElements();
+
   static DArray<DArray<std::string>> cnames;
   cnames.ensure(env.signature->typeCons());
 
@@ -173,7 +177,7 @@ std::string FiniteModelMultiSorted::toString()
     // Domain constant declarations
     for(unsigned i=1;i<=size;i++){
       modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
-      int frep = sortRepr[s][i];
+      int frep = replaceDomainConstants ? sortRepr[s][i] : -1;
       std::string cname = (frep >= 0) ? env.signature->functionName(frep) : append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
       cnames[s][i]=cname;
       modelStm << cname << ":" << sortName << ")." << endl;
@@ -214,12 +218,15 @@ std::string FiniteModelMultiSorted::toString()
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
     Signature::Symbol* symb = env.signature->getFunction(f);
-    if(symb->usageCnt()==0) continue;
+    // if(symb->usageCnt()==0) continue;
     unsigned arity = symb->arity();
     if(arity>0) continue;
     if(!printIntroduced && symb->introduced()) continue;
     std::string name = symb->name();
     unsigned res = _f_interpretation[_f_offsets[f]];
+
+    if (res == 0) res = 1; // undefined defaults to the least available element
+
     TermList srtT = symb->fnType()->result();
     unsigned srt = srtT.term()->functor();
     std::string cname = cnames[srt][res];
@@ -227,18 +234,18 @@ std::string FiniteModelMultiSorted::toString()
 
     std::string sortName = env.signature->typeConName(srt);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
-    if(res>0){
+    // if(res>0){
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
-    }
+    /*}
     else{
       modelStm << "% " << name << " undefined in model" << endl;
-    }
+    }*/
   }
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
     Signature::Symbol* symb = env.signature->getFunction(f);
-    if(symb->usageCnt()==0) continue;
+    // if(symb->usageCnt()==0) continue;
     unsigned arity = symb->arity();
     if(arity==0) continue;
     if(!printIntroduced && symb->introduced()) continue;
@@ -282,14 +289,16 @@ fModelLabel:
           }
           unsigned res = _f_interpretation[var];
 
-          if(res>0){
-            if(!first){ modelStm << "         & " ; }
-            else{ modelStm << "           " ; }
-            first=false;
-          }
+          if (res == 0) res = 1; // undefined defaults to the least available element
+
+          // if(res>0){
+          if(!first){ modelStm << "         & " ; }
+          else{ modelStm << "           " ; }
+          first=false;
+          /* }
           else{
             modelStm << "%         ";
-          }
+          } */
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
@@ -297,14 +306,15 @@ fModelLabel:
             unsigned argSort = argSortT.term()->functor();
             modelStm << cnames[argSort][args[j]];
           }
-          if(res>0){
-            TermList resultSortT = sig->result();
-            unsigned resultSort = resultSortT.term()->functor();
-            modelStm << ") = " << cnames[resultSort][res] << endl;
-          }
+          // if(res>0){
+          TermList resultSortT = sig->result();
+          unsigned resultSort = resultSortT.term()->functor();
+          modelStm << ") = " << cnames[resultSort][res] << endl;
+          /* }
           else{
             modelStm << ") undefined in model" << endl;
           }
+          */
           goto fModelLabel;
         }
       }
@@ -317,18 +327,14 @@ fModelLabel:
     if(arity>0) continue;
     Signature::Symbol* symb = env.signature->getPredicate(p);
     if(!printIntroduced && symb->introduced()) continue;
-    if(symb->usageCnt() == 0) continue;
+    // if(symb->usageCnt() == 0) continue;
     std::string name = symb->name();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o)."<<endl;
     char res = _p_interpretation[_p_offsets[p]];
     if(res==INTP_TRUE){
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
-    }
-    else if(res==INTP_FALSE){
+    } else { // covers (res==INTP_FALSE) as well as undefined, which defaults to false
       modelStm << "tff("<<append(name,"_definition")<<",axiom,~"<<name<< ")."<<endl;
-    }
-    else{
-      modelStm << "% " << name << " undefined" << endl;
     }
   }
 
@@ -338,7 +344,7 @@ fModelLabel:
     unsigned arity = symb->arity();
     if(arity==0) continue;
     if(!printIntroduced && symb->introduced()) continue;
-    if(symb->usageCnt() == 0) continue;
+    // if(symb->usageCnt() == 0) continue;
     std::string name = symb->name();
     OperatorType* sig = symb->predType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
@@ -379,14 +385,18 @@ pModelLabel:
             mult *= _sizes[s];
           }
           char res = _p_interpretation[var];
-          if(res>INTP_UNDEF){
+
+          if (res == INTP_UNDEF) res = INTP_FALSE; // undefined defaults to false
+
+          // if(res>INTP_UNDEF){
             if(!first){ modelStm << "         & " ; }
             else{ modelStm << "           " ; }
             first=false;
-          }
+          /* }
           else{
             modelStm << "%         ";
           }
+          */
           if(res==INTP_FALSE) modelStm << "~";
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
@@ -396,9 +406,11 @@ pModelLabel:
             modelStm << cnames[argSort][args[j]];
           }
           modelStm << ")";
+          /*
           if(res==INTP_UNDEF){
             modelStm << " undefined in model";
           }
+          */
           modelStm << endl;
           goto pModelLabel;
         }
@@ -407,6 +419,37 @@ pModelLabel:
   }
 
   return modelStm.str();
+}
+
+unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,unsigned>& subst)
+{
+  if (tl.isVar()) {
+    // TODO: maybe error, if the variable is not in the map?
+
+    // cout << "looking up for " << tl.var() << " returning " << subst.get(tl.var()) << endl;
+    return subst.get(tl.var());
+  }
+
+  Term* term = tl.term();
+  unsigned f = term->functor();
+  unsigned arity = env.signature->functionArity(f);
+  DArray<unsigned> args(arity);
+  for(unsigned i=0;i<arity;i++){
+    args[i] = evaluateTerm(*term->nthArgument(i),subst);
+    ASS_G(args[i],0)
+  }
+
+  // cout << "evaluateTerm " << tl.toString() << " under " << subst << endl;
+
+  unsigned var = args2var(args,_sizes,_f_offsets,f,env.signature->getFunction(f)->fnType());
+  ASS_L(var, _f_interpretation.size());
+
+  // cout << "var " << var << " _f_interpretation[var] " << _f_interpretation[var] << endl;
+  if (_f_interpretation[var] == 0) {
+    _implicitlyEliminatedFunctions.insert(f);
+    return 1;
+  }
+  return _f_interpretation[var];
 }
 
 unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
@@ -440,6 +483,33 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
   ASS_L(var,_f_interpretation.size());
 
   return _f_interpretation[var];
+}
+
+bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned>& subst)
+{
+  unsigned p = lit->functor();
+  unsigned arity = env.signature->predicateArity(p);
+  DArray<unsigned> args(arity);
+  for(unsigned i=0;i<arity;i++){
+    args[i] = evaluateTerm(*lit->nthArgument(i),subst);
+    ASS_G(args[i],0)
+  }
+
+  if(lit->isEquality()){
+    return (args[0]==args[1]) == lit->polarity();
+  }
+
+  unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+
+  ASS_L(var, _p_interpretation.size());
+  char res = _p_interpretation[var];
+
+  if(res==INTP_UNDEF) {
+    _implicitlyEliminatedPredicates.insert(p);
+    return !lit->polarity();
+  }
+
+  return (res==INTP_TRUE) == (lit->polarity());
 }
 
 bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
@@ -792,7 +862,327 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
   }
 }
 
-bool FiniteModelMultiSorted::evaluate(Unit* unit)
+void FiniteModelMultiSorted::restoreEliminatedFunDef(Problem::FunDef* fd)
+{
+  unsigned f = fd->_head->functor();
+  unsigned arity = env.signature->functionArity(f);
+
+  DArray<int> vars(arity);
+  for(unsigned i=0;i<arity;i++){
+    ASS(fd->_head->nthArgument(i)->isVar());
+    vars[i] = fd->_head->nthArgument(i)->var();
+  }
+
+  static DArray<unsigned> args;
+  args.ensure(arity);
+  static DHMap<unsigned,unsigned> subst;
+  subst.reset();
+  // start with all 1s
+  for(unsigned i=0;i<arity;i++){
+    args[i]=1;
+    subst.set(vars[i],args[i]);
+  }
+
+  OperatorType* ot = env.signature->getFunction(f)->fnType();
+  for(;;) {
+    unsigned val = evaluateTerm(TermList(fd->_body),subst);
+    addFunctionDefinition(f,args,val);
+
+    unsigned i;
+    for(i=0;i<arity;i++) {
+      args[i]++;
+      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
+        subst.set(vars[i],args[i]); // update subst with the inc
+        break;
+      }
+      args[i]=1;
+      subst.set(vars[i],args[i]); // update subst with the dec
+    }
+    if (i == arity) {
+      break;
+    }
+  }
+}
+
+void FiniteModelMultiSorted::restoreImplicitlyEliminatedFun(unsigned f)
+{
+  unsigned arity = env.signature->functionArity(f);
+
+  static DArray<unsigned> args;
+  args.ensure(arity);
+  // start with all 1s
+  for(unsigned i=0;i<arity;i++){ args[i]=1; }
+
+  OperatorType* ot = env.signature->getFunction(f)->fnType();
+  for(;;) {
+    addFunctionDefinition(f,args,1);
+
+    unsigned i;
+    for(i=0;i<arity;i++) {
+      args[i]++;
+      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
+        break;
+      }
+      args[i]=1;
+    }
+    if (i == arity) {
+      break;
+    }
+  }
+}
+
+void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
+{
+  unsigned p = pd->_head->functor();
+  unsigned arity = env.signature->predicateArity(p);
+
+  DArray<int> vars(arity);
+  for(unsigned i=0;i<arity;i++){
+    ASS(pd->_head->nthArgument(i)->isVar());
+    vars[i] = pd->_head->nthArgument(i)->var();
+  }
+
+  static DArray<unsigned> args;
+  args.ensure(arity);
+  static DHMap<unsigned,unsigned> subst;
+  subst.reset();
+  // start with all 1s
+  for(unsigned i=0;i<arity;i++){
+    args[i]=1;
+    subst.set(vars[i],args[i]);
+  }
+
+  OperatorType* ot = env.signature->getPredicate(p)->fnType();
+  for(;;) {
+    bool val = (evaluateFormula(pd->_body,subst) == pd->_head->isPositive());
+    addPredicateDefinition(p,args,val);
+
+    unsigned i;
+    for(i=0;i<arity;i++) {
+      args[i]++;
+      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
+        subst.set(vars[i],args[i]); // update subst with the inc
+        break;
+      }
+      args[i]=1;
+      subst.set(vars[i],args[i]); // update subst with the dec
+    }
+    if (i == arity) {
+      break;
+    }
+  }
+}
+
+void FiniteModelMultiSorted::restoreImplicitlyEliminatedPred(unsigned p)
+{
+  unsigned arity = env.signature->predicateArity(p);
+
+  static DArray<unsigned> args;
+  args.ensure(arity);
+  // start with all 1s
+  for(unsigned i=0;i<arity;i++){ args[i]=1;}
+
+  OperatorType* ot = env.signature->getPredicate(p)->fnType();
+  for(;;) {
+    unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+    if (_p_interpretation[var] == INTP_UNDEF) // default only conditionally (some flips may have already been done)
+      _p_interpretation[var] = INTP_FALSE;
+
+    unsigned i;
+    for(i=0;i<arity;i++) {
+      args[i]++;
+      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
+        break;
+      }
+      args[i]=1;
+    }
+    if (i == arity) {
+      break;
+    }
+  }
+}
+
+void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
+{
+  unsigned p = gf->_pred;
+  unsigned arity = env.signature->predicateArity(p);
+
+  static DArray<unsigned> args;
+  args.ensure(arity);
+  // start with all 1s
+  for(unsigned i=0;i<arity;i++){ args[i]=1;}
+
+  OperatorType* ot = env.signature->getPredicate(p)->fnType();
+  for(;;) {
+    unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+    if (_p_interpretation[var] == INTP_TRUE) {
+      _p_interpretation[var] = INTP_FALSE;
+    } else { // includes INTP_UNDEF, which is implicitly false
+      _p_interpretation[var] = INTP_TRUE;
+    }
+
+    unsigned i;
+    for(i=0;i<arity;i++) {
+      args[i]++;
+      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
+        break;
+      }
+      args[i]=1;
+    }
+    if (i == arity) {
+      break;
+    }
+  }
+}
+
+void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
+{
+  // cf->outputDefinition(cout);
+
+  DHMap<unsigned,TermList> sortMap;
+  SortHelper::collectVariableSorts(cf->_val,sortMap);
+  SortHelper::collectVariableSorts(cf->_cond,sortMap); // in bce, cond can have extra variables; we could treat them existentially, but this may be wrong for _fixedPoint-ers
+  unsigned arity = sortMap.size();
+
+  // cout << "arity: " << arity << " " << sortMap << endl;
+
+  /*
+  // we need to existentially close cond for all variables except those of _val
+  VList* freeVars = freeVariables(cf->_cond);
+
+  // cout << "freeVars: " << *freeVars << endl;
+
+  {
+    // now filter freeVars and drop all mentioned by _val
+    VList** l = &freeVars;
+    while (*l) {
+      unsigned var = (*l)->head();
+      if (sortMap.findPtr(var)) { // drop this one
+        VList* dead = *l;
+        *l = (*l)->tail(); // keep l where it is, but reconnect *l
+        delete dead;
+      } else { // simply move on with l
+        l = (*l)->tailPtr();
+      }
+    }
+  }
+  // cout << "filtered: " << *freeVars << endl;
+
+  Formula* closedCond = freeVars ? new QuantifiedFormula(EXISTS,freeVars,0,cf->_cond) : cf->_cond;
+
+  // cout << "closedCond: " << closedCond->toString() << endl;
+  */
+
+  static DArray<unsigned> vars;
+  vars.ensure(arity);
+  static DArray<unsigned> sorts;
+  sorts.ensure(arity);
+
+  unsigned i = 0;
+  DHMap<unsigned,TermList>::Iterator it(sortMap); // non-deterministic order OK?
+  while (it.hasNext()) {
+    unsigned var;
+    TermList srt;
+    it.next(var,srt);
+    vars[i] = var;
+    sorts[i] = srt.term()->functor();
+    i++;
+  }
+
+  bool flipped;
+  do {
+    flipped = false;
+
+    static DHMap<unsigned,unsigned> subst;
+    static DArray<unsigned> args;
+    args.ensure(arity);
+    // start with all 1s
+    for(unsigned i=0;i<arity;i++){
+      args[i]=1;
+      subst.set(vars[i],args[i]);
+    }
+
+    unsigned p = cf->_val->functor();
+    ASS_NEQ(p,0) // equality cannot be flipped!
+    unsigned p_arity = env.signature->predicateArity(p);
+    static DArray<unsigned> inner_args;
+    inner_args.ensure(p_arity);
+
+    for(;;) {
+      if (evaluateFormula(cf->_cond,subst) != cf->_neg) {
+        // cout << " do the flip for " << args << endl;
+        // do the flip
+        for(unsigned j=0;j<p_arity;j++){
+          inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst);
+        }
+        unsigned var = args2var(inner_args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+        ASS_L(var, _p_interpretation.size());
+
+        char before = _p_interpretation[var];
+        char after = (cf->_val->isPositive() ? INTP_TRUE : INTP_FALSE);
+        // cout << " before " << (unsigned)_p_interpretation[var] << endl;
+        _p_interpretation[var] = after;
+        // cout << "  after " << (unsigned)_p_interpretation[var] << endl;
+        flipped |= (before != after);
+      }
+
+      unsigned i;
+      for(i=0;i<arity;i++) {
+        args[i]++;
+        if(args[i] <= _sizes[sorts[i]]) {
+          subst.set(vars[i],args[i]); // update subst with the inc
+          break;
+        }
+        args[i]=1;
+        subst.set(vars[i],args[i]); // update subst with the dec
+      }
+      if (i == arity) {
+        break;
+      }
+    }
+  } while (cf->_fixedPoint && flipped);
+  // cout << endl;
+}
+
+void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
+{
+  auto ii = prob->interferences.iter(); // LIFO is the key here!
+  while (ii.hasNext()) {
+    Problem::Interference* i = ii.next();
+    switch (i->_kind) {
+      case Problem::IntereferenceKind::FUN_DEF:
+        restoreEliminatedFunDef(static_cast<Problem::FunDef*>(i));
+        break;
+      case Problem::IntereferenceKind::PRED_DEF:
+        restoreEliminatedPredDef(static_cast<Problem::PredDef*>(i));
+        break;
+      case Problem::IntereferenceKind::GLOB_FLIP:
+        restoreGlobalPredicateFlip(static_cast<Problem::GlobalFlip*>(i));
+        break;
+      case Problem::IntereferenceKind::COND_FLIP:
+        restoreViaCondFlip(static_cast<Problem::CondFlip*>(i));
+        break;
+
+      default:
+        ASSERTION_VIOLATION
+    }
+
+    // we try to give the implicitlyEliminated proper meaning as soon as possible, so that COND_FLIP's could go and flip the restored defs
+
+    auto iief = _implicitlyEliminatedFunctions.iter();
+    while (iief.hasNext()) {
+      restoreImplicitlyEliminatedFun(iief.next());
+    }
+    _implicitlyEliminatedFunctions.reset();
+    auto iiep = _implicitlyEliminatedPredicates.iter();
+    while (iiep.hasNext()) {
+      restoreImplicitlyEliminatedPred(iiep.next());
+    }
+    _implicitlyEliminatedPredicates.reset();
+  }
+}
+
+bool FiniteModelMultiSorted::evaluate(Unit* unit, bool expectingPartial)
 {
   Formula* formula = 0;
   if(unit->isClause()){
@@ -809,7 +1199,13 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
 
   formula = partialEvaluate(formula);
   formula = SimplifyFalseTrue::simplify(formula);
-  return evaluate(formula);
+
+  DHMap<unsigned,unsigned> subst;
+  bool res = evaluateFormula(formula,subst);
+  if (!expectingPartial && (_implicitlyEliminatedFunctions.size() > 0 || _implicitlyEliminatedPredicates.size() > 0)) {
+    USER_ERROR("Encountered an undefined symbol while evaluating a Unit");
+  }
+  return res;
 }
 
 /**
@@ -817,7 +1213,156 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
  * TODO: This is recursive, which could be problematic in the long run
  *
  */
-bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
+bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,unsigned>& subst)
+{
+  bool isAnd = false;
+  bool isImp = false;
+  bool isXor = false;
+  bool isForall = false;
+  switch(formula->connective()){
+    case FALSE:
+      return false;
+    case TRUE:
+      return true;
+
+    case LITERAL:
+      return evaluateLiteral(formula->literal(),subst);
+
+    case NOT:
+      return !evaluateFormula(formula->uarg(),subst);
+    case AND:
+      isAnd=true;
+    case OR:
+      {
+        FormulaList* args = formula->args();
+        FormulaList::Iterator fit(args);
+        while(fit.hasNext()){
+          Formula* arg = fit.next();
+          bool res = evaluateFormula(arg,subst);
+          if(isAnd && !res) return false;
+          if(!isAnd && res) return true;
+        }
+        return isAnd;
+      }
+
+    case IMP:
+      isImp=true;
+    case XOR:
+      isXor = !isImp;
+    case IFF:
+    {
+      Formula* left = formula->left();
+      Formula* right = formula->right();
+      bool left_res = evaluateFormula(left,subst);
+      if(isImp && !left_res) return true;
+      bool right_res = evaluateFormula(right,subst);
+      if(isImp) return right_res;
+
+#if DEBUG_MODEL
+      cout << "left_res is " << left_res << ", right_res is " << right_res << endl;
+#endif
+
+      if(isXor) return left_res != right_res;
+      return left_res == right_res; // IFF
+    }
+
+    // Expand quantifications
+    case FORALL:
+      isForall = true;
+    case EXISTS:
+    {
+      VList* vs = formula->vars();
+      SList* ss = formula->sorts(); // let's assume first these are filled
+
+      // cout << "will do FORALL/EXISTS for " << formula->toString() << endl;
+
+      unsigned arity = VList::length(vs);
+      DArray<unsigned> args;
+      DArray<unsigned> old_vals;
+      DArray<unsigned> sorts;
+      args.ensure(arity);
+      old_vals.ensure(arity);
+      sorts.ensure(arity);
+
+      // start with all 1s, update subst, store old_vals, figure out sorts
+      for(unsigned i=0;i<arity;i++){
+        unsigned var = vs->head();
+        vs = vs->tail();
+        TermList srt;
+        if (ss) {
+          srt = ss->head();
+          ss = ss->tail();
+        } else {
+          if(!SortHelper::tryGetVariableSort(var,formula,srt)){
+            USER_ERROR("Failed to get sort of "+Lib::Int::toString(var)+" in "+formula->toString());
+          }
+        }
+        sorts[i] = srt.term()->functor();
+
+        old_vals[i] = subst.get(var,0);
+        args[i]=1;
+        subst.set(var,args[i]);
+      }
+
+      bool res;
+      bool early = false;
+      for(;;) {
+        res = evaluateFormula(formula->qarg(),subst);
+
+        if((isForall && !res) || (!isForall && res)) {
+          early = true;
+
+          // cout << "early for " << args << endl;
+          // cout << "subst was " << subst << endl;
+
+          break;
+        }
+
+        unsigned i;
+        VList* vs = formula->vars();
+        for(i=0;i<arity;i++) {
+          unsigned var = vs->head();
+          vs = vs->tail();
+          args[i]++;
+          if(args[i] <= _sizes[sorts[i]]) {
+            subst.set(var,args[i]); // update subst with the inc
+            break;
+          }
+          args[i]=1;
+          subst.set(var,args[i]); // update subst with the dec
+        }
+        if (i == arity) {
+          break;
+        }
+      }
+
+      // undo the bindings in subst
+      vs = formula->vars();
+      for(unsigned i=0;i<arity;i++){
+        unsigned var = vs->head();
+        vs = vs->tail();
+
+        subst.set(var,old_vals[i]);
+      }
+
+      if (early) {
+        if(isForall && !res) return false;
+        if(!isForall && res) return true;
+      }
+
+      return isForall;
+    }
+    default:
+      USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");
+  }
+}
+
+/**
+ *
+ * TODO: This is recursive, which could be problematic in the long run
+ *
+ */
+bool FiniteModelMultiSorted::evaluateOld(Formula* formula,unsigned depth)
 {
 #if DEBUG_MODEL
   for(unsigned i=0;i<depth;i++){ cout << "."; }
@@ -845,7 +1390,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
     case TRUE:
       return true;
     case NOT:
-      return !evaluate(formula->uarg(),depth+1);
+      return !evaluateOld(formula->uarg(),depth+1);
     case AND:
       isAnd=true;
     case OR:
@@ -854,7 +1399,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
         FormulaList::Iterator fit(args);
         while(fit.hasNext()){
           Formula* arg = fit.next();
-          bool res = evaluate(arg,depth+1);
+          bool res = evaluateOld(arg,depth+1);
           if(isAnd && !res) return false;
           if(!isAnd && res) return true;
         }
@@ -869,9 +1414,9 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
     {
       Formula* left = formula->left();
       Formula* right = formula->right();
-      bool left_res = evaluate(left,depth+1);
+      bool left_res = evaluateOld(left,depth+1);
       if(isImp && !left_res) return true;
-      bool right_res = evaluate(right,depth+1);
+      bool right_res = evaluateOld(right,depth+1);
 
 #if DEBUG_MODEL
       cout << "left_res is " << left_res << ", right_res is " << right_res << endl;
@@ -909,7 +1454,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
        next_sub = SimplifyFalseTrue::simplify(next_sub);
        next_sub = Flattening::flatten(next_sub);
 
-       bool res = evaluate(next_sub,depth+1);
+       bool res = evaluateOld(next_sub,depth+1);
 
        //TODO try and limit memory issues!
        //     ideally delete the bits introduced by the application of SubstHelper::apply
@@ -940,7 +1485,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
         for(unsigned i=0;i<depth;i++){ cout << "."; }
         cout << "Evaluating..." << formula->toString() << endl;
 #endif
-        
+
         switch(formula->connective()){
                 case LITERAL:
             {
@@ -949,7 +1494,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
                     return formula;
                 }
                 bool evaluated = evaluateGroundLiteral(lit);
-                return evaluated ? Formula::trueFormula() : Formula::falseFormula(); 
+                return evaluated ? Formula::trueFormula() : Formula::falseFormula();
             }
 
                 case FALSE:
@@ -970,7 +1515,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
                     Formula* newArg = partialEvaluate(fit.next());
                     FormulaList::push(newArg,newArgs);
                 }
-                return new JunctionFormula(formula->connective(),newArgs); 
+                return new JunctionFormula(formula->connective(),newArgs);
             }
 
                 case IMP:
@@ -982,7 +1527,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
                 Formula* newLeft = partialEvaluate(left);
                 Formula* newRight = partialEvaluate(right);
 
-                return new BinaryFormula(formula->connective(),newLeft,newRight); 
+                return new BinaryFormula(formula->connective(),newLeft,newRight);
             }
 
                 case FORALL:

@@ -439,7 +439,7 @@ void Preprocess::preprocess(Problem& prb)
      if(env.options->showPreprocessing())
        std::cout << "blocked clause elimination" << std::endl;
 
-     BlockedClauseElimination bce;
+     BlockedClauseElimination bce(/*force_equationally*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING);
      bce.apply(prb);
    }
 

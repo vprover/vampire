@@ -31,6 +31,7 @@
 #include "Lib/Option.hpp"
 #include "Lib/BiMap.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/Environment.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"

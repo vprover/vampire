@@ -27,10 +27,13 @@ class Schedules
 public:
   static void getScheduleFromFile(const std::string& filename, Schedule& quick);
 
-  static void getCasc2024Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-  static void getCascSat2024Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCasc2024Schedule(const Shell::Property& property, Schedule& quick);
+  static void getCascSat2024Schedule(const Shell::Property& property, Schedule& quick);
 
-  static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCasc2025Schedule(const Shell::Property& property, Schedule& quick, Schedule& champions);
+  static void getCascSat2025Schedule(const Shell::Property& property, Schedule& quick, Schedule& champions);
+
+  static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick);
 
   static void getLtb2017Hh4Schedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017IsaSchedule(const Shell::Property& property, Schedule& sched);
@@ -38,11 +41,11 @@ public:
   static void getLtb2017MzrSchedule(const Shell::Property& property, Schedule& sched);
   static void getLtb2017DefaultSchedule(const Shell::Property& property, Schedule& sched);
 
-  static void getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-  static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-  static void getIntindOeisSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-  static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
-  static void getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getInductionSchedule(const Shell::Property& property, Schedule& quick);
+  static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick);
+  static void getIntindOeisSchedule(const Shell::Property& property, Schedule& quick);
+  static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick);
+  static void getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick);
 
   static void getAlascaAwareAriSchedule(const Shell::Property& property, Schedule& quick);
 

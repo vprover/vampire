@@ -13,6 +13,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Lib/SmartPtr.hpp"
+#include "Lib/Environment.hpp"
 
 #include "ApplicativeHelper.hpp"
 

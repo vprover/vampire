@@ -54,7 +54,7 @@ void BlockedClauseElimination::apply(Problem& prb)
   TIME_TRACE("blocked clause elimination");
 
   bool modified = false;
-  bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();
+  bool equationally = _forceEquationally || (prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms());
 
   DArray<Stack<Candidate*>> positive(env.signature->predicates());
   DArray<Stack<Candidate*>> negative(env.signature->predicates());
@@ -146,6 +146,7 @@ void BlockedClauseElimination::apply(Problem& prb)
     if (env.options->showPreprocessing()) {
       cout << "[PP] Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
     }
+    prb.addEliminatedBlockedClause(cl,cand->litIdx);
 
     env.statistics->blockedClauses++;
     modified = true;
