@@ -346,14 +346,9 @@ void Problem::addEliminatedBlockedClause(Clause* cl, unsigned blockedLiteralInde
   Literal* bll = (*cl)[blockedLiteralIndex];
   Formula* cond= Formula::fromClause(cl,/* closed= */false);
 
-  bool needsFixpoint = false;
-  for (unsigned i = 0; i < cl->size(); i++) {
-    Literal* other = (*cl)[i];
-    if (other->functor() == bll->functor() && other->polarity() != bll->polarity()) {
-      needsFixpoint = true;
-      break;
-    }
-  }
+  bool needsFixpoint = iterTraits(cl->iterLits()).any([&](Literal* other) {
+    return other->functor() == bll->functor() && other->polarity() != bll->polarity();
+  });
 
   auto res = new CondFlip(cond,true,bll,needsFixpoint);
 
