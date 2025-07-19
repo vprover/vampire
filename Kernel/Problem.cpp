@@ -247,12 +247,9 @@ void Problem::addTrivialPredicate(unsigned pred, bool assignment)
  */
 void Problem::addPartiallyEliminatedPredicate(unsigned pred, Formula* remainingImplication)
 {
-  Formula* f;
-  bool isQuantified=remainingImplication->connective()==FORALL;
-  if(isQuantified) {
-    f=remainingImplication->qarg();
-  } else {
-    f=remainingImplication;
+  Formula* f = remainingImplication;
+  if (f->connective()==FORALL) {
+    f=f->qarg();
   }
   ASS_EQ(f->connective(),IMP)
 
