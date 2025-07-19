@@ -1071,9 +1071,12 @@ bool Property::hasXEqualsY(const Formula* f)
  */
 bool Property::onlyExistsForallPrefix(UnitList* units)
 {
-  Stack<const Formula*> forms;
-  Stack<int> pols; // polarities
-  Stack<int> states; // states: no commitment yet (0) - exists block (1) - forall block (2) - bailout (returns false)
+  struct Rec {
+    const Formula* form;
+    int pol; // polarities
+    int state; // states: no commitment yet (0) - exists block (1) - forall block (2) - bailout (returns false)
+  };
+  Stack<Rec> recs;
 
   UnitList::Iterator us(units);
   while (us.hasNext()) {
@@ -1081,14 +1084,11 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
     if (unit->isClause()) continue;
     const Formula* f = static_cast<FormulaUnit*>(unit)->formula();
 
-    forms.push(f);
-    pols.push(1);
-    states.push(0);
+    recs.push({f,1,0});
 
-    while (!forms.isEmpty()) {
-      f = forms.pop();
-      int pol = pols.pop();
-      int state = states.pop();
+    while (!recs.isEmpty()) {
+      int eff_pol;
+      auto [f,pol,state] = recs.pop();
 
       switch (f->connective()) {
       case LITERAL:
@@ -1100,78 +1100,40 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
         {
           FormulaList::Iterator fs(f->args());
           while (fs.hasNext()) {
-            forms.push(fs.next());
-            pols.push(pol);
-            states.push(state);
+            recs.push({fs.next(),pol,state});
           }
         }
         break;
 
       case IMP:
-        forms.push(f->left());
-        pols.push(-pol);
-        states.push(state);
-        forms.push(f->right());
-        pols.push(pol);
-        states.push(state);
+        recs.push({f->left(),-pol,state});
+        recs.push({f->right(),pol,state});
         break;
 
       case IFF:
       case XOR:
-        forms.push(f->left());
-        pols.push(0);
-        states.push(state);
-        forms.push(f->right());
-        pols.push(0);
-        states.push(state);
+        recs.push({f->left(),0,state});
+        recs.push({f->right(),0,state});
         break;
 
       case NOT:
-        forms.push(f->uarg());
-        pols.push(-pol);
-        states.push(state);
-        break;
-
-      case FORALL:
-        if (pol == 1) {
-          forms.push(f->qarg());
-          pols.push(pol);
-          states.push(2); // in the forall bit now
-        } else if (pol == -1) {
-          if (state >= 2) { // exists below forall
-            return false;
-          }
-          forms.push(f->qarg());
-          pols.push(pol);
-          states.push(1); // in the exists bit now
-        } else { // pol == 0
-          if (state <= 1) { // we will do both polarities now, so, conservatibely, we are "already" in the forall part
-            forms.push(f->qarg());
-            pols.push(pol);
-            states.push(2); // in the forall bit now
-          } else {
-            return false;
-          }
-        }
+        recs.push({f->uarg(),-pol,state});
         break;
 
       case EXISTS:
-        if (pol == -1) {
-          forms.push(f->qarg());
-          pols.push(pol);
-          states.push(2); // in the forall bit now
-        } else if (pol == 1) {
+        eff_pol = -pol;
+      case FORALL:
+        eff_pol = pol;
+        if (eff_pol == 1) {
+          recs.push({f->qarg(),pol,2}); // in the forall bit now
+        } else if (eff_pol == -1) {
           if (state >= 2) { // exists below forall
             return false;
           }
-          forms.push(f->qarg());
-          pols.push(pol);
-          states.push(1); // in the exists bit now
+          recs.push({f->qarg(),pol,1}); // in the exists bit now
         } else { // pol == 0
           if (state <= 1) { // we will do both polarities now, so, conservatibely, we are "already" in the forall part
-            forms.push(f->qarg());
-            pols.push(pol);
-            states.push(2); // in the forall bit now
+            recs.push({f->qarg(),pol,2}); // in the forall bit now
           } else {
             return false;
           }
