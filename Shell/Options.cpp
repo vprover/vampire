@@ -3622,10 +3622,7 @@ bool Options::complete(const Problem& prb) const
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
-  if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::ENCOMPASS &&
-      _partialRedundancyOrderingConstraints.actualValue == true) {
-    return false;
-  }
+
   if (!_superpositionFromVariables.actualValue) {
     return false;
   }
