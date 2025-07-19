@@ -73,12 +73,7 @@ void SplitDefinitionExtra::output(std::ostream &out) const {
 
 void SplittingBranchSelector::init()
 {
-  // we need _eagerRemoval (aer) true, unless SplittingMinimizeModel is ALL
-  // if minimize is off then aer makes no difference;
-  // if minimize is sco then we could completeness issues
-  // (Problems/SWV/SWV608-1.p --decode Problems/SWV/SWV608-1.p --decode ott-1_1:40_tgt=full:plsq=on:sp=frequency:lcm=predicate:gs=on:bd=off:rawr=on:afp=1000:afq=2.0:irw=on:fsd=on:aer=off:si=on:rtra=on:amm=sco_30 --random_seed XXX)
-  _eagerRemoval = _parent.getOptions().splittingEagerRemoval() ||
-    (_parent.getOptions().splittingMinimizeModel() != Options::SplittingMinimizeModel::ALL);
+  _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
@@ -109,18 +104,9 @@ void SplittingBranchSelector::init()
     _solver = new BufferedSolver(_solver.release());
   }
 
-  switch(_parent.getOptions().splittingMinimizeModel()){
-    case Options::SplittingMinimizeModel::OFF:
-      // Do nothing - we don't want to minimise the model
-      break;
-    case Options::SplittingMinimizeModel::ALL:
-    case Options::SplittingMinimizeModel::SCO:
-      _solver = new MinimizingSolver(_solver.release());
-      break;
-    default:
-      ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
+  if (_parent.getOptions().splittingMinimizeModel()) {
+    _solver = new MinimizingSolver(_solver.release());
   }
-  _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
   if(_parent.getOptions().splittingCongruenceClosure()) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
@@ -364,11 +350,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
         SATClause* conflCl = s2f.createConflictClause(unsatCore);
-        if (_minSCO) {
-          _solver->addClauseIgnoredInPartialModel(conflCl);
-        } else {
-          _solver->addClause(conflCl);
-        }
+        _solver->addClause(conflCl);
       }
 
       RSTAT_CTR_INC("ssat_dp_conflict");
@@ -449,7 +431,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   }
 }
 
-void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRefutation)
+void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl)
 {
   cl = SATClause::removeDuplicateLiterals(cl);
   if(!cl) {
@@ -458,12 +440,7 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
   }
 
   RSTAT_CTR_INC("ssat_sat_clauses");
-
-  if (branchRefutation && _minSCO) {
-    _solver->addClauseIgnoredInPartialModel(cl);
-  } else {
-    _solver->addClause(cl);
-  }
+  _solver->addClause(cl);
 }
 
 void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize)
@@ -700,12 +677,12 @@ void Splitter::onAllProcessed()
 
   static SplitLevelStack toAdd;
   static SplitLevelStack toRemove;
-  
+
   toAdd.reset();
-  toRemove.reset();  
+  toRemove.reset();
 
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
-  
+
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     std::cout << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
@@ -1549,7 +1526,7 @@ void Splitter::addSatClauseToSolver(SATClause* cl, bool refutation) {
   if (refutation) {
     _haveBranchRefutation = true;
   }
-  _branchSelector.addSatClauseToSolver(cl,refutation);
+  _branchSelector.addSatClauseToSolver(cl);
 }
 
 bool Splitter::handleEmptyClause(Clause* cl)

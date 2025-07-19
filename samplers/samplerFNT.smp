@@ -256,10 +256,10 @@ sa!=fmb sas!=z3 av=on > acc ~cat off:600,on:58
 sa!=fmb acc!=off > ccuc ~cat first:1,small_ones:1,all:3
 
 # avatar_minimize_model
-sa!=fmb av=on > amm ~cat all:600,sco:32,off:69
+sa!=fmb av=on > amm ~cat on:600,off:69
 
 # avatar_eager_removal
-sa!=fmb av=on amm=all > aer ~cat on:300,off:1
+sa!=fmb av=on amm=on > aer ~cat on:300,off:1
 
 # avatar_delete_deactivated
 sa!=fmb av=on > add ~cat on:300,large:55,off:8

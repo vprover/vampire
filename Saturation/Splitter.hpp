@@ -86,7 +86,7 @@ _solver=0;
     _solver->suggestPolarity(lit.var(),lit.polarity());
   }
 
-  void addSatClauseToSolver(SATClause* cl, bool refutation);
+  void addSatClauseToSolver(SATClause* cl);
   void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
 
   void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
@@ -104,7 +104,6 @@ private:
   bool _eagerRemoval;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
-  bool _minSCO; // minimize wrt splitting clauses only
 
   Splitter& _parent;
 
