@@ -2104,25 +2104,20 @@ void Options::init()
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
     _splittingLiteralPolarityAdvice.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
-                                                                        SplittingMinimizeModel::ALL,{"off","sco","all"});
+    _splittingMinimizeModel = BoolOptionValue("avatar_minimize_model","amm",true);
     _splittingMinimizeModel.description="Minimize the SAT-solver model by replacing concrete values with don't-cares"
-                                        " provided <all> the sat clauses (or only the split clauses with <sco>) remain provably satisfied"
-                                        " by the partial model.";
+                                        " provided the sat clauses remain provably satisfied by the partial model.";
     _lookup.insert(&_splittingMinimizeModel);
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
-    _splittingMinimizeModel.addHardConstraint(If(equal(SplittingMinimizeModel::SCO)).then(_cleaveNonsplittables.is(notEqual(true))));
 
     _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",false);
-    _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
+    _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver."
+                                       " Note: only has any impact when amm is used.";
     _lookup.insert(&_splittingEagerRemoval);
     _splittingEagerRemoval.tag(OptionTag::AVATAR);
     _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
-    // if minimize is off then aer makes no difference
-    // if minimize is sco then aer=off could lead to a conflict clause added infinitely often
-    // (we actually protect against the problematic combination in Splitter, by ignoring aer=off even if requested)
-    _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
+    _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(true)));
 
     _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
     _splittingFastRestart.description="";

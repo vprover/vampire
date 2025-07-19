@@ -605,12 +605,6 @@ public:
     RANDOM
   };
 
-  enum class SplittingMinimizeModel : unsigned int {
-    OFF = 0,
-    SCO = 1,
-    ALL = 2
-  };
-
   enum class SplittingDeleteDeactivated : unsigned int {
     ON,
     LARGE_ONLY,
@@ -2280,7 +2274,7 @@ public:
   bool cleaveNonsplittables() const{ return _cleaveNonsplittables.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
-  SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
+  bool splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
   bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
@@ -2678,7 +2672,7 @@ private:
   FloatOptionValue _splittingFlushQuotient;
   FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
-  ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
+  BoolOptionValue _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
   BoolOptionValue _splittingFastRestart;
