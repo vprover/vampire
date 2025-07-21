@@ -82,6 +82,9 @@ _solver=0;
 
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
+  void trySetTrue(SATLiteral lit) {
+    _solver->suggestPolarity(lit.var(),lit.polarity());
+  }
 
   void addSatClauseToSolver(SATClause* cl, bool refutation);
   void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
@@ -142,7 +145,7 @@ private:
  * SplitRecord - records the split information for the clause component
  *
  * Let's call the SplitLevel associated with a comp its "name"
- * A corresponding SplitRecord is added to _db[name] 
+ * A corresponding SplitRecord is added to _db[name]
  *
  * children - Clauses that rely on name (of comp), should be thrown away "on backtracking"
  * reduced - The clauses that have been *conditionally* reduced by this clause (and are therefore frozen)
@@ -168,16 +171,19 @@ private:
     Stack<PartialRedundancyEntry*> partialRedundancyEntries;
     bool active;
 
+    // marks a component as insisting on being inserted into FO; i.e. it's only kept out if the sat solver says FALSE (regardless of eagerRemovals etc.)
+    bool sticky = false;
+
     USE_ALLOCATOR(SplitRecord);
   };
-  
+
 public:
   Splitter();
   ~Splitter();
 
   const Options& getOptions() const;
   Ordering& getOrdering() const;
-  
+
   void init(SaturationAlgorithm* sa);
 
   bool doSplitting(Clause* cl);
@@ -199,6 +205,10 @@ public:
     ASS_L(name,_db.size());
     return (_db[name] != 0);
   }
+  bool isSticky(SplitLevel name) const {
+    ASS_L(name,_db.size());
+    return _db[name]->sticky;
+  }
   Clause* getComponentClause(SplitLevel name) const;
 
   SplitLevel splitLevelCnt() const { return _db.size(); }
@@ -218,7 +228,7 @@ public:
 
 private:
   friend class SplittingBranchSelector;
-  
+
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
 
   bool shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl);
@@ -245,6 +255,8 @@ private:
 
   bool allSplitLevelsActive(SplitSet* s);
 
+  void conjectureSingleton(Literal* theLit, Clause* orig);
+
   //settings
   bool _showSplitting;
 
@@ -266,8 +278,8 @@ private:
    * Registers all the sat variables and keeps track
    * of associated ground literals for those variables
    * which have one.
-   */  
-  SAT2FO _sat2fo;  
+   */
+  SAT2FO _sat2fo;
   /**
    * Information about a split level. Can be null if a split level does
    * not contain any components (e.g. for negations of non-ground
@@ -283,8 +295,8 @@ private:
    * (So the key here is never odd!)
    **/
   DHMap<SplitLevel,Unit*> _defs;
-  
-  //state variable used for flushing:  
+
+  //state variable used for flushing:
   /** When this number of generated clauses is reached, it will cause flush */
   unsigned _flushThreshold;
   /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
@@ -300,19 +312,20 @@ private:
 #endif
 
   bool _fastRestart; // option's value copy
+  bool _cleaveNonsplittables; // option's value copy
+
   /**
-   * We are postponing to consider these clauses for a split 
+   * We are postponing to consider these clauses for a split
    * because a conflict clause has been derived
    * and will invariably change the SAT model.
    */
   RCClauseStack _fastClauses;
-  
+
   SaturationAlgorithm* _sa;
 
   // clauses we already added to the SAT solver
   // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
   Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
-
 public:
   static std::string splPrefix;
 
