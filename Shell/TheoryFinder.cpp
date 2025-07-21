@@ -608,7 +608,7 @@ bool TheoryFinder::matchCode(const void* obj,
    *
    * Backtracking to the other polarity of ( element(Z,X) <=> element(Z,Y) )
    * is at this point evil, since the objects stack no longer contains
-   * set_equal(X,Y) as a LITARAL formula at objectPos==0
+   * set_equal(X,Y) as a LITERAL formula at objectPos==0
    *
    * In this case fixed by using non-backtrackable CIFF for the inner <=>
    **/

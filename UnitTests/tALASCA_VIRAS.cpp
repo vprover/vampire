@@ -240,7 +240,7 @@ TEST_GENERATION(ported_lra_test_neq1c,
       .inputs ({  clause({ 0 != -x - a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != a - b })
-          , clause({ 0 != a - b }) // TODO opimization
+          , clause({ 0 != a - b }) // TODO optimization
       ))
       .premiseRedundant(true)
     )
@@ -251,7 +251,7 @@ TEST_GENERATION(ported_lra_test_neq1d,
       .inputs ({  clause({ 0 != x + a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != a - b })
-          , clause({ 0 != a - b }) // TODO opimization
+          , clause({ 0 != a - b }) // TODO optimization
       ))
       .premiseRedundant(true)
     )
@@ -261,7 +261,7 @@ TEST_GENERATION(ported_lra_test_neq2,
       .inputs ({  clause({ 0 != 2 * x + a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != frac(1,2) * a - b })
-          , clause({ 0 != frac(1,2) * a - b }) // TODO opimization
+          , clause({ 0 != frac(1,2) * a - b }) // TODO optimization
       ))
       .premiseRedundant(true)
     )

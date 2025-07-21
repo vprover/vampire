@@ -82,7 +82,7 @@ public:
   /**
    * Should this selector treat polarity (of non-equational literals) as reversed?
    *
-   * Preferrably do not call this once the LiteralSelector has already been used.
+   * Preferably do not call this once the LiteralSelector has already been used.
    *
    * This method is virtual as Lookahead selector with delayed function contains another selector
    * which needs to get in sync.

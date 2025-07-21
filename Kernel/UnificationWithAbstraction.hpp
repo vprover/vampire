@@ -130,7 +130,7 @@ public:
   using AbstractionResult = Coproduct<NeverEqual, EqualIf, UnifySortsFirst>;
 
   /** main function that either returns nothing, which means that unification with abstraction will 
-   * shall not be applied for the given terms, or an AbstractionResult, which tells wether the given 
+   * shall not be applied for the given terms, or an AbstractionResult, which tells whether the given
    * terms can be unified in the background theory or not, and under which conditions. 
    *
    * If the `AbstractionResult` is `NeverEqual` this means that the two terms are never equal in 

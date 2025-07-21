@@ -13,7 +13,7 @@
  * Macros that are not meant to be used from outside of this file are prefixed 
  * with two underscores.
  *
- * @autor Johannes Schoisswohl
+ * @author Johannes Schoisswohl
  * @date 2020-04-29
  */
 
@@ -156,7 +156,7 @@
  *
  * Other closures:
  * frac(int,int) ... creates a fractional interpreted constant (only for REAL, and RAT)
- * num(int)      ... explicity converts a number to an interpreted constant 
+ * num(int)      ... explicitly converts a number to an interpreted constant
  *                   this can be needed in order to prevent the compiler from pre-evaluating integer expressions.
  *                   e.g. {
  *                      Literal* l1 = (a == (3 * 2));
@@ -388,14 +388,14 @@ public:
   TermSugar sort(SortId s) { _srt = s; return *this; }
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
-    unsigned f = env.signature->addFunction(name,0);                                                                
+    unsigned f = env.signature->addFunction(name,0);
 
     env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr()));
     if (skolem) {
       env.signature->getFunction(f)->markSkolem();
     }
-    return TermSugar(TermList(Term::createConstant(f)));                                                          
-  }                                                                                                                 
+    return TermSugar(TermList(Term::createConstant(f)));
+  }
 
   operator TypedTermList() const { return TypedTermList(TermList(*this), sort()); }
 };
@@ -670,7 +670,7 @@ public:
     }
 
     if(taArity){
-      // TODO don't haredcode these varible numbers?!
+      // TODO don't haredcode these variable numbers?!
       TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};      
       SortHelper::normaliseArgSorts(vars, as);
     }

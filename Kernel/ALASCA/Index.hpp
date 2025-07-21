@@ -56,7 +56,7 @@ template<class T>
 class AlascaIndex : public Indexing::Index
 {
   static std::string _lookupStr;
-  static std::string _maintainanceStr;
+  static std::string _maintenanceStr;
   GenSubstitutionTree<T> _index;
   std::shared_ptr<Kernel::AlascaState> _shared;
 public:
@@ -109,7 +109,7 @@ public:
 
   virtual void handleClause(Clause* c, bool adding) final override
   {
-    TIME_TRACE(_maintainanceStr.c_str())
+    TIME_TRACE(_maintenanceStr.c_str())
     for (auto appl : iter<T>(c)) {
       if (adding) {
         INSERT_FIND_ASSERTION(DEBUG_CODE( 
@@ -144,7 +144,7 @@ public:
 };
 
 template<class T> std::string AlascaIndex<T>::_lookupStr = T::name() + std::string(" lookup");
-template<class T> std::string AlascaIndex<T>::_maintainanceStr = T::name() + std::string(" maintainance");
+template<class T> std::string AlascaIndex<T>::_maintenanceStr = T::name() + std::string(" maintenance");
 
 } // namespace Indexing
 

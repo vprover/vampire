@@ -43,7 +43,7 @@ struct SuperpositionConf
   std::shared_ptr<AlascaState> _shared;
   bool _simultaneousSuperposition;
 
-  SuperpositionConf(std::shared_ptr<AlascaState> shared, bool simultanious = true) : _shared(shared), _simultaneousSuperposition(simultanious) {  }
+  SuperpositionConf(std::shared_ptr<AlascaState> shared, bool simultaneous = true) : _shared(shared), _simultaneousSuperposition(simultaneous) {  }
 
   static const char* name() { return "alasca superposition"; }
 

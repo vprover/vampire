@@ -384,8 +384,9 @@ Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
     return env.options->unificationWithAbstraction();
-  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) { 
-    return Options::UnificationWithAbstraction::FUNC_EXT;
+  } else if (/* env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && */ env.getMainProblem()->getProperty()->higherOrder()) {
+    HOL_ERROR;
+    // return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
   }
@@ -393,8 +394,9 @@ Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
 
 Shell::Options::UnificationWithAbstraction AbstractionOracle::createOnlyHigherOrder()
 {
-  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) { 
-    return Options::UnificationWithAbstraction::FUNC_EXT;
+  if (/* env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION &&*/ env.getMainProblem()->getProperty()->higherOrder()) {
+    // return Options::UnificationWithAbstraction::FUNC_EXT;
+    HOL_ERROR;
   } else {
     return Options::UnificationWithAbstraction::OFF;
   }
@@ -496,8 +498,8 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
        || env.signature->isBoolCon(argSort1.functor())
        || env.signature->isBoolCon(argSort2.functor())
        ) {
-        auto& arg1 = au->subs().derefBound(t1.termArg(1));
-        auto& arg2 = au->subs().derefBound(t2.termArg(1));
+        auto arg1 = au->subs().derefBound(t1.termArg(1));
+        auto arg2 = au->subs().derefBound(t2.termArg(1));
         auto out = AbstractionOracle::EqualIf()
               .unify (UnificationConstraint(t1.typeArg(0), t2.typeArg(0), TermSpec(AtomicSort::superSort(), 0)),
                       UnificationConstraint(t1.typeArg(1), t2.typeArg(1), TermSpec(AtomicSort::superSort(), 0)),
@@ -986,7 +988,7 @@ struct FloorUwaState {
       auto compare = [](auto& l, auto& r) { return TermSpec::compare(l.first, r.first,
           [](auto& t) -> auto& { return t; }); };
       //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-      // TODO create option for "deep" compare using a differnt deref clsoure
+      // TODO create option for "deep" compare using a different deref clsoure
       l.sort([&](auto& l, auto& r) { return compare(l, r) < 0; });
       r.sort([&](auto& l, auto& r) { return compare(l, r) < 0; });
       size_t li = 0;

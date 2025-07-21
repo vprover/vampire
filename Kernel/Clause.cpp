@@ -640,12 +640,6 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
   return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 
-
-void Clause::collectUnstableVars(DHSet<unsigned>& acc)
-{
-  collectVars2<UnstableVarIt>(acc);
-}
-
 void Clause::collectVars(DHSet<unsigned>& acc)
 {
   collectVars2<VariableIterator>(acc);

@@ -57,7 +57,7 @@ struct SortedSignature{
     DArray<unsigned> parents;
 
     // Map the distinct sorts back to their vampire parents
-    // A distinct sort may merge multipe vampire sorts (due to monotonicity)
+    // A distinct sort may merge multiple vampire sorts (due to monotonicity)
     DHMap<unsigned,Stack<unsigned>*> distinctToVampire;
     // A vampire sort can only be mapped to more than one distinct sort under certain conditions i.e. when
     // (i) the option for fmbSortInference = expand

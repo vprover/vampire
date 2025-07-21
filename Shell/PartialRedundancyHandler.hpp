@@ -44,8 +44,8 @@
 
 #include "Kernel/Ordering.hpp"
 
-#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Saturation/Splitter.hpp"
 
@@ -56,13 +56,13 @@ namespace Shell {
 using namespace Lib;
 using namespace Indexing;
 
-using LiteralSet = SharedSet<Literal*>;
+using LiteralSet = Set<Literal*,SharedTermHash>;
 
 using OrderingConstraints = Stack<TermOrderingConstraint>;
 
 struct PartialRedundancyEntry {
   OrderingConstraints ordCons;
-  const LiteralSet* lits;
+  LiteralSet lits;
   SplitSet* splits;
   bool active = true;
   unsigned refcnt = 1;
@@ -102,7 +102,7 @@ public:
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual void insertSuperposition(
-    Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
+    Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual bool handleResolution(
@@ -134,7 +134,7 @@ public:
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
 
   void insertSuperposition(
-    Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
+    Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const override;
 
   /** Returns false if resolution should be skipped. */
@@ -144,15 +144,14 @@ public:
   void checkEquations(Clause* cl) const override;
 
 private:
-  bool isSuperpositionPremiseRedundant(
-    Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
-    const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
+  bool compareWithSuperpositionPremise(
+    Clause* rwCl, Literal* rwLitS, TermList rwTerm, TermList rwTermS, TermList tgtTermS, Clause* eqCl, TermList eqLHS, OrderingConstraints& cons) const;
 
-  const LiteralSet* getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
+  LiteralSet getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
 
   const SplitSet* getRemainingSplits(Clause* cl, Clause* other) const;
   void tryInsert(Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons,
-    const LiteralSet* lits, SplitSet* splits) const;
+    LiteralSet&& lits, SplitSet* splits) const;
 
   bool _redundancyCheck;
   bool _encompassing;

@@ -595,7 +595,7 @@ TEST_GENERATION(abstraction1,
       .inputs  ({ clause({ selected(-f(   f(y)       ) > 0) })  
                ,  clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(
-            
+
       ))
     )
 

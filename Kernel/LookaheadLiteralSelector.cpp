@@ -101,7 +101,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
+	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
 	       TermUnificationRetriever(fsi)) );
       break;
     }
@@ -175,7 +175,7 @@ VirtualIterator<std::tuple<>> LookaheadLiteralSelector::getGeneraingInferenceIte
 
 /**
  * Return the literal from the @b lits array (of length @b cnt) that
- * is the best to be selected. This selection is done irregardless any
+ * is the best to be selected. This selection is done regardless any
  * completeness constraints, the caller has to handle that, if necessary.
  */
 Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)

@@ -9,7 +9,7 @@
  */
 /**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
  *
- * @autor Johannes Schoisswohl
+ * @author Johannes Schoisswohl
  * @date 2020-04-29
  */
 
@@ -23,7 +23,7 @@ void perform_test(const A&...)
 TEST_FUN(some_meaningful_testname) {
   
   NUMBER_SUGAR(Real) // <- imports syntax sugar for +, *, /, and other 
-                     //    intepreted functions & predicates on reals
+                     //    interpreted functions & predicates on reals
 
   DECL_DEFAULT_VARS  // <- creates variables x ... variable X0
                      //                      y ... variable X1
@@ -46,7 +46,7 @@ TEST_FUN(some_other_meaningful_testname) {
 
 
 TEST_FUN(uninterpreted_and_interpreted_stuff) {
-  NUMBER_SUGAR(Rat)                
+  NUMBER_SUGAR(Rat)
   DECL_DEFAULT_VARS
 
   DECL_SORT(alpha)     // <- creates an uninterpred sort 
@@ -100,10 +100,10 @@ TEST_FUN(watch_out_for_this) {
 
 
 TEST_FUN(get_functors) {
-  NUMBER_SUGAR(Rat)                 
+  NUMBER_SUGAR(Rat)
   DECL_FUNC( fn  , {Rat, Rat}, Rat)
-  DECL_PRED( pred, {Rat})          
-  DECL_CONST(cons, Rat)           
+  DECL_PRED( pred, {Rat})
+  DECL_CONST(cons, Rat)
 
   // we can query the functors of functionsm, constants and predicates 
   unsigned fnFunctor   = fn.functor(); 

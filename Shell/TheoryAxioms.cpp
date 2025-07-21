@@ -832,15 +832,15 @@ void TheoryAxioms::addArrayExtensionalityAxioms(TermList arraySort, unsigned sko
 
   TermList x(0,false);
   TermList y(1,false);
-  
+
   TermList sk(Term::create2(skolemFn, x, y)); //sk(x,y)
   TermList sel_x_sk(Term::create2(sel,x,sk)); //select(x,sk(x,y))
   TermList sel_y_sk(Term::create2(sel,y,sk)); //select(y,sk(x,y))
   Literal* eq = Literal::createEquality(true,x,y,arraySort); //x = y
   Literal* ineq = Literal::createEquality(false,sel_x_sk,sel_y_sk,rangeSort); //select(x,sk(x,y) != select(y,z)
 
-  addTheoryClauseFromLits({eq,ineq}, InferenceRule::THA_ARRAY_EXTENSIONALITY, CHEAP);
-} // addArrayExtensionalityAxiom    
+  addTheoryClauseFromLits({eq,ineq}, InferenceRule::THA_ARRAY_EXTENSIONALITY, EXPENSIVE);
+} // addArrayExtensionalityAxiom
 
 /**
  * Adds the extensionality axiom of boolean arrays:
@@ -869,11 +869,11 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsig
                                          SList::cons(arraySort, SList::cons(arraySort,SList::empty())),
                                          new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
 
-  addAndOutputTheoryUnit(new FormulaUnit(axiom, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY)),CHEAP);
+  addAndOutputTheoryUnit(new FormulaUnit(axiom, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY)),EXPENSIVE);
 } // addBooleanArrayExtensionalityAxiom
 
 /**
-* Adds the write/select axiom of arrays (of type array1 or array2), 
+* Adds the write/select axiom of arrays (of type array1 or array2),
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
 */
@@ -890,7 +890,7 @@ void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
   TermList v(2,false);
   TermList a(3,false);
   TermList args[] = {a, i, v};
-        
+
   //axiom (!A: arraySort, !I:domainSort, !V:rangeSort: (select(store(A,I,V), I) = V
   TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
   TermList sWI(Term::create2(func_select, wAIV,i)); //select(wAIV,I)
@@ -900,7 +900,7 @@ void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
   //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) = select(A,J)
   TermList sWJ(Term::create2(func_select, wAIV,j)); //select(wAIV,J)
   TermList sAJ(Term::create2(func_select, a, j)); //select(A,J)
-        
+
   Literal* indexEq = Literal::createEquality(true, i, j, domainSort);//!(!(I=J)) === I=J
   Literal* writeEq = Literal::createEquality(true, sWJ, sAJ, rangeSort);//(select(store(A,I,V), J) = select(A,J)
   addTheoryClauseFromLits({indexEq,writeEq}, InferenceRule::THA_ARRAY_WRITE2, CHEAP);
@@ -1201,8 +1201,7 @@ void TheoryAxioms::applyFOOL() {
   addTheoryClauseFromLits({tneqf},InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE,CHEAP);
 
   // Do not add the finite domain axiom if --fool_paradomulation on
-  if (env.options->FOOLParamodulation() || env.options->cases() ||
-      env.options->casesSimp()) {
+  if (env.options->FOOLParamodulation()) {
     return;
   }
 

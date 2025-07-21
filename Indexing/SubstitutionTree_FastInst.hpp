@@ -478,7 +478,7 @@ main_loop_start:
 	if(sibilingsRemain || _alternatives.isNonEmpty()) {
 	  //this backtrack can happen for two different reasons and have two different meanings:
 	  //either matching at [1] was separated from the previous one and we're backtracking it,
-	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
+	  //or it was not, which means it had no siblings and we're backtracking from its parent.
 	  _subst.backtrack();
 	}
         curr=0;

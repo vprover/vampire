@@ -17,7 +17,7 @@ namespace VariablePowerGeneralizationImpl {
 *    ------------ 
 *    C[X]
 *    where 
-*    - all occurences of X are in terms of the form `X ⋅ X ⋅ ... ⋅ X` 
+*    - all occurrences of X are in terms of the form `X ⋅ X ⋅ ... ⋅ X`
 *    - sound due to substitution { X -> X^(0/n) }
 *    - obviously a generalization 
 */

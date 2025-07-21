@@ -9,7 +9,7 @@
  */
 /**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
  *
- * @autor Johannes Schoisswohl
+ * @author Johannes Schoisswohl
  * @date 2020-04-29
  */
 

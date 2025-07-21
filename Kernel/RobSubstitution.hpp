@@ -335,7 +335,7 @@ public:
    *
    * Then an mgu is x -> -f(y/0) + f(y/1)
    * This cannot be directly represented in vampire as our TermSpec can only hold 1 variable bank per term, and not multiple per subterm. So what we want to do instead 
-   * is introduce two new "glue" variables varibles G0, G1
+   * is introduce two new "glue" variables variables G0, G1
    *
    * G0 -> -f(y)/0
    * G1 ->  f(y)/1
@@ -391,7 +391,7 @@ public:
     return TermSpec(TermList(Term::create(functor, args->size(), args->begin())), index.unwrapOr(0));
   }
 
-  /* creates a new TermSpec with the given arguments `args` which all need to be of type `TermSpec`. If any of the argumetns have different variable banks "glue" variable are introduced. See the function `introGlueVar` for that. */
+  /* creates a new TermSpec with the given arguments `args` which all need to be of type `TermSpec`. If any of the arguments have different variable banks "glue" variable are introduced. See the function `introGlueVar` for that. */
   template<class... Args>
   TermSpec createTerm(unsigned functor, Args... args)
   {

@@ -27,7 +27,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Connective.hpp" 
 #include "Kernel/Inference.hpp"
-#include "Kernel/MainLoop.hpp"                      
+#include "Kernel/MainLoop.hpp"
 #include "Kernel/OperatorType.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"

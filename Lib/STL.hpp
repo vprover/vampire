@@ -20,7 +20,7 @@ namespace Lib {
 
 template<class T>
 T* move_to_heap(T t) { return new T(std::move(t)); }
-                
+
 template< typename T, 
           std::enable_if_t<!std::is_pointer<T>::value, bool> = true  
         >

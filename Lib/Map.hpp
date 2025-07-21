@@ -92,7 +92,7 @@ public:
     /** Hash code, 0 if not occupied */
     unsigned code;
 
-    /** this wrapper is required in order to leave the storage realy unininitialized, which is 
+    /** this wrapper is required in order to leave the storage really unininitialized, which is
      * 1) a performance boost, and
      * 2) required in order to make Map work with types that do not have a default-constructor 
      */

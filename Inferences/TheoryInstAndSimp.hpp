@@ -71,7 +71,7 @@ public:
 
   /**
    * Assuming cl is only built from theory material, this will use an SMT solver
-   * to check whether the given clause cl is sematically valid (in its theory).
+   * to check whether the given clause cl is semantically valid (in its theory).
    *
    * The function returns "Unkown", if it found symbols that it didn't understand, or if the underlying SMT-Solver returns unknown.
    *

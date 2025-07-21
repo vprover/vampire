@@ -38,9 +38,9 @@
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
 #include "LaTeX.hpp"
-#include "LispLexer.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
+#include "SMTCheck.hpp"
 #include "Statistics.hpp"
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
@@ -138,57 +138,44 @@ bool UIHelper::spiderOutputDone = false;
 
 void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string prefix)
 {
-#if 1
   InferenceStore::instance()->outputProof(cerr, units);
-#else
-  Stack<UnitSpec> prems;
-  Stack<UnitSpec> toDo;
-  DHSet<UnitSpec> seen;
-
-  //get the units to start with
-  UnitList::Iterator uit(units);
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-    toDo.push(UnitSpec(u));
-  }
-
-  while (toDo.isNonEmpty()) {
-    UnitSpec us = toDo.pop();
-    UnitSpecIterator pars = InferenceStore::instance()->getParents(us);
-    while (pars.hasNext()) {
-      UnitSpec par = pars.next();
-      if (seen.contains(par)) {
-	continue;
-      }
-      prems.push(par);
-      toDo.push(par);
-      seen.insert(par);
-    }
-  }
-
-  std::sort(prems.begin(), prems.end(), UIHelper::unitSpecNumberComparator);
-
-  Stack<UnitSpec>::BottomFirstIterator premIt(prems);
-  while (premIt.hasNext()) {
-    UnitSpec prem = premIt.next();
-    out << prefix << prem.toString() << endl;
-  }
-#endif
 }
 
 void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 {
-  addCommentSignForSZS(out);
-  out << "# SZS output start Saturation." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output start Saturation." << endl;
+  } else {
+    out << "# Saturated clause set:" << endl;
+  }
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
     out << TPTPPrinter::toString(cl) << endl;
   }
 
-  addCommentSignForSZS(out);
-  out << "# SZS output end Saturation." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output end Saturation." << endl;
+  }
 } // outputSaturatedSet
+
+void UIHelper::outputInterferences(std::ostream& out, const Problem& prob)
+{
+  if (szsOutputMode()) {
+    out << "% SZS output start Definitions and Model Updates." << endl;
+  } else {
+    out << "# Restored definitions and other model updates:" << endl;
+  }
+
+  auto ii = prob.interferences.iter(); // LIFO is the key here!
+  while (ii.hasNext()) {
+    ii.next()->outputDefinition(out);
+  }
+
+  if (szsOutputMode()) {
+    out << "% SZS output end Definitions and Model Updates." << endl;
+  }
+} // outputInterferences
 
 // String utility function that probably belongs elsewhere
 static bool hasEnding (std::string const &fullString, std::string const &ending) {
@@ -366,7 +353,7 @@ void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inpu
  * No preprocessing is performed on the units.
  *
  * The Options object should intentionally not be part of this game,
- * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning options
+ * as any form of "conditional parsing" compromises the effective use of the corresponding conditioning options
  * as a part of strategy development and use in portfolios. In other words, if you need getInputProblem or the parse* functions
  * to depend on an option, think twice, and if really needed, make it an explicit argument of that function.
  */
@@ -379,11 +366,7 @@ Problem* UIHelper::getInputProblem()
   res->setSMTLIBLogic(topPiece._smtLibLogic);
 
   if(res->isHigherOrder())
-    USER_ERROR(
-      "This version of Vampire is not yet HOLy.\n\n"
-      "Support for higher-order logic is currently on the ahmed-new-hol branch.\n"
-      "HOL should be coming to mainline 'soon'."
-    );
+    HOL_ERROR;
 
   env.setMainProblem(res);
   return res;
@@ -598,21 +581,21 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
   }
-  if (!env.statistics->model.empty()) {
-    if (szsOutputMode()) {
-	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+  if (env.options->proof() != Options::Proof::OFF) {
+    if (!env.statistics->model.empty()) {
+      if (szsOutputMode()) {
+        out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+      } else {
+        out << "# Finite Model:" << endl;
+      }
+      out << env.statistics->model;
+      if (szsOutputMode()) {
+        out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
+      }
+    } else {
+      outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
+      outputInterferences(out,*env.getMainProblem());
     }
-    out << env.statistics->model;
-    if (szsOutputMode()) {
-	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
-    }
-  }
-  else //if (env.statistics->saturatedSet)
-       /* -- MS: it's never incorrect to print the empty one, in fact this prevents us from losing
-        * points at CASC when the input gets completely emptied, by e.g. preprocessing
-        */
-  {
-    outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
   }
 }
 

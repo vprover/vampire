@@ -74,7 +74,7 @@ namespace TypeList {
   };
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ////// FUNTIONS RETURNING TYPES
+  ////// FUNCTIONS RETURNING TYPES
   ////////////////////////////////////////
 
   /* Meta level type function.
@@ -163,7 +163,7 @@ namespace TypeList {
 
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ////// FUNTIONS RETURNING VALUES
+  ////// FUNCTIONS RETURNING VALUES
   ////////////////////////////////////////
 
   /* Meta level function.
@@ -203,7 +203,7 @@ namespace TypeList {
   /* Meta level function.
    * cnt : class -> List [class] -> unsigned
    *
-   * returns the number of occurences of an element in a list
+   * returns the number of occurrences of an element in a list
    *
    * E.g. Cnt<B, List<A,B,C,B>>::val ==> 2
    */
@@ -259,7 +259,7 @@ namespace TypeList {
 
   template<class A, class... As> struct IdxOf<A, List<As...>>
   {
-    static_assert(Cnt<A, List<As...>>::val == 1, "Type must have one unique occurence in the list.");
+    static_assert(Cnt<A, List<As...>>::val == 1, "Type must have one unique occurrence in the list.");
     static unsigned constexpr val = FirstIdxOf<A, List<As...>>::val;
   };
 

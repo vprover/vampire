@@ -20,7 +20,6 @@
 #include "Kernel/Term.hpp"
 #include "Lib/DHMap.hpp"
 
-
 namespace subsat {
 
 

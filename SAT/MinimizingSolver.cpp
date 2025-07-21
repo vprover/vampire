@@ -62,10 +62,10 @@ void MinimizingSolver::addClauseIgnoredInPartialModel(SATClause* cl)
   _assignmentValid = false;
 }
 
-SATSolver::Status MinimizingSolver::solve(unsigned conflictCountLimit) 
+SATSolver::Status MinimizingSolver::solveLimited(unsigned conflictCountLimit)
 {
   _assignmentValid = false;
-  return _inner->solve(conflictCountLimit);
+  return _inner->solveLimited(conflictCountLimit);
 }
 
 SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
@@ -167,7 +167,7 @@ void MinimizingSolver::processUnprocessedAndFillHeap()
   
   for(unsigned var=1; var<=_varCnt; var++) {
     ASS(!_heap.contains(var));
-    if(_unsClCnt[var]>0) {            
+    if(_unsClCnt[var]>0) {
       _heap.addToEnd(var);      
     }
   }

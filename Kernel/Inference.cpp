@@ -259,26 +259,10 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
 
   out << ", incl: " << self._included;
   out << ", ptd: " << self._isPureTheoryDescendant;
-  if(env.options->addCombAxioms()){
-    out << ", cad: " << self._combAxiomsDescendant;
-  }
-  if(env.options->addProxyAxioms()){
-     out << ", pad: " << self._proxyAxiomsDescendant;
-  }
-  if(env.options->addCombAxioms() && env.options->addProxyAxioms()){
-    out << ", had: " << self._holAxiomsDescendant;
-  }
-  out << ", id: " << self._inductionDepth;
-  if(env.options->maxXXNarrows() > 0){
-    out << ", xxNarrs " << self._XXNarrows;
-  }
-  if(env.options->prioritiseClausesProducedByLongReduction()){
-    out << ", redLen " << self._reductions;
-  }
   out << ", sl: " << self._sineLevel;
   out << ", age: " << self._age;
-  out << ", thAx:" << (int)(self.th_ancestors);
-  out << ", allAx:" << (int)(self.all_ancestors);
+  out << ", thAx:" << static_cast<int>(self.th_ancestors);
+  out << ", allAx:" << static_cast<int>(self.all_ancestors);
 
   return out;
 }
@@ -739,7 +723,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::CONDENSATION:
     return "condensation";
   case InferenceRule::ALASCA_SYMBOL_ELIMINATION:
-    return "alasca integer transformation";
+    return "alasca symbol elimination";
   case InferenceRule::ALASCA_INTEGER_TRANSFORMATION:
     return "alasca integer transformation";
   case InferenceRule::THEORY_NORMALIZATION:
@@ -921,7 +905,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::ALASCA_BWD_DEMODULATION:
     return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
-    return "finite model not found : exhaustively excluded all possible domain size assignments";
+    return "finite model not found (exhaustively excluded all possible domain size assignments)";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
