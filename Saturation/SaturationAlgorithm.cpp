@@ -755,10 +755,9 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
     return 0;
   }
 
-  ClauseIterator cIt = _immediateSimplifier->simplifyMany(cl);
-  if (cIt.hasNext()) {
-    while (cIt.hasNext()) {
-      Clause *simpedCl = cIt.next();
+  if (auto  cIt = _immediateSimplifierMany.simplifyMany(cl)) {
+    while (cIt->hasNext()) {
+      Clause *simpedCl = cIt->next();
       if (!splitSet) {
         splitSet = simpedCl->splits();
       }
@@ -1552,7 +1551,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  auto ise = createISE(prb, opt, ordering, alascaTakesOver);
+  auto [ise, iseMany] = createISE(prb, opt, ordering, alascaTakesOver);
   if (alascaTakesOver) {
     auto shared = Kernel::AlascaState::create(
         InequalityNormalizer::global(),
@@ -1614,6 +1613,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->setGeneratingInferenceEngine(sgi);
 
   res->setImmediateSimplificationEngine(ise);
+  res->setImmediateSimplificationEngineMany(std::move(iseMany));
 
   // create simplification engine
 
@@ -1713,9 +1713,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering, bool alascaTakesOver)
+std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering, bool alascaTakesOver)
 {
   CompositeISE* res =new CompositeISE();
+  CompositeISEMany resMany;
 
   bool mayHaveEquality = couldEqualityArise(prb,opt);
 
@@ -1744,7 +1745,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
   }
 
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
-    res->addFrontMany(new CasesSimp());
+    resMany.addFront(std::make_unique<CasesSimp>());
   }
 
   // Only add if there are distinct groups
@@ -1810,5 +1811,5 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
     res->addFront(new UncomputableAnswerLiteralRemoval());
     res->addFront(new MultipleAnswerLiteralRemoval());
   }
-  return res;
+  return std::make_pair(res, std::move(resMany));
 }

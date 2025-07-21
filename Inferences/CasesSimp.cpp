@@ -100,7 +100,7 @@ struct CasesSimp::RewriteableSubtermsFn
 };
 
 
-ClauseIterator CasesSimp::simplifyMany(Clause* premise)
+Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)
 {
   auto it1 = premise->getLiteralIterator();
   auto it2 = getFilteredIterator(it1, isEqualityLit()); 
@@ -110,7 +110,11 @@ ClauseIterator CasesSimp::simplifyMany(Clause* premise)
   //Perform  Narrow
   auto it4 = getMapAndFlattenIterator(it3,ResultFn(premise, *this));
 
-  return pvi( it4 );
+  if (it4.hasNext()) {
+    return some(pvi(it4));
+  } else {
+    return {};
+  }
 }
 
 }
