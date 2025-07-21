@@ -27,7 +27,6 @@
 #include "Lib/Map.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
 
 #include "Shell/TermAlgebra.hpp"
@@ -467,18 +466,8 @@ class Signature
     RealConstantType _realValue;
 
   public:
-    RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")") 
-                                                                         : Output::toString(val),
-        /*             arity */ 0, 
-        /*       interpreted */ true, 
-        /*    preventQuoting */ false, 
-        /*             super */ false),
-       _realValue(std::move(val))
-    {
-      setType(OperatorType::getConstantsType(AtomicSort::realSort()));
-    }
-  }; 
+    RealSymbol(const RealConstantType& val);
+  };
 
   //////////////////////////////////////
   // Uninterpreted symbol declarations

@@ -169,6 +169,7 @@ public:
         OTHER,
         DEVELOPMENT,
         OUTPUT,
+        PORTFOLIO,
         FMB,
         SAT,
         AVATAR,
@@ -399,8 +400,10 @@ public:
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
+    CASC_2025,
     CASC_SAT,
     CASC_SAT_2024,
+    CASC_SAT_2025,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
@@ -2015,6 +2018,7 @@ public:
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   const std::string& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
+  bool replaceDomainElements() const { return _replaceDomainElements.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
@@ -2123,6 +2127,7 @@ public:
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   int lrsRetroactiveDeletes() const { return _lrsRetroactiveDeletes.actualValue; }
+  int lrsPreemptiveDeletes() const { return _lrsPreemptiveDeletes.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
@@ -2197,8 +2202,10 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
-  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizeSeedForPortfolioWorkers.actualValue = val; }
+  bool shuffleOnScheduleRepeats() const { return _shuffleOnScheduleRepeats.actualValue; }
+  void enableShuffling() { _shuffleInput.actualValue = true; _randomTraversals.actualValue = true; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2278,6 +2285,7 @@ public:
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
+  bool cleaveNonsplittables() const{ return _cleaveNonsplittables.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
   SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
@@ -2558,6 +2566,7 @@ private:
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   BoolOptionValue _lrsRetroactiveDeletes;
+  BoolOptionValue _lrsPreemptiveDeletes;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
@@ -2575,7 +2584,8 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
-  BoolOptionValue _randomizSeedForPortfolioWorkers;
+  BoolOptionValue _randomizeSeedForPortfolioWorkers;
+  BoolOptionValue _shuffleOnScheduleRepeats;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
@@ -2587,6 +2597,7 @@ private:
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
+  BoolOptionValue _replaceDomainElements;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
@@ -2667,6 +2678,7 @@ private:
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
+  BoolOptionValue _cleaveNonsplittables;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   BoolOptionValue _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;

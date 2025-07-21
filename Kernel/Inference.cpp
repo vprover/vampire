@@ -895,7 +895,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::ALASCA_BWD_DEMODULATION:
     return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
-    return "finite model not found : exhaustively excluded all possible domain size assignments";
+    return "finite model not found (exhaustively excluded all possible domain size assignments)";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
