@@ -180,16 +180,16 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
   // take the respective schedules from our "Tablets of Stone"
   Schedule main;
-  Schedule fallback;
-  getSchedules(prop,main,fallback);
-  
-  /** 
+  Schedule champions;
+  getSchedules(prop,main,champions);
+
+  /**
    * The idea next is to create extra schedules based on the just loaded ones
    * mainly by adding new options that are not yet included in the schedules
    * into a copy of an official schedule to be appended after it (so as not to disturb the original).
-   * 
+   *
    * The expectation is that the code below will be updated before each competition submission
-   * 
+   *
    * Note that the final schedule is longer and longer with each copy,
    * so consider carefully which selected options (and combinations) to "try on top" of it.
    */
@@ -237,65 +237,37 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
     }
   };
 
-  // now various ways of creating schedule extension based on their "age and flavour"
-  if (env.options->schedule() == Options::Schedule::CASC) {
-
-    schedule.loadFromIterator(main.iterFifo());
-    schedule.loadFromIterator(fallback.iterFifo());
-    addScheduleExtra(main,schedule,"si=on:rtra=on");
-    addScheduleExtra(fallback,schedule,"si=on:rtra=on");
-
-  } else if (env.options->schedule() == Options::Schedule::CASC_SAT) {
-
-    schedule.loadFromIterator(main.iterFifo());
-    schedule.loadFromIterator(fallback.iterFifo());
-    // randomize and use the new fmb option
-    addScheduleExtra(main,schedule,"si=on:rtra=on");
-    addScheduleExtra(fallback,schedule,"si=on:rtra=on");
-
-  } else if (env.options->schedule() == Options::Schedule::SMTCOMP) {
-    // Normally we do main fallback main_extra fallback_extra
-    // However, in SMTCOMP mode the fallback is universal for all
-    // logics e.g. it's not very strong. Therefore, in SMTCOMP
-    // mode we do main main_extra fallback fallback_extra
-
+  if (env.options->schedule() == Options::Schedule::SMTCOMP) {
     schedule.loadFromIterator(main.iterFifo());
     additionsSinceTheLastSpiderings(main,schedule);
-    schedule.loadFromIterator(fallback.iterFifo());
-    additionsSinceTheLastSpiderings(fallback,schedule);
-
-  } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_UNS) {
-    ASS(fallback.isEmpty());
-
-    schedule.loadFromIterator(main.iterFifo());
-    addScheduleExtra(main,schedule,"rp=on:de=on"); // random polarities, demodulation encompassment
-
-  } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_SAT) {
-    ASS(fallback.isEmpty());
-
-    schedule.loadFromIterator(main.iterFifo());
-    addScheduleExtra(main,schedule,"rp=on:fmbksg=on:de=on"); // random polarities, demodulation encompassment for saturation, fmbksg for the fmb's
-  } else {
-    // all other schedules just get loaded plain
-
-    schedule.loadFromIterator(main.iterFifo());
-    schedule.loadFromIterator(fallback.iterFifo());
+  } else { // all other schedules get loaded plain
+    schedule = std::move(main);
   }
 
   if (schedule.isEmpty()) {
     USER_ERROR("The schedule is empty.");
   }
 
-  return runScheduleAndRecoverProof(std::move(schedule));
+  // depending on _numWorkers, we use a certain number of champions to go first (and run for very long)
+  // - champions are selected to cover as much as possible by themselves
+  // - at the same time, "quick" is build so that it covers (again) even those problems covered by champions,
+  //   but does not go after them as eagerly as those that remained truly uncovered
+  unsigned numChamps = _numWorkers / 2;
+  while (champions.size() > numChamps) {
+    champions.pop();
+  }
+  champions.loadFromIterator(schedule.iterFifo());
+
+  return runScheduleAndRecoverProof(std::move(champions));
 };
 
 /**
  * Take strategy strings from @param sOld, update their time (and instruction) limit,
  * multiplying it by @param limit_multiplier and put the new strings into @param sNew.
- * 
+ *
  * @author Giles, Martin
  */
-void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier) 
+void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier)
 {
   ASS(limit_multiplier >= 0)
   Schedule::BottomFirstIterator it(sOld);
@@ -337,9 +309,9 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
 }
 
 /**
- * Take strategy strings from @param sOld and update them by adding @param extra 
+ * Take strategy strings from @param sOld and update them by adding @param extra
  * as additional option settings, pushing the new strings into @param sNew.
- * 
+ *
  * @author Giles, Martin
  */
 void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::string extra)
@@ -358,7 +330,7 @@ void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::
   }
 }
 
-void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule& fallback)
+void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule& champions)
 {
   switch(env.options->schedule()) {
   case Options::Schedule::FILE:
@@ -372,19 +344,27 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getSnakeTptpSatSchedule(prop,quick);
     break;
 
-  case Options::Schedule::CASC_2024:
+  case Options::Schedule::CASC_2025:
   case Options::Schedule::CASC:
-    Schedules::getCasc2024Schedule(prop,quick,fallback);
+    Schedules::getCasc2025Schedule(prop,quick,champions);
+    break;
+
+  case Options::Schedule::CASC_SAT_2025:
+  case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2025Schedule(prop,quick,champions);
+    break;
+
+  case Options::Schedule::CASC_2024:
+    Schedules::getCasc2024Schedule(prop,quick);
     break;
 
   case Options::Schedule::CASC_SAT_2024:
-  case Options::Schedule::CASC_SAT:
-    Schedules::getCascSat2024Schedule(prop,quick,fallback);
+    Schedules::getCascSat2024Schedule(prop,quick);
     break;
 
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:
-    Schedules::getSmtcomp2018Schedule(prop,quick,fallback, /*allowUndefinedLogic=*/env.options->ignoreUnrecognizedLogic());
+    Schedules::getSmtcomp2018Schedule(prop,quick, /*allowUndefinedLogic=*/env.options->ignoreUnrecognizedLogic());
     break;
 
   case Options::Schedule::LTB_HH4_2017:
@@ -403,19 +383,19 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getLtb2017DefaultSchedule(prop,quick);
     break;
   case Options::Schedule::INDUCTION:
-    Schedules::getInductionSchedule(prop,quick,fallback);
+    Schedules::getInductionSchedule(prop,quick);
     break;
   case Options::Schedule::INTEGER_INDUCTION:
-    Schedules::getIntegerInductionSchedule(prop,quick,fallback);
+    Schedules::getIntegerInductionSchedule(prop,quick);
     break;
   case Options::Schedule::INTIND_OEIS:
-    Schedules::getIntindOeisSchedule(prop,quick,fallback);
+    Schedules::getIntindOeisSchedule(prop,quick);
     break;
   case Options::Schedule::STRUCT_INDUCTION:
-    Schedules::getStructInductionSchedule(prop,quick,fallback);
+    Schedules::getStructInductionSchedule(prop,quick);
     break;
   case Options::Schedule::STRUCT_INDUCTION_TIP:
-    Schedules::getStructInductionTipSchedule(prop,quick,fallback);
+    Schedules::getStructInductionTipSchedule(prop,quick);
     break;
   }
 }
@@ -427,6 +407,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   Set<pid_t> processes;
   bool success = false;
   int remainingTime;
+  bool scheduleRepeat = false;
   while(remainingTime = env.remainingTime() / 100, remainingTime > 0)
   {
     // running under capacity, wake up more tasks
@@ -437,7 +418,8 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       if(!it.hasNext()) {
         Schedule next;
         rescaleScheduleLimits(schedule, next, 2.0);
-        schedule = next;
+        scheduleRepeat = true;
+        schedule = std::move(next);
         it = Schedule::BottomFirstIterator(schedule);
       }
       ALWAYS(it.hasNext());
@@ -448,7 +430,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       if(process == 0)
       {
         TIME_TRACE_NEW_ROOT("child process")
-        runSlice(code, remainingTime);
+        runSlice(code, remainingTime, scheduleRepeat);
         ASSERTION_VIOLATION; // should not return
       }
       ALWAYS(processes.insert(process));
@@ -575,7 +557,7 @@ unsigned PortfolioMode::getSliceTime(const std::string &sliceCode)
 /**
  * Run a slice given by its code using the specified time limit.
  */
-void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
+void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds, bool scheduleRepeat)
 {
   TIME_TRACE("run slice");
 
@@ -597,6 +579,9 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
       // but here we want each worker to have their own seed
       opt.setRandomSeed(std::random_device()());
       // ... unless a strategy sets a seed explicitly, just below
+    }
+    if (scheduleRepeat && env.options->shuffleOnScheduleRepeats()) {
+      opt.enableShuffling();
     }
     opt.readFromEncodedOptions(sliceCode);
     opt.setTimeLimitInDeciseconds(sliceTime);
@@ -631,7 +616,7 @@ void PortfolioMode::runSlice(Options& opt)
   opt.checkGlobalOptionConstraints();
 
   if (outputAllowed()) {
-    addCommentSignForSZS(cout) << opt.testId() << " on " << opt.problemName() <<
+    addCommentSignForSZS(cout) << opt.generateEncodedOptions() << " on " << opt.problemName() <<
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
 #if VAMPIRE_PERF_EXISTS
       "/" << opt.instructionLimit() << "Mi" <<

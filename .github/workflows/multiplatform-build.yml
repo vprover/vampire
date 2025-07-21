@@ -1,0 +1,66 @@
+name: Multiplatform Build
+description: Build Vampire on all the platforms GitHub supports and upload artifacts.
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      matrix:
+        # list of platforms we want to build for
+        # suggest we keep the oldest one available for a given OS/arch combination,
+        # as the resulting binary is usually forwards but not backwards-compatible
+        os:
+          - ubuntu-22.04      # Linux   x64
+          - ubuntu-22.04-arm  # Linux   ARM
+          - macos-13          # macOS   x64
+          - macos-14          # macOS   ARM
+          - windows-2022      # Windows x64
+          - windows-11-arm    # Windows ARM
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout Tree
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Install Cygwin
+      id: cygwin
+      uses: cygwin/cygwin-install-action@v6
+      with:
+        # python3 for Z3's build
+        packages: gcc-g++,make,cmake,python3
+      if: runner.os == 'Windows'
+    - name: Configure and Build Z3
+      working-directory: ${{ runner.workspace }}/vampire/z3
+      shell: bash
+      # the >- YAML operator and && are important for CR/LF reasons
+      run: >-
+        mkdir build &&
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DZ3_BUILD_EXECUTABLE=OFF -DZ3_BUILD_TEST_EXECUTABLES=OFF -DZ3_BUILD_LIBZ3_SHARED=OFF &&
+        make -j8 -C build
+    - name: Configure and Build Vampire
+      working-directory: ${{ runner.workspace }}/vampire
+      shell: bash
+      # the >- YAML operator and && are important for CR/LF reasons
+      # ccache is installed but fails on the Windows server for some reason unclear to me
+      # just switch it off here, it doesn't make sense anyway
+      run: >-
+        mkdir build &&
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCCACHE_PROGRAM=OFF &&
+        make -j8 -C build vampire
+    - name: Obtain Cygwin DLL
+      working-directory: ${{ runner.workspace }}/vampire
+      run: mv ${{ steps.cygwin.outputs.root }}/bin/cygwin1.dll build/cygwin1.dll
+      if: runner.os == 'Windows'
+    - name: Upload Vampire
+      uses: actions/upload-artifact@v4
+      with:
+        name: vampire-${{ runner.os }}-${{ runner.arch }}
+        path: |
+          # the main Vampire binary
+          # wildcard also catches vampire.exe, vampire.app, vampire.com...
+          ${{ runner.workspace }}/vampire/build/vampire*
+          # Cygwin DLL for Windows - wildcard produces empty list on non-Windows
+          ${{ runner.workspace }}/vampire/build/cygwin1.dll*
+        overwrite: true
+        if-no-files-found: error

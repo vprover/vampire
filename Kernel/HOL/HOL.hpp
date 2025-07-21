@@ -16,6 +16,7 @@
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/TypedTermList.hpp"
+#include "Lib/Environment.hpp"
 
 /**
  * This namespace contains several helper functions to deal with higher-order terms.

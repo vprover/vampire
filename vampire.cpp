@@ -560,8 +560,9 @@ void dispatchByMode(Problem* problem)
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
     env.options->setOutputAxiomNames(true);
-    env.options->setNormalize(true);
-    env.options->setRandomizeSeedForPortfolioWorkers(false);
+
+    // env.options->setNormalize(true);
+    // env.options->setRandomizeSeedForPortfolioWorkers(false);
 
     if (CASC::PortfolioMode::perform(problem)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -655,7 +656,6 @@ void interactiveMetamode()
       pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
-        Timer::reinitialise(); // start our timer (in the child)
         UIHelper::unsetExpecting(); // probably garbage at this point
 
         Stack<std::string> pieces;
@@ -667,6 +667,9 @@ void interactiveMetamode()
         }
         Shell::CommandLine cl(argv.size(), argv.begin());
         cl.interpret(opts);
+
+        Timer::reinitialise(); // start our timer (in the child)
+
         if (!opts.inputFile().empty()) {
           UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
           prb = UIHelper::getInputProblem();

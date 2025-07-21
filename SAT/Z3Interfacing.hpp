@@ -31,6 +31,7 @@
 #include "Lib/Option.hpp"
 #include "Lib/BiMap.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/Environment.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
@@ -185,7 +186,7 @@ public:
   void addClause(SATClause* cl) override;
 
   Status solve();
-  virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
+  virtual Status solveLimited(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -225,11 +226,8 @@ public:
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
 
-  virtual void addAssumption(SATLiteral lit) override;
-  virtual void retractAllAssumptions() override;
-  virtual bool hasAssumptions() const override { return !_assumptions.isEmpty(); }
-
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  SATLiteralStack failedAssumptions() override;
 
   /**
    * The set of inserted clauses may not be propositionally UNSAT
@@ -309,6 +307,8 @@ public:
   };
 
 private:
+  void addAssumption(SATLiteral lit);
+  void solveModuloAssumptionsAndSetStatus();
 
   Map<SortId, z3::sort> _sorts;
   struct Z3Hash {
