@@ -76,7 +76,7 @@ private:
 };
 #define _alascaFactoring true
 
-struct InequalityFactoringDemod : ImmediateSimplificationEngine
+struct InequalityFactoringDemod : ImmediateSimplificationEngineMany
 {
   std::shared_ptr<AlascaState> _shared;
   InequalityFactoringDemod(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
@@ -86,18 +86,16 @@ struct InequalityFactoringDemod : ImmediateSimplificationEngine
   void attach(SaturationAlgorithm* salg) final override {}
   void detach() final override {}
 
-  Clause* simplify(Clause* premise) final override { ASSERTION_VIOLATION_REP("should only be used with simplifyMany")  }
-
-  ClauseIterator simplifyMany(Clause* premise) final override 
+  Option<ClauseIterator> simplifyMany(Clause* premise) final override 
   {
     if (auto result = apply(premise)) {
       DEBUG(0, premise->toString())
       DEBUG(0, "===============================")
       DEBUG(0, (*result)[0]->toString())
       DEBUG(0, (*result)[1]->toString())
-      return pvi(arrayIter(std::move(*result)));
+      return some(pvi(arrayIter(std::move(*result))));
     } else {
-      return VirtualIterator<Clause*>::getEmpty();
+      return {};
     }
   }
 

@@ -49,7 +49,7 @@ public:
   virtual Kernel::Clause* normalize(Kernel::Clause* in) override 
   { return _norm.simplify(in); }
 
-  virtual Kernel::ClauseIterator simplifyMany(Kernel::Clause* in) override 
+  virtual Option<Kernel::ClauseIterator> simplifyMany(Kernel::Clause* in) override 
   { return _rule.simplifyMany(in); }
 };
 

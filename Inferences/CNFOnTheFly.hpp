@@ -38,12 +38,10 @@ public:
 };
 
 class EagerClausificationISE
-  : public ImmediateSimplificationEngine
+  : public ImmediateSimplificationEngineMany
 {
 public:
-  ClauseIterator simplifyMany(Clause* c) override;
-  Clause* simplify(Clause* c) override { NOT_IMPLEMENTED; }
-
+  Option<ClauseIterator> simplifyMany(Clause* c) final override;
 };
 
 class LazyClausification

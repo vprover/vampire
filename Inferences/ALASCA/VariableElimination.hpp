@@ -124,7 +124,7 @@ private:
 };
 
 class VariableEliminationISE
-: public ImmediateSimplificationEngine
+: public ImmediateSimplificationEngineMany
 {
 public:
   USE_ALLOCATOR(VariableEliminationISE);
@@ -137,21 +137,8 @@ public:
   void attach(SaturationAlgorithm* salg) final override {}
   void detach() final override {}
 
-
-  // TODO fix class hierarchy so we don't need this ASSERTION_VIOLATION
-  Clause* simplify(Clause* premise) final override { ASSERTION_VIOLATION_REP("should only be used with simplifyMany")  }
-  ClauseIterator simplifyMany(Clause* premise) final override
-  {
-    if (auto result = _inner.apply(premise)) {
-      if (result->hasNext()) {
-        return *result;
-      } else {
-        return pvi(iterItems<Clause*>(nullptr));
-      }
-    } else {
-      return VirtualIterator<Clause*>::getEmpty();
-    }
-  }
+  Option<ClauseIterator> simplifyMany(Clause* premise) final override
+  { return _inner.apply(premise); }
   
 private:
   VariableElimination _inner;

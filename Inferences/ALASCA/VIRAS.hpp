@@ -83,7 +83,7 @@ public:
 };
 
 class VirasQuantifierEliminationISE
-: public ImmediateSimplificationEngine
+: public ImmediateSimplificationEngineMany
 {
   VirasQuantifierElimination _self;
 public:
@@ -96,20 +96,8 @@ public:
   void attach(SaturationAlgorithm* salg) final override {}
   void detach() final override {}
 
-  // TODO fix class hierarchy so we don't need this ASSERTION_VIOLATION
-  Clause* simplify(Clause* premise) final override { ASSERTION_VIOLATION_REP("should only be used with simplifyMany")  }
-  ClauseIterator simplifyMany(Clause* premise) final override 
-  {
-    if (auto result = _self.apply(premise)) {
-      if (result->hasNext()) {
-        return *result;
-      } else {
-        return pvi(iterItems<Clause*>(nullptr));
-      }
-    } else {
-      return VirtualIterator<Clause*>::getEmpty();
-    }
-  }
+  Option<ClauseIterator> simplifyMany(Clause* premise) final override 
+  { return _self.apply(premise); }
 };
 
 } // namespace ALASCA 

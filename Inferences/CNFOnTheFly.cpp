@@ -756,9 +756,14 @@ void LazyClausification::detach()
   SimplificationEngine::detach();
 }
 
-ClauseIterator EagerClausificationISE::simplifyMany(Clause* c)
+Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 {
-  return produceClauses(c, false);
+  auto out = produceClauses(c, false);
+  if (out.hasNext()) {
+    return some(out);
+  } else {
+    return {};
+  }
 }
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
