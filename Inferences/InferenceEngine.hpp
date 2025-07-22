@@ -29,6 +29,7 @@
 #include "Lib/Allocator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/Coproduct.hpp"
+#include <memory>
 #if VDEBUG
 #include "Indexing/Index.hpp"
 #endif
@@ -134,20 +135,20 @@ public:
    * Perform an immediate simplification on @b cl and return
    * the result. If the simplification is not applicable, return
    * @b cl, if @b cl should be deleted, return 0.
-   *
-   * When the simplification yields a simplified clause, repeated
-   * run of the method on resulting clause can lead to another
-   * simplification.
-   *
-   * A trivial simplification does not depend on any other clauses.
-   * The simplified clause, if any, will have just one inference
-   * premise, which will be equal to @b cl.
-   *
-   * An example of a trivial simplification is deletion of duplicate
-   * literals.
    */
-  virtual ClauseIterator simplifyMany(Clause* cl){ NOT_IMPLEMENTED; } ;
   virtual Clause* simplify(Clause* cl) = 0;
+};
+
+class ImmediateSimplificationEngineMany
+: public InferenceEngine
+{
+public:
+  /**
+   * Perform an immediate simplification on @b cl and return
+   * the resulting clauses. If the simplification is not applicable 
+   * return an empty option.
+   */
+  virtual Option<ClauseIterator> simplifyMany(Clause* cl) = 0;
 };
 
 /**
@@ -330,18 +331,43 @@ class CompositeISE
 : public ImmediateSimplificationEngine
 {
 public:
-  CompositeISE() : _inners(0), _innersMany(0) {}
+  CompositeISE() : _inners(0) {}
   virtual ~CompositeISE();
   void addFront(ImmediateSimplificationEngine* fse);
-  void addFrontMany(ImmediateSimplificationEngine* fse);
   Clause* simplify(Clause* cl);
-  ClauseIterator simplifyMany(Clause* cl);
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
   typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
-  ISList* _innersMany;
+};
+
+class CompositeISEMany
+: public ImmediateSimplificationEngineMany
+{
+public:
+  CompositeISEMany() : _inners() {}
+  CompositeISEMany(CompositeISEMany&&) = default;
+  CompositeISEMany& operator=(CompositeISEMany&&) = default;
+  void addFront(std::unique_ptr<ImmediateSimplificationEngineMany> fse) {
+    _inners.push(std::move(fse));
+  }
+  auto iter() {
+    /* reverse iter, to implement addFront */
+    return arrayIter(_inners).reverse();
+  }
+  Option<ClauseIterator> simplifyMany(Clause* cl) final override {
+    for (auto& e : iter()) {
+      if (auto res = e->simplifyMany(cl)) {
+        return res;
+      }
+    }
+    return {};
+  }
+  void attach(SaturationAlgorithm* salg) final override { for (auto& e : iter()) { e->attach(salg); } }
+  void detach() final override { for (auto& e : iter()) { e->detach(); } }
+private:
+  Stack<std::unique_ptr<ImmediateSimplificationEngineMany>> _inners;
 };
 
 class CompositeGIE
