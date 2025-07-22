@@ -28,7 +28,7 @@
 
 namespace Kernel {
 
-#define ENABLE_DEBUG_KEYS 1
+#define ENABLE_DEBUG_KEYS 0
 
 #if ENABLE_DEBUG_KEYS
 
