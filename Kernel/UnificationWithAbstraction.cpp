@@ -38,7 +38,7 @@
 #include "Debug/Tracer.hpp"
 #define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
-#define DEBUG_UWA(LVL, ...) if (LVL < 3) DBG(__VA_ARGS__)
+#define DEBUG_UWA(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 
 template<class T>
 auto tuple_flatten(T t) 
