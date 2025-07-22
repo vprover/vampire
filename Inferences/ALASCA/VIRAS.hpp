@@ -42,10 +42,19 @@ public:
     : _shared(std::move(shared))
   {  }
 
+
+  void analyse(Literal* l, TermList var) const;
+
   Option<VirtualIterator<Clause*>> apply(Clause* premise);
   template<class NumTraits>
   Option<VirtualIterator<Clause*>> apply(NumTraits num, Clause* premise);
   Option<VirtualIterator<Clause*>> apply(IntTraits num, Clause* premise) { /* TODO impl cooper quantifier elimination (?) */ return {}; }
+};
+
+class VirasSimplification 
+  : public ImmediateSimplificationEngine 
+{
+  Clause* simplify(Clause* cl) final override;
 };
 
 
@@ -98,6 +107,7 @@ public:
 
   Option<ClauseIterator> simplifyMany(Clause* premise) final override 
   { return _self.apply(premise); }
+
 };
 
 } // namespace ALASCA 

@@ -495,3 +495,10 @@ TEST_GENERATION(test_misc_02,
 
 TEST_INTERNAL(Real)
 TEST_INTERNAL(Rat)
+
+TEST_GENERATION(lira_02,
+    Generation::SymmetricTest()
+      .inputs ({         clause({ f(y) > 0, y != floor(x)  }) })
+      .expected(withoutDuplicates(exactly( clause({ f(y)  > 0, y != -floor(-y) }))))
+      .premiseRedundant(true)
+    )
