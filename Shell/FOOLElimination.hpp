@@ -38,8 +38,9 @@ public:
   /** Check if the unit contains expressions that are not syntactically first-order */
   static bool needsElimination(FormulaUnit* unit);
 
-  FormulaUnit* apply(FormulaUnit* fu);
+  std::pair<FormulaUnit*, UnitList*> apply(FormulaUnit* fu);
 private:
+  FormulaUnit* applyUnit(FormulaUnit* fu);
 
   /** The currently processed unit */
   Unit* _unit;

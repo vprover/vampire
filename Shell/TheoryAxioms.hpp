@@ -28,7 +28,7 @@ using namespace Lib;
 using namespace Kernel;
 
 class TheoryAxioms {
-  using CnfFunc = std::function<Stack<Clause*>(Unit*)>;
+  using CnfFunc = std::function<RStack<Clause*>(Unit*)>;
   Problem& _prb;
   CnfFunc _cnf;
 public:

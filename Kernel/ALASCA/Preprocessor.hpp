@@ -21,6 +21,7 @@
 #include "Kernel/Formula.hpp"
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Kernel/Theory.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Shell/FOOLElimination.hpp"
 
 #define DEBUG_TRANSLATION(...) // DBG(__VA_ARGS__)
@@ -286,10 +287,14 @@ public:
 /** preprocessing step that replaces eliminates symbols that can be inter-defined in alasca. e.g. $ceiling(x) ==> -$floor(-x) */
 class AlascaSymbolElimination 
 {
-  bool _addedITE = false;
+  std::function<RStack<Clause*>(Unit*)> _cnfFunc;
   using Z = IntTraits;
   // TODO
   static constexpr InferenceRule INF_RULE = InferenceRule::ALASCA_SYMBOL_ELIMINATION;
+public:
+  AlascaSymbolElimination(decltype(_cnfFunc) foolElim) 
+    : _cnfFunc(std::move(foolElim)) {}
+private:
 
   Literal* proc(Literal* lit)
   {
@@ -329,9 +334,12 @@ class AlascaSymbolElimination
     auto neg = [](auto f) { return new NegatedFormula(f); };
 
     auto ite = [this](auto c, auto x, auto y) 
-    { 
-      _addedITE = true;
-      return TermList(Term::createITE(c, x, y, Z::sort())); };
+    { return TermList(Term::createITE(c, x, y, Z::sort())); };
+
+    // auto ite = [this](auto c, auto x, auto y) 
+    // { 
+    //   _addedITE = true;
+    //   return TermList(Term::createITE(c, x, y, Z::sort())); };
 
     auto eq = [&](auto l, auto r) { return lit(Z::eq(true, l, r)); };
     auto gt = [&](auto l, auto r) { return lit(Z::greater(true, l, r)); };
@@ -407,10 +415,10 @@ class AlascaSymbolElimination
   TermList proc(TypedTermList t) 
   {
     auto trans = TermTrans(*this);
-    return t.isVar() ? t : TermList(trans.transform(t.term()));
+    return transformSubterm(t.isVar() ? t : TermList(trans.transform(t.term())));
   }
 
-  Clause* proc(Clause* clause)
+  Unit* proc(Clause* clause)
   {
     auto change = false;
     RStack<Literal*> res;
@@ -420,7 +428,17 @@ class AlascaSymbolElimination
       res->push(ll);
     }
     if (change) {
-      return Clause::fromStack(*res, Inference(FormulaClauseTransformation(INF_RULE, clause)));
+      auto containsSpecialTerm = arrayIter(*res).any([](auto lit) { return !lit->shared(); });
+      auto inf = Inference(FormulaClauseTransformation(INF_RULE, clause));
+      if (containsSpecialTerm) {
+        auto atoms = arrayIter(*res).map([](auto lit) { return new AtomicFormula(lit); });
+        auto frm = res->size() == 1 
+           ? static_cast<Formula*>(atoms.tryNext().unwrap())
+           : static_cast<Formula*>(new JunctionFormula(Connective::OR, FormulaList::fromIterator(atoms)));
+        return new FormulaUnit(frm, inf);
+      } else {
+        return Clause::fromStack(*res, inf);
+      }
     } else {
       return clause;
     }
@@ -463,9 +481,13 @@ public:
       prb.units() = newUnits;
     };
     mapClauses([this](auto cl) { return proc(cl); });
-    if (_addedITE) {
-      prb.reportFOOLAdded();
-      FOOLElimination().apply(prb);
+    {
+      UnitList* newUnits = nullptr;
+      for (auto& unit : iterTraits(prb.units()->iter())) { 
+         auto cs = _cnfFunc(unit);
+         UnitList::pushFromIterator(arrayIter(*cs), newUnits);
+      }
+      prb.units() = newUnits;
     }
     mapClauses([](auto cl) { return Inferences::ALASCA::Normalization().simplify(cl); });
   }

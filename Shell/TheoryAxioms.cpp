@@ -71,7 +71,7 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
     }
   }
 
-  for (auto c : _cnf(unit)) {
+  for (auto c : arrayIter(_cnf(unit))) {
      UnitList::push(c, _prb.units());
   }
 } // addAndOutputTheoryUnit

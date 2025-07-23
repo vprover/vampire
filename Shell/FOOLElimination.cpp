@@ -117,7 +117,7 @@ void FOOLElimination::apply(UnitList*& units) {
       }
       continue;
     }
-    Unit* processedUnit = apply(static_cast<FormulaUnit*>(unit));
+    Unit* processedUnit = applyUnit(static_cast<FormulaUnit*>(unit));
     if (processedUnit != unit) {
       us.replace(processedUnit);
     }
@@ -130,7 +130,15 @@ void FOOLElimination::apply(UnitList*& units) {
   _defs = 0;
 }
 
-FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
+std::pair<FormulaUnit*, UnitList*> FOOLElimination::apply(FormulaUnit* unit) {
+  ASS_EQ(_defs, nullptr)
+  auto procUnit = applyUnit(unit);
+  UnitList* defs = nullptr;
+  std::swap(defs, _defs);
+  return std::make_pair(procUnit, defs);
+}
+
+FormulaUnit* FOOLElimination::applyUnit(FormulaUnit* unit) {
   if (!needsElimination(unit)) {
     return unit;
   }

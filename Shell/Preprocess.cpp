@@ -76,15 +76,6 @@ void Preprocess::preprocess(Problem& prb)
   env.options->resolveAwayAutoValues0();
 
   AlascaIntegerTransformation alasca;
-  auto normalizeInterpreted = [&]() {
-    if (env.options->alasca()) {
-      AlascaSymbolElimination().proc(prb);
-      /* alasca preprocessing is done in the saturation loop using immediate simplifications */
-    } else {
-      InterpretedNormalizer().apply(prb);
-    }
-  };
-
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
@@ -146,30 +137,45 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
-  // // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
-  // normalizeInterpreted();
-
   bool useNewCnf = prb.mayHaveFormulas() && _options.newCNF() &&
      !prb.hasPolymorphicSym() && !prb.isHigherOrder();
 
   NewCNF ncnf(env.options->naming());
   CNF cnf;
   prb.getProperty();
-  TheoryAxioms theoryAxioms(prb, [&](Unit* unit) { 
-      Stack<Clause*> out;
-      if (unit->isClause()) {
-        out.push(static_cast<Clause*>(unit));
-      } else {
-        auto fu = static_cast<FormulaUnit*>(unit);
-        fu = Flattening::flatten(NNF::ennf(FOOLElimination().apply(fu)));
-        if (useNewCnf) {
-          ncnf.clausify(fu, out);
+  auto clausifyClosure = [&](Unit* unit) { 
+    RStack<Clause*> out;
+    if (unit->isClause()) {
+      out->push(static_cast<Clause*>(unit));
+    } else {
+      auto fu = static_cast<FormulaUnit*>(unit);
+      auto [unit, defs] = FOOLElimination().apply(fu);
+      for (auto u : concatIters(iterItems<Unit*>(unit), UnitList::iter(defs))) {
+        if (u->isClause()) {
+          out->push(static_cast<Clause*>(u));
         } else {
-          cnf.clausify(preprocess3(fu, prb.isHigherOrder()), out);
+          auto fu = Flattening::flatten(NNF::ennf(static_cast<FormulaUnit*>(u)));
+          if (useNewCnf) {
+            ncnf.clausify(fu, *out);
+          } else {
+            cnf.clausify(preprocess3(fu, prb.isHigherOrder()), *out);
+          }
         }
       }
-      return out;
-   });
+
+    }
+    return out;
+  };
+  TheoryAxioms theoryAxioms(prb, clausifyClosure);
+  auto normalizeInterpreted = [&]() {
+    if (env.options->alasca()) {
+      AlascaSymbolElimination(clausifyClosure).proc(prb);
+      /* alasca preprocessing is done in the saturation loop using immediate simplifications */
+    } else {
+      InterpretedNormalizer().apply(prb);
+    }
+  };
+
 
   // if (_options.alasca()) {
   //   if (env.options->showPreprocessing())

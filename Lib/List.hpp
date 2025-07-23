@@ -507,6 +507,7 @@ public:
   };
 
   Iterator iter() const { return Iterator(this); }
+  static Iterator iter(List const* self) { return Iterator(self); }
 
   /** iterator over references to list elements */
   class RefIterator {
