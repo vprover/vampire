@@ -26,7 +26,7 @@ using VStack = Stack<unsigned>;
 /**
  * A formula template corresponding to the unit for building induction formulas,
  * of the form (∀ x_1,...,x_k.(l_1 ⋀ ... ⋀ l_m)) → F[t_1,...,t_n], where
- * F is a free second-order variable of arity n, 
+ * F is a free second-order variable of arity n,
  * @b F_terms is the list of terms t_1,...,t_n,
  * @b conditions is the list of literals l_1,...,l_m, and
  * @b condUnivVars is the list of variables x_1,...,x_k.
@@ -74,7 +74,7 @@ struct InductionCase
  * where @b cases is the list C_1,...,C_n and @b conclusion is C.
  * The sorts of @b F_terms members must be equal to @b sorts and variables
  * not in @b sorts can only appear in at most one case or in the conclusion.
- * 
+ *
  * See @b InductionClauseIterator::performInduction for the actual instantiation of the formula.
  */
 struct InductionTemplate

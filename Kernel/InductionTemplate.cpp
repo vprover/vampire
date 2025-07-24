@@ -105,7 +105,7 @@ ostream& operator<<(ostream& out, const InductionCase& c) {
 }
 
 InductionTemplate::InductionTemplate(TermStack&& sorts, Stack<InductionCase>&& cases, InductionUnit&& conclusion, unsigned maxVar, InferenceRule rule)
-  : sorts(sorts), cases(cases), conclusion(conclusion), maxVar(maxVar), rule(rule)
+  : sorts(sorts), cases(cases), conclusion(conclusion), rule(rule), maxVar(maxVar)
 {
 #if VDEBUG
   DHSet<unsigned> sortVars;

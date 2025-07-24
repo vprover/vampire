@@ -193,6 +193,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
+        Kernel/InductionTemplate.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
         Kernel/PartialOrdering.o\
