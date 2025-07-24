@@ -101,7 +101,6 @@ private:
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   //options
-  bool _eagerRemoval;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
 

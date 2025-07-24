@@ -2111,14 +2111,6 @@ void Options::init()
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",false);
-    _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver."
-                                       " Note: only has any impact when amm is used.";
-    _lookup.insert(&_splittingEagerRemoval);
-    _splittingEagerRemoval.tag(OptionTag::AVATAR);
-    _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
-    _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(true)));
-
     _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
     _splittingFastRestart.description="";
     _lookup.insert(&_splittingFastRestart);

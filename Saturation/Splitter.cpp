@@ -72,7 +72,6 @@ void SplitDefinitionExtra::output(std::ostream &out) const {
 
 void SplittingBranchSelector::init()
 {
-  _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
@@ -401,7 +400,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   {
     bool posSticky = posUsed && _parent.isSticky(posLvl);
     bool negSticky = negUsed && _parent.isSticky(negLvl);
-    if(_eagerRemoval) {
+    { // hardcoding (_eagerRemoval == true)
       if(posUsed && !posSticky && _selected.find(posLvl) ) {
         _selected.remove(posLvl);
         removedComps.push(posLvl);
