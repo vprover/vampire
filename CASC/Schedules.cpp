@@ -5336,7 +5336,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("fmb+10_1:1_sil=256000:updr=off:i=763:fmbss=2_0");
     quick.push("fmb+10_1:1_sil=16000:sas=cadical:fmbss=17:i=1049:bce=on:fmbas=function_0");
     quick.push("lrs+10_1:1_sil=2000:sas=z3:i=1329:nm=2_0");
-    quick.push("lrs+4_2:3_slsqr=1,8:to=lpo:sil=2000:tgt=full:plsq=on:plsqr=4,31:sp=const_min:urr=on:flr=on:slsq=on:i=536:nm=0:gs=on:fd=preordered:foolp=on:fsd=on:s2pl=no:gsssp=full_0");
+    quick.push("lrs+4_2:3_slsqr=1,8:to=lpo:sil=2000:tgt=full:plsq=on:plsqr=4,31:sp=const_min:urr=on:flr=on:slsq=on:i=536:nm=0:gs=on:fd=preordered:foolp=on:fsd=on:s2pl=no_0");
     quick.push("lrs+11_1:128_sil=16000:sp=unary_first:urr=on:lcm=predicate:nwc=0.5:sac=on:i=13848:aac=none_0");
     quick.push("lrs+11_1:4096_sil=64000:plsq=on:plsqr=32,1:rnwc=on:flr=on:sac=on:i=1572:aac=none:gtg=exists_all:gtgl=5:amm=off_0");
     quick.push("ott-30_1:1024_drc=ordering:sil=4000:alpa=true:newcnf=on:i=660:bs=unit_only:ins=1:amm=off_0");
@@ -5858,7 +5858,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("dis+10_16:1_slsqr=32,1:sil=16000:s2agt=64:slsqc=1:slsq=on:i=268:urr=on:br=off:sup=off_0");
     quick.push("dis+1002_1:256_sil=4000:avsq=on:i=944:avsqr=16,1:fsr=off_0");
     quick.push("lrs+1010_1:64_to=lpo:sil=2000:fde=none:sp=const_max:sos=on:bsr=unit_only:urr=ec_only:fd=off:br=off:alpa=true:sac=on:i=269:ins=2:fdi=1024:rawr=on:avsq=on:avsqr=8,1:rp=on_0");
-    quick.push("lrs+4_2:3_slsqr=1,8:to=lpo:sil=2000:tgt=full:plsq=on:plsqr=4,31:sp=const_min:urr=on:flr=on:slsq=on:i=951:nm=0:gs=on:fd=preordered:foolp=on:fsd=on:s2pl=no:gsssp=full_0");
+    quick.push("lrs+4_2:3_slsqr=1,8:to=lpo:sil=2000:tgt=full:plsq=on:plsqr=4,31:sp=const_min:urr=on:flr=on:slsq=on:i=951:nm=0:gs=on:fd=preordered:foolp=on:fsd=on:s2pl=no_0");
     quick.push("dis+10_1:1024_sil=4000:plsq=on:prc=on:plsqr=64,1:urr=ec_only:fd=off:br=off:i=951_0");
     quick.push("ott-1011_1:16_slsqr=2,3:to=lpo:sil=4000:plsq=on:plsqr=16223,262144:slsqc=1:flr=on:slsq=on:i=445:gsp=on:br=off:prc=on:fd=off_0");
     quick.push("ott+10_1:20_sil=2000:tgt=full:spb=intro:fd=preordered:rp=on:i=801:kws=inv_arity_squared:drc=off:ss=axioms:sgt=80:lftc=40:br=off_0");
