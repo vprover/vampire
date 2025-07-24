@@ -5481,7 +5481,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("lrs+10_1:1_sil=4000:sp=occurrence:urr=on:st=1.2:i=1800:sd=3:ss=included:sgt=20:s2at=2.0:br=off:s2a=on_0");
     quick.push("lrs+1010_1:4_to=lpo:sil=2000:prc=on:sp=occurrence:fd=off:sac=on:i=163:nm=7:rawr=on:s2a=on:plsq=on:plsqr=18,1_0");
     quick.push("lrs-1011_4:1_anc=all_dependent:slsqr=5,4:to=kbo:sil=16000:tgt=ground:erd=off:nwc=3.0:s2agt=16:alpa=true:sac=on:slsq=on:s2a=on:i=163:ep=RST:flr=on:avsq=on:avsqc=2:avsqr=7,8:fdi=8:sas=cadical:lftc=80:fd=preordered:fde=none_0");
-    quick.push("dis-1011_2:1_sil=8000:sos=on:st=10.0:i=164:sd=1:bd=all:nm=3:ss=included:rawr=on:erd=off:aac=none:gs=on:gsaa=from_current:plsq=on:plsqr=1,8_0");
+    quick.push("dis-1011_2:1_sil=8000:sos=on:st=10.0:i=164:sd=1:bd=all:nm=3:ss=included:rawr=on:erd=off:aac=none:gs=on:plsq=on:plsqr=1,8_0");
     quick.push("lrs+10_2:5_to=lpo:sil=2000:sas=cadical:sp=const_min:acc=on:bce=on:alpa=random:flr=on:sac=on:s2a=on:i=230:s2at=2.0:afp=50:afq=1.37:gsp=on:ss=included:sgt=32:rawr=on:plsq=on:plsql=on:plsqc=1:plsqr=64,1:slsq=on:slsql=off:slsqr=2,1:fsr=off_0");
     quick.push("dis+1010_1:16_anc=all_dependent:to=lpo:sil=8000:sp=arity:fd=off:i=165:aac=none:ins=10:fsd=on:fsr=off:sac=on:ss=axioms:sd=2:st=5.0_0");
     quick.push("lrs-2_1:64_sil=4000:sos=on:lcm=predicate:st=3.0:i=361:sd=5:av=off:ss=included_0");
@@ -5566,7 +5566,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("lrs+1002_1:128_to=lpo:sil=16000:drc=ordering:sp=reverse_frequency:fd=off:i=338:fgj=on:bd=all:ins=7:anc=all:sac=on:lrd=on_0");
     quick.push("dis+1011_1:4_sil=4000:fde=unused:bsr=on:nwc=5.0:slsqc=1:slsq=on:i=819:s2at=-1.0:slsql=off:ep=R:ins=1:av=off:gsp=on_0");
     quick.push("dis+10_16:1_sil=4000:bce=on:urr=on:br=off:st=1.78:s2a=on:i=608:s2at=7.4:sd=11:av=off:ss=included:slsq=on:rnwc=on_0");
-    quick.push("dis+1002_1:24_anc=all_dependent:sil=2000:tgt=ground:sims=off:sas=cadical:spb=non_intro:acc=on:gs=on:alpa=random:flr=on:sac=on:st=1.2:cts=off:s2a=on:i=363:gsaa=from_current:kws=inv_arity_squared:add=on:nm=16:ins=1:ss=axioms:rawr=on:ccuc=all:slsq=on:slsqc=1:slsqr=4,3:bsr=on_0");
+    quick.push("dis+1002_1:24_anc=all_dependent:sil=2000:tgt=ground:sims=off:sas=cadical:spb=non_intro:acc=on:gs=on:alpa=random:flr=on:sac=on:st=1.2:cts=off:s2a=on:i=363:kws=inv_arity_squared:add=on:nm=16:ins=1:ss=axioms:rawr=on:ccuc=all:slsq=on:slsqc=1:slsqr=4,3:bsr=on_0");
     quick.push("lrs+10_1:10_sil=4000:tgt=full:prc=on:sp=const_min:sos=on:urr=on:rnwc=on:br=off:i=646:av=off:proc=on:drc=off_0");
     quick.push("ott+1002_1:24_sil=2000:sp=occurrence:st=2.7:i=382:sd=3:nm=0:ins=25:av=off:ss=axioms:sgt=15:bce=on:slsq=on:slsqc=1:s2agt=32:s2at=1.1:s2a=on:urr=on:br=off:to=lpo_0");
     quick.push("dis+1011_2:3_anc=all_dependent:sil=2000:plsq=on:plsqc=2:sas=cadical:plsqr=44827,1048576:sos=on:erd=off:bsr=unit_only:plsql=on:sac=on:avsq=on:i=666:avsqr=1,16:bs=unit_only:bd=all:avsqc=1_0");
@@ -5886,7 +5886,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     quick.push("dis+22_1:1_to=lpo:sil=32000:urr=ec_only:nwc=1.0:br=off:i=423:av=off:fsr=off:fd=preordered:sp=arity_0");
     quick.push("lrs+10_1:7_to=lpo:sil=8000:tgt=ground:prc=on:sp=unary_frequency:s2agt=8:slsq=on:s2a=on:i=1074:fgj=on:slsql=off:bd=preordered_0");
     quick.push("lrs-1011_1:4_anc=all_dependent:sil=2000:tgt=full:plsq=on:drc=off:fde=unused:plsqc=1:sims=off:sas=cadical:plsqr=171,64:sp=reverse_frequency:lsd=5:acc=on:bsr=unit_only:fd=preordered:rp=on:sac=on:i=764:kws=inv_arity:add=on:aac=none:bs=unit_only:bd=all:fsr=off:rawr=on_0");
-    quick.push("lrs+1011_1:3_slsqr=1,30:to=lpo:sil=4000:plsq=on:plsqc=1:plsqr=64,1:sp=const_min:nwc=2.0:s2agt=30:lftc=40:slsq=on:cond=on:i=2433:s2at=5.0:slsql=off:bd=all:nm=10:fsd=on:fsdmm=10:gs=on:newcnf=on:anc=all:sac=on:avsq=on:gsaa=from_current:erd=off_0");
+    quick.push("lrs+1011_1:3_slsqr=1,30:to=lpo:sil=4000:plsq=on:plsqc=1:plsqr=64,1:sp=const_min:nwc=2.0:s2agt=30:lftc=40:slsq=on:cond=on:i=2433:s2at=5.0:slsql=off:bd=all:nm=10:fsd=on:fsdmm=10:gs=on:newcnf=on:anc=all:sac=on:avsq=on:erd=off_0");
     quick.push("lrs+21_16:1_to=lpo:sil=4000:plsq=on:sp=unary_first:bsr=unit_only:fd=off:i=1767:av=off_0");
     quick.push("dis+1002_1:2048_sil=2000:tgt=ground:sp=arity:nwc=1.0:sac=on:i=439:fsr=off:aac=none_0");
     quick.push("lrs+10_1:8_to=lpo:sil=4000:sos=all:lma=off:spb=units:urr=ec_only:br=off:i=453:sd=1:ss=included:sp=unary_first:sfv=off_0");
@@ -6062,10 +6062,10 @@ void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick
   quick.push("dis+10_16:1_sil=16000:i=9155:fsr=off:uhcvi=off_0");
   quick.push("ott-3_1:8_sil=64000:i=20139:bs=on_0");
   quick.push("fmb+10_1:1_sil=64000:sas=cadical:bce=on:fmbsr=2.0:i=32576:tgt=ground:fmbss=9_0");
-  quick.push("ott+10_8:1_sil=16000:sp=arity:gs=on:i=11404:gsaa=full_model_0");
+  quick.push("ott+10_8:1_sil=16000:sp=arity:gs=on:i=11404:_0");
   quick.push("ott-11_1:1_sil=16000:sac=on:i=14134:alpa=false_0");
   quick.push("dis+33_1:16_sil=32000:sac=on:i=15851:nm=0_0");
-  quick.push("dis+4_1:1024_sil=32000:avsql=on:sp=occurrence:avsqc=1:avsq=on:i=17627:add=on:gs=on:gsaa=from_current:amm=off_0");
+  quick.push("dis+4_1:1024_sil=32000:avsql=on:sp=occurrence:avsqc=1:avsq=on:i=17627:add=on:gs=on:amm=off_0");
   quick.push("ott+10_1:64_anc=all:sil=128000:sas=cadical:nwc=1.0:cn=on:i=53295:s2a=on:bsr=unit_only_0");
   quick.push("fmb+10_1:1_sil=32000:sas=cadical:fmbss=16:i=26857:ins=20_0");
   quick.push("ott+10_1:1_sil=64000:gs=on:i=28120:fsr=off:plsq=on:plsqc=4:bs=on:bsr=unit_only_0");
