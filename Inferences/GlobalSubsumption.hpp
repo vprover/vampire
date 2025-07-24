@@ -50,11 +50,6 @@ private:
   ScopedPtr<GlobalSubsumptionGrounder> _grounder;
 
   /**
-   * Call the SAT solver using the cheap, unit-propagation-only calls.
-   */
-  bool _uprOnly;
-
-  /**
    * Randomize order for explicit minimization.
    */
   bool _randomizeMinim;

@@ -2027,13 +2027,6 @@ void Options::init()
     _globalSubsumption.tag(OptionTag::INFERENCES);
     // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
 
-    _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
-          GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY,{"propagation_only","full"});
-    _globalSubsumptionSatSolverPower.description="";
-    _lookup.insert(&_globalSubsumptionSatSolverPower);
-    _globalSubsumptionSatSolverPower.tag(OptionTag::INFERENCES);
-    _globalSubsumptionSatSolverPower.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-
     _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
         GlobalSubsumptionAvatarAssumptions::OFF,{"off","from_current","full_model"});
     _globalSubsumptionAvatarAssumptions.description=

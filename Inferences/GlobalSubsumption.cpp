@@ -47,7 +47,6 @@ using namespace Indexing;
 using namespace Saturation;
 
 GlobalSubsumption::GlobalSubsumption(const Options& opts) :
-  _uprOnly(opts.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY),
   _randomizeMinim(opts.randomTraversals()),
   _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
   _splitter(0)
@@ -156,7 +155,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   _solver->addClause(scl);
 
   // check for subsuming clause by looking for a subset of used assumptions
-  SATSolver::Status res = _solver->solveUnderAssumptions(assumps, _uprOnly);
+  SATSolver::Status res = _solver->solveUnderAssumptions(assumps, /* onlyPropagate = */ true);
 
   if (res == SATSolver::Status::UNSATISFIABLE) {
     // it should always be UNSAT with full assumps,
@@ -166,7 +165,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 
     if (failed.size() < assumps.size()) {
       // proper subset sufficed for UNSAT - that's the interesting case
-      SATLiteralStack failedFinal = _solver->explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim);
+      SATLiteralStack failedFinal = _solver->explicitlyMinimizedFailedAssumptions(/* onlyPropagate = */ true, _randomizeMinim);
 
       static LiteralStack survivors;
       survivors.reset();
