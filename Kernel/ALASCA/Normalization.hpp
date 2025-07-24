@@ -435,18 +435,11 @@ namespace Kernel {
           pred = pred == AlascaPredicate::GREATER ? AlascaPredicate::GREATER_EQ : AlascaPredicate::GREATER;
         }
 
-        if (isInt && pred == AlascaPredicate::GREATER_EQ) {
-          /* l <= r ==> l < r + 1 */
-          r = ASig::add(r, ASig::one());
-          pred = AlascaPredicate::GREATER;
-        }
-
         /* l < r ==> r > l ==> r - l > 0 */
         auto t = l == ASig::zero() ? r
                : r == ASig::zero() ? ASig::minus(l)
                : ASig::add(r, ASig::minus(l));
 
-        ASS(!isInt || pred != AlascaPredicate::GREATER_EQ)
 
         auto factorsNormalized = normalizeFactors(normalize(TypedTermList(t, ASig::sort())).asSum<NumTraits>().unwrap());
         switch(pred) {
@@ -465,9 +458,17 @@ namespace Kernel {
             }
           }
           case AlascaPredicate::GREATER:
+            break;
           case AlascaPredicate::GREATER_EQ:
+            if (isInt) {
+              /* l <= r ==> l < r + 1 */
+              factorsNormalized = factorsNormalized + 1;
+              pred = AlascaPredicate::GREATER;
+            }
             break;
         }
+
+        ASS(!isInt || pred != AlascaPredicate::GREATER_EQ)
 
         return some(__AlascaLiteralItp<NumTraits>(factorsNormalized, pred));
       };

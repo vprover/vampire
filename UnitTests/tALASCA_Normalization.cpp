@@ -481,6 +481,15 @@ TEST_ALL(misc_05,
       .strong = false,
     })
 
+TEST_INT(misc_06, 
+    TestCase {
+      .in  =     3 * a >= 0,
+      //     { {    a * a  +   2*b *  c + 2*b * b + -2*b * c  + -(b * b)    > 0, } },
+      //     { {    a * a  +   2*b *  c +   b * b + -2*b * c                > 0, } },
+      .out = { { a + 1 > 0  } },
+      .strong = false,
+    })
+
 ////////////////////////////////////////////////////////////////
 
 TEST_FRAC(floor_01, 

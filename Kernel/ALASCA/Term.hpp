@@ -329,6 +329,7 @@ namespace Kernel {
     friend class AnyAlascaTerm;
     auto& unwrapAppl() const { return _self.unwrap<AlascaTermCache const*>()->_self.template unwrap<__AlascaTermItp<NumTraits>>(); }
   public:
+    using Numeral = typename NumTraits::ConstantType;
     static NumTraits numTraits() { return NumTraits{}; }
     static AlascaTermItp fromVar(TypedTermList v)  
     { 
@@ -336,7 +337,6 @@ namespace Kernel {
       ASS(v.isVar())
       return AlascaTermItp(__AlascaTermVar::normalize(v)); 
     }
-
     template<class Iter>
     static AlascaTermItp fromCorrectlySortedIter(Iter iter)
     {
@@ -359,7 +359,31 @@ namespace Kernel {
       )
       return out;
     }
-    using Numeral = typename NumTraits::ConstantType;
+
+    friend AlascaTermItp operator+(AlascaTermItp const& self, Numeral i) {
+      RStack<AlascaMonom<NumTraits>> monoms;
+      auto one = NumTraits::one();
+      auto n = some(i);
+
+      for (auto m : self.iterSummands()) {
+        if (n.isSome()) {
+          if (auto j = m.tryNumeral()) {
+            monoms->push(AlascaMonom<NumTraits>(*j + *n.take()));
+          } else if (one < m.atom()) {
+            monoms->push(AlascaMonom<NumTraits>(*n.take()));
+          }
+        }
+        monoms->push(m);
+      }
+      if (n.isSome()) {
+        monoms->push(AlascaMonom<NumTraits>(*n.take()));
+      }
+      return fromCorrectlySortedIter(arrayIter(*monoms));
+    }
+
+    friend AlascaTermItp operator+(AlascaTermItp const& self, int i) { return self + Numeral(i);
+    }
+
 
     friend AlascaTermItp operator*(Numeral const& n, AlascaTermItp const& self) 
     { return AlascaTermItp::fromCorrectlySortedIter(self.iterSummands()
