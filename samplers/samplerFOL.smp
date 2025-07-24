@@ -370,12 +370,9 @@ sa!=fmb avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
 # avatar_split_queue_ratios
 sa!=fmb avsq=on > avsqr ~u2r -5;3;,
 
-# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+# GLOBAL SUBSUMPTION
 # global_subsumption
 sa!=fmb > gs ~cat off:5,on:1
-
-# global_subsumption_avatar_assumptions
-sa!=fmb gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 # MISC
 
