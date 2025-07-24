@@ -85,8 +85,6 @@ struct TestCase
       auto results = last->iterLits().template collect<Stack<Literal*>>();
 
       if (!iterTraits(out.iterFifo()).any([&](auto const& out){ return TestUtils::eqModACRect(out, results); })) {
-        DBGE(*out[0][0])
-        DBGE(*results[0])
         std::cout << "\r" << endl;
         std::cout << "\r[    input ]" << pretty(in) << endl;
         std::cout << "\r[ expected ]" << pretty(out) << endl;
