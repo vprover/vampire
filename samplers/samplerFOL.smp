@@ -302,9 +302,6 @@ sa=fmb > sas ~cat minisat:7,cadical:10
 # avatar_add_complementary
 sa!=fmb av=on > aac ~cat none:147,ground:600
 
-# avatar_buffered_solver
-sa!=fmb av=on > abs ~cat on:63,off:300
-
 # avatar_congruence_closure
 sa!=fmb sas!=z3 av=on > acc ~cat off:600,on:58
 

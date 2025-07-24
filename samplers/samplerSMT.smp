@@ -333,9 +333,6 @@ av=on sas=z3 > sffsmt ~cat off:5,on:1
 # avatar_add_complementary
 av=on > aac ~cat none:147,ground:600
 
-# avatar_buffered_solver
-av=on > abs ~cat on:63,off:300
-
 # avatar_congruence_closure
 av=on sas!=z3 > acc ~cat off:600,on:58
 
