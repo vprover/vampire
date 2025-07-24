@@ -85,6 +85,8 @@ struct TestCase
       auto results = last->iterLits().template collect<Stack<Literal*>>();
 
       if (!iterTraits(out.iterFifo()).any([&](auto const& out){ return TestUtils::eqModACRect(out, results); })) {
+        DBGE(*out[0][0])
+        DBGE(*results[0])
         std::cout << "\r" << endl;
         std::cout << "\r[    input ]" << pretty(in) << endl;
         std::cout << "\r[ expected ]" << pretty(out) << endl;
@@ -484,9 +486,35 @@ TEST_ALL(misc_05,
 TEST_INT(misc_06, 
     TestCase {
       .in  =     3 * a >= 0,
-      //     { {    a * a  +   2*b *  c + 2*b * b + -2*b * c  + -(b * b)    > 0, } },
-      //     { {    a * a  +   2*b *  c +   b * b + -2*b * c                > 0, } },
       .out = { { a + 1 > 0  } },
+      .strong = false,
+    })
+
+TEST_INT(misc_07, 
+    TestCase {
+      .in  =     num(-1) >= 0,
+      .out = { Stack<Literal*>{} },
+      .strong = false,
+    })
+
+TEST_INT(misc_08, 
+    TestCase {
+      .in  =     a - 1 >= 0,
+      .out = { { a > 0  } },
+      .strong = false,
+    })
+
+TEST_INT(misc_09, 
+    TestCase {
+      .in  =     a - 1 >= 0,
+      .out = { { a > 0  } },
+      .strong = false,
+    })
+
+TEST_INT(misc_10, 
+    TestCase {
+      .in  =     a + -2 >= 0,
+      .out = { { a  + -1 > 0  } },
       .strong = false,
     })
 

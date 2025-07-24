@@ -366,14 +366,17 @@ namespace Kernel {
       auto n = some(i);
 
       for (auto m : self.iterSummands()) {
-        if (n.isSome()) {
-          if (auto j = m.tryNumeral()) {
-            monoms->push(AlascaMonom<NumTraits>(*j + *n.take()));
-          } else if (one < m.atom()) {
-            monoms->push(AlascaMonom<NumTraits>(*n.take()));
+        if (auto j = m.tryNumeral()) {
+          auto i = n.take();
+          if (*j + *i != 0)  {
+            monoms->push(AlascaMonom<NumTraits>(*j + *i));
           }
+        } else if (one < m.atom() && n.isSome()) {
+          monoms->push(AlascaMonom<NumTraits>(*n.take()));
+          monoms->push(m);
+        } else {
+          monoms->push(m);
         }
-        monoms->push(m);
       }
       if (n.isSome()) {
         monoms->push(AlascaMonom<NumTraits>(*n.take()));
