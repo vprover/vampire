@@ -34,7 +34,6 @@
 
 #include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacingNewSimp.hpp"
-#include "SAT/BufferedSolver.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"

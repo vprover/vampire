@@ -554,8 +554,6 @@ set(SOURCES
     Parse/SMTLIB2.hpp
     Parse/TPTP.cpp
     Parse/TPTP.hpp
-    SAT/BufferedSolver.cpp
-    SAT/BufferedSolver.hpp
     SAT/CadicalInterfacing.cpp
     SAT/CadicalInterfacing.hpp
     SAT/FallbackSolverWrapper.cpp

@@ -41,7 +41,6 @@
 
 #include "SAT/SATInference.hpp"
 #include "SAT/MinimizingSolver.hpp"
-#include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
 #include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
@@ -98,10 +97,6 @@ void SplittingBranchSelector::init()
 #endif
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
-  }
-
-  if (_parent.getOptions().splittingBufferedSolver()) {
-    _solver = new BufferedSolver(_solver.release());
   }
 
   if (_parent.getOptions().splittingMinimizeModel()) {
@@ -1393,7 +1388,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
         cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
       }
     }
-        
+
     return;
   }
   // else freeze clause

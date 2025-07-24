@@ -2125,12 +2125,6 @@ void Options::init()
     _splittingFastRestart.tag(OptionTag::AVATAR);
     _splittingFastRestart.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingBufferedSolver = BoolOptionValue("avatar_buffered_solver","abs",false);
-    _splittingBufferedSolver.description="Added buffering functionality to the SAT solver used in AVATAR.";
-    _lookup.insert(&_splittingBufferedSolver);
-    _splittingBufferedSolver.tag(OptionTag::AVATAR);
-    _splittingBufferedSolver.onlyUsefulWith(_splitting.is(equal(true)));
-
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
                                                                         SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"});
 
