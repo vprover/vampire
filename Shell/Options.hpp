@@ -635,12 +635,6 @@ public:
     ALL = 2
   };
 
-  enum class GlobalSubsumptionAvatarAssumptions : unsigned int {
-    OFF,
-    FROM_CURRENT,
-    FULL_MODEL
-  };
-
   enum class Sos : unsigned int{
     ALL = 0,
     OFF = 1,
@@ -2206,7 +2200,6 @@ public:
   std::string thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
-  GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
 
   /** true if calling set() on non-existing options does not result in a user error */
   IgnoreMissing ignoreMissing() const { return _ignoreMissing.actualValue; }
@@ -2483,7 +2476,6 @@ private:
 
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
-  ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
   ChoiceOptionValue<GoalGuess> _guessTheGoal;
   UnsignedOptionValue _guessTheGoalLimit;
 

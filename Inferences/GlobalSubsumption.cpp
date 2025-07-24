@@ -47,9 +47,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 GlobalSubsumption::GlobalSubsumption(const Options& opts) :
-  _randomizeMinim(opts.randomTraversals()),
-  _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
-  _splitter(0)
+  _randomizeMinim(opts.randomTraversals())
 {
   _solver = new MinisatInterfacing;
   _grounder = new GlobalSubsumptionGrounder(*_solver);
@@ -58,12 +56,6 @@ GlobalSubsumption::GlobalSubsumption(const Options& opts) :
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-
-  if (_salg->getOptions().globalSubsumptionAvatarAssumptions() == Options::GlobalSubsumptionAvatarAssumptions::FULL_MODEL) {
-    _splitter=_salg->getSplitter();
-  } else {
-    _splitter = 0;
-  }
 }
 
 void GlobalSubsumption::detach()
@@ -85,7 +77,9 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
     return cl;
   }
 
-  if(!_splittingAssumps && cl->splits() && cl->splits()->size()!=0) {
+  // no GlobalSubsumption for conditional clauses
+  // (look for a deleted option opts.globalSubsumptionAvatarAssumptions in the history for alternatives)
+  if(cl->splits() && cl->splits()->size()!=0) {
     return cl;
   }
 
@@ -94,7 +88,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   plits.reset();
 
   // assumptions corresponding to the negation of the new prop clause
-  // (and perhaps additional ones used to "activate" AVATAR-conditional clauses)
   static SATLiteralStack assumps;
   assumps.reset();
 
@@ -110,37 +103,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   for (unsigned i = 0; i < clen; i++) {
     lookup.insert(plits[i],(*cl)[i]);
     assumps.push(plits[i].opposite());
-  }
-
-  // then add literals corresponding to cl's split levels
-  //
-  // also keep filling assumps for gsaa=crom_curent
-  if (cl->splits() && cl->splits()->size()!=0) {
-    ASS(_splittingAssumps);
-
-    auto sit = cl->splits()->iter();
-    while(sit.hasNext()) {
-      SplitLevel l = sit.next();
-      unsigned var = splitLevelToVar(l);
-
-      plits.push(SATLiteral(var,false)); // negative
-      if (!_splitter) {
-        assumps.push(SATLiteral(var,true)); // positive
-      }
-    }
-  }
-
-  // for gsaa=full_model, assume all active split levels instead
-  if (_splitter) {
-    ASS(_splittingAssumps);
-
-    SplitLevel bound = _splitter->splitLevelBound();
-    for (SplitLevel lev = 0; lev < bound; lev++) {
-      if (_splitter->splitLevelActive(lev)) {
-        unsigned var = splitLevelToVar(lev);
-        assumps.push(SATLiteral(var,true)); // positive
-      }
-    }
   }
 
   // Would be nice to have this:
@@ -170,23 +132,16 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
       static LiteralStack survivors;
       survivors.reset();
 
-      static Set<SATLiteral> splitAssumps;
-      splitAssumps.reset();
-
       for (unsigned i = 0; i < failedFinal.size(); i++) {
         SATLiteral olit = failedFinal[i].opposite(); // back to the original polarity
 
         Literal* lit;
-        if (lookup.find(olit,lit)) { // lookup the corresponding FO literal
-          survivors.push(lit);
-        } else { // otherwise it was a split level assumption
-          splitAssumps.insert(olit);
-        }
+        // lookup the corresponding FO literal
+        ALWAYS(lookup.find(olit,lit))
+        survivors.push(lit);
       }
 
-      // TODO: what about GS being proper only on the split level assumption side? (But then it is not a reduction from the FO perspective!)
-
-      // this is the main check -- whether we have a proper subclause (no matter the split level assumptions)
+      // this is the main check -- whether we have a proper subclause
       if (survivors.size() < clen) {
         RSTAT_MCTR_INC("global_subsumption_by_number_of_removed_literals",clen-survivors.size());
 
@@ -195,31 +150,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         prems.reset();
         prems.push(cl);
 
-        SATInference::collectFilteredFOPremises(ref, prems,
-          // Some solvers may return "all the clauses added so far" in the refutation.
-          // That must be filtered since a derived clause cannot depend on inactive splits
-          [this] (SATClause* prem) {
-
-            // ignore ASSUMPTION clauses (they don't have FO premises anyway)
-            if (prem->inference()->getType() == SATInference::ASSUMPTION) {
-              ASS_EQ(prem->size(),1);
-              return false;
-            }
-
-            // and don't keep any premise which mentions an unassumed split level assumption
-            unsigned prem_sz = prem->size();
-            for (unsigned i = 0; i < prem_sz; i++ ) {
-              SATLiteral lit = (*prem)[i];
-              SplitLevel lev;
-              if (isSplitLevelVar(lit.var(),lev)) {
-                ASS(lit.isNegative());
-                if (!splitAssumps.contains(lit)) {
-                  return false;
-                }
-              }
-            }
-            return true;
-          } );
+        SATInference::collectFOPremises(ref, prems);
 
         UnitList* premList = 0;
         Stack<Unit*>::Iterator it(prems);

@@ -53,46 +53,6 @@ private:
    * Randomize order for explicit minimization.
    */
   bool _randomizeMinim;
-
-  /**
-   * Implement conditional GS when running with AVATAR.
-   */
-  bool _splittingAssumps;
-
-  /*
-   * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.
-   *
-   * In fact, _splitter!=0 iff we want to do the FULL_MODEL option.
-   */
-  Splitter* _splitter;
-
-  /**
-   * A map binding split levels to variables assigned to them in our SAT solver.
-   *
-   * (Should this be rather a part of _index?)
-   */
-  DHMap<unsigned, unsigned> _splits2vars;
-
-  /**
-   * An inverse of the above map, for convenience.
-   */
-  DHMap<unsigned, unsigned> _vars2splits;
-
-protected:
-  unsigned splitLevelToVar(SplitLevel lev) {
-    unsigned* pvar;
-
-    if(_splits2vars.getValuePtr(lev, pvar)) {
-      *pvar = _solver->newVar();
-      ALWAYS(_vars2splits.insert(*pvar,lev));
-    }
-
-    return *pvar;
-  }
-
-  bool isSplitLevelVar(unsigned var, SplitLevel& lev) {
-    return _vars2splits.find(var,lev);
-  }
 };
 
 };
