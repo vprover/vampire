@@ -266,12 +266,9 @@ prc=on > prlc ~cat on:1,off:1
 # unit_resulting_resolution
 > urr ~cat off:1200,ec_only:162,on:340
 
-# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+# GLOBAL SUBSUMPTION
 # global_subsumption
 > gs ~cat off:5,on:1
-
-# global_subsumption_avatar_assumptions
-gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 # MISC
 
