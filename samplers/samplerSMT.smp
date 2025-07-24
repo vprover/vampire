@@ -342,9 +342,6 @@ acc!=off > ccuc ~cat first:1,small_ones:1,all:3
 # avatar_minimize_model
 av=on > amm ~cat on:600,off:69
 
-# avatar_eager_removal
-av=on amm=on > aer ~cat on:300,off:1
-
 # avatar_delete_deactivated
 av=on > add ~cat on:300,large:55,off:8
 
