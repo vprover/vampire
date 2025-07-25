@@ -26,7 +26,6 @@ class FlatTerm
 public:
   static FlatTerm* create(Term* t);
   static FlatTerm* create(TermList t);
-  static FlatTerm* create(TermStack ts);
   /**
    * Similar to @b create but only allocates the flat term,
    * and does not fill out its content. The caller has to
@@ -54,6 +53,8 @@ public:
     FUN_RIGHT_OFS = 3,
     FUN_UNEXPANDED = 4,
   };
+  static const unsigned ENTRY_TAG_BITS = 3;
+  static_assert(FUN_UNEXPANDED < 1 << ENTRY_TAG_BITS, "EntryTag should fit within ENTRY_TAG_BITS");
 
   struct Entry
   {
@@ -73,26 +74,14 @@ public:
     void expand();
 
     uint64_t _content;
-
-    static constexpr unsigned
-      TAG_BITS_START = 0,
-      TAG_BITS_END = TAG_BITS_START + 3,
-      NUMBER_BITS_START = TAG_BITS_END,
-      NUMBER_BITS_END = NUMBER_BITS_START + 27,
-      TERM_BITS_START = 0,
-      TERM_BITS_END = CHAR_BIT * sizeof(Term *);
-
-    // various properties we want to check
-    static_assert(TAG_BITS_START == 0, "tag must be the least significant bits");
-    static_assert(TERM_BITS_START == 0, "term must be the least significant bits");
+    BITFIELD(64,
+      BITFIELD_MEMBER(unsigned, _number, _setNumber, CHAR_BIT * sizeof(unsigned) - ENTRY_TAG_BITS,
+      BITFIELD_MEMBER(unsigned, _tag, _setTag, ENTRY_TAG_BITS,
+      END_BITFIELD
+    )))
+    BITFIELD_PTR_GET(Term, _term, 0)
+    BITFIELD_PTR_SET(Term, _setTerm, 0)
     static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
-    static_assert(FUN_UNEXPANDED < 8, "must be able to squash tags into 3 bits");
-
-    // getters and setters
-    BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
-    BITFIELD64_GET_AND_SET(unsigned, number, Number, NUMBER)
-    BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
-    // end bitfield
   };
 
   inline Entry& operator[](size_t i) { ASS_L(i,_length); return _data[i]; }

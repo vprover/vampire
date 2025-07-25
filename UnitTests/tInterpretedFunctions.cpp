@@ -209,7 +209,7 @@ void check_eval(Lit orig_, Lit expected_) {
       check_eval(( formula ), ( expected ));                                              \
     }                                                                                     \
 
-/** Tests for evalutions that should only be successful for reals/rationals and not for integers. */
+/** Tests for evaluations that should only be successful for reals/rationals and not for integers. */
 #define FRACTIONAL_TEST(name, formula, expected)                                          \
   NUM_TEST(Rat , name, formula, expected)                                                 \
   NUM_TEST(Real, name, formula, expected)                                                 \
@@ -623,6 +623,28 @@ FRACTIONAL_TEST(NUM_IS_NUM_07,
 ALL_NUMBERS_TEST(NUM_IS_NUM_08,
      ~isReal(num(3)),
      false
+    )
+
+
+ALL_NUMBERS_TEST(bug_10,
+     ((num(2) + 2) * ((num(2) + 2) + (num(2) + 2))) == (num(2) + 2) * (num(2) + 2) + (num(2) + 2) * (num(2) + 2),
+     true
+    )
+
+ALL_NUMBERS_TEST(bug_10a,
+     p((num(2) + 2) * ((num(2) + 2) + (num(2) + 2))),
+     p(32)
+    )
+
+ALL_NUMBERS_TEST(bug_10b,
+     p((num(2) + 2) * (num(2) + 2) + (num(2) + 2) * (num(2) + 2)),
+     p(32)
+    )
+
+ALL_NUMBERS_TEST(bug_10c,
+     // p(a * a + (-a) * (-a)),
+     p((num(2) - 2 + a) * (num(2) - 2 + a) + (num(2) - 2 - a) * (num(2) - 2 - a)),
+     p(2 * ( a * a ))
     )
 
 // FRACTIONAL_TEST(eval_div_1,

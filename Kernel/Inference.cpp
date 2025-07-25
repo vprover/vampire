@@ -208,7 +208,7 @@ void Inference::updateStatistics()
         * proof search, update statistics won't reset these "hacky" values.
         * (C.f., inductionDepth assigned in AVATAR to AVATAR_DEFINITION
         * and thus later propagated to AVATAR_COMPONENT, AVATAR_SPLIT_CLAUSE, and transitively to AVATAR_REFUTATION,
-        * and similarly inductionDepth assigned to INDUCTION "hypothesis" formulas in Induction.)
+        * and similarly inductionDepth assigned to induction formulas in Induction.)
         */
       } else if (_ptr2 == nullptr) {
         _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
@@ -259,26 +259,10 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
 
   out << ", incl: " << self._included;
   out << ", ptd: " << self._isPureTheoryDescendant;
-  if(env.options->addCombAxioms()){
-    out << ", cad: " << self._combAxiomsDescendant;
-  }
-  if(env.options->addProxyAxioms()){
-     out << ", pad: " << self._proxyAxiomsDescendant;
-  }
-  if(env.options->addCombAxioms() && env.options->addProxyAxioms()){
-    out << ", had: " << self._holAxiomsDescendant;
-  }
-  out << ", id: " << self._inductionDepth;
-  if(env.options->maxXXNarrows() > 0){
-    out << ", xxNarrs " << self._XXNarrows;
-  }
-  if(env.options->prioritiseClausesProducedByLongReduction()){
-    out << ", redLen " << self._reductions;
-  }
   out << ", sl: " << self._sineLevel;
   out << ", age: " << self._age;
-  out << ", thAx:" << (int)(self.th_ancestors);
-  out << ", allAx:" << (int)(self.all_ancestors);
+  out << ", thAx:" << static_cast<int>(self.th_ancestors);
+  out << ", allAx:" << static_cast<int>(self.all_ancestors);
 
   return out;
 }
@@ -915,33 +899,35 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::ALASCA_BWD_DEMODULATION:
     return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
-    return "finite model not found : exhaustively excluded all possible domain size assignments";
+    return "finite model not found (exhaustively excluded all possible domain size assignments)";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
-    return "structural induction hypothesis (one)";
+    return "structural induction formula (one)";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
-    return "structural induction hypothesis (two)";
+    return "structural induction formula (two)";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
-    return "structural induction hypothesis (three)";
+    return "structural induction formula (three)";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
-    return "structural induction hypothesis (recursion)";
+    return "structural induction formula (recursion)";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    return "integer induction hypothesis (up, infinite interval)";
+    return "integer induction formula (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-    return "integer induction hypothesis (down, infinite interval)";
+    return "integer induction formula (down, infinite interval)";
   case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    return "integer induction hypothesis (up, finite interval)";
+    return "integer induction formula (up, finite interval)";
   case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-    return "integer induction hypothesis (down, finite interval)";
+    return "integer induction formula (down, finite interval)";
   case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    return "integer induction hypothesis (up, default bound)";
+    return "integer induction formula (up, default bound)";
   case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-    return "integer induction hypothesis (down, default bound)";
+    return "integer induction formula (down, default bound)";
   case InferenceRule::INDUCTION_HYPERRESOLUTION:
     return "induction hyperresolution";
   case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
     return "generalized induction hyperresolution";
+  case InferenceRule::FREE_VAR_INDUCTION_HYPERRESOLUTION:
+    return "induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:
@@ -1018,6 +1004,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "leibniz equality elimination";
   case InferenceRule::CASES_SIMP:
     return "cases simplifying";
+  case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
+    return "term algebra direct subterm axiom";
+  case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
+    return "term algebra subterm transitivity axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION: 
@@ -1026,8 +1016,6 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
   case InferenceRule::GENERIC_GENERATING_INFERNCE:
   case InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST:
-  case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
-  case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
   case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }

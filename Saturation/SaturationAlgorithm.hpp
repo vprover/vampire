@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -31,7 +30,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
-#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -81,10 +79,12 @@ public:
 
   void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
+  void setImmediateSimplificationEngineMany(CompositeISEMany ise) { _immediateSimplifierMany = std::move(ise); }
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  void addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
   void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
@@ -117,7 +117,7 @@ public:
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
-  const ConditionalRedundancyHandler& condRedHandler() const { return *_conditionalRedundancyHandler; }
+  const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
@@ -202,9 +202,11 @@ protected:
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
+  CompositeISEMany _immediateSimplifierMany;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
+  FwSimplList* _expensiveFwSimplifiers;
 
   //Simplification occurs at the same point in the loop
   //as forward and backward simplification, but does not involve
@@ -227,7 +229,7 @@ protected:
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
   FunctionDefinitionHandler& _fnDefHandler;
-  std::unique_ptr<ConditionalRedundancyHandler> _conditionalRedundancyHandler;
+  std::unique_ptr<PartialRedundancyHandler> _partialRedundancyHandler;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;
@@ -250,7 +252,7 @@ protected:
   unsigned _generatedClauseCount;
   unsigned _activationLimit;
 private:
-  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering,
+  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, Ordering& ordering,
      bool alascaTakesOver);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit

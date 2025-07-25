@@ -32,7 +32,7 @@
 
 #include "SAT/SATClause.hpp"
 
-#include "Shell/ConditionalRedundancyHandler.hpp"
+#include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
@@ -137,7 +137,7 @@ void Clause::destroyExceptInferenceObject()
     delete _literalPositions;
   }
 
-  ConditionalRedundancyHandler::destroyClauseData(this);
+  PartialRedundancyHandler::destroyClauseData(this);
 
   RSTAT_CTR_INC("clauses deleted");
 
@@ -240,8 +240,8 @@ void Clause::setStore(Store s)
   }
 #endif
 #if VAMPIRE_CLAUSE_TRACING
-  auto traceForward = env.options->traceForward();
-  if (number() == traceForward && _store != s) {
+  int traceForward = env.options->traceForward();
+  if ((int)number() == traceForward && _store != s) {
     std::cout << number() << ".setStore(" << s << ")" << std::endl;
   }
 #endif // VAMPIRE_CLAUSE_TRACING
@@ -352,7 +352,7 @@ std::string Clause::toNiceString() const
 }
 
 std::ostream& operator<<(std::ostream& out, Clause const& self)
-{ 
+{
   if (self.size() == 0) {
     return out << "$false";
   } else {
@@ -640,12 +640,6 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
     w = (2 * w + numeralWeight);
   }
   return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
-}
-
-
-void Clause::collectUnstableVars(DHSet<unsigned>& acc)
-{
-  collectVars2<UnstableVarIt>(acc);
 }
 
 void Clause::collectVars(DHSet<unsigned>& acc)

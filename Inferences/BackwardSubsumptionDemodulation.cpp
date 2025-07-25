@@ -452,9 +452,6 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
       continue;
     }
 
-    // TODO higher-order support not yet implemented; see forward demodulation
-    //      (maybe it's enough to just use the different iterator)
-    ASS(!env.options->combinatorySup());
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
       TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
@@ -602,7 +599,7 @@ afterOptimizations:
 isRedundant:
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE && !isAlascaOrdering) {
           // Check mclΘ < cl.
           // This is not clear and might easily be violated if we have a bug above.
           if (!SDHelper::substClauseIsSmaller(sideCl, binder, mainCl, ordering)) {
@@ -622,7 +619,7 @@ isRedundant:
 #if VDEBUG
         if (!isAlascaOrdering)
           ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
+        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
             && !isAlascaOrdering) {
           // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
           ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);

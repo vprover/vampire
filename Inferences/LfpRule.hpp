@@ -15,7 +15,7 @@
 
 namespace Inferences {
 
-/* LFP = least fixed point: applys the inner rule repeatedly until it is not applicable anymore */
+/* LFP = least fixed point: applies the inner rule repeatedly until it is not applicable anymore */
 template<class Rule>
 class LfpISE
   : public ImmediateSimplificationEngine

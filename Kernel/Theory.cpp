@@ -30,15 +30,11 @@
 #include <cstdio>
 #include <iostream>
 
-#if VMINI_GMP
 #  pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wsign-compare"
 #    include "mini-gmp.c"
 #    include "mini-mpq.c"
 #  pragma GCC diagnostic pop
-#else
-#  include <gmpxx.h>
-#endif
 
 std::string to_string(mpz_t const& self) {
   auto s = mpz_sizeinbase(self, /* base */ 10);
@@ -50,7 +46,6 @@ std::string to_string(mpz_t const& self) {
 }
 
 std::ostream& output(std::ostream& out, mpz_t const& self)
-// TODO: make this faster usign gmpxx output operator somehow if compiled with !VMINI_GMP
 { return out << to_string(self); }
 
 using namespace Lib;
@@ -562,11 +557,11 @@ unsigned Theory::getArity(Interpretation i)
   case ARRAY_BOOL_SELECT:
 
     return 2;
-          
+
   case ARRAY_STORE:
 
     return 3;
-          
+
   default:
     ASSERTION_VIOLATION_REP(i);
   }
@@ -640,7 +635,7 @@ bool Theory::isFunction(Interpretation i)
   case REAL_CEILING:
   case REAL_TRUNCATE:
   case REAL_ROUND:
-          
+
   case ARRAY_SELECT:
   case ARRAY_STORE:
 
@@ -1123,7 +1118,7 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
 
 
 /**
- * This function creates a type for converion function @c i.
+ * This function creates a type for conversion function @c i.
  *
  * @c i must be a type conversion operation.
  */
@@ -1767,7 +1762,7 @@ std::ostream& operator<<(std::ostream& out, RealConstantType const& self)
 
 
 /**
- * We try and get a LaTeX special name for an interpeted function/predicate.
+ * We try and get a LaTeX special name for an interpreted function/predicate.
  * Note: the functions may not necessarily be interpreted in the sense that we treat
  *       them as interpreted in Vampire. They are just called that here as we have an
  *       interpretation for them. So we can have LaTeX symbols for any predicate or

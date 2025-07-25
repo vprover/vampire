@@ -39,7 +39,21 @@ using namespace Saturation;
  
 template<class Inner>
 void attachToInner(Inner& inner, SaturationAlgorithm* salg) { }
-  
+
+template<class Rule>
+struct BinInfExtra : public InferenceExtra {
+  using Lhs = typename Rule::Lhs;
+  using Rhs = typename Rule::Rhs;
+  Lhs left;
+  Rhs right;
+
+  BinInfExtra(Lhs left, Rhs right) : left(left), right(right) {}
+
+  void output(std::ostream &out) const override {
+    out << "left=(" << left << "),right=(" << right << ")";
+  }
+};
+
 template<class Rule>
 struct BinInf
 : public GeneratingInferenceEngine
@@ -126,6 +140,8 @@ public:
         for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::query, rhs, VarBanks::internal, sigma))) {
           DEBUG(0, "    result: ", *res)
           out.push(res);
+          if(env.options->proofExtra() == Options::ProofExtra::FULL)
+            env.proofExtra.insert(res, new BinInfExtra<Rule>(lhs, rhs));
         }
         DEBUG(0, "")
       }
@@ -143,6 +159,8 @@ public:
           for (Clause* res : iterTraits(_rule.applyRule(lhs, VarBanks::internal, rhs, VarBanks::query, sigma))) {
             DEBUG(0, "    result: ", *res)
             out.push(res);
+            if(env.options->proofExtra() == Options::ProofExtra::FULL)
+              env.proofExtra.insert(res, new BinInfExtra<Rule>(lhs, rhs));
           }
           DEBUG(0, "")
         }

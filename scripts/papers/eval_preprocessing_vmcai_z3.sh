@@ -17,7 +17,7 @@ function eval_status() {
         shift 1
         (ulimit -St $SOLVER_TIME; $CL_EXEC --input_syntax smtlib --mode clausify $F $*) | grep -v "^tff" >$CLF
         time -p (ulimit -St $SOLVER_TIME; $EXEC -tptp $CLF)>$OUTF 2>&1 
-                
+
         local STATUS=`grep "SZS status" $OUTF | sed 's/^\SZS status \([^ ]*\) for .*$/\1/'`
         local TOTAL_TIME=`grep "^real " $OUTF | sed 's/^real \(.*\)$/\1/'`
         echo -n " $STATUS $TOTAL_TIME"

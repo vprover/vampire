@@ -130,7 +130,7 @@ bool TheoryInstAndSimp::isSupportedSort(SortId sort)
   Wraps around interpretePredicate to support interpreted equality
  */
 bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
-  //check equality spearately (X=Y needs special handling)
+  //check equality separately (X=Y needs special handling)
   if (lit->isEquality()) {
     return isSupportedSort(SortHelper::getEqualityArgumentSort(lit));
   }
@@ -563,7 +563,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       });
     }
 
-    DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0, false);
+    DEBUG_CODE(auto res =) _solver->solveUnderAssumptionsLimited(theoryLits, 0);
     ASS_EQ(res, SATSolver::Status::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
@@ -622,7 +622,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
       if(!subst.findBinding(var,fc)){
         Term* fc = _instantiationConstants.freshConstant(sort);
         ASS_EQ(SortHelper::getResultSort(fc), sort);
-        subst.bind(var,fc);
+        subst.bindUnbound(var,fc);
         vars.push(var);
       }
     }
@@ -639,8 +639,6 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
   };
 }
 
-
-
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar) {
   auto skolemized = skolemize(concatIters(
         theoryLiterals.iterFifo(),
@@ -649,7 +647,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
-  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
+  SATSolver::Status status = _solver->solveUnderAssumptionsLimited(skolemized.lits, 0);
 
   if(status == SATSolver::Status::UNSATISFIABLE) {
     DEBUG("unsat")
@@ -662,7 +660,7 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
     if (subst.isSome()) {
       return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
     } else {
-      DEBUG("could not build substituion from model.")
+      DEBUG("could not build a substitution from model.")
     }
   } else {
     // SMT solving was incomplete
@@ -719,7 +717,7 @@ struct InstanceFn
         redundant = true;
       } else {
         auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
-        auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0, false);
+        auto status = parent->_solver->solveUnderAssumptionsLimited(skolem.lits, 0);
         // we have an unsat solution without guards
         redundant = status == SATSolver::Status::UNSATISFIABLE;
       }
@@ -744,7 +742,7 @@ struct InstanceFn
 
 Stack<Literal*> computeGuards(Stack<Literal*> const& lits) 
 {
-  /* finds the constructor for a given distructor */
+  /* finds the constructor for a given destructor */
   auto findConstructor = [](TermAlgebra* ta, unsigned destructor, bool predicate) -> TermAlgebraConstructor* 
   {
     // TODO get rid of this wasteful search for the right constructor, and use some sort of hashing instead
@@ -907,20 +905,19 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     .premiseRedundant = false,
   };
 
-  if(premise->isPureTheoryDescendant()){ 
+  if(premise->isPureTheoryDescendant()){
     return empty;
   }
-
 
   Stack<Literal*> selectedLiterals = selectTheoryLiterals(premise);
   selectedLiterals = filterLiterals(std::move(selectedLiterals), _mode);
 
-  // if there are no eligable theory literals selected then there is nothing to do
+  // if there are no eligible theory literals selected then there is nothing to do
   if(selectedLiterals.isEmpty()){
     return empty;
   }
 
-  // we have an eligable candidate
+  // we have an eligible candidate
   env.statistics->theoryInstSimpCandidates++;
 #if VTIME_PROFILING
   static const char* THEORY_INST_SIMP = "theory instantiation";
@@ -944,15 +941,15 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   bool premiseRedundant = false;
 
   auto it1 = iterTraits(getSolutions(invertedLiterals, guards, getFreshVar(*premise)))
-    .map([&](Solution s)  { 
-        DEBUG("found solution: ", s); 
+    .map([&](Solution s)  {
+        DEBUG("found solution: ", s);
         return InstanceFn{}(s, premise, selectedLiterals, invertedLiterals, guards, _splitter, this, premiseRedundant);
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
   auto it2 = TIME_TRACE_ITER(THEORY_INST_SIMP, it1);
 
-  // we need to strictily evaluate the iterator to 
+  // we need to strictily evaluate the iterator to
   auto clauses =  getPersistentIterator(it2);
 
   if (premiseRedundant && _thiTautologyDeletion) {
@@ -968,10 +965,33 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 }
 
+bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
+  static TheoryInstAndSimp checker(
+    Options::TheoryInstSimp::ALL,
+    /* thiTautologyDeletion */ true,
+    /* showZ3 */ false,
+    /* generalisation*/ false,
+    "", Options::ProblemExportSyntax::SMTLIB);
+
+  if (!forAll(cl->iterLits(),[](auto l){ return checker.isPure(l); })) {
+    couldNotCheck = true;
+    return true;
+  }
+
+  auto invertedLiterals = iterTraits(cl->iterLits())
+    .map(Literal::complementaryLiteral)
+    .collect<Stack>();
+
+  static Stack<Literal*> empty;
+
+  auto solutions = checker.getSolutions(invertedLiterals,empty,0);
+  ASS_REP(solutions.hasNext(),cl->toString())
+  return !solutions.next().sat;
+}
 
 } // namespace Inferences
 
-std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self) 
+std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self)
 { return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
 
 #endif

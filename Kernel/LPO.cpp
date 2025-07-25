@@ -24,7 +24,7 @@
 
 #include "Term.hpp"
 #include "LPO.hpp"
-#include "LPOComparator.hpp"
+#include "TermOrderingDiagramLPO.hpp"
 #include "Signature.hpp"
 
 namespace Kernel {
@@ -63,21 +63,6 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
   ASS_NEQ(predicatePrecedence(p1), predicatePrecedence(p2)); // precedence should be total
   return (predicatePrecedence(p1) > predicatePrecedence(p2)) ? GREATER : LESS;
 } // LPO::comparePredicates()
-
-Ordering::Result LPO::comparePrecedences(const Term* t1, const Term* t2) const
-{
-  if (t1->isSort() && t2->isSort()) {
-    return compareTypeConPrecedences(t1->functor(), t2->functor());
-  }
-  // type constuctor symbols are less than function symbols
-  if (t1->isSort()) {
-    return LESS;
-  }
-  if (t2->isSort()) {
-    return GREATER;
-  }
-  return compareFunctionPrecedences(t1->functor(), t2->functor());
-} // LPO::comparePrecedences
 
 Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
 {
@@ -247,9 +232,9 @@ Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, uns
   return GREATER;
 }
 
-OrderingComparatorUP LPO::createComparator() const
+TermOrderingDiagramUP LPO::createTermOrderingDiagram(bool ground) const
 {
-  return make_unique<LPOComparator>(*this);
+  return make_unique<TermOrderingDiagramLPO>(*this, ground);
 }
 
 void LPO::showConcrete(std::ostream&) const 

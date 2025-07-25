@@ -27,7 +27,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Connective.hpp" 
 #include "Kernel/Inference.hpp"
-#include "Kernel/MainLoop.hpp"                      
+#include "Kernel/MainLoop.hpp"
 #include "Kernel/OperatorType.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -66,6 +66,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   env.setMainProblem(&prb);
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   opt.setSplitting(false);
+  opt.resolveAwayAutoValues0();
+  opt.resolveAwayAutoValues(prb);
 
   LabelFinder* labelFinder = new LabelFinder();
 

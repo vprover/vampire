@@ -23,13 +23,10 @@
 #include "Kernel/Grounder.hpp"
 #include "Kernel/Inference.hpp"
 
-#include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/GroundingIndex.hpp"
-
 #include "SAT/SATClause.hpp"
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATInference.hpp"
+#include "SAT/MinisatInterfacing.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -49,13 +46,20 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+GlobalSubsumption::GlobalSubsumption(const Options& opts) :
+  _uprOnly(opts.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY),
+  _explicitMinim(opts.globalSubsumptionExplicitMinim()!=Options::GlobalSubsumptionExplicitMinim::OFF),
+  _randomizeMinim(opts.globalSubsumptionExplicitMinim()==Options::GlobalSubsumptionExplicitMinim::RANDOMIZED),
+  _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
+  _splitter(0)
+{
+  _solver = new MinisatInterfacing;
+  _grounder = new GlobalSubsumptionGrounder(*_solver);
+}
+
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
-  ASS(!_index);
-
   ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<GroundingIndex*>(
-	  _salg->getIndexManager()->request(GLOBAL_SUBSUMPTION_INDEX) );
 
   if (_salg->getOptions().globalSubsumptionAvatarAssumptions() == Options::GlobalSubsumptionAvatarAssumptions::FULL_MODEL) {
     _splitter=_salg->getSplitter();
@@ -66,8 +70,6 @@ void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 
 void GlobalSubsumption::detach()
 {
-  _index=0;
-  _salg->getIndexManager()->release(GLOBAL_SUBSUMPTION_INDEX);
   ForwardSimplificationEngine::detach();
 }
 
@@ -89,8 +91,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
     return cl;
   }
 
-  GlobalSubsumptionGrounder &grounder = _index->getGrounder();
-
   // SAT literals of the prop. abstraction of cl
   static SATLiteralStack plits;
   plits.reset();
@@ -106,7 +106,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 
   // first abstract cl's FO literals using grounder,
   // start filling assumps and initialize lookup
-  grounder.groundNonProp(cl, plits);
+  _grounder->groundNonProp(cl, plits);
 
   unsigned clen = plits.size();
   for (unsigned i = 0; i < clen; i++) {
@@ -145,8 +145,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
     }
   }
 
-  SATSolverWithAssumptions& solver = _index->getSolver();
-
   // Would be nice to have this:
   // ASS_NEQ(solver.solve(_uprOnly),SATSolver::UNSATISFIABLE);
   // But even if the last addition made the SAT solver's content unconditionally inconsistent
@@ -156,20 +154,20 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   SATClause* scl = SATClause::fromStack(plits);
   SATInference* inf = new FOConversionInference(cl);
   scl->setInference(inf);
-  solver.addClause(scl);
+  _solver->addClause(scl);
 
-  // check for subsuming clause by looking for a proper subset of used assumptions
-  SATSolver::Status res = solver.solveUnderAssumptions(assumps, _uprOnly, true /* only proper subsets */);
+  // check for subsuming clause by looking for a subset of used assumptions
+  SATSolver::Status res = _solver->solveUnderAssumptions(assumps, _uprOnly);
 
   if (res == SATSolver::Status::UNSATISFIABLE) {
     // it should always be UNSAT with full assumps,
     // but we may not get that far with limited solving power (_uprOnly)
 
-    const SATLiteralStack& failed = solver.failedAssumptions();
+    SATLiteralStack failed = _solver->failedAssumptions();
 
     if (failed.size() < assumps.size()) {
       // proper subset sufficed for UNSAT - that's the interesting case
-      const SATLiteralStack& failedFinal = _explicitMinim ? solver.explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : failed;
+      SATLiteralStack failedFinal = _explicitMinim ? _solver->explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : std::move(failed);
 
       static LiteralStack survivors;
       survivors.reset();
@@ -194,7 +192,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
       if (survivors.size() < clen) {
         RSTAT_MCTR_INC("global_subsumption_by_number_of_removed_literals",clen-survivors.size());
 
-        SATClause* ref = solver.getRefutation();
+        SATClause* ref = _solver->getRefutation();
 
         prems.reset();
         prems.push(cl);
@@ -233,7 +231,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         }
 
         SATClauseList* satPremises = env.options->minimizeSatProofs() ?
-            solver.getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
+          _solver->getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
         Inference inf(FromSatRefutation(InferenceRule::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal));
         // CAREFUL:

@@ -1,17 +1,17 @@
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/vprover/vampire)
-
 # Vampire
 This is the main source repository of the [Vampire](https://vprover.github.io) project, an advanced tool for automated reasoning.
 The following is for end-users of Vampire: new developers should read the [wiki](https://github.com/vprover/vampire/wiki) as well.
 
 ## Licensing
 Please see LICENCE for usage restrictions.
-Note that Vampire's source includes a vendored copy of [Minisat](http://minisat.se/) and optionally links to [Z3](https://github.com/Z3Prover/z3).
-Such code is provided under their own licence.
+Note that Vampire includes some other projects with thanks:
+- [MiniSat](minisat.se), a SAT solver
+- [CaDiCaL](https://github.com/arminbiere/cadical), another SAT solver
+- [GMP](https://gmplib.org/), for arbitrary-precision arithmetic - specifically the `mini-gmp` part
+- [VIRAS](https://github.com/joe-hauns/viras/), a quantifier elimination method
+- [Z3](https://github.com/Z3Prover/z3/), an SMT solver (optional)
 
-## Issue Tracking
-Please use GitHub's integrated issue tracker to file bug reports and make suggestions for future Vampire features.
-Please provide as much information and detail as possible in either case.
+These are of course under their own license.
 
 ## Download
 A statically-linked build suitable for running on StarExec is provided with each release; this may well run on your system also.
@@ -50,8 +50,3 @@ $ vampire --show_options on
 
 ## Windows
 Windows can be tricky. We are working on improving the situation, but in the meantime you might wish to look at the [Cygwin wiki page](https://github.com/vprover/vampire/wiki/Cygwin), and [related](https://github.com/vprover/vampire/issues/462) [bug](https://github.com/vprover/vampire/issues/318) [reports](https://github.com/vprover/vampire/issues/282).
-
-### Build Configuration
-* Vampire can be statically linked, with e.g. `cmake /path/to/vampire -DBUILD_SHARED_LIBS=0`
-* To compile Vampire in debug mode, add `-DCMAKE_BUILD_TYPE=Debug` to the cmake call.
-* You may find setting a CMake installation directory (e.g. with `cmake /path/to/vampire -DCMAKE_INSTALL_PREFIX=/opt/vampire`) helpful.

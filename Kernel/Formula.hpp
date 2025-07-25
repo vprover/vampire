@@ -20,7 +20,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 
 #include "Kernel/Signature.hpp"
@@ -90,7 +89,7 @@ public:
   std::string getLabel(){ return _label;}
   void label(std::string l){ _label=l; }
 
-  static Formula* fromClause(Clause* cl);
+  static Formula* fromClause(Clause* cl,bool closed = true);
 
   static Formula* quantify(Formula* f);
 
@@ -339,30 +338,7 @@ class BoolTermFormula
             SortHelper::getResultSort(ts.term()) == AtomicSort::boolSort(), ts.toString());
   }
 
-  static Formula* create(TermList ts) {
-    if (ts.isVar()) {
-      return new BoolTermFormula(ts);
-    }
-
-    Term* term = ts.term();
-    if (term->isSpecial()) {
-      Term::SpecialTermData *sd = term->getSpecialData();
-      switch (sd->specialFunctor()) {
-        case SpecialFunctor::FORMULA:
-          return sd->getFormula();
-        default:
-          return new BoolTermFormula(ts);
-      }
-    } else {
-      unsigned functor = term->functor();
-      if (env.signature->isFoolConstantSymbol(true, functor)) {
-        return new Formula(true);
-      } else {
-        ASS(env.signature->isFoolConstantSymbol(false, functor));
-        return new Formula(false);
-      }
-    }
-  }
+  static Formula* create(TermList ts);
 
   /** Return the variable */
   const TermList getTerm() const { return _ts; }

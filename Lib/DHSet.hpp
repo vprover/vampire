@@ -27,10 +27,10 @@ namespace Lib {
  *
  * @param Val anything that can be hashed using Hash1 and Hash2,
  *        and compared using ==
- * @param Hash1 class containig the hash function for keys which
+ * @param Hash1 class containing the hash function for keys which
  *	  determines position of entry in hashtable when no collision
  *	  occurs.
- * @param Hash2 class containig the hash function for keys which
+ * @param Hash2 class containing the hash function for keys which
  *	  will be used when collision occurs. Otherwise it will not be
  *	  enumerated.
  */
@@ -64,7 +64,7 @@ public:
   /**
    *  Return true iff @b val is in the set.
    *
-   *  (synomym for the @b find function)
+   *  (synonym for the @b find function)
    */
   inline
   bool contains(Val const& val) const
@@ -91,7 +91,7 @@ public:
     return _map.remove(val);
   }
 
-  /** Return mumber of entries stored in this DHMap */
+  /** Return number of entries stored in this DHMap */
   inline
   unsigned size() const
   {

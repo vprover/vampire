@@ -99,12 +99,12 @@ public:
    * 
    * This is useful in simplifications such as demodulation where
    * only the result being greater matters and in runtime specialized
-   * ordering checks (see OrderingComparator). */
+   * ordering checks (see TermOrderingDiagram). */
   virtual Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const
   { return compare(t1, t2); }
 
-  /** Creates optimised object for ordering checks. @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator() const;
+  /** Creates optimised object for ordering checks. @see TermOrderingDiagram. */
+  virtual TermOrderingDiagramUP createTermOrderingDiagram(bool ground = false) const;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -196,6 +196,8 @@ protected:
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
+
+  Result comparePrecedences(const Term* t1, const Term* t2) const;
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;

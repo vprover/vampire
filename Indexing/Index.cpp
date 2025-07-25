@@ -36,7 +36,7 @@ Index::~Index()
 /**
  * Attaches index to a clause container
  *
- * Can only be called once per @b Index obejct lifetime.
+ * Can only be called once per @b Index object lifetime.
  */
 void Index::attachContainer(ClauseContainer* cc)
 {

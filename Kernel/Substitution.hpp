@@ -12,61 +12,95 @@
  * Defines class Substitution.
  *
  * @since 08/07/2007 Manchester, flight Manchester-Cork
- * @since 30/12/2007 Manchester, reimplemented from scratch using a skip list
- * like structure
+ * @since 30/12/2007 Manchester, reimplemented from scratch using a skip list like structure
+ * @since 28/05/2025 Southampton, simplify, inline methods, conform to interfaces
  */
 
 #ifndef __Substitution__
 #define __Substitution__
 
-#include "Lib/DHMap.hpp"
-#include "Lib/Environment.hpp"
-
 #include "Lib/Allocator.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Term.hpp"
 
 namespace Kernel {
 
-using namespace Lib;
-
 /**
  * The class Substitution implementing substitutions.
  * @since 30/12/2007 Manchester
+ *
+ * This is a simple map from variables to terms.
+ * If you want something with 'banks' to implement renaming variables apart, you probably want RobSubstitution.
  */
 class Substitution
 {
 public:
-  USE_ALLOCATOR(Substitution);
+  USE_ALLOCATOR(Substitution)
 
-  Substitution() {}
+  /**
+   * Bind `v` to `t`.
+   * Succeeds and returns true if `v` is either not bound or already bound to `t`.
+   * Returns false otherwise, leaving the substitution untouched.
+   */
+  bool bind(unsigned v, TermList t) { return _map.findOrInsert(v, t) == t; }
+  bool bind(unsigned v, Term *t) { return bind(v, TermList(t)); }
 
-  void bind(int v,Term* t);
-  void bind(int v,TermList t);
-  void rebind(int v, Term* t);
-  void rebind(int v, TermList t);
-  bool findBinding(int var, TermList& res) const;
-  TermList apply(unsigned var) const;
-  void unbind(int var);
-  void reset();
+  /**
+   * Bind `v` to `t`: `v` must not be bound to anything.
+   */
+  void bindUnbound(unsigned v, TermList t) { ALWAYS(_map.insert(v, t)); }
+  void bindUnbound(unsigned int v, Term *t) { bindUnbound(v, TermList(t)); }
+
+  /**
+   * Bind `v` to `t`, regardless of what was there before (if anything).
+   */
+  void rebind(unsigned v, TermList t) { _map.set(v,t); }
+  void rebind(unsigned v, Term *t) { rebind(v, TermList(t)); }
+
+  /**
+   * If @c var is bound, assign binding into @c res and return true.
+   * Otherwise return false and do nothing.
+   */
+  bool findBinding(unsigned v, TermList &out) const { return _map.find(v, out); }
+
+  // variable/term pairs
+  auto items() { return _map.items(); }
+
+  /**
+   * Return result of application of the substitution to variable @c var
+   *
+   * This function is to allow use of the @c Substitution class in the
+   * methods of the @c SubstHelper class for applying substitutions.
+   */
+  TermList apply(unsigned var) const {
+    TermList res(var, false);
+    findBinding(var, res);
+    return res;
+  }
+  void specVar(unsigned var, TermList term) { ASSERTION_VIOLATION; }
+
+  void reset() { _map.reset(); }
   bool isEmpty() const { return _map.isEmpty(); }
-
-  /** applies the function f to every term */
-  template<class F> 
-  void mapTerms(F f) 
-  { return _map.mapValues(f); }
-
-#if VDEBUG
-  std::string toString() const;
   unsigned size() const { return _map.size(); }
-#endif
-  friend std::ostream& operator<<(std::ostream& out, Substitution const&);
+
+  friend std::ostream& operator<<(std::ostream& out, Substitution const &self) {
+    out << '[';
+    auto items = self._map.items();
+    bool first = true;
+    for(auto [x, t] : iterTraits(self._map.items())) {
+      if(!first)
+        out << ",";
+      first = false;
+      out << x << " -> " << t;
+    }
+    return out << ']';
+  }
+
 private:
   DHMap<unsigned,TermList> _map;
 }; // class Substitution
-
-
-}
+} // namespace Kernel
 
 #endif // __Substitution__
 

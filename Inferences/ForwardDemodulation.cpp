@@ -84,7 +84,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   auto& opt = getOptions();
   _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
   _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _precompiledComparison = opt.demodulationPrecompiledComparison();
+  _useTermOrderingDiagrams = opt.forwardDemodulationTermOrderingDiagrams();
   _skipNonequationalLiterals = opt.demodulationOnlyEquational();
   _helper = DemodulationHelper(opt, &_salg->getOrdering());
 }
@@ -96,8 +96,7 @@ void ForwardDemodulation::detach()
   ForwardSimplificationEngine::detach();
 }
 
-template <bool combinatorySupSupport>
-bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
 
@@ -123,9 +122,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
     if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
-    typename std::conditional<!combinatorySupSupport,
-      NonVariableNonTypeIterator,
-      FirstOrderSubtermIt>::type it(lit);
+    NonVariableNonTypeIterator it(lit);
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
@@ -179,12 +176,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         ASS_EQ(ordering.compare(trm,rhsApplied),Ordering::reverse(ordering.compare(rhsApplied,trm)));
 
-        if (_precompiledComparison) {
+        if (_useTermOrderingDiagrams) {
 #if VDEBUG
           auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
 #endif
-          qr.data->comparator->init(appl);
-          if (!preordered && (_preorderedOnly || !qr.data->comparator->next())) {
+          qr.data->tod->init(appl);
+          if (!preordered && (_preorderedOnly || !qr.data->tod->next())) {
             ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
           }
@@ -243,10 +240,5 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
   return false;
 }
-
-// This is necessary for templates defined in cpp files.
-// We are happy to do it for ForwardDemodulationImpl, since it (at the moment) has only two specializations:
-template class ForwardDemodulationImpl<false>;
-template class ForwardDemodulationImpl<true>;
 
 }

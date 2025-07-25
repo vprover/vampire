@@ -95,11 +95,15 @@ void BufferedSolver::flushUnadded()
 
   // flush _unadded to _inner
   _inner->addClausesIter(pvi(SATClauseStack::BottomFirstIterator(_unadded)));
+  // flush _polaritySuggestions
+  for(auto [var, pol] : _polaritySuggestions)
+    _inner->suggestPolarity(var, pol);
 
   // reset
   _unadded.reset();
   _checkedIdx = 0;
   _literalBuffer.reset();
+  _polaritySuggestions.clear();
 }
 
 /**
@@ -110,18 +114,18 @@ void BufferedSolver::flushUnadded()
  *
  * @author Martin
  */
-SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
+SATSolver::Status BufferedSolver::solveLimited(unsigned conflictCountLimit)
 {
   // BufferedSolver does not support "UNKNOWN" status as
   // it needs _inner to have either a model or to be provably unsat
   ASS_EQ(conflictCountLimit, UINT_MAX);
-  
+
   if (_lastStatus == Status::UNSATISFIABLE) {
     return Status::UNSATISFIABLE;
   }
-  
+
   ASS_EQ(_lastStatus,Status::SATISFIABLE);
-  
+
   // check if clauses are implied by current ground model and buffered literals
   size_t sz = _unadded.size();
   while(_checkedIdx < sz){
@@ -129,7 +133,7 @@ SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
     if(!checkAndRecordImplied(cl)){
       RSTAT_CTR_INC("solver_buffer_miss");
       flushUnadded();
-      return (_lastStatus = _inner->solve(conflictCountLimit));
+      return (_lastStatus = _inner->solveLimited(conflictCountLimit));
     }
   }
 
@@ -154,7 +158,7 @@ SATSolver::VarAssignment BufferedSolver::getAssignment(unsigned var)
 
   // refer to inner if variable not new
   if (var <= _varCntInnerOld) {
-    return _inner->getAssignment(var); 
+    return _inner->getAssignment(var);
   } else {
     return VarAssignment::DONT_CARE; // If it is new and not yet assigned in buffer
   }

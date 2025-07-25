@@ -165,15 +165,15 @@ public:
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
   Result compareUnidirectional(AppliedTerm t1, AppliedTerm t2) const override;
-  OrderingComparatorUP createComparator() const override;
+  TermOrderingDiagramUP createTermOrderingDiagram(bool ground = false) const override;
 
 protected:
   unsigned computeWeight(AppliedTerm tt) const;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
-  friend struct OrderingComparator;
-  friend class KBOComparator;
+  friend struct TermOrderingDiagram;
+  friend class TermOrderingDiagramKBO;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;
@@ -224,7 +224,7 @@ private:
 
     /**
      * Lexicographic traversal of two terms with same top symbol,
-     * i.e. traversing their symbols in lockstep, as descibed in
+     * i.e. traversing their symbols in lockstep, as described in
      * the Loechner et al. paper above. It performs a bidirectional
      * comparison between the two terms, i.e. we can get any value
      * of @b Result.
@@ -261,7 +261,7 @@ private:
       return res;
     }
 
-    friend class KBOComparator;
+    friend class TermOrderingDiagramKBO;
 
   }; // class KBO::State
 

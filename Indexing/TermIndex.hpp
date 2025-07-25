@@ -93,7 +93,6 @@ protected:
   void handleClause(Clause* c, bool adding) = 0;
 };
 
-template <bool combinatorySupSupport>
 class DemodulationSubtermIndexImpl
 : public DemodulationSubtermIndex
 {
@@ -202,61 +201,6 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
-/////////////////////////////////////////////////////
-// Indices for higher-order inferences from here on//
-/////////////////////////////////////////////////////
-
-class PrimitiveInstantiationIndex
-: public TermIndex<TermWithoutValue>
-{
-public:
-  PrimitiveInstantiationIndex(TermIndexingStructure<TermWithoutValue>* is) : TermIndex(is)
-  {
-    populateIndex();
-  }
-protected:
-  void populateIndex();
-};
-
-class SubVarSupSubtermIndex
-: public TermIndex<TermLiteralClause>
-{
-public:
-  SubVarSupSubtermIndex(TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
-  : TermIndex(is), _ord(ord) {};
-protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  Ordering& _ord;
-};
-
-class SubVarSupLHSIndex
-: public TermIndex<TermLiteralClause>
-{
-public:
-  SubVarSupLHSIndex(TermIndexingStructure<TermLiteralClause>* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord) {};
-protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  Ordering& _ord;
-};
-
-/**
- * Index used for narrowing with combinator axioms
- */
-class NarrowingIndex
-: public TermIndex<TermWithValue<Literal*>>
-{
-public:
-  NarrowingIndex(TermIndexingStructure<TermWithValue<Literal*>>* is) : TermIndex(is)
-  {
-    populateIndex();
-  }
-protected:
-  void populateIndex();
-};
-
 class SkolemisingFormulaIndex
 : public TermIndex<TermWithValue<TermList>>
 {
@@ -265,7 +209,6 @@ public:
   {}
   void insertFormula(TermList formula, TermList skolem);
 };
-
 
 } // namespace Indexing
 #endif /* __TermIndex__ */

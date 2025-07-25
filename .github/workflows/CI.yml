@@ -16,28 +16,44 @@ jobs:
         submodules: true
     - name: Check Copyright Headers
       run: checks/headers
-    - name: Create Z3 Build Directory
-      run: mkdir z3/build
-    - name: Configure Z3 Build
-      working-directory: ${{runner.workspace}}/vampire/z3/build
-      run: cmake .. -DCMAKE_BUILD_TYPE=Debug -DZ3_BUILD_EXECUTABLE=OFF -DZ3_BUILD_TEST_EXECUTABLES=OFF
+    - name: Get Z3 submodule commit hash
+      id: z3hash
+      run: |
+        echo "z3_hash=$(git rev-parse HEAD:z3)" >> $GITHUB_OUTPUT
+    - name: Restore Z3 build cache
+      id: cache-z3
+      uses: actions/cache@v4
+      with:
+        path: z3/build
+        key: z3-build-${{ steps.z3hash.outputs.z3_hash }}
+    - name: Configure and Build Z3 (if cache miss)
+      if: steps.cache-z3.outputs.cache-hit != 'true'
+      working-directory: ${{ runner.workspace }}/vampire
+      run: |
+        mkdir -p z3/build
+        cd z3/build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DZ3_BUILD_EXECUTABLE=OFF -DZ3_BUILD_TEST_EXECUTABLES=OFF
+        make -j8
       env:
         CXX: clang++
-    - name: Z3 Build
-      working-directory: ${{runner.workspace}}/vampire/z3/build
-      run: make -j8
-    - name: Create Build Directory
-      run: mkdir build
-    - name: Configure Build
-      working-directory: ${{runner.workspace}}/vampire/build
-      run: cmake .. -DCMAKE_BUILD_TYPE=Debug
+    - name: Configure and Build Vampire (Debug + Unit Tests)
+      working-directory: ${{ runner.workspace }}/vampire
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Debug
+        make vtest -j8
       env:
         CXX: clang++
-    - name: Build
-      working-directory: ${{runner.workspace}}/vampire/build
-      run: make -j8
     - name: Run Unit Tests
       working-directory: ${{runner.workspace}}/vampire/build
       run: ctest --output-on-failure
+    - name: Configure and Build Vampire (Release)
+      working-directory: ${{ runner.workspace }}/vampire/build
+      run: |
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        make -j8
+      env:
+        CXX: clang++
     - name: Run Sanity Checks
       run: checks/sanity build/vampire

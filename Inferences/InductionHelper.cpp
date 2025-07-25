@@ -57,7 +57,7 @@ bool isIntegerComparisonLiteral(Literal* lit) {
       // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
 
       // Equality proxy may generate useless congruence axioms for the likes of INT_GREATER
-      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ingore)
+      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ignore)
       ASS_EQ(env.options->equalityProxy(),Options::EqualityProxy::RSTC);
     default:
       // Not an integer comparison.
@@ -156,10 +156,38 @@ bool InductionHelper::isInductionClause(Clause* c) {
 
 bool InductionHelper::isInductionLiteral(Literal* l) {
   static bool negOnly = env.options->inductionNegOnly();
-  return ((!negOnly || l->isNegative() || 
-           (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
-          ) && l->ground()
+  return (!negOnly || l->isNegative() ||
+          (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
          );
+}
+
+bool InductionHelper::isGroundInductionLiteral(Literal* l) {
+  return (l->ground() && isInductionLiteral(l));
+}
+
+bool inductionLiteralHasAdmissibleVariables(Literal* l) {
+  if (l->getDistinctVars() != 1) {
+    return false;
+  }
+  for (unsigned idx = 0; idx < l->arity(); ++idx) {
+    if (l->nthArgument(idx)->isVar()) {
+      // NewCNF handles Booleans in some special way, which
+      // interferes with our clausification and resolution.
+      return SortHelper::getArgSort(l, idx) != AtomicSort::boolSort();
+    } else {
+      VariableWithSortIterator vi(l->nthArgument(idx)->term());
+      if (vi.hasNext()) {
+        return vi.next().second != AtomicSort::boolSort();
+      }
+    }
+  }
+  ASSERTION_VIOLATION_REP("No variables in a literal which should contain one variable!");
+  return true;
+}
+
+bool InductionHelper::isNonGroundInductionLiteral(Literal* l) {
+  static bool groundOnly = env.options->inductionGroundOnly();
+  return (!groundOnly && !l->ground() && inductionLiteralHasAdmissibleVariables(l) && isInductionLiteral(l));
 }
 
 bool InductionHelper::isInductionTermFunctor(unsigned f) {

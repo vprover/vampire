@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
 
 namespace Lib {
 
@@ -102,6 +103,7 @@ class UserErrorException
 
   // input line related to the error: non-zero if set
   unsigned line = 0;
+  std::string filename;
   void cry (std::ostream&) const;
 }; // UserErrorException
 
@@ -196,6 +198,10 @@ class NotImplementedException
   throw Lib::Exception(__FILE__,__LINE__)
 #define USER_ERROR(...) \
   throw Lib::UserErrorException(__VA_ARGS__)
+#define HOL_ERROR \
+  USER_ERROR("This version of Vampire is not yet HOLy.\n\n" \
+             "Support for higher-order logic is currently on the ahmed-new-hol branch.\n" \
+             "HOL should be coming to mainline 'soon'.")
 #define INVALID_OPERATION(msg) \
   throw Lib::InvalidOperationException(msg)
 #define SYSTEM_FAIL(msg,err) \

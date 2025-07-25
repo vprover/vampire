@@ -112,7 +112,7 @@ public:
     /**
      * Sample a random strategy from a distribution described by the given file.
      *
-     * The format of the sampler file should be easy to understant (Look for examples samplerFOL.txt, samplerFNT.txt, samplerSMT.txt under vampire root).
+     * The format of the sampler file should be easy to understand (Look for examples samplerFOL.txt, samplerFNT.txt, samplerSMT.txt under vampire root).
      * The file describes a sequence of sampling rules (one on each line, barring empty lines and comment lines starting with a #),
      * which are executed in order, and each rule (provided its preconditions are satisfied) triggers
      * sampling of a value for a particular option from a specified distribution.
@@ -132,7 +132,7 @@ public:
      * and if $nm is set to NZ, samples from a shifted geometric distribution with p=0.07 and a shift=2. (So 2 gets selected with a probability p,
      * 3 with a probability p(1-p), ... and 2+i with a probability p(1-p)^i).
      */
-    void sampleStrategy(const std::string& samplerFileName);
+    void sampleStrategy(const std::string& samplerFileName, DHMap<std::string,std::string> fakes = DHMap<std::string,std::string>());
 
     /**
      * Return the problem name
@@ -146,7 +146,6 @@ public:
     void setProblemName(std::string str) { _problemName.actualValue = str; }
 
     void setInputFile(const std::string& newVal){ _inputFile.set(newVal); }
-    std::string includeFileName (const std::string& relativeName);
 
     // standard ways of creating options
     void set(const std::string& name, const std::string& value); // implicitly the long version used here
@@ -170,6 +169,7 @@ public:
         OTHER,
         DEVELOPMENT,
         OUTPUT,
+        PORTFOLIO,
         FMB,
         SAT,
         AVATAR,
@@ -310,7 +310,7 @@ public:
     DIAGONAL,       // f(1) g(2) h(3) f(2) g(3) h(1) f(3) g(1) h(2)
   };
   enum class FMBSymbolOrders : unsigned int {
-    OCCURENCE,
+    OCCURRENCE,
     INPUT_USAGE,
     PREPROCESSED_USAGE
   };
@@ -407,8 +407,10 @@ public:
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
+    CASC_2025,
     CASC_SAT,
     CASC_SAT_2024,
+    CASC_SAT_2025,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
@@ -465,9 +467,10 @@ public:
 
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
-     MINISAT = 0
+     MINISAT = 0,
+     CADICAL = 1
 #if VZ3
-     ,Z3 = 1
+     ,Z3 = 2
 #endif
   };
 
@@ -560,8 +563,8 @@ public:
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,
     GOAL = 1,
-    UNIT = 2,
-    GOAL_UNIT = 3,
+    UNITS = 2,
+    GOAL_THEN_UNITS = 3,
     NON_INTRO = 4,
     INTRO = 5,
   };
@@ -583,6 +586,7 @@ public:
     TPTP = 3,
     PROPERTY = 4,
     SMT2_PROOFCHECK = 5,
+    SMTCHECK = 6
   };
 
   /** Values for --equality_proxy */
@@ -624,12 +628,6 @@ public:
   enum class SplittingAddComplementary : unsigned int {
     GROUND = 0,
     NONE = 1
-  };
-
-  enum class SplittingCongruenceClosure : unsigned int {
-    MODEL = 0,
-    OFF = 1,
-    ON = 2
   };
 
   enum class SplittingNonsplittableComponents : unsigned int {
@@ -753,16 +751,16 @@ public:
     FALSE_TRUE_NOT_EQ_NOT_EQ = 3
   };
 
-  enum class Narrow : unsigned int {
-    ALL = 0,
-    SK = 1,
-    SKI = 2,
-    OFF = 3
-  };
-
   enum class ProblemExportSyntax : unsigned int {
     SMTLIB = 0,
     API_CALLS = 1,
+  };
+
+  enum class HPrinting : unsigned int {
+    RAW = 0,
+    DB_INDICES = 1,
+    PRETTY = 2,
+    TPTP = 3
   };
 
     //==========================================================
@@ -879,7 +877,7 @@ private:
         bool experimental;
         bool is_set;
 
-        // Checking constraits
+        // Checking constraints
         virtual bool checkConstraints() = 0;
         virtual bool checkProblemConstraints(Property* prop) = 0;
 
@@ -928,7 +926,7 @@ private:
             else{ out << "\tno description provided!" << std::endl; }
         }
 
-        // Used to determine wheter the value of an option should be copied when
+        // Used to determine whether the value of an option should be copied when
         // the Options object is copied.
         bool _should_copy;
         bool shouldCopy() const { return _should_copy; }
@@ -1193,7 +1191,7 @@ std::string getStringOfValue(float value) const{ return Lib::Int::toString(value
 
 /**
 * Ratios have two actual values and two default values
-* Therefore, we often need to tread them specially
+* Therefore, we often need to treat them specially
 * @author Giles
 */
 struct RatioOptionValue : public OptionValue<int> {
@@ -1209,7 +1207,7 @@ void addConstraintIfNotDefault(AbstractWrappedConstraintUP c){
     addConstraint(If(isNotDefaultRatio()).then(unwrap<int>(c)));
 }
 
-bool readRatio(const char* val,char seperator);
+bool readRatio(const char* val,char separator);
 bool setValue(const std::string& value) override {
     return readRatio(value.c_str(),sep);
 }
@@ -1240,8 +1238,8 @@ virtual std::string getStringOfActual() const override {
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
 NonGoalWeightOptionValue(){}
-NonGoalWeightOptionValue(std::string l, std::string s, float def) :
-OptionValue(l,s,def), numerator(1), denominator(1) {};
+NonGoalWeightOptionValue(std::string l, std::string s) :
+OptionValue(l,s,10.0), numerator(10), denominator(1) {};
 
 bool setValue(const std::string& value);
 
@@ -2016,7 +2014,6 @@ public:
   void setNormalize(bool normalize) { _normalize.actualValue = normalize; }
   GoalGuess guessTheGoal() const { return _guessTheGoal.actualValue; }
   unsigned gtgLimit() const { return _guessTheGoalLimit.actualValue; }
-  void setMaxXX(unsigned max) { _maximumXXNarrows.actualValue = max; }
 
   void setNaming(int n){ _naming.actualValue = n;} //TODO: ensure global constraints
   std::string include() const { return _include.actualValue; }
@@ -2028,6 +2025,7 @@ public:
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   const std::string& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
+  bool replaceDomainElements() const { return _replaceDomainElements.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
@@ -2049,6 +2047,8 @@ public:
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
   bool showInduction() const { return showAll() || _showInduction.actualValue; }
   bool showSimplOrdering() const { return showAll() || _showSimplOrdering.actualValue; }
+  bool showPropDict() const { return _showPropDict.actualValue; }
+
 #if VAMPIRE_CLAUSE_TRACING
   int traceBackward() { return _traceBackward.actualValue; }
   int traceForward() { return _traceForward.actualValue; }
@@ -2084,7 +2084,7 @@ public:
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
-  // TODO make alasca independent of normal eveluation
+  // TODO make alasca independent of normal evaluation
   bool useACeval() const { return _useACeval.actualValue; }
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
@@ -2105,21 +2105,22 @@ public:
   bool forwardSubsumptionDemodulation() const { return _forwardSubsumptionDemodulation.actualValue; }
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
+  bool forwardGroundJoinability() const { return _forwardGroundJoinability.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
-  bool conditionalRedundancyCheck() const { return _conditionalRedundancyCheck.actualValue; }
-  bool conditionalRedundancyOrderingConstraints() const { return _conditionalRedundancyOrderingConstraints.actualValue; }
-  bool conditionalRedundancyAvatarConstraints() const { return _conditionalRedundancyAvatarConstraints.actualValue; }
-  bool conditionalRedundancyLiteralConstraints() const { return _conditionalRedundancyLiteralConstraints.actualValue; }
+  bool partialRedundancyCheck() const { return _partialRedundancyCheck.actualValue; }
+  bool partialRedundancyOrderingConstraints() const { return _partialRedundancyOrderingConstraints.actualValue; }
+  bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
+  bool partialRedundancyLiteralConstraints() const { return _partialRedundancyLiteralConstraints.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
-  bool demodulationPrecompiledComparison() const { return _demodulationPrecompiledComparison.actualValue; }
+  bool forwardDemodulationTermOrderingDiagrams() const { return _forwardDemodulationTermOrderingDiagrams.actualValue; }
   bool demodulationOnlyEquational() const { return _demodulationOnlyEquational.actualValue; }
 
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
@@ -2133,6 +2134,7 @@ public:
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   int lrsRetroactiveDeletes() const { return _lrsRetroactiveDeletes.actualValue; }
+  int lrsPreemptiveDeletes() const { return _lrsPreemptiveDeletes.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
@@ -2207,8 +2209,10 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
-  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizeSeedForPortfolioWorkers.actualValue = val; }
+  bool shuffleOnScheduleRepeats() const { return _shuffleOnScheduleRepeats.actualValue; }
+  void enableShuffling() { _shuffleInput.actualValue = true; _randomTraversals.actualValue = true; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2272,6 +2276,7 @@ public:
   bool inductionStrengthenHypothesis() const { return _inductionStrengthenHypothesis.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
+  bool inductionGroundOnly() const {return _inductionGroundOnly.actualValue;}
   bool functionDefinitionRewriting() const { return _functionDefinitionRewriting.actualValue; }
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
@@ -2291,6 +2296,7 @@ public:
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
+  bool cleaveNonsplittables() const{ return _cleaveNonsplittables.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
   SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
@@ -2302,7 +2308,7 @@ public:
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
   bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
-  SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
+  bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
@@ -2325,32 +2331,18 @@ public:
 
   //Higher-order Options
 
-  bool addCombAxioms() const { return _addCombAxioms.actualValue; }
-  bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
-  bool combinatorySup() const { return _combinatorySuperposition.actualValue; }
+  HPrinting holPrinting() const { return _holPrinting.actualValue; }
+  void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
+
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
-  bool pragmatic() const { return _pragmatic.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
-  bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
-  int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
-  PISet piSet() const { return _piSet.actualValue; }
-  Narrow narrow() const { return _narrow.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
-  bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
-  bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
-  bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
-  bool complexVarCondition() const { return _complexVarCondition.actualValue; }
-  // For unit testing
-  void useCombSup() {
-    _combinatorySuperposition.actualValue = true;
-    _complexVarCondition.actualValue = true;
-  }
 
 private:
 
@@ -2477,7 +2469,7 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
-  BoolOptionValue _demodulationPrecompiledComparison;
+  BoolOptionValue _forwardDemodulationTermOrderingDiagrams;
   BoolOptionValue _demodulationOnlyEquational;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
@@ -2511,6 +2503,7 @@ private:
   BoolOptionValue _forceIncompleteness;
   StringOptionValue _forcedOptions;
   ChoiceOptionValue<Demodulation> _forwardDemodulation;
+  BoolOptionValue _forwardGroundJoinability;
   BoolOptionValue _forwardLiteralRewriting;
   BoolOptionValue _forwardSubsumption;
   BoolOptionValue _forwardSubsumptionResolution;
@@ -2532,10 +2525,10 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
-  BoolOptionValue _conditionalRedundancyCheck;
-  BoolOptionValue _conditionalRedundancyOrderingConstraints;
-  BoolOptionValue _conditionalRedundancyAvatarConstraints;
-  BoolOptionValue _conditionalRedundancyLiteralConstraints;
+  BoolOptionValue _partialRedundancyCheck;
+  BoolOptionValue _partialRedundancyOrderingConstraints;
+  BoolOptionValue _partialRedundancyAvatarConstraints;
+  BoolOptionValue _partialRedundancyLiteralConstraints;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
@@ -2566,6 +2559,7 @@ private:
   BoolOptionValue _inductionStrengthenHypothesis;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
+  BoolOptionValue _inductionGroundOnly;
   BoolOptionValue _functionDefinitionRewriting;
   BoolOptionValue _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
@@ -2587,6 +2581,7 @@ private:
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   BoolOptionValue _lrsRetroactiveDeletes;
+  BoolOptionValue _lrsPreemptiveDeletes;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
@@ -2604,7 +2599,8 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
-  BoolOptionValue _randomizSeedForPortfolioWorkers;
+  BoolOptionValue _randomizeSeedForPortfolioWorkers;
+  BoolOptionValue _shuffleOnScheduleRepeats;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
@@ -2616,6 +2612,7 @@ private:
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
+  BoolOptionValue _replaceDomainElements;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
@@ -2664,6 +2661,7 @@ private:
   BoolOptionValue _showFMBsortInfo;
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
+  BoolOptionValue _showPropDict;
 #if VAMPIRE_CLAUSE_TRACING
   // TODO make unsigned option value
   IntOptionValue _traceBackward;
@@ -2695,8 +2693,9 @@ private:
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
+  BoolOptionValue _cleaveNonsplittables;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
-  ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
+  BoolOptionValue _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
   BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
@@ -2773,28 +2772,17 @@ private:
 
 
   //Higher-order options
-  BoolOptionValue _addCombAxioms;
-  BoolOptionValue _addProxyAxioms;
-  BoolOptionValue _combinatorySuperposition;
+  ChoiceOptionValue<HPrinting> _holPrinting;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
-  BoolOptionValue _pragmatic;
   BoolOptionValue _choiceReasoning;
-  BoolOptionValue _priortyToLongReducts;
-  IntOptionValue  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
-  ChoiceOptionValue<PISet> _piSet;
-  ChoiceOptionValue<Narrow> _narrow;
   BoolOptionValue _equalityToEquivalence;
-  BoolOptionValue _complexBooleanReasoning;
-  BoolOptionValue _booleanEqTrick;
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
-  BoolOptionValue _lambdaFreeHol;
-  BoolOptionValue _complexVarCondition;
 
 }; // class Options
 

@@ -28,7 +28,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Shell/LambdaElimination.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 
 #include "TermIndex.hpp"
@@ -46,8 +45,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord)
-                                              : EqHelper::getSubtermIterator(lit,_ord);
+    auto rsti = EqHelper::getSubtermIterator(lit, _ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
       ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause{ tt, lit, c }, adding);
@@ -69,8 +67,8 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-template <bool combinatorySupSupport>
-void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
+
+void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward demodulation index maintenance");
 
@@ -96,9 +94,8 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
     if (skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
-    typename std::conditional<!combinatorySupSupport,
-      NonVariableNonTypeIterator,
-      FirstOrderSubtermIt>::type it(lit);
+
+    NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
       Term* t= it.next();
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
@@ -116,11 +113,6 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
     }
   }
 }
-
-// This is necessary for templates defined in cpp files.
-// We are happy to do it for DemodulationSubtermIndexImpl, since it (at the moment) has only two specializations:
-template class DemodulationSubtermIndexImpl<false>;
-template class DemodulationSubtermIndexImpl<true>;
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
@@ -291,7 +283,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
   // Iterate through literals & check if the literal is suitable for induction
   for (unsigned i=0;i<c->length();i++) {
     Literal* lit = (*c)[i];
-    if (!InductionHelper::isInductionLiteral(lit)) {
+    if (!InductionHelper::isGroundInductionLiteral(lit)) {
       continue;
     }
 
@@ -350,177 +342,6 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
         }
       }
     }
-  }
-}
-
-
-/////////////////////////////////////////////////////
-// Indices for higher-order inferences from here on//
-/////////////////////////////////////////////////////
-
-void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
-{
-  DHSet<unsigned> unstableVars;
-  c->collectUnstableVars(unstableVars);
-
-  unsigned selCnt=c->numSelected();
-  for (unsigned i=0; i<selCnt; i++) {
-    Literal* lit=(*c)[i];
-    auto rvi = EqHelper::getRewritableVarsIterator(&unstableVars, lit,_ord);
-    while(rvi.hasNext()){
-      _is->handle(TermLiteralClause{ rvi.next(), lit, c }, adding);
-    }
-  }
-}
-
-void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
-{
-  unsigned selCnt=c->numSelected();
-  for (unsigned i=0; i<selCnt; i++) {
-    Literal* lit=(*c)[i];
-    auto lhsi = EqHelper::getSubVarSupLHSIterator(lit, _ord);
-    while (lhsi.hasNext()) {
-      _is->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
-    }
-  }
-}
-void PrimitiveInstantiationIndex::populateIndex()
-{
-  typedef ApplicativeHelper AH;
-
-  static Options::PISet set = env.options->piSet();
-
-  auto srtOf = [] (TermList t) {
-    ASS(t.isTerm());
-    return SortHelper::getResultSort(t.term());
-  };
-
-  static TermList boolS = AtomicSort::boolSort();
-
-  TermList s1 = TermList(0, false);
-  TermList x = TermList(1, false);
-  TermList y = TermList(2, false);
-  TermList s1_bool = AtomicSort::arrowSort(s1, boolS);
-  TermList args1[] = {s1, boolS, boolS};
-  TermList args2[] = {s1, s1_bool, s1_bool};
-
-  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
-  unsigned v_and = env.signature->getBinaryProxy("vAND");
-  unsigned v_or = env.signature->getBinaryProxy("vOR");
-  unsigned v_imp = env.signature->getBinaryProxy("vIMP");
-  unsigned v_not = env.signature->getNotProxy();
-  unsigned v_equals = env.signature->getEqualityProxy();
-
-  TermList kcomb = TermList(Term::create2(k_comb, AtomicSort::boolSort(), s1));
-  TermList bcomb1 = TermList(Term::create(b_comb, 3, args1));
-  TermList bcomb2 = TermList(Term::create(b_comb, 3, args2));
-  TermList vand = TermList(Term::createConstant(v_and));
-  TermList vor = TermList(Term::createConstant(v_or));
-  TermList vimp = TermList(Term::createConstant(v_imp));
-  TermList vnot = TermList(Term::createConstant(v_not));
-  TermList vequals = TermList(Term::create1(v_equals, s1));
-
-  TermList kTerm1 = AH::createAppTerm3(srtOf(kcomb), kcomb, TermList(Term::foolFalse()), x);
-  TermList kTerm2 = AH::createAppTerm3(srtOf(kcomb), kcomb, TermList(Term::foolTrue()), x);
-  TermList andTerm = AH::createAppTerm3(srtOf(vand), vand, x, y);
-  TermList orTerm = AH::createAppTerm3(srtOf(vor), vor, x, y);
-  TermList impTerm = AH::createAppTerm3(srtOf(vimp), vimp, x, y);
-  TermList notTerm = AH::createAppTerm(srtOf(vnot), vnot, x);
-  TermList equalsTerm = AH::createAppTerm3(srtOf(vequals), vequals, x, y);
-  TermList trm = AH::createAppTerm(srtOf(bcomb1), bcomb1, vnot);
-  TermList notEqualsTerm = AH::createAppTerm3(srtOf(bcomb2), bcomb2, trm, vequals);
-  notEqualsTerm = AH::createAppTerm3(srtOf(notEqualsTerm), notEqualsTerm, x, y);
-
-  if(set == Options::PISet::ALL){
-    _is->insert(TermWithoutValue(kTerm1.term()));
-    _is->insert(TermWithoutValue(kTerm2.term()));
-    _is->insert(TermWithoutValue(andTerm.term()));
-    _is->insert(TermWithoutValue(orTerm.term()));
-    _is->insert(TermWithoutValue(impTerm.term()));
-    _is->insert(TermWithoutValue(notTerm.term()));
-    _is->insert(TermWithoutValue(equalsTerm.term()));
-    _is->insert(TermWithoutValue(notEqualsTerm.term()));
-  } else if (set == Options::PISet::ALL_EXCEPT_NOT_EQ){
-    _is->insert(TermWithoutValue(kTerm1.term()));
-    _is->insert(TermWithoutValue(kTerm2.term()));
-    _is->insert(TermWithoutValue(andTerm.term()));
-    _is->insert(TermWithoutValue(orTerm.term()));
-    _is->insert(TermWithoutValue(impTerm.term()));
-    _is->insert(TermWithoutValue(notTerm.term()));
-    _is->insert(TermWithoutValue(equalsTerm.term()));
-  } else if (set == Options::PISet::FALSE_TRUE_NOT){
-    _is->insert(TermWithoutValue(kTerm1.term()));
-    _is->insert(TermWithoutValue(kTerm2.term()));
-    _is->insert(TermWithoutValue(notTerm.term()));
-  } else if (set == Options::PISet::FALSE_TRUE_NOT_EQ_NOT_EQ){
-    _is->insert(TermWithoutValue(kTerm1.term()));
-    _is->insert(TermWithoutValue(kTerm2.term()));
-    _is->insert(TermWithoutValue(notTerm.term()));
-    _is->insert(TermWithoutValue(equalsTerm.term()));
-    _is->insert(TermWithoutValue(notEqualsTerm.term()));
-  }
-}
-
-void NarrowingIndex::populateIndex()
-{
-  typedef ApplicativeHelper AH;
-
-  static Options::Narrow set = env.options->narrow();
-
-  auto srtOf = [] (TermList t) {
-     ASS(t.isTerm());
-     return SortHelper::getResultSort(t.term());
-  };
-
-  TermList s1 = TermList(0, false);
-  TermList s2 = TermList(1, false);
-  TermList s3 = TermList(2, false);
-  TermList x = TermList(3, false);
-  TermList y = TermList(4, false);
-  TermList z = TermList(5, false);
-  TermList args[] = {s1, s2, s3};
-
-  unsigned s_comb = env.signature->getCombinator(Signature::S_COMB);
-  TermList constant = TermList(Term::create(s_comb, 3, args));
-  TermList lhsS = AH::createAppTerm(srtOf(constant), constant, x, y, z);
-  TermList rhsS = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
-  Literal* sLit = Literal::createEquality(true, lhsS, rhsS, s3);
-
-  unsigned c_comb = env.signature->getCombinator(Signature::C_COMB);
-  constant = TermList(Term::create(c_comb, 3, args));  TermList lhsC = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
-  TermList rhsC = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, y);
-  Literal* cLit = Literal::createEquality(true, lhsC, rhsC, s3);
-
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
-  constant = TermList(Term::create(b_comb, 3, args));
-  TermList lhsB = AH::createAppTerm(srtOf(constant), constant, x, y, z); 
-  TermList rhsB = AH::createAppTerm(AtomicSort::arrowSort(s2, s3), x, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
-  Literal* bLit = Literal::createEquality(true, lhsB, rhsB, s3);
-
-  unsigned k_comb = env.signature->getCombinator(Signature::K_COMB);
-  constant = TermList(Term::create2(k_comb, s1, s2));
-  TermList lhsK = AH::createAppTerm3(srtOf(constant), constant, x, y);
-  Literal* kLit = Literal::createEquality(true, lhsK, x, s1);
-
-  unsigned i_comb = env.signature->getCombinator(Signature::I_COMB);
-  constant = TermList(Term::create1(i_comb, s1));
-  TermList lhsI = AH::createAppTerm(srtOf(constant), constant, x);
-  Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
-
-  if(set == Options::Narrow::ALL){
-    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
-    _is->insert(TermWithValue<Literal*>(lhsC.term(), cLit));
-    _is->insert(TermWithValue<Literal*>(lhsB.term(), bLit));
-    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
-    _is->insert(TermWithValue<Literal*>(lhsI.term(), iLit));
-  } else if (set == Options::Narrow::SKI) {
-    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
-    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
-    _is->insert(TermWithValue<Literal*>(lhsI.term(), iLit));
-  } else if (set == Options::Narrow::SK){
-    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
-    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
   }
 }
 

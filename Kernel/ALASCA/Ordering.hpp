@@ -274,7 +274,7 @@ struct LAKBO {
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const 
-  DEBUG_FN_RESULT(2, Output::cat("comapre", std::tie(t0, t1), " = "),
+  DEBUG_FN_RESULT(2, Output::cat("compare", std::tie(t0, t1), " = "),
   {
     if (t0 == t1) return Ordering::Result::EQUAL;
     auto s0 = skeleton(t0);

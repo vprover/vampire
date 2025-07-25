@@ -162,7 +162,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         if (conclusion) {
           ASS(premise == nullptr)
           // cannot override the premise since the loop would have ended otherwise
-          // the premise will be overriden if a subsumption is found
+          // the premise will be overridden if a subsumption is found
           premise = mcl;
         }
       }
@@ -190,7 +190,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // This behavior can be chained and several resolution can happen at the same time
   // The negatively matching literals are stacked and removed at the same time
   // However, some experiments showed that chaining subsumption resolutions yields poor performance
-  // The intuition for this problem is that the intermidiate clauses can sometimes be useful.
+  // The intuition for this problem is that the intermediate clauses can sometimes be useful.
   // This is why we do not chain subsumption resolutions.
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];

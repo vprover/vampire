@@ -21,7 +21,7 @@
  * -----
  * 
  * There are a few minor differences in our take on the idea:
- * - the defitions are introduced bottum up and cached (so each subterm is only defined once)
+ * - the definitions are introduced bottum up and cached (so each subterm is only defined once)
  * - the bottom-up approach also means the rules and the conjecture "are born" already inter-reduced
  * - optionally, also non-ground subterms are considered, but never in the case this would not lead 
  *  to a demodulator under the standard (constant weight) KBO: 
@@ -35,6 +35,8 @@
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/InferenceStore.hpp"
+
+#include "Lib/Environment.hpp"
 
 #include "TweeGoalTransformation.hpp"
 
@@ -55,7 +57,7 @@ class Definizator : public BottomUpTermTransformer {
     // all the new definitions (as clauses) introduced along the way
     UnitList* newUnits;
 
-    // accumlating the defining units as premises for the current "rewrite"
+    // accumulating the defining units as premises for the current "rewrite"
     // (reset responsibility is with TweeGoalTransformation::apply)
     UnitList* premises;
 
