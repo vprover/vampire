@@ -2469,6 +2469,7 @@ void Options::init()
                  "Other",
                  "Development",
                  "Output",
+                 "Portfolio",
                  "Finite Model Building",
                  "SAT Solving",
                  "AVATAR",
