@@ -234,7 +234,7 @@ public:
 
   private:
     // bitfield
-    uint64_t _content;
+    uint64_t _content = 0;
 
     /**
      * Pointer to an alternative operation
