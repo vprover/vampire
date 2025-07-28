@@ -2027,11 +2027,6 @@ void Options::init()
     _globalSubsumption.tag(OptionTag::INFERENCES);
     // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
 
-    _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",true);
-    _useHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection (affects avatar).";
-    _lookup.insert(&_useHashingVariantIndex);
-    _useHashingVariantIndex.tag(OptionTag::OTHER);
-
 //*********************** AVATAR  ***********************
 
     _splitting = BoolOptionValue("avatar","av",true);

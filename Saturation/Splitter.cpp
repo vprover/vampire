@@ -563,11 +563,8 @@ void Splitter::init(SaturationAlgorithm* sa)
   _deleteDeactivated = opts.splittingDeleteDeactivated();
   _cleaveNonsplittables = opts.cleaveNonsplittables();
 
-  if (opts.useHashingVariantIndex()) {
-    _componentIdx = new HashingClauseVariantIndex();
-  } else {
-    _componentIdx = new SubstitutionTreeClauseVariantIndex();
-  }
+  // _componentIdx = new SubstitutionTreeClauseVariantIndex();
+  _componentIdx = new HashingClauseVariantIndex();
 }
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
