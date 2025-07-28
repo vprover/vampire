@@ -399,10 +399,6 @@ avsq=on > avsqr ~u2r -5;3;,
 # global_subsumption
 > gs ~cat off:5,on:1
 
-# MISC
-
-> uhcvi ~cat off:1,on:1
-
 # GOAL GUESSING - useful for induction on SMTLIB problems (without assert-not)
 
 # guess_the_goal
