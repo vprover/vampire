@@ -1116,6 +1116,12 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
   ClauseIterator existingComponents;
   {
     TIME_TRACE("splitting component index usage");
+    cout << "to retrieveVariants ";
+    for (unsigned i = 0; i < size; i++) {
+      cout << lits[i]->toString() << " ";
+    }
+    cout << endl;
+
     existingComponents = _componentIdx->retrieveVariants(lits, size);
   }
 
@@ -1123,6 +1129,9 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
     return false;
   }
   compCl = existingComponents.next();
+
+  cout << "   retreived " << compCl->toString() << endl;
+
   ASS(!existingComponents.hasNext());
   comp = compCl->splits()->sval();
   return true;
@@ -1209,6 +1218,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   {
     TIME_TRACE("splitting component index maintenance");
+    cout << "to insert " << compCl->toString() << endl;
     _componentIdx->insert(compCl);
   }
 
