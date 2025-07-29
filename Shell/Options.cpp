@@ -2102,21 +2102,6 @@ void Options::init()
     _splittingDeleteDeactivated.tag(OptionTag::AVATAR);
     _splittingDeleteDeactivated.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingFlushPeriod = UnsignedOptionValue("avatar_flush_period","afp",0);
-    _splittingFlushPeriod.description=
-    "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
-    _lookup.insert(&_splittingFlushPeriod);
-    _splittingFlushPeriod.tag(OptionTag::AVATAR);
-    _splittingFlushPeriod.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _splittingFlushQuotient = FloatOptionValue("avatar_flush_quotient","afq",1.5);
-    _splittingFlushQuotient.description=
-    "after each flush, the avatar_flush_period is multiplied by the quotient";
-    _lookup.insert(&_splittingFlushQuotient);
-    _splittingFlushQuotient.tag(OptionTag::AVATAR);
-    _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
-    _splittingFlushQuotient.onlyUsefulWith(_splittingFlushPeriod.is(notEqual((unsigned)0)));
-
     _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",1.0);
     _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 1.0 means AVATAR runs until the end).\n"
         "(the remaining time AVATAR is still switching branches and communicating with the SAT solver,\n"

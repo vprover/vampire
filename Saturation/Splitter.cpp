@@ -437,7 +437,7 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl)
   _solver->addClause(cl);
 }
 
-void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize)
+void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
@@ -447,9 +447,6 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   SATSolver::Status stat;
   {
     TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
-    if (randomize) {
-      _solver->randomizeForNextAssignment(maxSatVar);
-    }
     stat = _solver->solve();
   }
   if (stat == SATSolver::Status::SATISFIABLE) {
@@ -529,9 +526,6 @@ void Splitter::init(SaturationAlgorithm* sa)
   _complBehavior = opts.splittingAddComplementary();
   _nonsplComps = opts.splittingNonsplittableComponents();
 
-  _flushPeriod = opts.splittingFlushPeriod();
-  _flushQuotient = opts.splittingFlushQuotient();
-  _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
   _congruenceClosure = opts.splittingCongruenceClosure();
   _shuffleComponents = opts.randomTraversals();
 
@@ -648,20 +642,8 @@ Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
 
 void Splitter::onAllProcessed()
 {
-  bool flushing = false;
-  if(_flushPeriod) {
-    if(_haveBranchRefutation) {
-      _flushThreshold = _sa->getGeneratedClauseCount()+_flushPeriod;
-    }
-    if(_sa->getGeneratedClauseCount()>=_flushThreshold && !_clausesAdded) {
-      flushing = true;
-      _flushThreshold = _sa->getGeneratedClauseCount()+_flushPeriod;
-      _flushPeriod = static_cast<unsigned>(_flushPeriod*_flushQuotient);
-    }
-  }
-
   _haveBranchRefutation = false;
-  if(!_clausesAdded && !flushing) {
+  if(!_clausesAdded) {
     return;
   }
   _clausesAdded = false;
@@ -672,7 +654,7 @@ void Splitter::onAllProcessed()
   toAdd.reset();
   toRemove.reset();
 
-  _branchSelector.recomputeModel(toAdd, toRemove, flushing);
+  _branchSelector.recomputeModel(toAdd, toRemove);
 
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     std::cout << "[AVATAR] recomputeModel: + ";

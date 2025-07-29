@@ -2270,8 +2270,6 @@ public:
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
   bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
-  int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
-  float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
@@ -2655,8 +2653,6 @@ private:
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   BoolOptionValue _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
-  UnsignedOptionValue _splittingFlushPeriod;
-  FloatOptionValue _splittingFlushQuotient;
   FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
   BoolOptionValue _splittingMinimizeModel;
