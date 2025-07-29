@@ -2027,17 +2027,6 @@ void Options::init()
     _globalSubsumption.tag(OptionTag::INFERENCES);
     // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
 
-    _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
-        GlobalSubsumptionAvatarAssumptions::OFF,{"off","from_current","full_model"});
-    _globalSubsumptionAvatarAssumptions.description=
-      "When running global subsumption and AVATAR at the same time we need to include information about the current AVATAR model. When this is off "
-      "we ignore clauses with AVATAR assumptions for GS. When it is from_current we assume the assumptions in the current clause. When it is "
-      "full_model we assume the full model from AVATAR. See paper Global Subsumption Revisited (Briefly).";
-    _lookup.insert(&_globalSubsumptionAvatarAssumptions);
-    _globalSubsumptionAvatarAssumptions.tag(OptionTag::INFERENCES);
-    _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-    _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_splitting.is(equal(true)));
-
     _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",true);
     _useHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection (affects avatar).";
     _lookup.insert(&_useHashingVariantIndex);

@@ -47,9 +47,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 GlobalSubsumption::GlobalSubsumption(const Options& opts) :
-  _randomizeMinim(opts.randomTraversals()),
-  _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
-  _splitter(0)
+  _randomizeMinim(opts.randomTraversals())
 {
   _solver = new MinisatInterfacing;
   _grounder = new GlobalSubsumptionGrounder(*_solver);
@@ -58,12 +56,6 @@ GlobalSubsumption::GlobalSubsumption(const Options& opts) :
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-
-  if (_salg->getOptions().globalSubsumptionAvatarAssumptions() == Options::GlobalSubsumptionAvatarAssumptions::FULL_MODEL) {
-    _splitter=_salg->getSplitter();
-  } else {
-    _splitter = 0;
-  }
 }
 
 void GlobalSubsumption::detach()
@@ -82,10 +74,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   TIME_TRACE("global subsumption");
 
   if(cl->color()==COLOR_LEFT) {
-    return cl;
-  }
-
-  if(!_splittingAssumps && cl->splits() && cl->splits()->size()!=0) {
     return cl;
   }
 
@@ -116,30 +104,13 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   //
   // also keep filling assumps for gsaa=crom_curent
   if (cl->splits() && cl->splits()->size()!=0) {
-    ASS(_splittingAssumps);
-
     auto sit = cl->splits()->iter();
     while(sit.hasNext()) {
       SplitLevel l = sit.next();
       unsigned var = splitLevelToVar(l);
 
       plits.push(SATLiteral(var,false)); // negative
-      if (!_splitter) {
-        assumps.push(SATLiteral(var,true)); // positive
-      }
-    }
-  }
-
-  // for gsaa=full_model, assume all active split levels instead
-  if (_splitter) {
-    ASS(_splittingAssumps);
-
-    SplitLevel bound = _splitter->splitLevelBound();
-    for (SplitLevel lev = 0; lev < bound; lev++) {
-      if (_splitter->splitLevelActive(lev)) {
-        unsigned var = splitLevelToVar(lev);
-        assumps.push(SATLiteral(var,true)); // positive
-      }
+      assumps.push(SATLiteral(var,true)); // positive
     }
   }
 
@@ -199,14 +170,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
           // Some solvers may return "all the clauses added so far" in the refutation.
           // That must be filtered since a derived clause cannot depend on inactive splits
           [this] (SATClause* prem) {
-
-            // ignore ASSUMPTION clauses (they don't have FO premises anyway)
-            if (prem->inference()->getType() == SATInference::ASSUMPTION) {
-              ASS_EQ(prem->size(),1);
-              return false;
-            }
-
-            // and don't keep any premise which mentions an unassumed split level assumption
+            // don't keep any premise which mentions an unassumed split level assumption
             unsigned prem_sz = prem->size();
             for (unsigned i = 0; i < prem_sz; i++ ) {
               SATLiteral lit = (*prem)[i];
