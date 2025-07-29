@@ -360,14 +360,6 @@ av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 # av=on $atotf!=1 > atotf ~uf 0.0,0.7
 # TODO: leaving out weird timing dependent options
 
-# avatar_flush_period
-av=on > $afp ~cat 0:15,666:1
-av=on $afp=0 > afp ~cat 0:1
-av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
-
-# avatar_flush_quotient
-afp!=0 > afq ~uf 1.0,3.0
-
 # nonliterals_in_clause_weight
 av=on > nicw ~cat off:600,on:76
 
