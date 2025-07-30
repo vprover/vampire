@@ -43,7 +43,7 @@ public:
 
   /** New clause */
   SATClause(unsigned length);
-  
+
   SATInference* inference() const { return _inference; }
   void setInference(SATInference* val);
 
@@ -70,28 +70,26 @@ public:
   /**
    * Return the (reference to) the nth literal
    */
-  inline SATLiteral& operator[] (int n)
+  SATLiteral& operator[] (int n)
   { return _literals[n]; }
   /** Return the (reference to) the nth literal */
-  inline const SATLiteral& operator[] (int n) const
+  const SATLiteral& operator[] (int n) const
   { return const_cast<const SATLiteral&>(_literals[n]); }
 
   /** Return the length (number of literals) */
-  inline unsigned length() const { return _length; }
+  unsigned length() const { return _length; }
   /** Alternative name for length to conform with other containers */
-  inline unsigned size() const { return _length; }
+  unsigned size() const { return _length; }
 
   /** Return a pointer to the array of literals. */
-  inline SATLiteral* literals() { return _literals; }
+  SATLiteral* literals() { return _literals; }
 
   /** True if the clause is empty */
-  inline bool isEmpty() const { return _length == 0; }
+  bool isEmpty() const { return _length == 0; }
 
   void sort();
 
   void destroy();
-
-  std::string toString() const;
 
   static SATClause* removeDuplicateLiterals(SATClause *cl);
 
@@ -109,7 +107,16 @@ private:
   SATLiteral _literals[1];
 }; // class SATClause
 
-std::ostream& operator<< (std::ostream& out, const SAT::SATClause& cl );
+inline std::ostream& operator<<(std::ostream &out, const SAT::SATClause &cl)
+{
+  if (cl.length() == 0) {
+    return out << "#";
+  }
+  out << cl[0];
+  for(unsigned i = 1; i < cl.length(); i++)
+    out << " | " << cl[i];
+  return out;
+}
 
 };
 

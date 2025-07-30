@@ -135,7 +135,7 @@ void SATClause::setInference(SATInference* val)
 
 static bool litComparator(SATLiteral l1, SATLiteral l2)
 {
-  return l1.content()>l2.content();
+  return l2 < l1;
 }
 
 /**
@@ -155,7 +155,7 @@ SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
   unsigned duplicate=0;
   for(unsigned i=1;i<clen;i++) {
     if((*cl)[i-1].var()==(*cl)[i].var()) {
-      if((*cl)[i-1].polarity()==(*cl)[i].polarity()) {
+      if((*cl)[i-1].positive()==(*cl)[i].positive()) {
         //We must get rid of the first occurrence of the duplicate (at i-1). Removing
         //the second would make us miss the case when there are three duplicates.
         std::swap((*cl)[duplicate], (*cl)[i-1]);
@@ -203,31 +203,6 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
   }
   ASS_EQ(i, clen);
   return rcl;
-}
-
-/**
- * Convert the clause to the string representation.
- */
-std::string SATClause::toString() const
-{
-  std::string result;
-  if (_length == 0) {
-    result = "#";
-  } else {
-    result = _literals[0].toString();
-    if (_length > 1) {
-      for (unsigned i = 1; i < _length;i++) {
-	result += " | ";
-	result += _literals[i].toString();
-      }
-    }
-  }
-  return result;
-} // SATClause::toString
-
-std::ostream& operator<< (std::ostream& out, const SAT::SATClause& cl )
-{
-  return out<<cl.toString();
 }
 
 };

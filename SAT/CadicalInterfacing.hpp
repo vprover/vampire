@@ -55,22 +55,6 @@ public:
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
   virtual bool isZeroImplied(unsigned var) override;
-  /**
-   * Collect zero-implied literals.
-   *
-   * Can be used in SATISFIABLE and UNKNOWN state.
-   *
-   * @see isZeroImplied()
-   */
-  virtual void collectZeroImplied(SATLiteralStack& acc) override;
-  /**
-   * Return a valid clause that contains the zero-implied literal
-   * and possibly the assumptions that implied it. Return 0 if @c var
-   * was an assumption itself.
-   * If called on a proof producing solver, the clause will have
-   * a proper proof history.
-   */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   virtual void ensureVarCount(unsigned newVarCnt) override { _next = std::max(_next, int(newVarCnt) + 1); }
 
@@ -92,14 +76,6 @@ public:
    */
   static SATClauseList* minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps);
 
-  /**
-   * Assuming that @b first together with @b second is inconsistent,
-   * produce (in @b result) a set of clauses over the signature of @b first,
-   * such that @b second |= @b result and
-   * @b first together with @b result is also inconsistent.
-   */
-  static void interpolateViaAssumptions(unsigned maxVar, const SATClauseStack& first, const SATClauseStack& second, SATClauseStack& result);
-
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
 
@@ -110,7 +86,7 @@ private:
   }
 
   static int vampire2Cadical(SATLiteral vampire) {
-    return vampire2Cadical(vampire.polarity(), vampire.var());
+    return vampire2Cadical(vampire.positive(), vampire.var());
   }
 
   static SATLiteral cadical2Vampire(int cadical) {

@@ -59,7 +59,7 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
   while(newLitsIt.hasNext()){
     SATLiteral l = newLitsIt.next();
     if(!_literalBuffer.find(l.var())){
-      _literalBuffer.insert(l.var(),l.polarity());
+      _literalBuffer.insert(l.var(),l.positive());
       return true;
     }
   }

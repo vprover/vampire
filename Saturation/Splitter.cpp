@@ -150,10 +150,10 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
 {
   switch (_literalPolarityAdvice) {
     case Options::SplittingLiteralPolarityAdvice::FALSE:
-      _solver->suggestPolarity(lit.var(),lit.oppositePolarity());
+      _solver->suggestPolarity(lit.var(),!lit.positive());
     break;
     case Options::SplittingLiteralPolarityAdvice::TRUE:
-      _solver->suggestPolarity(lit.var(),lit.polarity());
+      _solver->suggestPolarity(lit.var(), lit.positive());
     break;
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
@@ -613,7 +613,7 @@ SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
  */
 SplitLevel Splitter::getNameFromLiteralUnsafe(SATLiteral lit) const
 {
-  return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
+  return (lit.var()-1)*2 + (lit.positive() ? 0 : 1);
 }
 SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
 {
@@ -634,7 +634,7 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
   if (negated) {
     lit = lit.opposite();
   }
-  if (lit.isPositive()) {
+  if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());
   } else {
     return "~"+splPrefix+Lib::Int::toString(lit.var());

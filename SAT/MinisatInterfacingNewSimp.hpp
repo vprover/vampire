@@ -55,22 +55,6 @@ public:
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
   virtual bool isZeroImplied(unsigned var) override;
-  /**
-   * Collect zero-implied literals.
-   *
-   * Can be used in SATISFIABLE and UNKNOWN state.
-   *
-   * @see isZeroImplied()
-   */
-  virtual void collectZeroImplied(SATLiteralStack& acc) override;
-  /**
-   * Return a valid clause that contains the zero-implied literal
-   * and possibly the assumptions that implied it. Return 0 if @c var
-   * was an assumption itself.
-   * If called on a proof producing solver, the clause will have
-   * a proper proof history.
-   */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   virtual void ensureVarCount(unsigned newVarCnt) override;
   
@@ -100,7 +84,7 @@ protected:
   }
   
   const Minisat::Lit vampireLit2Minisat(SATLiteral vlit) {
-    return Minisat::mkLit(vampireVar2Minisat(vlit.var()),vlit.isNegative()); 
+    return Minisat::mkLit(vampireVar2Minisat(vlit.var()),!vlit.positive()); 
   }
   
   /* sign=trun in minisat means "negated" in vampire */

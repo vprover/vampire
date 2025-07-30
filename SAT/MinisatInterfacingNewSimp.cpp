@@ -169,31 +169,5 @@ bool MinisatInterfacingNewSimp::isZeroImplied(unsigned var)
   return _solver.value(vampireVar2Minisat(var)) != l_Undef;
 }
 
-void MinisatInterfacingNewSimp::collectZeroImplied(SATLiteralStack& acc)
-{
-  // TODO: could be made more efficient by inspecting the trail 
-  // [new code would be needed in Minisat::solver, though]
-  
-  // Minisat's variables start from 0
-  for (Minisat::Var v = 0; v < _solver.nVars(); v++) {
-    lbool val = _solver.value(v);
-    if (val != l_Undef) { // see isZeroImplied
-      
-      // the lit needs to be negated, if the variable alone is false
-      acc.push(minisatLit2Vampire(mkLit(v,val == l_False)));
-    }
-  }        
-}
-
-SATClause* MinisatInterfacingNewSimp::getZeroImpliedCertificate(unsigned)
-{
-  // Currently unused anyway. 
-  
-  /* The whole SATSolver interface should be revised before
-   implementing functions like this one properly */
-  
-  return 0;
-}
-
 } // namespace SAT
 

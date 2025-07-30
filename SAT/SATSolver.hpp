@@ -101,22 +101,6 @@ public:
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
   virtual bool isZeroImplied(unsigned var) = 0;
-  /**
-   * Collect zero-implied literals.
-   *
-   * Can be used in SATISFIABLE and UNKNOWN state.
-   *
-   * @see isZeroImplied()
-   */
-  virtual void collectZeroImplied(SATLiteralStack& acc) = 0;
-  /**
-   * Return a valid clause that contains the zero-implied literal
-   * and possibly the assumptions that implied it. Return 0 if @c var
-   * was an assumption itself.
-   * If called on a proof producing solver, the clause will have
-   * a proper proof history.
-   */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) = 0;
 
   /**
    * Ensure that clauses mentioning variables 1..newVarCnt can be handled.
@@ -173,17 +157,7 @@ public:
   bool trueInAssignment(SATLiteral lit)
   {
     VarAssignment asgn = getAssignment(lit.var());
-    VarAssignment desired = lit.polarity() ? VarAssignment::TRUE : VarAssignment::FALSE;
-    return asgn==desired;
-  }
-
-  /**
-   * If status is @c SATISFIABLE, return assignment of variable @c var
-   */
-  bool falseInAssignment(SATLiteral lit)
-  {
-    VarAssignment asgn = getAssignment(lit.var());
-    VarAssignment desired = lit.polarity() ? VarAssignment::FALSE: VarAssignment::TRUE;
+    VarAssignment desired = lit.positive() ? VarAssignment::TRUE : VarAssignment::FALSE;
     return asgn==desired;
   }
 };
@@ -301,11 +275,6 @@ public:
     {
       _refutation->setInference(_refutationInference);
     }
-
-  virtual ~PrimitiveProofRecordingSATSolver() {
-    // cannot clear the list - some inferences may be keeping its suffices till proof printing phase ...
-    // _addedClauses->destroy(); // we clear the list but not its content
-  }
 
   virtual void addClause(SATClause* cl) override
   {
