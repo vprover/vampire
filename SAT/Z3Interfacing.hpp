@@ -31,6 +31,7 @@
 #include "Lib/Option.hpp"
 #include "Lib/BiMap.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/Environment.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
@@ -118,7 +119,7 @@ namespace ProblemExport {
     Map<std::string, std::string> _escapedNames; // <- maps string -> unique string that can be used as c++ variable
     Map<std::string, Map<std::string, unsigned>> _escapePrefixes; // <- maps c++ variable prefix of _escapedNames -> strings that have been escaped to it
 
-    Set<std::string> _predeclaredConstants; // <- c++ variable names of been declard using declare_const
+    Set<std::string> _predeclaredConstants; // <- c++ variable names of been declared using declare_const
     ApiCalls(ApiCalls &&) = default;
     ApiCalls(std::ofstream out, z3::context& context) : out(std::move(out)), _ctxt(context) {}
 
@@ -185,7 +186,7 @@ public:
   void addClause(SATClause* cl) override;
 
   Status solve();
-  virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
+  virtual Status solveLimited(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -225,11 +226,8 @@ public:
   // Currently not implemented for Z3
   virtual void suggestPolarity(unsigned var, unsigned pol) override {}
 
-  virtual void addAssumption(SATLiteral lit) override;
-  virtual void retractAllAssumptions() override;
-  virtual bool hasAssumptions() const override { return !_assumptions.isEmpty(); }
-
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  SATLiteralStack failedAssumptions() override;
 
   /**
    * The set of inserted clauses may not be propositionally UNSAT
@@ -309,6 +307,8 @@ public:
   };
 
 private:
+  void addAssumption(SATLiteral lit);
+  void solveModuloAssumptionsAndSetStatus();
 
   Map<SortId, z3::sort> _sorts;
   struct Z3Hash {

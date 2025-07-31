@@ -10,7 +10,7 @@
 /**
  * @file Injectivity.cpp
  * Every Injective function has a left-inverse
- * creates a Skolem to act as left-inverse funcion
+ * creates a Skolem to act as left-inverse function
  */
 
 #include "Lib/Environment.hpp"
@@ -62,8 +62,7 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
 
   ApplicativeHelper::getHeadAndArgs(lhsM, headLhs, argsLhs);
   ApplicativeHelper::getHeadAndArgs(rhsM, headRhs, argsRhs);
-  if(headLhs != headRhs || headLhs.isVar() || 
-    ApplicativeHelper::isComb(headLhs)){
+  if (headLhs != headRhs || headLhs.isVar()) {
     return ClauseIterator::getEmpty();
   }
   ASS(argsLhs.size() == argsRhs.size());

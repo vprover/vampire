@@ -41,7 +41,7 @@ struct HashUtils
    */
   static unsigned combine(unsigned h1, unsigned h2) { return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2)); }
 
-  /** auxilary functions to be able to use combine with arbitrary arity */
+  /** auxiliary functions to be able to use combine with arbitrary arity */
   static unsigned combine(unsigned h1) { return h1; }
   static unsigned combine() { return combine(0, 1); }
 

@@ -1,11 +1,10 @@
-# ignore CMake/Doxygen output
-cmake-build
-build/
-doc/
+# ignore common build directories
+/cmake-build
+/build
 
-# ignore TPTP directories/symlinks
-Problems
-Axioms
+# ignore TPTP directories/symlinks at the top level
+/Problems
+/Axioms
 tptp
 
 # ctags
@@ -26,6 +25,8 @@ valgrind.supp
 
 # Problem files
 *.p
+# Don't ignore problem files under the checks folder's subdirs
+!checks/**/*.p
 *.tptp
 *.txt
 *.smt2

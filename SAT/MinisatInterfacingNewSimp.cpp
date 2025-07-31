@@ -35,25 +35,6 @@ using namespace Lib;
 using namespace Minisat;
 
 const unsigned MinisatInterfacingNewSimp::VAR_MAX = std::numeric_limits<Minisat::Var>::max() / 2;
-  
-MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts, bool generateProofs):
-  _status(Status::SATISFIABLE)
-{
-  // TODO: consider tuning minisat's options to be set for _solver
-  // (or even forwarding them to vampire's options)  
-  //_solver.mem_lim(opts.memoryLimit()*2);
-  limitMemory(opts.memoryLimit()*1);
-}
-
-void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
-  reportSpiderStatus('m');
-  std::cout << "Minisat ran out of memory" << endl;
-  if(env.statistics) {
-    env.statistics->print(std::cout);
-  }
-  Debug::Tracer::printStack();
-  System::terminateImmediately(1);
-}
 
 /**
  * Make the solver handle clauses with variables up to @b newVarCnt
@@ -66,7 +47,7 @@ void MinisatInterfacingNewSimp::ensureVarCount(unsigned newVarCnt)
       _solver.newVar();
     }
   } catch (Minisat::OutOfMemoryException&){
-    reportMinisatOutOfMemory();
+    throw std::bad_alloc();
   }
 }
 
@@ -75,29 +56,16 @@ unsigned MinisatInterfacingNewSimp::newVar()
   return minisatVar2Vampire(_solver.newVar());
 }
 
-SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
-  ASS(!hasAssumptions());
-
   // load assumptions:
   SATLiteralStack::ConstIterator it(assumps);
+  _assumptions.clear();
   while (it.hasNext()) {
     _assumptions.push(vampireLit2Minisat(it.next()));
   }
 
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
-
-  if (_status == Status::UNSATISFIABLE) {
-    // unload minisat's internal conflict clause to _failedAssumptionBuffer
-    _failedAssumptionBuffer.reset();
-    Minisat::LSet& conflict = _solver.conflict;
-    for (int i = 0; i < conflict.size(); i++) {
-      _failedAssumptionBuffer.push(minisatLit2Vampire(conflict[i]).opposite());
-    }
-  }
-
-  _assumptions.clear();
-
   return _status;
 }
 
@@ -126,8 +94,17 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
       _status = Status::UNKNOWN;
     }
   }catch(Minisat::OutOfMemoryException&){
-    reportMinisatOutOfMemory();
+    throw std::bad_alloc();
   }
+}
+
+SATLiteralStack MinisatInterfacingNewSimp::failedAssumptions() {
+  ASS_EQ(_status, Status::UNSATISFIABLE)
+
+  SATLiteralStack result;
+  for (int i = 0; i < _solver.conflict.size(); i++)
+    result.push(minisatLit2Vampire(_solver.conflict[i]).opposite());
+  return result;
 }
 
 /**
@@ -137,13 +114,10 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
 void MinisatInterfacingNewSimp::addClause(SATClause* cl)
 {
   // TODO: consider measuring time
-  
-  ASS_EQ(_assumptions.size(),0);
-
   try {
     static vec<Lit> mcl;
     mcl.clear();
-    
+
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
       SATLiteral l = (*cl)[i];
@@ -151,22 +125,18 @@ void MinisatInterfacingNewSimp::addClause(SATClause* cl)
     }
     _solver.addClause(mcl);
   } catch (Minisat::OutOfMemoryException&){
-      reportMinisatOutOfMemory();
+    throw std::bad_alloc();
   }
 }
 
 /**
  * Perform solving and return status.
  */
-SATSolver::Status MinisatInterfacingNewSimp::solve(unsigned conflictCountLimit)
+SATSolver::Status MinisatInterfacingNewSimp::solveLimited(unsigned conflictCountLimit)
 {
+  _assumptions.clear();
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
   return _status;
-}
-
-void MinisatInterfacingNewSimp::addAssumption(SATLiteral lit) 
-{
-  _assumptions.push(vampireLit2Minisat(lit));
 }
 
 SATSolver::VarAssignment MinisatInterfacingNewSimp::getAssignment(unsigned var) 

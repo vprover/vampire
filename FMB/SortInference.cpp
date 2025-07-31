@@ -58,7 +58,7 @@ void SortInference::doInference()
     // setup the minimal signature
 
     // currently just collapse all sorts if _assumeMonotonic is on
-    // so we're not compatable with GROUP
+    // so we're not compatible with GROUP
 
     unsigned dsorts =0;
     if(_assumeMonotonic){
@@ -254,7 +254,7 @@ void SortInference::doInference()
       if(l->isEquality()) {
         // Positive equality means we might be in the { X = t_i } scenario
         if(l->isPositive()) {
-          if (num_vars_always_in_equalities == 3) {         // the unitialized case
+          if (num_vars_always_in_equalities == 3) {         // the uninitialized case
             num_vars_always_in_equalities = 0;
             for(unsigned i : {0,1}) {
               if (l->nthArgument(i)->isVar() && !l->nthArgument(1-i)->containsSubterm(*l->nthArgument(i))) {

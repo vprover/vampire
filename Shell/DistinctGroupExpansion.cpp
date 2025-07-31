@@ -92,7 +92,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 }
 
 /**
- * If a distinct group of constants has 2 members then a single disequality is creatd
+ * If a distinct group of constants has 2 members then a single disequality is created
  * Otherwise a conjunction of disequalities is created
  */
 Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)

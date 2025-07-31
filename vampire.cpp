@@ -42,6 +42,7 @@
 
 #include "CASC/PortfolioMode.hpp"
 #include "Shell/CommandLine.hpp"
+
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -122,9 +123,14 @@ void explainException(Exception& exception)
 [[nodiscard]]
 Problem *doProving(Problem* problem)
 {
+  if (env.options->showPropDict()) {
+    cout << "% Prop: " << problem->getProperty()->toDict() << endl;
+  }
+
   // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
-    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->sampleStrategy(env.options->strategySamplerFilename(),
+      problem->getProperty()->toDict());
   }
 
   env.options->setForcedOptionValues();
@@ -446,7 +452,8 @@ void clausifyMode(Problem* problem, bool theory)
   simplifier.addFront(new DuplicateLiteralRemovalISE());
 
   if (!env.options->strategySamplerFilename().empty()) {
-    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->sampleStrategy(env.options->strategySamplerFilename(),
+      problem->getProperty()->toDict());
   }
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
@@ -553,8 +560,9 @@ void dispatchByMode(Problem* problem)
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
     env.options->setOutputAxiomNames(true);
-    env.options->setNormalize(true);
-    env.options->setRandomizeSeedForPortfolioWorkers(false);
+
+    // env.options->setNormalize(true);
+    // env.options->setRandomizeSeedForPortfolioWorkers(false);
 
     if (CASC::PortfolioMode::perform(problem)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -648,7 +656,6 @@ void interactiveMetamode()
       pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
-        Timer::reinitialise(); // start our timer (in the child)
         UIHelper::unsetExpecting(); // probably garbage at this point
 
         Stack<std::string> pieces;
@@ -660,6 +667,9 @@ void interactiveMetamode()
         }
         Shell::CommandLine cl(argv.size(), argv.begin());
         cl.interpret(opts);
+
+        Timer::reinitialise(); // start our timer (in the child)
+
         if (!opts.inputFile().empty()) {
           UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
           prb = UIHelper::getInputProblem();

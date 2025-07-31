@@ -74,6 +74,7 @@ public:
 
   static void outputSatisfiableResult(std::ostream& out);
   static void outputSaturatedSet(std::ostream& out, UnitIterator uit);
+  static void outputInterferences(std::ostream& out, const Problem&);
 
   static void outputSymbolDeclarations(std::ostream& out);
   static void outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typecon, unsigned symNumber);

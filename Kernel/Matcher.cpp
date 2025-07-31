@@ -13,11 +13,9 @@
  */
 
 #include "Lib/DHMap.hpp"
-#include "Lib/DHSet.hpp"
-
-#include "SubstHelper.hpp"
 
 #include "Matcher.hpp"
+#include "SubstHelper.hpp"
 
 namespace Kernel
 {
@@ -33,21 +31,21 @@ using namespace std;
 TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
     TermList matchedInstance, TermList resultBase)
 {
-  static MapBinderAndApplicator bap;
-  bap.reset();
+  static Substitution subst;
+  subst.reset();
 
-  ALWAYS( matchTerms(matchedBase, matchedInstance, bap) );
-  return SubstHelper::apply(resultBase, bap);
+  ALWAYS( matchTerms(matchedBase, matchedInstance, subst) );
+  return SubstHelper::apply(resultBase, subst);
 }
 
 Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
       Literal* matchedInstance, Formula* resultBase)
 {
-  static MapBinderAndApplicator bap;
-  bap.reset();
+  static Substitution subst;
+  subst.reset();
 
-  ALWAYS( match(matchedBase, matchedInstance, false, bap) );
-  return SubstHelper::apply(resultBase, bap);
+  ALWAYS( match(matchedBase, matchedInstance, false, subst) );
+  return SubstHelper::apply(resultBase, subst);
 }
 
 bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
@@ -170,18 +168,18 @@ bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance)
   ASS_EQ(base->arity(), 2);
   ASS_EQ(instance->arity(), 2);
 
-  static MapBinder binder;
-  binder.reset();
+  static Substitution subst;
+  subst.reset();
 
-  return matchReversedArgs(base, instance, binder);
+  return matchReversedArgs(base, instance, subst);
 }
 
 bool MatchingUtils::matchArgs(Term* base, Term* instance)
 {
-  static MapBinder binder;
-  binder.reset();
+  static Substitution subst;
+  subst.reset();
 
-  return matchArgs(base, instance, binder);
+  return matchArgs(base, instance, subst);
 }
 
 bool MatchingUtils::matchTerms(TermList base, TermList instance)

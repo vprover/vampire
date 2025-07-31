@@ -41,7 +41,7 @@ public:
    *
    * @param formulaBuffer is FIFO to which newly parsed Formulas will be added (via pushBack);
    *
-   *  if left unspeficied, and empty fifo is created and used instead.
+   *  if left unspecified, and empty fifo is created and used instead.
    *  (use this default behaviour if you do not want to collect formulas
    *  from multiple parser calls)
    */
@@ -127,7 +127,7 @@ private:
   void readDefineSort(const std::string& name, LExpr* args, LExpr* body);
 
   /**
-   * Helper funtion to check that a parsed sort is indeed a sort.
+   * Helper function to check that a parsed sort is indeed a sort.
    */
   TermList parseSort(LExpr* sExpr);
 
@@ -179,10 +179,6 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_DIVIDE,
-    TS_ARRAY,
-    TS_BOOL,
-    TS_INT,
-    TS_REAL,
     TS_ABS,
     TS_AS,
     TS_DIV,
@@ -205,20 +201,39 @@ private:
   static TermSymbol getBuiltInTermSymbol(const std::string& str);
 
   /**
-   * Is the given std::string a built-in FormulaSymbol, built-in TermSymbol
-   * or a declared function/predicate/type constructor?
+   * Built-in types
    */
-  bool isAlreadyKnownSymbol(const std::string& name);
+  enum TypeSymbol
+  {
+    TS_ARRAY,
+    TS_BOOL,
+    TS_INT,
+    TS_REAL,
 
-  enum class SymbolType {
-    FUNCTION,
-    PREDICATE,
-    TYPECON,
+    TS_USER_TYPE
   };
-  /** <vampire signature id, symbol type> */
-  typedef std::pair<unsigned,SymbolType> DeclaredSymbol;
+  static const char * s_typeSymbolNameStrings[];
+
+  /**
+   * Lookup to see if std::string is a built-in TypeSymbol.
+   */
+  static TypeSymbol getBuiltInTypeSymbol(const std::string& str);
+
+  /**
+   * Is the given std::string a built-in FormulaSymbol, built-in TermSymbol
+   * or a declared function/predicate?
+   */
+  bool isAlreadyKnownFunction(const std::string& name);
+  /**
+   * Is the given std::string a declared sort or sort parameter?
+   */
+  bool isAlreadyKnownSort(const std::string& name);
+
+  /** <vampire signature id, predicate> */
+  typedef std::pair<unsigned,bool> DeclaredSymbol;
   /** symbols are implicitly declared also when they are defined (see below) */
   DHMap<std::string, DeclaredSymbol> _declaredSymbols;
+  DHMap<std::string, unsigned> _declaredSorts;
 
   /**
    * Given a symbol name, range sort (which can be Bool) and argSorts,
@@ -447,7 +462,7 @@ private:
    *
    * Ignored feature:
    * - quantifier patterns: " (forall (( x0 A) (x1 A) (x2 A)) (! (=> (and (r x0 x1) (r x1 x2 )) (r x0 x2 )) : pattern ((r x0 x1) (r x1 x2 )) : pattern ((p x0 a)) ))
-   *  the patter information is lost and the pattern data is not checked semantically.
+   *  the pattern information is lost and the pattern data is not checked semantically.
    *
    * Violates standard:
    * - requires variables under a single quantifier to be distinct
@@ -475,6 +490,13 @@ private:
    * Behaves like conjecture declaration in TPTP
    */
   void readAssertNot(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
+   * Used for synthesis based on forall-exist formulas.
+   */
+  void readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body);
 
   /**
    * Unofficial command

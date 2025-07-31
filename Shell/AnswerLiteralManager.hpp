@@ -20,6 +20,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -79,7 +80,7 @@ public:
   virtual Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) { return nullptr; };
 
   /**
-  * Record an assiciation between a skolem symbol and the pair <the variable it replaces, in which formula>
+  * Record an association between a skolem symbol and the pair <the variable it replaces, in which formula>
   */
   void recordSkolemsOrigin(unsigned skSymb, unsigned var, Unit* unit) {
     ALWAYS(_skolemsOrigin.insert(skSymb,std::make_pair(var,unit)));
@@ -89,7 +90,7 @@ protected:
   static TermList possiblyEvaluateAnswerTerm(TermList);
 
   /**
-   * Tell the concrete implemenation (our descentants) that we have just introduced
+   * Tell the concrete implementation (our descentants) that we have just introduced
    * a new skolem symbol term skT to replace var in the conjecture/question;
    * Ideally ("the user might expect"), the var should be referred to as vName in the answers.
    */

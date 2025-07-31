@@ -84,7 +84,7 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
  * @since 30/08/2002 Torrevieja, changed
  * @since 28/12/2003 Manchester, simplified by removing flattening-related
  *                   steps
- * @since 22/01/2004 Manchester, info anout inference and position added
+ * @since 22/01/2004 Manchester, info about inference and position added
  * @since 11/12/2004 Manchester, true and false added
  * @since 27/06/2007 Flight Frankfurt-Paris, changed to use new data structures
  */
@@ -414,7 +414,7 @@ FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
  *        ~f, if polarity=false
  *
  * @since 29/12/2003 Manchester
- * @since 26/01/2004 Manchester, info anout inference and position added
+ * @since 26/01/2004 Manchester, info about inference and position added
  * @since 11/12/2004 Manchester, true and false added
  */
 Formula* NNF::nnf (Formula* f, bool polarity)

@@ -178,7 +178,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
         Kernel/QKbo.o\
-        Kernel/SKIKBO.o\
         Kernel/ALASCA/Signature.o\
         Kernel/ALASCA/SelectionPrimitves.o\
         Kernel/ALASCA/State.o\
@@ -194,6 +193,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
+        Kernel/InductionTemplate.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
         Kernel/PartialOrdering.o\
@@ -206,7 +206,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/ApplicativeHelper.o\
         Kernel/OperatorType.o\
         Kernel/SubformulaIterator.o\
-        Kernel/Substitution.o\
         Kernel/Term.o\
         Kernel/PolynomialNormalizer.o\
         Kernel/Polynomial.o\
@@ -219,6 +218,9 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Theory.o\
         Kernel/Signature.o\
         Kernel/Unit.o\
+        Kernel/HOL/HOL.o\
+        Kernel/HOL/Create.o\
+        Kernel/HOL/Convert.o\
         Kernel/InterpretedLiteralEvaluator.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
@@ -253,16 +255,12 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ExtensionalityResolution.o\
          Inferences/ArgCong.o\
          Inferences/NegativeExt.o\
-         Inferences/Narrow.o\
-         Inferences/SubVarSup.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/FunctionDefinitionRewriting.o\
          Inferences/FOOLParamodulation.o\
          Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\
-         Inferences/CombinatorDemodISE.o\
-         Inferences/CombinatorNormalisationISE.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
@@ -298,15 +296,14 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/CasesSimp.o\
          Inferences/Cases.o\
          Inferences/BoolSimp.o\
-         Inferences/PrimitiveInstantiation.o\
          Inferences/Choice.o\
-         Inferences/ElimLeibniz.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/ProofExtra.o\
+         Inferences/ForwardGroundJoinability.o\
          SATSubsumption/SATSubsumptionAndResolution.o\
          SATSubsumption/subsat/constraint.o\
          SATSubsumption/subsat/log.o\
@@ -358,7 +355,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
-         Shell/LambdaElimination.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
@@ -374,6 +370,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
+         Shell/SMTCheck.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
          Debug/TimeProfiling.o\
@@ -438,7 +435,6 @@ LIB_DEP = Indexing/TermSharing.o\
       Kernel/OperatorType.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
-	  Kernel/Substitution.o\
 	  Kernel/Term.o\
 	  Kernel/TermIterators.o\
 	  Kernel/TermTransformer.o\
@@ -497,7 +493,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.9
+VERSION_NUMBER = 5.0.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
@@ -523,7 +519,7 @@ version.cpp: .git/HEAD .git/index Makefile
 # separate directory for object files implementation
 
 # different directory for each configuration, so there is no need for "make clean"
-SED_CMD='s/.*[(].*/detached/' # if branch name contains an opening bracket, replace it with detached (in order to avoid a crash during linking). This covers at least the case '(HEAD' occuring if one is in detached state, and '(no' occuring if one currently performs a rebase.
+SED_CMD='s/.*[(].*/detached/' # if branch name contains an opening bracket, replace it with detached (in order to avoid a crash during linking). This covers at least the case '(HEAD' occurring if one is in detached state, and '(no' occurring if one currently performs a rebase.
 BRANCH=$(shell git branch | grep "\*" | cut -d ' ' -f 2 | sed -e $(SED_CMD)  )
 COM_CNT=$(shell git rev-list HEAD --count)
 CONF_ID := obj/$(shell echo -n "$(BRANCH) $(XFLAGS)"|sum|cut -d ' ' -f1)X
@@ -558,8 +554,15 @@ VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
+ifeq ($(shell uname), Darwin)
+  RPATH_CMD = install_name_tool -add_rpath @executable_path/z3/build
+else
+  RPATH_CMD = @echo
+endif
+
 define COMPILE_CMD
 $(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -Lcadical/build -lcadical
+$(RPATH_CMD) $@_$(BRANCH)_$(COM_CNT)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

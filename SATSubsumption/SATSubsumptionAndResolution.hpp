@@ -17,6 +17,7 @@
 #include <cstdint>
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Lib/Slice.hpp"
 #include <chrono>
 
@@ -166,9 +167,8 @@ private:
     Slice<Match> getIMatches(unsigned i)
     {
       ASS_L(i, _indexI.size())
-      return Slice<Match>(
-          &_matchesByI[_indexI[i]],
-          &_matchesByI[_indexI[i + 1]]);
+      return Slice(_matchesByI.data() + _indexI[i],
+                   _matchesByI.data() + _indexI[i + 1]);
     }
 
     /**
@@ -179,9 +179,8 @@ private:
     Slice<Match> getJMatches(unsigned j)
     {
       ASS_L(j, _indexJ.size())
-      return Slice<Match>(
-          &_matchesByJ[_indexJ[j]],
-          &_matchesByJ[_indexJ[j + 1]]);
+      return Slice(_matchesByJ.data() + _indexJ[j],
+                   _matchesByJ.data() + _indexJ[j + 1]);
     }
 
     /**
@@ -511,6 +510,12 @@ public:
   bool checkSubsumptionResolutionWithLiteral(Kernel::Clause *sidePremise,
                                              Kernel::Clause *mainPremise,
                                              unsigned resolutionLiteral);
+
+  /**
+   * @brief Return the substitution required for the last subsumption resolution.
+   * @note precondition: the last subsumption resolution succeeded
+   */
+  Substitution getBindingsForSubsumptionResolutionWithLiteral();
 
   /**
    * Creates a clause that is the subsumption resolution of @b mainPremise and @b sidePremise on @b m_j.

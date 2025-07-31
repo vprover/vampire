@@ -57,7 +57,7 @@ bool isIntegerComparisonLiteral(Literal* lit) {
       // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
 
       // Equality proxy may generate useless congruence axioms for the likes of INT_GREATER
-      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ingore)
+      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ignore)
       ASS_EQ(env.options->equalityProxy(),Options::EqualityProxy::RSTC);
     default:
       // Not an integer comparison.
@@ -171,6 +171,8 @@ bool inductionLiteralHasAdmissibleVariables(Literal* l) {
   }
   for (unsigned idx = 0; idx < l->arity(); ++idx) {
     if (l->nthArgument(idx)->isVar()) {
+      // NewCNF handles Booleans in some special way, which
+      // interferes with our clausification and resolution.
       return SortHelper::getArgSort(l, idx) != AtomicSort::boolSort();
     } else {
       VariableWithSortIterator vi(l->nthArgument(idx)->term());

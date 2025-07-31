@@ -33,6 +33,6 @@ TEST_FUN(size_reset_desctructor)
   a_deque->reset();
   ASS_EQ(a_deque->size(), 0);
   a_deque->push_front(1);
-  // gcov sometimes misses implicitly called desctructor
+  // gcov sometimes misses implicitly called destructor
   a_deque->~Deque();
 }

@@ -324,7 +324,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, std::stri
 
   for (auto c : { 'f', 't' }) {
     for (auto s : { _context->real_sort(), _context->int_sort() }) {
-      // we need these auxilary variables to make $quotient_t and friends
+      // we need these auxiliary variables to make $quotient_t and friends
       // uninterpreted functions for a zero divisor. i.e. we need to make
       // sure that they are completely freely interpreted, and that there
       // is for example no relationship between $quotient_t(2, 0),
@@ -416,7 +416,7 @@ void ProblemExport::Smtlib::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
 std::string ProblemExport::ApiCalls::escapeVarName(z3::sort const& sym)
 {
   if (sym.is_array()) {
-    // Array sorts have argments. Hence we need to escape the arguments as well, not only the sort name
+    // Array sorts have arguments. Hence we need to escape the arguments as well, not only the sort name
     return _escapeVarName(sym);
   } else {
     return Z3_ast(sym) == nullptr 
@@ -573,7 +573,7 @@ struct ProblemExport::ApiCalls::EscapeString {
   EscapeString(std::string s) : s(s) {}
   EscapeString(z3::expr const& x) : EscapeString(Output::toString(x)) {}
   friend std::ostream& operator<<(std::ostream& out, EscapeString const& self)
-  { return out << "R\"(" << self.s << ")\""; }// TODO mask occurences of )"
+  { return out << "R\"(" << self.s << ")\""; }// TODO mask occurrences of )"
 };
 
 std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<std::string> const& self)
@@ -916,12 +916,6 @@ void Z3Interfacing::addClause(SATClause* cl)
   DEBUG("adding expr: ", z3clause.expr)
 }
 
-void Z3Interfacing::retractAllAssumptions()
-{
-  _assumptionLookup.clear();
-  _assumptions.truncate(0);
-}
-
 void Z3Interfacing::addAssumption(SATLiteral lit)
 {
   auto pushAssumption = [&](SATLiteral lit) -> z3::expr
@@ -962,7 +956,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATClause* cl)
   return Representation(std::move(z3clause), std::move(defs));
 }
 
-SATSolver::Status Z3Interfacing::solve()
+void Z3Interfacing::solveModuloAssumptionsAndSetStatus()
 {
   DEBUG("assumptions: ", _assumptions);
 
@@ -987,16 +981,6 @@ SATSolver::Status Z3Interfacing::solve()
     std::cout << "[Z3] solve result: " << result << std::endl;
   }
 
-  if (_unsatCore) {
-    auto core = z3_unsat_core();
-    for (auto phi : core) {
-      _assumptionLookup
-             .tryGet(phi)
-             .andThen([this](SATLiteral l)
-                 { _failedAssumptionBuffer.push(l); });
-    }
-  }
-
   switch (result) {
     case z3::check_result::unsat:
       _status = Status::UNSATISFIABLE;
@@ -1010,24 +994,38 @@ SATSolver::Status Z3Interfacing::solve()
       break;
     default: ASSERTION_VIOLATION;
   }
+}
 
+SATSolver::Status Z3Interfacing::solve()
+{
+  _assumptionLookup.clear();
+  _assumptions.reset();
+  solveModuloAssumptionsAndSetStatus();
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+SATSolver::Status Z3Interfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
-  if (!_unsatCore) {
-    return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit);
-  }
-
-  ASS(!hasAssumptions());
-
-  for (auto a: assumps) {
+  _assumptionLookup.clear();
+  _assumptions.reset();
+  for (auto a: assumps)
     addAssumption(a);
+  solveModuloAssumptionsAndSetStatus();
+  return _status;
+}
+
+SATLiteralStack Z3Interfacing::failedAssumptions() {
+  SATLiteralStack result;
+  if (_unsatCore) {
+    auto core = z3_unsat_core();
+    for (auto phi : core) {
+      _assumptionLookup
+             .tryGet(phi)
+             .andThen([&result](SATLiteral l) { result.push(l); });
+    }
+    return result;
   }
-  auto result = solve();
-  retractAllAssumptions();
-  return result;
+  ASSERTION_VIOLATION
 }
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
@@ -1609,7 +1607,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         }
         ASS_G(trm->arity(), 0);
 
-        // Currently do not deal with all intepreted operations, should extend
+        // Currently do not deal with all interpreted operations, should extend
         // - constants dealt with above
         // - unary funs/preds like is_rat interpretation unclear
         if(symb->interpreted()){
@@ -1627,7 +1625,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
                 return store(args[0],args[1],args[2]);
 
               default:
-                {}//skip it and treat the function as uninterpretted
+                {}//skip it and treat the function as uninterpreted
             }
 
           } else {
@@ -1757,7 +1755,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
               return args[0] >= args[1];
 
             default:
-              {}//skip it and treat the function as uninterpretted
+              {}//skip it and treat the function as uninterpreted
             }
           }
         }
