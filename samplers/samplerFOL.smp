@@ -314,9 +314,6 @@ sa!=fmb av=on > amm ~cat on:600,off:69
 # avatar_delete_deactivated
 sa!=fmb av=on > add ~cat on:300,large:55,off:8
 
-# avatar_fast_restart
-sa!=fmb av=on > afr ~cat off:10,on:1
-
 # avatar_literal_polarity_advice
 sa!=fmb av=on > alpa ~cat none:300,false:13,true:6,random:4
 
