@@ -117,21 +117,6 @@ bool CadicalInterfacing::isZeroImplied(unsigned var)
   return _solver.fixed(var);
 }
 
-void CadicalInterfacing::collectZeroImplied(SATLiteralStack& acc)
-{
-  for(int i = 1, val; i <= _solver.vars(); i++)
-    if((val = _solver.fixed(i)))
-      acc.push(cadical2Vampire(val > 0 ? i : -i));
-}
-
-SATClause* CadicalInterfacing::getZeroImpliedCertificate(unsigned)
-{
-  // Currently unused anyway.
-  /* The whole SATSolver interface should be revised before
-   implementing functions like this one properly */
-  NOT_IMPLEMENTED;
-}
-
 SATClauseList* CadicalInterfacing::minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps)
 {
   CaDiCaL::Solver solver;
@@ -177,7 +162,7 @@ SATClauseList* CadicalInterfacing::minimizePremiseList(SATClauseList* premises, 
 
       // make sure vars are allocated
       solver.reserve(var);
-      solver.add(vampire2Cadical(l.isPositive(), var));
+      solver.add(vampire2Cadical(l.positive(), var));
     }
 
     solver.add(-(cl_no + 1));
@@ -193,7 +178,7 @@ SATClauseList* CadicalInterfacing::minimizePremiseList(SATClauseList* premises, 
     SATLiteral l = ait.next();
     int var = offset + l.var();
 
-    ass.push_back(vampire2Cadical(l.isPositive(), var));
+    ass.push_back(vampire2Cadical(l.positive(), var));
   }
 
   // solve
@@ -216,93 +201,5 @@ SATClauseList* CadicalInterfacing::minimizePremiseList(SATClauseList* premises, 
   }
   return result;
 }
-
-void CadicalInterfacing::interpolateViaAssumptions(unsigned maxVar, const SATClauseStack& first, const SATClauseStack& second, SATClauseStack& result)
-{
-  NOT_IMPLEMENTED;
-  // TODO below could work, just don't know how to test it
-  /*
-  Minisat::Solver solver_first;
-  Minisat::Solver solver_second;
-
-  // TODO: this may be quite wasteful for at least two reasons:
-  // 1) 1..maxVar may be a large superset of symb(first \cup second)
-  // 2) symb(first \cup second) may be a large superset of symb(second)
-  // However, making sure variables are not wasted would require
-  // setting up various renamings to maintain correspondence
-  // between literals in the solvers
-  for(unsigned v = 0; v <= maxVar; v++) { // ... and variable 0 will not be used either
-    solver_first.newVar();
-    solver_second.newVar();
-  }
-
-  DArray<bool> varOfFirst;
-  varOfFirst.expand(maxVar+1,false);
-
-  vec<Lit> tmp;
-
-  // load first into solver_first and mark in varOfFirst
-  SATClauseStack::ConstIterator it1(first);
-  while(it1.hasNext()) {
-    SATClause* cl = it1.next();
-
-    unsigned clen=cl->length();
-    for(unsigned i=0;i<clen;i++) {
-      SATLiteral l = (*cl)[i];
-      varOfFirst[l.var()] = true;
-      tmp.push(mkLit(l.var(),l.isNegative()));
-    }
-
-    solver_first.addClause(tmp);
-    tmp.clear();
-  }
-
-  // load second into solver_second
-  SATClauseStack::ConstIterator it2(second);
-  while(it2.hasNext()) {
-    SATClause* cl = it2.next();
-
-    unsigned clen=cl->length();
-    for(unsigned i=0;i<clen;i++) {
-      SATLiteral l = (*cl)[i];
-      tmp.push(mkLit(l.var(),l.isNegative()));
-    }
-
-    solver_second.addClause(tmp);
-    tmp.clear();
-  }
-
-  SATLiteralStack vlits;
-
-  // generate the interpolant clauses
-  while (solver_first.solve()) {
-    // turn model into assumptions for solver_second
-    for (int i = 1; i <= (int)maxVar; i++) {
-      if (varOfFirst[i]) {
-        tmp.push(mkLit(i,solver_first.model[i]==l_False));
-      }
-    }
-
-    NEVER(solver_second.solve(tmp));
-    tmp.clear();
-
-    // conflict is a new clause to put into result and solver_first to look for a different model
-    LSet& conflict = solver_second.conflict;
-    for (int i = 0; i < conflict.size(); i++) {
-      Lit l = conflict[i];
-
-      tmp.push(l);
-      vlits.push(SATLiteral(var(l),sign(l) ? 0 : 1));
-    }
-
-    solver_first.addClause(tmp);
-    tmp.clear();
-
-    result.push(SATClause::fromStack(vlits));
-    vlits.reset();
-  }
-*/
-}
-
 
 } // namespace SAT

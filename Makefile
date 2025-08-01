@@ -314,7 +314,6 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
-         SAT/SATLiteral.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\

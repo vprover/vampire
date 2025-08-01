@@ -574,7 +574,6 @@ set(SOURCES
     SAT/SATClause.hpp
     SAT/SATInference.cpp
     SAT/SATInference.hpp
-    SAT/SATLiteral.cpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
     SAT/Z3Interfacing.cpp

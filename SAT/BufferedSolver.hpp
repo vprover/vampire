@@ -59,8 +59,6 @@ public:
     // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
     return (var > _varCntInnerOld) ? false : _inner->isZeroImplied(var);
   }
-  virtual void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
 
   virtual void ensureVarCount(unsigned newVarCnt) override { _inner->ensureVarCount(newVarCnt); _varCnt=std::max(_varCnt,newVarCnt); }
   virtual unsigned newVar() override { 

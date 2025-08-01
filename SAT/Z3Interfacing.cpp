@@ -1189,18 +1189,6 @@ bool Z3Interfacing::isZeroImplied(unsigned var)
   return false;
 }
 
-void Z3Interfacing::collectZeroImplied(SATLiteralStack& acc)
-{
-  NOT_IMPLEMENTED;
-}
-
-SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
-{
-  NOT_IMPLEMENTED;
-
-  return 0;
-}
-
 z3::sort Z3Interfacing::getz3sort(SortId s)
 {
   auto srt = _sorts.tryGet(s);
@@ -1793,7 +1781,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
         std::cout << "[Z3] add (naming): " << naming << std::endl;
       }
 
-      if(slit.isNegative()) {
+      if(!slit.positive()) {
         repr.expr = !repr.expr;
         _exporter.apply([&expr = repr.expr](auto& exp){ exp.instantiate_expression(expr); });
       }
@@ -1808,7 +1796,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
   } else {
     //if non ground then just create a propositional variable
     z3::expr e = getNameExpr(slit.var());
-    e = slit.isPositive() ? e : !e;
+    e = slit.positive() ? e : !e;
     _exporter.apply([&](auto& exp){ exp.instantiate_expression(e); });
     return Representation(e, Stack<z3::expr>());
   }
