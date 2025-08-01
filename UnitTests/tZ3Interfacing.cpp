@@ -41,7 +41,7 @@ using FuncId = unsigned;
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /** runs z3 on a bunch of vampire literals as assumptions, and checks the status afterwards */
-void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, SATSolver::Status expected, Stack<Literal*> assumptions) 
+void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, Status expected, Stack<Literal*> assumptions) 
 {
   SATLiteralStack assms;
   for (auto a : assumptions) {
@@ -58,7 +58,7 @@ void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, SATSolver::Status expected
     }
     cout << "[ expected ] " <<  expected << endl;
     cout << "[ is       ] " <<  status << endl;
-    if (status == SATSolver::Status::SATISFIABLE) {
+    if (status == Status::SATISFIABLE) {
       cout << "[ model    ] " <<  z3.getModel() << endl;
 
     }
@@ -66,7 +66,7 @@ void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, SATSolver::Status expected
   }
 }
 
-void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions)
+void checkStatus(Status expected, Stack<Literal*> assumptions)
 {
   SAT2FO s2f;
   SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, EXPORT_FILE, EXPORT_SYNTAX);
@@ -83,7 +83,7 @@ void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions)
 TEST_FUN(solve__real__simple_01) {
   NUMBER_SUGAR(Real)
   checkStatus(
-      SATSolver::Status::UNSATISFIABLE,
+      Status::UNSATISFIABLE,
       { num(3) == num(0) });
 }
 
@@ -91,7 +91,7 @@ TEST_FUN(solve__real__simple_02) {
   NUMBER_SUGAR(Real)
   DECL_CONST(a, Real)
   checkStatus(
-      SATSolver::Status::SATISFIABLE,
+      Status::SATISFIABLE,
       { num(3) == a });
 }
 
@@ -99,14 +99,14 @@ TEST_FUN(solve__real__simple_02) {
 TEST_FUN(solve__rat__simple_03) {
   NUMBER_SUGAR(Real)
   checkStatus(
-      SATSolver::Status::UNSATISFIABLE,
+      Status::UNSATISFIABLE,
       { num(3) == num(3) + 2 * num(7) });
 }
 
 TEST_FUN(solve__rat__simple_04) {
   NUMBER_SUGAR(Real)
   checkStatus(
-      SATSolver::Status::UNSATISFIABLE,
+      Status::UNSATISFIABLE,
       { num(17) != num(3) + 2 * num(7) });
 }
 
@@ -117,21 +117,21 @@ TEST_FUN(solve__rat__simple_04) {
 TEST_FUN(solve__fool__simple_01) {
   DECL_VAR(x, 0);
   checkStatus(
-      SATSolver::Status::SATISFIABLE,
+      Status::SATISFIABLE,
       { fool(false) == x });
 }
 
 TEST_FUN(solve__fool__simple_02) {
   DECL_VAR(x, 0);
   checkStatus(
-      SATSolver::Status::SATISFIABLE,
+      Status::SATISFIABLE,
       { fool(true) == x });
 }
 
 
 TEST_FUN(solve__fool__simple_03) {
   checkStatus(
-      SATSolver::Status::UNSATISFIABLE,
+      Status::UNSATISFIABLE,
       { fool(true) == fool(false) });
 }
 
@@ -160,8 +160,8 @@ TEST_FUN(solve__dty__01) {
   DECL_CONST(a0, alpha)
   DECL_CONST(a1, alpha)
 
-  checkStatus(SATSolver::Status::UNSATISFIABLE, { cons(a0, nil) == nil });
-  checkStatus(SATSolver::Status::UNSATISFIABLE, { cons(a0, nil) == cons(a1, nil), a0 != a1 });
+  checkStatus(Status::UNSATISFIABLE, { cons(a0, nil) == nil });
+  checkStatus(Status::UNSATISFIABLE, { cons(a0, nil) == cons(a1, nil), a0 != a1 });
 }
 
 
@@ -182,7 +182,7 @@ TEST_FUN(solve__dty__01) {
 
 TEST_FUN(solve__dty__02) {
   DECL_EVEN_ODD
-  checkStatus(SATSolver::Status::UNSATISFIABLE, { succEven(succOdd(zero)) == zero });
+  checkStatus(Status::UNSATISFIABLE, { succEven(succOdd(zero)) == zero });
 }
 
 
@@ -191,7 +191,7 @@ TEST_FUN(solve__dty__03_01) {
   DECL_EVEN_ODD
   DECL_LIST(even)
   // request non-mutual first
-  checkStatus(SATSolver::Status::UNSATISFIABLE, { cons(succEven(succOdd(zero)), nil) == cons(zero, nil) });
+  checkStatus(Status::UNSATISFIABLE, { cons(succEven(succOdd(zero)), nil) == cons(zero, nil) });
 }
 
 TEST_FUN(solve__dty__03_02) {
@@ -199,7 +199,7 @@ TEST_FUN(solve__dty__03_02) {
   DECL_EVEN_ODD
   DECL_LIST(even)
   // request mutual only
-  checkStatus(SATSolver::Status::UNSATISFIABLE, { succEven(succOdd(zero)) == zero });
+  checkStatus(Status::UNSATISFIABLE, { succEven(succOdd(zero)) == zero });
 }
 
 TEST_FUN(solve__dty__03_03) {
@@ -207,8 +207,8 @@ TEST_FUN(solve__dty__03_03) {
   DECL_EVEN_ODD
   DECL_LIST(even)
   // request mutual first
-  checkStatus(SATSolver::Status::UNSATISFIABLE, { succEven(succOdd(zero)) == zero });
-  checkStatus(SATSolver::Status::UNSATISFIABLE, { cons(succEven(succOdd(zero)), nil) == cons(zero, nil) });
+  checkStatus(Status::UNSATISFIABLE, { succEven(succOdd(zero)) == zero });
+  checkStatus(Status::UNSATISFIABLE, { cons(succEven(succOdd(zero)), nil) == cons(zero, nil) });
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -223,7 +223,7 @@ void checkInstantiation(SAT::Z3Interfacing& z3, SAT2FO& s2f, Stack<Literal*> ass
   }
 
   auto status = z3.solveUnderAssumptions(assms);
-  ASS_EQ(status, SATSolver::Status::SATISFIABLE);
+  ASS_EQ(status, Status::SATISFIABLE);
   auto result = z3.evaluateInModel(toInstantiate.term());
   if (result != expected.term()) {
     cout << "[ input    ] " << endl;
@@ -357,7 +357,7 @@ TEST_FUN(segfault02) {
   SAT2FO s2f;
   SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, EXPORT_FILE, EXPORT_SYNTAX);
 
-  checkStatus(z3, s2f, SATSolver::Status::SATISFIABLE, { inst159 == inst160 });
+  checkStatus(z3, s2f, Status::SATISFIABLE, { inst159 == inst160 });
   z3.solve();
 }
 
