@@ -42,7 +42,7 @@ enum class Status {
 
 class SATSolver {
 public:
-  virtual ~SATSolver() {}
+  virtual ~SATSolver() = default;
 
   /**
    * Add a clause to the solver.
@@ -72,11 +72,6 @@ public:
    * naturally coincide.
    */
   virtual void addClauseIgnoredInPartialModel(SATClause* cl) { addClause(cl); }
-
-  /**
-   * Opportunity to perform in-processing of the clause database.
-   */
-  virtual void simplify() {}
 
   /**
    * Establish Status of the clause set inserted so far.

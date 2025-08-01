@@ -33,15 +33,6 @@ public:
    * A requirement is that in a clause, each variable occurs at most once.
    */
   virtual void addClause(SATClause* cl) override;
-  
-  /**
-   * Opportunity to perform in-processing of the clause database.
-   *
-   * (Minisat deletes unconditionally satisfied clauses.)
-   */
-  virtual void simplify() override {
-    _solver.simplify();
-  }
 
   virtual Status solveLimited(unsigned conflictCountLimit) override;
 
