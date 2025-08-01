@@ -63,9 +63,9 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
    }
  }
 
- SATSolver::Status status = _solver->solve();
- ASS(status!=SATSolver::Status::UNKNOWN);
- _result = (status == SATSolver::Status::SATISFIABLE);
+ Status status = _solver->solve();
+ ASS(status!=Status::UNKNOWN);
+ _result = (status == Status::SATISFIABLE);
 }
 
 DArray<signed char>* Monotonicity::check() {

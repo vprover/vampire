@@ -310,12 +310,12 @@ void SplittingBranchSelector::handleSatRefutation()
   }
 }
 
-SATSolver::Status SplittingBranchSelector::processDPConflicts()
+Status SplittingBranchSelector::processDPConflicts()
 {
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
 
   if(!_dp) {
-    return SATSolver::Status::SATISFIABLE;
+    return Status::SATISFIABLE;
   }
 
   SAT2FO& s2f = _parent.satNaming();
@@ -354,20 +354,20 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     // there was conflict, so we try looking for a different model
     {
       TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
-      if (_solver->solve() == SATSolver::Status::UNSATISFIABLE) {
-        return SATSolver::Status::UNSATISFIABLE;
+      if (_solver->solve() == Status::UNSATISFIABLE) {
+        return Status::UNSATISFIABLE;
       }
     }
   }
 
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
-  return SATSolver::Status::SATISFIABLE;
+  return Status::SATISFIABLE;
 }
 
-void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
+void SplittingBranchSelector::updateSelection(unsigned satVar, VarAssignment asgn,
     SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
-  ASS_NEQ(asgn, SATSolver::VarAssignment::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
+  ASS_NEQ(asgn, VarAssignment::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
 
   SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(satVar, true));
   SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
@@ -376,7 +376,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   bool negUsed = _parent.isUsedName(negLvl);
 
   switch(asgn) {
-  case SATSolver::VarAssignment::TRUE:
+  case VarAssignment::TRUE:
     if(posUsed && !_selected.find(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
@@ -386,7 +386,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(negLvl);
     }
     break;
-  case SATSolver::VarAssignment::FALSE:
+  case VarAssignment::FALSE:
     if(negUsed && !_selected.find(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
@@ -396,7 +396,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(posLvl);
     }
     break;
-  case SATSolver::VarAssignment::DONT_CARE:
+  case VarAssignment::DONT_CARE:
   {
     bool posSticky = posUsed && _parent.isSticky(posLvl);
     bool negSticky = negUsed && _parent.isSticky(negLvl);
@@ -444,32 +444,32 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 
   unsigned maxSatVar = _parent.maxSatVar();
 
-  SATSolver::Status stat;
+  Status stat;
   {
     TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
     stat = _solver->solve();
   }
-  if (stat == SATSolver::Status::SATISFIABLE) {
+  if (stat == Status::SATISFIABLE) {
     stat = processDPConflicts();
   }
-  if(stat == SATSolver::Status::UNSATISFIABLE) {
+  if(stat == Status::UNSATISFIABLE) {
     handleSatRefutation(); // noreturn!
   }
-  if(stat == SATSolver::Status::UNKNOWN){
+  if(stat == Status::UNKNOWN){
     env.statistics->smtReturnedUnknown=true;
     throw MainLoop::MainLoopFinishedException(TerminationReason::REFUTATION_NOT_FOUND);
   }
-  ASS_EQ(stat,SATSolver::Status::SATISFIABLE);
+  ASS_EQ(stat,Status::SATISFIABLE);
 
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    VarAssignment asgn = _solver->getAssignment(i);
 
     /**
      * This may happen with the current version of z3 when evaluating expressions like (0 == 1/0).
      * A bug report / feature request has been sent to the z3 people, but this will make us stay sound in release mode.
      * (While violating an assertion in debug - see getAssignment in Z3Interfacing).
      */
-    if (asgn == SATSolver::VarAssignment::NOT_KNOWN) {
+    if (asgn == VarAssignment::NOT_KNOWN) {
       env.statistics->smtDidNotEvaluate=true;
       throw MainLoop::MainLoopFinishedException(TerminationReason::REFUTATION_NOT_FOUND);
     }

@@ -1613,7 +1613,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
-    SATSolver::Status satResult = SATSolver::Status::UNKNOWN;
+    Status satResult = Status::UNKNOWN;
     {
       if (_opt.randomTraversals()) {
         TIME_TRACE(TimeTrace::SHUFFLING);
@@ -1649,7 +1649,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     }
 
     // if the clauses are satisfiable then we have found a finite model
-    if(satResult == SATSolver::Status::SATISFIABLE){
+    if(satResult == Status::SATISFIABLE){
 
       if (_xmass) { // for CONTOUR
         // before printing possibly retract _distinctSortSizes (and the corresponding _sortModelSizes) according to the set assumptions

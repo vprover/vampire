@@ -28,7 +28,7 @@ CadicalInterfacing::CadicalInterfacing(const Shell::Options& opts, bool generate
   _solver.set("stabilizeonly",1);
 }
 
-SATSolver::Status CadicalInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+Status CadicalInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   // load assumptions:
   SATLiteralStack::ConstIterator it(assumps);
@@ -93,14 +93,14 @@ void CadicalInterfacing::addClause(SATClause* cl)
 /**
  * Perform solving and return status.
  */
-SATSolver::Status CadicalInterfacing::solveLimited(unsigned conflictCountLimit)
+Status CadicalInterfacing::solveLimited(unsigned conflictCountLimit)
 {
   _assumptions.clear();
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
   return _status;
 }
 
-SATSolver::VarAssignment CadicalInterfacing::getAssignment(unsigned var)
+VarAssignment CadicalInterfacing::getAssignment(unsigned var)
 {
   ASS_EQ(_status, Status::SATISFIABLE);
   ASS_G(var,0); ASS_L((int)var,_next);

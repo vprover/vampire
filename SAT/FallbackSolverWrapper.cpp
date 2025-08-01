@@ -44,7 +44,7 @@ void FallbackSolverWrapper::addClause(SATClause* cl)
  *
  * @author Giles 
  */
-SATSolver::Status FallbackSolverWrapper::solveLimited(unsigned conflictCountLimit)
+Status FallbackSolverWrapper::solveLimited(unsigned conflictCountLimit)
 {
   // Currently always run the _inner solver to see if we can use it
   Status status = _inner->solveLimited(conflictCountLimit);
@@ -66,7 +66,7 @@ SATSolver::Status FallbackSolverWrapper::solveLimited(unsigned conflictCountLimi
  *
  * @author Giles
  */
-SATSolver::VarAssignment FallbackSolverWrapper::getAssignment(unsigned var)
+VarAssignment FallbackSolverWrapper::getAssignment(unsigned var)
 {
   ASS_G(var,0); ASS_LE(var,_varCnt);
 

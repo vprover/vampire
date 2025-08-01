@@ -56,7 +56,7 @@ unsigned MinisatInterfacingNewSimp::newVar()
   return minisatVar2Vampire(_solver.newVar());
 }
 
-SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+Status MinisatInterfacingNewSimp::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   // load assumptions:
   SATLiteralStack::ConstIterator it(assumps);
@@ -132,14 +132,14 @@ void MinisatInterfacingNewSimp::addClause(SATClause* cl)
 /**
  * Perform solving and return status.
  */
-SATSolver::Status MinisatInterfacingNewSimp::solveLimited(unsigned conflictCountLimit)
+Status MinisatInterfacingNewSimp::solveLimited(unsigned conflictCountLimit)
 {
   _assumptions.clear();
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
   return _status;
 }
 
-SATSolver::VarAssignment MinisatInterfacingNewSimp::getAssignment(unsigned var) 
+VarAssignment MinisatInterfacingNewSimp::getAssignment(unsigned var) 
 {
 	ASS_EQ(_status, Status::SATISFIABLE);
 	ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());

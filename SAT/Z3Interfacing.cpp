@@ -996,7 +996,7 @@ void Z3Interfacing::solveModuloAssumptionsAndSetStatus()
   }
 }
 
-SATSolver::Status Z3Interfacing::solve()
+Status Z3Interfacing::solve()
 {
   _assumptionLookup.clear();
   _assumptions.reset();
@@ -1004,7 +1004,7 @@ SATSolver::Status Z3Interfacing::solve()
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+Status Z3Interfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   _assumptionLookup.clear();
   _assumptions.reset();
@@ -1028,7 +1028,7 @@ SATLiteralStack Z3Interfacing::failedAssumptions() {
   ASSERTION_VIOLATION
 }
 
-SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
+VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
   ASS_EQ(_status,Status::SATISFIABLE);
   z3::expr rep = isNamedExpr(var) ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
