@@ -2088,12 +2088,6 @@ void Options::init()
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
-    _splittingFastRestart.description="";
-    _lookup.insert(&_splittingFastRestart);
-    _splittingFastRestart.tag(OptionTag::AVATAR);
-    _splittingFastRestart.onlyUsefulWith(_splitting.is(equal(true)));
-
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
                                                                         SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"});
 

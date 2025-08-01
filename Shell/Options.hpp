@@ -2269,7 +2269,6 @@ public:
   bool splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
-  bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
   float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
@@ -2658,7 +2657,6 @@ private:
   BoolOptionValue _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
-  BoolOptionValue _splittingFastRestart;
 
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;

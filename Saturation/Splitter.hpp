@@ -243,7 +243,7 @@ private:
   SplitLevel tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl);
   SplitLevel tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
 
-  void addSatClauseToSolver(SATClause* cl, bool refutation);
+  void addSatClauseToSolver(SATClause* cl);
 
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
@@ -291,8 +291,6 @@ private:
 
   /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
   bool _clausesAdded;
-  /** true if there was a refutation added to the SAT solver */
-  bool _haveBranchRefutation;
 
   /* as there can be both limits, it's hard to convert between them,
    * and we terminate at the earlier one, let's just keep checking both. */
@@ -301,15 +299,7 @@ private:
   unsigned _stopSplittingAtInst; // mega-instructions elapsed
 #endif
 
-  bool _fastRestart; // option's value copy
   bool _cleaveNonsplittables; // option's value copy
-
-  /**
-   * We are postponing to consider these clauses for a split
-   * because a conflict clause has been derived
-   * and will invariably change the SAT model.
-   */
-  RCClauseStack _fastClauses;
 
   SaturationAlgorithm* _sa;
 
