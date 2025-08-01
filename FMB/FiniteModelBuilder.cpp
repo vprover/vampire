@@ -33,7 +33,7 @@
 #include "Kernel/FormulaUnit.hpp"
 
 #include "SAT/CadicalInterfacing.hpp"
-#include "SAT/MinisatInterfacingNewSimp.hpp"
+#include "SAT/MinisatInterfacing.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"

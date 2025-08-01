@@ -31,6 +31,17 @@ enum class VarAssignment {
   NOT_KNOWN
 };
 
+inline std::ostream& operator<<(std::ostream& out, VarAssignment const& a)
+{
+  switch (a)  {
+    case VarAssignment::TRUE: return out << "TRUE";
+    case VarAssignment::FALSE: return out << "FALSE";
+    case VarAssignment::DONT_CARE: return out << "DONT_CARE";
+    case VarAssignment::NOT_KNOWN: return out << "NOT_KNOWN";
+    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
+  }
+}
+
 enum class Status {
   SATISFIABLE,
   UNSATISFIABLE,
@@ -39,6 +50,16 @@ enum class Status {
    **/
   UNKNOWN
 };
+
+inline std::ostream& operator<<(std::ostream& out, Status const& s)
+{
+  switch (s)  {
+    case Status::SATISFIABLE: return out << "SATISFIABLE";
+    case Status::UNSATISFIABLE: return out << "UNSATISFIABLE";
+    case Status::UNKNOWN: return out << "UNKNOWN";
+    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
+  }
+}
 
 class SATSolver {
 public:
@@ -158,28 +179,6 @@ public:
     return asgn==desired;
   }
 };
-
-inline std::ostream& operator<<(std::ostream& out, Status const& s)
-{
-  switch (s)  {
-    case Status::SATISFIABLE: return out << "SATISFIABLE";
-    case Status::UNSATISFIABLE: return out << "UNSATISFIABLE";
-    case Status::UNKNOWN: return out << "UNKNOWN";
-    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
-  }
-}
-
-inline std::ostream& operator<<(std::ostream& out, VarAssignment const& a)
-{
-  switch (a)  {
-    case VarAssignment::TRUE: return out << "TRUE";
-    case VarAssignment::FALSE: return out << "FALSE";
-    case VarAssignment::DONT_CARE: return out << "DONT_CARE";
-    case VarAssignment::NOT_KNOWN: return out << "NOT_KNOWN";
-    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
-  }
-}
-
 
 class SATSolverWithAssumptions: public SATSolver {
 public:

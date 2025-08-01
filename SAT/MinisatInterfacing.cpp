@@ -28,19 +28,26 @@ using namespace Minisat;
  * Make the solver handle clauses with variables up to @b newVarCnt
  * (but see vampireVar2Minisat!)
  */
-void MinisatInterfacing::ensureVarCount(unsigned newVarCnt)
+template<typename MinisatSolver>
+void MinisatInterfacing<MinisatSolver>::ensureVarCount(unsigned newVarCnt)
 {
-  while(_solver.nVars() < (int)newVarCnt) {
-    _solver.newVar();
+  try{
+    while(_solver.nVars() < (int)newVarCnt) {
+      _solver.newVar();
+    }
+  } catch (Minisat::OutOfMemoryException&){
+    throw std::bad_alloc();
   }
 }
 
-unsigned MinisatInterfacing::newVar() 
+template<typename MinisatSolver>
+unsigned MinisatInterfacing<MinisatSolver>::newVar() 
 {
   return minisatVar2Vampire(_solver.newVar());
 }
 
-Status MinisatInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+template<typename MinisatSolver>
+Status MinisatInterfacing<MinisatSolver>::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   // load assumptions:
   _assumptions.clear();
@@ -53,7 +60,8 @@ Status MinisatInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& a
   return _status;
 }
 
-SATLiteralStack MinisatInterfacing::failedAssumptions() {
+template<typename MinisatSolver>
+SATLiteralStack MinisatInterfacing<MinisatSolver>::failedAssumptions() {
   ASS_EQ(_status, Status::UNSATISFIABLE)
 
   SATLiteralStack result;
@@ -66,19 +74,23 @@ SATLiteralStack MinisatInterfacing::failedAssumptions() {
  * Solve modulo assumptions and set status.
  * @b conflictCountLimit as with addAssumption.
  */
-void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit)
+template<typename MinisatSolver>
+void MinisatInterfacing<MinisatSolver>::solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit)
 {
   // TODO: consider calling simplify(); or only from time to time?
+  try {
+    _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
+    lbool res = _solver.solveLimited(_assumptions);
 
-  _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
-  lbool res = _solver.solveLimited(_assumptions);
-
-  if (res == l_True) {
-    _status = Status::SATISFIABLE;
-  } else if (res == l_False) {
-    _status = Status::UNSATISFIABLE;
-  } else {
-    _status = Status::UNKNOWN;
+    if (res == l_True) {
+      _status = Status::SATISFIABLE;
+    } else if (res == l_False) {
+      _status = Status::UNSATISFIABLE;
+    } else {
+      _status = Status::UNKNOWN;
+    }
+  } catch(Minisat::OutOfMemoryException&) {
+    throw std::bad_alloc();
   }
 }
 
@@ -86,35 +98,42 @@ void MinisatInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
  * Add clause into the solver.
  *
  */
-void MinisatInterfacing::addClause(SATClause* cl)
+template<typename MinisatSolver>
+void MinisatInterfacing<MinisatSolver>::addClause(SATClause* cl)
 {
   // store to later generate the refutation
   PrimitiveProofRecordingSATSolver::addClause(cl);
 
   // TODO: consider measuring time
-  static vec<Lit> mcl;
-  mcl.clear();
+  try {
+    static vec<Lit> mcl;
+    mcl.clear();
 
-  unsigned clen=cl->length();
-  for(unsigned i=0;i<clen;i++) {
-    SATLiteral l = (*cl)[i];
-    mcl.push(vampireLit2Minisat(l));
+    unsigned clen=cl->length();
+    for(unsigned i=0;i<clen;i++) {
+      SATLiteral l = (*cl)[i];
+      mcl.push(vampireLit2Minisat(l));
+    }
+
+    _solver.addClause(mcl);
+  } catch(Minisat::OutOfMemoryException&) {
+    throw std::bad_alloc();
   }
-
-  _solver.addClause(mcl);
 }
 
 /**
  * Perform solving and return status.
  */
-Status MinisatInterfacing::solveLimited(unsigned conflictCountLimit)
+template<typename MinisatSolver>
+Status MinisatInterfacing<MinisatSolver>::solveLimited(unsigned conflictCountLimit)
 {
   _assumptions.clear();
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
   return _status;
 }
 
-VarAssignment MinisatInterfacing::getAssignment(unsigned var)
+template<typename MinisatSolver>
+VarAssignment MinisatInterfacing<MinisatSolver>::getAssignment(unsigned var)
 {
 	ASS_EQ(_status, Status::SATISFIABLE);
 	ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
@@ -135,7 +154,8 @@ VarAssignment MinisatInterfacing::getAssignment(unsigned var)
   }
 }
 
-bool MinisatInterfacing::isZeroImplied(unsigned var)
+template<typename MinisatSolver>
+bool MinisatInterfacing<MinisatSolver>::isZeroImplied(unsigned var)
 {
   ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   
@@ -144,9 +164,10 @@ bool MinisatInterfacing::isZeroImplied(unsigned var)
   return _solver.value(vampireVar2Minisat(var)) != l_Undef;
 }
 
-SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps)
+template<typename MinisatSolver>
+SATClauseList* MinisatInterfacing<MinisatSolver>::minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps)
 {
-  Minisat::Solver solver;
+  MinisatSolver solver;
 
   static DHMap<int,SATClause*> var2prem;
   var2prem.reset();
@@ -240,10 +261,11 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
   return result;
 }
 
-void MinisatInterfacing::interpolateViaAssumptions(unsigned maxVar, const SATClauseStack& first, const SATClauseStack& second, SATClauseStack& result)
+template<typename MinisatSolver>
+void MinisatInterfacing<MinisatSolver>::interpolateViaAssumptions(unsigned maxVar, const SATClauseStack& first, const SATClauseStack& second, SATClauseStack& result)
 {
-  Minisat::Solver solver_first;
-  Minisat::Solver solver_second;
+  MinisatSolver solver_first;
+  MinisatSolver solver_second;
 
   // TODO: this may be quite wasteful for at least two reasons:
   // 1) 1..maxVar may be a large superset of symb(first \cup second)
@@ -323,6 +345,8 @@ void MinisatInterfacing::interpolateViaAssumptions(unsigned maxVar, const SATCla
   }
 }
 
+template class MinisatInterfacing<Minisat::Solver>;
+template class MinisatInterfacing<Minisat::SimpSolver>;
 
 } // namespace SAT
 
