@@ -21,10 +21,9 @@
 
 namespace Inferences {
 
-class CasesSimp : public ImmediateSimplificationEngine {
+class CasesSimp : public ImmediateSimplificationEngineMany {
   public:
-    ClauseIterator simplifyMany(Clause* premise);
-    Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
+    Option<ClauseIterator> simplifyMany(Clause* premise);
 
     ClauseIterator performSimplification(Clause* cl, Literal* lit, TermList t);
     ClauseIterator generateClauses(Clause* premise);

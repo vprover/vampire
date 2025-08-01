@@ -176,7 +176,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
               SATLiteral lit = (*prem)[i];
               SplitLevel lev;
               if (isSplitLevelVar(lit.var(),lev)) {
-                ASS(lit.isNegative());
+                ASS(!lit.positive());
                 if (!splitAssumps.contains(lit)) {
                   return false;
                 }

@@ -83,7 +83,7 @@ _solver=0;
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
   void trySetTrue(SATLiteral lit) {
-    _solver->suggestPolarity(lit.var(),lit.polarity());
+    _solver->suggestPolarity(lit.var(),lit.positive());
   }
 
   void addSatClauseToSolver(SATClause* cl);

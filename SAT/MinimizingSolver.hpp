@@ -19,8 +19,8 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/DynamicHeap.hpp"
@@ -52,8 +52,6 @@ public:
   
   virtual VarAssignment getAssignment(unsigned var) override;
   virtual bool isZeroImplied(unsigned var) override;
-  virtual void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
 
   virtual void ensureVarCount(unsigned newVarCnt) override;
 

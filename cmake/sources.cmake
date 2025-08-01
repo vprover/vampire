@@ -349,6 +349,8 @@ set(SOURCES
     Kernel/FormulaVarIterator.hpp
     Kernel/Grounder.cpp
     Kernel/Grounder.hpp
+    Kernel/InductionTemplate.cpp
+    Kernel/InductionTemplate.hpp
     Kernel/Inference.cpp
     Kernel/Inference.hpp
     Kernel/InferenceStore.cpp
@@ -570,7 +572,6 @@ set(SOURCES
     SAT/SATClause.hpp
     SAT/SATInference.cpp
     SAT/SATInference.hpp
-    SAT/SATLiteral.cpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
     SAT/Z3Interfacing.cpp

@@ -149,7 +149,7 @@ public:
   static const uint64_t PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
   /* has co-algebraic data type constructors */
   static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
-  /* signature has only constants and formulas have an exists-forall quantifier prefix */
+  /* signature has only constants and formulas have an exists-forall quantifier prefix (BSR is short for Bernays-Schönfinkel-Ramsey) */
   static const uint64_t PR_ESSENTIALLY_BSR = 4398046511104ul; // 2^42
 
  public:

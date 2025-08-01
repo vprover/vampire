@@ -169,9 +169,9 @@ void testInterface(SATSolverWithAssumptions &s) {
   s.addClause(getClause("C"));
   ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
 
-  ASS(s.trueInAssignment(getLit('a')));
-  ASS(s.trueInAssignment(getLit('b')));
-  ASS(s.falseInAssignment(getLit('c')));
+  ASS( s.trueInAssignment(getLit('a')));
+  ASS( s.trueInAssignment(getLit('b')));
+  ASS(!s.trueInAssignment(getLit('c')));
 
   // for a and b depends on learned clauses, which depend on decide polarity
   // but should be both at the same time, or none of the two
@@ -247,7 +247,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   const SATLiteralStack& failed = s.failedAssumptions();
   for (unsigned i = 0; i < failed.size(); i++) {
     SATLiteral lit = failed[i];
-    if (lit.polarity()) {
+    if (lit.positive()) {
       cout << (char)('A' + lit.var()-1);
     } else {
       cout << (char)('a' + lit.var()-1);
@@ -258,7 +258,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   const SATLiteralStack& minimized = s.explicitlyMinimizedFailedAssumptions();
   for (unsigned i = 0; i < minimized.size(); i++) {
     SATLiteral lit = minimized[i];
-    if (lit.polarity()) {
+    if (lit.positive()) {
       cout << (char)('A' + lit.var()-1);
     } else {
       cout << (char)('a' + lit.var()-1);

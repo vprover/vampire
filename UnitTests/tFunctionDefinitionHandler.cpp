@@ -57,7 +57,7 @@ inline void addFunctionDefs(FunctionDefinitionHandler& handler, std::initializer
 }
 
 inline void checkTemplateBranches(FunctionDefinitionHandler& handler, TermSugar t, const std::vector<pair<TermSugar, std::vector<TermSugar>>>& expected) {
-  auto templ = handler.getInductionTemplate(t.sugaredExpr().term());
+  auto templ = handler.getRecursionTemplate(t.sugaredExpr().term());
   ASS(templ);
   auto actual = templ->branches();
   ASS_EQ(actual.size(), expected.size());
@@ -84,11 +84,11 @@ TEST_FUN(test_01) {
     clause({ def_q(r1(x,y),r(z)), q(y,r(z)), g(b) == b, ~q(z,b) }),
   });
 
-  ASS(!handler.getInductionTemplate(f(x,y).sugaredExpr().term()));
-  ASS(!handler.getInductionTemplate(g(x).sugaredExpr().term()));
-  ASS(!handler.getInductionTemplate(h(x,y,z).sugaredExpr().term()));
-  ASS(!handler.getInductionTemplate(p(x)));
-  ASS(!handler.getInductionTemplate(q(x,y)));
+  ASS(!handler.getRecursionTemplate(f(x,y).sugaredExpr().term()));
+  ASS(!handler.getRecursionTemplate(g(x).sugaredExpr().term()));
+  ASS(!handler.getRecursionTemplate(h(x,y,z).sugaredExpr().term()));
+  ASS(!handler.getRecursionTemplate(p(x)));
+  ASS(!handler.getRecursionTemplate(q(x,y)));
 }
 
 // not useful functions (either no recursive calls or no argument changes in any recursive call)
@@ -101,8 +101,8 @@ TEST_FUN(test_02) {
     clause({ def_s(g(x), b) }),
   });
 
-  ASS(!handler.getInductionTemplate(f(x,y).sugaredExpr().term()));
-  ASS(!handler.getInductionTemplate(g(x).sugaredExpr().term()));
+  ASS(!handler.getRecursionTemplate(f(x,y).sugaredExpr().term()));
+  ASS(!handler.getRecursionTemplate(g(x).sugaredExpr().term()));
 }
 
 // adds missing cases
@@ -238,8 +238,8 @@ TEST_FUN(test_05) {
     clause({ def_p1(f1(x)), p1(x) }),
   });
 
-  ASS(!handler.getInductionTemplate(f1(x).sugaredExpr().term()));
-  ASS(!handler.getInductionTemplate((Literal*)p1(x)));
+  ASS(!handler.getRecursionTemplate(f1(x).sugaredExpr().term()));
+  ASS(!handler.getRecursionTemplate((Literal*)p1(x)));
 }
 
 // headers with non-term-algebra arguments are not discarded

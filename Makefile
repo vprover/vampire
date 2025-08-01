@@ -193,6 +193,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
+        Kernel/InductionTemplate.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
         Kernel/PartialOrdering.o\
@@ -313,7 +314,6 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
-         SAT/SATLiteral.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\

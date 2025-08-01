@@ -196,32 +196,38 @@ void Options::init()
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOn(UsingPortfolioTechnology());
+    _schedule.tag(OptionTag::PORTFOLIO);
 
     _scheduleFile = StringOptionValue("schedule_file", "", "");
     _scheduleFile.description = "Path to the input schedule file. Each line contains an encoded strategy. Disabled unless `--schedule file` is set.";
     _lookup.insert(&_scheduleFile);
     _scheduleFile.onlyUsefulWith(_schedule.is(equal(Schedule::FILE)));
+    _scheduleFile.tag(OptionTag::PORTFOLIO);
 
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
     _multicore.reliesOn(UsingPortfolioTechnology());
+    _multicore.tag(OptionTag::PORTFOLIO);
 
     _slowness = FloatOptionValue("slowness","",1.0);
     _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
+    _slowness.tag(OptionTag::PORTFOLIO);
 
     _randomizeSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
     _randomizeSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
     _lookup.insert(&_randomizeSeedForPortfolioWorkers);
     _randomizeSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
+    _randomizeSeedForPortfolioWorkers.tag(OptionTag::PORTFOLIO);
 
     _shuffleOnScheduleRepeats = BoolOptionValue("shuffle_on_schedule_repeats","",true);
     _shuffleOnScheduleRepeats.description = "In portfolio mode, when we run out of strategies in the selected schedule, we restart from the beginning while doubling the limits,"
                                              " under this option, we also force si=on:rtra=on to increase the chance that the repeated strategies `do something else`.";
     _lookup.insert(&_shuffleOnScheduleRepeats);
     _shuffleOnScheduleRepeats.onlyUsefulWith(UsingPortfolioTechnology());
+    _shuffleOnScheduleRepeats.tag(OptionTag::PORTFOLIO);
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -2393,6 +2399,7 @@ void Options::init()
                  "Other",
                  "Development",
                  "Output",
+                 "Portfolio",
                  "Finite Model Building",
                  "SAT Solving",
                  "AVATAR",
