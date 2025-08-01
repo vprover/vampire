@@ -191,7 +191,7 @@ void SplittingBranchSelector::handleSatRefutation()
 
     if (satPremises) { // does our SAT solver support postponed minimization?
       SATLiteralStack dummy;
-      SATClauseList* minimizedSatPremises = MinisatInterfacing::minimizePremiseList(satPremises,dummy);
+      SATClauseList* minimizedSatPremises = MinisatInterfacing<>::minimizePremiseList(satPremises,dummy);
 
       actualSatPremises.loadFromIterator(SATClauseList::DestructiveIterator(minimizedSatPremises));
     } else {
@@ -246,7 +246,7 @@ void SplittingBranchSelector::handleSatRefutation()
     }
 
     SATClauseStack result;
-    MinisatInterfacing::interpolateViaAssumptions(_parent.maxSatVar(),first,second,result);
+    MinisatInterfacing<>::interpolateViaAssumptions(_parent.maxSatVar(),first,second,result);
 
     // turn result into Formula wrapping its CNF structure
     Formula* interpolant;

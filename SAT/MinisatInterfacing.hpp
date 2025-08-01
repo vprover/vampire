@@ -19,12 +19,16 @@
 #include "SATClause.hpp"
 
 #include "Minisat/core/Solver.h"
+#include "Minisat/simp/SimpSolver.h"
 
 namespace SAT{
 
+template<typename MinisatSolver = Minisat::Solver>
 class MinisatInterfacing : public PrimitiveProofRecordingSATSolver
 {
-public: 
+public:
+  static const unsigned VAR_MAX = std::numeric_limits<Minisat::Var>::max() / 2;
+
   /**
    * Can be called only when all assumptions are retracted
    *
@@ -98,8 +102,10 @@ protected:
 private:
   Status _status = Status::SATISFIABLE;
   Minisat::vec<Minisat::Lit> _assumptions;
-  Minisat::Solver _solver;
+  MinisatSolver _solver;
 };
+
+using MinisatInterfacingNewSimp = MinisatInterfacing<Minisat::SimpSolver>;
 
 }//end SAT namespace
 
