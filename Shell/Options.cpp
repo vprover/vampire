@@ -3527,7 +3527,7 @@ std::string Options::generateEncodedOptions() const
     // not filenames, please
     forbidden.insert(&_lrsSaveTraceFile);
     forbidden.insert(&_lrsLoadTraceFile);
-    forbidden.insert(&_neuralClauseEvaluationModel);
+    // forbidden.insert(&_neuralClauseEvaluationModel);
 
     forbidden.insert(&_statistics);
     forbidden.insert(&_memoryLimit);
