@@ -18,6 +18,8 @@
 #include "SATLiteral.hpp"
 #include "SATInference.hpp"
 
+#include "Shell/Shuffling.hpp"
+
 #include <climits>
 
 namespace SAT {
@@ -229,10 +231,7 @@ public:
     if (randomize) {
       // randomly permute the content of _failedAssumptionBuffer
       // not to bias minimization from one side or another
-      for(unsigned i=sz-1; i>0; i--) {
-        unsigned tgtPos=Random::getInteger(i+1);
-        std::swap(failed[i], failed[tgtPos]);
-      }
+      Shell::Shuffling::shuffleArray(failed,sz);
     }
 
     SATLiteralStack assumptions;

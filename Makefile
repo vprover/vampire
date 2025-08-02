@@ -317,7 +317,6 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
-	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainers.o\
