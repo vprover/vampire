@@ -528,7 +528,19 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::compareWithSupe
           return true;
         }
         // case 2.b.
-        return checkOrConstrainGreater(_ord->compare(other, tgtTermS), other, tgtTermS, cons);
+        auto tord = _ord->compare(other, tgtTermS);
+        switch (tord) {
+          case Ordering::GREATER:
+            return true;
+          case Ordering::EQUAL:
+            env.statistics->generalizedInductionApplication++;
+            return rwCl->number() > eqCl->number();
+          case Ordering::LESS:
+            return false;
+          case Ordering::INCOMPARABLE:
+            env.statistics->generalizedInductionApplicationInProof++;
+            return rwCl->number() > eqCl->number() || checkOrConstrainGreater(tord, other, tgtTermS, cons);
+        }
       }
       // case 2.c.
       if (!MatchingUtils::matchTerms(rwTerm, eqLHS)) {

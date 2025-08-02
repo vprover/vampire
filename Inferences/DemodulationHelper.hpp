@@ -28,7 +28,7 @@ public:
 
   bool redundancyCheckNeededForPremise(Clause* rwCl, Literal* rwLit, TermList rwTerm) const;
   bool isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm,
-    TermList eqLHS, const SubstApplicator* applicator) const;
+    Clause* eqCl, TermList eqLHS, const SubstApplicator* applicator) const;
 
 private:
   bool _redundancyCheck;

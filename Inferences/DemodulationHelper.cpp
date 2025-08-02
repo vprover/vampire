@@ -75,18 +75,20 @@ bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermLis
 }
 
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
-  TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
+  TermList tgtTerm, Clause* eqCl, TermList eqLHS, const SubstApplicator* eqApplicator) const
 {
   ASS(redundancyCheckNeededForPremise(rwCl, rwLit, rwTerm));
 
   TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
-  if (_ord->compare(tgtTerm, other) == Ordering::LESS) {
+  auto tord = _ord->compare(tgtTerm, other);
+  if (tord == Ordering::LESS) {
     return true;
   }
 
   if (_encompassing) {
     // under _encompassing, we know there are no other literals in rwCl
-    return !isRenamingOn(eqApplicator,eqLHS);
+    return !isRenamingOn(eqApplicator,eqLHS) ||
+      (tord == Ordering::INCOMPARABLE && rwCl->number() > eqCl->number());
   }
 
   // return early to avoid creation of eqLitS
