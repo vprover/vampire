@@ -110,7 +110,7 @@ void testProofWithAssumptions(SATSolver& s)
   s.addClause(getClause("a"));
   s.addClause(getClause("A"));
 
-  ASS_EQ(s.solve(),SATSolver::Status::UNSATISFIABLE);
+  ASS_EQ(s.solve(),Status::UNSATISFIABLE);
 
   SATClause* refutation = s.getRefutation();
   PropInference* inf = static_cast<PropInference*>(refutation->inference());
@@ -137,7 +137,7 @@ TEST_FUN(testProofWithAssums)
 void testInterface(SATSolverWithAssumptions &s) {
   ensurePrepared(s);
 
-  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
+  ASS_EQ(s.solve(),Status::SATISFIABLE);
 
   unsigned a = getLit('a').var();
   unsigned b = getLit('b').var();
@@ -161,13 +161,13 @@ void testInterface(SATSolverWithAssumptions &s) {
   */
 
   s.addClause(getClause("ab"));
-  ASS_EQ(s.solve(true),SATSolver::Status::UNKNOWN);
+  ASS_EQ(s.solve(true),Status::UNKNOWN);
   s.addClause(getClause("aB"));
-  ASS_EQ(s.solve(true),SATSolver::Status::UNKNOWN);
+  ASS_EQ(s.solve(true),Status::UNKNOWN);
   s.addClause(getClause("Ab"));
-  ASS_EQ(s.solve(true),SATSolver::Status::UNKNOWN);
+  ASS_EQ(s.solve(true),Status::UNKNOWN);
   s.addClause(getClause("C"));
-  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
+  ASS_EQ(s.solve(),Status::SATISFIABLE);
 
   ASS( s.trueInAssignment(getLit('a')));
   ASS( s.trueInAssignment(getLit('b')));
@@ -195,18 +195,18 @@ void testInterface(SATSolverWithAssumptions &s) {
   SATLiteralStack assumptions;
   assumptions.push(getLit('d'));
   assumptions.push(getLit('a'));
-  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::SATISFIABLE);
+  ASS_EQ(s.solveUnderAssumptions(assumptions),Status::SATISFIABLE);
   assumptions.reset();
 
   assumptions.push(getLit('A'));
-  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::UNSATISFIABLE);
+  ASS_EQ(s.solveUnderAssumptions(assumptions),Status::UNSATISFIABLE);
   assumptions.reset();
 
   assumptions.push(getLit('a'));
-  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::SATISFIABLE);
+  ASS_EQ(s.solveUnderAssumptions(assumptions),Status::SATISFIABLE);
   assumptions.reset();
 
-  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
+  ASS_EQ(s.solve(),Status::SATISFIABLE);
 }
 
 TEST_FUN(testSATSolverInterface)
@@ -242,7 +242,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   assumps.push(getLit('E'));
   assumps.push(getLit('Y'));
 
-  ASS_EQ(s.solveUnderAssumptions(assumps),SATSolver::Status::UNSATISFIABLE);
+  ASS_EQ(s.solveUnderAssumptions(assumps),Status::UNSATISFIABLE);
 
   const SATLiteralStack& failed = s.failedAssumptions();
   for (unsigned i = 0; i < failed.size(); i++) {

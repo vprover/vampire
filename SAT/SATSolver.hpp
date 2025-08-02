@@ -24,25 +24,46 @@
 
 namespace SAT {
 
+enum class VarAssignment {
+  TRUE,
+  FALSE,
+  DONT_CARE,  // to represent partial models
+  NOT_KNOWN
+};
+
+inline std::ostream& operator<<(std::ostream& out, VarAssignment const& a)
+{
+  switch (a)  {
+    case VarAssignment::TRUE: return out << "TRUE";
+    case VarAssignment::FALSE: return out << "FALSE";
+    case VarAssignment::DONT_CARE: return out << "DONT_CARE";
+    case VarAssignment::NOT_KNOWN: return out << "NOT_KNOWN";
+    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
+  }
+}
+
+enum class Status {
+  SATISFIABLE,
+  UNSATISFIABLE,
+  /**
+   * Solving for just a bounded number of conflicts may return UNKNOWN.
+   **/
+  UNKNOWN
+};
+
+inline std::ostream& operator<<(std::ostream& out, Status const& s)
+{
+  switch (s)  {
+    case Status::SATISFIABLE: return out << "SATISFIABLE";
+    case Status::UNSATISFIABLE: return out << "UNSATISFIABLE";
+    case Status::UNKNOWN: return out << "UNKNOWN";
+    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
+  }
+}
+
 class SATSolver {
 public:
-  enum class VarAssignment {
-    TRUE,
-    FALSE,
-    DONT_CARE,  // to represent partial models
-    NOT_KNOWN
-  };
-
-  enum class Status {
-    SATISFIABLE,
-    UNSATISFIABLE,
-    /**
-     * Solving for just a bounded number of conflicts may return UNKNOWN.
-     **/
-    UNKNOWN
-  };
-
-  virtual ~SATSolver() {}
+  virtual ~SATSolver() = default;
 
   /**
    * Add a clause to the solver.
@@ -72,11 +93,6 @@ public:
    * naturally coincide.
    */
   virtual void addClauseIgnoredInPartialModel(SATClause* cl) { addClause(cl); }
-
-  /**
-   * Opportunity to perform in-processing of the clause database.
-   */
-  virtual void simplify() {}
 
   /**
    * Establish Status of the clause set inserted so far.
@@ -110,7 +126,7 @@ public:
    * See also newVar for a different (and conceptually incompatible)
    * way for managing variables in the solver.
    */
-  virtual void ensureVarCount(unsigned newVarCnt) {}
+  virtual void ensureVarCount(unsigned newVarCnt) = 0;
 
   /**
    * Allocate a slot for a new (previously unused) variable in the solver
@@ -163,28 +179,6 @@ public:
     return asgn==desired;
   }
 };
-
-inline std::ostream& operator<<(std::ostream& out, SATSolver::Status const& s)
-{
-  switch (s)  {
-    case SATSolver::Status::SATISFIABLE: return out << "SATISFIABLE";
-    case SATSolver::Status::UNSATISFIABLE: return out << "UNSATISFIABLE";
-    case SATSolver::Status::UNKNOWN: return out << "UNKNOWN";
-    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
-  }
-}
-
-inline std::ostream& operator<<(std::ostream& out, SATSolver::VarAssignment const& a)
-{
-  switch (a)  {
-    case SATSolver::VarAssignment::TRUE: return out << "TRUE";
-    case SATSolver::VarAssignment::FALSE: return out << "FALSE";
-    case SATSolver::VarAssignment::DONT_CARE: return out << "DONT_CARE";
-    case SATSolver::VarAssignment::NOT_KNOWN: return out << "NOT_KNOWN";
-    default: ASSERTION_VIOLATION; return  out << "INVALID STATUS";
-  }
-}
-
 
 class SATSolverWithAssumptions: public SATSolver {
 public:

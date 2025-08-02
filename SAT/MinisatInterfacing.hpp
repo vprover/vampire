@@ -19,27 +19,22 @@
 #include "SATClause.hpp"
 
 #include "Minisat/core/Solver.h"
+#include "Minisat/simp/SimpSolver.h"
 
 namespace SAT{
 
+template<typename MinisatSolver = Minisat::Solver>
 class MinisatInterfacing : public PrimitiveProofRecordingSATSolver
 {
-public: 
+public:
+  static const unsigned VAR_MAX = std::numeric_limits<Minisat::Var>::max() / 2;
+
   /**
    * Can be called only when all assumptions are retracted
    *
    * A requirement is that in a clause, each variable occurs at most once.
    */
   virtual void addClause(SATClause* cl) override;
-  
-  /**
-   * Opportunity to perform in-processing of the clause database.
-   *
-   * (Minisat deletes unconditionally satisfied clauses.)
-   */
-  virtual void simplify() override {
-    _solver.simplify();
-  }
 
   virtual Status solveLimited(unsigned conflictCountLimit) override;
 
@@ -107,8 +102,10 @@ protected:
 private:
   Status _status = Status::SATISFIABLE;
   Minisat::vec<Minisat::Lit> _assumptions;
-  Minisat::Solver _solver;
+  MinisatSolver _solver;
 };
+
+using MinisatInterfacingNewSimp = MinisatInterfacing<Minisat::SimpSolver>;
 
 }//end SAT namespace
 

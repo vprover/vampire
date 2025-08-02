@@ -493,7 +493,7 @@ void Inference::minimizePremises()
 
   FromSatRefutationInfo* info = static_cast<FromSatRefutationInfo*>(_ptr2);
 
-  SATClauseList* minimized = MinisatInterfacing::minimizePremiseList(info->_satPremises,info->_usedAssumptions);
+  SATClauseList* minimized = MinisatInterfacing<>::minimizePremiseList(info->_satPremises,info->_usedAssumptions);
 
   SATClause* newSatRef = new(0) SATClause(0);
   newSatRef->setInference(new PropInference(minimized));

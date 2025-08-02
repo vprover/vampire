@@ -142,8 +142,7 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/simp/SimpSolver.o\
   Minisat/utils/Options.o\
   Minisat/utils/System.o\
-  SAT/MinisatInterfacing.o\
-  SAT/MinisatInterfacingNewSimp.o
+  SAT/MinisatInterfacing.o
 
 VD_OBJ = Debug/Assertion.o\
          Debug/RuntimeStatistics.o\

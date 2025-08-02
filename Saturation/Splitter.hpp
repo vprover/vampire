@@ -91,10 +91,10 @@ _solver=0;
 private:
   friend class Splitter;
 
-  SATSolver::Status processDPConflicts();
+  Status processDPConflicts();
 
   void handleSatRefutation();
-  void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
+  void updateSelection(unsigned satVar, VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   //options
