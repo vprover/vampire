@@ -59,14 +59,6 @@ public:
   Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
   SATLiteralStack failedAssumptions() override;
 
-  /**
-   * Use minisat and solving under assumptions to minimize the given set of premises (= unsat core extraction).
-   *
-   * Assumes @b premises in conjunction with @b assumps unsat.
-   * Returns a "small" subset of premises which is still unsat under assumps.
-   */
-  static SATClauseList* minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps);
-
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
 

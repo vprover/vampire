@@ -55,13 +55,6 @@ void MinimizingSolver::addClause(SATClause* cl)
   }
 }
 
-void MinimizingSolver::addClauseIgnoredInPartialModel(SATClause* cl)
-{
-  // just passing to _inner, but for minimization it will be ignored
-  _inner->addClause(cl);
-  _assignmentValid = false;
-}
-
 Status MinimizingSolver::solveLimited(unsigned conflictCountLimit)
 {
   _assignmentValid = false;

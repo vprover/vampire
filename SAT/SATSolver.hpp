@@ -82,19 +82,6 @@ public:
   }
 
   /**
-   * When a solver supports partial models (via DONT_CARE values in the assignment),
-   * a partial model P computed must satisfy all the clauses added to the solver
-   * via addClause and there must be a full model extending P which also
-   * satisfies clauses added via addClauseIgnoredInPartialModel.
-   *
-   * This is a default implementation of addClauseIgnoredInPartialModel
-   * for all the solvers which return total models
-   * for which addClause and addClauseIgnoredInPartialModel
-   * naturally coincide.
-   */
-  virtual void addClauseIgnoredInPartialModel(SATClause* cl) { addClause(cl); }
-
-  /**
    * Establish Status of the clause set inserted so far.
    *
    * If conflictCountLimit==0,
