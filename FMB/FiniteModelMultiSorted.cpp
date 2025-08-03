@@ -46,6 +46,8 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+constexpr auto NOT_REPRESENTED = SIZE_MAX;
+
 void FiniteModelMultiSorted::initTables()
 {
   _f_offsets.ensure(env.signature->functions());
@@ -56,10 +58,15 @@ void FiniteModelMultiSorted::initTables()
   // the actual index
   size_t offsets=0;
   for(unsigned f=0; f<env.signature->functions();f++){
-    unsigned arity=env.signature->functionArity(f);
+    Signature::Symbol* symb = env.signature->getFunction(f);
+    if (symb->usageCnt()==0) {
+      _f_offsets[f]=NOT_REPRESENTED;
+      continue;
+    }
     _f_offsets[f]=offsets;
 
-    OperatorType* sig = env.signature->getFunction(f)->fnType();
+    unsigned arity=symb->arity();
+    OperatorType* sig = symb->fnType();
     size_t add = 1;
     for(unsigned i=0;i<arity;i++) {
       add *= _sizes[sig->arg(i).term()->functor()];
@@ -77,10 +84,15 @@ void FiniteModelMultiSorted::initTables()
   // can restart for predicates as indexing p_interepration instead
   offsets=0;
   for(unsigned p=1; p<env.signature->predicates();p++){
-    unsigned arity=env.signature->predicateArity(p);
+    Signature::Symbol* symb = env.signature->getPredicate(p);
+    if (symb->usageCnt()==0) {
+      _p_offsets[p]=NOT_REPRESENTED;
+      continue;
+    }
     _p_offsets[p]=offsets;
 
-    OperatorType* sig = env.signature->getPredicate(p)->predType();
+    unsigned arity=symb->arity();
+    OperatorType* sig = symb->predType();
     size_t add = 1;
     for(unsigned i=0;i<arity;i++) {
       int mult = _sizes[sig->arg(i).term()->functor()];
@@ -986,12 +998,16 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
   while (ii.hasNext()) {
     Problem::Interference* i = ii.next();
     switch (i->_kind) {
-      case Problem::IntereferenceKind::FUN_DEF:
-        restoreEliminatedFunDef(static_cast<Problem::FunDef*>(i));
+      case Problem::IntereferenceKind::FUN_DEF: {
+        Problem::FunDef* fd = static_cast<Problem::FunDef*>(i);
+        _symbolicFuns.insert(fd->_head->functor(),fd);
         break;
-      case Problem::IntereferenceKind::PRED_DEF:
-        restoreEliminatedPredDef(static_cast<Problem::PredDef*>(i));
+      }
+      case Problem::IntereferenceKind::PRED_DEF: {
+        Problem::PredDef* pd = static_cast<Problem::PredDef*>(i);
+        _symbolicPreds.insert(pd->_head->functor(),pd);
         break;
+      }
       case Problem::IntereferenceKind::GLOB_FLIP:
         restoreGlobalPredicateFlip(static_cast<Problem::GlobalFlip*>(i));
         break;

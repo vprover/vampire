@@ -37,15 +37,18 @@ using namespace Kernel;
 class FiniteModelMultiSorted {
   DArray<unsigned> _sizes;
 
-  static const char INTP_UNDEF = 0;
-  static const char INTP_FALSE = 1;
-  static const char INTP_TRUE = 2;
+  inline static constexpr char INTP_UNDEF = 0;
+  inline static constexpr char INTP_FALSE = 1;
+  inline static constexpr char INTP_TRUE = 2;
 
   // two big tables waiting to be filled with the intrepreations (of functions and predicates)
   DArray<size_t> _f_offsets;
   DArray<size_t> _p_offsets;
   DArray<unsigned> _f_interpretation;
   DArray<char> _p_interpretation; // 0 is undef, 1 false, 2 true
+
+  DHMap<unsigned,Problem::FunDef*> _symbolicFuns;
+  DHMap<unsigned,Problem::PredDef*> _symbolicPreds;
 
   // uses _sizes to fillup _f/p_offsets and _f/p_interpretation from scratch
   void initTables();
