@@ -97,34 +97,11 @@ void FiniteModelMultiSorted::initTables()
     offsets += add;
   }
   _p_interpretation.expand(offsets,0);
-
-  sortRepr.ensure(env.signature->typeCons());
-  for(unsigned s=0;s<env.signature->typeCons();s++){
-    if(env.signature->isInterpretedNonDefault(s))
-      continue;
-    sortRepr[s].ensure(_sizes[s]+1);
-    for(unsigned i=0;i<=_sizes[s];i++){
-      sortRepr[s][i] = -1;
-    }
-  }
 }
 
 void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
 {
   ASS_EQ(env.signature->functionArity(f),args.size());
-
-  unsigned arity = args.size();
-
-  // this is just for collecting names for domain elements (not used unless replace_domain_elements==true)
-  if(arity==0 && !env.signature->getFunction(f)->introduced()){
-    TermList srt = env.signature->getFunction(f)->fnType()->result();
-    unsigned srtU = srt.term()->functor();
-    if(sortRepr[srtU][res] == -1){
-      //cout << "Rep " << env.signature->functionName(f) << " for ";
-      //cout << env.sorts->sortName(srt) << " and " << res << endl;
-      sortRepr[srtU][res]=f;
-    }
-  }
 
   size_t var = args2var(args,_sizes,_f_offsets,f,env.signature->getFunction(f)->fnType());
 
@@ -135,8 +112,6 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<unsigned>& args, bool res)
 {
   ASS_EQ(env.signature->predicateArity(p),args.size());
-
-  //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
 
   size_t var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
 
@@ -149,8 +124,6 @@ std::string FiniteModelMultiSorted::toString()
   std::ostringstream modelStm;
 
   bool printIntroduced = false;
-
-  bool replaceDomainConstants = env.options->replaceDomainElements();
 
   static DArray<DArray<std::string>> cnames;
   cnames.ensure(env.signature->typeCons());
@@ -177,8 +150,7 @@ std::string FiniteModelMultiSorted::toString()
     // Domain constant declarations
     for(unsigned i=1;i<=size;i++){
       modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
-      int frep = replaceDomainConstants ? sortRepr[s][i] : -1;
-      std::string cname = (frep >= 0) ? env.signature->functionName(frep) : append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
+      std::string cname = append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
       cnames[s][i]=cname;
       modelStm << cname << ":" << sortName << ")." << endl;
     }
@@ -555,10 +527,6 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
                             old_res;
 
           _f_interpretation[var] = res;
-
-          if (arity==0 && !symb->introduced() && sortRepr[res_srt][res] == -1){
-            sortRepr[res_srt][res]=f;
-          }
         }
 
         // move var
@@ -699,10 +667,6 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
           unsigned res = (res_srt == srt) ? old_to_new.get(old_res) : old_res;
           _f_interpretation[var] = res;
-
-          if (arity==0 && !symb->introduced() && sortRepr[res_srt][res] == -1) {
-            sortRepr[res_srt][res]=f;
-          }
         }
 
         // move var

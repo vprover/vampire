@@ -47,11 +47,7 @@ class FiniteModelMultiSorted {
   DArray<unsigned> _f_interpretation;
   DArray<char> _p_interpretation; // 0 is undef, 1 false, 2 true
 
-  // candidates for the domain constants in the model printed (we use existing constants of the respective sort, but introduce a new symbol, if there is none)
-  DArray<DArray<int>> sortRepr;
-
   // uses _sizes to fillup _f/p_offsets and _f/p_interpretation from scratch
-  // also cleans sortRepr (to be filled up from scratch)
   void initTables();
 
   // captures the encoding of the functions offsets and predicates in our tables
