@@ -48,7 +48,6 @@ class FiniteModelMultiSorted {
   DArray<char> _p_interpretation; // 0 is undef, 1 false, 2 true
 
   // candidates for the domain constants in the model printed (we use existing constants of the respective sort, but introduce a new symbol, if there is none)
-  // this is not the same thing (although, maybe, these could be unified?) as _domainConstants, which are used for evaluation
   DArray<DArray<int>> sortRepr;
 
   // uses _sizes to fillup _f/p_offsets and _f/p_interpretation from scratch
@@ -113,37 +112,7 @@ private:
   void restoreGlobalPredicateFlip(Problem::GlobalFlip*);
   void restoreViaCondFlip(Problem::CondFlip*);
 
-  // the pairs of <constant number, sort>
-  DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
-  DHMap<Term*,std::pair<unsigned,unsigned>> _domainConstantsRev;
 public:
-  Term* getDomainConstant(unsigned c, unsigned srt)
-  {
-    Term* t;
-    std::pair<unsigned,unsigned> pair = std::make_pair(c,srt);
-    if(_domainConstants.find(pair,t)) return t;
-    std::string name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
-    unsigned f = env.signature->addFreshFunction(0,name.c_str());
-    TermList srtT = TermList(AtomicSort::createConstant(srt));
-    env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srtT));
-    t = Term::createConstant(f);
-    _domainConstants.insert(pair,t);
-    _domainConstantsRev.insert(t,pair);
-
-    return t;
-  }
-  std::pair<unsigned,unsigned> getDomainConstant(Term* t)
-  {
-    std::pair<unsigned,unsigned> pair;
-    if(_domainConstantsRev.find(t,pair)) return pair;
-    USER_ERROR("Evaluated to "+t->toString()+" when expected a domain constant, probably a partial model");
-  }
-
-  bool isDomainConstant(Term* t)
-  {
-    return _domainConstantsRev.find(t);
-  }
-
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {
       return std::string(prefix);

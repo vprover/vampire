@@ -477,10 +477,6 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
 
 void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<unsigned> &sortFunctions, const Stack<unsigned> &sortPredicates)
 {
-  // if we already started evaluating things with the model, elimination would be more complicated
-  ASS_EQ(_domainConstants.size(),0);
-  ASS_EQ(_domainConstantsRev.size(),0);
-
   // let's do functions first
   for(unsigned i = 0; i<sortFunctions.size(); i++) {
     unsigned elim_f = sortFunctions[i];
