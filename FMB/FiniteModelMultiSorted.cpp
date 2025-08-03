@@ -54,18 +54,18 @@ void FiniteModelMultiSorted::initTables()
   // generate offsets per function for indexing f_interpreation
   // see addFunctionDefinition for how the offset is used to compute
   // the actual index
-  unsigned offsets=0;
+  size_t offsets=0;
   for(unsigned f=0; f<env.signature->functions();f++){
     unsigned arity=env.signature->functionArity(f);
     _f_offsets[f]=offsets;
 
     OperatorType* sig = env.signature->getFunction(f)->fnType();
-    unsigned add = 1;
+    size_t add = 1;
     for(unsigned i=0;i<arity;i++) {
       add *= _sizes[sig->arg(i).term()->functor()];
     }
 
-    if (UINT_MAX - add <= offsets) {
+    if (SIZE_MAX - add <= offsets) {
       // the SAT solver skipped some functions as they are eliminated
       // (the model, on the other hand, should be prepared to hold their values later too)
       INVALID_OPERATION("Model too large to represent!");
@@ -81,14 +81,14 @@ void FiniteModelMultiSorted::initTables()
     _p_offsets[p]=offsets;
 
     OperatorType* sig = env.signature->getPredicate(p)->predType();
-    unsigned add = 1;
+    size_t add = 1;
     for(unsigned i=0;i<arity;i++) {
       int mult = _sizes[sig->arg(i).term()->functor()];
       ASS(mult>0);
       add *= (mult>0 ? mult : 1);
     }
 
-    if (UINT_MAX - add <= offsets) {
+    if (SIZE_MAX - add <= offsets) {
       // the SAT solver skipped some functions as they are eliminated
       // (the model, on the other hand, should be prepared to hold their values later too)
       INVALID_OPERATION("Model too large to represent!");
@@ -126,7 +126,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
     }
   }
 
-  unsigned var = args2var(args,_sizes,_f_offsets,f,env.signature->getFunction(f)->fnType());
+  size_t var = args2var(args,_sizes,_f_offsets,f,env.signature->getFunction(f)->fnType());
 
   ASS_L(var, _f_interpretation.size());
   _f_interpretation[var] = res;
@@ -138,7 +138,7 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 
   //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
 
-  unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+  size_t var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
 
   ASS_L(var, _p_interpretation.size());
   _p_interpretation[var] = (res ? INTP_TRUE : INTP_FALSE);
@@ -441,7 +441,7 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
 
   // cout << "evaluateTerm " << tl.toString() << " under " << subst << endl;
 
-  unsigned var = args2var(args,_sizes,_f_offsets,f,env.signature->getFunction(f)->fnType());
+  size_t var = args2var(args,_sizes,_f_offsets,f,env.signature->getFunction(f)->fnType());
   ASS_L(var, _f_interpretation.size());
 
   // cout << "var " << var << " _f_interpretation[var] " << _f_interpretation[var] << endl;
@@ -466,7 +466,7 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
     return (args[0]==args[1]) == lit->polarity();
   }
 
-  unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+  size_t var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
 
   ASS_L(var, _p_interpretation.size());
   char res = _p_interpretation[var];
@@ -552,7 +552,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         }
 
         // reencode and store
-        unsigned old_var = args2var(old_args,old_sizes,old_f_offsets,f,sig);
+        size_t old_var = args2var(old_args,old_sizes,old_f_offsets,f,sig);
         unsigned old_res = old_f_interpretation[old_var];
 
         if (old_res) { // eliminated symbols don't have reasonable values
@@ -607,7 +607,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         }
 
         // reencode and store
-        unsigned old_var = args2var(old_args,old_sizes,old_p_offsets,p,sig);
+        size_t old_var = args2var(old_args,old_sizes,old_p_offsets,p,sig);
         char old_res = old_p_interpretation[old_var];
 
         _p_interpretation[var++] = old_res; // no change for predicates
@@ -700,7 +700,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         }
 
         // reencode and store
-        unsigned old_var = args2var(old_args,old_sizes,old_f_offsets,f,sig);
+        size_t old_var = args2var(old_args,old_sizes,old_f_offsets,f,sig);
         unsigned old_res = old_f_interpretation[old_var];
 
         if (old_res) { // eliminated symbols don't have reasonable values
@@ -754,7 +754,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         }
 
         // reencode and store
-        unsigned old_var = args2var(old_args,old_sizes,old_p_offsets,p,sig);
+        size_t old_var = args2var(old_args,old_sizes,old_p_offsets,p,sig);
         unsigned old_res = old_p_interpretation[old_var];
 
         _p_interpretation[var++] = old_res; // no change for predicates
@@ -898,7 +898,7 @@ void FiniteModelMultiSorted::restoreImplicitlyEliminatedPred(unsigned p)
 
   OperatorType* ot = env.signature->getPredicate(p)->fnType();
   for(;;) {
-    unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+    size_t var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
     if (_p_interpretation[var] == INTP_UNDEF) // default only conditionally (some flips may have already been done)
       _p_interpretation[var] = INTP_FALSE;
 
@@ -928,7 +928,7 @@ void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
 
   OperatorType* ot = env.signature->getPredicate(p)->fnType();
   for(;;) {
-    unsigned var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+    size_t var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
     if (_p_interpretation[var] == INTP_TRUE) {
       _p_interpretation[var] = INTP_FALSE;
     } else { // includes INTP_UNDEF, which is implicitly false
@@ -1029,7 +1029,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
         for(unsigned j=0;j<p_arity;j++){
           inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst);
         }
-        unsigned var = args2var(inner_args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+        size_t var = args2var(inner_args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
         ASS_L(var, _p_interpretation.size());
 
         char before = _p_interpretation[var];

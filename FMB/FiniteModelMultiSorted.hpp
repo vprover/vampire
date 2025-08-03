@@ -42,8 +42,8 @@ class FiniteModelMultiSorted {
   static const char INTP_TRUE = 2;
 
   // two big tables waiting to be filled with the intrepreations (of functions and predicates)
-  DArray<unsigned> _f_offsets;
-  DArray<unsigned> _p_offsets;
+  DArray<size_t> _f_offsets;
+  DArray<size_t> _p_offsets;
   DArray<unsigned> _f_interpretation;
   DArray<char> _p_interpretation; // 0 is undef, 1 false, 2 true
 
@@ -60,11 +60,11 @@ class FiniteModelMultiSorted {
   // - s is either an f or p index from env->signature
   // - sig is the symbols corresponding type signature
   // - var is an index to use into _f_interpretation/_p_interpretation
-  unsigned args2var(const DArray<unsigned>& args, const DArray<unsigned>& sizes,
-                    const DArray<unsigned>& offsets, unsigned s, OperatorType* sig)
+  size_t args2var(const DArray<unsigned>& args, const DArray<unsigned>& sizes,
+                    const DArray<size_t>& offsets, unsigned s, OperatorType* sig)
   {
-    unsigned var = offsets[s];
-    unsigned mult = 1;
+    size_t var = offsets[s];
+    size_t mult = 1;
     for(unsigned i=0;i<args.size();i++){
       var += mult*(args[i]-1);
       unsigned s = sig->arg(i).term()->functor();
