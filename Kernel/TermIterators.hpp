@@ -370,7 +370,7 @@ public:
    * @since 04/05/2013 Manchester, argument includeSelf added
    * @author Andrei Voronkov
    */
-  NonVariableIterator(Term* term,bool includeSelf=false)
+  NonVariableIterator(const Term* term,bool includeSelf=false)
   : _stack(8),
     _added(0)
   {
@@ -387,7 +387,7 @@ public:
   void right();
 private:
   /** available non-variable subterms */
-  Stack<Term*> _stack;
+  Stack<const Term*> _stack;
   /** the number of non-variable subterms added at the last iteration, used by right() */
   int _added;
 }; // NonVariableIterator

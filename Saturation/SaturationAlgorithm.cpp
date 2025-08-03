@@ -12,6 +12,9 @@
  * Implementing SaturationAlgorithm class.
  */
 
+#include <filesystem>
+#include <unistd.h>
+
 #include "Debug/Assertion.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -130,6 +133,8 @@ using namespace Saturation;
 /** Print information about performed backward simplifications */
 #define REPORT_BW_SIMPL 0
 
+namespace fs = std::filesystem;
+
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
 std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, std::string name)
@@ -220,7 +225,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _partialRedundancyHandler(), _generatedClauseCount(0),
-    _activationLimit(0)
+    _activationLimit(0),
+    lemmaStream(fs::temp_directory_path() / ("vampire-lemmas-" + Int::toString(getpid())))
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
@@ -517,6 +523,29 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, u
     while(pit.hasNext()){
       Clause* premise = pit.next();
       if(premise){ std::cout << "     using " << premise->toString() << endl; }
+    }
+  }
+
+  for(Clause *premise : premStack) {
+    ASS(premise->length())
+    Literal *l = (*premise)[0];
+    TermList dont_care;
+    if(
+      premise->simplifierCount++ == 10 &&
+      premise->noSplits() &&
+      premise->age() &&
+      premise->length() == 1 &&
+      (
+        !l->isEquality() ||
+        !l->polarity() ||
+        EqHelper::hasGreaterEqualitySide(l, *_ordering, dont_care, dont_care)
+      ) &&
+      l->containsOnlyInputSymbols()
+    ) {
+      TPTPPrinter printer(&lemmaStream);
+      printer.headersPrinted = true;
+      printer.print(premise);
+      lemmaStream.flush();
     }
   }
 

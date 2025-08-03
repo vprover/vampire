@@ -414,6 +414,25 @@ bool Term::containsSubterm(TermList trm) const
   }
 }
 
+bool Term::containsOnlyInputSymbols() const {
+  NonVariableIterator subterms(this, true);
+  while(subterms.hasNext()) {
+    Term *term = subterms.next().term();
+    unsigned fun = term->functor();
+    Signature::Symbol *sym = nullptr;
+    if(term->isSort()) {
+      sym = env.signature->getTypeCon(fun);
+    } else if(term->isLiteral()) {
+      sym = env.signature->getPredicate(fun);
+    } else {
+      sym = env.signature->getFunction(fun);
+    }
+    if(sym->introduced() || sym->wasFlipped())
+      return false;
+  }
+  return true;
+}
+
 size_t Term::countSubtermOccurrences(TermList subterm) {
   size_t res = 0;
 

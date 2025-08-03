@@ -207,7 +207,7 @@ bool PolishSubtermIterator::hasNext()
  */
 TermList NonVariableIterator::next()
 {
-  Term* t = _stack.pop();
+  const Term* t = _stack.pop();
   _added = 0;
   Term::Iterator ts(t);
   for (const TermList* ts = t->args();!ts->isEmpty();ts = ts->next()) {

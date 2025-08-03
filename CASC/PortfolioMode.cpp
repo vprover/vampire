@@ -32,6 +32,8 @@
 #include "Shell/Shuffling.hpp"
 #include "Shell/TheoryFinder.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include <limits>
 #include <unistd.h>
 #include <signal.h>
@@ -441,6 +443,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
     // sleep until process changes state
     pid_t process = Multiprocessing::instance()->poll_children(exited, signalled, code);
 
+    fs::path lemmaPath = fs::temp_directory_path() / ("vampire-lemmas-" + Int::toString(process));
     /*
     cout << "Child " << process
         << " exit " << exited
@@ -453,21 +456,34 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       ALWAYS(processes.remove(process));
       if(!code)
       {
+        fs::remove(lemmaPath);
         success = true;
         break;
       }
+
+      // recover lemmas from failed strategy, might be useful
+      std::ifstream lemmaStream(lemmaPath);
+      Parse::TPTP lemmaParser(lemmaStream);
+      try { lemmaParser.parse(); } catch(...) {};
+      std::cout << "% recovered " << UnitList::length(lemmaParser.units()) << " lemmas from " << process << "\n";
+      _prb->addUnits(lemmaParser.units());
     } else if (signalled) {
       // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
       Shell::addCommentSignForSZS(cout);
       cout<<"Child killed by signal " << code << endl;
       ALWAYS(processes.remove(process));
+      fs::remove(lemmaPath);
     }
   }
 
   // kill all running processes first
   decltype(processes)::Iterator killIt(processes);
-  while(killIt.hasNext())
-    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGINT);
+  while(killIt.hasNext()) {
+    pid_t process = killIt.next();
+    Multiprocessing::instance()->killNoCheck(process, SIGINT);
+    fs::path lemmaPath = fs::temp_directory_path() / ("vampire-lemmas-" + Int::toString(process));
+    fs::remove(lemmaPath);
+  }
 
   return success;
 }

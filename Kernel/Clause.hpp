@@ -378,6 +378,9 @@ public:
 
   bool computable();
 
+  /** how many times did this simplify/delete other clauses? */
+  unsigned simplifierCount = 0;
+
 protected:
   /** number of literals */
   unsigned _length : 20;

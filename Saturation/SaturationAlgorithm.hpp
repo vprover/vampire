@@ -16,6 +16,8 @@
 #ifndef __SaturationAlgorithm__
 #define __SaturationAlgorithm__
 
+#include <fstream>
+
 #include "Forwards.hpp"
 
 #include "Lib/Event.hpp"
@@ -257,6 +259,9 @@ private:
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit
   unsigned _softTimeLimit = 0;
+
+  // lemmas go here
+  std::ofstream lemmaStream;
 };
 
 

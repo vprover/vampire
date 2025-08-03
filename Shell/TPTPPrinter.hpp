@@ -43,6 +43,8 @@ public:
   static std::string toString(const Term*);
   static std::string toString(const Literal*);
 
+  // if true, headers are not printed again
+  bool headersPrinted = false;
 private:
 
   std::string getBodyStr(Unit* u, bool includeSplitLevels);
@@ -57,8 +59,6 @@ private:
 
   /** if zero, we print to std::cout */
   std::ostream* _tgtStream;
-
-  bool _headersPrinted;
 };
 
 }

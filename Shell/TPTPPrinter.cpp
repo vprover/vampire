@@ -42,9 +42,7 @@ namespace Shell
 
 using namespace std;
 TPTPPrinter::TPTPPrinter(std::ostream* tgtStream)
-: _tgtStream(tgtStream), _headersPrinted(false)
-{
-}
+: _tgtStream(tgtStream) {}
 
 /**
  * Print the Unit @param u to the desired output
@@ -291,7 +289,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
  */
 void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 {
-  if(_headersPrinted) {
+  if(headersPrinted) {
     return;
   }
 
@@ -308,7 +306,7 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
     outputSymbolTypeDefinitions(i, SymbolType::PRED);
   }
 
-  _headersPrinted = true;
+  headersPrinted = true;
 }
 
 /**
