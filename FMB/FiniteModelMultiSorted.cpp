@@ -218,7 +218,6 @@ std::string FiniteModelMultiSorted::toString()
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
     Signature::Symbol* symb = env.signature->getFunction(f);
-    // if(symb->usageCnt()==0) continue;
     unsigned arity = symb->arity();
     if(arity>0) continue;
     if(!printIntroduced && symb->introduced()) continue;
@@ -245,7 +244,6 @@ std::string FiniteModelMultiSorted::toString()
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
     Signature::Symbol* symb = env.signature->getFunction(f);
-    // if(symb->usageCnt()==0) continue;
     unsigned arity = symb->arity();
     if(arity==0) continue;
     if(!printIntroduced && symb->introduced()) continue;
@@ -327,7 +325,6 @@ fModelLabel:
     if(arity>0) continue;
     Signature::Symbol* symb = env.signature->getPredicate(p);
     if(!printIntroduced && symb->introduced()) continue;
-    // if(symb->usageCnt() == 0) continue;
     std::string name = symb->name();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o)."<<endl;
     char res = _p_interpretation[_p_offsets[p]];
@@ -344,7 +341,6 @@ fModelLabel:
     unsigned arity = symb->arity();
     if(arity==0) continue;
     if(!printIntroduced && symb->introduced()) continue;
-    // if(symb->usageCnt() == 0) continue;
     std::string name = symb->name();
     OperatorType* sig = symb->predType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
@@ -684,9 +680,6 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
       Signature::Symbol* symb = env.signature->getFunction(f);
       OperatorType* sig = symb->fnType();
       unsigned arity = symb->arity();
-
-      // cout << "  f = " << f << " arity= " << arity << " of name " << symb->name() << endl;
-      // cout << "->usageCnt() == " << symb->usageCnt() << endl;
 
       DArray<unsigned> args(arity); // ... args will respect the table encoding
       DArray<unsigned> old_args(arity);
