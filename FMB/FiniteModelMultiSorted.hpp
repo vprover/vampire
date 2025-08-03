@@ -112,7 +112,6 @@ private:
   void restoreGlobalPredicateFlip(Problem::GlobalFlip*);
   void restoreViaCondFlip(Problem::CondFlip*);
 
-public:
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {
       return std::string(prefix);
