@@ -193,8 +193,7 @@ std::string FiniteModelMultiSorted::toString()
     if(!printIntroduced && symb->introduced()) continue;
     std::string name = symb->name();
     unsigned res = _f_interpretation[_f_offsets[f]];
-
-    if (res == 0) res = 1; // undefined defaults to the least available element
+    ASS_G(res,0)
 
     TermList srtT = symb->fnType()->result();
     unsigned srt = srtT.term()->functor();
@@ -203,12 +202,7 @@ std::string FiniteModelMultiSorted::toString()
 
     std::string sortName = env.signature->typeConName(srt);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
-    // if(res>0){
-      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
-    /*}
-    else{
-      modelStm << "% " << name << " undefined in model" << endl;
-    }*/
+    modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
   }
 
   //Functions
@@ -256,17 +250,11 @@ fModelLabel:
             mult *= _sizes[s];
           }
           unsigned res = _f_interpretation[var];
+          ASS_G(res,0)
 
-          if (res == 0) res = 1; // undefined defaults to the least available element
-
-          // if(res>0){
           if(!first){ modelStm << "         & " ; }
           else{ modelStm << "           " ; }
           first=false;
-          /* }
-          else{
-            modelStm << "%         ";
-          } */
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
@@ -274,15 +262,9 @@ fModelLabel:
             unsigned argSort = argSortT.term()->functor();
             modelStm << cnames[argSort][args[j]];
           }
-          // if(res>0){
           TermList resultSortT = sig->result();
           unsigned resultSort = resultSortT.term()->functor();
           modelStm << ") = " << cnames[resultSort][res] << endl;
-          /* }
-          else{
-            modelStm << ") undefined in model" << endl;
-          }
-          */
           goto fModelLabel;
         }
       }
@@ -341,8 +323,6 @@ pModelLabel:
         else{
           args[i]++;
 
-          //TODO could probably compute this directly, instead of via args
-          // my mind isn't in the right place to do that now though!
           unsigned var = offset;
           unsigned mult=1;
           for(unsigned i=0;i<args.size();i++){
@@ -351,18 +331,12 @@ pModelLabel:
             mult *= _sizes[s];
           }
           char res = _p_interpretation[var];
+          ASS_NEQ(res,INTP_UNDEF)
 
-          if (res == INTP_UNDEF) res = INTP_FALSE; // undefined defaults to false
+          if(!first){ modelStm << "         & " ; }
+          else{ modelStm << "           " ; }
+          first=false;
 
-          // if(res>INTP_UNDEF){
-            if(!first){ modelStm << "         & " ; }
-            else{ modelStm << "           " ; }
-            first=false;
-          /* }
-          else{
-            modelStm << "%         ";
-          }
-          */
           if(res==INTP_FALSE) modelStm << "~";
           modelStm << name << "(";
           for(unsigned j=0;j<arity;j++){
@@ -372,11 +346,6 @@ pModelLabel:
             modelStm << cnames[argSort][args[j]];
           }
           modelStm << ")";
-          /*
-          if(res==INTP_UNDEF){
-            modelStm << " undefined in model";
-          }
-          */
           modelStm << endl;
           goto pModelLabel;
         }
