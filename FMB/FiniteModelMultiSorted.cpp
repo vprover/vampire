@@ -452,39 +452,6 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
   return _f_interpretation[var];
 }
 
-unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
-{
-  ASS(term->ground());
-
-#if DEBUG_MODEL
-  cout << "evaluating ground term " << term->toString() << endl;
-  cout << "domain constant status " << isDomainConstant(term) << endl;
-#endif
-  if(isDomainConstant(term)) return getDomainConstant(term).first;
-
-  unsigned arity = env.signature->functionArity(term->functor());
-  DArray<unsigned> args(arity);
-  for(unsigned i=0;i<arity;i++){
-    args[i] = evaluateGroundTerm(term->nthArgument(i)->term());
-    if(args[i]==0) USER_ERROR("Could not evaluate "+term->toString());
-  }
-
-  OperatorType* sig = env.signature->getFunction(term->functor())->fnType();
-  unsigned var = _f_offsets[term->functor()];
-  unsigned mult = 1;
-  for(unsigned i=0;i<args.size();i++){
-    var += mult*(args[i]-1);
-    unsigned s = sig->arg(i).term()->functor();
-    mult *=_sizes[s];
-  }
-#if VDEBUG
-  if((term->functor()+1)<_f_offsets.size()) ASS_L(var,_f_offsets[term->functor()+1]);
-#endif
-  ASS_L(var,_f_interpretation.size());
-
-  return _f_interpretation[var];
-}
-
 bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned>& subst)
 {
   unsigned p = lit->functor();
@@ -508,59 +475,6 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
     _implicitlyEliminatedPredicates.insert(p);
     return !lit->polarity();
   }
-
-  return (res==INTP_TRUE) == (lit->polarity());
-}
-
-bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
-{
-  ASS(lit->ground());
-
-#if DEBUG_MODEL
-  cout << "Evaluating ground literal " << lit->toString() << endl;
-#endif
-
-  // evaluate all arguments
-  unsigned arity = env.signature->predicateArity(lit->functor());
-  DArray<unsigned> args(arity);
-  for(unsigned i=0;i<arity;i++){
-    args[i] = evaluateGroundTerm(lit->nthArgument(i)->term());
-    if(args[i]==0) USER_ERROR("Could not evaluate "+lit->toString()+
-                    " on "+(lit->nthArgument(i)->term()->toString())+
-                    ", probably a partial model");
-  }
-
-  if(lit->isEquality()){
-    bool res = args[0]==args[1];
-#if DEBUG_MODEL
-    cout << "Evaluate equality, args " << args[0] << " and " << args[1] << endl;
-    cout << "res is " << (lit->polarity() ? res : !res) << endl;
-#endif
-    if(lit->polarity()) return res;
-    else return !res;
-  }
-
-  OperatorType* sig = env.signature->getPredicate(lit->functor())->predType();
-  unsigned var = _p_offsets[lit->functor()];
-  unsigned mult = 1;
-  for(unsigned i=0;i<args.size();i++){
-    var += mult*(args[i]-1);
-    unsigned s = sig->arg(i).term()->functor();
-    mult *=_sizes[s];
-  }
-
-#if VDEBUG
-  if((lit->functor()+1)<_p_offsets.size()) ASS_L(var,_p_offsets[lit->functor()+1]);
-#endif
-  ASS_L(var,_p_interpretation.size());
-
-  char res = _p_interpretation[var];
-#if DEBUG_MODEL
-    cout << "res is " << res << " and polarity is " << lit->polarity() << endl;
-#endif
-
-  if(res==INTP_UNDEF)
-    USER_ERROR("Could not evaluate "+lit->toString()+", probably a partial model");
 
   return (res==INTP_TRUE) == (lit->polarity());
 }
@@ -1182,27 +1096,15 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
   }
 }
 
-bool FiniteModelMultiSorted::evaluate(Unit* unit, bool expectingPartial)
+bool FiniteModelMultiSorted::evaluate(Unit* unit)
 {
-  Formula* formula = 0;
-  if(unit->isClause()){
-    Clause* clause = unit->asClause();
-    formula = Formula::fromClause(clause);
-  }
-  else{
-    FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
-    fu = Rectify::rectify(fu);
-    fu = SimplifyFalseTrue::simplify(fu);
-    fu = Flattening::flatten(fu);
-    formula = fu->getFormula();
-  }
-
-  formula = partialEvaluate(formula);
-  formula = SimplifyFalseTrue::simplify(formula);
+  Formula* formula = (unit->isClause()) ?
+    Formula::fromClause(unit->asClause()) :
+    static_cast<FormulaUnit*>(unit)->getFormula();
 
   DHMap<unsigned,unsigned> subst;
   bool res = evaluateFormula(formula,subst);
-  if (!expectingPartial && (_implicitlyEliminatedFunctions.size() > 0 || _implicitlyEliminatedPredicates.size() > 0)) {
+  if (_implicitlyEliminatedFunctions.size() > 0 || _implicitlyEliminatedPredicates.size() > 0) {
     USER_ERROR("Encountered an undefined symbol while evaluating a Unit");
   }
   return res;
@@ -1356,195 +1258,5 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
       USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");
   }
 }
-
-/**
- *
- * TODO: This is recursive, which could be problematic in the long run
- *
- */
-bool FiniteModelMultiSorted::evaluateOld(Formula* formula,unsigned depth)
-{
-#if DEBUG_MODEL
-  for(unsigned i=0;i<depth;i++){ cout << "."; }
-  cout << "Evaluating..." << formula->toString() << endl;
-#endif
-
-  bool isAnd = false;
-  bool isImp = false;
-  bool isXor = false;
-  bool isForall = false;
-  switch(formula->connective()){
-    // If it's a literal evaluate that
-    case LITERAL:
-    {
-      Literal* lit = formula->literal();
-      if(!lit->ground()){
-        USER_ERROR("Was not expecting free variables in "+formula->toString());
-      }
-      return evaluateGroundLiteral(lit);
-    }
-
-    // Expand the standard ones
-    case FALSE:
-      return false;
-    case TRUE:
-      return true;
-    case NOT:
-      return !evaluateOld(formula->uarg(),depth+1);
-    case AND:
-      isAnd=true;
-    case OR:
-      {
-        FormulaList* args = formula->args();
-        FormulaList::Iterator fit(args);
-        while(fit.hasNext()){
-          Formula* arg = fit.next();
-          bool res = evaluateOld(arg,depth+1);
-          if(isAnd && !res) return false;
-          if(!isAnd && res) return true;
-        }
-        return isAnd;
-      }
-
-    case IMP:
-     isImp=true;
-    case XOR:
-     isXor = !isImp;
-    case IFF:
-    {
-      Formula* left = formula->left();
-      Formula* right = formula->right();
-      bool left_res = evaluateOld(left,depth+1);
-      if(isImp && !left_res) return true;
-      bool right_res = evaluateOld(right,depth+1);
-
-#if DEBUG_MODEL
-      cout << "left_res is " << left_res << ", right_res is " << right_res << endl;
-#endif
-
-      if(isImp) return !left_res || right_res;
-      if(isXor) return left_res != right_res;
-      return left_res == right_res; // IFF
-    }
-
-    // Expand quantifications
-    case FORALL:
-     isForall = true;
-    case EXISTS:
-    {
-     VList* vs = formula->vars();
-     int var = vs->head();
-
-     //cout << "Quant " << isForall << " with " << var << endl;
-
-     Formula* next = 0;
-     if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),0,formula->qarg());
-     else next = formula->qarg();
-
-     TermList srt;
-     if(!SortHelper::tryGetVariableSort(var,formula,srt)){
-       USER_ERROR("Failed to get sort of "+Lib::Int::toString(var)+" in "+formula->toString());
-     }
-
-     unsigned srtU = srt.term()->functor();
-     for(unsigned c=1;c<=_sizes[srtU];c++){
-       Substitution s;
-       s.bindUnbound(var,getDomainConstant(c,srtU));
-       Formula* next_sub = SubstHelper::apply(next,s);
-       next_sub = SimplifyFalseTrue::simplify(next_sub);
-       next_sub = Flattening::flatten(next_sub);
-
-       bool res = evaluateOld(next_sub,depth+1);
-
-       //TODO try and limit memory issues!
-       //     ideally delete the bits introduced by the application of SubstHelper::apply
-       //if(next_sub!=next) next_sub->destroy();
-
-       if(isForall && !res) return false;
-       if(!isForall && res) return true;
-     }
-
-     return isForall;
-    }
-    default:
-      USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");
-  }
-
-  NOT_IMPLEMENTED;
-  return false;
-}
-
-    /**
-     *
-     * TODO: This is recursive, which could be problematic in the long run
-     *
-     */
-    Formula* FiniteModelMultiSorted::partialEvaluate(Formula* formula)
-    {
-#if DEBUG_MODEL
-        for(unsigned i=0;i<depth;i++){ cout << "."; }
-        cout << "Evaluating..." << formula->toString() << endl;
-#endif
-
-        switch(formula->connective()){
-                case LITERAL:
-            {
-                Literal* lit = formula->literal();
-                if(!lit->ground()){
-                    return formula;
-                }
-                bool evaluated = evaluateGroundLiteral(lit);
-                return evaluated ? Formula::trueFormula() : Formula::falseFormula();
-            }
-
-                case FALSE:
-                case TRUE:
-                    return formula;
-                case NOT:
-                {
-                  Formula* inner = partialEvaluate(formula->uarg());
-                  return new NegatedFormula(inner);
-                }
-                case AND:
-                case OR:
-            {
-                FormulaList* args = formula->args();
-                FormulaList* newArgs = 0;
-                FormulaList::Iterator fit(args);
-                while(fit.hasNext()){
-                    Formula* newArg = partialEvaluate(fit.next());
-                    FormulaList::push(newArg,newArgs);
-                }
-                return new JunctionFormula(formula->connective(),newArgs);
-            }
-
-                case IMP:
-                case XOR:
-                case IFF:
-            {
-                Formula* left = formula->left();
-                Formula* right = formula->right();
-                Formula* newLeft = partialEvaluate(left);
-                Formula* newRight = partialEvaluate(right);
-
-                return new BinaryFormula(formula->connective(),newLeft,newRight);
-            }
-
-                case FORALL:
-                case EXISTS:
-            {
-                VList* vs = formula->vars();
-                Formula* inner  = formula->qarg();
-                Formula* newInner = partialEvaluate(inner);
-                return new QuantifiedFormula(formula->connective(),vs,0,newInner);
-            }
-            default:
-                USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");
-        }
-
-        NOT_IMPLEMENTED;
-        return 0;
-    }
-
 
 }

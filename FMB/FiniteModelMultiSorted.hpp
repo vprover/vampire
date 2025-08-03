@@ -86,9 +86,7 @@ public:
   // Assume def is non-equality ground literal
   void addPredicateDefinition(unsigned f, const DArray<unsigned>& args, bool res);
 
-  bool evaluate(Unit* unit, bool expectingPartial = false);
-  unsigned evaluateGroundTerm(Term* term);
-  bool evaluateGroundLiteral(Literal* literal);
+  bool evaluate(Unit* unit);
 
   void eliminateSortFunctionsAndPredicates(const Stack<unsigned>& sortFunctions, const Stack<unsigned>& sortPredicates);
   void restoreEliminatedDefinitions(Kernel::Problem* prob);
@@ -115,17 +113,10 @@ private:
   void restoreGlobalPredicateFlip(Problem::GlobalFlip*);
   void restoreViaCondFlip(Problem::CondFlip*);
 
-  Formula* partialEvaluate(Formula* formula);
-  // currently private as requires formula to be rectified
-  bool evaluateOld(Formula* formula,unsigned depth=0);
-
   // the pairs of <constant number, sort>
   DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
   DHMap<Term*,std::pair<unsigned,unsigned>> _domainConstantsRev;
 public:
-
-
-
   Term* getDomainConstant(unsigned c, unsigned srt)
   {
     Term* t;
@@ -147,12 +138,11 @@ public:
     if(_domainConstantsRev.find(t,pair)) return pair;
     USER_ERROR("Evaluated to "+t->toString()+" when expected a domain constant, probably a partial model");
   }
+
   bool isDomainConstant(Term* t)
   {
     return _domainConstantsRev.find(t);
   }
-
-
 
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {
