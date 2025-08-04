@@ -135,7 +135,16 @@ namespace Shell {
               break;
 
             case SpecialFunctor::LET:
-            case SpecialFunctor::LET_TUPLE: 
+              /**
+               * The polarity of the body of let-bindings is 0.
+               * An expression "$let(f := A, ...)", where A is a formula,
+               * is semantically equivalent to f <=> A && ...
+               */
+              _subexpressions.push(Expression(sd->getLetBinding(), 0));
+              _subexpressions.push(Expression(*term->nthArgument(0), polarity));
+              break;
+
+            case SpecialFunctor::LET_TUPLE:
               /**
                * The polarity of the body of let-bindings is 0.
                * An expression "$let(f := A, ...)", where A is a formula,

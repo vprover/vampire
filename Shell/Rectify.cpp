@@ -144,28 +144,28 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   {
     ASS_EQ(t->arity(),1);
 
-    bindVars(sd->getVariables());
-    TermList binding = rectify(sd->getBinding());
+    // bindVars(sd->getVariables());
+    Formula* binding = rectify(sd->getLetBinding());
+    // TODO understand what the code below does, and whether we still need it.
     /**
      * We don't need to remove unused variables from the body of a functions,
      * otherwise the rectified list of variables might not fix the arity of the
      * let functor. So, temporarily disable _removeUnusedVars;
      */
-    bool removeUnusedVars = _removeUnusedVars;
-    _removeUnusedVars = false;
-    VList* variables = rectifyBoundVars(sd->getVariables());
-    _removeUnusedVars = removeUnusedVars; // restore the status quo
-    unbindVars(sd->getVariables());
+    // bool removeUnusedVars = _removeUnusedVars;
+    // _removeUnusedVars = false;
+    // VList* variables = rectifyBoundVars(sd->getVariables());
+    // _removeUnusedVars = removeUnusedVars; // restore the status quo
+    // unbindVars(sd->getVariables());
 
-    ASS_EQ(VList::length(variables),VList::length(sd->getVariables()));
+    // ASS_EQ(VList::length(variables),VList::length(sd->getVariables()));
 
-    TermList contents = rectify(*t->nthArgument(0));
+    TermList body = rectify(*t->nthArgument(0));
     TermList sort = rectify(sd->getSort());
-    if (sd->getVariables() == variables && binding == sd->getBinding() && 
-        contents == *t->nthArgument(0) && sort == sd->getSort()) {
+    if (binding == sd->getLetBinding() && body == *t->nthArgument(0) && sort == sd->getSort()) {
       return t;
     }
-    return Term::createLet(sd->getFunctor(), variables, binding, contents, sort);
+    return Term::createLet(binding, body, sort);
   }
   case SpecialFunctor::LET_TUPLE:
   {

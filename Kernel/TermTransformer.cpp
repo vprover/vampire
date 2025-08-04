@@ -62,13 +62,13 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
     }
 
     case SpecialFunctor::LET: {
-      TermList binding = transform(sd->getBinding());
+      Formula* binding = transform(sd->getLetBinding());
       TermList body = transform(*term->nthArgument(0));
 
-      if ((binding == sd->getBinding() && (body == *term->nthArgument(0)))) {
+      if ((binding == sd->getLetBinding() && (body == *term->nthArgument(0)))) {
         return term;
       } else {
-        return Term::createLet(sd->getFunctor(), sd->getVariables(), binding, body, sd->getSort());
+        return Term::createLet(binding, body, sd->getSort());
       }
     }
 

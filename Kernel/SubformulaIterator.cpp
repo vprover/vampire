@@ -157,28 +157,27 @@ bool SubformulaIterator::hasNext ()
           break;
         }
 
+        auto sd = term->getSpecialData();
+
         switch (term->specialFunctor()) {
           case SpecialFunctor::ITE: {
-            _current = term->getSpecialData()->getCondition();
+            _current = sd->getCondition();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
             return true;
           }
           case SpecialFunctor::LET: {
+            _current = sd->getLetBinding();
+            // TODO: should be 1 instead of polarity?
+            _currentPolarity = polarity;
             delete _reserve;
-            TermList binding = term->getSpecialData()->getBinding();
-            if (!binding.isTerm()) {
-              _reserve = rest;
-            } else {
-              // TODO: should be 1 instead of polarity?
-              _reserve = new Element(binding.term(), polarity, rest);
-            }
+            _reserve = rest;
             break;
           }
           case SpecialFunctor::LET_TUPLE: {
             delete _reserve;
-            TermList binding = term->getSpecialData()->getBinding();
+            TermList binding = sd->getBinding();
             if (!binding.isTerm()) {
               _reserve = rest;
             } else {
@@ -188,7 +187,7 @@ bool SubformulaIterator::hasNext ()
             break;
           }
           case SpecialFunctor::FORMULA: {
-            _current = term->getSpecialData()->getFormula();
+            _current = sd->getFormula();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
@@ -196,7 +195,7 @@ bool SubformulaIterator::hasNext ()
           }
           case SpecialFunctor::LAMBDA: {
             delete _reserve;
-            TermList lambdaExp = term->getSpecialData()->getLambdaExp();
+            TermList lambdaExp = sd->getLambdaExp();
             if (!lambdaExp.isTerm()) {
               _reserve = rest;
             } else {
@@ -207,7 +206,7 @@ bool SubformulaIterator::hasNext ()
           }
           case SpecialFunctor::TUPLE: {
             delete _reserve;
-            Term* tupleTerm = term->getSpecialData()->getTupleTerm();
+            Term* tupleTerm = sd->getTupleTerm();
             // TODO: should be 1 instead of polarity?
             _reserve = new Element(tupleTerm, polarity, rest);
             break;

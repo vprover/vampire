@@ -403,24 +403,23 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
  * and lhs and rhs form a binding for a function
  * @since 16/04/2015 Gothenburg
  */
-Formula* Formula::createLet(unsigned functor, VList* variables, TermList body, Formula* contents)
+Formula* Formula::createLet(Formula* binder, Formula* body)
 {
-  TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, AtomicSort::boolSort()));
+  TermList bodyTerm(Term::createFormula(body));
+  TermList letTerm(Term::createLet(binder, bodyTerm, AtomicSort::boolSort()));
   return new BoolTermFormula(letTerm);
 }
 
-/**
- * Creates a formula of the form $let(lhs := rhs, body), where body is a formula
- * and lhs and rhs form a binding for a predicate
- * @since 16/04/2015 Gothenburg
- */
-Formula* Formula::createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents)
+Formula* Formula::createDefinition(TermList lhs, TermList rhs, VList* uVars)
 {
-  TermList bodyTerm(Term::createFormula(body));
-  TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, AtomicSort::boolSort()));
-  return new BoolTermFormula(letTerm);
+  ASS(lhs.isTerm());
+  auto sort = SortHelper::getResultSort(lhs.term());
+  auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, lhs, rhs });
+  Formula* res = new AtomicFormula(lit);
+  if (uVars) {
+    res = new QuantifiedFormula(Connective::FORALL, uVars, nullptr, res);
+  }
+  return res;
 }
 
 Formula* Formula::quantify(Formula* f)

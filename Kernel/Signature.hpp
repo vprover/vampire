@@ -523,6 +523,7 @@ class Signature
   unsigned getChoice();
   unsigned getDeBruijnIndex(int index);
   unsigned getPlaceholder();
+  unsigned getDefPred();
   /**
    * For a function f with result type t, this introduces a predicate
    * $def_f with the type t x t. This is used to track expressions of
@@ -781,6 +782,10 @@ class Signature
 
   bool isPlaceholder(unsigned fun) const{
     return fun == _placeholderFun && _placeholderFun != UINT_MAX;
+  }
+
+  bool isDefPred(unsigned p) const {
+    return p == _defPred && _defPred != UINT_MAX;
   }
 
   bool isFnDefPred(unsigned p) const{
@@ -1070,6 +1075,7 @@ private:
   unsigned _lamFun;
   unsigned _choiceFun;
   unsigned _placeholderFun;
+  unsigned _defPred;
   DHSet<unsigned> _fnDefPreds;
   DHMap<unsigned,unsigned> _boolDefPreds;
 

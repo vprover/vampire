@@ -1518,7 +1518,10 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
       vars.pushBack(_nextVar++);
     }
 
-    let = TermList(Term::createLet(exprT->functor(), vars.list(), SubstHelper::apply(boundExpr,subst), let, letSort));
+    auto varList = vars.list();
+    auto args = TermStack::fromIterator(iterTraits(varList->iter()).map([](unsigned var) { return TermList::var(var); }));
+    auto binder = Formula::createDefinition(TermList(Term::create(exprT->functor(), args)), SubstHelper::apply(boundExpr,subst), varList);
+    let = TermList(Term::createLet(binder, let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));

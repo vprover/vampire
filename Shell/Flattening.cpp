@@ -273,16 +273,16 @@ TermList Flattening::flatten (TermList ts)
       }
 
       case SpecialFunctor::LET: {
-        TermList binding = sd->getBinding();
+        Formula* binding = sd->getLetBinding();
         TermList body = *term->nthArgument(0);
 
-        TermList flattenedBinding = flatten(binding);
+        Formula* flattenedBinding = flatten(binding);
         TermList flattenedBody = flatten(body);
 
         if ((binding == flattenedBinding) && (body == flattenedBody)) {
           return ts;
         } else {
-          return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(), flattenedBinding, flattenedBody, sd->getSort()));
+          return TermList(Term::createLet(flattenedBinding, flattenedBody, sd->getSort()));
         }
       }
 

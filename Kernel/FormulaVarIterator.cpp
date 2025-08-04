@@ -168,16 +168,10 @@ bool FormulaVarIterator::hasNext()
               break;
 
             case SpecialFunctor::LET: {
-              _instructions.push(FVI_UNBIND);
-
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getBinding());
-
-              _instructions.push(FVI_BIND);
-              _vars.push(sd->getVariables());
+              _instructions.push(FVI_FORMULA);
+              _formulas.push(sd->getLetBinding());
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getSort());
-
               break;
             }
 

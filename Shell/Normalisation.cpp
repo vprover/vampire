@@ -454,8 +454,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare arguments "then" and "else" as usual below
 
       case SpecialFunctor::LET: {
-        comp = compare((int) VList::length(t1->getSpecialData()->getVariables()),
-                       (int) VList::length(t2->getSpecialData()->getVariables()));
+        comp = compare(t1->getSpecialData()->getLetBinding(),
+                       t2->getSpecialData()->getLetBinding());
         if (comp != EQUAL) {
           return comp;
         }

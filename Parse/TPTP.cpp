@@ -2695,7 +2695,9 @@ void TPTP::endLet()
     if (isTuple) {
       let = TermList(Term::createTupleLet(symbol, varList, definition, let, sort));
     } else {
-      let = TermList(Term::createLet(symbol, varList, definition, let, sort));
+      auto args = TermStack::fromIterator(iterTraits(varList->iter()).map([](unsigned var) { return TermList::var(var); }));
+      auto binding = Formula::createDefinition(TermList(Term::create(symbol, args)), definition, varList);
+      let = TermList(Term::createLet(binding, let, sort));
     }
   }
   _termLists.push(let);

@@ -663,93 +663,109 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
   unsigned symbol;
   VList* variables;
-  TermList binding = sd->getBinding();
+  TermList binding;
 
   if (sd->specialFunctor() == SpecialFunctor::LET) {
-    symbol = sd->getFunctor();
-    variables = sd->getVariables();
-  } else if (binding.isTerm() && binding.term()->isTuple()) {
-    // binding of the form $let([x, y, z] := [a, b, c], ...) is processed
-    // as $let(x := a, $let(y := b, $let(z := c, ...)))
-    unsigned tupleFunctor = sd->getFunctor();
-    VList* symbols = sd->getTupleSymbols();
-    TermList bodySort = sd->getSort();
 
-    OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+    Formula* bindingF = sd->getLetBinding();
+    if (bindingF->connective() == Connective::FORALL) {
+      variables = bindingF->vars();
+      bindingF = bindingF->qarg();
+    } else {
+      variables = VList::empty();
+    }
+    ASS_EQ(bindingF->connective(), Connective::LITERAL);
+    binding = bindingF->literal()->termArg(1);
+    symbol = bindingF->literal()->termArg(0).term()->functor();
 
-    Term* bindingTuple = binding.term()->getSpecialData()->getTupleTerm();
-    unsigned arity = VList::length(symbols);
-    VList::Iterator sit(symbols);
-    Term::Iterator bit(bindingTuple);
+  } else {
+    binding = sd->getBinding();
+    if (binding.isTerm() && binding.term()->isTuple()) {
+      // binding of the form $let([x, y, z, ...] := [a, b, c, ...], ...) is processed
+      // as $let(x := a, $let(y := b, $let(z := c, ...)))
+      unsigned tupleFunctor = sd->getFunctor();
+      VList* symbols = sd->getTupleSymbols();
+      TermList bodySort = sd->getSort();
 
-    TermList processedContents = contents;
-    TermList processedBinding;
-    for (unsigned i = 0; i < arity - 1; i++) {
+      OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+
+      Term* bindingTuple = binding.term()->getSpecialData()->getTupleTerm();
+      unsigned arity = VList::length(symbols);
+      VList::Iterator sit(symbols);
+      Term::Iterator bit(bindingTuple);
+
+      TermList processedContents = contents;
+      TermList processedBinding;
+      for (unsigned i = 0; i < arity - 1; i++) {
+        ASS(bit.hasNext());
+        ASS(sit.hasNext());
+        auto nestedBinding = Formula::createDefinition(TermList(Term::create(sit.next(), {})), bit.next());
+        Term* nestedLet = Term::createLet(nestedBinding, processedContents, bodySort);
+        processedContents = TermList(nestedLet);
+      }
       ASS(bit.hasNext());
       ASS(sit.hasNext());
-      Term* nestedLet = Term::createLet(sit.next(), 0, bit.next(), processedContents, bodySort);
-      processedContents = TermList(nestedLet);
-    }
-    ASS(bit.hasNext());
-    ASS(sit.hasNext());
-    processedBinding = bit.next();
-    symbol = sit.next();
-    ASS(!sit.hasNext());
-    ASS(!bit.hasNext());
+      processedBinding = bit.next();
+      symbol = sit.next();
+      ASS(!sit.hasNext());
+      ASS(!bit.hasNext());
 
-    if (env.options->showPreprocessing()) {
-      Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-      Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-    }
-
-    variables = VList::empty();
-    contents = processedContents;
-    binding = processedBinding;
-  } else {
-    unsigned tupleFunctor = sd->getFunctor();
-    VList* symbols = sd->getTupleSymbols();
-    TermList bodySort = sd->getSort();
-
-    OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
-    TermList tupleSort = tupleType->result();
-
-    ASS_EQ(tupleType->arity(), VList::length(symbols));
-
-    unsigned tuple = env.signature->addFreshFunction(0, "tuple");
-    env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
-
-    TermList tupleTerm = TermList(Term::createConstant(tuple));
-
-    TermList detupledContents = contents;
-
-    for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
-      unsigned symbol = VList::nth(symbols, proj);
-      bool isPredicate = tupleType->arg(proj) == AtomicSort::boolSort();
-
-      unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
-      Term* projectedArgument;
-      if (isPredicate) {
-        projectedArgument = Term::createFormula(new AtomicFormula(Literal::create1(projFunctor, 1, tupleTerm)));
-      } else {
-        projectedArgument = Term::create1(projFunctor, tupleTerm);
+      if (env.options->showPreprocessing()) {
+        Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
+        std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
+        auto b = Formula::createDefinition(TermList(Term::create(symbol, {})), processedBinding);
+        Term* processedLet = Term::createLet(b, processedContents, bodySort);
+        std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       }
 
-      SymbolDefinitionInlining inlining(symbol, 0, TermList(projectedArgument), 0);
-      detupledContents = inlining.process(detupledContents);
-    }
+      variables = VList::empty();
+      contents = processedContents;
+      binding = processedBinding;
+    } else {
+      unsigned tupleFunctor = sd->getFunctor();
+      VList* symbols = sd->getTupleSymbols();
+      TermList bodySort = sd->getSort();
 
-    if (env.options->showPreprocessing()) {
-      Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-      Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
-      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-    }
+      OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+      TermList tupleSort = tupleType->result();
 
-    symbol = tuple;
-    variables = VList::empty();
-    contents = detupledContents;
+      ASS_EQ(tupleType->arity(), VList::length(symbols));
+
+      unsigned tuple = env.signature->addFreshFunction(0, "tuple");
+      env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
+
+      TermList tupleTerm = TermList(Term::createConstant(tuple));
+
+      TermList detupledContents = contents;
+
+      for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
+        unsigned symbol = VList::nth(symbols, proj);
+        bool isPredicate = tupleType->arg(proj) == AtomicSort::boolSort();
+
+        unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
+        Term* projectedArgument;
+        if (isPredicate) {
+          projectedArgument = Term::createFormula(new AtomicFormula(Literal::create1(projFunctor, 1, tupleTerm)));
+        } else {
+          projectedArgument = Term::create1(projFunctor, tupleTerm);
+        }
+
+        SymbolDefinitionInlining inlining(symbol, 0, TermList(projectedArgument), 0);
+        detupledContents = inlining.process(detupledContents);
+      }
+
+      if (env.options->showPreprocessing()) {
+        Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
+        std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
+        auto b = Formula::createDefinition(TermList(Term::create(tuple, {})), binding);
+        Term* processedLet = Term::createLet(b, detupledContents, bodySort);
+        std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
+      }
+
+      symbol = tuple;
+      variables = VList::empty();
+      contents = detupledContents;
+    }
   }
 
   bool inlineLet = env.options->getIteInlineLet();

@@ -94,15 +94,14 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
       }
 
       case SpecialFunctor::LET: {
-        TermList binding = process(sd->getBinding());
+        Formula* binding = process(sd->getLetBinding());
         TermList body = process(*term->nthArgument(0));
 
-        if ((sd->getBinding() == binding) && (*term->nthArgument(0) == body)) {
+        if ((sd->getLetBinding() == binding) && (*term->nthArgument(0) == body)) {
           return ts;
         }
 
-        return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(),
-                                        binding, body, sd->getSort()));
+        return TermList(Term::createLet(binding, body, sd->getSort()));
       }
 
       case SpecialFunctor::LET_TUPLE: {
@@ -376,9 +375,7 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
         break;
       }
       case SpecialFunctor::LET: {
-        collectBoundVariables(sd->getBinding());
-        VList::Iterator vit(sd->getVariables());
-        VList::pushFromIterator(vit, _bound);
+        collectBoundVariables(sd->getLetBinding());
         break;
       }
       case SpecialFunctor::LET_TUPLE: {

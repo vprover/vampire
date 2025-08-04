@@ -539,26 +539,11 @@ std::string Term::headToString() const
       }
       case SpecialFunctor::LET: {
         ASS_EQ(arity(), 1);
-        TermList binding = sd->getBinding();
-        bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-        std::string functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
-                                      : env.signature->functionName(sd->getFunctor());
-        OperatorType* type = isPredicate ? env.signature->getPredicate(sd->getFunctor())->predType()
-                                         : env.signature->getFunction(sd->getFunctor())->fnType();
-
-        const VList* variables = sd->getVariables();
-        std::string variablesList = "";
-        for (unsigned i = 0; i < VList::length(variables); i++) {
-          unsigned var = VList::nth(variables, i);
-          variablesList += Term::variableToString(var);
-          if (i < VList::length(variables) - 1) {
-            variablesList += ", ";
-          }
-        }
-        if (VList::length(variables)) {
-          variablesList = "(" + variablesList + ")";
-        }
-        return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
+        Formula* binding = sd->getLetBinding();
+        // TODO fix this
+        auto functor = "XXX";
+        // return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
+        return "$let(" + binding->toString() + ", ";
       }
       case SpecialFunctor::ITE: {
         ASS_EQ(arity(),2);
@@ -1145,20 +1130,15 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort)
+Term* Term::createLet(Formula* binding, TermList body, TermList bodySort)
 {
 #if VDEBUG
-  Set<unsigned> distinctVars;
-  VList::Iterator vit(variables);
-  while (vit.hasNext()) {
-    distinctVars.insert(vit.next());
+  auto debugBinding = binding;
+  if (debugBinding->connective() == Connective::FORALL) {
+    debugBinding = debugBinding->qarg(); 
   }
-  ASS_EQ(distinctVars.size(), VList::length(variables));
-
-  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-  const unsigned int arity = isPredicate ? env.signature->predicateArity(functor)
-                                         : env.signature->functionArity(functor);
-  ASS_EQ(arity, VList::length(variables));
+  ASS_EQ(debugBinding->connective(), Connective::LITERAL);
+  ASS(env.signature->isDefPred(debugBinding->literal()->functor()));
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
@@ -1166,10 +1146,8 @@ Term* Term::createLet(unsigned functor, VList* variables, TermList binding, Term
   TermList* ss = s->args();
   *ss = body;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_letData.functor = functor;
-  s->getSpecialData()->_letData.variables = variables;
-  s->getSpecialData()->_letData.sort = bodySort;
   s->getSpecialData()->_letData.binding = binding;
+  s->getSpecialData()->_letData.sort = bodySort;
   return s;
 }
 

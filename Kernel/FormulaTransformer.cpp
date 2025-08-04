@@ -105,9 +105,8 @@ TermList FormulaTransformer::apply(TermList ts) {
         return TermList(Term::createFormula(apply(sd->getFormula())));
 
       case SpecialFunctor::LET:
-        return TermList(Term::createLet(sd->getFunctor(),
-                                        sd->getVariables(),
-                                        apply(sd->getBinding()),
+        // TODO what about sd->getSort()?
+        return TermList(Term::createLet(apply(sd->getLetBinding()),
                                         apply(*term->nthArgument(0)),
                                         sd->getSort()));
 

@@ -27,18 +27,20 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
         return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
 
       case SpecialFunctor::LET:
-          if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
-            // function symbols, defined inside $let are expected to be
-            // disjoint and fresh symbols are expected to be fresh
-            ASS_NEQ(sd->getFunctor(), _symbol);
-            //ASS_NEQ(sd->getFunctor(), _freshSymbol);
-          }
-          return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
+          // TODO this condition does not make any sense to me
+          // if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
+          //   // function symbols, defined inside $let are expected to be
+          //   // disjoint and fresh symbols are expected to be fresh
+          //   ASS_NEQ(sd->getFunctor(), _symbol);
+          //   //ASS_NEQ(sd->getFunctor(), _freshSymbol);
+          // }
+          return Term::createLet(process(sd->getLetBinding()), process(*term->nthArgument(0)), sd->getSort());
 
       case SpecialFunctor::FORMULA:
           return Term::createFormula(process(sd->getFormula()));
 
       case SpecialFunctor::LET_TUPLE:
+        // TODO same as above
         if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
           // function symbols, defined inside $let are expected to be
           // disjoint and fresh symbols are expected to be fresh

@@ -365,13 +365,12 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
     );
     case SpecialFunctor::LET:
+      // TODO what about sd->getSort()?
       return Term::createLet(
-    sd->getFunctor(),
-    sd->getVariables(),
-    applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-    sd->getSort()
-    );
+        applyImpl<ProcessSpecVars>(sd->getLetBinding(), applicator, noSharing),
+        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+        sd->getSort()
+      );
     case SpecialFunctor::FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)

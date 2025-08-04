@@ -413,15 +413,14 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         return TermList(Term::createITE(condition, branches[THEN], branches[ELSE], sort));
       }
       case SpecialFunctor::LET: {
-        unsigned functor = sd->getFunctor();
-        VList* variables = sd->getVariables();
-        TermList binding = simplify(sd->getBinding());
+        // TODO what about sd->getSort()?
+        Formula* binding = simplify(sd->getLetBinding());
         TermList body = simplify(*term->nthArgument(0));
-        if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
+        if ((binding == sd->getLetBinding()) && (body == *term->nthArgument(0))) {
           return ts;
         }
         TermList sort = sd->getSort();
-        return TermList(Term::createLet(functor, variables, binding, body, sort));
+        return TermList(Term::createLet(binding, body, sort));
       }
       case SpecialFunctor::LET_TUPLE: {
         unsigned functor = sd->getFunctor();
@@ -432,7 +431,8 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
           return ts;
         }
         TermList sort = sd->getSort();
-        return TermList(Term::createLet(functor, symbols, binding, body, sort));
+        // TODO was this intentionally a let?
+        return TermList(Term::createTupleLet(functor, symbols, binding, body, sort));
       }
       case SpecialFunctor::TUPLE: {
         TermList tupleTerm = TermList(sd->getTupleTerm());

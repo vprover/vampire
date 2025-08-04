@@ -285,16 +285,16 @@ TermList NNF::ennf(TermList ts, bool polarity)
       }
 
       case SpecialFunctor::LET: {
-        TermList binding = sd->getBinding();
+        Formula* binding = sd->getLetBinding();
         TermList body = *term->nthArgument(0);
 
-        TermList ennfBinding = ennf(binding, true);
+        Formula* ennfBinding = ennf(binding, true);
         TermList ennfBody = ennf(body, polarity);
 
         if ((binding == ennfBinding) && (body == ennfBody)) {
           return ts;
         } else {
-          return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(), ennfBinding, ennfBody, sd->getSort()));
+          return TermList(Term::createLet(ennfBinding, ennfBody, sd->getSort()));
         }
         break;
       }

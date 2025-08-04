@@ -421,41 +421,14 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           }
 
           case SpecialFunctor::LET: {
-            TermList binding = sd->getBinding();
-            bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-            Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
-                                                    : env.signature->getFunction(sd->getFunctor());
-            VList::Iterator vit(sd->getVariables());
-            Substitution subst;
-            auto type = isPredicate ? symbol->predType() : symbol->fnType();
-            for (unsigned i = 0; i < type->arity(); i++) {
-              ASS(vit.hasNext());
-              auto var = vit.next();
-              TermList sort = AtomicSort::superSort();
-              if (i < type->numTypeArguments()) {
-                subst.bindUnbound(type->quantifiedVar(i).var(), TermList(var, false));
-              } else {
-                sort = SubstHelper::apply(type->arg(i),subst);
-              }
-              if (!ignoreBound || !bound.get(var)) {
-                if (!map.insert(var, sort)) {
-                  ASS_EQ(sort, map.get(var));
-                }
-              }
-            }
+            CollectTask newTask(COLLECT_FORMULA);
+            newTask.f = sd->getLetBinding();
+            todo.push(newTask);
 
-            CollectTask newTask(COLLECT_TERMLIST);
+            newTask.fncTag = COLLECT_TERMLIST;
             newTask.contextSort = sd->getSort();
-
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
-
-            newTask.ts = binding;
-            if (!isPredicate) {
-              newTask.contextSort = SubstHelper::apply(type->result(),subst);
-            }
-            todo.push(newTask);
-
             break;
           }
 

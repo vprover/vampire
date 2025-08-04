@@ -427,9 +427,7 @@ public:
         TermList sort;
       } _iteData;
       struct {
-        unsigned functor;
-        VList* variables;
-        TermList binding;
+        Formula* binding;
         TermList sort;
       } _letData;
       struct {
@@ -464,8 +462,8 @@ public:
 
     Formula* getCondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
     unsigned getFunctor() const {
-      ASS_REP(specialFunctor() == SpecialFunctor::LET || specialFunctor() == SpecialFunctor::LET_TUPLE, specialFunctor());
-      return specialFunctor() == SpecialFunctor::LET ? _letData.functor : _letTupleData.functor;
+      ASS_EQ(specialFunctor(), SpecialFunctor::LET_TUPLE);
+      return _letTupleData.functor;
     }
     VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
     void setLambdaVars(VList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
@@ -475,11 +473,14 @@ public:
     void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
     void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
     void setLambdaSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.sort = sort; }
-    VList* getVariables() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.variables; }
     VList* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
-      ASS_REP(specialFunctor() == SpecialFunctor::LET || specialFunctor() == SpecialFunctor::LET_TUPLE, specialFunctor());
-      return TermList(specialFunctor() == SpecialFunctor::LET ? _letData.binding : _letTupleData.binding);
+      ASS_EQ(specialFunctor(), SpecialFunctor::LET_TUPLE);
+      return _letTupleData.binding;
+    }
+    Formula* getLetBinding() const {
+      ASS_EQ(specialFunctor(), SpecialFunctor::LET);
+      return _letData.binding;
     }
     TermList getLambdaExpSort() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.expSort; }
     TermList getSort() const {
@@ -526,7 +527,7 @@ public:
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
-  static Term* createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort);
+  static Term* createLet(Formula* binding, TermList body, TermList bodySort);
   static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
   static Term* createTupleLet(unsigned functor, VList* symbols, TermList binding, TermList body, TermList bodySort);
   static Term* createFormula(Formula* formula);
