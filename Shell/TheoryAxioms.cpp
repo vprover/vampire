@@ -815,15 +815,15 @@ void TheoryAxioms::addArrayExtensionalityAxioms(TermList arraySort, unsigned sko
 
   TermList x(0,false);
   TermList y(1,false);
-  
+
   TermList sk(Term::create2(skolemFn, x, y)); //sk(x,y)
   TermList sel_x_sk(Term::create2(sel,x,sk)); //select(x,sk(x,y))
   TermList sel_y_sk(Term::create2(sel,y,sk)); //select(y,sk(x,y))
   Literal* eq = Literal::createEquality(true,x,y,arraySort); //x = y
   Literal* ineq = Literal::createEquality(false,sel_x_sk,sel_y_sk,rangeSort); //select(x,sk(x,y) != select(y,z)
 
-  addTheoryClauseFromLits({eq,ineq}, InferenceRule::THA_ARRAY_EXTENSIONALITY, CHEAP);
-} // addArrayExtensionalityAxiom    
+  addTheoryClauseFromLits({eq,ineq}, InferenceRule::THA_ARRAY_EXTENSIONALITY, EXPENSIVE);
+} // addArrayExtensionalityAxiom
 
 /**
  * Adds the extensionality axiom of boolean arrays:
@@ -852,11 +852,11 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsig
                                          SList::cons(arraySort, SList::cons(arraySort,SList::empty())),
                                          new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
 
-  addAndOutputTheoryUnit(new FormulaUnit(axiom, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY)),CHEAP);
+  addAndOutputTheoryUnit(new FormulaUnit(axiom, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY)),EXPENSIVE);
 } // addBooleanArrayExtensionalityAxiom
 
 /**
-* Adds the write/select axiom of arrays (of type array1 or array2), 
+* Adds the write/select axiom of arrays (of type array1 or array2),
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
 */
@@ -873,7 +873,7 @@ void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
   TermList v(2,false);
   TermList a(3,false);
   TermList args[] = {a, i, v};
-        
+
   //axiom (!A: arraySort, !I:domainSort, !V:rangeSort: (select(store(A,I,V), I) = V
   TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
   TermList sWI(Term::create2(func_select, wAIV,i)); //select(wAIV,I)
@@ -883,7 +883,7 @@ void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
   //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) = select(A,J)
   TermList sWJ(Term::create2(func_select, wAIV,j)); //select(wAIV,J)
   TermList sAJ(Term::create2(func_select, a, j)); //select(A,J)
-        
+
   Literal* indexEq = Literal::createEquality(true, i, j, domainSort);//!(!(I=J)) === I=J
   Literal* writeEq = Literal::createEquality(true, sWJ, sAJ, rangeSort);//(select(store(A,I,V), J) = select(A,J)
   addTheoryClauseFromLits({indexEq,writeEq}, InferenceRule::THA_ARRAY_WRITE2, CHEAP);
@@ -957,154 +957,154 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
  */
 void TheoryAxioms::apply()
 {
-  if (env.options->alasca()) {
-    addAlascaAxioms();
-    return;
-  }
   Property* prop = _prb.getProperty();
   bool modified = false;
-  bool haveIntPlus =
-    prop->hasInterpretedOperation(Theory::INT_PLUS) ||
-    prop->hasInterpretedOperation(Theory::INT_UNARY_MINUS) ||
-    prop->hasInterpretedOperation(Theory::INT_LESS) ||
-    prop->hasInterpretedOperation(Theory::INT_MULTIPLY);
-  bool haveIntMultiply =
-    prop->hasInterpretedOperation(Theory::INT_MULTIPLY);
+  if (env.options->alasca()) {
+    addAlascaAxioms();
+  } else {
+    bool haveIntPlus =
+      prop->hasInterpretedOperation(Theory::INT_PLUS) ||
+      prop->hasInterpretedOperation(Theory::INT_UNARY_MINUS) ||
+      prop->hasInterpretedOperation(Theory::INT_LESS) ||
+      prop->hasInterpretedOperation(Theory::INT_MULTIPLY);
+    bool haveIntMultiply =
+      prop->hasInterpretedOperation(Theory::INT_MULTIPLY);
 
-  bool haveIntDivision =
-    prop->hasInterpretedOperation(Theory::INT_QUOTIENT_E) || // let's ignore the weird _F and _T for now!
-    prop->hasInterpretedOperation(Theory::INT_REMAINDER_E) ||
-    prop->hasInterpretedOperation(Theory::INT_ABS);
+    bool haveIntDivision =
+      prop->hasInterpretedOperation(Theory::INT_QUOTIENT_E) || // let's ignore the weird _F and _T for now!
+      prop->hasInterpretedOperation(Theory::INT_REMAINDER_E) ||
+      prop->hasInterpretedOperation(Theory::INT_ABS);
 
-  bool haveIntDivides = prop->hasInterpretedOperation(Theory::INT_DIVIDES);
+    bool haveIntDivides = prop->hasInterpretedOperation(Theory::INT_DIVIDES);
 
-  bool haveIntFloor = prop->hasInterpretedOperation(Theory::INT_FLOOR);
-  bool haveIntCeiling = prop->hasInterpretedOperation(Theory::INT_CEILING);
-  bool haveIntRound = prop->hasInterpretedOperation(Theory::INT_ROUND);
-  bool haveIntTruncate = prop->hasInterpretedOperation(Theory::INT_TRUNCATE);
-  bool haveIntUnaryRoundingFunction = haveIntFloor || haveIntCeiling || haveIntRound || haveIntTruncate;
+    bool haveIntFloor = prop->hasInterpretedOperation(Theory::INT_FLOOR);
+    bool haveIntCeiling = prop->hasInterpretedOperation(Theory::INT_CEILING);
+    bool haveIntRound = prop->hasInterpretedOperation(Theory::INT_ROUND);
+    bool haveIntTruncate = prop->hasInterpretedOperation(Theory::INT_TRUNCATE);
+    bool haveIntUnaryRoundingFunction = haveIntFloor || haveIntCeiling || haveIntRound || haveIntTruncate;
 
-  if (haveIntPlus || haveIntUnaryRoundingFunction || haveIntDivision || haveIntDivides) {
-    TermList zero(theory->representConstant(IntegerConstantType(0)));
-    TermList one(theory->representConstant(IntegerConstantType(1)));
-    if(haveIntMultiply || haveIntDivision || haveIntDivides) {
-      addAdditionOrderingAndMultiplicationAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
-						 Theory::INT_LESS, Theory::INT_MULTIPLY);
-      if(haveIntDivision){
-        addIntegerDivisionWithModuloAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, Theory::INT_LESS,
-                                 Theory::INT_MULTIPLY, Theory::INT_QUOTIENT_E, Theory::INT_DIVIDES,
-                                 Theory::INT_REMAINDER_E, Theory::INT_ABS, zero,one);
-      }
-      else if(haveIntDivides){ 
-        Stack<TermList>& ns = env.signature->getDividesNvalues(); 
-        Stack<TermList>::Iterator nsit(ns);
-        while(nsit.hasNext()){
-          TermList n = nsit.next();
-          addIntegerDividesAxioms(Theory::INT_DIVIDES,Theory::INT_MULTIPLY,zero,n); 
+    if (haveIntPlus || haveIntUnaryRoundingFunction || haveIntDivision || haveIntDivides) {
+      TermList zero(theory->representConstant(IntegerConstantType(0)));
+      TermList one(theory->representConstant(IntegerConstantType(1)));
+      if(haveIntMultiply || haveIntDivision || haveIntDivides) {
+        addAdditionOrderingAndMultiplicationAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
+              Theory::INT_LESS, Theory::INT_MULTIPLY);
+        if(haveIntDivision){
+          addIntegerDivisionWithModuloAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, Theory::INT_LESS,
+                                  Theory::INT_MULTIPLY, Theory::INT_QUOTIENT_E, Theory::INT_DIVIDES,
+                                  Theory::INT_REMAINDER_E, Theory::INT_ABS, zero,one);
+        }
+        else if(haveIntDivides){ 
+          Stack<TermList>& ns = env.signature->getDividesNvalues(); 
+          Stack<TermList>::Iterator nsit(ns);
+          while(nsit.hasNext()){
+            TermList n = nsit.next();
+            addIntegerDividesAxioms(Theory::INT_DIVIDES,Theory::INT_MULTIPLY,zero,n); 
+          }
         }
       }
-    }
-    else {
-      addAdditionAndOrderingAxioms(IntTraits::sort(), Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
-				   Theory::INT_LESS);
-    }
-    addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS);
-    modified = true;
-  }
-  bool haveRatPlus =
-    prop->hasInterpretedOperation(Theory::RAT_PLUS) ||
-    prop->hasInterpretedOperation(Theory::RAT_UNARY_MINUS) ||
-    prop->hasInterpretedOperation(Theory::RAT_LESS) ||
-    prop->hasInterpretedOperation(Theory::RAT_QUOTIENT) ||
-    prop->hasInterpretedOperation(Theory::RAT_MULTIPLY);
-  bool haveRatMultiply =
-    prop->hasInterpretedOperation(Theory::RAT_MULTIPLY);
-  bool haveRatQuotient =
-    prop->hasInterpretedOperation(Theory::RAT_QUOTIENT);
-
-  bool haveRatFloor = prop->hasInterpretedOperation(Theory::RAT_FLOOR);
-  bool haveRatCeiling = prop->hasInterpretedOperation(Theory::RAT_CEILING);
-  bool haveRatRound = prop->hasInterpretedOperation(Theory::RAT_ROUND);
-  bool haveRatTruncate = prop->hasInterpretedOperation(Theory::RAT_TRUNCATE);
-  bool haveRatUnaryRoundingFunction = haveRatFloor || haveRatCeiling || haveRatRound || haveRatTruncate;
-
-  if (haveRatPlus || haveRatUnaryRoundingFunction) {
-    TermList zero(theory->representConstant(RationalConstantType(0, 1)));
-    TermList one(theory->representConstant(RationalConstantType(1, 1)));
-    if(haveRatMultiply || haveRatRound || haveRatQuotient) {
-      addAdditionOrderingAndMultiplicationAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
-						 Theory::RAT_LESS, Theory::RAT_MULTIPLY);
-
-      if(haveRatQuotient){
-        addQuotientAxioms(Theory::RAT_QUOTIENT,Theory::RAT_MULTIPLY,zero,one,Theory::RAT_LESS);
+      else {
+        addAdditionAndOrderingAxioms(IntTraits::sort(), Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
+            Theory::INT_LESS);
       }
+      addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS);
+      modified = true;
     }
-    else {
-      addAdditionAndOrderingAxioms(RatTraits::sort(), Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
-				   Theory::RAT_LESS);
-    }
-    if(haveRatFloor || haveRatRound){
-      addFloorAxioms(Theory::RAT_FLOOR,Theory::RAT_LESS,Theory::RAT_UNARY_MINUS,Theory::RAT_PLUS,one);
-    }
-    if(haveRatCeiling || haveRatRound){
-      addCeilingAxioms(Theory::RAT_CEILING,Theory::RAT_LESS,Theory::RAT_PLUS,one);
-    }
-    if(haveRatRound){
-      //addRoundAxioms(Theory::INT_TRUNCATE,Theory::INT_FLOOR,Theory::INT_CEILING);
-    }
-    if(haveRatTruncate){
-      addTruncateAxioms(Theory::RAT_TRUNCATE,Theory::RAT_LESS,Theory::RAT_UNARY_MINUS,
-                        Theory::RAT_PLUS,zero,one);
-    }
-    modified = true;
-  }
-  bool haveRealPlus =
-    prop->hasInterpretedOperation(Theory::REAL_PLUS) ||
-    prop->hasInterpretedOperation(Theory::REAL_UNARY_MINUS) ||
-    prop->hasInterpretedOperation(Theory::REAL_LESS) ||
-    prop->hasInterpretedOperation(Theory::REAL_QUOTIENT) ||
-    prop->hasInterpretedOperation(Theory::REAL_MULTIPLY);
-  bool haveRealMultiply =
-    prop->hasInterpretedOperation(Theory::REAL_MULTIPLY);
-  bool haveRealQuotient =
-    prop->hasInterpretedOperation(Theory::REAL_QUOTIENT);
+    bool haveRatPlus =
+      prop->hasInterpretedOperation(Theory::RAT_PLUS) ||
+      prop->hasInterpretedOperation(Theory::RAT_UNARY_MINUS) ||
+      prop->hasInterpretedOperation(Theory::RAT_LESS) ||
+      prop->hasInterpretedOperation(Theory::RAT_QUOTIENT) ||
+      prop->hasInterpretedOperation(Theory::RAT_MULTIPLY);
+    bool haveRatMultiply =
+      prop->hasInterpretedOperation(Theory::RAT_MULTIPLY);
+    bool haveRatQuotient =
+      prop->hasInterpretedOperation(Theory::RAT_QUOTIENT);
 
-  bool haveRealFloor = prop->hasInterpretedOperation(Theory::REAL_FLOOR);
-  bool haveRealCeiling = prop->hasInterpretedOperation(Theory::REAL_CEILING);
-  bool haveRealRound = prop->hasInterpretedOperation(Theory::REAL_ROUND);
-  bool haveRealTruncate = prop->hasInterpretedOperation(Theory::REAL_TRUNCATE);
-  bool haveRealUnaryRoundingFunction = haveRealFloor || haveRealCeiling || haveRealRound || haveRealTruncate;
+    bool haveRatFloor = prop->hasInterpretedOperation(Theory::RAT_FLOOR);
+    bool haveRatCeiling = prop->hasInterpretedOperation(Theory::RAT_CEILING);
+    bool haveRatRound = prop->hasInterpretedOperation(Theory::RAT_ROUND);
+    bool haveRatTruncate = prop->hasInterpretedOperation(Theory::RAT_TRUNCATE);
+    bool haveRatUnaryRoundingFunction = haveRatFloor || haveRatCeiling || haveRatRound || haveRatTruncate;
 
-  if (haveRealPlus || haveRealUnaryRoundingFunction) {
-    TermList zero(theory->representConstant(RealConstantType(RationalConstantType(0, 1))));
-    TermList one(theory->representConstant(RealConstantType(RationalConstantType(1, 1))));
-    if(haveRealMultiply || haveRealQuotient) {
-      addAdditionOrderingAndMultiplicationAxioms(Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
-						 Theory::REAL_LESS, Theory::REAL_MULTIPLY);
+    if (haveRatPlus || haveRatUnaryRoundingFunction) {
+      TermList zero(theory->representConstant(RationalConstantType(0, 1)));
+      TermList one(theory->representConstant(RationalConstantType(1, 1)));
+      if(haveRatMultiply || haveRatRound || haveRatQuotient) {
+        addAdditionOrderingAndMultiplicationAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
+              Theory::RAT_LESS, Theory::RAT_MULTIPLY);
 
-      if(haveRealQuotient){
-        addQuotientAxioms(Theory::REAL_QUOTIENT,Theory::REAL_MULTIPLY,zero,one,Theory::REAL_LESS);
+        if(haveRatQuotient){
+          addQuotientAxioms(Theory::RAT_QUOTIENT,Theory::RAT_MULTIPLY,zero,one,Theory::RAT_LESS);
+        }
       }
+      else {
+        addAdditionAndOrderingAxioms(RatTraits::sort(), Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
+            Theory::RAT_LESS);
+      }
+      if(haveRatFloor || haveRatRound){
+        addFloorAxioms(Theory::RAT_FLOOR,Theory::RAT_LESS,Theory::RAT_UNARY_MINUS,Theory::RAT_PLUS,one);
+      }
+      if(haveRatCeiling || haveRatRound){
+        addCeilingAxioms(Theory::RAT_CEILING,Theory::RAT_LESS,Theory::RAT_PLUS,one);
+      }
+      if(haveRatRound){
+        //addRoundAxioms(Theory::INT_TRUNCATE,Theory::INT_FLOOR,Theory::INT_CEILING);
+      }
+      if(haveRatTruncate){
+        addTruncateAxioms(Theory::RAT_TRUNCATE,Theory::RAT_LESS,Theory::RAT_UNARY_MINUS,
+                          Theory::RAT_PLUS,zero,one);
+      }
+      modified = true;
     }
-    else {
-      addAdditionAndOrderingAxioms(RealTraits::sort(), Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
-				   Theory::REAL_LESS);
-    }
-    if(haveRealFloor || haveRealRound){
-      addFloorAxioms(Theory::REAL_FLOOR,Theory::REAL_LESS,Theory::REAL_UNARY_MINUS,Theory::REAL_PLUS,one);
-    }
-    if(haveRealCeiling || haveRealRound){
-      addCeilingAxioms(Theory::REAL_CEILING,Theory::REAL_LESS,Theory::REAL_PLUS,one);
-    }
-    if(haveRealRound){
-      //addRoundAxioms(Theory::INT_TRUNCATE,Theory::INT_FLOOR,Theory::INT_CEILING);
-    }
-    if(haveRealTruncate){
-      addTruncateAxioms(Theory::REAL_TRUNCATE,Theory::REAL_LESS,Theory::REAL_UNARY_MINUS,
-                        Theory::REAL_PLUS,zero,one);
-    }
+    bool haveRealPlus =
+      prop->hasInterpretedOperation(Theory::REAL_PLUS) ||
+      prop->hasInterpretedOperation(Theory::REAL_UNARY_MINUS) ||
+      prop->hasInterpretedOperation(Theory::REAL_LESS) ||
+      prop->hasInterpretedOperation(Theory::REAL_QUOTIENT) ||
+      prop->hasInterpretedOperation(Theory::REAL_MULTIPLY);
+    bool haveRealMultiply =
+      prop->hasInterpretedOperation(Theory::REAL_MULTIPLY);
+    bool haveRealQuotient =
+      prop->hasInterpretedOperation(Theory::REAL_QUOTIENT);
 
-    modified = true;
+    bool haveRealFloor = prop->hasInterpretedOperation(Theory::REAL_FLOOR);
+    bool haveRealCeiling = prop->hasInterpretedOperation(Theory::REAL_CEILING);
+    bool haveRealRound = prop->hasInterpretedOperation(Theory::REAL_ROUND);
+    bool haveRealTruncate = prop->hasInterpretedOperation(Theory::REAL_TRUNCATE);
+    bool haveRealUnaryRoundingFunction = haveRealFloor || haveRealCeiling || haveRealRound || haveRealTruncate;
+
+    if (haveRealPlus || haveRealUnaryRoundingFunction) {
+      TermList zero(theory->representConstant(RealConstantType(RationalConstantType(0, 1))));
+      TermList one(theory->representConstant(RealConstantType(RationalConstantType(1, 1))));
+      if(haveRealMultiply || haveRealQuotient) {
+        addAdditionOrderingAndMultiplicationAxioms(Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
+              Theory::REAL_LESS, Theory::REAL_MULTIPLY);
+
+        if(haveRealQuotient){
+          addQuotientAxioms(Theory::REAL_QUOTIENT,Theory::REAL_MULTIPLY,zero,one,Theory::REAL_LESS);
+        }
+      }
+      else {
+        addAdditionAndOrderingAxioms(RealTraits::sort(), Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
+            Theory::REAL_LESS);
+      }
+      if(haveRealFloor || haveRealRound){
+        addFloorAxioms(Theory::REAL_FLOOR,Theory::REAL_LESS,Theory::REAL_UNARY_MINUS,Theory::REAL_PLUS,one);
+      }
+      if(haveRealCeiling || haveRealRound){
+        addCeilingAxioms(Theory::REAL_CEILING,Theory::REAL_LESS,Theory::REAL_PLUS,one);
+      }
+      if(haveRealRound){
+        //addRoundAxioms(Theory::INT_TRUNCATE,Theory::INT_FLOOR,Theory::INT_CEILING);
+      }
+      if(haveRealTruncate){
+        addTruncateAxioms(Theory::REAL_TRUNCATE,Theory::REAL_LESS,Theory::REAL_UNARY_MINUS,
+                          Theory::REAL_PLUS,zero,one);
+      }
+
+      modified = true;
+    }
   }
 
   DHSet<TermList>* arraySorts = env.sharing->getArraySorts();

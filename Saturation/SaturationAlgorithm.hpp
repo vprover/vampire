@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -31,7 +30,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
-#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -82,6 +80,7 @@ public:
 
   void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
+  void setImmediateSimplificationEngineMany(CompositeISEMany ise) { _immediateSimplifierMany = std::move(ise); }
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
@@ -204,6 +203,7 @@ protected:
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
+  CompositeISEMany _immediateSimplifierMany;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
@@ -253,7 +253,7 @@ protected:
   unsigned _generatedClauseCount;
   unsigned _activationLimit;
 private:
-  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering,
+  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, Ordering& ordering,
      bool alascaTakesOver);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit

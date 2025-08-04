@@ -349,6 +349,8 @@ set(SOURCES
     Kernel/FormulaVarIterator.hpp
     Kernel/Grounder.cpp
     Kernel/Grounder.hpp
+    Kernel/InductionTemplate.cpp
+    Kernel/InductionTemplate.hpp
     Kernel/Inference.cpp
     Kernel/Inference.hpp
     Kernel/InferenceStore.cpp
@@ -462,7 +464,6 @@ set(SOURCES
     Lib/Coproduct.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
-    Lib/DHMap.cpp
     Lib/DHMap.hpp
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
@@ -554,8 +555,6 @@ set(SOURCES
     Parse/SMTLIB2.hpp
     Parse/TPTP.cpp
     Parse/TPTP.hpp
-    SAT/BufferedSolver.cpp
-    SAT/BufferedSolver.hpp
     SAT/CadicalInterfacing.cpp
     SAT/CadicalInterfacing.hpp
     SAT/FallbackSolverWrapper.cpp
@@ -572,7 +571,6 @@ set(SOURCES
     SAT/SATClause.hpp
     SAT/SATInference.cpp
     SAT/SATInference.hpp
-    SAT/SATLiteral.cpp
     SAT/SATLiteral.hpp
     SAT/SATSolver.hpp
     SAT/Z3Interfacing.cpp

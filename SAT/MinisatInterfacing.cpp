@@ -40,30 +40,26 @@ unsigned MinisatInterfacing::newVar()
   return minisatVar2Vampire(_solver.newVar());
 }
 
-SATSolver::Status MinisatInterfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+SATSolver::Status MinisatInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
-  ASS(!hasAssumptions());
-
   // load assumptions:
+  _assumptions.clear();
   SATLiteralStack::ConstIterator it(assumps);
   while (it.hasNext()) {
     _assumptions.push(vampireLit2Minisat(it.next()));
   }
 
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
-
-  if (_status == Status::UNSATISFIABLE) {
-    // unload minisat's internal conflict clause to _failedAssumptionBuffer
-    _failedAssumptionBuffer.reset();
-    Minisat::LSet& conflict = _solver.conflict;
-    for (int i = 0; i < conflict.size(); i++) {
-      _failedAssumptionBuffer.push(minisatLit2Vampire(conflict[i]).opposite());
-    }
-  }
-
-  _assumptions.clear();
-
   return _status;
+}
+
+SATLiteralStack MinisatInterfacing::failedAssumptions() {
+  ASS_EQ(_status, Status::UNSATISFIABLE)
+
+  SATLiteralStack result;
+  for (int i = 0; i < _solver.conflict.size(); i++)
+    result.push(minisatLit2Vampire(_solver.conflict[i]).opposite());
+  return result;
 }
 
 /**
@@ -94,14 +90,11 @@ void MinisatInterfacing::addClause(SATClause* cl)
 {
   // store to later generate the refutation
   PrimitiveProofRecordingSATSolver::addClause(cl);
-  
-  // TODO: consider measuring time
-  
-  ASS_EQ(_assumptions.size(),0);
 
+  // TODO: consider measuring time
   static vec<Lit> mcl;
   mcl.clear();
-    
+
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {
     SATLiteral l = (*cl)[i];
@@ -114,15 +107,11 @@ void MinisatInterfacing::addClause(SATClause* cl)
 /**
  * Perform solving and return status.
  */
-SATSolver::Status MinisatInterfacing::solve(unsigned conflictCountLimit)
+SATSolver::Status MinisatInterfacing::solveLimited(unsigned conflictCountLimit)
 {
+  _assumptions.clear();
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
   return _status;
-}
-
-void MinisatInterfacing::addAssumption(SATLiteral lit)
-{
-  _assumptions.push(vampireLit2Minisat(lit));
 }
 
 SATSolver::VarAssignment MinisatInterfacing::getAssignment(unsigned var)
@@ -153,32 +142,6 @@ bool MinisatInterfacing::isZeroImplied(unsigned var)
   /* between calls to _solver.solve*
    value is undefined for all accept zero implied variables */
   return _solver.value(vampireVar2Minisat(var)) != l_Undef;
-}
-
-void MinisatInterfacing::collectZeroImplied(SATLiteralStack& acc)
-{
-  // TODO: could be made more efficient by inspecting the trail 
-  // [new code would be needed in Minisat::solver, though]
-  
-  // Minisat's variables start from 0
-  for (Minisat::Var v = 0; v < _solver.nVars(); v++) {
-    lbool val = _solver.value(v);
-    if (val != l_Undef) { // see isZeroImplied
-      
-      // the lit needs to be negated, if the variable alone is false
-      acc.push(minisatLit2Vampire(mkLit(v,val == l_False)));
-    }
-  }        
-}
-
-SATClause* MinisatInterfacing::getZeroImpliedCertificate(unsigned)
-{
-  // Currently unused anyway. 
-  
-  /* The whole SATSolver interface should be revised before
-   implementing functions like this one properly */
-  
-  return 0;
 }
 
 SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps)
@@ -235,7 +198,7 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
         curmax++;
       }
 
-      mcl.push(mkLit(var,l.isNegative()));
+      mcl.push(mkLit(var,!l.positive()));
     }
 
     // add one extra assumption literal
@@ -255,7 +218,7 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
 
     ASS_L(var,curmax);
 
-    ass.push(mkLit(var,l.isNegative()));
+    ass.push(mkLit(var,!l.positive()));
   }
 
   // solve
@@ -307,7 +270,7 @@ void MinisatInterfacing::interpolateViaAssumptions(unsigned maxVar, const SATCla
     for(unsigned i=0;i<clen;i++) {
       SATLiteral l = (*cl)[i];
       varOfFirst[l.var()] = true;
-      tmp.push(mkLit(l.var(),l.isNegative()));
+      tmp.push(mkLit(l.var(),!l.positive()));
     }
 
     solver_first.addClause(tmp);
@@ -322,7 +285,7 @@ void MinisatInterfacing::interpolateViaAssumptions(unsigned maxVar, const SATCla
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
       SATLiteral l = (*cl)[i];
-      tmp.push(mkLit(l.var(),l.isNegative()));
+      tmp.push(mkLit(l.var(),!l.positive()));
     }
 
     solver_second.addClause(tmp);

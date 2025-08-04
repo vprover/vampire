@@ -63,19 +63,15 @@ class SATInference
 public:
   enum InfType {
     PROP_INF,
-    FO_CONVERSION,
-    ASSUMPTION
+    FO_CONVERSION
   };
   virtual ~SATInference() {}
   virtual InfType getType() const = 0;
-  
+
   template <typename Filter>
   static void collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f);
-  
   static void collectFOPremises(SATClause* cl, Stack<Unit*>& acc);
-
   static void collectPropAxioms(SATClause* cl, SATClauseStack& res);
-
   static UnitList* getFOPremises(SATClause* cl);
 };
 
@@ -122,14 +118,6 @@ private:
   Unit* _origin;
 };
 
-class AssumptionInference : public SATInference
-{
-public:
-  USE_ALLOCATOR(AssumptionInference);
-
-  virtual InfType getType() const { return ASSUMPTION; }
-};
-
 /**
  * Collect first-order premises of @c cl into @c res. Make sure that elements in @c res are unique.
  * Only consider those SATClauses and their parents which pass the given Filter f.
@@ -149,7 +137,7 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
     SATClause* cur = toDo.pop();
     if (!f(cur)) {
       continue;
-    }    
+    }
     if (!seen.insert(cur)) {
       continue;
     }
@@ -158,8 +146,6 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
     switch(sinf->getType()) {
     case SATInference::FO_CONVERSION:
       acc.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
-      break;
-    case SATInference::ASSUMPTION:
       break;
     case SATInference::PROP_INF:
     {

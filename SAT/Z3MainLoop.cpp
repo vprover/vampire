@@ -15,7 +15,7 @@
 #if VZ3
 
 #include "Forwards.hpp"
-
+#include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Z3MainLoop.hpp"
@@ -63,7 +63,7 @@ MainLoopResult Z3MainLoop::runImpl()
    solver.addClause(sc);
  }
 
- SATSolver::Status status = solver.solve(UINT_MAX);
+ SATSolver::Status status = solver.solveLimited(UINT_MAX);
 
  TerminationReason reason = TerminationReason::UNKNOWN;
 

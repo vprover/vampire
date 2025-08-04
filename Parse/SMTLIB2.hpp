@@ -179,10 +179,6 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_DIVIDE,
-    TS_ARRAY,
-    TS_BOOL,
-    TS_INT,
-    TS_REAL,
     TS_ABS,
     TS_AS,
     TS_DIV,
@@ -205,20 +201,39 @@ private:
   static TermSymbol getBuiltInTermSymbol(const std::string& str);
 
   /**
-   * Is the given std::string a built-in FormulaSymbol, built-in TermSymbol
-   * or a declared function/predicate/type constructor?
+   * Built-in types
    */
-  bool isAlreadyKnownSymbol(const std::string& name);
+  enum TypeSymbol
+  {
+    TS_ARRAY,
+    TS_BOOL,
+    TS_INT,
+    TS_REAL,
 
-  enum class SymbolType {
-    FUNCTION,
-    PREDICATE,
-    TYPECON,
+    TS_USER_TYPE
   };
-  /** <vampire signature id, symbol type> */
-  typedef std::pair<unsigned,SymbolType> DeclaredSymbol;
+  static const char * s_typeSymbolNameStrings[];
+
+  /**
+   * Lookup to see if std::string is a built-in TypeSymbol.
+   */
+  static TypeSymbol getBuiltInTypeSymbol(const std::string& str);
+
+  /**
+   * Is the given std::string a built-in FormulaSymbol, built-in TermSymbol
+   * or a declared function/predicate?
+   */
+  bool isAlreadyKnownFunction(const std::string& name);
+  /**
+   * Is the given std::string a declared sort or sort parameter?
+   */
+  bool isAlreadyKnownSort(const std::string& name);
+
+  /** <vampire signature id, predicate> */
+  typedef std::pair<unsigned,bool> DeclaredSymbol;
   /** symbols are implicitly declared also when they are defined (see below) */
   DHMap<std::string, DeclaredSymbol> _declaredSymbols;
+  DHMap<std::string, unsigned> _declaredSorts;
 
   /**
    * Given a symbol name, range sort (which can be Bool) and argSorts,

@@ -214,7 +214,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
     if (env.options->showPreprocessing()) {
       std::cout << "[PP] definition " << (*def) << " removed" << std::endl;
     }
-    _processedPrb->addEliminatedPredicate(pred,def);
+    _processedPrb->addEliminatedPredicate(pred,def->formula());
   }
   else {
     //otherwise it occurs either only positively or only negatively,
@@ -237,7 +237,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
 
       return;
     }
-    _processedPrb->addPartiallyEliminatedPredicate(pred,def);
+    _processedPrb->addPartiallyEliminatedPredicate(pred,repl->formula());
 
     if (env.options->showPreprocessing()) {
       std::cout << "[PP] definition " << (*def) << " replaced by "

@@ -121,12 +121,12 @@ LiteralStack collectLiteralsExceptForTwo(Clause* cl, unsigned size, unsigned exc
   return ls;
 }
 
-ClauseIterator SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
+Option<ClauseIterator> SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
 {
   if ((cl->inference().rule() == InferenceRule::ANSWER_LITERAL_JOIN_AS_ITE) ||
       (cl->inference().rule() == InferenceRule::ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS)) {
     // The clause was produced by this very simplification, and it does not need further checking.
-    return ClauseIterator::getEmpty();
+    return none<ClauseIterator>();
   }
   // Count the answer literals in the clause.
   int numAnsLits = 0;
@@ -146,7 +146,7 @@ ClauseIterator SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
       ((cl->inference().rule() != InferenceRule::SUPERPOSITION) &&
        (cl->inference().rule() != InferenceRule::RESOLUTION) &&
        (cl->inference().rule() != InferenceRule::CONSTRAINED_RESOLUTION))) {
-    return ClauseIterator::getEmpty();
+    return none<ClauseIterator>();
   }
 
   // Get synthesis information
@@ -192,7 +192,7 @@ ClauseIterator SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
   Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS, cl));
   res.push(Clause::fromStack(lits, inf));
 
-  return getPersistentIterator(pvi(ClauseStack::Iterator(res)));
+  return some(getPersistentIterator(pvi(ClauseStack::Iterator(res))));
 }
 
 }

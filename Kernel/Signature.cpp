@@ -214,6 +214,17 @@ OperatorType* Signature::Symbol::predType() const
   return _type;
 }
 
+Signature::RealSymbol::RealSymbol(const RealConstantType& val)
+  : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")")
+                                                                       : Output::toString(val),
+        /*             arity */ 0,
+        /*       interpreted */ true,
+        /*    preventQuoting */ false,
+        /*             super */ false),
+       _realValue(std::move(val))
+{
+  setType(OperatorType::getConstantsType(AtomicSort::realSort()));
+}
 
 /**
  * Create a Signature.

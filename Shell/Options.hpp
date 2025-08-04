@@ -169,6 +169,7 @@ public:
         OTHER,
         DEVELOPMENT,
         OUTPUT,
+        PORTFOLIO,
         FMB,
         SAT,
         AVATAR,
@@ -399,8 +400,10 @@ public:
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
+    CASC_2025,
     CASC_SAT,
     CASC_SAT_2024,
+    CASC_SAT_2025,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
@@ -603,12 +606,6 @@ public:
     RANDOM
   };
 
-  enum class SplittingMinimizeModel : unsigned int {
-    OFF = 0,
-    SCO = 1,
-    ALL = 2
-  };
-
   enum class SplittingDeleteDeactivated : unsigned int {
     ON,
     LARGE_ONLY,
@@ -637,17 +634,6 @@ public:
     FIRST = 0,
     SMALL_ONES = 1,
     ALL = 2
-  };
-
-  enum class GlobalSubsumptionSatSolverPower : unsigned int {
-    PROPAGATION_ONLY,
-    FULL
-  };
-
-  enum class GlobalSubsumptionExplicitMinim : unsigned int {
-    OFF,
-    ON,
-    RANDOMIZED
   };
 
   enum class GlobalSubsumptionAvatarAssumptions : unsigned int {
@@ -2015,6 +2001,7 @@ public:
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   const std::string& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
+  bool replaceDomainElements() const { return _replaceDomainElements.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
@@ -2123,6 +2110,7 @@ public:
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   int lrsRetroactiveDeletes() const { return _lrsRetroactiveDeletes.actualValue; }
+  int lrsPreemptiveDeletes() const { return _lrsPreemptiveDeletes.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
@@ -2197,8 +2185,10 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
-  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizeSeedForPortfolioWorkers.actualValue = val; }
+  bool shuffleOnScheduleRepeats() const { return _shuffleOnScheduleRepeats.actualValue; }
+  void enableShuffling() { _shuffleInput.actualValue = true; _randomTraversals.actualValue = true; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2217,8 +2207,6 @@ public:
   std::string thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
-  GlobalSubsumptionSatSolverPower globalSubsumptionSatSolverPower() const { return _globalSubsumptionSatSolverPower.actualValue; }
-  GlobalSubsumptionExplicitMinim globalSubsumptionExplicitMinim() const { return _globalSubsumptionExplicitMinim.actualValue; }
   GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
 
   /** true if calling set() on non-existing options does not result in a user error */
@@ -2272,23 +2260,17 @@ public:
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
   bool inductionOnActiveOccurrences() const { return _inductionOnActiveOccurrences.actualValue; }
 
-  bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
-
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
+  bool cleaveNonsplittables() const{ return _cleaveNonsplittables.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
-  SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
+  bool splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
-  bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
-  bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
-  int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
-  float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
-  bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
@@ -2497,8 +2479,6 @@ private:
 
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
-  ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
-  ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
   ChoiceOptionValue<GoalGuess> _guessTheGoal;
   UnsignedOptionValue _guessTheGoalLimit;
@@ -2526,7 +2506,6 @@ private:
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   ChoiceOptionValue<Instantiation> _instantiation;
-  BoolOptionValue _useHashingVariantIndex;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
@@ -2558,6 +2537,7 @@ private:
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
   BoolOptionValue _lrsRetroactiveDeletes;
+  BoolOptionValue _lrsPreemptiveDeletes;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
@@ -2575,7 +2555,8 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
-  BoolOptionValue _randomizSeedForPortfolioWorkers;
+  BoolOptionValue _randomizeSeedForPortfolioWorkers;
+  BoolOptionValue _shuffleOnScheduleRepeats;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
@@ -2587,6 +2568,7 @@ private:
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
+  BoolOptionValue _replaceDomainElements;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
@@ -2667,19 +2649,15 @@ private:
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
+  BoolOptionValue _cleaveNonsplittables;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   BoolOptionValue _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
-  BoolOptionValue _splittingEagerRemoval;
-  UnsignedOptionValue _splittingFlushPeriod;
-  FloatOptionValue _splittingFlushQuotient;
   FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
-  ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
+  BoolOptionValue _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
-  BoolOptionValue _splittingFastRestart;
-  BoolOptionValue _splittingBufferedSolver;
 
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _superpositionFromVariables;

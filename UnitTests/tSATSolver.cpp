@@ -169,9 +169,9 @@ void testInterface(SATSolverWithAssumptions &s) {
   s.addClause(getClause("C"));
   ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
 
-  ASS(s.trueInAssignment(getLit('a')));
-  ASS(s.trueInAssignment(getLit('b')));
-  ASS(s.falseInAssignment(getLit('c')));
+  ASS( s.trueInAssignment(getLit('a')));
+  ASS( s.trueInAssignment(getLit('b')));
+  ASS(!s.trueInAssignment(getLit('c')));
 
   // for a and b depends on learned clauses, which depend on decide polarity
   // but should be both at the same time, or none of the two
@@ -192,28 +192,19 @@ void testInterface(SATSolverWithAssumptions &s) {
   }
   cout << endl;
 
-  s.addAssumption(getLit('d'));
-  s.addAssumption(getLit('a'));
-  ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
-  s.retractAllAssumptions();
-  ASS(!s.hasAssumptions());
-  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
+  SATLiteralStack assumptions;
+  assumptions.push(getLit('d'));
+  assumptions.push(getLit('a'));
+  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::SATISFIABLE);
+  assumptions.reset();
 
-  ASS(!s.hasAssumptions());
-  s.addAssumption(getLit('A'));
-  ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::Status::UNSATISFIABLE);
-  s.retractAllAssumptions();
-  ASS(!s.hasAssumptions());
-  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
+  assumptions.push(getLit('A'));
+  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::UNSATISFIABLE);
+  assumptions.reset();
 
-  s.addAssumption(getLit('a'));
-  ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
-  s.retractAllAssumptions();
-  ASS(!s.hasAssumptions());
-  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
+  assumptions.push(getLit('a'));
+  ASS_EQ(s.solveUnderAssumptions(assumptions),SATSolver::Status::SATISFIABLE);
+  assumptions.reset();
 
   ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
 }
@@ -256,7 +247,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   const SATLiteralStack& failed = s.failedAssumptions();
   for (unsigned i = 0; i < failed.size(); i++) {
     SATLiteral lit = failed[i];
-    if (lit.polarity()) {
+    if (lit.positive()) {
       cout << (char)('A' + lit.var()-1);
     } else {
       cout << (char)('a' + lit.var()-1);
@@ -267,7 +258,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   const SATLiteralStack& minimized = s.explicitlyMinimizedFailedAssumptions();
   for (unsigned i = 0; i < minimized.size(); i++) {
     SATLiteral lit = minimized[i];
-    if (lit.polarity()) {
+    if (lit.positive()) {
       cout << (char)('A' + lit.var()-1);
     } else {
       cout << (char)('a' + lit.var()-1);

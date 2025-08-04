@@ -150,7 +150,6 @@ VD_OBJ = Debug/Assertion.o\
          Debug/Tracer.o
 
 VL_OBJ= Lib/Allocator.o\
-        Lib/DHMap.o\
         Lib/Environment.o\
         Lib/Event.o\
         Lib/Exception.o\
@@ -193,6 +192,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
+        Kernel/InductionTemplate.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
         Kernel/PartialOrdering.o\
@@ -313,11 +313,9 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
-         SAT/SATLiteral.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
-	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainers.o\
@@ -492,7 +490,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.9
+VERSION_NUMBER = 5.0.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

@@ -41,8 +41,8 @@ public:
     _solver.simplify();
   }
 
-  virtual Status solve(unsigned conflictCountLimit) override;
-  
+  virtual Status solveLimited(unsigned conflictCountLimit) override;
+
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -53,48 +53,19 @@ public:
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
   virtual bool isZeroImplied(unsigned var) override;
-  /**
-   * Collect zero-implied literals.
-   *
-   * Can be used in SATISFIABLE and UNKNOWN state.
-   *
-   * @see isZeroImplied()
-   */
-  virtual void collectZeroImplied(SATLiteralStack& acc) override;
-  /**
-   * Return a valid clause that contains the zero-implied literal
-   * and possibly the assumptions that implied it. Return 0 if @c var
-   * was an assumption itself.
-   * If called on a proof producing solver, the clause will have
-   * a proper proof history.
-   */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   virtual void ensureVarCount(unsigned newVarCnt) override;
-  
+
   virtual unsigned newVar() override;
-  
+
   virtual void suggestPolarity(unsigned var, unsigned pol) override {
     // 0 -> true which means negated, e.g. false in the model
     bool mpol = pol ? false : true; 
     _solver.suggestPolarity(vampireVar2Minisat(var),mpol);
   }
-  
-  /**
-   * Add an assumption into the solver.
-   */
-  virtual void addAssumption(SATLiteral lit) override;
-  
-  virtual void retractAllAssumptions() override {
-    _assumptions.clear();
-    _status = Status::UNKNOWN;
-  };
-  
-  virtual bool hasAssumptions() const override {
-    return (_assumptions.size() > 0);
-  };
 
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  SATLiteralStack failedAssumptions() override;
 
   /**
    * Use minisat and solving under assumptions to minimize the given set of premises (= unsat core extraction).
@@ -125,7 +96,7 @@ protected:
   }
   
   const Minisat::Lit vampireLit2Minisat(SATLiteral vlit) {
-    return Minisat::mkLit(vampireVar2Minisat(vlit.var()),vlit.isNegative()); 
+    return Minisat::mkLit(vampireVar2Minisat(vlit.var()),!vlit.positive()); 
   }
   
   /* sign=true in minisat means "negated" in vampire */

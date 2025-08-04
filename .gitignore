@@ -1,7 +1,6 @@
-# ignore CMake/Doxygen output
-cmake-build
-build/
-doc/
+# ignore common build directories
+/cmake-build
+/build
 
 # ignore TPTP directories/symlinks at the top level
 /Problems

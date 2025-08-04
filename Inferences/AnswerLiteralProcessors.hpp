@@ -57,11 +57,10 @@ private:
 };
 
 class SynthesisAnswerLiteralProcessor
-: public ImmediateSimplificationEngine
+: public ImmediateSimplificationEngineMany
 {
 public:
-  ClauseIterator simplifyMany(Clause* cl) override;
-  Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
+  Option<ClauseIterator> simplifyMany(Clause* cl) override;
 };
 
 }

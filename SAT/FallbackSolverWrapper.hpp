@@ -57,7 +57,7 @@ public:
   }
 
   virtual void addClause(SATClause* cl) override;
-  virtual Status solve(unsigned conflictCountLimit) override;
+  virtual Status solveLimited(unsigned conflictCountLimit) override;
   virtual VarAssignment getAssignment(unsigned var) override;
 
   virtual bool isZeroImplied(unsigned var) override {
@@ -69,20 +69,6 @@ public:
 
     // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
     return  _inner->isZeroImplied(var);
-  }
-  virtual void collectZeroImplied(SATLiteralStack& acc) override { 
-    if(_usingFallback){
-      _fallback->collectZeroImplied(acc);
-      return;
-    }
-    _inner->collectZeroImplied(acc); 
-  }
-
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { 
-    if(_usingFallback){
-      return _fallback->getZeroImpliedCertificate(var);
-    }
-    return _inner->getZeroImpliedCertificate(var); 
   }
 
   virtual void ensureVarCount(unsigned newVarCnt) override { 
