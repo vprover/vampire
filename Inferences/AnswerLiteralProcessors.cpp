@@ -110,12 +110,23 @@ Clause* UndesiredAnswerLiteralRemoval::simplify(Clause* cl)
   return cl;
 }
 
-Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
+LiteralStack collectLiteralsExceptForTwo(Clause* cl, unsigned size, unsigned exception1, unsigned exception2) {
+  ASS(size >= cl->length()-2);
+  LiteralStack ls(size);
+  for (unsigned i = 0; i < cl->length(); ++i) {
+    if ((i != exception1) && (i != exception2)) {
+      ls.push((*cl)[i]);
+    }
+  }
+  return ls;
+}
+
+ClauseIterator SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
 {
-  if ((cl->inference().rule() == InferenceRule::ANSWER_LITERAL_ITE) ||
-      (cl->inference().rule() == InferenceRule::ANSWER_LITERAL_UNIFICATION)) {
+  if ((cl->inference().rule() == InferenceRule::ANSWER_LITERAL_JOIN_AS_ITE) ||
+      (cl->inference().rule() == InferenceRule::ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS)) {
     // The clause was produced by this very simplification, and it does not need further checking.
-    return cl;
+    return ClauseIterator::getEmpty();
   }
   // Count the answer literals in the clause.
   int numAnsLits = 0;
@@ -127,49 +138,19 @@ Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
       numAnsLits++;
     }
   }
-  // Clause with 0 answer literals is okay,
-  // clause with 3+ answer literals is not okay,
-  // clause with 1 answer literal is okay only if the answer literal is computable,
-  // and we deal with clause with 2 answer literals below.
-  if (numAnsLits == 0) {
-    return cl;
-  } else if (numAnsLits == 3) {
-    return nullptr;
-  }
-  SynthesisALManager* synthMan = static_cast<SynthesisALManager*>(SynthesisALManager::getInstance());
-  if (numAnsLits == 1) {
-    if (!(*cl)[idx[0]]->computableOrVar()) {
-      RobSubstitution subst;
-      Literal* newAnsLit = synthMan->selfUnifyToRemoveUncomputableConditions((*cl)[idx[0]], &subst);
-      if (newAnsLit) {
-        LiteralStack lits(cl->length());
-        for (unsigned i = 0; i < cl->length(); ++i) {
-          // Apply the substitution on all literals except the answer literal
-          if (i != idx[0]) {
-            lits.push(subst.apply((*cl)[i], 0));
-          }
-        }
-        // Add the unified answer literal
-        lits.push(subst.apply(newAnsLit, 0));
-        ASS(lits.top()->computableOrVar());
-        Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_UNIFICATION, cl));
-        return Clause::fromStack(lits, inf);
-      } else {
-        return nullptr;
-      }
-    }
-    return cl;
-  }
-  // If a clause has 2 answer literals, for some inference rules (which fill synthesisExtra),
-  // we can join the answer literals into 1.
-  if ((cl->inference().rule() != InferenceRule::SUPERPOSITION) &&
-      (cl->inference().rule() != InferenceRule::RESOLUTION) &&
-      (cl->inference().rule() != InferenceRule::CONSTRAINED_RESOLUTION)) {
-    // TODO(hzzv): support also URR
-    return nullptr;
+  // This simplification rule deals with clauses with 2 answer literals produced by superposition
+  // or resolution (which fill in sythesisExtra).
+  // Clauses with a different number of answer literals or prodced by other rules are checked
+  // by other simplification rules.
+    if (numAnsLits != 2 ||
+      ((cl->inference().rule() != InferenceRule::SUPERPOSITION) &&
+       (cl->inference().rule() != InferenceRule::RESOLUTION) &&
+       (cl->inference().rule() != InferenceRule::CONSTRAINED_RESOLUTION))) {
+    return ClauseIterator::getEmpty();
   }
 
   // Get synthesis information
+  SynthesisALManager* synthMan = static_cast<SynthesisALManager*>(SynthesisALManager::getInstance());
   const TwoLiteralInferenceExtra::SynthesisExtra* synExtra = nullptr;
   if (cl->inference().rule() == InferenceRule::SUPERPOSITION) {
     const TwoLiteralRewriteInferenceExtra& extra = env.proofExtra.get<TwoLiteralRewriteInferenceExtra>(cl);
@@ -187,69 +168,31 @@ Clause* SynthesisAnswerLiteralProcessor::simplify(Clause* cl)
   ASS(elseLit != nullptr);
   ASS_EQ(thenLit->arity(), elseLit->arity());
 
-  // If either of the answer literals is uncomputable, try to make it computable.
-  // TODO(hzzv): can the structure be simplified? Write it properly down and check.
-  // Maybe we can first construct the new ite-AL,
-  // and then if that is uncomputable, try to make that computable??
-  RobSubstitution subst;
-  if (!thenLit->computableOrVar()) {
-    thenLit = synthMan->selfUnifyToRemoveUncomputableConditions(thenLit, &subst);
-    if (!thenLit) {
-      return nullptr;
-    }
+  // Given the clause `C \/ ans(t) \/ ans(e)`, we join the answer literals in two different ways:
+  // 1. using an if-then-else for a stored conditon `cond`, producing:
+  //      C \/ ans(if cond then t else e)
+  // 2. we use just `ans(t)` and add a constraint on equality of `t` and `e`, producing:
+  //      C \/ t!=e \/ ans(t)
+  // TODO: if the answer literal has multiple arguments, maybe we should try all combinations
+  //       of options 1 and 2 for each argument?
+  ClauseStack res;
+  // Option 1, using if-then-else, only applies if the two answer literals are different.
+  if (thenLit != elseLit) {
+    Literal* newAnsLit = synthMan->makeITEAnswerLiteral(condition, thenLit, elseLit);
+    LiteralStack lits = collectLiteralsExceptForTwo(cl, cl->length()-1, idx[0], idx[1]);
+    lits.push(newAnsLit);
+    Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_JOIN_AS_ITE, cl));
+    res.push(Clause::fromStack(lits, inf));
   }
-  if (!elseLit->computableOrVar()) {
-    elseLit = synthMan->selfUnifyToRemoveUncomputableConditions(elseLit, &subst);
-    if (!elseLit) {
-      return nullptr;
-    }
-  }
-  ASS(thenLit->computableOrVar());
-  ASS(elseLit->computableOrVar());
+  // Option 2, using `thenLit` under the condition that the arguments of `thenLit` and `elseLit` are
+  // equal, is always applicable.
+  LiteralStack lits = collectLiteralsExceptForTwo(cl, cl->length()-1+thenLit->arity(), idx[0], idx[1]);
+  synthMan->pushEqualityConstraints(&lits, thenLit, elseLit);
+  lits.push(thenLit);
+  Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS, cl));
+  res.push(Clause::fromStack(lits, inf));
 
-
-  // We will try to join `thenLit` and `elseLit`.
-  // We assume that which symbols are uncomputable is the same for all answer literal arguments.
-  // Let "thenLit = ~ans(t1, ..., tN)" and "elseLit = ~ans(e1, ..., eN)".
-  // Note that we already might have changed one of the answer literals and computed `subst`
-  // which syntactically unifies them. Now:
-  // - if `condition` is computable, then the joined answer literal is:
-  //    ~ans(ite(condition, t1, e1), ..., ite(condition, tN, eN)),
-  // - else if `thenLit` and `elseLit` are unifiable (modulo ITE) by extending `subst`,
-  //   the joined answer literal is:
-  //    thenLit,
-  // - otherwise we cannot join the answer literals, and so we fail and return nullptr.
-  // If we computed the joined answer literal, we apply `subst` on the whole resulting clause.
-  // TODO(hzzv): make this work for different arguments admitting different (un)computable symbols.
-  Literal* newAnsLit = nullptr;
-  InferenceRule rule;
-  if ((thenLit != elseLit) && condition->computableOrVar()) {
-    // Condition is computable, join the answer literals using if-then-else
-    newAnsLit = synthMan->makeITEAnswerLiteral(condition, thenLit, elseLit);
-    rule = InferenceRule::ANSWER_LITERAL_ITE;
-  } else {
-    // Condition is not computable, try unifying the two answer literals.
-    // We reuse and extend `subst`.
-    newAnsLit = synthMan->unifyConsideringITE(&subst, thenLit, elseLit);
-    rule = InferenceRule::ANSWER_LITERAL_UNIFICATION;
-  }
-  if (newAnsLit) {
-    // New answer literal was constructed.
-    // Copy over all other literals, and add the new answer literal, applying `subst` on all.
-    LiteralStack lits(cl->length()-1);
-    for (unsigned i = 0; i < cl->length(); ++i) {
-      if ((i != idx[0]) && (i != idx[1])) {
-        lits.push(subst.apply((*cl)[i], 0));
-      }
-    }
-    lits.push(subst.apply(newAnsLit, 0));
-    ASS(lits.top()->computableOrVar());
-    Inference inf(SimplifyingInference1(rule, cl));
-    Clause* c = Clause::fromStack(lits, inf);
-    return c;
-  }
-  // The answer literals cannot be joined.
-  return nullptr;
+  return getPersistentIterator(pvi(ClauseStack::Iterator(res)));
 }
 
 }

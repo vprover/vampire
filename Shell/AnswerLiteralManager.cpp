@@ -620,6 +620,17 @@ Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* t
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), litArgs.begin());
 }
 
+void SynthesisALManager::pushEqualityConstraints(LiteralStack* ls, Literal* thenLit, Literal* elseLit) {
+  ASS_EQ(thenLit->functor(), elseLit->functor());
+  for (int i = 0; i < thenLit->arity(); ++i) {
+    TermList& t = *thenLit->nthArgument(i);
+    TermList& e = *elseLit->nthArgument(i);
+    if (t != e) {
+      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->predType()->arg(i)));
+    }
+  }
+}
+
 Formula* SynthesisALManager::getConditionFromClause(Clause* cl) {
   FormulaList* fl = FormulaList::empty();
   for (unsigned i = 0; i < cl->length(); ++i) {
@@ -769,120 +780,6 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
     }
   }
   return trm;
-}
-
-bool SynthesisALManager::unifyTermWithBothBranches(RobSubstitution* subst, TermList& t, TermList& branch1, TermList& branch2, TermList& res) {
-  TermList r;
-  if (!unifyConsideringITE(subst, branch1, t, r) || !unifyConsideringITE(subst, branch2, t, res)) {
-    return false;
-  }
-  return true;
-}
-
-bool SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, TermList& t1, TermList& t2, TermList& res) {
-  if (subst->unify(t1, 0, t2, 0)) {
-    res = t1;
-    return true;
-  }
-  if (isITE(t1)) {
-    if (isITE(t2)) {
-      // Both terms are if-then-elses. To unify them, their then-branches
-      // and their else-branches must be unifiable separately into r1, r2; and:
-      // - either their conditions must be unifiable,
-      // - or r1 and r2 must be unifiable.
-      // Unify the branches separately:
-      TermList r1, r2;
-      if (!unifyConsideringITE(subst, *t1.term()->nthArgument(1), *t2.term()->nthArgument(1), r1) ||
-          !unifyConsideringITE(subst, *t1.term()->nthArgument(2), *t2.term()->nthArgument(2), r2)) {
-        return false;
-      }
-      // Check if the conditions are unifiable:
-      // TODO(hzzv): take equality into account.
-      TermList cond1 = *t1.term()->nthArgument(0), cond2 = *t2.term()->nthArgument(0);
-      if ((cond1.term()->functor() != cond2.term()->functor()) ||
-          !subst->unifyArgs(cond1.term(), 0, cond2.term(), 0)) {
-        // The conditions do not unify, so we need to try to unify the two branches:
-        return unifyConsideringITE(subst, r1, r2, res);
-      } else {
-        // Conditions unify, create a new if-then-else:
-        ASS(cond1.isTerm());
-        res = TermList(createRegularITE(cond1.term(), r1, r2, env.signature->getFunction(t1.term()->functor())->fnType()->result()));
-        return true;
-      }
-    } else {
-      // t2 is not an if-then-else. That means it must unify with both branches of t1.
-      return unifyTermWithBothBranches(subst, t2, *t1.term()->nthArgument(1), *t1.term()->nthArgument(2), res);
-    }
-  } else if (isITE(t2)) {
-    // Case symmetric to the one just above: t1 must unify with both branches of t2.
-    return unifyTermWithBothBranches(subst, t1, *t2.term()->nthArgument(1), *t2.term()->nthArgument(2), res);
-  } else {
-    // Neither of t1, t2 is an if-then-else, and t1, t2 do not straightforwardly unify. Fail.
-    // TODO(hzzv): as of now, ITEs never occur as arguments of non-ITE functions, so in
-    // this case, neither t1 nor t2 contain any ITEs, and hence it is sufficient to fail.
-    // Once we start introducing ITEs within other functions, implement recursion here too.
-    return false;
-  }
-}
-
-Literal* SynthesisALManager::unifyConsideringITE(RobSubstitution* subst, Literal* l1, Literal* l2) {
-  ASS_EQ(l1->functor(), l2->functor());
-  // First try regular unification without any consideration to if-then-elses.
-  if (subst->unifyArgs(l1, 0, l2, 0)) {
-    return l1;
-  }
-  // Regular unification failed, try unification considering if-then-elses
-  // for each answer literal argument separately.
-  Stack<TermList> args;
-  for (unsigned i = 0; i < l1->arity(); ++i) {
-    TermList arg;
-    if (!unifyConsideringITE(subst, *l1->nthArgument(i), *l2->nthArgument(i), arg)) {
-      return nullptr;
-    }
-    args.push(arg);
-  }
-  // All unifications succeeded. Return the literal *before applying subst* and the computed subst.
-  return Literal::create(l1->functor(), l1->arity(), l1->polarity(), args.begin());
-}
-
-TermList SynthesisALManager::ComputableSelfTransformer::transformSubterm(TermList trm) {
-  if (failed) {
-    // Transformation already failed, do not attempt further.
-    return trm;
-  }
-  if (trm.isVar() || trm.term()->computableOrVar()) {
-    // Variables and computable terms do not have to be transformed.
-    return trm;
-  }
-  SynthesisALManager* synthMan = static_cast<SynthesisALManager*>(SynthesisALManager::getInstance());
-  if (!synthMan->isITE(trm)) {
-    // We can only transform if-then-elses.
-    // However, we do not fail here, because trm might be used in
-    // a condition of an if-then else and be later removed.
-    return trm;
-  }
-  TermList thenBranch = *trm.term()->nthArgument(1), elseBranch = *trm.term()->nthArgument(2);
-  if ((thenBranch.isTerm() && !thenBranch.term()->computableOrVar()) ||
-      (elseBranch.isTerm() && !elseBranch.term()->computableOrVar())) {
-    // Uncomputability occurs in one of the branches, it cannot be made computable.
-    failed = true;
-    return trm;
-  }
-  // Uncomputability occurs in the condition.
-  ASS(!trm.term()->nthArgument(0)->term()->computableOrVar());
-  TermList res;
-  if (synthMan->unifyConsideringITE(subst, thenBranch, elseBranch, res)) {
-    return res;
-  }
-  failed = true;
-  return trm;
-}
-
-Literal* SynthesisALManager::selfUnifyToRemoveUncomputableConditions(Literal* l, RobSubstitution* subst) {
-  ASS(l->isAnswerLiteral());
-  ComputableSelfTransformer cst(subst);
-  Literal* transformed = cst.transformLiteral(l);
-  return ((cst.failed || !transformed->computableOrVar()) ? nullptr : transformed);
 }
 
 }

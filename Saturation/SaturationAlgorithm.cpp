@@ -746,15 +746,10 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* cl = cl0;
 
-  Clause *simplCl = _immediateSimplifier->simplify(cl);
-  if (simplCl != cl) {
-    if (simplCl) {
-      addNewClause(simplCl);
-    }
-    onClauseReduction(cl, &simplCl, 1, 0);
-    return 0;
-  }
-
+  // Note: simplifyMany() has to go before simplify(), since the former
+  // postprocesses clauses with answer literals, while the latter deletes
+  // those which are invalid even after postprocessing.
+  // TODO(hzzv): check if we can't do this check already in SyntesisAnswerLiteralProcessor.
   ClauseIterator cIt = _immediateSimplifier->simplifyMany(cl);
   if (cIt.hasNext()) {
     while (cIt.hasNext()) {
@@ -771,6 +766,15 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       addNewClause(simpedCl);
     }
     onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
+    return 0;
+  }
+
+  Clause *simplCl = _immediateSimplifier->simplify(cl);
+  if (simplCl != cl) {
+    if (simplCl) {
+      addNewClause(simplCl);
+    }
+    onClauseReduction(cl, &simplCl, 1, 0);
     return 0;
   }
 
@@ -1807,10 +1811,9 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
       res->addFront(new UndesiredAnswerLiteralRemoval(env.options->questionAnsweringAvoidThese()));
     }
   } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
-    // TODO(hzzv): delete these two AnswerLiteralRemovals
-    //res->addFront(new UncomputableAnswerLiteralRemoval());
-    //res->addFront(new MultipleAnswerLiteralRemoval());
-    res->addFront(new SynthesisAnswerLiteralProcessor());
+    res->addFront(new UncomputableAnswerLiteralRemoval());
+    res->addFront(new MultipleAnswerLiteralRemoval());
+    res->addFrontMany(new SynthesisAnswerLiteralProcessor());
   }
   return res;
 }

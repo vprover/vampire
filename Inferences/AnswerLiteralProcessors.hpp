@@ -60,7 +60,8 @@ class SynthesisAnswerLiteralProcessor
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* premise) override;
+  ClauseIterator simplifyMany(Clause* cl) override;
+  Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
 };
 
 }
