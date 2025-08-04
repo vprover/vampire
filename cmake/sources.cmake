@@ -464,7 +464,6 @@ set(SOURCES
     Lib/Coproduct.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
-    Lib/DHMap.cpp
     Lib/DHMap.hpp
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp

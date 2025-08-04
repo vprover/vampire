@@ -150,7 +150,6 @@ VD_OBJ = Debug/Assertion.o\
          Debug/Tracer.o
 
 VL_OBJ= Lib/Allocator.o\
-        Lib/DHMap.o\
         Lib/Environment.o\
         Lib/Event.o\
         Lib/Exception.o\
