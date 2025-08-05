@@ -59,7 +59,6 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _skipCongruence(0),
     _tuple(0),
     _computable(1),
-    _letBound(0),
     _prox(Proxy::NOT_PROXY),
     _deBruijnIndex(-1)
 {
@@ -596,7 +595,7 @@ unsigned Signature::getDiff() {
 unsigned Signature::getDefPred()
 {
   bool added = false;
-  unsigned def = addPredicate("sDEF", 3, added);
+  unsigned def = addPredicate(":=", 3, added);
   if (added) {
     _defPred = def;
     getPredicate(def)->setType(

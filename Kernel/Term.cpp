@@ -850,6 +850,10 @@ std::string Literal::toString() const
     return res;
   }
 
+  if (env.signature->isDefPred(functor())) {
+    return termArg(0).toString() + " := " + termArg(1).toString();
+  }
+
 #if NICE_THEORY_OUTPUT
   auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
     auto binary = [&](auto sym)  {

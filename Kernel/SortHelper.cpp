@@ -108,8 +108,7 @@ TermList SortHelper::getResultSort(const Term* t)
   */
   ASS(
     !subst.isEmpty() ||
-    (result.isTerm() && (result.term()->isSuper() || result.term()->ground())) ||
-    sym->letBound()
+    (result.isTerm() && (result.term()->isSuper() || result.term()->ground()))
   )
   return SubstHelper::apply(result, subst, !shared);
 }
@@ -745,17 +744,11 @@ bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result
   while (sit.hasNext()) {
     Term* t = sit.next().term();
     if(t->isLet()){
-      TermList binding = t->getSpecialData()->getBinding();
-      if(binding.isVar()) {
-        if ( binding == var) {
-          // get result sort of the functor
-          unsigned f = t->getSpecialData()->getFunctor();
-          Signature::Symbol* sym = env.signature->getFunction(f);
-          result = sym->fnType()->result();
+      if (recurseToSubformulas) {
+        Formula* binding = t->getSpecialData()->getLetBinding();
+        if (tryGetVariableSort(var.var(), binding, result)){
           return true;
         }
-      } else if(tryGetVariableSortTerm(var,binding.term(),result,recurseToSubformulas)){
-        return true;
       }
 
       ASS_EQ(t->arity(),1);

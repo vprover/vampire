@@ -2366,7 +2366,6 @@ void TPTP::endLetTypes()
     : env.signature->getFunction(functor);
 
   symbol->setType(type);
-  symbol->markLetBound();
 
   // Save the symbol name with original arity (without counting implicit type variables),
   // so that when an application with the original arity occurs we can find the symbol.
