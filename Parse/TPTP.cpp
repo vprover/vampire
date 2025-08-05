@@ -21,14 +21,16 @@
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 
-#include "Kernel/Signature.hpp"
-#include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Kernel/Theory.hpp"
-#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
+#include "Kernel/Inference.hpp"
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Theory.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -2349,7 +2351,9 @@ void TPTP::endLetTypes()
 {
   std::string name = _strings.pop();
   Type* t = _types.pop();
-  OperatorType* type = constructOperatorType(t);
+  // Implicit type variables may appear in $let declarations, see below.
+  auto iTypeVars = VList::empty();
+  OperatorType* type = constructOperatorType(t, nullptr, &iTypeVars);
 
   unsigned arity = type->arity();
   bool isPredicate = type->isPredicateType();
@@ -2364,8 +2368,10 @@ void TPTP::endLetTypes()
   symbol->setType(type);
   symbol->markLetBound();
 
-  LetSymbolName symbolName(name, arity);
-  LetSymbolReference symbolReference(functor, isPredicate);
+  // Save the symbol name with original arity (without counting implicit type variables),
+  // so that when an application with the original arity occurs we can find the symbol.
+  LetSymbolName symbolName(name, arity - VList::length(iTypeVars));
+  LetSymbolReference symbolReference { functor, isPredicate, iTypeVars };
 
   LetSymbols scope = _letTypedSymbols.pop();
 
@@ -2514,28 +2520,32 @@ void TPTP::symbolDefinition()
     USER_ERROR("Symbol " + nm + " with arity " + Int::toString(arity) + " is used in a let definition without a declared type");
   }
 
-  unsigned symbol = SYMBOL(ref);
-  bool isPredicate = IS_PREDICATE(ref);
-
   if (arity > 0) {
-    OperatorType* type = isPredicate
-                       ? env.signature->getPredicate(symbol)->predType()
-                       : env.signature->getFunction(symbol)->fnType();
+    OperatorType* type = ref.isPredicate
+                       ? env.signature->getPredicate(ref.symbol)->predType()
+                       : env.signature->getFunction(ref.symbol)->fnType();
 
+    // Given a binding f(X1,...,Xn) := t, we now quantify variables X1,...,Xn.
+    // However, if the type of f contained implicit type variables Y1,...,Ym,
+    // the binding will look like f(Y1,...,Ym,X1,...,Xn) := t internally,
+    // and we need to substitute Y1,...,Ym to get the right sort of X1,...,Xn.
+    Substitution subst;
     unsigned index = 0;
-    while (vars.isNonEmpty()) {
-      unsigned var = vars.pop();
-      TermList sort = type->arg(arity - 1 - index++);
-      bindVariable(var, sort);
-      VList::push(var, vs);
-    }
+    iterTraits(ref.iTypeVars->iter())
+      .forEach([&](unsigned var) { subst.bind(index++, TermList::var(var)); });
+
+    iterTraits(vars.iterFifo())
+      .forEach([&](unsigned var) {
+        bindVariable(var, SubstHelper::apply(type->arg(index++), subst));
+        VList::push(var, vs);
+      });
 
     _bindLists.push(vs);
     _states.push(UNBIND_VARIABLES);
   }
 
   LetDefinitions definitions = _letDefinitions.pop();
-  definitions.push(LetSymbolReference(symbol, isPredicate));
+  definitions.push(ref);
   _letDefinitions.push(definitions);
 
   _varLists.push(vs);
@@ -2594,7 +2604,8 @@ void TPTP::tupleDefinition()
   unsigned tupleFunctor = Theory::tuples()->getFunctor(tupleSort);
 
   LetDefinitions definitions = _letDefinitions.pop();
-  definitions.push(LetSymbolReference(tupleFunctor, false));
+  // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
+  definitions.push(LetSymbolReference{ tupleFunctor, false, VList::empty() });
   _letDefinitions.push(definitions);
 
   VList* constants = VList::empty();
@@ -2619,8 +2630,14 @@ void TPTP::endDefinition() {
                      ? AtomicSort::boolSort()
                      : env.signature->getFunction(symbol)->fnType()->result();
 
-  if (refSort != definitionSort) {
-    std::string definitionSortName = definitionSort.toString();
+  // Before checking the argument sorts, we must substitute in implicit type variables.
+  Substitution subst;
+  // Implicit type variables come first.
+  iterTraits(ref.iTypeVars->iter())
+    .enumerate([&](unsigned i, unsigned var) { subst.bind(i, TermList::var(var)); });
+  auto defSortS = SubstHelper::apply(definitionSort, subst);
+  if (refSort != defSortS) {
+    std::string definitionSortName = defSortS.toString();
     std::string refSymbolName = isPredicate
                             ? env.signature->predicateName(symbol)
                             : env.signature->functionName(symbol);
@@ -2654,11 +2671,9 @@ bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolRef
 } // findLetSymbol(LetSymbolName,LetSymbolReference)
 
 bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference) {
-  LetSymbols::Iterator symbols(scope);
-  while (symbols.hasNext()) {
-    LetSymbol symbol = symbols.next();
-    if (symbol.first == symbolName) {
-      symbolReference = symbol.second;
+  for (const auto& [name,ref] : scope) {
+    if (name == symbolName) {
+      symbolReference = ref;
       return true;
     }
   }
@@ -2695,8 +2710,12 @@ void TPTP::endLet()
     if (isTuple) {
       let = TermList(Term::createTupleLet(symbol, varList, definition, let, sort));
     } else {
-      auto args = TermStack::fromIterator(iterTraits(varList->iter()).map([](unsigned var) { return TermList::var(var); }));
-      auto binding = Formula::createDefinition(TermList(Term::create(symbol, args)), definition, varList);
+
+      // Implicit type variables come first, then the rest
+      auto args = TermStack::fromIterator(iterTraits(ref.iTypeVars->iter()).map([](unsigned var) { return TermList::var(var); }));
+      args.loadFromIterator(iterTraits(varList->iter()).map([](unsigned var) { return TermList::var(var); }));
+
+      auto binding = Formula::createDefinition(Term::create(ref.symbol, args), definition, varList);
       let = TermList(Term::createLet(binding, let, sort));
     }
   }
@@ -3139,6 +3158,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   LetSymbolReference ref;
   if (findLetSymbol(LetSymbolName(name, arity), ref) && IS_PREDICATE(ref)) {
     pred = (int)SYMBOL(ref);
+    insertImplicitLetTypeArguments(ref, arity);
   } else {
     if (arity > 0) {
       bool dummy;
@@ -3220,6 +3240,7 @@ TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
   LetSymbolReference ref;
   if (findLetSymbol(LetSymbolName(name, arity), ref) && !IS_PREDICATE(ref)) {
     fun = SYMBOL(ref);
+    insertImplicitLetTypeArguments(ref, arity);
   } else {
     bool dummy;
     if (arity > 0) {
@@ -3279,6 +3300,37 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
   auto s = TermList(AtomicSort::create(typeCon, arity, args));
   _termLists.pop(arity);
   return s;
+}
+
+/**
+ * This function "fixes" an upcoming $let binder construction by placing implicit
+ * type arguments from @b ref in front of the explicit arguments in the current term list.
+ * It also changes @b arity to the number of implicit + explicit arguments.
+ */
+void TPTP::insertImplicitLetTypeArguments(const LetSymbolReference& ref, unsigned& arity)
+{
+  // We place the implicit type variables as first arguments:
+
+  // (1) add as many empty termlists as the number
+  // of implicit type vars and count them
+  unsigned numiTypeVars = 0;
+  iterTraits(ref.iTypeVars->iter())
+    .forEach([&](unsigned var) { _termLists.push(TermList()); numiTypeVars++; });
+
+  // (2) update the arity
+  arity += numiTypeVars;
+  if (numiTypeVars) {
+    // (3) copy in reverse such that the topmost elements
+    // are not overwritten when there is an overlap
+    auto args = nLastTermLists(arity);
+    for (unsigned i : range(numiTypeVars,arity)) {
+      unsigned ri = arity-1-i;
+      args[ri+numiTypeVars] = args[ri];
+    }
+    // (4) add the implicit ones below
+    iterTraits(ref.iTypeVars->iter())
+      .enumerate([&](unsigned i, unsigned var) { args[i] = TermList::var(var); });
+  }
 }
 
 /**
@@ -3788,7 +3840,7 @@ void TPTP::endTff()
 } // endTff
 
 
-OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
+OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, VList** ivars)
 {
   TermList resultSort;
   Stack<TermList> argumentSorts;
@@ -3840,14 +3892,33 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
     }
 
     case TT_QUANTIFIED: {
+      if (vars) {
+        USER_ERROR("Only prenex (rank-1) polymorphism is allowed!");
+      }
       QuantifiedType* qt = static_cast<QuantifiedType*>(t);
-      OperatorType* ot = constructOperatorType(qt->qtype(), qt->vars());
-      return ot;
+      return constructOperatorType(qt->qtype(), qt->vars(), ivars);
       //TODO check that all free variables in ot are from quantifiedVars
     }
 
     default:
       ASSERTION_VIOLATION;
+  }
+
+  // this happens with let expressions where we may have
+  // implicit type variables in a let binder type
+  if (ivars) {
+    auto pushFn = [&](TermList var) {
+      auto v = var.var();
+      if (!VList::member(v, vars) && !VList::member(v, *ivars)) {
+        VList::push(v, *ivars);
+      }
+    };
+    for (const auto& argSort : argumentSorts) {
+      iterTraits(VariableIterator(argSort)).forEach(pushFn);
+    }
+    iterTraits(VariableIterator(resultSort)).forEach(pushFn);
+    // WARNING: implicit vars come *before* the quantified ones
+    vars = VList::append(*ivars, vars);
   }
 
   bool isPredicate = resultSort == AtomicSort::boolSort();

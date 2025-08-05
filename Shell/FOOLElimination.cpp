@@ -586,9 +586,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* binding = sd->getLetBinding(); // deliberately unprocessed here
 
         // collect variables A1,...Am,Y1, ..., Yk
-        auto argumentVars = VList::empty();
         if (binding->connective() == Connective::FORALL) {
-          argumentVars = binding->vars();
           binding = binding->qarg();
         }
         ASS_EQ(binding->connective(), Connective::LITERAL);
@@ -598,6 +596,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         auto lhs = blit->termArg(0);
         auto rhs = blit->termArg(1);
         ASS(lhs.isTerm());
+
+        // The let binder lhs can contain free variables in potentially
+        // arbitrary places if it has implicit type arguments.
+        auto argumentVars = VList::empty();
+        iterTraits(FormulaVarIterator(lhs))
+          .forEach([&](unsigned var) {
+            VList::push(var, argumentVars);
+          });
 
         // collect variables B1,...,Bj,X1, ..., Xn
         auto bodyFreeVars = VList::empty();
@@ -653,7 +659,17 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
         TermList freshFunctionApplication;
         Formula* freshPredicateApplication = nullptr;
-        buildApplication(freshSymbol, bindingContext, allVars, freshFunctionApplication, freshPredicateApplication);
+
+        TermStack args;
+        if (renameSymbol) {
+          // If symbol is renamed, we just take the list of all variables
+          args = allVars;
+        } else {
+          // Otherwise we take the original args to get a well-formed type
+          args.loadFromIterator(anyArgIter(lhs.term()));
+        }
+
+        buildApplication(freshSymbol, bindingContext, args, freshFunctionApplication, freshPredicateApplication);
 
         Term* freshApplication = bindingContext == FORMULA_CONTEXT ? freshPredicateApplication->literal() :
                                                                      freshFunctionApplication.term();

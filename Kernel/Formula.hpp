@@ -98,7 +98,7 @@ public:
 
   static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
   static Formula* createLet(Formula* binder, Formula* body);
-  static Formula* createDefinition(TermList lhs, TermList rhs, VList* uVars = VList::empty());
+  static Formula* createDefinition(Term* lhs, TermList rhs, VList* uVars = VList::empty());
 
 
   // use allocator to (de)allocate objects of this class

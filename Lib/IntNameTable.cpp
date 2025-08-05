@@ -41,6 +41,7 @@ int IntNameTable::insert (const std::string& str)
 #else  
   int result;
 #endif
+  // TODO this is used in TPTP, is shadowing allowed there?
   if (_map.find(str,result)) {
     return result;
   }

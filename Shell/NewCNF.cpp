@@ -699,7 +699,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
       for (unsigned i = 0; i < arity - 1; i++) {
         ASS(bit.hasNext());
         ASS(sit.hasNext());
-        auto nestedBinding = Formula::createDefinition(TermList(Term::create(sit.next(), {})), bit.next());
+        auto nestedBinding = Formula::createDefinition(Term::create(sit.next(), {}), bit.next());
         Term* nestedLet = Term::createLet(nestedBinding, processedContents, bodySort);
         processedContents = TermList(nestedLet);
       }
@@ -713,7 +713,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
       if (env.options->showPreprocessing()) {
         Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
         std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-        auto b = Formula::createDefinition(TermList(Term::create(symbol, {})), processedBinding);
+        auto b = Formula::createDefinition(Term::create(symbol, {}), processedBinding);
         Term* processedLet = Term::createLet(b, processedContents, bodySort);
         std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       }
@@ -757,7 +757,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
       if (env.options->showPreprocessing()) {
         Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
         std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-        auto b = Formula::createDefinition(TermList(Term::create(tuple, {})), binding);
+        auto b = Formula::createDefinition(Term::create(tuple, {}), binding);
         Term* processedLet = Term::createLet(b, detupledContents, bodySort);
         std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       }

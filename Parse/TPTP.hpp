@@ -607,9 +607,13 @@ private:
   typedef std::pair<std::string, unsigned> LetSymbolName;
 
   /** a symbol number with a predicate/function flag */
-  typedef std::pair<unsigned, bool> LetSymbolReference;
-  #define SYMBOL(ref) (ref.first)
-  #define IS_PREDICATE(ref) (ref.second)
+  struct LetSymbolReference {
+    unsigned symbol;
+    bool isPredicate;
+    VList* iTypeVars;
+  };
+  #define SYMBOL(ref) (ref.symbol)
+  #define IS_PREDICATE(ref) (ref.isPredicate)
 
   /** a definition of a function symbol, defined in $let */
   typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;
@@ -745,6 +749,7 @@ private:
   Formula* createPredicateApplication(std::string name,unsigned arity);
   TermList createFunctionApplication(std::string name,unsigned arity);
   TermList createTypeConApplication(std::string name,unsigned arity);
+  void insertImplicitLetTypeArguments(const LetSymbolReference& ref, unsigned& arity);
   void endEquality();
   void midEquality();
   void formulaInfix();
@@ -803,7 +808,9 @@ private:
 
   bool findInterpretedPredicate(std::string name, unsigned arity);
 
-  OperatorType* constructOperatorType(Type* t, VList* vars = 0);
+  /* If ivars is non-null, the function collects into it the
+   * implicit (non-quantified) type variables (needed in $lets). */
+  OperatorType* constructOperatorType(Type* t, VList* vars = 0, VList** ivars = 0);
 
 public:
 

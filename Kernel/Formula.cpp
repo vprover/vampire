@@ -410,11 +410,10 @@ Formula* Formula::createLet(Formula* binder, Formula* body)
   return new BoolTermFormula(letTerm);
 }
 
-Formula* Formula::createDefinition(TermList lhs, TermList rhs, VList* uVars)
+Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
 {
-  ASS(lhs.isTerm());
-  auto sort = SortHelper::getResultSort(lhs.term());
-  auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, lhs, rhs });
+  auto sort = SortHelper::getResultSort(lhs);
+  auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, TermList(lhs), rhs });
   Formula* res = new AtomicFormula(lit);
   if (uVars) {
     res = new QuantifiedFormula(Connective::FORALL, uVars, nullptr, res);
