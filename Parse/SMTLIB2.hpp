@@ -349,6 +349,12 @@ private:
     // the bindings in left-to-right order
     std::vector<Binding> bindings;
 
+    // copy constructor is probably a bug
+    Lookup(const Lookup &) = delete;
+    // rest are OK
+    Lookup() = default;
+    Lookup(Lookup &&) = default;
+
     size_t size() const { return bindings.size(); }
     bool insert(std::string name, Binding binding) {
       size_t index = size();
