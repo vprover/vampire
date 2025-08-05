@@ -91,7 +91,7 @@ _solver=0;
 private:
   friend class Splitter;
 
-  Status processDPConflicts();
+  SAT::Status processDPConflicts();
 
   void handleSatRefutation();
   void updateSelection(unsigned satVar, VarAssignment asgn,
