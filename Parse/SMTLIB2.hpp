@@ -343,6 +343,10 @@ private:
     TermList sort;
   };
 
+  /*
+   * Keep a map from strings to terms for lookup during parsing,
+   * while also preserving left-to-right order.
+   */
   struct Lookup {
     // `map` keys into `bindings`
     std::unordered_map<std::string, size_t> map;
@@ -351,9 +355,12 @@ private:
 
     // copy constructor is probably a bug
     Lookup(const Lookup &) = delete;
+    Lookup &operator=(const Lookup &) = delete;
+
     // rest are OK
     Lookup() = default;
-    Lookup(Lookup &&) = default;
+    Lookup(Lookup &&) noexcept = default;
+    Lookup &operator=(Lookup &&) noexcept = default;
 
     size_t size() const { return bindings.size(); }
     bool insert(std::string name, Binding binding) {
