@@ -203,6 +203,7 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::INVALID_INTERPRETATION:
     ASSERTION_VIOLATION
   }
+  return out;
 }
 
 struct PredicateName {
@@ -314,6 +315,7 @@ static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   case Theory::INVALID_INTERPRETATION:
     ASSERTION_VIOLATION
   }
+  return out;
 }
 
 struct Blank {};
