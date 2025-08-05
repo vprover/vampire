@@ -185,8 +185,6 @@ public:
 
   void addClause(SATClause* cl) override;
 
-  Status solve();
-  virtual Status solveLimited(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */

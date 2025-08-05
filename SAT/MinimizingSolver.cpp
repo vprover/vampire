@@ -55,12 +55,6 @@ void MinimizingSolver::addClause(SATClause* cl)
   }
 }
 
-Status MinimizingSolver::solveLimited(unsigned conflictCountLimit)
-{
-  _assignmentValid = false;
-  return _inner->solveLimited(conflictCountLimit);
-}
-
 VarAssignment MinimizingSolver::getAssignment(unsigned var)
 {
   ASS_G(var,0); ASS_LE(var,_varCnt);

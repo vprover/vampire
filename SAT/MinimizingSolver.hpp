@@ -43,7 +43,6 @@ public:
   }
 
   virtual void addClause(SATClause* cl) override;
-  virtual Status solveLimited(unsigned conflictCountLimit) override;
 
   virtual VarAssignment getAssignment(unsigned var) override;
   virtual bool isZeroImplied(unsigned var) override;
@@ -60,6 +59,7 @@ public:
   virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
 
   Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override {
+    _assignmentValid = false;
     return _inner->solveUnderAssumptionsLimited(assumps, conflictCountLimit);
   }
 

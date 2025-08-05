@@ -26,28 +26,6 @@ namespace SAT
 
 /**
  *
- * @author Giles 
- */
-Status FallbackSolverWrapper::solveLimited(unsigned conflictCountLimit)
-{
-  // Currently always run the _inner solver to see if we can use it
-  Status status = _inner->solveLimited(conflictCountLimit);
-
-  // Check if we need to use _fallback
-  if(status == Status::UNKNOWN){
-    status = _fallback->solveLimited(conflictCountLimit);
-    _usingFallback = true;
-    ASS(status != Status::UNKNOWN);
-    env.statistics->smtFallbacks++;
-  } 
-  else{
-    _usingFallback = false;
-  }
-  return status;
-}
-
-/**
- *
  * @author Giles
  */
 VarAssignment FallbackSolverWrapper::getAssignment(unsigned var)
@@ -71,7 +49,7 @@ Status FallbackSolverWrapper::solveUnderAssumptionsLimited(const SATLiteralStack
     _usingFallback = true;
     ASS(status != Status::UNKNOWN);
     env.statistics->smtFallbacks++;
-  } 
+  }
   else{
     _usingFallback = false;
   }

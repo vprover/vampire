@@ -88,16 +88,6 @@ void CadicalInterfacing::addClause(SATClause* cl)
   _solver.add(0);
 }
 
-/**
- * Perform solving and return status.
- */
-Status CadicalInterfacing::solveLimited(unsigned conflictCountLimit)
-{
-  _assumptions.clear();
-  solveModuloAssumptionsAndSetStatus(conflictCountLimit);
-  return _status;
-}
-
 VarAssignment CadicalInterfacing::getAssignment(unsigned var)
 {
   ASS_EQ(_status, Status::SATISFIABLE);

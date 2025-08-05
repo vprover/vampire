@@ -16,7 +16,8 @@
 #define __SATSolver__
 
 #include "SATLiteral.hpp"
-#include "Shell/Shuffling.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/Stack.hpp"
 
 #include <climits>
 
@@ -80,7 +81,11 @@ public:
   }
 
   /**
-   * Establish Status of the clause set inserted so far.
+   * Solve under the given set of assumptions @b assumps.
+   *
+   * If UNSATISFIABLE is returned, a subsequent call to
+   * failedAssumptions() returns a subset of these
+   * that are already sufficient for the unsatisfiability.
    *
    * If conflictCountLimit==0,
    * do only unit propagation, if conflictCountLimit==UINT_MAX, do
@@ -88,9 +93,26 @@ public:
    * the number of conflicts, and in case it is reached, stop with
    * solving and assign the status to UNKNOWN.
    *
-   * TODO do this in terms of solveUnderAssumptions
    */
-  virtual Status solveLimited(unsigned conflictCountLimit) = 0;
+  virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) = 0;
+
+  /**
+   * Return a list of failed assumptions from the last solverUnderAssumptions call.
+   * Assumes the last call returned UNSAT
+   *
+   * Usually corresponds to the solver's internal unsat core.
+   */
+  virtual SATLiteralStack failedAssumptions() = 0;
+
+  // various shorthands for `solveUnderAssumptionsLimited`
+  Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false) {
+    return solveUnderAssumptionsLimited(assumps, onlyPropagate ? 0u : UINT_MAX);
+  }
+
+  Status solveLimited(unsigned conflictCountLimit) {
+    SATLiteralStack assumptions;
+    return solveUnderAssumptionsLimited(assumptions, conflictCountLimit);
+  }
 
   Status solve(bool onlyPropagate = false) {
     return solveLimited(onlyPropagate ? 0 : std::numeric_limits<unsigned>::max());
@@ -147,27 +169,6 @@ public:
   }
 
   /**
-   * Solve under the given set of assumptions @b assumps.
-   *
-   * If UNSATISFIABLE is returned, a subsequent call to
-   * failedAssumptions() returns a subset of these
-   * that are already sufficient for the unsatisfiability.
-   */
-  virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) = 0;
-
-  Status solveUnderAssumptions(const SATLiteralStack& assumps, bool onlyPropagate=false) {
-    return solveUnderAssumptionsLimited(assumps,onlyPropagate ? 0u : UINT_MAX);
-  }
-
-  /**
-   * Return a list of failed assumptions from the last solverUnderAssumptions call.
-   * Assumes the last call returned UNSAT
-   *
-   * Usually corresponds to the solver's internal unsat core.
-   */
-  virtual SATLiteralStack failedAssumptions() = 0;
-
-  /**
    * Apply fixpoint minimization to already obtained failed assumption set
    * and return the result (as failedAssumptions).
    */
@@ -175,46 +176,7 @@ public:
     return explicitlyMinimizedFailedAssumptions(onlyPropagate ? 0u : UINT_MAX, randomize);
   }
 
-  // TODO this could be done much more efficiently
-  SATLiteralStack explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize) {
-    // assumes solveUnderAssumptions(...,conflictCountLimit,...) just returned UNSAT
-
-    SATLiteralStack failed = failedAssumptions();
-    unsigned sz = failed.size();
-
-    if (!sz) { // a special case. Because of the bloody unsigned (see below)!
-      return failed;
-    }
-
-    if (randomize) {
-      // randomly permute the content of _failedAssumptionBuffer
-      // not to bias minimization from one side or another
-      Shell::Shuffling::shuffleArray(failed,sz);
-    }
-
-    SATLiteralStack assumptions;
-    unsigned i = 0;
-    while (i < sz) {
-      assumptions.reset();
-      // load all but i-th
-      for (unsigned j = 0; j < sz; j++) {
-        if (j != i) {
-          assumptions.push(failed[j]);
-        }
-      }
-
-      if (solveUnderAssumptionsLimited(assumptions, conflictCountLimit) == Status::UNSATISFIABLE) {
-        // leave out forever by overwriting by the last one (buffer shrinks implicitly)
-        failed[i] = failed[--sz];
-      } else {
-        // move on
-        i++;
-      }
-    }
-
-    failed.truncate(sz);
-    return failed;
-  }
+  SATLiteralStack explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize);
 };
 }
 

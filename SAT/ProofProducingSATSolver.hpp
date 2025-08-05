@@ -41,10 +41,6 @@ public:
     _inner->addClause(cl);
   }
 
-  Status solveLimited(unsigned conflictCountLimit) override {
-    return _inner->solveLimited(conflictCountLimit);
-  }
-
   VarAssignment getAssignment(unsigned var) override {
     return _inner->getAssignment(var);
   }

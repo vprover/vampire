@@ -118,17 +118,6 @@ void MinisatInterfacing<MinisatSolver>::addClause(SATClause* cl)
   }
 }
 
-/**
- * Perform solving and return status.
- */
-template<typename MinisatSolver>
-Status MinisatInterfacing<MinisatSolver>::solveLimited(unsigned conflictCountLimit)
-{
-  _assumptions.clear();
-  solveModuloAssumptionsAndSetStatus(conflictCountLimit);
-  return _status;
-}
-
 template<typename MinisatSolver>
 VarAssignment MinisatInterfacing<MinisatSolver>::getAssignment(unsigned var)
 {

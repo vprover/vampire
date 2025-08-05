@@ -992,14 +992,6 @@ void Z3Interfacing::solveModuloAssumptionsAndSetStatus()
   }
 }
 
-Status Z3Interfacing::solve()
-{
-  _assumptionLookup.clear();
-  _assumptions.reset();
-  solveModuloAssumptionsAndSetStatus();
-  return _status;
-}
-
 Status Z3Interfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   _assumptionLookup.clear();

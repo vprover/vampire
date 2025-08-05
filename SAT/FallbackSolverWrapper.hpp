@@ -50,7 +50,6 @@ public:
     _fallback->addClause(cl);
   }
 
-  virtual Status solveLimited(unsigned conflictCountLimit) override;
   virtual VarAssignment getAssignment(unsigned var) override;
 
   virtual bool isZeroImplied(unsigned var) override {
