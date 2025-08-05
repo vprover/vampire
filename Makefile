@@ -150,7 +150,6 @@ VD_OBJ = Debug/Assertion.o\
          Debug/Tracer.o
 
 VL_OBJ= Lib/Allocator.o\
-        Lib/DHMap.o\
         Lib/Environment.o\
         Lib/Event.o\
         Lib/Exception.o\
@@ -314,11 +313,9 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
-         SAT/SATLiteral.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
-	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainers.o\

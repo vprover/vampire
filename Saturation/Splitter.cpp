@@ -41,7 +41,6 @@
 
 #include "SAT/SATInference.hpp"
 #include "SAT/MinimizingSolver.hpp"
-#include "SAT/BufferedSolver.hpp"
 #include "SAT/FallbackSolverWrapper.hpp"
 #include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
@@ -73,12 +72,6 @@ void SplitDefinitionExtra::output(std::ostream &out) const {
 
 void SplittingBranchSelector::init()
 {
-  // we need _eagerRemoval (aer) true, unless SplittingMinimizeModel is ALL
-  // if minimize is off then aer makes no difference;
-  // if minimize is sco then we could completeness issues
-  // (Problems/SWV/SWV608-1.p --decode Problems/SWV/SWV608-1.p --decode ott-1_1:40_tgt=full:plsq=on:sp=frequency:lcm=predicate:gs=on:bd=off:rawr=on:afp=1000:afq=2.0:irw=on:fsd=on:aer=off:si=on:rtra=on:amm=sco_30 --random_seed XXX)
-  _eagerRemoval = _parent.getOptions().splittingEagerRemoval() ||
-    (_parent.getOptions().splittingMinimizeModel() != Options::SplittingMinimizeModel::ALL);
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
@@ -105,22 +98,9 @@ void SplittingBranchSelector::init()
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
 
-  if (_parent.getOptions().splittingBufferedSolver()) {
-    _solver = new BufferedSolver(_solver.release());
+  if (_parent.getOptions().splittingMinimizeModel()) {
+    _solver = new MinimizingSolver(_solver.release());
   }
-
-  switch(_parent.getOptions().splittingMinimizeModel()){
-    case Options::SplittingMinimizeModel::OFF:
-      // Do nothing - we don't want to minimise the model
-      break;
-    case Options::SplittingMinimizeModel::ALL:
-    case Options::SplittingMinimizeModel::SCO:
-      _solver = new MinimizingSolver(_solver.release());
-      break;
-    default:
-      ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
-  }
-  _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
   if(_parent.getOptions().splittingCongruenceClosure()) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
@@ -150,10 +130,10 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
 {
   switch (_literalPolarityAdvice) {
     case Options::SplittingLiteralPolarityAdvice::FALSE:
-      _solver->suggestPolarity(lit.var(),lit.oppositePolarity());
+      _solver->suggestPolarity(lit.var(),!lit.positive());
     break;
     case Options::SplittingLiteralPolarityAdvice::TRUE:
-      _solver->suggestPolarity(lit.var(),lit.polarity());
+      _solver->suggestPolarity(lit.var(), lit.positive());
     break;
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
@@ -364,11 +344,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
         SATClause* conflCl = s2f.createConflictClause(unsatCore);
-        if (_minSCO) {
-          _solver->addClauseIgnoredInPartialModel(conflCl);
-        } else {
-          _solver->addClause(conflCl);
-        }
+        _solver->addClause(conflCl);
       }
 
       RSTAT_CTR_INC("ssat_dp_conflict");
@@ -424,7 +400,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   {
     bool posSticky = posUsed && _parent.isSticky(posLvl);
     bool negSticky = negUsed && _parent.isSticky(negLvl);
-    if(_eagerRemoval) {
+    { // hardcoding (_eagerRemoval == true)
       if(posUsed && !posSticky && _selected.find(posLvl) ) {
         _selected.remove(posLvl);
         removedComps.push(posLvl);
@@ -449,7 +425,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   }
 }
 
-void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRefutation)
+void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl)
 {
   cl = SATClause::removeDuplicateLiterals(cl);
   if(!cl) {
@@ -458,15 +434,10 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
   }
 
   RSTAT_CTR_INC("ssat_sat_clauses");
-
-  if (branchRefutation && _minSCO) {
-    _solver->addClauseIgnoredInPartialModel(cl);
-  } else {
-    _solver->addClause(cl);
-  }
+  _solver->addClause(cl);
 }
 
-void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize)
+void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
@@ -476,9 +447,6 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   SATSolver::Status stat;
   {
     TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
-    if (randomize) {
-      _solver->randomizeForNextAssignment(maxSatVar);
-    }
     stat = _solver->solve();
   }
   if (stat == SATSolver::Status::SATISFIABLE) {
@@ -518,7 +486,7 @@ std::string Splitter::splPrefix = "";
 
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
-  _clausesAdded(false), _haveBranchRefutation(false)
+  _clausesAdded(false)
 {}
 
 Splitter::~Splitter()
@@ -558,9 +526,6 @@ void Splitter::init(SaturationAlgorithm* sa)
   _complBehavior = opts.splittingAddComplementary();
   _nonsplComps = opts.splittingNonsplittableComponents();
 
-  _flushPeriod = opts.splittingFlushPeriod();
-  _flushQuotient = opts.splittingFlushQuotient();
-  _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
   _congruenceClosure = opts.splittingCongruenceClosure();
   _shuffleComponents = opts.randomTraversals();
 
@@ -588,15 +553,11 @@ void Splitter::init(SaturationAlgorithm* sa)
 #endif
   }
 
-  _fastRestart = opts.splittingFastRestart();
   _deleteDeactivated = opts.splittingDeleteDeactivated();
   _cleaveNonsplittables = opts.cleaveNonsplittables();
 
-  if (opts.useHashingVariantIndex()) {
-    _componentIdx = new HashingClauseVariantIndex();
-  } else {
-    _componentIdx = new SubstitutionTreeClauseVariantIndex();
-  }
+  // _componentIdx = new SubstitutionTreeClauseVariantIndex();
+  _componentIdx = new HashingClauseVariantIndex();
 }
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
@@ -613,7 +574,7 @@ SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
  */
 SplitLevel Splitter::getNameFromLiteralUnsafe(SATLiteral lit) const
 {
-  return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
+  return (lit.var()-1)*2 + (lit.positive() ? 0 : 1);
 }
 SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
 {
@@ -634,7 +595,7 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
   if (negated) {
     lit = lit.opposite();
   }
-  if (lit.isPositive()) {
+  if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());
   } else {
     return "~"+splPrefix+Lib::Int::toString(lit.var());
@@ -680,32 +641,19 @@ Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
 
 void Splitter::onAllProcessed()
 {
-  bool flushing = false;
-  if(_flushPeriod) {
-    if(_haveBranchRefutation) {
-      _flushThreshold = _sa->getGeneratedClauseCount()+_flushPeriod;
-    }
-    if(_sa->getGeneratedClauseCount()>=_flushThreshold && !_clausesAdded) {
-      flushing = true;
-      _flushThreshold = _sa->getGeneratedClauseCount()+_flushPeriod;
-      _flushPeriod = static_cast<unsigned>(_flushPeriod*_flushQuotient);
-    }
-  }
-
-  _haveBranchRefutation = false;
-  if(!_clausesAdded && !flushing) {
+  if(!_clausesAdded) {
     return;
   }
   _clausesAdded = false;
 
   static SplitLevelStack toAdd;
   static SplitLevelStack toRemove;
-  
-  toAdd.reset();
-  toRemove.reset();  
 
-  _branchSelector.recomputeModel(toAdd, toRemove, flushing);
-  
+  toAdd.reset();
+  toRemove.reset();
+
+  _branchSelector.recomputeModel(toAdd, toRemove);
+
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     std::cout << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
@@ -726,23 +674,6 @@ void Splitter::onAllProcessed()
     }
     if(toAdd.isNonEmpty()) {
       addComponents(toAdd);
-    }
-
-    // now that new activ-ness has been determined
-    // we can put back the fast clauses, if any
-    while(_fastClauses.isNonEmpty()) {
-      Clause* rcl=_fastClauses.popWithoutDec();
-
-      // TODO: could use a check based on "NumActiveSplits" instead,
-      // but would need to maintain them even when _deleteDeactivated == Options::SplittingDeleteDeactivated::ON
-      if (allSplitLevelsActive(rcl->splits())) {
-        RSTAT_CTR_INC("fast_clauses_restored");
-        _sa->addNewClause(rcl);
-      } else {
-        RSTAT_CTR_INC("fast_clauses_not_restored");
-      }
-
-      rcl->decRefCnt(); //belongs to _fastClauses.popWithoutDec();
     }
   }
 }
@@ -901,7 +832,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
       std::cout << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
     }
 
-    addSatClauseToSolver(nsClause, false);
+    addSatClauseToSolver(nsClause);
 
     RSTAT_CTR_INC("ssat_non_splittable_sat_clauses");
   }
@@ -1030,11 +961,6 @@ bool Splitter::doSplitting(Clause* cl)
     return false;
   }
 
-  if (_fastRestart && _haveBranchRefutation) {
-    _fastClauses.push(cl);
-    return true; // the clause is ours now
-  }
-
   static Stack<LiteralStack> comps;
   comps.reset();
   // fills comps with components, returning if not splittable
@@ -1094,7 +1020,7 @@ bool Splitter::doSplitting(Clause* cl)
 
   splitClause->setInference(new FOConversionInference(scl));
 
-  addSatClauseToSolver(splitClause, false);
+  addSatClauseToSolver(splitClause);
 
   env.statistics->satSplits++;
   return true;
@@ -1416,7 +1342,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
         cl->setNumActiveSplits(NOT_WORTH_REINTRODUCING);
       }
     }
-        
+
     return;
   }
   // else freeze clause
@@ -1544,12 +1470,9 @@ void Splitter::SplitRecord::addReduced(Clause* cl)
   reduced.push(ReductionRecord(cl));
 }
 
-void Splitter::addSatClauseToSolver(SATClause* cl, bool refutation) {
+void Splitter::addSatClauseToSolver(SATClause* cl) {
   _clausesAdded = true;
-  if (refutation) {
-    _haveBranchRefutation = true;
-  }
-  _branchSelector.addSatClauseToSolver(cl,refutation);
+  _branchSelector.addSatClauseToSolver(cl);
 }
 
 bool Splitter::handleEmptyClause(Clause* cl)
@@ -1578,22 +1501,18 @@ bool Splitter::handleEmptyClause(Clause* cl)
     env.proofExtra.insert(scl, new SATClauseExtra(confl));
 
   confl->setInference(new FOConversionInference(scl));
-  
-  // RSTAT_MCTR_INC("sspl_confl_len", confl->length());
 
-  addSatClauseToSolver(confl,true);
+  addSatClauseToSolver(confl);
 
-    if (_showSplitting) {
-      std::cout << "[AVATAR] proved ";
-      auto sit = cl->splits()->iter();
-      while(sit.hasNext()){
-        std::cout << (_db[sit.next()]->component)->toString();
-        if(sit.hasNext()){ std::cout << " | "; }
-      }
-      std::cout << endl;
+  if (_showSplitting) {
+    std::cout << "[AVATAR] proved ";
+    auto sit = cl->splits()->iter();
+    while(sit.hasNext()){
+      std::cout << (_db[sit.next()]->component)->toString();
+      if(sit.hasNext()){ std::cout << " | "; }
     }
-
-
+    std::cout << endl;
+  }
 
   env.statistics->satSplitRefutations++;
   return true;
@@ -1609,10 +1528,10 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     ASS(sr);
     ASS(!sr->active);
     sr->active = true;
-    
+
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       ASS(sr->children.isEmpty());
-      //we need to put the component clause among children, 
+      //we need to put the component clause among children,
       //so that it is backtracked when we remove the component
       sr->children.push(sr->component);
       _sa->addNewClause(sr->component);
@@ -1641,7 +1560,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
 void Splitter::removeComponents(const SplitLevelStack& toRemove)
 {
   ASS(_sa->clausesFlushed());
-  
+
   SplitSet* backtracked = SplitSet::getFromArray(toRemove.begin(), toRemove.size());
 
   // ensure all children are backtracked
@@ -1651,7 +1570,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
     ASS(sr);
-    
+
     RCClauseStack::DelIterator chit(sr->children);
     while (chit.hasNext()) {
       Clause* ccl=chit.next();
@@ -1668,7 +1587,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
         chit.del();
       }
     }
-    
+
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       sr->children.reset();
     }
@@ -1680,8 +1599,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     }
   }
 
-  // perform unfreezing  
-    
+  // perform unfreezing
+
   // pick all reduced clauses (if the record relates to most recent reduction)
   // and them add back to _sa using addNewClause - this will get put to unprocessed
   auto blit2 = backtracked->iter();
@@ -1693,20 +1612,19 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       ReductionRecord rrec=sr->reduced.pop();
       Clause* rcl=rrec.clause;
       if(rcl->validReductionRecord(rrec.timestamp)) {
-        ASS(!rcl->splits()->hasIntersection(backtracked));      
+        ASS(!rcl->splits()->hasIntersection(backtracked));
         ASS_EQ(rcl->store(), Clause::NONE);
-        
+
         rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
         _sa->addNewClause(rcl);
 
         // TODO: keep statistics in release ?
         // RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
         RSTAT_CTR_INC("total_unfrozen");
-#if VDEBUG      
+#if VDEBUG
         //check that restored clause does not depend on inactive splits
         ASS(allSplitLevelsActive(rcl->splits()));
 #endif
-        
       }
       rcl->decRefCnt(); //inc when pushed on the 'sr->reduced' stack in Splitter::SplitRecord::addReduced
     }

@@ -50,36 +50,12 @@ private:
   ScopedPtr<GlobalSubsumptionGrounder> _grounder;
 
   /**
-   * Call the SAT solver using the cheap, unit-propagation-only calls.
-   */
-  bool _uprOnly;
-
-  /**
-   * Explicitly minimize the obtained assumption set.
-   */
-  bool _explicitMinim;
-
-  /**
    * Randomize order for explicit minimization.
    */
   bool _randomizeMinim;
 
   /**
-   * Implement conditional GS when running with AVATAR.
-   */
-  bool _splittingAssumps;
-
-  /*
-   * GS needs a splitter when FULL_MODEL value is specified for the interaction with AVATAR.
-   *
-   * In fact, _splitter!=0 iff we want to do the FULL_MODEL option.
-   */
-  Splitter* _splitter;
-
-  /**
    * A map binding split levels to variables assigned to them in our SAT solver.
-   *
-   * (Should this be rather a part of _index?)
    */
   DHMap<unsigned, unsigned> _splits2vars;
 
@@ -87,7 +63,6 @@ private:
    * An inverse of the above map, for convenience.
    */
   DHMap<unsigned, unsigned> _vars2splits;
-
 protected:
   unsigned splitLevelToVar(SplitLevel lev) {
     unsigned* pvar;

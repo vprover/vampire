@@ -3442,7 +3442,7 @@ void TPTP::endFormula()
     case AND:
     case OR:
       f = _formulas.pop();
-      f = makeJunction((Connective)con,_formulas.pop(),f);
+      f = makeJunction((Connective)con,f,_formulas.pop());
       if (conReverse) {
 	f = new NegatedFormula(f);
       }

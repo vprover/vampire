@@ -12,6 +12,7 @@
  * Implements class SAT2FO.
  */
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
 
 #include "SATClause.hpp"
@@ -49,7 +50,7 @@ Literal* SAT2FO::toFO(SATLiteral sl) const
   if(!_posMap.findObj(sl.var(), posLit)) {
     return 0;
   }
-  Literal* res = sl.polarity() ? posLit : Literal::complementaryLiteral(posLit);
+  Literal* res = sl.positive() ? posLit : Literal::complementaryLiteral(posLit);
   return res;
 }
 

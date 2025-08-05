@@ -71,8 +71,6 @@ void SATInference::collectPropAxioms(SATClause* cl, SATClauseStack& res)
     case SATInference::FO_CONVERSION:
       res.push(cur);
       break;
-    case SATInference::ASSUMPTION:
-      break;
     case SATInference::PROP_INF:
     {
       PropInference* pinf = static_cast<PropInference*>(sinf);

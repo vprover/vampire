@@ -144,32 +144,6 @@ bool MinisatInterfacing::isZeroImplied(unsigned var)
   return _solver.value(vampireVar2Minisat(var)) != l_Undef;
 }
 
-void MinisatInterfacing::collectZeroImplied(SATLiteralStack& acc)
-{
-  // TODO: could be made more efficient by inspecting the trail 
-  // [new code would be needed in Minisat::solver, though]
-  
-  // Minisat's variables start from 0
-  for (Minisat::Var v = 0; v < _solver.nVars(); v++) {
-    lbool val = _solver.value(v);
-    if (val != l_Undef) { // see isZeroImplied
-      
-      // the lit needs to be negated, if the variable alone is false
-      acc.push(minisatLit2Vampire(mkLit(v,val == l_False)));
-    }
-  }        
-}
-
-SATClause* MinisatInterfacing::getZeroImpliedCertificate(unsigned)
-{
-  // Currently unused anyway. 
-  
-  /* The whole SATSolver interface should be revised before
-   implementing functions like this one properly */
-  
-  return 0;
-}
-
 SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps)
 {
   Minisat::Solver solver;
@@ -224,7 +198,7 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
         curmax++;
       }
 
-      mcl.push(mkLit(var,l.isNegative()));
+      mcl.push(mkLit(var,!l.positive()));
     }
 
     // add one extra assumption literal
@@ -244,7 +218,7 @@ SATClauseList* MinisatInterfacing::minimizePremiseList(SATClauseList* premises, 
 
     ASS_L(var,curmax);
 
-    ass.push(mkLit(var,l.isNegative()));
+    ass.push(mkLit(var,!l.positive()));
   }
 
   // solve
@@ -296,7 +270,7 @@ void MinisatInterfacing::interpolateViaAssumptions(unsigned maxVar, const SATCla
     for(unsigned i=0;i<clen;i++) {
       SATLiteral l = (*cl)[i];
       varOfFirst[l.var()] = true;
-      tmp.push(mkLit(l.var(),l.isNegative()));
+      tmp.push(mkLit(l.var(),!l.positive()));
     }
 
     solver_first.addClause(tmp);
@@ -311,7 +285,7 @@ void MinisatInterfacing::interpolateViaAssumptions(unsigned maxVar, const SATCla
     unsigned clen=cl->length();
     for(unsigned i=0;i<clen;i++) {
       SATLiteral l = (*cl)[i];
-      tmp.push(mkLit(l.var(),l.isNegative()));
+      tmp.push(mkLit(l.var(),!l.positive()));
     }
 
     solver_second.addClause(tmp);

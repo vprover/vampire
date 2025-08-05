@@ -83,14 +83,11 @@ _solver=0;
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
   void trySetTrue(SATLiteral lit) {
-    _solver->suggestPolarity(lit.var(),lit.polarity());
+    _solver->suggestPolarity(lit.var(),lit.positive());
   }
 
-  void addSatClauseToSolver(SATClause* cl, bool refutation);
-  void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
-
-  void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-
+  void addSatClauseToSolver(SATClause* cl);
+  void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 private:
   friend class Splitter;
 
@@ -101,10 +98,8 @@ private:
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
   //options
-  bool _eagerRemoval;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
-  bool _minSCO; // minimize wrt splitting clauses only
 
   Splitter& _parent;
 
@@ -134,7 +129,7 @@ private:
 
   struct ReductionRecord
   {
-    ReductionRecord(Clause* clause) : clause(clause), 
+    ReductionRecord(Clause* clause) : clause(clause),
         timestamp(clause->getReductionTimestamp()) {}
     Clause* clause;
     unsigned timestamp;
@@ -248,7 +243,7 @@ private:
   SplitLevel tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl);
   SplitLevel tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
 
-  void addSatClauseToSolver(SATClause* cl, bool refutation);
+  void addSatClauseToSolver(SATClause* cl);
 
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
@@ -262,8 +257,6 @@ private:
 
   Options::SplittingAddComplementary _complBehavior;
   Options::SplittingNonsplittableComponents _nonsplComps;
-  unsigned _flushPeriod;
-  float _flushQuotient;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
   bool _congruenceClosure;
   bool _shuffleComponents;
@@ -296,13 +289,8 @@ private:
    **/
   DHMap<SplitLevel,Unit*> _defs;
 
-  //state variable used for flushing:
-  /** When this number of generated clauses is reached, it will cause flush */
-  unsigned _flushThreshold;
   /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
   bool _clausesAdded;
-  /** true if there was a refutation added to the SAT solver */
-  bool _haveBranchRefutation;
 
   /* as there can be both limits, it's hard to convert between them,
    * and we terminate at the earlier one, let's just keep checking both. */
@@ -311,15 +299,7 @@ private:
   unsigned _stopSplittingAtInst; // mega-instructions elapsed
 #endif
 
-  bool _fastRestart; // option's value copy
   bool _cleaveNonsplittables; // option's value copy
-
-  /**
-   * We are postponing to consider these clauses for a split
-   * because a conflict clause has been derived
-   * and will invariably change the SAT model.
-   */
-  RCClauseStack _fastClauses;
 
   SaturationAlgorithm* _sa;
 
