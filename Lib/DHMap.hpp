@@ -31,7 +31,7 @@
 
 namespace Lib {
 
-inline constexpr unsigned DHMAP_MAX_CAPACITY_INDEX = 29;
+inline constexpr int DHMAP_MAX_CAPACITY_INDEX = 29;
 
 inline constexpr unsigned DHMapTableCapacities[] = {
     0,
