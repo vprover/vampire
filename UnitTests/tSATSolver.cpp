@@ -12,6 +12,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
 
+#include "SAT/ProofProducingSATSolver.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATInference.hpp"
@@ -104,8 +105,13 @@ TEST_FUN(satSolverZeroImpliedCert)
 }
 */
 
-void testProofWithAssumptions(SATSolver& s)
+void testProofWithAssumptions()
 {
+}
+
+TEST_FUN(testProofWithAssums)
+{
+  ProofProducingSATSolver s(new MinisatInterfacing, true);
   s.ensureVarCount(2);
   s.addClause(getClause("a"));
   s.addClause(getClause("A"));
@@ -126,15 +132,10 @@ void testProofWithAssumptions(SATSolver& s)
     prems = prems->tail();
   }
 
+
 }
 
-TEST_FUN(testProofWithAssums)
-{
-  MinisatInterfacing s;
-  testProofWithAssumptions(s);
-}
-
-void testInterface(SATSolverWithAssumptions &s) {
+void testInterface(SATSolver &s) {
   ensurePrepared(s);
 
   ASS_EQ(s.solve(),Status::SATISFIABLE);
@@ -225,7 +226,7 @@ TEST_FUN(testSATSolverInterface)
   */
 }
 
-void testAssumptions(SATSolverWithAssumptions &s) {
+void testAssumptions(SATSolver &s) {
   ensurePrepared(s);
 
   s.addClause(getClause("ab"));

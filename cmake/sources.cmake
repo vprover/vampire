@@ -570,6 +570,7 @@ set(SOURCES
     SAT/SATInference.cpp
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
+    SAT/ProofProducingSATSolver.hpp
     SAT/SATSolver.hpp
     SAT/Z3Interfacing.cpp
     SAT/Z3Interfacing.hpp

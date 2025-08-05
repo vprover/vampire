@@ -24,22 +24,6 @@
 namespace SAT
 {
 
-FallbackSolverWrapper::FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback)
- : _inner(inner), _fallback(fallback), _usingFallback(false),  _varCnt(0) 
-{
-}
-
-/**
- * Add a clause to sat solver
- *
- * @author Giles
- */
-void FallbackSolverWrapper::addClause(SATClause* cl)
-{
-  _inner->addClause(cl);
-  _fallback->addClause(cl);
-}
-
 /**
  *
  * @author Giles 
@@ -75,5 +59,24 @@ VarAssignment FallbackSolverWrapper::getAssignment(unsigned var)
   }
   return _inner->getAssignment(var); 
 }
+
+
+Status FallbackSolverWrapper::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) {
+  // Currently always run the _inner solver to see if we can use it
+  Status status = _inner->solveUnderAssumptionsLimited(assumps, conflictCountLimit);
+
+  // Check if we need to use _fallback
+  if(status == Status::UNKNOWN){
+    status = _fallback->solveUnderAssumptionsLimited(assumps, conflictCountLimit);
+    _usingFallback = true;
+    ASS(status != Status::UNKNOWN);
+    env.statistics->smtFallbacks++;
+  } 
+  else{
+    _usingFallback = false;
+  }
+  return status;
+}
+
 
 }

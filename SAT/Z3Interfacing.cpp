@@ -897,10 +897,6 @@ unsigned Z3Interfacing::newVar()
 void Z3Interfacing::addClause(SATClause* cl)
 {
   ASS(cl);
-
-  // store to later generate the refutation
-  PrimitiveProofRecordingSATSolver::addClause(cl);
-
   auto z3clause = getRepresentation(cl);
 
   if(_showZ3){
@@ -1800,15 +1796,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
     _exporter.apply([&](auto& exp){ exp.instantiate_expression(e); });
     return Representation(e, Stack<z3::expr>());
   }
-}
-
-SATClause* Z3Interfacing::getRefutation()
-{
-  return PrimitiveProofRecordingSATSolver::getRefutation();
-
-  // TODO: optionally, we could try getting an unsat core from Z3 (could be smaller than all the added clauses so far)
-  // NOTE: this will not (necessarily) be the same option as _unsatCore, which takes care of minimization of added assumptions
-  // also ':core.minimize' might need to be set to get some effect
 }
 
 Z3Interfacing::~Z3Interfacing()

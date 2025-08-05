@@ -24,7 +24,7 @@
 namespace SAT{
 
 template<typename MinisatSolver = Minisat::Solver>
-class MinisatInterfacing : public PrimitiveProofRecordingSATSolver
+class MinisatInterfacing : public SATSolver
 {
 public:
   static const unsigned VAR_MAX = std::numeric_limits<Minisat::Var>::max() / 2;

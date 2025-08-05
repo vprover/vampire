@@ -38,17 +38,13 @@ class MinimizingSolver : public SATSolver {
 public:
   MinimizingSolver(SATSolver* inner);
 
-  virtual SATClause* getRefutation() override { return _inner->getRefutation(); }
-  virtual SATClauseList* getRefutationPremiseList() override {
-    return _inner->getRefutationPremiseList();
-  }
   virtual void randomizeForNextAssignment(unsigned maxVar) override {
     _inner->randomizeForNextAssignment(maxVar); _assignmentValid = false;
   }
 
   virtual void addClause(SATClause* cl) override;
   virtual Status solveLimited(unsigned conflictCountLimit) override;
-  
+
   virtual VarAssignment getAssignment(unsigned var) override;
   virtual bool isZeroImplied(unsigned var) override;
 
@@ -62,6 +58,12 @@ public:
   }
 
   virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
+
+  Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override {
+    return _inner->solveUnderAssumptionsLimited(assumps, conflictCountLimit);
+  }
+
+  SATLiteralStack failedAssumptions() override { return _inner->failedAssumptions(); }
 
 private:
   bool admitsDontcare(unsigned var) { 

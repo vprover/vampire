@@ -22,10 +22,10 @@
 
 namespace SAT{
 
-class CadicalInterfacing : public PrimitiveProofRecordingSATSolver
+class CadicalInterfacing : public SATSolver
 {
-public: 
-	CadicalInterfacing(const Shell::Options& opts, bool generateProofs=false);
+public:
+  CadicalInterfacing(const Shell::Options& opts, bool generateProofs=false);
 
   /**
    * Can be called only when all assumptions are retracted

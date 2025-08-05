@@ -33,6 +33,7 @@
 #include "SAT/SAT2FO.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATSolver.hpp"
+#include "SAT/ProofProducingSATSolver.hpp"
 
 #include "DP/DecisionProcedure.hpp"
 
@@ -70,20 +71,14 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _parent(parent), _solverIsSMT(false)  {}
-  ~SplittingBranchSelector(){
-#if VZ3
-_solver=0;
-#endif
-  }
-
+  SplittingBranchSelector(Splitter& parent) : _parent(parent), _solverIsSMT(false) {}
   /** To be called from Splitter::init() */
   void init();
 
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
   void trySetTrue(SATLiteral lit) {
-    _solver->suggestPolarity(lit.var(),lit.positive());
+    _solver.suggestPolarity(lit.var(),lit.positive());
   }
 
   void addSatClauseToSolver(SATClause* cl);
@@ -104,7 +99,7 @@ private:
   Splitter& _parent;
 
   bool _solverIsSMT;
-  ScopedPtr<SATSolver> _solver;
+  ProofProducingSATSolver _solver;
   ScopedPtr<DecisionProcedure> _dp;
 
   /**

@@ -16,8 +16,6 @@
 #define __SATSolver__
 
 #include "SATLiteral.hpp"
-#include "SATInference.hpp"
-
 #include "Shell/Shuffling.hpp"
 
 #include <climits>
@@ -89,6 +87,8 @@ public:
    * full satisfiability check, and for values in between, restrict
    * the number of conflicts, and in case it is reached, stop with
    * solving and assign the status to UNKNOWN.
+   *
+   * TODO do this in terms of solveUnderAssumptions
    */
   virtual Status solveLimited(unsigned conflictCountLimit) = 0;
 
@@ -137,26 +137,6 @@ public:
   }
 
   /**
-   * Immediately after a call to solveXXX that returned UNSAT,
-   * this method can be used to obtain the corresponding
-   * empty SATClause as a root of a corresponding refutation tree.
-   *
-   * (However, the empty clause may be invalidated later on.)
-   */
-  virtual SATClause* getRefutation() = 0;
-
-  /**
-   * Under the same conditions as getRefutation
-   * a solver may return a list of SAT clauses which
-   * where shown unsatisfiable
-   * (possibly under additional assumptions the caller keeps track of themselves).
-   *
-   * A solver may ignore to implement this function
-   * and will return an empty list instead.
-   */
-  virtual SATClauseList* getRefutationPremiseList() { return SATClauseList::empty(); }
-
-  /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
   bool trueInAssignment(SATLiteral lit)
@@ -165,10 +145,7 @@ public:
     VarAssignment desired = lit.positive() ? VarAssignment::TRUE : VarAssignment::FALSE;
     return asgn==desired;
   }
-};
 
-class SATSolverWithAssumptions: public SATSolver {
-public:
   /**
    * Solve under the given set of assumptions @b assumps.
    *
@@ -239,75 +216,6 @@ public:
     return failed;
   }
 };
-
-/**
- * A convenience class for solvers which do not track actual refutations
- * and so return the whole set of clauses added so far as refutations.
- *
- * This need not necessarily inherit from SATSolverWithAssumptions,
- * but why bother with multiple inheritance if we know the only
- * two descendants of this class will need it...
- */
-class PrimitiveProofRecordingSATSolver : public SATSolverWithAssumptions {
-public:
-  PrimitiveProofRecordingSATSolver() :
-    _addedClauses(0), _refutation(new(0) SATClause(0)), _refutationInference(new PropInference(SATClauseList::empty()))
-    {
-      _refutation->setInference(_refutationInference);
-    }
-
-  virtual void addClause(SATClause* cl) override
-  {
-    SATClauseList::push(cl,_addedClauses);
-  }
-
-  virtual SATClause* getRefutation() override
-  {
-    // connect the added clauses ...
-    SATClauseList* prems = _addedClauses;
-
-    // ... with the current assumptions
-
-    // TODO: the assumption set will be empty after a call to solveUnderAssumptions()
-    // This does not matter much since refutations are only ever passed to collectFOPremises
-    // and there are no FO premises of assumption inferences
-
-    // So the below is commented out to prevent useless leaking
-
-    /*
-    for (size_t i=0; i < _assumptions.size(); i++) {
-      SATClause* unit = new(1) SATClause(1);
-      (*unit)[0] = _assumptions[i];
-      unit->setInference(new AssumptionInference());
-      SATClauseList::push(unit,prems);
-    }
-    */
-
-    _refutationInference->setPremises(prems);
-
-    return _refutation;
-  }
-
-  virtual SATClauseList* getRefutationPremiseList() override {
-    return _addedClauses;
-  }
-
-private:
-  // to be used for the premises of a refutation
-  SATClauseList* _addedClauses;
-
-  /**
-   * Empty clause to be returned by the getRefutation call.
-   * Recycled between consecutive getRefutation calls.
-   */
-  SATClause* _refutation;
-  /**
-   * The inference inside _refutation.
-   */
-  PropInference* _refutationInference;
-};
-
-
 }
 
 #endif // __SATSolver__

@@ -77,8 +77,6 @@ void CadicalInterfacing::solveModuloAssumptionsAndSetStatus(unsigned conflictCou
  */
 void CadicalInterfacing::addClause(SATClause* cl)
 {
-  // store to later generate the refutation
-  PrimitiveProofRecordingSATSolver::addClause(cl);
   // TODO: consider measuring time
   ASS_EQ(_assumptions.size(),0);
 

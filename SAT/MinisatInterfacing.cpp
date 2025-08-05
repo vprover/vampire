@@ -101,9 +101,6 @@ void MinisatInterfacing<MinisatSolver>::solveModuloAssumptionsAndSetStatus(unsig
 template<typename MinisatSolver>
 void MinisatInterfacing<MinisatSolver>::addClause(SATClause* cl)
 {
-  // store to later generate the refutation
-  PrimitiveProofRecordingSATSolver::addClause(cl);
-
   // TODO: consider measuring time
   try {
     static vec<Lit> mcl;
