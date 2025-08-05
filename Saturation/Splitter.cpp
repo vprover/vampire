@@ -313,7 +313,7 @@ void SplittingBranchSelector::handleSatRefutation()
   }
 }
 
-Status SplittingBranchSelector::processDPConflicts()
+SAT::Status SplittingBranchSelector::processDPConflicts()
 {
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
 
@@ -447,7 +447,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 
   unsigned maxSatVar = _parent.maxSatVar();
 
-  Status stat;
+  SAT::Status stat;
   {
     TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
     stat = _solver.solve();
