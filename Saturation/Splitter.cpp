@@ -103,11 +103,8 @@ void SplittingBranchSelector::init()
   }
 
   if(_parent.getOptions().splittingCongruenceClosure()) {
-    _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
-    if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
-      _dp = new ShortConflictMetaDP(_dp.release(), _parent.satNaming(), *_solver);
-    }
-    _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
+    _dp = new ShortConflictMetaDP(
+      new DP::SimpleCongruenceClosure(&_parent.getOrdering()), _parent.satNaming(), *_solver);
   }
 }
 
@@ -333,7 +330,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
       _dp->reset();
       _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
-      DecisionProcedure::Status dpStatus = _dp->getStatus(_ccMultipleCores);
+      DecisionProcedure::Status dpStatus = _dp->getStatus(true);
 
       if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {
         break;

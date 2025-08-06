@@ -99,7 +99,6 @@ private:
 
   //options
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
-  bool _ccMultipleCores;
 
   Splitter& _parent;
 
