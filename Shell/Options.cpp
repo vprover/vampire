@@ -948,6 +948,13 @@ void Options::init()
     _fmbKeepSbeamGenerators.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::SBMEAM)));
     _fmbKeepSbeamGenerators.tag(OptionTag::FMB);
 
+    _fmbUseSimplifyingSolver = BoolOptionValue("fmb_use_simplifying_solver","fmbuss",true);
+    _fmbUseSimplifyingSolver.description = "Allow the SAT solver to internally simplify the instance.";
+    _fmbUseSimplifyingSolver.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
+    _fmbUseSimplifyingSolver.onlyUsefulWith(_satSolver.is(equal(SatSolver::MINISAT)));
+    _fmbUseSimplifyingSolver.tag(OptionTag::FMB);
+    _lookup.insert(&_fmbUseSimplifyingSolver);
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"

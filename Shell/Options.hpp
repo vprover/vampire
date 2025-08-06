@@ -1972,6 +1972,7 @@ public:
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
   bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
+  bool fmbUseSimplifyingSolver() const { return _fmbUseSimplifyingSolver.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -2460,6 +2461,7 @@ private:
   UnsignedOptionValue _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
   BoolOptionValue _fmbKeepSbeamGenerators;
+  BoolOptionValue _fmbUseSimplifyingSolver;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;

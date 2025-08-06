@@ -254,8 +254,12 @@ bool FiniteModelBuilder::reset(){
   }
 
   // Create a new SAT solver
-  if (env.options->satSolver() == Options::SatSolver::MINISAT)
-    _solver = new MinisatInterfacingNewSimp;
+  if (env.options->satSolver() == Options::SatSolver::MINISAT) {
+    if(env.options->fmbUseSimplifyingSolver())
+      _solver = new MinisatInterfacingNewSimp;
+    else
+      _solver = new MinisatInterfacing;
+  }
   else if (env.options->satSolver() == Options::SatSolver::CADICAL) {
     _solver = new CadicalInterfacing(_opt,true);
   } else {
