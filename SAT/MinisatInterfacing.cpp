@@ -70,6 +70,19 @@ SATLiteralStack MinisatInterfacing<MinisatSolver>::failedAssumptions() {
   return result;
 }
 
+template<typename MinisatSolver>
+static lbool callSolver(MinisatSolver &solver, vec<Lit> &assumptions);
+
+template<>
+lbool callSolver<Minisat::Solver>(Minisat::Solver &solver, vec<Lit> &assumptions) {
+  return solver.solveLimited(assumptions);
+}
+
+template<>
+lbool callSolver<Minisat::SimpSolver>(Minisat::SimpSolver &solver, vec<Lit> &assumptions) {
+  return solver.solveLimited(assumptions, true, true);
+}
+
 /**
  * Solve modulo assumptions and set status.
  * @b conflictCountLimit as with addAssumption.
@@ -80,7 +93,7 @@ void MinisatInterfacing<MinisatSolver>::solveModuloAssumptionsAndSetStatus(unsig
   // TODO: consider calling simplify(); or only from time to time?
   try {
     _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
-    lbool res = _solver.solveLimited(_assumptions);
+    lbool res = callSolver(_solver, _assumptions);
 
     if (res == l_True) {
       _status = Status::SATISFIABLE;
