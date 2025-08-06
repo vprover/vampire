@@ -2064,13 +2064,6 @@ void Options::init()
 #endif
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
 
-    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::SMALL_ONES,
-                                                     {"first", "small_ones", "all"});
-    _ccUnsatCores.description="";
-    _lookup.insert(&_ccUnsatCores);
-    _ccUnsatCores.tag(OptionTag::AVATAR);
-    _ccUnsatCores.onlyUsefulWith(_splittingCongruenceClosure.is(equal(true)));
-
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "avatar_literal_polarity_advice","alpa",
                                                 SplittingLiteralPolarityAdvice::NONE,
