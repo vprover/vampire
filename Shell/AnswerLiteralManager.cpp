@@ -156,7 +156,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVars, eSrts, new JunctionFormula(AND, conjArgs)));
 
   if (skolemise) {
-    Map<int,std::string>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
+    Map<unsigned,std::string>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
 
     VList* fVars = subNot->vars();
     SList* fSrts = subNot->sorts();
@@ -246,7 +246,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
       vss << "[";
       unsigned arity = aLit->arity();
 
-      Map<int,std::string>* questionVars = 0;
+      Map<unsigned,std::string>* questionVars = 0;
       std::pair<Unit*,Literal*> unitAndLiteral;
       if (_originUnitsAndInjectedLiterals.find(aLit->functor(),unitAndLiteral)) {
         questionVars = Parse::TPTP::findQuestionVars(unitAndLiteral.first->number());

@@ -154,7 +154,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Event.o\
         Lib/Exception.o\
         Lib/Int.o\
-        Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
         Lib/NameArray.o\
         Lib/Random.o\
