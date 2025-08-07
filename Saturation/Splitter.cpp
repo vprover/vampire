@@ -111,7 +111,13 @@ void SplittingBranchSelector::init()
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
   }
 
-  ::new(&_solver) ProofProducingSATSolver(inner, _parent.getOptions().satSolver() != Options::SatSolver::Z3);
+  auto satSolver = _parent.getOptions().satSolver();
+  ::new(&_solver) ProofProducingSATSolver(
+    inner,
+    /* can minimize if */
+    satSolver == Options::SatSolver::MINISAT ||
+    satSolver == Options::SatSolver::CADICAL
+  );
 }
 
 void SplittingBranchSelector::updateVarCnt()
