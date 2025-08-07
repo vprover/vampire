@@ -563,8 +563,6 @@ set(SOURCES
     SAT/MinimizingSolver.hpp
     SAT/MinisatInterfacing.cpp
     SAT/MinisatInterfacing.hpp
-    SAT/MinisatInterfacingNewSimp.cpp
-    SAT/MinisatInterfacingNewSimp.hpp
     SAT/SAT2FO.cpp
     SAT/SAT2FO.hpp
     SAT/SATClause.cpp
@@ -572,7 +570,9 @@ set(SOURCES
     SAT/SATInference.cpp
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
+    SAT/ProofProducingSATSolver.hpp
     SAT/SATSolver.hpp
+    SAT/SATSolver.cpp
     SAT/Z3Interfacing.cpp
     SAT/Z3Interfacing.hpp
     SAT/Z3MainLoop.cpp
