@@ -351,6 +351,7 @@ public:
   unsigned lineNumber(){ return currentFile.lineNumber; }
   std::string currentPath(){ return currentFile.path; }
 
+  // careful: the returned pointer will be invalidated if _questionVariableNames is changed
   static Map<unsigned,std::string>* findQuestionVars(unsigned questionNumber) {
     return _questionVariableNames.findPtr(questionNumber);
   }
