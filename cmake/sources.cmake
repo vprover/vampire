@@ -478,8 +478,6 @@ set(SOURCES
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
-    Lib/IntNameTable.cpp
-    Lib/IntNameTable.hpp
     Lib/IntUnionFind.cpp
     Lib/IntUnionFind.hpp
     Lib/IntegerSet.cpp
