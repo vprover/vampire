@@ -177,6 +177,13 @@ public:
   }
 
   SATLiteralStack explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize);
+
+  /**
+   * Assuming that the last solving call was unsatisfiable,
+   * try to produce a minimal set of premises that it still unsatisfiable
+   * (with respect to assumptions)
+   */
+  virtual SATClauseList *minimizePremises(SATClauseList *premises) = 0;
 };
 }
 

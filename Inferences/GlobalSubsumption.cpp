@@ -48,7 +48,7 @@ using namespace Saturation;
 
 GlobalSubsumption::GlobalSubsumption(const Options& opts) :
   _randomizeMinim(opts.randomTraversals()),
-  _solver(new ProofProducingSATSolver(new MinisatInterfacing, true)),
+  _solver(new ProofProducingSATSolver(new MinisatInterfacing)),
   _grounder(new GlobalSubsumptionGrounder(*_solver))
 {}
 
@@ -160,29 +160,30 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
       if (survivors.size() < clen) {
         RSTAT_MCTR_INC("global_subsumption_by_number_of_removed_literals",clen-survivors.size());
 
-        SATClause* ref = _solver->getRefutation();
+        SATClauseList *allSATPrems = _solver->premiseList();
+        ASS(allSATPrems)
 
         prems.reset();
         prems.push(cl);
 
-        SATInference::collectFilteredFOPremises(ref, prems,
-          // Some solvers may return "all the clauses added so far" in the refutation.
-          // That must be filtered since a derived clause cannot depend on inactive splits
-          [this] (SATClause* prem) {
-            // don't keep any premise which mentions an unassumed split level assumption
-            unsigned prem_sz = prem->size();
-            for (unsigned i = 0; i < prem_sz; i++ ) {
-              SATLiteral lit = (*prem)[i];
-              SplitLevel lev;
-              if (isSplitLevelVar(lit.var(),lev)) {
-                ASS(!lit.positive());
-                if (!splitAssumps.contains(lit)) {
-                  return false;
+        for(SATClause *satPrem : iterTraits(allSATPrems->iter()))
+          SATInference::collectFilteredFOPremises(satPrem, prems,
+            // allSATPrems must be filtered since a derived clause cannot depend on inactive splits
+            [this] (SATClause* prem) {
+              // don't keep any premise which mentions an unassumed split level assumption
+              unsigned prem_sz = prem->size();
+              for (unsigned i = 0; i < prem_sz; i++ ) {
+                SATLiteral lit = (*prem)[i];
+                SplitLevel lev;
+                if (isSplitLevelVar(lit.var(),lev)) {
+                  ASS(!lit.positive());
+                  if (!splitAssumps.contains(lit)) {
+                    return false;
+                  }
                 }
               }
-            }
-            return true;
-          } );
+              return true;
+            } );
 
         UnitList* premList = 0;
         Stack<Unit*>::Iterator it(prems);
@@ -191,10 +192,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
           UnitList::push(us, premList);
         }
 
-        SATClauseList* satPremises = env.options->minimizeSatProofs() ?
-          _solver->getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
-
-        Inference inf(FromSatRefutation(InferenceRule::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal));
+        Inference inf(NeedsMinimization(InferenceRule::GLOBAL_SUBSUMPTION, premList, allSATPrems, failedFinal));
         // CAREFUL:
         // FromSatRefutation does not automatically propagate age
         inf.setAge(cl->age());
