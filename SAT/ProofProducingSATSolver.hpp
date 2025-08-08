@@ -25,15 +25,9 @@ namespace SAT {
 class ProofProducingSATSolver final : public SATSolver {
 public:
   ProofProducingSATSolver() = default;
-  explicit ProofProducingSATSolver(SATSolver *inner, bool canMinimize) :
+  explicit ProofProducingSATSolver(SATSolver *inner) :
     _inner(inner),
-    _addedClauses(0),
-    _refutation(new(0) SATClause(0)),
-    _refutationInference(new PropInference(SATClauseList::empty())),
-    _canMinimize(canMinimize)
-    {
-      _refutation->setInference(_refutationInference);
-    }
+    _addedClauses(nullptr) {}
 
   void addClause(SATClause* cl) override
   {
@@ -73,61 +67,25 @@ public:
     return _inner->failedAssumptions();
   }
 
-  SATClause* getRefutation()
-  {
-    // connect the added clauses ...
-    SATClauseList* prems = _addedClauses;
-
-    // ... with the current assumptions
-
-    // TODO: the assumption set will be empty after a call to solveUnderAssumptions()
-    // This does not matter much since refutations are only ever passed to collectFOPremises
-    // and there are no FO premises of assumption inferences
-
-    // So the below is commented out to prevent useless leaking
-
-    /*
-    for (size_t i=0; i < _assumptions.size(); i++) {
-      SATClause* unit = new(1) SATClause(1);
-      (*unit)[0] = _assumptions[i];
-      unit->setInference(new AssumptionInference());
-      SATClauseList::push(unit,prems);
-    }
-    */
-
-    _refutationInference->setPremises(prems);
-
-    return _refutation;
+  SATClauseList *minimizePremises(SATClauseList *premises) override {
+    return _inner->minimizePremises(premises);
   }
 
-  SATClauseList* getRefutationPremiseList() {
-    return _canMinimize ? _addedClauses : nullptr;
-  }
+  // all premises ever added
+  SATClauseList *premiseList() const { return _addedClauses; }
+
+  /*
+   * only those premises required to get unsat from the last solve() call
+   * may be a superset of those actually necessary depending on
+   * how well the minimisation process goes
+   */
+  SATClauseList *minimizedPremises() { return _inner->minimizePremises(_addedClauses); }
 
 private:
   ScopedPtr<SATSolver> _inner;
 
   // to be used for the premises of a refutation
   SATClauseList* _addedClauses = nullptr;
-
-  /**
-   * Empty clause to be returned by the getRefutation call.
-   * Recycled between consecutive getRefutation calls.
-   */
-  SATClause* _refutation = nullptr;
-  /**
-   * The inference inside _refutation.
-   */
-  PropInference* _refutationInference = nullptr;
-
-  /**
-   * Z3Interfacing cannot minimize its premises via Minisat because it's an SMT solver,
-   * so we set this false for Z3.
-   *
-   * In that case we should return nullptr from getRefutationPremiseList (?!).
-   * TODO make this neater.
-   */
-  bool _canMinimize = true;
 };
 
 }
