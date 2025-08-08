@@ -71,7 +71,7 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _parent(parent), _solverIsSMT(false) {}
+  SplittingBranchSelector(Splitter& parent) : _parent(parent) {}
   /** To be called from Splitter::init() */
   void init();
 
@@ -98,7 +98,6 @@ private:
 
   Splitter& _parent;
 
-  bool _solverIsSMT;
   ProofProducingSATSolver _solver;
   ScopedPtr<DecisionProcedure> _dp;
 
