@@ -74,22 +74,23 @@ void SplittingBranchSelector::init()
 {
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
+  SATSolver *inner;
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
-      _solver = new MinisatInterfacing;
+      inner = new MinisatInterfacing;
       break;
     case Options::SatSolver::CADICAL:
-      _solver = new CadicalInterfacing(_parent.getOptions(),true);
+      inner = new CadicalInterfacing(_parent.getOptions(),true);
       break;
 #if VZ3
     case Options::SatSolver::Z3:
       {
         _solverIsSMT = true;
-        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
+        inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
           SATSolver* fallback = new MinisatInterfacing;
-          _solver = new FallbackSolverWrapper(_solver.release(),fallback);
+          inner = new FallbackSolverWrapper(inner, fallback);
         }
       }
       break;
@@ -99,16 +100,24 @@ void SplittingBranchSelector::init()
   }
 
   if (_parent.getOptions().splittingMinimizeModel()) {
-    _solver = new MinimizingSolver(_solver.release());
+    inner = new MinimizingSolver(inner);
   }
 
   if(_parent.getOptions().splittingCongruenceClosure()) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     if (_parent.getOptions().ccUnsatCores() == Options::CCUnsatCores::SMALL_ONES) {
-      _dp = new ShortConflictMetaDP(_dp.release(), _parent.satNaming(), *_solver);
+      _dp = new ShortConflictMetaDP(_dp.release(), _parent.satNaming(), *inner);
     }
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
   }
+
+  auto satSolver = _parent.getOptions().satSolver();
+  ::new(&_solver) ProofProducingSATSolver(
+    inner,
+    /* can minimize if */
+    satSolver == Options::SatSolver::MINISAT ||
+    satSolver == Options::SatSolver::CADICAL
+  );
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -120,7 +129,7 @@ void SplittingBranchSelector::updateVarCnt()
   _selected.expand(splitLvlCnt+1);
 
   // solver may be doing the same, but only internally
-  _solver->ensureVarCount(satVarCnt);
+  _solver.ensureVarCount(satVarCnt);
 }
 
 /**
@@ -130,16 +139,16 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
 {
   switch (_literalPolarityAdvice) {
     case Options::SplittingLiteralPolarityAdvice::FALSE:
-      _solver->suggestPolarity(lit.var(),!lit.positive());
+      _solver.suggestPolarity(lit.var(),!lit.positive());
     break;
     case Options::SplittingLiteralPolarityAdvice::TRUE:
-      _solver->suggestPolarity(lit.var(), lit.positive());
+      _solver.suggestPolarity(lit.var(), lit.positive());
     break;
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
     break;
     case Options::SplittingLiteralPolarityAdvice::RANDOM:
-      _solver->suggestPolarity(lit.var(),Random::getBit());
+      _solver.suggestPolarity(lit.var(),Random::getBit());
     break;
     default:
       ASSERTION_VIOLATION;
@@ -173,9 +182,9 @@ static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 
 void SplittingBranchSelector::handleSatRefutation()
 {
-  SATClause* satRefutation = _solver->getRefutation();
+  SATClause* satRefutation = _solver.getRefutation();
   SATClauseList* satPremises = env.options->minimizeSatProofs() ?
-      _solver->getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
+      _solver.getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
   if (!env.colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
@@ -191,7 +200,7 @@ void SplittingBranchSelector::handleSatRefutation()
 
     if (satPremises) { // does our SAT solver support postponed minimization?
       SATLiteralStack dummy;
-      SATClauseList* minimizedSatPremises = MinisatInterfacing::minimizePremiseList(satPremises,dummy);
+      SATClauseList* minimizedSatPremises = MinisatInterfacing<>::minimizePremiseList(satPremises,dummy);
 
       actualSatPremises.loadFromIterator(SATClauseList::DestructiveIterator(minimizedSatPremises));
     } else {
@@ -246,7 +255,7 @@ void SplittingBranchSelector::handleSatRefutation()
     }
 
     SATClauseStack result;
-    MinisatInterfacing::interpolateViaAssumptions(_parent.maxSatVar(),first,second,result);
+    MinisatInterfacing<>::interpolateViaAssumptions(_parent.maxSatVar(),first,second,result);
 
     // turn result into Formula wrapping its CNF structure
     Formula* interpolant;
@@ -310,12 +319,12 @@ void SplittingBranchSelector::handleSatRefutation()
   }
 }
 
-SATSolver::Status SplittingBranchSelector::processDPConflicts()
+SAT::Status SplittingBranchSelector::processDPConflicts()
 {
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
 
   if(!_dp) {
-    return SATSolver::Status::SATISFIABLE;
+    return Status::SATISFIABLE;
   }
 
   SAT2FO& s2f = _parent.satNaming();
@@ -328,7 +337,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
       gndAssignment.reset();
       // collects only ground literals, because it known only about them ...
-      s2f.collectAssignment(*_solver, gndAssignment);
+      s2f.collectAssignment(_solver, gndAssignment);
       // ... moreover, _dp->addLiterals will filter the set anyway
 
       _dp->reset();
@@ -344,7 +353,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
         SATClause* conflCl = s2f.createConflictClause(unsatCore);
-        _solver->addClause(conflCl);
+        _solver.addClause(conflCl);
       }
 
       RSTAT_CTR_INC("ssat_dp_conflict");
@@ -354,20 +363,20 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     // there was conflict, so we try looking for a different model
     {
       TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
-      if (_solver->solve() == SATSolver::Status::UNSATISFIABLE) {
-        return SATSolver::Status::UNSATISFIABLE;
+      if (_solver.solve() == Status::UNSATISFIABLE) {
+        return Status::UNSATISFIABLE;
       }
     }
   }
 
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
-  return SATSolver::Status::SATISFIABLE;
+  return Status::SATISFIABLE;
 }
 
-void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
+void SplittingBranchSelector::updateSelection(unsigned satVar, VarAssignment asgn,
     SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
-  ASS_NEQ(asgn, SATSolver::VarAssignment::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
+  ASS_NEQ(asgn, VarAssignment::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
 
   SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(satVar, true));
   SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
@@ -376,7 +385,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   bool negUsed = _parent.isUsedName(negLvl);
 
   switch(asgn) {
-  case SATSolver::VarAssignment::TRUE:
+  case VarAssignment::TRUE:
     if(posUsed && !_selected.find(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
@@ -386,7 +395,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(negLvl);
     }
     break;
-  case SATSolver::VarAssignment::FALSE:
+  case VarAssignment::FALSE:
     if(negUsed && !_selected.find(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
@@ -396,7 +405,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(posLvl);
     }
     break;
-  case SATSolver::VarAssignment::DONT_CARE:
+  case VarAssignment::DONT_CARE:
   {
     bool posSticky = posUsed && _parent.isSticky(posLvl);
     bool negSticky = negUsed && _parent.isSticky(negLvl);
@@ -434,7 +443,7 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl)
   }
 
   RSTAT_CTR_INC("ssat_sat_clauses");
-  _solver->addClause(cl);
+  _solver.addClause(cl);
 }
 
 void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps)
@@ -444,32 +453,32 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 
   unsigned maxSatVar = _parent.maxSatVar();
 
-  SATSolver::Status stat;
+  SAT::Status stat;
   {
     TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
-    stat = _solver->solve();
+    stat = _solver.solve();
   }
-  if (stat == SATSolver::Status::SATISFIABLE) {
+  if (stat == Status::SATISFIABLE) {
     stat = processDPConflicts();
   }
-  if(stat == SATSolver::Status::UNSATISFIABLE) {
+  if(stat == Status::UNSATISFIABLE) {
     handleSatRefutation(); // noreturn!
   }
-  if(stat == SATSolver::Status::UNKNOWN){
+  if(stat == Status::UNKNOWN){
     env.statistics->smtReturnedUnknown=true;
     throw MainLoop::MainLoopFinishedException(TerminationReason::REFUTATION_NOT_FOUND);
   }
-  ASS_EQ(stat,SATSolver::Status::SATISFIABLE);
+  ASS_EQ(stat,Status::SATISFIABLE);
 
   for(unsigned i=1; i<=maxSatVar; i++) {
-    SATSolver::VarAssignment asgn = _solver->getAssignment(i);
+    VarAssignment asgn = _solver.getAssignment(i);
 
     /**
      * This may happen with the current version of z3 when evaluating expressions like (0 == 1/0).
      * A bug report / feature request has been sent to the z3 people, but this will make us stay sound in release mode.
      * (While violating an assertion in debug - see getAssignment in Z3Interfacing).
      */
-    if (asgn == SATSolver::VarAssignment::NOT_KNOWN) {
+    if (asgn == VarAssignment::NOT_KNOWN) {
       env.statistics->smtDidNotEvaluate=true;
       throw MainLoop::MainLoopFinishedException(TerminationReason::REFUTATION_NOT_FOUND);
     }

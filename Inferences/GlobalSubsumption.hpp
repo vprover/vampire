@@ -18,7 +18,7 @@
 #include "Forwards.hpp"
 #include "Shell/Options.hpp"
 #include "Kernel/Grounder.hpp"
-#include "SAT/SATSolver.hpp"
+#include "SAT/ProofProducingSATSolver.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -46,7 +46,7 @@ public:
 private:
   struct Unit2ClFn;
 
-  ScopedPtr<SATSolverWithAssumptions> _solver;
+  ScopedPtr<ProofProducingSATSolver> _solver;
   ScopedPtr<GlobalSubsumptionGrounder> _grounder;
 
   /**

@@ -365,6 +365,10 @@ sa!=fmb > gs ~cat off:5,on:1
 
 # FMB options
 
+# TODO: a candidate for hardwiring "on" (go an collect the data)
+# fmb_use_simplifying_solver
+sa=fmb sas=minisat > fmbuss ~cat off:1,on:5
+
 # fmb_enumeration_strategy (TODO: in the multi-sorted setting, sbeam makes only sense with intent=sat)
 $has_z3=true  sa=fmb > fmbes ~cat sbeam:1,smt:1,contour:1
 $has_z3!=true sa=fmb > fmbes ~cat sbeam:1,contour:1

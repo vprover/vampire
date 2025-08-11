@@ -24,6 +24,7 @@
 
 #include "Kernel/MainLoop.hpp"
 #include "SAT/SATSolver.hpp"
+#include "SAT/SATClause.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
 #include "Lib/BinaryHeap.hpp"
@@ -128,7 +129,7 @@ private:
 
   unsigned _curMaxVar;
   // SAT solver used to solve constraints (a new one is used for each model size)
-  ScopedPtr<SATSolverWithAssumptions> _solver;
+  ScopedPtr<SATSolver> _solver;
 
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
   DArray<bool> del_f;
