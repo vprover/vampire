@@ -522,7 +522,6 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   ALWAYS(it.hasNext());
   pair<unsigned, pair<Clause*, Literal*>> p = it.next();
   Literal* origLit = p.second.second;
-  // TODO(hzzv): probably a bugfix, merge into master?
   while (p.first > 0 && !proofNums.contains(p.first) && it.hasNext()) p = it.next();
   ASS(p.first == 0 || proofNums.contains(p.first));
   unsigned arity = origLit->arity();
@@ -541,9 +540,9 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
-      ASS_EQ(sorts[i], env.signature->getPredicate(origLit->functor())->predType()->arg(i));
+      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
       // Construct the answer using if-then-else
-      answerArgs[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*origLit->nthArgument(i), sorts[i]), answerArgs[i], sorts[i]));
+      answerArgs[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]), answerArgs[i], sorts[i]));
     }
   }
   // just a single literal answer
