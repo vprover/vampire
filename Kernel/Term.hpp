@@ -1032,7 +1032,7 @@ public:
   {
   public:
     DECL_ELEMENT_TYPE(TermList);
-    Iterator(Term* t) : _next(t->args()) {}
+    Iterator(const Term* t) : _next(t->args()) {}
     bool hasNext() const { return _next->isNonEmpty(); }
     TermList next()
     {
@@ -1042,7 +1042,7 @@ public:
       return res;
     }
   private:
-    TermList* _next;
+    const TermList* _next;
   }; // Term::Iterator
 }; // class Term
 

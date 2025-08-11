@@ -592,22 +592,22 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         ASS_EQ(binding->connective(), Connective::LITERAL);
         auto blit = binding->literal();
         ASS(env.signature->isDefPred(blit->functor()));
+        ASS(blit->termArg(0).isTerm());
 
-        auto lhs = blit->termArg(0);
-        auto rhs = blit->termArg(1);
-        ASS(lhs.isTerm());
+        auto bindingLhs = blit->termArg(0).term();
+        auto bindingRhs = blit->termArg(1);
 
-        // The let binder lhs can contain free variables in potentially
+        // The let binder bindingLhs can contain free variables in potentially
         // arbitrary places if it has implicit type arguments.
         auto argumentVars = VList::empty();
-        iterTraits(FormulaVarIterator(lhs))
+        iterTraits(FormulaVarIterator(bindingLhs))
           .forEach([&](unsigned var) {
             VList::push(var, argumentVars);
           });
 
         // collect variables B1,...,Bj,X1, ..., Xn
         auto bodyFreeVars = VList::empty();
-        iterTraits(FormulaVarIterator(rhs))
+        iterTraits(FormulaVarIterator(bindingRhs))
           .forEach([&](unsigned var) {
             if (!VList::member(var, argumentVars)) {
               VList::push(var, bodyFreeVars);
@@ -619,8 +619,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         collectSorts(vars, typeVars, termVars, allVars, termVarSorts);
 
         // take the defined function symbol and its result sort
-        unsigned symbol = lhs.term()->functor();
-        TermList bindingSort = SortHelper::getResultSort(lhs, _varSorts);
+        unsigned symbol = bindingLhs->functor();
+        TermList bindingSort = SortHelper::getResultSort(bindingLhs);
 
         SortHelper::normaliseSort(typeVars, bindingSort);
 
@@ -654,7 +654,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // process the body of the function
         TermList processedBody;
         Formula* processedBodyFormula = nullptr;
-        process(rhs, bindingContext, processedBody, processedBodyFormula);
+        process(bindingRhs, bindingContext, processedBody, processedBodyFormula);
 
         // g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
         TermList freshFunctionApplication;
@@ -666,7 +666,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           args = allVars;
         } else {
           // Otherwise we take the original args to get a well-formed type
-          args.loadFromIterator(anyArgIter(lhs.term()));
+          args.loadFromIterator(anyArgIter(bindingLhs));
         }
 
         buildApplication(freshSymbol, bindingContext, args, freshFunctionApplication, freshPredicateApplication);
@@ -699,8 +699,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             std::cout << "[PP] FOOL replace in: " << contents.toString() << endl;
           }
 
-          SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT,
-              freshApplication, symbol, argumentVars);
+          SymbolOccurrenceReplacement replacement(bindingLhs, freshApplication);
 
           contents = replacement.process(contents);
 

@@ -146,7 +146,7 @@ bool FormulaVarIterator::hasNext()
         const Term* t = _terms.pop();
 
         // TODO: is there a better iterator over arguments of const Term*?
-        Term::Iterator ts(const_cast<Term*>(t));
+        Term::Iterator ts(t);
         while (ts.hasNext()) {
           _instructions.push(FVI_TERM_LIST);
           _termLists.push(ts.next());

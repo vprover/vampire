@@ -67,7 +67,7 @@ protected:
  *  might already be some replacements that happened earlier, e.g.:
  *  transforming g(f(a,b)) will consider (provided transformSubterm is the identity function)
  *  the following sequence: a,b,f(a,b),g(f(a,b))
- *  and if transformSubterm is the identitify everywhere except for f(a,b) for which it returns c,
+ *  and if transformSubterm is the identity everywhere except for f(a,b) for which it returns c,
  *  the considered sequence will be: a,b,f(a,b)->c,g(c)
  */
 class BottomUpTermTransformer : public TermTransformerCommon {

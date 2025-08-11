@@ -8,6 +8,7 @@
  * and in the source directory
  */
 #include "Kernel/Substitution.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -21,30 +22,29 @@ using namespace Shell;
 TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
   Substitution substitution;
 
-  VList::Iterator vit(_bindingVariables);
-  while (vit.hasNext()) {
-    unsigned var = vit.next();
-    ASS(tit.hasNext());
-    TermList arg = tit.next();
-    substitution.bindUnbound(var, arg);
-  }
+  iterTraits(Term::Iterator(_lhs))
+    .forEach([&](TermList baseArg) {
+      ASS(tit.hasNext());
+      // TODO find out if process needs to be called on tit.next() here
+      ALWAYS(MatchingUtils::matchTerms(baseArg, tit.next(), substitution));
+    });
   ASS(!tit.hasNext());
 
   if (_counter > 0) {
     /**
-     * The _binding is inlined more than once. In such case, rename it's bound
+     * The _rhs is inlined more than once. In such case, rename it's bound
      * variables.
      */
 
     if (_counter == 1) {
       /**
-       * The second occurrence of the _binding -- need to calculate it's bound variables.
+       * The second occurrence of the _rhs -- need to calculate it's bound variables.
        *
        * TODO: This is insufficient to cover the case when a variable is bound
        * multiple times in nested expressions. This is left as is for now,
        * because this case cannot occur with let-bindings of constant.
        */
-      collectBoundVariables(_binding);
+      collectBoundVariables(_rhs);
     }
 
     VList::Iterator bit(_bound);
@@ -58,7 +58,7 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
 
   _counter++;
 
-  return SubstHelper::apply(_binding, substitution);
+  return SubstHelper::apply(_rhs, substitution);
 }
 
 TermList SymbolDefinitionInlining::process(TermList ts) {
@@ -156,7 +156,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 
   Term::Iterator terms(term);
 
-  if (!_isPredicate && (term->functor() == _symbol)) {
+  if (!_isPredicate && (term->functor() == _lhs->functor())) {
     return substitute(terms);
   }
 
@@ -228,7 +228,7 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
       Literal* literal = formula->literal();
       Term::Iterator terms(literal);
 
-      if (_isPredicate && (literal->functor() == _symbol)) {
+      if (_isPredicate && (literal->functor() == _lhs->functor())) {
         if (literal->polarity()) {
           return BoolTermFormula::create(substitute(terms));
         } else {

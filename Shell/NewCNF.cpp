@@ -118,6 +118,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, 
   _varSorts.reset();
   _collectedVarSorts = false;
   _maxVar = 0;
+  _skolemTypeVarSubst.reset();
   _freeVars.reset();
 
   { // destroy the cached substitution entries
@@ -657,30 +658,29 @@ void NewCNF::processMatch(Term::SpecialTermData *sd, Term *term, Occurrences &oc
   }
 }
 
-TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
+TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList body)
 {
   ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
 
-  unsigned symbol;
-  VList* variables;
-  TermList binding;
+  Term* bindingLhs;
+  TermList bindingRhs;
+  auto bindingBoundVars = VList::empty();
 
   if (sd->specialFunctor() == SpecialFunctor::LET) {
 
-    Formula* bindingF = sd->getLetBinding();
-    if (bindingF->connective() == Connective::FORALL) {
-      variables = bindingF->vars();
-      bindingF = bindingF->qarg();
-    } else {
-      variables = VList::empty();
+    Formula* binding = sd->getLetBinding();
+    if (binding->connective() == Connective::FORALL) {
+      bindingBoundVars = binding->vars();
+      binding = binding->qarg();
     }
-    ASS_EQ(bindingF->connective(), Connective::LITERAL);
-    binding = bindingF->literal()->termArg(1);
-    symbol = bindingF->literal()->termArg(0).term()->functor();
+    ASS_EQ(binding->connective(), Connective::LITERAL);
+    ASS(binding->literal()->termArg(0).isTerm());
+    bindingLhs = binding->literal()->termArg(0).term();
+    bindingRhs = binding->literal()->termArg(1);
 
   } else {
-    binding = sd->getBinding();
-    if (binding.isTerm() && binding.term()->isTuple()) {
+    bindingRhs = sd->getBinding();
+    if (bindingRhs.isTerm() && bindingRhs.term()->isTuple()) {
       // binding of the form $let([x, y, z, ...] := [a, b, c, ...], ...) is processed
       // as $let(x := a, $let(y := b, $let(z := c, ...)))
       unsigned tupleFunctor = sd->getFunctor();
@@ -689,38 +689,37 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
       OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
 
-      Term* bindingTuple = binding.term()->getSpecialData()->getTupleTerm();
+      Term* bindingRhsTuple = bindingRhs.term()->getSpecialData()->getTupleTerm();
       unsigned arity = VList::length(symbols);
       VList::Iterator sit(symbols);
-      Term::Iterator bit(bindingTuple);
+      Term::Iterator bit(bindingRhsTuple);
 
-      TermList processedContents = contents;
-      TermList processedBinding;
+      TermList processedBody = body;
+      TermList processedBindingRhs;
       for (unsigned i = 0; i < arity - 1; i++) {
         ASS(bit.hasNext());
         ASS(sit.hasNext());
-        auto nestedBinding = Formula::createDefinition(Term::create(sit.next(), {}), bit.next());
-        Term* nestedLet = Term::createLet(nestedBinding, processedContents, bodySort);
-        processedContents = TermList(nestedLet);
+        auto nestedBinding = Formula::createDefinition(Term::createConstant(sit.next()), bit.next());
+        Term* nestedLet = Term::createLet(nestedBinding, processedBody, bodySort);
+        processedBody = TermList(nestedLet);
       }
       ASS(bit.hasNext());
       ASS(sit.hasNext());
-      processedBinding = bit.next();
-      symbol = sit.next();
+      processedBindingRhs = bit.next();
+      auto symbol = sit.next();
       ASS(!sit.hasNext());
       ASS(!bit.hasNext());
 
       if (env.options->showPreprocessing()) {
-        Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
+        Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, bindingRhs, body, tupleType->result());
         std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-        auto b = Formula::createDefinition(Term::create(symbol, {}), processedBinding);
-        Term* processedLet = Term::createLet(b, processedContents, bodySort);
+        auto b = Formula::createDefinition(Term::createConstant(symbol), processedBindingRhs);
+        Term* processedLet = Term::createLet(b, processedBody, bodySort);
         std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       }
 
-      variables = VList::empty();
-      contents = processedContents;
-      binding = processedBinding;
+      body = processedBody;
+      bindingRhs = processedBindingRhs;
     } else {
       unsigned tupleFunctor = sd->getFunctor();
       VList* symbols = sd->getTupleSymbols();
@@ -736,7 +735,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
       TermList tupleTerm = TermList(Term::createConstant(tuple));
 
-      TermList detupledContents = contents;
+      TermList detupledBody = body;
 
       for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
         unsigned symbol = VList::nth(symbols, proj);
@@ -750,27 +749,26 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
           projectedArgument = Term::create1(projFunctor, tupleTerm);
         }
 
-        SymbolDefinitionInlining inlining(symbol, 0, TermList(projectedArgument), 0);
-        detupledContents = inlining.process(detupledContents);
+        SymbolDefinitionInlining inlining(Term::createConstant(symbol), TermList(projectedArgument), 0);
+        detupledBody = inlining.process(detupledBody);
       }
+
+      bindingLhs = Term::createConstant(tuple);
+      body = detupledBody;
 
       if (env.options->showPreprocessing()) {
-        Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
+        Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, bindingRhs, body, tupleType->result());
         std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-        auto b = Formula::createDefinition(Term::create(tuple, {}), binding);
-        Term* processedLet = Term::createLet(b, detupledContents, bodySort);
+        auto binding = Formula::createDefinition(bindingLhs, bindingRhs);
+        Term* processedLet = Term::createLet(binding, detupledBody, bodySort);
         std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       }
-
-      symbol = tuple;
-      variables = VList::empty();
-      contents = detupledContents;
     }
   }
 
   bool inlineLet = env.options->getIteInlineLet();
 
-  if (binding.isVar()) {
+  if (bindingRhs.isVar()) {
     inlineLet = true;
   } else {
 //    Term* term = binding.term();
@@ -798,17 +796,17 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
   TermList processedContents;
   if (inlineLet) {
-    processedContents = inlineLetBinding(symbol, variables, binding, contents);
+    processedContents = inlineLetBinding(bindingLhs, bindingRhs, body);
     if (env.options->showPreprocessing()) {
-      std::cout << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
-      std::cout << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) binding: " << bindingRhs.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) in:  " << body.toString() << std::endl;
       std::cout << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
     }
   } else {
-    processedContents = nameLetBinding(symbol, variables, binding, contents);
+    processedContents = nameLetBinding(bindingLhs, bindingRhs, body, bindingBoundVars);
     if (env.options->showPreprocessing()) {
-      std::cout << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
-      std::cout << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) binding: " << bindingRhs.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) in:  " << body.toString() << std::endl;
       std::cout << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
     }
   }
@@ -828,26 +826,26 @@ void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrence
   enqueue(deletedContentsFormula, occurrences);
 }
 
-TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents)
+TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body, VList* bindingBoundVars)
 {
   VList* bindingFreeVars = VList::empty();
-  FormulaVarIterator bfvi(binding);
+  FormulaVarIterator bfvi(bindingRhs);
   while (bfvi.hasNext()) {
     unsigned var = bfvi.next();
-    if (!VList::member(var, bindingVariables)) {
+    if (!VList::member(var, bindingBoundVars)) {
       VList::push(var,bindingFreeVars);
     }
   }
 
-  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
+  bool isPredicate = bindingLhs->isBoolean();
 
-  unsigned nameArity = VList::length(bindingVariables) + VList::length(bindingFreeVars);
+  unsigned nameArity = VList::length(bindingBoundVars) + VList::length(bindingFreeVars);
   TermList nameSort;
   if (!isPredicate) {
-    nameSort = env.signature->getFunction(symbol)->fnType()->result();
+    nameSort = env.signature->getFunction(bindingLhs->functor())->fnType()->result();
   }
 
-  unsigned freshSymbol = symbol;
+  unsigned freshSymbol = bindingLhs->functor();
 
   bool renameSymbol = VList::isNonEmpty(bindingFreeVars);
   if (renameSymbol) {
@@ -859,7 +857,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
     VList::Iterator vit(bindingFreeVars);
     while (vit.hasNext()) {
       unsigned var = vit.next();
-      sorts.push(_varSorts.get(var, AtomicSort::defaultSort()));
+      sorts.push(getVarSort(var));
     }
 
     if (isPredicate) {
@@ -874,13 +872,13 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
   }
 
 
-  Stack<TermList> arguments;
+  TermStack arguments;
   VList::Iterator bfvit(bindingFreeVars);
   while (bfvit.hasNext()) {
     unsigned var = bfvit.next();
     arguments.push(TermList(var, false));
   }
-  VList::Iterator vbit(bindingVariables);
+  VList::Iterator vbit(bindingBoundVars);
   while (vbit.hasNext()) {
     unsigned var = vbit.next();
     arguments.push(TermList(var, false));
@@ -893,7 +891,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
     freshApplication = name;
     Formula* nameFormula = new AtomicFormula(name);
 
-    Formula* formulaBinding = BoolTermFormula::create(binding);
+    Formula* formulaBinding = BoolTermFormula::create(bindingRhs);
     enqueue(formulaBinding);
 
     for (SIGN sign : { POSITIVE, NEGATIVE }) {
@@ -902,7 +900,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
   } else {
     TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
     freshApplication = name.term();
-    Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, binding, nameSort));
+    Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, bindingRhs, nameSort));
 
     enqueue(nameFormula);
 
@@ -910,18 +908,17 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
   }
   
   if (renameSymbol) {
-    SymbolOccurrenceReplacement replacement(isPredicate, freshApplication, symbol, bindingVariables);
-    return replacement.process(contents);
+    SymbolOccurrenceReplacement replacement(bindingLhs, freshApplication);
+    return replacement.process(body);
   }
 
-
-  return contents;
+  return body;
 }
 
-TermList NewCNF::inlineLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents) {
+TermList NewCNF::inlineLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body) {
   ensureHavingVarSorts();
-  SymbolDefinitionInlining inlining(symbol, bindingVariables, binding, _maxVar);
-  TermList inlinedContents = inlining.process(contents);
+  SymbolDefinitionInlining inlining(bindingLhs, bindingRhs, _maxVar);
+  TermList inlinedContents = inlining.process(body);
 
   List<pair<unsigned, unsigned>>::Iterator renamings(inlining.variableRenamings());
   while (renamings.hasNext()) {
@@ -964,36 +961,70 @@ void NewCNF::ensureHavingVarSorts()
   }
 }
 
+TermList NewCNF::getVarSort(unsigned var) const
+{
+  ASS(_collectedVarSorts);
+  auto sort = _varSorts.get(var, AtomicSort::defaultSort());
+  return SubstHelper::apply(sort, _skolemTypeVarSubst);
+}
+
 Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 {
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
-  TermList rangeSort=_varSorts.get(var, AtomicSort::defaultSort());
-  static Stack<TermList> domainSorts;
-  static Stack<TermList> fnArgs;
-  ASS(domainSorts.isEmpty());
-  ASS(fnArgs.isEmpty());
+  // TODO shouldn't we enforce that the sort is explicitly known?
+  TermList rangeSort=getVarSort(var);
+  Recycled<TermStack> termVarSorts;
+  Recycled<TermStack> typeVars;
+  Recycled<TermStack> termVars;
 
-  auto vit = free->iter();
-  while(vit.hasNext()) {
-    unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
-    fnArgs.push(TermList(uvar, false));
-  }
+  iterTraits(free->iter())
+    .forEach([&](unsigned uvar) {
+      auto varSort = getVarSort(uvar);
+      if (varSort == AtomicSort::superSort()) {
+        typeVars->push(TermList::var(uvar));
+      } else {
+        termVars->push(TermList::var(uvar));
+        termVarSorts->push(varSort);
+      }
+    });
+
+  SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
+  SortHelper::normaliseSort(*typeVars, rangeSort);
+
+  auto taArity = typeVars->size();
+
+  // TODO maybe this should be avoided for type cons
+  auto args = *typeVars;
+  args.loadFromIterator(TermStack::Iterator(*termVars));
 
   Term* res;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
+  bool isTypeVar = (rangeSort == AtomicSort::superSort());
   if (isPredicate) {
-    unsigned pred = Skolem::addSkolemPredicate(arity, 0, domainSorts.begin());
+    unsigned pred = Skolem::addSkolemPredicate(arity, taArity, termVarSorts->begin());
     Signature::Symbol *sym = env.signature->getPredicate(pred);
     sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
       sym->markInGoal();
     }
-    res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, fnArgs.begin())));
+    res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, args.begin())));
+  } else if (isTypeVar) {
+    ASS(termVars->isEmpty() && termVarSorts->isEmpty());
+    ASS_EQ(taArity, arity);
+    unsigned typeCon = Skolem::addSkolemTypeCon(arity);
+    Signature::Symbol *sym = env.signature->getTypeCon(typeCon);
+    sym->markSkipCongruence();
+    if(_beingClausified->derivedFromGoal()){
+      sym->markInGoal();
+    }
+    if(_forInduction){
+      sym->markInductionSkolem();
+    }
+    res = AtomicSort::create(typeCon, arity, typeVars->begin());
   } else {
-    unsigned fun = Skolem::addSkolemFunction(arity, 0, domainSorts.begin(), rangeSort);
+    unsigned fun = Skolem::addSkolemFunction(arity, taArity, termVarSorts->begin(), rangeSort);
     Signature::Symbol *sym = env.signature->getFunction(fun);
     sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
@@ -1002,11 +1033,14 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     if(_forInduction){
       sym->markInductionSkolem();
     }
-    res = Term::create(fun, arity, fnArgs.begin());
+    res = Term::create(fun, arity, args.begin());
   }
 
-  domainSorts.reset();
-  fnArgs.reset();
+  // Store type variables and their Skolemized form in a substitution
+  // which is then applied on variable sorts to get the right ones.
+  if (rangeSort == AtomicSort::superSort()) {
+    _skolemTypeVarSubst.bindUnbound(var, res);
+  }
 
   return res;
 }
@@ -1221,7 +1255,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   VList::Iterator vit(free);
   while (vit.hasNext()) {
     unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
+    domainSorts.push(getVarSort(uvar));
     predArgs.push(TermList(uvar, false));
   }
   VList::destroy(free);

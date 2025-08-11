@@ -8,6 +8,7 @@
  * and in the source directory
  */
 #include "Kernel/Formula.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 
@@ -27,26 +28,12 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
         return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
 
       case SpecialFunctor::LET:
-          // TODO this condition does not make any sense to me
-          // if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
-          //   // function symbols, defined inside $let are expected to be
-          //   // disjoint and fresh symbols are expected to be fresh
-          //   ASS_NEQ(sd->getFunctor(), _symbol);
-          //   //ASS_NEQ(sd->getFunctor(), _freshSymbol);
-          // }
           return Term::createLet(process(sd->getLetBinding()), process(*term->nthArgument(0)), sd->getSort());
 
       case SpecialFunctor::FORMULA:
           return Term::createFormula(process(sd->getFormula()));
 
       case SpecialFunctor::LET_TUPLE:
-        // TODO same as above
-        if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
-          // function symbols, defined inside $let are expected to be
-          // disjoint and fresh symbols are expected to be fresh
-          ASS_NEQ(sd->getFunctor(), _symbol);
-          //ASS_NEQ(sd->getFunctor(), _freshSymbol);
-        }
         return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
       case SpecialFunctor::TUPLE:
@@ -65,35 +52,28 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
     ASSERTION_VIOLATION;
   }
 
-  bool renaming = !_isPredicate && (term->functor() == _symbol);
+  Term::Iterator it(term);
 
-  TermList* arg = term->args();
-  TermStack arguments;
-  Substitution substitution;
-
-  if (renaming) {
-    VList::Iterator fvit(_argVars);
-    while (fvit.hasNext()) {
-      unsigned var = fvit.next();
-      substitution.bindUnbound(var, process(*arg));
-      arg = arg->next();
-    }
-  } else {
-    while (!arg->isEmpty()) {
-      if(arg->isVar() || arg->term()->isSort()){
-        arguments.push(*arg);
-      } else {
-        arguments.push(process(*arg));        
-      }
-      arg = arg->next();
-    }  
-  }
-
-  if (renaming) {
+  if (!_isPredicate && (term->functor() == _oldApplication->functor())) {
+    Substitution substitution;
+    iterTraits(Term::Iterator(_oldApplication))
+      .forEach([&](TermList baseArg) {
+        ASS(it.hasNext())
+        ALWAYS(MatchingUtils::matchTerms(baseArg, process(it.next()), substitution));
+      });
     return SubstHelper::apply(_freshApplication, substitution);
-  } else {
-    return Term::create(term, arguments.begin());
   }
+
+  TermStack arguments;
+  while (it.hasNext()) {
+    auto arg = it.next();
+    if(arg.isVar() || arg.term()->isSort()){
+      arguments.push(arg);
+    } else {
+      arguments.push(process(arg));        
+    }
+  }
+  return Term::create(term, arguments.begin());
 }
 
 TermList SymbolOccurrenceReplacement::process(TermList ts) {
@@ -109,41 +89,35 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
     case LITERAL: {
       Literal* literal = formula->literal();
 
-      bool renaming = _isPredicate && (literal->functor() == _symbol);
-
-      TermList* arg = literal->args();
-      TermStack arguments;
+      Term::Iterator it(literal);
       Substitution substitution;
-
-      if (renaming) {
-        VList::Iterator fvit(_argVars);
-        while (fvit.hasNext()) {
-          unsigned var = fvit.next();
-          substitution.bindUnbound(var, process(*arg));
-          arg = arg->next();
-        }
-      } else {
-        while (!arg->isEmpty()) {
-          if(arg->isVar() || arg->term()->isSort()){
-            arguments.push(*arg);
-          } else {
-            arguments.push(process(*arg));
-          }
-          arg = arg->next();
-        }    
-      }
-
       Literal* processedLiteral;
-      if (renaming) {
-        processedLiteral = SubstHelper::apply(static_cast<Literal*>(_freshApplication), substitution);
+
+      if (_isPredicate && (literal->functor() == _oldApplication->functor())) {
+        iterTraits(Term::Iterator(_oldApplication))
+          .forEach([&](TermList baseArg) {
+            ASS(it.hasNext());
+            auto arg = it.next();
+            ALWAYS(MatchingUtils::matchTerms(baseArg, process(arg), substitution));
+          });
+
+        auto processedLiteral = SubstHelper::apply(static_cast<Literal*>(_freshApplication), substitution);
         if(!literal->polarity()){
           processedLiteral = Literal::complementaryLiteral(processedLiteral);
         }
-      } else {
-        processedLiteral = Literal::create(literal, arguments.begin());
+        return new AtomicFormula(processedLiteral);
       }
 
-      return new AtomicFormula(processedLiteral);
+      TermStack arguments;
+      while (it.hasNext()) {
+        auto arg = it.next();
+        if(arg.isVar() || arg.term()->isSort()){
+          arguments.push(arg);
+        } else {
+          arguments.push(process(arg));
+        }
+      }
+      return new AtomicFormula(Literal::create(literal, arguments.begin()));
     }
 
     case AND:

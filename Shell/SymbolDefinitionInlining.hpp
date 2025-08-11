@@ -23,9 +23,8 @@ using namespace Shell;
 
 class SymbolDefinitionInlining {
   public:
-    SymbolDefinitionInlining(unsigned symbol, VList* bindingVariables, TermList binding, unsigned freshVarOffset)
-            : _isPredicate(binding.isTerm() && binding.term()->isBoolean()), _symbol(symbol),
-              _bindingVariables(bindingVariables), _binding(binding),
+    SymbolDefinitionInlining(Term* lhs, TermList rhs, unsigned freshVarOffset)
+            : _isPredicate(lhs->isBoolean()), _lhs(lhs), _rhs(rhs),
               _bound(0), _counter(0), _freshVarOffset(freshVarOffset), _varRenames(0) {}
 
     Formula* process(Formula* formula);
@@ -36,9 +35,8 @@ class SymbolDefinitionInlining {
 
   private:
     const bool _isPredicate;
-    const unsigned _symbol;
-    const VList* _bindingVariables;
-    const TermList _binding;
+    const Term* _lhs;
+    const TermList _rhs;
     VList* _bound;
 
     TermList substitute(Term::Iterator tit);
