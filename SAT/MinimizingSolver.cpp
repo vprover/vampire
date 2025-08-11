@@ -55,20 +55,7 @@ void MinimizingSolver::addClause(SATClause* cl)
   }
 }
 
-void MinimizingSolver::addClauseIgnoredInPartialModel(SATClause* cl)
-{
-  // just passing to _inner, but for minimization it will be ignored
-  _inner->addClause(cl);
-  _assignmentValid = false;
-}
-
-SATSolver::Status MinimizingSolver::solveLimited(unsigned conflictCountLimit)
-{
-  _assignmentValid = false;
-  return _inner->solveLimited(conflictCountLimit);
-}
-
-SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
+VarAssignment MinimizingSolver::getAssignment(unsigned var)
 {
   ASS_G(var,0); ASS_LE(var,_varCnt);
 
@@ -111,7 +98,7 @@ void MinimizingSolver::selectVariable(unsigned var)
     while(cit.hasNext()) {
       SATLiteral cl_lit = cit.next();
       unsigned cl_var = cl_lit.var(); 
-      if (cl_lit.polarity() == _asgn[cl_var]) {
+      if (cl_lit.positive() == _asgn[cl_var]) {
         ASS_G(_unsClCnt[cl_var], 0);
         _unsClCnt[cl_var]--;
         if (cl_var != var) { // var has been just popped
@@ -129,7 +116,7 @@ void MinimizingSolver::putIntoIndex(SATClause* cl)
     SATLiteral lit = cit.next();
     unsigned var = lit.var();
 
-    if (lit.polarity() == _asgn[var]) {
+    if (lit.positive() == _asgn[var]) {
       _clIdx[var].push(cl);
       _unsClCnt[var]++;
     }
@@ -142,7 +129,7 @@ bool MinimizingSolver::tryPuttingToAnExistingWatch(SATClause* cl)
   while(cit.hasNext()) {
     SATLiteral lit = cit.next();
     unsigned var = lit.var();
-    if(_asgn[var]==lit.polarity() && !admitsDontcare(var)) {
+    if(_asgn[var]==lit.positive() && !admitsDontcare(var)) {
       ALWAYS(_satisfiedClauses.insert(cl));
       _watcher[var].push(cl);
       return true;

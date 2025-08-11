@@ -948,6 +948,13 @@ void Options::init()
     _fmbKeepSbeamGenerators.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::SBMEAM)));
     _fmbKeepSbeamGenerators.tag(OptionTag::FMB);
 
+    _fmbUseSimplifyingSolver = BoolOptionValue("fmb_use_simplifying_solver","fmbuss",true);
+    _fmbUseSimplifyingSolver.description = "Allow the SAT solver to internally simplify the instance.";
+    _fmbUseSimplifyingSolver.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
+    _fmbUseSimplifyingSolver.onlyUsefulWith(_satSolver.is(equal(SatSolver::MINISAT)));
+    _fmbUseSimplifyingSolver.tag(OptionTag::FMB);
+    _lookup.insert(&_fmbUseSimplifyingSolver);
+
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
@@ -2033,36 +2040,6 @@ void Options::init()
     _globalSubsumption.tag(OptionTag::INFERENCES);
     // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
 
-    _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
-          GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY,{"propagation_only","full"});
-    _globalSubsumptionSatSolverPower.description="";
-    _lookup.insert(&_globalSubsumptionSatSolverPower);
-    _globalSubsumptionSatSolverPower.tag(OptionTag::INFERENCES);
-    _globalSubsumptionSatSolverPower.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-
-    _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
-        GlobalSubsumptionExplicitMinim::ON,{"off","on","randomized"});
-    _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global subsumption reduction.";
-    _lookup.insert(&_globalSubsumptionExplicitMinim);
-    _globalSubsumptionExplicitMinim.tag(OptionTag::INFERENCES);
-    _globalSubsumptionExplicitMinim.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-
-    _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
-        GlobalSubsumptionAvatarAssumptions::OFF,{"off","from_current","full_model"});
-    _globalSubsumptionAvatarAssumptions.description=
-      "When running global subsumption and AVATAR at the same time we need to include information about the current AVATAR model. When this is off "
-      "we ignore clauses with AVATAR assumptions for GS. When it is from_current we assume the assumptions in the current clause. When it is "
-      "full_model we assume the full model from AVATAR. See paper Global Subsumption Revisited (Briefly).";
-    _lookup.insert(&_globalSubsumptionAvatarAssumptions);
-    _globalSubsumptionAvatarAssumptions.tag(OptionTag::INFERENCES);
-    _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-    _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",true);
-    _useHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection (affects avatar).";
-    _lookup.insert(&_useHashingVariantIndex);
-    _useHashingVariantIndex.tag(OptionTag::OTHER);
-
 //*********************** AVATAR  ***********************
 
     _splitting = BoolOptionValue("avatar","av",true);
@@ -2117,37 +2094,12 @@ void Options::init()
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
     _splittingLiteralPolarityAdvice.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
-                                                                        SplittingMinimizeModel::ALL,{"off","sco","all"});
+    _splittingMinimizeModel = BoolOptionValue("avatar_minimize_model","amm",true);
     _splittingMinimizeModel.description="Minimize the SAT-solver model by replacing concrete values with don't-cares"
-                                        " provided <all> the sat clauses (or only the split clauses with <sco>) remain provably satisfied"
-                                        " by the partial model.";
+                                        " provided the sat clauses remain provably satisfied by the partial model.";
     _lookup.insert(&_splittingMinimizeModel);
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
-    _splittingMinimizeModel.addHardConstraint(If(equal(SplittingMinimizeModel::SCO)).then(_cleaveNonsplittables.is(notEqual(true))));
-
-    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",false);
-    _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
-    _lookup.insert(&_splittingEagerRemoval);
-    _splittingEagerRemoval.tag(OptionTag::AVATAR);
-    _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
-    // if minimize is off then aer makes no difference
-    // if minimize is sco then aer=off could lead to a conflict clause added infinitely often
-    // (we actually protect against the problematic combination in Splitter, by ignoring aer=off even if requested)
-    _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
-
-    _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
-    _splittingFastRestart.description="";
-    _lookup.insert(&_splittingFastRestart);
-    _splittingFastRestart.tag(OptionTag::AVATAR);
-    _splittingFastRestart.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _splittingBufferedSolver = BoolOptionValue("avatar_buffered_solver","abs",false);
-    _splittingBufferedSolver.description="Added buffering functionality to the SAT solver used in AVATAR.";
-    _lookup.insert(&_splittingBufferedSolver);
-    _splittingBufferedSolver.tag(OptionTag::AVATAR);
-    _splittingBufferedSolver.onlyUsefulWith(_splitting.is(equal(true)));
 
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
                                                                         SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"});
@@ -2156,21 +2108,6 @@ void Options::init()
     _lookup.insert(&_splittingDeleteDeactivated);
     _splittingDeleteDeactivated.tag(OptionTag::AVATAR);
     _splittingDeleteDeactivated.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _splittingFlushPeriod = UnsignedOptionValue("avatar_flush_period","afp",0);
-    _splittingFlushPeriod.description=
-    "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
-    _lookup.insert(&_splittingFlushPeriod);
-    _splittingFlushPeriod.tag(OptionTag::AVATAR);
-    _splittingFlushPeriod.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _splittingFlushQuotient = FloatOptionValue("avatar_flush_quotient","afq",1.5);
-    _splittingFlushQuotient.description=
-    "after each flush, the avatar_flush_period is multiplied by the quotient";
-    _lookup.insert(&_splittingFlushQuotient);
-    _splittingFlushQuotient.tag(OptionTag::AVATAR);
-    _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
-    _splittingFlushQuotient.onlyUsefulWith(_splittingFlushPeriod.is(notEqual((unsigned)0)));
 
     _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",1.0);
     _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 1.0 means AVATAR runs until the end).\n"

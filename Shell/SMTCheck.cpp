@@ -203,6 +203,7 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::INVALID_INTERPRETATION:
     ASSERTION_VIOLATION
   }
+  return out;
 }
 
 struct PredicateName {
@@ -314,6 +315,7 @@ static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   case Theory::INVALID_INTERPRETATION:
     ASSERTION_VIOLATION
   }
+  return out;
 }
 
 struct Blank {};
@@ -522,9 +524,9 @@ static std::ostream &operator<<(std::ostream &out, Split<flip> split)
 {
   SATLiteral sat = Splitter::getLiteralFromName(split.level);
   return out
-      << (flip == sat.polarity() ? "(not " : "")
+      << (flip == sat.positive() ? "(not " : "")
       << "sp" << sat.var()
-      << (flip == sat.polarity() ? ")" : "");
+      << (flip == sat.positive() ? ")" : "");
 }
 
 struct Identity {
@@ -765,9 +767,9 @@ static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
   for(SATLiteral l : sat->iter())
     out
       << "(assert "
-      << (l.polarity() ? "(not " : "")
+      << (l.positive() ? "(not " : "")
       << "sp" << l.var()
-      << (l.polarity() ? ")" : "")
+      << (l.positive() ? ")" : "")
       << ")\n";
 }
 
@@ -782,9 +784,9 @@ static void satRefutation(std::ostream &out, SortMap &conclSorts, Unit *concl) {
     out << "(assert (or";
     for(SATLiteral l : env.proofExtra.get<Indexing::SATClauseExtra>(u).clause->iter())
       out
-        << ' ' << (l.polarity() ? "" : "(not ")
+        << ' ' << (l.positive() ? "" : "(not ")
         << "sp" << l.var()
-        << (l.polarity() ? "" : ")");
+        << (l.positive() ? "" : ")");
     out << "))\n";
   }
 }

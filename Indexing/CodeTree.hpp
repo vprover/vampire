@@ -172,7 +172,6 @@ public:
     {
       ASS(ptr); //data has to be a non-zero pointer
       CodeOp res;
-      res.setAlternative(0);
       res._setData(ptr);
       res._setInstruction(SUCCESS_OR_FAIL);
       ASS(res.isSuccess());
@@ -234,7 +233,7 @@ public:
 
   private:
     // bitfield
-    uint64_t _content;
+    uint64_t _content = 0;
 
     /**
      * Pointer to an alternative operation
@@ -242,7 +241,7 @@ public:
      * If nonzero, either points to the first operation of
      * a @b CodeBlock or to a @b landingOp of a @b SearchStruct.
      */
-    CodeOp* _alternative;
+    CodeOp* _alternative = 0;
   };
 
   /**

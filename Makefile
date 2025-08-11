@@ -142,20 +142,17 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/simp/SimpSolver.o\
   Minisat/utils/Options.o\
   Minisat/utils/System.o\
-  SAT/MinisatInterfacing.o\
-  SAT/MinisatInterfacingNewSimp.o
+  SAT/MinisatInterfacing.o
 
 VD_OBJ = Debug/Assertion.o\
          Debug/RuntimeStatistics.o\
          Debug/Tracer.o
 
 VL_OBJ= Lib/Allocator.o\
-        Lib/DHMap.o\
         Lib/Environment.o\
         Lib/Event.o\
         Lib/Exception.o\
         Lib/Int.o\
-        Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
         Lib/NameArray.o\
         Lib/Random.o\
@@ -314,11 +311,10 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
-         SAT/SATLiteral.o\
+	 SAT/SATSolver.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
-	 SAT/BufferedSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainers.o\

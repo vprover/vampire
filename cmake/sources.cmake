@@ -464,7 +464,6 @@ set(SOURCES
     Lib/Coproduct.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
-    Lib/DHMap.cpp
     Lib/DHMap.hpp
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
@@ -479,8 +478,6 @@ set(SOURCES
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
-    Lib/IntNameTable.cpp
-    Lib/IntNameTable.hpp
     Lib/IntUnionFind.cpp
     Lib/IntUnionFind.hpp
     Lib/IntegerSet.cpp
@@ -556,8 +553,6 @@ set(SOURCES
     Parse/SMTLIB2.hpp
     Parse/TPTP.cpp
     Parse/TPTP.hpp
-    SAT/BufferedSolver.cpp
-    SAT/BufferedSolver.hpp
     SAT/CadicalInterfacing.cpp
     SAT/CadicalInterfacing.hpp
     SAT/FallbackSolverWrapper.cpp
@@ -566,17 +561,16 @@ set(SOURCES
     SAT/MinimizingSolver.hpp
     SAT/MinisatInterfacing.cpp
     SAT/MinisatInterfacing.hpp
-    SAT/MinisatInterfacingNewSimp.cpp
-    SAT/MinisatInterfacingNewSimp.hpp
     SAT/SAT2FO.cpp
     SAT/SAT2FO.hpp
     SAT/SATClause.cpp
     SAT/SATClause.hpp
     SAT/SATInference.cpp
     SAT/SATInference.hpp
-    SAT/SATLiteral.cpp
     SAT/SATLiteral.hpp
+    SAT/ProofProducingSATSolver.hpp
     SAT/SATSolver.hpp
+    SAT/SATSolver.cpp
     SAT/Z3Interfacing.cpp
     SAT/Z3Interfacing.hpp
     SAT/Z3MainLoop.cpp
