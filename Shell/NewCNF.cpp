@@ -964,6 +964,7 @@ void NewCNF::ensureHavingVarSorts()
 TermList NewCNF::getVarSort(unsigned var) const
 {
   ASS(_collectedVarSorts);
+  // TODO shouldn't we enforce that the sort is explicitly known?
   auto sort = _varSorts.get(var, AtomicSort::defaultSort());
   return SubstHelper::apply(sort, _skolemTypeVarSubst);
 }
@@ -973,7 +974,6 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
-  // TODO shouldn't we enforce that the sort is explicitly known?
   TermList rangeSort=getVarSort(var);
   Recycled<TermStack> termVarSorts;
   Recycled<TermStack> typeVars;
@@ -1255,24 +1255,31 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
     }
   }
 
-  static Stack<TermList> domainSorts;
-  static Stack<TermList> predArgs;
-  domainSorts.reset();
-  predArgs.reset();
+  Recycled<TermStack> termVarSorts;
+  Recycled<TermStack> typeVars;
+  Recycled<TermStack> termVars;
 
   ensureHavingVarSorts();
 
-  VList::Iterator vit(free);
-  while (vit.hasNext()) {
-    unsigned uvar = vit.next();
-    domainSorts.push(getVarSort(uvar));
-    predArgs.push(TermList(uvar, false));
-  }
+  iterTraits(VList::Iterator(free))
+    .forEach([&](unsigned uvar) {
+      auto sort = getVarSort(uvar);
+      if (sort == AtomicSort::superSort()) {
+        typeVars->push(TermList::var(uvar));
+      } else {
+        termVarSorts->push(sort);
+        termVars->push(TermList::var(uvar));
+      }
+    });
   VList::destroy(free);
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
+  auto taArity = typeVars->size();
+  SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
+  predSym->setType(OperatorType::getPredicateType(length-taArity, termVarSorts->begin(), taArity));
 
-  return Literal::create(pred, length, true, predArgs.begin());
+  auto args = *typeVars;
+  args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
+  return Literal::create(pred, length, true, args.begin());
 }
 
 /**
