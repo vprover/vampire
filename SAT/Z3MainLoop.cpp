@@ -63,12 +63,12 @@ MainLoopResult Z3MainLoop::runImpl()
    solver.addClause(sc);
  }
 
- SATSolver::Status status = solver.solveLimited(UINT_MAX);
+ Status status = solver.solveLimited(UINT_MAX);
 
  TerminationReason reason = TerminationReason::UNKNOWN;
 
- if(status == SATSolver::Status::UNSATISFIABLE){ reason = TerminationReason::REFUTATION; }
- if(status == SATSolver::Status::SATISFIABLE){ reason = TerminationReason::SATISFIABLE; }
+ if(status == Status::UNSATISFIABLE){ reason = TerminationReason::REFUTATION; }
+ if(status == Status::SATISFIABLE){ reason = TerminationReason::SATISFIABLE; }
 
  return MainLoopResult(reason);
 }

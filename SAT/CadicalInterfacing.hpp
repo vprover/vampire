@@ -22,10 +22,10 @@
 
 namespace SAT{
 
-class CadicalInterfacing : public PrimitiveProofRecordingSATSolver
+class CadicalInterfacing : public SATSolver
 {
-public: 
-	CadicalInterfacing(const Shell::Options& opts, bool generateProofs=false);
+public:
+  CadicalInterfacing(const Shell::Options& opts, bool generateProofs=false);
 
   /**
    * Can be called only when all assumptions are retracted
@@ -33,17 +33,6 @@ public:
    * A requirement is that in a clause, each variable occurs at most once.
    */
   virtual void addClause(SATClause* cl) override;
-  
-  /**
-   * Opportunity to perform in-processing of the clause database.
-   *
-   * (Minisat deletes unconditionally satisfied clauses.)
-   */
-  virtual void simplify() override {
-    _solver.simplify();
-  }
-
-  virtual Status solveLimited(unsigned conflictCountLimit) override;
 
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
@@ -67,14 +56,6 @@ public:
 
   Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
   SATLiteralStack failedAssumptions() override;
-
-  /**
-   * Use minisat and solving under assumptions to minimize the given set of premises (= unsat core extraction).
-   *
-   * Assumes @b premises in conjunction with @b assumps unsat.
-   * Returns a "small" subset of premises which is still unsat under assumps.
-   */
-  static SATClauseList* minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps);
 
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);

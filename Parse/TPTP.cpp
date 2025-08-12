@@ -51,7 +51,7 @@ using namespace Parse;
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::string> TPTP::_axiomNames;
-DHMap<unsigned, Map<int,std::string>*> TPTP::_questionVariableNames;
+DHMap<unsigned, Map<unsigned,std::string>> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -1652,7 +1652,7 @@ void TPTP::holTerm()
       break;
     }
     case T_VAR:{
-      unsigned var = (unsigned)_vars.insert(name);
+      unsigned var = _vars.insert(name, _vars.size());
       _termLists.push(TermList(var, false)); // dummy arity to indicate a variable
       break;
     }
@@ -2491,7 +2491,7 @@ void TPTP::symbolDefinition()
     resetToks();
     for (;;) {
       if (getTok(0).tag == T_VAR) {
-        int var = _vars.insert(getTok(0).content);
+        unsigned var = _vars.insert(getTok(0).content, _vars.size());
         vars.push(var);
         resetToks();
       } else {
@@ -2808,7 +2808,7 @@ void TPTP::varList()
     if (tok.tag != T_VAR) {
       PARSE_ERROR_TOK("variable expected",tok);
     }
-    int var = _vars.insert(tok.content);
+    unsigned var = _vars.insert(tok.content, _vars.size());
     if (_isQuestion) {
       _curQuestionVarNames.insert(var,tok.content);
     }
@@ -2973,7 +2973,7 @@ void TPTP::endTerm()
 
   if (arity == -1) {
     // it was a variable
-    unsigned var = (unsigned)_vars.insert(name);
+    unsigned var = _vars.insert(name, _vars.size());
     _termLists.push(TermList(var, false));
     return;
   }
@@ -3049,7 +3049,7 @@ void TPTP::formulaInfix()
 
   if (arity == -1) {
     // that was a variable
-    unsigned var = (unsigned)_vars.insert(name);
+    unsigned var = _vars.insert(name, _vars.size());
     _termLists.push(TermList(var, false));
     _states.push(END_TERM_AS_FORMULA);
     return;
@@ -3708,7 +3708,7 @@ void TPTP::endFof()
       unit = new FormulaUnit(f,
 			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
       if (_isQuestion) {
-        _questionVariableNames.insert(unit->number(),new Map<int,std::string>(std::move(_curQuestionVarNames)));
+        _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
       }
     }
     break;
@@ -4346,7 +4346,7 @@ TermList TPTP::readSort()
   case T_VAR:
     {
       std::string vname = tok.content;
-      unsigned var = (unsigned)_vars.insert(vname);
+      unsigned var = _vars.insert(vname, _vars.size());
       return  TermList(var, false);
     }
 

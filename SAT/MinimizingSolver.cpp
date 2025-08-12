@@ -55,20 +55,7 @@ void MinimizingSolver::addClause(SATClause* cl)
   }
 }
 
-void MinimizingSolver::addClauseIgnoredInPartialModel(SATClause* cl)
-{
-  // just passing to _inner, but for minimization it will be ignored
-  _inner->addClause(cl);
-  _assignmentValid = false;
-}
-
-SATSolver::Status MinimizingSolver::solveLimited(unsigned conflictCountLimit)
-{
-  _assignmentValid = false;
-  return _inner->solveLimited(conflictCountLimit);
-}
-
-SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
+VarAssignment MinimizingSolver::getAssignment(unsigned var)
 {
   ASS_G(var,0); ASS_LE(var,_varCnt);
 

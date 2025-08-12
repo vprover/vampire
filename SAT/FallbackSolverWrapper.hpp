@@ -37,27 +37,19 @@ using namespace Lib;
 
 class FallbackSolverWrapper : public SATSolver {
 public:
-  FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback);
+  FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback)
+    : _inner(inner), _fallback(fallback) {}
 
-  virtual SATClause* getRefutation() override { 
-    if(_usingFallback){
-      return _fallback->getRefutation();
-    }
-    return _inner->getRefutation(); 
-  }
-  virtual SATClauseList* getRefutationPremiseList() override {
-    if(_usingFallback){
-      return _fallback->getRefutationPremiseList();
-    }
-    return _inner->getRefutationPremiseList();
-  }
   virtual void randomizeForNextAssignment(unsigned maxVar) override {
-    _fallback->randomizeForNextAssignment(maxVar);
     _inner->randomizeForNextAssignment(maxVar);
+    _fallback->randomizeForNextAssignment(maxVar);
   }
 
-  virtual void addClause(SATClause* cl) override;
-  virtual Status solveLimited(unsigned conflictCountLimit) override;
+  virtual void addClause(SATClause* cl) override {
+    _inner->addClause(cl);
+    _fallback->addClause(cl);
+  }
+
   virtual VarAssignment getAssignment(unsigned var) override;
 
   virtual bool isZeroImplied(unsigned var) override {
@@ -89,14 +81,21 @@ public:
     _fallback->suggestPolarity(var,pol); 
   }
 
+  Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+
+  SATLiteralStack failedAssumptions() override {
+    if(_usingFallback)
+      return _fallback->failedAssumptions();
+    return _inner->failedAssumptions();
+  }
+
 private:
 
   ScopedPtr<SATSolver> _inner;
   ScopedPtr<SATSolver> _fallback;
 
-  bool _usingFallback;
-
-  unsigned _varCnt;
+  bool _usingFallback = false;
+  unsigned _varCnt = 0;
 
 };
 

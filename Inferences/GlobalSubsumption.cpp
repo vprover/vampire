@@ -47,11 +47,10 @@ using namespace Indexing;
 using namespace Saturation;
 
 GlobalSubsumption::GlobalSubsumption(const Options& opts) :
-  _randomizeMinim(opts.randomTraversals())
-{
-  _solver = new MinisatInterfacing;
-  _grounder = new GlobalSubsumptionGrounder(*_solver);
-}
+  _randomizeMinim(opts.randomTraversals()),
+  _solver(new ProofProducingSATSolver(new MinisatInterfacing, true)),
+  _grounder(new GlobalSubsumptionGrounder(*_solver))
+{}
 
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
@@ -126,9 +125,9 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   _solver->addClause(scl);
 
   // check for subsuming clause by looking for a subset of used assumptions
-  SATSolver::Status res = _solver->solveUnderAssumptions(assumps, /* onlyPropagate = */ true);
+  Status res = _solver->solveUnderAssumptions(assumps, /* onlyPropagate = */ true);
 
-  if (res == SATSolver::Status::UNSATISFIABLE) {
+  if (res == Status::UNSATISFIABLE) {
     // it should always be UNSAT with full assumps,
     // but we may not get that far with limited solving power (_uprOnly)
 

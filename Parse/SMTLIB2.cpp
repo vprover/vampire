@@ -148,7 +148,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
         USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort parameter: "+name);
       }
       ASS_EQ(_globalSortParamLookup.size(),_nextVar);
-      ALWAYS(_globalSortParamLookup.insert(name, make_pair(TermList::var(_nextVar++), AtomicSort::superSort())));
+      ALWAYS(_globalSortParamLookup.insert(name, Binding {TermList::var(_nextVar++), AtomicSort::superSort()}));
       ibRdr.acceptEOL();
 
       continue;
@@ -505,7 +505,7 @@ void SMTLIB2::readDefineSort(const std::string& name, LExpr* args, LExpr* body)
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol: "+name);
   }
 
-  pushLookup();
+  _lookups.emplace();
   // sort definitions cannot contain global sort
   // parameters, so we use normalized variables
   unsigned var = 0;
@@ -514,7 +514,7 @@ void SMTLIB2::readDefineSort(const std::string& name, LExpr* args, LExpr* body)
     tryInsertIntoCurrentLookup(argRdr.readAtom(), TermList::var(var++), AtomicSort::superSort());
   }
   ALWAYS(_sortDefinitions.insert(pName, { var, parseSort(body) }));
-  popLookup();
+  _lookups.pop();
 }
 
 //  ----------------------------------------------------------------------
@@ -764,7 +764,7 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
 
   TermList rangeSort = parseSort(oSort);
 
-  pushLookup();
+  _lookups.emplace();
 
   static TermStack argSorts;
   argSorts.reset();
@@ -799,7 +799,7 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
 
   ParseResult res = parseTermOrFormula(body,false/*isSort*/);
 
-  popLookup();
+  _lookups.pop();
 
   TermList rhs;
   if (res.asTerm(rhs) != rangeSort) {
@@ -850,7 +850,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
 {
   struct Declaration {
     DeclaredSymbol sym;
-    TermLookup* lookup;
+    Lookup lookup;
     TermList rangeSort;
     TermStack args;
   };
@@ -866,8 +866,6 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
       USER_ERROR_EXPR("Redeclaring function symbol: "+name);
     }
     auto iArgs = declRdr.readList();
-
-    decl.lookup = new TermLookup();
 
     static TermStack argSorts;
     argSorts.reset();
@@ -885,7 +883,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
       TermList arg = TermList::var(_nextVar++);
       decl.args.push(arg);
 
-      if (!decl.lookup->insert(vName,make_pair(arg,vSort))) {
+      if (!decl.lookup.insert(vName, Binding {arg, vSort})) {
         USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in the definition of function "+name);
       }
 
@@ -894,14 +892,14 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
     decl.rangeSort = parseSort(declRdr.readExpr());
     decl.sym = declareFunctionOrPredicate(name, decl.rangeSort, argSorts, /*taArity=*/ 0);
 
-    declarations.push(decl);
+    declarations.push(std::move(decl));
   }
 
   // then, read all definitions
   auto defsRdr = READER(defsExpr);
-  for (const auto& decl : declarations) {
+  for (auto &decl : declarations) {
     auto def = defsRdr.readExpr();
-    _lookups.push(decl.lookup);
+    _lookups.push(std::move(decl.lookup));
     ParseResult res = parseTermOrFormula(def,false/*isSort*/);
 
     TermList rhs;
@@ -940,7 +938,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
     FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
     _formulas.pushBack(fu);
 
-    popLookup();
+    _lookups.pop();
   }
   defsRdr.acceptEOL();
 }
@@ -963,7 +961,7 @@ void SMTLIB2::readDeclareDatatype(string name, LExpr *datatype)
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol as datatype: " + dtypeName);
   }
   auto dtypeRdr = READER(datatype);
-  pushLookup();
+  _lookups.emplace();
   TermStack parSorts;
   if (dtypeRdr.tryAcceptAtom(PAR)) {
     readTypeParameters(dtypeRdr, parSorts);
@@ -1000,7 +998,7 @@ void SMTLIB2::readDeclareDatatype(string name, LExpr *datatype)
     }
     constructors.push(buildTermAlgebraConstructor(ctorName, taSort, destructorNames, argSorts));
   }
-  popLookup();
+  _lookups.pop();
 
   ASS(!env.signature->isTermAlgebraSort(taSort));
   auto ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), false);
@@ -1046,7 +1044,7 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
 
     LOG4("reading datatype ",sym->name()," of type ",sym->typeConType()->toString());
 
-    pushLookup();
+    _lookups.emplace();
     TermStack parSorts;
     auto dtypeRdr = READER(dtypesDefsRdr.readList());
     if (dtypeRdr.tryAcceptAtom(PAR)) {
@@ -1091,7 +1089,7 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
       }
       constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
     }
-    popLookup();
+    _lookups.pop();
 
     ASS(!env.signature->isTermAlgebraSort(taSort));
     TermAlgebra* ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), codatatype);
@@ -1327,15 +1325,9 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
 
 void SMTLIB2::tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort)
 {
-  // if (isAlreadyKnownFunction(name) ||
-  //   iterTraits(Lookups::ConstRefIterator(_lookups)).any([&](const auto& lookup) {
-  //     return lookup->findPtr(name)!=nullptr;
-  //   }))
-  // {
-  //   std::cout << "% WARNING: shadowing variable " << name << " in " << _topLevelExpr->getPosition() << std::endl;
-  // }
-
-  if (!_lookups.top()->insert(name, { term, sort })) {
+  auto &lookup = _lookups.top();
+  Binding binding {term, sort};
+  if (!lookup.insert(name, binding)) {
     USER_ERROR_EXPR("Identifier '" + name + "' has already been defined in current lookup");
   }
 }
@@ -1396,7 +1388,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
   // corresponding results have already been parsed
   ParseResult* boundExprs = _results.end();
 
-  pushLookup();
+  _lookups.emplace();
 
   while (bindRdr.hasNext()) {
     auto pRdr = READER(bindRdr.readList());
@@ -1496,7 +1488,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     LOG2("BOUND name  ",cName);
     LOG2("BOUND term  ",boundExpr.toString());
 
-    auto [exprTerm, exprSort] = lookup->get(cName);
+    auto [exprTerm, exprSort] = lookup.get(cName);
 
     // We have already substituted bound variables during parsing.
     // See `parseLetPrepareLookup`.
@@ -1525,7 +1517,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
   }
 
   _results.push(ParseResult(letSort,let));
-  popLookup();
+  _lookups.pop();
 }
 
 static const char *UNDERSCORE = "_";
@@ -1589,7 +1581,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
 
   // now parse the match pattern which
   // potentially declares new variables
-  pushLookup();
+  _lookups.emplace();
   if (pattern->isAtom()) {
     if (pattern->str == UNDERSCORE) {
       _results.push(ParseResult(matchedTermSort, TermList::var(_nextVar++)));
@@ -1767,8 +1759,7 @@ void SMTLIB2::parseQuantEnd(LExpr* exp)
   // there should next be a list of sorted variables
   auto varRdr = READER(lRdr.readList());
 
-  pushLookup();
-
+  _lookups.emplace();
   while (varRdr.hasNext()) {
     auto pRdr = READER(varRdr.readList());
 
@@ -1808,17 +1799,16 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
 bool SMTLIB2::parseAsScopeLookup(const std::string& id)
 {
-  SortedTerm st;
-
+  Binding bound;
   Lookups::ConstRefIterator lIt(_lookups);
   while (lIt.hasNext()) {
-    if (lIt.next()->find(id,st)) {
-      _results.push(ParseResult(st.second,st.first));
+    if (lIt.next().find(id, bound)) {
+      _results.push(ParseResult(bound.sort, bound.term));
       return true;
     }
   }
-  if (_globalSortParamLookup.find(id,st)) {
-    _results.push(ParseResult(st.second,st.first));
+  if (_globalSortParamLookup.find(id, bound)) {
+    _results.push(ParseResult(bound.sort, bound.term));
     return true;
   }
 
@@ -2231,20 +2221,17 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      VList* qvars = VList::empty();
-      SList* qsorts = SList::empty();
+      VList::FIFO qvars;
+      SList::FIFO qsorts;
 
-      TermLookup::Iterator varIt(*_lookups.top());
-      while(varIt.hasNext()) {
-        SortedTerm vTerm = varIt.next();
-        unsigned varIdx = vTerm.first.var();
-        TermList sort = vTerm.second;
-        VList::push(varIdx, qvars);
-        SList::push(sort,qsorts);
+      for(Binding binding : _lookups.top().bindings) {
+        unsigned varIdx = binding.term.var();
+        qvars.pushBack(varIdx);
+        qsorts.pushBack(binding.sort);
       }
-      popLookup();
+      _lookups.pop();
 
-      Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvars, qsorts, argFla);
+      Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvars.list(), qsorts.list(), argFla);
 
       _results.push(ParseResult(res));
       return true;
@@ -2783,7 +2770,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
         continue;
       }
       case PO_POP_LOOKUP: {
-        popLookup();
+        _lookups.pop();
         continue;
       }
       default: {
@@ -2844,7 +2831,7 @@ void SMTLIB2::readAssertNot(LExpr* body)
 
 void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
 {
-  pushLookup();
+  _lookups.emplace();
 
   if (env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
     std::cout << "% WARNING: Found an assert-synth command but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
@@ -2874,7 +2861,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   if (!res.asFormula(fla)) {
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
-  popLookup();
+  _lookups.pop();
 
   fla = new QuantifiedFormula(Connective::EXISTS, evars, esorts, fla);
   fla = new QuantifiedFormula(Connective::FORALL, fvars, fsorts, fla);
