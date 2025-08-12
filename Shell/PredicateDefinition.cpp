@@ -843,6 +843,9 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         break;
 
       case SpecialFunctor::LET:
+        count(sd->getLetBinding(), 0, add, unit);
+        break;
+
       case SpecialFunctor::LET_TUPLE:
         count(sd->getBinding(), add, unit);
         break;

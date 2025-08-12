@@ -163,11 +163,13 @@ void Preprocess::preprocess(Problem& prb)
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.isHigherOrder()) {
+    // TODO maybe this does not go here but NewCNF requires it in some cases
+    TheoryAxioms(prb).applyFOOL();
+
+    if (!_options.newCNF() || prb.isHigherOrder()) {
       if (env.options->showPreprocessing())
         std::cout << "FOOL elimination" << std::endl;
 
-      TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
   }
@@ -271,8 +273,7 @@ void Preprocess::preprocess(Problem& prb)
     Shuffling::shuffle(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() &&
-     !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
+  if (prb.mayHaveFormulas() && _options.newCNF() && !prb.isHigherOrder()) {
     if (env.options->showPreprocessing())
       std::cout << "newCnf" << std::endl;
 
@@ -515,7 +516,7 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || prb.isHigherOrder() || prb.hasPolymorphicSym()) {
+    if (!_options.newCNF() || prb.isHigherOrder()) {
       // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
       fu = SimplifyFalseTrue::simplify(fu);
     }

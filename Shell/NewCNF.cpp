@@ -540,7 +540,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
    * 3) ?[X:$o]:(~X | f(X)) <=> (0 | f(1)) | (1 | f(0)) <=> f(1) | 1 <=> 1
    *
    * It means the following. If the processed generalised literal is a boolean
-   * variable, we can process each occurrence of it it two ways -- either by
+   * variable, we can process each occurrence of it in two ways -- either by
    * discarding the occurrence's generalised clause all together, or removing
    * the generalised literal - variable from the occurrence. That depends on
    * whether the variable was skolemised in the clause. If it was (i.e. it was
@@ -997,7 +997,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 
   // TODO maybe this should be avoided for type cons
   auto args = *typeVars;
-  args.loadFromIterator(TermStack::Iterator(*termVars));
+  args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
 
   Term* res;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
@@ -1192,6 +1192,16 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   }
 
   Term* term = ts.term();
+  if (!term->isSpecial()) {
+    // TODO not sure this is the right way to do it, or whether it is even correct in all cases
+    auto eq = Literal::createEquality(true, ts, TermList(Term::foolTrue()), AtomicSort::boolSort());
+    while (occurrences.isNonEmpty()) {
+      Occurrence occ = pop(occurrences);
+      introduceExtendedGenClause(occ, GenLit(new AtomicFormula(eq), occ.sign()));
+    }
+    return;
+  }
+
   ASS_REP(term->isSpecial(), term->toString());
 
   Term::SpecialTermData* sd = term->getSpecialData();

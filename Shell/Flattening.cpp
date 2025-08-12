@@ -96,8 +96,7 @@ Formula* Flattening::innerFlatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF() && !env.getMainProblem()->isHigherOrder() &&
-          !env.getMainProblem()->hasPolymorphicSym()) {
+      if (env.options->newCNF() && !env.getMainProblem()->isHigherOrder()) {
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);
