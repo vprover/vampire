@@ -1137,7 +1137,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
 void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 {
   LOG2("processQuantified", g->toString());
-  LOG2("occurreces", occurrences.size());
+  LOG2("occurrences", occurrences.size());
 
   // the skolem caches are empty
   ASS(_skolemsByBindings.isEmpty());
@@ -1186,6 +1186,9 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 
 void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 {
+  LOG2("processBoolTerm", ts.toString());
+  LOG2("occurrences", occurrences.size());
+
   if (ts.isVar()) {
     processBoolVar(POSITIVE, ts.var(), occurrences);
     return;
@@ -1194,11 +1197,9 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   Term* term = ts.term();
   if (!term->isSpecial()) {
     // TODO not sure this is the right way to do it, or whether it is even correct in all cases
-    auto eq = Literal::createEquality(true, ts, TermList(Term::foolTrue()), AtomicSort::boolSort());
-    while (occurrences.isNonEmpty()) {
-      Occurrence occ = pop(occurrences);
-      introduceExtendedGenClause(occ, GenLit(new AtomicFormula(eq), occ.sign()));
-    }
+    auto f = new AtomicFormula(Literal::createEquality(true, ts, TermList(Term::foolTrue()), AtomicSort::boolSort()));
+    enqueue(f, occurrences);
+    occurrences.replaceBy(f);
     return;
   }
 
