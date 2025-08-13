@@ -20,19 +20,15 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Stack.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/ScopedPtr.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/SortHelper.hpp"
 
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATClause.hpp"
-
-#include "Lib/Allocator.hpp"
 
 namespace FMB {
   using namespace Kernel;

@@ -38,18 +38,15 @@
 #ifndef __list__
 #define __list__
 
-
 #include "Forwards.hpp"
-
-#include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
 #include "VirtualIterator.hpp"
 
+#include "Debug/Assertion.hpp"
+
 #if VDEBUG
-
-#include <ostream>
-
+#include <iosfwd>
 #endif
 
 namespace Lib {

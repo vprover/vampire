@@ -17,11 +17,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
-
 #include "Kernel/Term.hpp"
-#include "Kernel/Substitution.hpp"
-#include "Kernel/OperatorType.hpp"
 
 namespace Kernel {
 

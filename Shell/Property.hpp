@@ -20,21 +20,12 @@
 #ifndef __Property__
 #define __Property__
 
+#include "Forwards.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/DHSet.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "SMTLIBLogic.hpp"
-
-namespace Kernel {
-  class Clause;
-  class FormulaUnit;
-  class Literal;
-  class Term;
-  class TermList;
-  class Formula;
-}
 
 namespace Shell {
 

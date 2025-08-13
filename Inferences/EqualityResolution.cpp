@@ -30,8 +30,6 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 

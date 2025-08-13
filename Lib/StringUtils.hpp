@@ -15,9 +15,11 @@
 #ifndef __StringUtils__
 #define __StringUtils__
 
-#include "DHMap.hpp"
-#include "Lib/Output.hpp"
 #include <cstdlib>
+#include <sstream>
+
+#include "Forwards.hpp"
+#include "Lib/Output.hpp"
 
 namespace Lib {
 
