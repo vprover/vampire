@@ -162,15 +162,6 @@ private:
     DHMap<unsigned, unsigned> _condFnToPred;
   };
 
-  class ComputableSelfTransformer : public BottomUpTermTransformer {
-   public:
-    ComputableSelfTransformer(RobSubstitution* s) : failed(false), subst(s) {}
-    bool failed;
-    RobSubstitution* subst;
-   protected:
-    TermList transformSubterm(TermList trm) override;
-  };
-
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
 
   Formula* getConditionFromClause(Clause* cl);

@@ -227,10 +227,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause *cl = Clause::fromStack(*resLits, inf);
-  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
-    Literal *qAnsLit = queryCl->getAnswerLiteral(), *rAnsLit = resultCl->getAnswerLiteral();
-    Literal* sqAnsLit = qAnsLit ? subs->applyToQuery(qAnsLit) : nullptr;
-    Literal* srAnsLit = rAnsLit ? subs->applyToResult(rAnsLit) : nullptr;
+  Literal *qAnsLit, *rAnsLit;
+  if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) &&
+      (qAnsLit = queryCl->getAnswerLiteral()) && (rAnsLit = resultCl->getAnswerLiteral())) {
+    Literal* sqAnsLit = subs->applyToQuery(qAnsLit);
+    Literal* srAnsLit = subs->applyToResult(rAnsLit);
     bool queryNeg = queryLit->isNegative();
     env.proofExtra.insert(cl, new BinaryResolutionExtra(
       queryLit,

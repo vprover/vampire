@@ -181,16 +181,17 @@ Option<ClauseIterator> SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
   //       of options 1 and 2 for each argument?
   ClauseStack res;
   // Option 1, using if-then-else, only applies if the two answer literals are different.
+  LiteralStack lits = collectLiteralsExceptForTwo(cl, cl->length()-1, idx[0], idx[1]);
   if (thenLit != elseLit) {
     Literal* newAnsLit = synthMan->makeITEAnswerLiteral(condition, thenLit, elseLit);
-    LiteralStack lits = collectLiteralsExceptForTwo(cl, cl->length()-1, idx[0], idx[1]);
     lits.push(newAnsLit);
     Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_JOIN_AS_ITE, cl));
     res.push(Clause::fromStack(lits, inf));
+    // Remove the answer literal, we reuse the rest below.
+    lits.pop();
   }
   // Option 2, using `thenLit` under the condition that the arguments of `thenLit` and `elseLit` are
   // equal, is always applicable.
-  LiteralStack lits = collectLiteralsExceptForTwo(cl, cl->length()-1+thenLit->arity(), idx[0], idx[1]);
   synthMan->pushEqualityConstraints(&lits, thenLit, elseLit);
   lits.push(thenLit);
   Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS, cl));

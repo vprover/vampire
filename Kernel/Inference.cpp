@@ -602,7 +602,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::ANSWER_LITERAL_REMOVAL:
     return "answer literal removal";
   case InferenceRule::ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS:
-    return "answer literal with constraints";
+    return "answer literal join with constraints";
   case InferenceRule::ANSWER_LITERAL_JOIN_AS_ITE:
     return "answer literal if-then-else";
   case InferenceRule::AVATAR_ASSERTION_REINTRODUCTION:

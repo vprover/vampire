@@ -523,9 +523,9 @@ Clause* Superposition::performSuperposition(
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   auto clause = Clause::fromStack(*res, inf);
-
-  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
-    Literal *rwAnsLit = rwClause->getAnswerLiteral(), *eqAnsLit = eqClause->getAnswerLiteral();
+  Literal *rwAnsLit, *eqAnsLit;
+  if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) &&
+      (rwAnsLit = rwClause->getAnswerLiteral()) && (eqAnsLit = eqClause->getAnswerLiteral())) {
     env.proofExtra.insert(clause, new SuperpositionExtra(
       rwLit,
       eqLit,
