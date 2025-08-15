@@ -129,7 +129,7 @@ Option<ClauseIterator> SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
     return none<ClauseIterator>();
   }
   // Count the answer literals in the clause.
-  int numAnsLits = 0;
+  unsigned numAnsLits = 0;
   unsigned idx[2];
   for (unsigned i = 0; i < cl->length(); ++i) {
     if ((*cl)[i]->isAnswerLiteral()) {
