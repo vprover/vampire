@@ -16,7 +16,6 @@
 #ifndef __TheoryInstAndSimp__
 #define __TheoryInstAndSimp__
 
-#include "Lib/Allocator.hpp"
 #if VZ3
 
 #include "Forwards.hpp"

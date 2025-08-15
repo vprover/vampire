@@ -18,7 +18,6 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/Metaiterators.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #include "Term.hpp"

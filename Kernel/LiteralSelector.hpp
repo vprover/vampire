@@ -18,12 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Array.hpp"
-
-#include "Lib/Allocator.hpp"
-
-#include "Term.hpp"
-
 namespace Kernel {
 
 using namespace Lib;

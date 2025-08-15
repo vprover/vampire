@@ -11,11 +11,9 @@
 #define __REBALANCING_INVERTERS_H__
 
 #include "Forwards.hpp"
-#include "Lib/Environment.hpp"
-#include "Kernel/Rebalancing.hpp"
-#include <iostream>
 
-#include "Kernel/NumTraits.hpp"
+#include "Kernel/Rebalancing.hpp"
+#include "Kernel/Theory.hpp"
 
 namespace Kernel {
 namespace Rebalancing {

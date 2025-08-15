@@ -21,7 +21,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Inferences/ProofExtra.hpp"
-#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
 

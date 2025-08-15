@@ -38,6 +38,8 @@ using namespace Shell;
 
 class ClauseContainer
 {
+  using ClauseEvent = SingleParamEvent<Clause *>;
+
 public:
   virtual ~ClauseContainer() {}
   ClauseEvent addedEvent;

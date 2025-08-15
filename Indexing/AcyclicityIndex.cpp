@@ -12,6 +12,7 @@
  * Implements class AcyclicityIndex
  */
 
+#include "Indexing/TermIndexingStructure.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Signature.hpp"

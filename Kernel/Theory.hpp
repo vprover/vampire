@@ -19,14 +19,12 @@
 #include <cstdint>
 
 #include "Forwards.hpp"
+#include "OperatorType.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
-
 #include "Lib/Reflection.hpp"
-#include "Shell/TermAlgebra.hpp"
 
-#include "OperatorType.hpp"
 #include "Term.hpp"
 
 #include "mini-gmp.h"

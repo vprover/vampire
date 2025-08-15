@@ -42,53 +42,9 @@ enum PartialComparison
   PC_INCOMPARABLE = 2
 };
 
-//
-// It's a bit messy here since we have two kinds of cmparators:
-// One kind has the compare() function as static and the other not.
-// This leads to two having two kinds of meta-comparators. We should
-// probably eventually get rid of the static comparators, to make the
-// code more consistent.
-//
-struct DefaultComparatorTKV
-{
-  template<typename T>
-  inline static Comparison compare(T o1, T o2)
-  {
-    return o1>o2 ? GREATER : (o1==o2 ? EQUAL : LESS);
-  }
-};
-
 inline Comparison revert(Comparison c) { return static_cast<Comparison>(-c); }
 
-template<class Comp>
-struct ReversedComparator
-{
-  template<typename T>
-  inline static Comparison compare(T o1, T o2)
-  {
-    return revert(Comp::compare(o1, o2));
-  }
-};
-
-template<class Comp1, class Comp2>
-class CompositeComaprator
-{
-public:
-  CompositeComaprator(Comp1 c1=Comp1(), Comp2 c2=Comp2())
-  : _c1(c1), _c2(c2) {}
-
-  template<typename T>
-  Comparison compare(T o1, T o2)
-  {
-    Comparison res1=_c1.compare(o1,o2);
-    return (res1==EQUAL) ? _c2.compare(o1,o2) : res1;
-  }
-private:
-  Comp1 _c1;
-  Comp2 _c2;
-};
-
-template<class Closure> 
+template<class Closure>
 class ClosureComparator
 {
   Closure _self;

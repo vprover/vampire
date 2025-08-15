@@ -13,7 +13,6 @@
 
 #include <functional>
 #include "Lib/Map.hpp"
-#include "Lib/Coproduct.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Sort.hpp"
 
