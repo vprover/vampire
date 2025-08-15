@@ -39,6 +39,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tBinaryHeap.cpp

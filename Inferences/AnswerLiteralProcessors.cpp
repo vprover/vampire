@@ -133,16 +133,20 @@ Option<ClauseIterator> SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
   unsigned idx[2];
   for (unsigned i = 0; i < cl->length(); ++i) {
     if ((*cl)[i]->isAnswerLiteral()) {
-      ASS(numAnsLits < 2);
-      idx[numAnsLits] = i;
+      if (numAnsLits < 2) {
+        idx[numAnsLits] = i;
+      }
       numAnsLits++;
+      if (numAnsLits > 2) {
+        break;
+      }
     }
   }
   // This simplification rule deals with clauses with 2 answer literals produced by superposition
   // or resolution (which fill in sythesisExtra).
   // Clauses with a different number of answer literals or prodced by other rules are checked
   // by other simplification rules.
-    if (numAnsLits != 2 ||
+  if (numAnsLits != 2 ||
       ((cl->inference().rule() != InferenceRule::SUPERPOSITION) &&
        (cl->inference().rule() != InferenceRule::RESOLUTION) &&
        (cl->inference().rule() != InferenceRule::CONSTRAINED_RESOLUTION))) {
