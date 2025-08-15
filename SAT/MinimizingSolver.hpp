@@ -65,6 +65,10 @@ public:
 
   SATLiteralStack failedAssumptions() override { return _inner->failedAssumptions(); }
 
+  SATClauseList *minimizePremises(SATClauseList *premises) override {
+    return _inner->minimizePremises(premises);
+  }
+
 private:
   bool admitsDontcare(unsigned var) { 
     ASS_G(var,0); ASS_LE(var,_varCnt);
