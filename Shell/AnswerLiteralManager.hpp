@@ -142,12 +142,12 @@ public:
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
+  static void pushEqualityConstraints(LiteralStack* ls, Literal* thenLit, Literal* elseLit);
+
 protected:
   void recordSkolemBinding(Term*,unsigned,std::string) override;
 
 private:
-  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
-
   class ConjectureSkolemReplacement : public TermTransformer {
    public:
     ConjectureSkolemReplacement() : _skolemToVar() {}
@@ -161,6 +161,8 @@ private:
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
   };
+
+  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
 
   Formula* getConditionFromClause(Clause* cl);
 

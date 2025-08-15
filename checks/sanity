@@ -125,3 +125,7 @@ check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
 # Forward ground joinability
 check_szs_status Satisfiable -t 5d -fgj on Problems/SWV/SWV021-1.p
 check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
+
+# Synthesis without and with uncomputables
+check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
+check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2

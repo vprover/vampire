@@ -63,7 +63,8 @@ public:
   */
   static bool couldEqualityArise(const Problem& prb, const Options& opt) {
     // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
-    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation());
+    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
+      (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 

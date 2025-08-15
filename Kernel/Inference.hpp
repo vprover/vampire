@@ -257,6 +257,10 @@ enum class InferenceRule : unsigned char {
   ARITHMETIC_SUBTERM_GENERALIZATION,
   /* clause added after removing answer literal and saving it as a witness */
   ANSWER_LITERAL_REMOVAL,
+  /* clause after successfully unifying two answer literals from the parent */
+  ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS,
+  /* clause after joining two answer literals from the parent into an if-then-else*/
+  ANSWER_LITERAL_JOIN_AS_ITE,
   /* clause with literals added from AVATAR assertions of the parent */
   AVATAR_ASSERTION_REINTRODUCTION,
 

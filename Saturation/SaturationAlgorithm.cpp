@@ -57,6 +57,7 @@
 #include "Inferences/DistinctEqualitySimplifier.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/AnswerLiteralProcessors.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionAndResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
@@ -74,7 +75,6 @@
 #include "Inferences/ForwardGroundJoinability.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
-#include "Inferences/InvalidAnswerLiteralRemovals.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -746,16 +746,11 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* cl = cl0;
 
-  Clause *simplCl = _immediateSimplifier->simplify(cl);
-  if (simplCl != cl) {
-    if (simplCl) {
-      addNewClause(simplCl);
-    }
-    onClauseReduction(cl, &simplCl, 1, 0);
-    return 0;
-  }
-
-  if (auto  cIt = _immediateSimplifierMany.simplifyMany(cl)) {
+  // Note: simplifyMany() has to go before simplify(), since the former
+  // postprocesses clauses with answer literals, while the latter deletes
+  // those which are invalid even after postprocessing.
+  // TODO: maybe change all ImmediateSimplificationEngine to ImmediateSimplificationEngineMany
+  if (auto cIt = _immediateSimplifierMany.simplifyMany(cl)) {
     while (cIt->hasNext()) {
       Clause *simpedCl = cIt->next();
       if (!splitSet) {
@@ -770,6 +765,15 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       addNewClause(simpedCl);
     }
     onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
+    return 0;
+  }
+
+  Clause *simplCl = _immediateSimplifier->simplify(cl);
+  if (simplCl != cl) {
+    if (simplCl) {
+      addNewClause(simplCl);
+    }
+    onClauseReduction(cl, &simplCl, 1, 0);
     return 0;
   }
 
@@ -1810,6 +1814,8 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
     res->addFront(new UncomputableAnswerLiteralRemoval());
     res->addFront(new MultipleAnswerLiteralRemoval());
+    // Note: SynthesisAnswerLiteralProcessor must be THE LAST added simplification-many rule.
+    resMany.addFront(std::make_unique<SynthesisAnswerLiteralProcessor>());
   }
   return std::make_pair(res, std::move(resMany));
 }
