@@ -17,6 +17,8 @@
 #ifndef __Ordering__
 #define __Ordering__
 
+#include <memory> // for std::unique_ptr
+
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
@@ -32,6 +34,7 @@
 
 namespace Kernel {
 
+typedef std::unique_ptr<TermOrderingDiagram> TermOrderingDiagramUP;
 
 namespace PredLevels {
   constexpr static int MIN_USER_DEF = 1;
@@ -104,7 +107,7 @@ public:
   { return compare(t1, t2); }
 
   /** Creates optimised object for ordering checks. @see TermOrderingDiagram. */
-  virtual TermOrderingDiagramUP createTermOrderingDiagram() const;
+  virtual TermOrderingDiagramUP createTermOrderingDiagram(bool ground = false) const;
 
   virtual void show(std::ostream& out) const = 0;
 

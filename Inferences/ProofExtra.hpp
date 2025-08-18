@@ -35,8 +35,16 @@ struct LiteralInferenceExtra : public InferenceExtra {
 
 // inferences that use one literal from their side premise
 struct TwoLiteralInferenceExtra : public InferenceExtra {
-  TwoLiteralInferenceExtra(Kernel::Literal *selected, Kernel::Literal *other)
-    : selectedLiteral(selected), otherLiteral(other) {}
+
+  struct SynthesisExtra {
+    SynthesisExtra(Kernel::Literal *conditionLiteral, Kernel::Literal *thenLiteral, Kernel::Literal* elseLiteral) : condition(conditionLiteral), thenLit(thenLiteral), elseLit(elseLiteral) {}
+    Kernel::Literal *condition;
+    Kernel::Literal *thenLit;
+    Kernel::Literal *elseLit;
+  };
+
+  TwoLiteralInferenceExtra(Kernel::Literal *selected, Kernel::Literal *other, Kernel::Literal *condition = nullptr, Kernel::Literal* thenLit = nullptr, Kernel::Literal* elseLit = nullptr)
+    : selectedLiteral(selected), otherLiteral(other), synthesisExtra(condition, thenLit, elseLit) {}
 
   virtual void output(std::ostream &out) const override;
 
@@ -44,6 +52,8 @@ struct TwoLiteralInferenceExtra : public InferenceExtra {
   LiteralInferenceExtra selectedLiteral;
   // the literal from the side premise
   Kernel::Literal *otherLiteral;
+  // synthesis information: condition and branch literals for if-then-else
+  SynthesisExtra synthesisExtra;
 };
 
 struct RewriteInferenceExtra : public InferenceExtra {
@@ -63,9 +73,11 @@ struct TwoLiteralRewriteInferenceExtra : public InferenceExtra {
     Kernel::Literal *selected,
     Kernel::Literal *other,
     Kernel::TermList lhs,
-    Kernel::TermList rewritten)
-    : selected(selected, other), rewrite(lhs, rewritten) {}
-
+    Kernel::TermList rewritten,
+    Kernel::Literal *condition = nullptr,
+    Kernel::Literal *thenLit = nullptr,
+    Kernel::Literal *elseLit = nullptr)
+    : selected(selected, other, condition, thenLit, elseLit), rewrite(lhs, rewritten) {}
   virtual void output(std::ostream &out) const override;
 
   // selected literals

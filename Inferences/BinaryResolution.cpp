@@ -38,7 +38,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -82,12 +81,8 @@ template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
           ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
           PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls,
-          PartialRedundancyHandler const* parRedHandler, bool ansLitIte)
+          PartialRedundancyHandler const* parRedHandler)
 {
-  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-  if (ansLitIte && !synthesis) {
-    return 0;
-  }
   DEBUG_RESOLUTION(0, "lhs: ", *queryLit, " (clause: ", queryCl->number(), ")")
   DEBUG_RESOLUTION(0, "rhs: ", *resultLit, " (clause: ", resultCl->number(), ")")
   DEBUG_RESOLUTION(0, "subs: ", *subs)
@@ -147,13 +142,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
-  Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
-  bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
-  if (ansLitIte && (!bothHaveAnsLit || (subs->applyToQuery(cAnsLit) == subs->applyToResult(dAnsLit)))) {
-    return 0;
-  }
-
   RStack<Literal*> resLits;
 
   Literal* queryLitAfter = 0;
@@ -165,7 +153,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   resLits->loadFromIterator(constraints->iterFifo());
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
-    if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
+    if(curr!=queryLit) {
       Literal* newLit = subs->applyToQuery(curr);
       if(hasAgeLimitStrike) {
         wlb+=newLit->weight() - curr->weight();
@@ -199,7 +187,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*resultCl)[i];
-    if(curr!=resultLit && (!bothHaveAnsLit || curr!=dAnsLit)) {
+    if(curr!=resultLit) {
       Literal* newLit = subs->applyToResult(curr);
       if(hasAgeLimitStrike) {
         wlb+=newLit->weight() - curr->weight();
@@ -231,31 +219,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (bothHaveAnsLit) {
-    Literal* newLitC = subs->applyToQuery(cAnsLit);
-    Literal* newLitD = subs->applyToResult(dAnsLit);
-    if (!ansLitIte) {
-      RobSubstitution rSubst;
-      if (rSubst.unifyArgs(newLitC, 0, newLitD, 0)) {
-        Stack<Literal*>::Iterator it(*resLits);
-        while (it.hasNext()) {
-          Literal* l = it.next();
-          Literal* ls = rSubst.apply(l, 0);
-          if (l != ls) {
-            it.replace(ls);
-          }
-        }
-        resLits->push(rSubst.apply(newLitC, 0));
-      } else {
-        return 0;
-      }
-    } else {
-      bool cNeg = queryLit->isNegative();
-      Literal* condLit = cNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit);
-      resLits->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC));
-    }
-  }
-
   if(nConstraints != 0){
     env.statistics->cResolution++;
   }
@@ -265,31 +228,39 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause *cl = Clause::fromStack(*resLits, inf);
-  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+  Literal *qAnsLit, *rAnsLit;
+  if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) &&
+      (qAnsLit = queryCl->getAnswerLiteral()) && (rAnsLit = resultCl->getAnswerLiteral())) {
+    Literal* sqAnsLit = subs->applyToQuery(qAnsLit);
+    Literal* srAnsLit = subs->applyToResult(rAnsLit);
+    bool queryNeg = queryLit->isNegative();
+    env.proofExtra.insert(cl, new BinaryResolutionExtra(
+      queryLit,
+      resultLit,
+      queryNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit),
+      queryNeg ? sqAnsLit : srAnsLit,
+      queryNeg ? srAnsLit : sqAnsLit
+    ));
+  } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
+  }
 
   return cl;
 
 }
 
 
-ClauseIterator BinaryResolution::generateClauses(Clause* queryCl, Literal* queryLit,
-                                          Clause* resultCl, Literal* resultLit,
-                                          AbstractingUnifier& uwa, const Options& opts,
-                                          SaturationAlgorithm* salg) {
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
+                                         Clause* resultCl, Literal* resultLit,
+                                         AbstractingUnifier& uwa, const Options& opts,
+                                         SaturationAlgorithm* salg) {
   // perform binary resolution on query results
   auto subs = ResultSubstitution::fromSubstitution(&uwa.subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
   bool doAfterCheck = opts.literalMaximalityAftercheck() && salg->getLiteralSelector().isBGComplete();
-  return pvi(concatIters(
-          getSingletonIterator(BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs,
+  return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs,
       [&](){ return uwa.computeConstraintLiterals(); },
       opts, doAfterCheck, salg->getPassiveClauseContainer(),
-      &salg->getOrdering(), &salg->getLiteralSelector(), &salg->parRedHandler(), true)),
-          getSingletonIterator(BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs,
-      [&](){ return uwa.computeConstraintLiterals(); },
-      opts, doAfterCheck, salg->getPassiveClauseContainer(),
-      &salg->getOrdering(), &salg->getLiteralSelector(), &salg->parRedHandler(), false))
-        ));
+      &salg->getOrdering(), &salg->getLiteralSelector(), &salg->parRedHandler());
 }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
@@ -303,7 +274,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
             return iterTraits(_index->getUwa(lit, /* complementary */ true,
                                              env.options->unificationWithAbstraction(),
                                              env.options->unificationWithAbstractionFixedPointIteration()))
-                     .flatMap([this,lit,premise](auto qr) { return BinaryResolution::generateClauses(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, this->getOptions(), _salg); });
+                     .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, this->getOptions(), _salg); });
         })
         .filter(NonzeroFn())
   ));

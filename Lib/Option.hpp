@@ -17,9 +17,9 @@
 #ifndef __OPTIONAL_H__
 #define __OPTIONAL_H__
 
+#include <iosfwd>
 #include <type_traits>
 #include "Debug/Assertion.hpp"
-#include <iostream>
 #include "Lib/Reflection.hpp"
 
 
@@ -366,7 +366,7 @@ public:
   auto orElse(Clsr clsr) REF -> Option                                                    \
   { return this->isSome() ? MOVE(*this) : clsr(); }                                       \
                                                                                           \
-  /** Returns the value of this, if this is Some, or uses the closure to create a value othewise. */\
+  /** Returns the value of this, if this is Some, or uses the closure to create a value otherwise. */\
   template<class Clsr,                                                                    \
            typename std::enable_if<std::is_same< typename std::invoke_result<Clsr>::type  \
                                       , A                                                 \
@@ -378,7 +378,7 @@ public:
   { return this->isSome() ? MOVE(*this).unwrap() : clsr(); }                              \
                                                                                           \
    /**                                                                                    \
-   * applies a function to the value of this closure if ther is one. the function is expected to return\
+   * applies a function to the value of this closure if there is one. the function is expected to return\
    * another option. the resulting Option<Option<Result>> will then be flattened to an Option<Result>.\
    *                                                                                      \
    * This function is the same as flatMap/andThen/(>>=)  in other programming languages with monads.\

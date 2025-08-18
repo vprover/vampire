@@ -33,9 +33,9 @@
 #include "SAT/SAT2FO.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATSolver.hpp"
+#include "SAT/ProofProducingSATSolver.hpp"
 
 #include "DP/DecisionProcedure.hpp"
-#include "DP/SimpleCongruenceClosure.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -50,9 +50,9 @@ using namespace Indexing;
 
 typedef Stack<SplitLevel> SplitLevelStack;
 
-struct SplitClauseExtra : public InferenceExtra {
+struct SATClauseExtra : public InferenceExtra {
   SATClause *clause;
-  SplitClauseExtra(SATClause *clause) : clause(clause) {}
+  SATClauseExtra(SATClause *clause) : clause(clause) {}
   void output(std::ostream &out) const override;
 };
 
@@ -71,64 +71,41 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
-  SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent), _solverIsSMT(false)  {}
-  ~SplittingBranchSelector(){
-#if VZ3
-_solver=0;
-#endif
-  }
-
+  SplittingBranchSelector(Splitter& parent) : _parent(parent), _solverIsSMT(false) {}
   /** To be called from Splitter::init() */
   void init();
 
   void updateVarCnt();
   void considerPolarityAdvice(SATLiteral lit);
+  void trySetTrue(SATLiteral lit) {
+    _solver.suggestPolarity(lit.var(),lit.positive());
+  }
 
-  void addSatClauseToSolver(SATClause* cl, bool refutation);
-  void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize = false);
-
-  void flush(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
-
+  void addSatClauseToSolver(SATClause* cl);
+  void recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 private:
   friend class Splitter;
 
-  SATSolver::Status processDPConflicts();
-  SATSolver::VarAssignment getSolverAssimentConsideringCCModel(unsigned var);
+  SAT::Status processDPConflicts();
 
   void handleSatRefutation();
-  void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
+  void updateSelection(unsigned satVar, VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
-  int assertedGroundPositiveEqualityCompomentMaxAge();
-
   //options
-  bool _eagerRemoval;
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
   bool _ccMultipleCores;
-  bool _minSCO; // minimize wrt splitting clauses only
-  bool _ccModel;
 
   Splitter& _parent;
 
   bool _solverIsSMT;
-  ScopedPtr<SATSolver> _solver;
+  ProofProducingSATSolver _solver;
   ScopedPtr<DecisionProcedure> _dp;
-  // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
-  ScopedPtr<SimpleCongruenceClosure> _dpModel;
-  
+
   /**
    * Contains selected component names (splitlevels)
    */
   ArraySet _selected;
-  
-  /**
-   * Keeps track of positive ground equalities true in the last ccmodel.
-   */
-  ArraySet _trueInCCModel;
-
-#if VDEBUG
-  unsigned lastCheckedVar;
-#endif
 };
 
 
@@ -147,7 +124,7 @@ private:
 
   struct ReductionRecord
   {
-    ReductionRecord(Clause* clause) : clause(clause), 
+    ReductionRecord(Clause* clause) : clause(clause),
         timestamp(clause->getReductionTimestamp()) {}
     Clause* clause;
     unsigned timestamp;
@@ -158,7 +135,7 @@ private:
  * SplitRecord - records the split information for the clause component
  *
  * Let's call the SplitLevel associated with a comp its "name"
- * A corresponding SplitRecord is added to _db[name] 
+ * A corresponding SplitRecord is added to _db[name]
  *
  * children - Clauses that rely on name (of comp), should be thrown away "on backtracking"
  * reduced - The clauses that have been *conditionally* reduced by this clause (and are therefore frozen)
@@ -184,16 +161,19 @@ private:
     Stack<PartialRedundancyEntry*> partialRedundancyEntries;
     bool active;
 
+    // marks a component as insisting on being inserted into FO; i.e. it's only kept out if the sat solver says FALSE (regardless of eagerRemovals etc.)
+    bool sticky = false;
+
     USE_ALLOCATOR(SplitRecord);
   };
-  
+
 public:
   Splitter();
   ~Splitter();
 
   const Options& getOptions() const;
   Ordering& getOrdering() const;
-  
+
   void init(SaturationAlgorithm* sa);
 
   bool doSplitting(Clause* cl);
@@ -215,6 +195,10 @@ public:
     ASS_L(name,_db.size());
     return (_db[name] != 0);
   }
+  bool isSticky(SplitLevel name) const {
+    ASS_L(name,_db.size());
+    return _db[name]->sticky;
+  }
   Clause* getComponentClause(SplitLevel name) const;
 
   SplitLevel splitLevelCnt() const { return _db.size(); }
@@ -234,7 +218,7 @@ public:
 
 private:
   friend class SplittingBranchSelector;
-  
+
   SplitLevel getNameFromLiteralUnsafe(SATLiteral lit) const;
 
   bool shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl);
@@ -254,22 +238,22 @@ private:
   SplitLevel tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl);
   SplitLevel tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
 
-  void addSatClauseToSolver(SATClause* cl, bool refutation);
+  void addSatClauseToSolver(SATClause* cl);
 
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
 
   bool allSplitLevelsActive(SplitSet* s);
 
+  void conjectureSingleton(Literal* theLit, Clause* orig);
+
   //settings
   bool _showSplitting;
 
   Options::SplittingAddComplementary _complBehavior;
   Options::SplittingNonsplittableComponents _nonsplComps;
-  unsigned _flushPeriod;
-  float _flushQuotient;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
-  Options::SplittingCongruenceClosure _congruenceClosure;
+  bool _congruenceClosure;
   bool _shuffleComponents;
 #if VZ3
   bool hasSMTSolver;
@@ -282,8 +266,8 @@ private:
    * Registers all the sat variables and keeps track
    * of associated ground literals for those variables
    * which have one.
-   */  
-  SAT2FO _sat2fo;  
+   */
+  SAT2FO _sat2fo;
   /**
    * Information about a split level. Can be null if a split level does
    * not contain any components (e.g. for negations of non-ground
@@ -299,36 +283,24 @@ private:
    * (So the key here is never odd!)
    **/
   DHMap<SplitLevel,Unit*> _defs;
-  
-  //state variable used for flushing:  
-  /** When this number of generated clauses is reached, it will cause flush */
-  unsigned _flushThreshold;
+
   /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
   bool _clausesAdded;
-  /** true if there was a refutation added to the SAT solver */
-  bool _haveBranchRefutation;
 
-  /* as there can be both limits, it's hard to covert between them,
+  /* as there can be both limits, it's hard to convert between them,
    * and we terminate at the earlier one, let's just keep checking both. */
   unsigned _stopSplittingAtTime; // time elapsed in milliseconds
 #if VAMPIRE_PERF_EXISTS
   unsigned _stopSplittingAtInst; // mega-instructions elapsed
 #endif
 
-  bool _fastRestart; // option's value copy
-  /**
-   * We are postponing to consider these clauses for a split 
-   * because a conflict clause has been derived
-   * and will invariably change the SAT model.
-   */
-  RCClauseStack _fastClauses;
-  
+  bool _cleaveNonsplittables; // option's value copy
+
   SaturationAlgorithm* _sa;
 
   // clauses we already added to the SAT solver
   // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
   Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
-
 public:
   static std::string splPrefix;
 

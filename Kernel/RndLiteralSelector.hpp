@@ -17,15 +17,12 @@
 #define __RndLiteralSelector__
 
 #include "Forwards.hpp"
-#include "Lib/SmartPtr.hpp"
-#include "Ordering.hpp"
-
 #include "LiteralSelector.hpp"
 
 namespace Kernel {
 
 /**
- * Class RndLiteralSelector selectes a random literal,
+ * Class RndLiteralSelector selects a random literal,
  * but makes sure not to violate the BG condition when asked to be complete.
  */
 class RndLiteralSelector

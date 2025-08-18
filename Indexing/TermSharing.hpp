@@ -18,9 +18,8 @@
 #define __TermSharing__
 
 #include "Lib/Set.hpp"
+#include "Lib/DHSet.hpp"
 #include "Kernel/Term.hpp"
-
-#include "Lib/Allocator.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -96,7 +95,6 @@ private:
   friend class Kernel::Term;
   friend class Kernel::Literal;
   friend class Kernel::AtomicSort;
-  int sumRedLengths(TermStack& args);
   static bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */

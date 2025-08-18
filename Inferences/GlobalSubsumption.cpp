@@ -47,25 +47,14 @@ using namespace Indexing;
 using namespace Saturation;
 
 GlobalSubsumption::GlobalSubsumption(const Options& opts) :
-  _uprOnly(opts.globalSubsumptionSatSolverPower()==Options::GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY),
-  _explicitMinim(opts.globalSubsumptionExplicitMinim()!=Options::GlobalSubsumptionExplicitMinim::OFF),
-  _randomizeMinim(opts.globalSubsumptionExplicitMinim()==Options::GlobalSubsumptionExplicitMinim::RANDOMIZED),
-  _splittingAssumps(opts.globalSubsumptionAvatarAssumptions()!= Options::GlobalSubsumptionAvatarAssumptions::OFF),
-  _splitter(0)
-{
-  _solver = new MinisatInterfacing(opts,true);
-  _grounder = new GlobalSubsumptionGrounder(*_solver);
-}
+  _randomizeMinim(opts.randomTraversals()),
+  _solver(new ProofProducingSATSolver(new MinisatInterfacing, true)),
+  _grounder(new GlobalSubsumptionGrounder(*_solver))
+{}
 
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-
-  if (_salg->getOptions().globalSubsumptionAvatarAssumptions() == Options::GlobalSubsumptionAvatarAssumptions::FULL_MODEL) {
-    _splitter=_salg->getSplitter();
-  } else {
-    _splitter = 0;
-  }
 }
 
 void GlobalSubsumption::detach()
@@ -84,10 +73,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   TIME_TRACE("global subsumption");
 
   if(cl->color()==COLOR_LEFT) {
-    return cl;
-  }
-
-  if(!_splittingAssumps && cl->splits() && cl->splits()->size()!=0) {
     return cl;
   }
 
@@ -118,30 +103,13 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   //
   // also keep filling assumps for gsaa=crom_curent
   if (cl->splits() && cl->splits()->size()!=0) {
-    ASS(_splittingAssumps);
-
     auto sit = cl->splits()->iter();
     while(sit.hasNext()) {
       SplitLevel l = sit.next();
       unsigned var = splitLevelToVar(l);
 
       plits.push(SATLiteral(var,false)); // negative
-      if (!_splitter) {
-        assumps.push(SATLiteral(var,true)); // positive
-      }
-    }
-  }
-
-  // for gsaa=full_model, assume all active split levels instead
-  if (_splitter) {
-    ASS(_splittingAssumps);
-
-    SplitLevel bound = _splitter->splitLevelBound();
-    for (SplitLevel lev = 0; lev < bound; lev++) {
-      if (_splitter->splitLevelActive(lev)) {
-        unsigned var = splitLevelToVar(lev);
-        assumps.push(SATLiteral(var,true)); // positive
-      }
+      assumps.push(SATLiteral(var,true)); // positive
     }
   }
 
@@ -157,17 +125,17 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   _solver->addClause(scl);
 
   // check for subsuming clause by looking for a subset of used assumptions
-  SATSolver::Status res = _solver->solveUnderAssumptions(assumps, _uprOnly);
+  Status res = _solver->solveUnderAssumptions(assumps, /* onlyPropagate = */ true);
 
-  if (res == SATSolver::Status::UNSATISFIABLE) {
+  if (res == Status::UNSATISFIABLE) {
     // it should always be UNSAT with full assumps,
     // but we may not get that far with limited solving power (_uprOnly)
 
-    const SATLiteralStack& failed = _solver->failedAssumptions();
+    SATLiteralStack failed = _solver->failedAssumptions();
 
     if (failed.size() < assumps.size()) {
       // proper subset sufficed for UNSAT - that's the interesting case
-      const SATLiteralStack& failedFinal = _explicitMinim ? _solver->explicitlyMinimizedFailedAssumptions(_uprOnly,_randomizeMinim) : failed;
+      SATLiteralStack failedFinal = _solver->explicitlyMinimizedFailedAssumptions(/* onlyPropagate = */ true, _randomizeMinim);
 
       static LiteralStack survivors;
       survivors.reset();
@@ -201,20 +169,13 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
           // Some solvers may return "all the clauses added so far" in the refutation.
           // That must be filtered since a derived clause cannot depend on inactive splits
           [this] (SATClause* prem) {
-
-            // ignore ASSUMPTION clauses (they don't have FO premises anyway)
-            if (prem->inference()->getType() == SATInference::ASSUMPTION) {
-              ASS_EQ(prem->size(),1);
-              return false;
-            }
-
-            // and don't keep any premise which mentions an unassumed split level assumption
+            // don't keep any premise which mentions an unassumed split level assumption
             unsigned prem_sz = prem->size();
             for (unsigned i = 0; i < prem_sz; i++ ) {
               SATLiteral lit = (*prem)[i];
               SplitLevel lev;
               if (isSplitLevelVar(lit.var(),lev)) {
-                ASS(lit.isNegative());
+                ASS(!lit.positive());
                 if (!splitAssumps.contains(lit)) {
                   return false;
                 }

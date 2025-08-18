@@ -27,7 +27,6 @@
 #include "Lib/Map.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
 
 #include "Shell/TermAlgebra.hpp"
@@ -75,32 +74,6 @@ class Signature
   static const unsigned REAL_SRT_CON=4;
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
-  
-  //Order is important
-  //Narrow.cpp relies on it
-  enum Combinator {
-    S_COMB,
-    B_COMB,
-    C_COMB,
-    I_COMB,
-    K_COMB,
-    NOT_COMB
-  };
-  
-  enum Proxy {
-    AND,
-    OR,
-    IMP,
-    FORALL,
-    EXISTS,
-    IFF,
-    XOR,
-    NOT,
-    PI,
-    SIGMA,
-    EQUALS,
-    NOT_PROXY
-  };  
   
   class Symbol {
   
@@ -168,8 +141,7 @@ class Signature
     unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
-    /** combinator type */
-    Combinator _comb;
+    int _deBruijnIndex;
 
   public:
     /** standard constructor */
@@ -284,8 +256,16 @@ class Signature
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
 
-    inline void setComb(Combinator comb){ _comb = comb; }
-    inline Combinator combinator(){ return _comb; }
+    void setDeBruijnIndex(int index) {
+      _deBruijnIndex = index;
+    }
+
+    Option<unsigned> deBruijnIndex() const {
+      if (_deBruijnIndex > -1)
+        return Option<unsigned>(static_cast<unsigned>(_deBruijnIndex));
+
+      return {};
+    }
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -486,18 +466,8 @@ class Signature
     RealConstantType _realValue;
 
   public:
-    RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")") 
-                                                                         : Output::toString(val),
-        /*             arity */ 0, 
-        /*       interpreted */ true, 
-        /*    preventQuoting */ false, 
-        /*             super */ false),
-       _realValue(std::move(val))
-    {
-      setType(OperatorType::getConstantsType(AtomicSort::realSort()));
-    }
-  }; 
+    RealSymbol(const RealConstantType& val);
+  };
 
   //////////////////////////////////////
   // Uninterpreted symbol declarations
@@ -548,8 +518,11 @@ class Signature
   unsigned addNameFunction(unsigned arity);
   void addEquality();
   unsigned getApp();
+  unsigned getLam();
   unsigned getDiff();
   unsigned getChoice();
+  unsigned getDeBruijnIndex(int index);
+  unsigned getPlaceholder();
   /**
    * For a function f with result type t, this introduces a predicate
    * $def_f with the type t x t. This is used to track expressions of
@@ -787,15 +760,27 @@ class Signature
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
-    return (con == _arrayCon && _arrayCon != UINT_MAX);    
+    return con == _arrayCon && _arrayCon != UINT_MAX;
   }
 
   bool isArrowCon(unsigned con) const{
-    return (con == _arrowCon && _arrowCon != UINT_MAX);    
+    return con == _arrowCon && _arrowCon != UINT_MAX;
   }
   
   bool isAppFun(unsigned fun) const{
-    return (fun == _appFun && _appFun != UINT_MAX);
+    return fun == _appFun && _appFun != UINT_MAX;
+  }
+
+  bool isLamFun(unsigned fun) const {
+    return fun == _lamFun && _lamFun != UINT_MAX;
+  }
+
+  bool isChoiceFun(unsigned fun) const{
+    return fun == _choiceFun && _choiceFun != UINT_MAX;
+  }
+
+  bool isPlaceholder(unsigned fun) const{
+    return fun == _placeholderFun && _placeholderFun != UINT_MAX;
   }
 
   bool isFnDefPred(unsigned p) const{
@@ -940,28 +925,28 @@ class Signature
       TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
       Symbol * sym = getFunction(eqProxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
-      sym->setProxy(EQUALS);
+      sym->setProxy(Proxy::EQUALS);
     }
     return eqProxy;  
   }
 
-  unsigned getBinaryProxy(std::string name){
+  unsigned getBinaryProxy(const std::string& name) {
     ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
     
-    auto convert = [] (std::string name) { 
-      if(name == "vIMP"){ return IMP; }
-      else if(name == "vAND"){ return AND; }
-      else if(name == "vOR"){ return OR; }
-      else if(name == "vIFF"){ return IFF; }
-      else{ return XOR; }
+    constexpr auto convert = [] (const std::string& name) {
+      if (name == "vIMP") return Proxy::IMP;
+      if (name == "vAND") return Proxy::AND;
+      if (name == "vOR") return Proxy::OR;
+      if (name == "vIFF") return Proxy::IFF;
+      return Proxy::XOR;
     };
 
-    unsigned proxy = addFunction(name,0, added);
-    if(added){
-      TermList bs = AtomicSort::boolSort();
-      TermList result = AtomicSort::arrowSort(bs, bs, bs);
-      Symbol * sym = getFunction(proxy);
+    unsigned proxy = addFunction(name, 0, added);
+    if (added) {
+      auto bs = AtomicSort::boolSort();
+      auto result = AtomicSort::arrowSort(bs, bs, bs);
+      auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(convert(name));
     }
@@ -976,7 +961,7 @@ class Signature
       TermList result = AtomicSort::arrowSort(bs, bs);
       Symbol * sym = getFunction(notProxy);
       sym->setType(OperatorType::getConstantsType(result));
-      sym->setProxy(NOT);
+      sym->setProxy(Proxy::NOT);
     }
     return notProxy;  
   } //TODO merge with above?
@@ -985,77 +970,18 @@ class Signature
   unsigned getPiSigmaProxy(std::string name){
     bool added = false;
     unsigned proxy = addFunction(name,1, added);
-    if(added){
-      TermList tv = TermList(0, false);
-      TermList result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
+    if (added) {
+      auto tv = TermList(0, false);
+      auto result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
       result = AtomicSort::arrowSort(result, AtomicSort::boolSort());
-      Symbol * sym = getFunction(proxy);
+      auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
-      sym->setProxy(name == "vPI" ? PI : SIGMA);
+      sym->setProxy(name == "vPI" ? Proxy::PI : Proxy::SIGMA);
     }
     return proxy;  
   } //TODO merge with above?  
 
   //TODO make all these names protected
-
-  unsigned getCombinator(Combinator c){
-    bool added = false;
-    unsigned comb;
-    
-    auto convert = [] (Combinator cb) { 
-      switch(cb){
-        case S_COMB:
-          return "sCOMB";
-        case C_COMB:
-          return "cCOMB";
-        case B_COMB:
-          return "bCOMB";
-        case K_COMB:
-          return "kCOMB";
-        default:
-          return "iCOMB";
-      }
-    };
-    
-    std::string name = convert(c);
-    if(c == S_COMB || c == B_COMB || c == C_COMB){
-      comb = addFunction(name,3, added);
-    } else if ( c == K_COMB) {
-      comb = addFunction(name,2, added);      
-    } else {
-      comb = addFunction(name,1, added);
-    }
-
-    if(added){
-      unsigned typeArgsArity = 3;
-      TermList x0 = TermList(0, false);
-      TermList x1 = TermList(1, false);
-      TermList x2 = TermList(2, false);
-      TermList t0 = AtomicSort::arrowSort(x1, x2);
-      TermList t1 = AtomicSort::arrowSort(x0, t0);
-      TermList t2 = AtomicSort::arrowSort(x0, x1);
-      TermList t3 = AtomicSort::arrowSort(x0, x2);
-      TermList sort; 
-      if(c == S_COMB){
-        sort = AtomicSort::arrowSort(t1, t2, t3);
-      }else if(c == C_COMB){
-        sort = AtomicSort::arrowSort(t1, x1, t3);
-      }else if(c == B_COMB){
-        sort = AtomicSort::arrowSort(t0, t2, t3);
-      }else if(c == K_COMB){
-        typeArgsArity = 2;
-        sort = AtomicSort::arrowSort(x0, x1 , x0);
-      }else if(c == I_COMB){
-        typeArgsArity = 1;
-        sort = AtomicSort::arrowSort(x0, x0);
-      }    
-
-      Symbol* sym = getFunction(comb);
-      sym->setType(OperatorType::getConstantsType(sort, typeArgsArity));
-      sym->setComb(c);
-    } 
-    return comb;
-  }
 
   void incrementFormulaCount(Term* t);
   void decrementFormulaCount(Term* t);
@@ -1141,6 +1067,9 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
+  unsigned _lamFun;
+  unsigned _choiceFun;
+  unsigned _placeholderFun;
   DHSet<unsigned> _fnDefPreds;
   DHMap<unsigned,unsigned> _boolDefPreds;
 

@@ -38,6 +38,8 @@ using namespace Shell;
 
 class ClauseContainer
 {
+  using ClauseEvent = SingleParamEvent<Clause *>;
+
 public:
   virtual ~ClauseContainer() {}
   ClauseEvent addedEvent;
@@ -171,7 +173,7 @@ public:
 
   // it this is true, an inference may try to establish whether a clause under construction can be discarded early
   // by first checking, using exceedsAgeLimit(unsigned,unsigned,...), whether it exceeds the current ageLimit (if applicable)
-  // and second checking, using exceedsWeightLimit(unsigned,unsigned,...) wether it exceeds the current weight (if applicable)
+  // and second checking, using exceedsWeightLimit(unsigned,unsigned,...) whether it exceeds the current weight (if applicable)
   virtual bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const = 0;
 
   // age is to be recovered from inference

@@ -273,7 +273,7 @@ private:
 };
 
 /**
- * Iterator that maps the contents of another iterator by a function. Whenever the function retuns a non-empty Option
+ * Iterator that maps the contents of another iterator by a function. Whenever the function returns a non-empty Option
  * this iterator will return the corresponding value. 
  */
 template<class Inner, class Functor>
@@ -553,7 +553,7 @@ MappingIterator<Inner,Functor,ResultType> getMappingIteratorKnownRes(Inner it, F
 
 
 /**
- * Iterator that uses elements of its inner iterator as argments to
+ * Iterator that uses elements of its inner iterator as arguments to
  * single-parameter constructor @b Constructor, and yields created
  * objects.
  */
@@ -1610,7 +1610,7 @@ public:
   /** 
    * returns the first minimal element wrt the function `less` 
    * less takes two arguments of this iterators element type and 
-   * returns the wheter the first is smaller than the second.
+   * returns the whether the first is smaller than the second.
    * */
   template<class IsLess>
   Option<Elem> minBy(IsLess isLess)
@@ -1642,8 +1642,8 @@ public:
   auto output() const
   { return Output::interleaved(", ", *this); }
 
-  template<class Seperator>
-  auto output(Seperator const& sep) const
+  template<class Separator>
+  auto output(Separator const& sep) const
   { return Output::interleaved(sep, *this); }
 
   Option<Elem> min()

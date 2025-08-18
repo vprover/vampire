@@ -38,18 +38,15 @@
 #ifndef __list__
 #define __list__
 
-
 #include "Forwards.hpp"
-
-#include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
 #include "VirtualIterator.hpp"
 
+#include "Debug/Assertion.hpp"
+
 #if VDEBUG
-
-#include <ostream>
-
+#include <iosfwd>
 #endif
 
 namespace Lib {
@@ -81,7 +78,7 @@ public:
 
   /** creates an empty list */
   static List* empty ()
-  { return 0; }
+  { return nullptr; }
 
   /** true if the list is empty */
   static bool isEmpty (const List* l)
@@ -723,7 +720,7 @@ public:
    * Class that allows to create a list initially by pushing element both at the beginning (pushFront, the usual push)
    * and at the end of it (pushBack, the FIFO style).
    *
-   * The interal list is not owned by the FIFO. In a typical use case, the list will be retrieved via list() call
+   * The internal list is not owned by the FIFO. In a typical use case, the list will be retrieved via list() call
    * and kept after FIFO passes out of scope.
    * @since 06/04/2006 Bellevue
    */

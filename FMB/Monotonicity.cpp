@@ -42,7 +42,7 @@ using namespace std;
 
 Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 {
-  _solver = new MinisatInterfacing(*env.options, true);
+  _solver = new MinisatInterfacing;
 
  // create pt and pf per predicate and add the constraint -pf | -pt
  for(unsigned p=1;p<env.signature->predicates();p++){
@@ -63,9 +63,9 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
    }
  }
 
- SATSolver::Status status = _solver->solve();
- ASS(status!=SATSolver::Status::UNKNOWN);
- _result = (status == SATSolver::Status::SATISFIABLE);
+ Status status = _solver->solve();
+ ASS(status!=Status::UNKNOWN);
+ _result = (status == Status::SATISFIABLE);
 }
 
 DArray<signed char>* Monotonicity::check() {

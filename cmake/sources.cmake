@@ -39,6 +39,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tBinaryHeap.cpp
@@ -50,9 +51,11 @@ set(UNIT_TESTS
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tEqualityResolution.cpp
+    UnitTests/tForwardGroundJoinability.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tHOL_Printing.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -71,7 +74,6 @@ set(UNIT_TESTS
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSKIKBO.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
@@ -199,6 +201,8 @@ set(SOURCES
     Inferences/ALASCA/VariableElimination.cpp
     Inferences/ALASCA/VariableElimination.hpp
     Inferences/ALASCA/VirasInterfacing.hpp
+    Inferences/AnswerLiteralProcessors.cpp
+    Inferences/AnswerLiteralProcessors.hpp
     Inferences/ArgCong.cpp
     Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -235,10 +239,6 @@ set(SOURCES
     Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
-    Inferences/CombinatorDemodISE.cpp
-    Inferences/CombinatorDemodISE.hpp
-    Inferences/CombinatorNormalisationISE.cpp
-    Inferences/CombinatorNormalisationISE.hpp
     Inferences/Condensation.cpp
     Inferences/Condensation.hpp
     Inferences/DefinitionIntroduction.cpp
@@ -247,8 +247,6 @@ set(SOURCES
     Inferences/DemodulationHelper.hpp
     Inferences/DistinctEqualitySimplifier.cpp
     Inferences/DistinctEqualitySimplifier.hpp
-    Inferences/ElimLeibniz.cpp
-    Inferences/ElimLeibniz.hpp
     Inferences/EqualityFactoring.cpp
     Inferences/EqualityFactoring.hpp
     Inferences/EqualityResolution.cpp
@@ -265,6 +263,8 @@ set(SOURCES
     Inferences/FastCondensation.hpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardDemodulation.hpp
+    Inferences/ForwardGroundJoinability.cpp
+    Inferences/ForwardGroundJoinability.hpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.cpp
@@ -292,23 +292,15 @@ set(SOURCES
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/InvalidAnswerLiteralRemovals.cpp
-    Inferences/InvalidAnswerLiteralRemovals.hpp
     Inferences/LfpRule.hpp
-    Inferences/Narrow.cpp
-    Inferences/Narrow.hpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp
     Inferences/PolynomialEvaluation.cpp
     Inferences/PolynomialEvaluation.hpp
-    Inferences/PrimitiveInstantiation.cpp
-    Inferences/PrimitiveInstantiation.hpp
     Inferences/ProofExtra.cpp
     Inferences/ProofExtra.hpp
     Inferences/PushUnaryMinus.cpp
     Inferences/PushUnaryMinus.hpp
-    Inferences/SubVarSup.cpp
-    Inferences/SubVarSup.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/SubsumptionDemodulationHelper.hpp
     Inferences/Superposition.cpp
@@ -358,6 +350,8 @@ set(SOURCES
     Kernel/FormulaVarIterator.hpp
     Kernel/Grounder.cpp
     Kernel/Grounder.hpp
+    Kernel/InductionTemplate.cpp
+    Kernel/InductionTemplate.hpp
     Kernel/Inference.cpp
     Kernel/Inference.hpp
     Kernel/InferenceStore.cpp
@@ -419,8 +413,6 @@ set(SOURCES
     Kernel/RndLiteralSelector.hpp
     Kernel/RobSubstitution.cpp
     Kernel/RobSubstitution.hpp
-    Kernel/SKIKBO.cpp
-    Kernel/SKIKBO.hpp
     Kernel/Signature.cpp
     Kernel/Signature.cpp
     Kernel/Signature.hpp
@@ -432,7 +424,6 @@ set(SOURCES
     Kernel/SubformulaIterator.cpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
-    Kernel/Substitution.cpp
     Kernel/Substitution.hpp
     Kernel/Term.cpp
     Kernel/Term.hpp
@@ -456,6 +447,10 @@ set(SOURCES
     Kernel/UnificationWithAbstraction.hpp
     Kernel/Unit.cpp
     Kernel/Unit.hpp
+    Kernel/HOL/HOL.cpp
+    Kernel/HOL/Create.cpp
+    Kernel/HOL/Convert.cpp
+    Kernel/HOL/HOL.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
@@ -470,7 +465,6 @@ set(SOURCES
     Lib/Coproduct.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
-    Lib/DHMap.cpp
     Lib/DHMap.hpp
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
@@ -485,8 +479,6 @@ set(SOURCES
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
-    Lib/IntNameTable.cpp
-    Lib/IntNameTable.hpp
     Lib/IntUnionFind.cpp
     Lib/IntUnionFind.hpp
     Lib/IntegerSet.cpp
@@ -562,8 +554,6 @@ set(SOURCES
     Parse/SMTLIB2.hpp
     Parse/TPTP.cpp
     Parse/TPTP.hpp
-    SAT/BufferedSolver.cpp
-    SAT/BufferedSolver.hpp
     SAT/CadicalInterfacing.cpp
     SAT/CadicalInterfacing.hpp
     SAT/FallbackSolverWrapper.cpp
@@ -572,17 +562,16 @@ set(SOURCES
     SAT/MinimizingSolver.hpp
     SAT/MinisatInterfacing.cpp
     SAT/MinisatInterfacing.hpp
-    SAT/MinisatInterfacingNewSimp.cpp
-    SAT/MinisatInterfacingNewSimp.hpp
     SAT/SAT2FO.cpp
     SAT/SAT2FO.hpp
     SAT/SATClause.cpp
     SAT/SATClause.hpp
     SAT/SATInference.cpp
     SAT/SATInference.hpp
-    SAT/SATLiteral.cpp
     SAT/SATLiteral.hpp
+    SAT/ProofProducingSATSolver.hpp
     SAT/SATSolver.hpp
+    SAT/SATSolver.cpp
     SAT/Z3Interfacing.cpp
     SAT/Z3Interfacing.hpp
     SAT/Z3MainLoop.cpp
@@ -672,8 +661,6 @@ set(SOURCES
     Shell/InterpretedNormalizer.hpp
     Shell/LaTeX.cpp
     Shell/LaTeX.hpp
-    Shell/LambdaElimination.cpp
-    Shell/LambdaElimination.hpp
     Shell/Lexer.cpp
     Shell/Lexer.cpp
     Shell/Lexer.hpp
@@ -704,6 +691,8 @@ set(SOURCES
     Shell/Property.hpp
     Shell/Rectify.cpp
     Shell/Rectify.hpp
+    Shell/SMTCheck.hpp
+    Shell/SMTCheck.cpp
     Shell/SMTLIBLogic.hpp
     Shell/Shuffling.cpp
     Shell/Shuffling.hpp

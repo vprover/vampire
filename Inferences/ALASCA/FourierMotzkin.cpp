@@ -44,7 +44,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
 
 #define check_side_condition(cond, cond_code)                                                       \
     if (!(cond_code)) {                                                                             \
-      DEBUG_FM(1, "side condition not fulfiled: " cond)                                                   \
+      DEBUG_FM(1, "side condition not fulfilled: " cond)                                            \
       return Option<Clause*>();                                                                     \
     }                                                                                               \
 

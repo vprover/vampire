@@ -89,9 +89,9 @@ struct BinaryResolutionConf
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const 
-  { return applyRule_(&lhs, lhsVarBank, &rhs, rhsVarBank, uwa); }
+  { return applyRule_(&lhs, lhsVarBank, &rhs, rhsVarBank, uwa).intoIter(); }
 
-  ClauseIterator applyRule_(
+  Option<Clause*> applyRule_(
       SelectedLiteral const* lhs, unsigned lhsVarBank,
       SelectedLiteral const* rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
@@ -102,10 +102,11 @@ struct BinaryResolutionConf
       std::swap(lhsVarBank, rhsVarBank);
     }
     ASS(_salg)
-    return Inferences::BinaryResolution::generateClauses(
+    auto res = Inferences::BinaryResolution::generateClause(
         lhs->clause(), lhs->literal(), 
         rhs->clause(), rhs->literal(),
         uwa, *env.options, _salg);
+    return res == nullptr ? Option<Clause*>() : some(res);
   }
   // TODO somehow get rid of this field and the hack around it
   SaturationAlgorithm* _salg = 0;

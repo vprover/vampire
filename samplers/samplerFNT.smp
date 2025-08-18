@@ -134,7 +134,7 @@ sa!=fmb > etr ~cat off:500,on:30
 sa!=fmb ins=0 > er ~cat off:500,known:25,filter:26
 
 # extensionality_allow_pos_eq
-sa!=fmb er=filter > erape ~cat off:3,on:1
+sa!=fmb er=filter > eape ~cat off:3,on:1
 
 # extensionality_max_length
 sa!=fmb er!=off > erml ~cat 0:3,2:1,3:1
@@ -156,6 +156,9 @@ sa!=fmb fd!=off > fdtod ~cat on:1,off:1
 
 # demodulation_only_equational
 sa!=fmb $drc=1 > doe ~cat on:1,off:1
+
+# forward_ground_joinability
+sa!=fmb > fgj ~cat on:1,off:1
 
 # function_definition_introduction
 sa!=fmb > fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
@@ -243,27 +246,17 @@ sa=fmb > sas ~cat minisat:7,cadical:10
 # avatar_add_complementary
 sa!=fmb av=on > aac ~cat none:147,ground:600
 
-# avatar_buffered_solver
-sa!=fmb av=on > abs ~cat on:63,off:300
-
 # avatar_congruence_closure
-sa!=fmb sas!=z3 av=on > acc ~cat off:600,model:24,on:58
+sa!=fmb sas!=z3 av=on > acc ~cat off:600,on:58
 
 # cc_unsat_cores
 sa!=fmb acc!=off > ccuc ~cat first:1,small_ones:1,all:3
 
 # avatar_minimize_model
-sa!=fmb av=on  acc=model > amm ~cat all:600,off:69
-sa!=fmb av=on acc!=model > amm ~cat all:600,sco:32,off:69
-
-# avatar_eager_removal
-sa!=fmb av=on amm=all > aer ~cat on:300,off:1
+sa!=fmb av=on > amm ~cat on:600,off:69
 
 # avatar_delete_deactivated
 sa!=fmb av=on > add ~cat on:300,large:55,off:8
-
-# avatar_fast_restart
-sa!=fmb av=on > afr ~cat off:10,on:1
 
 # avatar_literal_polarity_advice
 sa!=fmb av=on > alpa ~cat none:300,false:13,true:6,random:4
@@ -276,14 +269,6 @@ sa!=fmb av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 # sa!=fmb av=on $atotf=1 > atotf ~cat 1:1
 # sa!=fmb av=on $atotf!=1 > atotf ~uf 0.0,0.7
 # TODO: leaving out weird timing dependent options
-
-# avatar_flush_period
-sa!=fmb av=on > $afp ~cat 0:15,666:1
-sa!=fmb av=on $afp=0 > afp ~cat 0:1
-sa!=fmb av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
-
-# avatar_flush_quotient
-sa!=fmb afp!=0 > afq ~uf 1.0,3.0
 
 # nonliterals_in_clause_weight
 sa!=fmb av=on > nicw ~cat off:600,on:76
@@ -314,24 +299,15 @@ avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
 # avatar_split_queue_ratios
 avsq=on > avsqr ~u2r -5;3;,
 
-# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+# GLOBAL SUBSUMPTION
 # global_subsumption
 sa!=fmb > gs ~cat off:5,on:1
 
-# global_subsumption_explicit_minim
-gs=on > gsem ~cat randomized:50,on:5,off:17
-
-# global_subsumption_sat_solver_power
-gs=on > gsssp ~cat propagation_only:20,full:1
-
-# global_subsumption_avatar_assumptions
-gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
-
-# MISC
-
-> uhcvi ~cat off:1,on:1
-
 # FMB options
+
+# TODO: a candidate for hardwiring "on" (go an collect the data)
+# fmb_use_simplifying_solver
+sa=fmb sas=minisat > fmbuss ~cat off:1,on:5
 
 # fmb_enumeration_strategy
 $has_z3=true  sa=fmb > fmbes ~cat sbeam:1,smt:1,contour:1
@@ -359,7 +335,7 @@ sa=fmb $fmbss=1 > fmbss ~cat 1:1
 sa=fmb $fmbss=666 > fmbss ~sgd 0.1,1
 
 # fmb_symmetry_symbol_order
-sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1
+sa=fmb > fmbsso ~cat occurrence:22,input_usage:1,preprocessed_usage:1
 
 # fmb_symmetry_ratio
 sa=fmb > fmbsr ~uf 1.0,2.5

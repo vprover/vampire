@@ -43,7 +43,7 @@ def topStack(stack):
 #return the top of the stack, but also pop that element
 def pop_stack(stack):
     return stack.pop()
-#check if the open paranthesis match the closed ones
+#check if the open parenthesis match the closed ones
 def balanceParanthesis(string):
     count = 0
     for x in string: 
@@ -62,9 +62,9 @@ def FIND(value, strin):
         i = -1 
     return i
 #checks if a token is of array type 
-#this is a rather naive implementation - chechs if a operand is followed by paranthesis
+#this is a rather naive implementation - checks if a operand is followed by parenthesis
 #this function is needed in order to make the difference between the array type and normal 
-#open and closed paranthesis
+#open and closed parenthesis
 def isArray(x, string):
     if typeof(x)== operator or x =='(' or x==')': 
         return False
@@ -75,14 +75,14 @@ def isArray(x, string):
         return True
     else: return False
 
-#the this actually create the expression string to be outputed
+#the this actually create the expression string to be outputted
 def evaluate(str):
     operands = []
     for x in reversed(str):
         if x == '':
             continue
         if isArray(x, str) == True:
-            #in case the operand is an array treat it more carefull
+            #in case the operand is an array treat it more careful
             op = pop_stack(operands)
             operands.append(x+"["+op+"]")
         else:
@@ -127,7 +127,7 @@ def convert(strin):
     tem = strin[0].strip("\n")
     strin = []
     if balanceParanthesis(tem) != 0 :
-        print "There are unbalanced paranthesis "
+        print "There are unbalanced parenthesis "
         exit(-1)
     else: 
         infix = strToTokens(tem)
@@ -143,7 +143,7 @@ def convertS(String):
         try:
             temp = x.strip("\n")
             if balanceParanthesis(temp) !=0 :
-                print "Therea are unbalanced paranthesis!"
+                print "Therea are unbalanced parenthesis!"
                 exit(-1)
             else:
                 if x.find("!=")!=-1:
@@ -163,7 +163,7 @@ def convertS(String):
                     returnV.append(evaluate(infix))
         except e: 
             print e
-            
+
     #print returnV
     return returnV
 

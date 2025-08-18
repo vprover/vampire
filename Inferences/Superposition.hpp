@@ -21,7 +21,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Inferences/ProofExtra.hpp"
-#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
 
@@ -44,7 +43,7 @@ private:
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-    AbstractingUnifier* unifier, bool eqIsResult, bool ansLitIte);
+    AbstractingUnifier* unifier, bool eqIsResult);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,

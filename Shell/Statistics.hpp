@@ -128,7 +128,9 @@ public:
   /** number of unused predicate definitions */
   unsigned unusedPredicateDefinitions = 0;
   /** number of eliminated function definitions */
-  unsigned functionDefinitions = 0;
+  unsigned eliminatedFunctionDefinitions = 0;
+  /** number of introduced function definitions */
+  unsigned introducedFunctionDefinitions = 0;
   /** number of formulas selected by SInE selector */
   unsigned selectedBySine = 0;
   /** number of iterations before SInE reached fixpoint */
@@ -296,6 +298,8 @@ public:
   unsigned forwardSubsumed = 0;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed = 0;
+  /** number of forward ground joinable clauses */
+  unsigned forwardGroundJoinable = 0;
 
   /** statistics of term algebra rules */
   unsigned taDistinctnessSimplifications = 0;

@@ -19,9 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
-#include "Lib/DHSet.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #include "Term.hpp"
@@ -37,13 +35,9 @@ public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static bool hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs);
   static VirtualIterator<Term*> getSubtermIterator(Literal* lit, const Ordering& ord);
-  static VirtualIterator<Term*> getFoSubtermIterator(Literal* lit, const Ordering& ord);
-  static TermIterator getBooleanSubtermIterator(Literal* lit, const Ordering& ord);  
-  static TermIterator getNarrowableSubtermIterator(Literal* lit, const Ordering& ord);  
-  static VirtualIterator<TypedTermList> getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord);
+  static TermIterator getBooleanSubtermIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
-  static VirtualIterator<TypedTermList> getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
   static std::pair<VirtualIterator<TypedTermList>,bool> getDemodulationLHSIterator(Literal* lit, bool onlyPreordered, const Ordering& ord);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
 
@@ -80,19 +74,6 @@ public:
     const Ordering& _ord;
     const Options& _opt;
   };
-
-  struct SubVarSupLHSIteratorFn
-  {
-    SubVarSupLHSIteratorFn(const Ordering& ord) : _ord(ord) {}
-
-    VirtualIterator<std::pair<Literal*, TypedTermList> > operator()(Literal* lit)
-    {
-      return pvi( pushPairIntoRightIterator(lit, getSubVarSupLHSIterator(lit, _ord)) );
-    }
-  private:
-    const Ordering& _ord;
-  };
-
 
   struct EqualityArgumentIteratorFn
   {

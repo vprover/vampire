@@ -18,8 +18,6 @@
 
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Portability.hpp"
-#include "Lib/Sort.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
@@ -290,7 +288,6 @@ CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
 CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 {
   CodeOp res;
-  res.setAlternative(0);
   res._setData(ils);
   res._setInstruction(LIT_END);
   ASS(res.isLitEnd());
@@ -302,7 +299,6 @@ CodeTree::CodeOp CodeTree::CodeOp::getTermOp(Instruction i, unsigned num)
   ASS(i==CHECK_FUN || i==CHECK_VAR || i==ASSIGN_VAR);
 
   CodeOp res;
-  res.setAlternative(0);
   res._setInstruction(i);
   res._setArg(num);
   return res;
@@ -313,7 +309,6 @@ CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(const Term* trm)
   ASS(trm->ground());
 
   CodeOp res;
-  res.setAlternative(0);
   res._setData(trm);
   ASS(res.isCheckGroundTerm());
   return res;
@@ -420,7 +415,6 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
 CodeTree::SearchStruct::SearchStruct(Kind kind, size_t length)
 : kind(kind)
 {
-  landingOp.setAlternative(0);
   landingOp._setInstruction(SEARCH_STRUCT);
   ASS(length);
 
@@ -558,8 +552,8 @@ CodeTree::~CodeTree()
 
   while(top_ops.isNonEmpty()) {
     CodeOp* top_op = top_ops.pop();
-            
-    if (top_op->isSearchStruct()) {            
+
+    if (top_op->isSearchStruct()) {
       if(top_op->alternative()) {
         top_ops.push(top_op->alternative());
       }
@@ -613,7 +607,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
     auto kv = top_ops.pop();
     CodeOp* top_op = kv.first;
     unsigned depth = kv.second;
-            
+
     if (top_op->isSearchStruct()) {
       visitor(top_op, depth); // visit the landingOp inside the SearchStruct
       
@@ -626,7 +620,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
           top_ops.push(make_pair(ss->targets[i],depth+1));
         }
-      }              
+      }
     } else {
       CodeBlock* cb=firstOpToCodeBlock(top_op);
 

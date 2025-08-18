@@ -162,6 +162,8 @@ public:
     CHECK_VAR = 5,
     SEARCH_STRUCT = 6,
   };
+  static const unsigned INSTRUCTION_BITS = 3;
+  static_assert(SEARCH_STRUCT < 1 << INSTRUCTION_BITS, "Instruction should fit within INSTRUCTION_BITS");
 
   /** Structure containing a single instruction and its arguments */
   struct CodeOp
@@ -170,7 +172,6 @@ public:
     {
       ASS(ptr); //data has to be a non-zero pointer
       CodeOp res;
-      res.setAlternative(0);
       res._setData(ptr);
       res._setInstruction(SUCCESS_OR_FAIL);
       ASS(res.isSuccess());
@@ -219,32 +220,20 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
 
-    static constexpr unsigned
-      INSTRUCTION_BITS_START = 0,
-      INSTRUCTION_BITS_END = INSTRUCTION_BITS_START + 3,
-      ARG_BITS_START = INSTRUCTION_BITS_END,
-      ARG_BITS_END = CHAR_BIT * sizeof(uint64_t),
-      DATA_BITS_START = INSTRUCTION_BITS_END,
-      DATA_BITS_END = CHAR_BIT * sizeof(void *);
-
+    BITFIELD(64,
+      BITFIELD_MEMBER(unsigned, _arg, _setArg, CHAR_BIT * sizeof(unsigned) - INSTRUCTION_BITS,
+      BITFIELD_MEMBER(unsigned, _instruction, _setInstruction, INSTRUCTION_BITS,
+      END_BITFIELD
+    )))
     static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
-    static_assert(SEARCH_STRUCT < 8, "must be able to squash instructions into 3 bits");
-
-    // getters and setters
-    BITFIELD64_GET_AND_SET(unsigned, instruction, Instruction, INSTRUCTION)
-    BITFIELD64_GET_AND_SET(unsigned, arg, Arg, ARG)
-    template<class T> T* _data() const {
-      static_assert(alignof(T)>SEARCH_STRUCT);
-      return reinterpret_cast<T*>(BitUtils::getBits<DATA_BITS_START, DATA_BITS_END>(this->_content));
-    }
-    template<class T> void _setData(T* data) {
-      static_assert(alignof(T)>SEARCH_STRUCT);
-      BitUtils::setBits<DATA_BITS_START, DATA_BITS_END>(this->_content, reinterpret_cast<uint64_t>(data));
-    }
-    // end bitfield
+    template<class T>
+    BITFIELD_PTR_GET(T, _data, INSTRUCTION_BITS)
+    template<class T>
+    BITFIELD_PTR_SET(T, _setData, INSTRUCTION_BITS)
 
   private:
-    uint64_t _content;
+    // bitfield
+    uint64_t _content = 0;
 
     /**
      * Pointer to an alternative operation
@@ -252,7 +241,7 @@ public:
      * If nonzero, either points to the first operation of
      * a @b CodeBlock or to a @b landingOp of a @b SearchStruct.
      */
-    CodeOp* _alternative;
+    CodeOp* _alternative = 0;
   };
 
   /**

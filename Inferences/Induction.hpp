@@ -142,10 +142,10 @@ struct InductionContext {
   // These functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
-  Formula* getFormula(const std::vector<TermList>& r, bool opposite, Substitution* subst = nullptr) const;
-  Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, bool opposite, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
-  Formula* getFormulaWithSquashedSkolems(const std::vector<TermList>& r, bool opposite, unsigned& var,
-    VList** varList = nullptr, Substitution* subst = nullptr) const;
+  Formula* getFormula(
+    const InductionUnit& unit, const Substitution& typeBinder, unsigned& var,
+    VList** varsReplacingSkolems = nullptr, Substitution* subst = nullptr) const;
+  Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
 
   // Return some free variable that occurs in the induction literals.
   // If the literals are all ground, return 0 (and fail in debug mode).
@@ -176,14 +176,15 @@ struct InductionContext {
   std::unordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
   bool _standardBase = true;
 private:
+  Formula* getFormula(const std::vector<TermList>& r, Substitution* subst) const;
+  Formula* getFormulaWithSquashedSkolems(
+    const std::vector<TermList>& r, unsigned& var, VList** varsReplacingSkolems, Substitution* subst) const;
   /**
-   * Creates a formula which corresponds to the conjunction of disjunction
-   * of selected literals for each clause in @b _cls, where we apply the term
-   * replacement @b tr on each literal. Opposite means we get the negated
-   * formula, i.e. each literal is negated and conjunction and disjunction
-   * are switched.
+   * Creates a formula which corresponds to the disjunction of conjunction
+   * of opposites of selected literals for each clause in @b _cls, where we
+   * apply the term replacement @b tr on each literal.
    */
-  Formula* getFormula(TermReplacement& tr, bool opposite) const;
+  Formula* getFormula(TermReplacement& tr) const;
 };
 
 /**
@@ -327,16 +328,17 @@ private:
 
   struct DefaultBound { TypedTermList term; };
   using Bound = Coproduct<TermLiteralClause, DefaultBound>;
+
+  std::unique_ptr<InductionTemplate> getIntegerInductionTemplate(bool increasing, Bound bound1, const TermLiteralClause* optionalBound2);
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, Bound bound1, const TermLiteralClause* optionalBound2);
 
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, TermLiteralClause const& bound1, const TermLiteralClause* optionalBound2)
   { performIntInduction(context, e, increasing, Bound::variant<0>(bound1), optionalBound2); }
 
-  void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
-  void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
-  void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
+  // TODO(hzzv): Replace this with the following line:
   void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Binding* binding);
-  void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const std::vector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
+  //void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution* freeVarSubst);
+  void performInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e);
 
   /**
    * Whether an induction formula is applicable (or has already been generated)

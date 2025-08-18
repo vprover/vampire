@@ -206,7 +206,7 @@ private:
     /**
      * If reprConst==0, contains list of pair names in whose pairs this
      * constant appears as a representative of one of the arguments.
-     * Irregardless of the value of reprConst, also contains representatives
+     * Regardless of the value of reprConst, also contains representatives
      * of all pairs that have this very constant as one of arguments.
      */
     Stack<unsigned> useList;

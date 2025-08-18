@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-exec ./vampire-hol --input_syntax tptp --proof tptp --output_axiom_names on --mode portfolio --schedule snake_slh $1 -m 16384 -t $STAREXEC_CPU_LIMIT
+exec ./vampire-hol --input_syntax tptp --proof tptp --output_axiom_names on --print_def_sorts on --mode portfolio --schedule snake_slh $1 -m 16384 -t $STAREXEC_CPU_LIMIT

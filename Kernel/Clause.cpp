@@ -193,7 +193,8 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    if (env.options->proofExtra() == Options::ProofExtra::FULL) {
+    if ((env.options->proofExtra() == Options::ProofExtra::FULL) ||
+        (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
       env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();
@@ -632,12 +633,6 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
     w = (2 * w + numeralWeight);
   }
   return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
-}
-
-
-void Clause::collectUnstableVars(DHSet<unsigned>& acc)
-{
-  collectVars2<UnstableVarIt>(acc);
 }
 
 void Clause::collectVars(DHSet<unsigned>& acc)

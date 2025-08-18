@@ -41,7 +41,7 @@ public:
    *
    * @param formulaBuffer is FIFO to which newly parsed Formulas will be added (via pushBack);
    *
-   *  if left unspeficied, and empty fifo is created and used instead.
+   *  if left unspecified, and empty fifo is created and used instead.
    *  (use this default behaviour if you do not want to collect formulas
    *  from multiple parser calls)
    */
@@ -127,7 +127,7 @@ private:
   void readDefineSort(const std::string& name, LExpr* args, LExpr* body);
 
   /**
-   * Helper funtion to check that a parsed sort is indeed a sort.
+   * Helper function to check that a parsed sort is indeed a sort.
    */
   TermList parseSort(LExpr* sExpr);
 
@@ -179,10 +179,6 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_DIVIDE,
-    TS_ARRAY,
-    TS_BOOL,
-    TS_INT,
-    TS_REAL,
     TS_ABS,
     TS_AS,
     TS_DIV,
@@ -205,20 +201,39 @@ private:
   static TermSymbol getBuiltInTermSymbol(const std::string& str);
 
   /**
-   * Is the given std::string a built-in FormulaSymbol, built-in TermSymbol
-   * or a declared function/predicate/type constructor?
+   * Built-in types
    */
-  bool isAlreadyKnownSymbol(const std::string& name);
+  enum TypeSymbol
+  {
+    TS_ARRAY,
+    TS_BOOL,
+    TS_INT,
+    TS_REAL,
 
-  enum class SymbolType {
-    FUNCTION,
-    PREDICATE,
-    TYPECON,
+    TS_USER_TYPE
   };
-  /** <vampire signature id, symbol type> */
-  typedef std::pair<unsigned,SymbolType> DeclaredSymbol;
+  static const char * s_typeSymbolNameStrings[];
+
+  /**
+   * Lookup to see if std::string is a built-in TypeSymbol.
+   */
+  static TypeSymbol getBuiltInTypeSymbol(const std::string& str);
+
+  /**
+   * Is the given std::string a built-in FormulaSymbol, built-in TermSymbol
+   * or a declared function/predicate?
+   */
+  bool isAlreadyKnownFunction(const std::string& name);
+  /**
+   * Is the given std::string a declared sort or sort parameter?
+   */
+  bool isAlreadyKnownSort(const std::string& name);
+
+  /** <vampire signature id, predicate> */
+  typedef std::pair<unsigned,bool> DeclaredSymbol;
   /** symbols are implicitly declared also when they are defined (see below) */
   DHMap<std::string, DeclaredSymbol> _declaredSymbols;
+  DHMap<std::string, unsigned> _declaredSorts;
 
   /**
    * Given a symbol name, range sort (which can be Bool) and argSorts,
@@ -323,11 +338,57 @@ private:
   /** For generating fresh vampire variables */
   unsigned _nextVar;
 
-  /** < termlist, vampire sort id > */
-  typedef std::pair<TermList,TermList> SortedTerm;
-  /** mast an identifier to SortedTerm */
-  typedef DHMap<std::string,SortedTerm> TermLookup;
-  typedef Stack<TermLookup*> Lookups;
+  struct Binding {
+    TermList term;
+    TermList sort;
+  };
+
+  /*
+   * Keep a map from strings to terms for lookup during parsing,
+   * while also preserving left-to-right order.
+   */
+  struct Lookup {
+    // `map` keys into `bindings`
+    std::unordered_map<std::string, size_t> map;
+    // the bindings in left-to-right order
+    std::vector<Binding> bindings;
+
+    // copy constructor is probably a bug
+    Lookup(const Lookup &) = delete;
+    Lookup &operator=(const Lookup &) = delete;
+
+    // rest are OK
+    Lookup() = default;
+    Lookup(Lookup &&) noexcept = default;
+    Lookup &operator=(Lookup &&) noexcept = default;
+
+    size_t size() const { return bindings.size(); }
+    bool insert(std::string name, Binding binding) {
+      size_t index = size();
+      auto [_, inserted] = map.insert({name, index});
+      if(inserted)
+        bindings.push_back(binding);
+      return inserted;
+    }
+
+    Binding get(const std::string &name) const {
+      return bindings[map.at(name)];
+    }
+
+    bool find(const std::string &name) const {
+      return map.count(name);
+    }
+
+    bool find(const std::string &name, Binding &binding) const {
+      auto it = map.find(name);
+      bool found = it != map.end();
+      if(found)
+        binding = bindings[it->second];
+      return found;
+    }
+  };
+
+  typedef Stack<Lookup> Lookups;
   /** Stack of parsing contexts:
    * for variables from quantifiers and
    * for symbols bound by let (which are variables from smtlib perspective,
@@ -340,17 +401,8 @@ private:
    * global sort parameters can appear in (almost) any statement, implicitly
    * universally quantified. We collect them in this structure globally.
    */
-  TermLookup _globalSortParamLookup;
+  Lookup _globalSortParamLookup;
 
-  /**
-   * Helper function maintaining lookups (see above).
-   */
-  inline void pushLookup() {
-    _lookups.push(new TermLookup());
-  }
-  inline void popLookup() {
-    delete _lookups.pop();
-  }
   void tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort);
 
   /**
@@ -447,7 +499,7 @@ private:
    *
    * Ignored feature:
    * - quantifier patterns: " (forall (( x0 A) (x1 A) (x2 A)) (! (=> (and (r x0 x1) (r x1 x2 )) (r x0 x2 )) : pattern ((r x0 x1) (r x1 x2 )) : pattern ((p x0 a)) ))
-   *  the patter information is lost and the pattern data is not checked semantically.
+   *  the pattern information is lost and the pattern data is not checked semantically.
    *
    * Violates standard:
    * - requires variables under a single quantifier to be distinct

@@ -49,7 +49,7 @@ using namespace Parse;
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::string> TPTP::_axiomNames;
-DHMap<unsigned, Map<int,std::string>*> TPTP::_questionVariableNames;
+DHMap<unsigned, Map<unsigned,std::string>> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -131,7 +131,7 @@ void TPTP::parse()
  */
 void TPTP::parseImpl(State initialState)
 {
-  // bulding tokens one by one
+  // building tokens one by one
   _cend = 0;
   _tend = 0;
   currentFile.lineNumber = 1;
@@ -1401,7 +1401,7 @@ void TPTP::tff()
           symbol->setType(ot);  
           _typeConstructorArities.insert(nm, arity);
         }       
-        //cout << "added type constuctor " + nm + " of type " + symbol->fnType()->toString() << endl;
+        //cout << "added type constructor " + nm + " of type " + symbol->fnType()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
         }
@@ -1526,7 +1526,7 @@ void TPTP::holFormula()
     _states.push(HOL_FORMULA);
     return;
     
-  //higher order syntax wierdly allows (~) @ (...)
+  //higher order syntax weirdly allows (~) @ (...)
   case T_RPAR: {
     ASS(_connectives.top() == NOT);
     _connectives.pop();
@@ -1614,7 +1614,7 @@ void TPTP::holTerm()
           break;
         case T_DEFAULT_TYPE:
           _termLists.push(AtomicSort::defaultSort());
-          break;             
+          break;
         default:
           ASSERTION_VIOLATION;
       }
@@ -1650,7 +1650,7 @@ void TPTP::holTerm()
       break;
     }
     case T_VAR:{
-      unsigned var = (unsigned)_vars.insert(name);
+      unsigned var = _vars.insert(name, _vars.size());
       _termLists.push(TermList(var, false)); // dummy arity to indicate a variable
       break;
     }
@@ -2486,7 +2486,7 @@ void TPTP::symbolDefinition()
     resetToks();
     for (;;) {
       if (getTok(0).tag == T_VAR) {
-        int var = _vars.insert(getTok(0).content);
+        unsigned var = _vars.insert(getTok(0).content, _vars.size());
         vars.push(var);
         resetToks();
       } else {
@@ -2788,7 +2788,7 @@ void TPTP::varList()
     if (tok.tag != T_VAR) {
       PARSE_ERROR_TOK("variable expected",tok);
     }
-    int var = _vars.insert(tok.content);
+    unsigned var = _vars.insert(tok.content, _vars.size());
     if (_isQuestion) {
       _curQuestionVarNames.insert(var,tok.content);
     }
@@ -2876,7 +2876,7 @@ void TPTP::term()
           break;
         case T_DEFAULT_TYPE:
           _termLists.push(AtomicSort::defaultSort());
-          break;             
+          break;
         default:
           ASSERTION_VIOLATION;
       }
@@ -2953,7 +2953,7 @@ void TPTP::endTerm()
 
   if (arity == -1) {
     // it was a variable
-    unsigned var = (unsigned)_vars.insert(name);
+    unsigned var = _vars.insert(name, _vars.size());
     _termLists.push(TermList(var, false));
     return;
   }
@@ -3029,7 +3029,7 @@ void TPTP::formulaInfix()
 
   if (arity == -1) {
     // that was a variable
-    unsigned var = (unsigned)_vars.insert(name);
+    unsigned var = _vars.insert(name, _vars.size());
     _termLists.push(TermList(var, false));
     _states.push(END_TERM_AS_FORMULA);
     return;
@@ -3211,7 +3211,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
 TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
-{ //TODO update to deal with wierd /\ @ ... syntax
+{ //TODO update to deal with weird /\ @ ... syntax
   ASS_GE(_termLists.size(), arity);
 
   unsigned fun;
@@ -3280,7 +3280,7 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
 }
 
 /**
- * Build a formula from previousy built subformulas
+ * Build a formula from previously built subformulas
  * @since 10/04/2011 Manchester
  */
 void TPTP::endFormula()
@@ -3300,7 +3300,7 @@ void TPTP::endFormula()
     break;
   case NOT:
     f = _formulas.pop();
-    // This gets rid of the annoying step in proof output where ~(L) is flattend to (~L)
+    // This gets rid of the annoying step in proof output where ~(L) is flattened to (~L)
     if(f->connective()==LITERAL){
       Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
       Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
@@ -3389,7 +3389,7 @@ void TPTP::endFormula()
     case AND:
     case OR:
       f = _formulas.pop();
-      f = makeJunction((Connective)con,_formulas.pop(),f);
+      f = makeJunction((Connective)con,f,_formulas.pop());
       if (conReverse) {
 	f = new NegatedFormula(f);
       }
@@ -3485,7 +3485,7 @@ void TPTP::endTermAsFormula()
 } // endTermAsFormula
 
 /**
- * Build a type from previousy built types
+ * Build a type from previously built types
  * @since 14/07/2011 Manchester
  */
 void TPTP::endType()
@@ -3655,7 +3655,7 @@ void TPTP::endFof()
       unit = new FormulaUnit(f,
 			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
       if (_isQuestion) {
-        _questionVariableNames.insert(unit->number(),new Map<int,std::string>(std::move(_curQuestionVarNames)));
+        _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
       }
     }
     break;
@@ -3678,7 +3678,7 @@ void TPTP::endFof()
 *
 * Now instead of returning it directly, we turn it into an equivalence
 * with a fresh predicate symbol (of name nm) and return that one.
-* The new symbo is marked not to be eliminated during preprocessing.
+* The new symbol is marked not to be eliminated during preprocessing.
 */
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
 {
@@ -4220,7 +4220,7 @@ void TPTP::readTypeArgs(unsigned arity)
       _termLists.push(readArrowSort());
       consumeToken(T_RPAR);
     } else {
-      _termLists.push(readArrowSort());            
+      _termLists.push(readArrowSort());
     }
   }
 }
@@ -4274,7 +4274,7 @@ TermList TPTP::readSort()
   case T_VAR:
     {
       std::string vname = tok.content;
-      unsigned var = (unsigned)_vars.insert(vname);
+      unsigned var = _vars.insert(vname, _vars.size());
       return  TermList(var, false);
     }
 

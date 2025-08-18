@@ -30,6 +30,7 @@
 #include <type_traits>
 #include <vector>
 #include <tuple>
+#include <vector>
 
 namespace Lib {
 
@@ -151,7 +152,7 @@ constexpr unsigned bitMask(unsigned i)
 template<class... As>
 class Coproduct;
 
-/** This namespace constains helper classes and functions to implement the coproduct */
+/** This namespace contains helper classes and functions to implement the coproduct */
 namespace CoproductImpl {
 
   template<class... As>
@@ -265,6 +266,16 @@ namespace CoproductImpl {
   struct MaxSize<T, Ts...>
   { static constexpr unsigned value = std::max<unsigned>(sizeof(T), MaxSize<Ts...>::value); };
 
+  template<class... Ts>
+  struct MaxAlign;
+
+  template<>
+  struct MaxAlign<>
+  { static constexpr unsigned value = 0; };
+
+  template<class T, class... Ts>
+  struct MaxAlign<T, Ts...>
+  { static constexpr unsigned value = std::max<unsigned>(alignof(T), MaxAlign<Ts...>::value); };
 
   template<class... As>
   class RawCoproduct {
@@ -292,7 +303,7 @@ namespace CoproductImpl {
 
     using Bytes = char [MaxSize<As...>::value];
     unsigned _tag: neededBits(nTags);
-    Bytes _content;
+    alignas(MaxAlign<As...>::value) Bytes _content;
 
 
     TrivialOperations::DisableIfNeeded<TrivialOperations::CopyCons, Ts> _copyCons;
@@ -469,8 +480,8 @@ public:
   }
 
   /**
-   * Returns whether this coproduct is the variant witht he given type.
-   * \pre is exactly one occurence of the type B in this Coproduct's types (As...).
+   * Returns whether this coproduct is the variant with he given type.
+   * \pre is exactly one occurrence of the type B in this Coproduct's types (As...).
    */
   template <class B> bool is() const
   { return is<TL::IdxOf<B, Ts>::val>(); }
@@ -487,9 +498,9 @@ public:
 #define REF_POLYMORPIHIC(REF, MOVE)                                                       \
                                                                                           \
    /**                                                                                    \
-   * transforms all variants of this Coproduct to the same type and retuns the result     \
+   * transforms all variants of this Coproduct to the same type and returns the result    \
    *                                                                                      \
-   * The arguments F... must all be function whichs argument type must match the type of  \
+   * The arguments F... must all be function whose argument type must match the type of   \
    * the corresponding * variant of this Coproduct. The output types of the functions must\
    * all be the same type, which will be the return type of this function.                \
    */                                                                                     \
@@ -503,7 +514,7 @@ public:
   }                                                                                       \
                                                                                           \
   /**                                                                                     \
-   * transforms all variants of this Coproduct to the same type and retuns the result     \
+   * transforms all variants of this Coproduct to the same type and returns the result    \
    *                                                                                      \
    * This function works basically in the same way as match, but takes one polymorphic    \
    * function object that can transform any variant instead of multiple functions per     \

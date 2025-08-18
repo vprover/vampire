@@ -16,7 +16,6 @@
 #ifndef __TheoryInstAndSimp__
 #define __TheoryInstAndSimp__
 
-#include "Lib/Allocator.hpp"
 #if VZ3
 
 #include "Forwards.hpp"
@@ -61,7 +60,7 @@ public:
 
   /**
    * Assuming cl is only built from theory material, this will use an SMT solver
-   * to check whether the given clause cl is sematically valid (in its theory).
+   * to check whether the given clause cl is semantically valid (in its theory).
    *
    * The function sets couldNotCheck to true, if it found symbols that it didn't understand.
    * (In that case the answer is "true" even though we don't know.)

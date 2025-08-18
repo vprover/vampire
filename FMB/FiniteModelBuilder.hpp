@@ -24,6 +24,7 @@
 
 #include "Kernel/MainLoop.hpp"
 #include "SAT/SATSolver.hpp"
+#include "SAT/SATClause.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
 #include "Lib/BinaryHeap.hpp"
@@ -128,7 +129,7 @@ private:
 
   unsigned _curMaxVar;
   // SAT solver used to solve constraints (a new one is used for each model size)
-  ScopedPtr<SATSolverWithAssumptions> _solver;
+  ScopedPtr<SATSolver> _solver;
 
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
   DArray<bool> del_f;
@@ -213,7 +214,7 @@ private:
   // Currently an experimental option allows you to start at larger model sizes
   // TODO in the future we could use this for a cheap way to 'pause' and 'restart' fmb
   unsigned _startModelSize;
-  // If we detect that FMB is not an approprate sa at init we then terminate immediately at runImpl
+  // If we detect that FMB is not an appropriate sa at init we then terminate immediately at runImpl
   bool _isAppropriate;
   // Option used in symmetry breaking
   float _symmetryRatio;

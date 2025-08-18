@@ -31,10 +31,74 @@
 
 namespace Lib {
 
-#define DHMAP_MAX_CAPACITY_INDEX 29
+inline constexpr int DHMAP_MAX_CAPACITY_INDEX = 29;
 
-extern const unsigned DHMapTableCapacities[];
-extern const unsigned DHMapTableNextExpansions[];
+inline constexpr unsigned DHMapTableCapacities[] = {
+    0,
+    7,
+    13,
+    31,
+    61,
+    127,
+    251,
+    509,
+    1021,
+    2039,
+    4093,
+    8191,
+    16381,
+    32749,
+    65521,
+    131071,
+    262139,
+    524287,
+    1048573,
+    2097143,
+    4194301,
+    8388593,
+    16777213,
+    33554393,
+    67108859,
+    134217689,
+    268435399,
+    536870909,
+    1073741789,
+    2147483647,
+};
+
+//next expansion occupancy is equal to 0.7*capacity
+inline constexpr unsigned DHMapTableNextExpansions[] = {
+    0,
+    4,
+    9,
+    21,
+    42,
+    88,
+    175,
+    356,
+    714,
+    1427,
+    2865,
+    5733,
+    11466,
+    22924,
+    45864,
+    91749,
+    183497,
+    367000,
+    734001,
+    1468000,
+    2936010,
+    5872015,
+    11744049,
+    23488075,
+    46976201,
+    93952382,
+    187904779,
+    375809636,
+    751619252,
+    1503238552,
+};
 
 /**
  * Class DHMap implements generic maps with keys of a class Key
@@ -46,10 +110,10 @@ extern const unsigned DHMapTableNextExpansions[];
  *        anything that can be hashed to an unsigned integer
  *        and compared using ==
  * @param Val values, can be anything
- * @param Hash1 class containig the hash function for keys which
+ * @param Hash1 class containing the hash function for keys which
  *	  determines position of entry in hashtable when no collision
  *	  occurs.
- * @param Hash2 class containig the hash function for keys which
+ * @param Hash2 class containing the hash function for keys which
  *	  will be used when collision occurs. Otherwise it will not be
  *	  enumerated.
  */
@@ -58,7 +122,7 @@ class DHMap
 {
 public:
   USE_ALLOCATOR(DHMap);
-  
+
   /** Create a new DHMap */
   DHMap()
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
@@ -171,6 +235,18 @@ public:
   }
 
   /**
+   * const version of findPtr.
+   */
+  const Val* findPtr(Key key) const
+  {
+    const Entry* e=findEntry(key);
+    if(!e) {
+      return nullptr;
+    }
+    return &e->_val;
+  }
+
+  /**
    *  Return value associated with given key. A pair with
    *  this key has to be present.
    */
@@ -236,7 +312,7 @@ public:
 
   /**
    * If there is no value stored under @b key in the map,
-   * insert pair (key,value) and return true. Otherwise, 
+   * insert pair (key,value) and return true. Otherwise,
    * return false.
    */
   bool insert(Key key, Val val)
@@ -247,7 +323,7 @@ public:
     if(!exists) {
       if(e->_info.timestamp!=_timestamp) {
 	e->_info.timestamp=_timestamp;
-	//no collision has occured on this entry while this _timestamp is set
+	//no collision has occurred on this entry while this _timestamp is set
 	e->_info.collision=0;
       } else {
 	ASS(e->_info.deleted);
@@ -274,7 +350,7 @@ public:
     if(!exists) {
       if(e->_info.timestamp!=_timestamp) {
 	e->_info.timestamp=_timestamp;
-	//no collision has occured on this entry while this _timestamp is set
+	//no collision has occurred on this entry while this _timestamp is set
 	e->_info.collision=0;
       } else {
 	ASS(e->_info.deleted);
@@ -302,7 +378,7 @@ public:
     if(!exists) {
       if(e->_info.timestamp!=_timestamp) {
 	e->_info.timestamp=_timestamp;
-	//no collision has occured on this entry while this _timestamp is set
+	//no collision has occurred on this entry while this _timestamp is set
 	e->_info.collision=0;
       } else {
 	ASS(e->_info.deleted);
@@ -323,7 +399,7 @@ public:
    * the value with @b initial, and return true. Otherwise,
    * return false.
    */
-  bool getValuePtr(Key key, Val*& pval, const Val& initial)
+  bool getValuePtr(Key key, Val*& pval, Val initial)
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
@@ -331,7 +407,7 @@ public:
     if(!exists) {
       if(e->_info.timestamp!=_timestamp) {
 	e->_info.timestamp=_timestamp;
-	//no collision has occured on this entry while this _timestamp is set
+	//no collision has occurred on this entry while this _timestamp is set
 	e->_info.collision=0;
       } else {
 	ASS(e->_info.deleted);
@@ -339,7 +415,7 @@ public:
       }
       e->_info.deleted=0;
       e->_key=key;
-      e->_val=initial;
+      e->_val=std::move(initial);
       _size++;
     }
     pval=&e->_val;
@@ -359,7 +435,7 @@ public:
     if(!exists) {
       if(e->_info.timestamp!=_timestamp) {
 	e->_info.timestamp=_timestamp;
-	//no collision has occured on this entry while this _timestamp is set
+	//no collision has occurred on this entry while this _timestamp is set
 	e->_info.collision=0;
       } else {
 	ASS(e->_info.deleted);
@@ -388,7 +464,7 @@ public:
     if(!exists) {
       if(e->_info.timestamp!=_timestamp) {
 	e->_info.timestamp=_timestamp;
-	//no collision has occured on this entry while this _timestamp is set
+	//no collision has occurred on this entry while this _timestamp is set
 	e->_info.collision=0;
       } else {
 	ASS(e->_info.deleted);
@@ -441,7 +517,7 @@ public:
   }
 
 
-  /** Return mumber of entries stored in this DHMap */
+  /** Return number of entries stored in this DHMap */
   inline
   unsigned size() const
   {
@@ -486,7 +562,7 @@ private:
     union {
       struct {
 	unsigned deleted : 1;
-	/** 1 if first collision occured on this entry during some insertion */
+	/** 1 if first collision occurred on this entry during some insertion */
 	unsigned collision : 1;
 	unsigned timestamp : 30;
       } _info;
@@ -616,7 +692,7 @@ private:
 
     //We have a collision...
 
-    //mark the entry where the collision occured
+    //mark the entry where the collision occurred
     res->_info.collision=1;
 
     unsigned h2=Hash2::hash(key)%_capacity;
@@ -819,7 +895,7 @@ public:
 
   /**
    * Class to allow iteration over keys and values stored in the map,
-   * modification of the value and deleteion of the entry.
+   * modification of the value and deletion of the entry.
    */
   class DelIterator {
   public:
@@ -877,13 +953,14 @@ public:
   friend std::ostream& operator<<(std::ostream& out, DHMap const& self) 
   {
     auto iter = self.items();
-    auto write = [&](auto itm) { out << itm.first << " -> " << itm.second; };
+    // auto write = [&](auto itm) { out << itm.first << " -> " << itm.second; };
+    auto write_pythonic = [&](auto itm) { out << '"' << itm.first << '"' << " : "  << '"' << itm.second  << '"'; };
     out << "{ ";
     if (iter.hasNext()) {
-      write(iter.next());
+      write_pythonic(iter.next());
       while (iter.hasNext()) {
         out << ", ";
-        write(iter.next());
+        write_pythonic(iter.next());
       }
     }
     return out << " }";

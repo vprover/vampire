@@ -20,21 +20,12 @@
 #ifndef __Property__
 #define __Property__
 
+#include "Forwards.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/DHSet.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "SMTLIBLogic.hpp"
-
-namespace Kernel {
-  class Clause;
-  class FormulaUnit;
-  class Literal;
-  class Term;
-  class TermList;
-  class Formula;
-}
 
 namespace Shell {
 
@@ -149,6 +140,8 @@ public:
   static const uint64_t PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
   /* has co-algebraic data type constructors */
   static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
+  /* signature has only constants and formulas have an exists-forall quantifier prefix (BSR is short for Bernays-Schönfinkel-Ramsey) */
+  static const uint64_t PR_ESSENTIALLY_BSR = 4398046511104ul; // 2^42
 
  public:
   // constructor, operators new and delete
@@ -163,6 +156,8 @@ public:
 
   std::string toString() const;
   std::string toSpider(const std::string& problemName) const;
+
+  DHMap<std::string,std::string> toDict() const;
 
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
@@ -207,7 +202,7 @@ public:
 
   bool hasInterpretedOperation(Interpretation i) const {
     if(i >= _interpretationPresence.size()){ return false; }
-    return _interpretationPresence[i]; 
+    return _interpretationPresence[i];
   }
   bool hasInterpretedOperation(Interpretation i, OperatorType* type) const {
     return _polymorphicInterpretations.find(std::make_pair(i,type));
@@ -220,7 +215,6 @@ public:
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
-  bool hasCombs() const { return _hasCombs;}
   bool hasArrowSort() const { return _hasArrowSort; }
   bool hasApp() const { return _hasApp; }
   bool hasAppliedVar() const { return _hasAppliedVar; }
@@ -228,7 +222,7 @@ public:
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
   bool hasAnswerLiteral() const { return _hasAnswerLiteral; }
-  bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() ||
+  bool higherOrder() const { return hasApp() || hasLogicalProxy() ||
                                     hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const {
@@ -239,12 +233,12 @@ public:
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
-  
-  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
-    _smtlibLogic = smtLibLogic; 
+
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) {
+    _smtlibLogic = smtLibLogic;
   }
-  SMTLIBLogic getSMTLIBLogic() const { 
-    return _smtlibLogic; 
+  SMTLIBLogic getSMTLIBLogic() const {
+    return _smtlibLogic;
   }
 
   bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
@@ -257,6 +251,8 @@ public:
 
   static bool hasXEqualsY(const Clause* c);
   static bool hasXEqualsY(const Formula*);
+
+  static bool onlyExistsForallPrefix(UnitList* units);
 
   // reading in properties of problems
   void scan(Unit*);
@@ -303,7 +299,7 @@ public:
   int _totalNumberOfVariables;
   /** Maximal number of variables in a clause */
   int _maxVariablesInClause;
-  /** Symbols in this formula, used during counting 
+  /** Symbols in this formula, used during counting
       Functions are positive, predicates stored in the negative part
   **/
   DHSet<int> _symbolsInFormula;
@@ -334,7 +330,6 @@ public:
 
 
   bool _hasFOOL;
-  bool _hasCombs;
   bool _hasArrowSort;
   bool _hasApp;
   bool _hasAppliedVar;

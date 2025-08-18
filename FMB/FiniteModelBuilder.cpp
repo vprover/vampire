@@ -33,8 +33,7 @@
 #include "Kernel/FormulaUnit.hpp"
 
 #include "SAT/CadicalInterfacing.hpp"
-#include "SAT/MinisatInterfacingNewSimp.hpp"
-#include "SAT/BufferedSolver.hpp"
+#include "SAT/MinisatInterfacing.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
@@ -255,12 +254,12 @@ bool FiniteModelBuilder::reset(){
   }
 
   // Create a new SAT solver
-  if (env.options->satSolver() == Options::SatSolver::MINISAT)
-    try {
-      _solver = new MinisatInterfacingNewSimp(_opt, true);
-    } catch(const Minisat::OutOfMemoryException &) {
-     MinisatInterfacingNewSimp::reportMinisatOutOfMemory();
-    }
+  if (env.options->satSolver() == Options::SatSolver::MINISAT) {
+    if(env.options->fmbUseSimplifyingSolver())
+      _solver = new MinisatInterfacingNewSimp;
+    else
+      _solver = new MinisatInterfacing;
+  }
   else if (env.options->satSolver() == Options::SatSolver::CADICAL) {
     _solver = new CadicalInterfacing(_opt,true);
   } else {
@@ -352,7 +351,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
     // f(1)g(1)f(2)g(2)f(3)g(3)
     case Options::FMBWidgetOrders::ARGUMENT_FIRST:
       arg_first=true;
-      // now use diagional code but don't do the diagonal
+      // now use diagonal code but don't do the diagonal
 
     // If diagonal then we do f(1)g(2)h(3)f(2)g(3)h(1)f(3)g(1)h(2)
     case Options::FMBWidgetOrders::DIAGONAL:
@@ -417,7 +416,7 @@ void FiniteModelBuilder::init()
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
     DArray<bool> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] =  (bool)_prb.getEliminatedFunctions().findPtr(f) || env.signature->getFunction(f)->usageCnt()==0;
+      deleted_functions[f] = env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts,_sortPredicates);
@@ -555,19 +554,18 @@ void FiniteModelBuilder::init()
   }
 
   // record the deleted functions and predicates
-  // we do this here so that there are slots for symbols introduce in previous
-  // preprocessing steps (definition introduction, splitting)
+  // we do this only here so that there are slots for symbols introduced in the previous preprocessing steps (definition introduction, splitting)
   del_f.ensure(env.signature->functions());
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = (bool)_prb.getEliminatedFunctions().findPtr(f) || env.signature->getFunction(f)->usageCnt()==0;
+    del_f[f] = env.signature->getFunction(f)->usageCnt()==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
   for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
-    del_p[p] = ((bool)_prb.getEliminatedPredicates().findPtr(p) || env.signature->getPredicate(p)->usageCnt()==0);
+    del_p[p] = env.signature->getPredicate(p)->usageCnt()==0;
 #if VTRACE_FMB
     if(del_p[p]) {
       cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
@@ -683,7 +681,7 @@ void FiniteModelBuilder::init()
           while(children.hasNext()){
             unsigned child = children.next();
             if(child==parent) continue;
-            //cout << "max of " << parent << " inherets child " << child << endl;
+            //cout << "max of " << parent << " inherits child " << child << endl;
             _distinctSortMaxs[parent] = max(_distinctSortMaxs[parent],_distinctSortMaxs[child]);
           }
         }
@@ -741,8 +739,8 @@ void FiniteModelBuilder::init()
     }
 
     // Fragile, change if extend FMBSymbolOrders as it assumes that the values that
-    //          are not occurence depend on usage (as per FMBSymmetryFunctionComparator)
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURENCE){
+    //          are not occurrence depend on usage (as per FMBSymmetryFunctionComparator)
+    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURRENCE){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
@@ -1078,7 +1076,7 @@ instanceLabel:
               satClauseLits.push(SATLiteral(marker_offsets[i]+val-2,0));
             }
           }
-          // cout << "Clause finised" << endl;
+          // cout << "Clause finished" << endl;
         } else {
           for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
             if (varDistinctSortsMaxes.get(i,0)) {
@@ -1118,7 +1116,7 @@ instanceLabel:
             }
             use[arity]=grounding[lit->nthArgument(1)->var()];
             satClauseLits.push(getSATLiteral(functor,use,lit->polarity(),true));
-            
+
           }else{
             unsigned functor = lit->functor();
             unsigned arity = lit->arity();
@@ -1320,7 +1318,7 @@ void FiniteModelBuilder::addUseModelSize(unsigned size)
   return;
 /*
 
-  // Only do thise if we have unary functions at most
+  // Only do this if we have unary functions at most
   if(_maxArity>1) return;
 
   static SATLiteralStack satClauseLits;
@@ -1619,7 +1617,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
-    SATSolver::Status satResult = SATSolver::Status::UNKNOWN;
+    Status satResult = Status::UNKNOWN;
     {
       if (_opt.randomTraversals()) {
         TIME_TRACE(TimeTrace::SHUFFLING);
@@ -1655,7 +1653,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     }
 
     // if the clauses are satisfiable then we have found a finite model
-    if(satResult == SATSolver::Status::SATISFIABLE){
+    if(satResult == Status::SATISFIABLE){
 
       if (_xmass) { // for CONTOUR
         // before printing possibly retract _distinctSortSizes (and the corresponding _sortModelSizes) according to the set assumptions
@@ -1706,7 +1704,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
     {
       // _solver->explicitlyMinimizedFailedAssumptions(false,true); // TODO: try adding this in
-      const SATLiteralStack& failed = _solver->failedAssumptions();
+      SATLiteralStack failed = _solver->failedAssumptions();
 
       if (_xmass) {
         unsigned domToGrow = UINT_MAX;
@@ -1782,8 +1780,16 @@ MainLoopResult FiniteModelBuilder::runImpl()
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
         } else {
-          return MainLoopResult(TerminationReason::REFUTATION,
-              Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
+          if (_startModelSize <= 1) {
+            return MainLoopResult(TerminationReason::REFUTATION,
+                Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
+          } else {
+            if(outputAllowed()) {
+              addCommentSignForSZS(cout);
+              cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;
+            }
+            goto gave_up;
+          }
         }
       } else { // i.e. (!_xmass)
         static Constraint_Generator_Vals nogood;
@@ -1825,6 +1831,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
                 Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
           } else {
             if(outputAllowed()) {
+              addCommentSignForSZS(cout);
               cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;
             }
             goto gave_up;
@@ -1846,6 +1853,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   // reset returned false, we can't represent all the variables; giving up!
 
   if(outputAllowed()){
+    addCommentSignForSZS(cout);
     cout << "Cannot represent all propositional literals internally" <<endl;
   }
 
@@ -1870,6 +1878,9 @@ void FiniteModelBuilder::onModelFound()
     return;
   }
 
+  // Prevent timing out whilst the model is being printed
+  Timer::disableLimitEnforcement();
+
   reportSpiderStatus('-');
   if(outputAllowed()){
     cout << "% Finite Model Found!" << endl;
@@ -1881,8 +1892,6 @@ void FiniteModelBuilder::onModelFound()
         << " for " << _opt.problemName() << endl << flush;
     UIHelper::satisfiableStatusWasAlreadyOutput = true;
   }
-  // Prevent timing out whilst the model is being printed
-  Timer::disableLimitEnforcement();
 
   DArray<unsigned> vampireSortSizes;
   vampireSortSizes.ensure(env.signature->typeCons());
@@ -1896,8 +1905,7 @@ void FiniteModelBuilder::onModelFound()
     vampireSortSizes[vSort] = size;
   }
 
-  // TODO can we get rid of this clone() and pass a reference instead(?)
-  FiniteModelMultiSorted model(vampireSortSizes.clone());
+  FiniteModelMultiSorted model(vampireSortSizes.clone()); // need a clone, because FiniteModelMultiSorted may want to modify its version later
 
   //Record interpretation of constants and functions
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -2077,241 +2085,7 @@ void FiniteModelBuilder::onModelFound()
   }
 
   model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
-
-#if 0
-  //Evaluate removed functions and constants
-  unsigned maxf = env.signature->functions(); // model evaluation can add new constants
-  //bool unfinished=true;
-  //while(unfinished){
-  //unfinished=false;
-  unsigned f=maxf;
-  while(f > 0){
-    f--;
-    //cout << "Consider " << f << endl;
-    unsigned arity = env.signature->functionArity(f);
-    if(!del_f[f]) continue;
-    // For now, just skip unused functions!
-    if(env.signature->getFunction(f)->usageCnt()==0) continue;
-    //del_f[f]=false;
-
-    ASS(_deletedFunctions.find(f));
-    Literal* def = _deletedFunctions.get(f);
-
-    //cout << "For " << env.signature->getFunction(f)->name() << endl;
-    //cout << def->toString() << endl;
-
-    ASS(def->isEquality());
-    Term* funApp = 0;
-    Term* funDef = 0;
-
-    if(def->nthArgument(0)->term()->functor()==f){
-      funApp = def->nthArgument(0)->term();
-      funDef = def->nthArgument(1)->term();
-    }
-    else{
-      ASS(def->nthArgument(1)->term()->functor()==f);
-      funApp = def->nthArgument(1)->term();
-      funDef = def->nthArgument(0)->term();
-    }
-
-    ASS(def->polarity());
-    DArray<int> vars(arity);
-    for(unsigned i=0;i<arity;i++){
-      ASS(funApp->nthArgument(i)->isVar());
-      vars[i] = funApp->nthArgument(i)->var();
-    }
-
-    if(arity>0){
-      static DArray<unsigned> grounding;
-      static DArray<unsigned> f_signature_distinct(arity);
-      grounding.ensure(arity);
-      f_signature_distinct.ensure(arity);
-      for(unsigned i=0;i<arity-1;i++){
-        grounding[i]=1;
-        TermList vs = env.signature->getFunction(f)->fnType()->arg(i);
-        unsigned vampireSrt = vs.term()->functor();
-        ASS(_sortedSignature->vampireToDistinctParent.find(vampireSrt));
-        unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
-        f_signature_distinct[i] = dsrt;
-      }
-      grounding[arity-1]=0;
-
-      const DArray<unsigned> f_signature(arity);
-
-ffModelLabel:
-      for(unsigned i=arity-1;i+1!=0;i--){
-
-        if(grounding[i]==_distinctSortSizes[f_signature_distinct[i]]){
-          grounding[i]=1;
-        }
-        else{
-          grounding[i]++;
-
-          Substitution subst;
-          for(unsigned j=0;j<arity;j++){
-            TermList vs = env.signature->getFunction(f)->fnType()->arg(j);
-            unsigned vampireSrt = vs.term()->functor();
-            //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j],vampireSrt)->toString() << endl;
-            subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
-          }
-          Term* defGround = SubstHelper::apply(funDef,subst);
-          //cout << predDefGround << endl;
-          try{
-            unsigned res = model.evaluateGroundTerm(defGround);
-            model.addFunctionDefinition(f,grounding,res);
-          }
-          catch(UserErrorException& exception){
-            //cout << "Setting unfinished" << endl;
-            //unfinished=true;
-            //del_f[f]=true;
-          }
-
-          goto ffModelLabel;
-        }
-      }
-    }
-    else{
-      //constant
-      try{
-        model.addConstantDefinition(f,model.evaluateGroundTerm(funDef));
-      }
-      catch(UserErrorException& exception){
-        //cout << "Setting unfinished" << endl;
-        //unfinished=true;
-        //del_f[f]=true;
-      }
-    }
-  }
-  //}
-
-  //Evaluate removed propositions and predicates
-  f=env.signature->predicates()-1;
-  while(f>0){
-    f--;
-    if(!del_p[f] && !_partiallyDeletedPredicates.find(f)) continue;
-    if(_trivialPredicates.find(f)) continue;
-    unsigned arity = env.signature->predicateArity(f);
-
-    ASS(!del_p[f] || _deletedPredicates.find(f));
-    ASS(del_p[f] || _partiallyDeletedPredicates.find(f));
-    Unit* udef = del_p[f] ? _deletedPredicates.get(f) : _partiallyDeletedPredicates.get(f);
-
-    //if(_partiallyDeletedPredicates.find(f)){
-      //cout << "For " << env.signature->getPredicate(f)->name() << endl;
-      //cout << udef->toString() << endl;
-    //}
-    Formula* def = udef->getFormula();
-    Literal* predApp = 0;
-    Formula* predDef = 0;
-    bool polarity = true;
-    bool pure = false;
-
-    switch(def->connective()){
-      case FORALL:
-      {
-        Formula* inner = def->qarg();
-        ASS(inner->connective()==Connective::IFF);
-        Formula* left = inner->left();
-        Formula* right = inner->right();
-
-        if(left->connective()==Connective::NOT){
-          polarity=!polarity;
-          left = left->uarg();
-        }
-        if(right->connective()==Connective::NOT){
-          polarity=!polarity;
-          right = right->uarg();
-        }
-
-        if(left->connective()==Connective::LITERAL){
-          if(left->literal()->functor()==f){
-            predDef = right;
-            predApp = left->literal();
-          }
-        }
-        if(!predDef){
-          ASS(right->connective()==Connective::LITERAL);
-          ASS(right->literal()->functor()==f);
-          predDef = left;
-          predApp = right->literal();
-        }
-        break;
-      }
-      case TRUE:
-        pure=true;
-        polarity=true;
-        break;
-      case FALSE:
-        pure=true;
-        polarity=false;
-        break;
-      default: ASSERTION_VIOLATION;
-    }
-
-    ASS(pure || (predDef && predApp));
-    if(!pure && (!predDef || !predApp)) continue; // we failed, ignore this
-
-    DArray<int> vars(arity);
-    if(!pure){
-      if(!predApp->polarity()) polarity=!polarity;
-      for(unsigned i=0;i<arity;i++){
-        ASS(predApp->nthArgument(i)->isVar());
-        vars[i] = predApp->nthArgument(i)->var();
-      }
-    }
-
-    static DArray<unsigned> grounding;
-    static DArray<unsigned> p_signature_distinct;
-    grounding.ensure(arity);
-    p_signature_distinct.ensure(arity);
-    for(unsigned i=0;i<arity;i++){
-      grounding[i]=1;
-      TermList vs = env.signature->getPredicate(f)->predType()->arg(i);
-      unsigned vampireSrt = vs.term()->functor();
-      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
-      p_signature_distinct[i] = dsrt;
-    }
-    grounding[arity-1]=0;
-
-
-ppModelLabel:
-      for(unsigned i=arity-1;i+1!=0;i--){
-
-        if(grounding[i]==_distinctSortSizes[p_signature_distinct[i]]){
-          grounding[i]=1;
-        }
-        else{
-          grounding[i]++;
-
-          if(pure){
-            model.addPredicateDefinition(f,grounding,polarity);
-          }
-          else{
-            Substitution subst;
-            for(unsigned j=0;j<arity;j++){
-              //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
-              TermList vs = env.signature->getPredicate(f)->predType()->arg(j);
-              unsigned vampireSrt = vs.term()->functor();
-              subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
-            }
-            Formula* predDefGround = SubstHelper::apply(predDef,subst);
-            //cout << predDefGround << endl;
-            try{
-              bool res = model.evaluate(
-                new FormulaUnit(predDefGround, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::INPUT)));
-              if(!polarity) res=!res;
-              model.addPredicateDefinition(f,grounding,res);
-            }
-            catch(UserErrorException& exception){
-              // TODO order symbols for partial evaluation
-            }
-          }
-
-          goto ppModelLabel;
-        }
-      }
-  }
-#endif
+  model.restoreEliminatedDefinitions(env.getMainProblem());
 
   env.statistics->model = model.toString();
 }

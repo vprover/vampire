@@ -13,12 +13,9 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
 #include "Kernel/ALASCA.hpp"
-
-#include "Kernel/Ordering.hpp"
-#include "Lib/DArray.hpp"
 #include "Kernel/KBO.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
 #define DEBUG_ALASCA_ORD(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
@@ -274,7 +271,7 @@ struct LAKBO {
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const 
-  DEBUG_FN_RESULT(2, Output::cat("comapre", std::tie(t0, t1), " = "),
+  DEBUG_FN_RESULT(2, Output::cat("compare", std::tie(t0, t1), " = "),
   {
     if (t0 == t1) return Ordering::Result::EQUAL;
     auto s0 = skeleton(t0);

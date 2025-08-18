@@ -50,7 +50,7 @@ BEGIN { maxWeight = 0; maxWeightCl = "" }
                 else {
                         curAncestors = curAncestors " " par
                 }
-                
+
         }
         treeWeight[cl] = curWeight
         ancestors[cl] = curAncestors

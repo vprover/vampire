@@ -870,9 +870,9 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) co
   return res;
 }
 
-TermOrderingDiagramUP KBO::createTermOrderingDiagram() const
+TermOrderingDiagramUP KBO::createTermOrderingDiagram(bool ground) const
 {
-  return make_unique<TermOrderingDiagramKBO>(*this);
+  return make_unique<TermOrderingDiagramKBO>(*this, ground);
 }
 
 int KBO::symbolWeight(const Term* t) const
@@ -1121,7 +1121,7 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
 {
   if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
     // the FOOL constants, $$false and $$true, introduced by us to deal with FOOL, have hard-coded weight of 1
-    // which, together with their lowest precendence (see PrecedenceOrdering::compareFunctionPrecedences),
+    // which, together with their lowest precedence (see PrecedenceOrdering::compareFunctionPrecedences),
     // is a requirement for FOOL paramodulation being complete for them
     // TODO: consider allowing the user to change this and at the same time automatically recognizing the incomplete versions
     weight = 1;  return true;

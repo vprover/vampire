@@ -13,7 +13,7 @@
  * Macros that are not meant to be used from outside of this file are prefixed 
  * with two underscores.
  *
- * @autor Johannes Schoisswohl
+ * @author Johannes Schoisswohl
  * @date 2020-04-29
  */
 
@@ -85,6 +85,9 @@
 #define DECL_S_COMB(s) auto s = FuncSugar(env.signature->getCombinator(Signature::S_COMB));
 #define DECL_FUN_DEF(d, t)  auto d = PredSugar(env.signature->getFnDef(t.sugaredExpr().term()->functor()));
 #define DECL_PRED_DEF(d, t) auto d = PredSugar(env.signature->getBoolDef(((Literal*)t)->functor()));
+#define DECL_ANSWER_PRED(f, ...)                                                          \
+  auto f = PredSugar(#f, __VA_ARGS__);                                                    \
+  env.signature->getPredicate(f.functor())->markAnswerPredicate();
 
 #define DECL_DEFAULT_VARS                                                                 \
   __ALLOW_UNUSED(                                                                         \
@@ -154,7 +157,7 @@
  *
  * Other closures:
  * frac(int,int) ... creates a fractional interpreted constant (only for REAL, and RAT)
- * num(int)      ... explicity converts a number to an interpreted constant 
+ * num(int)      ... explicitly converts a number to an interpreted constant
  *                   this can be needed in order to prevent the compiler from pre-evaluating integer expressions.
  *                   e.g. {
  *                      Literal* l1 = (a == (3 * 2));
@@ -384,14 +387,14 @@ public:
   TermSugar sort(SortId s) { _srt = s; return *this; }
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
-    unsigned f = env.signature->addFunction(name,0);                                                                
+    unsigned f = env.signature->addFunction(name,0);
 
     env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr()));
     if (skolem) {
       env.signature->getFunction(f)->markSkolem();
     }
-    return TermSugar(TermList(Term::createConstant(f)));                                                          
-  }                                                                                                                 
+    return TermSugar(TermList(Term::createConstant(f)));
+  }
 
   operator TypedTermList() const { return TypedTermList(TermList(*this), sort()); }
 };
@@ -663,7 +666,7 @@ public:
     }
 
     if(taArity){
-      // TODO don't haredcode these varible numbers?!
+      // TODO don't haredcode these variable numbers?!
       TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};      
       SortHelper::normaliseArgSorts(vars, as);
     }
@@ -685,9 +688,7 @@ public:
   unsigned functor() const { return _functor; }
 };
 
-inline Clause* clause(Stack<Lit> ls) { 
-  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
-
+inline Clause* clause(Stack<Lit> ls, Inference inf) {
   std::stable_sort(ls.begin(), ls.end(), [](Lit const& l1, Lit const& l2){ return l1.selected() > l2.selected(); });
   auto nSelected = iterTraits(ls.iterFifo())
     .findPosition([](Lit const& l) 
@@ -695,11 +696,14 @@ inline Clause* clause(Stack<Lit> ls) {
     .unwrapOrElse( [&]() {return ls.size(); });
 
   Clause& out = *Clause::fromIterator(arrayIter(ls)
-      .map([](Lit l) -> Literal* { return l; }), testInf);
+      .map([](Lit l) -> Literal* { return l; }), std::move(inf));
 
   out.setSelected(nSelected);
   return &out; 
 }
+
+inline Clause* clause(Stack<Lit> ls)
+{ return clause(ls, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT))); }
 
 inline Clause* clause(std::initializer_list<Lit> ls) 
 { return clause(Stack<Lit>(ls)); }

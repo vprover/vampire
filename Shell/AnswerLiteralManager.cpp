@@ -157,7 +157,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVars, eSrts, new JunctionFormula(AND, conjArgs)));
 
   if (skolemise) {
-    Map<int,std::string>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
+    Map<unsigned,std::string>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
 
     VList* fVars = subNot->vars();
     SList* fSrts = subNot->sorts();
@@ -177,7 +177,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
       OperatorType* ot = OperatorType::getConstantsType(sort);
       skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
-      subst.bind(var, skTerm);
+      subst.bindUnbound(var, skTerm);
       recordSkolemBinding(skTerm, var, questionVars ? questionVars->get(var) : TermList(var,false).toString() );
     }
     out = SubstHelper::apply(out, subst);
@@ -247,7 +247,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
       vss << "[";
       unsigned arity = aLit->arity();
 
-      Map<int,std::string>* questionVars = 0;
+      Map<unsigned,std::string>* questionVars = 0;
       std::pair<Unit*,Literal*> unitAndLiteral;
       if (_originUnitsAndInjectedLiterals.find(aLit->functor(),unitAndLiteral)) {
         questionVars = Parse::TPTP::findQuestionVars(unitAndLiteral.first->number());
@@ -508,7 +508,6 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   }
 
   _skolemReplacement.associateRecMappings(&_recursionMappings, &_functionHeads);
-  Stack<TermList> answerArgs;
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
@@ -518,25 +517,36 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   DHSet<Unit*>::Iterator puit(proofUnits);
   while (puit.hasNext()) proofNums.insert(puit.next()->number());
 
+  // We iterate through the stored _answerPairs. An answer pair p is relevant if:
+  // - either it is the _lastAnsLit (i.e., has p.first==0)
+  // - or it corresponds to a clause contained in the proof (i.e., proofNums.contains(p.first))
+  // We construct an answer by nesting if-then-elses, using as the then-branch the current
+  // answer pair, and as the else-branch the program constructed so far.
   AnsList::Iterator it(_answerPairs);
   ALWAYS(it.hasNext());
   pair<unsigned, pair<Clause*, Literal*>> p = it.next();
+  while (p.first > 0 && !proofNums.contains(p.first) && it.hasNext()) p = it.next();
+  ASS(p.first == 0 || proofNums.contains(p.first));
+  // The first relevant answer literal:
   Literal* origLit = p.second.second;
   while (p.first > 0 && !proofNums.contains(p.first) && it.hasNext()) p = it.next();
   ASS(p.first == 0 || proofNums.contains(p.first));
   unsigned arity = origLit->arity();
+  Stack<TermList> answerArgs(arity);
   Stack<TermList> sorts(arity);
+  // Initialization: each answer is set to the answer from origLit.
   for (unsigned i = 0; i < arity; i++) {
     sorts.push(env.signature->getPredicate(origLit->functor())->predType()->arg(i));
     answerArgs.push(_skolemReplacement.transformTermList(*origLit->nthArgument(i), sorts[i]));
   }
+  // Go through all other answer pairs and use the relevant ones.
   while(it.hasNext()) {
     p = it.next();
     ASS(p.second.first != nullptr);
     if (!proofNums.contains(p.first)) {
       continue;
     }
-    ASS(p.first == p.second.first->number());
+    ASS_EQ(p.first, p.second.first->number());
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
@@ -624,6 +634,17 @@ Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* t
     }
   }
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), litArgs.begin());
+}
+
+void SynthesisALManager::pushEqualityConstraints(LiteralStack* ls, Literal* thenLit, Literal* elseLit) {
+  ASS_EQ(thenLit->functor(), elseLit->functor());
+  for (int i = 0; i < thenLit->arity(); ++i) {
+    TermList& t = *thenLit->nthArgument(i);
+    TermList& e = *elseLit->nthArgument(i);
+    if (t != e) {
+      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->predType()->arg(i)));
+    }
+  }
 }
 
 Formula* SynthesisALManager::getConditionFromClause(Clause* cl) {
@@ -730,10 +751,21 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
       while (vit.hasNext()) {
         pair<TermList, TermList> p = vit.next();
         unsigned v = p.first.var();
+        TermList& vsort = p.second;
         if (done.count(v) == 0) {
           done.insert(v);
-          TermList rep = getConstantForVariable(p.second);
-          s.bind(v, rep);
+          if (vsort == AtomicSort::intSort()) {
+            s.bindUnbound(v, zero);
+          } else {
+            std::string name = "cz_" + vsort.toString();
+            unsigned czfn;
+            if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
+              czfn = env.signature->addFreshFunction(0, name.c_str());
+              env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+            }
+            TermList res(Term::createConstant(czfn));
+            s.bindUnbound(v, res);
+          }
         }
       }
       tl = TermList(tl.term()->apply(s));
@@ -788,7 +820,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
       return TermList(Term::create(rfunctor, {*t->nthArgument(t->arity()-1)}));
     } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
       TermList sort = env.signature->getFunction(functor)->fnType()->arg(1);
-      if (functor == getITEFunctionSymbol(sort)) {
+      if (t->functor() == static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
         std::string condName = tcond->functionName();

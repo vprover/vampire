@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -31,7 +30,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
-#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -65,7 +63,8 @@ public:
   */
   static bool couldEqualityArise(const Problem& prb, const Options& opt) {
     // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
-    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation());
+    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
+      (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
@@ -81,10 +80,12 @@ public:
 
   void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
+  void setImmediateSimplificationEngineMany(CompositeISEMany ise) { _immediateSimplifierMany = std::move(ise); }
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  void addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
   void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
@@ -202,9 +203,11 @@ protected:
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
+  CompositeISEMany _immediateSimplifierMany;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
+  FwSimplList* _expensiveFwSimplifiers;
 
   //Simplification occurs at the same point in the loop
   //as forward and backward simplification, but does not involve
@@ -250,7 +253,7 @@ protected:
   unsigned _generatedClauseCount;
   unsigned _activationLimit;
 private:
-  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering,
+  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, Ordering& ordering,
      bool alascaTakesOver);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit

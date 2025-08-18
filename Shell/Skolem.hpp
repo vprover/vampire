@@ -20,7 +20,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/Formula.hpp"
 #include "Kernel/Substitution.hpp"
 
 namespace Kernel {
@@ -88,7 +87,7 @@ private:
   VarOccInfos _varOccs;
 
   // we are only interested in this for the existential variables
-  // but still want to know both about the existential and universal occurences below "us"
+  // but still want to know both about the existential and universal occurrences below "us"
   struct ExVarDepInfo {
     VarSet* univ;
     VarSet* exist;
