@@ -505,8 +505,6 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
   }
 
-  Stack<TermList> answerArgs;
-
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
   DHSet<Unit*> proofUnits;
@@ -515,23 +513,34 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   DHSet<Unit*>::Iterator puit(proofUnits);
   while (puit.hasNext()) proofNums.insert(puit.next()->number());
 
+  // We iterate through the stored _answerPairs. An answer pair p is relevant if:
+  // - either it is the _lastAnsLit (i.e., has p.first==0)
+  // - or it corresponds to a clause contained in the proof (i.e., proofNums.contains(p.first))
+  // We construct an answer by nesting if-then-elses, using as the then-branch the current
+  // answer pair, and as the else-branch the program constructed so far.
   AnsList::Iterator it(_answerPairs);
   ALWAYS(it.hasNext());
   pair<unsigned, pair<Clause*, Literal*>> p = it.next();
+  while (p.first > 0 && !proofNums.contains(p.first) && it.hasNext()) p = it.next();
+  ASS(p.first == 0 || proofNums.contains(p.first));
+  // The first relevant answer literal:
   Literal* origLit = p.second.second;
   unsigned arity = origLit->arity();
+  Stack<TermList> answerArgs(arity);
   Stack<TermList> sorts(arity);
+  // Initialization: each answer is set to the answer from origLit.
   for (unsigned i = 0; i < arity; i++) {
     sorts.push(env.signature->getPredicate(origLit->functor())->predType()->arg(i));
     answerArgs.push(_skolemReplacement.transformTermList(*origLit->nthArgument(i), sorts[i]));
   }
+  // Go through all other answer pairs and use the relevant ones.
   while(it.hasNext()) {
     p = it.next();
     ASS(p.second.first != nullptr);
-    ASS(p.first == p.second.first->number());
     if (!proofNums.contains(p.first)) {
       continue;
     }
+    ASS_EQ(p.first, p.second.first->number());
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
@@ -616,6 +625,17 @@ Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* t
     }
   }
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), litArgs.begin());
+}
+
+void SynthesisALManager::pushEqualityConstraints(LiteralStack* ls, Literal* thenLit, Literal* elseLit) {
+  ASS_EQ(thenLit->functor(), elseLit->functor());
+  for (int i = 0; i < thenLit->arity(); ++i) {
+    TermList& t = *thenLit->nthArgument(i);
+    TermList& e = *elseLit->nthArgument(i);
+    if (t != e) {
+      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->predType()->arg(i)));
+    }
+  }
 }
 
 Formula* SynthesisALManager::getConditionFromClause(Clause* cl) {
@@ -748,7 +768,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
     Term* t = trm.term();
     if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
       TermList sort = env.signature->getFunction(t->functor())->fnType()->arg(1);
-      if (t->functor() == getITEFunctionSymbol(sort)) {
+      if (t->functor() == static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
         std::string condName = tcond->functionName();
