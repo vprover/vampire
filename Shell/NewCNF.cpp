@@ -349,16 +349,14 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 
     case SpecialFunctor::ITE: {
       sort = sd->getSort();
-      conditions.push(sd->getCondition());
+      conditions.push(sd->getITECondition());
       thenBranches.push(*term->nthArgument(0));
       elseBranches.push(*term->nthArgument(1));
       break;
     }
 
-    case SpecialFunctor::LET:
-    case SpecialFunctor::LET_TUPLE: {
-      TermList contents = *term->nthArgument(0);
-      TermList processedLet = eliminateLet(sd, contents);
+    case SpecialFunctor::LET: {
+      TermList processedLet = eliminateLet(term);
       return findITEs(processedLet, variables, conditions, thenBranches,
         elseBranches, matchVariables, matchConditions, matchBranches);
     }
@@ -658,111 +656,73 @@ void NewCNF::processMatch(Term::SpecialTermData *sd, Term *term, Occurrences &oc
   }
 }
 
-TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList body)
+TermList NewCNF::eliminateLet(Term* term)
 {
-  ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
+  ASS(term->isSpecial());
+  auto sd = term->getSpecialData();
+  ASS_EQ(sd->specialFunctor(), SpecialFunctor::LET);
+  auto body = term->termArg(0);
 
-  Term* bindingLhs;
-  TermList bindingRhs;
   auto bindingBoundVars = VList::empty();
+  Formula* binding = sd->getLetBinding();
+  if (binding->connective() == Connective::FORALL) {
+    bindingBoundVars = binding->vars();
+    binding = binding->qarg();
+  }
 
-  if (sd->specialFunctor() == SpecialFunctor::LET) {
+  ASS_EQ(binding->connective(), Connective::LITERAL);
+  ASS(binding->literal()->termArg(0).isTerm());
+  auto bindingLhs = binding->literal()->termArg(0).term();
+  auto bindingRhs = binding->literal()->termArg(1);
 
-    Formula* binding = sd->getLetBinding();
-    if (binding->connective() == Connective::FORALL) {
-      bindingBoundVars = binding->vars();
-      binding = binding->qarg();
-    }
-    ASS_EQ(binding->connective(), Connective::LITERAL);
-    ASS(binding->literal()->termArg(0).isTerm());
-    bindingLhs = binding->literal()->termArg(0).term();
-    bindingRhs = binding->literal()->termArg(1);
+  if (bindingLhs->isTuple()) {
 
-  } else {
-    bindingRhs = sd->getBinding();
+    auto lhsTuple = bindingLhs->getSpecialData()->getTupleTerm();
+    TermList bodySort = sd->getSort();
+
     if (bindingRhs.isTerm() && bindingRhs.term()->isTuple()) {
       // binding of the form $let([x, y, z, ...] := [a, b, c, ...], ...) is processed
       // as $let(x := a, $let(y := b, $let(z := c, ...)))
-      unsigned tupleFunctor = sd->getFunctor();
-      VList* symbols = sd->getTupleSymbols();
-      TermList bodySort = sd->getSort();
+      auto rhsTuple = bindingRhs.term()->getSpecialData()->getTupleTerm();
 
-      OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+      Term::Iterator lhsit(lhsTuple);
+      Term::Iterator rhsit(rhsTuple);
+      while (lhsit.hasNext()) {
+        ASS(rhsit.hasNext());
+        bindingLhs = lhsit.next().term();
+        bindingRhs = rhsit.next();
+        ASS_EQ(bindingLhs->arity(),0);
 
-      Term* bindingRhsTuple = bindingRhs.term()->getSpecialData()->getTupleTerm();
-      unsigned arity = VList::length(symbols);
-      VList::Iterator sit(symbols);
-      Term::Iterator bit(bindingRhsTuple);
-
-      TermList processedBody = body;
-      TermList processedBindingRhs;
-      for (unsigned i = 0; i < arity - 1; i++) {
-        ASS(bit.hasNext());
-        ASS(sit.hasNext());
-        auto nestedBinding = Formula::createDefinition(Term::createConstant(sit.next()), bit.next());
-        Term* nestedLet = Term::createLet(nestedBinding, processedBody, bodySort);
-        processedBody = TermList(nestedLet);
+        if (lhsit.hasNext()) {
+          body = TermList(
+            Term::createLet(Formula::createDefinition(bindingLhs, bindingRhs), body, bodySort));
+        }
       }
-      ASS(bit.hasNext());
-      ASS(sit.hasNext());
-      processedBindingRhs = bit.next();
-      auto symbol = sit.next();
-      ASS(!sit.hasNext());
-      ASS(!bit.hasNext());
-
-      if (env.options->showPreprocessing()) {
-        Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, bindingRhs, body, tupleType->result());
-        std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-        auto b = Formula::createDefinition(Term::createConstant(symbol), processedBindingRhs);
-        Term* processedLet = Term::createLet(b, processedBody, bodySort);
-        std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-      }
-
-      body = processedBody;
-      bindingRhs = processedBindingRhs;
     } else {
-      unsigned tupleFunctor = sd->getFunctor();
-      VList* symbols = sd->getTupleSymbols();
-      TermList bodySort = sd->getSort();
-
-      OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
-      TermList tupleSort = tupleType->result();
-
-      ASS_EQ(tupleType->arity(), VList::length(symbols));
-
+      TermList tupleSort = env.signature->getFunction(lhsTuple->functor())->fnType()->result();
       unsigned tuple = env.signature->addFreshFunction(0, "tuple");
       env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
 
-      TermList tupleTerm = TermList(Term::createConstant(tuple));
-
-      TermList detupledBody = body;
-
-      for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
-        unsigned symbol = VList::nth(symbols, proj);
-        bool isPredicate = tupleType->arg(proj) == AtomicSort::boolSort();
-
-        unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
-        Term* projectedArgument;
-        if (isPredicate) {
-          projectedArgument = Term::createFormula(new AtomicFormula(Literal::create1(projFunctor, 1, tupleTerm)));
-        } else {
-          projectedArgument = Term::create1(projFunctor, tupleTerm);
-        }
-
-        SymbolDefinitionInlining inlining(Term::createConstant(symbol), TermList(projectedArgument), 0);
-        detupledBody = inlining.process(detupledBody);
-      }
-
       bindingLhs = Term::createConstant(tuple);
-      body = detupledBody;
 
-      if (env.options->showPreprocessing()) {
-        Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, bindingRhs, body, tupleType->result());
-        std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-        auto binding = Formula::createDefinition(bindingLhs, bindingRhs);
-        Term* processedLet = Term::createLet(binding, detupledBody, bodySort);
-        std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-      }
+      iterTraits(Term::Iterator(lhsTuple))
+        .enumerate([&](unsigned i, TermList arg) {
+          auto lhs = arg.term();
+          ASS_EQ(lhs->arity(), 0);
+
+          unsigned projFunctor = Theory::tuples()->getProjectionFunctor(i, tupleSort);
+          Term* projectedArgument = (SortHelper::getResultSort(lhs) == AtomicSort::boolSort())
+            ? Term::createFormula(new AtomicFormula(Literal::create1(projFunctor, /*polarity*/true, TermList(bindingLhs))))
+            : Term::create1(projFunctor, TermList(bindingLhs));
+
+          SymbolDefinitionInlining inlining(lhs, TermList(projectedArgument), 0);
+          body = inlining.process(body);
+        });
+    }
+    if (env.options->showPreprocessing()) {
+      std::cout << "[PP] clausify (detuplify let) in:  " << *term << std::endl;
+      Term* processedLet = Term::createLet(Formula::createDefinition(bindingLhs, bindingRhs), body, bodySort);
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
   }
 
@@ -794,32 +754,25 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList body)
 //    }
   }
 
-  TermList processedContents;
-  if (inlineLet) {
-    processedContents = inlineLetBinding(bindingLhs, bindingRhs, body);
-    if (env.options->showPreprocessing()) {
-      std::cout << "[PP] clausify (inline let) binding: " << bindingRhs.toString() << std::endl;
-      std::cout << "[PP] clausify (inline let) in:  " << body.toString() << std::endl;
-      std::cout << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
-    }
-  } else {
-    processedContents = nameLetBinding(bindingLhs, bindingRhs, body, bindingBoundVars);
-    if (env.options->showPreprocessing()) {
-      std::cout << "[PP] clausify (name let) binding: " << bindingRhs.toString() << std::endl;
-      std::cout << "[PP] clausify (name let) in:  " << body.toString() << std::endl;
-      std::cout << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
-    }
+  TermList processedBody = inlineLet
+    ? inlineLetBinding(bindingLhs, bindingRhs, body)
+    : nameLetBinding(bindingLhs, bindingRhs, body, bindingBoundVars);
+
+  std::string opstr = inlineLet ? "inline" : "name";
+
+  if (env.options->showPreprocessing()) {
+    std::cout << "[PP] clausify (" << opstr << " let) binding: " << *binding << std::endl;
+    std::cout << "[PP] clausify (" << opstr << " let) in:  " << body << std::endl;
+    std::cout << "[PP] clausify (" << opstr << " let) out: " << processedBody << std::endl;
   }
 
-  return processedContents;
+  return processedBody;
 }
 
-void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences)
+void NewCNF::processLet(Term* term, Occurrences &occurrences)
 {
-  ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
-
-  TermList deletedContents = eliminateLet(sd, contents); // should be read "de-let-ed contents"
-  Formula* deletedContentsFormula = BoolTermFormula::create(deletedContents);
+  // should be read "de-let-ed contents"
+  Formula* deletedContentsFormula = BoolTermFormula::create(eliminateLet(term));
 
   occurrences.replaceBy(deletedContentsFormula);
 
@@ -1213,7 +1166,7 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case SpecialFunctor::TUPLE:
       NOT_IMPLEMENTED;
     case SpecialFunctor::ITE: {
-      Formula* condition = sd->getCondition();
+      Formula* condition = sd->getITECondition();
 
       Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
       Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
@@ -1221,8 +1174,7 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
       return;
     }
     case SpecialFunctor::LET:
-    case SpecialFunctor::LET_TUPLE:
-      processLet(sd, *term->nthArgument(0), occurrences);
+      processLet(term, occurrences);
       return;
     case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;

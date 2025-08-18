@@ -157,7 +157,7 @@ bool FormulaVarIterator::hasNext()
           switch (t->specialFunctor()) {
             case SpecialFunctor::ITE:
               _instructions.push(FVI_FORMULA);
-              _formulas.push(sd->getCondition());
+              _formulas.push(sd->getITECondition());
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getSort());
               break;
@@ -170,14 +170,6 @@ bool FormulaVarIterator::hasNext()
             case SpecialFunctor::LET: {
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getLetBinding());
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getSort());
-              break;
-            }
-
-            case SpecialFunctor::LET_TUPLE: {
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getBinding());
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getSort());
               break;

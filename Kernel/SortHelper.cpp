@@ -176,7 +176,6 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
 
   switch(t->specialFunctor()) {
     case SpecialFunctor::LET:
-    case SpecialFunctor::LET_TUPLE:
     case SpecialFunctor::ITE:
     case SpecialFunctor::MATCH:
       resultSort = t->getSpecialData()->getSort();
@@ -413,7 +412,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             todo.push(newTask);
 
             newTask.fncTag = COLLECT_FORMULA;
-            newTask.f = sd->getCondition();
+            newTask.f = sd->getITECondition();
             todo.push(newTask);
 
             break;
@@ -428,40 +427,6 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             newTask.contextSort = sd->getSort();
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
-            break;
-          }
-
-          case SpecialFunctor::LET_TUPLE: {
-            TermList binding = sd->getBinding();
-            Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
-            Substitution subst;
-            VList::Iterator vit(sd->getTupleSymbols());
-            auto type = symbol->fnType();
-            for (unsigned i = 0; i < type->arity(); i++) {
-              ASS(vit.hasNext());
-              auto var = vit.next();
-              TermList sort = AtomicSort::superSort();
-              if (i < type->numTypeArguments()) {
-                subst.bindUnbound(type->quantifiedVar(i).var(), TermList(var, false));
-              } else {
-                sort = SubstHelper::apply(type->arg(i),subst);
-              }
-              if (!ignoreBound || !bound.get(var)) {
-                if (!map.insert(var, sort)) {
-                  ASS_EQ(sort, map.get(var));
-                }
-              }
-            }
-
-            CollectTask newTask(COLLECT_TERMLIST);
-            newTask.contextSort = sd->getSort();
-            newTask.ts = *term->nthArgument(0);
-            todo.push(newTask);
-
-            newTask.contextSort = SubstHelper::apply(type->result(),subst);
-            newTask.ts = binding;
-            todo.push(newTask);
-
             break;
           }
 
@@ -761,7 +726,7 @@ bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result
     }
     if (t->isITE()) {
       if (recurseToSubformulas) {
-        Formula* f = t->getSpecialData()->getCondition();
+        Formula* f = t->getSpecialData()->getITECondition();
         if(tryGetVariableSort(var.var(), f, result)){
           return true;
         }

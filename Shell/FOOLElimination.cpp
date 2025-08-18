@@ -493,7 +493,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  3) Replace the term with g(Y1,...,Ym,X1, ..., Xn)
          */
 
-        Formula* condition = process(sd->getCondition());
+        Formula* condition = process(sd->getITECondition());
 
         TermList thenBranch;
         Formula* thenBranchFormula {};
@@ -596,6 +596,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         auto bindingLhs = blit->termArg(0).term();
         auto bindingRhs = blit->termArg(1);
+
+        if (bindingLhs->isTuple()) {
+          NOT_IMPLEMENTED;
+        }
 
         // The let binder bindingLhs can contain free variables in potentially
         // arbitrary places if it has implicit type arguments.
@@ -713,7 +717,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
       case SpecialFunctor::TUPLE:
-      case SpecialFunctor::LET_TUPLE:
         NOT_IMPLEMENTED;
       case SpecialFunctor::FORMULA: {
         if (context == FORMULA_CONTEXT) {

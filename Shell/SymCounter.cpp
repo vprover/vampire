@@ -223,18 +223,14 @@ void SymCounter::count(Term* term, int polarity, int add)
       switch (sd->specialFunctor()) {
         case SpecialFunctor::FORMULA:
           count(sd->getFormula(), polarity, add);
-              break;
-        case SpecialFunctor::ITE:
-          count(sd->getCondition(), 0, add);
-              break;
-        case SpecialFunctor::LET:
-        case SpecialFunctor::LET_TUPLE: {
-          TermList binding = sd->getBinding();
-          if (binding.isTerm()) {
-            count(binding.term(), 1, add);
-          }
           break;
-        }
+        case SpecialFunctor::ITE:
+          count(sd->getITECondition(), 0, add);
+          break;
+        case SpecialFunctor::LET:
+          // TODO I think symbols are not counted in arguments of special terms
+          count(sd->getLetBinding(), polarity, add);
+          break;
         case SpecialFunctor::TUPLE: {
           count(sd->getTupleTerm(), 0, add);
           break;

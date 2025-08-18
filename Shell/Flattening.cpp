@@ -256,7 +256,7 @@ TermList Flattening::flatten (TermList ts)
       case SpecialFunctor::ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
-        Formula* condition  = sd->getCondition();
+        Formula* condition  = sd->getITECondition();
 
         TermList flattenedThenBranch = flatten(thenBranch);
         TermList flattenedElseBranch = flatten(elseBranch);
@@ -282,20 +282,6 @@ TermList Flattening::flatten (TermList ts)
           return ts;
         } else {
           return TermList(Term::createLet(flattenedBinding, flattenedBody, sd->getSort()));
-        }
-      }
-
-      case SpecialFunctor::LET_TUPLE: {
-        TermList binding = sd->getBinding();
-        TermList body = *term->nthArgument(0);
-
-        TermList flattenedBinding = flatten(binding);
-        TermList flattenedBody = flatten(body);
-
-        if ((binding == flattenedBinding) && (body == flattenedBody)) {
-          return ts;
-        } else {
-          return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), flattenedBinding, flattenedBody, sd->getSort()));
         }
       }
 

@@ -82,11 +82,11 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
       }
 
       case SpecialFunctor::ITE: {
-        Formula* condition  = process(sd->getCondition());
+        Formula* condition  = process(sd->getITECondition());
         TermList thenBranch = process(*term->nthArgument(0));
         TermList elseBranch = process(*term->nthArgument(1));
 
-        if ((condition == sd->getCondition()) && (thenBranch == *term->nthArgument(0)) && (elseBranch == *term->nthArgument(1))) {
+        if ((condition == sd->getITECondition()) && (thenBranch == *term->nthArgument(0)) && (elseBranch == *term->nthArgument(1))) {
           return ts;
         }
 
@@ -102,18 +102,6 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         }
 
         return TermList(Term::createLet(binding, body, sd->getSort()));
-      }
-
-      case SpecialFunctor::LET_TUPLE: {
-        TermList binding = process(sd->getBinding());
-        TermList body = process(*term->nthArgument(0));
-
-        if ((sd->getBinding() == binding) && (*term->nthArgument(0) == body)) {
-          return ts;
-        }
-
-        return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(),
-                                             binding, body, sd->getSort()));
       }
 
       case SpecialFunctor::TUPLE: {
@@ -371,15 +359,11 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
         break;
       }
       case SpecialFunctor::ITE: {
-        collectBoundVariables(sd->getCondition());
+        collectBoundVariables(sd->getITECondition());
         break;
       }
       case SpecialFunctor::LET: {
         collectBoundVariables(sd->getLetBinding());
-        break;
-      }
-      case SpecialFunctor::LET_TUPLE: {
-        collectBoundVariables(sd->getBinding());
         break;
       }
       case SpecialFunctor::TUPLE: {

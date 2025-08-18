@@ -131,11 +131,11 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   case SpecialFunctor::ITE:
   {
     ASS_EQ(t->arity(),2);
-    Formula* c = rectify(sd->getCondition());
+    Formula* c = rectify(sd->getITECondition());
     TermList th = rectify(*t->nthArgument(0));
     TermList el = rectify(*t->nthArgument(1));
     TermList sort = rectify(sd->getSort());
-    if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1) && sort==sd->getSort()) {
+    if(c==sd->getITECondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1) && sort==sd->getSort()) {
 	return t;
     }
     return Term::createITE(c, th, el, sort);
@@ -167,19 +167,6 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLet(binding, body, sort);
   }
-  case SpecialFunctor::LET_TUPLE:
-  {
-    ASS_EQ(t->arity(),1);
-
-    TermList binding = rectify(sd->getBinding());
-    TermList contents = rectify(*t->nthArgument(0));
-    TermList sort = rectify(sd->getSort());
-
-    if (binding == sd->getBinding() && contents == *t->nthArgument(0) && sort == sd->getSort()) {
-      return t;
-    }
-    return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sort);
-  } 
   case SpecialFunctor::FORMULA:
   {
     ASS_EQ(t->arity(),0);

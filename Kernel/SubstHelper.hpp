@@ -359,7 +359,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     switch(trm->specialFunctor()) {
     case SpecialFunctor::ITE:
       return Term::createITE(
-    applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(sd->getITECondition(), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
     applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
@@ -375,14 +375,6 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case SpecialFunctor::LET_TUPLE:
-      return Term::createTupleLet(
-        sd->getFunctor(),
-        sd->getTupleSymbols(),
-        applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-        sd->getSort()
-        );
     case SpecialFunctor::TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
     case SpecialFunctor::LAMBDA:

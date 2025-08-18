@@ -268,7 +268,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
       case SpecialFunctor::ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
-        Formula* condition  = sd->getCondition();
+        Formula* condition  = sd->getITECondition();
 
         TermList ennfThenBranch = ennf(thenBranch, polarity);
         TermList ennfElseBranch = ennf(elseBranch, polarity);
@@ -295,21 +295,6 @@ TermList NNF::ennf(TermList ts, bool polarity)
           return ts;
         } else {
           return TermList(Term::createLet(ennfBinding, ennfBody, sd->getSort()));
-        }
-        break;
-      }
-
-      case SpecialFunctor::LET_TUPLE: {
-        TermList binding = sd->getBinding();
-        TermList body = *term->nthArgument(0);
-
-        TermList ennfBinding = ennf(binding, true);
-        TermList ennfBody = ennf(body, polarity);
-
-        if ((binding == ennfBinding) && (body == ennfBody)) {
-          return ts;
-        } else {
-          return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), ennfBinding, ennfBody, sd->getSort()));
         }
         break;
       }

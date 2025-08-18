@@ -161,7 +161,7 @@ bool SubformulaIterator::hasNext ()
 
         switch (term->specialFunctor()) {
           case SpecialFunctor::ITE: {
-            _current = sd->getCondition();
+            _current = sd->getITECondition();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
@@ -173,17 +173,6 @@ bool SubformulaIterator::hasNext ()
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
-            break;
-          }
-          case SpecialFunctor::LET_TUPLE: {
-            delete _reserve;
-            TermList binding = sd->getBinding();
-            if (!binding.isTerm()) {
-              _reserve = rest;
-            } else {
-              // TODO: should be 1 instead of polarity?
-              _reserve = new Element(binding.term(), polarity, rest);
-            }
             break;
           }
           case SpecialFunctor::FORMULA: {

@@ -96,7 +96,7 @@ TermList FormulaTransformer::apply(TermList ts) {
     Term::SpecialTermData *sd = ts.term()->getSpecialData();
     switch (sd->specialFunctor()) {
       case SpecialFunctor::ITE:
-        return TermList(Term::createITE(apply(sd->getCondition()),
+        return TermList(Term::createITE(apply(sd->getITECondition()),
                                         apply(*term->nthArgument(0)),
                                         apply(*term->nthArgument(1)),
                                         sd->getSort()));
@@ -109,13 +109,6 @@ TermList FormulaTransformer::apply(TermList ts) {
         return TermList(Term::createLet(apply(sd->getLetBinding()),
                                         apply(*term->nthArgument(0)),
                                         sd->getSort()));
-
-      case SpecialFunctor::LET_TUPLE:
-        return TermList(Term::createTupleLet(sd->getFunctor(),
-                                             sd->getTupleSymbols(),
-                                             apply(sd->getBinding()),
-                                             apply(*term->nthArgument(0)),
-                                             sd->getSort()));
 
       case SpecialFunctor::TUPLE:
         return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));

@@ -662,7 +662,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
         // for now, do nothing
         break;
       case SpecialFunctor::LET:
-      case SpecialFunctor::LET_TUPLE:
         _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
         break;

@@ -25,16 +25,13 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->specialFunctor()) {
       case SpecialFunctor::ITE:
-        return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
+        return Term::createITE(process(sd->getITECondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
 
       case SpecialFunctor::LET:
           return Term::createLet(process(sd->getLetBinding()), process(*term->nthArgument(0)), sd->getSort());
 
       case SpecialFunctor::FORMULA:
           return Term::createFormula(process(sd->getFormula()));
-
-      case SpecialFunctor::LET_TUPLE:
-        return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
       case SpecialFunctor::TUPLE:
         return Term::createTuple(process(TermList(sd->getTupleTerm())).term());

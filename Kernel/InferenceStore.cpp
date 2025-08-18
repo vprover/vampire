@@ -1196,7 +1196,7 @@ protected:
 
         case SpecialFunctor::ITE: {
           out << "(ite ";
-          outputFormula(out, sd->getCondition());
+          outputFormula(out, sd->getITECondition());
           ASS_EQ(t->numTermArguments(), 2)
           outputTerm(out, t->termArg(0));
           outputTerm(out, t->termArg(1));
@@ -1208,9 +1208,6 @@ protected:
 
         case SpecialFunctor::LAMBDA:
             throw UserErrorException("lambdas are not supperted in smt2 proofcheck");
-
-        case SpecialFunctor::LET_TUPLE: 
-            throw UserErrorException("tuples lets are not supperted in smt2 proofcheck");
 
         case SpecialFunctor::MATCH:
             throw UserErrorException("&match are not supperted in smt2 proofcheck");

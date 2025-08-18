@@ -2698,7 +2698,7 @@ void TPTP::endLet()
     bool isPredicate = IS_PREDICATE(ref);
 
     VList* varList = _varLists.pop();
-    TermList definition = _termLists.pop();
+    TermList body = _termLists.pop();
 
     bool isTuple = false;
     if (!isPredicate) {
@@ -2706,17 +2706,18 @@ void TPTP::endLet()
       isTuple = resultSort.isTupleSort();
     }
 
+    TermStack args;
+    auto vars = VList::empty();
     if (isTuple) {
-      let = TermList(Term::createTupleLet(symbol, varList, definition, let, sort));
+      args.loadFromIterator(iterTraits(varList->iter()).map([](unsigned fn) { return TermList(Term::createConstant(fn)); }));
     } else {
-
       // Implicit type variables come first, then the rest
-      auto args = TermStack::fromIterator(iterTraits(ref.iTypeVars->iter()).map([](unsigned var) { return TermList::var(var); }));
+      args.loadFromIterator(iterTraits(ref.iTypeVars->iter()).map([](unsigned var) { return TermList::var(var); }));
       args.loadFromIterator(iterTraits(varList->iter()).map([](unsigned var) { return TermList::var(var); }));
-
-      auto binding = Formula::createDefinition(Term::create(ref.symbol, args), definition, varList);
-      let = TermList(Term::createLet(binding, let, sort));
+      vars = varList;
     }
+    auto binding = Formula::createDefinition(Term::create(symbol, args), body, vars);
+    let = TermList(Term::createLet(binding, let, sort));
   }
   _termLists.push(let);
 } // endLet

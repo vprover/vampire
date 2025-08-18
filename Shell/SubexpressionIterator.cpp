@@ -129,7 +129,7 @@ namespace Shell {
                * the polarity of the condition is always 0. This is because you
                * can always see "$ite(C, A, B)" as "(C => A) && (~C => B)"
                */
-              _subexpressions.push(Expression(sd->getCondition(), 0));
+              _subexpressions.push(Expression(sd->getITECondition(), 0));
               _subexpressions.push(Expression(*term->nthArgument(0), polarity));
               _subexpressions.push(Expression(*term->nthArgument(1), polarity));
               break;
@@ -141,16 +141,6 @@ namespace Shell {
                * is semantically equivalent to f <=> A && ...
                */
               _subexpressions.push(Expression(sd->getLetBinding(), 0));
-              _subexpressions.push(Expression(*term->nthArgument(0), polarity));
-              break;
-
-            case SpecialFunctor::LET_TUPLE:
-              /**
-               * The polarity of the body of let-bindings is 0.
-               * An expression "$let(f := A, ...)", where A is a formula,
-               * is semantically equivalent to f <=> A && ...
-               */
-              _subexpressions.push(Expression(sd->getBinding(), 0));
               _subexpressions.push(Expression(*term->nthArgument(0), polarity));
               break;
 

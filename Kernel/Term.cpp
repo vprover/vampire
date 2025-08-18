@@ -547,7 +547,7 @@ std::string Term::headToString() const
       }
       case SpecialFunctor::ITE: {
         ASS_EQ(arity(),2);
-        return "$ite(" + sd->getCondition()->toString() + ", ";
+        return "$ite(" + sd->getITECondition()->toString() + ", ";
       }
       case SpecialFunctor::TUPLE: {
         ASS_EQ(arity(), 0);
@@ -562,30 +562,6 @@ std::string Term::headToString() const
           }
         }
         return "[" + termList + "]";
-      }
-      case SpecialFunctor::LET_TUPLE: {
-        ASS_EQ(arity(), 1);
-        VList* symbols = sd->getTupleSymbols();
-        unsigned tupleFunctor = sd->getFunctor();
-        TermList binding = sd->getBinding();
-
-        OperatorType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
-
-        std::string symbolsList = "";
-        std::string typesList = "";
-        for (unsigned i = 0; i < VList::length(symbols); i++) {
-          Signature::Symbol* symbol = (fnType->arg(i) == AtomicSort::boolSort())
-            ? env.signature->getPredicate(VList::nth(symbols, i))
-            : env.signature->getFunction(VList::nth(symbols, i));
-          symbolsList += symbol->name();
-          typesList += symbol->name() + ": " + fnType->arg(i).toString();
-          if (i != VList::length(symbols) - 1) {
-            symbolsList += ", ";
-            typesList += ", ";
-          }
-        }
-
-        return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
       case SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
@@ -1156,44 +1132,6 @@ Term* Term::createLet(Formula* binding, TermList body, TermList bodySort)
 }
 
 /**
- * Create (let [a, b, c] <- rhs in t) expression and return
- * the resulting term
- */
-Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList binding, TermList body, TermList bodySort)
-{
-#if VDEBUG
-  Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
-  ASS_EQ(tupleSymbol->arity(), VList::length(symbols));
-  ASS_REP(tupleSymbol->fnType()->result().isTupleSort(), tupleFunctor);
-
-  Set<pair<int,bool> > distinctSymbols;
-  VList::Iterator sit(symbols);
-  unsigned arg = 0;
-  while (sit.hasNext()) {
-    unsigned symbol = sit.next();
-    bool isPredicate = tupleSymbol->fnType()->arg(arg) == AtomicSort::boolSort();
-    if (!distinctSymbols.contains(make_pair(symbol, isPredicate))) {
-      distinctSymbols.insert(make_pair(symbol, isPredicate));
-    } else {
-      ASSERTION_VIOLATION_REP(symbol);
-    }
-    arg++;
-  }
-#endif
-
-  Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(toNormalFunctor(SpecialFunctor::LET_TUPLE), 1);
-  TermList* ss = s->args();
-  *ss = body;
-  ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_letTupleData.functor = tupleFunctor;
-  s->getSpecialData()->_letTupleData.symbols = symbols;
-  s->getSpecialData()->_letTupleData.sort = bodySort;
-  s->getSpecialData()->_letTupleData.binding = binding;
-  return s;
-}
-
-/**
  * Create a formula expression and return
  * the resulting term
  */
@@ -1443,8 +1381,7 @@ bool Term::isBoolean() const {
       case SpecialFunctor::LAMBDA:
         return false;
       case SpecialFunctor::ITE:
-      case SpecialFunctor::LET:
-      case SpecialFunctor::LET_TUPLE: {
+      case SpecialFunctor::LET: {
         const TermList *ts = term->nthArgument(0);
         if (!ts->isTerm()) {
           return false;
@@ -1936,7 +1873,6 @@ std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)
     case SpecialFunctor::LET: return out << "LET";
     case SpecialFunctor::FORMULA: return out << "FORMULA";
     case SpecialFunctor::TUPLE: return out << "TUPLE";
-    case SpecialFunctor::LET_TUPLE: return out << "LET_TUPLE";
     case SpecialFunctor::LAMBDA: return out << "LAMBDA";
     case SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
   }

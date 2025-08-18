@@ -630,8 +630,8 @@ private:
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processMatch(Term::SpecialTermData* sd, Term* term, Occurrences &occurrences);
-  void processLet(Term::SpecialTermData* sd, TermList body, Occurrences &occurrences);
-  TermList eliminateLet(Term::SpecialTermData *sd, TermList body);
+  void processLet(Term* term, Occurrences &occurrences);
+  TermList eliminateLet(Term* term);
 
   TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VList* boundVars);
   TermList inlineLetBinding(Term* lhs, TermList rhs, TermList body);
