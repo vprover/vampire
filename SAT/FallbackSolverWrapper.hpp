@@ -89,6 +89,11 @@ public:
     return _inner->failedAssumptions();
   }
 
+  SATClauseList *minimizePremises(SATClauseList *premises) override {
+    if(_usingFallback)
+      return _fallback->minimizePremises(premises);
+    return _inner->minimizePremises(premises);
+  }
 private:
 
   ScopedPtr<SATSolver> _inner;

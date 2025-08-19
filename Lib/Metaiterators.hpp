@@ -778,16 +778,6 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* i
 }
 
 /**
- * Remove duplicate elements from the container @c cont
- */
-template<class Container>
-void makeUnique(Container& cont)
-{
-  VirtualIterator<ELEMENT_TYPE(Container)> uniqueIt = pvi(
-      getUniquePersistentIterator(ITERATOR_TYPE(Container)(cont)) );
-}
-
-/**
  * Return number of elements in iterator @c it
  */
 template<class It>

@@ -24,11 +24,17 @@ namespace Kernel {
 using namespace SAT;
 
 /**
- * To initialize a first order inference coming from a SAT refutation.
- * Possibly the SAT refutation was unnecessarily too large
- * and may be minimized before the final proof outputting.
+ * During search (currently only GlobalSubsumption),
+ * we may make an inference on the first-order level via SAT solving.
+ *
+ * We don't want to minimize the set of premises during search,
+ * as we don't know whether they will be used in the proof or not.
+ *
+ * Therefore: use this object with a (large) superset of first-order
+ * and SAT premises. Then, in Inference::minimizePremises,
+ * minimize the SAT premises and use their parents to work out the true first-order parents.
  */
-struct FromSatRefutation {
+struct NeedsMinimization {
   /**
    * The inherited first order part (@b premises) must be already given,
    * but it is expected that it is much larger than necessary.
@@ -37,19 +43,22 @@ struct FromSatRefutation {
    * (no memory responsibility overtaken; the list must survive till the minimization call),
    * a stack of @b usedAssumptions is copied.
    */
-  FromSatRefutation(InferenceRule rule, UnitList* premises, SATClauseList* satPremises, const SATLiteralStack& usedAssumptions) :
+  NeedsMinimization(InferenceRule rule, UnitList* premises, SATClauseList* satPremises, const SATLiteralStack& usedAssumptions) :
     _rule(rule), _premises(premises), _satPremises(satPremises), _usedAssumptions(usedAssumptions) {}
 
   /**
    * Constructor versions with no assumptions.
    */
-  FromSatRefutation(InferenceRule rule, UnitList* premises, SATClauseList* satPremises) :
+  NeedsMinimization(InferenceRule rule, UnitList* premises, SATClauseList* satPremises) :
       _rule(rule), _premises(premises), _satPremises(satPremises) {}
 
   InferenceRule _rule;
+  // the first-order premises to be minimised
   UnitList* _premises;
-  SATClauseList* _satPremises; // may be a nullptr, in which case no minimization will be possible
-  SATLiteralStack _usedAssumptions; // possibly an empty stack
+  // the SAT premises that will be used to minimise them
+  SATClauseList* _satPremises;
+  // the SAT assumptions used, possibly empty
+  SATLiteralStack _usedAssumptions;
 };
 
 }
@@ -68,10 +77,16 @@ public:
   virtual ~SATInference() {}
   virtual InfType getType() const = 0;
 
+  /**
+   * Collect first-order premises of @c cl into @c res if they satisfy a filter.
+   */
   template <typename Filter>
   static void collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f);
-  static void collectFOPremises(SATClause* cl, Stack<Unit*>& acc);
-  static void collectPropAxioms(SATClause* cl, SATClauseStack& res);
+  /**
+   * Collect all first-order premises of @c cl into @c res.
+   */
+  static void collectFOPremises(SATClause* cl, Stack<Unit*>& acc)
+  { collectFilteredFOPremises(cl, acc, [](SATClause*) {return true;});}
   static UnitList* getFOPremises(SATClause* cl);
 };
 
@@ -119,7 +134,7 @@ private:
 };
 
 /**
- * Collect first-order premises of @c cl into @c res. Make sure that elements in @c res are unique.
+ * Collect first-order premises of @c cl into @c res.
  * Only consider those SATClauses and their parents which pass the given Filter f.
  */
 template <typename Filter>
@@ -157,7 +172,6 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
       ASSERTION_VIOLATION;
     }
   }
-  makeUnique(acc);
 }
 
 
