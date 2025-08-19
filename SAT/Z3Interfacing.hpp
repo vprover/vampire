@@ -207,6 +207,9 @@ public:
   virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
   SATLiteralStack failedAssumptions() override;
 
+  // TODO do something more useful here: should now be possible
+  SATClauseList *minimizePremises(SATClauseList *premises) override { return premises; }
+
   template<class F>
   auto scoped(F f)  -> decltype(f())
   {
