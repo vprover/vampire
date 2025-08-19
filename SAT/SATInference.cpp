@@ -32,7 +32,7 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
   static Stack<Unit*> prems;
   prems.reset();
 
-  collectFilteredFOPremises(cl, prems, [](SATClause *) {return true;});
+  collectFOPremises(cl, prems);
 
   UnitList* res = 0;
   while (prems.isNonEmpty()) {
