@@ -118,6 +118,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, 
   _varSorts.reset();
   _collectedVarSorts = false;
   _maxVar = 0;
+  _skolemTypeVarSubst.reset();
   _freeVars.reset();
 
   { // destroy the cached substitution entries
@@ -539,7 +540,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
    * 3) ?[X:$o]:(~X | f(X)) <=> (0 | f(1)) | (1 | f(0)) <=> f(1) | 1 <=> 1
    *
    * It means the following. If the processed generalised literal is a boolean
-   * variable, we can process each occurrence of it it two ways -- either by
+   * variable, we can process each occurrence of it in two ways -- either by
    * discarding the occurrence's generalised clause all together, or removing
    * the generalised literal - variable from the occurrence. That depends on
    * whether the variable was skolemised in the clause. If it was (i.e. it was
@@ -843,7 +844,7 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
     VList::Iterator vit(bindingFreeVars);
     while (vit.hasNext()) {
       unsigned var = vit.next();
-      sorts.push(_varSorts.get(var, AtomicSort::defaultSort()));
+      sorts.push(getVarSort(var));
     }
 
     if (isPredicate) {
@@ -948,36 +949,70 @@ void NewCNF::ensureHavingVarSorts()
   }
 }
 
+TermList NewCNF::getVarSort(unsigned var) const
+{
+  ASS(_collectedVarSorts);
+  // TODO shouldn't we enforce that the sort is explicitly known?
+  auto sort = _varSorts.get(var, AtomicSort::defaultSort());
+  return SubstHelper::apply(sort, _skolemTypeVarSubst);
+}
+
 Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 {
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
-  TermList rangeSort=_varSorts.get(var, AtomicSort::defaultSort());
-  static Stack<TermList> domainSorts;
-  static Stack<TermList> fnArgs;
-  ASS(domainSorts.isEmpty());
-  ASS(fnArgs.isEmpty());
+  TermList rangeSort=getVarSort(var);
+  Recycled<TermStack> termVarSorts;
+  Recycled<TermStack> typeVars;
+  Recycled<TermStack> termVars;
 
-  auto vit = free->iter();
-  while(vit.hasNext()) {
-    unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
-    fnArgs.push(TermList(uvar, false));
-  }
+  iterTraits(free->iter())
+    .forEach([&](unsigned uvar) {
+      auto varSort = getVarSort(uvar);
+      if (varSort == AtomicSort::superSort()) {
+        typeVars->push(TermList::var(uvar));
+      } else {
+        termVars->push(TermList::var(uvar));
+        termVarSorts->push(varSort);
+      }
+    });
+
+  SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
+  SortHelper::normaliseSort(*typeVars, rangeSort);
+
+  auto taArity = typeVars->size();
+
+  // TODO maybe this should be avoided for type cons
+  auto args = *typeVars;
+  args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
 
   Term* res;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
+  bool isTypeVar = (rangeSort == AtomicSort::superSort());
   if (isPredicate) {
-    unsigned pred = Skolem::addSkolemPredicate(arity, 0, domainSorts.begin());
+    unsigned pred = Skolem::addSkolemPredicate(arity, taArity, termVarSorts->begin());
     Signature::Symbol *sym = env.signature->getPredicate(pred);
     sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
       sym->markInGoal();
     }
-    res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, fnArgs.begin())));
+    res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, args.begin())));
+  } else if (isTypeVar) {
+    ASS(termVars->isEmpty() && termVarSorts->isEmpty());
+    ASS_EQ(taArity, arity);
+    unsigned typeCon = Skolem::addSkolemTypeCon(arity);
+    Signature::Symbol *sym = env.signature->getTypeCon(typeCon);
+    sym->markSkipCongruence();
+    if(_beingClausified->derivedFromGoal()){
+      sym->markInGoal();
+    }
+    if(_forInduction){
+      sym->markInductionSkolem();
+    }
+    res = AtomicSort::create(typeCon, arity, typeVars->begin());
   } else {
-    unsigned fun = Skolem::addSkolemFunction(arity, 0, domainSorts.begin(), rangeSort);
+    unsigned fun = Skolem::addSkolemFunction(arity, taArity, termVarSorts->begin(), rangeSort);
     Signature::Symbol *sym = env.signature->getFunction(fun);
     sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
@@ -986,11 +1021,14 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     if(_forInduction){
       sym->markInductionSkolem();
     }
-    res = Term::create(fun, arity, fnArgs.begin());
+    res = Term::create(fun, arity, args.begin());
   }
 
-  domainSorts.reset();
-  fnArgs.reset();
+  // Store type variables and their Skolemized form in a substitution
+  // which is then applied on variable sorts to get the right ones.
+  if (rangeSort == AtomicSort::superSort()) {
+    _skolemTypeVarSubst.bindUnbound(var, res);
+  }
 
   return res;
 }
@@ -1087,7 +1125,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
 void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 {
   LOG2("processQuantified", g->toString());
-  LOG2("occurreces", occurrences.size());
+  LOG2("occurrences", occurrences.size());
 
   // the skolem caches are empty
   ASS(_skolemsByBindings.isEmpty());
@@ -1136,12 +1174,23 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 
 void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 {
+  LOG2("processBoolTerm", ts.toString());
+  LOG2("occurrences", occurrences.size());
+
   if (ts.isVar()) {
     processBoolVar(POSITIVE, ts.var(), occurrences);
     return;
   }
 
   Term* term = ts.term();
+  if (!term->isSpecial()) {
+    // TODO not sure this is the right way to do it, or whether it is even correct in all cases
+    auto f = new AtomicFormula(Literal::createEquality(true, ts, TermList(Term::foolTrue()), AtomicSort::boolSort()));
+    enqueue(f, occurrences);
+    occurrences.replaceBy(f);
+    return;
+  }
+
   ASS_REP(term->isSpecial(), term->toString());
 
   Term::SpecialTermData* sd = term->getSpecialData();
@@ -1195,24 +1244,31 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
     }
   }
 
-  static Stack<TermList> domainSorts;
-  static Stack<TermList> predArgs;
-  domainSorts.reset();
-  predArgs.reset();
+  Recycled<TermStack> termVarSorts;
+  Recycled<TermStack> typeVars;
+  Recycled<TermStack> termVars;
 
   ensureHavingVarSorts();
 
-  VList::Iterator vit(free);
-  while (vit.hasNext()) {
-    unsigned uvar = vit.next();
-    domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
-    predArgs.push(TermList(uvar, false));
-  }
+  iterTraits(VList::Iterator(free))
+    .forEach([&](unsigned uvar) {
+      auto sort = getVarSort(uvar);
+      if (sort == AtomicSort::superSort()) {
+        typeVars->push(TermList::var(uvar));
+      } else {
+        termVarSorts->push(sort);
+        termVars->push(TermList::var(uvar));
+      }
+    });
   VList::destroy(free);
 
-  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
+  auto taArity = typeVars->size();
+  SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
+  predSym->setType(OperatorType::getPredicateType(length-taArity, termVarSorts->begin(), taArity));
 
-  return Literal::create(pred, length, true, predArgs.begin());
+  auto args = *typeVars;
+  args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
+  return Literal::create(pred, length, true, args.begin());
 }
 
 /**
