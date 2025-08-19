@@ -184,7 +184,7 @@ void SplittingBranchSelector::handleSatRefutation()
   if (!env.colorUsed) { // color oblivious, simple approach
     UnitStack premStack;
     for(SATClause *satPrem : iterTraits(satPremises->iter()))
-      SATInference::collectFilteredFOPremises(satPrem, premStack, [](SATClause *) { return true; });
+      SATInference::collectFOPremises(satPrem, premStack);
     UnitList* prems = UnitList::fromIterator(premStack.iter());
 
     Clause* foRef = Clause::empty(NonspecificInferenceMany(

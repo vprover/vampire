@@ -77,8 +77,16 @@ public:
   virtual ~SATInference() {}
   virtual InfType getType() const = 0;
 
+  /**
+   * Collect first-order premises of @c cl into @c res if they satisfy a filter.
+   */
   template <typename Filter>
   static void collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f);
+  /**
+   * Collect all first-order premises of @c cl into @c res.
+   */
+  static void collectFOPremises(SATClause* cl, Stack<Unit*>& acc)
+  { collectFilteredFOPremises(cl, acc, [](SATClause*) {return true;});}
   static UnitList* getFOPremises(SATClause* cl);
 };
 

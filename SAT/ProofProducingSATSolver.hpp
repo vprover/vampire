@@ -67,6 +67,7 @@ public:
     return _inner->failedAssumptions();
   }
 
+  // only to conform with SATSolver, would be a bit weird to call this
   SATClauseList *minimizePremises(SATClauseList *premises) override {
     return _inner->minimizePremises(premises);
   }
@@ -75,9 +76,9 @@ public:
   SATClauseList *premiseList() const { return _addedClauses; }
 
   /*
-   * only those premises required to get unsat from the last solve() call
-   * may be a superset of those actually necessary depending on
-   * how well the minimisation process goes
+   * Returns only those premises required to get unsat from the last solve() call.
+   * This may be a superset of those actually necessary depending on
+   * how well the minimisation process goes.
    */
   SATClauseList *minimizedPremises() { return _inner->minimizePremises(_addedClauses); }
 
