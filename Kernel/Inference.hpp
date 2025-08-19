@@ -17,19 +17,17 @@
 #ifndef __Inference__
 #define __Inference__
 
-#include <cstdlib>
-
-#include "Lib/Allocator.hpp"
-#include "Forwards.hpp"
-
-#include <type_traits>
+#include <iosfwd>
 #include <limits>
+#include <string>
+#include <type_traits>
+
+#include "Forwards.hpp"
+#include "Debug/Assertion.hpp"
 
 using namespace Lib;
 
 namespace Kernel {
-
-class Unit;
 
 /** Kind of input. The integers should not be changed, they are used in
  *  Compare. */
@@ -259,6 +257,10 @@ enum class InferenceRule : unsigned char {
   ARITHMETIC_SUBTERM_GENERALIZATION,
   /* clause added after removing answer literal and saving it as a witness */
   ANSWER_LITERAL_REMOVAL,
+  /* clause after successfully unifying two answer literals from the parent */
+  ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS,
+  /* clause after joining two answer literals from the parent into an if-then-else*/
+  ANSWER_LITERAL_JOIN_AS_ITE,
   /* clause with literals added from AVATAR assertions of the parent */
   AVATAR_ASSERTION_REINTRODUCTION,
 
@@ -745,8 +747,7 @@ std::ostream& operator<<(std::ostream& out, Inference const& self);
 class Inference
 {
 private:
-  // don't construct on the heap
-  USE_ALLOCATOR(Inference);
+  void *operator new(size_t) = delete;
 
   enum class Kind : unsigned char {
     INFERENCE_012,

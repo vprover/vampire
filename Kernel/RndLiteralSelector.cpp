@@ -14,13 +14,14 @@
 
 #include <algorithm>
 
+#include "RndLiteralSelector.hpp"
+
 #include "Lib/List.hpp"
 #include "Lib/Random.hpp"
 
 #include "Term.hpp"
 #include "Clause.hpp"
-
-#include "RndLiteralSelector.hpp"
+#include "Ordering.hpp"
 
 using namespace std;
 using namespace Lib;

@@ -39,6 +39,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tBinaryHeap.cpp
@@ -200,6 +201,8 @@ set(SOURCES
     Inferences/ALASCA/VariableElimination.cpp
     Inferences/ALASCA/VariableElimination.hpp
     Inferences/ALASCA/VirasInterfacing.hpp
+    Inferences/AnswerLiteralProcessors.cpp
+    Inferences/AnswerLiteralProcessors.hpp
     Inferences/ArgCong.cpp
     Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -289,8 +292,6 @@ set(SOURCES
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/InvalidAnswerLiteralRemovals.cpp
-    Inferences/InvalidAnswerLiteralRemovals.hpp
     Inferences/LfpRule.hpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp

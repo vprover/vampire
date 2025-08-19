@@ -21,11 +21,10 @@
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/DHMultiset.hpp"
 
-#include "Term.hpp"
 #include "SortHelper.hpp"
-#include "ApplicativeHelper.hpp"
+#include "Term.hpp"
+#include "TypedTermList.hpp"
 
 namespace Kernel {
 

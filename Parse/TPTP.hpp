@@ -18,7 +18,6 @@
 #define __Parser_TPTP__
 
 #include <filesystem>
-#include <iostream>
 #include <unordered_set>
 
 #include "Forwards.hpp"
@@ -26,17 +25,11 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Exception.hpp"
 
-#include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 //#define DEBUG_SHOW_STATE
-
-namespace Kernel {
-  class Clause;
-};
 
 namespace Parse {
   using namespace Kernel;

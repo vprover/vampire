@@ -15,12 +15,11 @@
 #ifndef __TheoryAxioms__
 #define __TheoryAxioms__
 
+#include <initializer_list>
+
 #include "Forwards.hpp"
 
 #include "Kernel/Theory.hpp"
-#include "Options.hpp"
-
-#include <initializer_list>
 
 namespace Shell {
 

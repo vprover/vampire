@@ -19,9 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
-#include "Lib/DHSet.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #include "Term.hpp"

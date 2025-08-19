@@ -20,11 +20,10 @@
 
 #include "Formula.hpp"
 #include "SortHelper.hpp"
+#include "Substitution.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-
-#include <unordered_map>
 
 namespace Kernel {
 

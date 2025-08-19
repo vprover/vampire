@@ -17,10 +17,7 @@
 
 #include "Indexing/Index.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
-
-#include "Indexing/TermIndexingStructure.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/List.hpp"
