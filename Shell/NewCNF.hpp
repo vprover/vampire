@@ -22,7 +22,6 @@
 #include "Lib/Deque.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
@@ -64,9 +63,6 @@ typedef List<Binding> BindingList;
 class NewCNF
 {
 public:
-
-  typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
-  typedef List<Binding> BindingList;
   NewCNF(unsigned namingThreshold)
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}

@@ -148,8 +148,8 @@ bool InductionHelper::isInductionClause(Clause* c) {
   static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
   static unsigned maxD = env.options->maxInductionDepth();
   static bool unitOnly = env.options->inductionUnitOnly();
-  static bool anslits = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS || env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN);
-  return ((!unitOnly || c->length()==1 || (c->length() == 2 && anslits && c->hasAnswerLiteral())) && 
+  static bool ansLits = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS || env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN);
+  return ((!unitOnly || c->length()==1 || (c->length() == 2 && ansLits && c->hasAnswerLiteral())) && 
           (all || ( (goal || goal_plus) && c->derivedFromGoal())) &&
                   (maxD == 0 || c->inference().inductionDepth() < maxD)
          );

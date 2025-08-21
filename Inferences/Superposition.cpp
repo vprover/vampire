@@ -86,7 +86,7 @@ struct Superposition::ForwardResultFn
   {
     auto& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	      qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
+	    qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
   }
 private:
   Clause* _cl;
@@ -105,7 +105,7 @@ struct Superposition::BackwardResultFn
 
     auto& qr = arg.second;
     return _parent.performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
-	      _cl, arg.first.first, arg.first.second, qr.unifier, false);
+	    _cl, arg.first.first, arg.first.second, qr.unifier, false);
   }
 private:
   Clause* _cl;

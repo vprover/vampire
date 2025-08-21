@@ -529,8 +529,6 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   ASS(p.first == 0 || proofNums.contains(p.first));
   // The first relevant answer literal:
   Literal* origLit = p.second.second;
-  while (p.first > 0 && !proofNums.contains(p.first) && it.hasNext()) p = it.next();
-  ASS(p.first == 0 || proofNums.contains(p.first));
   unsigned arity = origLit->arity();
   Stack<TermList> answerArgs(arity);
   Stack<TermList> sorts(arity);
@@ -805,9 +803,9 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
             Function** fptr = _functions.findPtr(tl.term()->functor());
             if (fptr) {
               for (unsigned j = 0; j < (*fptr)->_cases.size(); ++j) {
-                TermList& t = (*fptr)->_cases[j];
-                if (t.isTerm()) {
-                  (*fptr)->_cases[j] = TermList(ssr.transform(t.term()));
+                TermList& c = (*fptr)->_cases[j];
+                if (c.isTerm()) {
+                  (*fptr)->_cases[j] = TermList(ssr.transform(c.term()));
                 }
               }
             }
@@ -850,23 +848,27 @@ void SynthesisALManager::ConjectureSkolemReplacement::outputRecursiveFunctions()
 }
 
 SynthesisALManager::ConjectureSkolemReplacement::Function::Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement) {
+  // Store the heads of each case of the new function
   _caseHeads = replacement->_functionHeads->findPtr(recFunctor);
   ASS(_caseHeads);
   _cases.ensure(_caseHeads->size());
-  const DHMap<unsigned, SkolemTracker>& mapping = replacement->_recursionMappings->get(recFunctor);
+  // Add the new function to signature
   OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
   TermList in = ot->arg(ot->arity()-1);
   TermList out = ot->arg(0);
-  ASS(env.signature->getTermAlgebraOfSort(in)->nConstructors() == _caseHeads->size());
+  ASS_EQ(env.signature->getTermAlgebraOfSort(in)->nConstructors(), _caseHeads->size());
   _functor = env.signature->addFreshFunction(/*arity=*/1, "rf");
   Signature::Symbol* f = env.signature->getFunction(_functor);
   f->setType(OperatorType::getFunctionType({in}, out));
+  // Process SkolemTrackers corresponding to this function:
+  // populate the maps mapping skolems to terms they represent.
   DHMap<Term*, TermList>* caseMap;
+  const DHMap<unsigned, SkolemTracker>& mapping = replacement->_recursionMappings->get(recFunctor);
   DHMap<unsigned, SkolemTracker>::Iterator it(mapping);
   while (it.hasNext()) {
     unsigned var;
     SkolemTracker& st = it.nextRef(var);
-    ASS(var == st.binding.first);
+    ASS_EQ(var, st.binding.first);
     ASS(!_skolemToTermList.find(st.binding.second));
     TermList tl(st.recursiveCall ? TermList(Term::create1(_functor, *(*_caseHeads)[st.constructorId]->nthArgument(st.indexInConstructor))) : TermList(var, false));
     _skolemToTermList.insert(st.binding.second, tl);
@@ -880,19 +882,6 @@ void SynthesisALManager::ConjectureSkolemReplacement::Function::addCases(Term* t
   for (unsigned i = 0; i < t->arity()-1; ++i) {
     _cases[i] = *t->nthArgument(i);
   }
-}
-
-void SynthesisALManager::registerRecSymbol(unsigned recFnId) {
-  return;
-  DHMap<unsigned, SkolemTracker>* mapping;
-  ALWAYS(_recursionMappings.getValuePtr(recFnId, mapping));
-}
-
-void SynthesisALManager::addInductionVarData(unsigned recFnId, unsigned var, unsigned consId, bool recCall, unsigned idxInCons) {
-  return;
-  DHMap<unsigned, SkolemTracker>* mapping = _recursionMappings.findPtr(recFnId);
-  ASS(mapping != nullptr);
-  ALWAYS(mapping->insert(var, SkolemTracker(Binding(var, nullptr), consId, recCall, idxInCons, recFnId)));
 }
 
 void SynthesisALManager::printSkolemTrackers() {
@@ -923,8 +912,8 @@ void SynthesisALManager::printRecursionMappings() {
 void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& bindings, const List<Term*>* functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
   unsigned recFnId = recTerm->functor();
   unsigned ctorNumber = recTerm->arity()-1;
-  ASS(ctorNumber == VList::length(us));
-  ASS(ctorNumber == List<Term*>::length(functionHeadsByConstruction));
+  ASS_EQ(ctorNumber, VList::length(us));
+  ASS_EQ(ctorNumber, List<Term*>::length(functionHeadsByConstruction));
   // Find out what is the order of arguments in `recTerm`.
   // Each of the first `ctorNumber` arguments should be one of `us`.
   // The order of `us` is the same as the order of `functionHeadsByConstruction`,
@@ -961,8 +950,8 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsign
   DHMap<unsigned, SkolemTracker>* mapping;
   ALWAYS(_recursionMappings.getValuePtr(recFnId, mapping));
   for (SkolemTracker& st : incompleteTrackers) {
-    ASS(st.binding.second == nullptr);
-    ASS(st.recFnId == 0);
+    ASS_EQ(st.binding.second, nullptr);
+    ASS_EQ(st.recFnId, 0);
     const unsigned var = st.binding.first;
     st.binding.second = bindings.get(var);
     st.recFnId = recFnId;

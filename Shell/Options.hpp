@@ -2523,6 +2523,7 @@ private:
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _inductionGroundOnly;
+  // TODO(hzzv): remove once induction with free var works for multiple literals.
   BoolOptionValue _inductionNonstandardBase;
   BoolOptionValue _functionDefinitionRewriting;
   BoolOptionValue _integerInductionDefaultBound;

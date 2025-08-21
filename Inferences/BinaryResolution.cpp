@@ -252,8 +252,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
                                          Clause* resultCl, Literal* resultLit,
-                                         AbstractingUnifier& uwa, const Options& opts,
-                                         SaturationAlgorithm* salg) {
+                                         AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg) {
   // perform binary resolution on query results
   auto subs = ResultSubstitution::fromSubstitution(&uwa.subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
   bool doAfterCheck = opts.literalMaximalityAftercheck() && salg->getLiteralSelector().isBGComplete();

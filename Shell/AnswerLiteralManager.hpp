@@ -178,10 +178,6 @@ public:
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
-  // Registers rec-function symbol and initializes a corresponding map in _recursionMappings.
-  void registerRecSymbol(unsigned recFnId);
-  // Add a new SkolemTracker before skolemization (without the corresponding skolem).
-  void addInductionVarData(unsigned recFnId, unsigned var, unsigned consId, bool recCall, unsigned idxInCons);
   // Register the skolem symbol of `recTerm` as rec-symbol, and add information about skolem constants from `binding` into `incompleteTrackers` and store them.
   void registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& binding, const List<Term*>* functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VList* us);
 
