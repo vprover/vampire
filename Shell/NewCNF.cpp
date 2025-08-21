@@ -952,8 +952,7 @@ void NewCNF::ensureHavingVarSorts()
 TermList NewCNF::getVarSort(unsigned var) const
 {
   ASS(_collectedVarSorts);
-  // TODO shouldn't we enforce that the sort is explicitly known?
-  auto sort = _varSorts.get(var, AtomicSort::defaultSort());
+  auto sort = _varSorts.get(var);
   return SubstHelper::apply(sort, _skolemTypeVarSubst);
 }
 
@@ -967,16 +966,15 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   Recycled<TermStack> typeVars;
   Recycled<TermStack> termVars;
 
-  iterTraits(free->iter())
-    .forEach([&](unsigned uvar) {
-      auto varSort = getVarSort(uvar);
-      if (varSort == AtomicSort::superSort()) {
-        typeVars->push(TermList::var(uvar));
-      } else {
-        termVars->push(TermList::var(uvar));
-        termVarSorts->push(varSort);
-      }
-    });
+  for(unsigned uvar : iterTraits(free->iter())) {
+    auto varSort = getVarSort(uvar);
+    if (varSort == AtomicSort::superSort()) {
+      typeVars->push(TermList::var(uvar));
+    } else {
+      termVars->push(TermList::var(uvar));
+      termVarSorts->push(varSort);
+    }
+  }
 
   SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
   SortHelper::normaliseSort(*typeVars, rangeSort);
@@ -988,40 +986,31 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
 
   Term* res;
+  Signature::Symbol* sym;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   bool isTypeVar = (rangeSort == AtomicSort::superSort());
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, taArity, termVarSorts->begin());
-    Signature::Symbol *sym = env.signature->getPredicate(pred);
-    sym->markSkipCongruence();
-    if(_beingClausified->derivedFromGoal()){
-      sym->markInGoal();
-    }
+    sym = env.signature->getPredicate(pred);
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, args.begin())));
   } else if (isTypeVar) {
     ASS(termVars->isEmpty() && termVarSorts->isEmpty());
     ASS_EQ(taArity, arity);
     unsigned typeCon = Skolem::addSkolemTypeCon(arity);
-    Signature::Symbol *sym = env.signature->getTypeCon(typeCon);
-    sym->markSkipCongruence();
-    if(_beingClausified->derivedFromGoal()){
-      sym->markInGoal();
-    }
-    if(_forInduction){
-      sym->markInductionSkolem();
-    }
+    sym = env.signature->getTypeCon(typeCon);
     res = AtomicSort::create(typeCon, arity, typeVars->begin());
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, taArity, termVarSorts->begin(), rangeSort);
-    Signature::Symbol *sym = env.signature->getFunction(fun);
-    sym->markSkipCongruence();
-    if(_beingClausified->derivedFromGoal()){
-      sym->markInGoal();
-    }
+    sym = env.signature->getFunction(fun);
     if(_forInduction){
       sym->markInductionSkolem();
     }
     res = Term::create(fun, arity, args.begin());
+  }
+
+  sym->markSkipCongruence();
+  if(_beingClausified->derivedFromGoal()){
+    sym->markInGoal();
   }
 
   // Store type variables and their Skolemized form in a substitution
@@ -1184,7 +1173,6 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 
   Term* term = ts.term();
   if (!term->isSpecial()) {
-    // TODO not sure this is the right way to do it, or whether it is even correct in all cases
     auto f = new AtomicFormula(Literal::createEquality(true, ts, TermList(Term::foolTrue()), AtomicSort::boolSort()));
     enqueue(f, occurrences);
     occurrences.replaceBy(f);
@@ -1250,16 +1238,15 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 
   ensureHavingVarSorts();
 
-  iterTraits(VList::Iterator(free))
-    .forEach([&](unsigned uvar) {
-      auto sort = getVarSort(uvar);
-      if (sort == AtomicSort::superSort()) {
-        typeVars->push(TermList::var(uvar));
-      } else {
-        termVarSorts->push(sort);
-        termVars->push(TermList::var(uvar));
-      }
-    });
+  for(unsigned uvar : iterTraits(VList::Iterator(free))) {
+    auto sort = getVarSort(uvar);
+    if (sort == AtomicSort::superSort()) {
+      typeVars->push(TermList::var(uvar));
+    } else {
+      termVarSorts->push(sort);
+      termVars->push(TermList::var(uvar));
+    }
+  }
   VList::destroy(free);
 
   auto taArity = typeVars->size();
