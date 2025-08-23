@@ -81,7 +81,7 @@ void SplittingBranchSelector::init()
       inner = new MinisatInterfacing;
       break;
     case Options::SatSolver::CADICAL:
-      inner = new CadicalInterfacing(_parent.getOptions(),true);
+      inner = new CadicalInterfacing;
       break;
 #if VZ3
     case Options::SatSolver::Z3:
@@ -187,16 +187,13 @@ void SplittingBranchSelector::handleSatRefutation()
       SATInference::collectFOPremises(satPrem, premStack);
     UnitList* prems = UnitList::fromIterator(premStack.iter());
 
-    Clause* foRef = Clause::empty(NonspecificInferenceMany(
+    Clause *foRef = Clause::empty(
 #if VZ3
       _parent.hasSMTSolver
-      ? InferenceRule::AVATAR_REFUTATION_SMT
-      : InferenceRule::AVATAR_REFUTATION,
-#else
-      InferenceRule::AVATAR_REFUTATION,
+      ? NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION_SMT, prems)
+      :
 #endif
-      prems
-    ));
+      Inference(_solver.proof()));
 
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);

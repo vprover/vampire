@@ -261,7 +261,7 @@ bool FiniteModelBuilder::reset(){
       _solver = new MinisatInterfacing;
   }
   else if (env.options->satSolver() == Options::SatSolver::CADICAL) {
-    _solver = new CadicalInterfacing(_opt,true);
+    _solver = new CadicalInterfacing;
   } else {
     USER_ERROR("Finite model builder can only use minisat or cadical as SAT solvers.");
   }
