@@ -14,9 +14,12 @@
 #ifndef __CadicalInterfacing__
 #define __CadicalInterfacing__
 
+#include <filesystem>
+
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
+
 #include "MinisatInterfacing.hpp"
 
 #include "cadical/src/cadical.hpp"
@@ -26,7 +29,7 @@ namespace SAT{
 class CadicalInterfacing : public SATSolver
 {
 public:
-  CadicalInterfacing(const Shell::Options& opts, bool generateProofs=false);
+  CadicalInterfacing();
 
   /**
    * Can be called only when all assumptions are retracted
@@ -64,6 +67,12 @@ public:
       assumps.push(cadical2Vampire(l));
     return MinisatInterfacing<>::minimizePremiseList(premises, assumps);
   }
+
+  /*
+   * run CaDiCaL on the assumed-unsatisfiable `premises` and log a proof
+   * returns a path to the (binary) DRAT proof
+   */
+  static std::filesystem::path drat(SATClauseList* premises);
 
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);

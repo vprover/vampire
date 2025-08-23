@@ -19,8 +19,7 @@
 namespace SAT {
 
 /**
- * A convenience wrapper for solvers which do not track actual refutations
- * and so return the whole set of clauses added so far as refutations.
+ * A wrapper for solvers to track asserted premises and thereby reconstruct proofs.
  */
 class ProofProducingSATSolver final : public SATSolver {
 public:
@@ -81,6 +80,12 @@ public:
    * how well the minimisation process goes.
    */
   SATClauseList *minimizedPremises() { return _inner->minimizePremises(_addedClauses); }
+
+  /*
+   * run CaDiCaL on `premiseList` to get a DRAT proof,
+   * then convert it to a Vampire proof
+   */
+  void proof();
 
 private:
   ScopedPtr<SATSolver> _inner;
