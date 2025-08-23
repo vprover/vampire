@@ -12,7 +12,13 @@
  * Implements class CadicalInterfacing
  */
 
+#include <fstream>
+#include <unistd.h> // getpid
+
 #include "CadicalInterfacing.hpp"
+#include "MinisatInterfacing.hpp"
+
+#include "Lib/Environment.hpp"
 
 namespace SAT
 {
@@ -20,8 +26,7 @@ namespace SAT
 using namespace Shell;
 using namespace Lib;
 
-CadicalInterfacing::CadicalInterfacing(const Shell::Options& opts, bool generateProofs):
-  _status(Status::SATISFIABLE)
+CadicalInterfacing::CadicalInterfacing()
 {
   // these help a bit both for avataring and FMB
   _solver.set("phase",0);
@@ -49,6 +54,19 @@ SATLiteralStack CadicalInterfacing::failedAssumptions() {
     if(_solver.failed(v))
       result.push(cadical2Vampire(v).opposite());
   return result;
+}
+
+std::filesystem::path CadicalInterfacing::drat(SATClauseList* premises) {
+  auto drat = std::filesystem::temp_directory_path() / "vampire-drat"; // TODO ("vampire-drat-" + Int::toString(getpid()));
+  CadicalInterfacing solver;
+  solver._solver.trace_proof(drat.c_str());
+
+  for(SATClause *cl : iterTraits(premises->iter()))
+    solver.addClause(cl);
+  ASS_EQ(solver.solve(), Status::UNSATISFIABLE)
+  solver._solver.close_proof_trace();
+
+  return drat;
 }
 
 /**

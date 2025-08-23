@@ -80,7 +80,7 @@ void SplittingBranchSelector::init()
       inner = new MinisatInterfacing;
       break;
     case Options::SatSolver::CADICAL:
-      inner = new CadicalInterfacing(_parent.getOptions(),true);
+      inner = new CadicalInterfacing;
       break;
 #if VZ3
     case Options::SatSolver::Z3:
@@ -186,6 +186,7 @@ void SplittingBranchSelector::handleSatRefutation()
       SATInference::collectFOPremises(satPrem, premStack);
     UnitList* prems = UnitList::fromIterator(premStack.iter());
 
+    _solver.proof();
     Clause* foRef = Clause::empty(NonspecificInferenceMany(
 #if VZ3
       _parent.hasSMTSolver
