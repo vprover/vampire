@@ -30,13 +30,30 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace std;
 
+Clause* getGeneratedParent(Clause* cl)
+{
+  // cout << "starting with " << cl->toNiceString() << endl;
+  while (isSimplifyingInferenceRule(cl->inference().rule())) {
+    // cout << "cl is " << cl->toNiceString() << endl;
+    if (cl->inference().rule() == InferenceRule::FORWARD_DEMODULATION) {
+      auto pit = cl->getParents();
+      ALWAYS(pit.hasNext());
+      cl = static_cast<Clause*>(pit.next());
+    }
+  }
+  // cout << "returning" << endl;
+  return cl;
+}
+
 bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
 
-  const auto& inf = cl->inference();
+  auto gcl = getGeneratedParent(cl);
+  const auto& inf = gcl->inference();
 
   if (inf.rule() != InferenceRule::SUPERPOSITION) {
+    env.statistics->intFinInduction++;
     return false;
   }
 
@@ -44,8 +61,8 @@ bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIter
 
   // TODO check that premise did not participate in any simplifications
 
-  auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(cl);
-  UnitIterator it = cl->getParents();
+  auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(gcl);
+  UnitIterator it = gcl->getParents();
   ALWAYS(it.hasNext());
   auto rwClause = static_cast<Clause*>(it.next());
   ALWAYS(it.hasNext());
@@ -85,6 +102,7 @@ bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIter
     // TODO
     // premises = pvi( getSingletonIterator(clauseFromHandler));
     premises = ClauseIterator::getEmpty();
+    replacement = nullptr;
     env.statistics->inductionApplicationInProof++;
     return true;
   }
