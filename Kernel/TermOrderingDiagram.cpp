@@ -30,17 +30,21 @@ static Ordering::Result kGtPtr = Ordering::GREATER;
 static Ordering::Result kEqPtr = Ordering::EQUAL;
 static Ordering::Result kLtPtr = Ordering::LESS;
 
-TermOrderingDiagram* TermOrderingDiagram::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs)
+TermOrderingDiagram* TermOrderingDiagram::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs, bool ground)
 {
-  static Map<tuple<TermList,TermList>,TermOrderingDiagram*> cache; // TODO this leaks now
+  static Map<tuple<bool,TermList,TermList>,TermOrderingDiagram*> cache; // TODO this leaks now
 
   TermOrderingDiagram** ptr;
-  if (cache.getValuePtr({ lhs, rhs }, ptr, nullptr)) {
-    *ptr = ord.createTermOrderingDiagram(/*ground*/true).release();
+  if (cache.getValuePtr({ ground, lhs, rhs }, ptr, nullptr)) {
+    *ptr = ord.createTermOrderingDiagram(ground).release();
     (*ptr)->_source = Branch(lhs, rhs);
     (*ptr)->_source.node()->gtBranch  = Branch(&kGtPtr, (*ptr)->_sink);
     (*ptr)->_source.node()->eqBranch  = Branch(&kEqPtr, (*ptr)->_sink);
-    (*ptr)->_source.node()->ngeBranch = Branch(&kLtPtr, (*ptr)->_sink);
+    if (ground) {
+      (*ptr)->_source.node()->ngeBranch = Branch(&kLtPtr, (*ptr)->_sink);
+    } else {
+      (*ptr)->_source.node()->ngeBranch = (*ptr)->_sink;
+    }
   }
   return *ptr;
 }
@@ -142,6 +146,86 @@ loop_end:
   return nullptr;
 }
 
+bool TermOrderingDiagram::check(const SubstApplicator* appl, const TermPartialOrdering* tpo)
+{
+  // ASS_NEQ(tpo, TermPartialOrdering::getEmpty(_ord));
+  init(appl);
+
+  static Stack<Branch*> btStack;
+  btStack.reset();
+
+  for (;;) {
+    processCurrentNode();
+
+    auto node = _curr->node();
+    ASS(node->ready);
+
+    if (node->tag == Node::T_DATA) {
+      if (!node->data) {
+        if (btStack.isEmpty()) {
+          return false;
+        }
+        // backtrack
+        _prev = btStack.pop();
+        _curr = &_prev->node()->getBranch(Ordering::INCOMPARABLE);
+        continue;
+      }
+      return node->data;
+    }
+
+    Ordering::Result res =
+      (node->tag == Node::T_TERM)
+      ? _ord.compareUnidirectional(
+          AppliedTerm(node->lhs, _appl, true),
+          AppliedTerm(node->rhs, _appl, true))
+      : positivityCheck();
+
+    if (res == Ordering::INCOMPARABLE) {
+      if (node->tag == Node::T_TERM) {
+        TermNodeIterator termIt(_ord, appl, node->lhs, node->rhs, tpo);
+        auto val = termIt.get();
+        if (val != Ordering::INCOMPARABLE) {
+          btStack.push(_curr);
+          res = val;
+        }
+      } else {
+        ASS_EQ(node->tag, Node::T_POLY);
+        const auto& kbo = static_cast<const KBO&>(_ord);
+        auto weight = node->poly->constant;
+        ZIArray<int> varDiffs;
+        for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
+          AppliedTerm tt(TermList::var(var), appl, true);
+
+          VariableIterator vit(tt.term);
+          while (vit.hasNext()) {
+            auto v = vit.next();
+            varDiffs[v.var()] += coeff;
+          }
+          int64_t w = kbo.computeWeight(tt);
+          weight += coeff*w;
+        }
+        Stack<VarCoeffPair> nonzeros;
+        for (unsigned i = 0; i < varDiffs.size(); i++) {
+          if (varDiffs[i]==0) {
+            continue;
+          }
+          nonzeros.push({ i, varDiffs[i] });
+        }
+
+        PolyNodeIterator polyIt(Polynomial::get(weight, nonzeros), tpo);
+        auto val = polyIt.get();
+        if (val != Ordering::INCOMPARABLE) {
+          btStack.push(_curr);
+          res = val;
+        }
+      }
+    }
+    _prev = _curr;
+    _curr = &node->getBranch(res);
+  }
+  return false;
+}
+
 void TermOrderingDiagram::insert(const Stack<TermOrderingConstraint>& comps, void* data)
 {
   ASS(data);
@@ -182,6 +266,45 @@ void TermOrderingDiagram::insert(const Stack<TermOrderingConstraint>& comps, voi
   }
 
   _sink = newFail;
+}
+
+Ordering::Result TermOrderingDiagram::positivityCheck() const
+{
+  auto node = _curr->node();
+  ASS(node->ready);
+  ASS_EQ(node->tag, Node::T_POLY);
+
+  const auto& kbo = static_cast<const KBO&>(_ord);
+  auto weight = node->poly->constant;
+  ZIArray<int> varDiffs;
+  for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
+    AppliedTerm tt(TermList::var(var), _appl, true);
+
+    VariableIterator vit(tt.term);
+    while (vit.hasNext()) {
+      auto v = vit.next();
+      varDiffs[v.var()] += coeff;
+      // since the counts are sorted in descending order,
+      // this can only mean we will fail
+      if (varDiffs[v.var()]<0) {
+        return Ordering::INCOMPARABLE;
+      }
+    }
+    int64_t w = kbo.computeWeight(tt);
+    weight += coeff*w;
+    // due to descending order of counts,
+    // this also means failure
+    if (coeff<0 && weight<0) {
+      return Ordering::INCOMPARABLE;
+    }
+  }
+
+  if (weight > 0) {
+    return Ordering::GREATER;
+  } else if (weight == 0) {
+    return Ordering::EQUAL;
+  }
+  return Ordering::INCOMPARABLE;
 }
 
 void TermOrderingDiagram::processCurrentNode()
@@ -664,7 +787,7 @@ TermOrderingDiagram::AppliedNodeIterator::AppliedNodeIterator(const Ordering& or
   : termNode(node->tag==Node::T_TERM),
     traversal(termNode ? createForSingleComparison(ord,
       AppliedTerm(node->lhs, appl, true).apply(),
-      AppliedTerm(node->rhs, appl, true).apply()) : nullptr, appl, initial) {}
+      AppliedTerm(node->rhs, appl, true).apply(), /*ground*/true) : nullptr, appl, initial) {}
 
 bool TermOrderingDiagram::AppliedNodeIterator::next(Result& res, POStruct& pos)
 {
@@ -672,6 +795,182 @@ bool TermOrderingDiagram::AppliedNodeIterator::next(Result& res, POStruct& pos)
     Branch* b;
     if (traversal.next(b, pos)) {
       res = *static_cast<Result*>(b->node()->data);
+      return true;
+    }
+  }
+  return false;
+}
+
+// Iterators
+
+TermOrderingDiagram::TermNodeIterator::TermNodeIterator(
+  const Ordering& ord, const SubstApplicator* appl,
+    TermList lhs, TermList rhs, const TermPartialOrdering* tpo)
+  : _ord(ord),
+    _tod(TermOrderingDiagram::createForSingleComparison(
+      ord,AppliedTerm(lhs,appl,true).apply(),AppliedTerm(rhs,appl,true).apply())),
+    _tpo(tpo)
+{
+}
+
+Ordering::Result TermOrderingDiagram::TermNodeIterator::get()
+{
+  _tod->_prev = nullptr;
+  _tod->_curr = &_tod->_source;
+
+  for (;;) {
+    _tod->processCurrentNode();
+
+    auto node = _tod->_curr->node();
+    ASS(node->ready);
+
+    if (node->tag == Node::T_DATA) {
+      if (node->data) {
+        return *static_cast<Result*>(node->data);
+      }
+      return Ordering::INCOMPARABLE;
+    }
+
+    Ordering::Result comp = Ordering::INCOMPARABLE;
+    if (node->tag == Node::T_TERM) {
+
+      Ordering::Result val;
+      if (_tpo->get(node->lhs, node->rhs, val)) {
+        comp = val;
+      }
+
+    } else {
+      ASS_EQ(node->tag, Node::T_POLY);
+
+      PolyNodeIterator polyIt(node->poly, _tpo);
+      auto val = polyIt.get();
+      if (val != Ordering::INCOMPARABLE) {
+        comp = val;
+      }
+    }
+    _tod->_prev = _tod->_curr;
+    _tod->_curr = &node->getBranch(comp);
+  }
+  ASSERTION_VIOLATION;
+}
+
+TermOrderingDiagram::PolyNodeIterator::PolyNodeIterator(
+  const Polynomial* poly, const TermPartialOrdering* tpo)
+  : _poly(poly), _tpo(tpo)
+{
+}
+
+Ordering::Result TermOrderingDiagram::PolyNodeIterator::get()
+{
+  // check if we have seen this polynomial
+  // on the path leading here
+  // auto polyIt = _prevPoly;
+  // while (polyIt.first) {
+  //   ASS_EQ(polyIt.first->tag, Node::T_POLY);
+  //   switch (polyIt.second) {
+  //     case Ordering::GREATER: {
+  //       if (polyIt.first->poly == _poly) {
+  //         return Ordering::GREATER;
+  //       }
+  //       break;
+  //     }
+  //     case Ordering::EQUAL: {
+  //       if (polyIt.first->poly == _poly) {
+  //         return Ordering::EQUAL;
+  //       }
+  //       break;
+  //     }
+  //     default:
+  //       break;
+  //   }
+  //   polyIt = polyIt.first->prevPoly;
+  // }
+
+  unsigned pos = 0;
+  unsigned neg = 0;
+
+  auto vcs = _poly->varCoeffPairs;
+
+  for (unsigned i = 0; i < vcs.size();) {
+    auto& [var, coeff] = vcs[i];
+    for (unsigned j = i+1; j < vcs.size();) {
+      auto& [var2, coeff2] = vcs[j];
+      Ordering::Result res;
+      if (_tpo->get(TermList::var(var), TermList::var(var2), res) && res == Ordering::EQUAL) {
+        coeff += coeff2;
+        swap(vcs[j],vcs.top());
+        vcs.pop();
+        continue;
+      }
+      j++;
+    }
+    if (coeff == 0) {
+      swap(vcs[i],vcs.top());
+      vcs.pop();
+      continue;
+    } else if (coeff > 0) {
+      pos++;
+    } else {
+      neg++;
+    }
+    i++;
+  }
+
+  auto constant = _poly->constant;
+  if (constant == 0 && pos == 0 && neg == 0) {
+    return Ordering::EQUAL;
+  }
+  if (constant >= 0 && neg == 0) {
+    return Ordering::GREATER;
+  }
+  return Ordering::INCOMPARABLE;
+}
+
+TermOrderingDiagram::GreaterIterator::GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs)
+  : _tod(*TermOrderingDiagram::createForSingleComparison(ord, lhs, rhs))
+{
+  _path.push(&_tod._source);
+}
+
+bool TermOrderingDiagram::GreaterIterator::hasNext()
+{
+  while (_path.isNonEmpty()) {
+    auto& curr = _path.top();
+
+    _tod._prev = (_path.size()==1) ? nullptr : _path[_path.size()-2];
+    _tod._curr = curr;
+    _tod.processCurrentNode();
+
+    auto node = _tod._curr->node();
+    ASS(node->ready);
+
+    if (node->tag != Node::T_DATA) {
+      // do down
+      _path.push(&node->getBranch(Ordering::GREATER));
+      continue;
+    }
+
+    // push next first
+    while (_path.isNonEmpty()) {
+      _path.pop();
+      if (_path.isEmpty()) {
+        break;
+      }
+
+      auto prev = _path.top()->node();
+      ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
+      if (_tod._curr == &prev->getBranch(Ordering::GREATER)) {
+        _path.push(&prev->getBranch(Ordering::EQUAL));
+        break;
+      } else if (_tod._curr == &prev->getBranch(Ordering::EQUAL)) {
+        _path.push(&prev->getBranch(Ordering::LESS));
+        break;
+      }
+    }
+    // ASS(_tod._threeValued);
+    if (node->data && *static_cast<Result*>(node->data) == Ordering::GREATER) {
+      ASS(node->trace);
+      _res = node->trace;
       return true;
     }
   }

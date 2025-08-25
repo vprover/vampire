@@ -83,7 +83,7 @@ public:
     insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), std::move(lits), splits));
   }
 
-private:
+// private:
 #if VDEBUG
   Clause* _cl;
 #endif
@@ -395,6 +395,78 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
   }
 
   return true;
+}
+
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition2(
+  Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, TermList rwTermS, TermList tgtTermS) const
+{
+  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
+  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
+
+  if (eqClDataPtr && ((*eqClDataPtr)->_varSorts.isEmpty() || (*eqClDataPtr)->isEmpty())) {
+    eqClDataPtr = nullptr;
+  }
+  if (rwClDataPtr && ((*rwClDataPtr)->_varSorts.isEmpty() || (*rwClDataPtr)->isEmpty())) {
+    rwClDataPtr = nullptr;
+  }
+  if (!eqClDataPtr && !rwClDataPtr) {
+    return true;
+  }
+  TermStack eqTs;
+  if (eqClDataPtr) {
+    eqTs = (*eqClDataPtr)->getInstances([&](unsigned v) { return subs->applyTo(TermList::var(v),eqIsResult); });
+  }
+  TermStack rwTs;
+  if (rwClDataPtr) {
+    rwTs = (*rwClDataPtr)->getInstances([&](unsigned v) { return subs->applyTo(TermList::var(v),!eqIsResult); });
+  }
+
+  static ConstraintIndex::SubstMatcher matcher;
+  static struct Applicator : public SubstApplicator {
+    TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
+  } applicator;
+
+  auto checkFn = [](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
+  {
+    if (!index) {
+      return false;
+    }
+    matcher.init(*index, ts);
+    EntryContainer* ec;
+    while ((ec = matcher.next()))
+    {
+      ASS(ec->tod);
+      if (ec->tod->check(&applicator, tpo)) {
+        matcher.reset();
+        // success
+        return true;
+      }
+    }
+    matcher.reset();
+    // failure
+    return false;
+  };
+
+
+  TermOrderingDiagram::GreaterIterator git(*_ord, rwTermS, tgtTermS);
+
+  while (git.hasNext()) {
+    auto tpo = git.next();
+
+    // if success, continue
+    if (checkFn(eqClDataPtr, eqTs, tpo)) {
+      continue;
+    }
+    if (checkFn(rwClDataPtr, rwTs, tpo)) {
+      continue;
+    }
+    // if failure, return
+    return true;
+  }
+
+  env.statistics->skippedSuperposition++;
+  return false;
 }
 
 bool checkOrConstrainGreater(Ordering::Result value, TermList lhs, TermList rhs, OrderingConstraints& cons)

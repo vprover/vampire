@@ -40,6 +40,10 @@ bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIter
     return false;
   }
 
+  // TODO get inference that produced clause before simplifications
+
+  // TODO check that premise did not participate in any simplifications
+
   auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(cl);
   UnitIterator it = cl->getParents();
   ALWAYS(it.hasNext());
@@ -69,7 +73,15 @@ bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIter
   env.statistics->inductionApplication++;
 
   const auto& parRedHandler = _salg->parRedHandler();
-  if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, true, rsubst.ptr())) {
+  // if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, true, rsubst.ptr())) {
+  //   // TODO
+  //   // premises = pvi( getSingletonIterator(clauseFromHandler));
+  //   premises = ClauseIterator::getEmpty();
+  //   env.statistics->inductionApplicationInProof++;
+  //   return true;
+  // }
+
+  if (!parRedHandler.checkSuperposition2(eqClause, rwClause, true, rsubst.ptr(), rwTermS, tgtTermS)) {
     // TODO
     // premises = pvi( getSingletonIterator(clauseFromHandler));
     premises = ClauseIterator::getEmpty();

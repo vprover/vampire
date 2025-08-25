@@ -154,7 +154,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 #if VDEBUG
         POStruct dpo_struct(tpo);
         TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct> dtr(
-          TermOrderingDiagram::createForSingleComparison(ordering, trm, rhsApplied.apply()), nullptr, dpo_struct
+          TermOrderingDiagram::createForSingleComparison(ordering, trm, rhsApplied.apply(), /*ground*/true), nullptr, dpo_struct
         );
         TermOrderingDiagram::Branch* b;
         bool success = false;

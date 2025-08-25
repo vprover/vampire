@@ -50,7 +50,7 @@ struct POStruct {
 struct TermOrderingDiagram
 {
 public:
-  static TermOrderingDiagram* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs);
+  static TermOrderingDiagram* createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs, bool ground = false);
   static bool extendVarsGreater(TermOrderingDiagram* tod, const SubstApplicator* appl, POStruct& po_struct);
 
   TermOrderingDiagram(const Ordering& ord, bool ground);
@@ -64,12 +64,16 @@ public:
    *  constraints, or in null when no further such data can be retrieved. */
   void* next();
 
+  bool check(const SubstApplicator* appl, const TermPartialOrdering* tpo);
+
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
 
   friend std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram& tod);
 
 private:
+  Result positivityCheck() const;
+
   /** Processes current node until it is either (i) a term or poly node whose result
    *  cannot be inferred from earlier comparisons, or (ii) a data node.
    *  We maintain the invariant that the subgraph containing only processed nodes
@@ -258,6 +262,37 @@ public:
   private:
     bool termNode;
     Traversal<NodeIterator,POStruct> traversal;
+  };
+
+  struct TermNodeIterator {
+    TermNodeIterator(const Ordering& ord, const SubstApplicator* appl,
+      TermList lhs, TermList rhs, const TermPartialOrdering* tpo);
+
+    Result get();
+
+    const Ordering& _ord;
+    TermOrderingDiagram* _tod;
+    const TermPartialOrdering* _tpo;
+  };
+
+  struct PolyNodeIterator {
+    PolyNodeIterator(const Polynomial* poly, const TermPartialOrdering* tpo);
+
+    Result get();
+
+    const Polynomial* _poly;
+    const TermPartialOrdering* _tpo;
+  };
+
+  struct GreaterIterator {
+    GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs);
+
+    bool hasNext();
+    const TermPartialOrdering* next() { return _res; }
+
+    TermOrderingDiagram& _tod;
+    const TermPartialOrdering* _res;
+    Stack<Branch*> _path;
   };
 };
 
