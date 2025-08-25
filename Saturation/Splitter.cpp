@@ -110,7 +110,6 @@ void SplittingBranchSelector::init()
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
   }
 
-  auto satSolver = _parent.getOptions().satSolver();
   ::new(&_solver) ProofProducingSATSolver(inner);
 }
 

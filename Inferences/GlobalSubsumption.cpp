@@ -47,9 +47,9 @@ using namespace Indexing;
 using namespace Saturation;
 
 GlobalSubsumption::GlobalSubsumption(const Options& opts) :
-  _randomizeMinim(opts.randomTraversals()),
   _solver(new ProofProducingSATSolver(new MinisatInterfacing)),
-  _grounder(new GlobalSubsumptionGrounder(*_solver))
+  _grounder(new GlobalSubsumptionGrounder(*_solver)),
+  _randomizeMinim(opts.randomTraversals())
 {}
 
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
