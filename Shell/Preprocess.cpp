@@ -160,14 +160,6 @@ void Preprocess::preprocess(Problem& prb)
 
 
   if (prb.hasFOOL() || prb.isHigherOrder()) {
-    // This is the point to extend the signature with $$true and $$false
-    // If we don't have fool then these constants get in the way (a lot)
-
-    // TODO maybe this does not go here but NewCNF requires it in some cases
-    // Could this go after preprocessing, potentially saving us from
-    // adding these axioms unnecessarily?
-    // TheoryAxioms(prb).applyFOOL();
-
     if (!_options.newCNF() || prb.isHigherOrder()) {
       if (env.options->showPreprocessing())
         std::cout << "FOOL elimination" << std::endl;

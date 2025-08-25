@@ -952,7 +952,7 @@ void NewCNF::ensureHavingVarSorts()
 TermList NewCNF::getVarSort(unsigned var) const
 {
   ASS(_collectedVarSorts);
-  auto sort = _varSorts.get(var);
+  auto sort = _varSorts.get(var, AtomicSort::defaultSort());
   return SubstHelper::apply(sort, _skolemTypeVarSubst);
 }
 
@@ -981,7 +981,6 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 
   auto taArity = typeVars->size();
 
-  // TODO maybe this should be avoided for type cons
   auto args = *typeVars;
   args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
 
