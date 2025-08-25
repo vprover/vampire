@@ -490,10 +490,11 @@ Formula* BoolTermFormula::create(TermList ts)
     unsigned functor = term->functor();
     if (env.signature->isFoolConstantSymbol(true, functor)) {
       return new Formula(true);
-    } else {
-      ASS(env.signature->isFoolConstantSymbol(false, functor));
+    }
+    if (env.signature->isFoolConstantSymbol(false, functor)) {
       return new Formula(false);
     }
+    return new BoolTermFormula(ts);
   }
 }
 

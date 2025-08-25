@@ -559,7 +559,10 @@ private:
   bool _collectedVarSorts;
   unsigned _maxVar;
 
+  Substitution _skolemTypeVarSubst;
+
   void ensureHavingVarSorts();
+  TermList getVarSort(unsigned var) const;
 
   Term* createSkolemTerm(unsigned var, VarSet* free);
 
