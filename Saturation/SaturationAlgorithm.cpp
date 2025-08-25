@@ -93,6 +93,7 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
+#include "Inferences/PartialRedundancyLazy.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1618,6 +1619,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   res->setImmediateSimplificationEngine(ise);
   res->setImmediateSimplificationEngineMany(std::move(iseMany));
+
+  res->addExpensiveForwardSimplifierToFront(new PartialRedundancyLazy());
 
   // create simplification engine
 

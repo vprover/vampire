@@ -295,6 +295,8 @@ set(SOURCES
     Inferences/LfpRule.hpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp
+    Inferences/PartialRedundancyLazy.cpp
+    Inferences/PartialRedundancyLazy.hpp
     Inferences/PolynomialEvaluation.cpp
     Inferences/PolynomialEvaluation.hpp
     Inferences/ProofExtra.cpp

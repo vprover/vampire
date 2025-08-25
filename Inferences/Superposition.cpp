@@ -349,12 +349,12 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  const auto& parRedHandler = _salg->parRedHandler();
-  if (!unifier->usesUwa()) {
-    if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
-      return 0;
-    }
-  }
+  // const auto& parRedHandler = _salg->parRedHandler();
+  // if (!unifier->usesUwa()) {
+  //   if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+  //     return 0;
+  //   }
+  // }
 
   const Ordering& ordering = _salg->getOrdering();
 
@@ -394,10 +394,10 @@ Clause* Superposition::performSuperposition(
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
     // Save this superposition conclusion despite immediately being removed.
-    if (!unifier->usesUwa()) {
-      parRedHandler.insertSuperposition(
-        eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
-    }
+    // if (!unifier->usesUwa()) {
+    //   parRedHandler.insertSuperposition(
+    //     eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+    // }
     return 0;
   }
 
@@ -490,10 +490,10 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if (!unifier->usesUwa()) {
-    parRedHandler.insertSuperposition(
-      eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
-  }
+  // if (!unifier->usesUwa()) {
+  //   parRedHandler.insertSuperposition(
+  //     eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+  // }
 
   res->loadFromIterator(unifier->computeConstraintLiterals()->iter());
 
