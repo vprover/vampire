@@ -157,7 +157,6 @@ private:
     Clause* component;
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
-    Stack<PartialRedundancyEntry*> partialRedundancyEntries;
     bool active;
 
     // marks a component as insisting on being inserted into FO; i.e. it's only kept out if the sat solver says FALSE (regardless of eagerRemovals etc.)
@@ -178,7 +177,6 @@ public:
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
-  void addPartialRedundancyEntry(SplitSet* splits, PartialRedundancyEntry* e);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);

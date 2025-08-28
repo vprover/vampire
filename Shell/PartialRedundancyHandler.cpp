@@ -10,10 +10,9 @@
 
 #include "PartialRedundancyHandler.hpp"
 
-#include "Lib/SharedSet.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 
@@ -67,20 +66,19 @@ public:
     }
   }
 
-  bool check(const Ordering* ord, ResultSubstitution* subst, bool result, LiteralSet& lits, const SplitSet* splits)
+  bool check(const Ordering* ord, ResultSubstitution* subst, bool result)
   {
     if (_varSorts.isEmpty()) {
       return true;
     }
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    return !check(ts, ord, lits, splits);
+    return !check(ts, ord);
   }
 
-  void insert(const Ordering* ord, ResultSubstitution* subst, bool result, Splitter* splitter,
-    OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits)
+  void insert(const Ordering* ord, ResultSubstitution* subst, bool result, OrderingConstraints&& ordCons, ClauseStack&& cls)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), std::move(lits), splits));
+    insert(ord, ts, createEntry(ts, std::move(ordCons), std::move(cls)));
   }
 
 // private:
@@ -130,7 +128,7 @@ public:
     incorporate(code);
   }
 
-  bool check(const TermStack& ts, const Ordering* ord, const LiteralSet& lits, const SplitSet* splits)
+  bool check(const TermStack& ts, const Ordering* ord)
   {
     if (isEmpty()) {
       return false;
@@ -149,22 +147,6 @@ public:
       ec->tod->init(&applicator);
       PartialRedundancyEntry* e;
       while ((e = static_cast<PartialRedundancyEntry*>(ec->tod->next()))) {
-        if (!e->active) {
-          continue;
-        }
-
-        // check AVATAR constraints
-        if (!e->splits->isSubsetOf(splits)) {
-          continue;
-        }
-
-        // check literal conditions
-        auto subsetof = e->lits.iter().all([&lits,&applicator](Literal* lit) {
-          return lits.contains(SubstHelper::apply(lit,applicator));
-        });
-        if (!subsetof) {
-          continue;
-        }
 
         // // check ordering constraints
         // auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
@@ -179,12 +161,6 @@ public:
         // collect statistics
         if (e->ordCons.isNonEmpty()) {
           env.statistics->skippedInferencesDueToOrderingConstraints++;
-        }
-        if (e->lits.size()>0) {
-          env.statistics->skippedInferencesDueToLiteralConstraints++;
-        }
-        if (!e->splits->isEmpty()) {
-          env.statistics->skippedInferencesDueToAvatarConstraints++;
         }
         matcher.reset();
         return true;
@@ -208,11 +184,11 @@ public:
 
   DHMap<unsigned,TermList> _varSorts;
 
-  PartialRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits) const
+  PartialRedundancyEntry* createEntry(const TermStack& ts, OrderingConstraints&& ordCons, ClauseStack&& cls) const
   {
     auto e = new PartialRedundancyEntry();
     Renaming r;
-    if (ordCons.isNonEmpty() || lits.size()>0) {
+    if (ordCons.isNonEmpty()) {
       // normalize constraints, the same way as
       // terms from ts are normalized upon insertion
       for (const auto t : ts) {
@@ -228,23 +204,7 @@ public:
       ordCon.rhs = r.apply(ordCon.rhs);
     }
     e->ordCons = std::move(ordCons);
-
-#if VDEBUG
-    lits.iter().forEach([&ts](Literal* lit) {
-      ASS(checkVars(ts,lit));
-    });
-#endif
-
-    e->lits.insertFromIterator(lits.iter().map([&r](Literal* lit) {
-      return r.apply(lit);
-    }));
-
-    ASS(splits);
-    e->splits = splits;
-
-    if (!splits->isEmpty()) {
-      splitter->addPartialRedundancyEntry(splits, e);
-    }
+    e->cls = std::move(cls);
 
     return e;
   }
@@ -301,7 +261,7 @@ public:
       auto es = op->getSuccessResult<EntryContainer>();
       iterTraits(decltype(es->entries)::Iterator(es->entries))
         .forEach([](auto e) {
-          e->release();
+          delete e;
         });
       delete es;
     }
@@ -309,39 +269,6 @@ public:
 };
 
 // PartialRedundancyHandler
-
-PartialRedundancyHandler* PartialRedundancyHandler::create(const Options& opts, const Ordering* ord, Splitter* splitter)
-{
-  if (!opts.partialRedundancyCheck()) {
-    return new PartialRedundancyHandlerImpl</*enabled*/false,false,false,false>(opts,ord,splitter);
-  }
-  auto ordC = opts.partialRedundancyOrderingConstraints();
-  // check for av=on here as otherwise we would have to null-check splits inside the handler
-  auto avatarC = opts.splitting() && opts.partialRedundancyAvatarConstraints();
-  auto litC = opts.partialRedundancyLiteralConstraints();
-  if (ordC) {
-    if (avatarC) {
-      if (litC) {
-        return new PartialRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
-      }
-      return new PartialRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
-    }
-    if (litC) {
-      return new PartialRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
-    }
-    return new PartialRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
-  }
-  if (avatarC) {
-    if (litC) {
-      return new PartialRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/true>(opts,ord,splitter);
-    }
-    return new PartialRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/false>(opts,ord,splitter);
-  }
-  if (litC) {
-    return new PartialRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/true>(opts,ord,splitter);
-  }
-  return new PartialRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/false>(opts,ord,splitter);
-}
 
 void PartialRedundancyHandler::destroyClauseData(Clause* cl)
 {
@@ -365,41 +292,9 @@ PartialRedundancyHandler::ConstraintIndex** PartialRedundancyHandler::getDataPtr
 
 DHMap<Clause*,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
 
-// PartialRedundancyHandlerImpl
-
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
-  Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
-  bool eqIsResult, ResultSubstitution* subs) const
-{
-  if constexpr (!enabled) {
-    return true;
-  }
-
-  auto rwLits = getRemainingLiterals(rwClause, rwLit, subs, !eqIsResult);
-  auto rwSplits = getRemainingSplits(rwClause, eqClause);
-
-  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
-  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, rwLits, rwSplits)) {
-    env.statistics->skippedSuperposition++;
-    return false;
-  }
-
-  auto eqLits = getRemainingLiterals(eqClause, eqLit, subs, eqIsResult);
-  auto eqSplits = getRemainingSplits(eqClause, rwClause);
-
-  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
-  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, eqLits, eqSplits)) {
-    env.statistics->skippedSuperposition++;
-    return false;
-  }
-
-  return true;
-}
-
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition2(
-  Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, TermList rwTermS, TermList tgtTermS) const
+bool PartialRedundancyHandler::checkSuperposition(
+  Clause* eqClause, Clause* rwClause, ResultSubstitution* subs,
+  Literal* rwLitS, TermList rwTermS, TermList tgtTermS, Clause* resClause, DHSet<Clause*>& premiseSet) const
 {
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
@@ -415,11 +310,11 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
   }
   TermStack eqTs;
   if (eqClDataPtr) {
-    eqTs = (*eqClDataPtr)->getInstances([&](unsigned v) { return subs->applyTo(TermList::var(v),eqIsResult); });
+    eqTs = (*eqClDataPtr)->getInstances([&](unsigned v) { return subs->applyTo(TermList::var(v),true); });
   }
   TermStack rwTs;
   if (rwClDataPtr) {
-    rwTs = (*rwClDataPtr)->getInstances([&](unsigned v) { return subs->applyTo(TermList::var(v),!eqIsResult); });
+    rwTs = (*rwClDataPtr)->getInstances([&](unsigned v) { return subs->applyTo(TermList::var(v),false); });
   }
 
   static ConstraintIndex::SubstMatcher matcher;
@@ -427,7 +322,33 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
     TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
   } applicator;
 
-  auto checkFn = [](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
+  struct IdApplicator : SubstApplicator {
+    TermList operator()(unsigned v) const override { return TermList::var(v); }
+  } idApplicator;
+
+  auto afterCheck = [&](void* data) {
+    auto e = static_cast<PartialRedundancyEntry*>(data);
+    return !iterTraits(e->cls.iter()).any([&](Clause* cl) { return cl == resClause; });
+  };
+
+  Stack<pair<const TermPartialOrdering*, ClauseStack*>> trace;
+
+  TermOrderingDiagram* rwLitTod = nullptr;
+  if (_ord->getEqualityArgumentOrder(rwLitS)==Ordering::INCOMPARABLE) {
+    if (!rwLitS->termArg(0).containsSubterm(rwTermS)) {
+      ASS(rwLitS->termArg(1).containsSubterm(rwTermS));
+      rwLitTod = TermOrderingDiagram::createForSingleComparison(*_ord, rwLitS->termArg(0), rwLitS->termArg(1));
+    } else if (!rwLitS->termArg(1).containsSubterm(rwTermS)) {
+      ASS(rwLitS->termArg(0).containsSubterm(rwTermS));
+      rwLitTod = TermOrderingDiagram::createForSingleComparison(*_ord, rwLitS->termArg(1), rwLitS->termArg(0));
+    }
+  }
+
+  if (rwLitTod) {
+    env.statistics->intDBDownInduction++;
+  }
+
+  auto checkFn = [&](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
   {
     if (!index) {
       return false;
@@ -437,7 +358,10 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
     while ((ec = matcher.next()))
     {
       ASS(ec->tod);
-      if (ec->tod->check(&applicator, tpo)) {
+      void* data;
+      if ((data = ec->tod->check(&applicator, tpo, afterCheck))) {
+        auto e = static_cast<PartialRedundancyEntry*>(data);
+        trace.push({ tpo, &e->cls });
         matcher.reset();
         // success
         return true;
@@ -448,11 +372,19 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
     return false;
   };
 
-
   TermOrderingDiagram::GreaterIterator git(*_ord, rwTermS, tgtTermS);
+
+  // we don't want this to be empty
+#if VDEBUG
+  bool tpo_found = false;
+#endif
 
   while (git.hasNext()) {
     auto tpo = git.next();
+
+#if VDEBUG
+    tpo_found = true;
+#endif
 
     // if success, continue
     if (checkFn(eqClDataPtr, eqTs, tpo)) {
@@ -461,10 +393,28 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
     if (checkFn(rwClDataPtr, rwTs, tpo)) {
       continue;
     }
+    if (rwLitTod && rwLitTod->check(&idApplicator, tpo, [](void*){ return true; })) {
+      continue;
+    }
     // if failure, return
     return true;
   }
 
+  ASS(tpo_found);
+
+  // cout << "success for superposition" << endl;
+  // cout << "rwClause " << rwClause->toString() << endl;
+  // cout << "eqClause " << eqClause->toString() << endl;
+  // cout << "resClause " << resClause->toString() << endl;
+  for (const auto& [tpo, clsp] : trace) {
+    // cout << "for " << *tpo << endl;
+    for (const auto& cl : *clsp) {
+      ASS_NEQ(cl, resClause);
+      // cout << cl->toString() << endl;
+      premiseSet.insert(cl);
+    }
+  }
+  // cout << endl;
   env.statistics->skippedSuperposition++;
   return false;
 }
@@ -488,15 +438,10 @@ bool checkOrConstrainGreater(Ordering::Result value, TermList lhs, TermList rhs,
   return true;
 }
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
+void PartialRedundancyHandler::insertSuperposition(
   Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
-  Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const
+  Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, ResultSubstitution* subs, Clause* resClause) const
 {
-  if constexpr (!enabled) {
-    return;
-  }
-
   // create ordering constraints
   OrderingConstraints ordCons;
   // determine whether conclusion is smaller
@@ -507,39 +452,21 @@ void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposi
   if (!compareWithSuperpositionPremise(rwClause, rwLitS, rwTerm, rwTermS, tgtTermS, eqClause, eqLHS, ordCons)) {
     return;
   }
-  // don't insert if there are ordering constraints but they are disabled
-  if constexpr (!ordC) {
-    if (ordCons.isNonEmpty()) {
-      return;
-    }
-  }
 
-  auto lits = getRemainingLiterals(eqClause, eqLit, subs, eqIsResult);
-  auto splits = getRemainingSplits(eqClause, rwClause);
-
-  tryInsert(rwClause, subs, !eqIsResult, eqClause, std::move(ordCons), std::move(lits), splits);
+  tryInsert(rwClause, subs, false, eqClause, std::move(ordCons), resClause);
 }
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolution(
-  Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const
+bool PartialRedundancyHandler::handleResolution(
+  Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs, Clause* resClause) const
 {
-  if constexpr (!enabled) {
-    return true;
-  }
-
-  auto resultLits = getRemainingLiterals(resultCl, resultLit, subs, /*result*/true);
-  auto resultSplits = getRemainingSplits(resultCl, queryCl);
   auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/false);
-  if (dataPtr && !(*dataPtr)->check(_ord, subs, /*result*/false, resultLits, resultSplits)) {
+  if (dataPtr && !(*dataPtr)->check(_ord, subs, /*result*/false)) {
     env.statistics->skippedResolution++;
     return false;
   }
 
-  auto queryLits = getRemainingLiterals(queryCl, queryLit, subs, /*result*/false);
-  auto querySplits = getRemainingSplits(queryCl, resultCl);
   dataPtr = getDataPtr(resultCl, /*doAllocate=*/false);
-  if (dataPtr && !(*dataPtr)->check(_ord, subs, /*result*/true, queryLits, querySplits)) {
+  if (dataPtr && !(*dataPtr)->check(_ord, subs, /*result*/true)) {
     env.statistics->skippedResolution++;
     return false;
   }
@@ -547,10 +474,14 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolutio
   // Try insertion
   // Note that we're inserting into the data of one clause based on the *other* clause
   if (resultLit->isPositive()) {
-    tryInsert(queryCl, subs, /*result*/false, resultCl, OrderingConstraints(), std::move(resultLits), resultSplits);
+    if (resultCl->length()==1) {
+      tryInsert(queryCl, subs, /*result*/false, resultCl, OrderingConstraints(), resClause);
+    }
   } else {
     ASS(queryLit->isPositive());
-    tryInsert(resultCl, subs, /*result*/true, queryCl, OrderingConstraints(), std::move(queryLits), querySplits);
+    if (queryCl->length()==1) {
+      tryInsert(resultCl, subs, /*result*/true, queryCl, OrderingConstraints(), resClause);
+    }
   }
   return true;
 }
@@ -559,8 +490,7 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolutio
  * This function is similar to @b DemodulationHelper::isPremiseRedundant.
  * However, here we do not assume that the rewriting equation is unit, which necessitates some additional checks.
  */
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::compareWithSuperpositionPremise(
+bool PartialRedundancyHandler::compareWithSuperpositionPremise(
   Clause* rwCl, Literal* rwLitS, TermList rwTerm, TermList rwTermS, TermList tgtTermS, Clause* eqCl, TermList eqLHS, OrderingConstraints& cons) const
 {
   // if check is turned off, we always report redundant
@@ -620,57 +550,18 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::compareWithSupe
   // TODO perform ordering check for rest of rwCl
 }
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-LiteralSet PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingLiterals(
-  Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const
+void PartialRedundancyHandler::tryInsert(
+  Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons, Clause* res) const
 {
-  LiteralSet res;
-  if constexpr (litC) {
-    res.insertFromIterator(cl->iterLits().filter([lit](Literal* other) {
-      return other != lit && lit->containsAllVariablesOf(other);
-    }).map([subs,result](Literal* other) {
-      return subs->applyTo(other, result);
-    }));
-  }
-  return res;
-}
-
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-const SplitSet* PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::getRemainingSplits(Clause* cl, Clause* other) const
-{
-  if constexpr (!avatarC) {
-    return SplitSet::getEmpty();
-  }
-  return cl->splits()->subtract(other->splits());
-}
-
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::tryInsert(
-  Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits) const
-{
-  if constexpr (!enabled) {
+  if (cl->length()!=1) {
     return;
-  }
-
-  if (cl->numSelected()!=1 || cl->length()>lits.size()+1) {
-    return;
-  }
-  if constexpr (!avatarC) {
-    if (!cl->noSplits()) {
-      return;
-    }
   }
   auto dataPtr = getDataPtr(into, /*doAllocate=*/true);
-  (*dataPtr)->insert(_ord, subs, result, _splitter, std::move(ordCons), std::move(lits), splits);
+  (*dataPtr)->insert(_ord, subs, result, std::move(ordCons), { cl, res });
 }
 
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(Clause* cl) const
+void PartialRedundancyHandler::checkEquations(Clause* cl) const
 {
-  if (!enabled || !ordC) {
-    return;
-  }
-
   // TODO disable this when not needed or consider removing it
   cl->iterLits().forEach([cl,this](Literal* lit){
     if (!lit->isEquality() || lit->isNegative()) {
@@ -684,7 +575,7 @@ void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(
     }
     auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
     auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet(), SplitSet::getEmpty());
+    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, OrderingConstraints(), ClauseStack());
   });
 }
 

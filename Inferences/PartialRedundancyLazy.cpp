@@ -32,16 +32,25 @@ using namespace std;
 
 Clause* getGeneratedParent(Clause* cl)
 {
-  // cout << "starting with " << cl->toNiceString() << endl;
   while (isSimplifyingInferenceRule(cl->inference().rule())) {
-    // cout << "cl is " << cl->toNiceString() << endl;
-    if (cl->inference().rule() == InferenceRule::FORWARD_DEMODULATION) {
-      auto pit = cl->getParents();
-      ALWAYS(pit.hasNext());
-      cl = static_cast<Clause*>(pit.next());
+    switch (cl->inference().rule()) {
+      case InferenceRule::FORWARD_DEMODULATION:
+      case InferenceRule::SUBSUMPTION_RESOLUTION:
+      case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL: {
+        auto pit = cl->getParents();
+        ALWAYS(pit.hasNext());
+        cl = static_cast<Clause*>(pit.next());
+        break;
+      }
+      default: {
+        static DHSet<InferenceRule> nothandled;
+        if (nothandled.insert(cl->inference().rule())) {
+          cout << ruleName(cl->inference().rule()) << " not handled" << endl;
+        }
+        return cl;
+      }
     }
   }
-  // cout << "returning" << endl;
   return cl;
 }
 
@@ -56,8 +65,6 @@ bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIter
     env.statistics->intFinInduction++;
     return false;
   }
-
-  // TODO get inference that produced clause before simplifications
 
   // TODO check that premise did not participate in any simplifications
 
@@ -90,25 +97,16 @@ bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIter
   env.statistics->inductionApplication++;
 
   const auto& parRedHandler = _salg->parRedHandler();
-  // if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, true, rsubst.ptr())) {
-  //   // TODO
-  //   // premises = pvi( getSingletonIterator(clauseFromHandler));
-  //   premises = ClauseIterator::getEmpty();
-  //   env.statistics->inductionApplicationInProof++;
-  //   return true;
-  // }
+  DHSet<Clause*> premiseSet;
 
-  if (!parRedHandler.checkSuperposition2(eqClause, rwClause, true, rsubst.ptr(), rwTermS, tgtTermS)) {
-    // TODO
-    // premises = pvi( getSingletonIterator(clauseFromHandler));
-    premises = ClauseIterator::getEmpty();
+  if (!parRedHandler.checkSuperposition(eqClause, rwClause, rsubst.ptr(), rwLitS, rwTermS, tgtTermS, gcl, premiseSet)) {
+    premises = pvi(getPersistentIterator(premiseSet.iterator()));
     replacement = nullptr;
-    env.statistics->inductionApplicationInProof++;
     return true;
   }
 
   parRedHandler.insertSuperposition(
-    eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, true, rsubst.ptr());
+    eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, rsubst.ptr(), gcl);
 
   return false;
 }

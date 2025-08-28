@@ -64,7 +64,7 @@ public:
    *  constraints, or in null when no further such data can be retrieved. */
   void* next();
 
-  bool check(const SubstApplicator* appl, const TermPartialOrdering* tpo);
+  void* check(const SubstApplicator* appl, const TermPartialOrdering* tpo, const std::function<bool(void*)>& afterCheck);
 
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);

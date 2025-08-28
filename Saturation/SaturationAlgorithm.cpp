@@ -17,6 +17,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -1144,7 +1145,9 @@ void SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
-  _partialRedundancyHandler->checkEquations(cl);
+  if (_opt.partialRedundancyCheck()) {
+    _partialRedundancyHandler->checkEquations(cl);
+  }
 
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
@@ -1620,7 +1623,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->setImmediateSimplificationEngine(ise);
   res->setImmediateSimplificationEngineMany(std::move(iseMany));
 
-  res->addExpensiveForwardSimplifierToFront(new PartialRedundancyLazy());
+  if (opt.partialRedundancyCheck()) {
+    // res->addForwardSimplifierToFront(new PartialRedundancyLazy());
+    res->addExpensiveForwardSimplifierToFront(new PartialRedundancyLazy());
+  }
 
   // create simplification engine
 
@@ -1709,7 +1715,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl = new SymElOutput();
   }
 
-  res->_partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, &ordering, res->_splitter));
+  if (opt.partialRedundancyCheck()) {
+    res->_partialRedundancyHandler.reset(new PartialRedundancyHandler(opt, &ordering));
+  }
 
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);

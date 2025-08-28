@@ -146,7 +146,7 @@ loop_end:
   return nullptr;
 }
 
-bool TermOrderingDiagram::check(const SubstApplicator* appl, const TermPartialOrdering* tpo)
+void* TermOrderingDiagram::check(const SubstApplicator* appl, const TermPartialOrdering* tpo, const std::function<bool(void*)>& afterCheck)
 {
   // ASS_NEQ(tpo, TermPartialOrdering::getEmpty(_ord));
   init(appl);
@@ -161,9 +161,9 @@ bool TermOrderingDiagram::check(const SubstApplicator* appl, const TermPartialOr
     ASS(node->ready);
 
     if (node->tag == Node::T_DATA) {
-      if (!node->data) {
+      if (!node->data || !afterCheck(node->data)) {
         if (btStack.isEmpty()) {
-          return false;
+          return nullptr;
         }
         // backtrack
         _prev = btStack.pop();
@@ -223,7 +223,7 @@ bool TermOrderingDiagram::check(const SubstApplicator* appl, const TermPartialOr
     _prev = _curr;
     _curr = &node->getBranch(res);
   }
-  return false;
+  return nullptr;
 }
 
 void TermOrderingDiagram::insert(const Stack<TermOrderingConstraint>& comps, void* data)

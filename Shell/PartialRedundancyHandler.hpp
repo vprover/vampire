@@ -43,11 +43,9 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Ordering.hpp"
+#include "Kernel/TermPartialOrdering.hpp"
 
 #include "Lib/Stack.hpp"
-#include "Lib/SharedSet.hpp"
-
-#include "Saturation/Splitter.hpp"
 
 #include "Options.hpp"
 
@@ -56,33 +54,11 @@ namespace Shell {
 using namespace Lib;
 using namespace Indexing;
 
-using LiteralSet = Set<Literal*,SharedTermHash>;
-
 using OrderingConstraints = Stack<TermOrderingConstraint>;
 
 struct PartialRedundancyEntry {
   OrderingConstraints ordCons;
-  LiteralSet lits;
-  SplitSet* splits;
-  bool active = true;
-  unsigned refcnt = 1;
-
-  void deactivate() {
-    ASS(!splits->isEmpty());
-    active = false;
-  }
-
-  void obtain() {
-    refcnt++;
-  }
-
-  void release() {
-    ASS(refcnt);
-    refcnt--;
-    if (!refcnt) {
-      delete this;
-    }
-  }
+  ClauseStack cls;
 };
 
 struct EntryContainer {
@@ -93,77 +69,44 @@ struct EntryContainer {
 class PartialRedundancyHandler
 {
 public:
-  static PartialRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
+  PartialRedundancyHandler(const Options& opts, const Ordering* ord)
+    : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
+      _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
+      _ord(ord) {}
+
+  /** Returns false if superposition should be skipped. */
+  bool checkSuperposition(
+    Clause* eqClause, Clause* rwClause, ResultSubstitution* subs,
+    Literal* rwLitS, TermList rwTermS, TermList tgtTermS, Clause* resClause, DHSet<Clause*>& premiseSet) const;
+
+  void insertSuperposition(
+    Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
+    Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, ResultSubstitution* subs, Clause* resClause) const;
+
+  /** Returns false if resolution should be skipped. */
+  bool handleResolution(
+    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs, Clause* resClause) const;
+
+  void checkEquations(Clause* cl) const;
+
   static void destroyClauseData(Clause* cl);
 
-  virtual ~PartialRedundancyHandler() = default;
+private:
+  bool compareWithSuperpositionPremise(
+    Clause* rwCl, Literal* rwLitS, TermList rwTerm, TermList rwTermS, TermList tgtTermS, Clause* eqCl, TermList eqLHS, OrderingConstraints& cons) const;
 
-  virtual bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
+  void tryInsert(Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons, Clause* res) const;
 
-  virtual bool checkSuperposition2(
-    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, TermList rwTermS, TermList tgtTermS) const = 0;
-
-  virtual void insertSuperposition(
-    Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
-    Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
-
-  virtual bool handleResolution(
-    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const = 0;
-
-  virtual void checkEquations(Clause* cl) const = 0;
-
-protected:
   class ConstraintIndex;
 
   static ConstraintIndex** getDataPtr(Clause* cl, bool doAllocate);
 
   // this contains the redundancy information associated with each clause
   static DHMap<Clause*,ConstraintIndex*> clauseData;
-};
-
-template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>
-class PartialRedundancyHandlerImpl
-  : public PartialRedundancyHandler
-{
-public:
-  PartialRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
-    : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
-      _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
-      _ord(ord), _splitter(splitter) {}
-
-  /** Returns false if superposition should be skipped. */
-  bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
-
-  /** Returns false if superposition should be skipped. */
-  bool checkSuperposition2(
-    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs, TermList rwTermS, TermList tgtTermS) const override;
-
-  void insertSuperposition(
-    Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
-    Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const override;
-
-  /** Returns false if resolution should be skipped. */
-  bool handleResolution(
-    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const override;
-
-  void checkEquations(Clause* cl) const override;
-
-private:
-  bool compareWithSuperpositionPremise(
-    Clause* rwCl, Literal* rwLitS, TermList rwTerm, TermList rwTermS, TermList tgtTermS, Clause* eqCl, TermList eqLHS, OrderingConstraints& cons) const;
-
-  LiteralSet getRemainingLiterals(Clause* cl, Literal* lit, ResultSubstitution* subs, bool result) const;
-
-  const SplitSet* getRemainingSplits(Clause* cl, Clause* other) const;
-  void tryInsert(Clause* into, ResultSubstitution* subs, bool result, Clause* cl, OrderingConstraints&& ordCons,
-    LiteralSet&& lits, SplitSet* splits) const;
 
   bool _redundancyCheck;
   bool _encompassing;
   const Ordering* _ord;
-  Splitter* _splitter;
 };
 
 };

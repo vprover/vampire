@@ -79,8 +79,7 @@ void BinaryResolution::detach()
 template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
           ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
-          PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls,
-          PartialRedundancyHandler const* parRedHandler)
+          PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   DEBUG_RESOLUTION(0, "lhs: ", *queryLit, " (clause: ", queryCl->number(), ")")
   DEBUG_RESOLUTION(0, "rhs: ", *resultLit, " (clause: ", resultCl->number(), ")")
@@ -212,12 +211,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (nConstraints == 0 && parRedHandler) {
-    if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
-      return 0;
-    }
-  }
-
   if(nConstraints != 0){
     env.statistics->cResolution++;
   }
@@ -258,7 +251,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
   return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs,
       [&](){ return uwa.computeConstraintLiterals(); },
       opts, doAfterCheck, salg->getPassiveClauseContainer(),
-      &salg->getOrdering(), &salg->getLiteralSelector(), &salg->parRedHandler());
+      &salg->getOrdering(), &salg->getLiteralSelector());
 }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)

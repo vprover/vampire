@@ -2090,9 +2090,6 @@ public:
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
   bool partialRedundancyCheck() const { return _partialRedundancyCheck.actualValue; }
-  bool partialRedundancyOrderingConstraints() const { return _partialRedundancyOrderingConstraints.actualValue; }
-  bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
-  bool partialRedundancyLiteralConstraints() const { return _partialRedundancyLiteralConstraints.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -2489,9 +2486,6 @@ private:
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
   BoolOptionValue _partialRedundancyCheck;
-  BoolOptionValue _partialRedundancyOrderingConstraints;
-  BoolOptionValue _partialRedundancyAvatarConstraints;
-  BoolOptionValue _partialRedundancyLiteralConstraints;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;

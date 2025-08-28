@@ -1363,16 +1363,6 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
 }
 
-void Splitter::addPartialRedundancyEntry(SplitSet* splits, PartialRedundancyEntry* e)
-{
-  auto sit = splits->iter();
-  while (sit.hasNext()) {
-    SplitLevel slev=sit.next();
-    e->obtain();
-    _db[slev]->partialRedundancyEntries.push(e);
-  }
-}
-
 bool Splitter::allSplitLevelsActive(SplitSet* s)
 {
   auto sit = s->iter();
@@ -1593,12 +1583,6 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       sr->children.reset();
-    }
-
-    while (sr->partialRedundancyEntries.isNonEmpty()) {
-      auto pre = sr->partialRedundancyEntries.pop();
-      pre->deactivate();
-      pre->release();
     }
   }
 

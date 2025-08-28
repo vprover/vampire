@@ -1899,28 +1899,6 @@ void Options::init()
                                                                           _unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)))));
     _partialRedundancyCheck.tag(OptionTag::INFERENCES);
 
-    _partialRedundancyOrderingConstraints = BoolOptionValue("partial_redundancy_ordering_constraints","proc",false);
-    _partialRedundancyOrderingConstraints.description=
-      "Strengthen partial redundancy with ordering constraints.";
-    _lookup.insert(&_partialRedundancyOrderingConstraints);
-    _partialRedundancyOrderingConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
-    _partialRedundancyOrderingConstraints.tag(OptionTag::INFERENCES);
-
-    _partialRedundancyAvatarConstraints = BoolOptionValue("partial_redundancy_avatar_constraints","prac",false);
-    _partialRedundancyAvatarConstraints.description=
-      "Strengthen partial redundancy with AVATAR constraints.";
-    _lookup.insert(&_partialRedundancyAvatarConstraints);
-    _partialRedundancyAvatarConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
-    _partialRedundancyAvatarConstraints.onlyUsefulWith(_splitting.is(equal(true)));
-    _partialRedundancyAvatarConstraints.tag(OptionTag::INFERENCES);
-
-    _partialRedundancyLiteralConstraints = BoolOptionValue("partial_redundancy_literal_constraints","prlc",false);
-    _partialRedundancyLiteralConstraints.description=
-      "Strengthen partial redundancy with literals from clauses.";
-    _lookup.insert(&_partialRedundancyLiteralConstraints);
-    _partialRedundancyLiteralConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
-    _partialRedundancyLiteralConstraints.tag(OptionTag::INFERENCES);
-
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)."
