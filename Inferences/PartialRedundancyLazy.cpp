@@ -82,7 +82,7 @@ bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIter
   ALWAYS(subst.unify(rwTerm, 0, eqLHS, 1));
 
   auto rwTermS = subst.apply(rwTerm, 0);
-  auto tgtTermS = subst.apply(tgtTerm, 0);
+  auto tgtTermS = subst.apply(tgtTerm, 1);
   auto rwLitS = subst.apply(rwLit, 0);
   auto comp = ordering.compare(tgtTermS,rwTermS);
 
