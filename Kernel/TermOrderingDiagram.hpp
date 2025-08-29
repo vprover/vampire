@@ -269,13 +269,14 @@ public:
   };
 
   struct AppliedNodeIterator2 {
-    AppliedNodeIterator2(const TermOrderingDiagram* tod, const TermPartialOrdering* tpo);
-    bool next(Result& res, const TermPartialOrdering* tpo);
+    AppliedNodeIterator2(const TermOrderingDiagram* tod, const TermPartialOrdering* tpo)
+      : _tod(tod), _tpo(tpo) {}
+    bool next(Result& res, const TermPartialOrdering*);
 
-  private:
     const TermOrderingDiagram* _tod;
     const TermPartialOrdering* _tpo;
-    unsigned _cnt = 0;
+    bool _1stReturned = false;
+    bool _2ndReturned = false;
   };
 
   struct GreaterIterator {

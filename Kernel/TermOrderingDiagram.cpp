@@ -855,26 +855,21 @@ bool TermOrderingDiagram::AppliedNodeIterator::next(Result& res, POStruct& pos)
   return false;
 }
 
-TermOrderingDiagram::AppliedNodeIterator2::AppliedNodeIterator2(const TermOrderingDiagram* tod, const TermPartialOrdering* tpo)
-  : _tod(tod), _tpo(tpo) {}
-
-bool TermOrderingDiagram::AppliedNodeIterator2::next(Result& res, const TermPartialOrdering* tpo)
+bool TermOrderingDiagram::AppliedNodeIterator2::next(Result& res, const TermPartialOrdering*)
 {
-  _cnt++;
-  if (_cnt == 2) {
-    res = Ordering::INCOMPARABLE;
+  if (!_1stReturned) {
+    ASS(!_2ndReturned);
+    res = (_tod->_curr->node()->tag == Node::T_TERM) ? _tod->termComparison(_tpo) : _tod->positivityCheck(_tpo);
+    _1stReturned = true;
+    _2ndReturned = (res == Ordering::INCOMPARABLE);
     return true;
   }
-  if (_cnt > 2) {
-    return false;
+  if (!_2ndReturned) {
+    res = Ordering::INCOMPARABLE;
+    _2ndReturned = true;
+    return true;
   }
-
-  auto node = _tod->_curr->node();
-  res = (node->tag == Node::T_TERM) ? _tod->termComparison(_tpo) : _tod->positivityCheck(_tpo);
-  if (res == Ordering::INCOMPARABLE) {
-    _cnt++;
-  }
-  return true;
+  return false;
 }
 
 TermOrderingDiagram::GreaterIterator::GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs)
