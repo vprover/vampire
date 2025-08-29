@@ -98,48 +98,8 @@ void* TermOrderingDiagram::next()
       return node->data;
     }
 
-    Ordering::Result comp = Ordering::INCOMPARABLE;
-    if (node->tag == Node::T_TERM) {
+    auto comp = (node->tag == Node::T_TERM) ? termComparison() : positivityCheck();
 
-      comp = _ord.compareUnidirectional(
-        AppliedTerm(node->lhs, _appl, true),
-        AppliedTerm(node->rhs, _appl, true));
-
-    } else {
-      ASS_EQ(node->tag, Node::T_POLY);
-
-      const auto& kbo = static_cast<const KBO&>(_ord);
-      auto weight = node->poly->constant;
-      ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
-        AppliedTerm tt(TermList::var(var), _appl, true);
-
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-          // since the counts are sorted in descending order,
-          // this can only mean we will fail
-          if (varDiffs[v.var()]<0) {
-            goto loop_end;
-          }
-        }
-        int64_t w = kbo.computeWeight(tt);
-        weight += coeff*w;
-        // due to descending order of counts,
-        // this also means failure
-        if (coeff<0 && weight<0) {
-          goto loop_end;
-        }
-      }
-
-      if (weight > 0) {
-        comp = Ordering::GREATER;
-      } else if (weight == 0) {
-        comp = Ordering::EQUAL;
-      }
-    }
-loop_end:
     _prev = _curr;
     _curr = &node->getBranch(comp);
   }
@@ -173,52 +133,9 @@ void* TermOrderingDiagram::check(const SubstApplicator* appl, const TermPartialO
       return node->data;
     }
 
-    Ordering::Result res =
-      (node->tag == Node::T_TERM)
-      ? _ord.compareUnidirectional(
-          AppliedTerm(node->lhs, _appl, true),
-          AppliedTerm(node->rhs, _appl, true))
-      : positivityCheck();
-
-    if (res == Ordering::INCOMPARABLE) {
-      if (node->tag == Node::T_TERM) {
-        TermNodeIterator termIt(_ord, appl, node->lhs, node->rhs, tpo);
-        auto val = termIt.get();
-        if (val != Ordering::INCOMPARABLE) {
-          btStack.push(_curr);
-          res = val;
-        }
-      } else {
-        ASS_EQ(node->tag, Node::T_POLY);
-        const auto& kbo = static_cast<const KBO&>(_ord);
-        auto weight = node->poly->constant;
-        ZIArray<int> varDiffs;
-        for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
-          AppliedTerm tt(TermList::var(var), appl, true);
-
-          VariableIterator vit(tt.term);
-          while (vit.hasNext()) {
-            auto v = vit.next();
-            varDiffs[v.var()] += coeff;
-          }
-          int64_t w = kbo.computeWeight(tt);
-          weight += coeff*w;
-        }
-        Stack<VarCoeffPair> nonzeros;
-        for (unsigned i = 0; i < varDiffs.size(); i++) {
-          if (varDiffs[i]==0) {
-            continue;
-          }
-          nonzeros.push({ i, varDiffs[i] });
-        }
-
-        PolyNodeIterator polyIt(Polynomial::get(weight, nonzeros), tpo);
-        auto val = polyIt.get();
-        if (val != Ordering::INCOMPARABLE) {
-          btStack.push(_curr);
-          res = val;
-        }
-      }
+    auto res = (node->tag == Node::T_TERM) ? termComparison(tpo) : positivityCheck(tpo);
+    if (res != Ordering::INCOMPARABLE) {
+      btStack.push(_curr);
     }
     _prev = _curr;
     _curr = &node->getBranch(res);
@@ -280,6 +197,63 @@ void TermOrderingDiagram::insert(const Stack<TermOrderingConstraint>& comps, voi
   _sink = newFail;
 }
 
+Ordering::Result TermOrderingDiagram::termComparison() const
+{
+  auto node = _curr->node();
+  ASS(node->ready);
+  ASS_EQ(node->tag, Node::T_TERM);
+
+  return _ord.compareUnidirectional(
+    AppliedTerm(node->lhs, _appl, true),
+    AppliedTerm(node->rhs, _appl, true));
+}
+
+Ordering::Result TermOrderingDiagram::termComparison(const TermPartialOrdering* tpo) const
+{
+  auto res = termComparison();
+  if (res != Ordering::INCOMPARABLE) {
+    return res;
+  }
+  auto node = _curr->node();
+
+  auto tod = TermOrderingDiagram::createForSingleComparison(
+    _ord, AppliedTerm(node->lhs,_appl,true).apply(), AppliedTerm(node->rhs,_appl,true).apply());
+
+  tod->_prev = nullptr;
+  tod->_curr = &tod->_source;
+  tod->_appl = &idApplicator;
+
+  for (;;) {
+    tod->processCurrentNode();
+
+    auto node = tod->_curr->node();
+    ASS(node->ready);
+
+    if (node->tag == Node::T_DATA) {
+      if (node->data) {
+        return *static_cast<Result*>(node->data);
+      }
+      return Ordering::INCOMPARABLE;
+    }
+
+    Ordering::Result comp = Ordering::INCOMPARABLE;
+    if (node->tag == Node::T_TERM) {
+
+      Ordering::Result val;
+      if (tpo->get(node->lhs, node->rhs, val)) {
+        comp = val;
+      }
+
+    } else {
+      ASS_EQ(node->tag, Node::T_POLY);
+      comp = tod->positivityCheck(tpo);
+    }
+    tod->_prev = tod->_curr;
+    tod->_curr = &node->getBranch(comp);
+  }
+  ASSERTION_VIOLATION;
+}
+
 Ordering::Result TermOrderingDiagram::positivityCheck() const
 {
   auto node = _curr->node();
@@ -314,6 +288,78 @@ Ordering::Result TermOrderingDiagram::positivityCheck() const
   } else if (weight == 0) {
     return Ordering::EQUAL;
   }
+  return Ordering::INCOMPARABLE;
+}
+
+Ordering::Result TermOrderingDiagram::positivityCheck(const TermPartialOrdering* tpo) const
+{
+  auto res = positivityCheck();
+  if (res != Ordering::INCOMPARABLE) {
+    return res;
+  }
+  auto node = _curr->node();
+  const auto& kbo = static_cast<const KBO&>(_ord);
+  auto weight = node->poly->constant;
+  ZIArray<int> varDiffs;
+  for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
+    AppliedTerm tt(TermList::var(var), _appl, true);
+
+    unsigned varCnt = 0;
+    for (const auto& v : iterTraits(VariableIterator(tt.term))) {
+      varDiffs[v.var()] += coeff;
+      varCnt++;
+    }
+    int64_t w = kbo.computeWeight(tt) - varCnt * kbo._funcWeights._specialWeights._variableWeight;
+    weight += coeff*w;
+  }
+  Stack<VarCoeffPair> nonzeros;
+  for (unsigned i = 0; i < varDiffs.size(); i++) {
+    if (varDiffs[i]==0) {
+      continue;
+    }
+    nonzeros.push({ i, varDiffs[i] });
+  }
+  auto poly = Polynomial::get(weight, nonzeros);
+  unsigned pos = 0;
+  unsigned neg = 0;
+
+  auto vcs = poly->varCoeffPairs;
+
+  for (unsigned i = 0; i < vcs.size();) {
+    auto& [var, coeff] = vcs[i];
+    for (unsigned j = i+1; j < vcs.size();) {
+      auto& [var2, coeff2] = vcs[j];
+      Ordering::Result res;
+      if (tpo->get(TermList::var(var), TermList::var(var2), res) && res == Ordering::EQUAL) {
+        coeff += coeff2;
+        swap(vcs[j],vcs.top());
+        vcs.pop();
+        continue;
+      }
+      j++;
+    }
+    if (coeff == 0) {
+      swap(vcs[i],vcs.top());
+      vcs.pop();
+      continue;
+    } else if (coeff > 0) {
+      pos++;
+    } else {
+      neg++;
+    }
+    i++;
+  }
+
+  auto constant = poly->constant;
+  if (constant == 0 && pos == 0 && neg == 0) {
+    ASS(res == Ordering::INCOMPARABLE || res == Ordering::EQUAL);
+    return Ordering::EQUAL;
+  }
+  if (constant >= 0 && neg == 0) {
+    ASS(res == Ordering::INCOMPARABLE || res == Ordering::GREATER);
+    return Ordering::GREATER;
+  }
+  ASS_EQ(res, Ordering::INCOMPARABLE);
   return Ordering::INCOMPARABLE;
 }
 
@@ -651,7 +697,14 @@ const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int 
 
 template<class Iterator, typename ...Args>
 TermOrderingDiagram::Traversal<Iterator,Args...>::Traversal(TermOrderingDiagram* tod, const SubstApplicator* appl, Args... initial)
-  : _tod(tod), _appl(appl), _rootIsSuccess(_tod && handleBranch(&_tod->_source, std::forward<Args>(initial)...)) {}
+  : _tod(tod)
+{
+  // init _tod before calling handleBranch
+  if (_tod) {
+    _tod->init(appl);
+  }
+  _rootIsSuccess = _tod && handleBranch(&_tod->_source, std::forward<Args>(initial)...);
+}
 
 template<class Iterator, typename ...Args>
 bool TermOrderingDiagram::Traversal<Iterator,Args...>::next(Branch*& branch, Args&... args)
@@ -702,7 +755,7 @@ bool TermOrderingDiagram::Traversal<Iterator,Args...>::handleBranch(Branch* b, A
   if (b->node()->tag == Node::T_DATA) {
     return true;
   }
-  _path->push({ b, Iterator(_tod->_ord, _appl, b->node(), std::forward<Args>(args)...) });
+  _path->push({ b, Iterator(_tod, std::forward<Args>(args)...) });
   return false;
 }
 
@@ -710,9 +763,10 @@ template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::DefaultItera
 template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct>;
 template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::AppliedNodeIterator,POStruct>;
 
-TermOrderingDiagram::NodeIterator::NodeIterator(const Ordering&, const SubstApplicator*, Node* node, POStruct initial)
+TermOrderingDiagram::NodeIterator::NodeIterator(const TermOrderingDiagram* tod, POStruct initial)
   : initial(initial)
 {
+  auto node = tod->_curr->node();
   ASS(node->ready);
   if (node->tag == Node::T_TERM) {
     auto lhs = node->lhs;
@@ -793,11 +847,11 @@ bool TermOrderingDiagram::NodeIterator::tryExtend(POStruct& po_struct, const Sta
   return true;
 }
 
-TermOrderingDiagram::AppliedNodeIterator::AppliedNodeIterator(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial)
-  : termNode(node->tag==Node::T_TERM),
-    traversal(termNode ? createForSingleComparison(ord,
-      AppliedTerm(node->lhs, appl, true).apply(),
-      AppliedTerm(node->rhs, appl, true).apply(), /*ground*/true) : nullptr, appl, initial) {}
+TermOrderingDiagram::AppliedNodeIterator::AppliedNodeIterator(const TermOrderingDiagram* tod, POStruct initial)
+  : termNode(tod->_curr->node()->tag==Node::T_TERM),
+    traversal(termNode ? createForSingleComparison(tod->_ord,
+      AppliedTerm(tod->_curr->node()->lhs, tod->_appl, true).apply(),
+      AppliedTerm(tod->_curr->node()->rhs, tod->_appl, true).apply(), /*ground*/true) : nullptr, tod->_appl, initial) {}
 
 bool TermOrderingDiagram::AppliedNodeIterator::next(Result& res, POStruct& pos)
 {
@@ -811,8 +865,8 @@ bool TermOrderingDiagram::AppliedNodeIterator::next(Result& res, POStruct& pos)
   return false;
 }
 
-TermOrderingDiagram::AppliedNodeIterator2::AppliedNodeIterator2(const Ordering& ord, const SubstApplicator* appl, Node* node, const TermPartialOrdering* tpo)
-  : _ord(ord), _node(node), _appl(appl), _tpo(tpo) {}
+TermOrderingDiagram::AppliedNodeIterator2::AppliedNodeIterator2(const TermOrderingDiagram* tod, const TermPartialOrdering* tpo)
+  : _tod(tod), _tpo(tpo) {}
 
 bool TermOrderingDiagram::AppliedNodeIterator2::next(Result& res, const TermPartialOrdering* tpo)
 {
@@ -825,40 +879,8 @@ bool TermOrderingDiagram::AppliedNodeIterator2::next(Result& res, const TermPart
     return false;
   }
 
-  if (_node->tag == Node::T_TERM) {
-    res = _ord.compareUnidirectional(
-      AppliedTerm(_node->lhs, _appl, true),
-      AppliedTerm(_node->rhs, _appl, true));
-
-    if (res == Ordering::INCOMPARABLE) {
-      TermNodeIterator termIt(_ord, _appl, _node->lhs, _node->rhs, _tpo);
-      res = termIt.get();
-    }
-  } else {
-    ASS_EQ(_node->tag, Node::T_POLY);
-    const auto& kbo = static_cast<const KBO&>(_ord);
-    auto weight = _node->poly->constant;
-    ZIArray<int> varDiffs;
-    for (const auto& [var, coeff] : _node->poly->varCoeffPairs) {
-      AppliedTerm tt(TermList::var(var), _appl, true);
-
-      for (const auto& v : iterTraits(VariableIterator(tt.term))) {
-        varDiffs[v.var()] += coeff;
-      }
-      int64_t w = kbo.computeWeight(tt);
-      weight += coeff*w;
-    }
-    Stack<VarCoeffPair> nonzeros;
-    for (unsigned i = 0; i < varDiffs.size(); i++) {
-      if (varDiffs[i]==0) {
-        continue;
-      }
-      nonzeros.push({ i, varDiffs[i] });
-    }
-
-    PolyNodeIterator polyIt(Polynomial::get(weight, nonzeros), _tpo);
-    res = polyIt.get();
-  }
+  auto node = _tod->_curr->node();
+  res = (node->tag == Node::T_TERM) ? _tod->termComparison(_tpo) : _tod->positivityCheck(_tpo);
   if (res == Ordering::INCOMPARABLE) {
     _cnt++;
   }
@@ -867,128 +889,6 @@ bool TermOrderingDiagram::AppliedNodeIterator2::next(Result& res, const TermPart
 
 // Iterators
 
-TermOrderingDiagram::TermNodeIterator::TermNodeIterator(
-  const Ordering& ord, const SubstApplicator* appl,
-    TermList lhs, TermList rhs, const TermPartialOrdering* tpo)
-  : _ord(ord),
-    _tod(TermOrderingDiagram::createForSingleComparison(
-      ord,AppliedTerm(lhs,appl,true).apply(),AppliedTerm(rhs,appl,true).apply())),
-    _tpo(tpo)
-{
-}
-
-Ordering::Result TermOrderingDiagram::TermNodeIterator::get()
-{
-  _tod->_prev = nullptr;
-  _tod->_curr = &_tod->_source;
-
-  for (;;) {
-    _tod->processCurrentNode();
-
-    auto node = _tod->_curr->node();
-    ASS(node->ready);
-
-    if (node->tag == Node::T_DATA) {
-      if (node->data) {
-        return *static_cast<Result*>(node->data);
-      }
-      return Ordering::INCOMPARABLE;
-    }
-
-    Ordering::Result comp = Ordering::INCOMPARABLE;
-    if (node->tag == Node::T_TERM) {
-
-      Ordering::Result val;
-      if (_tpo->get(node->lhs, node->rhs, val)) {
-        comp = val;
-      }
-
-    } else {
-      ASS_EQ(node->tag, Node::T_POLY);
-
-      PolyNodeIterator polyIt(node->poly, _tpo);
-      auto val = polyIt.get();
-      if (val != Ordering::INCOMPARABLE) {
-        comp = val;
-      }
-    }
-    _tod->_prev = _tod->_curr;
-    _tod->_curr = &node->getBranch(comp);
-  }
-  ASSERTION_VIOLATION;
-}
-
-TermOrderingDiagram::PolyNodeIterator::PolyNodeIterator(
-  const Polynomial* poly, const TermPartialOrdering* tpo)
-  : _poly(poly), _tpo(tpo)
-{
-}
-
-Ordering::Result TermOrderingDiagram::PolyNodeIterator::get()
-{
-  // check if we have seen this polynomial
-  // on the path leading here
-  // auto polyIt = _prevPoly;
-  // while (polyIt.first) {
-  //   ASS_EQ(polyIt.first->tag, Node::T_POLY);
-  //   switch (polyIt.second) {
-  //     case Ordering::GREATER: {
-  //       if (polyIt.first->poly == _poly) {
-  //         return Ordering::GREATER;
-  //       }
-  //       break;
-  //     }
-  //     case Ordering::EQUAL: {
-  //       if (polyIt.first->poly == _poly) {
-  //         return Ordering::EQUAL;
-  //       }
-  //       break;
-  //     }
-  //     default:
-  //       break;
-  //   }
-  //   polyIt = polyIt.first->prevPoly;
-  // }
-
-  unsigned pos = 0;
-  unsigned neg = 0;
-
-  auto vcs = _poly->varCoeffPairs;
-
-  for (unsigned i = 0; i < vcs.size();) {
-    auto& [var, coeff] = vcs[i];
-    for (unsigned j = i+1; j < vcs.size();) {
-      auto& [var2, coeff2] = vcs[j];
-      Ordering::Result res;
-      if (_tpo->get(TermList::var(var), TermList::var(var2), res) && res == Ordering::EQUAL) {
-        coeff += coeff2;
-        swap(vcs[j],vcs.top());
-        vcs.pop();
-        continue;
-      }
-      j++;
-    }
-    if (coeff == 0) {
-      swap(vcs[i],vcs.top());
-      vcs.pop();
-      continue;
-    } else if (coeff > 0) {
-      pos++;
-    } else {
-      neg++;
-    }
-    i++;
-  }
-
-  auto constant = _poly->constant;
-  if (constant == 0 && pos == 0 && neg == 0) {
-    return Ordering::EQUAL;
-  }
-  if (constant >= 0 && neg == 0) {
-    return Ordering::GREATER;
-  }
-  return Ordering::INCOMPARABLE;
-}
 
 TermOrderingDiagram::GreaterIterator::GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs)
   : _tod(*TermOrderingDiagram::createForSingleComparison(ord, lhs, rhs))

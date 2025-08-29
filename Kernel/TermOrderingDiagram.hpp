@@ -73,7 +73,11 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const TermOrderingDiagram& tod);
 
 private:
+  Result termComparison() const;
+  Result termComparison(const TermPartialOrdering* tpo) const;
+
   Result positivityCheck() const;
+  Result positivityCheck(const TermPartialOrdering* tpo) const;
 
   /** Processes current node until it is either (i) a term or poly node whose result
    *  cannot be inferred from earlier comparisons, or (ii) a data node.
@@ -211,13 +215,12 @@ public:
 
   private:
     TermOrderingDiagram* _tod;
-    const SubstApplicator* _appl;
     Recycled<Stack<std::pair<Branch*,Iterator>>> _path;
     bool _rootIsSuccess;
   };
 
   struct DefaultIterator {
-    DefaultIterator(const Ordering&, const SubstApplicator*, Node*) {}
+    DefaultIterator(const TermOrderingDiagram*) {}
     bool next(Result& res) {
       if (curr == Result::INCOMPARABLE) {
         return false;
@@ -242,7 +245,7 @@ public:
   };
 
   struct NodeIterator {
-    NodeIterator(const Ordering&, const SubstApplicator*, Node* node, POStruct initial);
+    NodeIterator(const TermOrderingDiagram* tod, POStruct initial);
     bool next(Result& res, POStruct& pos);
 
   private:
@@ -257,7 +260,7 @@ public:
   };
 
   struct AppliedNodeIterator {
-    AppliedNodeIterator(const Ordering& ord, const SubstApplicator* appl, Node* node, POStruct initial);
+    AppliedNodeIterator(const TermOrderingDiagram* tod, POStruct initial);
     bool next(Result& res, POStruct& pos);
 
   private:
@@ -266,35 +269,13 @@ public:
   };
 
   struct AppliedNodeIterator2 {
-    AppliedNodeIterator2(const Ordering& ord, const SubstApplicator* appl, Node* node, const TermPartialOrdering* tpo);
+    AppliedNodeIterator2(const TermOrderingDiagram* tod, const TermPartialOrdering* tpo);
     bool next(Result& res, const TermPartialOrdering* tpo);
 
   private:
-    const Ordering& _ord;
-    const SubstApplicator* _appl;
-    Node* _node;
+    const TermOrderingDiagram* _tod;
     const TermPartialOrdering* _tpo;
     unsigned _cnt = 0;
-  };
-
-  struct TermNodeIterator {
-    TermNodeIterator(const Ordering& ord, const SubstApplicator* appl,
-      TermList lhs, TermList rhs, const TermPartialOrdering* tpo);
-
-    Result get();
-
-    const Ordering& _ord;
-    TermOrderingDiagram* _tod;
-    const TermPartialOrdering* _tpo;
-  };
-
-  struct PolyNodeIterator {
-    PolyNodeIterator(const Polynomial* poly, const TermPartialOrdering* tpo);
-
-    Result get();
-
-    const Polynomial* _poly;
-    const TermPartialOrdering* _tpo;
   };
 
   struct GreaterIterator {
