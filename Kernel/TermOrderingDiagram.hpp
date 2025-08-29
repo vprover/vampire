@@ -280,19 +280,7 @@ public:
 
   struct GreaterIterator {
     GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs);
-
-    bool hasNext();
-    const TermPartialOrdering* next() { return _res; }
-
-    TermOrderingDiagram& _tod;
-    const TermPartialOrdering* _res;
-    Stack<Branch*> _path;
-  };
-
-  struct GreaterIterator2 {
-    GreaterIterator2(const Ordering& ord, TermList lhs, TermList rhs);
     const TermPartialOrdering* next();
-
     Traversal<DefaultIterator> _traversal;
   };
 };

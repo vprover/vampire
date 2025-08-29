@@ -763,6 +763,8 @@ template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::DefaultItera
 template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct>;
 template struct TermOrderingDiagram::Traversal<TermOrderingDiagram::AppliedNodeIterator,POStruct>;
 
+// Iterators
+
 TermOrderingDiagram::NodeIterator::NodeIterator(const TermOrderingDiagram* tod, POStruct initial)
   : initial(initial)
 {
@@ -887,64 +889,10 @@ bool TermOrderingDiagram::AppliedNodeIterator2::next(Result& res, const TermPart
   return true;
 }
 
-// Iterators
-
-
 TermOrderingDiagram::GreaterIterator::GreaterIterator(const Ordering& ord, TermList lhs, TermList rhs)
-  : _tod(*TermOrderingDiagram::createForSingleComparison(ord, lhs, rhs))
-{
-  _path.push(&_tod._source);
-}
-
-bool TermOrderingDiagram::GreaterIterator::hasNext()
-{
-  while (_path.isNonEmpty()) {
-    auto& curr = _path.top();
-
-    _tod._prev = (_path.size()==1) ? nullptr : _path[_path.size()-2];
-    _tod._curr = curr;
-    _tod.processCurrentNode();
-
-    auto node = _tod._curr->node();
-    ASS(node->ready);
-
-    if (node->tag != Node::T_DATA) {
-      // go down
-      _path.push(&node->getBranch(Ordering::GREATER));
-      continue;
-    }
-
-    // push next first
-    while (_path.isNonEmpty()) {
-      auto curr = _path.pop();
-      if (_path.isEmpty()) {
-        break;
-      }
-
-      auto prev = _path.top()->node();
-      ASS(prev->tag == Node::T_POLY || prev->tag == Node::T_TERM);
-      if (curr == &prev->getBranch(Ordering::GREATER)) {
-        _path.push(&prev->getBranch(Ordering::EQUAL));
-        break;
-      } else if (curr == &prev->getBranch(Ordering::EQUAL)) {
-        _path.push(&prev->getBranch(Ordering::LESS));
-        break;
-      }
-    }
-    // ASS(_tod._threeValued);
-    if (node->data && *static_cast<Result*>(node->data) == Ordering::GREATER) {
-      ASS(node->trace);
-      _res = node->trace;
-      return true;
-    }
-  }
-  return false;
-}
-
-TermOrderingDiagram::GreaterIterator2::GreaterIterator2(const Ordering& ord, TermList lhs, TermList rhs)
   : _traversal(TermOrderingDiagram::createForSingleComparison(ord, lhs, rhs), &idApplicator) {}
 
-const TermPartialOrdering* TermOrderingDiagram::GreaterIterator2::next()
+const TermPartialOrdering* TermOrderingDiagram::GreaterIterator::next()
 {
   Branch* b;
   while (_traversal.next(b)) {

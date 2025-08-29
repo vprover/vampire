@@ -389,27 +389,15 @@ bool PartialRedundancyHandler::checkSuperposition(
     return false;
   };
 
-  TermOrderingDiagram::GreaterIterator2 git(*_ord, rwTermS, tgtTermS);
+  TermOrderingDiagram::GreaterIterator git(*_ord, rwTermS, tgtTermS);
 
   // we don't want this to be empty
 #if VDEBUG
   bool tpo_found = false;
 #endif
 
-  Stack<const TermPartialOrdering*> tpos;
-  TermOrderingDiagram::GreaterIterator gitTest(*_ord, rwTermS, tgtTermS);
-  while (gitTest.hasNext()) {
-    auto tpo = gitTest.next();
-    tpos.push(tpo);
-  }
   const TermPartialOrdering* tpo;
-  unsigned tpocnt = 0;
   while ((tpo = git.next())) {
-    if (tpocnt >= tpos.size() || tpo != tpos[tpocnt]) {
-      INVALID_OPERATION("greateriterator mismatch");
-    }
-    tpocnt++;
-
 #if VDEBUG
     tpo_found = true;
 #endif
@@ -428,8 +416,6 @@ bool PartialRedundancyHandler::checkSuperposition(
     return true;
   }
   ASS(!git.next());
-
-
   // TODO this may not be true for LPO
   // ASS(tpo_found);
 
