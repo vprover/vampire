@@ -10,6 +10,8 @@
 
 #include "PartialRedundancyHandler.hpp"
 
+#include "Lib/SharedSet.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Matcher.hpp"
@@ -20,6 +22,8 @@
 #include "Indexing/ResultSubstitution.hpp"
 
 #include "Inferences/DemodulationHelper.hpp"
+
+#include "Saturation/Splitter.hpp"
 
 #include "Statistics.hpp"
 
@@ -54,15 +58,12 @@ class PartialRedundancyHandler::ConstraintIndex
   : public CodeTree
 {
 public:
-  ConstraintIndex(Clause* cl) : _varSorts()
+  ConstraintIndex(Clause* cl) : _varSorts(), _cl(cl)
   {
     _clauseCodeTree=false;
     _onCodeOpDestroying = onCodeOpDestroying;
-#if VDEBUG
-    _cl = cl;
-#endif
-    for (unsigned i = 0; i < cl->length(); i++) {
-      SortHelper::collectVariableSorts((*cl)[i], _varSorts);
+    for (unsigned i = 0; i < _cl->length(); i++) {
+      SortHelper::collectVariableSorts((*_cl)[i], _varSorts);
     }
   }
 
@@ -75,16 +76,14 @@ public:
     return !check(ts, ord);
   }
 
-  void insert(const Ordering* ord, ResultSubstitution* subst, bool result, OrderingConstraints&& ordCons, ClauseStack&& cls)
+  void insert(const Ordering* ord, Splitter* splitter, ResultSubstitution* subst, bool result, OrderingConstraints&& ordCons, ClauseStack&& cls)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    insert(ord, ts, createEntry(ts, std::move(ordCons), std::move(cls)));
+    insert(ord, ts, createEntry(splitter, ts, std::move(ordCons), std::move(cls)));
   }
 
 // private:
-#if VDEBUG
   Clause* _cl;
-#endif
 
   void insert(const Ordering* ord, const TermStack& ts, PartialRedundancyEntry* ptr)
   {
@@ -184,7 +183,7 @@ public:
 
   DHMap<unsigned,TermList> _varSorts;
 
-  PartialRedundancyEntry* createEntry(const TermStack& ts, OrderingConstraints&& ordCons, ClauseStack&& cls) const
+  PartialRedundancyEntry* createEntry(Splitter* splitter, const TermStack& ts, OrderingConstraints&& ordCons, ClauseStack&& cls) const
   {
     auto e = new PartialRedundancyEntry();
     Renaming r;
@@ -205,6 +204,17 @@ public:
     }
     e->ordCons = std::move(ordCons);
     e->cls = std::move(cls);
+
+    if (splitter) {
+      auto unionAll = SplitSet::getEmpty();
+      for (const auto& cl : e->cls) {
+        unionAll = unionAll->getUnion(cl->splits());
+      }
+      auto diff = unionAll->subtract(_cl->splits());      
+      if (!diff->isEmpty()) {
+        splitter->addPartialRedundancyEntry(diff, e);
+      }
+    }
 
     return e;
   }
@@ -261,7 +271,7 @@ public:
       auto es = op->getSuccessResult<EntryContainer>();
       iterTraits(decltype(es->entries)::Iterator(es->entries))
         .forEach([](auto e) {
-          delete e;
+          e->release();
         });
       delete es;
     }
@@ -324,7 +334,7 @@ bool PartialRedundancyHandler::checkSuperposition(
 
   auto afterCheck = [&](void* data) {
     auto e = static_cast<PartialRedundancyEntry*>(data);
-    return !iterTraits(e->cls.iter()).any([&](Clause* cl) { return cl == resClause; });
+    return e->active && !iterTraits(e->cls.iter()).any([&](Clause* cl) { return cl == resClause; });
   };
 
   Stack<pair<const TermPartialOrdering*, ClauseStack*>> trace;
@@ -578,12 +588,11 @@ void PartialRedundancyHandler::tryInsert(
     return;
   }
   auto dataPtr = getDataPtr(into, /*doAllocate=*/true);
-  (*dataPtr)->insert(_ord, subs, result, std::move(ordCons), { cl, res });
+  (*dataPtr)->insert(_ord, _splitter, subs, result, std::move(ordCons), { cl, res });
 }
 
 void PartialRedundancyHandler::checkEquations(Clause* cl) const
 {
-  // TODO disable this when not needed or consider removing it
   cl->iterLits().forEach([cl,this](Literal* lit){
     if (!lit->isEquality() || lit->isNegative()) {
       return;
@@ -596,7 +605,7 @@ void PartialRedundancyHandler::checkEquations(Clause* cl) const
     }
     auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
     auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, OrderingConstraints(), ClauseStack());
+    (*clDataPtr)->insert(_ord, _splitter, rsubs.ptr(), /*result*/false, OrderingConstraints(), ClauseStack());
   });
 }
 

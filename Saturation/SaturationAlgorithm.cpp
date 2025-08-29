@@ -1716,7 +1716,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (opt.partialRedundancyCheck()) {
-    res->_partialRedundancyHandler.reset(new PartialRedundancyHandler(opt, &ordering));
+    res->_partialRedundancyHandler.reset(new PartialRedundancyHandler(opt, &ordering, res->_splitter));
   }
 
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!

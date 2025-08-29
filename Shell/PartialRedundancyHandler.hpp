@@ -49,16 +49,33 @@
 
 #include "Options.hpp"
 
+namespace Saturation {
+  class Splitter;
+}
+
 namespace Shell {
 
 using namespace Lib;
 using namespace Indexing;
+using namespace Saturation;
 
 using OrderingConstraints = Stack<TermOrderingConstraint>;
 
 struct PartialRedundancyEntry {
   OrderingConstraints ordCons;
   ClauseStack cls;
+  bool active = true;
+  unsigned refcnt = 1;
+
+  void deactivate() { active = false; }
+  void obtain() { refcnt++; }
+  void release() {
+    ASS(refcnt);
+    refcnt--;
+    if (!refcnt) {
+      delete this;
+    }
+  }
 };
 
 struct EntryContainer {
@@ -69,10 +86,10 @@ struct EntryContainer {
 class PartialRedundancyHandler
 {
 public:
-  PartialRedundancyHandler(const Options& opts, const Ordering* ord)
+  PartialRedundancyHandler(const Options& opts, const Ordering* ord, Splitter* splitter)
     : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
-      _ord(ord) {}
+      _ord(ord), _splitter(splitter) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
@@ -107,6 +124,7 @@ private:
   bool _redundancyCheck;
   bool _encompassing;
   const Ordering* _ord;
+  Splitter* _splitter;
 };
 
 };
