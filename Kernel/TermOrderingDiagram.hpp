@@ -65,6 +65,7 @@ public:
   void* next();
 
   void* check(const SubstApplicator* appl, const TermPartialOrdering* tpo, const std::function<bool(void*)>& afterCheck);
+  void* check2(const SubstApplicator* appl, const TermPartialOrdering* tpo, const std::function<bool(void*)>& afterCheck);
 
   /** Inserts a conjunctions of term ordering constraints and user-allocated data. */
   void insert(const Stack<TermOrderingConstraint>& cons, void* data);
@@ -264,6 +265,18 @@ public:
     Traversal<NodeIterator,POStruct> traversal;
   };
 
+  struct AppliedNodeIterator2 {
+    AppliedNodeIterator2(const Ordering& ord, const SubstApplicator* appl, Node* node, const TermPartialOrdering* tpo);
+    bool next(Result& res, const TermPartialOrdering* tpo);
+
+  private:
+    const Ordering& _ord;
+    const SubstApplicator* _appl;
+    Node* _node;
+    const TermPartialOrdering* _tpo;
+    unsigned _cnt = 0;
+  };
+
   struct TermNodeIterator {
     TermNodeIterator(const Ordering& ord, const SubstApplicator* appl,
       TermList lhs, TermList rhs, const TermPartialOrdering* tpo);
@@ -293,6 +306,13 @@ public:
     TermOrderingDiagram& _tod;
     const TermPartialOrdering* _res;
     Stack<Branch*> _path;
+  };
+
+  struct GreaterIterator2 {
+    GreaterIterator2(const Ordering& ord, TermList lhs, TermList rhs);
+    const TermPartialOrdering* next();
+
+    Traversal<DefaultIterator> _traversal;
   };
 };
 

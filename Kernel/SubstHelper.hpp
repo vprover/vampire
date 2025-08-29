@@ -35,6 +35,10 @@ struct SubstApplicator {
   TermList apply(unsigned v) const { return (*this)(v); }
 };
 
+static struct IdSubstApplicator : SubstApplicator {
+  TermList operator()(unsigned v) const override { return TermList::var(v); }
+} idApplicator;
+
 /**
  * Term with a substitution applied to it lazily. This is used in the context of
  * evaluating some term in a top-down manner symbol by symbol without actually

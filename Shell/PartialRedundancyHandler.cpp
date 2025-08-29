@@ -322,10 +322,6 @@ bool PartialRedundancyHandler::checkSuperposition(
     TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
   } applicator;
 
-  struct IdApplicator : SubstApplicator {
-    TermList operator()(unsigned v) const override { return TermList::var(v); }
-  } idApplicator;
-
   auto afterCheck = [&](void* data) {
     auto e = static_cast<PartialRedundancyEntry*>(data);
     return !iterTraits(e->cls.iter()).any([&](Clause* cl) { return cl == resClause; });
@@ -334,19 +330,30 @@ bool PartialRedundancyHandler::checkSuperposition(
   Stack<pair<const TermPartialOrdering*, ClauseStack*>> trace;
 
   TermOrderingDiagram* rwLitTod = nullptr;
-  if (_ord->getEqualityArgumentOrder(rwLitS)==Ordering::INCOMPARABLE) {
-    if (!rwLitS->termArg(0).containsSubterm(rwTermS)) {
-      ASS(rwLitS->termArg(1).containsSubterm(rwTermS));
-      rwLitTod = TermOrderingDiagram::createForSingleComparison(*_ord, rwLitS->termArg(0), rwLitS->termArg(1));
-    } else if (!rwLitS->termArg(1).containsSubterm(rwTermS)) {
-      ASS(rwLitS->termArg(0).containsSubterm(rwTermS));
-      rwLitTod = TermOrderingDiagram::createForSingleComparison(*_ord, rwLitS->termArg(1), rwLitS->termArg(0));
+  if (rwLitS->isEquality() && _ord->getEqualityArgumentOrder(rwLitS)==Ordering::INCOMPARABLE) {
+    auto lhs = rwLitS->termArg(0);
+    auto rhs = rwLitS->termArg(1);
+    if (!lhs.containsSubterm(rwTermS)) {
+      ASS(rhs.containsSubterm(rwTermS));
+      rwLitTod = TermOrderingDiagram::createForSingleComparison(*_ord, lhs, rhs);
+    } else if (!rhs.containsSubterm(rwTermS)) {
+      ASS(lhs.containsSubterm(rwTermS));
+      rwLitTod = TermOrderingDiagram::createForSingleComparison(*_ord, rhs, lhs);
     }
   }
 
   if (rwLitTod) {
     env.statistics->intDBDownInduction++;
   }
+
+  auto checkWrapper = [](TermOrderingDiagram* tod, const SubstApplicator* appl, const TermPartialOrdering* tpo, const std::function<bool(void*)>& afterCheck) {
+    auto data1 = tod->check(appl, tpo, afterCheck);
+    auto data2 = tod->check2(appl, tpo, afterCheck);
+    if (data1 != data2) {
+      INVALID_OPERATION("check is inconsistent");
+    }
+    return data1;
+  };
 
   auto checkFn = [&](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
   {
@@ -359,7 +366,7 @@ bool PartialRedundancyHandler::checkSuperposition(
     {
       ASS(ec->tod);
       void* data;
-      if ((data = ec->tod->check(&applicator, tpo, afterCheck))) {
+      if ((data = checkWrapper(ec->tod.get(), &applicator, tpo, afterCheck))) {
         auto e = static_cast<PartialRedundancyEntry*>(data);
         trace.push({ tpo, &e->cls });
         matcher.reset();
@@ -372,15 +379,26 @@ bool PartialRedundancyHandler::checkSuperposition(
     return false;
   };
 
-  TermOrderingDiagram::GreaterIterator git(*_ord, rwTermS, tgtTermS);
+  TermOrderingDiagram::GreaterIterator2 git(*_ord, rwTermS, tgtTermS);
 
   // we don't want this to be empty
 #if VDEBUG
   bool tpo_found = false;
 #endif
 
-  while (git.hasNext()) {
-    auto tpo = git.next();
+  Stack<const TermPartialOrdering*> tpos;
+  TermOrderingDiagram::GreaterIterator gitTest(*_ord, rwTermS, tgtTermS);
+  while (gitTest.hasNext()) {
+    auto tpo = gitTest.next();
+    tpos.push(tpo);
+  }
+  const TermPartialOrdering* tpo;
+  unsigned tpocnt = 0;
+  while ((tpo = git.next())) {
+    if (tpocnt >= tpos.size() || tpo != tpos[tpocnt]) {
+      INVALID_OPERATION("greateriterator mismatch");
+    }
+    tpocnt++;
 
 #if VDEBUG
     tpo_found = true;
@@ -393,14 +411,17 @@ bool PartialRedundancyHandler::checkSuperposition(
     if (checkFn(rwClDataPtr, rwTs, tpo)) {
       continue;
     }
-    if (rwLitTod && rwLitTod->check(&idApplicator, tpo, [](void*){ return true; })) {
+    if (rwLitTod && checkWrapper(rwLitTod, &idApplicator, tpo, [](void*){ return true; })) {
       continue;
     }
     // if failure, return
     return true;
   }
+  ASS(!git.next());
 
-  ASS(tpo_found);
+
+  // TODO this may not be true for LPO
+  // ASS(tpo_found);
 
   // cout << "success for superposition" << endl;
   // cout << "rwClause " << rwClause->toString() << endl;

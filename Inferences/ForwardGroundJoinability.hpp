@@ -49,8 +49,6 @@ private:
     RedundancyCheck(const Ordering& ord, Literal* data);
     std::pair<Literal*,const TermPartialOrdering*> next(Stack<TermOrderingConstraint> cons, Literal* data);
 
-    void pushNext();
-
     using Branch = TermOrderingDiagram::Branch;
     using Tag = TermOrderingDiagram::Node::Tag;
 
