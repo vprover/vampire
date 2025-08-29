@@ -56,6 +56,11 @@ public:
   /** Gets relation between two terms. If they are related, returns true
    *  and set the relation in @b res. Otherwise returns false. */
   bool get(TermList lhs, TermList rhs, Result& res) const;
+  /** Returns relation between two terms, or incomparable if they are not related. */
+  Result get(TermList lhs, TermList rhs) const {
+    Result val;
+    return get(lhs, rhs, val) ? val : Result::INCOMPARABLE;
+  }
   bool isGround() const { return _po->isGround(); }
 
   /** Get empty relation. */

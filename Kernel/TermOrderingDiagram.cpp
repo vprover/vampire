@@ -219,39 +219,27 @@ Ordering::Result TermOrderingDiagram::termComparison(const TermPartialOrdering* 
   auto tod = TermOrderingDiagram::createForSingleComparison(
     _ord, AppliedTerm(node->lhs,_appl,true).apply(), AppliedTerm(node->rhs,_appl,true).apply());
 
-  tod->_prev = nullptr;
-  tod->_curr = &tod->_source;
-  tod->_appl = &idApplicator;
-
-  for (;;) {
-    tod->processCurrentNode();
-
-    auto node = tod->_curr->node();
-    ASS(node->ready);
-
-    if (node->tag == Node::T_DATA) {
-      if (node->data) {
-        return *static_cast<Result*>(node->data);
+  struct Iterator {
+    Iterator(const TermOrderingDiagram* tod, const TermPartialOrdering* tpo) : tod(tod), tpo(tpo) {}
+    bool next(Result& res, const TermPartialOrdering*) {
+      if (used) {
+        return false;
       }
-      return Ordering::INCOMPARABLE;
+      used = true;
+      auto node = tod->_curr->node();
+      res = (node->tag == Node::T_TERM) ? tpo->get(node->lhs, node->rhs) : tod->positivityCheck(tpo);
+      return true;
     }
+    bool used = false;
+    const TermOrderingDiagram* tod;
+    const TermPartialOrdering* tpo;
+  };
 
-    Ordering::Result comp = Ordering::INCOMPARABLE;
-    if (node->tag == Node::T_TERM) {
-
-      Ordering::Result val;
-      if (tpo->get(node->lhs, node->rhs, val)) {
-        comp = val;
-      }
-
-    } else {
-      ASS_EQ(node->tag, Node::T_POLY);
-      comp = tod->positivityCheck(tpo);
-    }
-    tod->_prev = tod->_curr;
-    tod->_curr = &node->getBranch(comp);
-  }
-  ASSERTION_VIOLATION;
+  Traversal<Iterator, const TermPartialOrdering*> traversal(tod, &idApplicator, tpo);
+  Branch* b;
+  ALWAYS(traversal.next(b, tpo));
+  ASS(!traversal.next(b, tpo));
+  return b->node()->data ? *static_cast<Result*>(b->node()->data) : Ordering::INCOMPARABLE;
 }
 
 Ordering::Result TermOrderingDiagram::positivityCheck() const
