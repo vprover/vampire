@@ -72,7 +72,6 @@ void BinaryResolution::detach()
   GeneratingInferenceEngine::detach();
 }
 
-
 /**
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.

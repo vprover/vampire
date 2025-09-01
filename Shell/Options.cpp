@@ -1534,12 +1534,6 @@ void Options::init()
     _inductionGroundOnly.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_inductionGroundOnly);
 
-    _inductionNonstandardBase = BoolOptionValue("induction_nonstandard_base","indnsb",false);
-    _inductionNonstandardBase.description = "Use successor(0) and cons(x, nil) as base cases for natural numbers and lists";
-    _inductionNonstandardBase.tag(OptionTag::INDUCTION);
-    _inductionNonstandardBase.onlyUsefulWith(And(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))),_inductionGroundOnly.is(equal(true))));
-    _lookup.insert(&_inductionNonstandardBase);
-
     _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
     _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
     _functionDefinitionRewriting.tag(OptionTag::INFERENCES);

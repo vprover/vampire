@@ -70,7 +70,6 @@ namespace Shell
 using namespace std;
 typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
 
-
 ///////////////////////
 // AnswerLiteralManager
 //

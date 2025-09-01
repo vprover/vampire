@@ -523,7 +523,7 @@ void InductionClauseIterator::processClause(Clause* premise)
   if (InductionHelper::isInductionClause(premise)) {
     for (unsigned i=0;i<premise->length();i++) {
       Literal* lit = (*premise)[i];
-      if (!lit->isAnswerLiteral()) {
+        if (!lit->isAnswerLiteral()) {
         processLiteral(premise, lit);
       }
     }
@@ -833,21 +833,15 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto indLitsIt = contextReplacementInstance(InductionContext({ st }, lit, premise), _opt, _fnDefHandler);
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
-          // TODO(hzzv): only keep the standard base once induction with free variable works on multiple literals.
-          for (unsigned i = 0; i <= (unsigned)env.options->inductionNonstandardBase(); ++i) {
-            if (i == 1) {
-              ctx._standardBase = false;
-            }
-            InductionFormulaIndex::Entry* e;
-            // TODO: make sure that the index handles literals with free variables correctly
-            // (right now it might allow redundant induction applications due to variable renaming).
-            if (_formulaIndex.findOrInsert(ctx, e)) {
-              // Generate induction axioms, clausify and resolve them
-              Substitution freeVarSubst;
-              performStructInductionFreeVar(ctx, e, &freeVarSubst);
-              for (auto& kv : e->get()) {
-                resolveClauses(kv.first, ctx, kv.second, /*applySubst=*/ false, &freeVarSubst);
-              }
+          InductionFormulaIndex::Entry* e;
+          // TODO: make sure that the index handles literals with free variables correctly
+          // (right now it might allow redundant induction applications due to variable renaming).
+          if (_formulaIndex.findOrInsert(ctx, e)) {
+            // Generate induction axioms, clausify and resolve them
+            Substitution freeVarSubst;
+            performStructInductionFreeVar(ctx, e, &freeVarSubst);
+            for (auto& kv : e->get()) {
+              resolveClauses(kv.first, ctx, kv.second, /*applySubst=*/ false, &freeVarSubst);
             }
           }
         }
@@ -982,7 +976,6 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   return hyp_clauses;
 }
 
-
 // helper function to properly add bounds to integer induction contexts,
 // where the bounds are not part of the inner formula for the induction
 void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2)
@@ -1058,9 +1051,8 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
       }
     }
     // cl should have the same number of conclusion
-    // literals as the size of toResolve, unless non-standard base case is on
-    // TODO(hzzv): remove the non-standard base option
-    ASS(env.options->inductionNonstandardBase() || (conclusionLits.size() == toResolve.size()));
+    // literals as the size of toResolve
+    ASS_EQ(conclusionLits.size(), toResolve.size());
     // now we look for the variants
     for (unsigned k = 0; k < conclusionLits.size(); k++) {
 #if VDEBUG
@@ -1397,26 +1389,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
 {
   if (context._indTerms.size() > 1) return;
   TermList sort = SortHelper::getResultSort(context._indTerms[0]);
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(SortHelper::getResultSort(context._indTerms[0]));
-
-  // TODO(hzzv): remove the following block once induction with a free variable works also for multiple
-  // literals, as multiple literals should cover the functionality that follows but in a simpler way.
-  // Constructors for the non-standard base case options
-  TermAlgebraConstructor* recCon = nullptr;
-  Term* nonRecBase = nullptr;
-  if (!context._standardBase) {
-    if (ta->nConstructors() != 2) {
-      // Unsupported datatype.
-      return;
-    }
-    recCon = ta->constructor(ta->constructor(0)->recursive() ? 0 : 1);
-    TermAlgebraConstructor* nonRecCon = ta->constructor(ta->constructor(0)->recursive() ? 1 : 0);
-    if (nonRecCon->recursive() || nonRecCon->arity() > 0) {
-      // Unsupported datatype.
-      return;
-    }
-    nonRecBase = Term::createConstant(nonRecCon->functor());
-  }
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
 
   // Synthesis specific:
   SynthesisALManager* synthMan = static_cast<SynthesisALManager*>((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) ? SynthesisALManager::getInstance() : nullptr);
@@ -1453,13 +1426,6 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
         TermList w(var++, false);
         VList::push(w.var(), ws);
         Formula* curLit = context.getFormulaWithFreeVar({ y }, freeVar, w);
-        // TODO(hzzv): once induction with a free variable works also for multiple literals, remove this if.
-        if (!context._standardBase) {
-          // Here con->recursive(), because y is a recursive argument.
-          // Further, the step case only needs to hold when the hypothesis is not the standard base.
-          // Hence we add an assumption that y != nonRecBase.
-          FormulaList::push(new AtomicFormula(Literal::createEquality(/*polarity=*/false, TermList(nonRecBase), y, sort)), hyps);
-        }
         FormulaList::push(curLit, hyps); // L[y_j, w_j]
         // Synthesis specific:
         if (synthMan) {
@@ -1476,35 +1442,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
     TermList u(var++, false);
     VList::push(u.var(), us);
 
-    // TODO(hzzv): once induction with a free variable works also for multiple literals, only keep the if-branch.
-    Term* tcons;
-    if (context._standardBase || con->recursive()) {
-      tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
-    } else {
-      // We construct the non-standard base case using the recursive constructor instead of the standard non-recursive one.
-      TermStack argTerms(recCon->arity());
-      unsigned recArgs = 0;
-      for (unsigned j = 0; j < recCon->arity(); j++) {
-        if (recCon->argSort(j) == recCon->rangeSort()) {
-          argTerms.push(TermList(nonRecBase));
-          recArgs++;
-        } else {
-          TermList y(var++, false);
-          argTerms.push(y);
-          VList::push(y.var(), ys);
-          // Synthesis specific:
-          if (synthMan) {
-            // Store SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
-            skolemTrackers.emplace_back(Binding(y.var(), nullptr), i, false, j);
-          }
-        }
-      }
-      if (recArgs != 1) {
-        // Unsupported datatype.
-        return;
-      }
-      tcons = Term::create(recCon->functor(), (unsigned)argTerms.size(), argTerms.begin());
-    }
+    Term* tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
 
     // Synthesis specific:
     if (synthMan) {
@@ -1524,11 +1462,6 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   TermList x(var++, false);
   Substitution subst;
   Formula* conclusion = context.getFormulaWithFreeVar({ z }, freeVar, x, &subst);
-  // TODO(hzzv): once induction with a free variable works also for multiple literals, remove this if.
-  if (!context._standardBase) {
-    conclusion = new JunctionFormula(Connective::OR, new FormulaList(conclusion, FormulaList::singleton(
-        new AtomicFormula(Literal::createEquality(/*polarity=*/true, TermList(nonRecBase), z, sort)))));
-  }
   // Put together the whole induction axiom:
   formula = new BinaryFormula(Connective::IMP, formula, conclusion);
   formula = new QuantifiedFormula(Connective::EXISTS, VList::singleton(xvar), SList::empty(), formula);

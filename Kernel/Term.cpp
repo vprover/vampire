@@ -18,8 +18,12 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/HOL/HOL.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Output.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
 
 #include "Term.hpp"
@@ -1934,7 +1938,7 @@ bool Term::computableOrVarHelper(DHMap<unsigned, unsigned>* recAncestors) const 
   Signature::Symbol* symbol = env.signature->getFunction(functor());
   Shell::SynthesisALManager* synthMan = static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance());
 
-  if (!symbol->computable()) { // either symbol marked as uncomputable in the input, or a skolem
+  if (!symbol->computable()) { // either symbol marked as uncomputable in the input, or a non-input skolem
     if (!symbol->skolem()) {
       return false;
     }

@@ -43,11 +43,11 @@ private:
   struct Item;
   typedef List<Item*> ItemList;
 
-  void processAndGetClauses(Item* itm, unsigned startIdx, ClauseList*& acc, bool ansLitIte);
+  void processAndGetClauses(Item* itm, unsigned startIdx, ClauseList*& acc);
 
-  void processLiteral(ItemList*& itms, unsigned idx, bool ansLitIte);
+  void processLiteral(ItemList*& itms, unsigned idx);
 
-  void doBackwardInferences(Clause* cl, ClauseList*& acc, bool ansLitIte);
+  void doBackwardInferences(Clause* cl, ClauseList*& acc);
 
   bool _full;
   bool _emptyClauseOnly;

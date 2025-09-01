@@ -146,6 +146,10 @@ Option<ClauseIterator> SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
   // or resolution (which fill in sythesisExtra).
   // Clauses with a different number of answer literals or prodced by other rules are checked
   // by other simplification rules.
+  // TODO: make this work also for:
+  // - InferenceRule::UNIT_RESULTING_RESOLUTION
+  // - InferenceRule::ALASCA_FOURIER_MOTZKIN
+  // - possibly other ALASCA BinInf-based rules
   if (numAnsLits != 2 ||
       ((cl->inference().rule() != InferenceRule::SUPERPOSITION) &&
        (cl->inference().rule() != InferenceRule::RESOLUTION) &&

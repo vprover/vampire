@@ -56,13 +56,8 @@ bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*
 {
   ASS(!context._cls.empty());
   auto k = represent(context);
-  k.second.first.first = bound1;
-  k.second.first.second = bound2;
-  k.second.second = context._standardBase;
-  // TODO(hzzv): when induction with free variable works for multiple literals,
-  // remove the above and use the following:
-  //k.second.first = bound1;
-  //k.second.second = bound2;
+  k.second.first = bound1;
+  k.second.second = bound2;
   return _map.getValuePtr(std::move(k), e);
 }
 
