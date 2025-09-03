@@ -273,11 +273,11 @@ void Preprocess::preprocess(Problem& prb)
 
     newCnf(prb);
   } else {
-    if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
-      ASS(prb.hasPolymorphicSym() || prb.isHigherOrder());
+    if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with higher-order
+      ASS(prb.isHigherOrder());
       if (outputAllowed()) {
         addCommentSignForSZS(std::cout);
-        std::cout << "WARNING: Not using newCnf currently not compatible with polymorphic/higher-order inputs." << endl;
+        std::cout << "WARNING: Not using 'newcnf' as currently not compatible with higher-order inputs." << endl;
       }
     }
 
