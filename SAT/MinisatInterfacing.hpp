@@ -78,7 +78,7 @@ public:
 
   SATClauseList *minimizePremises(SATClauseList *premises) override {
     SATLiteralStack assumps;
-    for(unsigned i = 0; i < _assumptions.size(); i++)
+    for(int i = 0; i < _assumptions.size(); i++)
       assumps.push(minisatLit2Vampire(_assumptions[i]));
     return minimizePremiseList(premises, assumps);
   }
