@@ -1755,20 +1755,11 @@ Literal::Literal()
 }
 
 bool Literal::computable() const {
-  if (!env.signature->getPredicate(this->functor())->computable()) {
-    return false;
-  }
-  for (unsigned i = 0; i < arity(); ++i) {
-    const TermList* t = nthArgument(i);
-    if (!t->isTerm() || !t->term()->computable()) {
-      return false;
-    }
-  }
-  return true;
+  return ground() && computableOrVar();
 }
 
 bool Literal::computableOrVar() const {
-  if (!env.signature->getPredicate(this->functor())->computable()) {
+  if (!static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->isPredicateComputable(this->functor())) {
     return false;
   }
   for (unsigned i = 0; i < arity(); ++i) {
@@ -1917,25 +1908,16 @@ TermList Term::typeArg(unsigned n) const
 }
 
 bool Term::computable() const {
-  if (!env.signature->getFunction(this->functor())->computable()) {
-    return false;
-  }
-  SubtermIterator sit(this);
-  while (sit.hasNext()) {
-    TermList t = sit.next();
-    if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) {
-      return false;
-    }
-  }
-  return true;
+  return ground() && computableOrVar();
 }
 
 bool Term::computableOrVarHelper(DHMap<unsigned, unsigned>* recAncestors) const {
   Signature::Symbol* symbol = env.signature->getFunction(functor());
   Shell::SynthesisALManager* synthMan = static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance());
 
-  if (!symbol->computable()) { // either symbol marked as uncomputable in the input, or a skolem
-    if (!symbol->skolem()) {
+  if (!synthMan->isFunctionComputable(functor())) {
+    // either an uncomputable symbol from the input, or an introduced symbol
+    if (!symbol->skolem()) { // computability of skolems depends on the context, all else is really uncomputable
       return false;
     }
     if (!synthMan->isRecTerm(this)) { // non-rec skolem terms need to be specifically allowed

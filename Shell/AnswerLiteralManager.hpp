@@ -196,6 +196,12 @@ public:
 
   static void pushEqualityConstraints(LiteralStack* ls, Literal* thenLit, Literal* elseLit);
 
+  bool isFunctionComputable(unsigned functor) const;
+  bool isPredicateComputable(unsigned functor) const;
+
+  bool addDeclaredSymbolAnnotatedAsUncomputable(std::pair<unsigned, bool> p) { return _annotatedUncomputable.insert(p); }
+  bool addIntroducedComputableSymbol(std::pair<unsigned, bool> p) { return _introducedComputable.insert(p); }
+
 protected:
   void recordSkolemBinding(Term*,unsigned,std::string) override;
 
@@ -301,6 +307,12 @@ private:
   DHMap<unsigned, SkolemTracker*> _skolemTrackers;
   // Function heads corresponding to all rec-symbols created in Induction, indexed by the rec-function symbol number.
   DHMap<unsigned, std::vector<Term*>> _functionHeads;
+
+  // Sets of <functor, isPredicate> pairs representing symbols that are:
+  // 1. Marked as uncomputable in the input file
+  DHSet<std::pair<unsigned, bool>> _annotatedUncomputable;
+  // 2. symbols introduced during proving, yet computable
+  DHSet<std::pair<unsigned, bool>> _introducedComputable;
 };
 
 }

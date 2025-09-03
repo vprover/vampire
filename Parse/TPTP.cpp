@@ -30,6 +30,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
@@ -4878,14 +4879,17 @@ void TPTP::vampire()
     if (!uncomputable) {
       env.colorUsed = true;
     }
-    Signature::Symbol* sym = pred
-                             ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
-                             : env.signature->getFunction(env.signature->addFunction(symb,arity));
+    unsigned f = pred ? env.signature->addPredicate(symb,arity) : env.signature->addFunction(symb,arity);
+    Signature::Symbol* sym = pred ? env.signature->getPredicate(f) : env.signature->getFunction(f);
     if (skip) {
       sym->markSkip();
     }
     else if (uncomputable) {
-      sym->markUncomputable();
+      if (env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
+        std::cout << "% WARNING: Found the :uncomputable option but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
+      } else {
+        static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addDeclaredSymbolAnnotatedAsUncomputable(std::make_pair(f, pred));
+      }
     }
     else {
       ASS_NEQ(color, COLOR_INVALID);
