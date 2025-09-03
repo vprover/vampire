@@ -29,8 +29,9 @@ Clause* UncomputableAnswerLiteralRemoval::simplify(Clause* cl)
   unsigned cLen = cl->length();
   for (unsigned li = 0; li < cLen; li++) {
     Literal* lit = (*cl)[li];
-    if (lit->isAnswerLiteral() && !lit->computableOrVar())
+    if (lit->isAnswerLiteral() && !lit->computableOrVar()) {
       return nullptr;
+    }
   }
   return cl;
 }

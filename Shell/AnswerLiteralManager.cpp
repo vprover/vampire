@@ -164,8 +164,11 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     while (VList::isNonEmpty(fVars)) {
       unsigned var = fVars->head();
       fVars = fVars->tail();
-      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
+      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in");
       Signature::Symbol* skSym = env.signature->getFunction(skFun);
+      if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
+        ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(skFun, /*isPredicate=*/false)));
+      }
       TermList sort;
       if (SList::isNonEmpty(fSrts)) {
         sort = fSrts->head();
@@ -368,6 +371,9 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,SList* srts,Formula*
   predSym->markAnswerPredicate();
   // don't need equality proxy for answer literals
   predSym->markSkipCongruence();
+  if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
+    ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(pred, /*isPredicate=*/true)));
+  }
   return Literal::create(pred, vcnt, true, litArgs.begin());
 }
 
@@ -688,8 +694,8 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
       for (unsigned i = 0; i < arity; ++i) {
         argSorts.push(ot->arg(i));
       }
-      if (!env.signature->getPredicate(l->functor())->computable()) {
-        sym->markUncomputable();
+      if (isPredicateComputable(l->functor())) {
+        ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
       }
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
@@ -714,7 +720,7 @@ Term* SynthesisALManager::createRegularITE(Term* condition, TermList thenBranch,
 
 void SynthesisALManager::ConjectureSkolemReplacement::bindSkolemToTermList(Term* t, TermList&& tl) {
   ASS(!_skolemToTermList.find(t));
-  if (env.signature->getFunction(t->functor())->computable()) {
+  if (static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->isFunctionComputable(t->functor())) {
     ++_numInputSkolems;
   }
   _skolemToTermList.insert(t, std::move(tl));
@@ -979,6 +985,18 @@ bool SynthesisALManager::hasRecTerm(Literal* lit) {
     }
   }
   return false;
+}
+
+bool SynthesisALManager::isFunctionComputable(unsigned functor) const {
+  Signature::Symbol* s = env.signature->getFunction(functor);
+  return (s->introduced() && _introducedComputable.contains(make_pair(functor, false))) ||
+    (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, false)));
+}
+
+bool SynthesisALManager::isPredicateComputable(unsigned functor) const {
+  Signature::Symbol* s = env.signature->getPredicate(functor);
+  return (s->introduced() && _introducedComputable.contains(make_pair(functor, true))) ||
+    (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, true)));
 }
 
 }
