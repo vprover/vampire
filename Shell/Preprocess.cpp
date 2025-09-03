@@ -160,14 +160,10 @@ void Preprocess::preprocess(Problem& prb)
 
 
   if (prb.hasFOOL() || prb.isHigherOrder()) {
-    // This is the point to extend the signature with $$true and $$false
-    // If we don't have fool then these constants get in the way (a lot)
-
-    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.isHigherOrder()) {
+    if (!_options.newCNF() || prb.isHigherOrder()) {
       if (env.options->showPreprocessing())
         std::cout << "FOOL elimination" << std::endl;
 
-      TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
   }
@@ -271,18 +267,17 @@ void Preprocess::preprocess(Problem& prb)
     Shuffling::shuffle(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() &&
-     !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
+  if (prb.mayHaveFormulas() && _options.newCNF() && !prb.isHigherOrder()) {
     if (env.options->showPreprocessing())
       std::cout << "newCnf" << std::endl;
 
     newCnf(prb);
   } else {
-    if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
-      ASS(prb.hasPolymorphicSym() || prb.isHigherOrder());
+    if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with higher-order
+      ASS(prb.isHigherOrder());
       if (outputAllowed()) {
         addCommentSignForSZS(std::cout);
-        std::cout << "WARNING: Not using newCnf currently not compatible with polymorphic/higher-order inputs." << endl;
+        std::cout << "WARNING: Not using 'newcnf' as currently not compatible with higher-order inputs." << endl;
       }
     }
 
@@ -310,6 +305,11 @@ void Preprocess::preprocess(Problem& prb)
 
   prb.getProperty();
 
+  if (prb.hasFOOL()) {
+    // This is the point to extend the signature with $$true and $$false
+    // If we don't have fool then these constants get in the way (a lot).
+    TheoryAxioms(prb).applyFOOL();
+  }
 
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=ExecutionPhase::FUNCTION_DEFINITION_ELIMINATION;
@@ -515,8 +515,8 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || prb.isHigherOrder() || prb.hasPolymorphicSym()) {
-      // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
+    if (!_options.newCNF() || prb.isHigherOrder()) {
+      // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder)
       fu = SimplifyFalseTrue::simplify(fu);
     }
     if (fu!=rectFu) {
