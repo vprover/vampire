@@ -516,7 +516,7 @@ void Preprocess::preprocess1 (Problem& prb)
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
     if (!_options.newCNF() || prb.isHigherOrder()) {
-      // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
+      // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder)
       fu = SimplifyFalseTrue::simplify(fu);
     }
     if (fu!=rectFu) {
