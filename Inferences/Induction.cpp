@@ -22,7 +22,6 @@
 
 #include "Indexing/ResultSubstitution.hpp"
 #include "Lib/BitUtils.hpp"
-#include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -521,8 +520,7 @@ void InductionClauseIterator::processClause(Clause* premise)
   // The premise should either contain a literal on which we want to apply induction,
   // or it should be an integer constant comparison we use as a bound.
   if (InductionHelper::isInductionClause(premise)) {
-    for (unsigned i=0;i<premise->length();i++) {
-      Literal* lit = (*premise)[i];
+    for (Literal* lit : premise->iterLits()) {
       if (!lit->isAnswerLiteral()) {
         processLiteral(premise, lit);
       }
@@ -823,8 +821,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else if (((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) || !env.options->inductionGroundOnly()) &&
-             InductionHelper::isStructInductionOn() && InductionHelper::isNonGroundInductionLiteral(lit)) {
+  } else if ((!env.options->inductionGroundOnly()) && InductionHelper::isStructInductionOn() && InductionHelper::isNonGroundInductionLiteral(lit)) {
     // TODO: generalize to multiple free variables
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
@@ -1176,19 +1173,19 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
     }
   }
 
-
+  // After renaming is done, we might still be left with the variable that was free in the induction literal.
+  // Substitute it by the skolem term from the induction clause.
   if (indLitSubst) {
     auto substItems = indLitSubst->items();
     ALWAYS(substItems.hasNext());
     auto varTermPair = substItems.next();
     ASS(!substItems.hasNext());
-    Substitution indLitSubstAfterRenaming;
     TermList renamedVar = renaming.apply(TermList(varTermPair.first, false), 1);
     ASS(renamedVar.isVar());
     ASS(varTermPair.second.isTerm())
     TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
-    TermList t(varTermPair.second);
-    Term* toBind = tr.transform(t.term());
+    Term* toBind = tr.transform(const_cast<Term*>(varTermPair.second.term()));
+    Substitution indLitSubstAfterRenaming;
     indLitSubstAfterRenaming.bindUnbound(renamedVar.var(), renaming.apply(TermList(toBind), 0));
     for (Literal* l : beforeFinalSubstitution) {
       resLits->push(SubstHelper::apply<Substitution>(l, indLitSubstAfterRenaming));
