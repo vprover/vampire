@@ -32,6 +32,7 @@
 #include "Shell/Shuffling.hpp"
 #include "Shell/TheoryFinder.hpp"
 
+#include <sys/wait.h>
 #include <limits>
 #include <unistd.h>
 #include <signal.h>
