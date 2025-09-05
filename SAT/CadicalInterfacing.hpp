@@ -17,6 +17,7 @@
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
+#include "MinisatInterfacing.hpp"
 
 #include "cadical/src/cadical.hpp"
 
@@ -56,6 +57,13 @@ public:
 
   Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
   SATLiteralStack failedAssumptions() override;
+
+  SATClauseList *minimizePremises(SATClauseList *premises) override {
+    SATLiteralStack assumps;
+    for(int l : _assumptions)
+      assumps.push(cadical2Vampire(l));
+    return MinisatInterfacing<>::minimizePremiseList(premises, assumps);
+  }
 
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);

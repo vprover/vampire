@@ -736,7 +736,7 @@ struct NonspecificInferenceMany {
   UnitList* premises;
 };
 
-struct FromSatRefutation; // defined in SATInference.hpp
+struct NeedsMinimization; // defined in SATInference.hpp
 
 class Inference;
 std::ostream& operator<<(std::ostream& out, Inference const& self);
@@ -752,7 +752,7 @@ private:
   enum class Kind : unsigned char {
     INFERENCE_012,
     INFERENCE_MANY,
-    INFERENCE_FROM_SAT_REFUTATION
+    SAT_NEEDS_MINIMIZATION
   };
 
   void initDefault(UnitInputType inputType, InferenceRule r) {
@@ -805,7 +805,7 @@ public:
   Inference(const NonspecificInference2& gi);
   Inference(const NonspecificInferenceMany& gi);
 
-  Inference(const FromSatRefutation& fsr);
+  Inference(const NeedsMinimization& fsr);
 
   Inference(const Inference&) = default;
 

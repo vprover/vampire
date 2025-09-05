@@ -85,7 +85,6 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       {
-        _solverIsSMT = true;
         inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
@@ -111,13 +110,7 @@ void SplittingBranchSelector::init()
     _ccMultipleCores = (_parent.getOptions().ccUnsatCores() != Options::CCUnsatCores::FIRST);
   }
 
-  auto satSolver = _parent.getOptions().satSolver();
-  ::new(&_solver) ProofProducingSATSolver(
-    inner,
-    /* can minimize if */
-    satSolver == Options::SatSolver::MINISAT ||
-    satSolver == Options::SatSolver::CADICAL
-  );
+  ::new(&_solver) ProofProducingSATSolver(inner);
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -182,34 +175,34 @@ static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 
 void SplittingBranchSelector::handleSatRefutation()
 {
-  SATClause* satRefutation = _solver.getRefutation();
-  SATClauseList* satPremises = env.options->minimizeSatProofs() ?
-      _solver.getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
+  SATClauseList* satPremises = env.options->minimizeSatProofs()
+    ? _solver.minimizedPremises()
+    : _solver.premiseList();
+  ASS(satPremises);
 
   if (!env.colorUsed) { // color oblivious, simple approach
-    UnitList* prems = SATInference::getFOPremises(satRefutation);
+    UnitStack premStack;
+    for(SATClause *satPrem : iterTraits(satPremises->iter()))
+      SATInference::collectFOPremises(satPrem, premStack);
+    UnitList* prems = UnitList::fromIterator(premStack.iter());
 
-    Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),
-        FromSatRefutation(_solverIsSMT ? InferenceRule::AVATAR_REFUTATION_SMT : InferenceRule::AVATAR_REFUTATION, prems, satPremises));
+    Clause* foRef = Clause::empty(NonspecificInferenceMany(
+#if VZ3
+      _parent.hasSMTSolver
+      ? InferenceRule::AVATAR_REFUTATION_SMT
+      : InferenceRule::AVATAR_REFUTATION,
+#else
+      InferenceRule::AVATAR_REFUTATION,
+#endif
+      prems
+    ));
+
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
-
-    // collect actually used SAT premises
-    SATClauseStack actualSatPremises;
-
-    if (satPremises) { // does our SAT solver support postponed minimization?
-      SATLiteralStack dummy;
-      SATClauseList* minimizedSatPremises = MinisatInterfacing<>::minimizePremiseList(satPremises,dummy);
-
-      actualSatPremises.loadFromIterator(SATClauseList::DestructiveIterator(minimizedSatPremises));
-    } else {
-      SATInference::collectPropAxioms(satRefutation,actualSatPremises);
-    }
-
     // decide which side is "bigger" and should go "first"
     int colorCnts[3] = {0,0,0};
-    SATClauseStack::Iterator it1(actualSatPremises);
+    SATClauseList::Iterator it1(satPremises);
     while (it1.hasNext()) {
       SATClause* scl = it1.next();
       // cout << "SAT: " << scl->toString() << endl;
@@ -233,7 +226,7 @@ void SplittingBranchSelector::handleSatRefutation()
     SATClauseStack second;
     UnitList* second_prems = UnitList::empty();
 
-    SATClauseStack::Iterator it2(actualSatPremises);
+    SATClauseList::Iterator it2(satPremises);
     while (it2.hasNext()) {
       SATClause* scl = it2.next();
       Unit* u;

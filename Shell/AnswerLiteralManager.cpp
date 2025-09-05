@@ -642,7 +642,7 @@ Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* t
 
 void SynthesisALManager::pushEqualityConstraints(LiteralStack* ls, Literal* thenLit, Literal* elseLit) {
   ASS_EQ(thenLit->functor(), elseLit->functor());
-  for (int i = 0; i < thenLit->arity(); ++i) {
+  for (unsigned i = 0; i < thenLit->arity(); ++i) {
     TermList& t = *thenLit->nthArgument(i);
     TermList& e = *elseLit->nthArgument(i);
     if (t != e) {
