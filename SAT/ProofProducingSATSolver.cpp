@@ -33,9 +33,9 @@ struct Watched {
   SATLiteral watching(Which which) { return (*cl)[watch[which]]; }
 };
 
-class RUPper {
+class ReverseUnitPropagator {
 public:
-  RUPper(SATClauseList *initial) {
+  ReverseUnitPropagator(SATClauseList *initial) {
     for(SATClause *cl : iterTraits(initial->iter()))
       addClause(cl);
   }
@@ -47,13 +47,9 @@ public:
     if(conflict)
       return;
 
-    std::cout << "add: " << *cl << '\n';
     // special-case units
-    if(cl->length() == 1) {
-      _queue.push_back({(*cl)[0], cl});
-      propagate<false>();
-      return;
-    }
+    if(cl->length() == 1)
+      return enqueue_and_propagate<false>((*cl)[0], cl);
 
     // initially watch the first two literals, which may not be correct
     Watched w { cl, {0, 1} };
@@ -61,7 +57,7 @@ public:
     // correct the watched literals
     for(Which which : {W1, W2})
       // if a watched literal is not satisfied, update the watch
-      if(set(w.watching(which).opposite()) && !update_watch<false>(w, which)) {
+      if(set(w.watching(which).opposite()) && !update_watch(w, which)) {
         // if that fails, can propagate
         propagate<false>();
         return;
@@ -72,15 +68,23 @@ public:
     _watch[w.watching(W2).opposite()].push_back(shared);
   }
 
-  SATClauseList *rup(SATLiteralStack &hint) {
-    SATClauseList *result = nullptr;
-    ASS(!conflict)
-    for(SATLiteral l : hint)
-      _queue.push_back({l.opposite(), nullptr});
-    propagate<true>();
-    // TODO could notice that some literals aren't used and derive a shorter proof clause
-    ASS(conflict)
+  SATClause *rup(SATLiteralStack &hint) {
+    ASS(_queue.empty())
+    unsigned restore_conflict = conflict;
 
+    // final literals that will be in the learned clause
+    // might be a subset of the hint
+    SATLiteralStack lits;
+    for(SATLiteral l : hint) {
+      if(conflict)
+        break;
+      lits.push(l);
+      enqueue_and_propagate<true>(l.opposite(), nullptr);
+    }
+    ASS(conflict)
+    auto cl = SATClause::fromStack(lits);
+
+    SATClauseList *premises = nullptr;
     std::unordered_set<SATLiteral> done;
     std::vector<SATLiteral> todo = {SATLiteral(conflict, false), SATLiteral(conflict, true)};
     while(!todo.empty()) {
@@ -91,7 +95,7 @@ public:
       ASS(set(next))
       SATClause *justification = _justification[next];
       if(justification) {
-        SATClauseList::push(justification, result);
+        SATClauseList::push(justification, premises);
         for(SATLiteral l : justification->iter())
           if(l != next && !done.count(l.opposite()))
             todo.push_back(l.opposite());
@@ -101,16 +105,15 @@ public:
     for(SATLiteral l : _undo)
       ALWAYS(_justification.erase(l))
     _undo.clear();
-    conflict = 0;
+    conflict = restore_conflict;
 
-    return result;
+    cl->setInference(new PropInference(premises));
+    return cl;
   }
 
 private:
   bool set(SATLiteral l) const { return _justification.count(l); }
 
-  // TODO move to Watched
-  template<bool duringQuery>
   bool update_watch(Watched &watched, Which which) {
     ASS_NEQ(watched.watch[W1], watched.watch[W2])
     // should have something to do
@@ -135,6 +138,13 @@ private:
   }
 
   template<bool duringQuery>
+  void enqueue_and_propagate(SATLiteral l, SATClause *cl) {
+    ASS(_queue.empty())
+    _queue.push_back({l, cl});
+    propagate<duringQuery>();
+  }
+
+  template<bool duringQuery>
   void propagate() {
     while(!_queue.empty()) {
       auto [l, cl] = _queue.front();
@@ -153,7 +163,6 @@ private:
         return;
       }
 
-      // TODO don't insert a new entry here
       auto &lookup = _watch[l];
       std::vector<std::shared_ptr<Watched>> watched_clauses = std::move(lookup);
       lookup.clear();
@@ -162,7 +171,7 @@ private:
         // 1. If no propagation, move the clause to a new watched literal.
         // 2. If there is a propagation during a query, keep the clause where it was -
         //    when the query is over the clause will be in the right place.
-        if(update_watch<duringQuery>(*watched, which) || duringQuery) {
+        if(update_watch(*watched, which) || duringQuery) {
           SATLiteral new_watch = watched->watching(which);
           _watch[new_watch.opposite()].push_back(watched);
         }
@@ -181,9 +190,9 @@ private:
 };
 
 
-void ProofProducingSATSolver::proof() {
+SATClause *ProofProducingSATSolver::proof() {
   // TODO deal with the empty-clause case
-  RUPper rupper(_addedClauses);
+  ReverseUnitPropagator rupper(_addedClauses);
 
   std::ifstream drat(CadicalInterfacing::drat(_addedClauses));
   char byte;
@@ -195,6 +204,8 @@ void ProofProducingSATSolver::proof() {
     unsigned mapped = 0, place = 1;
     lits.reset();
     while(drat.read(&byte, 1) && byte) {
+      if(header != 'a')
+        continue;
       uint8_t bits = byte;
       bool more_bytes = bits & 0b10000000;
       bits &= 0b01111111;
@@ -206,21 +217,15 @@ void ProofProducingSATSolver::proof() {
       }
       else place <<= 7;
     }
+    if(header != 'a')
+      continue;
 
-    if(header == 'a') {
-      SATClauseList *parents = rupper.rup(lits);
-      auto cl = SATClause::fromStack(lits);
-      for(SATClauseList *current = parents; current; current = current->tail())
-        std::cout << *current->head() << '\n';
-      std::cout << "---------------------------------------------------------\n";
-      std::cout << *cl << "\n\n\n";
-      rupper.addClause(cl);
-      // TODO check rup to get parents
-    }
-    // TODO deletion
+    SATClause *cl = rupper.rup(lits);
+    rupper.addClause(cl);
   }
-
   ASS(rupper.conflict)
+  lits.reset();
+  return rupper.rup(lits);
 }
 
 }

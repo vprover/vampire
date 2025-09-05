@@ -636,12 +636,6 @@ inline bool isExternalTheoryAxiomRule(InferenceRule r) {
   return r == InferenceRule::EXTERNAL_THEORY_AXIOM;
 }
 
-inline bool isSatRefutationRule(InferenceRule r) {
-  return (r == InferenceRule::AVATAR_REFUTATION) ||
-         (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
-         (r == InferenceRule::GLOBAL_SUBSUMPTION);
-}
-
 std::string inputTypeName(UnitInputType type);
 std::string ruleName(InferenceRule rule);
 
@@ -752,6 +746,7 @@ private:
   enum class Kind : unsigned char {
     INFERENCE_012,
     INFERENCE_MANY,
+    SAT,
     SAT_NEEDS_MINIMIZATION
   };
 
@@ -806,6 +801,9 @@ public:
   Inference(const NonspecificInferenceMany& gi);
 
   Inference(const NeedsMinimization& fsr);
+
+  /* put a SAT refutation in the Vampire inference graph */
+  Inference(SAT::SATClause *cl);
 
   Inference(const Inference&) = default;
 
@@ -1003,6 +1001,9 @@ public:
     ASS(!_splits);
     _splits=splits;
   }
+
+  SAT::SATClause *satPremise() const
+  { return _kind == Kind::SAT ? static_cast<SAT::SATClause *>(_ptr2) : nullptr; }
 
   /** Return the age */
   unsigned age() const { return _age; }

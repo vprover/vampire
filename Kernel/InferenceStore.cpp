@@ -229,8 +229,9 @@ struct InferenceStore::ProofPrinter
 
   virtual void print()
   {
-    for(Unit *u : proof)
+    for(Unit *u : proof) {
       printStep(u);
+    }
   }
 
 protected:

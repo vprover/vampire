@@ -82,10 +82,9 @@ public:
   SATClauseList *minimizedPremises() { return _inner->minimizePremises(_addedClauses); }
 
   /*
-   * run CaDiCaL on `premiseList` to get a DRAT proof,
-   * then convert it to a Vampire proof
+   * run CaDiCaL on `premiseList` to get a DRAT proof
    */
-  void proof();
+  SATClause *proof();
 
 private:
   ScopedPtr<SATSolver> _inner;
