@@ -12,8 +12,9 @@
  * Implements class Induction.
  */
 
-#include <utility>
 #include <set>
+#include <utility>
+#include <vector>
 
 #include "Lib/Output.hpp"
 #include "Forwards.hpp"
@@ -22,22 +23,24 @@
 
 #include "Indexing/ResultSubstitution.hpp"
 #include "Lib/BitUtils.hpp"
-#include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/Set.hpp"
 
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
-#include "Kernel/NumTraits.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 
 #include "Induction.hpp"
 
@@ -518,8 +521,10 @@ void InductionClauseIterator::processClause(Clause* premise)
   // The premise should either contain a literal on which we want to apply induction,
   // or it should be an integer constant comparison we use as a bound.
   if (InductionHelper::isInductionClause(premise)) {
-    for (unsigned i=0;i<premise->length();i++) {
-      processLiteral(premise,(*premise)[i]);
+    for (Literal* lit : premise->iterLits()) {
+      if (!lit->isAnswerLiteral()) {
+        processLiteral(premise, lit);
+      }
     }
   }
   if (InductionHelper::isIntInductionOneOn() && InductionHelper::isIntegerComparison(premise)) {
@@ -840,7 +845,6 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         }
       }
     }
-
   }
 }
 
@@ -908,7 +912,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 {
   NewCNF cnf(0);
   cnf.setForInduction();
-  Stack<Clause*> hyp_clauses;
+  ClauseStack hyp_clauses;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   unsigned maxInductionDepth = 0;
   for (const auto& kv : context._cls) {
@@ -921,6 +925,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   }
   cnf.clausify(NNF::ennf(fu), hyp_clauses, bindings);
 
+  // TODO: add separate stats for induction with an existentially quantified variable
   switch (rule) {
     case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
     case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
@@ -1138,6 +1143,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
     }
   }
 
+  vector<Literal*> beforeFinalSubstitution;
   for (const auto& kv : toResolve) {
     for (unsigned i = 0; i < kv.first->length(); i++) {
       bool copyCurr = true;
@@ -1150,16 +1156,35 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
         }
       }
       if (copyCurr) {
-        Literal* l = (*kv.first)[i];
+        Literal* l = renaming.apply((*kv.first)[i], 1);
         if (indLitSubst) {
-          l = SubstHelper::apply<Substitution>((*kv.first)[i], *indLitSubst);
-          TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
-          l = tr.transformLiteral(l);
+          beforeFinalSubstitution.push_back(l);
+        } else {
+          resLits->push(l);
         }
-        resLits->push(renaming.apply(l,1));
       }
     }
   }
+
+  // After renaming is done, we might still be left with the variable that was free in the induction literal.
+  // Substitute it by the skolem term from the induction clause.
+  if (indLitSubst) {
+    auto substItems = indLitSubst->items();
+    ALWAYS(substItems.hasNext());
+    auto varTermPair = substItems.next();
+    ASS(!substItems.hasNext());
+    TermList renamedVar = renaming.apply(TermList(varTermPair.first, false), 1);
+    ASS(renamedVar.isVar());
+    ASS(varTermPair.second.isTerm())
+    TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
+    Term* toBind = tr.transform(const_cast<Term*>(varTermPair.second.term()));
+    Substitution indLitSubstAfterRenaming;
+    indLitSubstAfterRenaming.bindUnbound(renamedVar.var(), renaming.apply(TermList(toBind), 0));
+    for (Literal* l : beforeFinalSubstitution) {
+      resLits->push(SubstHelper::apply<Substitution>(l, indLitSubstAfterRenaming));
+    }
+  }
+
 
   return Clause::fromStack(*resLits, inf);
 }
@@ -1363,9 +1388,15 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   if (context._indTerms.size() > 1) return;
   TermList sort = SortHelper::getResultSort(context._indTerms[0]);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+
+  // Synthesis specific:
+  SynthesisALManager* synthMan = static_cast<SynthesisALManager*>((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) ? SynthesisALManager::getInstance() : nullptr);
+  std::vector<Term*> fnHeads;
+  vector<Shell::SkolemTracker> skolemTrackers;
+
   unsigned numTypeArgs = sort.term()->arity();
   unsigned freeVar = context.getFreeVariable(); // variable free in the induction literal
-  unsigned var = freeVar+1; // used in the following to construct new variables
+  unsigned var = freeVar + 1 + (synthMan ? synthMan->numInputSkolems() : 0); // used in the following to construct new variables
   for (const auto& kv : context._cls) {
     if (kv.first->maxVar() + 1 > var) {
       var = kv.first->maxVar() + 1;
@@ -1394,11 +1425,28 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
         VList::push(w.var(), ws);
         Formula* curLit = context.getFormulaWithFreeVar({ y }, freeVar, w);
         FormulaList::push(curLit, hyps); // L[y_j, w_j]
+        // Synthesis specific:
+        if (synthMan) {
+          // Store SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
+          skolemTrackers.emplace_back(Binding(w.var(), nullptr), i, true, j);
+        }
+      }
+      // Synthesis specific:
+      if (synthMan) {
+        // Store SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
+        skolemTrackers.emplace_back(Binding(y.var(), nullptr), i, false, j);
       }
     }
     TermList u(var++, false);
     VList::push(u.var(), us);
+
     Term* tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
+
+    // Synthesis specific:
+    if (synthMan) {
+      fnHeads.push_back(tcons);
+    }
+
     Formula* consequent = context.getFormulaWithFreeVar({ TermList(tcons) }, freeVar, u);
     Formula* step = (VList::isEmpty(ws)) ? consequent :
       new BinaryFormula(Connective::IMP, JunctionFormula::generalJunction(Connective::AND, hyps), consequent); // (/\_{j ∈ P_c} L[y_j, w_j]) --> L[cons(y_1, ..., y_n), u_i]
@@ -1431,8 +1479,14 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   // This is used later in resolution.
   Term* xSkolem = bindings.get(xvar, nullptr);
   ASS(xSkolem != nullptr);
+  ASS_EQ(*(xSkolem->nthArgument(xSkolem->arity()-1)), z);
   ASS(freeVarSubst != nullptr);
   freeVarSubst->bindUnbound(int(freeVar), SubstHelper::apply<Substitution>(xSkolem, subst));
+
+  // Synthesis specific:
+  if (synthMan) {
+    synthMan->registerSkolemSymbols(xSkolem, bindings, fnHeads, skolemTrackers, us);
+  }
 
   e->add(std::move(hyp_clauses), std::move(subst));
   return;

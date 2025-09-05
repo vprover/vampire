@@ -58,7 +58,6 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _skolem(0),
     _skipCongruence(0),
     _tuple(0),
-    _computable(1),
     _letBound(0),
     _prox(Proxy::NOT_PROXY),
     _deBruijnIndex(-1)
@@ -880,17 +879,14 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
  * into the name of the Skolem function.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix, bool computable)
+unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 {
   unsigned f = addFreshFunction(arity, "sK", suffix);
   Symbol* s = getFunction(f);
   s->markSkolem();
-  if (!computable) {
-    s->markUncomputable();
-  }
 
   // Register it as a LaTeX function
- // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
+  // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
   _skolemFunctionCount++;
 
   return f;

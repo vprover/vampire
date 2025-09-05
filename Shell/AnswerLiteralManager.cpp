@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file AnswerExtractor.cpp
- * Implements class AnswerExtractor.
+ * @file AnswerLiteralManager.cpp
+ * Implements class AnswerLiteralManager.
  */
 
 #include <set>
@@ -164,8 +164,11 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     while (VList::isNonEmpty(fVars)) {
       unsigned var = fVars->head();
       fVars = fVars->tail();
-      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
+      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in");
       Signature::Symbol* skSym = env.signature->getFunction(skFun);
+      if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
+        ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(skFun, /*isPredicate=*/false)));
+      }
       TermList sort;
       if (SList::isNonEmpty(fSrts)) {
         sort = fSrts->head();
@@ -368,6 +371,9 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,SList* srts,Formula*
   predSym->markAnswerPredicate();
   // don't need equality proxy for answer literals
   predSym->markSkipCongruence();
+  if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
+    ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(pred, /*isPredicate=*/true)));
+  }
   return Literal::create(pred, vcnt, true, litArgs.begin());
 }
 
@@ -493,7 +499,8 @@ void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premise
 
 void SynthesisALManager::recordSkolemBinding(Term* skTerm, unsigned var, std::string)
 {
-  _skolemReplacement.bindSkolemToVar(skTerm, var);
+  // TODO(hzzv): use the var name
+  _skolemReplacement.bindSkolemToTermList(skTerm, TermList(var, false));
 }
 
 bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer)
@@ -504,6 +511,8 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   if (_lastAnsLit) {
     AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
   }
+
+  _skolemReplacement.associateRecMappings(&_recursionMappings, &_functionHeads);
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
@@ -551,6 +560,9 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   }
   // just a single literal answer
   answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT)));
+
+  outputRecursiveFunctions();
+
   return true;
 }
 
@@ -682,8 +694,8 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
       for (unsigned i = 0; i < arity; ++i) {
         argSorts.push(ot->arg(i));
       }
-      if (!env.signature->getPredicate(l->functor())->computable()) {
-        sym->markUncomputable();
+      if (isPredicateComputable(l->functor())) {
+        ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
       }
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
@@ -706,9 +718,27 @@ Term* SynthesisALManager::createRegularITE(Term* condition, TermList thenBranch,
   return Term::create(itefn, {TermList(condition), thenBranch, elseBranch});
 }
 
-void SynthesisALManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {
-  ASS(_skolemToVar.count(t) == 0);
-  _skolemToVar[t] = v;
+void SynthesisALManager::ConjectureSkolemReplacement::bindSkolemToTermList(Term* t, TermList&& tl) {
+  ASS(!_skolemToTermList.find(t));
+  if (static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->isFunctionComputable(t->functor())) {
+    ++_numInputSkolems;
+  }
+  _skolemToTermList.insert(t, std::move(tl));
+}
+
+TermList getConstantForVariable(TermList sort) {
+  static TermList zero(theory->representConstant(IntegerConstantType(0)));
+  if (sort == AtomicSort::intSort()) {
+    return zero;
+  } else {
+    std::string name = "cz_" + sort.toString();
+    unsigned czfn;
+    if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
+      czfn = env.signature->addFreshFunction(0, name.c_str());
+      env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+    } 
+    return TermList(Term::createConstant(czfn));
+  }
 }
 
 TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
@@ -716,18 +746,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
   if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
     TermList zero(theory->representConstant(IntegerConstantType(0)));
     if (tl.isVar()) {
-      if (sort == AtomicSort::intSort()) {
-        return zero;
-      } else {
-        std::string name = "cz_" + sort.toString();
-        unsigned czfn;
-        if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
-          czfn = env.signature->addFreshFunction(0, name.c_str());
-          env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
-        }
-        TermList res(Term::createConstant(czfn));
-        return res;
-      }
+      return getConstantForVariable(sort);
     } else {
       Substitution s;
       std::set<unsigned> done;
@@ -761,32 +780,218 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
 
 TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
   if (trm.isTerm()) {
-    auto it = _skolemToVar.find(trm.term());
-    if (it != _skolemToVar.end()) {
-      return TermList(it->second, false);
+    TermList* res = _skolemToTermList.findPtr(trm.term());
+    if (res) {
+      return *res;
     }
     Term* t = trm.term();
-    if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
-      TermList sort = env.signature->getFunction(t->functor())->fnType()->arg(1);
+    unsigned functor = t->functor();
+    if (static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->isRecTerm(t)) {
+      // Construct a new recursive function corresponding to 'trm'.
+      ASS(_recursionMappings->find(functor));
+      Function* recf = new Function(functor, this);
+      SimpleSkolemReplacement ssr(&recf->_skolemToTermList);
+      Term* transformed = ssr.transform(t);
+      recf->addCases(transformed);
+      // If the cases of the recursive function contain other recursive functions,
+      // their definitions might need skolem replacement corresponding to this function.
+      for (unsigned i = 0; i < transformed->arity()-1; ++i) {
+        // Iterate over cases and replace only the associated skolems in each.
+        TermList* narg = transformed->nthArgument(i);
+        DHMap<Term*, TermList>* m = recf->_skolemToTermListForCase.findPtr(i);
+        if (narg->isTerm() && m) {
+          ssr.setMap(m);
+          NonVariableIterator it(narg->term());
+          while (it.hasNext()) {
+            TermList tl = it.next();
+            ASS(tl.isTerm());
+            Function** fptr = _functions.findPtr(tl.term()->functor());
+            if (fptr) {
+              for (unsigned j = 0; j < (*fptr)->_cases.size(); ++j) {
+                TermList& c = (*fptr)->_cases[j];
+                if (c.isTerm()) {
+                  (*fptr)->_cases[j] = TermList(ssr.transform(c.term()));
+                }
+              }
+            }
+          }
+        }
+      }
+      unsigned rfunctor = recf->_functor;
+      _functions.insert(rfunctor, recf);
+      // Replace 'trm' by the function called on the last argument of this 'trm'.
+      return TermList(Term::create(rfunctor, {*t->nthArgument(t->arity()-1)}));
+    } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
+      TermList sort = env.signature->getFunction(functor)->fnType()->arg(1);
       if (t->functor() == static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
         std::string condName = tcond->functionName();
         unsigned pred = _condFnToPred.get(tcond->functor());
-        Stack<TermList> args;
-        for (unsigned i = 0; i < tcond->arity(); ++i) args.push(transform(*(tcond->nthArgument(i))));
         Literal* newCond;
         if (env.signature->isEqualityPredicate(pred)) {
-          newCond = Literal::createEquality(/*polarity=*/true, args[0], args[1], sort);
+          newCond = Literal::createEquality(/*polarity=*/true, *tcond->nthArgument(0), *tcond->nthArgument(1), sort);
         } else {
-          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, args.begin());
+          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, tcond->args());
         }
         // Build the whole ITE term
-        return TermList(Term::createITE(new AtomicFormula(newCond), transform(*(t->nthArgument(1))), transform(*(t->nthArgument(2))), sort));
+        return TermList(Term::createITE(new AtomicFormula(newCond), *(t->nthArgument(1)), *(t->nthArgument(2)), sort));
       }
     }
   }
   return trm;
+}
+
+void SynthesisALManager::ConjectureSkolemReplacement::outputRecursiveFunctions() {
+  VirtualIterator<Function*> it = _functions.range();
+  if (it.hasNext()) {
+    cout << "% Recursive function definitions:" << endl;
+    do {
+      cout << it.next()->toString();
+    } while (it.hasNext());
+  }
+}
+
+SynthesisALManager::ConjectureSkolemReplacement::Function::Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement) {
+  // Store the heads of each case of the new function
+  _caseHeads = replacement->_functionHeads->findPtr(recFunctor);
+  ASS(_caseHeads);
+  _cases.ensure(_caseHeads->size());
+  // Add the new function to signature
+  OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
+  TermList in = ot->arg(ot->arity()-1);
+  TermList out = ot->arg(0);
+  ASS_EQ(env.signature->getTermAlgebraOfSort(in)->nConstructors(), _caseHeads->size());
+  _functor = env.signature->addFreshFunction(/*arity=*/1, "rf");
+  Signature::Symbol* f = env.signature->getFunction(_functor);
+  f->setType(OperatorType::getFunctionType({in}, out));
+  // Process SkolemTrackers corresponding to this function:
+  // populate the maps mapping skolems to terms they represent.
+  DHMap<Term*, TermList>* caseMap;
+  const DHMap<unsigned, SkolemTracker>& mapping = replacement->_recursionMappings->get(recFunctor);
+  DHMap<unsigned, SkolemTracker>::Iterator it(mapping);
+  while (it.hasNext()) {
+    unsigned var;
+    SkolemTracker& st = it.nextRef(var);
+    ASS_EQ(var, st.binding.first);
+    ASS(!_skolemToTermList.find(st.binding.second));
+    TermList tl(st.recursiveCall ? TermList(Term::create1(_functor, *(*_caseHeads)[st.constructorId]->nthArgument(st.indexInConstructor))) : TermList(var, false));
+    _skolemToTermList.insert(st.binding.second, tl);
+    _skolemToTermListForCase.getValuePtr(st.constructorId, caseMap);
+    caseMap->insert(st.binding.second, tl);
+  }
+}
+
+void SynthesisALManager::ConjectureSkolemReplacement::Function::addCases(Term* t) {
+  ASS(_cases.size() == t->arity()-1);
+  for (unsigned i = 0; i < t->arity()-1; ++i) {
+    _cases[i] = *t->nthArgument(i);
+  }
+}
+
+void SynthesisALManager::printSkolemTrackers() {
+  cout << "Skolem mappings:" << endl;
+  DHMap<unsigned, SkolemTracker*>::Iterator it(_skolemTrackers);
+  while (it.hasNext()) {
+    SkolemTracker* st = it.next();
+    cout << st->toString() << endl;
+  }
+}
+
+void SynthesisALManager::printRecursionMappings() {
+  cout << "Recursion mappings:" << endl;
+  RecursionMappings::Iterator rit(_recursionMappings);
+  unsigned v;
+  while (rit.hasNext()) {
+    unsigned recFn;
+    auto& m = rit.nextRef(recFn);
+    cout << "  recFn " << recFn << ":" << endl; 
+    DHMap<unsigned, SkolemTracker>::Iterator mit(m);
+    while (mit.hasNext()) {
+      SkolemTracker& s = mit.nextRef(v);
+      cout << v << ": " << s.toString() << endl;
+    }
+  }
+}
+
+void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& bindings, const std::vector<Term*>& functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
+  unsigned recFnId = recTerm->functor();
+  unsigned ctorNumber = recTerm->arity()-1;
+  ASS_EQ(ctorNumber, VList::length(us));
+  ASS_EQ(ctorNumber, functionHeadsByConstruction.size());
+  // Find out what is the order of arguments in `recTerm`, and
+  // store the function heads in the correct indices in `_functionHeads`.
+  // Each of the first `ctorNumber` argumentsi of the `recTerm` should be one of `us`.
+  // The order of `us` is reverse to both the order of elements in `functionHeadsByConstruction`,
+  // and to the `constructorId` of the SkolemTrackers.
+  DArray<unsigned> ctorOrder(ctorNumber);
+  vector<Term*> functionHeads(ctorNumber);
+  VList::Iterator vit(us);
+  unsigned i = 0;
+  while (vit.hasNext()) {
+    unsigned v = vit.next();
+    bool found = false;
+    for (unsigned j = 0; j < ctorNumber; ++j) {
+      TermList& arg = *(recTerm->nthArgument(j));
+      ASS(arg.isVar());
+      if (arg.var() == v) {
+        ctorOrder[ctorNumber-i-1] = j;
+        functionHeads[j] = functionHeadsByConstruction[ctorNumber-i-1];
+        ++i;
+        found = true;
+        break;
+      }
+    }
+    ASS(found);
+  }
+  ALWAYS(_functionHeads.insert(recFnId, std::move(functionHeads)));
+
+  // Finalize SkolemTrackers and store them.
+  DHMap<unsigned, SkolemTracker>* mapping;
+  ALWAYS(_recursionMappings.getValuePtr(recFnId, mapping));
+  for (SkolemTracker& st : incompleteTrackers) {
+    ASS_EQ(st.binding.second, nullptr);
+    ASS_EQ(st.recFnId, 0);
+    const unsigned var = st.binding.first;
+    st.binding.second = bindings.get(var);
+    st.recFnId = recFnId;
+    st.constructorId = ctorOrder[st.constructorId];
+    SkolemTracker* stp;
+    ALWAYS(mapping->getValuePtr(var, stp, st));
+    _skolemTrackers.insert(st.binding.second->functor(), stp);
+  }
+}
+
+bool SynthesisALManager::isRecTerm(const Term* t) {
+  return (_recursionMappings.findPtr(t->functor()) != nullptr);
+}
+
+const SkolemTracker* SynthesisALManager::getSkolemTracker(unsigned skolemFunctor) {
+  return _skolemTrackers.get(skolemFunctor, nullptr);
+}
+
+bool SynthesisALManager::hasRecTerm(Literal* lit) {
+  NonVariableIterator it(lit);
+  while (it.hasNext()) {
+    TermList tl = it.next();
+    ASS(tl.isTerm());
+    if (isRecTerm(tl.term())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool SynthesisALManager::isFunctionComputable(unsigned functor) const {
+  Signature::Symbol* s = env.signature->getFunction(functor);
+  return (s->introduced() && _introducedComputable.contains(make_pair(functor, false))) ||
+    (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, false)));
+}
+
+bool SynthesisALManager::isPredicateComputable(unsigned functor) const {
+  Signature::Symbol* s = env.signature->getPredicate(functor);
+  return (s->introduced() && _introducedComputable.contains(make_pair(functor, true))) ||
+    (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, true)));
 }
 
 }

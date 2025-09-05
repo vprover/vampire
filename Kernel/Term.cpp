@@ -15,15 +15,16 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
-#include "Lib/Output.hpp"
-#include "Indexing/TermSharing.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/StringUtils.hpp"
-
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+
+#include "Indexing/TermSharing.hpp"
 #include "Kernel/HOL/HOL.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Output.hpp"
+#include "Lib/StringUtils.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 
 #include "Term.hpp"
 
@@ -1758,20 +1759,11 @@ Literal::Literal()
 }
 
 bool Literal::computable() const {
-  if (!env.signature->getPredicate(this->functor())->computable()) {
-    return false;
-  }
-  for (unsigned i = 0; i < arity(); ++i) {
-    const TermList* t = nthArgument(i);
-    if (!t->isTerm() || !t->term()->computable()) {
-      return false;
-    }
-  }
-  return true;
+  return ground() && computableOrVar();
 }
 
 bool Literal::computableOrVar() const {
-  if (!env.signature->getPredicate(this->functor())->computable()) {
+  if (!static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->isPredicateComputable(this->functor())) {
     return false;
   }
   for (unsigned i = 0; i < arity(); ++i) {
@@ -1920,31 +1912,57 @@ TermList Term::typeArg(unsigned n) const
 }
 
 bool Term::computable() const {
-  if (!env.signature->getFunction(this->functor())->computable()) {
-    return false;
-  }
-  SubtermIterator sit(this);
-  while (sit.hasNext()) {
-    TermList t = sit.next();
-    if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) {
+  return ground() && computableOrVar();
+}
+
+bool Term::computableOrVarHelper(DHMap<unsigned, unsigned>* recAncestors) const {
+  Signature::Symbol* symbol = env.signature->getFunction(functor());
+  Shell::SynthesisALManager* synthMan = static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance());
+
+  if (!synthMan->isFunctionComputable(functor())) {
+    // either an uncomputable symbol from the input, or an introduced symbol
+    if (!symbol->skolem()) { // computability of skolems depends on the context, all else is really uncomputable
       return false;
     }
+    if (!synthMan->isRecTerm(this)) { // non-rec skolem terms need to be specifically allowed
+      const Shell::SkolemTracker* st = synthMan->getSkolemTracker(functor());
+      if (st == nullptr) {
+         return false;
+      }
+      unsigned idx = 0;
+      if (!recAncestors->find(st->recFnId, idx) || (idx != st->constructorId)) {
+        return false;
+      }
+      return true;
+    }
   }
+
+  // Top functor is computable, now recurse.
+  unsigned* idx = nullptr;
+  if (synthMan->isRecTerm(this)) {
+    ALWAYS(recAncestors->getValuePtr(functor(), idx, -1));
+  }
+  for (unsigned i = 0; i < _arity; i++) {
+    const TermList* t = nthArgument(i);
+    if (t->isTerm()) { // else we have a variable, which needs no check
+      if (idx) {
+        *idx = i;
+      }
+      if (!t->term()->computableOrVarHelper(recAncestors)) {
+        return false;
+      }
+    }
+  }
+  if (idx) {
+    recAncestors->remove(functor());
+  }
+
   return true;
 }
 
 bool Term::computableOrVar() const {
-  if (!env.signature->getFunction(this->functor())->computable()) {
-    return false;
-  }
-  SubtermIterator sit(this);
-  while (sit.hasNext()) {
-    TermList t = sit.next();
-    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) {
-      return false;
-    }
-  }
-  return true;
+  DHMap<unsigned, unsigned> recAncestors;
+  return computableOrVarHelper(&recAncestors);
 }
 
 std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)

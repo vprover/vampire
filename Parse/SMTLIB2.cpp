@@ -30,6 +30,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/SMTLIBLogic.hpp"
@@ -2906,9 +2907,11 @@ void SMTLIB2::markSymbolUncomputable(const std::string& name)
     USER_ERROR("'"+name+"' is not a user symbol");
   }
   DeclaredSymbol& f = _declaredSymbols.get(name);
-
-  Signature::Symbol* sym = getSymbol(f);
-  sym->markUncomputable();
+  if (env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
+    std::cout << "% WARNING: Found the :uncomputable option but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
+  } else {
+    static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addDeclaredSymbolAnnotatedAsUncomputable(f);
+  }
 }
 
 }

@@ -956,6 +956,8 @@ protected:
 
   unsigned computeDistinctVars() const;
 
+  bool computableOrVarHelper(DHMap<unsigned, unsigned>* recAncestors) const;
+
   /**
    * Return argument order value stored in term.
    *
