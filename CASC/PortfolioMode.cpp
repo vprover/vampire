@@ -465,9 +465,20 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   }
 
   // kill all running processes first
-  decltype(processes)::Iterator killIt(processes);
-  while(killIt.hasNext())
-    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGINT);
+  {
+    decltype(processes)::Iterator killIt(processes);
+    while(killIt.hasNext())
+      Multiprocessing::instance()->kill(killIt.next(), SIGINT);
+  }
+  // and also wait until the killing is really done
+  // WHY: because we really want to be alone when we later start priting the proof
+  // NOTE: an alternative could (maybe) be to just use a SIGKILL above instead of SIGINT
+  {
+    decltype(processes)::Iterator killIt(processes);
+    while(killIt.hasNext()) {
+      waitpid(killIt.next(), NULL, 0);
+    }
+  }
 
   return success;
 }
