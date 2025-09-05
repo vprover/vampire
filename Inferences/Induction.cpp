@@ -12,8 +12,9 @@
  * Implements class Induction.
  */
 
-#include <utility>
 #include <set>
+#include <utility>
+#include <vector>
 
 #include "Lib/Output.hpp"
 #include "Forwards.hpp"
@@ -821,7 +822,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else if ((!env.options->inductionGroundOnly()) && InductionHelper::isStructInductionOn() && InductionHelper::isNonGroundInductionLiteral(lit)) {
+  } else if (!env.options->inductionGroundOnly() && InductionHelper::isStructInductionOn() && InductionHelper::isNonGroundInductionLiteral(lit)) {
     // TODO: generalize to multiple free variables
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
@@ -1417,7 +1418,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
 
   // Synthesis specific:
   SynthesisALManager* synthMan = static_cast<SynthesisALManager*>((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) ? SynthesisALManager::getInstance() : nullptr);
-  List<Term*>* fnHeads = List<Term*>::empty();
+  std::vector<Term*> fnHeads;
   vector<Shell::SkolemTracker> skolemTrackers;
 
   unsigned numTypeArgs = sort.term()->arity();
@@ -1505,7 +1506,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
 
     // Synthesis specific:
     if (synthMan) {
-      fnHeads->push(tcons, fnHeads);
+      fnHeads.push_back(tcons);
     }
 
     Formula* consequent = context.getFormulaWithFreeVar({ TermList(tcons) }, freeVar, u);
