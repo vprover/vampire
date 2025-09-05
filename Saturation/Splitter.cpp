@@ -186,17 +186,8 @@ void SplittingBranchSelector::handleSatRefutation()
       SATInference::collectFOPremises(satPrem, premStack);
     UnitList* prems = UnitList::fromIterator(premStack.iter());
 
-    _solver.proof();
-    Clause* foRef = Clause::empty(NonspecificInferenceMany(
-#if VZ3
-      _parent.hasSMTSolver
-      ? InferenceRule::AVATAR_REFUTATION_SMT
-      : InferenceRule::AVATAR_REFUTATION,
-#else
-      InferenceRule::AVATAR_REFUTATION,
-#endif
-      prems
-    ));
+    SATClause *satProof = _solver.proof();
+    Clause* foRef = Clause::empty(Inference(satProof));
 
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
