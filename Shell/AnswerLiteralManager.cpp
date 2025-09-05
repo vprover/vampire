@@ -914,16 +914,18 @@ void SynthesisALManager::printRecursionMappings() {
   }
 }
 
-void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& bindings, const List<Term*>* functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
+void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& bindings, const std::vector<Term*>& functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
   unsigned recFnId = recTerm->functor();
   unsigned ctorNumber = recTerm->arity()-1;
   ASS_EQ(ctorNumber, VList::length(us));
-  ASS_EQ(ctorNumber, List<Term*>::length(functionHeadsByConstruction));
-  // Find out what is the order of arguments in `recTerm`.
-  // Each of the first `ctorNumber` arguments should be one of `us`.
-  // The order of `us` is the same as the order of `functionHeadsByConstruction`,
-  // and reverse to the `constructorId` of the SkolemTrackers.
+  ASS_EQ(ctorNumber, functionHeadsByConstruction.size());
+  // Find out what is the order of arguments in `recTerm`, and
+  // store the function heads in the correct indices in `_functionHeads`.
+  // Each of the first `ctorNumber` argumentsi of the `recTerm` should be one of `us`.
+  // The order of `us` is reverse to both the order of elements in `functionHeadsByConstruction`,
+  // and to the `constructorId` of the SkolemTrackers.
   DArray<unsigned> ctorOrder(ctorNumber);
+  vector<Term*> functionHeads(ctorNumber);
   VList::Iterator vit(us);
   unsigned i = 0;
   while (vit.hasNext()) {
@@ -934,20 +936,13 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsign
       ASS(arg.isVar());
       if (arg.var() == v) {
         ctorOrder[ctorNumber-i-1] = j;
+        functionHeads[j] = functionHeadsByConstruction[ctorNumber-i-1];
         ++i;
         found = true;
         break;
       }
     }
     ASS(found);
-  }
-  // Store `functionHeads` in the correct indices in `_functionHeads`.
-  List<Term*>::Iterator fhit(functionHeadsByConstruction);
-  i = 0;
-  vector<Term*> functionHeads(ctorNumber);
-  while (fhit.hasNext()) {
-    functionHeads[ctorOrder[ctorNumber-i-1]] = fhit.next();
-    ++i;
   }
   ALWAYS(_functionHeads.insert(recFnId, std::move(functionHeads)));
 

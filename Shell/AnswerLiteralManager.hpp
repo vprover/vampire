@@ -16,6 +16,7 @@
 #define __AnswerLiteralManager__
 
 #include <map>
+#include <vector>
 
 #include "Forwards.hpp"
 
@@ -139,10 +140,10 @@ typedef List<Binding> BindingList;
 
 struct SkolemTracker { // used for tracking skolem terms in the structural induction axiom (recursive program synthesis)
   Binding binding;
-  unsigned constructorId; // A skolem constant will be considered computable only in the constructorId'th arg of rec(.)-term
-  bool recursiveCall; // Whether the constant corresponds to a recursive call result
-  unsigned indexInConstructor; // The index of the variable/Skolem in the constructor OR if 'recursiveCall' is true, to which argument of the constructor the recursive call coresponds to.
-  unsigned recFnId; // ID number of the associated rec-function
+  unsigned constructorId = 0; // A skolem constant will be considered computable only in the constructorId'th arg of rec(.)-term
+  bool recursiveCall = false; // Whether the constant corresponds to a recursive call result
+  unsigned indexInConstructor = 0; // The index of the variable/Skolem in the constructor OR if 'recursiveCall' is true, to which argument of the constructor the recursive call coresponds to.
+  unsigned recFnId = 0; // ID number of the associated rec-function
 
   SkolemTracker() {}
 
@@ -179,7 +180,7 @@ public:
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
   // Register the skolem symbol of `recTerm` as rec-symbol, and add information about skolem constants from `binding` into `incompleteTrackers` and store them.
-  void registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& binding, const List<Term*>* functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VList* us);
+  void registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& binding, const std::vector<Term*>& functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VList* us);
 
   bool isRecTerm(const Term* t);
 

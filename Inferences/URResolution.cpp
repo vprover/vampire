@@ -116,7 +116,6 @@ struct URResolution::Item
       if(!(*cl)[i]->ground()) nonGroundCnt++;
       if ((*cl)[i] != _ansLit) {
         _lits.push((*cl)[i]);
-        if(!_lits.top()->ground()) nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
