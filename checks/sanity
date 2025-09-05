@@ -79,15 +79,15 @@ check_szs_status Unsatisfiable -ind struct -sik one -nui on induction/mem_append
 check_szs_status Unsatisfiable -ind struct -sik two -nui on -to lpo induction/mem_append_poly.smt2
 # TODO get rid of -tac axiom
 check_szs_status Unsatisfiable -ind struct -sik three -nui on -tac axiom -to lpo induction/mem_append_poly.smt2
-# TODO newcnf=on is incompatible with polymorphism, use monomorphic version
-check_szs_status Unsatisfiable -ind struct -sik recursion -nui on -newcnf on induction/mem_append.smt2
+check_szs_status Unsatisfiable -ind struct -sik recursion -nui on -newcnf on induction/mem_append_poly.smt2
 check_szs_status Unsatisfiable -ind struct -sik recursion -to lpo -newcnf on induction/qreva_len.smt2
 check_szs_status Unsatisfiable -ind struct -sik one -indstrhyp on induction/qreva_len.smt2
 
 # Parser
 check_szs_status Unsatisfiable parse/types-funs.smt2
 check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
-check_szs_status Unsatisfiable -t 2 parse/smtlib2-parametric-datatypes.smt2
+check_szs_status Unsatisfiable -t 1 parse/smtlib2-parametric-datatypes.smt2
+check_szs_status Unsatisfiable -newcnf on -t 1 parse/smtlib2-parametric-datatypes.smt2
 check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
