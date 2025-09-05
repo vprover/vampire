@@ -31,6 +31,7 @@ CadicalInterfacing::CadicalInterfacing()
   // these help a bit both for avataring and FMB
   _solver.set("phase",0);
   _solver.set("stabilizeonly",1);
+  _solver.set("quiet",1);
 }
 
 Status CadicalInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)

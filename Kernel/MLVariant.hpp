@@ -25,8 +25,8 @@ using namespace Lib;
 
 class MLVariant {
 public:
-  static bool isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** alts);
-  static bool isVariant(Literal* const * cl1Lits, Clause* cl2, bool complementary=false);
+  static bool isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** alts, Substitution *map = nullptr);
+  static bool isVariant(Literal* const * cl1Lits, Clause* cl2, bool complementary=false, Substitution *map = nullptr);
   static bool isVariant(Clause* cl1, Clause* cl2, bool complementary=false)
   {
     return cl1->length()==cl2->length() && isVariant(cl1->literals(), cl2, complementary);

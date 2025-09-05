@@ -23,6 +23,7 @@
 #include "Lib/StringUtils.hpp"
 #include "Lib/ScopedPtr.hpp"
 
+#include "Shell/Dedukti.hpp"
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -1506,6 +1507,25 @@ struct InferenceStore::SMTCheckPrinter
   }
 };
 
+struct InferenceStore::DeduktiPrinter
+: public InferenceStore::ProofPrinter
+{
+  DeduktiPrinter(ostream& out, InferenceStore* is)
+  : ProofPrinter(out, is) {}
+
+  void print()
+  {
+    Dedukti::outputPrelude(out);
+    ProofPrinter::print();
+  }
+
+  void printStep(Unit* u)
+  {
+    Dedukti::outputDeduction(out, u);
+  }
+};
+
+
 InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& out)
 {
   switch(env.options->proof()) {
@@ -1523,6 +1543,8 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& o
     return 0;
   case Shell::Options::Proof::SMTCHECK:
     return new SMTCheckPrinter(out, this);
+  case Shell::Options::Proof::DEDUKTI:
+    return new DeduktiPrinter(out, this);
   }
   ASSERTION_VIOLATION;
 }

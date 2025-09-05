@@ -630,6 +630,8 @@ set(SOURCES
     Shell/CNF.hpp
     Shell/CommandLine.cpp
     Shell/CommandLine.hpp
+    Shell/Dedukti.cpp
+    Shell/Dedukti.hpp
     Shell/DistinctGroupExpansion.cpp
     Shell/DistinctGroupExpansion.hpp
     Shell/DistinctProcessor.cpp

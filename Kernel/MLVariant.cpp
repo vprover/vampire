@@ -392,7 +392,7 @@ using namespace MLVariant_AUX;
 /**
  *
  */
-bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** alts)
+bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** alts, Substitution *map)
 {
   unsigned clen=cl2->length();
 
@@ -448,11 +448,20 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
       currBLit--;
     }
   }
+
+  if(map)
+    for(currBLit = 0; currBLit < matchedLen; currBLit++)
+      for(unsigned i = 0; i < md->varCnts[currBLit]; i++)
+        ALWAYS(map->bind(
+          md->altBindings[currBLit][md->nextAlts[currBLit] - 1][i],
+          TermList(md->boundVarNums[currBLit][i], false)
+        ))
+
   return true;
 }
 
 
-bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complementary)
+bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complementary, Substitution *map)
 {
   bool fail=false;
   unsigned clen=cl2->length();
@@ -479,7 +488,7 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complement
     }
   }
 
-  fail=!MLVariant::isVariant(cl1Lits,cl2,alts.array());
+  fail=!MLVariant::isVariant(cl1Lits,cl2,alts.array(),map);
 
 fin:
   for(unsigned i=0;i<clen;i++) {
