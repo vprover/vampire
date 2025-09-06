@@ -197,172 +197,224 @@ std::string FiniteModelMultiSorted::toString()
     }
   }
 
-  //Constants
+  // Functions (including constants)
   for(unsigned f=0;f<env.signature->functions();f++){
     Signature::Symbol* symb = env.signature->getFunction(f);
     unsigned arity = symb->arity();
-    if(arity>0) continue;
     if(!printIntroduced && symb->introduced()) continue;
     std::string name = symb->name();
-    unsigned res = _f_interpretation[_f_offsets[f]];
-    ASS_G(res,0)
 
-    TermList srtT = symb->fnType()->result();
-    unsigned srt = srtT.term()->functor();
-    std::string cname = cnames[srt][res];
-    if(name == cname) continue;
-
-    std::string sortName = env.signature->typeConName(srt);
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
-    modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
-  }
-
-  //Functions
-  for(unsigned f=0;f<env.signature->functions();f++){
-    Signature::Symbol* symb = env.signature->getFunction(f);
-    unsigned arity = symb->arity();
-    if(arity==0) continue;
-    if(!printIntroduced && symb->introduced()) continue;
-    std::string name = symb->name();
-    OperatorType* sig = symb->fnType();
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
-    for(unsigned i=0;i<arity;i++){
-      modelStm << sig->arg(i).toString();
-      if(i+1 < arity) modelStm << " * ";
+    OperatorType* ot = symb->fnType();
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<" : ";
+    if (arity>0) {
+      modelStm << "( ";
+      for(unsigned i=0;i<arity;i++){
+        modelStm << ot->arg(i).toString();
+        if(i+1 < arity) modelStm << " * ";
+      }
+      modelStm << " ) > ";
     }
-    modelStm << ") > " << sig->result().toString() << ")." << endl;
+    modelStm << ot->result().toString() << ")." << endl;
 
-    modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
+    if (_f_offsets[f] == NOT_REPRESENTED) {
+      Problem::FunDef* fd;
+      if (!_symbolicFuns.find(f,fd)) { // implicitly eliminated symbol, let's define trivially
+        // need a linear head and empty body as a place-holder for fmb_$sort_1
 
-    unsigned offset = _f_offsets[f];
+        // create linear term f(X0,X1,...X_arity)
+        TermStack args;
+        for (unsigned v = 0; v < arity; v++) {
+          args.push(TermList::var(v));
+        }
+        fd = new Problem::FunDef(Term::create(f,args.size(),args.begin()),nullptr /* arbitrary value */);
+        _symbolicFuns.insert(f,fd);
+      }
 
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    for(unsigned i=0;i<arity;i++) args[i]=1;
-    args[arity-1]=0;
-    bool first=true;
-fModelLabel:
-      for(unsigned i=arity-1;i+1!=0;i--){
+      // print a symbolic definition (the explicit one was missing)
 
-        TermList argST = sig->arg(i);
-        unsigned argS = argST.term()->functor();
-        if(args[i]==_sizes[argS]){
+      modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
+      if (arity>0) { // quantify
+        modelStm << "![";
+        for(unsigned i=0;i<arity;i++){
+          modelStm << fd->_head->nthArgument(i)->toString();
+          modelStm << ":" << ot->arg(i).toString();
+          if(i+1 < arity) modelStm << ", ";
+        }
+        modelStm << "]: ";
+      }
+      modelStm << fd->_head->toString() << " = ";
+      if (fd->_body) {
+        modelStm << fd->_body->toString();
+      } else {
+        TermList srtT = ot->result();
+        unsigned srt = srtT.term()->functor();
+        std::string cname = cnames[srt][1]; // using 1 as an abitrary value
+        modelStm << cname;
+      }
+
+      modelStm << ")." <<endl;
+      continue;
+    }
+
+    if (arity == 0) {
+      unsigned res = _f_interpretation[_f_offsets[f]];
+      ASS_G(res,0)
+
+      TermList srtT = ot->result();
+      unsigned srt = srtT.term()->functor();
+      std::string cname = cnames[srt][res];
+
+      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
+    } else {
+      modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
+
+      static DArray<unsigned> args;
+      args.ensure(arity);
+      // start with all 1s
+      for(unsigned i=0;i<arity;i++) args[i]=1;
+      bool first=true;
+
+      for(;;) {
+        unsigned res = _f_interpretation[args2var(args,_sizes,_f_offsets,f,ot)];
+        ASS_G(res,0)
+
+        if (!first) {
+          modelStm << "         & ";
+        } else {
+          modelStm << "           ";
+        }
+        first=false;
+        modelStm << name << "(";
+        for(unsigned j=0;j<arity;j++){
+          if(j!=0) modelStm << ",";
+          TermList argSortT = ot->arg(j);
+          unsigned argSort = argSortT.term()->functor();
+          modelStm << cnames[argSort][args[j]];
+        }
+        TermList resultSortT = ot->result();
+        unsigned resultSort = resultSortT.term()->functor();
+        modelStm << ") = " << cnames[resultSort][res] << endl;
+
+        // next one, please ...
+        unsigned i;
+        for(i=0;i<arity;i++) {
+          args[i]++;
+          if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
+            break;
+          }
           args[i]=1;
         }
-        else{
-          args[i]++;
-
-          //TODO could probably compute this directly, instead of via args
-          // my mind isn't in the right place to do that now though!
-          unsigned var = offset;
-          unsigned mult=1;
-          for(unsigned i=0;i<args.size();i++){
-            var += mult*(args[i]-1);
-            unsigned s = sig->arg(i).term()->functor();
-            mult *= _sizes[s];
-          }
-          unsigned res = _f_interpretation[var];
-          ASS_G(res,0)
-
-          if(!first){ modelStm << "         & " ; }
-          else{ modelStm << "           " ; }
-          first=false;
-          modelStm << name << "(";
-          for(unsigned j=0;j<arity;j++){
-            if(j!=0) modelStm << ",";
-            TermList argSortT = sig->arg(j);
-            unsigned argSort = argSortT.term()->functor();
-            modelStm << cnames[argSort][args[j]];
-          }
-          TermList resultSortT = sig->result();
-          unsigned resultSort = resultSortT.term()->functor();
-          modelStm << ") = " << cnames[resultSort][res] << endl;
-          goto fModelLabel;
+        if (i == arity) {
+          break;
         }
       }
-      modelStm << endl << ")." << endl << endl;
-  }
-
-  //Propositions
-  for(unsigned p=1;p<env.signature->predicates();p++){
-    unsigned arity = env.signature->predicateArity(p);
-    if(arity>0) continue;
-    Signature::Symbol* symb = env.signature->getPredicate(p);
-    if(!printIntroduced && symb->introduced()) continue;
-    std::string name = symb->name();
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o)."<<endl;
-    char res = _p_interpretation[_p_offsets[p]];
-    if(res==INTP_TRUE){
-      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
-    } else { // covers (res==INTP_FALSE) as well as undefined, which defaults to false
-      modelStm << "tff("<<append(name,"_definition")<<",axiom,~"<<name<< ")."<<endl;
     }
+    modelStm << ")." << endl << endl;
   }
 
-  //Predicates
+  //Predicates (including propositions)
   for(unsigned p=1;p<env.signature->predicates();p++){
     Signature::Symbol* symb = env.signature->getPredicate(p);
     unsigned arity = symb->arity();
-    if(arity==0) continue;
     if(!printIntroduced && symb->introduced()) continue;
     std::string name = symb->name();
-    OperatorType* sig = symb->predType();
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
-    for(unsigned i=0;i<arity;i++){
-      TermList argST = sig->arg(i);
-      unsigned argS = argST.term()->functor();
-      modelStm << env.signature->typeConName(argS);
-      if(i+1 < arity) modelStm << " * ";
-    }
-    modelStm << ") > $o)." << endl;
-
-    modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
-
-    unsigned offset = _p_offsets[p];
-
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    for(unsigned i=0;i<arity;i++) args[i]=1;
-    args[arity-1]=0;
-    bool first=true;
-pModelLabel:
-      for(unsigned i=arity-1;i+1!=0;i--){
-        TermList argST = sig->arg(i);
+    OperatorType* ot = symb->predType();
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": "; //"(";
+    if (arity>0) {
+      modelStm << "( ";
+      for(unsigned i=0;i<arity;i++){
+        TermList argST = ot->arg(i);
         unsigned argS = argST.term()->functor();
-        if(args[i]==_sizes[argS]){
+        modelStm << env.signature->typeConName(argS);
+        if(i+1 < arity) modelStm << " * ";
+      }
+      modelStm << " ) > ";
+    }
+    modelStm << "$o )." << endl;
+
+    if (_p_offsets[p] == NOT_REPRESENTED) {
+      Problem::PredDef* pd;
+      if (!_symbolicPreds.find(p,pd)) { // implicitly eliminated symbol, let's define as $false
+        // need a linear head and $false for a body
+        TermStack args;
+        for (unsigned v = 0; v < env.signature->getPredicate(p)->arity(); v++) {
+          args.push(TermList::var(v));
+        }
+        pd = new Problem::PredDef(Literal::create(p, args.size(), true, args.begin()),new Formula(false));
+        _symbolicPreds.insert(p,pd);
+      }
+
+      // print a symbolic definition (the explicit one was missing)
+
+      modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
+      if (arity>0) { // quantify
+        modelStm << "![";
+        for(unsigned i=0;i<arity;i++){
+          modelStm << pd->_head->nthArgument(i)->toString();
+          modelStm << ":" << ot->arg(i).toString();
+          if(i+1 < arity) modelStm << ", ";
+        }
+        modelStm << "]: (";
+      }
+      modelStm << pd->_head->toString() << " <=> " << pd->_body->toString();
+      if (arity>0)
+        modelStm << ")";
+      modelStm << ")." <<endl;
+
+      continue;
+    }
+
+    if (arity==0) {
+      char res = _p_interpretation[_p_offsets[p]];
+      if(res==INTP_TRUE){
+        modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
+      } else { // covers (res==INTP_FALSE) as well as undefined, which defaults to false
+        modelStm << "tff("<<append(name,"_definition")<<",axiom,~"<<name<< ")."<<endl;
+      }
+    } else {
+      modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
+
+      static DArray<unsigned> args;
+      args.ensure(arity);
+      // start with all 1s
+      for(unsigned i=0;i<arity;i++) args[i]=1;
+      bool first=true;
+
+      for(;;) {
+        char res = _p_interpretation[args2var(args,_sizes,_p_offsets,p,ot)];
+        ASS_NEQ(res,INTP_UNDEF)
+
+        if (!first){
+          modelStm << "         & ";
+        } else {
+          modelStm << "           ";
+        }
+
+        if(res==INTP_FALSE) modelStm << "~";
+        modelStm << name << "(";
+        for(unsigned j=0;j<arity;j++){
+          if(j!=0) modelStm << ",";
+          TermList argSortT = ot->arg(j);
+          unsigned argSort = argSortT.term()->functor();
+          modelStm << cnames[argSort][args[j]];
+        }
+        modelStm << ")";
+        modelStm << endl;
+
+        unsigned i;
+        for(i=0;i<arity;i++) {
+          args[i]++;
+          if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
+            break;
+          }
           args[i]=1;
         }
-        else{
-          args[i]++;
-
-          unsigned var = offset;
-          unsigned mult=1;
-          for(unsigned i=0;i<args.size();i++){
-            var += mult*(args[i]-1);
-            unsigned s = sig->arg(i).term()->functor();
-            mult *= _sizes[s];
-          }
-          char res = _p_interpretation[var];
-          ASS_NEQ(res,INTP_UNDEF)
-
-          if(!first){ modelStm << "         & " ; }
-          else{ modelStm << "           " ; }
-          first=false;
-
-          if(res==INTP_FALSE) modelStm << "~";
-          modelStm << name << "(";
-          for(unsigned j=0;j<arity;j++){
-            if(j!=0) modelStm << ",";
-            TermList argSortT = sig->arg(j);
-            unsigned argSort = argSortT.term()->functor();
-            modelStm << cnames[argSort][args[j]];
-          }
-          modelStm << ")";
-          modelStm << endl;
-          goto pModelLabel;
+        if (i == arity) {
+          break;
         }
       }
-      modelStm << endl << ")." << endl << endl;
+      modelStm << ")." << endl << endl;
+    }
   }
 
   return modelStm.str();
