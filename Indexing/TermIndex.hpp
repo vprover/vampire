@@ -98,11 +98,11 @@ class DemodulationSubtermIndexImpl
 {
 public:
   DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
-  : DemodulationSubtermIndex(is), _opt(opt) {};
+  : DemodulationSubtermIndex(is), _skipNonequationalLiterals(opt.demodulationOnlyEquational()) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
-  const Options& _opt;
+  const bool _skipNonequationalLiterals;
 };
 
 /**
@@ -113,12 +113,12 @@ class DemodulationLHSIndex
 {
 public:
   DemodulationLHSIndex(TermIndexingStructure<DemodulatorData>* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  : TermIndex(is), _ord(ord), _preordered(opt.forwardDemodulation()==Options::Demodulation::PREORDERED) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
-  const Options& _opt;
+  const bool _preordered;
 };
 
 /**
@@ -128,11 +128,13 @@ class InductionTermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  InductionTermIndex(TermIndexingStructure<TermLiteralClause>* is)
-  : TermIndex(is) {}
+  InductionTermIndex(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
+  : TermIndex(is), _inductionGroundOnly(opt.inductionGroundOnly()) {}
 
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  const bool _inductionGroundOnly;
 };
 
 /**
@@ -142,11 +144,13 @@ class StructInductionTermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  StructInductionTermIndex(TermIndexingStructure<TermLiteralClause>* is)
-  : TermIndex(is) {}
+  StructInductionTermIndex(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
+  : TermIndex(is), _inductionGroundOnly(opt.inductionGroundOnly()) {}
 
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  const bool _inductionGroundOnly;
 };
 
 class SkolemisingFormulaIndex

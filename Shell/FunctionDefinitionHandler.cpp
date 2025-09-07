@@ -204,8 +204,9 @@ void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const Litera
 
 const InductionTemplate* FunctionDefinitionHandler::matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const
 {
-  ASS(t->ground());
-
+  if (!InductionHelper::isStructInductionOn()) {
+    return nullptr;
+  }
   auto rtempl = getRecursionTemplate(t);
   if (!rtempl) {
     return nullptr;
@@ -214,12 +215,10 @@ const InductionTemplate* FunctionDefinitionHandler::matchesTerm(Term* t, std::ve
   inductionTerms.clear();
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = t->nthArgument(i)->term();
-    auto f = arg->functor();
     if (!rtempl->inductionPositions()[i]) {
       continue;
     }
-    if (!InductionHelper::isInductionTermFunctor(f) ||
-        !InductionHelper::isStructInductionOn() ||
+    if (!InductionHelper::isInductionTerm(arg) ||
         !InductionHelper::isStructInductionTerm(arg)) {
       return nullptr;
     }

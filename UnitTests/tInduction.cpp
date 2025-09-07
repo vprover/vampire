@@ -43,11 +43,11 @@ LiteralIndex<LiteralClause>* comparisonIndex() {
 }
 
 TermIndex<TermLiteralClause>* intInductionIndex() {
-  return new InductionTermIndex(new TermSubstitutionTree<TermLiteralClause>());
+  return new InductionTermIndex(new TermSubstitutionTree<TermLiteralClause>(), Options());
 }
 
 TermIndex<TermLiteralClause>* structInductionIndex() {
-  return new StructInductionTermIndex(new TermSubstitutionTree<TermLiteralClause>());
+  return new StructInductionTermIndex(new TermSubstitutionTree<TermLiteralClause>(), Options());
 }
 
 auto getIndices() {
@@ -71,13 +71,6 @@ InductionContext inductionContext(TermSugar t, std::initializer_list<Clause*> cl
     }
   }
   return res;
-}
-
-namespace Inferences {
-std::ostream& operator<<(std::ostream& out, const InductionContext& context) {
-  out << context.toString();
-  return out;
-}
 }
 
 void assertContextReplacement(ContextReplacement& cr, Stack<InductionContext> contexts) {

@@ -151,18 +151,17 @@ struct InductionContext {
   // If the literals are all ground, return 0 (and fail in debug mode).
   unsigned getFreeVariable() const;
 
-  std::string toString() const {
-    std::stringstream str;
-    for (const auto& indt : _indTerms) {
-      str << *indt << std::endl;
+  friend std::ostream& operator<<(std::ostream& out, const InductionContext& context) {
+    for (const auto& indt : context._indTerms) {
+      out << *indt << std::endl;
     }
-    for (const auto& kv : _cls) {
-      str << *kv.first << std::endl;
-      for (const auto& lit : kv.second) {
-        str << *lit << std::endl;
+    for (const auto& [cl, lits] : context._cls) {
+      out << *cl << std::endl;
+      for (const auto& lit : lits) {
+        out << *lit << std::endl;
       }
     }
-    return str.str();
+    return out;
   }
 
   std::vector<Term*> _indTerms;
@@ -177,7 +176,7 @@ struct InductionContext {
 private:
   Formula* getFormula(const std::vector<TermList>& r, Substitution* subst) const;
   Formula* getFormulaWithSquashedSkolems(
-    const std::vector<TermList>& r, unsigned& var, VList** varsReplacingSkolems, Substitution* subst) const;
+    const std::vector<TermList>& r, unsigned& nextVar, VList** varsReplacingSkolems, Substitution* subst) const;
   /**
    * Creates a formula which corresponds to the disjunction of conjunction
    * of opposites of selected literals for each clause in @b _cls, where we
@@ -318,7 +317,7 @@ private:
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHMap<unsigned, Term*>* bindings = nullptr);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
-  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false, Substitution* indLitSubst = nullptr);
+  void resolveClauses(const ClauseStack& cls, const InductionContext& context, const Substitution& subst, bool applySubst = false, const Substitution* indLitSubst = nullptr);
 
   void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
