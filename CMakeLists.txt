@@ -83,8 +83,13 @@ else()
 endif()
 
 # Cygwin-specific
-if (CYGWIN)
- add_compile_definitions(_BSD_SOURCE)
+if(CYGWIN)
+  add_compile_definitions(_BSD_SOURCE)
+  # somehow Cygwin fails to link, saying that we have multiple definitions of some (inline) functions
+  add_link_options(LINKER:--allow-multiple-definition)
+  # link libstdc++ and libgcc statically
+  add_link_options(-static-libgcc -static-libstdc++)
+  # apparently Cygwin's libc cannot be statically linked, so we have to ship cygwin.dll
 endif()
 
 # below here configure flags for specific compilers
