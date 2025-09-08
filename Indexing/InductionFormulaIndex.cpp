@@ -54,7 +54,7 @@ Key InductionFormulaIndex::represent(const InductionContext& context)
  */
 bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*& e, Literal* bound1, Literal* bound2)
 {
-  ASS(!context._cls.empty());
+  ASS(context._cls.isNonEmpty());
   auto k = represent(context);
   k.second.first = bound1;
   k.second.second = bound2;

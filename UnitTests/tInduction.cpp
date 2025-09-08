@@ -64,13 +64,11 @@ inline Clause* fromInduction(Clause* cl) {
 }
 
 InductionContext inductionContext(TermSugar t, std::initializer_list<Clause*> cls) {
-  InductionContext res({ t.sugaredExpr().term() });
+  Stack<std::pair<Clause*, LiteralStack>> resCls;
   for (const auto& cl : cls) {
-    for (unsigned i = 0; i < cl->length(); i++) {
-      res.insert(cl, (*cl)[i]);
-    }
+    resCls.emplace(cl, LiteralStack::fromIterator(cl->iterLits()));
   }
-  return res;
+  return InductionContext({ t.sugaredExpr().term() }, std::move(resCls));
 }
 
 void assertContextReplacement(ContextReplacement& cr, Stack<InductionContext> contexts) {

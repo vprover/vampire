@@ -16,10 +16,7 @@
 #ifndef __Induction__
 #define __Induction__
 
-#include <cmath>
-#include <functional>
 #include <map>
-#include <unordered_map>
 
 #include "Forwards.hpp"
 
@@ -123,21 +120,10 @@ private:
  *   which are inducted upon.
  */
 struct InductionContext {
-  explicit InductionContext(std::vector<Term*>&& ts)
-    : _indTerms(ts) {}
-  explicit InductionContext(const std::vector<Term*>& ts)
-    : _indTerms(ts) {}
-  InductionContext(const std::vector<Term*>& ts, Literal* l, Clause* cl)
-    : InductionContext(ts)
-  {
-    insert(cl, l);
-  }
-
-  void insert(Clause* cl, Literal* lit) {
-    // this constructs an empty inner map if cl is not yet mapped
-    auto node = _cls.emplace(cl, LiteralStack()).first;
-    node->second.push(lit);
-  }
+  InductionContext(const std::vector<Term*>& indTerms, Literal* lit, Clause* cl)
+    : InductionContext(indTerms, { { cl, { lit } } }) {}
+  InductionContext(const std::vector<Term*>& indTerms, Stack<std::pair<Clause*, LiteralStack>>&& cls)
+    : _indTerms(indTerms), _cls(cls) {}
 
   // These functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
@@ -146,6 +132,9 @@ struct InductionContext {
     const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar,
     VList** varsReplacingSkolems = nullptr, Substitution* subst = nullptr) const;
   Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
+
+  template<typename Fun>
+  InductionContext transform(Fun fn) const;
 
   // Return some free variable that occurs in the induction literals.
   // If the literals are all ground, return 0 (and fail in debug mode).
@@ -156,10 +145,12 @@ struct InductionContext {
       out << *indt << std::endl;
     }
     for (const auto& [cl, lits] : context._cls) {
-      out << *cl << std::endl;
+      out << "cl " << *cl << std::endl;
+      out << "lits ";
       for (const auto& lit : lits) {
-        out << *lit << std::endl;
+        out << *lit << " ";
       }
+      out << std::endl;
     }
     return out;
   }
@@ -172,7 +163,7 @@ struct InductionContext {
   // we only store the literals we actually induct on. An alternative
   // would be storing indices but then we need to pass around the
   // clause as well.
-  std::unordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
+  Stack<std::pair<Clause*, LiteralStack>> _cls;
 private:
   Formula* getFormula(const std::vector<TermList>& r, Substitution* subst) const;
   Formula* getFormulaWithSquashedSkolems(
@@ -315,7 +306,7 @@ private:
   void processIntegerComparison(Clause* premise, Literal* lit);
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHMap<unsigned, Term*>* bindings = nullptr);
-  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
+  void resolveClauses(const InductionContext& context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
   void resolveClauses(const InductionInstance& indInst, const InductionContext& context, bool applySubst = false, const Substitution* indLitSubst = nullptr);
 
   void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
