@@ -1023,13 +1023,13 @@ bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, un
   if (isRecTerm(t)) {
     ALWAYS(recAncestors->getValuePtr(f, idx, -1));
   }
-  for (unsigned i = 0; i < t->arity(); i++) {
-    const TermList* tl = t->nthArgument(i);
-    if (tl->isTerm()) { // else we have a variable, which needs no check
+  for (unsigned i = 0; i < t->numTermArguments(); i++) {
+    const TermList tl = t->termArg(i);
+    if (tl.isTerm()) { // else we have a variable, which needs no check
       if (idx) {
         *idx = i;
       }
-      if (!computableOrVarHelper(tl->term(), recAncestors)) {
+      if (!computableOrVarHelper(tl.term(), recAncestors)) {
         return false;
       }
     }
