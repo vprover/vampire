@@ -376,8 +376,6 @@ public:
     return getAnswerLiteral() != nullptr;
   }
 
-  bool computable();
-
 protected:
   /** number of literals */
   unsigned _length : 20;

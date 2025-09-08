@@ -182,11 +182,11 @@ public:
   // Register the skolem symbol of `recTerm` as rec-symbol, and add information about skolem constants from `binding` into `incompleteTrackers` and store them.
   void registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& binding, const std::vector<Term*>& functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VList* us);
 
-  bool isRecTerm(const Term* t);
+  bool isRecTerm(const Term* t) const;
 
   bool hasRecTerm(Literal* lit);
 
-  const SkolemTracker* getSkolemTracker(unsigned skolemFunctor);
+  const SkolemTracker* getSkolemTracker(unsigned skolemFunctor) const;
 
   void outputRecursiveFunctions() { _skolemReplacement.outputRecursiveFunctions(); }
 
@@ -202,6 +202,18 @@ public:
 
   bool addDeclaredSymbolAnnotatedAsUncomputable(std::pair<unsigned, bool> p) { return _annotatedUncomputable.insert(p); }
   bool addIntroducedComputableSymbol(std::pair<unsigned, bool> p) { return _introducedComputable.insert(p); }
+
+  bool isComputableOrVar(const Term* t) const;
+  bool isComputableOrVar(const Literal* l) const;
+  bool isComputable(const Term* t) const {
+    ASS(t);
+    return t->ground() && isComputableOrVar(t);
+  }
+  bool isComputable(const Literal* l) const {
+    ASS(l);
+    return l->ground() && isComputableOrVar(l);
+  }
+  bool isComputable(const Clause* c) const;
 
 protected:
   void recordSkolemBinding(Term*,unsigned,std::string) override;
@@ -276,6 +288,8 @@ private:
     };
 
   };
+
+  bool computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned>* recAncestors) const;
 
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
 
