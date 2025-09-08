@@ -143,7 +143,7 @@ struct InductionContext {
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
   Formula* getFormula(
-    const InductionUnit& unit, const Substitution& typeBinder, unsigned& var,
+    const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar,
     VList** varsReplacingSkolems = nullptr, Substitution* subst = nullptr) const;
   Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
 
@@ -211,7 +211,7 @@ protected:
 class ActiveOccurrenceContextReplacement
   : public ContextReplacement {
 public:
-  ActiveOccurrenceContextReplacement(const InductionContext& context, FunctionDefinitionHandler& fnDefHandler);
+  ActiveOccurrenceContextReplacement(const InductionContext& context, const FunctionDefinitionHandler& fnDefHandler);
   InductionContext next() override;
   bool hasNonActive() const { return _hasNonActive; }
 
@@ -219,7 +219,7 @@ protected:
   TermList transformSubterm(TermList trm) override;
 
 private:
-  FunctionDefinitionHandler& _fnDefHandler;
+  const FunctionDefinitionHandler& _fnDefHandler;
   std::vector<unsigned> _iteration;
   std::vector<unsigned> _matchCount;
   bool _hasNonActive;
@@ -302,7 +302,6 @@ public:
     processClause(premise);
   }
 
-  USE_ALLOCATOR(InductionClauseIterator);
   DECL_ELEMENT_TYPE(Clause*);
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
@@ -317,7 +316,7 @@ private:
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHMap<unsigned, Term*>* bindings = nullptr);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
-  void resolveClauses(const ClauseStack& cls, const InductionContext& context, const Substitution& subst, bool applySubst = false, const Substitution* indLitSubst = nullptr);
+  void resolveClauses(const InductionInstance& indInst, const InductionContext& context, bool applySubst = false, const Substitution* indLitSubst = nullptr);
 
   void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);

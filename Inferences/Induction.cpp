@@ -120,7 +120,7 @@ TermList SkolemSquashingTermReplacement::transformSubterm(TermList trm)
 }
 
 Formula* InductionContext::getFormula(
-  const InductionUnit& unit, const Substitution& typeBinder, unsigned& var, VList** varsReplacingSkolems, Substitution* subst) const
+  const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar, VList** varsReplacingSkolems, Substitution* subst) const
 {
   auto hyps = FormulaList::empty();
   for (const auto& lit : unit.conditions) {
@@ -137,7 +137,7 @@ Formula* InductionContext::getFormula(
   for (const auto& t : unit.F_terms) {
     ts.push_back(SubstHelper::apply(t, typeBinder));
   }
-  auto right = getFormulaWithSquashedSkolems(ts, var, varsReplacingSkolems, subst);
+  auto right = getFormulaWithSquashedSkolems(ts, nextVar, varsReplacingSkolems, subst);
   return left ? new BinaryFormula(Connective::IMP, left, right) : right;
 }
 
@@ -268,7 +268,7 @@ InductionContext ContextReplacement::next()
 }
 
 ActiveOccurrenceContextReplacement::ActiveOccurrenceContextReplacement(
-  const InductionContext& context, FunctionDefinitionHandler& fnDefHandler)
+  const InductionContext& context, const FunctionDefinitionHandler& fnDefHandler)
   : ContextReplacement(context),
     _fnDefHandler(fnDefHandler),
     _iteration(_context._indTerms.size(),0),
@@ -304,9 +304,7 @@ InductionContext ActiveOccurrenceContextReplacement::next()
       Stack<pair<Term*,bool>> stack(8);
       stack.push(make_pair(lit,true));
       while (stack.isNonEmpty()) {
-        auto kv = stack.pop();
-        auto t = kv.first;
-        auto active = kv.second;
+        auto [t,active] = stack.pop();
         auto templ = _fnDefHandler.getRecursionTemplate(t);
         for (unsigned k = 0; k < t->arity(); k++) {
           if (t->nthArgument(k)->isTerm()) {
@@ -802,8 +800,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         }
       }
       // resolve the formulas with the premises
-      for (auto& kv : e->get()) {
-        resolveClauses(kv.first, ctx, kv.second);
+      for (auto& indInst : e->getInductionInstances()) {
+        resolveClauses(indInst, ctx);
       }
     }
   } else if (!env.options->inductionGroundOnly() && InductionHelper::isStructInductionOn() && InductionHelper::isNonGroundInductionLiteral(lit)) {
@@ -822,8 +820,9 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             // Generate induction axioms, clausify and resolve them
             Substitution freeVarSubst;
             performStructInductionFreeVar(ctx, e, &freeVarSubst);
-            for (auto& kv : e->get()) {
-              resolveClauses(kv.first, ctx, kv.second, /*applySubst=*/ false, &freeVarSubst);
+            // TODO this loop should be outside but freeVarSubst is produced inside
+            for (auto& indInst : e->getInductionInstances()) {
+              resolveClauses(indInst, ctx, /*applySubst=*/ false, &freeVarSubst);
             }
           }
         }
@@ -980,8 +979,8 @@ void InductionClauseIterator::resolveClauses(InductionContext context, Induction
   }
   // true if we have a default bound
   bool applySubst = !bound1 && !bound2;
-  for (auto& kv : e->get()) {
-    resolveClauses(kv.first, context, kv.second, applySubst);
+  for (auto& indInst : e->getInductionInstances()) {
+    resolveClauses(indInst, context, applySubst);
   }
 }
 
@@ -998,12 +997,12 @@ void InductionClauseIterator::resolveClauses(InductionContext context, Induction
  * in the resulting clause. We find this partition and return it in form
  * of a union find structure.
  */
-IntUnionFind findDistributedVariants(const ClauseStack& clauses, const Substitution& subst, const InductionContext& context, const Substitution* indLitSubst)
+IntUnionFind findDistributedVariants(const InductionInstance& indInst, const InductionContext& context, const Substitution* indLitSubst)
 {
   const auto& toResolve = context._cls;
-  IntUnionFind uf(clauses.size());
-  for (unsigned i = 0; i < clauses.size(); i++) {
-    auto cl = clauses[i];
+  IntUnionFind uf(indInst.cls.size());
+  for (unsigned i = 0; i < indInst.cls.size(); i++) {
+    auto cl = indInst.cls[i];
     LiteralStack conclusionLits(toResolve.size());
 #if VDEBUG
     Stack<int> variantCounts(toResolve.size());
@@ -1011,7 +1010,7 @@ IntUnionFind findDistributedVariants(const ClauseStack& clauses, const Substitut
     // we first find the conclusion literals in cl, exactly 1 from
     // each of toResolve and save how many variants it should have
     for (unsigned k = 0; k < cl->length(); k++) {
-      auto clit = SubstHelper::apply<const Substitution>(Literal::complementaryLiteral((*cl)[k]), subst);
+      auto clit = SubstHelper::apply<const Substitution>(Literal::complementaryLiteral((*cl)[k]), indInst.subst);
       for (const auto& kv : toResolve) {
 #if VDEBUG
         bool found = false;
@@ -1037,11 +1036,11 @@ IntUnionFind findDistributedVariants(const ClauseStack& clauses, const Substitut
     // now we look for the variants
     for (unsigned k = 0; k < conclusionLits.size(); k++) {
 #if VDEBUG
-      for (unsigned j = 0; j < clauses.size(); j++) {
+      for (unsigned j = 0; j < indInst.cls.size(); j++) {
 #else
-      for (unsigned j = i+1; j < clauses.size(); j++) {
+      for (unsigned j = i+1; j < indInst.cls.size(); j++) {
 #endif
-        auto other = clauses[j];
+        auto other = indInst.cls[j];
         if (i == j || cl->length() != other->length()) {
           continue;
         }
@@ -1076,16 +1075,16 @@ IntUnionFind findDistributedVariants(const ClauseStack& clauses, const Substitut
  *               it is stored separately so that we don't have to apply
  *               substitutions expensively in all cases.
  */
-Clause* resolveClausesHelper(const InductionContext& context, const ClauseStack& cls, IntUnionFind::ElementIterator eIt, const Substitution& subst, bool generalized, bool applySubst, const Substitution* indLitSubst)
+Clause* resolveClausesHelper(const InductionContext& context, const InductionInstance& indInst, IntUnionFind::ElementIterator eIt, bool generalized, bool applySubst, const Substitution* indLitSubst)
 {
   // first create the clause with the required size
   RobSubstitution renaming;
   ASS(eIt.hasNext());
-  auto cl = cls[eIt.next()];
+  auto cl = indInst.cls[eIt.next()];
   auto premises = UnitList::singleton(cl);
   const auto& toResolve = context._cls;
   while (eIt.hasNext()) {
-    auto other = cls[eIt.next()];
+    auto other = indInst.cls[eIt.next()];
     UnitList::push(other,premises);
   }
 
@@ -1101,7 +1100,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const ClauseStack&
   TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
 
   for (const auto& curr : *cl) {
-    auto clit = SubstHelper::apply<const Substitution>(Literal::complementaryLiteral(curr), subst);
+    auto clit = SubstHelper::apply<const Substitution>(Literal::complementaryLiteral(curr), indInst.subst);
     bool contains = false;
     for (const auto& kv : toResolve) {
       for (const auto& lit : kv.second) {
@@ -1118,7 +1117,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const ClauseStack&
     if (!contains) {
       Literal* resLit;
       if (applySubst) {
-        resLit = tr.transformLiteral(SubstHelper::apply<const Substitution>(curr,subst));
+        resLit = tr.transformLiteral(SubstHelper::apply<const Substitution>(curr, indInst.subst));
       } else {
         resLit = curr;
       }
@@ -1149,9 +1148,9 @@ Clause* resolveClausesHelper(const InductionContext& context, const ClauseStack&
   return Clause::fromStack(*resLits, inf);
 }
 
-void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const InductionContext& context, const Substitution& subst, bool applySubst, const Substitution* indLitSubst)
+void InductionClauseIterator::resolveClauses(const InductionInstance& indInst, const InductionContext& context, bool applySubst, const Substitution* indLitSubst)
 {
-  ASS(cls.isNonEmpty());
+  ASS(indInst.cls.isNonEmpty());
   bool generalized = false;
   for (const auto& kv : context._cls) {
     for (const auto& lit : kv.second) {
@@ -1177,11 +1176,11 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
     env.statistics->inductionApplication++;
   }
 
-  auto uf = findDistributedVariants(cls, subst, context, indLitSubst);
+  auto uf = findDistributedVariants(indInst, context, indLitSubst);
   IntUnionFind::ComponentIterator cit(uf);
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
-    _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst, indLitSubst));
+    _clauses.push(resolveClausesHelper(context, indInst, eIt, generalized, applySubst, indLitSubst));
     if(_opt.showInduction()){
       std::cout << "[Induction] generate " << _clauses.top()->toString() << endl;
     }

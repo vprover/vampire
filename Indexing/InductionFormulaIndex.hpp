@@ -34,6 +34,11 @@ using namespace Lib;
 using namespace Kernel;
 using Key = std::pair<Stack<LiteralStack>,std::pair<Literal*,Literal*>>;
 
+struct InductionInstance {
+  ClauseStack cls;
+  Substitution subst;
+};
+
 class InductionFormulaIndex
 {
 public:
@@ -53,13 +58,13 @@ public:
       for (const auto& cl : cls) {
         cl->incRefCnt();
       }
-      _st.push(std::make_pair(cls, subst));
+      _indInstances.push({ cls, subst });
     }
-    const Stack<std::pair<ClauseStack,Substitution>>& get() const {
-      return _st;
-    }
+    const Stack<InductionInstance>& getInductionInstances() const
+    { return _indInstances; }
+
   private:
-    Stack<std::pair<ClauseStack,Substitution>> _st;
+    Stack<InductionInstance> _indInstances;
   };
 
   static Key represent(const Inferences::InductionContext& context);
