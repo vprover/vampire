@@ -575,7 +575,7 @@ void SynthesisALManager::onNewClause(Clause* cl)
   ASS(cl->hasAnswerLiteral())
 
   Literal* lit = cl->getAnswerLiteral();
-  if (!lit->computableOrVar())
+  if (!isComputableOrVar(lit))
     return;
   _lastAnsLit = lit;
 
@@ -584,7 +584,7 @@ void SynthesisALManager::onNewClause(Clause* cl)
 }
 
 Clause* SynthesisALManager::recordAnswerAndReduce(Clause* cl) {
-  if (!cl->noSplits() || !cl->hasAnswerLiteral() || !cl->computable()) {
+  if (!cl->noSplits() || !cl->hasAnswerLiteral() || !isComputable(cl)) {
     return nullptr;
   }
   // Check if the answer literal has only distinct variables as arguments.
@@ -962,11 +962,11 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsign
   }
 }
 
-bool SynthesisALManager::isRecTerm(const Term* t) {
+bool SynthesisALManager::isRecTerm(const Term* t) const {
   return (_recursionMappings.findPtr(t->functor()) != nullptr);
 }
 
-const SkolemTracker* SynthesisALManager::getSkolemTracker(unsigned skolemFunctor) {
+const SkolemTracker* SynthesisALManager::getSkolemTracker(unsigned skolemFunctor) const {
   return _skolemTrackers.get(skolemFunctor, nullptr);
 }
 
@@ -992,6 +992,82 @@ bool SynthesisALManager::isPredicateComputable(unsigned functor) const {
   Signature::Symbol* s = env.signature->getPredicate(functor);
   return (s->introduced() && _introducedComputable.contains(make_pair(functor, true))) ||
     (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, true)));
+}
+
+bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned>* recAncestors) const {
+  ASS(t);
+  unsigned f = t->functor();
+  Signature::Symbol* symbol = env.signature->getFunction(f);
+
+  if (!isFunctionComputable(f)) {
+    // either an uncomputable symbol from the input, or an introduced symbol
+    if (!symbol->skolem()) { // computability of skolems depends on the context, all else is really uncomputable
+      return false;
+    }
+    if (!isRecTerm(t)) { // non-rec skolem terms need to be specifically allowed
+      const Shell::SkolemTracker* st = getSkolemTracker(f);
+      if (st == nullptr) {
+         return false;
+      }
+      unsigned idx = 0;
+      if (!recAncestors->find(st->recFnId, idx) || (idx != st->constructorId)) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  // Top functor is computable, now recurse.
+  unsigned* idx = nullptr;
+  if (isRecTerm(t)) {
+    ALWAYS(recAncestors->getValuePtr(f, idx, -1));
+  }
+  for (unsigned i = 0; i < t->arity(); i++) {
+    const TermList* tl = t->nthArgument(i);
+    if (tl->isTerm()) { // else we have a variable, which needs no check
+      if (idx) {
+        *idx = i;
+      }
+      if (!computableOrVarHelper(tl->term(), recAncestors)) {
+        return false;
+      }
+    }
+  }
+  if (idx) {
+    recAncestors->remove(f);
+  }
+
+  return true;
+}
+
+bool SynthesisALManager::isComputableOrVar(const Term* t) const {
+  DHMap<unsigned, unsigned> recAncestors;
+  return computableOrVarHelper(t, &recAncestors);
+}
+
+bool SynthesisALManager::isComputableOrVar(const Literal* l) const {
+  if (!isPredicateComputable(l->functor())) {
+    return false;
+  }
+  for (unsigned i = 0; i < l->arity(); ++i) {
+    const TermList* t = l->nthArgument(i);
+    if (t->isTerm() && !isComputableOrVar(t->term())) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool SynthesisALManager::isComputable(const Clause* c) const {
+  for (const Literal* l : c->iterLits()) {
+    if (l->isAnswerLiteral()) {
+      continue;
+    }
+    if (!isComputable(l)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }

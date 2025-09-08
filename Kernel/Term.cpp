@@ -24,7 +24,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Output.hpp"
 #include "Lib/StringUtils.hpp"
-#include "Shell/AnswerLiteralManager.hpp"
 
 #include "Term.hpp"
 
@@ -1758,23 +1757,6 @@ Literal::Literal()
 {
 }
 
-bool Literal::computable() const {
-  return ground() && computableOrVar();
-}
-
-bool Literal::computableOrVar() const {
-  if (!static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->isPredicateComputable(this->functor())) {
-    return false;
-  }
-  for (unsigned i = 0; i < arity(); ++i) {
-    const TermList* t = nthArgument(i);
-    if (t->isTerm() && !t->term()->computableOrVar()) {
-      return false;
-    }
-  }
-  return true;
-}
-
 AtomicSort::AtomicSort()
 {
 }
@@ -1909,60 +1891,6 @@ TermList Term::typeArg(unsigned n) const
   ASS_LE(0, n)
   ASS_L(n, numTypeArguments())
   return *nthArgument(n);
-}
-
-bool Term::computable() const {
-  return ground() && computableOrVar();
-}
-
-bool Term::computableOrVarHelper(DHMap<unsigned, unsigned>* recAncestors) const {
-  Signature::Symbol* symbol = env.signature->getFunction(functor());
-  Shell::SynthesisALManager* synthMan = static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance());
-
-  if (!synthMan->isFunctionComputable(functor())) {
-    // either an uncomputable symbol from the input, or an introduced symbol
-    if (!symbol->skolem()) { // computability of skolems depends on the context, all else is really uncomputable
-      return false;
-    }
-    if (!synthMan->isRecTerm(this)) { // non-rec skolem terms need to be specifically allowed
-      const Shell::SkolemTracker* st = synthMan->getSkolemTracker(functor());
-      if (st == nullptr) {
-         return false;
-      }
-      unsigned idx = 0;
-      if (!recAncestors->find(st->recFnId, idx) || (idx != st->constructorId)) {
-        return false;
-      }
-      return true;
-    }
-  }
-
-  // Top functor is computable, now recurse.
-  unsigned* idx = nullptr;
-  if (synthMan->isRecTerm(this)) {
-    ALWAYS(recAncestors->getValuePtr(functor(), idx, -1));
-  }
-  for (unsigned i = 0; i < _arity; i++) {
-    const TermList* t = nthArgument(i);
-    if (t->isTerm()) { // else we have a variable, which needs no check
-      if (idx) {
-        *idx = i;
-      }
-      if (!t->term()->computableOrVarHelper(recAncestors)) {
-        return false;
-      }
-    }
-  }
-  if (idx) {
-    recAncestors->remove(functor());
-  }
-
-  return true;
-}
-
-bool Term::computableOrVar() const {
-  DHMap<unsigned, unsigned> recAncestors;
-  return computableOrVarHelper(&recAncestors);
 }
 
 std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)

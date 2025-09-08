@@ -948,15 +948,10 @@ public:
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
 
-  virtual bool computable() const;
-  virtual bool computableOrVar() const;
-
 protected:
   std::string headToString() const;
 
   unsigned computeDistinctVars() const;
-
-  bool computableOrVarHelper(DHMap<unsigned, unsigned>* recAncestors) const;
 
   /**
    * Return argument order value stored in term.
@@ -1320,9 +1315,6 @@ public:
   std::string toString() const;
 
   const std::string& predicateName() const;
-
-  virtual bool computable() const;
-  virtual bool computableOrVar() const;
 
 private:
   template<class GetArg>

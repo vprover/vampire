@@ -27,9 +27,11 @@ namespace Inferences
 Clause* UncomputableAnswerLiteralRemoval::simplify(Clause* cl)
 {
   unsigned cLen = cl->length();
+  static SynthesisALManager* synthMan = static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance());
+  ASS(synthMan);
   for (unsigned li = 0; li < cLen; li++) {
     Literal* lit = (*cl)[li];
-    if (lit->isAnswerLiteral() && !lit->computableOrVar()) {
+    if (lit->isAnswerLiteral() && !synthMan->isComputableOrVar(lit)) {
       return nullptr;
     }
   }
