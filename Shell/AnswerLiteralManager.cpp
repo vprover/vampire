@@ -744,7 +744,6 @@ TermList getConstantForVariable(TermList sort) {
 TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
   // First replace free variables by 0-like constants
   if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
-    TermList zero(theory->representConstant(IntegerConstantType(0)));
     if (tl.isVar()) {
       return getConstantForVariable(sort);
     } else {
@@ -757,25 +756,14 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
         TermList& vsort = p.second;
         if (done.count(v) == 0) {
           done.insert(v);
-          if (vsort == AtomicSort::intSort()) {
-            s.bindUnbound(v, zero);
-          } else {
-            std::string name = "cz_" + vsort.toString();
-            unsigned czfn;
-            if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
-              czfn = env.signature->addFreshFunction(0, name.c_str());
-              env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
-            }
-            TermList res(Term::createConstant(czfn));
-            s.bindUnbound(v, res);
-          }
+          s.bindUnbound(v, getConstantForVariable(vsort));
         }
       }
       tl = TermList(tl.term()->apply(s));
     }
   }
   // Then replace skolems by variables
-  return transform(tl);
+  return transformSubterm(transform(tl));
 }
 
 TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {

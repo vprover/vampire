@@ -350,8 +350,7 @@ Formula* BottomUpTermTransformer::transform(Formula* f)
 TermList BottomUpTermTransformer::transform(TermList ts)
 {
   if (ts.isTerm()) {
-    // try transform subterms and try transforming the whole term
-    return transformSubterm(TermList(transform(ts.term())));
+    return TermList(transform(ts.term()));
   } else {
     return transformSubterm(ts);
   }
