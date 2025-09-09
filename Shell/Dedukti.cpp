@@ -1307,6 +1307,20 @@ static void AVATARComponent(std::ostream &out, Clause *component) {
     out << " " << l;
 }
 
+struct DkSATClause {
+  SATClause *clause;
+  DkSATClause(SATClause *clause) : clause(clause) {}
+};
+
+std::ostream &operator<<(std::ostream &out, const DkSATClause &dk) {
+  out << "Prf_clause ";
+  CloseParens cp(out);
+  out << cp.open(" (cl");
+  for(SATLiteral sl : dk.clause->iter())
+    out << cp.open(" (cons ") << DkSplit(sl);
+  return out << " ec";
+}
+
 static void AVATARSplitClause(std::ostream &out, Unit *derived) {
   UnitIterator parents = derived->getParents();
   ALWAYS(parents.hasNext())
@@ -1459,6 +1473,108 @@ static void AVATARContradictionClause(std::ostream &out, Unit *contradiction) {
     << DkClause(parent) << " := deduction" << parent->number();
 }
 
+static void sat_clause(std::ostream &out, SATClause *cl) {
+  SATInference *inference = cl->inference();
+
+  // easy case: input is converted from a first-order inference
+  if(inference->getType() == SATInference::InfType::FO_CONVERSION) {
+    auto *fo_conversion = static_cast<FOConversionInference *>(inference);
+    out << "def sat" << cl << " : " << DkSATClause(cl)
+      << " := deduction" << fo_conversion->getOrigin()->number() << ".";
+    return;
+  }
+
+#if 0
+  out << "def sat" << cl << " : " << DkSATClause(cl) << " :=";
+  std::unordered_set<SATLiteral> set;
+  for(SATLiteral l : cl->iter()) {
+    out <<
+      (l.positive() ? " psp" : " nsp") << l.var()
+      << " : " << DkSplit(l) << " =>";
+    set.insert(l.opposite());
+  }
+
+  auto *prop_inference = static_cast<PropInference *>(inference);
+  std::unordered_set<SATClause *> premises;
+  for(SATClause *premise : iterTraits(prop_inference->getPremises()->iter()))
+    premises.insert(premise);
+
+restart:
+  for(SATClause *premise : premises) {
+    SATLiteral propagate;
+    bool conflict = true;
+    for(unsigned i = 0; i < premise->length(); i++) {
+      SATLiteral l = (*premise)[i];
+      if(!set.count(l.opposite())) {
+        conflict = false;
+        if(propagate.var()) {
+          propagate = SATLiteral();
+          break;
+        }
+        propagate = l;
+      }
+    }
+    if(!conflict && !propagate.var())
+      continue;
+
+    // TODO term for propagation on lit l:
+    // (cont_l : Prf (l) -> Prf false => satP lit1 lit2 ... cont_l ... lit_n) (pl : Prf (l) => ...)
+    // TODO term for conflict
+    // (satP lit1 lit2 ... lit_n)
+    // each lit either nspN or (nspN : Prf (not spN) => pspN nspN)
+
+    if(propagate.var()) {
+      premises.erase(premise);
+      set.insert(propagate);
+    }
+
+    if(conflict)
+      return;
+    else
+      goto restart;
+  }
+#endif
+}
+
+static void AVATARRefutation(std::ostream &out, Unit *contradiction) {
+  // produce a topological sort (in reverse order) of the SAT proof
+  SATClause *empty = contradiction->inference().satPremise();
+  std::vector<SATClause *> topological_sort;
+  // second element is a flag indicating that we've finished processing this node,
+  // i.e. all its parents are now in the topological sort
+  std::vector<std::pair<SATClause *, bool>> todo = {{empty, false}};
+  // we already processed these
+  std::unordered_set<SATClause *> done;
+
+  while(!todo.empty()) {
+    auto [next, finished] = todo.back();
+    if(finished) {
+      todo.pop_back();
+      if(done.insert(next).second)
+        topological_sort.push_back(next);
+      continue;
+    }
+    todo.back().second = true;
+
+    SATInference *inference = next->inference();
+    if(inference->getType() == SATInference::InfType::FO_CONVERSION)
+      continue;
+
+    PropInference *deduction = static_cast<PropInference *>(inference);
+    for(SATClause *premise : iterTraits(deduction->getPremises()->iter()))
+      if(!done.count(premise))
+        todo.push_back({premise, false});
+  }
+
+  // use the topological sort to print each step
+  for(SATClause *cl : topological_sort) {
+    sat_clause(out, cl);
+    out << '\n';
+  }
+
+  out << "def deduction" << contradiction->number() << " : Prf false := sat" << empty;
+}
+
 namespace Shell {
 namespace Dedukti {
 
@@ -1569,6 +1685,9 @@ void outputDeduction(std::ostream &out, Unit *u) {
     break;
   case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
     AVATARContradictionClause(out, u);
+    break;
+  case InferenceRule::AVATAR_REFUTATION:
+    AVATARRefutation(out, u);
     break;
   default:
     sorry(out, u);
