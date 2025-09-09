@@ -226,18 +226,18 @@ template<typename Fun>
 InductionContext InductionContext::transform(Fun fn) const
 {
   Stack<std::pair<Clause*, LiteralStack>> cls;
-  for (const auto& kv : _cls) {
-    LiteralStack litStack;
-    for (const auto& lit : kv.second) {
+  for (const auto& [cl, lits] : _cls) {
+    LiteralStack resLits;
+    for (const auto& lit : lits) {
       auto tlit = fn(lit);
       if (tlit && tlit != lit) {
-        litStack.push(tlit);
+        resLits.push(tlit);
       }
     }
-    if (litStack.isEmpty()) {
+    if (resLits.isEmpty()) {
       continue;
     }
-    cls.emplace(kv.first, std::move(litStack));
+    cls.emplace(cl, std::move(resLits));
   }
   return InductionContext(_indTerms, std::move(cls));
 }

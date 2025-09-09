@@ -123,7 +123,12 @@ struct InductionContext {
   InductionContext(const std::vector<Term*>& indTerms, Literal* lit, Clause* cl)
     : InductionContext(indTerms, { { cl, { lit } } }) {}
   InductionContext(const std::vector<Term*>& indTerms, Stack<std::pair<Clause*, LiteralStack>>&& cls)
-    : _indTerms(indTerms), _cls(cls) {}
+    : _indTerms(indTerms), _cls(cls)
+  {
+    // sort the elements by the stacks of literals
+    for (const auto& e : _cls) { std::sort(e.second.begin(), e.second.end()); }
+    std::sort(_cls.begin(), _cls.end(), [](const auto& e1, const auto& e2) { return e1.second < e2.second; });
+  }
 
   // These functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
