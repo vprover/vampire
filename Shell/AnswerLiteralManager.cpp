@@ -1009,7 +1009,13 @@ bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, un
   // Top functor is computable, now recurse.
   unsigned* idx = nullptr;
   if (isRecTerm(t)) {
-    ALWAYS(recAncestors->getValuePtr(f, idx, -1));
+    if (!recAncestors->getValuePtr(f, idx, -1)) {
+      // TODO: investigate if we need to deal with answer literal in which
+      // nested rec-term (of the same rec-function) occurs in some special way.
+      // E.g., maybe we can replace "ans(rec(X0,rec(X1,sK2,X2),X3))"
+      // by "X0 != X1 | sK2 != rec(X1,sK2,X2) | ans(rec(X0,sK2,X3))"
+      return false;
+    }
   }
   for (unsigned i = 0; i < t->numTermArguments(); i++) {
     const TermList tl = t->termArg(i);
