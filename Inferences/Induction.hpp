@@ -179,6 +179,7 @@ private:
    * apply the term replacement @b tr on each literal.
    */
   Formula* getFormula(TermReplacement& tr) const;
+  std::map<Term*,TermList> getReplacementMap(const std::vector<TermList>& r, Substitution* subst) const;
 };
 
 /**

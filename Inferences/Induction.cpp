@@ -162,15 +162,7 @@ Formula* InductionContext::getFormula(const std::vector<TermList>& r, Substituti
 
   // Assuming this object is the result of a ContextReplacement (or similar iterator)
   // we can replace the ith placeholder with the ith term in r.
-  std::map<Term*,TermList> replacementMap;
-  for (unsigned i = 0; i < _indTerms.size(); i++) {
-    auto ph = getPlaceholderForTerm(_indTerms,i);
-    replacementMap.insert(make_pair(ph,r[i]));
-    if (subst) {
-      ASS(r[i].isVar());
-      subst->bindUnbound(r[i].var(), ph);
-    }
-  }
+  auto replacementMap = getReplacementMap(r, subst);
   TermReplacement tr(replacementMap);
   return getFormula(tr);
 }
@@ -190,15 +182,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(
   if (!strengthenHyp) {
     return getFormula(r, subst);
   }
-  std::map<Term*,TermList> replacementMap;
-  for (unsigned i = 0; i < _indTerms.size(); i++) {
-    auto ph = getPlaceholderForTerm(_indTerms,i);
-    replacementMap.insert(make_pair(ph,r[i]));
-    if (subst) {
-      ASS(r[i].isVar());
-      subst->bindUnbound(r[i].var(), ph);
-    }
-  }
+  auto replacementMap = getReplacementMap(r, subst);
   SkolemSquashingTermReplacement tr(replacementMap, nextVar);
   // Save current next variable, so we can track which variables are replacing the Skolems.
   unsigned temp = nextVar;
@@ -255,6 +239,20 @@ unsigned InductionContext::getFreeVariable() const {
   }
   ASSERTION_VIOLATION_REP("Called getFreeVariable on InductionContext without free variables");
   return 0;
+}
+
+std::map<Term*,TermList> InductionContext::getReplacementMap(const std::vector<TermList>& r, Substitution* subst) const
+{
+  std::map<Term*,TermList> replacementMap;
+  for (unsigned i = 0; i < _indTerms.size(); i++) {
+    auto ph = getPlaceholderForTerm(_indTerms,i);
+    replacementMap.insert(make_pair(ph,r[i]));
+    if (subst) {
+      ASS(r[i].isVar());
+      subst->bindUnbound(r[i].var(), ph);
+    }
+  }
+  return replacementMap;
 }
 
 std::map<Term*,TermList> getContextReplacementMap(const InductionContext& context, bool inverse = false)
