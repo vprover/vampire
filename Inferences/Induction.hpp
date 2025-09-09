@@ -100,17 +100,18 @@ protected:
 };
 
 /**
- * Same as @b TermReplacement, except we replace non-sort Skolems
- * with variables, used for strengthening induction hypotheses.
+ * Similar to @b TermReplacement, except we replace non-sort Skolems
+ * with variables if induction hypothesis strengthening is on.
  */
-class SkolemSquashingTermReplacement : public TermReplacement {
+class InductionTermReplacement : public TermReplacement {
 public:
-  SkolemSquashingTermReplacement(const std::map<Term*, TermList>& m, unsigned& var)
-    : TermReplacement(m), _v(var) {}
+  InductionTermReplacement(const std::map<Term*, TermList>& m, bool squashSkolems, unsigned& nextVar)
+    : TermReplacement(m), _squashSkolems(squashSkolems), _nextVar(nextVar) {}
   TermList transformSubterm(TermList trm) override;
-  DHMap<Term*, unsigned, SharedTermHash> _tv; // maps terms to their variable replacement
+  DHMap<Term*, unsigned, SharedTermHash> _skolemToVarMap; // maps terms to their variable replacement
 private:
-  unsigned& _v; // fresh variable counter supported by caller
+  const bool _squashSkolems;
+  unsigned& _nextVar; // fresh variable counter supported by caller
 };
 
 /**
@@ -170,7 +171,6 @@ struct InductionContext {
   // clause as well.
   Stack<std::pair<Clause*, LiteralStack>> _cls;
 private:
-  Formula* getFormula(const std::vector<TermList>& r, Substitution* subst) const;
   Formula* getFormulaWithSquashedSkolems(
     const std::vector<TermList>& r, unsigned& nextVar, VList** varsReplacingSkolems, Substitution* subst) const;
   /**

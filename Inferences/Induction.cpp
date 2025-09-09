@@ -97,7 +97,7 @@ TermList TermReplacement::transformSubterm(TermList trm)
   return trm;
 }
 
-TermList SkolemSquashingTermReplacement::transformSubterm(TermList trm)
+TermList InductionTermReplacement::transformSubterm(TermList trm)
 {
   if (trm.isVar() || trm.term()->isSort()) {
     return trm;
@@ -107,16 +107,14 @@ TermList SkolemSquashingTermReplacement::transformSubterm(TermList trm)
   if (it != _m.end()){
     return it->second;
   }
-  unsigned f = t->functor();
-  if (env.signature->getFunction(f)->skolem()) {
-    unsigned v;
-    if (!_tv.find(t,v)) {
-      v = _v++;
-      _tv.insert(t,v);
-    }
-    return TermList(v,false);
+  if (!_squashSkolems || !env.signature->getFunction(t->functor())->skolem()) {
+    return trm;
   }
-  return trm;
+  unsigned* ptr;
+  if (_skolemToVarMap.getValuePtr(t, ptr, _nextVar)) {
+    (_nextVar)++;
+  }
+  return TermList::var(*ptr);
 }
 
 Formula* InductionContext::getFormula(
@@ -156,20 +154,11 @@ Formula* InductionContext::getFormula(TermReplacement& tr) const
   return JunctionFormula::generalJunction(Connective::OR, argLists);
 }
 
-Formula* InductionContext::getFormula(const std::vector<TermList>& r, Substitution* subst) const
-{
-  ASS_EQ(_indTerms.size(), r.size());
-
-  // Assuming this object is the result of a ContextReplacement (or similar iterator)
-  // we can replace the ith placeholder with the ith term in r.
-  auto replacementMap = getReplacementMap(r, subst);
-  TermReplacement tr(replacementMap);
-  return getFormula(tr);
-}
-
 Formula* InductionContext::getFormulaWithFreeVar(const std::vector<TermList>& r, unsigned freeVar, TermList& freeVarSub, Substitution* subst) const
 {
-  Formula* replaced = getFormula(r, subst);
+  auto replacementMap = getReplacementMap(r, subst);
+  TermReplacement tr(replacementMap);
+  Formula* replaced = getFormula(tr);
   Substitution s;
   s.bindUnbound(freeVar, freeVarSub);
   return SubstHelper::apply(replaced, s);
@@ -178,21 +167,15 @@ Formula* InductionContext::getFormulaWithFreeVar(const std::vector<TermList>& r,
 Formula* InductionContext::getFormulaWithSquashedSkolems(
   const std::vector<TermList>& r, unsigned& nextVar, VList** varsReplacingSkolems, Substitution* subst) const
 {
-  const bool strengthenHyp = env.options->inductionStrengthenHypothesis();
-  if (!strengthenHyp) {
-    return getFormula(r, subst);
-  }
+  // Assuming this object is the result of a ContextReplacement (or similar iterator)
+  // we can replace the ith placeholder with the ith term in r.
   auto replacementMap = getReplacementMap(r, subst);
-  SkolemSquashingTermReplacement tr(replacementMap, nextVar);
+  InductionTermReplacement tr(replacementMap, env.options->inductionStrengthenHypothesis(), nextVar);
   // Save current next variable, so we can track which variables are replacing the Skolems.
   unsigned temp = nextVar;
   auto res = getFormula(tr);
   if (subst) {
-    DHMap<Term*,unsigned,SharedTermHash>::Iterator it(tr._tv);
-    while (it.hasNext()) {
-      unsigned v;
-      Term* t;
-      it.next(t, v);
+    for (const auto& [t,v] : iterTraits(tr._skolemToVarMap.items())) {
       subst->bindUnbound(v,t);
     }
   }
@@ -243,6 +226,7 @@ unsigned InductionContext::getFreeVariable() const {
 
 std::map<Term*,TermList> InductionContext::getReplacementMap(const std::vector<TermList>& r, Substitution* subst) const
 {
+  ASS_EQ(r.size(), _indTerms.size());
   std::map<Term*,TermList> replacementMap;
   for (unsigned i = 0; i < _indTerms.size(); i++) {
     auto ph = getPlaceholderForTerm(_indTerms,i);
