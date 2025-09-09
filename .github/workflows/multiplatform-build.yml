@@ -44,9 +44,10 @@ jobs:
       # the >- YAML operator and && are important for CR/LF reasons
       # ccache is installed but fails on the Windows server for some reason unclear to me
       # just switch it off here, it doesn't make sense anyway
+      # build statically on Linux, the others can't for one reason or another
       run: >-
         mkdir build &&
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCCACHE_PROGRAM=OFF &&
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCCACHE_PROGRAM=OFF -DBUILD_SHARED_LIBS=${{ runner.os == 'Linux' && 'OFF' || 'ON'}} &&
         make -j8 -C build vampire
     - name: Obtain Cygwin DLL
       working-directory: ${{ runner.workspace }}/vampire
