@@ -818,7 +818,11 @@ static void resolution(std::ostream &out, Clause *derived) {
   ALWAYS(subst.unify(TermList(selectedLeft), 0, TermList(selectedRight), 1));
 
   // apply subst to all of the parent literals in the same order as BinaryResolution does it
+  if(inf.left->numSelected() > 1)
+    subst.apply(selectedLeft, 0);
   applySubstToClause(subst, 0, inf.left, selectedLeft);
+  if(inf.right->numSelected() > 1)
+    subst.apply(selectedRight, 1);
   applySubstToClause(subst, 1, inf.right, selectedRight);
   Literal *leftSelectedSubst = subst.apply(selectedLeft, 0);
   Literal *rightSelectedSubst = subst.apply(selectedRight, 1);
@@ -1180,6 +1184,8 @@ static void equalityResolution(std::ostream &out, Clause *derived) {
   ALWAYS(subst.unify(s, 0, t, 0));
 
   // apply subst to all of the parent literals in the same order as EqualityResolution does it
+  if(inf.parent->numSelected() > 1)
+    subst.apply(selected, 0);
   applySubstToClause(subst, 0, inf.parent, selected);
   TermList sortSubst = subst.apply(sort, 0);
 
@@ -1259,6 +1265,8 @@ static void factoring(std::ostream &out, Clause *derived) {
   ALWAYS(subst.unify(TermList(selected), 0, TermList(other), 0));
 
   // apply subst to all of the parent literals in the same order as Factoring does it
+  if(inf.parent->numSelected() > 1)
+    subst.apply(selected, 0);
   applySubstToClause(subst, 0, inf.parent, other);
 
   for(auto [v, sort] : inf.parentVars)
@@ -1465,12 +1473,23 @@ static void AVATARSplitClause(std::ostream &out, Unit *derived) {
 }
 
 static void AVATARContradictionClause(std::ostream &out, Unit *contradiction) {
+  SATClause *cl = env.proofExtra.get<SATClauseExtra>(contradiction).clause;
   UnitIterator it = contradiction->getParents();
   ALWAYS(it.hasNext())
   Clause *parent = it.next()->asClause();
-  out
-    << "def deduction" << contradiction->number() << " : "
-    << DkClause(parent) << " := deduction" << parent->number();
+  out << "def deduction" << contradiction->number() << " : " << DkSATClause(cl) << " :=";
+  for(SATLiteral l : cl->iter())
+    out << (l.positive() ? " nnsp" : " nsp") << l.var()
+      << " : (Prf " << DkSplit(l) << " -> Prf false) =>";
+  out << " deduction" << parent->number();
+  SplitSet &splits = *parent->splits();
+  for(unsigned i = 0; i < splits.size(); i++) {
+    SATLiteral l = DkSplit(splits[i]).split;
+    if(l.positive())
+      out << " nsp" << l.var();
+    else
+      out << " (l : (Prf " << DkSplit(l) << " -> Prf false) => l nnsp" << l.var() << ")";
+  }
 }
 
 static void sat_clause(std::ostream &out, SATClause *cl) {
@@ -1479,19 +1498,20 @@ static void sat_clause(std::ostream &out, SATClause *cl) {
   // easy case: input is converted from a first-order inference
   if(inference->getType() == SATInference::InfType::FO_CONVERSION) {
     auto *fo_conversion = static_cast<FOConversionInference *>(inference);
+    Unit *parent = fo_conversion->getOrigin();
     out << "def sat" << cl << " : " << DkSATClause(cl)
-      << " := deduction" << fo_conversion->getOrigin()->number() << ".";
+      << " := deduction" << parent->number();
     return;
   }
 
-#if 0
   out << "def sat" << cl << " : " << DkSATClause(cl) << " :=";
-  std::unordered_set<SATLiteral> set;
+  std::unordered_set<SATLiteral> set, in_conclusion;
   for(SATLiteral l : cl->iter()) {
     out <<
-      (l.positive() ? " psp" : " nsp") << l.var()
-      << " : " << DkSplit(l) << " =>";
+      (l.positive() ? " nsp" : " nnsp") << l.var()
+      << " : (Prf " << DkSplit(l) << " -> Prf false) =>";
     set.insert(l.opposite());
+    in_conclusion.insert(l);
   }
 
   auto *prop_inference = static_cast<PropInference *>(inference);
@@ -1499,6 +1519,7 @@ static void sat_clause(std::ostream &out, SATClause *cl) {
   for(SATClause *premise : iterTraits(prop_inference->getPremises()->iter()))
     premises.insert(premise);
 
+  CloseParens parens(out);
 restart:
   for(SATClause *premise : premises) {
     SATLiteral propagate;
@@ -1517,15 +1538,35 @@ restart:
     if(!conflict && !propagate.var())
       continue;
 
-    // TODO term for propagation on lit l:
-    // (cont_l : Prf (l) -> Prf false => satP lit1 lit2 ... cont_l ... lit_n) (pl : Prf (l) => ...)
-    // TODO term for conflict
-    // (satP lit1 lit2 ... lit_n)
-    // each lit either nspN or (nspN : Prf (not spN) => pspN nspN)
-
     if(propagate.var()) {
       premises.erase(premise);
       set.insert(propagate);
+      out << " (cont : (Prf " << DkSplit(propagate) << " -> Prf false) => sat" << premise;
+      for(SATLiteral l : premise->iter())
+        if(l == propagate)
+          out << " cont";
+        else if(l.positive())
+          out << " nsp" << l.var();
+        else if(in_conclusion.count(l))
+          out << " nnsp" << l.var();
+        else
+          out << " (nsp" << l.var() << " : Prf " << DkSplit(l)
+            << " => nsp" << l.var() << " psp" << l.var() << ")";
+      out << ") " << parens.open()
+        << (propagate.positive() ? "psp" : "nsp") << propagate.var()
+        << " : Prf " << DkSplit(propagate) << " =>";
+    }
+    // conflict
+    else {
+      out << " sat" << premise;
+      for(SATLiteral l : premise->iter())
+        if(l.positive())
+          out << " nsp" << l.var();
+        else if(in_conclusion.count(l))
+          out << " nnsp" << l.var();
+        else
+          out << " (nsp" << l.var() << " : Prf " << DkSplit(l)
+            << " => nsp" << l.var() << " psp" << l.var() << ")";
     }
 
     if(conflict)
@@ -1533,7 +1574,6 @@ restart:
     else
       goto restart;
   }
-#endif
 }
 
 static void AVATARRefutation(std::ostream &out, Unit *contradiction) {
@@ -1569,7 +1609,7 @@ static void AVATARRefutation(std::ostream &out, Unit *contradiction) {
   // use the topological sort to print each step
   for(SATClause *cl : topological_sort) {
     sat_clause(out, cl);
-    out << '\n';
+    out << ".\n";
   }
 
   out << "def deduction" << contradiction->number() << " : Prf false := sat" << empty;

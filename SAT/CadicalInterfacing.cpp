@@ -58,13 +58,13 @@ SATLiteralStack CadicalInterfacing::failedAssumptions() {
 }
 
 std::filesystem::path CadicalInterfacing::drat(SATClauseList* premises) {
-  auto drat = std::filesystem::temp_directory_path() / "vampire-drat"; // TODO ("vampire-drat-" + Int::toString(getpid()));
+  auto drat = std::filesystem::temp_directory_path() / ("vampire-drat-" + Int::toString(getpid()));
   CadicalInterfacing solver;
   solver._solver.trace_proof(drat.c_str());
 
   for(SATClause *cl : iterTraits(premises->iter()))
     solver.addClause(cl);
-  ASS_EQ(solver.solve(), Status::UNSATISFIABLE)
+  ALWAYS(solver.solve() == Status::UNSATISFIABLE)
   solver._solver.close_proof_trace();
 
   return drat;
