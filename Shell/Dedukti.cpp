@@ -1068,7 +1068,7 @@ static void demodulation(std::ostream &out, Clause *derived) {
 static void definitionUnfolding(std::ostream &out, Clause *derived) {
   VariadicClausalInference<Inferences::FunctionDefinitionExtra> inf(out, derived);
 
-  for(auto [v, sort] : inf.derivedVars)
+  for(auto [v, sort] : inf.parentVars)
     out << " " << DkVar(v, sort, inf);
 
   std::unordered_map<unsigned, unsigned> rewrites;
