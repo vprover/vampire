@@ -821,7 +821,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
         if (env.signature->isEqualityPredicate(pred)) {
           newCond = Literal::createEquality(/*polarity=*/true, *tcond->nthArgument(0), *tcond->nthArgument(1), sort);
         } else {
-          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, tcond->args());
+          newCond = Literal::createFromIter(pred, /*polarity=*/true, anyArgIter(tcond));
         }
         // Build the whole ITE term
         return TermList(Term::createITE(new AtomicFormula(newCond), *(t->nthArgument(1)), *(t->nthArgument(2)), sort));
