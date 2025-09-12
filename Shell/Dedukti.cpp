@@ -34,6 +34,7 @@
 #include "Saturation/Splitter.hpp"
 
 #include "Inferences/BinaryResolution.hpp"
+#include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/Superposition.hpp"
@@ -1207,6 +1208,82 @@ static void equalityResolution(std::ostream &out, Clause *derived) {
     out << " " << DkLitPtr((*inf.parent)[lit], inf, DoRobSubstitution0(subst));
 }
 
+static void equalityFactoring(std::ostream &out, Clause *derived) {
+  UnaryClausalInference<Inferences::EqualityFactoringExtra> inf(out, derived);
+
+  // compute unifier
+  RobSubstitution subst;
+  Literal *selected = inf.extra.selected.selectedLiteral.selectedLiteral;
+  ASS(selected->isEquality())
+  Literal *other = inf.extra.selected.otherLiteral;
+  ASS(other->isEquality())
+  TermList from = inf.extra.rewrite.lhs;
+  bool fromisLHS = other->termArg(0) == from;
+  TermList to = EqHelper::getOtherEqualitySide(other, from);
+  TermList rewritten = inf.extra.rewrite.rewritten;
+  TermList not_rewritten = EqHelper::getOtherEqualitySide(selected, rewritten);
+  TermList sort = SortHelper::getEqualityArgumentSort(selected);
+  TermList sort2 = SortHelper::getEqualityArgumentSort(other);
+  ALWAYS(subst.unify(sort, 0, sort2, 0));
+  ALWAYS(subst.unify(from, 0, rewritten, 0));
+  TermList sortSubst = subst.apply(sort, 0);
+  subst.apply(rewritten, 0);
+  TermList t = subst.apply(not_rewritten, 0);
+  TermList toSubst = subst.apply(to, 0);
+
+  if(inf.parent->numSelected() > 1)
+    subst.apply(selected, 0);
+  applySubstToClause(subst, 0, inf.parent, selected);
+
+  Literal *result = Literal::createEquality(false, t, toSubst, sortSubst);
+  bool commuteResult = result->termArg(0) == toSubst;
+  for(auto [v, sort] : inf.parentVars)
+    out << " " << DkTerm(subst.apply(TermList(v, false), 0), sortSubst, inf);
+  unsigned lit;
+  for(lit = 0; (*inf.parent)[lit] != selected; lit++)
+    out << " " << DkLitPtr((*inf.parent)[lit], inf, DoRobSubstitution0(subst));
+
+  out << " (r : (Prf " << DkLit(selected, inf, DoRobSubstitution0(subst)) << ") => ";
+  if(commuteResult)
+    out
+      << "(comml_not " << DkTerm(sortSubst, AtomicSort::superSort())
+      << " " << DkTerm(toSubst, sortSubst)
+      << " " << DkTerm(t, sortSubst)
+      << " " << result << ")";
+  else
+    out << result;
+
+  TermList fromSubst = subst.apply(from, 0);
+  bool commuteR = selected->termArg(0) == not_rewritten;
+  if(commuteR)
+    out
+      << " ((comm " << DkTerm(sortSubst, AtomicSort::superSort())
+      << DkTerm(t, sortSubst) << " " << DkTerm(fromSubst, sortSubst) << " r)";
+  else
+    out << " (r";
+
+  out
+    << " (z : (El " << DkTerm(sortSubst, AtomicSort::superSort())
+    << ") => (not (eq " << DkTerm(sortSubst, AtomicSort::superSort())
+    << " z " << DkTerm(toSubst, sortSubst) << "))) ";
+
+  Literal *otherSubst = subst.apply(other, 0);
+  bool commuteOther = otherSubst->termArg(0) == toSubst;
+  if(commuteOther) {
+    out
+      << "(comml " << DkTerm(sortSubst, AtomicSort::superSort())
+      << " " << DkTerm(toSubst, sortSubst)
+      << " " << DkTerm(fromSubst, sortSubst)
+      << " " << otherSubst << ")";
+  }
+  else
+    out << otherSubst;
+  out << "))";
+
+  for(lit++; lit < inf.parent->length(); lit++)
+    out << " " << DkLitPtr((*inf.parent)[lit], inf, DoRobSubstitution0(subst));
+}
+
 static void equalityResolutionWithDeletion(std::ostream &out, Clause *derived) {
   UnaryClausalInference<Inferences::EqResWithDeletionExtra> inf(out, derived);
 
@@ -1700,6 +1777,9 @@ void outputDeduction(std::ostream &out, Unit *u) {
     break;
   case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
     trivialInequalityRemoval(out, u->asClause());
+    break;
+  case InferenceRule::EQUALITY_FACTORING:
+    equalityFactoring(out, u->asClause());
     break;
   case InferenceRule::EQUALITY_RESOLUTION:
     equalityResolution(out, u->asClause());
