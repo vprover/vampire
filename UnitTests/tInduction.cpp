@@ -457,11 +457,9 @@ TEST_GENERATION_INDUCTION(test_07,
         clause({ f(f(g(sK1),f(sK2,b)),sK1) != g(f(sK1,f(sK2,sK3))), f(f(g(sK1),f(sK2,r(skx11))),sK1) != g(f(sK1,f(sK2,sK3))) }),
       })
       .preConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0),
-                       TEST_FN_ASS_EQ(env.statistics->structInduction, 0),
-                       TEST_FN_ASS_EQ(env.statistics->generalizedInductionApplication, 0) })
-      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 4),
-                        TEST_FN_ASS_EQ(env.statistics->structInduction, 12),
-                        TEST_FN_ASS_EQ(env.statistics->generalizedInductionApplication, 8) })
+                       TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
+      .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 12),
+                        TEST_FN_ASS_EQ(env.statistics->structInduction, 12) })
     )
 
 // complex terms

@@ -201,10 +201,6 @@ public:
   unsigned intDBDownInductionInProof = 0;
   unsigned inductionApplication = 0;
   unsigned inductionApplicationInProof = 0;
-  unsigned generalizedInductionApplication = 0;
-  unsigned generalizedInductionApplicationInProof = 0;
-  unsigned nonGroundInductionApplication = 0;
-  unsigned nonGroundInductionApplicationInProof = 0;
   /** number of argument congruences */
   unsigned argumentCongruence = 0;
   unsigned narrow = 0;

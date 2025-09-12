@@ -925,10 +925,6 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "integer induction formula (down, default bound)";
   case InferenceRule::INDUCTION_HYPERRESOLUTION:
     return "induction hyperresolution";
-  case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
-    return "generalized induction hyperresolution";
-  case InferenceRule::FREE_VAR_INDUCTION_HYPERRESOLUTION:
-    return "induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
   case InferenceRule::COMBINATOR_AXIOM:

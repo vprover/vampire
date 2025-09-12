@@ -1050,100 +1050,64 @@ IntUnionFind findDistributedVariants(const InductionInstance& indInst, const Ind
  * clauses from an induction context. The resulting clause can be seen
  * as the result of a sequence of resolutions and duplicate literal removals.
  */
-Clause* resolveClausesHelper(const InductionContext& context, const InductionInstance& indInst, IntUnionFind::ElementIterator eIt, bool generalized)
+Clause* resolveClausesHelper(const InductionContext& context, const InductionInstance& indInst, IntUnionFind::ElementIterator eIt)
 {
-  // first create the clause with the required size
   ASS(eIt.hasNext());
   auto cl = indInst.cls[eIt.next()];
   auto premises = UnitList::singleton(cl);
-  const auto& toResolve = context._cls;
-  while (eIt.hasNext()) {
-    auto other = indInst.cls[eIt.next()];
-    UnitList::push(other,premises);
+  for (const auto& index : iterTraits(eIt)) {
+    UnitList::push(indInst.cls[index],premises);
   }
 
-  for (const auto& kv : toResolve) {
-    UnitList::push(kv.first, premises);
-  }
-
-  Inference inf(GeneratingInferenceMany(
-    generalized ? InferenceRule::GEN_INDUCTION_HYPERRESOLUTION
-                : InferenceRule::INDUCTION_HYPERRESOLUTION,
-    premises));
-  RStack<Literal*> resLits;
+  // This replaces the placeholder terms with the terms we induct on in the result literals.
   TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
+  RStack<Literal*> resLits;
 
+  // The clauses in eIt contain the same literals that will *not*
+  // be resolved, so we just take the first and find these literals.
   for (const auto& curr : *cl) {
-    auto clit = indInst.subst.apply(Literal::complementaryLiteral(curr), INDUCTION_CLAUSE_BANK);
-    bool contains = false;
-    for (unsigned i = 0; i < toResolve.size(); i++) {
-      for (const auto& lit : toResolve[i].second) {
-        auto slit = indInst.subst.apply(lit, NUM_SPECIAL_BANKS + i);
-        if (slit == clit) {
-          contains = true;
-          break;
-        }
-      }
-      if (contains) {
-        break;
-      }
-    }
-    if (!contains) {
-      resLits->push(tr.transformLiteral(indInst.subst.apply(curr, INDUCTION_CLAUSE_BANK)));
+    auto clit = indInst.subst.apply(curr, INDUCTION_CLAUSE_BANK);
+    bool shouldResolveLit = iterTraits(range(0, context._cls.size()))
+      .any([&](unsigned i) {
+        return iterTraits(context._cls[i].second.iter())
+          .any([&](Literal* lit) {
+            return Literal::complementaryLiteral(clit) == indInst.subst.apply(lit, NUM_SPECIAL_BANKS + i);
+          });
+      });
+    if (!shouldResolveLit) {
+      resLits->push(tr.transformLiteral(clit));
     }
   }
 
-  for (unsigned i = 0; i < toResolve.size(); i++) {
-    for (const auto& clit : *toResolve[i].first) {
-      bool copyCurr = true;
-      for (const auto& lit : toResolve[i].second) {
-        if (clit == tr.transformLiteral(lit)) {
-          copyCurr = false;
-          break;
-        }
-      }
-      if (copyCurr) {
+  // Next, we find all literals that are not resolved from clauses
+  // in context._cls, and save all these clauses as premises.
+  for (unsigned i = 0; i < context._cls.size(); i++) {
+    const auto& [cl, lits] = context._cls[i];
+    for (const auto& clit : *cl) {
+      bool shouldResolveLit = iterTraits(lits.iter())
+        .any([&](Literal* lit) {
+          return clit == tr.transformLiteral(lit);
+        });
+      if (!shouldResolveLit) {
         resLits->push(tr.transformLiteral(indInst.subst.apply(clit, NUM_SPECIAL_BANKS + i)));
       }
     }
+    UnitList::push(cl, premises);
   }
 
-  return Clause::fromStack(*resLits, inf);
+  return Clause::fromStack(*resLits, GeneratingInferenceMany(InferenceRule::INDUCTION_HYPERRESOLUTION, premises));
 }
 
 void InductionClauseIterator::resolveClauses(const InductionInstance& indInst, const InductionContext& context)
 {
   ASS(indInst.cls.isNonEmpty());
-  bool generalized = false;
-  for (const auto& kv : context._cls) {
-    for (const auto& lit : kv.second) {
-      for (const auto& t : context._indTerms) {
-        if (lit->containsSubterm(TermList(t))) {
-          generalized = true;
-          break;
-        }
-      }
-      if (generalized) {
-        break;
-      }
-    }
-    if (generalized) {
-      break;
-    }
-  }
-  if (generalized) {
-    env.statistics->generalizedInductionApplication++;
-  // } else if (indLitSubst) {
-  //   env.statistics->nonGroundInductionApplication++;
-  } else {
-    env.statistics->inductionApplication++;
-  }
+  env.statistics->inductionApplication++;
 
   auto uf = findDistributedVariants(indInst, context);
   IntUnionFind::ComponentIterator cit(uf);
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
-    _clauses.push(resolveClausesHelper(context, indInst, eIt, generalized));
+    _clauses.push(resolveClausesHelper(context, indInst, eIt));
     if(_opt.showInduction()){
       std::cout << "[Induction] generate " << _clauses.top()->toString() << endl;
     }

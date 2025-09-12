@@ -217,7 +217,7 @@ void Statistics::print(std::ostream& out)
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
       +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
-      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication+nonGroundInductionApplication
+      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication
       +introducedFunctionDefinitions);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
@@ -261,10 +261,6 @@ void Statistics::print(std::ostream& out)
   COND_OUT("IntegerDefaultBoundDownInductionInProof",intDBDownInductionInProof);
   COND_OUT("InductionApplications",inductionApplication);
   COND_OUT("InductionApplicationsInProof",inductionApplicationInProof);
-  COND_OUT("GeneralizedInductionApplications",generalizedInductionApplication);
-  COND_OUT("GeneralizedInductionApplicationsInProof",generalizedInductionApplicationInProof);
-  COND_OUT("NonGroundInductionApplications",nonGroundInductionApplication);
-  COND_OUT("NonGroundInductionApplicationsInProof",nonGroundInductionApplicationInProof);
   COND_OUT("Argument congruence", argumentCongruence);
   COND_OUT("Negative extensionality", negativeExtensionality);
   COND_OUT("Primitive substitutions", primitiveInstantiations);
