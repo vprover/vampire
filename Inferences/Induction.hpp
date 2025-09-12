@@ -95,8 +95,6 @@ class TermReplacement : public TermTransformer {
 public:
   TermReplacement(const std::map<Term*, TermList>& m) : _m(m) {}
   TermList transformSubterm(TermList trm) override;
-  // TODO remove this once getFormulaWithFreeVar is removed
-  virtual void resetRenaming(Substitution*) {}
 protected:
   std::map<Term*,TermList> _m;
 };
@@ -110,7 +108,8 @@ public:
   InductionTermReplacement(const std::map<Term*, TermList>& m, bool squashSkolems, unsigned& nextVar)
     : TermReplacement(m), _squashSkolems(squashSkolems), _nextVar(nextVar), _renaming(_nextVar) {}
   TermList transformSubterm(TermList trm) override;
-  void resetRenaming(Substitution* subst) override;
+  
+  void resetRenaming(RobSubstitution* subst, unsigned bank);
   VList* getRenamedFreeVars() const;
   VList* getVarsReplacingSkolems() const;
 
@@ -146,15 +145,10 @@ struct InductionContext {
   // replaced with placeholders (e.g. with ContextReplacement).
   Formula* getFormula(
     const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar,
-    VList** varsReplacingSkolems = nullptr, Substitution* subst = nullptr, Stack<Substitution>* substs = nullptr) const;
-  Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
+    VList** varsReplacingSkolems = nullptr, RobSubstitution* subst = nullptr) const;
 
   template<typename Fun>
   InductionContext transform(Fun fn) const;
-
-  // Return some free variable that occurs in the induction literals.
-  // If the literals are all ground, return 0 (and fail in debug mode).
-  unsigned getFreeVariable() const;
 
   friend std::ostream& operator<<(std::ostream& out, const InductionContext& context) {
     for (const auto& indt : context._indTerms) {
@@ -182,14 +176,14 @@ struct InductionContext {
   Stack<std::pair<Clause*, LiteralStack>> _cls;
 private:
   Formula* getFormulaWithSquashedSkolems(
-    const std::vector<TermList>& r, unsigned& nextVar, VList*& renamedFreeVars, VList** varsReplacingSkolems, Substitution* subst, Stack<Substitution>* substs) const;
+    const std::vector<TermList>& r, unsigned& nextVar, VList*& renamedFreeVars, VList** varsReplacingSkolems, RobSubstitution* subst) const;
   /**
    * Creates a formula which corresponds to the disjunction of conjunction
    * of opposites of selected literals for each clause in @b _cls, where we
    * apply the term replacement @b tr on each literal.
    */
-  Formula* getFormula(TermReplacement& tr, Stack<Substitution>* substs) const;
-  std::map<Term*,TermList> getReplacementMap(const std::vector<TermList>& r, Substitution* subst) const;
+  Formula* getFormula(InductionTermReplacement& tr, RobSubstitution* subst) const;
+  std::map<Term*,TermList> getReplacementMap(const std::vector<TermList>& r, RobSubstitution* subst) const;
 };
 
 /**
@@ -323,7 +317,7 @@ private:
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, Substitution& cnfSubst);
   void resolveClauses(const InductionContext& context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
-  void resolveClauses(const InductionInstance& indInst, const InductionContext& context, bool applySubst = false);
+  void resolveClauses(const InductionInstance& indInst, const InductionContext& context);
 
   void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
@@ -337,7 +331,6 @@ private:
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, TermLiteralClause const& bound1, const TermLiteralClause* optionalBound2)
   { performIntInduction(context, e, increasing, Bound::variant<0>(bound1), optionalBound2); }
 
-  void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution* freeVarSubst);
   void performInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e);
 
   /**

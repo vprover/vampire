@@ -42,16 +42,12 @@ public:
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();
-  static bool isIntInductionOneOn();
-  static bool isIntInductionTwoOn();
   static bool isInductionForFiniteIntervalsOn();
   static bool isInductionForInfiniteIntervalsOn();
   static bool isStructInductionOn();
   static bool isNonUnitStructInductionOn();
   static bool isInductionClause(Clause* c);
   static bool isInductionLiteral(Literal* l);
-  static bool isGroundInductionLiteral(Literal* l);
-  static bool isNonGroundInductionLiteral(Literal* l);
   static bool isInductionTerm(Term* t);
   static bool isIntInductionTermListInLiteral(Term* tl, Literal* l);
   static bool isStructInductionTerm(Term* t);

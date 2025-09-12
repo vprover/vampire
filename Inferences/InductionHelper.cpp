@@ -111,14 +111,6 @@ bool InductionHelper::isIntInductionOn() {
   return intInd;
 }
 
-bool InductionHelper::isIntInductionOneOn() {
-  return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::ONE);
-}
-
-bool InductionHelper::isIntInductionTwoOn() {
-  return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::TWO);
-}
-
 bool InductionHelper::isInductionForFiniteIntervalsOn() {
   static bool finite = env.options->integerInductionInterval() == Options::IntegerInductionInterval::FINITE ||
                        env.options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
@@ -161,10 +153,6 @@ bool InductionHelper::isInductionLiteral(Literal* l) {
          );
 }
 
-bool InductionHelper::isGroundInductionLiteral(Literal* l) {
-  return (l->ground() && isInductionLiteral(l));
-}
-
 bool inductionLiteralHasAdmissibleVariables(Literal* l) {
   if (l->getDistinctVars() != 1) {
     return false;
@@ -183,11 +171,6 @@ bool inductionLiteralHasAdmissibleVariables(Literal* l) {
   }
   ASSERTION_VIOLATION_REP("No variables in a literal which should contain one variable!");
   return true;
-}
-
-bool InductionHelper::isNonGroundInductionLiteral(Literal* l) {
-  static bool groundOnly = env.options->inductionGroundOnly();
-  return (!groundOnly && !l->ground() && inductionLiteralHasAdmissibleVariables(l) && isInductionLiteral(l));
 }
 
 bool InductionHelper::isInductionTerm(Term* t)

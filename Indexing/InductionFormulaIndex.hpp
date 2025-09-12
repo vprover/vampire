@@ -22,7 +22,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Substitution.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
   struct InductionContext;
@@ -36,8 +36,7 @@ using Key = std::pair<Stack<LiteralStack>,std::pair<Literal*,Literal*>>;
 
 struct InductionInstance {
   ClauseStack cls;
-  Substitution subst;
-  Stack<Substitution> substs;
+  RobSubstitution subst;
 };
 
 class InductionFormulaIndex
@@ -50,7 +49,7 @@ public:
    * in a matching InductionContext.
    */
   struct Entry {
-    void add(ClauseStack&& cls, Substitution&& subst, Stack<Substitution>&& substs) {
+    void add(ClauseStack&& cls, RobSubstitution&& subst) {
       if (cls.isEmpty()) {
         return;
       }
@@ -59,7 +58,7 @@ public:
       for (const auto& cl : cls) {
         cl->incRefCnt();
       }
-      _indInstances.push({ cls, subst, substs });
+      _indInstances.push({ std::move(cls), std::move(subst) });
     }
     const Stack<InductionInstance>& getInductionInstances() const
     { return _indInstances; }
