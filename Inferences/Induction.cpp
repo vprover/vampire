@@ -831,7 +831,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto indLitsIt = contextReplacementInstance(InductionContext({ st }, lit, premise), _opt, _fnDefHandler);
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
-          // TODO(hzzv): only keep the standard base once induction with free variable works on multiple literals.
+          // TODO: only keep the standard base once induction with free variable works on multiple literals.
+          // Before merging to master, remove all non-standard base code as in commit a78b919.
           for (unsigned i = 0; i <= (unsigned)env.options->inductionNonstandardBase(); ++i) {
             if (i == 1) {
               ctx._standardBase = false;

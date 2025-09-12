@@ -423,6 +423,9 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
   TIME_TRACE("unit resulting resolution");
 
   ClauseList* res = 0;
+  // TODO: the last argument of the call is whether answer literals should be joined via the if-then-else
+  // constructor, or by unifying. This should be removed before merging into master (see commit a78b919),
+  // and ideally implemented in SynthesisAnswerLiteralProcessor instead.
   processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res, false);
   processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res, true);
 

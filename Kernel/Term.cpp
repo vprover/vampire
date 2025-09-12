@@ -18,6 +18,7 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Metaiterators.hpp"
