@@ -970,7 +970,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   if (synthesis) {
     ASS((_answerLiteralManager != nullptr));
     Clause* ansLitCl = cl;
-    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && static_cast<Shell::SynthesisALManager*>(_answerLiteralManager)->isComputable(cl)) {
       ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
     }
     Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
