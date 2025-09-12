@@ -39,7 +39,7 @@ using namespace Kernel;
 
 namespace Shell {
 
-void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, Term*>* bindings)
+void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, Substitution* subst)
 {
   _beingClausified = unit;
 
@@ -104,11 +104,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, 
 #endif
 
   for (SPGenClause gc : _genClauses) {
-    if (bindings) {
-      BindingList::RefIterator it(gc->bindings);
-      while (it.hasNext()) {
-        Binding& b = it.next();
-        bindings->insert(b.first, b.second);
+    if (subst) {
+      for (const auto& [v,t] : iterTraits(BindingList::RefIterator(gc->bindings))) {
+        // TODO somehow bindings might contain the same binding multiple times,
+        // which prevents us from using bindUnbound, maybe investigate this
+        ALWAYS(subst->bind(v, t));
       }
     }
     toClauses(gc, output);
