@@ -33,6 +33,8 @@ using namespace std;
 using namespace Test;
 using namespace Test::Generation;
 
+#define ACTUAL_BANK 0
+#define EXPECTED_BANK 1
 #define SKOLEM_VAR_MIN 100
 #define DECL_SKOLEM_VAR(x, i) DECL_VAR(x, i+SKOLEM_VAR_MIN)
 
@@ -51,10 +53,10 @@ TermIndex<TermLiteralClause>* structInductionIndex() {
 }
 
 auto getIndices() {
-  return Stack<std::function<Index*()>> { 
-    std::function<Index*()>([]() { return comparisonIndex(); }), 
-    std::function<Index*()>([]() { return intInductionIndex(); }), 
-    std::function<Index*()>([]() { return structInductionIndex(); }), 
+  return Stack<std::function<Index*()>> {
+    std::function<Index*()>([]() { return comparisonIndex(); }),
+    std::function<Index*()>([]() { return intInductionIndex(); }),
+    std::function<Index*()>([]() { return structInductionIndex(); }),
   };
 }
 
@@ -96,31 +98,28 @@ public:
 
   /**
    * Generated induction clauses are special in that they contain fresh
-   * Skolem constants. In order to check these, we use variables instead
-   * of the constants we cannot predefine, and require that these variables
-   * are mapped bijectively to the new Skolem constants, hence this override.
+   * Skolem terms. In order to check these, we use special variables instead
+   * of the terms we cannot predefine, and require that these variables
+   * are mapped bijectively to the new Skolem terms, hence this override.
    */
-  bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
+  bool eq(Kernel::Clause* actualCl, Kernel::Clause* expectedCl) override
   {
     // there can be false positive matches which later (in a different literal
     // or clause) can turn out to be the wrong ones and we have to backtrack
     // TODO: are all of these backtracking calls necessary?
     _subst.bdRecord(_btd);
-    if (!TestUtils::permEq(*lhs, *rhs, [this](Literal* l, Literal* r) -> bool {
-      if (l->polarity() != r->polarity()) {
+    if (!TestUtils::permEq(*actualCl, *expectedCl, [this](Literal* actual, Literal* expected) -> bool {
+      if (actual->polarity() != expected->polarity()) {
         _btd.backtrack();
         return false;
       }
-      VList::Iterator vit(freeVariables(r));
-      while (vit.hasNext()) {
-        auto v = vit.next();
-        if (!_varsMatched.count(v)) {
+      for (const auto& v : iterTraits(VList::Iterator(freeVariables(expected)))) {
+        if (_varsMatched.insert(v).second) {
           _btd.addBacktrackObject(new MatchedVarBacktrackObject(_varsMatched, v));
-          _varsMatched.insert(v);
         }
       }
       _subst.bdRecord(_btd);
-      if (_subst.match(Kernel::TermList(r), 0, Kernel::TermList(l), 1)) {
+      if (_subst.match(Kernel::TermList(expected), EXPECTED_BANK, Kernel::TermList(actual), ACTUAL_BANK)) {
         if (matchAftercheck()) {
           _subst.bdDone();
           return true;
@@ -130,9 +129,10 @@ public:
       _subst.bdDone();
       _btd.backtrack();
       _subst.bdRecord(_btd);
-      if (l->isEquality() && r->isEquality() &&
-        _subst.match(*r->nthArgument(0), 0, *l->nthArgument(1), 1) &&
-        _subst.match(*r->nthArgument(1), 0, *l->nthArgument(0), 1))
+      // for equalities, we check the other orientation too
+      if (actual->isEquality() && expected->isEquality() &&
+        _subst.match(expected->termArg(0), EXPECTED_BANK, actual->termArg(1), ACTUAL_BANK) &&
+        _subst.match(expected->termArg(1), EXPECTED_BANK, actual->termArg(0), ACTUAL_BANK))
       {
         if (matchAftercheck()) {
           _subst.bdDone();
@@ -155,16 +155,15 @@ private:
   bool matchAftercheck() {
     DHMap<TermList, unsigned> inverse;
     for (const auto& i : _varsMatched) {
-      auto t = _subst.apply(TermList(i,false),0);
+      auto t = _subst.apply(TermList::var(i),EXPECTED_BANK);
       unsigned v;
       // we check that each variable encountered so far from
       // the expected set is bijectively mapped to something
       if (inverse.find(t,v)) {
         return false;
-      } else {
-        inverse.insert(t,i);
       }
-      // "Skolem" variables should bind to Skolem constants
+      inverse.insert(t,i);
+      // "Skolem" variables should bind to Skolem terms
       if (i >= SKOLEM_VAR_MIN) {
         if (t.isVar() || !env.signature->getFunction(t.term()->functor())->skolem()) {
           return false;
@@ -235,6 +234,7 @@ private:
   DECL_SKOLEM_CONST(sK3, s)                                                                \
   DECL_SKOLEM_CONST(sK4, s)                                                                \
   DECL_SKOLEM_CONST(sK5, u)                                                                \
+  DECL_SKOLEM_FUNC(sK1_1, {s}, s)                                                          \
   DECL_CONST(b, s)                                                                         \
   DECL_FUNC(r, {s}, s)                                                                     \
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
@@ -294,9 +294,27 @@ TEST_FUN(test_tester3) {
 TEST_FUN(test_tester4) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
   GenerationTesterInduction tester;
+  // Skolem function with different args is matched
+  ASS(!tester.eq(
+    clause({ r(sK1_1(x)) == r(x), f(r(sK1_1(y)),y) != z }),
+    clause({ r(skx1) == r(x3), f(r(skx1),x4) != x5 })));
+}
+
+TEST_FUN(test_tester5) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  GenerationTesterInduction tester;
   // normal match
   ASS(tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != z }),
+    clause({ r(skx1) == r(x3), f(r(skx1),x4) != x5 })));
+}
+
+TEST_FUN(test_tester6) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  GenerationTesterInduction tester;
+  // normal match with Skolem function
+  ASS(tester.eq(
+    clause({ r(sK1_1(x)) == r(x), f(r(sK1_1(x)),y) != z }),
     clause({ r(skx1) == r(x3), f(r(skx1),x4) != x5 })));
 }
 
@@ -889,7 +907,7 @@ TEST_GENERATION_INDUCTION(int_test_13,
       .postConditions({ TEST_FN_ASS_EQ(env.statistics->inductionApplication, 0) })
     )
 
-// given the same lower and upper bound, induction is not applied 
+// given the same lower and upper bound, induction is not applied
 TEST_GENERATION_INDUCTION(int_test_14,
   Generation::AsymmetricTest()
     .options({ { "induction", "int" }, { "int_induction_interval", "finite" } })
@@ -1296,10 +1314,18 @@ TEST_GENERATION_INDUCTION(test_38,
         clause({ ~p(f(b,x4)), p(f(skx0,skx1)) }),
         clause({ ~p(f(b,x4)), ~p(f(r(skx0),x5)) }),
       })
-      // .preConditions({ TEST_FN_ASS_EQ(env.statistics->nonGroundInductionApplication, 0),
-      //                  TEST_FN_ASS_EQ(env.statistics->structInduction, 0) })
-      // .postConditions({ TEST_FN_ASS_EQ(env.statistics->nonGroundInductionApplication, 1),
-      //                   TEST_FN_ASS_EQ(env.statistics->structInduction, 1) })
+    )
+
+// structural induction (sik=one) with one free variable
+TEST_GENERATION_INDUCTION(test_39,
+    Generation::AsymmetricTest()
+      .options({ { "induction", "struct" }, { "induction_ground_only", "off" }, { "induction_unit_only", "off" } })
+      .indices(getIndices())
+      .input( clause({  ~p(f(sK1,z)), f(z,y) != x }))
+      .expected({
+        clause({ ~p(f(b,x)), p(f(skx0,skx1)), f(skx2,z) != x3 }),
+        clause({ ~p(f(b,x)), ~p(f(r(skx0),y)), f(skx2,x3) != x4 }),
+      })
     )
 
 //
