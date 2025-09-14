@@ -11,6 +11,8 @@
  * @file Convert.cpp
  */
 
+#include <unordered_map>
+
 #include "Kernel/Connective.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/HOL/HOL.hpp"

@@ -34,6 +34,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -943,7 +944,7 @@ bool Splitter::doSplitting(Clause* cl)
   // When synthesizing programs:
   // if this clause contains an answer literal or is not computable, don't split it
   static bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-  if (synthesis && (cl->hasAnswerLiteral() || !cl->computable())) {
+  if (synthesis && (cl->hasAnswerLiteral() || !static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->isComputable(cl))) {
     return false;
   }
   if ((_stopSplittingAtTime && (unsigned)Timer::elapsedMilliseconds() >= _stopSplittingAtTime)
