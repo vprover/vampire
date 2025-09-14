@@ -52,7 +52,7 @@ namespace Inferences
 {
 using namespace std;
 using namespace Kernel;
-using namespace Lib; 
+using namespace Lib;
 
 bool ActiveOccurrenceIterator::hasNext() {
   while (_returnStack.isEmpty() && _processStack.isNonEmpty()) {
@@ -194,6 +194,20 @@ Formula* InductionContext::getFormula(InductionTermReplacement& tr, RobSubstitut
   return JunctionFormula::generalJunction(Connective::OR, argLists);
 }
 
+Formula* InductionContext::getFormulaWithFreeVar(TermList t, unsigned freeVar, unsigned freeVarSub, RobSubstitution* subst) const
+{
+  ASS_EQ(_cls.size(),1);
+  ASS_EQ(_cls[0].second.size(),1);
+
+  auto replacementMap = getReplacementMap({ t }, subst);
+  TermReplacement tr(replacementMap);
+  auto tlit = tr.transformLiteral(_cls[0].second[0]);
+  auto replaced = new AtomicFormula(Literal::complementaryLiteral(tlit));
+  Substitution s;
+  s.bindUnbound(freeVar, TermList::var(freeVarSub));
+  return SubstHelper::apply(replaced, s);
+}
+
 Formula* InductionContext::getFormulaWithSquashedSkolems(
   const std::vector<TermList>& r, unsigned& nextVar, VList*& renamedFreeVars, VList** varsReplacingSkolems, RobSubstitution* subst) const
 {
@@ -214,6 +228,20 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(
     *varsReplacingSkolems = tr.getVarsReplacingSkolems();
   }
   return res;
+}
+
+unsigned InductionContext::getFreeVariable() const {
+  // Note: we return the first free variable from literals of _cls,
+  // because we assume there is just one
+  for (const auto& kv : _cls) {
+    for (const auto& lit : kv.second) {
+      VariableIterator vi(lit);
+      if (vi.hasNext()) {
+        return vi.next().var();
+      }
+    }
+  }
+  ASSERTION_VIOLATION;
 }
 
 template<typename Fun>
@@ -805,6 +833,30 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(indInst, ctx);
       }
     }
+  } else {
+    if (InductionHelper::isStructInductionOn() && InductionHelper::isNonGroundInductionLiteral(lit)) {
+      // TODO: generalize to multiple free variables
+      NonVariableNonTypeIterator nvi(lit);
+      while (nvi.hasNext()) {
+        auto st = nvi.next();
+        if (InductionHelper::isInductionTerm(st) && InductionHelper::isStructInductionTerm(st)) {
+          auto indLitsIt = contextReplacementInstance(InductionContext({ st }, lit, premise), _opt, _fnDefHandler);
+          while (indLitsIt.hasNext()) {
+            auto ctx = indLitsIt.next();
+            InductionFormulaIndex::Entry* e;
+            // TODO: make sure that the index handles literals with free variables correctly
+            // (right now it might allow redundant induction applications due to variable renaming).
+            if (_formulaIndex.findOrInsert(ctx, e)) {
+              // Generate induction axioms, clausify and resolve them
+              performStructInductionFreeVar(ctx, e);
+            }
+            for (auto& indInst : e->getInductionInstances()) {
+              resolveClauses(indInst, ctx);
+            }
+          }
+        }
+      }
+    }
   }
 }
 
@@ -1270,6 +1322,88 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
   e->add(std::move(cls), std::move(subst));
 }
 
+/*
+Creates the structural induction axiom with an existentially quantified variable:
+?y,w. !u0,us,z. ?x. (L[0, u0] & (L[y, w] -> L[s(y), us]) -> L[z, x])
+*/
+void InductionClauseIterator::performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e)
+{
+  ASS_EQ(context._indTerms.size(), 1);
+
+  TermList sort = SortHelper::getResultSort(context._indTerms[0]);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  unsigned numTypeArgs = sort.term()->arity();
+  unsigned freeVar = context.getFreeVariable(); // variable free in the induction literal
+  unsigned var = freeVar+1; // used in the following to construct new variables
+  for (const auto& kv : context._cls) {
+    if (kv.first->maxVar() + 1 > var) {
+      var = kv.first->maxVar() + 1;
+    }
+  }
+  VList* us = VList::empty();
+  VList* ws = VList::empty();
+  VList* ys = VList::empty();
+  FormulaList* formulas = FormulaList::empty();
+
+  // Construct premise as a conjunction of steps.
+  // Each step's antecedent contains a fresh free variable in place
+  // of freeVar (collected in `ws`), each step's conclusion too (collected in `us`).
+  for (unsigned i = 0; i < ta->nConstructors(); i++){
+    TermAlgebraConstructor* con = ta->constructor(i);
+    unsigned arity = con->arity();
+    TermStack argTerms(arity); // Arguments of the step case antecedent: y_1, ..., y_arity
+    argTerms.loadFromIterator(Term::Iterator(sort.term()));
+    FormulaList* hyps = FormulaList::empty();
+    for (unsigned j = numTypeArgs; j < arity; j++){
+      TermList y(var++, false);
+      argTerms.push(y);
+      VList::push(y.var(), ys);
+      if (con->argSort(j) == con->rangeSort()){
+        unsigned w = var++;
+        VList::push(w, ws);
+        Formula* curLit = context.getFormulaWithFreeVar(y, freeVar, w);
+        FormulaList::push(curLit, hyps); // L[y_j, w_j]
+      }
+    }
+    unsigned u = var++;
+    VList::push(u, us);
+    Term* tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
+    Formula* consequent = context.getFormulaWithFreeVar(TermList(tcons), freeVar, u);
+    Formula* step = (VList::isEmpty(ws)) ? consequent :
+      new BinaryFormula(Connective::IMP, JunctionFormula::generalJunction(Connective::AND, hyps), consequent); // (/\_{j ∈ P_c} L[y_j, w_j]) --> L[cons(y_1, ..., y_n), u_i]
+    formulas->push(step, formulas);
+  }
+  Formula* formula = new JunctionFormula(Connective::AND, formulas);
+
+  // Construct conclusion: L[z, x]
+  TermList z(var++, false);
+  unsigned x = var++;
+  RobSubstitution subst;
+  Formula* conclusion = context.getFormulaWithFreeVar(z, freeVar, x, &subst);
+  // Put together the whole induction axiom:
+  formula = new BinaryFormula(Connective::IMP, formula, conclusion);
+  formula = new QuantifiedFormula(Connective::EXISTS, VList::singleton(x), SList::empty(), formula);
+  formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
+  formula = new QuantifiedFormula(Connective::FORALL, us, SList::empty(), formula);
+  if (!VList::isEmpty(ws)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
+  }
+  if (!VList::isEmpty(ys)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
+  }
+
+  // Produce induction clauses and obtain the skolemization bindings.
+  Substitution cnfSubst;
+  ClauseStack hyp_clauses = produceClauses(formula, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE, context, cnfSubst);
+  // Bind freeVar to its corresponding skolem term in freeVarSubst.
+  // This is used later in resolution.
+  TermList xSkolem(cnfSubst.apply(x));
+  ASS(xSkolem.isTerm());
+  ALWAYS(subst.unify(TermList::var(freeVar),NUM_SPECIAL_BANKS,xSkolem,INDUCTION_CLAUSE_BANK));
+
+  e->add(std::move(hyp_clauses), std::move(subst));
+}
+
 bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e)
 {
   ASS_EQ(context._indTerms.size(), 1);
@@ -1298,9 +1432,9 @@ bool InductionClauseIterator::isValidBound(const InductionContext& context, cons
       ASS((lit != nullptr) && (kv.first != nullptr));
       Term* otherArg = InductionHelper::getOtherTermFromComparison(lit, pt);
       if (!bound.match(
-            [&](TermLiteralClause const&  bound) 
+            [&](TermLiteralClause const&  bound)
             { return InductionHelper::isValidBound(otherArg, kv.first, bound); },
-            [&](DefaultBound const& bound) 
+            [&](DefaultBound const& bound)
             { return InductionHelper::isValidForDefaultBound(otherArg, kv.first, bound.term); }
             )) {
         return false;

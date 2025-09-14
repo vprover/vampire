@@ -173,6 +173,11 @@ bool inductionLiteralHasAdmissibleVariables(Literal* l) {
   return true;
 }
 
+bool InductionHelper::isNonGroundInductionLiteral(Literal* l) {
+  static bool groundOnly = env.options->inductionGroundOnly();
+  return (!groundOnly && inductionLiteralHasAdmissibleVariables(l) && isInductionLiteral(l));
+}
+
 bool InductionHelper::isInductionTerm(Term* t)
 {
   if (!t->ground()) {

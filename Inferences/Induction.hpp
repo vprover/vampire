@@ -147,9 +147,14 @@ struct InductionContext {
   Formula* getFormula(
     const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar,
     VList** varsReplacingSkolems = nullptr, RobSubstitution* subst = nullptr) const;
+  Formula* getFormulaWithFreeVar(TermList t, unsigned freeVar, unsigned freeVarSub, RobSubstitution* subst = nullptr) const;
 
   template<typename Fun>
   InductionContext transform(Fun fn) const;
+
+  // Return some free variable that occurs in the induction literals.
+  // If the literals are all ground, return 0 (and fail in debug mode).
+  unsigned getFreeVariable() const;
 
   friend std::ostream& operator<<(std::ostream& out, const InductionContext& context) {
     for (const auto& indt : context._indTerms) {
@@ -333,6 +338,7 @@ private:
   { performIntInduction(context, e, increasing, Bound::variant<0>(bound1), optionalBound2); }
 
   void performInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e);
+  void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e);
 
   /**
    * Whether an induction formula is applicable (or has already been generated)

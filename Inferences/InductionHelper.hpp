@@ -48,6 +48,7 @@ public:
   static bool isNonUnitStructInductionOn();
   static bool isInductionClause(Clause* c);
   static bool isInductionLiteral(Literal* l);
+  static bool isNonGroundInductionLiteral(Literal* l);
   static bool isInductionTerm(Term* t);
   static bool isIntInductionTermListInLiteral(Term* tl, Literal* l);
   static bool isStructInductionTerm(Term* t);
