@@ -100,7 +100,8 @@ protected:
 };
 
 /**
- * Similar to @b TermReplacement, except we replace non-sort Skolems
+ * Similar to @b TermReplacement, except we replace free
+ * variables with fresh variables, and replace non-sort Skolems
  * with variables if induction hypothesis strengthening is on.
  */
 class InductionTermReplacement : public TermReplacement {

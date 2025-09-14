@@ -96,10 +96,10 @@ using namespace Inferences::ALASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
-Stack<std::function<Indexing::Index*()>> alascaSuperpositionIndices()
+Generation::TestIndices alascaSuperpositionIndices()
 { return {
-    [](){ return new AlascaIndex<Superposition::Lhs>();},
-    [](){ return new AlascaIndex<Superposition::Rhs>();},
+    [](const Options&){ return new AlascaIndex<Superposition::Lhs>();},
+    [](const Options&){ return new AlascaIndex<Superposition::Rhs>();},
   }; }
 
 auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultaneous = false)

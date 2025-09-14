@@ -100,10 +100,10 @@ using namespace Inferences::ALASCA;
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
 auto idxIntegerFourierMotzkin() { 
-  return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise0>(); },
-    [=]() { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise1>(); },
-    [=]() { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise2>(); },
+  return Generation::TestIndices{
+    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise0>(); },
+    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise1>(); },
+    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise2>(); },
   }; 
 }
 
