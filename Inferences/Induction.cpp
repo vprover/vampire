@@ -109,9 +109,11 @@ TermList InductionTermReplacement::transformSubterm(TermList trm)
   // if we reach any of the mapped terms,
   // replace it with the term it is mapped to
   if (trm.isVar()) {
-    auto v = _renaming.getOrBind(trm.var());
-    _renamedFreeVars.insert(v);
-    _nextVar = _renaming.nextVar(); // TODO this is stupid but no clear other way now
+    unsigned v;
+    if (_renaming.findOrInsert(trm.var(), v, _nextVar)) {
+      _nextVar++;
+      _renamedFreeVars.insert(v);
+    }
     return TermList::var(v);
   }
   if (trm.term()->isSort()) {
@@ -127,8 +129,7 @@ TermList InductionTermReplacement::transformSubterm(TermList trm)
   }
   unsigned* ptr;
   if (_skolemToVarMap.getValuePtr(t, ptr, _nextVar)) {
-    _varsReplacingSkolems.insert(_nextVar);
-    (_nextVar)++;
+    _varsReplacingSkolems.insert(_nextVar++);
   }
   return TermList::var(*ptr);
 }
@@ -140,7 +141,7 @@ void InductionTermReplacement::resetRenaming(RobSubstitution* subst, unsigned ba
       ALWAYS(subst->unify(TermList::var(v1),bank,TermList::var(v2),INDUCTION_CLAUSE_BANK));
     }
   }
-  _renaming.reset(_nextVar);
+  _renaming.reset();
 }
 
 VList* InductionTermReplacement::getRenamedFreeVars() const

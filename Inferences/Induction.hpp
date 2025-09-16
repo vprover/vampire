@@ -107,7 +107,7 @@ protected:
 class InductionTermReplacement : public TermReplacement {
 public:
   InductionTermReplacement(const std::map<Term*, TermList>& m, bool squashSkolems, unsigned& nextVar)
-    : TermReplacement(m), _squashSkolems(squashSkolems), _nextVar(nextVar), _renaming(_nextVar) {}
+    : TermReplacement(m), _squashSkolems(squashSkolems), _nextVar(nextVar), _renaming() {}
   TermList transformSubterm(TermList trm) override;
   
   void resetRenaming(RobSubstitution* subst, unsigned bank);
@@ -120,7 +120,7 @@ public:
   DHMap<Term*, unsigned, SharedTermHash> _skolemToVarMap; // maps terms to their variable replacement
   DHSet<unsigned> _varsReplacingSkolems;
 
-  Renaming _renaming; // for renaming free variables
+  DHMap<unsigned,unsigned> _renaming; // for renaming free variables
   DHSet<unsigned> _renamedFreeVars;
 };
 
