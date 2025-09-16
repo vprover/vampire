@@ -202,7 +202,7 @@ void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const Litera
   templ->addBranch(std::move(recursiveCalls), header);
 }
 
-const InductionTemplate* FunctionDefinitionHandler::matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const
+const InductionTemplate* FunctionDefinitionHandler::matchesTerm(Term* t, Stack<Term*>& inductionTerms) const
 {
   if (!InductionHelper::isStructInductionOn()) {
     return nullptr;
@@ -212,23 +212,27 @@ const InductionTemplate* FunctionDefinitionHandler::matchesTerm(Term* t, std::ve
     return nullptr;
   }
 
-  inductionTerms.clear();
+  inductionTerms.reset();
   for (unsigned i = 0; i < t->arity(); i++) {
-    auto arg = t->nthArgument(i)->term();
     if (!rtempl->inductionPositions()[i]) {
       continue;
     }
-    if (!InductionHelper::isInductionTerm(arg) ||
-        !InductionHelper::isStructInductionTerm(arg)) {
+    auto arg = *t->nthArgument(i);
+    if (arg.isVar()) {
       return nullptr;
     }
-    auto it = std::find(inductionTerms.begin(),inductionTerms.end(),arg);
+    auto argT = arg.term();
+    if (!InductionHelper::isInductionTerm(argT) ||
+        !InductionHelper::isStructInductionTerm(argT)) {
+      return nullptr;
+    }
+    auto it = std::find(inductionTerms.begin(),inductionTerms.end(),argT);
     if (it != inductionTerms.end()) {
       return nullptr;
     }
-    inductionTerms.push_back(arg);
+    inductionTerms.push(argT);
   }
-  if (inductionTerms.empty()) {
+  if (inductionTerms.isEmpty()) {
     return nullptr;
   }
   return rtempl->templ();

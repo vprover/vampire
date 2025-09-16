@@ -57,29 +57,20 @@ using namespace std;
 using namespace Kernel;
 using namespace Lib;
 
-bool ActiveOccurrenceIterator::hasNext() {
-  while (_returnStack.isEmpty() && _processStack.isNonEmpty()) {
-    Term* t = _processStack.pop();
-    if (t->ground()) {
-      _returnStack.push(t);
-    }
-    auto templ = _fnDefHandler.getRecursionTemplate(t);
-    auto actPos = templ ? &templ->inductionPositions() : nullptr;
-    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
-      if ((!actPos || (*actPos)[i]) && t->nthArgument(i)->isTerm()) {
-        _processStack.push(t->nthArgument(i)->term());
-      }
-    }
-  }
-  return !_returnStack.isEmpty();
-}
-
 Term* ActiveOccurrenceIterator::next()
 {
-  return _returnStack.pop();
+  Term* t = _stack.pop();
+  auto templ = _fnDefHandler.getRecursionTemplate(t);
+  auto actPos = templ ? &templ->inductionPositions() : nullptr;
+  for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
+    if ((!actPos || (*actPos)[i]) && t->nthArgument(i)->isTerm()) {
+      _stack.push(t->nthArgument(i)->term());
+    }
+  }
+  return t;
 }
 
-Term* getPlaceholderForTerm(const std::vector<Term*>& ts, unsigned i)
+Term* getPlaceholderForTerm(const Stack<Term*>& ts, unsigned i)
 {
   static DHMap<pair<TermList,unsigned>,Term*> placeholders;
   TermList srt = SortHelper::getResultSort(ts[i]);
@@ -569,13 +560,13 @@ struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
-  VirtualIterator<InductionContext> operator()(pair<std::vector<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>> arg) {
+  VirtualIterator<InductionContext> operator()(pair<Stack<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>> arg) {
     auto indDepth = _premise->inference().inductionDepth();
     // heuristic 2
     if (indDepth) {
       auto res = VirtualIterator<InductionContext>::getEmpty();
       // TODO make this work for multiple induction terms
-      ASS(arg.first.size() >= 1)
+      ASS(arg.first.isNonEmpty());
       if (arg.first.size() > 1) {
         return res;
       }
@@ -670,7 +661,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   if (_opt.questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
     Set<Term*,SharedTermHash> int_terms;
     typedef std::set<const InductionTemplate*> TemplateTypeArgsSet;
-    std::map<std::vector<Term*>,TemplateTypeArgsSet> ta_terms;
+    std::map<Stack<Term*>,TemplateTypeArgsSet> ta_terms;
 
     VirtualIterator<Term*> it;
     if (_opt.inductionOnActiveOccurrences()) {
@@ -681,13 +672,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     for (const auto& t : iterTraits(it)) {
       if (!t->isLiteral() && InductionHelper::isInductionTerm(t)){
         if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(t)){
-          ta_terms.emplace(std::vector<Term*>{ t }, TemplateTypeArgsSet());
+          ta_terms.emplace(Stack<Term*>{ t }, TemplateTypeArgsSet());
         }
         if(InductionHelper::isIntInductionOn() && InductionHelper::isIntInductionTermListInLiteral(t, lit)){
           int_terms.insert(t);
         }
       }
-      std::vector<Term*> indTerms;
+      Stack<Term*> indTerms;
       auto templ = _fnDefHandler.matchesTerm(t, indTerms);
       if (templ) {
         auto it = ta_terms.emplace(std::move(indTerms), TemplateTypeArgsSet()).first;
@@ -748,13 +739,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
     }
     // collect term queries for each induction term
-    auto sideLitsIt = VirtualIterator<pair<std::vector<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>>>::getEmpty();
+    auto sideLitsIt = VirtualIterator<pair<Stack<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(getSTLIterator(ta_terms.begin(), ta_terms.end()))
         .map([](const auto& kv){
           return kv.first;
         })
-        .map([this](std::vector<Term*> ts) {
+        .map([this](Stack<Term*> ts) {
           auto res = VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
           for (const auto& t : ts) {
             res = pvi(concatIters(res, _structInductionTermIndex->getGeneralizations(t, false)));

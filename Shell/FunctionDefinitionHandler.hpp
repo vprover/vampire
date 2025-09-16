@@ -111,7 +111,7 @@ public:
     return _templates.findPtr(std::make_pair(fn, st));
   }
 
-  const InductionTemplate* matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const;
+  const InductionTemplate* matchesTerm(Term* t, Stack<Term*>& inductionTerms) const;
 
 private:
   ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;

@@ -59,16 +59,15 @@ class ActiveOccurrenceIterator
 {
 public:
   ActiveOccurrenceIterator(Literal* lit, FunctionDefinitionHandler& fnDefHandler)
-  : _returnStack(8), _processStack(8), _fnDefHandler(fnDefHandler)
+  : _stack(8), _fnDefHandler(fnDefHandler)
   {
-    _processStack.push(lit);
+    _stack.push(lit);
   }
 
-  bool hasNext() override;
+  bool hasNext() override { return _stack.isNonEmpty(); }
   Term* next() override;
 private:
-  Stack<Term*> _returnStack;
-  Stack<Term*> _processStack;
+  Stack<Term*> _stack;
   FunctionDefinitionHandler& _fnDefHandler;
 };
 
@@ -85,7 +84,7 @@ struct StlClauseHash {
  * formulas can be easily detected. We allow multiple induction terms,
  * so we have to index the placeholders as well with @b i.
  */
-Term* getPlaceholderForTerm(const std::vector<Term*>& ts, unsigned i);
+Term* getPlaceholderForTerm(const Stack<Term*>& ts, unsigned i);
 
 /**
  * Term transformer class that replaces
@@ -131,11 +130,12 @@ public:
  *   which are inducted upon.
  */
 struct InductionContext {
-  InductionContext(const std::vector<Term*>& indTerms, Literal* lit, Clause* cl)
+  InductionContext(const Stack<Term*>& indTerms, Literal* lit, Clause* cl)
     : InductionContext(indTerms, { { cl, { lit } } }) {}
-  InductionContext(const std::vector<Term*>& indTerms, Stack<std::pair<Clause*, LiteralStack>>&& cls)
+  InductionContext(const Stack<Term*>& indTerms, Stack<std::pair<Clause*, LiteralStack>>&& cls)
     : _indTerms(indTerms), _cls(cls)
   {
+    ASS(iterTraits(_indTerms.iter()).all([](Term* t) { return t->ground(); }));
     // sort the elements by the stacks of literals
     for (const auto& e : _cls) { std::sort(e.second.begin(), e.second.end()); }
     std::sort(_cls.begin(), _cls.end(), [](const auto& e1, const auto& e2) { return e1.second < e2.second; });
@@ -171,7 +171,7 @@ struct InductionContext {
     return out;
   }
 
-  std::vector<Term*> _indTerms;
+  Stack<Term*> _indTerms;
   // One could induct on all literals of a clause, but if a literal
   // doesn't contain the induction term, it just introduces a couple
   // of tautologies and duplicate literals (a hypothesis clause will
