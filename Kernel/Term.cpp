@@ -15,15 +15,15 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
-#include "Lib/Output.hpp"
-#include "Indexing/TermSharing.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/StringUtils.hpp"
-
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+
+#include "Indexing/TermSharing.hpp"
 #include "Kernel/HOL/HOL.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Output.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Term.hpp"
 
@@ -1757,32 +1757,6 @@ Literal::Literal()
 {
 }
 
-bool Literal::computable() const {
-  if (!env.signature->getPredicate(this->functor())->computable()) {
-    return false;
-  }
-  for (unsigned i = 0; i < arity(); ++i) {
-    const TermList* t = nthArgument(i);
-    if (!t->isTerm() || !t->term()->computable()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool Literal::computableOrVar() const {
-  if (!env.signature->getPredicate(this->functor())->computable()) {
-    return false;
-  }
-  for (unsigned i = 0; i < arity(); ++i) {
-    const TermList* t = nthArgument(i);
-    if (t->isTerm() && !t->term()->computableOrVar()) {
-      return false;
-    }
-  }
-  return true;
-}
-
 AtomicSort::AtomicSort()
 {
 }
@@ -1917,34 +1891,6 @@ TermList Term::typeArg(unsigned n) const
   ASS_LE(0, n)
   ASS_L(n, numTypeArguments())
   return *nthArgument(n);
-}
-
-bool Term::computable() const {
-  if (!env.signature->getFunction(this->functor())->computable()) {
-    return false;
-  }
-  SubtermIterator sit(this);
-  while (sit.hasNext()) {
-    TermList t = sit.next();
-    if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool Term::computableOrVar() const {
-  if (!env.signature->getFunction(this->functor())->computable()) {
-    return false;
-  }
-  SubtermIterator sit(this);
-  while (sit.hasNext()) {
-    TermList t = sit.next();
-    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) {
-      return false;
-    }
-  }
-  return true;
 }
 
 std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)

@@ -15,6 +15,8 @@
 #ifndef __SMTLIB2__
 #define __SMTLIB2__
 
+#include <unordered_map>
+
 #include "Forwards.hpp"
 
 #include "Lib/Set.hpp"

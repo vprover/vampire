@@ -135,8 +135,6 @@ class Signature
     unsigned _skipCongruence : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
-    /** if allowed in answer literals */
-    unsigned _computable : 1;
     /** name that is bound by a $let-binder */
     unsigned _letBound : 1;
     /** proxy type */
@@ -175,8 +173,6 @@ class Signature
     void markTermAlgebraDest() { _termAlgebraDest=1; }
     /** mark symbol as a term algebra discriminator */
     void markTermAlgebraDiscriminator() { _termAlgebraDiscriminator=1; }
-    /** mark the symbol as uncomputable and hence not allowed in answer literals */
-    void markUncomputable() { _computable = 0; }
     /** mark the symbol as let-bound */
     void markLetBound() { _letBound = 1; }
 
@@ -223,8 +219,6 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDiscriminator() const { return _termAlgebraDiscriminator; }
-    /** Return true iff symbol is considered computable */
-    inline bool computable() const { return _computable; }
     /** if bound by a $let-binder */
     inline bool letBound() const { return _letBound; }
 
@@ -509,7 +503,7 @@ class Signature
    */
   unsigned addStringConstant(const std::string& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0, bool computable = false);
+  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
   unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
