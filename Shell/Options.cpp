@@ -1890,7 +1890,7 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _partialRedundancyCheck = BoolOptionValue("partial_redundancy_check","prc",false);
+    _partialRedundancyCheck = BoolOptionValue("partial_redundancy_check","prc",true);
     _partialRedundancyCheck.description=
       "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
     _lookup.insert(&_partialRedundancyCheck);
