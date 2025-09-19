@@ -21,6 +21,7 @@
 
 #include "Term.hpp"
 #include "SortHelper.hpp"
+#include "Substitution.hpp"
 
 namespace Kernel {
 

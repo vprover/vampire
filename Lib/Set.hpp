@@ -16,8 +16,6 @@
 #ifndef __Set__
 #define __Set__
 
-#include <cstdlib>
-
 #include "Forwards.hpp"
 
 #include "Allocator.hpp"

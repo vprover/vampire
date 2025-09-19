@@ -16,23 +16,14 @@
 #ifndef __InferenceEngine__
 #define __InferenceEngine__
 
+#include <memory>
+
 #include "Forwards.hpp"
-#include "Lib/SmartPtr.hpp"
-#include "Lib/Stack.hpp"
 
-#include "Kernel/Term.hpp"
-#include "Kernel/Signature.hpp"
-
-#include "Lib/VirtualIterator.hpp"
-#include "Lib/List.hpp"
-
-#include "Lib/Allocator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/Coproduct.hpp"
-#include <memory>
-#if VDEBUG
-#include "Indexing/Index.hpp"
-#endif
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Stack.hpp"
 
 namespace Inferences
 {

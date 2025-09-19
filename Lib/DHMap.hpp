@@ -319,17 +319,9 @@ public:
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key = std::move(key);
       e->_val = std::move(val);
       _size++;
@@ -346,17 +338,9 @@ public:
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       e->_val=val;
       _size++;
@@ -374,17 +358,9 @@ public:
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       e->_val=initial;
       _size++;
@@ -403,17 +379,9 @@ public:
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       e->_val=std::move(initial);
       _size++;
@@ -431,17 +399,9 @@ public:
   bool getValuePtr(Key key, Val*& pval)
   {
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       e->_val.~Val();
       ::new (&e->_val) Val();
@@ -460,17 +420,9 @@ public:
   {
     ensureExpanded();
     Entry* e = findEntryToInsert(std::move(key));
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       _size++;
     }
@@ -546,7 +498,7 @@ public:
   void mapValues(F f) 
   { 
     for (Entry* e = _entries; e != _afterLast; e++) {
-      if (e->_info.timestamp==_timestamp && !e->_info.deleted) {
+      if (doesExist(e)) {
         e->_val = f(std::move(e->_val));
       }
     }
@@ -704,6 +656,26 @@ private:
       res=&_entries[pos];
     } while (res->_info.timestamp == _timestamp && res->_key!=key);
     return res;
+  }
+
+  /** Checks whether an entry is occupied. */
+  bool doesExist(Entry* e)
+  {
+    return e->_info.timestamp == _timestamp && !e->_info.deleted;
+  }
+
+  /** Updates meta-info of an entry. */
+  void updateInfo(Entry* e)
+  {
+    if (e->_info.timestamp != _timestamp) {
+      e->_info.timestamp = _timestamp;
+      // no collision has occurred on this entry while this _timestamp is set
+      e->_info.collision = 0;
+    } else {
+      ASS(e->_info.deleted);
+      _deleted--;
+    }
+    e->_info.deleted = 0;
   }
 
   /** Entries with _timestamp different from this are considered empty */

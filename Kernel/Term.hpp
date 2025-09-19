@@ -948,9 +948,6 @@ public:
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
 
-  virtual bool computable() const;
-  virtual bool computableOrVar() const;
-
 protected:
   std::string headToString() const;
 
@@ -1318,9 +1315,6 @@ public:
   std::string toString() const;
 
   const std::string& predicateName() const;
-
-  virtual bool computable() const;
-  virtual bool computableOrVar() const;
 
 private:
   template<class GetArg>

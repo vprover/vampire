@@ -15,8 +15,6 @@
 #ifndef __Forwards__
 #define __Forwards__
 
-#include <memory>
-
 namespace Lib
 {
 struct EmptyStruct {};
@@ -26,8 +24,6 @@ template<typename T> class VirtualIterator;
 template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;
 
-template<typename T> class SingleParamEvent;
-
 template<class C> class DArray;
 template<class C> class Stack;
 template<class C> class Vector;
@@ -35,7 +31,6 @@ template<typename T> class List;
 template<typename T> class SharedSet;
 
 typedef List<int> IntList;
-typedef Stack<std::string> StringStack;
 
 class DefaultHash;
 class DefaultHash2;
@@ -87,7 +82,6 @@ typedef Stack<Formula*> FormulaStack;
 
 class Clause;
 typedef VirtualIterator<Clause*> ClauseIterator;
-typedef SingleParamEvent<Clause*> ClauseEvent;
 typedef List<Clause*> ClauseList;
 typedef Stack<Clause*> ClauseStack;
 
@@ -102,10 +96,12 @@ typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
 class LiteralSelector;
 
+class OperatorType;
+
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
 struct TermOrderingDiagram;
-typedef std::unique_ptr<TermOrderingDiagram> TermOrderingDiagramUP;
+
 class PartialOrdering;
 
 typedef unsigned SplitLevel;

@@ -59,10 +59,10 @@ UnitInputType Kernel::getInputType(UnitList* units)
 /**
  * To be kept around in _ptr2 of INFERENCE_FROM_SAT_REFUTATION
  **/
-struct FromSatRefutationInfo {
-  USE_ALLOCATOR(FromSatRefutationInfo);
+struct NeedsMinimizationInfo {
+  USE_ALLOCATOR(NeedsMinimizationInfo);
 
-  FromSatRefutationInfo(const FromSatRefutation& fsr) : _satPremises(fsr._satPremises), _usedAssumptions(fsr._usedAssumptions)
+  NeedsMinimizationInfo(const NeedsMinimization& fsr) : _satPremises(fsr._satPremises), _usedAssumptions(fsr._usedAssumptions)
   { ASS(_satPremises); }
 
   SAT::SATClauseList* _satPremises;
@@ -73,8 +73,8 @@ struct FromSatRefutationInfo {
 void Inference::destroyDirectlyOwned()
 {
   switch(_kind) {
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
-      delete static_cast<FromSatRefutationInfo*>(_ptr2);
+    case Kind::SAT_NEEDS_MINIMIZATION:
+      delete static_cast<NeedsMinimizationInfo*>(_ptr2);
       // intentionally fall further
     case Kind::INFERENCE_MANY:
       UnitList::destroy(static_cast<UnitList*>(_ptr1));
@@ -90,8 +90,8 @@ void Inference::destroy()
       if (_ptr1) static_cast<Unit*>(_ptr1)->decRefCnt();
       if (_ptr2) static_cast<Unit*>(_ptr2)->decRefCnt();
       break;
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
-      delete static_cast<FromSatRefutationInfo*>(_ptr2);
+    case Kind::SAT_NEEDS_MINIMIZATION:
+      delete static_cast<NeedsMinimizationInfo*>(_ptr2);
       // intentionally fall further
     case Kind::INFERENCE_MANY:
       UnitList* it=static_cast<UnitList*>(_ptr1);
@@ -105,7 +105,7 @@ void Inference::destroy()
   }
 }
 
-Inference::Inference(const FromSatRefutation& fsr) {
+Inference::Inference(const NeedsMinimization& fsr) {
   initMany(fsr._rule,fsr._premises);
 
   ASS_REP(isSatRefutationRule(fsr._rule),ruleName(fsr._rule));
@@ -114,8 +114,8 @@ Inference::Inference(const FromSatRefutation& fsr) {
     return; // SAT solver did not support minimization anyway
   }
 
-  _kind = Kind::INFERENCE_FROM_SAT_REFUTATION;
-  _ptr2 = new FromSatRefutationInfo(fsr);
+  _kind = Kind::SAT_NEEDS_MINIMIZATION;
+  _ptr2 = new NeedsMinimizationInfo(fsr);
 }
 
 /**
@@ -130,7 +130,7 @@ Inference::Iterator Inference::iterator() const
       it.integer=0;
       break;
     case Kind::INFERENCE_MANY:
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+    case Kind::SAT_NEEDS_MINIMIZATION:
       it.pointer = _ptr1;
       break;
   }
@@ -159,7 +159,7 @@ bool Inference::hasNext(Iterator& it) const
       }
       break;
     case Kind::INFERENCE_MANY:
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+    case Kind::SAT_NEEDS_MINIMIZATION:
       return (it.pointer != nullptr);
     default:
       ASSERTION_VIOLATION;
@@ -187,7 +187,7 @@ Unit* Inference::next(Iterator& it) const
       }
       break;
     case Kind::INFERENCE_MANY:
-    case Kind::INFERENCE_FROM_SAT_REFUTATION: {
+    case Kind::SAT_NEEDS_MINIMIZATION: {
       UnitList* lst = static_cast<UnitList*>(it.pointer);
       it.pointer = lst->tail();
       return lst->head();
@@ -225,7 +225,7 @@ void Inference::updateStatistics()
 
       break;
     case Kind::INFERENCE_MANY:
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
+    case Kind::SAT_NEEDS_MINIMIZATION:
       _inductionDepth = 0;
       _XXNarrows = 0;
       _reductions = 0;
@@ -249,8 +249,8 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
     case Inference::Kind::INFERENCE_MANY:
       out << "INFERENCE_MANY, (";
       break;
-    case Inference::Kind::INFERENCE_FROM_SAT_REFUTATION:
-      out << "INFERENCE_FROM_SAT_REFUTATION, (";
+    case Inference::Kind::SAT_NEEDS_MINIMIZATION:
+      out << "SAT_NEEDS_MINIMIZATION, (";
       break;
   }
   // TODO get rid of intermediate string generation by ruleName
@@ -484,14 +484,15 @@ std::string Inference::name() const {
 
 void Inference::minimizePremises()
 {
-  if (_kind != Kind::INFERENCE_FROM_SAT_REFUTATION)
+  if (_kind != Kind::SAT_NEEDS_MINIMIZATION)
     return;
-  if (_ptr2 == nullptr)
-    return; // already minimized
+  if(!env.options->minimizeSatProofs())
+    return;
 
   TIME_TRACE("sat proof minimization");
 
-  FromSatRefutationInfo* info = static_cast<FromSatRefutationInfo*>(_ptr2);
+  NeedsMinimizationInfo* info = static_cast<NeedsMinimizationInfo*>(_ptr2);
+  ASS(info)
 
   SATClauseList* minimized = MinisatInterfacing<>::minimizePremiseList(info->_satPremises,info->_usedAssumptions);
 
@@ -601,6 +602,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "answer literal with input var skolemisation";
   case InferenceRule::ANSWER_LITERAL_REMOVAL:
     return "answer literal removal";
+  case InferenceRule::ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS:
+    return "answer literal join with constraints";
+  case InferenceRule::ANSWER_LITERAL_JOIN_AS_ITE:
+    return "answer literal if-then-else";
   case InferenceRule::AVATAR_ASSERTION_REINTRODUCTION:
     return "avatar assertion reintroduction";
   case InferenceRule::RECTIFY:

@@ -15,7 +15,6 @@
 #ifndef __Z3Interfacing__
 #define __Z3Interfacing__
 
-#include "Lib/Allocator.hpp"
 #include <algorithm>
 #if VZ3
 
@@ -27,7 +26,6 @@
 
 #include <fstream>
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/BiMap.hpp"
 #include "Lib/Set.hpp"
@@ -38,7 +36,6 @@
 #include "SATClause.hpp"
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
-#include "Lib/Option.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Kernel/Theory.hpp"
 
@@ -209,6 +206,9 @@ public:
 
   virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
   SATLiteralStack failedAssumptions() override;
+
+  // TODO do something more useful here: should now be possible
+  SATClauseList *minimizePremises(SATClauseList *premises) override { return premises; }
 
   template<class F>
   auto scoped(F f)  -> decltype(f())

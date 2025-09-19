@@ -20,6 +20,8 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 
+#include "Shell/AnswerLiteralManager.hpp"
+
 #include "EqResWithDeletion.hpp"
 
 namespace Shell
@@ -116,16 +118,17 @@ TermList EqResWithDeletion::apply(unsigned var)
 bool EqResWithDeletion::scan(Literal* lit)
 {
   using Kernel::isFreeVariableOf;
+  static Shell::SynthesisALManager* synthMan = static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance());
 
   if(lit->isEquality() && lit->isNegative()) {
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
-    if( t0.isVar() && !t1.containsSubterm(t0) && (!_ansLit || !t1.isTerm() || t1.term()->computableOrVar() || !isFreeVariableOf(_ansLit,t0.var()))) {
+    if( t0.isVar() && !t1.containsSubterm(t0) && (!_ansLit || !t1.isTerm() || synthMan->isComputableOrVar(t1.term()) || !isFreeVariableOf(_ansLit,t0.var()))) {
       if(_subst.insert(t0.var(), t1)) {
         return true;
       }
     }
-    if( t1.isVar() && !t0.containsSubterm(t1) && (!_ansLit || !t0.isTerm() || t0.term()->computableOrVar() || !isFreeVariableOf(_ansLit,t1.var()))) {
+    if( t1.isVar() && !t0.containsSubterm(t1) && (!_ansLit || !t0.isTerm() || synthMan->isComputableOrVar(t0.term()) || !isFreeVariableOf(_ansLit,t1.var()))) {
       if(_subst.insert(t1.var(), t0)) {
         return true;
       }

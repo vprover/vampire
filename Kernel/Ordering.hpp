@@ -17,6 +17,8 @@
 #ifndef __Ordering__
 #define __Ordering__
 
+#include <memory> // for std::unique_ptr
+
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
@@ -32,6 +34,7 @@
 
 namespace Kernel {
 
+typedef std::unique_ptr<TermOrderingDiagram> TermOrderingDiagramUP;
 
 namespace PredLevels {
   constexpr static int MIN_USER_DEF = 1;

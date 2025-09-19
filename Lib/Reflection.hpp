@@ -17,7 +17,6 @@
 #define __Reflection__
 
 #include "Lib/Comparison.hpp"
-#include <type_traits>
 #include <initializer_list>
 
 
