@@ -275,8 +275,6 @@ public:
   __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
   __BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   __BUILDER_METHOD(OptionMap, options)
-  __BUILDER_METHOD(Stack<Condition>, preConditions)
-  __BUILDER_METHOD(Stack<Condition>, postConditions)
 
 #undef __BUILDER_METHOD
 
@@ -325,15 +323,6 @@ public:
       container.add(c);
     }
 
-    // check that the preconditions hold
-    std::string s1, s2;
-    for (auto c : _preConditions) {
-      if (!c(s1, s2)) {
-        s2.append(" (precondition)");
-        testFail(s1, s2);
-      }
-    }
-
     // run rule
     if (_selfApplications) {
       _input->setStore(Clause::ACTIVE);
@@ -354,16 +343,6 @@ public:
       auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
-
-
-    // check that the postconditions hold
-    for (auto c : _postConditions) {
-      if (!c(s1, s2)) {
-        s2.append(" (postcondition)");
-        testFail(s1, s2);
-      }
-    }
-
 
     // add the clauses to the index
     for (auto c : _context) {

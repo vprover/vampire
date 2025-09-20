@@ -31,8 +31,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "EqualityFactoring.hpp"
 
 #if VDEBUG
@@ -163,8 +161,6 @@ struct EqualityFactoring::ResultFn
     }
 
     resLits->loadFromIterator(constraints->iterFifo());
-
-    env.statistics->equalityFactoring++;
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)

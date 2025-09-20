@@ -23,7 +23,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Flattening.hpp"
 

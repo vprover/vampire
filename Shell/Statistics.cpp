@@ -67,6 +67,10 @@ void Statistics::print(std::ostream& out)
 #define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
 #define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << text << ": " << (num) << endl; separable = true; }
 #define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
+#define INFERENCE_GROUP_OUT(inferenceFirst, inferenceLast, container)                                                 \
+  for (unsigned i = static_cast<unsigned>(inferenceFirst); i < static_cast<unsigned>(inferenceLast); i++) { \
+    COND_OUT(ruleName(static_cast<InferenceRule>(i)), container[i]);                                        \
+  }
 
   addCommentSignForSZS(out);
   out << "------------------------------\n";
@@ -155,30 +159,15 @@ void Statistics::print(std::ostream& out)
   SEPARATOR;
 
 
-  HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
-      forwardSubsumptionResolution+backwardSubsumptionResolution+proxyEliminations+
-      forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
-      forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
-      condensations+globalSubsumption+evaluationCnt
+  // TODO size of ZIArray is not a good indicator of whether it has positive values
+  HEADING("Simplifying Inferences",simplifyingInferences.size()+duplicateLiterals+trivialInequalities+
+      evaluationCnt
       +( gveCnt - gveViolations)
       +( asgCnt - asgViolations)
-      +( evaluationCnt - evaluationIncomp - evaluationGreater)
-      +innerRewrites
-      +booleanSimps
-      );
+      +( evaluationCnt - evaluationIncomp - evaluationGreater));
+  INFERENCE_GROUP_OUT(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST, simplifyingInferences);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
-  COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
-  COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
-  COND_OUT("Fw demodulations", forwardDemodulations);
-  COND_OUT("Bw demodulations", backwardDemodulations);
-  COND_OUT("Fw subsumption demodulations", forwardSubsumptionDemodulations);
-  COND_OUT("Bw subsumption demodulations", backwardSubsumptionDemodulations);
-  COND_OUT("Fw literal rewrites", forwardLiteralRewrites);
-  COND_OUT("Inner rewrites", innerRewrites);
-  COND_OUT("Condensations", condensations);
-  COND_OUT("Global subsumptions", globalSubsumption);
-  COND_OUT("Interpreted simplifications", interpretedSimplifications);
 
   COND_OUT("asg count", asgCnt);
   COND_OUT("asg results not smaller than the premis", asgViolations);
@@ -189,9 +178,6 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Evaluation count",         evaluationCnt);
   COND_OUT("Evaluation results greater than premise", evaluationGreater);
   COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
-  COND_OUT("Logicial proxy rewrites", proxyEliminations);
-  COND_OUT("Boolean simplifications", booleanSimps)
-  //COND_OUT("Interpreted simplifications", interpretedSimplifications);
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
@@ -211,94 +197,41 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
-  HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
-      forwardSuperposition+backwardSuperposition+selfSuperposition+
-      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+leibnizElims+
-      equalityFactoring+equalityResolution+forwardExtensionalityResolution+
-      backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
-      +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
-      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication+nonGroundInductionApplication
-      +introducedFunctionDefinitions);
-  COND_OUT("Binary resolution", resolution);
-  COND_OUT("Unit resulting resolution", urResolution);
-  COND_OUT("Binary resolution with abstraction",cResolution);
-  COND_OUT("Factoring", factoring);
-  COND_OUT("Forward superposition", forwardSuperposition);
-  COND_OUT("Backward superposition", backwardSuperposition);
-  COND_OUT("Self superposition", selfSuperposition);
-  COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
-  COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
-  COND_OUT("Self superposition with abstraction", cSelfSuperposition);
-  COND_OUT("Equality factoring", equalityFactoring);
-  COND_OUT("Equality resolution", equalityResolution);
-  COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);
-  COND_OUT("Bw extensionality resolution", backwardExtensionalityResolution);
+  HEADING("Generating Inferences",generatingInferences.size()+choiceInstances+
+      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+introducedFunctionDefinitions);
+  INFERENCE_GROUP_OUT(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST, generatingInferences);
   COND_OUT("TheoryInstSimp",theoryInstSimp);
   COND_OUT("TheoryInstSimpCandidates",theoryInstSimpCandidates);
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
-  COND_OUT("MaxInductionDepth",maxInductionDepth);
-  COND_OUT("StructuralInduction",structInduction);
-  COND_OUT("StructuralInductionInProof",structInductionInProof);
-  COND_OUT("IntegerInfiniteIntervalInduction",intInfInduction);
-  COND_OUT("IntegerInfiniteIntervalInductionInProof",intInfInductionInProof);
-  COND_OUT("IntegerFiniteIntervalInduction",intFinInduction);
-  COND_OUT("IntegerFiniteIntervalInductionInProof",intFinInductionInProof);
-  COND_OUT("IntegerDefaultBoundInduction",intDBInduction);
-  COND_OUT("IntegerDefaultBoundInductionInProof",intDBInductionInProof);
-  COND_OUT("IntegerInfiniteIntervalUpInduction",intInfUpInduction);
-  COND_OUT("IntegerInfiniteIntervalUpInductionInProof",intInfUpInductionInProof);
-  COND_OUT("IntegerFiniteIntervalUpInduction",intFinUpInduction);
-  COND_OUT("IntegerFiniteIntervalUpInductionInProof",intFinUpInductionInProof);
-  COND_OUT("IntegerDefaultBoundUpInduction",intDBUpInduction);
-  COND_OUT("IntegerDefaultBoundUpInductionInProof",intDBUpInductionInProof);
-  COND_OUT("IntegerInfiniteIntervalDownInduction",intInfDownInduction);
-  COND_OUT("IntegerInfiniteIntervalDownInductionInProof",intInfDownInductionInProof);
-  COND_OUT("IntegerFiniteIntervalDownInduction",intFinDownInduction);
-  COND_OUT("IntegerFiniteIntervalDownInductionInProof",intFinDownInductionInProof);
-  COND_OUT("IntegerDefaultBoundDownInduction",intDBDownInduction);
-  COND_OUT("IntegerDefaultBoundDownInductionInProof",intDBDownInductionInProof);
-  COND_OUT("InductionApplications",inductionApplication);
-  COND_OUT("InductionApplicationsInProof",inductionApplicationInProof);
-  COND_OUT("GeneralizedInductionApplications",generalizedInductionApplication);
-  COND_OUT("GeneralizedInductionApplicationsInProof",generalizedInductionApplicationInProof);
-  COND_OUT("NonGroundInductionApplications",nonGroundInductionApplication);
-  COND_OUT("NonGroundInductionApplicationsInProof",nonGroundInductionApplicationInProof);
-  COND_OUT("Argument congruence", argumentCongruence);
-  COND_OUT("Negative extensionality", negativeExtensionality);
-  COND_OUT("Primitive substitutions", primitiveInstantiations);
-  COND_OUT("Elimination of Leibniz equalities", leibnizElims);
   COND_OUT("Choice axiom instances creatded", choiceInstances);
-  COND_OUT("Narrow", narrow);
-  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);
-  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);
-  COND_OUT("Self sub-variable superposition", selfSubVarSup);
   COND_OUT("Introduced function definitions", introducedFunctionDefinitions);
   SEPARATOR;
 
+  HEADING("Theory Axioms",theoryAxioms.size());
+  // TODO this should be from GENERIC_THEORY_AXIOM to GENERIC_THEORY_AXIOM_LAST
+  INFERENCE_GROUP_OUT(InferenceRule::INPUT, InferenceRule::EXTERNAL_THEORY_AXIOM, theoryAxioms);
+  SEPARATOR;
+
+  // If any induction is applied, inductionApplication is non-zero
+  HEADING("Induction",inductionApplication);
+  COND_OUT("MaxInductionDepth",maxInductionDepth);
+  COND_OUT("InductionApplications",inductionApplication);
+  COND_OUT("GeneralizedInductionApplications",generalizedInductionApplication);
+  COND_OUT("NonGroundInductionApplications",nonGroundInductionApplication);
+  SEPARATOR;
+
+  // TODO merge this with "inferences skipped due to ..." stats
   HEADING("Redundant Inferences",
-    skippedSuperposition+skippedResolution+skippedEqualityResolution+skippedEqualityFactoring+
-    skippedFactoring+skippedInferencesDueToOrderingConstraints+
+    skippedSuperposition+skippedResolution+skippedInferencesDueToOrderingConstraints+
     skippedInferencesDueToAvatarConstraints+skippedInferencesDueToLiteralConstraints);
   COND_OUT("Skipped superposition", skippedSuperposition);
   COND_OUT("Skipped resolution", skippedResolution);
-  COND_OUT("Skipped equality resolution", skippedEqualityResolution);
-  COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
-  COND_OUT("Skipped factoring", skippedFactoring);
   COND_OUT("Skipped inferences due to ordering constraints", skippedInferencesDueToOrderingConstraints);
   COND_OUT("Skipped inferences due to AVATAR constraints", skippedInferencesDueToAvatarConstraints);
   COND_OUT("Skipped inferences due to literal constraints", skippedInferencesDueToLiteralConstraints);
   SEPARATOR;
-
-  HEADING("Term algebra simplifications",taDistinctnessSimplifications+
-      taDistinctnessTautologyDeletions+taInjectivitySimplifications+
-      taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications);
-  COND_OUT("Distinctness simplifications",taDistinctnessSimplifications);
-  COND_OUT("Distinctness tautology deletions",taDistinctnessTautologyDeletions);
-  COND_OUT("Injectivity simplifications",taInjectivitySimplifications);
-  COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
-  COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
 
   HEADING("AVATAR",splitClauses+splitComponents+satSplits+
         satSplitRefutations);
@@ -317,6 +250,12 @@ void Statistics::print(std::ostream& out)
   COND_OUT("SAT solver unit clauses", unitSatClauses);
   COND_OUT("SAT solver binary clauses", binarySatClauses);
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
+  SEPARATOR;
+
+  HEADING("In-Proof Statistics",inProofInferences.size());
+  for (unsigned i = 0; i < inProofInferences.size(); i++) {
+    COND_OUT(ruleName(static_cast<InferenceRule>(i)), inProofInferences[i]);
+  }
   SEPARATOR;
 
   }
@@ -357,6 +296,26 @@ void Statistics::print(std::ostream& out)
     TimeTrace::instance().printPretty(out);
   }
 #endif // VTIME_PROFILING
+}
+
+void Statistics::registerClause(Clause* cl)
+{
+  generatedClauses++;
+
+  auto rule = cl->inference().rule();
+  auto index = static_cast<std::underlying_type_t<InferenceRule>>(rule);
+  if (isSimplifyingInferenceRule(rule)) {
+    simplifyingInferences[index]++;
+  } else if (isGeneratingInferenceRule(rule)) {
+    generatingInferences[index]++;
+  }
+}
+
+void Statistics::registerTheoryAxiom(Unit* unit)
+{
+  // TODO this cannot be enforced yet because e.g. induction axioms are not theory axioms
+  // ASS(unit->inference().isTheoryAxiom());
+  theoryAxioms[static_cast<std::underlying_type_t<InferenceRule>>(unit->inference().rule())]++;
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)

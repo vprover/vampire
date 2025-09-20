@@ -29,7 +29,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "ExtensionalityResolution.hpp"
 
@@ -105,7 +104,6 @@ struct ExtensionalityResolution::ForwardResultFn
     Literal* extLit = arg.first.second.literal;
 
     return performExtensionalityResolution(extCl, extLit, _otherCl, otherLit, subst,
-                                             env.statistics->forwardExtensionalityResolution,
                                              _parent.getOptions());
   }
 private:
@@ -184,7 +182,6 @@ struct ExtensionalityResolution::BackwardResultFn
     Literal* otherLit = arg.first.second;
 
     return performExtensionalityResolution(_extCl, _extLit, otherCl, otherLit, subst,
-                                             env.statistics->backwardExtensionalityResolution,
                                              _parent.getOptions());
   }
 private:
@@ -203,7 +200,6 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   Clause* extCl, Literal* extLit,
   Clause* otherCl, Literal* otherLit,
   RobSubstitution* subst,
-  unsigned& counter,
   const Options& opts)
 {
   if(!ColorHelper::compatible(extCl->color(),otherCl->color()) ) {
@@ -227,9 +223,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
       resLits->push(subst->apply(curr, 1));
     }
   }
-    
-  counter++;
-     
+
   return Clause::fromStack(*resLits, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
 }
   

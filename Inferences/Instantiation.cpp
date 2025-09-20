@@ -30,8 +30,6 @@
 #include "Kernel/Theory.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "Instantiation.hpp"
 
 namespace Inferences

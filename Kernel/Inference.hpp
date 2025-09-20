@@ -203,11 +203,11 @@ enum class InferenceRule : unsigned char {
   /** the (preprocessing/normalisation) formula transformation marker --
     inferences between GENERIC_FORMULA_CLAUSE_TRANSFORMATION and INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST
     will be automatically understood as formula transformations (see also isFormulaClauseTransformation) */
-  INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST,
+  GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST,
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
-   * (see also INTERNAL_SIMPLIFYING_INFERNCE_LAST and isSimplifyingInferenceRule below). */
-  GENERIC_SIMPLIFYING_INFERNCE,
+   * (see also GENERIC_SIMPLIFYING_INFERENCE_LAST and isSimplifyingInferenceRule below). */
+  GENERIC_SIMPLIFYING_INFERENCE,
   /** obtained by reordering literals */
   REORDER_LITERALS,
   /** obtain a clause from a clause by removing duplicate literals */
@@ -216,8 +216,10 @@ enum class InferenceRule : unsigned char {
   TRIVIAL_INEQUALITY_REMOVAL,
   /** equality resolution as a simplification */
   EQUALITY_RESOLUTION_WITH_DELETION,
-  /** subsumption resolution simplification rule */
-  SUBSUMPTION_RESOLUTION,
+  /** forward subsumption resolution simplification rule */
+  FORWARD_SUBSUMPTION_RESOLUTION,
+  /** backward subsumption resolution simplification rule */
+  BACKWARD_SUBSUMPTION_RESOLUTION,
   /** forward demodulation inference */
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
@@ -247,7 +249,9 @@ enum class InferenceRule : unsigned char {
   /** inference rule for term algebras (no equality between terms of different constructors)*/
   TERM_ALGEBRA_DISTINCTNESS,
   /** inference rule for term algebras (injectivity of constructors)*/
-  TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
+  TERM_ALGEBRA_POSITIVE_INJECTIVITY_SIMPLIFYING,
+  /** inference rule for term algebras (injectivity of constructors)*/
+  TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING,
   /** global subsumption */
   GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
   /** distinct equality removal */
@@ -277,13 +281,13 @@ enum class InferenceRule : unsigned char {
   FUNCTION_DEFINITION_DEMODULATION,
 
   /** the last simplifying inference marker --
-    inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
+    inferences between GENERIC_SIMPLIFYING_INFERENCE and GENERIC_SIMPLIFYING_INFERENCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
-  INTERNAL_SIMPLIFYING_INFERNCE_LAST,
+  GENERIC_SIMPLIFYING_INFERENCE_LAST,
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL GENERATING INFERENCES SHOULD BELONG
-    * (see also INTERNAL_GENERATING_INFERNCE_LAST and isGeneratingInferenceRule below). */
-  GENERIC_GENERATING_INFERNCE,
+    * (see also INTERNAL_GENERATING_INFERENCE_LAST and isGeneratingInferenceRule below). */
+  GENERIC_GENERATING_INFERENCE,
   /** resolution inference */
   RESOLUTION,
   /** constrained resolution inference */
@@ -332,36 +336,10 @@ enum class InferenceRule : unsigned char {
   ALASCA_COHERENCE_NORMALIZATION,
   ALASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
-        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        inferences between GENERIC_GENERATING_INFERENCE and GENERIC_GENERATING_INFERENCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
-  /* narrow with combinator axiom */
-  SXX_NARROW,
-
-  SX_NARROW,
-
-  S_NARROW,
-
-  CXX_NARROW,
-
-  CX_NARROW,
-
-  C_NARROW,
-
-  BXX_NARROW,
-
-  BX_NARROW,
-
-  B_NARROW,
-
-  KX_NARROW,
-
-  K_NARROW,
-
-  I_NARROW,
-  /* superposition beneath variable */
-  SUB_VAR_SUP,
 
   INJECTIVITY,
 
@@ -384,9 +362,9 @@ enum class InferenceRule : unsigned char {
   HOL_EQUALITY_ELIMINATION,
 
   /** the last generating inference marker --
-        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        inferences between GENERIC_GENERATING_INFERENCE and GENERIC_GENERATING_INFERENCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
-  INTERNAL_GENERATING_INFERNCE_LAST,
+  GENERIC_GENERATING_INFERENCE_LAST,
 
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
@@ -456,9 +434,6 @@ enum class InferenceRule : unsigned char {
   SAT_COLOR_ELIMINATION,
   /** obtain a formula from a clause */
   FORMULIFY,
-
-  /** inference coming from outside of Vampire */
-  EXTERNAL,
 
   /* FMB flattening */
   FMB_FLATTENING,
@@ -592,7 +567,7 @@ inline std::underlying_type<InferenceRule>::type toNumber(InferenceRule r) { ret
 
 inline bool isFormulaClauseTransformation(InferenceRule r) {
   return (toNumber(r) >= toNumber(InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST));
+      toNumber(r) < toNumber(InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST));
 }
 
 /** Currently not enforced but (almost) assumed:
@@ -603,8 +578,10 @@ inline bool isFormulaClauseTransformation(InferenceRule r) {
  * - the age of the corresponding Clause is the same as that of this main premise
  **/
 inline bool isSimplifyingInferenceRule(InferenceRule r) {
-  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_SIMPLIFYING_INFERNCE) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST));
+  // TODO do we want to allow InferenceRule::GENERIC_SIMPLIFYING_INFERENCE?
+  // Same question similarly for all the other GENERIC_* rules
+  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST));
 }
 
 /**
@@ -614,8 +591,8 @@ inline bool isSimplifyingInferenceRule(InferenceRule r) {
  * - the age of the corresponding Clause is computed as the max over parent's ages +1
  */
 inline bool isGeneratingInferenceRule(InferenceRule r) {
-  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_GENERATING_INFERNCE) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST));
+  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_GENERATING_INFERENCE) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_GENERATING_INFERENCE_LAST));
 }
 
 inline bool isInternalTheoryAxiomRule(InferenceRule r) {

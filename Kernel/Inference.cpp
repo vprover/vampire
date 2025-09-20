@@ -375,7 +375,7 @@ Inference::Inference(const FromInput& fi) {
 
 Inference::Inference(const TheoryAxiom& ta) {
   init0(UnitInputType::AXIOM,ta.rule);
-  ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
+  ASS_REP(isTheoryAxiom(), ruleName(ta.rule));
 }
 
 Inference::Inference(const FormulaClauseTransformation& ft) {
@@ -680,7 +680,7 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "definition unfolding";
   case InferenceRule::DEFINITION_FOLDING:
     return "definition folding";
-  case InferenceRule::FUNCTION_DEFINITION: 
+  case InferenceRule::FUNCTION_DEFINITION:
     return "function definition";
   case InferenceRule::PREDICATE_DEFINITION:
     return "predicate definition introduction";
@@ -698,8 +698,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "factoring";
   case InferenceRule::CONSTRAINED_FACTORING:
     return "constrained factoring";
-  case InferenceRule::SUBSUMPTION_RESOLUTION:
-    return "subsumption resolution";
+  case InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION:
+    return "forward subsumption resolution";
+  case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
+    return "backward subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
@@ -798,18 +800,19 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_ARRAY_WRITE2:
     return "theory axiom " + Int::toString((unsigned)toNumber(rule));
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
-    return "term algebras acyclicity";
+    return "term algebras acyclicity axiom";
   case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
-    return "term algebras discriminators";
+    return "term algebras discriminators axiom";
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS_AXIOM:
-    return "term algebras distinctness";
+    return "term algebras distinctness axiom";
   case InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM:
-    return "term algebras exhaustiveness";
+    return "term algebras exhaustiveness axiom";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_AXIOM:
-    return "term algebras injectivity";
+    return "term algebras injectivity axiom";
   case InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE:
+    return "fool distinctness axiom";
   case InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE:
-    return "fool axiom";
+    return "fool exhaustiveness axiom";
   case InferenceRule::EXTERNAL_THEORY_AXIOM:
     return "external theory axiom";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY:
@@ -817,8 +820,11 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
     return "term algebras distinctness";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
-  case InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
-    return "term algebras injectivity";
+    return "term algebras injectivity (generating)";
+  case InferenceRule::TERM_ALGEBRA_POSITIVE_INJECTIVITY_SIMPLIFYING:
+    return "term algebras positive injectivity (simplifying)";
+  case InferenceRule::TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING:
+    return "term algebras negative injectivity (simplifying)";
   case InferenceRule::THEORY_FLATTENING:
     return "theory flattening";
   case InferenceRule::BOOLEAN_TERM_ENCODING:
@@ -851,8 +857,6 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "global subsumption";
   case InferenceRule::DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
-  case InferenceRule::EXTERNAL:
-    return "external";
   case InferenceRule::CLAIM_DEFINITION:
     return "claim definition";
   case InferenceRule::FMB_FLATTENING:
@@ -951,36 +955,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "sigma proxy axiom";
   case InferenceRule::ARG_CONG:
     return "argument congruence";
-  case InferenceRule::SXX_NARROW:
-    return "sxx_narrow";
-  case InferenceRule::SX_NARROW:
-    return "sx_narrow";
-  case InferenceRule::S_NARROW:
-    return "s_narrow";
-  case InferenceRule::CXX_NARROW:
-    return "cxx_narrow";
-  case InferenceRule::CX_NARROW:
-    return "cx_narrow";
-  case InferenceRule::C_NARROW:
-    return "c_narrow";
-  case InferenceRule::BXX_NARROW:
-    return "bxx_narrow";
-  case InferenceRule::BX_NARROW:
-    return "bx_narrow";
-  case InferenceRule::B_NARROW:
-    return "b_narrow";
-  case InferenceRule::KX_NARROW:
-    return "kx_narrow";
-  case InferenceRule::K_NARROW:
-    return "k_narrow";
-  case InferenceRule::I_NARROW:
-    return "i_narrow";
-  case InferenceRule::SUB_VAR_SUP:
-    return "sub-var superposition";
   case InferenceRule::COMBINATOR_DEMOD:
     return "combinator demodulation";
   case InferenceRule::COMBINATOR_NORMALISE:
-    return "combinator normalisation";  
+    return "combinator normalisation";
   case InferenceRule::NEGATIVE_EXT:
     return "negative extensionality";
   case InferenceRule::INJECTIVITY:
@@ -1011,16 +989,16 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "term algebra subterm transitivity axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
-  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION: 
-  case InferenceRule::INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST: 
-  case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:
-  case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
-  case InferenceRule::GENERIC_GENERATING_INFERNCE:
-  case InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST:
+  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION:
+  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST:
+  case InferenceRule::GENERIC_SIMPLIFYING_INFERENCE:
+  case InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST:
+  case InferenceRule::GENERIC_GENERATING_INFERENCE:
+  case InferenceRule::GENERIC_GENERATING_INFERENCE_LAST:
   case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }
-  
+
   ASSERTION_VIOLATION;
   /* moved outside of the case statement to get a compiler warning */
   return "!UNKNOWN INFERENCE RULE!";

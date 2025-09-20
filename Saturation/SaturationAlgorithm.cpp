@@ -219,8 +219,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
-    _partialRedundancyHandler(), _generatedClauseCount(0),
-    _activationLimit(0)
+    _partialRedundancyHandler(), _activationLimit(0)
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
@@ -858,8 +857,7 @@ bool SaturationAlgorithm::clausesFlushed()
  */
 void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
-  _generatedClauseCount++;
-  env.statistics->generatedClauses++;
+  env.statistics->registerClause(cl);
 
   cl=doImmediateSimplification(cl);
   if (!cl) {

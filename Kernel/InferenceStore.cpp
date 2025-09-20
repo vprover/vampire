@@ -25,7 +25,6 @@
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
 

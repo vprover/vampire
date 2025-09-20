@@ -20,7 +20,6 @@
 #include "Lib/Stack.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -113,8 +112,6 @@ struct EqualityResolution::ResultFn
     }
 
     resLits->loadFromIterator(constraints->iterFifo());
-
-    env.statistics->equalityResolution++;
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)

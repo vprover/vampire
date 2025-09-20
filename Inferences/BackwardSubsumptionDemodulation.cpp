@@ -556,7 +556,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
               ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
               ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
               ASS(SDHelper::checkForSubsumptionResolution(mainCl, SDClauseMatches{sideCl,LiteralMiniIndex{mainCl}}, dlit));
-              replacement = SDHelper::generateSubsumptionResolutionClause(mainCl, dlit, sideCl);
+              replacement = SDHelper::generateSubsumptionResolutionClause(mainCl, dlit, sideCl, /*forward=*/false);
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
                 // Note that mclθ < cl does not always hold here,
@@ -565,7 +565,6 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
                 ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
               }
 #endif
-              env.statistics->backwardSubsumptionResolution++;
               return true;
             }
           }
@@ -641,8 +640,6 @@ isRedundant:
             resLits->push((*mainCl)[i]);
           }
         }
-
-        env.statistics->backwardSubsumptionDemodulations++;
 
         replacement = Clause::fromStack(*resLits,
             SimplifyingInference2(InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION, mainCl, sideCl));

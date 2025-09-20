@@ -19,7 +19,6 @@
 #include "Lib/PairUtils.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -119,8 +118,6 @@ struct ArgCong::ResultFn
         resLits->push(newLit);
       }
     }
-
-    env.statistics->argumentCongruence++;
 
     return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::ARG_CONG, _cl));
   }

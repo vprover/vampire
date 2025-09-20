@@ -14,7 +14,6 @@
  */
 
 #include "EqFactoring.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
