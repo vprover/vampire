@@ -69,7 +69,9 @@ public:
   }
 
   /*
-   * run CaDiCaL on the assumed-unsatisfiable `premises` and log a proof
+   * run CaDiCaL on the assumed-unsatisfiable `premises`
+   * and log a proof to a temporary file
+   *
    * returns a path to the (binary) DRAT proof
    */
   static std::filesystem::path drat(SATClauseList* premises);

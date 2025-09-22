@@ -20,6 +20,10 @@ namespace SAT {
 
 /**
  * A wrapper for solvers to track asserted premises and thereby reconstruct proofs.
+ *
+ * SAT solvers do not in general "remember" what they are given
+ * and do not report this in e.g. DRAT proofs, so we have to remember ourselves.
+ * This is actually a good thing, as we want to remember how we derived a certain clause ourselves.
  */
 class ProofProducingSATSolver final : public SATSolver {
 public:
