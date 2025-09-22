@@ -95,6 +95,7 @@ public:
 
   static SATClause* fromStack(SATLiteralStack& stack);
 
+  unsigned number = 0;
 private:
   /** number of literals */
   unsigned _length : 31;
@@ -105,6 +106,9 @@ private:
 
   /** Array of literals of this unit */
   SATLiteral _literals[1];
+
+  // counter for `number`
+  static unsigned _lastNumber;
 }; // class SATClause
 
 inline std::ostream& operator<<(std::ostream &out, const SAT::SATClause &cl)

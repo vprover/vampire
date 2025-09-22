@@ -230,6 +230,11 @@ struct InferenceStore::ProofPrinter
   virtual void print()
   {
     for(Unit *u : proof) {
+      SATClause *sat = u->inference().satPremise();
+      if(sat)
+        for(SATClause *scl : topological_sort(sat))
+          printSATStep(scl);
+
       printStep(u);
     }
   }
@@ -286,11 +291,67 @@ protected:
     }
   }
 
+  virtual void printSATStep(SATClause *cl) {
+    out << "s" << cl->number << ". " << *cl << " [";
+    SATInference *inference = cl->inference();
+    bool first = true;
+    switch(inference->getType()) {
+      case SAT::SATInference::PROP_INF: {
+        out << "rup ";
+        PropInference *deduction = static_cast<PropInference *>(inference);
+        for(SATClause *premise : iterTraits(deduction->getPremises()->iter())) {
+          if(!first)
+            out << ",";
+          first = false;
+          out << "s" << premise->number;
+        }
+        break;
+      }
+      case SAT::SATInference::FO_CONVERSION: {
+        FOConversionInference *deduction = static_cast<FOConversionInference *>(inference);
+        out << "sat_conversion " << deduction->getOrigin()->number();
+        break;
+      }
+    }
+    out << "]" << endl;
+  }
+
   InferenceStore *_is = nullptr;
   ostream &out;
   bool outputAxiomNames;
 
 private:
+  // produce a topological sort of the SAT proof starting at `root`
+  std::vector<SATClause *> topological_sort(SATClause *root) {
+    std::vector<SATClause *> result;
+    // second element is a flag indicating that we've finished processing this node,
+    // i.e. all its parents are now in the topological sort
+    std::vector<std::pair<SATClause *, bool>> todo = {{root, false}};
+    // we already processed these
+    std::unordered_set<SATClause *> done;
+
+    while(!todo.empty()) {
+      auto [next, finished] = todo.back();
+      if(finished) {
+        todo.pop_back();
+        if(done.insert(next).second)
+          result.push_back(next);
+        continue;
+      }
+      todo.back().second = true;
+
+      SATInference *inference = next->inference();
+      if(inference->getType() == SATInference::InfType::FO_CONVERSION)
+        continue;
+
+      PropInference *deduction = static_cast<PropInference *>(inference);
+      for(SATClause *premise : iterTraits(deduction->getPremises()->iter()))
+        if(!done.count(premise))
+          todo.push_back({premise, false});
+    }
+    return result;
+  }
+
   struct CompareUnits {
     bool operator()(Unit *l, Unit *r) const { return l->number() < r->number(); }
   };

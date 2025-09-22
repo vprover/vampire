@@ -37,6 +37,8 @@ namespace SAT {
 using namespace Lib;
 using namespace Shell;
 
+unsigned SATClause::_lastNumber = 0;
+
 /**
  * Allocate a clause having lits literals.
  */
@@ -69,7 +71,7 @@ void SATClause::operator delete(void *ptr, size_t sz) {
 }
 
 SATClause::SATClause(unsigned length)
-  : _length(length), _nonDestroyable(0), _inference(0)
+  : _length(length), _nonDestroyable(0), _inference(0), number(++_lastNumber)
 {
   env.statistics->satClauses++;
   if(length==1) {
