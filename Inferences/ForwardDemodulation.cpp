@@ -12,8 +12,6 @@
  * Implements class ForwardDemodulation.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -40,7 +38,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "DemodulationHelper.hpp"
@@ -207,12 +204,6 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
         }
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
-        if(EqHelper::isEqTautology(resLit)) {
-          env.statistics->forwardDemodulationsToEqTaut++;
-          premises = pvi( getSingletonIterator(qr.data->clause));
-          return true;
-        }
-
         RStack<Literal*> resLits;
         resLits->push(resLit);
 

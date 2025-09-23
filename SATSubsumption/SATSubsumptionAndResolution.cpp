@@ -71,7 +71,6 @@
 #include "Kernel/Matcher.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-#include "Debug/RuntimeStatistics.hpp"
 #include <algorithm>
 #include <iostream>
 #include <type_traits>

@@ -52,7 +52,7 @@ struct Applicator : SubstApplicator {
 Clause* performRewriting(
     Clause *rwClause, Literal *rwLit, TermList rwTerm, Clause *eqClause,
     Literal *eqLit, TermList eqLHS, ResultSubstitutionSP subst,
-    DemodulationHelper* helper, bool& isEqTautology, Inference&& inf)
+    DemodulationHelper* helper, Inference&& inf)
 {
   ASS(!eqLHS.isVar());
 
@@ -69,11 +69,6 @@ Clause* performRewriting(
   }
 
   Literal *tgtLitS = EqHelper::replace(rwLit, rwTerm, tgtTermS);
-  if (EqHelper::isEqTautology(tgtLitS)) {
-    isEqTautology = true;
-    return 0;
-  }
-
   RStack<Literal*> resLits;
 
   resLits->push(tgtLitS);
@@ -83,12 +78,6 @@ Clause* performRewriting(
       continue;
     }
     curr = EqHelper::replace(curr, rwTerm, tgtTermS);
-
-    if (EqHelper::isEqTautology(curr)) {
-      isEqTautology = true;
-      return nullptr;
-    }
-
     resLits->push(curr);
   }
 
@@ -97,12 +86,6 @@ Clause* performRewriting(
       continue;
     }
     Literal* currAfter = subst->applyToBoundResult(curr);
-
-    if (EqHelper::isEqTautology(currAfter)) {
-      isEqTautology = true;
-      return nullptr;
-    }
-
     resLits->push(currAfter);
   }
 
@@ -128,9 +111,8 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
     })
     .map([premise](auto arg) {
       auto &qr = arg.second;
-      bool temp;
       return (Clause*)performRewriting(premise, arg.first.first, TermList(arg.first.second), qr.data->clause,
-        qr.data->literal, qr.data->term, qr.unifier, nullptr, temp,
+        qr.data->literal, qr.data->term, qr.unifier, nullptr,
         Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, premise, qr.data->clause)));
     })
     .filter(NonzeroFn()));
@@ -173,15 +155,11 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
         if (Ordering::isGreaterOrEqual(ordering.compare(rhs,qr.data->term))) {
           continue;
         }
-        bool isEqTautology = false;
         auto res = performRewriting(
           cl, lit, trm, qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, redundancyCheck ? &_helper : nullptr,
-          isEqTautology, Inference(SimplifyingInference2(InferenceRule::FUNCTION_DEFINITION_DEMODULATION, cl, qr.data->clause)));
-        if (!res && !isEqTautology) {
+          Inference(SimplifyingInference2(InferenceRule::FUNCTION_DEFINITION_DEMODULATION, cl, qr.data->clause)));
+        if (!res) {
           continue;
-        }
-        if (!isEqTautology) {
-          replacement = res;
         }
         premises = pvi(getSingletonIterator(qr.data->clause));
         return true;

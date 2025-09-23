@@ -12,8 +12,6 @@
  * Implements class ExtensionalityResolution.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"

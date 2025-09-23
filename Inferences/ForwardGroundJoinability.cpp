@@ -90,12 +90,6 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   }
   DHSet<Clause*> premiseSet;
 
-  if (EqHelper::isEqTautology(lit)) {
-    premises = ClauseIterator::getEmpty();
-    replacement = nullptr;
-    return true;
-  }
-
   auto curr = lit;
   RedundancyCheck checker(ordering, curr);
   auto tpo = TermPartialOrdering::getEmpty(ordering);

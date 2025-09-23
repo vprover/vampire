@@ -39,7 +39,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "BackwardDemodulation.hpp"
 
@@ -156,12 +155,6 @@ struct BackwardDemodulation::ResultFn
     }
 
     Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
-    if(EqHelper::isEqTautology(resLit)) {
-      env.statistics->backwardDemodulationsToEqTaut++;
-      _removed->insert(qr.data->clause);
-      return BwSimplificationRecord(qr.data->clause);
-    }
-
     unsigned cLen=qr.data->clause->length();
     RStack<Literal*> resLits;
 

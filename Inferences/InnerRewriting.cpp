@@ -15,7 +15,6 @@
 #include "InnerRewriting.hpp"
 
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Inference.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -39,11 +38,6 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
           Literal* lit = (*cl)[j];
           Literal* nLit = EqHelper::replace(lit,lhs,rhs);
           if (nLit != lit) {
-            if(EqHelper::isEqTautology(nLit)) {
-              env.statistics->innerRewritesToEqTaut++;
-              return true;
-            }
-
             RStack<Literal*> resLits;
 
             for (unsigned k = 0; k < len; k++) {
@@ -56,10 +50,6 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
               } else {
                 Literal* oLit = (*cl)[k];
                 Literal* rLit = EqHelper::replace(oLit,lhs,rhs);
-                if(EqHelper::isEqTautology(rLit)) {
-                  env.statistics->innerRewritesToEqTaut++;
-                  return true;
-                }
                 resLits->push(rLit);
               }
             }

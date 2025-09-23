@@ -173,14 +173,6 @@ public:
   unsigned duplicateLiterals = 0;
   /** number of literals s |= s deleted */
   unsigned trivialInequalities = 0;
-  /** number of forward demodulations into equational tautologies */
-  unsigned forwardDemodulationsToEqTaut = 0;
-  /** number of backward demodulations into equational tautologies */
-  unsigned backwardDemodulationsToEqTaut = 0;
-  /** number of forward subsumption demodulations into equational tautologies */
-  unsigned forwardSubsumptionDemodulationsToEqTaut = 0;
-  /** number of backward subsumption demodulations into equational tautologies */
-  unsigned backwardSubsumptionDemodulationsToEqTaut = 0;
 
   /** how often did asg not simplify correctly. */
   unsigned asgViolations = 0;
@@ -204,8 +196,6 @@ public:
   unsigned alascaVarElimKSum = 0;
   unsigned alascaVarElimKMax = 0;
 
-  /** number of inner rewrites into equational tautologies */
-  unsigned innerRewritesToEqTaut = 0;
   /** number of equational tautologies discovered by CC */
   unsigned deepEquationalTautologies = 0;
 

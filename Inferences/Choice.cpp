@@ -12,7 +12,6 @@
  * Implements class PrimitiveInstantiation.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Kernel/OperatorType.hpp"
