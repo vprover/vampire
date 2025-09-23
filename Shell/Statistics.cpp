@@ -67,10 +67,16 @@ void Statistics::print(std::ostream& out)
 #define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
 #define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << text << ": " << (num) << endl; separable = true; }
 #define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
-#define INFERENCE_GROUP_OUT(inferenceFirst, inferenceLast, container)                                                 \
-  for (unsigned i = static_cast<unsigned>(inferenceFirst); i < static_cast<unsigned>(inferenceLast); i++) { \
-    COND_OUT(ruleName(static_cast<InferenceRule>(i)), container[i]);                                        \
-  }
+
+  auto cntInfRange = [&](InferenceRule first, InferenceRule last) {
+    return range(toNumber(first),toNumber(last)).map([&](unsigned i) { return inferenceCnts[i]; }).sum();
+  };
+
+  auto outputInfRange = [&](InferenceRule first, InferenceRule last, const auto& container) {
+    for (unsigned i : range(toNumber(first),toNumber(last))) {
+      COND_OUT(ruleName(static_cast<InferenceRule>(i)), container[i]);
+    }
+  };
 
   addCommentSignForSZS(out);
   out << "------------------------------\n";
@@ -158,23 +164,19 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
   SEPARATOR;
 
-
-  // TODO size of ZIArray is not a good indicator of whether it has positive values
-  HEADING("Simplifying Inferences",simplifyingInferences.size()+duplicateLiterals+trivialInequalities+
+  unsigned simplInfCnt = cntInfRange(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST);
+  HEADING("Simplifying Inferences",simplInfCnt+duplicateLiterals+trivialInequalities+
       evaluationCnt
       +( gveCnt - gveViolations)
       +( asgCnt - asgViolations)
       +( evaluationCnt - evaluationIncomp - evaluationGreater));
-  INFERENCE_GROUP_OUT(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST, simplifyingInferences);
+  outputInfRange(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST, inferenceCnts);
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
-
   COND_OUT("asg count", asgCnt);
   COND_OUT("asg results not smaller than the premis", asgViolations);
-
   COND_OUT("gve count", gveCnt);
   COND_OUT("gve results not smaller than the premis", gveViolations);
-
   COND_OUT("Evaluation count",         evaluationCnt);
   COND_OUT("Evaluation results greater than premise", evaluationGreater);
   COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
@@ -197,9 +199,10 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
-  HEADING("Generating Inferences",generatingInferences.size()+choiceInstances+
+  auto genInfCnts = cntInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST);
+  HEADING("Generating Inferences",genInfCnts+choiceInstances+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+introducedFunctionDefinitions);
-  INFERENCE_GROUP_OUT(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST, generatingInferences);
+  outputInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST, inferenceCnts);
   COND_OUT("TheoryInstSimp",theoryInstSimp);
   COND_OUT("TheoryInstSimpCandidates",theoryInstSimpCandidates);
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
@@ -209,9 +212,9 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Introduced function definitions", introducedFunctionDefinitions);
   SEPARATOR;
 
-  HEADING("Theory Axioms",theoryAxioms.size());
-  // TODO this should be from GENERIC_THEORY_AXIOM to GENERIC_THEORY_AXIOM_LAST
-  INFERENCE_GROUP_OUT(InferenceRule::INPUT, InferenceRule::EXTERNAL_THEORY_AXIOM, theoryAxioms);
+  auto theoryAxiomsCnt = cntInfRange(InferenceRule::GENERIC_THEORY_AXIOM, InferenceRule::GENERIC_THEORY_AXIOM_LAST);
+  HEADING("Theory Axioms",theoryAxiomsCnt);
+  outputInfRange(InferenceRule::GENERIC_THEORY_AXIOM, InferenceRule::GENERIC_THEORY_AXIOM_LAST, inferenceCnts);
   SEPARATOR;
 
   // If any induction is applied, inductionApplication is non-zero
@@ -252,10 +255,8 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 
-  HEADING("In-Proof Statistics",inProofInferences.size());
-  for (unsigned i = 0; i < inProofInferences.size(); i++) {
-    COND_OUT(ruleName(static_cast<InferenceRule>(i)), inProofInferences[i]);
-  }
+  HEADING("In-Proof Statistics",hasProof);
+  outputInfRange(InferenceRule::INPUT, InferenceRule::GENERIC_THEORY_AXIOM_LAST, inProofInferenceCnts);
   SEPARATOR;
 
   }
@@ -303,19 +304,21 @@ void Statistics::registerClause(Clause* cl)
   generatedClauses++;
 
   auto rule = cl->inference().rule();
-  auto index = static_cast<std::underlying_type_t<InferenceRule>>(rule);
-  if (isSimplifyingInferenceRule(rule)) {
-    simplifyingInferences[index]++;
-  } else if (isGeneratingInferenceRule(rule)) {
-    generatingInferences[index]++;
-  }
+  inferenceCnts[toNumber(rule)]++;
 }
 
 void Statistics::registerTheoryAxiom(Unit* unit)
 {
-  // TODO this cannot be enforced yet because e.g. induction axioms are not theory axioms
-  // ASS(unit->inference().isTheoryAxiom());
-  theoryAxioms[static_cast<std::underlying_type_t<InferenceRule>>(unit->inference().rule())]++;
+  const auto& inf = unit->inference();
+  ASS(inf.isTheoryAxiom());
+  inferenceCnts[toNumber(inf.rule())]++;
+}
+
+void Statistics::registerProofStep(Unit* unit)
+{
+  hasProof = true;
+  const auto& inf = unit->inference();
+  inProofInferenceCnts[toNumber(inf.rule())]++;
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)

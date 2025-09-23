@@ -278,9 +278,6 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
   computeTheoryRunningSums();
 
   _isPureTheoryDescendant = isTheoryAxiom();
-  _combAxiomsDescendant = isCombinatorAxiom();
-  _proxyAxiomsDescendant = isProxyAxiom();
-  _holAxiomsDescendant = _combAxiomsDescendant || _proxyAxiomsDescendant;
 
   //_inductionDepth = 0 from initDefault (or set externally)
   //_sineLevel = MAX from initDefault (or set externally)
@@ -298,9 +295,6 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise->isPureTheoryDescendant();
-  _combAxiomsDescendant = premise->isCombAxiomsDescendant();
-  _proxyAxiomsDescendant = premise->isProxyAxiomsDescendant();
-  _holAxiomsDescendant = premise->isHolAxiomsDescendant();
   _sineLevel = premise->getSineLevel();
 
   updateStatistics();
@@ -319,9 +313,6 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
-  _combAxiomsDescendant = premise1->isCombAxiomsDescendant() && premise2->isCombAxiomsDescendant() ;
-  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();
-  _holAxiomsDescendant = premise1->isHolAxiomsDescendant() && premise2->isHolAxiomsDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 
   updateStatistics();
@@ -345,25 +336,16 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
 
   if (premises) {
     _isPureTheoryDescendant = true;
-    _combAxiomsDescendant = true;
-    _proxyAxiomsDescendant = true;
-    _holAxiomsDescendant = true;
     it=premises;
     while(it) {
       const Inference& inf = it->head()->inference();
       _inputType = getInputType(_inputType,inf.inputType());
       _isPureTheoryDescendant &= inf.isPureTheoryDescendant();
-      _combAxiomsDescendant &= inf.isCombAxiomsDescendant();
-      _proxyAxiomsDescendant &= inf.isProxyAxiomsDescendant();
-      _holAxiomsDescendant &= inf.isHolAxiomsDescendant();
       _sineLevel = min(_sineLevel,inf.getSineLevel());
       it=it->tail();
     }
   } else {
     _isPureTheoryDescendant = isTheoryAxiom();
-    _combAxiomsDescendant = isCombinatorAxiom();
-    _proxyAxiomsDescendant = isProxyAxiom();
-    _holAxiomsDescendant = _combAxiomsDescendant || _proxyAxiomsDescendant;
   }
 
   updateStatistics();
@@ -749,8 +731,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
-  case InferenceRule::CHOICE_AXIOM:
-    return "choice axiom";
+  case InferenceRule::APPEAL_TO_THE_CHOICE_PRINCIPLE:
+    return "appeal to the choice principle";
   case InferenceRule::DISTINCTNESS_AXIOM:
     return "distinctness axiom";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
@@ -813,8 +795,6 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "fool distinctness axiom";
   case InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE:
     return "fool exhaustiveness axiom";
-  case InferenceRule::EXTERNAL_THEORY_AXIOM:
-    return "external theory axiom";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY:
     return "term algebras acyclicity";
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
@@ -935,30 +915,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
-  case InferenceRule::COMBINATOR_AXIOM:
-    return "combinator axiom";
-  case InferenceRule::FUNC_EXT_AXIOM:
-    return "functional extensionality axiom";
-  case InferenceRule::EQUALITY_PROXY_AXIOM:
-    return "equality proxy axiom";
-  case InferenceRule::NOT_PROXY_AXIOM:
-    return "logical not proxy axiom";
-  case InferenceRule::AND_PROXY_AXIOM:
-    return "logical and proxy axiom";
-  case InferenceRule::OR_PROXY_AXIOM:
-    return "logical or proxy axiom";
-  case InferenceRule::IMPLIES_PROXY_AXIOM:
-    return "implies proxy axiom";
-  case InferenceRule::PI_PROXY_AXIOM:
-    return "pi proxy axiom";
-  case InferenceRule::SIGMA_PROXY_AXIOM:
-    return "sigma proxy axiom";
   case InferenceRule::ARG_CONG:
     return "argument congruence";
-  case InferenceRule::COMBINATOR_DEMOD:
-    return "combinator demodulation";
-  case InferenceRule::COMBINATOR_NORMALISE:
-    return "combinator normalisation";
   case InferenceRule::NEGATIVE_EXT:
     return "negative extensionality";
   case InferenceRule::INJECTIVITY:
@@ -988,14 +946,13 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
     return "term algebra subterm transitivity axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
-  case InferenceRule::PROXY_AXIOM:
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION:
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST:
   case InferenceRule::GENERIC_SIMPLIFYING_INFERENCE:
   case InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST:
   case InferenceRule::GENERIC_GENERATING_INFERENCE:
   case InferenceRule::GENERIC_GENERATING_INFERENCE_LAST:
-  case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
+  case InferenceRule::GENERIC_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }
 

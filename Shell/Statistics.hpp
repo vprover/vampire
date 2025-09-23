@@ -20,7 +20,6 @@
 #include <ostream>
 
 #include "Forwards.hpp"
-#include "Lib/Array.hpp"
 #include "Lib/Timer.hpp"
 #include "Debug/Assertion.hpp"
 
@@ -108,6 +107,7 @@ public:
   void explainRefutationNotFound(std::ostream& out);
   void registerClause(Clause* cl);
   void registerTheoryAxiom(Unit* unit);
+  void registerProofStep(Unit* unit);
 
   // Input
   /** number of input clauses */
@@ -266,9 +266,6 @@ public:
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated = 0;
 
-  /** inferences in the proof indexed by InferenceRule */
-  ZIArray<unsigned> inProofInferences;
-
   friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
   {
     switch (self) {
@@ -310,12 +307,11 @@ private:
 
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses = 0;
-  /** simplifying inferences indexed by InferenceRule */
-  ZIArray<unsigned> simplifyingInferences;
-  /** generating inferences indexed by InferenceRule */
-  ZIArray<unsigned> generatingInferences;
-  /** theory axioms indexed by InferenceRule */
-  ZIArray<unsigned> theoryAxioms;
+  bool hasProof = false;
+  /** inferences in the proof indexed by InferenceRule */
+  std::array<unsigned, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inProofInferenceCnts = {};
+  /** inference counts indexed by InferenceRule */
+  std::array<unsigned, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
 }; // class Statistics
 
 } // namespace Shell

@@ -269,8 +269,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
         ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
       }
       inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
-
-      env.statistics->inProofInferences[static_cast<unsigned>(inf.rule())]++;
+      env.statistics->registerProofStep(current);
 
     } else {
       if (!done.insert(current)) {
