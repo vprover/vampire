@@ -781,6 +781,7 @@ protected:
     case InferenceRule::AVATAR_DEFINITION:
     case InferenceRule::AVATAR_COMPONENT:
     case InferenceRule::AVATAR_REFUTATION:
+    case InferenceRule::AVATAR_REFUTATION_SMT:
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
     case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
     case InferenceRule::FOOL_ELIMINATION:
