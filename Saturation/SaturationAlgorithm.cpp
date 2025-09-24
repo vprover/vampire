@@ -1669,8 +1669,14 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->setImmediateSimplificationEngineMany(std::move(iseMany));
 
   if (opt.partialRedundancyCheck()) {
-    // res->addForwardSimplifierToFront(new PartialRedundancyLazy());
-    res->addExpensiveForwardSimplifierToFront(new PartialRedundancyLazy());
+    if (opt.saturationAlgorithm()==Options::SaturationAlgorithm::DISCOUNT) {
+      res->addExpensiveForwardSimplifierToFront(new PartialRedundancyLazy());
+    } else {
+      if (opt.saturationAlgorithm()!=Options::SaturationAlgorithm::OTTER) {
+        USER_ERROR("only -sa discount and -sa otter are supported");
+      }
+      res->addForwardSimplifierToFront(new PartialRedundancyLazy());
+    }
   }
 
   // create simplification engine
