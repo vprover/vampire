@@ -378,7 +378,7 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     }
 
     Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
-    unsigned pos;
+    unsigned pos = UINT_MAX;
     if (!itm->_ansLit) {
       pos = ucl->getLiteralPosition(unif.data->literal);
     } else {

@@ -918,7 +918,7 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsign
   unsigned i = 0;
   while (vit.hasNext()) {
     unsigned v = vit.next();
-    bool found = false;
+    DEBUG_CODE(bool found = false;)
     for (unsigned j = 0; j < ctorNumber; ++j) {
       TermList& arg = *(recTerm->nthArgument(j));
       ASS(arg.isVar());
@@ -926,7 +926,7 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsign
         ctorOrder[ctorNumber-i-1] = j;
         functionHeads[j] = functionHeadsByConstruction[ctorNumber-i-1];
         ++i;
-        found = true;
+        DEBUG_CODE(found = true;)
         break;
       }
     }
