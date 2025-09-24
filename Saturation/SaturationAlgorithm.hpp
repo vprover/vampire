@@ -102,6 +102,7 @@ public:
   void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
                          ClauseIterator premises,
       bool forward=true);
+  void insertIntoPartialRedundancyIndex(Clause* cl);
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
 

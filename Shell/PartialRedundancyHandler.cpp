@@ -22,6 +22,7 @@
 #include "Indexing/ResultSubstitution.hpp"
 
 #include "Inferences/DemodulationHelper.hpp"
+#include "Inferences/Superposition.hpp"
 
 #include "Saturation/Splitter.hpp"
 
@@ -208,6 +209,7 @@ public:
     if (splitter) {
       auto unionAll = SplitSet::getEmpty();
       for (const auto& cl : e->cls) {
+        if (!cl) { continue; }
         unionAll = unionAll->getUnion(cl->splits());
       }
       auto diff = unionAll->subtract(_cl->splits());      
@@ -287,6 +289,30 @@ void PartialRedundancyHandler::destroyClauseData(Clause* cl)
   delete ptr;
 }
 
+Clause* PartialRedundancyHandler::getGeneratedParent(Clause* cl)
+{
+  while (isSimplifyingInferenceRule(cl->inference().rule())) {
+    switch (cl->inference().rule()) {
+      case InferenceRule::FORWARD_DEMODULATION:
+      case InferenceRule::SUBSUMPTION_RESOLUTION:
+      case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL: {
+        auto pit = cl->getParents();
+        ALWAYS(pit.hasNext());
+        cl = static_cast<Clause*>(pit.next());
+        break;
+      }
+      default: {
+        static DHSet<InferenceRule> nothandled;
+        if (nothandled.insert(cl->inference().rule())) {
+          cout << ruleName(cl->inference().rule()) << " not handled" << endl;
+        }
+        return cl;
+      }
+    }
+  }
+  return cl;
+}
+
 PartialRedundancyHandler::ConstraintIndex** PartialRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {
@@ -357,12 +383,12 @@ bool PartialRedundancyHandler::checkSuperposition(
   }
 
   auto checkWrapper = [](TermOrderingDiagram* tod, const SubstApplicator* appl, const TermPartialOrdering* tpo, const std::function<bool(void*)>& afterCheck) {
-    auto data1 = tod->check(appl, tpo, afterCheck);
+    // auto data1 = tod->check(appl, tpo, afterCheck);
     auto data2 = tod->check2(appl, tpo, afterCheck);
-    if (data1 != data2) {
-      INVALID_OPERATION("check is inconsistent");
-    }
-    return data1;
+    // if (data1 != data2) {
+    //   INVALID_OPERATION("check is inconsistent");
+    // }
+    return data2;
   };
 
   auto checkFn = [&](ConstraintIndex** index, const TermStack& ts, const TermPartialOrdering* tpo)
@@ -410,6 +436,7 @@ bool PartialRedundancyHandler::checkSuperposition(
       continue;
     }
     if (rwLitTod && checkWrapper(rwLitTod, &idApplicator, tpo, [](void*){ return true; })) {
+      env.statistics->intDBDownInductionInProof++;
       continue;
     }
     // if failure, return
@@ -427,6 +454,7 @@ bool PartialRedundancyHandler::checkSuperposition(
     // cout << "for " << *tpo << endl;
     for (const auto& cl : *clsp) {
       ASS_NEQ(cl, resClause);
+      if (!cl) { continue; }
       // cout << cl->toString() << endl;
       premiseSet.insert(cl);
     }
@@ -471,6 +499,66 @@ void PartialRedundancyHandler::insertSuperposition(
   }
 
   tryInsert(rwClause, subs, false, eqClause, std::move(ordCons), resClause);
+}
+
+void PartialRedundancyHandler::insertReverseSuperposition(Clause* cl) const
+{
+  // auto gcl = getGeneratedParent(cl);
+  const auto& inf = cl->inference();
+
+  if (inf.rule() != InferenceRule::SUPERPOSITION) {
+    return;
+  }
+
+  // TODO check that premise did not participate in any simplifications
+
+  auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(cl);
+  UnitIterator it = cl->getParents();
+  ALWAYS(it.hasNext());
+  auto rwClause = static_cast<Clause*>(it.next());
+  ALWAYS(it.hasNext());
+  auto eqClause = static_cast<Clause*>(it.next());
+  ALWAYS(!it.hasNext());
+
+  // compute unifier for selected literals
+  RobSubstitution subst;
+  Literal *rwLit = sup.selected.selectedLiteral.selectedLiteral;
+  Literal *eqLit = sup.selected.otherLiteral;
+  TermList eqLHS = sup.rewrite.lhs;
+  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
+  TermList rwTerm = sup.rewrite.rewritten;
+  ASS(eqLit->isEquality());
+  ASS(eqLit->isPositive());
+  ASS(eqLit->termArg(0) == eqLHS || eqLit->termArg(1) == eqLHS);
+  ALWAYS(subst.unify(rwTerm, 0, eqLHS, 1));
+
+  auto rwTermS = subst.apply(rwTerm, 0);
+  auto tgtTermS = subst.apply(tgtTerm, 1);
+  auto rwLitS = subst.apply(rwLit, 0);
+  auto comp = _ord->compare(tgtTermS,rwTermS);
+
+  auto rsubst = ResultSubstitution::fromSubstitution(&subst, 0, 1);
+
+  if ((rwLitS->termArg(0).containsSubterm(rwTermS) && rwTermS != rwLitS->termArg(0)) ||
+      (rwLitS->termArg(1).containsSubterm(rwTermS) && rwTermS != rwLitS->termArg(1)))
+  {
+    return;
+  }
+
+  OrderingConstraints ordCons;
+  // determine whether conclusion is smaller
+  if (!checkOrConstrainGreater(comp, tgtTermS, rwTermS, ordCons)) {
+    return;
+  }
+
+  RobSubstitution esubst;
+  auto ersubst = ResultSubstitution::fromSubstitution(&esubst, 0, 1);
+  tryInsert(cl, ersubst.ptr(), false, eqClause, std::move(ordCons), rwClause);
+  env.statistics->generalizedInductionApplication++;
+  // auto dataPtr = getDataPtr(cl, /*doAllocate=*/true);
+  // cout << cl->toString() << endl;
+  // cout << *(*dataPtr) << endl;
+  // INVALID_OPERATION("x");
 }
 
 bool PartialRedundancyHandler::handleResolution(

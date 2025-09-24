@@ -376,6 +376,9 @@ public:
     return getAnswerLiteral() != nullptr;
   }
 
+  bool redInf() const { return _redInf; }
+  void markRedInf() { _redInf = true; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -408,6 +411,7 @@ protected:
   InverseLookup<Literal>* _literalPositions;
 
   int _numActiveSplits;
+  bool _redInf;
 
   size_t _auxTimestamp;
   void* _auxData;

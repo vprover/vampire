@@ -385,9 +385,9 @@ Clause* Superposition::performSuperposition(
   static bool doSimS = getOptions().simulatenousSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
-  if(EqHelper::isEqTautology(tgtLitS)) {
-    return 0;
-  }
+  // if(EqHelper::isEqTautology(tgtLitS)) {
+  //   return 0;
+  // }
 
   TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
 

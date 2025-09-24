@@ -497,6 +497,46 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, u
   onClauseReduction(cl, replacements, numOfReplacements, premises, forward);
 }
 
+void SaturationAlgorithm::insertIntoPartialRedundancyIndex(Clause* cl)
+{
+  Clause* gcl = PartialRedundancyHandler::getGeneratedParent(cl);
+  const auto& inf = gcl->inference();
+
+  if (inf.rule() != InferenceRule::SUPERPOSITION) {
+    return;
+  }
+  auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(gcl);
+  UnitIterator it = gcl->getParents();
+  ALWAYS(it.hasNext());
+  auto rwClause = static_cast<Clause*>(it.next());
+  ALWAYS(it.hasNext());
+  auto eqClause = static_cast<Clause*>(it.next());
+  ALWAYS(!it.hasNext());
+
+  // compute unifier for selected literals
+  RobSubstitution subst;
+  Literal *rwLit = sup.selected.selectedLiteral.selectedLiteral;
+  Literal *eqLit = sup.selected.otherLiteral;
+  TermList eqLHS = sup.rewrite.lhs;
+  TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
+  TermList rwTerm = sup.rewrite.rewritten;
+  ASS(eqLit->isEquality());
+  ASS(eqLit->isPositive());
+  ASS(eqLit->termArg(0) == eqLHS || eqLit->termArg(1) == eqLHS);
+  ALWAYS(subst.unify(rwTerm, 0, eqLHS, 1));
+
+  auto rwTermS = subst.apply(rwTerm, 0);
+  auto tgtTermS = subst.apply(tgtTerm, 1);
+  auto rwLitS = subst.apply(rwLit, 0);
+  auto comp = _ordering->compare(tgtTermS,rwTermS);
+
+  auto rsubst = ResultSubstitution::fromSubstitution(&subst, 0, 1);
+  env.statistics->inductionApplicationInProof++;
+
+  _partialRedundancyHandler->insertSuperposition(
+    eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, rsubst.ptr(), nullptr);
+}
+
 void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, unsigned numOfReplacements,
                                             ClauseIterator premises, bool forward)
 {
@@ -537,6 +577,10 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, u
     onParenthood(replacement, cl);
     while (premStack.isNonEmpty()) {
       onParenthood(replacement, premStack.pop());
+    }
+  } else {
+    if (_opt.partialRedundancyCheck() && !cl->redInf()) {
+      insertIntoPartialRedundancyIndex(cl);
     }
   }
 }
@@ -1146,6 +1190,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   _active->add(cl);
 
   if (_opt.partialRedundancyCheck()) {
+    _partialRedundancyHandler->insertReverseSuperposition(cl);
     _partialRedundancyHandler->checkEquations(cl);
   }
 

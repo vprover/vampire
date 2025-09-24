@@ -100,6 +100,8 @@ public:
     Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, ResultSubstitution* subs, Clause* resClause) const;
 
+  void insertReverseSuperposition(Clause* clause) const;
+
   /** Returns false if resolution should be skipped. */
   bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs, Clause* resClause) const;
@@ -107,6 +109,8 @@ public:
   void checkEquations(Clause* cl) const;
 
   static void destroyClauseData(Clause* cl);
+
+  static Clause* getGeneratedParent(Clause* cl);
 
 private:
   bool compareWithSuperpositionPremise(

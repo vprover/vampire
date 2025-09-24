@@ -30,35 +30,11 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace std;
 
-Clause* getGeneratedParent(Clause* cl)
-{
-  while (isSimplifyingInferenceRule(cl->inference().rule())) {
-    switch (cl->inference().rule()) {
-      case InferenceRule::FORWARD_DEMODULATION:
-      case InferenceRule::SUBSUMPTION_RESOLUTION:
-      case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL: {
-        auto pit = cl->getParents();
-        ALWAYS(pit.hasNext());
-        cl = static_cast<Clause*>(pit.next());
-        break;
-      }
-      default: {
-        static DHSet<InferenceRule> nothandled;
-        if (nothandled.insert(cl->inference().rule())) {
-          cout << ruleName(cl->inference().rule()) << " not handled" << endl;
-        }
-        return cl;
-      }
-    }
-  }
-  return cl;
-}
-
 bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   Ordering& ordering = _salg->getOrdering();
 
-  auto gcl = getGeneratedParent(cl);
+  auto gcl = PartialRedundancyHandler::getGeneratedParent(cl);
   const auto& inf = gcl->inference();
 
   if (inf.rule() != InferenceRule::SUPERPOSITION) {
@@ -102,6 +78,7 @@ bool PartialRedundancyLazy::perform(Clause* cl, Clause*& replacement, ClauseIter
   if (!parRedHandler.checkSuperposition(eqClause, rwClause, rsubst.ptr(), rwLitS, rwTermS, tgtTermS, gcl, premiseSet)) {
     premises = pvi(getPersistentIterator(premiseSet.iterator()));
     replacement = nullptr;
+    cl->markRedInf();
     return true;
   }
 

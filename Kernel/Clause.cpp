@@ -79,6 +79,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _numActiveSplits(0),
+    _redInf(false),
     _auxTimestamp(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
@@ -371,23 +372,23 @@ std::ostream& operator<<(std::ostream& out, Clause const& self)
 std::string Clause::toString() const
 {
   std::string quantifier = "";
-  if(env.options->proofExtra() != Options::ProofExtra::OFF){
-    DHMap<unsigned,TermList> varSortMap;
-    SortHelper::collectVariableSorts(const_cast<Clause*>(this),varSortMap);
-    auto vars = Stack<unsigned>::fromIterator(varSortMap.domain());
-    vars.sort();
-    unsigned numVars = vars.size();
-    if (numVars) {
-      quantifier += "![";
-      for (auto var : vars) {
-        quantifier += TermList(var,false).toString() + ":" + varSortMap.get(var).toString();
-        if (--numVars) {
-          quantifier += ", ";
-        }
-      }
-      quantifier += "]: ";
-    }
-  }
+  // if(env.options->proofExtra() != Options::ProofExtra::OFF){
+  //   DHMap<unsigned,TermList> varSortMap;
+  //   SortHelper::collectVariableSorts(const_cast<Clause*>(this),varSortMap);
+  //   auto vars = Stack<unsigned>::fromIterator(varSortMap.domain());
+  //   vars.sort();
+  //   unsigned numVars = vars.size();
+  //   if (numVars) {
+  //     quantifier += "![";
+  //     for (auto var : vars) {
+  //       quantifier += TermList(var,false).toString() + ":" + varSortMap.get(var).toString();
+  //       if (--numVars) {
+  //         quantifier += ", ";
+  //       }
+  //     }
+  //     quantifier += "]: ";
+  //   }
+  // }
 
   // print id and literals of clause
   std::string result = Int::toString(_number) + ". "+ quantifier + literalsOnlyToString();
@@ -400,47 +401,47 @@ std::string Clause::toString() const
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
-  if(env.options->proofExtra() != Options::ProofExtra::OFF){
-    // print statistics: each entry should have the form key:value
-    result += std::string(" {");
+  // if(env.options->proofExtra() != Options::ProofExtra::OFF){
+  //   // print statistics: each entry should have the form key:value
+  //   result += std::string(" {");
 
-    result += std::string("a:") + Int::toString(age());
-    unsigned weight = (_weight ? _weight : computeWeight());
-    result += std::string(",w:") + Int::toString(weight);
+  //   result += std::string("a:") + Int::toString(age());
+  //   unsigned weight = (_weight ? _weight : computeWeight());
+  //   result += std::string(",w:") + Int::toString(weight);
 
-    unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
-    if(weightForClauseSelection!=weight){
-      result += std::string(",wCS:") + Int::toString(weightForClauseSelection);
-    }
+  //   unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
+  //   if(weightForClauseSelection!=weight){
+  //     result += std::string(",wCS:") + Int::toString(weightForClauseSelection);
+  //   }
 
-    if (numSelected()>0) {
-      result += std::string(",nSel:") + Int::toString(numSelected());
-    }
+  //   if (numSelected()>0) {
+  //     result += std::string(",nSel:") + Int::toString(numSelected());
+  //   }
 
-    if (env.colorUsed) {
-      result += std::string(",col:") + Int::toString(color());
-    }
+  //   if (env.colorUsed) {
+  //     result += std::string(",col:") + Int::toString(color());
+  //   }
 
-    if(derivedFromGoal()){
-      result += std::string(",goal:1");
-    }
-    if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
-      result += std::string(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
-    }
+  //   if(derivedFromGoal()){
+  //     result += std::string(",goal:1");
+  //   }
+  //   if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
+  //     result += std::string(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
+  //   }
 
-    if(isPureTheoryDescendant()){
-      result += std::string(",ptD:1");
-    }
+  //   if(isPureTheoryDescendant()){
+  //     result += std::string(",ptD:1");
+  //   }
 
-    if(env.options->induction() != Shell::Options::Induction::NONE){
-      result += std::string(",inD:") + Int::toString(_inference.inductionDepth());
-    }
-    result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
-    result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
+  //   if(env.options->induction() != Shell::Options::Induction::NONE){
+  //     result += std::string(",inD:") + Int::toString(_inference.inductionDepth());
+  //   }
+  //   result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
+  //   result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
-    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
-    result += std::string("}");
-  }
+  //   result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
+  //   result += std::string("}");
+  // }
 
   return result;
 }
