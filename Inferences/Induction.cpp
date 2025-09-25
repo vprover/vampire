@@ -259,10 +259,10 @@ InductionContext InductionContext::transform(Fun fn) const
   return InductionContext(_indTerms, std::move(cls));
 }
 
-std::map<Term*,TermList> InductionContext::getReplacementMap(const std::vector<TermList>& r, RobSubstitution* subst) const
+std::unordered_map<Term*,TermList> InductionContext::getReplacementMap(const std::vector<TermList>& r, RobSubstitution* subst) const
 {
   ASS_EQ(r.size(), _indTerms.size());
-  std::map<Term*,TermList> replacementMap;
+  std::unordered_map<Term*,TermList> replacementMap;
   for (unsigned i = 0; i < _indTerms.size(); i++) {
     auto ph = getPlaceholderForTerm(_indTerms,i);
     replacementMap.insert(make_pair(ph,r[i]));
@@ -274,9 +274,9 @@ std::map<Term*,TermList> InductionContext::getReplacementMap(const std::vector<T
   return replacementMap;
 }
 
-std::map<Term*,TermList> getContextReplacementMap(const InductionContext& context, bool inverse = false)
+std::unordered_map<Term*,TermList> getContextReplacementMap(const InductionContext& context, bool inverse = false)
 {
-  std::map<Term*,TermList> m;
+  std::unordered_map<Term*,TermList> m;
   for (unsigned i = 0; i < context._indTerms.size(); i++) {
     auto ph = getPlaceholderForTerm(context._indTerms,i);
     m.insert(make_pair(inverse ? ph : context._indTerms[i], inverse ? context._indTerms[i] : ph));

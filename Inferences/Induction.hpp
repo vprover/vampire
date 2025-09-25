@@ -16,7 +16,7 @@
 #ifndef __Induction__
 #define __Induction__
 
-#include <map>
+#include <unordered_map>
 
 #include "Forwards.hpp"
 
@@ -92,10 +92,10 @@ Term* getPlaceholderForTerm(const Stack<Term*>& ts, unsigned i);
  */
 class TermReplacement : public TermTransformer {
 public:
-  TermReplacement(const std::map<Term*, TermList>& m) : _m(m) {}
+  TermReplacement(const std::unordered_map<Term*, TermList>& m) : _m(m) {}
   TermList transformSubterm(TermList trm) override;
 protected:
-  std::map<Term*,TermList> _m;
+  std::unordered_map<Term*,TermList> _m;
 };
 
 /**
@@ -105,7 +105,7 @@ protected:
  */
 class InductionTermReplacement : public TermReplacement {
 public:
-  InductionTermReplacement(const std::map<Term*, TermList>& m, bool squashSkolems, unsigned& nextVar)
+  InductionTermReplacement(const std::unordered_map<Term*, TermList>& m, bool squashSkolems, unsigned& nextVar)
     : TermReplacement(m), _squashSkolems(squashSkolems), _nextVar(nextVar), _renaming() {}
   TermList transformSubterm(TermList trm) override;
   
@@ -189,7 +189,7 @@ private:
    * apply the term replacement @b tr on each literal.
    */
   Formula* getFormula(InductionTermReplacement& tr, RobSubstitution* subst) const;
-  std::map<Term*,TermList> getReplacementMap(const std::vector<TermList>& r, RobSubstitution* subst) const;
+  std::unordered_map<Term*,TermList> getReplacementMap(const std::vector<TermList>& r, RobSubstitution* subst) const;
 };
 
 /**
