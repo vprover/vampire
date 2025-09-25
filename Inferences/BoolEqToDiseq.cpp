@@ -12,6 +12,8 @@
  * Implements class PrimitiveInstantiation.
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"

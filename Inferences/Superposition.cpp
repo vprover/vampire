@@ -390,6 +390,16 @@ Clause* Superposition::performSuperposition(
 
   static bool doSimS = getOptions().simulatenousSuperposition();
 
+  //check we don't create an equational tautology (this happens during self-superposition)
+  if(EqHelper::isEqTautology(tgtLitS)) {
+    // Save this superposition conclusion despite immediately being removed.
+    if (!unifier->usesUwa()) {
+      parRedHandler.insertSuperposition(
+        eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+    }
+    return 0;
+  }
+
   TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
 
 #if VDEBUG
@@ -412,6 +422,10 @@ Clause* Superposition::performSuperposition(
 
       if (doSimS) {
         currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+      }
+
+      if(EqHelper::isEqTautology(currAfter)) {
+        return nullptr;
       }
 
       if(hasAgeLimitStrike) {
@@ -447,6 +461,9 @@ Clause* Superposition::performSuperposition(
       if(curr!=eqLit) {
         Literal* currAfter = subst->apply(curr, eqIsResult);
 
+        if(EqHelper::isEqTautology(currAfter)) {
+          return nullptr;
+        }
         if(hasAgeLimitStrike) {
           weight+=currAfter->weight();
           if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {

@@ -183,13 +183,20 @@ void Statistics::print(std::ostream& out)
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
-      forwardSubsumed+backwardSubsumed+forwardGroundJoinable);
+      forwardSubsumed+backwardSubsumed+forwardGroundJoinable+forwardDemodulationsToEqTaut+
+      forwardSubsumptionDemodulationsToEqTaut+backwardSubsumptionDemodulationsToEqTaut+
+      backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
   COND_OUT("Deep equational tautologies", deepEquationalTautologies);
   COND_OUT("Forward subsumptions", forwardSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Forward ground joinable", forwardGroundJoinable);
+  COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
+  COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
+  COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
+  COND_OUT("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
+  COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
   SEPARATOR;
 
   auto genInfCnts = cntInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST);
@@ -201,7 +208,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
-  COND_OUT("Choice axiom instances created", choiceInstances);
+  COND_OUT("Choice axiom instances creatded", choiceInstances);
   COND_OUT("Introduced function definitions", introducedFunctionDefinitions);
   SEPARATOR;
 

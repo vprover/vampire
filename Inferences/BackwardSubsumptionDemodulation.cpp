@@ -625,6 +625,12 @@ isRedundant:
         }
 #endif
 
+        if (EqHelper::isEqTautology(newLit)) {
+          env.statistics->backwardSubsumptionDemodulationsToEqTaut++;
+          ASS(replacement == nullptr);
+          return true;
+        }
+
         RStack<Literal*> resLits;
 
         for (unsigned i = 0; i < mainCl->length(); ++i) {

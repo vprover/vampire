@@ -13,6 +13,7 @@
  */
 
 #include "Debug/Assertion.hpp"
+#include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"

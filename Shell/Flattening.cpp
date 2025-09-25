@@ -14,6 +14,8 @@
  * @since 30/10/2005 Bellevue, information about positions removed
  */
 
+#include "Debug/RuntimeStatistics.hpp"
+
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"

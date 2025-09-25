@@ -613,6 +613,13 @@ isRedundant:
               }
 #endif
 
+              if (EqHelper::isEqTautology(newLit)) {
+                env.statistics->forwardSubsumptionDemodulationsToEqTaut++;
+                premises = pvi(getSingletonIterator(mcl));
+                replacement = nullptr;
+                return true;
+              }
+
               RStack<Literal*> resLits;
 
               for (unsigned i = 0; i < cl->length(); ++i) {
