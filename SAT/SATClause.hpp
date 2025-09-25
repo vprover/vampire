@@ -111,16 +111,7 @@ private:
   static unsigned _lastNumber;
 }; // class SATClause
 
-inline std::ostream& operator<<(std::ostream &out, const SAT::SATClause &cl)
-{
-  if (cl.length() == 0) {
-    return out << "#";
-  }
-  out << cl[0];
-  for(unsigned i = 1; i < cl.length(); i++)
-    out << " | " << cl[i];
-  return out;
-}
+std::ostream &operator<<(std::ostream &out, const SATClause &cl);
 
 };
 

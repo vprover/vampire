@@ -120,7 +120,8 @@ public:
     while(!todo.empty()) {
       SATLiteral next = todo.back();
       todo.pop_back();
-      done.insert(next);
+      if(!done.insert(next).second)
+        continue;
 
       ASS(set(next))
       SATClause *justification = _justification[next];

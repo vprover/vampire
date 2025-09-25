@@ -201,6 +201,39 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
   return rcl;
 }
 
+std::ostream &operator<<(std::ostream &out, const SATClause &cl)
+{
+  out << "s" << cl.number << ". ";
+  if (cl.length() == 0)
+    out << "#";
+  else {
+    out << cl[0];
+    for(unsigned i = 1; i < cl.length(); i++)
+      out << " | " << cl[i];
+  }
+
+  out << " [";
+  SATInference *inference = cl.inference();
+  bool first = true;
+  switch(inference->getType()) {
+    case SATInference::PROP_INF: {
+      out << "rup ";
+      PropInference *deduction = static_cast<PropInference *>(inference);
+      for(SATClause *premise : iterTraits(deduction->getPremises()->iter())) {
+        if(!first)
+          out << ",";
+        first = false;
+        out << "s" << premise->number;
+      }
+      break;
+    }
+    case SAT::SATInference::FO_CONVERSION: {
+      FOConversionInference *deduction = static_cast<FOConversionInference *>(inference);
+      out << "sat_conversion " << deduction->getOrigin()->number();
+      break;
+    }
+  }
+  return out << "]";
+}
+
 };
-
-

@@ -292,28 +292,7 @@ protected:
   }
 
   virtual void printSATStep(SATClause *cl) {
-    out << "s" << cl->number << ". " << *cl << " [";
-    SATInference *inference = cl->inference();
-    bool first = true;
-    switch(inference->getType()) {
-      case SAT::SATInference::PROP_INF: {
-        out << "rup ";
-        PropInference *deduction = static_cast<PropInference *>(inference);
-        for(SATClause *premise : iterTraits(deduction->getPremises()->iter())) {
-          if(!first)
-            out << ",";
-          first = false;
-          out << "s" << premise->number;
-        }
-        break;
-      }
-      case SAT::SATInference::FO_CONVERSION: {
-        FOConversionInference *deduction = static_cast<FOConversionInference *>(inference);
-        out << "sat_conversion " << deduction->getOrigin()->number();
-        break;
-      }
-    }
-    out << "]" << endl;
+    out << *cl << '\n';
   }
 
   InferenceStore *_is = nullptr;
