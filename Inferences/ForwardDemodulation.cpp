@@ -12,8 +12,6 @@
  * Implements class ForwardDemodulation.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"

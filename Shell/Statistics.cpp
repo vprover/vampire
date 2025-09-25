@@ -208,7 +208,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
-  COND_OUT("Choice axiom instances creatded", choiceInstances);
+  COND_OUT("Choice axiom instances created", choiceInstances);
   COND_OUT("Introduced function definitions", introducedFunctionDefinitions);
   SEPARATOR;
 
