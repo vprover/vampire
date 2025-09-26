@@ -188,6 +188,13 @@ UnitList* UIHelper::tryParseTPTP(istream* input)
         throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
       }
       s_haveConjecture=parser.containsConjecture();
+      UnitList *unit = parser.units();
+      std::cout << "Parsed units:\n" << List<Unit*>::length(unit) << "\n";
+      while (unit != nullptr) {
+        std::cout << *unit->head() << std::endl;
+        unit = unit->tail();
+      }
+
       return parser.units();
 }
 

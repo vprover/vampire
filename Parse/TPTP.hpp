@@ -30,7 +30,7 @@
 #include "Kernel/Theory.hpp"
 #include "Kernel/Inference.hpp"
 
-//#define DEBUG_SHOW_STATE
+#define DEBUG_SHOW_STATE
 
 using namespace std;
 using namespace Lib;
@@ -360,9 +360,13 @@ private:
   public:
     CLASS_NAME(Type);
     USE_ALLOCATOR(Type);
+
+    virtual vstring toString() = 0;
+
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
     TypeTag tag() const {return _tag;}
+
   protected:
     /** kind of this type */
     TypeTag _tag;
@@ -380,6 +384,15 @@ private:
     {}
     /** return the sort number */
     TermList sort() const {return _sort;}
+
+    vstring toString() override {
+      ASS(_tag == TypeTag::TT_ATOMIC)
+
+      vstring s;
+      s.append(_sort.toString());
+      return s;
+    }
+
   private:
     /** the sort identified by its number in the signature */
     TermList _sort;
@@ -399,6 +412,20 @@ private:
     Type* argumentType() const {return _lhs;}
     /** the return type */
     Type* returnType() const {return _rhs;}
+
+    vstring toString() override {
+      ASS(_tag == TT_ARROW)
+
+      vstring s = "(";
+
+      s.append(_lhs->toString());
+      s.append(") -> (");
+      s.append(_rhs->toString());
+      s.append(")");
+
+      return s;
+    }
+
   private:
     /** the argument type */
     Type* _lhs;
@@ -423,6 +450,19 @@ private:
     Type* lhs() const {return _lhs;}
     /** the right hand side type */
     Type* rhs() const {return _rhs;}
+
+    vstring toString() override {
+      ASS(_tag == TT_PRODUCT)
+
+      vstring s = "(";
+      s.append(_lhs->toString());
+      s.append(") * (");
+      s.append(_rhs->toString());
+      s.append(")");
+
+      return s;
+    }
+
   private:
     /** the argument type */
     Type* _lhs;
@@ -445,6 +485,24 @@ private:
     VList* vars() const {return _vars;}
     /** the right hand side type */
     Type* qtype() const {return _type;}
+
+    vstring toString() override {
+      ASS(_tag == TT_QUANTIFIED)
+
+      vstring s = "!> [";
+      auto cur = _vars;
+      while (cur != nullptr) {
+        s.append(to_string(cur->head()));
+        cur = cur->tail();
+        if (cur != nullptr) s.append(", ");
+      }
+      s.append("] (");
+      s.append(_type->toString());
+      s.append(")");
+
+      return s;
+    }
+
   private:
     /** the quantified type */
     Type* _type;

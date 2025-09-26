@@ -3922,7 +3922,7 @@ void TPTP::endTff()
       }
 #endif      
     }
-    //cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << endl;
+    cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << endl;
   }
 } // endTff
 
@@ -5330,13 +5330,19 @@ void TPTP::printStacks() {
   while (stit.hasNext()) cout << " " << toString(stit.next());
   cout << endl;
 
-  /*Stack<Type*>::Iterator tyit(_types);
+  Stack<Type*>::Iterator tyit(_types);
   cout << "Types:";
   if   (!tyit.hasNext()) cout << " <empty>";
-  while (tyit.hasNext()) cout << " " << tyit.next()->tag();
+  while (tyit.hasNext()) {
+    auto ty = tyit.next();
+    cout << ty->toString() << endl;
+
+
+    // cout << " " << tyit.next()->tag();
+  }
   cout << endl;
 
-  Stack<int>::Iterator cit(_connectives);
+  /*Stack<int>::Iterator cit(_connectives);
   cout << "Connectives:";
   if   (!cit.hasNext()) cout << " <empty>";
   while (cit.hasNext()) cout << " " << cit.next();

@@ -1098,7 +1098,10 @@ unsigned Allocator::Descriptor::hash (const void* addr)
 
 #if VDEBUG
 
-void* operator new(size_t sz) {    
+void* operator new(size_t sz) {
+  if (Allocator::_tolerantZone > 0) {
+    std::cout << "here\n";
+  }
   ASS_REP(Allocator::_tolerantZone > 0,"Attempted to use global new operator, thus bypassing Allocator!");
   // Please read: https://github.com/easychair/vampire/wiki/Attempted-to-use-global-new-operator,-thus-bypassing-Allocator!
   
