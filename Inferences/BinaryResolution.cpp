@@ -169,7 +169,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
           return nullptr;
         }
       }
@@ -203,7 +203,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
           return nullptr;
         }
       }

@@ -156,22 +156,22 @@ public:
   // Induction
   unsigned maxInductionDepth = 0;
   unsigned inductionApplication = 0;
-  unsigned generalizedInductionApplication = 0;
-  unsigned nonGroundInductionApplication = 0;
 
   unsigned choiceInstances = 0; // TODO move this to axioms
 
   // Redundant inferences
   unsigned skippedSuperposition = 0;
   unsigned skippedResolution = 0;
-  unsigned skippedInferencesDueToOrderingConstraints = 0;
-  unsigned skippedInferencesDueToAvatarConstraints = 0;
-  unsigned skippedInferencesDueToLiteralConstraints = 0;
+  unsigned inferencesSkippedDueToOrderingConstraints = 0;
+  unsigned inferencesSkippedDueToAvatarConstraints = 0;
+  unsigned inferencesSkippedDueToLiteralConstraints = 0;
+  unsigned inferencesBlockedDueToOrderingAftercheck = 0;
+  unsigned inferencesSkippedDueToColors = 0;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
   unsigned duplicateLiterals = 0;
-  /** number of literals s |= s deleted */
+  /** number of literals s != s deleted */
   unsigned trivialInequalities = 0;
   /** number of forward demodulations into equational tautologies */
   unsigned forwardDemodulationsToEqTaut = 0;
@@ -235,12 +235,8 @@ public:
 
   unsigned discardedNonRedundantClauses = 0;
 
-  unsigned inferencesBlockedForOrderingAftercheck = 0;
-
   bool smtReturnedUnknown = false;
   bool smtDidNotEvaluate = false;
-
-  unsigned inferencesSkippedDueToColors = 0;
 
   /** passive clauses at the end of the saturation algorithm run */
   unsigned finalPassiveClauses = 0;
@@ -262,9 +258,6 @@ public:
   unsigned satSplitRefutations = 0;
 
   unsigned smtFallbacks = 0;
-
-  /** Number of pure variables eliminated by SAT solver */
-  unsigned satPureVarsEliminated = 0;
 
   friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
   {
@@ -307,7 +300,6 @@ private:
 
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses = 0;
-  bool hasProof = false;
   /** inferences in the proof indexed by InferenceRule */
   std::array<unsigned, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inProofInferenceCnts = {};
   /** inference counts indexed by InferenceRule */

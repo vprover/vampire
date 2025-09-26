@@ -32,6 +32,7 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Property.hpp"
+#include "Statistics.hpp"
 #include "SymCounter.hpp"
 #include "TheoryAxioms.hpp"
 #include "Options.hpp"
@@ -61,6 +62,7 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
   if(!unit->isClause()){
     _prb.reportFormulasAdded();
   }
+  env.statistics->registerTheoryAxiom(unit);
   UnitList::push(unit, _prb.units());
 } // addAndOutputTheoryUnit
 

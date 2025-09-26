@@ -178,13 +178,13 @@ private:
 
         // collect statistics
         if (e->ordCons.isNonEmpty()) {
-          env.statistics->skippedInferencesDueToOrderingConstraints++;
+          env.statistics->inferencesSkippedDueToOrderingConstraints++;
         }
         if (e->lits.size()>0) {
-          env.statistics->skippedInferencesDueToLiteralConstraints++;
+          env.statistics->inferencesSkippedDueToLiteralConstraints++;
         }
         if (!e->splits->isEmpty()) {
-          env.statistics->skippedInferencesDueToAvatarConstraints++;
+          env.statistics->inferencesSkippedDueToAvatarConstraints++;
         }
         matcher.reset();
         return true;

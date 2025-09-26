@@ -440,7 +440,7 @@ Clause* Superposition::performSuperposition(
       if (afterCheck) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
           return nullptr;
         }
       }
@@ -479,7 +479,7 @@ Clause* Superposition::performSuperposition(
           Ordering::Result o = ordering.compare(currAfter,eqLitS);
 
           if (o == Ordering::GREATER || o == Ordering::EQUAL) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }

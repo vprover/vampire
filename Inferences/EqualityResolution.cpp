@@ -102,7 +102,7 @@ struct EqualityResolution::ResultFn
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }

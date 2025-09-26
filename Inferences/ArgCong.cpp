@@ -106,7 +106,7 @@ struct ArgCong::ResultFn
           /*
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,newLit) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return 0;
           }*/ //TODO reintroduce check
         } else {

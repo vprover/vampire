@@ -149,7 +149,7 @@ void Statistics::print(std::ostream& out)
 
   HEADING("Saturation",activeClauses+passiveClauses+extensionalityClauses+
       generatedClauses+finalActiveClauses+finalPassiveClauses+finalExtensionalityClauses+
-      discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
+      discardedNonRedundantClauses);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
   COND_OUT("Activations started", activations);
@@ -160,8 +160,6 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Final passive clauses", finalPassiveClauses);
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
-  COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
-  COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
   SEPARATOR;
 
   unsigned simplInfCnt = cntInfRange(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST);
@@ -221,19 +219,19 @@ void Statistics::print(std::ostream& out)
   HEADING("Induction",inductionApplication);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("InductionApplications",inductionApplication);
-  COND_OUT("GeneralizedInductionApplications",generalizedInductionApplication);
-  COND_OUT("NonGroundInductionApplications",nonGroundInductionApplication);
   SEPARATOR;
 
-  // TODO merge this with "inferences skipped due to ..." stats
   HEADING("Redundant Inferences",
-    skippedSuperposition+skippedResolution+skippedInferencesDueToOrderingConstraints+
-    skippedInferencesDueToAvatarConstraints+skippedInferencesDueToLiteralConstraints);
+    skippedSuperposition+skippedResolution+inferencesSkippedDueToOrderingConstraints+
+    inferencesSkippedDueToAvatarConstraints+inferencesSkippedDueToLiteralConstraints+
+    inferencesSkippedDueToColors+inferencesBlockedDueToOrderingAftercheck);
   COND_OUT("Skipped superposition", skippedSuperposition);
   COND_OUT("Skipped resolution", skippedResolution);
-  COND_OUT("Skipped inferences due to ordering constraints", skippedInferencesDueToOrderingConstraints);
-  COND_OUT("Skipped inferences due to AVATAR constraints", skippedInferencesDueToAvatarConstraints);
-  COND_OUT("Skipped inferences due to literal constraints", skippedInferencesDueToLiteralConstraints);
+  COND_OUT("Due to ordering constraints", inferencesSkippedDueToOrderingConstraints);
+  COND_OUT("Due to AVATAR constraints", inferencesSkippedDueToAvatarConstraints);
+  COND_OUT("Due to literal constraints", inferencesSkippedDueToLiteralConstraints);
+  COND_OUT("Due to colors", inferencesSkippedDueToColors);
+  COND_OUT("Due to ordering aftercheck", inferencesBlockedDueToOrderingAftercheck);
   SEPARATOR;
 
   HEADING("AVATAR",splitClauses+splitComponents+satSplits+
@@ -248,14 +246,13 @@ void Statistics::print(std::ostream& out)
   //TODO record statistics for FMB
 
   //TODO record statistics for MiniSAT
-  HEADING("SAT Solver Statistics",satClauses+unitSatClauses+binarySatClauses+satPureVarsEliminated);
+  HEADING("SAT Solver Statistics",satClauses+unitSatClauses+binarySatClauses);
   COND_OUT("SAT solver clauses", satClauses);
   COND_OUT("SAT solver unit clauses", unitSatClauses);
   COND_OUT("SAT solver binary clauses", binarySatClauses);
-  COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
   SEPARATOR;
 
-  HEADING("In-Proof Statistics",hasProof);
+  HEADING("In-Proof Statistics",refutation);
   outputInfRange(InferenceRule::INPUT, InferenceRule::GENERIC_THEORY_AXIOM_LAST, inProofInferenceCnts);
   SEPARATOR;
 
@@ -316,9 +313,7 @@ void Statistics::registerTheoryAxiom(Unit* unit)
 
 void Statistics::registerProofStep(Unit* unit)
 {
-  hasProof = true;
-  const auto& inf = unit->inference();
-  inProofInferenceCnts[toNumber(inf.rule())]++;
+  inProofInferenceCnts[toNumber(unit->inference().rule())]++;
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)

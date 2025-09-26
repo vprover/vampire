@@ -151,7 +151,7 @@ struct EqualityFactoring::ResultFn
         if (sLitAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
           if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }

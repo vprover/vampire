@@ -14,6 +14,7 @@
  */
 
 #include "Test/UnitTesting.hpp"
+#include "Kernel/Inference.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Environment.hpp"
