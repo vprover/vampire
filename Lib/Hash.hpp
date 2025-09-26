@@ -18,6 +18,7 @@
 #include <utility>
 #include <functional>
 #include <type_traits>
+#include <cstdint>
 
 #include "Forwards.hpp"
 #include "VString.hpp"
