@@ -102,9 +102,9 @@ using namespace Inferences::ALASCA;
 
 auto idxFourierMotzkin(
     ) { 
-  return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new AlascaIndex<FourierMotzkin::Lhs>(); },
-    [=]() { return new AlascaIndex<FourierMotzkin::Rhs>(); },
+  return Generation::TestIndices{
+    [=](const Options&) { return new AlascaIndex<FourierMotzkin::Lhs>(); },
+    [=](const Options&) { return new AlascaIndex<FourierMotzkin::Rhs>(); },
   }; 
 }
 

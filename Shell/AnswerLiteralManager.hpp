@@ -180,7 +180,7 @@ public:
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
   // Register the skolem symbol of `recTerm` as rec-symbol, and add information about skolem constants from `binding` into `incompleteTrackers` and store them.
-  void registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& binding, const std::vector<Term*>& functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VList* us);
+  void registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VList* us);
 
   bool isRecTerm(const Term* t) const;
 

@@ -82,6 +82,7 @@ check_szs_status Unsatisfiable -ind struct -sik three -nui on -tac axiom -to lpo
 check_szs_status Unsatisfiable -ind struct -sik recursion -nui on -newcnf on induction/mem_append_poly.smt2
 check_szs_status Unsatisfiable -ind struct -sik recursion -to lpo -newcnf on induction/qreva_len.smt2
 check_szs_status Unsatisfiable -ind struct -sik one -indstrhyp on induction/qreva_len.smt2
+check_szs_status Unsatisfiable -ind struct -nui on -indgo off -newcnf on induction/prefix-given-suffix.smt2
 
 # Parser
 check_szs_status Unsatisfiable parse/types-funs.smt2
