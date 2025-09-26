@@ -314,10 +314,6 @@ enum class InferenceRule : unsigned char {
   UNIT_RESULTING_RESOLUTION,
   /* Induction hyperresolution */
   INDUCTION_HYPERRESOLUTION,
-  /* Generalized induction hyperresolution */
-  GEN_INDUCTION_HYPERRESOLUTION,
-  /* Induction hyperresolution where the induction literal has a free variable */
-  FREE_VAR_INDUCTION_HYPERRESOLUTION,
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
   /* inequality factoring rule of the ALASCA Calculus */

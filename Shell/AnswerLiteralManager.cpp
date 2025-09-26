@@ -902,7 +902,7 @@ void SynthesisALManager::printRecursionMappings() {
   }
 }
 
-void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& bindings, const std::vector<Term*>& functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
+void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
   unsigned recFnId = recTerm->functor();
   unsigned ctorNumber = recTerm->arity()-1;
   ASS_EQ(ctorNumber, VList::length(us));
@@ -941,7 +941,7 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const DHMap<unsign
     ASS_EQ(st.binding.second, nullptr);
     ASS_EQ(st.recFnId, 0);
     const unsigned var = st.binding.first;
-    st.binding.second = bindings.get(var);
+    st.binding.second = subst.apply(var).term();
     st.recFnId = recFnId;
     st.constructorId = ctorOrder[st.constructorId];
     SkolemTracker* stp;

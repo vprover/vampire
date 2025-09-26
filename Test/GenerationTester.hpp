@@ -226,6 +226,8 @@ public:
   friend class SymmetricTest;
 };
 
+using TestIndices = Stack<std::function<Indexing::Index*(const Options&)>>;
+
 class AsymmetricTest
 {
   using Clause = Kernel::Clause;
@@ -236,7 +238,7 @@ class AsymmetricTest
   Option<StackMatcher> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
-  Stack<std::function<Indexing::Index*()>> _indices;
+  TestIndices _indices;
   std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   bool _selfApplications;
   OptionMap _options;
@@ -272,7 +274,7 @@ public:
   __BUILDER_METHOD(bool, premiseRedundant)
   __BUILDER_METHOD(bool, selfApplications)
   __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+  __BUILDER_METHOD(TestIndices, indices)
   __BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   __BUILDER_METHOD(OptionMap, options)
 
@@ -309,7 +311,7 @@ public:
     rule.InferenceEngine::attach(&alg);
     Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
-      indices.push(i());
+      indices.push(i(*env.options));
     }
 
     rule.setTestIndices(indices);
@@ -365,7 +367,7 @@ class SymmetricTest
   Option<StackMatcher> _expected;
   bool _premiseRedundant;
   bool _selfApplications;
-  Stack<std::function<Indexing::Index*()>> _indices;
+  TestIndices _indices;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -392,7 +394,7 @@ public:
   __BUILDER_METHOD(bool, premiseRedundant)
   __BUILDER_METHOD(bool, selfApplications)
   __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+  __BUILDER_METHOD(TestIndices, indices)
 
 #undef __BUILDER_METHOD
 

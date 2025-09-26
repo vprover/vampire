@@ -245,12 +245,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree());
+    res = new InductionTermIndex(new TermSubstitutionTree(), _alg->getOptions());
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree());
+    res = new StructInductionTermIndex(new TermSubstitutionTree(), _alg->getOptions());
     isGenerating = true;
     break;
 
