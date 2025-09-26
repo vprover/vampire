@@ -23,6 +23,7 @@
 #include "Lib/Set.hpp"
 #include "Lib/DHMap.hpp"
 
+#include "SAT/SATClause.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"
@@ -189,8 +190,11 @@ std::string Unit::inferenceAsString() const
   const Inference& inf = inference();
 
   std::string result = (std::string)"[" + inf.name();
-  bool first = true;
+  SAT::SATClause *sat = inf.satPremise();
+  if(sat)
+    return result + " s" + Int::toString(inf.satPremise()->number) + "]";
 
+  bool first = true;
   auto it = inf.iterator();
   while (inf.hasNext(it)) {
     Unit* parent = inf.next(it);

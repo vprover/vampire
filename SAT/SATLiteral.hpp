@@ -28,6 +28,11 @@ class SATLiteral
 public:
   SATLiteral() = default;
 
+  /*
+   * wrap an integer SAT literal
+   */
+  SATLiteral(int lit) : _lit(lit) {}
+
   /**
    * Create a SAT literal of variable @b var and polarity &b polarity
    *
@@ -35,25 +40,25 @@ public:
    */
   SATLiteral(unsigned var, bool polarity) {
     ASS(var > 0 && var < std::numeric_limits<int>::max())
-    _content = polarity ? var : -int(var);
+    _lit = polarity ? var : -int(var);
   }
 
-  unsigned var() const { return abs(_content); }
-  bool positive() const { return _content > 0; }
-  SATLiteral opposite() const { return SATLiteral(var(), !positive()); }
+  unsigned var() const { return abs(_lit); }
+  bool positive() const { return _lit > 0; }
+  SATLiteral opposite() const { return SATLiteral(-_lit); }
 
-  unsigned defaultHash() const { return DefaultHash::hash(_content); }
-  unsigned defaultHash2() const { return _content; }
+  unsigned defaultHash() const { return DefaultHash::hash(_lit); }
+  unsigned defaultHash2() const { return _lit; }
 
   bool operator==(const SATLiteral& l) const
-  { return _content==l._content; }
+  { return _lit==l._lit; }
   bool operator!=(const SATLiteral& l) const
-  { return _content!=l._content; }
+  { return _lit!=l._lit; }
   bool operator<(SATLiteral l) const
-  { return _content < l._content; }
+  { return _lit < l._lit; }
 
 private:
-  int _content;
+  int _lit = 0;
 };
 
 inline std::ostream& operator<<(std::ostream &out, const SAT::SATLiteral &lit)
@@ -64,5 +69,11 @@ inline std::ostream& operator<<(std::ostream &out, const SAT::SATLiteral &lit)
 }
 
 };
+
+template<>
+struct std::hash<SAT::SATLiteral> {
+  unsigned operator()(SAT::SATLiteral l) const { return l.defaultHash(); }
+};
+
 
 #endif /* __SATLiteral__ */
