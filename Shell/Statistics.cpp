@@ -234,11 +234,10 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Due to ordering aftercheck", inferencesBlockedDueToOrderingAftercheck);
   SEPARATOR;
 
-  HEADING("AVATAR",splitClauses+splitComponents+satSplits+
+  HEADING("AVATAR",splitClauses+splitComponents+
         satSplitRefutations);
   COND_OUT("Split clauses", splitClauses);
   COND_OUT("Split components", splitComponents);
-  //COND_OUT("Sat splits", satSplits); // same as split clauses
   COND_OUT("Sat splitting refutations", satSplitRefutations);
   COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;

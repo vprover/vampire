@@ -1646,7 +1646,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addForwardSimplifierToFront(new ForwardDemodulationImpl());
+        res->addForwardSimplifierToFront(new ForwardDemodulation());
         break;
       case Options::Demodulation::OFF:
         break;

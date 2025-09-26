@@ -94,7 +94,7 @@ void ForwardDemodulation::detach()
   ForwardSimplificationEngine::detach();
 }
 
-bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
 

@@ -254,7 +254,6 @@ public:
   /** Number of binary clauses generated for the SAT solver */
   unsigned binarySatClauses = 0;
 
-  unsigned satSplits = 0;
   unsigned satSplitRefutations = 0;
 
   unsigned smtFallbacks = 0;
