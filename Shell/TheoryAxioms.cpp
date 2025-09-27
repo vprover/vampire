@@ -62,7 +62,6 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
   if(!unit->isClause()){
     _prb.reportFormulasAdded();
   }
-  env.statistics->registerTheoryAxiom(unit);
   UnitList::push(unit, _prb.units());
 } // addAndOutputTheoryUnit
 
