@@ -105,9 +105,10 @@ public:
 
   void print(std::ostream& out);
   void explainRefutationNotFound(std::ostream& out);
-  void registerClause(Clause* cl);
-  void registerTheoryAxiom(Unit* unit);
-  void registerProofStep(Unit* unit);
+  void reportClause(Clause* cl);
+  /** Should be called for axioms that are not directly added to saturation. */
+  void reportTheoryAxiom(Unit* unit);
+  void reportProofStep(Unit* unit);
 
   // Input
   /** number of input clauses */

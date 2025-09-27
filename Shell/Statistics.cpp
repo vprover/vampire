@@ -295,7 +295,7 @@ void Statistics::print(std::ostream& out)
 #endif // VTIME_PROFILING
 }
 
-void Statistics::registerClause(Clause* cl)
+void Statistics::reportClause(Clause* cl)
 {
   generatedClauses++;
 
@@ -303,14 +303,14 @@ void Statistics::registerClause(Clause* cl)
   inferenceCnts[toNumber(rule)]++;
 }
 
-void Statistics::registerTheoryAxiom(Unit* unit)
+void Statistics::reportTheoryAxiom(Unit* unit)
 {
   const auto& inf = unit->inference();
   ASS(inf.isTheoryAxiom());
   inferenceCnts[toNumber(inf.rule())]++;
 }
 
-void Statistics::registerProofStep(Unit* unit)
+void Statistics::reportProofStep(Unit* unit)
 {
   inProofInferenceCnts[toNumber(unit->inference().rule())]++;
 }

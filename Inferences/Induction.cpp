@@ -930,7 +930,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   inf.setInductionDepth(maxInductionDepth+1);
 
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
-  env.statistics->registerTheoryAxiom(fu);
+  env.statistics->reportTheoryAxiom(fu);
   if(_opt.showInduction()){
     std::cout << "[Induction] formula " << fu->toString() << endl;
   }
