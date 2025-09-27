@@ -1984,7 +1984,10 @@ void TPTP::endApp()
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
   TermList lhsSort = sortOf(lhs);
-  ASS_REP2(lhsSort.isTerm() && lhsSort.term()->arity() == 2, lhs.toString(), lhsSort.toString());
+  if (!(lhsSort.isTerm() && lhsSort.term()->arity() == 2)) {
+    std::cout << lhs.toString() << " " << lhsSort.toString() << std::endl;
+  }
+  // ASS_REP2(lhsSort.isTerm() && lhsSort.term()->arity() == 2, lhs.toString(), lhsSort.toString());
   TermList s1 = *(lhsSort.term()->nthArgument(0));
   TermList s2 = *(lhsSort.term()->nthArgument(1));
   args.push(s1);
@@ -2870,6 +2873,8 @@ void TPTP::varList()
 {
   CALL("TPTP::varList");
 
+  COUT << "begin var list\n";
+
   Stack<int> vars;
   for (;;) {
     Token& tok = getTok(0);
@@ -2914,11 +2919,14 @@ void TPTP::varList()
         while (!vars.isEmpty()) {
           int v = vars.pop();
           VList::push(v,vs);
-          SList::push(sortOf(TermList(v,false)),ss);
+          auto sort = sortOf(TermList(v,false));
+          SList::push(sort ,ss);
+          COUT << "Var: " << v << " sort: " << sort.toString() << std::endl;
         }
         _varLists.push(vs);
         _sortLists.push(ss);
         _bindLists.push(vs);
+        COUT << "end var list\n";
         return;
       }
     }
@@ -4273,6 +4281,13 @@ void TPTP::simpleType()
 
   Token& tok = getTok(0);
 
+  if (tok.tag == T_LPAR) {
+    resetToks();
+    addTagState(T_RPAR);
+    _states.push(TYPE);
+    return;
+  }
+
   if(tok.tag == T_TYPE_QUANT) {
     _containsPolymorphism = true;
     resetToks();
@@ -4293,14 +4308,7 @@ void TPTP::simpleType()
   } 
 #endif
 
-  if (tok.tag == T_LPAR) {
-    resetToks();
-    addTagState(T_RPAR);
-    _states.push(TYPE);
-    return;
-  }
   _types.push(new AtomicType(readSort()));
-  
 } // simpleType
 
 

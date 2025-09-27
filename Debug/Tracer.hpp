@@ -140,6 +140,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 
 } // namespace Debug
 
+#define COUT std::cout
 
 #  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
