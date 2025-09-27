@@ -922,7 +922,7 @@ void outputStep(std::ostream &out, Unit *u)
       // can't check the input
       rule == InferenceRule::INPUT || rule == InferenceRule::NEGATED_CONJECTURE
       // can't check the axiom of choice
-      || rule == InferenceRule::CHOICE_AXIOM
+      || rule == InferenceRule::APPEAL_TO_THE_CHOICE_PRINCIPLE
       // can't check distinctness axioms
       || rule == InferenceRule::DISTINCTNESS_AXIOM
       // can't check definition introduction
@@ -1002,7 +1002,8 @@ void outputStep(std::ostream &out, Unit *u)
     case InferenceRule::RESOLUTION:
       resolution(out, conclSorts, u->asClause());
       break;
-    case InferenceRule::SUBSUMPTION_RESOLUTION:
+    case InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION:
+    case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
       subsumptionResolution(out, conclSorts, u->asClause());
       break;
     case InferenceRule::FACTORING:

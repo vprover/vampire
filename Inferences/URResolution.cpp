@@ -35,7 +35,6 @@
 
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "URResolution.hpp"
 
@@ -350,7 +349,6 @@ void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList
   while(itms) {
     Item* itm = ItemList::pop(itms);
     ClauseList::push(itm->generateClause(), acc);
-    env.statistics->urResolution++;
     delete itm;
   }
 }

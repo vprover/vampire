@@ -44,7 +44,6 @@ public:
     Clause* extCl, Literal* extLit,
     Clause* otherCl, Literal* otherLit,
     RobSubstitution* subst,
-    unsigned& counter,
     const Options& opts);
 private:
   struct ForwardPairingFn;

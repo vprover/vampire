@@ -13,7 +13,6 @@
  */
 
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "ProofExtra.hpp"
 #include "CodeTreeForwardSubsumptionAndResolution.hpp"
@@ -65,11 +64,10 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
       }
       res.push((*cl)[i]);
     }
-    replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, premise));
+    replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION, cl, premise));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(replacement, new LiteralInferenceExtra((*cl)[resolvedQueryLit]));
     premises = pvi(getSingletonIterator(premise));
-    env.statistics->forwardSubsumptionResolution++;
     cm.reset();
     return true;
   }

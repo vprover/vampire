@@ -31,8 +31,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "TPTPPrinter.hpp"
 
 #include "Forwards.hpp"

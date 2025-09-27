@@ -13,7 +13,6 @@
  */
 
 #include "Kernel/Clause.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "SATInference.hpp"
 

@@ -31,7 +31,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "GlobalSubsumption.hpp"
 #include "Saturation/Splitter.hpp"
@@ -202,7 +201,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf);
 
-        env.statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
 
         return replacement;

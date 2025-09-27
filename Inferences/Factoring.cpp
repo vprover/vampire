@@ -26,8 +26,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "Factoring.hpp"
 
 namespace Inferences
@@ -91,7 +89,7 @@ public:
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }
@@ -100,7 +98,6 @@ public:
       }
     }
 
-    env.statistics->factoring++;
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(cl, new FactoringExtra(l1, l2));

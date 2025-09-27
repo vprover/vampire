@@ -441,7 +441,7 @@ private:
    * @pre the model must be set by the sat solver
    * @return the conclusion clause
    */
-  Kernel::Clause *generateConclusion();
+  Kernel::Clause *generateConclusion(bool forward);
 
 public:
   using clock = std::chrono::steady_clock;
@@ -494,7 +494,8 @@ public:
    */
   Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *sidePremise,
                                              Kernel::Clause *mainPremise,
-                                             bool usePreviousMatchSet = false);
+                                             bool forward,
+                                             bool usePreviousMatchSet);
 
 
   /**
@@ -527,7 +528,8 @@ public:
    */
   static Kernel::Clause *getSubsumptionResolutionConclusion(Kernel::Clause *mainPremise,
                                                             Kernel::Literal *m_j,
-                                                            Kernel::Clause *sidePremise);
+                                                            Kernel::Clause *sidePremise,
+                                                            bool forward);
   };
 
 } // namespace SATSubsumption

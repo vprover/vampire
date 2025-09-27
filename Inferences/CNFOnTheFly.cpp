@@ -25,7 +25,6 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
-#include "Shell/Statistics.hpp"
 #include "Shell/Skolem.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"

@@ -21,8 +21,6 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "BoolSimp.hpp"
 
 namespace Inferences {
@@ -59,7 +57,6 @@ substitution:
     resLits->push(i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i]);
   }
 
-  env.statistics->booleanSimps++;
   return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
 }
 

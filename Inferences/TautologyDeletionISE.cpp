@@ -43,7 +43,7 @@ Clause* TautologyDeletionISE::simplify(Clause* c)
       continue;
     }
     // l is positive
-    if (_deleteEqTautologies && EqHelper::isEqTautology(l)) {
+    if (EqHelper::isEqTautology(l)) {
       // literal t = t
       env.statistics->equationalTautologies++;
       return 0;

@@ -35,7 +35,6 @@
     
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Rectify.hpp"
 #include "Shell/Flattening.hpp"

@@ -366,7 +366,6 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
   while(unfoldIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(unfoldIterator.next());
     ASS(cl->isClause());
-    if(cl->isProxyAxiomsDescendant()){ continue; }
     Clause* newCl=applyDefinitions(cl);
     if(cl!=newCl) {
 //      cout<<"D- "<<(*cl)<<endl;

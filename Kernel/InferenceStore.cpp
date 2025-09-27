@@ -25,7 +25,6 @@
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
 
@@ -786,7 +785,7 @@ protected:
     case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
     case InferenceRule::FOOL_ELIMINATION:
     case InferenceRule::BOOLEAN_TERM_ENCODING:
-    case InferenceRule::CHOICE_AXIOM:
+    case InferenceRule::APPEAL_TO_THE_CHOICE_PRINCIPLE:
     case InferenceRule::PREDICATE_DEFINITION:
       return true;
     default:
@@ -1473,7 +1472,7 @@ protected:
     case InferenceRule::FOOL_ITE_DEFINITION:
     case InferenceRule::FOOL_ELIMINATION:
     case InferenceRule::BOOLEAN_TERM_ENCODING:
-    case InferenceRule::CHOICE_AXIOM:
+    case InferenceRule::APPEAL_TO_THE_CHOICE_PRINCIPLE:
     case InferenceRule::PREDICATE_DEFINITION:
       return true;
     default:

@@ -174,7 +174,6 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    env.statistics->backwardDemodulations++;
     _removed->insert(qr.data->clause);
     Clause *replacement = Clause::fromStack(
       *resLits,

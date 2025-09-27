@@ -23,7 +23,6 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "FastCondensation.hpp"
 
@@ -118,8 +117,6 @@ Clause* FastCondensation::simplify(Clause* cl)
             resLits->push((*cl)[ci]);
           }
         }
- 
-        env.statistics->condensations++;
  
         return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
       }

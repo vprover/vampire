@@ -12,7 +12,6 @@
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/Statistics.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"

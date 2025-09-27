@@ -274,7 +274,7 @@ class SDHelper
 {
   public:
     static bool checkForSubsumptionResolution(Clause* cl, SDClauseMatches const& cm, Literal* resLit);
-    static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl);
+    static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl, bool forward);
 
 #if VDEBUG  // these function are slow and should only be used in debug mode
   private:

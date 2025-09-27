@@ -19,7 +19,6 @@
 #include "Lib/PairUtils.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -107,7 +106,7 @@ struct ArgCong::ResultFn
           /*
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,newLit) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return 0;
           }*/ //TODO reintroduce check
         } else {
@@ -119,8 +118,6 @@ struct ArgCong::ResultFn
         resLits->push(newLit);
       }
     }
-
-    env.statistics->argumentCongruence++;
 
     return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::ARG_CONG, _cl));
   }

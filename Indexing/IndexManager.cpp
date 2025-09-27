@@ -32,8 +32,6 @@
 #include "Inferences/ALASCA/BinaryResolution.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "IndexManager.hpp"
 #include "Kernel/ALASCA.hpp"
 #include "Kernel/ALASCA/Index.hpp"

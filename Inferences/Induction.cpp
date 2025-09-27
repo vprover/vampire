@@ -928,58 +928,14 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
     maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());
   }
   inf.setInductionDepth(maxInductionDepth+1);
+
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
+  env.statistics->reportTheoryAxiom(fu);
   if(_opt.showInduction()){
     std::cout << "[Induction] formula " << fu->toString() << endl;
   }
+
   cnf.clausify(NNF::ennf(fu), hyp_clauses, &cnfSubst);
-
-  // TODO: add separate stats for induction with an existentially quantified variable
-  switch (rule) {
-    case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
-    case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
-    case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
-    case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
-      env.statistics->structInduction++;
-      break;
-    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-      env.statistics->intInfInduction++;
-      break;
-    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-      env.statistics->intFinInduction++;
-      break;
-    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-      env.statistics->intDBInduction++;
-      break;
-    default:
-      ;
-  }
-  switch (rule) {
-    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-      env.statistics->intInfUpInduction++;
-      break;
-    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-      env.statistics->intInfDownInduction++;
-      break;
-    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-      env.statistics->intFinUpInduction++;
-      break;
-    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-      env.statistics->intFinDownInduction++;
-      break;
-    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-      env.statistics->intDBUpInduction++;
-      break;
-    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-      env.statistics->intDBDownInduction++;
-      break;
-    default:
-      ;
-  }
-
   return hyp_clauses;
 }
 

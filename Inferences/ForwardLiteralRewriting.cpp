@@ -105,8 +105,6 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
         }
       }
 
-      env.statistics->forwardLiteralRewrites++;
-
       premises = pvi( getSingletonIterator(premise));
       replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_LITERAL_REWRITING, cl, premise));
       return true;
