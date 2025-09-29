@@ -83,6 +83,7 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/HOL/tNamelessConversion.cpp
 )
 
 ################################################################

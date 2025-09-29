@@ -22,6 +22,10 @@ TermList mkConst(const std::string& name, TermList sort) {
   return TermList(Term::createConstant(nameIndex));
 }
 
+TermList LAM(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body) {
+  return TermList(HOL::create::lambda(vars, varSorts, body));
+}
+
 TEST_FUN(hol_print_1) {
   env.setHigherOrder(true);
 
@@ -31,11 +35,11 @@ TEST_FUN(hol_print_1) {
   auto x1 = TermList::var(1);
   auto f = mkConst("f", fSrt);
 
-  auto zero = TermList(HOL::create::lambda({0, 1}, {fSrt, srt}, {x1, srt}));
+  auto zero = LAM({x0.var(), x1.var()}, {fSrt, srt}, {x1, srt});
   ASS_EQ(zero.toString(true), "(^[X0 : (srt > srt), X1 : srt] : (X1))")
   ASS_EQ(HOL::convert::toNameless(zero).toString(true), "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y1))))")
 
-  auto one = TermList(HOL::create::lambda({0, 1}, {fSrt, srt}, {HOL::create::app(fSrt, x0, x1), srt}));
+  auto one = LAM({x0.var(), x1.var()}, {fSrt, srt}, {HOL::create::app(fSrt, x0, x1), srt});
   ASS_EQ(one.toString(true), "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))")
   ASS_EQ(HOL::convert::toNameless(one).toString(true), "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y0 @ Y1))))")
 
@@ -43,7 +47,12 @@ TEST_FUN(hol_print_1) {
   ASS_EQ(t1.toString(true), "f @ X1")
   ASS_EQ(HOL::convert::toNameless(t1).toString(true), "f @ X1")
 
-  auto t2 = TermList(HOL::create::lambda({x1.var()}, {srt}, {t1, srt}));
+  auto t2 = LAM({x1.var()}, {srt}, {t1, srt});
   ASS_EQ(t2.toString(true), "(^[X1 : srt] : ((f @ X1)))")
   ASS_EQ(HOL::convert::toNameless(t2).toString(true), "(^[Y0 : srt]: (f @ Y0))")
+
+  auto t3 = LAM({x1.var()}, {srt}, {LAM({x1.var()}, {srt}, {x1, srt}), fSrt});
+  std::cout << t3.toString() << std::endl;
+  std::cout << HOL::convert::toNameless(t3).toString() << std::endl; // TODO
+  // ASS_EQ(t3.toString(true), "(^[X1 : srt] : ((f @ X1)))")
 }

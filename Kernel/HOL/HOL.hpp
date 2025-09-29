@@ -66,14 +66,19 @@ namespace HOL::create {
   inline TermList sigma(TermList sort) { return TermList(Term::create1(env.signature->getPiSigmaProxy("vSIGMA"), sort)); }
 
   Term *lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body);
+  TermList lambda(TypedTermList var, TypedTermList body);
 
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);
 } // namespace HOL::create
 
 namespace HOL::convert {
-TermList toNameless(Term* term);
+
 TermList toNameless(TermList term);
+
+inline TermList toNameless(Term* term) {
+  return toNameless(TermList(term));
+}
 
 } // namespace HOL::convert
 

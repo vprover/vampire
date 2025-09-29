@@ -17,9 +17,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/HOL/HOL.hpp"
 
-using Kernel::Term;
-
-using IndexSortPair = std::pair<int,TermList>;
+using IndexSortPair = std::pair<int, TermList>;
 using VarToIndexMap = std::unordered_map<unsigned, IndexSortPair>;
 
 static TermList sortOf(TermList t) {
@@ -28,9 +26,10 @@ static TermList sortOf(TermList t) {
   return Kernel::SortHelper::getResultSort(t.term());
 }
 
-static TermList toNameless(TermList term, VarToIndexMap& map);
+static TermList termToNameless(TermList term, VarToIndexMap& map);
+static TermList formulaToNameless(Formula *formula, VarToIndexMap &map);
 
-static TermList toNameless(Kernel::VList* vars, Kernel::SList* sorts, TermList body, TermList bodySort, VarToIndexMap& map) {
+static TermList toNamelessAux(Kernel::VList* vars, Kernel::SList* sorts, TermList body, TermList bodySort, VarToIndexMap& map) {
   VarToIndexMap newMap;
   for (const auto& [key, val] : map) {
     newMap.insert({key, {val.first + 1, val.second}});
@@ -38,16 +37,14 @@ static TermList toNameless(Kernel::VList* vars, Kernel::SList* sorts, TermList b
   ASS(newMap.insert({vars->head(), {0, sorts->head()}}).second)
 
   const auto converted =
-    vars->tail() == nullptr ? toNameless(body, newMap) :
-                              toNameless(vars->tail(), sorts->tail(), body, bodySort, newMap);
+    vars->tail() == nullptr ? termToNameless(body, newMap) :
+                              toNamelessAux(vars->tail(), sorts->tail(), body, bodySort, newMap);
 
   bodySort = converted.isVar() ? bodySort : sortOf(converted);
   return HOL::create::namelessLambda(sorts->head(), bodySort, converted);
 }
 
-static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map);
-
-static TermList toNameless(TermList term, VarToIndexMap& map) {
+static TermList termToNameless(TermList term, VarToIndexMap& map) {
   if (term.isVar()) {
     if (const auto p = map.find(term.var()); p != map.end()) {
       const auto& [index, sort] = p->second;
@@ -60,18 +57,19 @@ static TermList toNameless(TermList term, VarToIndexMap& map) {
   const auto t = term.term();
   if (t->isSpecial()) {
     switch (t->specialFunctor()) {
-      case Kernel::SpecialFunctor::FORMULA:
-        return toNameless(t->getSpecialData()->getFormula(), map);
+      case SpecialFunctor::FORMULA:
+        return formulaToNameless(t->getSpecialData()->getFormula(), map);
 
-      case Kernel::SpecialFunctor::LAMBDA: {
+      case SpecialFunctor::LAMBDA: {
         const auto sd = t->getSpecialData();
         const auto sorts = sd->getLambdaVarSorts();
         const auto vars = sd->getLambdaVars();
 
-        const auto eliminated = toNameless(vars, sorts, sd->getLambdaExp(), sd->getLambdaExpSort(), map);
+        const auto eliminated = toNamelessAux(vars, sorts, sd->getLambdaExp(), sd->getLambdaExpSort(), map);
         ASS_REP2(eliminated.isVar() || sortOf(eliminated) == sd->getSort(), t->toString(), eliminated.toString())
         return eliminated;
       }
+
       default:
         ASSERTION_VIOLATION;
     }
@@ -86,13 +84,12 @@ static TermList toNameless(TermList term, VarToIndexMap& map) {
   auto arg1 = *t->nthArgument(2);
   auto arg2 = *t->nthArgument(3);
 
-  return HOL::create::app(s1, s2, toNameless(arg1, map), toNameless(arg2, map));
+  return HOL::create::app(s1, s2, termToNameless(arg1, map), termToNameless(arg2, map));
 }
 
-static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
-  using Kernel::Connective;
+static TermList formulaToNameless(Formula *formula, VarToIndexMap &map) {
 
-  static const std::unordered_map<Connective, std::string> strMap {
+  static const std::unordered_map<Connective, std::string> CONNECTIVE_STR_MAP {
     {Connective::IFF, "vIFF"},
     {Connective::IMP, "vIMP"},
     {Connective::XOR, "vXOR"},
@@ -102,11 +99,11 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
 
   switch (const auto conn = formula->connective()) {
     case Connective::LITERAL: {
-      Kernel::Literal *lit = formula->literal();
+      const Kernel::Literal *lit = formula->literal();
       ASS(lit->isEquality()) // Is this a valid assumption?
 
-      auto lhs = toNameless(*lit->nthArgument(0), map);
-      auto rhs = toNameless(*lit->nthArgument(1), map);
+      auto lhs = termToNameless(*lit->nthArgument(0), map);
+      auto rhs = termToNameless(*lit->nthArgument(1), map);
       auto equalsSort = Kernel::SortHelper::getEqualityArgumentSort(lit);
       auto appTerm = HOL::create::app2(HOL::create::equality(equalsSort), lhs, rhs);
 
@@ -118,9 +115,9 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
       auto *lhs = formula->left();
       auto *rhs = formula->right();
 
-      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(strMap.at(conn))));
-      const auto form1 = toNameless(lhs, map);
-      const auto form2 = toNameless(rhs, map);
+      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(CONNECTIVE_STR_MAP.at(conn))));
+      const auto form1 = formulaToNameless(lhs, map);
+      const auto form2 = formulaToNameless(rhs, map);
 
       return HOL::create::app2(constant, form1, form2);
     }
@@ -129,49 +126,46 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
       Kernel::FormulaList::Iterator argsIt(formula->args());
 
       const std::string name = conn == Connective::AND ? "vAND" : "vOR";
-      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(strMap.at(conn))));
+      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(CONNECTIVE_STR_MAP.at(conn))));
 
       TermList appTerm;
-      unsigned count = 1;
-
-      while (argsIt.hasNext()) {
+      for (unsigned count = 1; argsIt.hasNext(); ++count) {
         auto *arg = argsIt.next();
-        const auto form = toNameless(arg, map);
+        const auto form = formulaToNameless(arg, map);
         appTerm = count == 1 ? HOL::create::app(constant, form) :
                   count == 2 ? HOL::create::app(appTerm,  form) :
                                HOL::create::app2(constant, appTerm, form);
-
-        count++;
       }
+
       return appTerm;
     }
-    case Connective::NOT: {
-      const auto form = toNameless(formula->uarg(), map);
-      return HOL::create::app(HOL::create::neg(), form);
-    }
+
+    case Connective::NOT:
+      return HOL::create::app(HOL::create::neg(),
+                              formulaToNameless(formula->uarg(), map));
+
     case Connective::FORALL:
     case Connective::EXISTS: {
-      const auto *vars = formula->vars();
-      Kernel::VList::Iterator vit(vars);
+      Kernel::VList::Iterator vit(formula->vars());
       auto form = TermList(Term::createFormula(formula->qarg()));
 
       TermList s;
       while (vit.hasNext()) {
         const auto v = vit.next();
         ALWAYS(Kernel::SortHelper::tryGetVariableSort(v, formula->qarg(), s));
-        if (s == Kernel::AtomicSort::superSort()) {
+        if (s == AtomicSort::superSort()) {
           USER_ERROR("Vampire does not support full TH1. This benchmark is either outside of the TH1 fragment, or outside of the fragment supported by Vampire");
         }
-        const auto var = Kernel::VList::singleton(v);
-        const auto sort = Kernel::SList::singleton(s);
-        const auto t = TermList(Term::createLambda(form, var, sort, Kernel::AtomicSort::boolSort()));
-        form = HOL::create::app(conn == Connective::FORALL ? HOL::create::pi(s) :
-                                                             HOL::create::sigma(s), t);
+        const auto var = VList::singleton(v);
+        const auto sort = SList::singleton(s);
+        const auto t = TermList(Term::createLambda(form, var, sort, AtomicSort::boolSort()));
+        form = HOL::create::app(conn == Connective::FORALL ? HOL::create::pi(s)
+                                                           :  HOL::create::sigma(s), t);
       }
-      return toNameless(form, map);
+      return termToNameless(form, map);
     }
     case Connective::BOOL_TERM:
-      return toNameless(formula->getBooleanTerm(), map);
+      return termToNameless(formula->getBooleanTerm(), map);
     case Connective::TRUE:
       return TermList(Term::foolTrue());
     case Connective::FALSE:
@@ -181,11 +175,7 @@ static TermList toNameless(Kernel::Formula *formula, VarToIndexMap &map) {
   }
 }
 
-TermList HOL::convert::toNameless(Term* term) {
-  return toNameless(TermList(term));
-}
-
 TermList HOL::convert::toNameless(TermList term) {
   VarToIndexMap map;
-  return ::toNameless(term, map);
+  return termToNameless(term, map);
 }

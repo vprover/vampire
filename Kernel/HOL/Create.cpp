@@ -44,7 +44,6 @@ TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2
 }
 
 Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body) {
-
   ASS_EQ(vars.size(), varSorts.size())
 
   auto s = new (0, sizeof(Term::SpecialTermData)) Term;
@@ -71,8 +70,11 @@ Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer
   return s;
 }
 
-TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermList term)
-{
+TermList HOL::create::lambda(TypedTermList var, TypedTermList body) {
+  return TermList(lambda({var.var()}, {var.sort()}, body));
+}
+
+TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermList term) {
   ASS(varSort.isVar()  || varSort.term()->isSort());
   ASS(termSort.isVar() || termSort.term()->isSort());
 
