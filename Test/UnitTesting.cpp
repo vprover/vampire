@@ -145,13 +145,13 @@ bool TestUnit::runTestsWithNameSubstring(std::string const& pref, ostream& out)
   while(uit.hasNext()) {
     TestUnit::Test t=uit.next();
     if (std::string(t.name).find(pref) != std::string::npos) {
-      out << "Running " << t.name << "... \r";
+      out << "Running " << t.name << "... \n";
       out.flush();
       bool ok;
       {
         ok = spawnTest(t.proc);
       }
-      out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
+      out << "\n" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
       if (ok) cnt_ok++;
       else cnt_fail++;
     }

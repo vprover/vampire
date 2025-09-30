@@ -13,6 +13,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
 
+#include <list>
 #include <map>
 
 TermList mkAtomicSort(const std::string& name) {
@@ -25,14 +26,17 @@ TermList mkConst(const std::string& name, TermList sort) {
   return TermList(Term::createConstant(nameIndex));
 }
 
-TermList LAM(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body) {
-  return TermList(HOL::create::lambda(vars, varSorts, body));
-}
+// TermList LAM(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body) {
+//   return TermList(HOL::create::lambda(vars, varSorts, body));
+// }
 
 constexpr Options::HPrinting RAW = Options::HPrinting::RAW;
-constexpr Options::HPrinting PRETTY = Options::HPrinting::PRETTY;
 constexpr Options::HPrinting DB_INDICES = Options::HPrinting::DB_INDICES;
+constexpr Options::HPrinting PRETTY = Options::HPrinting::PRETTY;
 constexpr Options::HPrinting TPTP = Options::HPrinting::TPTP;
+
+#define LAM(...) TermList(HOL::create::lambda(__VA_ARGS__))
+#define APP(...) HOL::create::app(__VA_ARGS__)
 
 TEST_FUN(hol_print_1) {
   env.setHigherOrder(true);
@@ -44,27 +48,37 @@ TEST_FUN(hol_print_1) {
   auto x1 = TermList::var(1);
   auto f = mkConst("f", fSrt);
 
-  const std::initializer_list<std::pair<TermList, std::map<Options::HPrinting, std::string>>> tests {
-    // {LAM({x0.var(), x1.var()}, {fSrt, srt}, {x1, srt}), {
-    //   {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
-    //   {PRETTY,     "(λX0 : (srt → srt), X1 : srt : (X1))"},
-    //   {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
-    //   {TPTP,       "(^[X0 : (srt > srt), X1 : srt] : (X1))"}
-    // }},
+  std::list<std::pair<TermList, std::map<Options::HPrinting, std::string>>> tests;
 
-    {LAM({x0.var(), x1.var()}, {fSrt, srt}, {HOL::create::app(fSrt, x0, x1), srt}), {
-      {RAW, "(^[X0 : (srt > srt), X1 : srt] : (vAPP(srt,srt,X0,X1)))"},
-      {PRETTY, "(λX0 : (srt → srt), X1 : srt : ((X0 X1)))"},
-      {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"},
-      {TPTP, "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"}
-    }}
-  };
+  // tests.push_back({LAM({x0.var(), x1.var()}, {fSrt, srt}, {x1, srt}),
+  //                  {{RAW, "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
+  //                   {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
+  //                   {PRETTY, "(λX0 : (srt → srt), X1 : srt : (X1))"},
+  //                   {TPTP, "(^[X0 : (srt > srt), X1 : srt] : (X1))"}}});
+  //
+  // tests.push_back({LAM({x0.var(), x1.var()}, {fSrt, srt}, {APP(fSrt, x0, x1), srt}),
+  //                 {{RAW, "(^[X0 : (srt > srt), X1 : srt] : (vAPP(srt,srt,X0,X1)))"},
+  //                  {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"},
+  //                  {PRETTY, "(λX0 : (srt → srt), X1 : srt : ((X0 X1)))"},
+  //                  {TPTP, "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"}}});
+
+  tests.push_back({APP(f, x1),
+                  {{RAW, "vAPP(srt,srt,f,X1)"},
+                   {DB_INDICES, "(f @ X1)"},
+                   {PRETTY, "(f X1)"},
+                   {TPTP, "(f @ X1)"}}});
+
+  tests.push_back({LAM({x1.var()}, {srt}, {APP(f, x1), srt}),
+                  {{RAW, ""},
+                   {DB_INDICES, ""},
+                   {PRETTY, ""},
+                   {TPTP, ""}}});
 
   for (const auto& [term, opts] : tests) {
     for (const auto& [printOpt, expected] : opts) {
       env.options->setHolPrinting(printOpt);
       std::cout << term.toString() << std::endl;
-      // ASS_EQ(term.toString(), expected)
+      ASS_EQ(term.toString(), expected)
     }
   }
 
@@ -90,3 +104,5 @@ TEST_FUN(hol_print_1) {
   // std::cout << HOL::convert::toNameless(t3).toString() << std::endl; // TODO
   // // ASS_EQ(t3.toString(true), "(^[X1 : srt] : ((f @ X1)))")
 }
+
+#undef LAM

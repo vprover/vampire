@@ -243,8 +243,6 @@ std::string HOL::toString(const Term& term, bool topLevel) {
   return toStringAux(term, topLevel, st);
 }
 
-
-
 TermList HOL::matrix(TermList t) {
   while (t.isLambdaTerm()) {
     t = t.lambdaBody();
