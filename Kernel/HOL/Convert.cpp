@@ -23,28 +23,28 @@ using VarToIndexMap = std::unordered_map<unsigned, IndexSortPair>;
 static TermList sortOf(TermList t) {
   ASS(t.isTerm())
 
-  return Kernel::SortHelper::getResultSort(t.term());
+  return SortHelper::getResultSort(t.term());
 }
 
-static TermList termToNameless(TermList term, VarToIndexMap& map);
-static TermList formulaToNameless(Formula *formula, VarToIndexMap &map);
+static TermList termToNameless(TermList term, const VarToIndexMap& map);
+static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map);
 
-static TermList toNamelessAux(Kernel::VList* vars, Kernel::SList* sorts, TermList body, TermList bodySort, VarToIndexMap& map) {
+static TermList toNamelessAux(VList* vars, SList* sorts, TermList body, TermList bodySort, const VarToIndexMap& map) {
   VarToIndexMap newMap;
   for (const auto& [key, val] : map) {
     newMap.insert({key, {val.first + 1, val.second}});
   }
-  ASS(newMap.insert({vars->head(), {0, sorts->head()}}).second)
+  newMap[vars->head()] = {0, sorts->head()};
 
   const auto converted =
-    vars->tail() == nullptr ? termToNameless(body, newMap) :
-                              toNamelessAux(vars->tail(), sorts->tail(), body, bodySort, newMap);
+    vars->tail() == nullptr ? termToNameless(body, newMap)
+                            : toNamelessAux(vars->tail(), sorts->tail(), body, bodySort, newMap);
 
   bodySort = converted.isVar() ? bodySort : sortOf(converted);
   return HOL::create::namelessLambda(sorts->head(), bodySort, converted);
 }
 
-static TermList termToNameless(TermList term, VarToIndexMap& map) {
+static TermList termToNameless(TermList term, const VarToIndexMap& map) {
   if (term.isVar()) {
     if (const auto p = map.find(term.var()); p != map.end()) {
       const auto& [index, sort] = p->second;
@@ -87,7 +87,7 @@ static TermList termToNameless(TermList term, VarToIndexMap& map) {
   return HOL::create::app(s1, s2, termToNameless(arg1, map), termToNameless(arg2, map));
 }
 
-static TermList formulaToNameless(Formula *formula, VarToIndexMap &map) {
+static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
 
   static const std::unordered_map<Connective, std::string> CONNECTIVE_STR_MAP {
     {Connective::IFF, "vIFF"},
@@ -160,7 +160,7 @@ static TermList formulaToNameless(Formula *formula, VarToIndexMap &map) {
         const auto sort = SList::singleton(s);
         const auto t = TermList(Term::createLambda(form, var, sort, AtomicSort::boolSort()));
         form = HOL::create::app(conn == Connective::FORALL ? HOL::create::pi(s)
-                                                           :  HOL::create::sigma(s), t);
+                                                           : HOL::create::sigma(s), t);
       }
       return termToNameless(form, map);
     }
@@ -176,6 +176,5 @@ static TermList formulaToNameless(Formula *formula, VarToIndexMap &map) {
 }
 
 TermList HOL::convert::toNameless(TermList term) {
-  VarToIndexMap map;
-  return termToNameless(term, map);
+  return termToNameless(term, {});
 }
