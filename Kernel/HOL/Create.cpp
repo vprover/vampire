@@ -37,10 +37,24 @@ TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2
   args.push(arg2);
 
   unsigned app = env.signature->getApp();
-  if (shared) {
-    return TermList(Term::create(app, 4, args.begin()));
+  return TermList(shared ? Term::create(app, 4, args.begin())
+                         : Term::createNonShared(app, 4, args.begin()));
+}
+
+TermList HOL::create::app(TermList sort, TermList head, TermStack& terms) {
+  ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort)
+
+  TermList res = head;
+  TermList s1, s2;
+
+  for (std::size_t i = terms.size(); i > 0; i--) {
+    s1 = getNthArg(sort, 1);
+    s2 = getResultAppliedToNArgs(sort, 1);
+    res = app(s1, s2, res, terms[i-1]);
+    sort = s2;
   }
-  return TermList(Term::createNonShared(app, 4, args.begin()));
+
+  return res;
 }
 
 Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body) {

@@ -454,6 +454,10 @@ set(SOURCES
     Kernel/HOL/Convert.cpp
     Kernel/HOL/BetaNormaliser.cpp
     Kernel/HOL/BetaNormaliser.hpp
+    Kernel/HOL/RedexReducer.cpp
+    Kernel/HOL/RedexReducer.hpp
+    Kernel/HOL/TermShifter.cpp
+    Kernel/HOL/TermShifter.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp

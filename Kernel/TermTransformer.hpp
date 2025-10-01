@@ -16,7 +16,7 @@
 #define __TermTransformer__
 
 #include "Forwards.hpp"
-
+#include "Kernel/Term.hpp"
 
 
 namespace Kernel {

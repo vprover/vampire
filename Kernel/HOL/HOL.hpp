@@ -43,12 +43,15 @@ TermList getNthArg(TermList arrowSort, unsigned argNum);
 TermList getResultAppliedToNArgs(TermList arrowSort, unsigned argNum);
 unsigned getArity(TermList sort);
 TermList getDeBruijnIndex(int index, TermList sort);
+
+inline bool canHeadReduce(const TermList& head, const TermStack& args) { return head.isLambdaTerm() && args.size(); }
 } // namespace HOL
 
 namespace HOL::create {
   TermList app(TermList sort, TermList head, TermList arg);
   TermList app(TermList head, TermList arg);
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
+  TermList app(TermList sort, TermList head, TermStack& terms); // todo const termstack
 
   inline TermList app2(TermList sort, TermList head, TermList arg1, TermList arg2) {
     return app(app(sort, head, arg1), arg2);

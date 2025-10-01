@@ -280,7 +280,7 @@ TermList HOL::getNthArg(TermList arrowSort, unsigned argNum) {
 /** indexed from 1 */
 TermList HOL::getResultAppliedToNArgs(TermList arrowSort, unsigned argNum) {
   while (argNum > 0) {
-    ASS(arrowSort.isArrowSort());
+    ASS(arrowSort.isArrowSort())
     arrowSort = arrowSort.result();
     argNum--;
   }
