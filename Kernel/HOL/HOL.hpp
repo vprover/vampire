@@ -82,4 +82,10 @@ inline TermList toNameless(Term* term) {
 
 } // namespace HOL::convert
 
+namespace HOL::reduce {
+
+
+
+} // namespace HOL::reduce
+
 #endif // HOL_HPP

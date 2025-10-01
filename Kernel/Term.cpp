@@ -1536,6 +1536,17 @@ AtomicSort* AtomicSort::create(AtomicSort const* sort,TermList* args)
   return AtomicSort::create(sort->functor(), sort->arity(), args);
 }
 
+AtomicSort* AtomicSort::createNonShared(AtomicSort const* sort,TermList* args) {
+  int arity = sort->arity();
+  AtomicSort* s = new(arity) AtomicSort(*sort);
+
+  TermList* ss = s->args();
+  for (int i = 0; i < arity; i++) {
+    ASS(!args[i].isEmpty())
+    *ss-- = args[i];
+  }
+  return s;
+}
 
 AtomicSort* AtomicSort::create2(unsigned tc, TermList arg1, TermList arg2)
 {

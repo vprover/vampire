@@ -449,9 +449,11 @@ set(SOURCES
     Kernel/Unit.cpp
     Kernel/Unit.hpp
     Kernel/HOL/HOL.cpp
+    Kernel/HOL/HOL.hpp
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
-    Kernel/HOL/HOL.hpp
+    Kernel/HOL/BetaNormaliser.cpp
+    Kernel/HOL/BetaNormaliser.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp

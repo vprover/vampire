@@ -54,11 +54,35 @@ protected:
 class TermTransformer : public TermTransformerCommon {
 public:
   virtual ~TermTransformer() {}
+  TermTransformer() : _sharedResult(true),
+                      _dontTransformSorts(false) {}
   Term* transform(Term* term) override;
+
+  void dontTransformSorts() { _dontTransformSorts = true; }
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   Formula* transform(Formula* f) override;
   TermList transform(TermList ts) override;
+
+  virtual void onTermEntry(Term*) {}
+  virtual void onTermExit(Term*) {}
+
+  // default implementation, can override if required
+  virtual bool exploreSubterms(TermList orig, TermList newTerm) {
+    ASS(newTerm.isTerm());
+
+    return orig == newTerm;
+  }
+
+  bool _sharedResult;
+  bool _dontTransformSorts;
+
+private:
+  template<class T>
+  Term* create(Term* t, TermList* argLst, bool shared) {
+    return shared ? T::create(static_cast<T*>(t), argLst)
+                  : T::createNonShared(static_cast<T*>(t), argLst);
+  }
 };
 
 /**
