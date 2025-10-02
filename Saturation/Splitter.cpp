@@ -176,21 +176,25 @@ static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 
 void SplittingBranchSelector::handleSatRefutation()
 {
+  /*
   SATClauseList* satPremises = env.options->minimizeSatProofs()
     ? _solver.minimizedPremises()
     : _solver.premiseList();
   ASS(satPremises);
+  */
 
   if (!env.colorUsed) { // color oblivious, simple approach
+#if VZ3
     UnitStack premStack;
-    for(SATClause *satPrem : iterTraits(satPremises->iter()))
-      SATInference::collectFOPremises(satPrem, premStack);
-    UnitList* prems = UnitList::fromIterator(premStack.iter());
+    if(_parent.hasSMTSolver)
+      for(SATClause *satPrem : iterTraits(_solver.premiseList()->iter()))
+        SATInference::collectFOPremises(satPrem, premStack);
+#endif
 
     Clause *foRef = Clause::empty(
 #if VZ3
       _parent.hasSMTSolver
-      ? NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION_SMT, prems)
+      ? NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION_SMT, UnitList::fromIterator(premStack.iter()))
       :
 #endif
       Inference(_solver.proof()));
@@ -198,6 +202,10 @@ void SplittingBranchSelector::handleSatRefutation()
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
+    NOT_IMPLEMENTED;
+    // TODO what should go here?
+    SATClauseList *satPremises = _solver.premiseList();
+
     // decide which side is "bigger" and should go "first"
     int colorCnts[3] = {0,0,0};
     SATClauseList::Iterator it1(satPremises);

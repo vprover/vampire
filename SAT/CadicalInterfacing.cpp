@@ -17,6 +17,7 @@
 #include "CadicalInterfacing.hpp"
 #include "SATInference.hpp"
 
+#include "Lib/Array.hpp"
 #include "Lib/Environment.hpp"
 
 namespace SAT
@@ -60,7 +61,7 @@ SATLiteralStack CadicalInterfacing::failedAssumptions() {
 
 struct Tracer : public CaDiCaL::Tracer {
   // map CaDiCaL clause IDs to Vampire SAT clauses
-  std::unordered_map<uint64_t, SATClause *> cadical2vampire;
+  ZIArray<SATClause *> cadical2vampire;
 
   // the current input clause that is being added to the solver
   // this allows us to associate Vampire clauses with CaDiCaL clauses
@@ -96,8 +97,6 @@ struct Tracer : public CaDiCaL::Tracer {
     if(lits.empty())
       empty = cl;
   }
-
-  // TODO other overrides?
 };
 
 SATClause *CadicalInterfacing::proof(SATClauseList* premises) {

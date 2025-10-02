@@ -212,9 +212,12 @@ std::ostream &operator<<(std::ostream &out, const SATClause &cl)
       out << " | " << cl[i];
   }
 
-  out << " [";
   SATInference *inference = cl.inference();
+  if(!inference)
+    return out;
+
   bool first = true;
+  out << " [";
   switch(inference->getType()) {
     case SATInference::PROP_INF: {
       out << "rat ";
