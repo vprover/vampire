@@ -45,16 +45,17 @@ class Defs {
   static Defs* _instance;
 
   Defs() {
-    srt = mkAtomicSort("srt");
-    fSrt = TermList(AtomicSort::arrowSort(srt, srt));
-    x0 = TermList::var(0);
-    x1 = TermList::var(1);
-    f = mkConst("f", fSrt);
+    defs["srt"] = mkAtomicSort("srt");
+    defs["fSrt"] = TermList(AtomicSort::arrowSort(defs["srt"], defs["srt"]));
+    defs["x0"] = TermList::var(0);
+    defs["x1"] = TermList::var(1);
+    defs["f"] = mkConst("f", defs["fSrt"]);
   }
 
 public:
   static Defs* instance();
-  TermList srt, fSrt, x0, x1, f;
+  std::unordered_map<std::string, TermList> defs;
+  // TermList srt, fSrt, x0, x1, f;
 };
 
 Defs* Defs::_instance = nullptr;
@@ -70,14 +71,10 @@ Defs* Defs::instance()
 TEST_FUN(hol_print_1) {
   env.setHigherOrder(true);
 
-  auto srt = Defs::instance()->srt;
-  auto fSrt = Defs::instance()->fSrt;
-  auto x0 = Defs::instance()->x0;
-  auto x1 = Defs::instance()->x1;
-  auto f = Defs::instance()->f;
+  auto& D = Defs::instance()->defs;
 
   runTest(
-    LAM({x0.var(), x1.var()}, {fSrt, srt}, {x1, srt}),
+    LAM({D["x0"].var(), D["x1"].var()}, {D["fSrt"], D["srt"]}, {D["x1"], D["srt"]}),
     { {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
       {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
       {PRETTY,     "(λX0 : (srt → srt), X1 : srt : (X1))"},
@@ -85,7 +82,7 @@ TEST_FUN(hol_print_1) {
   );
   
   runTest(
-    LAM({x0.var(), x1.var()}, {fSrt, srt}, {APP(fSrt, x0, x1), srt}),
+    LAM({D["x0"].var(), D["x1"].var()}, {D["fSrt"], D["srt"]}, {APP(D["fSrt"], D["x0"], D["x1"]), D["srt"]}),
     { {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (vAPP(srt,srt,X0,X1)))"},
       {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"},
       {PRETTY,     "(λX0 : (srt → srt), X1 : srt : ((X0 X1)))"},
@@ -93,7 +90,7 @@ TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    APP(f, x1),
+    APP(D["f"], D["x1"]),
     { {RAW,        "vAPP(srt,srt,f,X1)"},
       {DB_INDICES, "(f @ X1)"},
       {PRETTY,     "(f X1)"},
@@ -101,7 +98,7 @@ TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    LAM({x1.var()}, {srt}, {APP(f, x1), srt}),
+    LAM({D["x1"].var()}, {D["srt"]}, {APP(D["f"], D["x1"]), D["srt"]}),
     { {RAW,        "(^[X1 : srt] : (vAPP(srt,srt,f,X1)))"},
       {DB_INDICES, "(^[X1 : srt] : ((f @ X1)))"},
       {PRETTY,     "(λX1 : srt : ((f X1)))"},
@@ -109,7 +106,7 @@ TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    LAM({x1.var()}, {fSrt}, {LAM({x1.var()}, {srt}, {x1, srt}), fSrt}),
+    LAM({D["x1"].var()}, {D["fSrt"]}, {LAM({D["x1"].var()}, {D["srt"]}, {D["x1"], D["srt"]}), D["fSrt"]}),
     { {RAW,        "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" }, 
       {DB_INDICES, "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" }, 
       {PRETTY,     "(λX1 : (srt → srt) : ((λX1 : srt : (X1))))" }, 
@@ -120,16 +117,12 @@ TEST_FUN(hol_print_1) {
 TEST_FUN(hol_print_2) {
   env.setHigherOrder(true);
 
-  auto srt = Defs::instance()->srt;
-  auto fSrt = Defs::instance()->fSrt;
-  auto x0 = Defs::instance()->x0;
-  auto x1 = Defs::instance()->x1;
-  auto f = Defs::instance()->f;
+  auto& D = Defs::instance()->defs;
 
   using HOL::convert::toNameless;
 
   runTest(
-    toNameless(LAM({x0.var(), x1.var()}, {fSrt, srt}, {x1, srt})),
+    toNameless(LAM({D["x0"].var(), D["x1"].var()}, {D["fSrt"], D["srt"]}, {D["x1"], D["srt"]})),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,db0(srt)))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. y1))" },
@@ -137,7 +130,7 @@ TEST_FUN(hol_print_2) {
   );
 
   runTest(
-    toNameless(LAM({x0.var(), x1.var()}, {fSrt, srt}, {APP(fSrt, x0, x1), srt})),
+    toNameless(LAM({D["x0"].var(), D["x1"].var()}, {D["fSrt"], D["srt"]}, {APP(D["fSrt"], D["x0"], D["x1"]), D["srt"]})),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,db1(srt > srt),db0(srt))))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db1_1 @ db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. (y0 y1)))" },
@@ -145,7 +138,7 @@ TEST_FUN(hol_print_2) {
   );
 
   runTest(
-    toNameless(APP(f, x1)),
+    toNameless(APP(D["f"], D["x1"])),
     { {RAW,        "vAPP(srt,srt,f,X1)"},
       {DB_INDICES, "(f @ X1)"},
       {PRETTY,     "(f X1)"},
@@ -153,7 +146,7 @@ TEST_FUN(hol_print_2) {
   );
 
   runTest(
-    toNameless(LAM({x1.var()}, {srt}, {APP(f, x1), srt})),
+    toNameless(LAM({D["x1"].var()}, {D["srt"]}, {APP(D["f"], D["x1"]), D["srt"]})),
     { {RAW,        "vLAM(srt,srt,vAPP(srt,srt,f,db0(srt)))"},
       {DB_INDICES, "(^db0 : srt. (f @ db0_0))"},
       {PRETTY,     "(λy0 : srt. (f y0))"},
@@ -161,7 +154,7 @@ TEST_FUN(hol_print_2) {
   );
 
   runTest(
-    toNameless(LAM({x1.var()}, {fSrt}, {LAM({x1.var()}, {srt}, {x1, srt}), fSrt})),
+    toNameless(LAM({D["x1"].var()}, {D["fSrt"]}, {LAM({D["x1"].var()}, {D["srt"]}, {D["x1"], D["srt"]}), D["fSrt"]})),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,db0(srt)))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. y1))" },
