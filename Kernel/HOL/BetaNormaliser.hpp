@@ -24,17 +24,22 @@ using namespace Kernel;
 // An innermost strategy is theoretically more efficient
 // but is difficult to write iteratively TODO
 class BetaNormaliser : public TermTransformer {
+  unsigned reductions;
 public:
- BetaNormaliser() {
-  dontTransformSorts();
- }
+  BetaNormaliser() : reductions(0) {
+    dontTransformSorts();
+  }
 
- TermList normalise(TermList t);
+  unsigned getReductions() const {
+    return reductions;
+  }
 
- // puts term into weak head normal form
- TermList transformSubterm(TermList t) override;
+  TermList normalise(TermList t);
 
- bool exploreSubterms(TermList orig, TermList newTerm) override;
+  // puts term into weak head normal form
+  TermList transformSubterm(TermList t) override;
+
+  bool exploreSubterms(TermList orig, TermList newTerm) override;
 };
 
 #endif // __BetaNormaliser__

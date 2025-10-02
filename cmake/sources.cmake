@@ -17,6 +17,8 @@ set(TESTING_SOURCES
     Test/TestUtils.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
+    Test/HOLUtils.cpp
+    Test/HOLUtils.hpp
 )
 
 ################################################################
@@ -55,7 +57,6 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tHOL_Printing.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -83,7 +84,8 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
     UnitTests/tUnificationWithAbstraction.cpp
-    UnitTests/HOL/tNamelessConversion.cpp
+    UnitTests/HOL/tHOL_Printing.cpp
+    UnitTests/HOL/tBetaReduction.cpp
 )
 
 ################################################################
@@ -452,6 +454,7 @@ set(SOURCES
     Kernel/HOL/HOL.hpp
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
+    Kernel/HOL/Reduce.cpp
     Kernel/HOL/BetaNormaliser.cpp
     Kernel/HOL/BetaNormaliser.hpp
     Kernel/HOL/RedexReducer.cpp

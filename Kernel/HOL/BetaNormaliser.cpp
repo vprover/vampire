@@ -31,6 +31,7 @@ TermList BetaNormaliser::transformSubterm(TermList t) {
 
   while (HOL::canHeadReduce(head, args)) {
     t = RedexReducer().reduce(head, args);
+    ++reductions;
     if (t.isLambdaTerm())
       break;
     HOL::getHeadAndArgs(t, head, args);

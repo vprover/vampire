@@ -24,7 +24,25 @@
  */
 namespace HOL {
 
-  using Kernel::Term;
+#if VDEBUG
+  #define LOG(...)   ::HOL::print_debug(__REL_FILE__, __LINE__, __VA_ARGS__)
+  #define LOGE(expr) ::HOL::print_debug(__REL_FILE__, __LINE__, #expr, expr)
+#else
+  #define LOG(...)
+  #define LOGE(expr)
+#endif
+
+template<class... A>
+void print_debug(const char* file, unsigned line, const A&... msg) {
+  for (unsigned i = 0; i < Debug::debugConfig.indent; ++i)
+    std::cout << "  ";
+
+  std::cout << "|LOG " << file << ":" << line << " @ ";
+  ((std::cout << " " << msg), ...);
+  std::cout << std::endl;
+}
+
+using Kernel::Term;
   
 inline bool isTrue(TermList term) {
   return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
@@ -86,9 +104,8 @@ inline TermList toNameless(Term* term) {
 } // namespace HOL::convert
 
 namespace HOL::reduce {
-
-
-
+TermList betaNF(TermList t);
+TermList betaNF(TermList t, unsigned *reductions);
 } // namespace HOL::reduce
 
 #endif // HOL_HPP

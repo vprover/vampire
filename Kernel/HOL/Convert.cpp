@@ -44,6 +44,8 @@ static TermList toNamelessAux(VList* vars, SList* sorts, TermList body, TermList
   return HOL::create::namelessLambda(sorts->head(), bodySort, converted);
 }
 
+
+
 static TermList termToNameless(TermList term, const VarToIndexMap& map) {
   if (term.isVar()) {
     if (const auto p = map.find(term.var()); p != map.end()) {
