@@ -17,6 +17,11 @@ using HOL::create::app;
 using HOL::convert::toNameless;
 using HOL::reduce::betaNF;
 
+std::string termListToString(TermList t, Options::HPrinting opt) {
+  env.options->setHolPrinting(opt);
+  return t.toString(true);
+}
+
 TEST_FUN(beta_reduction_1) {
   env.setHigherOrder(true);
   const auto& D = *Defs::instance();
@@ -78,9 +83,7 @@ TEST_FUN(beta_reduction_3) {
     auto t2 = toNameless(term);
     ASS(term == t2 && term.toString() == t2.toString())
 
-    auto reduced = betaNF(
-      term, &reds
-    );
+    auto reduced = betaNF(term, &reds);
 
     ASS_EQ(reds, 0)
     ASS_EQ(reduced, term)
@@ -98,9 +101,7 @@ TEST_FUN(beta_reduction_3) {
       auto t2 = toNameless(term);
       ASS(term != t2 && term.toString() != t2.toString())
 
-      auto reduced = HOL::reduce::betaNF(
-        t2, &reds
-      );
+      auto reduced = betaNF(t2, &reds);
 
       ASS_EQ(reds, 0)
       ASS_EQ(reduced, t2)
@@ -117,23 +118,36 @@ TEST_FUN(beta_reduction_4) {
   auto term = app(D.fSrt, D.srt, lam({D.x0, D.fSrt}, {app(D.srt, D.srt, D.x0, D.a), D.srt}), lam({D.x0, D.srt}, {D.x0, D.srt}));
 
   auto t1 = toNameless(term);
-  ASS_EQ(t1.toString(true), "(^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0))")
+  ASS_EQ(termListToString(t1, Options::HPrinting::TPTP),
+         "(^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0))")
+  ASS_EQ(termListToString(t1, Options::HPrinting::RAW),
+         "vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt)))")
+
   unsigned reds;
   ASS_EQ(betaNF(t1, &reds), D.a)
   ASS_EQ(reds, 2)
 
   auto t2 = toNameless(app(D.srt, D.srt, D.f, term));
-  ASS_EQ(t2.toString(true), "f @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
+  ASS_EQ(termListToString(t2, Options::HPrinting::TPTP),
+         "f @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
+  ASS_EQ(termListToString(t2, Options::HPrinting::RAW),
+         "vAPP(srt,srt,f,vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt))))")
   ASS_EQ(betaNF(t2, &reds), app(D.srt, D.srt, D.f, D.a))
   ASS_EQ(reds, 2)
 
   auto t3 = toNameless(app(D.srt, D.fSrt, lam({D.x0, D.srt}, D.f), term));
-  ASS_EQ(t3.toString(true), "(^[Y0 : srt]: (f)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
+  ASS_EQ(termListToString(t3, Options::HPrinting::TPTP),
+         "(^[Y0 : srt]: (f)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
+  ASS_EQ(termListToString(t3, Options::HPrinting::RAW),
+         "vAPP(srt,srt > srt,vLAM(srt,srt > srt,f),vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt))))")
   ASS_EQ(betaNF(t3, &reds), D.f)
   ASS_EQ(reds, 1)
 
   auto t4 = toNameless(app(D.srt, D.srt, lam({D.x0, D.srt}, {D.x0, D.srt}), term));
-  ASS_EQ(t4.toString(true), "(^[Y0 : srt]: (Y0)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
+  ASS_EQ(termListToString(t4, Options::HPrinting::TPTP),
+         "(^[Y0 : srt]: (Y0)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
+  ASS_EQ(termListToString(t4, Options::HPrinting::RAW),
+         "vAPP(srt,srt,vLAM(srt,srt,db0(srt)),vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt))))")
   ASS_EQ(betaNF(t4, &reds), D.a)
   ASS_EQ(reds, 3)
 }

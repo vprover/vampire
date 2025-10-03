@@ -47,9 +47,9 @@ public:
     return orig == newTerm && newTerm.term()->hasDeBruijnIndex();
   }
 
-  Option<unsigned> minFreeIndex() const {
-    return (_minFreeIndex > -1) ? Option<unsigned>(static_cast<unsigned>(_minFreeIndex))
-                                : Option<unsigned>();
+  Option<int> minFreeIndex() const {
+    return (_minFreeIndex > -1) ? Option<int>(_minFreeIndex)
+                                : Option<int>();
   }
 
 private:

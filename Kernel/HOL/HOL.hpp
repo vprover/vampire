@@ -62,6 +62,14 @@ TermList getResultAppliedToNArgs(TermList arrowSort, unsigned argNum);
 unsigned getArity(TermList sort);
 TermList getDeBruijnIndex(int index, TermList sort);
 
+void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
+void getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts);
+
+TermList lhsSort(TermList t);
+TermList rhsSort(TermList t);
+
+void getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts);
+
 inline bool canHeadReduce(const TermList& head, const TermStack& args) { return head.isLambdaTerm() && args.size(); }
 } // namespace HOL
 
@@ -91,6 +99,9 @@ namespace HOL::create {
 
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);
+
+  TermList surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop = false);
+  TermList surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop = false);
 } // namespace HOL::create
 
 namespace HOL::convert {

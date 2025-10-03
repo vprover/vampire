@@ -461,6 +461,10 @@ set(SOURCES
     Kernel/HOL/RedexReducer.hpp
     Kernel/HOL/TermShifter.cpp
     Kernel/HOL/TermShifter.hpp
+    Kernel/HOL/EtaNormaliser.cpp
+    Kernel/HOL/EtaNormaliser.hpp
+    Kernel/HOL/SubtermReplacer.cpp
+    Kernel/HOL/SubtermReplacer.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp

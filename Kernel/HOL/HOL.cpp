@@ -300,3 +300,58 @@ TermList HOL::getDeBruijnIndex(int index, TermList sort) {
   unsigned fun = env.signature->getDeBruijnIndex(index);
   return TermList(Term::create1(fun, sort));
 }
+
+void HOL::getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args) {
+  if (!args.isEmpty())
+    args.reset();
+
+  term = matrix(term);
+  while (term.isApplication()) {
+    args.push(term.rhs());
+    TermList t = term.lhs();
+    if (!t.isApplication())
+      headSort = lhsSort(term);
+
+    term = t;
+  }
+  head = term;
+}
+
+void HOL::getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts) {
+  if (!args.isEmpty())
+    args.reset();
+
+  if (!argSorts.isEmpty())
+    argSorts.reset();
+
+  t = matrix(t);
+
+  while (t.isApplication()) {
+    args.push(t.rhs());
+    argSorts.push(rhsSort(t));
+    t = t.lhs();
+  }
+
+  head = t;
+}
+
+TermList HOL::lhsSort(TermList t) {
+  ASS(t.isApplication())
+
+  return AtomicSort::arrowSort(*t.term()->nthArgument(0),
+                               *t.term()->nthArgument(1));
+}
+
+TermList HOL::rhsSort(TermList t) {
+  ASS(t.isApplication())
+
+  return *t.term()->nthArgument(0);
+}
+
+void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) {
+  while (t.isLambdaTerm()) {
+    sorts.push(*t.term()->nthArgument(0));
+    t = t.lambdaBody();
+  }
+  matrix = t;
+}

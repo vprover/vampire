@@ -17,7 +17,7 @@
 
 TermList BetaNormaliser::normalise(TermList t) {
   // term transformer does not work at the top level...
-  t = transformSubterm(t);
+  // t = transformSubterm(t);
   return transform(t);
 }
 

@@ -107,3 +107,26 @@ TermList HOL::create::namelessLambda(TermList varSort, TermList term) {
   TermList termSort = Kernel::SortHelper::getResultSort(term.term());
   return namelessLambda(varSort, termSort, term);
 }
+
+TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop) {
+  ASS(t.isTerm())
+
+  TermList sort = SortHelper::getResultSort(t.term());
+  return surroundWithLambdas(t, sorts, sort, fromTop);
+}
+
+TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop) {
+  if (!fromTop) { // TODO fromTop is very hacky. See if can merge these two into one loop
+    for (unsigned i = 0; i < sorts.size(); i++) {
+      t = namelessLambda(sorts[i], sort, t);
+      sort = AtomicSort::arrowSort(sorts[i], sort);
+    }
+  } else {
+    for(auto i = sorts.size(); i > 0; i--) {
+      t = namelessLambda(sorts[i-1], sort, t);
+      sort = AtomicSort::arrowSort(sorts[i-1], sort);
+    }
+  }
+
+  return t;
+}
