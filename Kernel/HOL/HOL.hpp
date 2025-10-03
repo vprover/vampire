@@ -94,7 +94,7 @@ namespace HOL::create {
   inline TermList pi(TermList sort) { return TermList(Term::create1(env.signature->getPiSigmaProxy("vPI"), sort)); }
   inline TermList sigma(TermList sort) { return TermList(Term::create1(env.signature->getPiSigmaProxy("vSIGMA"), sort)); }
 
-  Term *lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body);
+  Term* lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, TypedTermList body, TermList* resultExprSort = nullptr);
   TermList lambda(TypedTermList var, TypedTermList body);
 
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
@@ -115,8 +115,8 @@ inline TermList toNameless(Term* term) {
 } // namespace HOL::convert
 
 namespace HOL::reduce {
-TermList betaNF(TermList t);
-TermList betaNF(TermList t, unsigned *reductions);
+TermList betaNF(TermList t, unsigned* reductions = nullptr);
+TermList etaNF(TermList t);
 } // namespace HOL::reduce
 
 #endif // HOL_HPP

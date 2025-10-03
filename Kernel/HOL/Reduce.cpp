@@ -12,19 +12,21 @@
  */
 
 #include "BetaNormaliser.hpp"
+#include "EtaNormaliser.hpp"
 #include "Kernel/HOL/HOL.hpp"
 
 using Kernel::Term;
 
 
-TermList HOL::reduce::betaNF(TermList t) {
-  return BetaNormaliser().normalise(t);
-}
-
 TermList HOL::reduce::betaNF(TermList t, unsigned *reductions) {
   auto bn = BetaNormaliser();
   const auto term = bn.normalise(t);
-  *reductions = bn.getReductions();
+  if (reductions != nullptr)
+    *reductions = bn.getReductions();
 
   return term;
+}
+
+TermList HOL::reduce::etaNF(TermList t) {
+  return EtaNormaliser::normalise(t);
 }

@@ -86,6 +86,7 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
     UnitTests/HOL/tBetaReduction.cpp
+    UnitTests/HOL/tEtaReduction.cpp
 )
 
 ################################################################

@@ -193,7 +193,7 @@ TermList TermList::domain() {
   return *term()->nthArgument(0);
 }
 
-TermList TermList::result(){
+TermList TermList::result() {
   ASS(isArrowSort())
 
   return *term()->nthArgument(1);

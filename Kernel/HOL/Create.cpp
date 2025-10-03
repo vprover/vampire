@@ -57,7 +57,7 @@ TermList HOL::create::app(TermList sort, TermList head, TermStack& terms) {
   return res;
 }
 
-Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body) {
+Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body, TermList* resultExprSort) {
   ASS_EQ(vars.size(), varSorts.size())
 
   auto s = new (0, sizeof(Term::SpecialTermData)) Term;
@@ -80,6 +80,8 @@ Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer
   }
   sp->setLambdaVarSorts(sortList);
   sp->setLambdaSort(lambdaSort);
+  if (resultExprSort != nullptr)
+    *resultExprSort = lambdaSort;
 
   return s;
 }

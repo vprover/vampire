@@ -21,8 +21,14 @@ namespace Test::HOL {
 
 using namespace Kernel;
 
-TermList lam(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, TypedTermList body);
-TermList lam(TypedTermList var, TypedTermList body);
+TypedTermList lam(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, TypedTermList body);
+TypedTermList lam(std::initializer_list<TypedTermList> vars, TypedTermList body);
+TypedTermList lam(TypedTermList var, TypedTermList body);
+
+TypedTermList app(TypedTermList lhs, TypedTermList rhs);
+TypedTermList app(const std::initializer_list<TypedTermList>& terms);
+
+TypedTermList mkConst(const std::string& name, TermList sort);
 
 class Defs {
   static Defs* _instance;
