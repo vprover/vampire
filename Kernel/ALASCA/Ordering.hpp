@@ -597,14 +597,14 @@ struct SkelOrd
     return AlascaOrderingUtils::lexLazy(
             [&](){ return compare(a1.term, a2.term); },
             [&](){ 
-              if (a1.term.isVar()) {
-                ASS(a2.term.isVar() && a1.term == a2.term)
-                auto c1 = cmpLvl(a1.lvl, a2.lvl);
-                auto c2 = cmpLvl(-a1.lvl, -a2.lvl);
-                return c1 == c2 ? c1 : Ordering::Result::INCOMPARABLE;
-              } else {
+              // if (a1.term.isVar()) {
+              //   ASS(a2.term.isVar() && a1.term == a2.term)
+              //   auto c1 = cmpLvl(a1.lvl, a2.lvl);
+              //   auto c2 = cmpLvl(-a1.lvl, -a2.lvl);
+              //   return c1 == c2 ? c1 : Ordering::Result::INCOMPARABLE;
+              // } else {
                 return cmpLvl(a1.lvl, a2.lvl);
-              } 
+              // } 
             });
   }
 

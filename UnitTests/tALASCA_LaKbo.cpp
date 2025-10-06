@@ -743,7 +743,7 @@ TEST_FUN(ineq_merging) {
   check(ord, -x  != 0, Less   ,  x > 0);
   check(ord, x >= 0, Less   ,  x > 0);
   check(ord, -x >= 0, Less   ,  -x > 0);
-  check(ord, x >= 0, Incomp ,  -x > 0);
+  check(ord, x >= 0, Less ,  -x > 0);
 }
 
 
