@@ -94,8 +94,9 @@ namespace HOL::create {
   inline TermList pi(TermList sort) { return TermList(Term::create1(env.signature->getPiSigmaProxy("vPI"), sort)); }
   inline TermList sigma(TermList sort) { return TermList(Term::create1(env.signature->getPiSigmaProxy("vSIGMA"), sort)); }
 
-  Term* lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, TypedTermList body, TermList* resultExprSort = nullptr);
-  TermList lambda(TypedTermList var, TypedTermList body);
+  //Term* lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, TypedTermList body, TermList* resultExprSort = nullptr);
+  Term* lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort = nullptr);
+  //TermList lambda(TypedTermList var, TypedTermList body);
 
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);

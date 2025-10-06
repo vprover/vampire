@@ -27,12 +27,30 @@ TEST_FUN(eta_reduction_1) {
   auto srt = TermList(AtomicSort::arrowSort(D.srt, D.srt));
   TypedTermList f = mkConst("f1", srt);
   TypedTermList x0 = {D.x0, D.srt};
-  auto term = lam(x0, app({f, x0}));
-  ASS_EQ(HOL::reduce::etaNF(toNameless(term)), f)
+  auto term = toNameless(lam(x0, app({f, x0})));
+  ASS_EQ(termListToString(term, Options::HPrinting::TPTP),
+         "(^[Y0 : srt]: (f1 @ Y0))")
+  ASS_EQ(termListToString(term, Options::HPrinting::RAW),
+         "vLAM(srt,srt,vAPP(srt,srt,f1,db0(srt)))")
+  ASS_EQ(HOL::reduce::etaNF(term), f)
 
   srt = TermList(AtomicSort::arrowSort(D.srt, srt));
   f = mkConst("f2", srt);
   TypedTermList x1 = {D.x1, D.srt};
-  term = lam(x0, app({f, x0, x1}));
-  ASS_EQ(HOL::reduce::etaNF(toNameless(term)), f)
+  term = toNameless(lam({x0, x1}, app({f, x0, x1})));
+  ASS_EQ(termListToString(term, Options::HPrinting::TPTP),
+         "(^[Y0 : srt]: ((^[Y1 : srt]: (f2 @ Y0 @ Y1))))")
+  ASS_EQ(termListToString(term, Options::HPrinting::RAW),
+         "vLAM(srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,vAPP(srt,srt > srt,f2,db1(srt)),db0(srt))))")
+  ASS_EQ(HOL::reduce::etaNF(term), f)
+
+  srt = TermList(AtomicSort::arrowSort(D.srt, srt));
+  f = mkConst("f3", srt);
+  TypedTermList x2 = {TermList::var(2), D.srt};
+  term = toNameless(lam({x0, x1, x2}, app({f, x0, x1, x2})));
+  ASS_EQ(termListToString(term, Options::HPrinting::TPTP),
+         "(^[Y0 : srt]: ((^[Y1 : srt]: ((^[Y2 : srt]: (f3 @ Y0 @ Y1 @ Y2))))))")
+  ASS_EQ(termListToString(term, Options::HPrinting::RAW),
+         "vLAM(srt,srt > (srt > srt),vLAM(srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,vAPP(srt,srt > srt,vAPP(srt,srt > (srt > srt),f3,db2(srt)),db1(srt)),db0(srt)))))")
+  ASS_EQ(HOL::reduce::etaNF(term), f)
 }

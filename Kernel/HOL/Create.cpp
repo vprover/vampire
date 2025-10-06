@@ -45,11 +45,10 @@ TermList HOL::create::app(TermList sort, TermList head, TermStack& terms) {
   ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort)
 
   TermList res = head;
-  TermList s1, s2;
 
   for (std::size_t i = terms.size(); i > 0; i--) {
-    s1 = getNthArg(sort, 1);
-    s2 = getResultAppliedToNArgs(sort, 1);
+    TermList s1 = getNthArg(sort, 1);
+    TermList s2 = getResultAppliedToNArgs(sort, 1);
     res = app(s1, s2, res, terms[i-1]);
     sort = s2;
   }
@@ -57,28 +56,18 @@ TermList HOL::create::app(TermList sort, TermList head, TermStack& terms) {
   return res;
 }
 
-Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body, TermList* resultExprSort) {
-  ASS_EQ(vars.size(), varSorts.size())
-
+Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {
   auto s = new (0, sizeof(Term::SpecialTermData)) Term;
-  s->makeSymbol(Term::toNormalFunctor(Kernel::SpecialFunctor::LAMBDA), 0);
-  //should store body of lambda in args
+  s->makeSymbol(Term::toNormalFunctor(SpecialFunctor::LAMBDA), 0);
+
   auto sp = s->getSpecialData();
   sp->setLambdaExp(body.untyped());
   sp->setLambdaExpSort(body.sort());
 
-  auto varList = Kernel::VList::empty();
-  for (auto it = std::rbegin(vars); it != std::rend(vars); ++it)
-    varList = Kernel::VList::cons(*it, varList);
-  sp->setLambdaVars(varList);
+  sp->setLambdaVars(VList::fromData(vars, numArgs));
 
-  auto sortList = Kernel::SList::empty();
-  auto lambdaSort = body.sort();
-  for (auto it = std::rbegin(varSorts); it != std::rend(varSorts); ++it) {
-    sortList = Kernel::SList::cons(*it, sortList);
-    lambdaSort = Kernel::AtomicSort::arrowSort(*it, lambdaSort);
-  }
-  sp->setLambdaVarSorts(sortList);
+  auto lambdaSort = AtomicSort::arrowSort(numArgs, varSorts, body.sort());
+  sp->setLambdaVarSorts(SList::fromData(varSorts, numArgs));
   sp->setLambdaSort(lambdaSort);
   if (resultExprSort != nullptr)
     *resultExprSort = lambdaSort;
@@ -86,9 +75,38 @@ Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer
   return s;
 }
 
-TermList HOL::create::lambda(TypedTermList var, TypedTermList body) {
-  return TermList(lambda({var.var()}, {var.sort()}, body));
-}
+// Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body, TermList* resultExprSort) {
+//   ASS_EQ(vars.size(), varSorts.size())
+//
+//   auto s = new (0, sizeof(Term::SpecialTermData)) Term;
+//   s->makeSymbol(Term::toNormalFunctor(Kernel::SpecialFunctor::LAMBDA), 0);
+//   //should store body of lambda in args
+//   auto sp = s->getSpecialData();
+//   sp->setLambdaExp(body.untyped());
+//   sp->setLambdaExpSort(body.sort());
+//
+//   auto varList = Kernel::VList::empty();
+//   for (auto it = std::rbegin(vars); it != std::rend(vars); ++it)
+//     varList = Kernel::VList::cons(*it, varList);
+//   sp->setLambdaVars(varList);
+//
+//   auto sortList = Kernel::SList::empty();
+//   auto lambdaSort = body.sort();
+//   for (auto it = std::rbegin(varSorts); it != std::rend(varSorts); ++it) {
+//     sortList = Kernel::SList::cons(*it, sortList);
+//     lambdaSort = Kernel::AtomicSort::arrowSort(*it, lambdaSort);
+//   }
+//   sp->setLambdaVarSorts(sortList);
+//   sp->setLambdaSort(lambdaSort);
+//   if (resultExprSort != nullptr)
+//     *resultExprSort = lambdaSort;
+//
+//   return s;
+// }
+
+// TermList HOL::create::lambda(TypedTermList var, TypedTermList body) {
+//   return TermList(lambda({var.var()}, {var.sort()}, body));
+// }
 
 TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermList term) {
   ASS(varSort.isVar()  || varSort.term()->isSort());

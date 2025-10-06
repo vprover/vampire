@@ -16,14 +16,19 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/TypedTermList.hpp"
+#include "Shell/Options.hpp"
 
 namespace Test::HOL {
 
 using namespace Kernel;
 
-TypedTermList lam(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, TypedTermList body);
+std::string termListToString(TermList t, Shell::Options::HPrinting opt);
+
 TypedTermList lam(std::initializer_list<TypedTermList> vars, TypedTermList body);
-TypedTermList lam(TypedTermList var, TypedTermList body);
+
+inline TypedTermList lam(TypedTermList var, TypedTermList body) {
+  return lam({var}, body);
+}
 
 TypedTermList app(TypedTermList lhs, TypedTermList rhs);
 TypedTermList app(const std::initializer_list<TypedTermList>& terms);

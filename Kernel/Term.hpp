@@ -1079,9 +1079,10 @@ public:
 
   const std::string& typeConName() const;  
   
-  static TermList arrowSort(TermStack& domSorts, TermList range);
+  static TermList arrowSort(const TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(TermList s1, TermList s2, TermList s3);
+  static TermList arrowSort(unsigned size, const TermList* types, TermList range);
   static TermList arraySort(TermList indexSort, TermList innerSort);
   static TermList tupleSort(unsigned arity, TermList* sorts);
   static TermList defaultSort();

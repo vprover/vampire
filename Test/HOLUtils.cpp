@@ -20,18 +20,24 @@ namespace Test::HOL {
 
 using namespace Kernel;
 
-TypedTermList lam(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, TypedTermList body) {
+std::string termListToString(TermList t, Options::HPrinting opt) {
+  env.options->setHolPrinting(opt);
+  return t.toString(true);
+}
+
+TypedTermList lam(std::initializer_list<TypedTermList> typedVars, TypedTermList body) {
+  ASS(typedVars.size() > 0)
+
+  std::vector<unsigned> vars;
+  std::vector<TermList> varSorts;
+  for (const auto& term : typedVars) {
+    vars.push_back(term.var());
+    varSorts.push_back(term.sort());
+  }
+
   TermList sort;
-  auto term = ::HOL::create::lambda(vars, varSorts, body, &sort);
+  const auto term = ::HOL::create::lambda(typedVars.size(), vars.data(), varSorts.data(), body, &sort);
   return {TermList(term), sort};
-}
-
-TypedTermList lam(std::initializer_list<TypedTermList> vars, TypedTermList body) {
-
-}
-
-TypedTermList lam(TypedTermList var, TypedTermList body) {
-  return lam({var.var()}, {var.sort()}, body);
 }
 
 TypedTermList app(TypedTermList lhs, TypedTermList rhs) {

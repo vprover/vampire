@@ -16,10 +16,7 @@ using namespace Test::HOL;
 using HOL::convert::toNameless;
 using HOL::reduce::betaNF;
 
-std::string termListToString(TermList t, Options::HPrinting opt) {
-  env.options->setHolPrinting(opt);
-  return t.toString(true);
-}
+
 
 TEST_FUN(beta_reduction_1) {
   env.setHigherOrder(true);
