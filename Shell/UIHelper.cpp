@@ -29,6 +29,7 @@
 #include "Lib/Timer.hpp"
 
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
@@ -152,10 +153,17 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
     out << "# Saturated clause set:" << endl;
   }
 
+  bool clean = true;
   while (uit.hasNext()) {
-    Unit* cl = uit.next();
+    Clause *cl = uit.next()->asClause();
     out << TPTPPrinter::toString(cl) << endl;
+    Literal *l = (*cl)[0];
+    if(l->isEquality() && Kernel::Ordering::tryGetGlobalOrdering()->getEqualityArgumentOrder(l) == Ordering::INCOMPARABLE)
+      clean = false;
   }
+
+  if(clean)
+    std::cout << "% XXX all preordered\n";
 
   if (szsOutputMode()) {
     out << "% SZS output end Saturation." << endl;
