@@ -377,8 +377,6 @@ public:
     return getAnswerLiteral() != nullptr;
   }
 
-  bool computable();
-
   unsigned goalRewritingDepth() const { return _grwDepth; }
   void setGoalRewritingDepth(unsigned depth) { _grwDepth = depth; }
   bool reversed() const { return _posInfo.reversed; }

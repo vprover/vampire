@@ -197,7 +197,8 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    if (env.options->proofExtra() == Options::ProofExtra::FULL) {
+    if ((env.options->proofExtra() == Options::ProofExtra::FULL) ||
+        (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
       env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();
@@ -777,18 +778,6 @@ Literal* Clause::getAnswerLiteral() {
     }
   }
   return nullptr;
-}
-
-bool Clause::computable() {
-  for (unsigned i = 0; i < length(); ++i) {
-    if ((*this)[i]->isAnswerLiteral()) {
-      continue;
-    }
-    if (!(*this)[i]->computable()) {
-      return false;
-    }
-  }
-  return true;
 }
 
 }

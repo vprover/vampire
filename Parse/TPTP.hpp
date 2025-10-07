@@ -18,26 +18,18 @@
 #define __Parser_TPTP__
 
 #include <filesystem>
-#include <iostream>
 #include <unordered_set>
 
 #include "Forwards.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Exception.hpp"
-#include "Lib/IntNameTable.hpp"
 
-#include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 //#define DEBUG_SHOW_STATE
-
-namespace Kernel {
-  class Clause;
-};
 
 namespace Parse {
   using namespace Kernel;
@@ -352,9 +344,9 @@ public:
   unsigned lineNumber(){ return currentFile.lineNumber; }
   std::string currentPath(){ return currentFile.path; }
 
-  static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
-    auto res = _questionVariableNames.findPtr(questionNumber);
-    return res ? *res : nullptr;
+  // careful: the returned pointer will be invalidated if _questionVariableNames is changed
+  static Map<unsigned,std::string>* findQuestionVars(unsigned questionNumber) {
+    return _questionVariableNames.findPtr(questionNumber);
   }
   static bool seenQuestions() {
     return !_questionVariableNames.isEmpty();
@@ -587,9 +579,9 @@ private:
   /** term lists */
   Stack<TermList> _termLists;
   /** name table for variable names */
-  IntNameTable _vars;
+  Map<std::string, unsigned> _vars;
   /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
-  Map<int,std::string> _curQuestionVarNames;
+  Map<unsigned,std::string> _curQuestionVarNames;
   /** parsed types */
   Stack<Type*> _types;
   /** various type tags saved during parsing */
@@ -870,7 +862,7 @@ private:
    *
    * (Can there be more than one question? Yes, e.g., in the interactive mode.)
    */
-  static DHMap<unsigned, Map<int,std::string>*> _questionVariableNames;
+  static DHMap<unsigned, Map<unsigned,std::string>> _questionVariableNames;
 
   /** Stores the type arities of function symbols */
   DHMap<std::string, unsigned> _typeArities;

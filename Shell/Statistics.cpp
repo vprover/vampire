@@ -41,19 +41,19 @@ void Statistics::explainRefutationNotFound(std::ostream& out)
 {
   // should be a one-liner for each case!
   if (discardedNonRedundantClauses) {
-    out << "Refutation not found, non-redundant clauses discarded";
+    out << "Refutation not found, non-redundant clauses discarded\n";
   }
   else if (inferencesSkippedDueToColors) {
     out << "Refutation not found, inferences skipped due to colors\n";
   }
   else if(smtReturnedUnknown){
-    out << "Refutation not found, SMT solver inside AVATAR returned Unknown";
+    out << "Refutation not found, SMT solver inside AVATAR returned Unknown\n";
   }
   else if (smtDidNotEvaluate) {
     out << "Refutation not found, SMT solver inside AVATAR failed to evaluate a literal\n";
   }
   else {
-    out << "Refutation not found, incomplete strategy";
+    out << "Refutation not found, incomplete strategy\n";
   }
 }
 
@@ -81,41 +81,39 @@ void Statistics::print(std::ostream& out)
   out << "Termination reason: ";
   switch(terminationReason) {
   case TerminationReason::REFUTATION:
-    out << "Refutation";
+    out << "Refutation\n";
     break;
   case TerminationReason::TIME_LIMIT:
-    out << "Time limit";
+    out << "Time limit\n";
     break;
   case TerminationReason::INSTRUCTION_LIMIT:
-    out << "Instruction limit";
+    out << "Instruction limit\n";
     break;
   case TerminationReason::MEMORY_LIMIT:
-    out << "Memory limit";
+    out << "Memory limit\n";
     break;
   case TerminationReason::ACTIVATION_LIMIT:
-    out << "Activation limit";
+    out << "Activation limit\n";
     break;
   case TerminationReason::REFUTATION_NOT_FOUND:
     explainRefutationNotFound(out);
     break;
   case TerminationReason::SATISFIABLE:
-    out << "Satisfiable";
+    out << "Satisfiable\n";
     break;
   case TerminationReason::UNKNOWN:
-    out << "Unknown";
+    out << "Unknown\n";
     break;
   case TerminationReason::INAPPROPRIATE:
-    out << "Inappropriate";
+    out << "Inappropriate\n";
     break;
   default:
     ASSERTION_VIOLATION;
   }
-  out << endl;
   if (phase!=ExecutionPhase::FINALIZATION) {
     addCommentSignForSZS(out);
     out << "Termination phase: " << phaseToString(phase) << endl;
   }
-  out << endl;
 
   if (env.options->statistics()==Options::Statistics::FULL) {
 
@@ -219,7 +217,7 @@ void Statistics::print(std::ostream& out)
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
       +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
-      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication+nonGroundInductionApplication
+      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication
       +introducedFunctionDefinitions);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
@@ -265,10 +263,6 @@ void Statistics::print(std::ostream& out)
   COND_OUT("IntegerDefaultBoundDownInductionInProof",intDBDownInductionInProof);
   COND_OUT("InductionApplications",inductionApplication);
   COND_OUT("InductionApplicationsInProof",inductionApplicationInProof);
-  COND_OUT("GeneralizedInductionApplications",generalizedInductionApplication);
-  COND_OUT("GeneralizedInductionApplicationsInProof",generalizedInductionApplicationInProof);
-  COND_OUT("NonGroundInductionApplications",nonGroundInductionApplication);
-  COND_OUT("NonGroundInductionApplicationsInProof",nonGroundInductionApplicationInProof);
   COND_OUT("InductionRedundant",inductionRedundant);
   COND_OUT("Argument congruence", argumentCongruence);
   COND_OUT("Negative extensionality", negativeExtensionality);

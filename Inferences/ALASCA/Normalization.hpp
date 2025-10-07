@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 #include "Kernel/ALASCA.hpp"

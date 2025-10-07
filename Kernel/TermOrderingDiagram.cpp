@@ -584,7 +584,6 @@ TermOrderingDiagram::NodeIterator::NodeIterator(const Ordering&, const SubstAppl
   if (node->tag == Node::T_TERM) {
     auto lhs = node->lhs;
     auto rhs = node->rhs;
-    ASS(lhs.isVar() || rhs.isVar());
     if (lhs.isVar() && rhs.isVar()) {
       // x ? y
       bps.push({ { { lhs, rhs, Result::GREATER } }, Result::GREATER });
@@ -594,9 +593,7 @@ TermOrderingDiagram::NodeIterator::NodeIterator(const Ordering&, const SubstAppl
       ASS(rhs.isTerm());
       DHSet<TermList> seen;
       // x ? t[y_1,...,y_n]
-      VariableIterator vit(rhs.term());
-      while (vit.hasNext()) {
-        auto v = vit.next();
+      for (const auto& v : iterTraits(VariableIterator(rhs.term()))) {
         if (!seen.insert(v)) {
           continue;
         }
@@ -608,9 +605,7 @@ TermOrderingDiagram::NodeIterator::NodeIterator(const Ordering&, const SubstAppl
       ASS(lhs.isTerm());
       DHSet<TermList> seen;
       // s[x_1,...,x_n] ? y
-      VariableIterator vit(lhs.term());
-      while (vit.hasNext()) {
-        auto v = vit.next();
+      for (const auto& v : iterTraits(VariableIterator(lhs.term()))) {
         if (!seen.insert(v)) {
           continue;
         }

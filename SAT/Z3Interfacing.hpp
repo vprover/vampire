@@ -15,7 +15,6 @@
 #ifndef __Z3Interfacing__
 #define __Z3Interfacing__
 
-#include "Lib/Allocator.hpp"
 #include <algorithm>
 #if VZ3
 
@@ -27,7 +26,6 @@
 
 #include <fstream>
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/BiMap.hpp"
 #include "Lib/Set.hpp"
@@ -38,7 +36,6 @@
 #include "SATClause.hpp"
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
-#include "Lib/Option.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Kernel/Theory.hpp"
 
@@ -174,7 +171,7 @@ namespace ProblemExport {
 } // namespace ProblemExport
 
 
-class Z3Interfacing : public PrimitiveProofRecordingSATSolver
+class Z3Interfacing : public SATSolver
 {
 public:
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, std::string const& exportSmtlib,Shell::Options::ProblemExportSyntax s);
@@ -185,8 +182,6 @@ public:
 
   void addClause(SATClause* cl) override;
 
-  Status solve();
-  virtual Status solveLimited(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
@@ -197,29 +192,12 @@ public:
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
   virtual bool isZeroImplied(unsigned var) override;
-  /**
-   * Collect zero-implied literals.
-   *
-   * Can be used in SATISFIABLE and UNKNOWN state.
-   *
-   * @see isZeroImplied()
-   */
-  virtual void collectZeroImplied(SATLiteralStack& acc) override;
-  /**
-   * Return a valid clause that contains the zero-implied literal
-   * and possibly the assumptions that implied it. Return 0 if @c var
-   * was an assumption itself.
-   * If called on a proof producing solver, the clause will have
-   * a proper proof history.
-   */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   void ensureVarCount(unsigned newVarCnt) override {
     while (_varCnt < newVarCnt) {
       newVar();
     }
   }
-
 
   unsigned newVar() override;
 
@@ -229,16 +207,8 @@ public:
   virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
   SATLiteralStack failedAssumptions() override;
 
-  /**
-   * The set of inserted clauses may not be propositionally UNSAT
-   * due to theory reasoning inside Z3.
-   * We cannot later minimize this set with minisat.
-   *
-   * TODO: think of extracting true refutation from Z3 instead.
-   */
-  SATClauseList* getRefutationPremiseList() override{ return 0; }
-
-  SATClause* getRefutation() override;
+  // TODO do something more useful here: should now be possible
+  SATClauseList *minimizePremises(SATClauseList *premises) override { return premises; }
 
   template<class F>
   auto scoped(F f)  -> decltype(f())

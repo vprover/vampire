@@ -18,8 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Saturation/ExtensionalityClauseContainer.hpp"
-
 #include "InferenceEngine.hpp"
 
 namespace Inferences
@@ -40,8 +38,6 @@ class ExtensionalityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  ExtensionalityResolution() {}
-  
   ClauseIterator generateClauses(Clause* premise);
 
   static Clause* performExtensionalityResolution(

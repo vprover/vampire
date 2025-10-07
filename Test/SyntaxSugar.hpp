@@ -69,6 +69,7 @@
 #define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
 #define DECL_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
+#define DECL_SKOLEM_FUNC(f, ...) auto f = FuncSugar(#f, __VA_ARGS__, /*taArity=*/0, true);
 #define DECL_POLY_FUNC(f, i, ...)   auto f = FuncSugar(#f, __VA_ARGS__, i); 
 #define DECL_POLY_CONST(f, i, sort)   auto f = FuncSugar(#f, {}, sort, i);    
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
@@ -85,6 +86,9 @@
 #define DECL_S_COMB(s) auto s = FuncSugar(env.signature->getCombinator(Signature::S_COMB));
 #define DECL_FUN_DEF(d, t)  auto d = PredSugar(env.signature->getFnDef(t.sugaredExpr().term()->functor()));
 #define DECL_PRED_DEF(d, t) auto d = PredSugar(env.signature->getBoolDef(((Literal*)t)->functor()));
+#define DECL_ANSWER_PRED(f, ...)                                                          \
+  auto f = PredSugar(#f, __VA_ARGS__);                                                    \
+  env.signature->getPredicate(f.functor())->markAnswerPredicate();
 
 #define DECL_DEFAULT_VARS                                                                 \
   __ALLOW_UNUSED(                                                                         \
@@ -553,7 +557,7 @@ public:
     , _arity(env.signature->getFunction(functor)->arity()) {}
 
   FuncSugar(std::string const& name, std::initializer_list<SortSugar> as_, 
-    ExpressionSugar result, unsigned taArity = 0) 
+    ExpressionSugar result, unsigned taArity = 0, bool skolem = false)
   {
     Stack<SortId> as;
     for (auto a : as_) 
@@ -573,7 +577,10 @@ public:
 
       env.signature
         ->getFunction(_functor)
-        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), res, taArity));    
+        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), res, taArity));
+      if (skolem) {
+        env.signature->getFunction(_functor)->markSkolem();
+      }
     }
   }
 
@@ -685,9 +692,7 @@ public:
   unsigned functor() const { return _functor; }
 };
 
-inline Clause* clause(Stack<Lit> ls) { 
-  static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
-
+inline Clause* clause(Stack<Lit> ls, Inference inf) {
   std::stable_sort(ls.begin(), ls.end(), [](Lit const& l1, Lit const& l2){ return l1.selected() > l2.selected(); });
   auto nSelected = iterTraits(ls.iterFifo())
     .findPosition([](Lit const& l) 
@@ -695,11 +700,14 @@ inline Clause* clause(Stack<Lit> ls) {
     .unwrapOrElse( [&]() {return ls.size(); });
 
   Clause& out = *Clause::fromIterator(arrayIter(ls)
-      .map([](Lit l) -> Literal* { return l; }), testInf);
+      .map([](Lit l) -> Literal* { return l; }), std::move(inf));
 
   out.setSelected(nSelected);
   return &out; 
 }
+
+inline Clause* clause(Stack<Lit> ls)
+{ return clause(ls, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT))); }
 
 inline Clause* clause(std::initializer_list<Lit> ls) 
 { return clause(Stack<Lit>(ls)); }

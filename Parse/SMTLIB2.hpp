@@ -15,6 +15,8 @@
 #ifndef __SMTLIB2__
 #define __SMTLIB2__
 
+#include <unordered_map>
+
 #include "Forwards.hpp"
 
 #include "Lib/Set.hpp"
@@ -338,11 +340,57 @@ private:
   /** For generating fresh vampire variables */
   unsigned _nextVar;
 
-  /** < termlist, vampire sort id > */
-  typedef std::pair<TermList,TermList> SortedTerm;
-  /** mast an identifier to SortedTerm */
-  typedef DHMap<std::string,SortedTerm> TermLookup;
-  typedef Stack<TermLookup*> Lookups;
+  struct Binding {
+    TermList term;
+    TermList sort;
+  };
+
+  /*
+   * Keep a map from strings to terms for lookup during parsing,
+   * while also preserving left-to-right order.
+   */
+  struct Lookup {
+    // `map` keys into `bindings`
+    std::unordered_map<std::string, size_t> map;
+    // the bindings in left-to-right order
+    std::vector<Binding> bindings;
+
+    // copy constructor is probably a bug
+    Lookup(const Lookup &) = delete;
+    Lookup &operator=(const Lookup &) = delete;
+
+    // rest are OK
+    Lookup() = default;
+    Lookup(Lookup &&) noexcept = default;
+    Lookup &operator=(Lookup &&) noexcept = default;
+
+    size_t size() const { return bindings.size(); }
+    bool insert(std::string name, Binding binding) {
+      size_t index = size();
+      auto [_, inserted] = map.insert({name, index});
+      if(inserted)
+        bindings.push_back(binding);
+      return inserted;
+    }
+
+    Binding get(const std::string &name) const {
+      return bindings[map.at(name)];
+    }
+
+    bool find(const std::string &name) const {
+      return map.count(name);
+    }
+
+    bool find(const std::string &name, Binding &binding) const {
+      auto it = map.find(name);
+      bool found = it != map.end();
+      if(found)
+        binding = bindings[it->second];
+      return found;
+    }
+  };
+
+  typedef Stack<Lookup> Lookups;
   /** Stack of parsing contexts:
    * for variables from quantifiers and
    * for symbols bound by let (which are variables from smtlib perspective,
@@ -355,17 +403,8 @@ private:
    * global sort parameters can appear in (almost) any statement, implicitly
    * universally quantified. We collect them in this structure globally.
    */
-  TermLookup _globalSortParamLookup;
+  Lookup _globalSortParamLookup;
 
-  /**
-   * Helper function maintaining lookups (see above).
-   */
-  inline void pushLookup() {
-    _lookups.push(new TermLookup());
-  }
-  inline void popLookup() {
-    delete _lookups.pop();
-  }
   void tryInsertIntoCurrentLookup(std::string name, TermList term, TermList sort);
 
   /**

@@ -17,9 +17,6 @@
 #define __RndLiteralSelector__
 
 #include "Forwards.hpp"
-#include "Lib/SmartPtr.hpp"
-#include "Ordering.hpp"
-
 #include "LiteralSelector.hpp"
 
 namespace Kernel {

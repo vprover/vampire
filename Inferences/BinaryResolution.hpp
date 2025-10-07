@@ -20,9 +20,6 @@
 
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "Indexing/LiteralIndex.hpp"
 
 namespace Indexing {
   class BinaryResolutionIndex;

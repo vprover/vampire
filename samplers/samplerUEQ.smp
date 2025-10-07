@@ -266,22 +266,9 @@ prc=on > prlc ~cat on:1,off:1
 # unit_resulting_resolution
 > urr ~cat off:1200,ec_only:162,on:340
 
-# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+# GLOBAL SUBSUMPTION
 # global_subsumption
 > gs ~cat off:5,on:1
-
-# global_subsumption_explicit_minim
-gs=on > gsem ~cat randomized:50,on:5,off:17
-
-# global_subsumption_sat_solver_power
-gs=on > gsssp ~cat propagation_only:20,full:1
-
-# global_subsumption_avatar_assumptions
-gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
-
-# MISC
-
-> uhcvi ~cat off:1,on:1
 
 # MISSING:
 # Any theory reasoning options (including term algebras and sa=z3)

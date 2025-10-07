@@ -13,12 +13,9 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
 #include "Kernel/ALASCA.hpp"
-
-#include "Kernel/Ordering.hpp"
-#include "Lib/DArray.hpp"
 #include "Kernel/KBO.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
 #define DEBUG_ALASCA_ORD(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }

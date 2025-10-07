@@ -17,12 +17,12 @@
 #ifndef __Array__
 #define __Array__
 
+#include "Allocator.hpp"
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Allocator.hpp"
 #include <initializer_list>
+#include <ostream>
 #include <utility>
-#include <iostream>
 
 namespace Lib {
 

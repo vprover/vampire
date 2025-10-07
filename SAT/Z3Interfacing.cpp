@@ -897,10 +897,6 @@ unsigned Z3Interfacing::newVar()
 void Z3Interfacing::addClause(SATClause* cl)
 {
   ASS(cl);
-
-  // store to later generate the refutation
-  PrimitiveProofRecordingSATSolver::addClause(cl);
-
   auto z3clause = getRepresentation(cl);
 
   if(_showZ3){
@@ -996,15 +992,7 @@ void Z3Interfacing::solveModuloAssumptionsAndSetStatus()
   }
 }
 
-SATSolver::Status Z3Interfacing::solve()
-{
-  _assumptionLookup.clear();
-  _assumptions.reset();
-  solveModuloAssumptionsAndSetStatus();
-  return _status;
-}
-
-SATSolver::Status Z3Interfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+Status Z3Interfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
 {
   _assumptionLookup.clear();
   _assumptions.reset();
@@ -1028,7 +1016,7 @@ SATLiteralStack Z3Interfacing::failedAssumptions() {
   ASSERTION_VIOLATION
 }
 
-SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
+VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
   ASS_EQ(_status,Status::SATISFIABLE);
   z3::expr rep = isNamedExpr(var) ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
@@ -1187,18 +1175,6 @@ bool Z3Interfacing::isZeroImplied(unsigned var)
 {
   // Safe. TODO consider getting zero-implied
   return false;
-}
-
-void Z3Interfacing::collectZeroImplied(SATLiteralStack& acc)
-{
-  NOT_IMPLEMENTED;
-}
-
-SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
-{
-  NOT_IMPLEMENTED;
-
-  return 0;
 }
 
 z3::sort Z3Interfacing::getz3sort(SortId s)
@@ -1793,7 +1769,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
         std::cout << "[Z3] add (naming): " << naming << std::endl;
       }
 
-      if(slit.isNegative()) {
+      if(!slit.positive()) {
         repr.expr = !repr.expr;
         _exporter.apply([&expr = repr.expr](auto& exp){ exp.instantiate_expression(expr); });
       }
@@ -1808,19 +1784,10 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
   } else {
     //if non ground then just create a propositional variable
     z3::expr e = getNameExpr(slit.var());
-    e = slit.isPositive() ? e : !e;
+    e = slit.positive() ? e : !e;
     _exporter.apply([&](auto& exp){ exp.instantiate_expression(e); });
     return Representation(e, Stack<z3::expr>());
   }
-}
-
-SATClause* Z3Interfacing::getRefutation()
-{
-  return PrimitiveProofRecordingSATSolver::getRefutation();
-
-  // TODO: optionally, we could try getting an unsat core from Z3 (could be smaller than all the added clauses so far)
-  // NOTE: this will not (necessarily) be the same option as _unsatCore, which takes care of minimization of added assumptions
-  // also ':core.minimize' might need to be set to get some effect
 }
 
 Z3Interfacing::~Z3Interfacing()

@@ -39,6 +39,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tBinaryHeap.cpp
@@ -200,6 +201,8 @@ set(SOURCES
     Inferences/ALASCA/VariableElimination.cpp
     Inferences/ALASCA/VariableElimination.hpp
     Inferences/ALASCA/VirasInterfacing.hpp
+    Inferences/AnswerLiteralProcessors.cpp
+    Inferences/AnswerLiteralProcessors.hpp
     Inferences/ArgCong.cpp
     Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -291,8 +294,6 @@ set(SOURCES
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/InvalidAnswerLiteralRemovals.cpp
-    Inferences/InvalidAnswerLiteralRemovals.hpp
     Inferences/LfpRule.hpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp
@@ -468,7 +469,6 @@ set(SOURCES
     Lib/Coproduct.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
-    Lib/DHMap.cpp
     Lib/DHMap.hpp
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
@@ -483,8 +483,6 @@ set(SOURCES
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
-    Lib/IntNameTable.cpp
-    Lib/IntNameTable.hpp
     Lib/IntUnionFind.cpp
     Lib/IntUnionFind.hpp
     Lib/IntegerSet.cpp
@@ -560,8 +558,6 @@ set(SOURCES
     Parse/SMTLIB2.hpp
     Parse/TPTP.cpp
     Parse/TPTP.hpp
-    SAT/BufferedSolver.cpp
-    SAT/BufferedSolver.hpp
     SAT/CadicalInterfacing.cpp
     SAT/CadicalInterfacing.hpp
     SAT/FallbackSolverWrapper.cpp
@@ -570,17 +566,16 @@ set(SOURCES
     SAT/MinimizingSolver.hpp
     SAT/MinisatInterfacing.cpp
     SAT/MinisatInterfacing.hpp
-    SAT/MinisatInterfacingNewSimp.cpp
-    SAT/MinisatInterfacingNewSimp.hpp
     SAT/SAT2FO.cpp
     SAT/SAT2FO.hpp
     SAT/SATClause.cpp
     SAT/SATClause.hpp
     SAT/SATInference.cpp
     SAT/SATInference.hpp
-    SAT/SATLiteral.cpp
     SAT/SATLiteral.hpp
+    SAT/ProofProducingSATSolver.hpp
     SAT/SATSolver.hpp
+    SAT/SATSolver.cpp
     SAT/Z3Interfacing.cpp
     SAT/Z3Interfacing.hpp
     SAT/Z3MainLoop.cpp
