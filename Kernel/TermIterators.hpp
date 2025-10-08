@@ -28,6 +28,37 @@
 
 namespace Kernel {
 
+/** iterator over all term arguments of @code term */
+static const auto termArgIter = [](Term const* term) 
+  { return range((unsigned)0, term->numTermArguments())
+      .map([=](auto i)
+           { return term->termArg(i); }); };
+
+/** iterator over all term arguments of @code term */
+static const auto termArgIterTyped = [](Term const* term) 
+  { return range((unsigned)0, term->numTermArguments())
+      .map([=](auto i)
+           { return TypedTermList(term->termArg(i), SortHelper::getArgSort(term, i)); }); };
+
+/** iterator over all type arguments of @code term */
+static const auto typeArgIter = [](Term const* term) 
+  { return range((unsigned)0, term->numTypeArguments())
+      .map([=](auto i)
+           { return term->typeArg(i); }); };
+
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIter = [](Term const* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
+      .map([=](auto i)
+           { return *term->nthArgument(i); }); };
+
+
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIterTyped = [](Term const* term) 
+  { return range(0, term->arity())
+      .map([=](auto i)
+           { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
+
 /**
  * Iterator that yields variables of specified
  * @b term in DFS left to right order.
@@ -432,6 +463,20 @@ private:
   int _added;
 }; // NonVariableIterator
 
+class PositionalNonVariableNonTypeIterator
+  : public IteratorCore<std::tuple<Term*,Stack<unsigned>,Term*>>
+{
+public:
+  PositionalNonVariableNonTypeIterator(Term* term, bool unused = false);
+
+  /** true if there exists at least one subterm */
+  bool hasNext() { return !_stack.isEmpty(); }
+  std::tuple<Term*,Stack<unsigned>,Term*> next();
+private:
+  /** available non-variable subterms */
+  Stack<std::tuple<Term*,Stack<unsigned>,Term*>> _stack;
+}; // PositionalNonVariableNonTypeIterator
+
 /**
  * Iterator that iterator over disagreement set of two terms
  * or literals in DFS left to right order.
@@ -593,39 +638,6 @@ public:
   inline TermList next() { return TypedTermList(*_lit->nthArgument(_idx), SortHelper::getArgSort(_lit, _idx)); _idx++; }
   unsigned size() const { return _lit->arity(); }
 };
-
-
-/** iterator over all term arguments of @code term */
-static const auto termArgIter = [](Term const* term) 
-  { return range((unsigned)0, term->numTermArguments())
-      .map([=](auto i)
-           { return term->termArg(i); }); };
-
-/** iterator over all term arguments of @code term */
-static const auto termArgIterTyped = [](Term const* term) 
-  { return range((unsigned)0, term->numTermArguments())
-      .map([=](auto i)
-           { return TypedTermList(term->termArg(i), SortHelper::getArgSort(term, i)); }); };
-
-/** iterator over all type arguments of @code term */
-static const auto typeArgIter = [](Term const* term) 
-  { return range((unsigned)0, term->numTypeArguments())
-      .map([=](auto i)
-           { return term->typeArg(i); }); };
-
-/** iterator over all type and term arguments of @code term */
-static const auto anyArgIter = [](Term const* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
-      .map([=](auto i)
-           { return *term->nthArgument(i); }); };
-
-
-/** iterator over all type and term arguments of @code term */
-static const auto anyArgIterTyped = [](Term const* term) 
-  { return range(0, term->arity())
-      .map([=](auto i)
-           { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
-
 
 } // namespace Kernel
 

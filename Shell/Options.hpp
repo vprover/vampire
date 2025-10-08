@@ -2259,6 +2259,8 @@ public:
   IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
+  bool goalRewriting() const { return _goalRewriting.actualValue; }
+  unsigned maxGoalRewritingDepth() const { return _maxGoalRewritingDepth.actualValue; }
   bool inductionOnActiveOccurrences() const { return _inductionOnActiveOccurrences.actualValue; }
 
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
@@ -2529,6 +2531,8 @@ private:
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
+  BoolOptionValue _goalRewriting;
+  UnsignedOptionValue _maxGoalRewritingDepth;
   BoolOptionValue _inductionOnActiveOccurrences;
 
   StringOptionValue _latexOutput;

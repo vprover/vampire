@@ -702,6 +702,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
+  case InferenceRule::GOAL_REWRITING:
+    return "goal rewriting";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
     return "function definition rewriting";
   case InferenceRule::FUNCTION_DEFINITION_DEMODULATION:

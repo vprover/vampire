@@ -221,6 +221,19 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
+  case GOAL_TERM_INDEX:
+    res=new GoalTermIndex(new TermSubstitutionTree(), _alg->getOrdering());
+    isGenerating = true;
+    break;
+  case GOAL_REWRITING_RHS_INDEX:
+    res=new GoalRewritingRHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+    isGenerating = true;
+    break;
+  case GOAL_REWRITING_SUBTERM_INDEX:
+    res=new GoalRewritingSubtermIndex(new Indexing::TermSubstitutionTree<TermPositionSideLiteralClause>(), _alg->getOrdering());
+    isGenerating = true;
+    break;
+
   case FW_SUBSUMPTION_CODE_TREE:
     res = new CodeTreeSubsumptionIndex();
     isGenerating = false;

@@ -113,6 +113,33 @@ struct TermLiteralClause
                << ")"; }
 };
 
+using Position = Stack<unsigned>;
+
+struct TermPositionSideLiteralClause 
+{
+  TypedTermList term;
+  Position pos;
+  Term* side;
+  Literal* literal = nullptr;
+  Clause* clause = nullptr;
+
+  TypedTermList const& key() const { return term; }
+
+  auto  asTuple() const
+  { return std::make_tuple(clause->number(), literal->getId(), side->getId(), pos, term); }
+
+  IMPL_COMPARISONS_FROM_TUPLE(TermPositionSideLiteralClause)
+
+  friend std::ostream& operator<<(std::ostream& out, TermPositionSideLiteralClause const& self)
+  { return out << "("
+               << self.term << ", "
+               << "<position>, "
+               << self.side << ", "
+               << self.literal
+               << Output::ptr(self.clause)
+               << ")"; }
+};
+
 /** Custom leaf data for forward demodulation to store the demodulator
  * left- and right-hand side normalized and cache preorderedness. */
 struct DemodulatorData

@@ -356,6 +356,12 @@ Clause* Superposition::performSuperposition(
     }
   }
 
+  if (getOptions().goalRewriting() && (eqClause->goalRewritingDepth() || (!rwClause->goalRewritingDepth() && rwLit->isPositive()))) {
+    // std::cout << "skipping " << rwClause->toString() << " " << *rwLit << " " << rwTerm << std::endl;
+    // std::cout << "with " << eqClause->toString() << " " << *eqLit << " " << eqLHS << std::endl;
+    return 0;
+  }
+
   const Ordering& ordering = _salg->getOrdering();
 
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);

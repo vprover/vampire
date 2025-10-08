@@ -293,6 +293,39 @@ void NonVariableNonTypeIterator::right()
   }
 } // NonVariableIterator::right
 
+PositionalNonVariableNonTypeIterator::PositionalNonVariableNonTypeIterator(Term* term, bool unused)
+  : _stack(8)
+{
+  // std::cout << *term << std::endl;
+  if (term->isLiteral()) {
+    ASS(static_cast<Literal*>(term)->isEquality());
+    for (auto arg : termArgIter(term)) {
+      if (arg.isTerm()) {
+        _stack.push({ arg.term(), Stack<unsigned>(), arg.term() });
+      }
+    }
+  } else {
+    _stack.push({ term, Stack<unsigned>(), term });
+  }
+}
+
+std::tuple<Term*,Stack<unsigned>,Term*> PositionalNonVariableNonTypeIterator::next()
+{
+  auto [t,pos,side] = _stack.pop();
+  TermList* ts;
+
+  for(unsigned i = t->numTypeArguments(); i < t->arity(); i++){
+    ts = t->nthArgument(i);
+    if (ts->isVar()) {
+      continue;
+    }
+    auto newPos = pos;
+    newPos.push(i);
+    _stack.push({ ts->term(), std::move(newPos), side });
+  }
+  return { t, pos, side };
+}
+
 /**
  * True if there exists next non-variable subterm
  */

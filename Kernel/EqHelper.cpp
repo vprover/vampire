@@ -185,6 +185,11 @@ VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
 }
 
+VirtualIterator<std::tuple<Term*,Stack<unsigned>,Term*>> EqHelper::getSubtermIteratorWithPosition(Literal* lit, const Ordering& ord)
+{
+  return getRewritableSubtermIterator<PositionalNonVariableNonTypeIterator>(lit, ord);
+}
+
 TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
 {
   return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
