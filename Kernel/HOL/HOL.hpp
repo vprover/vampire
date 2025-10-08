@@ -24,24 +24,6 @@
  */
 namespace HOL {
 
-#if VDEBUG
-  #define LOG(...)   ::HOL::print_debug(__REL_FILE__, __LINE__, __VA_ARGS__)
-  #define LOGE(expr) ::HOL::print_debug(__REL_FILE__, __LINE__, #expr, expr)
-#else
-  #define LOG(...)
-  #define LOGE(expr)
-#endif
-
-template<class... A>
-void print_debug(const char* file, unsigned line, const A&... msg) {
-  for (unsigned i = 0; i < Debug::debugConfig.indent; ++i)
-    std::cout << "  ";
-
-  std::cout << "|LOG " << file << ":" << line << " @ ";
-  ((std::cout << " " << msg), ...);
-  std::cout << std::endl;
-}
-
 using Kernel::Term;
   
 inline bool isTrue(TermList term) {
@@ -55,7 +37,7 @@ inline bool isFalse(TermList term) {
 std::string toString(const Term &term, bool topLevel);
 
 TermList matrix(TermList t);
-void getHeadAndArgs(TermList term, TermList &head, Kernel::TermStack &args);
+void getHeadAndArgs(TermList term, TermList &head, TermStack &args);
 
 TermList getNthArg(TermList arrowSort, unsigned argNum);
 TermList getResultAppliedToNArgs(TermList arrowSort, unsigned argNum);
@@ -70,14 +52,17 @@ TermList rhsSort(TermList t);
 
 void getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts);
 
-inline bool canHeadReduce(const TermList& head, const TermStack& args) { return head.isLambdaTerm() && args.size(); }
+inline bool canHeadReduce(const TermList& head, const TermStack& args) {
+  return head.isLambdaTerm() && args.isNonEmpty();
+}
+
 } // namespace HOL
 
 namespace HOL::create {
   TermList app(TermList sort, TermList head, TermList arg);
   TermList app(TermList head, TermList arg);
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
-  TermList app(TermList sort, TermList head, TermStack& terms); // todo const termstack
+  TermList app(TermList sort, TermList head, const TermStack& terms); // todo const termstack
 
   inline TermList app2(TermList sort, TermList head, TermList arg1, TermList arg2) {
     return app(app(sort, head, arg1), arg2);

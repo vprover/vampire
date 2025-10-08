@@ -1,5 +1,5 @@
 /*
-* This file is part of the source code of the software program
+ * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
  *
@@ -8,7 +8,7 @@
  * and in the source directory
  */
 /**
- * @file EtaNormaliser.cpp
+ * @file EtaNormaliser.hpp
  */
 
 #ifndef __EtaNormaliser__

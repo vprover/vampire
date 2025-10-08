@@ -1,5 +1,5 @@
 /*
-* This file is part of the source code of the software program
+ * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
  * copyright laws.
  *
@@ -17,10 +17,8 @@ using HOL::convert::toNameless;
 using HOL::reduce::etaNF;
 
 HOL_TEST_FUN(eta_reduction_1) {
-  auto a = D.a;
-
-  ASS_EQ(a, toNameless(a))
-  ASS_EQ(etaNF(a), a)
+  ASS_EQ(D.a, toNameless(D.a))
+  ASS_EQ(etaNF(D.a), D.a)
 
   auto term = toNameless(lam(x0, app({D.f, x0})));
   ASS_EQ(termListToString(term, Options::HPrinting::TPTP),
