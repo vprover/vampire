@@ -153,17 +153,24 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
     out << "# Saturated clause set:" << endl;
   }
 
-  bool clean = true;
   while (uit.hasNext()) {
     Clause *cl = uit.next()->asClause();
-    out << TPTPPrinter::toString(cl) << endl;
+    ASS(cl->length() == 1)
     Literal *l = (*cl)[0];
-    if(l->isEquality() && Kernel::Ordering::tryGetGlobalOrdering()->getEqualityArgumentOrder(l) == Ordering::INCOMPARABLE)
-      clean = false;
-  }
+    ASS(l->isEquality())
 
-  if(clean)
-    std::cout << "% XXX all preordered\n";
+    if(!l->polarity()) {
+      std::cout << *l << '\n';
+      continue;
+    }
+    auto ordering = Ordering::tryGetGlobalOrdering()->getEqualityArgumentOrder(l);
+    if(ordering == Ordering::GREATER)
+      out << l->termArg(0) << " -> " << l->termArg(1) << '\n';
+    else if(ordering == Ordering::LESS)
+      out << l->termArg(1) << " -> " << l->termArg(0) << '\n';
+    else
+      std::cout << "% not preordered\n";
+  }
 
   if (szsOutputMode()) {
     out << "% SZS output end Saturation." << endl;
