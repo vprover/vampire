@@ -22,21 +22,17 @@ constexpr auto PRETTY = Options::HPrinting::PRETTY;
 constexpr auto TPTP = Options::HPrinting::TPTP;
 
 using namespace Test::HOL;
+static const auto x0F = Defs::x(0, Defs::instance()->fSrt);
+static const auto x1F = Defs::x(1, Defs::instance()->fSrt);
 
-void runTest(const TermList& term, const std::map<Options::HPrinting, std::string>& reps) {
-  for (const auto& [printOpt, expected] : reps) {
-    env.options->setHolPrinting(printOpt);
-    ASS_EQ(term.toString(), expected)
-  }
+void runTest(TermList term, const std::map<Options::HPrinting, std::string>& reps) {
+  for (const auto& [printOpt, expected] : reps)
+    ASS_EQ(termListToString(term, printOpt), expected)
 }
 
-TEST_FUN(hol_print_1) {
-  env.setHigherOrder(true);
-
-  const auto& D = *Defs::instance();
-
+HOL_TEST_FUN(hol_print_1) {
   runTest(
-    lam({{D.x0, D.fSrt}, {D.x1, D.srt}}, {D.x1, D.srt}),
+    lam({x0F, x1}, x1),
     { {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
       {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
       {PRETTY,     "(λX0 : (srt → srt), X1 : srt : (X1))"},
@@ -44,7 +40,7 @@ TEST_FUN(hol_print_1) {
   );
   
   runTest(
-    lam({{D.x0, D.fSrt}, {D.x1, D.srt}}, app({D.x0, D.fSrt}, {D.x1, D.srt})),
+    lam({x0F, x1}, app(x0F, x1)),
     { {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (vAPP(srt,srt,X0,X1)))"},
       {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"},
       {PRETTY,     "(λX0 : (srt → srt), X1 : srt : ((X0 X1)))"},
@@ -52,7 +48,7 @@ TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    app(D.f, {D.x1, D.srt}),
+    app(D.f, x1),
     { {RAW,        "vAPP(srt,srt,f,X1)"},
       {DB_INDICES, "(f @ X1)"},
       {PRETTY,     "(f X1)"},
@@ -60,7 +56,7 @@ TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    lam({D.x1, D.srt}, app(D.f, {D.x1, D.srt})),
+    lam(x1, app(D.f, x1)),
     { {RAW,        "(^[X1 : srt] : (vAPP(srt,srt,f,X1)))"},
       {DB_INDICES, "(^[X1 : srt] : ((f @ X1)))"},
       {PRETTY,     "(λX1 : srt : ((f X1)))"},
@@ -68,7 +64,7 @@ TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    lam({D.x1, D.fSrt}, lam({D.x1, D.srt}, {D.x1, D.srt})),
+    lam(x1F, lam(x1, x1)),
     { {RAW,        "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" }, 
       {DB_INDICES, "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" }, 
       {PRETTY,     "(λX1 : (srt → srt) : ((λX1 : srt : (X1))))" }, 
@@ -76,16 +72,11 @@ TEST_FUN(hol_print_1) {
   );
 }
 
-TEST_FUN(hol_print_2)
-{
-  env.setHigherOrder(true);
-
-  const auto& D = *Defs::instance();
-
+HOL_TEST_FUN(hol_print_2) {
   using HOL::convert::toNameless;
 
   runTest(
-    toNameless(lam({{D.x0, D.fSrt}, {D.x1, D.srt}}, {D.x1, D.srt})),
+    toNameless(lam({x0F, x1}, x1)),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,db0(srt)))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. y1))" },
@@ -93,7 +84,7 @@ TEST_FUN(hol_print_2)
   );
 
   runTest(
-    toNameless(lam({{D.x0, D.fSrt}, {D.x1, D.srt}}, app({D.x0, D.fSrt}, {D.x1, D.srt}))),
+    toNameless(lam({x0F, x1}, app(x0F, x1))),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,db1(srt > srt),db0(srt))))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db1_1 @ db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. (y0 y1)))" },
@@ -101,7 +92,7 @@ TEST_FUN(hol_print_2)
   );
 
   runTest(
-    toNameless(app(D.f, {D.x1, D.srt})),
+    toNameless(app(D.f, x1)),
     { {RAW,        "vAPP(srt,srt,f,X1)"},
       {DB_INDICES, "(f @ X1)"},
       {PRETTY,     "(f X1)"},
@@ -109,7 +100,7 @@ TEST_FUN(hol_print_2)
   );
 
   runTest(
-    toNameless(lam({D.x1, D.srt}, app(D.f, {D.x1, D.srt}))),
+    toNameless(lam(x1, app(D.f, x1))),
     { {RAW,        "vLAM(srt,srt,vAPP(srt,srt,f,db0(srt)))"},
       {DB_INDICES, "(^db0 : srt. (f @ db0_0))"},
       {PRETTY,     "(λy0 : srt. (f y0))"},
@@ -117,7 +108,7 @@ TEST_FUN(hol_print_2)
   );
 
   runTest(
-    toNameless(lam({D.x1, D.fSrt}, lam({D.x1, D.srt}, {D.x1, D.srt}))),
+    toNameless(lam(x1F, lam(x1, x1))),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,db0(srt)))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. y1))" },

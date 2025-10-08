@@ -18,7 +18,17 @@
 #include "Kernel/TypedTermList.hpp"
 #include "Shell/Options.hpp"
 
+#include <optional>
+
 namespace Test::HOL {
+
+#define HOL_TEST_FUN(name)                 \
+  void name ## _test_impl(const Defs&);    \
+  TEST_FUN(name) {                         \
+    env.setHigherOrder(true);              \
+    name ## _test_impl(*Defs::instance()); \
+  }                                        \
+  void name ## _test_impl(const Defs& D)
 
 using namespace Kernel;
 
@@ -33,21 +43,21 @@ inline TypedTermList lam(TypedTermList var, TypedTermList body) {
 TypedTermList app(TypedTermList lhs, TypedTermList rhs);
 TypedTermList app(const std::initializer_list<TypedTermList>& terms);
 
-TypedTermList mkConst(const std::string& name, TermList sort);
-
 class Defs {
   static Defs* _instance;
   Defs();
 public:
   static Defs* instance();
 
-  TermList srt;
-  TermList fSrt;
-  TermList x0;
-  TermList x1;
-  TypedTermList a;
-  TypedTermList f;
+  static TypedTermList x(unsigned idx, std::optional<TermList> sort = std::nullopt);
+
+  TermList srt, fSrt;
+  TypedTermList a, f, f2, f3, g;
 };
+
+const auto x0 = Defs::x(0);
+const auto x1 = Defs::x(1);
+const auto x2 = Defs::x(2);
 
 } // namespace Test::HOL
 

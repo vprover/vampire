@@ -36,7 +36,6 @@ public:
 
   TermList normalise(TermList t);
 
-  // puts term into weak head normal form
   TermList transformSubterm(TermList t) override;
 
   bool exploreSubterms(TermList orig, TermList newTerm) override;

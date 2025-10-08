@@ -21,8 +21,12 @@ namespace Test::HOL {
 using namespace Kernel;
 
 std::string termListToString(TermList t, Options::HPrinting opt) {
+  const auto prev = env.options->holPrinting();
   env.options->setHolPrinting(opt);
-  return t.toString(true);
+  const auto s = t.toString();
+  env.options->setHolPrinting(prev);
+
+  return s;
 }
 
 TypedTermList lam(std::initializer_list<TypedTermList> typedVars, TypedTermList body) {
@@ -68,7 +72,7 @@ static TermList mkAtomicSort(const std::string& name) {
   return TermList(AtomicSort::createConstant(name));
 }
 
-TypedTermList mkConst(const std::string& name, TermList sort) {
+static TypedTermList mkConst(const std::string& name, TermList sort) {
   unsigned nameIndex = env.signature->addFunction(name, 0);
   env.signature->getFunction(nameIndex)->setType(OperatorType::getFunctionType({}, sort));
   return {TermList(Term::createConstant(nameIndex)), sort};
@@ -77,10 +81,11 @@ TypedTermList mkConst(const std::string& name, TermList sort) {
 Defs::Defs() {
   srt = mkAtomicSort("srt");
   fSrt = TermList(AtomicSort::arrowSort(srt, srt));
-  x0 = TermList::var(0);
-  x1 = TermList::var(1);
-  a = {mkConst("a", srt), srt};
-  f = {mkConst("f", fSrt), fSrt};
+  a = mkConst("a", srt);
+  f = mkConst("f", fSrt);
+  f2 = mkConst("f2", AtomicSort::arrowSort(srt, AtomicSort::arrowSort(srt, srt)));
+  f3 = mkConst("f3", AtomicSort::arrowSort(srt, AtomicSort::arrowSort(srt, AtomicSort::arrowSort(srt, srt))));
+  g = mkConst("g", AtomicSort::arrowSort(AtomicSort::arrowSort(srt, srt), srt));
 }
 
 Defs* Defs::_instance = nullptr;
@@ -90,6 +95,10 @@ Defs* Defs::instance() {
     _instance = new Defs();
 
   return _instance;
+}
+
+TypedTermList Defs::x(unsigned idx, std::optional<TermList> sort) {
+  return {TermList::var(idx), sort.value_or(instance()->srt)};
 }
 
 } // namespace Test::HOL
