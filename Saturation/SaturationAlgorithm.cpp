@@ -76,7 +76,7 @@
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
-#include "Inferences/GoalRewriting.hpp"
+#include "Inferences/GoalParamodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
@@ -1470,8 +1470,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
   }
-  if (opt.goalRewriting()) {
-    gie->addFront(new GoalRewriting());
+  if (opt.goalParamodulation()) {
+    gie->addFront(new GoalParamodulation());
   }
 
   if (opt.instantiation() != Options::Instantiation::OFF) {

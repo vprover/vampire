@@ -2093,6 +2093,7 @@ public:
   bool partialRedundancyOrderingConstraints() const { return _partialRedundancyOrderingConstraints.actualValue; }
   bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
   bool partialRedundancyLiteralConstraints() const { return _partialRedundancyLiteralConstraints.actualValue; }
+  bool goalParamodulation() const { return _goalParamodulation.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -2259,8 +2260,6 @@ public:
   IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
-  bool goalRewriting() const { return _goalRewriting.actualValue; }
-  unsigned maxGoalRewritingDepth() const { return _maxGoalRewritingDepth.actualValue; }
   bool inductionOnActiveOccurrences() const { return _inductionOnActiveOccurrences.actualValue; }
 
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
@@ -2494,6 +2493,7 @@ private:
   BoolOptionValue _partialRedundancyOrderingConstraints;
   BoolOptionValue _partialRedundancyAvatarConstraints;
   BoolOptionValue _partialRedundancyLiteralConstraints;
+  BoolOptionValue _goalParamodulation;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
@@ -2531,8 +2531,6 @@ private:
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
-  BoolOptionValue _goalRewriting;
-  UnsignedOptionValue _maxGoalRewritingDepth;
   BoolOptionValue _inductionOnActiveOccurrences;
 
   StringOptionValue _latexOutput;

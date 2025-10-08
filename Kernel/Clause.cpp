@@ -78,7 +78,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
-    _grwDepth(0),
+    _goalClause(false),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
@@ -440,7 +440,9 @@ std::string Clause::toString() const
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
-    result += ",grwDepth:" + Int::toString(_grwDepth);
+    if (_goalClause) {
+      result += ",goalClause:1";
+    }
     result += std::string("}");
   }
 

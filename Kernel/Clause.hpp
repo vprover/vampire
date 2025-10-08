@@ -376,8 +376,8 @@ public:
     return getAnswerLiteral() != nullptr;
   }
 
-  unsigned goalRewritingDepth() const { return _grwDepth; }
-  void setGoalRewritingDepth(unsigned depth) { _grwDepth = depth; }
+  bool isGoalClause() const { return _goalClause; }
+  void markGoalClause() { _goalClause = true; }
 
 protected:
   /** number of literals */
@@ -409,7 +409,7 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
-  unsigned _grwDepth;
+  bool _goalClause;
 
   int _numActiveSplits;
 

@@ -100,7 +100,7 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
 {
   TIME_TRACE("forward demodulation");
 
-  if (cl->goalRewritingDepth()) {
+  if (cl->isGoalClause()) {
     return false;
   }
 

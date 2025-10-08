@@ -225,12 +225,12 @@ Index* IndexManager::create(IndexType t)
     res=new GoalTermIndex(new TermSubstitutionTree(), _alg->getOrdering());
     isGenerating = true;
     break;
-  case GOAL_REWRITING_RHS_INDEX:
-    res=new GoalRewritingRHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+  case GOAL_PARAMODULATION_RHS_INDEX:
+    res=new GoalParamodulationRHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-  case GOAL_REWRITING_SUBTERM_INDEX:
-    res=new GoalRewritingSubtermIndex(new Indexing::TermSubstitutionTree<TermPositionSideLiteralClause>(), _alg->getOrdering());
+  case GOAL_PARAMODULATION_SUBTERM_INDEX:
+    res=new GoalParamodulationSubtermIndex(new Indexing::TermSubstitutionTree<TermPositionSideLiteralClause>(), _alg->getOrdering());
     isGenerating = true;
     break;
 

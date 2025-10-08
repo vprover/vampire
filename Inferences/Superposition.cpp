@@ -356,9 +356,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if (getOptions().goalRewriting() && (eqClause->goalRewritingDepth() || (!rwClause->goalRewritingDepth() && rwLit->isPositive()))) {
-    // std::cout << "skipping " << rwClause->toString() << " " << *rwLit << " " << rwTerm << std::endl;
-    // std::cout << "with " << eqClause->toString() << " " << *eqLit << " " << eqLHS << std::endl;
+  if (getOptions().goalParamodulation() && (eqClause->isGoalClause() || (!rwClause->isGoalClause() && rwLit->isPositive()))) {
     return 0;
   }
 

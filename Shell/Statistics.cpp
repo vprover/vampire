@@ -229,7 +229,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
-  COND_OUT("Goal rewritings", goalRewritings);
+  COND_OUT("Goal paramodulation", goalParamodulation);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);

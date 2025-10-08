@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file GoalRewriting.cpp
- * Implements class GoalRewriting.
+ * @file GoalParamodulation.cpp
+ * Implements class GoalParamodulation.
  */
 
 #include "Lib/Metaiterators.hpp"
@@ -24,7 +24,7 @@
 
 #include "Shell/Options.hpp"
 
-#include "GoalRewriting.hpp"
+#include "GoalParamodulation.hpp"
 
 namespace Inferences {
 
@@ -32,24 +32,24 @@ using namespace Lib;
 using namespace Kernel;
 using namespace std;
 
-void GoalRewriting::attach(SaturationAlgorithm* salg)
+void GoalParamodulation::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
 
   _goalTermIndex=static_cast<TermIndex<TermLiteralClause>*>(
 	  _salg->getIndexManager()->request(GOAL_TERM_INDEX) );
   _rhsIndex=static_cast<TermIndex<TermLiteralClause>*>(
-	  _salg->getIndexManager()->request(GOAL_REWRITING_RHS_INDEX) );
+	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_RHS_INDEX) );
   _subtermIndex=static_cast<TermIndex<TermPositionSideLiteralClause>*>(
-	  _salg->getIndexManager()->request(GOAL_REWRITING_SUBTERM_INDEX) );
+	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_SUBTERM_INDEX) );
 }
 
-void GoalRewriting::detach()
+void GoalParamodulation::detach()
 {
   _rhsIndex = nullptr;
   _subtermIndex = nullptr;
-  _salg->getIndexManager()->release(GOAL_REWRITING_RHS_INDEX);
-  _salg->getIndexManager()->release(GOAL_REWRITING_SUBTERM_INDEX);
+  _salg->getIndexManager()->release(GOAL_PARAMODULATION_RHS_INDEX);
+  _salg->getIndexManager()->release(GOAL_PARAMODULATION_SUBTERM_INDEX);
   GeneratingInferenceEngine::detach();
 }
 
@@ -84,18 +84,12 @@ TermList replaceOccurrence(Term* t, const Term* orig, TermList repl, const Posit
   return res;
 }
 
-ClauseIterator GoalRewriting::generateClauses(Clause* premise)
+ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
 {
-  // if (premise->goalRewritingDepth()>=_salg->getOptions().maxGoalRewritingDepth()) {
-  //   return ClauseIterator::getEmpty();
-  // }
-
   auto itf = premise->getSelectedLiteralIterator()
     .filter([](Literal* lit) { return lit->isPositive(); })
     .flatMap([this](Literal* lit)
       { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIteratorWithPosition(lit,  _salg->getOrdering())); })
-    // .filter([this](pair<Literal*, tuple<Term*,Stack<unsigned>,Term*>> arg)
-    //   { return _goalTermIndex->getInstances(TypedTermList(EqHelper::getOtherEqualitySide(arg.first, TermList(get<2>(arg.second))), arg.first->eqArgSort()), false).hasNext(); })
     .flatMap([this](pair<Literal*, tuple<Term*,Stack<unsigned>,Term*>> arg)
       { return pushPairIntoRightIterator(arg, _rhsIndex->getUnifications(get<0>(arg.second))); })
     .map([this,premise](pair<pair<Literal*, tuple<Term*,Stack<unsigned>,Term*>>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) -> Clause* {
@@ -111,8 +105,6 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
     .flatMap([this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(arg,
           _subtermIndex->getUnifications(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)))); })
-    // .filter([this](pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermPositionSideLiteralClause>> arg)
-    //   { return _goalTermIndex->getInstances(TypedTermList(EqHelper::getOtherEqualitySide(arg.second.data->literal, TermList(arg.second.data->side)), arg.second.data->literal->eqArgSort()), false).hasNext(); })
     .map([this,premise](pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermPositionSideLiteralClause>> arg) -> Clause* {
         if (premise == arg.second.data->clause) { return nullptr; }
 
@@ -128,7 +120,7 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
     .filter(NonzeroFn()));
 }
 
-Clause* GoalRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, const Term* rwTerm, const Position& pos,
+Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, const Term* rwTerm, const Position& pos,
   Clause* eqClause, Literal* eqLit, TermList eqRhs, ResultSubstitution* subst, bool eqIsResult)
 {
   ASS_EQ(rwClause->store(),Clause::ACTIVE);
@@ -193,10 +185,10 @@ Clause* GoalRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, c
     res->push(subst->apply(lit, eqIsResult));
   }
 
-  env.statistics->backwardSubsumed++;
+  env.statistics->goalParamodulation++;
 
-  auto resCl = Clause::fromStack(*res, Inference(GeneratingInference2(InferenceRule::GOAL_REWRITING, rwClause, eqClause)));
-  resCl->setGoalRewritingDepth(1);
+  auto resCl = Clause::fromStack(*res, Inference(GeneratingInference2(InferenceRule::GOAL_PARAMODULATION, rwClause, eqClause)));
+  resCl->markGoalClause();
   return resCl;
 }
 

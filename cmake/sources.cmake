@@ -278,8 +278,8 @@ set(SOURCES
     Inferences/GaussianVariableElimination.hpp
     Inferences/GlobalSubsumption.cpp
     Inferences/GlobalSubsumption.hpp
-    Inferences/GoalRewriting.cpp
-    Inferences/GoalRewriting.hpp
+    Inferences/GoalParamodulation.cpp
+    Inferences/GoalParamodulation.hpp
     Inferences/Induction.cpp
     Inferences/Induction.hpp
     Inferences/InductionHelper.cpp

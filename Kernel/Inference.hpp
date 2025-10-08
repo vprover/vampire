@@ -294,7 +294,7 @@ enum class InferenceRule : unsigned char {
   CONSTRAINED_FACTORING,
   /** superposition inference */
   SUPERPOSITION,
-  GOAL_REWRITING,
+  GOAL_PARAMODULATION,
   /** function definition rewriting inference */
   FUNCTION_DEFINITION_REWRITING,
   /** superposition with constraints */

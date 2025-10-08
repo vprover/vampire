@@ -73,7 +73,7 @@ void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
 
   static DHSet<Term*> inserted;
 
-  if (c->goalRewritingDepth()) {
+  if (c->isGoalClause()) {
     return;
   }
 
@@ -113,7 +113,7 @@ void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->goalRewritingDepth()) {
+  if (c->length()!=1 || c->isGoalClause()) {
     return;
   }
 
@@ -138,7 +138,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void GoalRewritingRHSIndex::handleClause(Clause* c, bool adding)
+void GoalParamodulationRHSIndex::handleClause(Clause* c, bool adding)
 {
   for (const auto& lit : c->getSelectedLiteralIterator()) {
     for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
@@ -148,7 +148,7 @@ void GoalRewritingRHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void GoalRewritingSubtermIndex::handleClause(Clause* c, bool adding)
+void GoalParamodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   for (const auto& lit : c->getSelectedLiteralIterator()) {
     if (lit->isNegative()) { continue; }

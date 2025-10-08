@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file GoalRewriting.hpp
- * Defines class GoalRewriting
+ * @file GoalParamodulation.hpp
+ * Defines class GoalParamodulation
  *
  */
 
-#ifndef __GoalRewriting__
-#define __GoalRewriting__
+#ifndef __GoalParamodulation__
+#define __GoalParamodulation__
 
 #include "Forwards.hpp"
 
@@ -37,7 +37,7 @@ using namespace Saturation;
 
 using Position = Stack<unsigned>;
 
-class GoalRewriting
+class GoalParamodulation
 : public GeneratingInferenceEngine
 {
 public:
@@ -56,4 +56,4 @@ private:
 
 }
 
-#endif /*__GoalRewriting__*/
+#endif /*__GoalParamodulation__*/
