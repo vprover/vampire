@@ -299,40 +299,44 @@ protected:
   bool outputAxiomNames;
 
 private:
-  // produce a topological sort of the SAT proof starting at `root`
-  std::vector<SATClause *> topological_sort(SATClause *root) {
-    std::vector<SATClause *> result;
-    // second element is a flag indicating that we've finished processing this node,
-    // i.e. all its parents are now in the topological sort
-    std::vector<std::pair<SATClause *, bool>> todo = {{root, false}};
-    // we already processed these
-    std::unordered_set<SATClause *> done;
-
-    while(!todo.empty()) {
-      auto [next, finished] = todo.back();
-      if(finished) {
-        todo.pop_back();
-        if(done.insert(next).second)
-          result.push_back(next);
-        continue;
-      }
-      todo.back().second = true;
-
-      SATInference *inference = next->inference();
-      if(inference->getType() == SATInference::InfType::FO_CONVERSION)
-        continue;
-
-      PropInference *deduction = static_cast<PropInference *>(inference);
-      for(SATClause *premise : iterTraits(deduction->getPremises()->iter()))
-        if(!done.count(premise))
-          todo.push_back({premise, false});
-    }
-    return result;
-  }
+  struct CompareSATClauses {
+    bool operator()(SATClause *l, SATClause *r) const { return l->number < r->number; }
+  };
 
   struct CompareUnits {
     bool operator()(Unit *l, Unit *r) const { return l->number() < r->number(); }
   };
+
+  // produce a topological sort of the SAT proof starting at `root`
+  std::set<SATClause *, CompareSATClauses> topological_sort(SATClause *root) {
+    // things inserted in here will be topologically sorted,
+    // because it's an ordered set and the clauses are numbered
+    std::set<SATClause *, CompareSATClauses> topological;
+
+    // compute closure of root and insert into `topological`
+    std::vector<SATClause *> todo = { root };
+    while(!todo.empty()) {
+      SATClause *next = todo.back();
+      todo.pop_back();
+
+      // check if already processed (proofs are DAGs, not trees)
+      auto [_, inserted] = topological.insert(next);
+      if(!inserted)
+        continue;
+
+      // process premise parents
+      SATInference *inference = next->inference();
+      if(inference->getType() != SATInference::InfType::PROP_INF)
+        continue;
+      SATClauseList *parents =
+        static_cast<PropInference *>(inference)->getPremises();
+      for(SATClause *parent : iterTraits(parents->iter()))
+        todo.push_back(parent);
+    }
+
+    return topological;
+  }
+
   std::set<Unit *, CompareUnits> proof;
 };
 
