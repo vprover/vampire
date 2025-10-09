@@ -588,7 +588,7 @@ protected:
     return getNewSymbols(origin, SymbolStack::ConstIterator(syms));
   }
 
-  void printStep(Unit* us)
+  void printStep(Unit* us) override
   {
     InferenceRule rule = us->inference().rule();
     UnitIterator parents= us->getParents();
@@ -658,19 +658,65 @@ protected:
       inferenceStr="inference("+tptpRuleName(rule);
 
       inferenceStr+=",["+statusStr+"],[";
-      bool first=true;
-      while(parents.hasNext()) {
-        Unit* prem=parents.next();
-        if (!first) {
-          inferenceStr+=',';
+      if(rule==InferenceRule::AVATAR_REFUTATION) {
+        SATClause *premise = us->inference().satPremise();
+        ASS(premise)
+        inferenceStr += "s" + Int::toString(premise->number);
+      }
+      else {
+        bool first=true;
+        while(parents.hasNext()) {
+          Unit* prem=parents.next();
+          if (!first) {
+            inferenceStr+=',';
+          }
+          inferenceStr+=tptpUnitId(prem);
+          first=false;
         }
-        inferenceStr+=tptpUnitId(prem);
-        first=false;
       }
       inferenceStr+="])";
     }
 
     out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule, us->inputType())<<endl;
+  }
+
+  void printSATStep(SATClause *cl) override {
+    out << "cnf(s" << cl->number << ", plain, ";
+    if(cl->isEmpty())
+      out << "$false";
+    else {
+      bool first = true;
+      for(SATLiteral l : iterTraits(cl->iter())) {
+        if(!first)
+          out << " | ";
+        first = false;
+        out << Saturation::Splitter::getFormulaStringFromLiteral(l);
+      }
+    }
+
+    out << ", inference(";
+    auto inference = cl->inference();
+    switch(inference->getType()) {
+    case SAT::SATInference::PROP_INF: {
+      out << "rat,[],[";
+      bool first = true;
+      SATClauseList *parents =
+        static_cast<PropInference *>(inference)->getPremises();
+      for(SATClause *parent : iterTraits(parents->iter())) {
+        if(!first)
+          out << ",";
+        first = false;
+        out << 's' << parent->number;
+      }
+      break;
+    }
+    case SAT::SATInference::FO_CONVERSION:
+      out
+        << "sat_conversion,[],[f"
+        << static_cast<FOConversionInference *>(inference)->getOrigin()->number();
+      break;
+    }
+    out << "])).\n";
   }
 
   void printSplitting(Unit* us)

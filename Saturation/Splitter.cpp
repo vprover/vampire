@@ -590,6 +590,7 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
+
 std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
   if (splPrefix.empty()) {
@@ -603,6 +604,10 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
   if (negated) {
     lit = lit.opposite();
   }
+  return getFormulaStringFromLiteral(lit);
+}
+
+std::string Splitter::getFormulaStringFromLiteral(SATLiteral lit) {
   if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());
   } else {
