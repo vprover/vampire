@@ -139,7 +139,7 @@ Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
   AppliedTerm eqLhsApplied(EqHelper::getOtherEqualitySide(eqLit, eqRhs), &eqAppl, true);
   AppliedTerm eqRhsApplied(eqRhs, &eqAppl, true);
 
-  if (Ordering::isGreaterOrEqual(ordering.compareUnidirectional(eqRhsApplied,eqLhsApplied))) {
+  if (ordering.compareUnidirectional(eqLhsApplied,eqRhsApplied)!=Ordering::GREATER) {
     return nullptr;
   }
 
