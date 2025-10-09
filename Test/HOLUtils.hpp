@@ -49,15 +49,13 @@ class Defs {
 public:
   static Defs* instance();
 
-  static TypedTermList x(unsigned idx, std::optional<TermList> sort = std::nullopt);
-
   TermList srt, fSrt;
   TypedTermList a, f, f2, f3, g;
 };
 
-const auto x0 = Defs::x(0);
-const auto x1 = Defs::x(1);
-const auto x2 = Defs::x(2);
+TypedTermList x(unsigned idx, std::optional<TermList> sort = std::nullopt);
+
+TypedTermList id(std::optional<TermList> sort = std::nullopt);
 
 } // namespace Test::HOL
 

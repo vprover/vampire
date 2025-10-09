@@ -22,8 +22,6 @@ constexpr auto PRETTY = Options::HPrinting::PRETTY;
 constexpr auto TPTP = Options::HPrinting::TPTP;
 
 using namespace Test::HOL;
-static const auto x0F = Defs::x(0, Defs::instance()->fSrt);
-static const auto x1F = Defs::x(1, Defs::instance()->fSrt);
 
 void runTest(TermList term, const std::map<Options::HPrinting, std::string>& reps) {
   for (const auto& [printOpt, expected] : reps)
@@ -31,8 +29,11 @@ void runTest(TermList term, const std::map<Options::HPrinting, std::string>& rep
 }
 
 HOL_TEST_FUN(hol_print_1) {
+  const auto x0F = x(0, Defs::instance()->fSrt);
+  const auto x1F = x(1, Defs::instance()->fSrt);
+
   runTest(
-    lam({x0F, x1}, x1),
+    lam({x0F, x(1)}, x(1)),
     { {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
       {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
       {PRETTY,     "(λX0 : (srt → srt), X1 : srt : (X1))"},
@@ -40,7 +41,7 @@ HOL_TEST_FUN(hol_print_1) {
   );
   
   runTest(
-    lam({x0F, x1}, app(x0F, x1)),
+    lam({x0F, x(1)}, app(x0F, x(1))),
     { {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (vAPP(srt,srt,X0,X1)))"},
       {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"},
       {PRETTY,     "(λX0 : (srt → srt), X1 : srt : ((X0 X1)))"},
@@ -48,7 +49,7 @@ HOL_TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    app(D.f, x1),
+    app(D.f, x(1)),
     { {RAW,        "vAPP(srt,srt,f,X1)"},
       {DB_INDICES, "(f @ X1)"},
       {PRETTY,     "(f X1)"},
@@ -56,7 +57,7 @@ HOL_TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    lam(x1, app(D.f, x1)),
+    lam(x(1), app(D.f, x(1))),
     { {RAW,        "(^[X1 : srt] : (vAPP(srt,srt,f,X1)))"},
       {DB_INDICES, "(^[X1 : srt] : ((f @ X1)))"},
       {PRETTY,     "(λX1 : srt : ((f X1)))"},
@@ -64,7 +65,7 @@ HOL_TEST_FUN(hol_print_1) {
   );
 
   runTest(
-    lam(x1F, lam(x1, x1)),
+    lam(x1F, lam(x(1), x(1))),
     { {RAW,        "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" }, 
       {DB_INDICES, "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" }, 
       {PRETTY,     "(λX1 : (srt → srt) : ((λX1 : srt : (X1))))" }, 
@@ -75,8 +76,11 @@ HOL_TEST_FUN(hol_print_1) {
 HOL_TEST_FUN(hol_print_2) {
   using HOL::convert::toNameless;
 
+  const auto x0F = x(0, Defs::instance()->fSrt);
+  const auto x1F = x(1, Defs::instance()->fSrt);
+
   runTest(
-    toNameless(lam({x0F, x1}, x1)),
+    toNameless(lam({x0F, x(1)}, x(1))),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,db0(srt)))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. y1))" },
@@ -84,7 +88,7 @@ HOL_TEST_FUN(hol_print_2) {
   );
 
   runTest(
-    toNameless(lam({x0F, x1}, app(x0F, x1))),
+    toNameless(lam({x0F, x(1)}, app(x0F, x(1)))),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,db1(srt > srt),db0(srt))))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db1_1 @ db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. (y0 y1)))" },
@@ -92,7 +96,7 @@ HOL_TEST_FUN(hol_print_2) {
   );
 
   runTest(
-    toNameless(app(D.f, x1)),
+    toNameless(app(D.f, x(1))),
     { {RAW,        "vAPP(srt,srt,f,X1)"},
       {DB_INDICES, "(f @ X1)"},
       {PRETTY,     "(f X1)"},
@@ -100,7 +104,7 @@ HOL_TEST_FUN(hol_print_2) {
   );
 
   runTest(
-    toNameless(lam(x1, app(D.f, x1))),
+    toNameless(lam(x(1), app(D.f, x(1)))),
     { {RAW,        "vLAM(srt,srt,vAPP(srt,srt,f,db0(srt)))"},
       {DB_INDICES, "(^db0 : srt. (f @ db0_0))"},
       {PRETTY,     "(λy0 : srt. (f y0))"},
@@ -108,7 +112,7 @@ HOL_TEST_FUN(hol_print_2) {
   );
 
   runTest(
-    toNameless(lam(x1F, lam(x1, x1))),
+    toNameless(lam(x1F, lam(x(1), x(1)))),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,db0(srt)))" },
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. y1))" },

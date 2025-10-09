@@ -97,8 +97,16 @@ Defs* Defs::instance() {
   return _instance;
 }
 
-TypedTermList Defs::x(unsigned idx, std::optional<TermList> sort) {
-  return {TermList::var(idx), sort.value_or(instance()->srt)};
+TypedTermList x(unsigned idx, std::optional<TermList> sort) {
+  return {TermList::var(idx), sort.value_or(Defs::instance()->srt)};
 }
+
+TypedTermList id(std::optional<TermList> sort) {
+  const auto s = sort.value_or(Defs::instance()->srt);
+
+  return lam(x(0, s), x(0, s));
+}
+
+
 
 } // namespace Test::HOL

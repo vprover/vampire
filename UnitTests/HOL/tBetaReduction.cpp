@@ -16,17 +16,15 @@ using namespace Test::HOL;
 using HOL::convert::toNameless;
 using HOL::reduce::betaNF;
 
-static const auto id = lam(x0, x0);
-
 HOL_TEST_FUN(beta_reduction_1) {
   const std::initializer_list<TermList> testTerms { // all terms are of type srt
-    D.a, x0, x1, app(D.f, D.a), app(D.f, x0), app(D.f, app(D.f, x0))
+    D.a, x(0), x(1), app(D.f, D.a), app(D.f, x(0)), app(D.f, app(D.f, x(0)))
   };
 
   unsigned reds;
   for (const auto term : testTerms) {
     auto reduced = betaNF(
-      toNameless(app(id, {term, D.srt})), &reds
+      toNameless(app(id(), {term, D.srt})), &reds
     );
 
     ASS_EQ(reds, 1)
@@ -37,16 +35,16 @@ HOL_TEST_FUN(beta_reduction_1) {
 
 HOL_TEST_FUN(beta_reduction_2) {
   const std::initializer_list<TermList> testTerms { // all terms are of type srt
-    D.a, x0, x1, app(D.f, D.a), app(D.f, x1), app(D.f, app(D.f, x1))
+    D.a, x(0), x(1), app(D.f, D.a), app(D.f, x(1)), app(D.f, app(D.f, x(1)))
   };
 
   unsigned reds;
   for (const auto term1 : testTerms) {
-    if (term1 == x0)
+    if (term1 == x(0))
       continue;
 
     for (const auto term2 : testTerms) {
-      auto constFn = lam(x0, {term1, D.srt});
+      auto constFn = lam(x(0), {term1, D.srt});
       auto reduced = betaNF(
         toNameless(app(constFn, {term2, D.srt})), &reds
       );
@@ -60,7 +58,7 @@ HOL_TEST_FUN(beta_reduction_2) {
 
 HOL_TEST_FUN(beta_reduction_3) {
   std::vector<TermList> testTerms {
-    D.a, x0, x1, app(D.f, D.a), app(D.f, x1), app(D.f, app(D.f, x1))
+    D.a, x(0), x(1), app(D.f, D.a), app(D.f, x(1)), app(D.f, app(D.f, x(1)))
   };
 
   unsigned reds;
@@ -79,7 +77,7 @@ HOL_TEST_FUN(beta_reduction_3) {
   for (unsigned i = 0; i < 10; ++i) {
 
     for (auto& testTerm : testTerms)
-      testTerm = lam({TermList::var(i), D.srt}, {testTerm, termSort});
+      testTerm = lam(x(i), {testTerm, termSort});
     termSort = TermList(AtomicSort::arrowSort(D.srt, termSort));
 
     for (const auto term : testTerms) {
@@ -97,7 +95,7 @@ HOL_TEST_FUN(beta_reduction_3) {
 
 HOL_TEST_FUN(beta_reduction_4) {
   // (λ x0:(α -> α). x0 a) (λ x0:α. x0)
-  auto term = app(lam(Defs::x(0, D.fSrt), app(Defs::x(0, D.fSrt), D.a)), id);
+  auto term = app(lam(x(0, D.fSrt), app(x(0, D.fSrt), D.a)), id());
 
   auto t1 = toNameless(term);
   ASS_EQ(termListToString(t1, Options::HPrinting::TPTP),
@@ -117,7 +115,7 @@ HOL_TEST_FUN(beta_reduction_4) {
   ASS_EQ(betaNF(t2, &reds), app(D.f, D.a))
   ASS_EQ(reds, 2)
 
-  auto t3 = toNameless(app(lam(x0, D.f), term));
+  auto t3 = toNameless(app(lam(x(0), D.f), term));
   ASS_EQ(termListToString(t3, Options::HPrinting::TPTP),
          "((^[Y0 : srt]: (f)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0))))")
   ASS_EQ(termListToString(t3, Options::HPrinting::RAW),
@@ -125,7 +123,7 @@ HOL_TEST_FUN(beta_reduction_4) {
   ASS_EQ(betaNF(t3, &reds), D.f)
   ASS_EQ(reds, 1)
 
-  auto t4 = toNameless(app(id, term));
+  auto t4 = toNameless(app(id(), term));
   ASS_EQ(termListToString(t4, Options::HPrinting::TPTP),
          "((^[Y0 : srt]: (Y0)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0))))")
   ASS_EQ(termListToString(t4, Options::HPrinting::RAW),
