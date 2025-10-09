@@ -659,8 +659,6 @@ set(SOURCES
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.cpp
     Shell/InterpretedNormalizer.hpp
-    Shell/LaTeX.cpp
-    Shell/LaTeX.hpp
     Shell/Lexer.cpp
     Shell/Lexer.cpp
     Shell/Lexer.hpp
