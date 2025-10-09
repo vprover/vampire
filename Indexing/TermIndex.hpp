@@ -144,17 +144,6 @@ protected:
   const Ordering& _ord;
 };
 
-class GoalTermIndex
-: public TermIndex<TermLiteralClause>
-{
-public:
-  GoalTermIndex(TermIndexingStructure<TermLiteralClause>* is, const Ordering& ord) : TermIndex(is), _ord(ord) {}
-
-protected:
-  void handleClause(Clause* c, bool adding) override;
-  const Ordering& _ord;
-};
-
 /**
  * Term index for induction
  */

@@ -73,10 +73,6 @@ void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
 
   static DHSet<Term*> inserted;
 
-  if (c->isGoalClause()) {
-    return;
-  }
-
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
     // it is true (as stated below) that inserting only once per clause would be sufficient
@@ -113,7 +109,7 @@ void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->isGoalClause()) {
+  if (c->length()!=1) {
     return;
   }
 
@@ -151,19 +147,9 @@ void GoalParamodulationRHSIndex::handleClause(Clause* c, bool adding)
 void GoalParamodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   for (const auto& lit : c->getSelectedLiteralIterator()) {
-    if (lit->isNegative()) { continue; }
+    if (lit->isPositive()) { continue; }
     for (const auto& [t, pos, side] : iterTraits(EqHelper::getSubtermIteratorWithPosition(lit, _ord))) {
       _is->handle(TermPositionSideLiteralClause{ t, pos, side, lit, c }, adding);
-    }
-  }
-}
-
-void GoalTermIndex::handleClause(Clause* c, bool adding)
-{
-  for (const auto& lit : c->getSelectedLiteralIterator()) {
-    if (lit->isPositive()) { continue; }
-    for (const auto& t : iterTraits(EqHelper::getSubtermIterator(lit, _ord))) {
-      _is->handle(TermLiteralClause{ t, lit, c }, adding);
     }
   }
 }

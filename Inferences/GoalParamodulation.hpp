@@ -49,7 +49,6 @@ private:
   Clause* perform(Clause* rwClause, Literal* rwLit, Term* rwSide, const Term* rwTerm, const Position& pos,
     Clause* eqClause, Literal* eqLit, TermList eqRhs, ResultSubstitution* subst, bool eqIsResult);
 
-  TermIndex<TermLiteralClause>* _goalTermIndex;
   TermIndex<TermLiteralClause>* _rhsIndex;
   TermIndex<TermPositionSideLiteralClause>* _subtermIndex;
 };

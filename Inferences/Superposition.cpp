@@ -115,7 +115,8 @@ private:
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
-  auto itf1 = premise->getSelectedLiteralIterator();
+  auto itf1 = premise->getSelectedLiteralIterator()
+    .filter([](Literal* lit) { return !env.options->goalParamodulation() || lit->isNegative(); });
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
@@ -302,6 +303,7 @@ Clause* Superposition::performSuperposition(
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
+  ASS(!getOptions().goalParamodulation() || rwLit->isNegative());
 
   // the first checks the reference and the second checks the stack
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
@@ -354,10 +356,6 @@ Clause* Superposition::performSuperposition(
     if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
-  }
-
-  if (getOptions().goalParamodulation() && (eqClause->isGoalClause() || (!rwClause->isGoalClause() && rwLit->isPositive()))) {
-    return 0;
   }
 
   const Ordering& ordering = _salg->getOrdering();

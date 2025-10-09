@@ -221,10 +221,6 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case GOAL_TERM_INDEX:
-    res=new GoalTermIndex(new TermSubstitutionTree(), _alg->getOrdering());
-    isGenerating = true;
-    break;
   case GOAL_PARAMODULATION_RHS_INDEX:
     res=new GoalParamodulationRHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;

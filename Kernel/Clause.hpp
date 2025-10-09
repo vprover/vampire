@@ -376,9 +376,6 @@ public:
     return getAnswerLiteral() != nullptr;
   }
 
-  bool isGoalClause() const { return _goalClause; }
-  void markGoalClause() { _goalClause = true; }
-
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -409,7 +406,6 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
-  bool _goalClause;
 
   int _numActiveSplits;
 

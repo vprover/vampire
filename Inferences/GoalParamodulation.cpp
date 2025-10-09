@@ -36,8 +36,6 @@ void GoalParamodulation::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
 
-  _goalTermIndex=static_cast<TermIndex<TermLiteralClause>*>(
-	  _salg->getIndexManager()->request(GOAL_TERM_INDEX) );
   _rhsIndex=static_cast<TermIndex<TermLiteralClause>*>(
 	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_RHS_INDEX) );
   _subtermIndex=static_cast<TermIndex<TermPositionSideLiteralClause>*>(
@@ -87,7 +85,7 @@ TermList replaceOccurrence(Term* t, const Term* orig, TermList repl, const Posit
 ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
 {
   auto itf = premise->getSelectedLiteralIterator()
-    .filter([](Literal* lit) { return lit->isPositive(); })
+    .filter([](Literal* lit) { return lit->isNegative(); })
     .flatMap([this](Literal* lit)
       { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIteratorWithPosition(lit,  _salg->getOrdering())); })
     .flatMap([this](pair<Literal*, tuple<Term*,Stack<unsigned>,Term*>> arg)
@@ -113,8 +111,6 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
           premise, arg.first.first, arg.first.second, qr.unifier.ptr(), /*forward=*/ false);
       });
 
-  // TODO when goal is activated
-
   // Add the results of forward and backward together
   return pvi(concatIters(itf,itb)
     .filter(NonzeroFn()));
@@ -125,7 +121,7 @@ Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
 {
   ASS_EQ(rwClause->store(),Clause::ACTIVE);
   ASS_EQ(eqClause->store(),Clause::ACTIVE);
-  ASS(rwLit->isPositive());
+  ASS(rwLit->isNegative());
   ASS(eqLit->isPositive());
 
   const Ordering& ordering = _salg->getOrdering();
@@ -154,15 +150,8 @@ Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
     return nullptr;
   }
 
-  auto rwOtherSideS = rwOtherSideApplied.apply();
-  auto rwLitSortS = AppliedTerm(rwLit->eqArgSort(), &rwAppl, true).apply();
-  if (!_goalTermIndex->getInstances(TypedTermList(rwOtherSideS, rwLitSortS), false).hasNext()) {
-    env.statistics->blockedClauses++;
-    return nullptr;
-  }
-
   auto tgtSideS = replaceOccurrence(rwSideApplied.apply().term(), eqRhsApplied.apply().term(), eqLhsApplied.apply(), pos);
-  auto tgtLitS = Literal::createEquality(true, tgtSideS, rwOtherSideS, AppliedTerm(rwLit->eqArgSort(), &rwAppl, true).apply());
+  auto tgtLitS = Literal::createEquality(false, tgtSideS, rwOtherSideApplied.apply(), AppliedTerm(rwLit->eqArgSort(), &rwAppl, true).apply());
 
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
@@ -187,9 +176,7 @@ Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
 
   env.statistics->goalParamodulation++;
 
-  auto resCl = Clause::fromStack(*res, Inference(GeneratingInference2(InferenceRule::GOAL_PARAMODULATION, rwClause, eqClause)));
-  resCl->markGoalClause();
-  return resCl;
+  return Clause::fromStack(*res, Inference(GeneratingInference2(InferenceRule::GOAL_PARAMODULATION, rwClause, eqClause)));
 }
 
 }
