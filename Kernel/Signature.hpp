@@ -915,7 +915,7 @@ class Signature
     unsigned eqProxy = addFunction("vEQ",1, added);
     if(added){
       TermList tv = TermList(0, false);
-      TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
+      TermList result = AtomicSort::arrowSort({tv, tv, AtomicSort::boolSort()});
       Symbol * sym = getFunction(eqProxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
       sym->setProxy(Proxy::EQUALS);
@@ -938,7 +938,7 @@ class Signature
     unsigned proxy = addFunction(name, 0, added);
     if (added) {
       auto bs = AtomicSort::boolSort();
-      auto result = AtomicSort::arrowSort(bs, bs, bs);
+      auto result = AtomicSort::arrowSort({bs, bs, bs});
       auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(convert(name));

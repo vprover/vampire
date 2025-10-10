@@ -62,6 +62,36 @@ TermList HOL::create::app(TermList head, const TermStack& terms) {
   return app(SortHelper::getResultSort(head.term()), head, terms);
 }
 
+TermList HOL::create::equality(TermList sort) {
+  static const auto eqProxy = env.signature->getEqualityProxy();
+
+  return TermList(Term::create1(eqProxy, sort));
+}
+
+TermList HOL::create::neg() {
+  static const auto term = TermList(Term::createConstant(env.signature->getNotProxy()));
+
+  return term;
+}
+
+TermList HOL::create::pi(TermList sort) {
+  static const auto piProxy = env.signature->getPiSigmaProxy("vPI");
+
+  return TermList(Term::create1(piProxy, sort));
+}
+
+TermList HOL::create::sigma(TermList sort) {
+  static const auto sigmaProxy = env.signature->getPiSigmaProxy("vSIGMA");
+
+  return TermList(Term::create1(sigmaProxy, sort));
+}
+
+TermList HOL::create::placeholder(TermList sort) {
+  static const auto placeholder = env.signature->getPlaceholder();
+
+  return TermList(Term::create1(placeholder, sort));
+}
+
 Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {
   auto s = new (0, sizeof(Term::SpecialTermData)) Term;
   s->makeSymbol(Term::toNormalFunctor(SpecialFunctor::LAMBDA), 0);

@@ -51,7 +51,7 @@ HOL_TEST_FUN(eta_reduction_2) {
 }
 
 HOL_TEST_FUN(eta_reduction_3) {
-  auto v0 = x(0, AtomicSort::arrowSort(D.srt, D.srt, D.srt));
+  auto v0 = x(0, AtomicSort::arrowSort({D.srt, D.srt, D.srt}));
   auto term = toNameless(lam({v0, x(1), x(2)}, app({v0, x(1), x(2)})));
   auto expected = toNameless(lam(v0, v0));
 

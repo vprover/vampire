@@ -13,6 +13,7 @@
 
 #include "Kernel/HOL/HOL.hpp"
 
+#include "ToPlaceholders.hpp"
 #include "Kernel/Formula.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
@@ -371,4 +372,8 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
     t = t.lambdaBody();
   }
   matrix = t;
+}
+
+TermList HOL::toPlaceholders(TermList term) {
+  return ToPlaceholders().replace(term);
 }

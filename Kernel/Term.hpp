@@ -274,10 +274,10 @@ public:
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
-  bool isArrowSort();
-  bool isBoolSort();
-  bool isArraySort();
-  bool isTupleSort();
+  bool isArrowSort() const;
+  bool isBoolSort() const;
+  bool isArraySort() const;
+  bool isTupleSort() const;
   bool containsSubterm(TermList v) const;
   bool containsAllVariablesOf(TermList t) const;
   bool ground() const;
@@ -295,9 +295,10 @@ public:
   TermList rhs() const;
   TermList lambdaBody() const;
   TermList head() const;
-  std::pair<TermList, TermList> asPair();
-  TermList domain();
-  TermList result();
+  std::pair<TermList, TermList> asPair() const;
+  TermList domain() const;
+  TermList result() const;
+  TermList resultSort() const;
   TermList replaceSubterm(TermList what, TermList by, bool liftFreeIndices = false) const;
   /* End higher-order terms */
 
@@ -1049,8 +1050,8 @@ public:
   
   static TermList arrowSort(const TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
-  static TermList arrowSort(TermList s1, TermList s2, TermList s3);
   static TermList arrowSort(unsigned size, const TermList* types, TermList range);
+  static TermList arrowSort(const std::initializer_list<TermList>& types);
   static TermList arraySort(TermList indexSort, TermList innerSort);
   static TermList tupleSort(unsigned arity, TermList* sorts);
   static TermList defaultSort();

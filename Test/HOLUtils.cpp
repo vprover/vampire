@@ -83,9 +83,10 @@ Defs::Defs() {
   fSrt = TermList(AtomicSort::arrowSort(srt, srt));
   a = mkConst("a", srt);
   f = mkConst("f", fSrt);
-  f2 = mkConst("f2", AtomicSort::arrowSort(srt, AtomicSort::arrowSort(srt, srt)));
-  f3 = mkConst("f3", AtomicSort::arrowSort(srt, AtomicSort::arrowSort(srt, AtomicSort::arrowSort(srt, srt))));
-  g = mkConst("g", AtomicSort::arrowSort(AtomicSort::arrowSort(srt, srt), srt));
+  f2 = mkConst("f2", AtomicSort::arrowSort({srt, srt, srt}));
+  f3 = mkConst("f3", AtomicSort::arrowSort({srt, srt, srt, srt}));
+  g = mkConst("g", AtomicSort::arrowSort(fSrt, srt));
+  h = mkConst("h", AtomicSort::arrowSort({fSrt, srt, srt}));
 }
 
 Defs* Defs::_instance = nullptr;

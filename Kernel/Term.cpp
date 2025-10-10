@@ -182,22 +182,26 @@ TermList TermList::head() const {
   return trm;
 }
 
-std::pair<TermList, TermList> TermList::asPair() {
+std::pair<TermList, TermList> TermList::asPair() const {
   ASS(isArrowSort())
 
   return {domain(), result()};
 }
 
-TermList TermList::domain() {
+TermList TermList::domain() const {
   ASS(isArrowSort())
 
   return *term()->nthArgument(0);
 }
 
-TermList TermList::result() {
+TermList TermList::result() const {
   ASS(isArrowSort())
 
   return *term()->nthArgument(1);
+}
+
+TermList TermList::resultSort() const {
+  return SortHelper::getResultSort(term());
 }
 
 TermList TermList::replaceSubterm(TermList what, TermList by, bool liftFreeIndices) const {
@@ -306,28 +310,24 @@ unsigned TermList::weight() const
   return isVar() ? 1 : term()->weight();
 }
 
-bool TermList::isArrowSort()
-{
+bool TermList::isArrowSort() const {
   return !isVar() && term()->isSort() &&
-         static_cast<AtomicSort*>(term())->isArrowSort();
+         static_cast<const AtomicSort*>(term())->isArrowSort();
 }
 
-bool TermList::isBoolSort()
-{
+bool TermList::isBoolSort() const {
   return !isVar() && term()->isSort() &&
-         static_cast<AtomicSort*>(term())->isBoolSort();
+         static_cast<const AtomicSort*>(term())->isBoolSort();
 }
 
-bool TermList::isArraySort()
-{
+bool TermList::isArraySort() const {
   return !isVar() && term()->isSort() &&
-         static_cast<AtomicSort*>(term())->isArraySort();
+         static_cast<const AtomicSort*>(term())->isArraySort();
 }
 
-bool TermList::isTupleSort()
-{
+bool TermList::isTupleSort() const {
   return !isVar() && term()->isSort() &&
-         static_cast<AtomicSort*>(term())->isTupleSort();
+         static_cast<const AtomicSort*>(term())->isTupleSort();
 }
 
 bool AtomicSort::isArrowSort() const {
@@ -1305,10 +1305,6 @@ TermList AtomicSort::arrowSort(TermList s1, TermList s2) {
   return TermList(create2(arrow, s1, s2));
 }
 
-TermList AtomicSort::arrowSort(TermList s1, TermList s2, TermList s3) {
-  return arrowSort(s1, arrowSort(s2, s3));
-}
-
 TermList AtomicSort::arrowSort(unsigned size, const TermList* types, TermList range) {
   ASS(size > 0)
 
@@ -1317,6 +1313,14 @@ TermList AtomicSort::arrowSort(unsigned size, const TermList* types, TermList ra
     res = arrowSort(types[i], res);
 
   return res;
+}
+
+TermList AtomicSort::arrowSort(const std::initializer_list<TermList>& types) {
+  const auto size = types.size();
+  ASS(size >= 2)
+
+  const TermList* data = std::data(types);
+  return arrowSort(size - 1, data, data[size - 1]);
 }
 
 TermList AtomicSort::arrowSort(const TermStack & domSorts, TermList range) {
