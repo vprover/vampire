@@ -1294,7 +1294,14 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   Clause* cl = nullptr;
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
-    cl = _passive->popSelected();
+    static bool lastOneWasDelayed = false;
+    if (lastOneWasDelayed || _delayed.isEmpty()) {
+      cl = _passive->popSelected();
+      lastOneWasDelayed = false;
+    } else {
+      cl = _delayed.pop();
+      lastOneWasDelayed = true;
+    }
   }
   ASS_EQ(cl->store(), Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
@@ -1323,7 +1330,62 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     }
   }
 
+  if (!reachableFromGoal(cl)) {
+    delayClause(cl);
+    return;
+  }
+
   activate(cl);
+}
+
+bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
+{
+  if (!cl->length()) {
+    return true;
+  }
+
+  if (cl->size()!=1) {
+    INVALID_OPERATION("non-unit clause unhandled");
+  }
+
+  auto lit = (*cl)[0];
+
+  if (!lit->isEquality()) {
+    INVALID_OPERATION("non-equality literal unhandled");
+  }
+
+  if (lit->isNegative()) {
+    return true;
+  }
+
+  return iterTraits(EqHelper::getSuperpositionLHSIterator(lit, *_ordering, _opt))
+    .any([this,lit](TermList lhs) -> bool {
+
+      auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
+
+      if (rhs.isVar() || _goalSubtermIndex->getUnifications(rhs.term(), true).hasNext()) {
+        return true;
+      }
+
+      if (lhs.isVar()) {
+        return false;
+      }
+
+      for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term()))) {
+        if (_goalLHSIndex->getUnifications(st, true).hasNext()) {
+          return true;
+        }
+      }
+      return false;
+    });
+}
+
+void SaturationAlgorithm::delayClause(Clause* cl)
+{
+  cl->setStore(Clause::PASSIVE);
+  env.statistics->backwardSubsumed++;
+  _delayed.add(cl);
+  // cout << "delayed " << cl->toString() << endl;
 }
 
 /**
@@ -1454,6 +1516,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   else {
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
+  res->_goalSubtermIndex = static_cast<SuperpositionSubtermIndex*>(
+	  res->_imgr->request(SUPERPOSITION_SUBTERM_SUBST_TREE));
+  res->_goalLHSIndex = static_cast<SuperpositionLHSIndex*>(
+	  res->_imgr->request(SUPERPOSITION_LHS_SUBST_TREE));
 
   if (opt.splitting()) {
     res->_splitter = new Splitter();

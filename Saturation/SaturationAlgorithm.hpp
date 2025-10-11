@@ -177,6 +177,9 @@ private:
   void activeRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
 
+  bool reachableFromGoal(Clause* cl);
+  void delayClause(Clause* cl);
+
   LiteralSelector& getSosLiteralSelector();
 
   void handleEmptyClause(Clause* cl);
@@ -200,6 +203,10 @@ protected:
   std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
+  UnprocessedClauseContainer _delayed;
+
+  TermIndex<TermLiteralClause>* _goalSubtermIndex;
+  TermIndex<TermLiteralClause>* _goalLHSIndex;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
