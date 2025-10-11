@@ -44,6 +44,9 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
+    if (env.options->goalParamodulation() && lit->isPositive()) {
+      continue;
+    }
     auto rsti = EqHelper::getSubtermIterator(lit, _ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
@@ -62,6 +65,16 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
 	    _tree->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
+    }
+  }
+}
+
+void SuperpositionRHSIndex::handleClause(Clause* c, bool adding)
+{
+  for (const auto& lit : iterTraits(c->getSelectedLiteralIterator())) {
+    for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
+      auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
+	    _tree->handle(TermLiteralClause{ TypedTermList(rhs, lhs.sort()), lit, c }, adding);
     }
   }
 }

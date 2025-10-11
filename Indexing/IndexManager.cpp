@@ -202,6 +202,11 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case SUPERPOSITION_RHS_SUBST_TREE:
+    res = new SuperpositionRHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+    isGenerating = true;
+    break;
+
   case SKOLEMISING_FORMULA_INDEX:
     res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
     isGenerating = false;

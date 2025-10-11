@@ -1144,6 +1144,8 @@ void SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
+  maybeAddBackDelayedClauses(cl);
+
   _partialRedundancyHandler->checkEquations(cl);
 
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
@@ -1294,14 +1296,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   Clause* cl = nullptr;
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
-    static bool lastOneWasDelayed = false;
-    if (lastOneWasDelayed || _delayed.isEmpty()) {
-      cl = _passive->popSelected();
-      lastOneWasDelayed = false;
-    } else {
-      cl = _delayed.pop();
-      lastOneWasDelayed = true;
-    }
+    cl = _passive->popSelected();
   }
   ASS_EQ(cl->store(), Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
@@ -1366,12 +1361,11 @@ bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
       if (rhs.isVar() || _goalSubtermIndex->getUnifications(rhs.term(), true).hasNext()) {
         return true;
       }
-
-      if (lhs.isVar()) {
-        return false;
+      if (lhs.isVar() || _goalSubtermIndex->getUnifications(lhs.term(), true).hasNext()) {
+        return true;
       }
 
-      for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term()))) {
+      for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), true))) {
         if (_goalLHSIndex->getUnifications(st, true).hasNext()) {
           return true;
         }
@@ -1382,10 +1376,59 @@ bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
 
 void SaturationAlgorithm::delayClause(Clause* cl)
 {
+  if (!cl->numSelected()) {
+    _selector->select(cl);
+  }
   cl->setStore(Clause::PASSIVE);
   env.statistics->backwardSubsumed++;
   _delayed.add(cl);
-  // cout << "delayed " << cl->toString() << endl;
+  if (env.options->showAll()) {
+    std::cout << "[SA] delayed: " << cl->toString() << std::endl;
+  }
+}
+
+void SaturationAlgorithm::maybeAddBackDelayedClauses(Clause* cl)
+{
+  if (!cl->length()) {
+    return;
+  }
+
+  if (cl->size()!=1) {
+    INVALID_OPERATION("non-unit clause unhandled");
+  }
+
+  auto lit = (*cl)[0];
+
+  if (!lit->isEquality()) {
+    INVALID_OPERATION("non-equality literal unhandled");
+  }
+
+  DHSet<Clause*> toPassive;
+
+  for (auto lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, *_ordering, _opt))) {
+    // cout << "maybe undelay based on " << lhs.toString() << endl;
+    for (const auto& qr : iterTraits(_delayedSubtermIndex->getUnifications(lhs, false))) {
+      toPassive.insert(qr.data->clause);
+    }
+
+    for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), true))) {
+      for (const auto& qr : iterTraits(_delayedLHSIndex->getUnifications(st, true))) {
+        toPassive.insert(qr.data->clause);
+      }
+      for (const auto& qr : iterTraits(_delayedRHSIndex->getUnifications(st, true))) {
+        toPassive.insert(qr.data->clause);
+      }
+    }
+  }
+
+  for (const auto& cl : iterTraits(toPassive.iter())) {
+    env.statistics->backwardSubsumed--;
+    if (env.options->showAll()) {
+      std::cout << "[SA] undelayed: " << cl->toString() << std::endl;
+    }
+    _delayed.remove(cl);
+    _passive->add(cl);
+  }
 }
 
 /**
@@ -1520,6 +1563,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 	  res->_imgr->request(SUPERPOSITION_SUBTERM_SUBST_TREE));
   res->_goalLHSIndex = static_cast<SuperpositionLHSIndex*>(
 	  res->_imgr->request(SUPERPOSITION_LHS_SUBST_TREE));
+  res->_delayedSubtermIndex = new SuperpositionSubtermIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering());
+  res->_delayedLHSIndex = new SuperpositionLHSIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
+  res->_delayedRHSIndex = new SuperpositionRHSIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
+  res->_delayedSubtermIndex->attachContainer(&res->_delayed);
+  res->_delayedLHSIndex->attachContainer(&res->_delayed);
+  res->_delayedRHSIndex->attachContainer(&res->_delayed);
 
   if (opt.splitting()) {
     res->_splitter = new Splitter();

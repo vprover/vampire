@@ -27,6 +27,7 @@
 #include "Kernel/RCClauseStack.hpp"
 
 #include "Indexing/IndexManager.hpp"
+#include "Indexing/TermIndex.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
@@ -179,6 +180,7 @@ private:
 
   bool reachableFromGoal(Clause* cl);
   void delayClause(Clause* cl);
+  void maybeAddBackDelayedClauses(Clause* cl);
 
   LiteralSelector& getSosLiteralSelector();
 
@@ -203,10 +205,28 @@ protected:
   std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
-  UnprocessedClauseContainer _delayed;
+
+  struct DelayedContainer
+  : public ClauseContainer
+  {
+    void add(Clause* c) override {
+      ALWAYS(clauses.insert(c));
+      addedEvent.fire(c);
+    }
+    void remove(Clause* c) {
+      ALWAYS(clauses.remove(c));
+      removedEvent.fire(c);
+    }
+    DHSet<Clause*> clauses;
+  };
+  DelayedContainer _delayed;
 
   TermIndex<TermLiteralClause>* _goalSubtermIndex;
   TermIndex<TermLiteralClause>* _goalLHSIndex;
+
+  SuperpositionLHSIndex* _delayedLHSIndex;
+  SuperpositionRHSIndex* _delayedRHSIndex;
+  SuperpositionSubtermIndex* _delayedSubtermIndex;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;

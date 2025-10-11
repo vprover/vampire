@@ -78,6 +78,20 @@ private:
   TermSubstitutionTree<TermLiteralClause>* _tree;
 };
 
+class SuperpositionRHSIndex
+: public TermIndex<TermLiteralClause>
+{
+public:
+  SuperpositionRHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+  const Options& _opt;
+  TermSubstitutionTree<TermLiteralClause>* _tree;
+};
+
 /**
  * Term index for backward demodulation
  */
