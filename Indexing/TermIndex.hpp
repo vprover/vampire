@@ -52,6 +52,7 @@ protected:
   std::unique_ptr<TermIndexingStructure<Data>> _is;
 };
 
+template<bool linearize>
 class SuperpositionSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
@@ -64,6 +65,7 @@ private:
   Ordering& _ord;
 };
 
+template<bool linearize>
 class SuperpositionLHSIndex
 : public TermIndex<TermLiteralClause>
 {
@@ -83,13 +85,12 @@ class SuperpositionRHSIndex
 {
 public:
   SuperpositionRHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
+  : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
-  TermSubstitutionTree<TermLiteralClause>* _tree;
 };
 
 /**

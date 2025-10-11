@@ -1357,11 +1357,16 @@ bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
     .any([this,lit](TermList lhs) -> bool {
 
       auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-
-      if (rhs.isVar() || _goalSubtermIndex->getUnifications(rhs.term(), true).hasNext()) {
+      if (rhs.isVar() || _goalSubtermIndex->getUnifications(Term::linearize(rhs.term()), true).hasNext()) {
         return true;
       }
-      if (lhs.isVar() || _goalSubtermIndex->getUnifications(lhs.term(), true).hasNext()) {
+
+      if (lhs.isVar()) {
+        return true;
+      }
+
+      lhs = TermList(Term::linearize(lhs.term()));
+      if (_goalSubtermIndex->getUnifications(lhs.term(), true).hasNext()) {
         return true;
       }
 
@@ -1406,9 +1411,15 @@ void SaturationAlgorithm::maybeAddBackDelayedClauses(Clause* cl)
   DHSet<Clause*> toPassive;
 
   for (auto lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, *_ordering, _opt))) {
+
+    lhs = lhs.isVar() ? lhs : Term::linearize(lhs.term());
     // cout << "maybe undelay based on " << lhs.toString() << endl;
     for (const auto& qr : iterTraits(_delayedSubtermIndex->getUnifications(lhs, false))) {
       toPassive.insert(qr.data->clause);
+    }
+
+    if (lhs.isVar()) {
+      continue;
     }
 
     for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), true))) {
@@ -1559,12 +1570,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   else {
     res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
-  res->_goalSubtermIndex = static_cast<SuperpositionSubtermIndex*>(
-	  res->_imgr->request(SUPERPOSITION_SUBTERM_SUBST_TREE));
-  res->_goalLHSIndex = static_cast<SuperpositionLHSIndex*>(
-	  res->_imgr->request(SUPERPOSITION_LHS_SUBST_TREE));
-  res->_delayedSubtermIndex = new SuperpositionSubtermIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering());
-  res->_delayedLHSIndex = new SuperpositionLHSIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
+  res->_goalSubtermIndex = static_cast<SuperpositionSubtermIndex<true>*>(
+	  res->_imgr->request(GOAL_SUBTERM_INDEX));
+  res->_goalLHSIndex = static_cast<SuperpositionLHSIndex<true>*>(
+	  res->_imgr->request(GOAL_LHS_INDEX));
+  res->_delayedSubtermIndex = new SuperpositionSubtermIndex<true>(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering());
+  res->_delayedLHSIndex = new SuperpositionLHSIndex<true>(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
   res->_delayedRHSIndex = new SuperpositionRHSIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
   res->_delayedSubtermIndex->attachContainer(&res->_delayed);
   res->_delayedLHSIndex->attachContainer(&res->_delayed);

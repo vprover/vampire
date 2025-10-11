@@ -224,9 +224,9 @@ protected:
   TermIndex<TermLiteralClause>* _goalSubtermIndex;
   TermIndex<TermLiteralClause>* _goalLHSIndex;
 
-  SuperpositionLHSIndex* _delayedLHSIndex;
+  SuperpositionLHSIndex<true>* _delayedLHSIndex;
   SuperpositionRHSIndex* _delayedRHSIndex;
-  SuperpositionSubtermIndex* _delayedSubtermIndex;
+  SuperpositionSubtermIndex<true>* _delayedSubtermIndex;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;

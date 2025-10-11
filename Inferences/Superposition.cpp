@@ -64,9 +64,9 @@ using std::pair;
 void Superposition::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _subtermIndex=static_cast<SuperpositionSubtermIndex*> (
+  _subtermIndex=static_cast<SuperpositionSubtermIndex<false>*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
-  _lhsIndex=static_cast<SuperpositionLHSIndex*> (
+  _lhsIndex=static_cast<SuperpositionLHSIndex<false>*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
 }
 

@@ -37,7 +37,8 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 
-void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
+template<bool linearize>
+void SuperpositionSubtermIndex<linearize>::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward superposition index maintenance");
 
@@ -50,12 +51,16 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
     auto rsti = EqHelper::getSubtermIterator(lit, _ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
+      if constexpr (linearize) {
+        tt = tt.isVar() ? tt : Term::linearize(tt.term());
+      }
       ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
 
-void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
+template<bool linearize>
+void SuperpositionLHSIndex<linearize>::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("forward superposition index maintenance");
 
@@ -64,17 +69,27 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-	    _tree->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
+      auto lhs = lhsi.next();
+      if constexpr (linearize) {
+        lhs = lhs.isVar() ? lhs : Term::linearize(lhs.term());
+      }
+	    _tree->handle(TermLiteralClause{ lhs, lit, c }, adding);
     }
   }
 }
+
+template class SuperpositionSubtermIndex<true>;
+template class SuperpositionSubtermIndex<false>;
+template class SuperpositionLHSIndex<true>;
+template class SuperpositionLHSIndex<false>;
 
 void SuperpositionRHSIndex::handleClause(Clause* c, bool adding)
 {
   for (const auto& lit : iterTraits(c->getSelectedLiteralIterator())) {
     for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
       auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-	    _tree->handle(TermLiteralClause{ TypedTermList(rhs, lhs.sort()), lit, c }, adding);
+      auto rhsL = rhs.isVar() ? TypedTermList(rhs, lhs.sort()) : Term::linearize(rhs.term());
+	    _is->handle(TermLiteralClause{ rhsL, lit, c }, adding);
     }
   }
 }

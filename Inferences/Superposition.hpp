@@ -65,8 +65,8 @@ private:
   struct RewritableResultsFn;
   struct BackwardResultFn;
 
-  SuperpositionSubtermIndex* _subtermIndex;
-  SuperpositionLHSIndex* _lhsIndex;
+  SuperpositionSubtermIndex<false>* _subtermIndex;
+  SuperpositionLHSIndex<false>* _lhsIndex;
 };
 
 using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;

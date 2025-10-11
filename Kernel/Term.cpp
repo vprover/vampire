@@ -17,6 +17,7 @@
 
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
+#include "TermTransformer.hpp"
 #include "RobSubstitution.hpp"
 
 #include "Indexing/TermSharing.hpp"
@@ -1330,6 +1331,21 @@ Term* Term::foolTrue(){
 Term* Term::foolFalse(){
   static Term* _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));
   return _foolFalse;
+}
+
+Term* Term::linearize(Term* t)
+{
+  struct Linearizer : TermTransformer {
+    TermList transformSubterm(TermList trm) override {
+      if (trm.isVar()) {
+        return TermList::var(cnt++);
+      }
+      return trm;
+    }
+    unsigned cnt = 0;
+  } linearizer;
+
+  return linearizer.transform(t);
 }
 
 /*
