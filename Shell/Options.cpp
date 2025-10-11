@@ -636,17 +636,6 @@ void Options::init()
 
 //*********************** Output  ***********************
 
-    _latexOutput = StringOptionValue("latex_output","","off");
-    _latexOutput.description="File that will contain proof in the LaTeX format.";
-    _lookup.insert(&_latexOutput);
-    _latexOutput.tag(OptionTag::OUTPUT);
-
-    _latexUseDefaultSymbols = BoolOptionValue("latex_use_default_symbols","",true);
-    _latexUseDefaultSymbols.description="Interpreted symbols such as product have default LaTeX symbols"
-        " that can be used. They can be overridden in the normal way. This option can turn them off";
-    _latexUseDefaultSymbols.tag(OptionTag::OUTPUT);
-    _lookup.insert(&_latexUseDefaultSymbols);
-
     _outputAxiomNames = BoolOptionValue("output_axiom_names","",false);
     _outputAxiomNames.description="Preserve names of axioms from the problem file in the proof output";
     _lookup.insert(&_outputAxiomNames);

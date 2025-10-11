@@ -4785,53 +4785,6 @@ void TPTP::vampire()
       PARSE_ERROR_TOK("either atom or number expected as a value of a Vampire option",tok);
     }
   }
-  // Allows us to insert LaTeX templates for predicate and function symbols
-  else if(nm == "latex"){
-    consumeToken(T_COMMA);
-    std::string kind = name();
-    bool pred;
-    if (kind == "predicate") {
-      pred = true;
-    }
-    else if (kind == "function") {
-      pred = false;
-    }
-    else {
-      PARSE_ERROR_TOK("either 'predicate' or 'function' expected",getTok(0));
-    }
-    consumeToken(T_COMMA);
-    std::string symb = name();
-    consumeToken(T_COMMA);
-    Token tok = getTok(0);
-    if (tok.tag != T_INT) {
-      PARSE_ERROR_TOK("a non-negative integer (denoting arity) expected",tok);
-    }
-    unsigned arity;
-    if (!Int::stringToUnsignedInt(tok.content,arity)) {
-      PARSE_ERROR_TOK("a number denoting arity expected",tok);
-    }
-    resetToks();
-    consumeToken(T_COMMA);
-    tok = getTok(0);
-    if(tok.tag != T_STRING){
-      PARSE_ERROR_TOK("a template string expected",tok);
-    }
-    std::string temp = tok.content;
-    resetToks();
-    if(pred){
-      consumeToken(T_COMMA);
-      std::string pol= name();
-      bool polarity;
-      if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
-      else{ PARSE_ERROR_TOK("polarity expected (true/false)",getTok(0)); }
-      unsigned f = env.signature->addPredicate(symb,arity);
-      theory->registerLaTeXPredName(f,polarity,temp);
-    }
-    else{
-      unsigned f = env.signature->addFunction(symb,arity);
-      theory->registerLaTeXFuncName(f,temp);
-    }
-  }
   else if (nm == "symbol") {
     consumeToken(T_COMMA);
     std::string kind = name();

@@ -351,7 +351,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
-         Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
          Shell/Naming.o\
