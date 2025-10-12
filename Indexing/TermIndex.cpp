@@ -52,9 +52,11 @@ void SuperpositionSubtermIndex<linearize>::handleClause(Clause* c, bool adding)
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
       if constexpr (linearize) {
-        tt = tt.isVar() ? tt : Term::linearize(tt.term());
+        if (tt.isTerm()) {
+          tt = Term::linearize(tt.term());
+        }
       }
-      ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause{ tt, lit, c }, adding);
+      _is->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
@@ -71,9 +73,11 @@ void SuperpositionLHSIndex<linearize>::handleClause(Clause* c, bool adding)
     while (lhsi.hasNext()) {
       auto lhs = lhsi.next();
       if constexpr (linearize) {
-        lhs = lhs.isVar() ? lhs : Term::linearize(lhs.term());
+        if (lhs.isTerm()) {
+          lhs = Term::linearize(lhs.term());
+        }
       }
-	    _tree->handle(TermLiteralClause{ lhs, lit, c }, adding);
+      _is->handle(TermLiteralClause{ lhs, lit, c }, adding);
     }
   }
 }
@@ -87,9 +91,11 @@ void SuperpositionRHSIndex::handleClause(Clause* c, bool adding)
 {
   for (const auto& lit : iterTraits(c->getSelectedLiteralIterator())) {
     for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
-      auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-      auto rhsL = rhs.isVar() ? TypedTermList(rhs, lhs.sort()) : Term::linearize(rhs.term());
-	    _is->handle(TermLiteralClause{ rhsL, lit, c }, adding);
+      TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
+      if (rhs.isTerm()) {
+        rhs = Term::linearize(rhs.term());
+      }
+      _is->handle(TermLiteralClause{ rhs, lit, c }, adding);
     }
   }
 }
@@ -167,7 +173,7 @@ void GoalParamodulationRHSIndex::handleClause(Clause* c, bool adding)
   for (const auto& lit : c->getSelectedLiteralIterator()) {
     for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
       auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-	    _is->handle(TermLiteralClause{ TypedTermList(rhs, lhs.sort()), lit, c }, adding);
+      _is->handle(TermLiteralClause{ TypedTermList(rhs, lhs.sort()), lit, c }, adding);
     }
   }
 }

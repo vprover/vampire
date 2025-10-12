@@ -1363,11 +1363,17 @@ bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
     .any([this,lit](TypedTermList lhs) -> bool {
 
       TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-      if (_goalSubtermIndex->getUnifications(rhs.isVar() ? rhs : Term::linearize(rhs.term()), true).hasNext()) {
+      if (rhs.isTerm()) {
+        rhs = Term::linearize(rhs.term());
+      }
+      if (_goalSubtermIndex->getUnifications(rhs, true).hasNext()) {
         return true;
       }
 
-      if (_goalSubtermIndex->getUnifications(lhs.isVar() ? lhs : Term::linearize(lhs.term()), true).hasNext()) {
+      if (lhs.isTerm()) {
+        lhs = Term::linearize(lhs.term());
+      }
+      if (_goalSubtermIndex->getUnifications(lhs, true).hasNext()) {
         return true;
       }
 
@@ -1413,23 +1419,22 @@ void SaturationAlgorithm::maybeAddBackDelayedClauses(Clause* cl)
 
   for (auto lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, *_ordering, _opt))) {
 
-    lhs = lhs.isVar() ? lhs : Term::linearize(lhs.term());
+    if (lhs.isTerm()) {
+      lhs = Term::linearize(lhs.term());
+    }
     // cout << "maybe undelay based on " << lhs.toString() << endl;
     for (const auto& qr : iterTraits(_delayedSubtermIndex->getUnifications(lhs, false))) {
       toPassive.insert(qr.data->clause);
     }
+  }
 
-    if (lhs.isVar()) {
-      continue;
+  for (auto st : iterTraits(EqHelper::getSubtermIterator(lit, *_ordering))) {
+    st = Term::linearize(st);
+    for (const auto& qr : iterTraits(_delayedLHSIndex->getUnifications(st, true))) {
+      toPassive.insert(qr.data->clause);
     }
-
-    for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), true))) {
-      for (const auto& qr : iterTraits(_delayedLHSIndex->getUnifications(st, true))) {
-        toPassive.insert(qr.data->clause);
-      }
-      for (const auto& qr : iterTraits(_delayedRHSIndex->getUnifications(st, true))) {
-        toPassive.insert(qr.data->clause);
-      }
+    for (const auto& qr : iterTraits(_delayedRHSIndex->getUnifications(st, true))) {
+      toPassive.insert(qr.data->clause);
     }
   }
 
