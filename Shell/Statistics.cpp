@@ -139,7 +139,7 @@ void Statistics::print(std::ostream& out)
 
   HEADING("Saturation",activeClauses+passiveClauses+extensionalityClauses+
       generatedClauses+finalActiveClauses+finalPassiveClauses+finalExtensionalityClauses+
-      discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
+      discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck+delayedClauses);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
   COND_OUT("Activations started", activations);
@@ -149,6 +149,7 @@ void Statistics::print(std::ostream& out)
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
   COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
+  COND_OUT("Delayed clauses", delayedClauses);
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
   COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);

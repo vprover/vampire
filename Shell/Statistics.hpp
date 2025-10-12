@@ -315,6 +315,8 @@ public:
   unsigned activeClauses = 0;
   /** all extensionality clauses */
   unsigned extensionalityClauses = 0;
+  /** clauses that remained delayed */
+  unsigned delayedClauses = 0;
 
   unsigned discardedNonRedundantClauses = 0;
 

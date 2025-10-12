@@ -1274,6 +1274,12 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     //   Shell::UIHelper::outputSaturatedSet(cout, pvi(UnitList::Iterator(collectSaturatedSet())));
     // }
 
+    for (const auto& cl : iterTraits(_delayed.clauses.iter())) {
+      cl->setStore(Clause::ACTIVE);
+      _active->add(cl);
+    }
+    _delayed.clauses.reset();
+
     if (termReason == TerminationReason::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
       res.saturatedSet = collectSaturatedSet();
 
@@ -1354,19 +1360,14 @@ bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
   }
 
   return iterTraits(EqHelper::getSuperpositionLHSIterator(lit, *_ordering, _opt))
-    .any([this,lit](TermList lhs) -> bool {
+    .any([this,lit](TypedTermList lhs) -> bool {
 
-      auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-      if (rhs.isVar() || _goalSubtermIndex->getUnifications(Term::linearize(rhs.term()), true).hasNext()) {
+      TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
+      if (_goalSubtermIndex->getUnifications(rhs.isVar() ? rhs : Term::linearize(rhs.term()), true).hasNext()) {
         return true;
       }
 
-      if (lhs.isVar()) {
-        return true;
-      }
-
-      lhs = TermList(Term::linearize(lhs.term()));
-      if (_goalSubtermIndex->getUnifications(lhs.term(), true).hasNext()) {
+      if (_goalSubtermIndex->getUnifications(lhs.isVar() ? lhs : Term::linearize(lhs.term()), true).hasNext()) {
         return true;
       }
 
@@ -1385,7 +1386,7 @@ void SaturationAlgorithm::delayClause(Clause* cl)
     _selector->select(cl);
   }
   cl->setStore(Clause::PASSIVE);
-  env.statistics->backwardSubsumed++;
+  env.statistics->delayedClauses++;
   _delayed.add(cl);
   if (env.options->showAll()) {
     std::cout << "[SA] delayed: " << cl->toString() << std::endl;
@@ -1433,7 +1434,7 @@ void SaturationAlgorithm::maybeAddBackDelayedClauses(Clause* cl)
   }
 
   for (const auto& cl : iterTraits(toPassive.iter())) {
-    env.statistics->backwardSubsumed--;
+    env.statistics->delayedClauses--;
     if (env.options->showAll()) {
       std::cout << "[SA] undelayed: " << cl->toString() << std::endl;
     }
