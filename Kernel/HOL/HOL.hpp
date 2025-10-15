@@ -103,6 +103,7 @@ inline TermList toNameless(Term* term) {
 namespace HOL::reduce {
 TermList betaNF(TermList t, unsigned* reductions = nullptr);
 TermList etaNF(TermList t);
+TermList betaEtaNF(TermList t);
 } // namespace HOL::reduce
 
 #endif // HOL_HPP
