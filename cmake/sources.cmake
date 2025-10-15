@@ -87,6 +87,7 @@ set(UNIT_TESTS
     UnitTests/HOL/tHOL_Printing.cpp
     UnitTests/HOL/tBetaReduction.cpp
     UnitTests/HOL/tEtaReduction.cpp
+    UnitTests/HOL/tTermShifter.cpp
 )
 
 ################################################################

@@ -80,12 +80,14 @@ TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermLi
   ASS(varSort.isVar()  || varSort.term()->isSort());
   ASS(termSort.isVar() || termSort.term()->isSort());
 
+  static const unsigned lam = env.signature->getLam();
+
   static TermStack args;
   args.reset();
   args.push(varSort);
   args.push(termSort);
   args.push(term);
-  unsigned lam = env.signature->getLam();
+
   return TermList(Term::create(lam, 3, args.begin()));
 }
 

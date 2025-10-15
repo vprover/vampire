@@ -10,7 +10,6 @@
 
 #include "Shell/Options.hpp"
 #include "Kernel/HOL/HOL.hpp"
-#include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/HOLUtils.hpp"
 
