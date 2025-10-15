@@ -928,7 +928,7 @@ class Signature
     ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
     
-    constexpr auto convert = [] (const std::string& name) {
+    static constexpr auto convert = [](const std::string& name) {
       if (name == "vIMP") return Proxy::IMP;
       if (name == "vAND") return Proxy::AND;
       if (name == "vOR") return Proxy::OR;

@@ -89,24 +89,26 @@ static TermList termToNameless(TermList term, const VarToIndexMap& map) {
   return HOL::create::app(s1, s2, termToNameless(arg1, map), termToNameless(arg2, map));
 }
 
+static constexpr const char* connectiveToString(Connective conn) {
+  switch (conn) {
+    case Connective::IFF: return "vIFF";
+    case Connective::IMP: return "vIMP";
+    case Connective::XOR: return "vXOR";
+    case Connective::AND: return "vAND";
+    case Connective::OR: return  "vOR";
+    default: return "";
+  }
+}
+
 static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
-
-  static const std::unordered_map<Connective, std::string> CONNECTIVE_STR_MAP {
-    {Connective::IFF, "vIFF"},
-    {Connective::IMP, "vIMP"},
-    {Connective::XOR, "vXOR"},
-    {Connective::AND, "vAND"},
-    {Connective::OR,  "vOR"}
-  };
-
   switch (const auto conn = formula->connective()) {
     case Connective::LITERAL: {
-      const Kernel::Literal *lit = formula->literal();
+      const Literal *lit = formula->literal();
       ASS(lit->isEquality()) // Is this a valid assumption?
 
       auto lhs = termToNameless(*lit->nthArgument(0), map);
       auto rhs = termToNameless(*lit->nthArgument(1), map);
-      auto equalsSort = Kernel::SortHelper::getEqualityArgumentSort(lit);
+      auto equalsSort = SortHelper::getEqualityArgumentSort(lit);
       auto appTerm = HOL::create::app2(HOL::create::equality(equalsSort), lhs, rhs);
 
       return lit->polarity() ? appTerm : HOL::create::app(HOL::create::neg(), appTerm);
@@ -117,7 +119,7 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
       auto *lhs = formula->left();
       auto *rhs = formula->right();
 
-      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(CONNECTIVE_STR_MAP.at(conn))));
+      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(connectiveToString(conn))));
       const auto form1 = formulaToNameless(lhs, map);
       const auto form2 = formulaToNameless(rhs, map);
 
@@ -125,10 +127,10 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
     }
     case Connective::AND:
     case Connective::OR: {
-      Kernel::FormulaList::Iterator argsIt(formula->args());
+      FormulaList::Iterator argsIt(formula->args());
 
       const std::string name = conn == Connective::AND ? "vAND" : "vOR";
-      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(CONNECTIVE_STR_MAP.at(conn))));
+      auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(connectiveToString(conn))));
 
       TermList appTerm;
       for (unsigned count = 1; argsIt.hasNext(); ++count) {
