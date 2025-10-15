@@ -14,13 +14,16 @@
 #include "Kernel/HOL/TermShifter.hpp"
 #include "Kernel/HOL/HOL.hpp"
 
-TermList TermShifter::shift(TermList term, int shiftBy) {
-  _cutOff = 0;
-  _shiftBy = shiftBy;
+std::pair<TermList, Option<unsigned>> TermShifter::shift(TermList term, int shiftBy) {
+  TermShifter ts = TermShifter(shiftBy);
 
-  TermList transformed = transformSubterm(term);
-  return (transformed != term) ? transformed
-                               : transform(term);
+  const TermList transformed = ts.transformSubterm(term);
+  const TermList result = (transformed != term) ? transformed
+                                                : ts.transform(term);
+  const auto minFreeIndexOpt = (ts._minFreeIndex > -1) ? Option<unsigned>(static_cast<unsigned>(ts._minFreeIndex))
+                                                                      : Option<unsigned>();
+
+  return {result, minFreeIndexOpt};
 }
 
 TermList TermShifter::transformSubterm(TermList t) {

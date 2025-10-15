@@ -22,12 +22,13 @@ using namespace Kernel;
 class SubtermReplacer : public TermTransformer {
 public:
   SubtermReplacer(TermList what, TermList by, bool liftFree = false)
-      : _what(what),
+      : TermTransformer(false),
+        _what(what),
         _by(by),
         _liftFreeIndices(liftFree),
         _shiftBy(0) {
     ASS(what.isVar() || by.isVar() || SortHelper::getResultSort(what.term()) == SortHelper::getResultSort(by.term()));
-    dontTransformSorts();
+    // dontTransformSorts();
   }
 
   TermList replace(TermList t) {

@@ -181,7 +181,7 @@ Term* TermTransformer::transform(Term* term)
 
     // We still transform sort and term variables ...
     // It is difficult to avoid this though
-    if (tl.isTerm() && tl.term()->isSort() && _dontTransformSorts) {
+    if (tl.isTerm() && tl.term()->isSort() && !transformSorts) {
       args.push(tl);
       continue;
     }
@@ -233,15 +233,16 @@ Term* TermTransformer::transform(Term* term)
 
   if (term->isLiteral()) {
     Literal* lit = static_cast<Literal*>(term);
-    if(lit->isEquality() && argLst[0].isVar() && argLst[1].isVar() && !_dontTransformSorts){
+    if(lit->isEquality() && argLst[0].isVar() && argLst[1].isVar() && transformSorts) {
       return Literal::createEquality(lit->polarity(), argLst[0], argLst[1],
                                      transform(SortHelper::getEqualityArgumentSort(lit)));
     }
-    return create<Literal>(term, argLst, _sharedResult);
-  } else if (term->isSort()) {
-    return create<AtomicSort>(term, argLst, _sharedResult);
+    return Literal::create(static_cast<Literal*>(term), argLst);
   }
-  return create<Term>(term, argLst, _sharedResult);
+  if (term->isSort()) {
+    return AtomicSort::create(static_cast<AtomicSort*>(term), argLst);
+  }
+  return Term::create(term, argLst);
 }
 
 TermList TermTransformer::transform(TermList ts)

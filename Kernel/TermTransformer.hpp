@@ -53,12 +53,10 @@ protected:
  */
 class TermTransformer : public TermTransformerCommon {
 public:
+  const bool transformSorts;
   virtual ~TermTransformer() {}
-  TermTransformer() : _sharedResult(true),
-                      _dontTransformSorts(false) {}
+  explicit TermTransformer(const bool transformSorts = true) : transformSorts(transformSorts) {}
   Term* transform(Term* term) override;
-
-  void dontTransformSorts() { _dontTransformSorts = true; }
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   Formula* transform(Formula* f) override;
@@ -74,15 +72,7 @@ protected:
     return orig == newTerm;
   }
 
-  bool _sharedResult;
-  bool _dontTransformSorts;
 
-private:
-  template<class T>
-  Term* create(Term* t, TermList* argLst, bool shared) {
-    return shared ? T::create(static_cast<T*>(t), argLst)
-                  : T::createNonShared(static_cast<T*>(t), argLst);
-  }
 };
 
 /**

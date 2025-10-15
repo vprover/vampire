@@ -16,7 +16,7 @@
 
 TermList SubtermReplacer::transformSubterm(TermList t) {
   if (t == _what)
-    return _liftFreeIndices ? TermShifter().shift(_by, _shiftBy)
+    return _liftFreeIndices ? TermShifter::shift(_by, _shiftBy).first
                             : _by;
 
   return t;

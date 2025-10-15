@@ -22,14 +22,14 @@ using namespace Kernel;
 class TermShifter : public TermTransformer
 {
 public:
-  TermShifter() : _minFreeIndex(-1) {
-    dontTransformSorts();
-  }
+  explicit TermShifter(int shiftBy)
+    : TermTransformer(false),
+      _shiftBy(shiftBy) {}
 
   // positive value -> shift up
   // negative -> shift down
   // 0 record minimum free index
-  TermList shift(TermList term, int shiftBy);
+  static std::pair<TermList, Option<unsigned>> shift(TermList term, int shiftBy);
   TermList transformSubterm(TermList t) override;
 
   void onTermEntry(Term* t) override {
@@ -53,9 +53,9 @@ public:
   }
 
 private:
-  unsigned _cutOff; // any index higher than _cutOff is a free index
+  unsigned _cutOff = 0; // any index higher than _cutOff is a free index
   int _shiftBy; // the amount to shift a free index by
-  int _minFreeIndex;
+  int _minFreeIndex = -1;
 };
 
 #endif // __TermShifter__

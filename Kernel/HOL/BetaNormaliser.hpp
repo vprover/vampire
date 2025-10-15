@@ -26,9 +26,7 @@ using namespace Kernel;
 class BetaNormaliser : public TermTransformer {
   unsigned reductions = 0;
 public:
-  BetaNormaliser() {
-    dontTransformSorts();
-  }
+  BetaNormaliser() : TermTransformer(false) {}
 
   unsigned getReductions() const {
     return reductions;
