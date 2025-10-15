@@ -25,16 +25,15 @@ TermList BetaNormaliser::transformSubterm(TermList t) {
   if (t.isLambdaTerm())
     return t;
 
-  TermList head;
-  TermStack args;
-  HOL::getHeadAndArgs(t, head, args);
+  auto [head, args] = HOL::getHeadAndArgs(t);
 
   while (HOL::canHeadReduce(head, args)) {
     t = RedexReducer().reduce(head, args);
     ++reductions;
     if (t.isLambdaTerm())
       break;
-    HOL::getHeadAndArgs(t, head, args);
+
+    head = HOL::getHeadAndArgs(t, args);
   }
 
   return t;

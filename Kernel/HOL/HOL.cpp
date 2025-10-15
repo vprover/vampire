@@ -156,9 +156,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     return "db" + Int::toString(db);
   }
 
-  TermList head;
-  TermStack args;
-  HOL::getHeadAndArgs(TermList(&term), head, args);
+  auto [head, args] = HOL::getHeadAndArgs(TermList(&term));
   bool hasArgs = args.size();
 
   std::string headStr;
@@ -250,7 +248,7 @@ TermList HOL::matrix(TermList t) {
   return t;
 }
 
-void HOL::getHeadAndArgs(TermList term, TermList& head, Kernel::TermStack& args) {
+TermList HOL::getHeadAndArgs(TermList term, TermStack& args) {
   args.reset();
 
   term = matrix(term);
@@ -259,7 +257,15 @@ void HOL::getHeadAndArgs(TermList term, TermList& head, Kernel::TermStack& args)
     args.push(term.rhs());
     term = term.lhs();
   }
-  head = term;
+
+  return term;
+}
+
+std::pair<TermList, TermStack> HOL::getHeadAndArgs(TermList term) {
+  TermStack stack;
+  TermList head = getHeadAndArgs(term, stack);
+
+  return {head, stack};
 }
 
 /** indexed from 1 */

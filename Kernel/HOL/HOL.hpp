@@ -37,7 +37,8 @@ inline bool isFalse(TermList term) {
 std::string toString(const Term &term, bool topLevel);
 
 TermList matrix(TermList t);
-void getHeadAndArgs(TermList term, TermList &head, TermStack &args);
+TermList getHeadAndArgs(TermList term, TermStack &args);
+std::pair<TermList, TermStack> getHeadAndArgs(TermList term);
 
 TermList getNthArg(TermList arrowSort, unsigned argNum);
 TermList getResultAppliedToNArgs(TermList arrowSort, unsigned argNum);
