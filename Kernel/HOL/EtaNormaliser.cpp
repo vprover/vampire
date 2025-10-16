@@ -63,20 +63,20 @@ TermList EtaNormaliser::normalise(TermList t) {
 
 TermList EtaNormaliser::transformSubterm(TermList t) {
   TermList body = t;
-  int l = 0; // number of lambda binders
+  unsigned l = 0; // number of lambda binders
   while (body.isLambdaTerm()) {
-    l++;
+    ++l;
     body = body.lambdaBody();
   }
 
   if (l == 0)
     return t; //not a lambda term, cannot eta reduce
 
-  int n = 0; // number of De bruijn indices at end of term
+  unsigned n = 0; // number of De bruijn indices at end of term
   TermList newBody = body;
   while (body.isApplication()) {
     auto dbIndex = body.rhs().deBruijnIndex();
-    if (!dbIndex.isSome() || dbIndex.unwrap() != n)
+    if (dbIndex.isNone() || dbIndex.unwrap() != n)
       break;
 
     body = body.lhs();
@@ -84,25 +84,22 @@ TermList EtaNormaliser::transformSubterm(TermList t) {
   }
 
   auto mfi = TermShifter::shift(body, 0).second;
-  int j = mfi.unwrapOr(INT_MAX); // j is minimum free index
-  int k = std::min({l, n, j});
+  unsigned j = mfi.unwrapOr(UINT_MAX); // j is minimum free index
+  unsigned k = std::min({l, n, j});
 
   if (k == 0)
     return t;
 
-  for (unsigned i = 0; i < k; i++)
+  for (unsigned i = 0; i < k; ++i)
     newBody = newBody.lhs();
 
-  newBody = TermShifter::shift(newBody, 0 - k).first;
+  newBody = TermShifter::shift(newBody, 0 - static_cast<int>(k)).first;
 
   body = t;
-  for (unsigned i = 0; i < l - k; i++)
+  for (unsigned i = 0; i < l - k; ++i)
     body = body.lambdaBody();
 
-
   // TermTransform doesn't work at top level...
-  if (body == t)
-    return newBody;
-
-  return SubtermReplacer(body, newBody).replace(t);
+  return body == t ? newBody
+                   : SubtermReplacer(body, newBody).replace(t);
 }

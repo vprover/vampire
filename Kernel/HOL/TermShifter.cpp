@@ -18,14 +18,9 @@ std::pair<TermList, Option<unsigned>> TermShifter::shift(TermList term, int shif
   TermShifter ts = TermShifter(shiftBy);
 
   const TermList transformed = ts.transformSubterm(term);
-  const TermList result = (transformed != term) ? transformed
-                                                : ts.transform(term);
-  const auto minFreeIndexOpt = (ts._minFreeIndex > -1) ? Option<unsigned>(static_cast<unsigned>(ts._minFreeIndex))
-                                                                      : Option<unsigned>();
-
-  if (result != term)
-    std::cout << "TermShifter::shift\n" << "term: " << term << "\nshiftBy: " << shiftBy << "\nResult: " << result << "\nMFI: " << minFreeIndexOpt << std::endl;
-  return {result, minFreeIndexOpt};
+  const TermList result = transformed == term ? ts.transform(term)
+                                              : transformed;
+  return {result, ts._minFreeIndex};
 }
 
 TermList TermShifter::transformSubterm(TermList t) {
@@ -33,8 +28,7 @@ TermList TermShifter::transformSubterm(TermList t) {
     unsigned index = t.deBruijnIndex().unwrap();
     if (index >= _cutOff) {
       auto j = index - _cutOff;
-      if (j < _minFreeIndex || _minFreeIndex == -1)
-        _minFreeIndex = static_cast<int>(j);
+      _minFreeIndex = Option<unsigned>(std::min(_minFreeIndex.unwrapOr(j), j));
 
       // free index. lift
       if (_shiftBy != 0) {

@@ -149,6 +149,9 @@ Term* TermTransformer::transform(Term* term)
         break;
       }
       Term* orig = terms.pop();
+
+      onTermExit(orig);
+
       ASS(!orig->isSpecial());
       if (!modified.pop()) {
         args.truncate(args.length() - orig->arity());
