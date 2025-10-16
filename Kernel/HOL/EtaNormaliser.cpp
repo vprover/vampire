@@ -101,5 +101,5 @@ TermList EtaNormaliser::transformSubterm(TermList t) {
 
   // TermTransform doesn't work at top level...
   return body == t ? newBody
-                   : SubtermReplacer(body, newBody).replace(t);
+                   : t.replaceSubterm(body, newBody);
 }

@@ -16,6 +16,7 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/TypedTermList.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Shell/Options.hpp"
 
 #include <optional>
@@ -32,7 +33,7 @@ namespace Test::HOL {
 
 using namespace Kernel;
 
-std::string termListToString(TermList t, Shell::Options::HPrinting opt);
+std::string termListToString(TermList t, Options::HPrinting opt);
 
 TypedTermList lam(std::initializer_list<TypedTermList> vars, TypedTermList body);
 
@@ -56,6 +57,10 @@ public:
 TypedTermList x(unsigned idx, std::optional<TermList> sort = std::nullopt);
 
 TypedTermList id(std::optional<TermList> sort = std::nullopt);
+
+TypedTermList db(int index, std::optional<TermList> sort = std::nullopt);
+
+TypedTermList LAM(TermList varSort, TypedTermList body);
 
 } // namespace Test::HOL
 

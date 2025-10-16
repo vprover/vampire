@@ -107,6 +107,13 @@ TypedTermList id(std::optional<TermList> sort) {
   return lam(x(0, s), x(0, s));
 }
 
+TypedTermList db(int index, std::optional<TermList> sort) {
+  TermList s = sort.value_or(Defs::instance()->srt);
+  return {::HOL::getDeBruijnIndex(index, s), s};
+}
 
+TypedTermList LAM(TermList varSort, TypedTermList body) {
+  return {::HOL::create::namelessLambda(varSort, body.sort(), body.untyped()), AtomicSort::arrowSort(varSort, body.sort())};
+}
 
 } // namespace Test::HOL

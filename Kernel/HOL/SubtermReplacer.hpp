@@ -14,22 +14,21 @@
 #ifndef __SubtermReplacer__
 #define __SubtermReplacer__
 
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/TermTransformer.hpp"
 
 using namespace Kernel;
 
+/**
+ * The class SubtermReplacer allows to replace all occurrences of one subterm by another.
+ *
+ * In contrast to EqHelper::replace free de Bruijn indices of the new subterm can be automatically
+ * lifted in order to avoid name capture.
+ *
+ * See also tSubtermReplacer.cpp for accompanying unit tests of this class.
+ */
 class SubtermReplacer : public TermTransformer {
 public:
-  SubtermReplacer(TermList what, TermList by, bool liftFree = false)
-      : TermTransformer(false),
-        _what(what),
-        _by(by),
-        _liftFreeIndices(liftFree),
-        _shiftBy(0) {
-    ASS(what.isVar() || by.isVar() || SortHelper::getResultSort(what.term()) == SortHelper::getResultSort(by.term()));
-    // dontTransformSorts();
-  }
+  SubtermReplacer(TermList what, TermList by, bool liftFree);
 
   TermList replace(TermList t) {
     return transform(t);
@@ -44,8 +43,8 @@ private:
   TermList _what;
   TermList _by;
 
-  bool _liftFreeIndices; // true if need to lift free indices in _what
-  int _shiftBy; // the amount to shift a free index by
+  bool _liftFreeIndices; // true if need to lift free indices in _by
+  int _shiftBy = 0; // the amount to shift a free index by
 };
 
 #endif // __SubtermReplacer__

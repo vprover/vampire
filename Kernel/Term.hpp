@@ -301,6 +301,7 @@ public:
   std::pair<TermList, TermList> asPair();
   TermList domain();
   TermList result();
+  TermList replaceSubterm(TermList what, TermList by, bool liftFreeIndices = false) const;
   /* End higher-order terms */
 
 #if VDEBUG

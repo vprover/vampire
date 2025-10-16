@@ -88,6 +88,7 @@ set(UNIT_TESTS
     UnitTests/HOL/tBetaReduction.cpp
     UnitTests/HOL/tEtaReduction.cpp
     UnitTests/HOL/tTermShifter.cpp
+    UnitTests/HOL/tSubtermReplacer.cpp
 )
 
 ################################################################

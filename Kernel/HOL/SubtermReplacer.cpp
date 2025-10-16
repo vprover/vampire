@@ -11,13 +11,24 @@
  * @file SubtermReplacer.cpp
  */
 
+#include "Kernel/SortHelper.hpp"
 #include "SubtermReplacer.hpp"
 #include "TermShifter.hpp"
 
+SubtermReplacer::SubtermReplacer(TermList what, TermList by, bool liftFree)
+      : TermTransformer(false),
+        _what(what),
+        _by(by),
+        _liftFreeIndices(liftFree) {
+  ASS(what.isVar() || by.isVar() || SortHelper::getResultSort(what.term()) == SortHelper::getResultSort(by.term()))
+}
+
 TermList SubtermReplacer::transformSubterm(TermList t) {
-  if (t == _what)
-    return _liftFreeIndices ? TermShifter::shift(_by, _shiftBy).first
-                            : _by;
+  if (t == _what) {
+    if (_liftFreeIndices && _shiftBy != 0)
+      return TermShifter::shift(_by, _shiftBy).first;
+    return _by;
+  }
 
   return t;
 }
@@ -28,6 +39,9 @@ void SubtermReplacer::onTermEntry(Term* t) {
 }
 
 void SubtermReplacer::onTermExit(Term* t) {
-  if (t->isLambdaTerm())
+  if (t->isLambdaTerm()) {
+    ASS(_shiftBy > 0)
+
     _shiftBy--;
+  }
 }

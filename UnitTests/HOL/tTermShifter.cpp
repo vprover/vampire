@@ -17,15 +17,6 @@ using namespace Test::HOL;
 
 const auto shift = TermShifter::shift;
 
-TypedTermList db(int index, std::optional<TermList> sort = std::nullopt) {
-  TermList s = sort.value_or(Defs::instance()->srt);
-  return {HOL::getDeBruijnIndex(index, s), s};
-}
-
-TypedTermList LAM(TermList varSort, TypedTermList body) {
-  return {HOL::create::namelessLambda(varSort, body.sort(), body.untyped()), AtomicSort::arrowSort(varSort, body.sort())};
-}
-
 std::pair<TermList, Option<unsigned>> termWithIndex(TermList t, unsigned i) {
   return {t, Option<unsigned>(i)};
 }

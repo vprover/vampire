@@ -27,6 +27,8 @@
 
 #include "Term.hpp"
 
+#include "HOL/SubtermReplacer.hpp"
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -197,6 +199,10 @@ TermList TermList::result() {
   ASS(isArrowSort())
 
   return *term()->nthArgument(1);
+}
+
+TermList TermList::replaceSubterm(TermList what, TermList by, bool liftFreeIndices) const {
+  return SubtermReplacer(what, by, liftFreeIndices).replace(*this);
 }
 
 /**
