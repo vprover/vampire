@@ -26,6 +26,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 #include <fstream>
+#include <sstream>
 
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Environment.hpp"
@@ -51,23 +52,27 @@ void init() {
   prb = UIHelper::getInputProblem();
 }
 
-bool loadTPTP(std::string tag, std::string theory) {
+std::string loadTPTP(std::string tag, std::string theory) {
   try {
     UIHelper::parseString(tag,theory,Options::InputSyntax::TPTP);
     prb = UIHelper::getInputProblem();
-  } catch (ParsingRelatedException&) {
-    return false;
+  } catch (ParsingRelatedException& exception) {
+    std::stringstream ss;
+    exception.cry(ss);
+    return ss.str();
   }
-  return true;
+  return "";
 }
 
-bool parseTPTP(std::string filename) {
+std::string parseTPTP(std::string filename) {
   try {
     UIHelper::parseFile(filename,Options::InputSyntax::TPTP,true);
     prb = UIHelper::getInputProblem();
-    return true;
+    return "";
   } catch (ParsingRelatedException& exception) {
-    return false;
+    std::stringstream ss;
+    exception.cry(ss);
+    return ss.str();
   }
 }
 
