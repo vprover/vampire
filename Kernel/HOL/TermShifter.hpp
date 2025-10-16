@@ -31,7 +31,7 @@ using namespace Kernel;
  * Example:
  * TermTransformer::shift(t, 2) ~> { "(λ. f db_0) db_2", Option<unsigned>(0) }
  *
- * See also tTermShifter.cpp for accompanying unit tests of this class.
+ * See also tHOL_TermShifter.cpp for accompanying unit tests of this class.
  */
 class TermShifter : public TermTransformer
 {

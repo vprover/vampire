@@ -143,6 +143,10 @@ bool TermList::isChoice() const {
   return !isVar() && term()->isChoice();
 }
 
+bool TermList::isPlaceholder() const {
+  return !isVar() && term()->isPlaceholder();
+}
+
 Option<unsigned> TermList::deBruijnIndex() const {
   if (isVar())
     return {};
@@ -939,6 +943,10 @@ bool Term::isProxy(Proxy proxy) const {
 
 bool Term::isChoice() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
+}
+
+bool Term::isPlaceholder() const {
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);
 }
 
 Option<unsigned> Term::deBruijnIndex() const {

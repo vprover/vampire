@@ -18,6 +18,8 @@
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/Environment.hpp"
 
+#include <optional>
+
 /**
  * This namespace contains several helper functions to deal with higher-order terms.
  */
@@ -62,7 +64,7 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
-TermList toPlaceholders(TermList term);
+TermList toPlaceholders(TermList term, std::optional<Options::FunctionExtensionality> funcExtMode = std::nullopt);
 
 } // namespace HOL
 

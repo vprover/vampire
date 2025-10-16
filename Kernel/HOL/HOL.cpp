@@ -124,6 +124,10 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     return res;
   }
 
+  if (term.isPlaceholder()) {
+    return term.functionName() + "⟨" + term.nthArgument(0)->toString(true) + "⟩";
+  }
+
   if (term.isLambdaTerm()) {
     unsigned v = st.size() ? st.top().second + 1 : 0;
     std::string bvar = (pretty ? "y" : "Y") + Int::toString(v);
@@ -374,6 +378,6 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
   matrix = t;
 }
 
-TermList HOL::toPlaceholders(TermList term) {
-  return ToPlaceholders().replace(term);
+TermList HOL::toPlaceholders(TermList term, std::optional<Options::FunctionExtensionality> funcExtMode) {
+  return ToPlaceholders(funcExtMode).replace(term);
 }

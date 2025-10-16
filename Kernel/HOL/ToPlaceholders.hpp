@@ -18,15 +18,22 @@
 #include "Kernel/TermTransformer.hpp"
 #include "Shell/Options.hpp"
 
+#include <optional>
+
 using namespace Kernel;
 
-// replaces higher-order subterms (subterms with variable heads e.g., X a b &
-// lambda terms) with a special polymorphic constant we call a "placeholder".
-// Depending on the mode functional and Boolean subterms may also be replaced
+/**
+* Replaces higher-order subterms (subterms with variable heads e.g., X a b and
+* lambda terms) with a special polymorphic constant we call a "placeholder".
+*
+* If the value of the FunctionExtensionality option is ABSTRACTION, functional and Boolean subterms are also be replaced
+*
+* See also tHOL_ToPlaceholders.cpp for accompanying unit tests of this class.
+*/
 class ToPlaceholders : public TermTransformer
 {
 public:
-  ToPlaceholders();
+  explicit ToPlaceholders(std::optional<Shell::Options::FunctionExtensionality> funcExtMode);
 
   TermList replace(TermList term);
   TermList transformSubterm(TermList t) override;
