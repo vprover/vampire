@@ -221,7 +221,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       Proxy::AND, Proxy::OR, Proxy::IFF, Proxy::EQUALS, Proxy::IMP, Proxy::XOR
   };
 
-  if (std::any_of(proxies.begin(), proxies.end(), [&head](Proxy proxy) { return head.isProxy(proxy); }) &&
+  if (std::any_of(proxies.begin(), proxies.end(), [&term = head](Proxy proxy) { return term.isProxy(proxy); }) &&
       args.size() == 2) {
     res += termToStr(args[1], false, st) + " " + headStr + " " + termToStr(args[0], false, st);
   } else {
