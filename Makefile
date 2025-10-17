@@ -218,6 +218,12 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/HOL/HOL.o\
         Kernel/HOL/Create.o\
         Kernel/HOL/Convert.o\
+        Kernel/HOL/Reduce.o\
+        Kernel/HOL/BetaNormaliser.o\
+        Kernel/HOL/RedexReducer.o\
+        Kernel/HOL/TermShifter.o\
+        Kernel/HOL/EtaNormaliser.o\
+        Kernel/HOL/SubtermReplacer.o\
         Kernel/InterpretedLiteralEvaluator.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
