@@ -188,7 +188,7 @@ void SplittingBranchSelector::handleSatRefutation()
     UnitStack premStack;
     if(_parent.hasSMTSolver)
       for(SATClause *satPrem : iterTraits(_solver.premiseList()->iter()))
-        SATInference::collectFOPremises(satPrem, premStack);
+        SATInference::visitFOPremises(satPrem, [&](Unit *u) { premStack.push(u); });
 #endif
 
     Clause *foRef = Clause::empty(

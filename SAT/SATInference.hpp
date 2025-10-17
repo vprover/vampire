@@ -78,16 +78,28 @@ public:
   virtual InfType getType() const = 0;
 
   /**
-   * Collect first-order premises of @c cl into @c res if they satisfy a filter.
+   * Call `receive` once for each FO_CONVERSION ancestor of `cl`.
+   */
+  template<typename Receiver>
+  static void visitFOConversions(SATClause* cl, Receiver receive);
+
+  /**
+   * Collect first-order premises of `cl` into @c `acc` if they satisfy a filter `f`.
    */
   template <typename Filter>
   static void collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f);
-  /**
-   * Collect all first-order premises of @c cl into @c res.
+
+  /*
+   * Call `receive` once for each first-order premise of `cl`.
    */
-  static void collectFOPremises(SATClause* cl, Stack<Unit*>& acc)
-  { collectFilteredFOPremises(cl, acc, [](SATClause*) {return true;});}
-  static UnitList* getFOPremises(SATClause* cl);
+  template<typename Receiver>
+  static void visitFOPremises(SATClause* cl, Receiver receive);
+
+  static UnitList *getFOPremises(SATClause *cl) {
+    UnitList *result;
+    visitFOPremises(cl, [&result](Unit *u) { UnitList::push(u, result); });
+    return result;
+  }
 };
 
 class PropInference : public SATInference
@@ -133,15 +145,9 @@ private:
   Unit* _origin;
 };
 
-/**
- * Collect first-order premises of @c cl into @c res.
- * Only consider those SATClauses and their parents which pass the given Filter f.
- */
-template <typename Filter>
-void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f)
+template<typename Receiver>
+void SATInference::visitFOConversions(SATClause* cl, Receiver receive)
 {
-  ASS_ALLOC_TYPE(cl, "SATClause");
-
   static Stack<SATClause*> toDo;
   static DHSet<SATClause*> seen;
   toDo.reset();
@@ -150,17 +156,14 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
   toDo.push(cl);
   while (toDo.isNonEmpty()) {
     SATClause* cur = toDo.pop();
-    if (!f(cur)) {
+    if (!seen.insert(cur))
       continue;
-    }
-    if (!seen.insert(cur)) {
-      continue;
-    }
+
     SATInference* sinf = cur->inference();
     ASS(sinf);
     switch(sinf->getType()) {
     case SATInference::FO_CONVERSION:
-      acc.push(static_cast<FOConversionInference*>(sinf)->getOrigin());
+      receive(cur);
       break;
     case SATInference::PROP_INF:
     {
@@ -168,14 +171,28 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
       toDo.loadFromIterator(SATClauseList::Iterator(pinf->getPremises()));
       break;
     }
-    default:
-      ASSERTION_VIOLATION;
     }
   }
 }
 
+template <typename Filter>
+void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f) {
+  visitFOConversions(cl, [&](SATClause *cl) {
+    if(!f(cl))
+      return;
+    auto finf = static_cast<FOConversionInference *>(cl->inference());
+    acc.push(finf->getOrigin());
+  });
+}
 
-
+template<typename Receiver>
+void SATInference::visitFOPremises(SATClause* cl, Receiver receive)
+{
+  visitFOConversions(cl, [&](SATClause *cl) {
+    auto finf = static_cast<FOConversionInference *>(cl->inference());
+    receive(finf->getOrigin());
+  });
+}
 }
 
 #endif // __SATInference__
