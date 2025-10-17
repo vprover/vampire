@@ -117,8 +117,8 @@ Inference::Inference(const NeedsMinimization& fsr) {
   _ptr2 = new NeedsMinimizationInfo(fsr);
 }
 
-Inference::Inference(SATClause *cl) {
-  initMany(InferenceRule::AVATAR_REFUTATION, SATInference::getFOPremises(cl));
+Inference::Inference(SATClause *cl, UnitList *foPrems) {
+  initMany(InferenceRule::AVATAR_REFUTATION, foPrems);
   _kind = Kind::SAT;
   _ptr2 = cl;
 }
@@ -511,6 +511,7 @@ void Inference::minimizePremises()
   SATClause* newSatRef = new(0) SATClause(0);
   newSatRef->setInference(new PropInference(minimized));
 
+  // TODO dubious: isn't this just getOrigin() of all the info->_satPremises?
   UnitList* newFOPrems = SATInference::getFOPremises(newSatRef);
 
   // cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << endl;

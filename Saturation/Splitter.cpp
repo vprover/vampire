@@ -176,36 +176,38 @@ static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 
 void SplittingBranchSelector::handleSatRefutation()
 {
-  /*
-  SATClauseList* satPremises = env.options->minimizeSatProofs()
-    ? _solver.minimizedPremises()
-    : _solver.premiseList();
-  ASS(satPremises);
-  */
+  SATClause *proof = nullptr;
+  SATClauseList *satPremises = nullptr;
+#if VZ3
+  if(_parent.hasSMTSolver)
+    satPremises = _solver.premiseList();
+#endif
+  if(!satPremises) {
+    proof = _solver.proof();
+    SATInference::visitFOConversions(proof, [&](SATClause *cl) {
+      SATClauseList::push(cl, satPremises);
+    });
+  }
+  ASS(satPremises)
+
+  UnitList *foPremises = nullptr;
+  for(auto satPrem : iterTraits(satPremises->iter()))
+    UnitList::push(satPrem->inference()->foConversion()->getOrigin(), foPremises);
+  ASS(foPremises)
 
   if (!env.colorUsed) { // color oblivious, simple approach
-#if VZ3
-    UnitStack premStack;
-    if(_parent.hasSMTSolver)
-      for(SATClause *satPrem : iterTraits(_solver.premiseList()->iter()))
-        SATInference::visitFOPremises(satPrem, [&](Unit *u) { premStack.push(u); });
-#endif
-
     Clause *foRef = Clause::empty(
 #if VZ3
       _parent.hasSMTSolver
-      ? NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION_SMT, UnitList::fromIterator(premStack.iter()))
+      ? NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION_SMT, foPremises)
       :
 #endif
-      Inference(_solver.proof()));
+      Inference(proof, foPremises)
+    );
 
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
-    NOT_IMPLEMENTED;
-    // TODO what should go here?
-    SATClauseList *satPremises = _solver.premiseList();
-
     // decide which side is "bigger" and should go "first"
     int colorCnts[3] = {0,0,0};
     SATClauseList::Iterator it1(satPremises);

@@ -67,6 +67,7 @@ namespace SAT {
 
 using namespace Kernel;
 
+class FOConversionInference;
 class SATInference
 {
 public:
@@ -76,6 +77,9 @@ public:
   };
   virtual ~SATInference() {}
   virtual InfType getType() const = 0;
+
+  // assuming this is really a `FOConversionInference`, do the cast
+  FOConversionInference *foConversion();
 
   /**
    * Call `receive` once for each FO_CONVERSION ancestor of `cl`.
@@ -89,17 +93,7 @@ public:
   template <typename Filter>
   static void collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f);
 
-  /*
-   * Call `receive` once for each first-order premise of `cl`.
-   */
-  template<typename Receiver>
-  static void visitFOPremises(SATClause* cl, Receiver receive);
-
-  static UnitList *getFOPremises(SATClause *cl) {
-    UnitList *result;
-    visitFOPremises(cl, [&result](Unit *u) { UnitList::push(u, result); });
-    return result;
-  }
+  static UnitList *getFOPremises(SATClause *cl);
 };
 
 class PropInference : public SATInference
@@ -145,6 +139,11 @@ private:
   Unit* _origin;
 };
 
+inline FOConversionInference *SATInference::foConversion() {
+  ASS_EQ(getType(), FO_CONVERSION)
+  return static_cast<FOConversionInference *>(this);
+}
+
 template<typename Receiver>
 void SATInference::visitFOConversions(SATClause* cl, Receiver receive)
 {
@@ -180,19 +179,18 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
   visitFOConversions(cl, [&](SATClause *cl) {
     if(!f(cl))
       return;
-    auto finf = static_cast<FOConversionInference *>(cl->inference());
-    acc.push(finf->getOrigin());
+    acc.push(cl->inference()->foConversion()->getOrigin());
   });
 }
 
-template<typename Receiver>
-void SATInference::visitFOPremises(SATClause* cl, Receiver receive)
-{
-  visitFOConversions(cl, [&](SATClause *cl) {
-    auto finf = static_cast<FOConversionInference *>(cl->inference());
-    receive(finf->getOrigin());
+inline UnitList *SATInference::getFOPremises(SATClause *cl) {
+  UnitList *result;
+  SATInference::visitFOConversions(cl, [&result](SATClause *cl) {
+    UnitList::push(cl->inference()->foConversion()->getOrigin(), result);
   });
+  return result;
 }
+
 }
 
 #endif // __SATInference__

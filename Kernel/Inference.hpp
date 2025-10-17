@@ -799,7 +799,7 @@ public:
   Inference(const NeedsMinimization& fsr);
 
   /* put a SAT refutation in the Vampire inference graph */
-  Inference(SAT::SATClause *cl);
+  Inference(SAT::SATClause *cl, UnitList *foPrems);
 
   Inference(const Inference&) = default;
 
