@@ -79,6 +79,18 @@ private:
   const Options& _opt;
 };
 
+class SubtermIndex
+: public TermIndex<TermLiteralClause>
+{
+public:
+  SubtermIndex(Indexing::TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
+  : TermIndex(is), _ord(ord) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+};
+
 class PositiveEqualitySideIndex
 : public TermIndex<TermLiteralClause>
 {

@@ -181,7 +181,7 @@ private:
 
   bool reachableFromGoal(Clause* cl);
   void delayClause(Clause* cl);
-  void maybeAddBackDelayedClauses(Clause* cl);
+  void maybeUndelayClauses(Clause* cl);
 
   LiteralSelector& getSosLiteralSelector();
 
@@ -227,7 +227,7 @@ protected:
   LiteralIndex<LiteralClause>* _goalLiteralIndex;
 
   PositiveEqualitySideIndex* _delayedSideIndex;
-  SuperpositionSubtermIndex<true>* _delayedSubtermIndex;
+  SubtermIndex* _delayedSubtermIndex;
   PositiveLiteralIndex* _delayedLiteralIndex;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;

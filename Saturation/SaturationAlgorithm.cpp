@@ -1148,6 +1148,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   if (_opt.goalDirected()) {
     if (!reachableFromGoal(cl)) {
       delayClause(cl);
+      _clauseActivationInProgress = false;
       return;
     }
   }
@@ -1158,7 +1159,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   _active->add(cl);
 
   if (_opt.goalDirected()) {
-    maybeAddBackDelayedClauses(cl);
+    maybeUndelayClauses(cl);
   }
 
   _partialRedundancyHandler->checkEquations(cl);
@@ -1193,7 +1194,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
   while (_postponedClauseRemovals.isNonEmpty()) {
     Clause* cl = _postponedClauseRemovals.pop();
-    if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE) {
+    if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE && cl->store() != Clause::DELAYED) {
       continue;
     }
     TIME_TRACE("clause removal")
@@ -1289,6 +1290,9 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     //   Shell::UIHelper::outputSaturatedSet(cout, pvi(UnitList::Iterator(collectSaturatedSet())));
     // }
 
+    if (_opt.showActive()) {
+      std::cout << "[SA] undelaying remaining clauses" << std::endl;
+    }
     for (const auto& cl : iterTraits(_delayed.clauses.iter())) {
       cl->setStore(Clause::ACTIVE);
       _active->add(cl);
@@ -1407,7 +1411,7 @@ void SaturationAlgorithm::delayClause(Clause* cl)
   }
 }
 
-void SaturationAlgorithm::maybeAddBackDelayedClauses(Clause* cl)
+void SaturationAlgorithm::maybeUndelayClauses(Clause* cl)
 {
   DHSet<Clause*> toPassive;
 
@@ -1582,7 +1586,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 	  res->_imgr->request(GOAL_LHS_INDEX));
   res->_goalLiteralIndex = static_cast<BinaryResolutionIndex<true>*>(
 	  res->_imgr->request(GOAL_LITERAL_INDEX));
-  res->_delayedSubtermIndex = new SuperpositionSubtermIndex<true>(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering());
+  res->_delayedSubtermIndex = new SubtermIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering());
   res->_delayedSideIndex = new PositiveEqualitySideIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
   res->_delayedLiteralIndex = new PositiveLiteralIndex(new LiteralSubstitutionTree<LiteralClause>());
   res->_delayedSubtermIndex->attachContainer(&res->_delayed);
