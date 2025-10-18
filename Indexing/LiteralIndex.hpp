@@ -60,11 +60,22 @@ protected:
   std::unique_ptr<LiteralIndexingStructure<Data>> _is;
 };
 
+template<bool linearize>
 class BinaryResolutionIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
   BinaryResolutionIndex(LiteralIndexingStructure<LiteralClause>* is)
+  : LiteralIndex<LiteralClause>(is) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+class PositiveLiteralIndex
+: public LiteralIndex<LiteralClause>
+{
+public:
+  PositiveLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);

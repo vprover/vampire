@@ -59,7 +59,7 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   ASS(!_index);
 
   GeneratingInferenceEngine::attach(salg);
-  _index=static_cast<BinaryResolutionIndex*> (
+  _index=static_cast<BinaryResolutionIndex<false>*> (
 	  _salg->getIndexManager()->request(BINARY_RESOLUTION_SUBST_TREE) );
 }
 

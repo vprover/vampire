@@ -169,7 +169,7 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
  */
 void AWPassiveClauseContainer::add(Clause* cl)
 {
-  ASS(cl->store() == Clause::PASSIVE);
+  ASS_EQ(cl->store(), Clause::PASSIVE);
 
   _ageQueue.insert(cl);
   _weightQueue.insert(cl);
@@ -189,7 +189,7 @@ void AWPassiveClauseContainer::add(Clause* cl)
 void AWPassiveClauseContainer::remove(Clause* cl)
 {
   if (_isOutermost) {
-    ASS(cl->store()==Clause::PASSIVE);
+    ASS_EQ(cl->store(),Clause::PASSIVE);
   }
   _ageQueue.remove(cl);
   if (_weightQueue.remove(cl)) { // _ageQueue could be used for the question too
@@ -198,7 +198,7 @@ void AWPassiveClauseContainer::remove(Clause* cl)
 
   if (_isOutermost) {
     removedEvent.fire(cl);
-    ASS(cl->store()!=Clause::PASSIVE);
+    ASS_NEQ(cl->store(),Clause::PASSIVE);
   }
 }
 

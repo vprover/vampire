@@ -114,7 +114,7 @@ Index* IndexManager::create(IndexType t)
   bool isGenerating;
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    res = new BinaryResolutionIndex(new LiteralSubstitutionTree());
+    res = new BinaryResolutionIndex<false>(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case BACKWARD_SUBSUMPTION_SUBST_TREE:
@@ -206,9 +206,12 @@ Index* IndexManager::create(IndexType t)
     res = new SuperpositionSubtermIndex<true>(new TermSubstitutionTree(), _alg->getOrdering());
     isGenerating = true;
     break;
-
   case GOAL_LHS_INDEX:
     res = new SuperpositionLHSIndex<true>(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+    isGenerating = true;
+    break;
+  case GOAL_LITERAL_INDEX:
+    res = new BinaryResolutionIndex<true>(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 

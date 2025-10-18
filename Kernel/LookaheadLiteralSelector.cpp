@@ -77,7 +77,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     case 0:  //resolution
     {
       if(!imgr->contains(BINARY_RESOLUTION_SUBST_TREE)) { stage++; goto start; }
-      BinaryResolutionIndex* gli=static_cast<BinaryResolutionIndex*>(imgr->get(BINARY_RESOLUTION_SUBST_TREE));
+      BinaryResolutionIndex<false>* gli=static_cast<BinaryResolutionIndex<false>*>(imgr->get(BINARY_RESOLUTION_SUBST_TREE));
       ASS(gli);
 
       nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );

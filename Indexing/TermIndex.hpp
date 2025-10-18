@@ -79,11 +79,11 @@ private:
   const Options& _opt;
 };
 
-class SuperpositionRHSIndex
+class PositiveEqualitySideIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  SuperpositionRHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
+  PositiveEqualitySideIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);

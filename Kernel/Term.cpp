@@ -1715,6 +1715,21 @@ Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
 Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2)
 { return Literal::create(predicate, polarity, { arg1, arg2 }); }
 
+Literal* Literal::linearize(Literal* lit)
+{
+  struct Linearizer : TermTransformer {
+    TermList transformSubterm(TermList trm) override {
+      if (trm.isVar()) {
+        return TermList::var(cnt++);
+      }
+      return trm;
+    }
+    unsigned cnt = 0;
+  } linearizer;
+
+  return linearizer.transformLiteral(lit);
+}
+
 /** create a new term and copy from t the relevant part of t's content */
 Term::Term(const Term& t) throw()
   : _functor(t._functor),

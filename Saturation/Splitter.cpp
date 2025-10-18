@@ -771,7 +771,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
   SplitRecord& nameRec = *_db[compName];
   ASS_EQ(nameRec.component,compCl);
   ASS_REP2(compCl->store()==Clause::NONE || compCl->store()==Clause::ACTIVE ||
-      compCl->store()==Clause::PASSIVE || compCl->store()==Clause::UNPROCESSED, *compCl, compCl->store());
+      compCl->store()==Clause::PASSIVE || compCl->store()==Clause::UNPROCESSED ||
+      compCl->store()==Clause::DELAYED, *compCl, compCl->store());
 
   if(nameRec.active && compCl->store()==Clause::NONE) {
     //we need to make sure the clause naming the component is present in this case, as the

@@ -21,10 +21,6 @@
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
 
-namespace Indexing {
-  class BinaryResolutionIndex;
-}
-
 namespace Inferences
 {
 
@@ -60,7 +56,7 @@ private:
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
     ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
-  BinaryResolutionIndex* _index;
+  BinaryResolutionIndex<false>* _index;
 };
 
 using BinaryResolutionExtra = TwoLiteralInferenceExtra;

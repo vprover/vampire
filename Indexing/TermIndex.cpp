@@ -87,15 +87,16 @@ template class SuperpositionSubtermIndex<false>;
 template class SuperpositionLHSIndex<true>;
 template class SuperpositionLHSIndex<false>;
 
-void SuperpositionRHSIndex::handleClause(Clause* c, bool adding)
+void PositiveEqualitySideIndex::handleClause(Clause* c, bool adding)
 {
-  for (const auto& lit : iterTraits(c->getSelectedLiteralIterator())) {
-    for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
-      TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-      if (rhs.isTerm()) {
-        rhs = Term::linearize(rhs.term());
+  for (const auto& lit : iterTraits(c->iterLits())) {
+    if (!lit->isEquality() || lit->isNegative()) { continue; }
+    for (unsigned i = 0; i < 2; i++) {
+      TypedTermList tt(lit->termArg(i), SortHelper::getEqualityArgumentSort(lit));
+      if (tt.isTerm()) {
+        tt = Term::linearize(tt.term());
       }
-      _is->handle(TermLiteralClause{ rhs, lit, c }, adding);
+      _is->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }

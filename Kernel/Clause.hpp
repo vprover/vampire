@@ -71,7 +71,8 @@ public:
     NONE = 3u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
-    SELECTED = 4u
+    SELECTED = 4u,
+    DELAYED = 5u,
   };
 
   friend std::ostream& operator<<(std::ostream& out, Store const& self)
@@ -81,6 +82,7 @@ public:
       case Clause::UNPROCESSED: return out << "unprocessed";
       case Clause::NONE: return out << "none";
       case Clause::SELECTED: return out << "selected";
+      case Clause::DELAYED: return out << "delayed";
     } ASSERTION_VIOLATION }
 
 

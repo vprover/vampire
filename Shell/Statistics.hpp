@@ -333,6 +333,7 @@ public:
   unsigned finalActiveClauses = 0;
   /** extensionality clauses at the end of the saturation algorithm run */
   unsigned finalExtensionalityClauses = 0;
+  unsigned finalDelayedClauses = 0;
   unsigned splitClauses = 0;
   unsigned splitComponents = 0;
 

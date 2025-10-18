@@ -1177,6 +1177,8 @@ public:
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
 
+  static Literal* linearize(Literal* lit);
+
   /**
    * Return the hash function of the top-level of a literal.
    * @since 30/03/2008 Flight Murcia-Manchester

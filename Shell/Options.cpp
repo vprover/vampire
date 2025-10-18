@@ -1627,6 +1627,11 @@ void Options::init()
     _goalParamodulation.tag(OptionTag::INFERENCES);
     _lookup.insert(&_goalParamodulation);
 
+    _goalDirected = BoolOptionValue("goal_directed","gd",true);
+    _goalDirected.description = "Goal-oriented superposition calculus";
+    _goalDirected.tag(OptionTag::SATURATION);
+    _lookup.insert(&_goalDirected);
+
     _inductionOnActiveOccurrences = BoolOptionValue("induction_on_active_occurrences","indao",false);
     _inductionOnActiveOccurrences.description = "Only use induction terms from active occurrences, generalize over active occurrences";
     _inductionOnActiveOccurrences.tag(OptionTag::INDUCTION);

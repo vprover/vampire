@@ -33,7 +33,8 @@ namespace Indexing
 
 using namespace Kernel;
 
-void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
+template<bool linearize>
+void BinaryResolutionIndex<linearize>::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("binary resolution index maintenance");
 
@@ -41,8 +42,22 @@ void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
   for(int i=0; i<selCnt; i++) {
     Literal* lit = (*c)[i];
     if (!lit->isEquality()) {
+      if constexpr (linearize) {
+        lit = Literal::linearize(lit);
+      }
       handle(LiteralClause{lit, c}, adding);
     }
+  }
+}
+
+template class BinaryResolutionIndex<true>;
+template class BinaryResolutionIndex<false>;
+
+void PositiveLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  for (const auto& lit : iterTraits(c->iterLits())) {
+    if (lit->isEquality()) { continue; }
+    handle(LiteralClause{Literal::linearize(lit), c}, adding);
   }
 }
 

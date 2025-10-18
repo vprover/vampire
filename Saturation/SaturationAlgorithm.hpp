@@ -27,6 +27,7 @@
 #include "Kernel/RCClauseStack.hpp"
 
 #include "Indexing/IndexManager.hpp"
+#include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
@@ -223,10 +224,11 @@ protected:
 
   TermIndex<TermLiteralClause>* _goalSubtermIndex;
   TermIndex<TermLiteralClause>* _goalLHSIndex;
+  LiteralIndex<LiteralClause>* _goalLiteralIndex;
 
-  SuperpositionLHSIndex<true>* _delayedLHSIndex;
-  SuperpositionRHSIndex* _delayedRHSIndex;
+  PositiveEqualitySideIndex* _delayedSideIndex;
   SuperpositionSubtermIndex<true>* _delayedSubtermIndex;
+  PositiveLiteralIndex* _delayedLiteralIndex;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;

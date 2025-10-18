@@ -110,7 +110,7 @@ struct BinaryResolutionConf
   }
   // TODO somehow get rid of this field and the hack around it
   SaturationAlgorithm* _salg = 0;
-  friend void attachToInner(BinaryResolutionIndex& self, SaturationAlgorithm* salg);
+  friend void attachToInner(BinaryResolutionIndex<false>& self, SaturationAlgorithm* salg);
 };
 
 inline void attachToInner(BinaryResolutionConf& self, SaturationAlgorithm* salg)  {
