@@ -242,6 +242,124 @@ TermList TermTransformer::transform(TermList ts)
   }
 }
 
+Literal* NonTypeTermTransformer::transformLiteral(Literal* lit)
+{
+  Term* t = transform(static_cast<Term*>(lit));
+  ASS(t->isLiteral());
+  return static_cast<Literal*>(t);
+}
+
+TermList NonTypeTermTransformer::transform(TermList ts)
+{
+  // first let's try transforming ts directly
+  TermList transformed = transformSubterm(ts);
+  if (transformed != ts) {
+    // we did transform, so we are done
+    return transformed;
+  } else if (ts.isVar()) {
+    // we didn't transform, but it's a var (no way to recurse)
+    return ts;
+  } else {
+    // try transform subterms
+    ASS(ts.isTerm());
+    return TermList(transform(ts.term()));
+  }
+}
+
+Term* NonTypeTermTransformer::transform(Term* term)
+{
+  Stack<TermList*> toDo(8);
+  Stack<Term*> terms(8);
+  Stack<bool> modified(8);
+  Stack<TermList> args(8);
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  modified.reset();
+  args.reset();
+
+  modified.push(false);
+  for (unsigned i = 0; i < term->numTypeArguments(); i++) {
+    args.push(term->typeArg(i));
+  }
+  toDo.push(term->termArgs());
+
+  for (;;) {
+    TermList* tt = toDo.pop();
+
+    if (tt->isEmpty()) {
+      if (terms.isEmpty()) {
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
+      }
+      Term* orig = terms.pop();
+      ASS(!orig->isSpecial());
+      if (!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
+      }
+
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      TermList *argLst = &args.top() - (orig->arity() - 1);
+      args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
+      Term* newTrm;
+      ASS (!orig->isSort());
+      newTrm=Term::create(orig,argLst);
+      args.push(TermList(newTrm));
+      modified.setTop(true);
+      continue;
+    } else {
+      toDo.push(tt->next());
+    }
+
+    TermList tl = *tt;
+    TermList dest = transformSubterm(tl);
+    if (tl != dest) {
+      args.push(dest);
+      modified.setTop(true);
+      continue;
+    }
+    if (tl.isVar()) {
+      args.push(tl);
+      continue;
+    }
+
+    ASS(tl.isTerm());
+    Term* t = tl.term();
+    ASS(!t->isSpecial());
+    terms.push(t);
+    modified.push(false);
+    for (unsigned i = 0; i < t->numTypeArguments(); i++) {
+      args.push(t->typeArg(i));
+    }
+    toDo.push(t->termArgs());
+  }
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(), 1);
+  ASS_EQ(args.length(), term->arity());
+
+  if (!modified.pop()) {
+    return term;
+  }
+
+  ASS_EQ(args.size(), term->arity());
+  //here we assume, that stack is an array with
+  //second topmost element as &top()-1, third at
+  //&top()-2, etc...
+  TermList* argLst = &args.top() - (term->arity() - 1);
+
+  if (term->isLiteral()) {
+    return Literal::create(static_cast<Literal*>(term), argLst);
+  } else {
+    return Term::create(term, argLst);
+  }
+}
+
 Formula* TermTransformer::transform(Formula* f)
 {
   TermTransformingFormulaTransformer ttft(*this);

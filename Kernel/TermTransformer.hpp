@@ -61,6 +61,16 @@ protected:
   TermList transform(TermList ts) override;
 };
 
+class NonTypeTermTransformer {
+public:
+  virtual ~NonTypeTermTransformer() {}
+  Term* transform(Term* term);
+  Literal* transformLiteral(Literal* lit);
+protected:
+  virtual TermList transformSubterm(TermList trm) = 0;
+  TermList transform(TermList ts);
+};
+
 /**
  * Has similar philosophy to TermTransformer, but:
  *  goes bottom up and so subterms of currently considered terms

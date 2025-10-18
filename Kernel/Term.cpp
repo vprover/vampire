@@ -1335,7 +1335,7 @@ Term* Term::foolFalse(){
 
 Term* Term::linearize(Term* t)
 {
-  struct Linearizer : TermTransformer {
+  struct Linearizer : NonTypeTermTransformer {
     TermList transformSubterm(TermList trm) override {
       if (trm.isVar()) {
         return TermList::var(cnt++);
@@ -1717,7 +1717,7 @@ Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, Term
 
 Literal* Literal::linearize(Literal* lit)
 {
-  struct Linearizer : TermTransformer {
+  struct Linearizer : NonTypeTermTransformer {
     TermList transformSubterm(TermList trm) override {
       if (trm.isVar()) {
         return TermList::var(cnt++);
