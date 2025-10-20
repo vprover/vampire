@@ -198,7 +198,7 @@ void Statistics::print(std::ostream& out)
   SEPARATOR;
 
   auto genInfCnts = cntInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST);
-  HEADING("Generating Inferences",genInfCnts+choiceInstances+
+  HEADING("Generating Inferences",genInfCnts+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+introducedFunctionDefinitions);
   outputInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST, inferenceCnts);
   COND_OUT("TheoryInstSimp",theoryInstSimp);
@@ -206,7 +206,6 @@ void Statistics::print(std::ostream& out)
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
-  COND_OUT("Choice axiom instances created", choiceInstances);
   COND_OUT("Introduced function definitions", introducedFunctionDefinitions);
   SEPARATOR;
 

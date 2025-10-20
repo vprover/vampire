@@ -153,12 +153,10 @@ public:
   unsigned theoryInstSimpLostSolution = 0;
   /** number of theoryInstSimp application where an empty substitution was applied */
   unsigned theoryInstSimpEmptySubstitution = 0;
-  
+
   // Induction
   unsigned maxInductionDepth = 0;
   unsigned inductionApplication = 0;
-
-  unsigned choiceInstances = 0; // TODO move this to axioms
 
   // Redundant inferences
   unsigned skippedSuperposition = 0;
