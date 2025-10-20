@@ -198,7 +198,7 @@ enum class InferenceRule : unsigned char {
   ALASCA_INTEGER_TRANSFORMATION,
   /** skolemization */
   SKOLEMIZE,
-  /** skolem symbol introduction */
+  /** skolem symbol introduction (there can be more than one introduction during one SKOLEMIZE step) */
   SKOLEM_SYMBOL_INTRODUCTION,
   /** obtain clause from a formula */
   CLAUSIFY,
