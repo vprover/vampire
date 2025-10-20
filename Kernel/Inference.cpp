@@ -646,6 +646,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "duplicate literal removal";
   case InferenceRule::SKOLEMIZE:
     return "skolemisation";
+  case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
+    return "skolem symbol introduction";
   case InferenceRule::RESOLUTION:
     return "resolution";
   case InferenceRule::CONSTRAINED_RESOLUTION:
@@ -731,8 +733,6 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
-  case InferenceRule::APPEAL_TO_THE_CHOICE_PRINCIPLE:
-    return "appeal to the choice principle";
   case InferenceRule::DISTINCTNESS_AXIOM:
     return "distinctness axiom";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
@@ -935,6 +935,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "primitive instantiation";
   case InferenceRule::LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
+  case InferenceRule::HILBERTS_CHOICE_INSTANCE:
+    return "Hilbert's choice axiom instance";
   case InferenceRule::CASES_SIMP:
     return "cases simplifying";
   case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:

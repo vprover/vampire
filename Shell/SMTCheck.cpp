@@ -921,8 +921,8 @@ void outputStep(std::ostream &out, Unit *u)
   if (
       // can't check the input
       rule == InferenceRule::INPUT || rule == InferenceRule::NEGATED_CONJECTURE
-      // can't check the axiom of choice
-      || rule == InferenceRule::APPEAL_TO_THE_CHOICE_PRINCIPLE
+      // can't check skolem symbol introduction
+      || rule == InferenceRule::SKOLEM_SYMBOL_INTRODUCTION
       // can't check distinctness axioms
       || rule == InferenceRule::DISTINCTNESS_AXIOM
       // can't check definition introduction

@@ -65,7 +65,7 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   return Clause::fromLiterals(
       { Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
         Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())},
-       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::APPEAL_TO_THE_CHOICE_PRINCIPLE)
+       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE)
   );
 }
 

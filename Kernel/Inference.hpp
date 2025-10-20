@@ -198,6 +198,8 @@ enum class InferenceRule : unsigned char {
   ALASCA_INTEGER_TRANSFORMATION,
   /** skolemization */
   SKOLEMIZE,
+  /** skolem symbol introduction */
+  SKOLEM_SYMBOL_INTRODUCTION,
   /** obtain clause from a formula */
   CLAUSIFY,
   /** the (preprocessing/normalisation) formula transformation marker --
@@ -332,25 +334,17 @@ enum class InferenceRule : unsigned char {
         (see also isGeneratingInferenceRule) */
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
-
   INJECTIVITY,
-
   PRIMITIVE_INSTANTIATION,
-
   LEIBNIZ_ELIMINATION,
-
+  HILBERTS_CHOICE_INSTANCE,
   NEGATIVE_EXT,
-
   EQ_TO_DISEQ,
   /** The next five rules can be either simplifying or generating */
   HOL_NOT_ELIMINATION,
-
   BINARY_CONN_ELIMINATION,
-
   VSIGMA_ELIMINATION,
-
   VPI_ELIMINATION,
-
   HOL_EQUALITY_ELIMINATION,
 
   /** the last generating inference marker --
@@ -440,9 +434,6 @@ enum class InferenceRule : unsigned char {
   ADD_SORT_PREDICATES,
   /* Adding sort functions */
   ADD_SORT_FUNCTIONS,
-
-  /** a premise to skolemization */
-  APPEAL_TO_THE_CHOICE_PRINCIPLE,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
