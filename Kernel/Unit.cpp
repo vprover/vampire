@@ -269,51 +269,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
         ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
       }
       inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
-
-      switch (inf.rule()) {
-        case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
-        case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
-        case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
-        case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
-          env.statistics->structInductionInProof++;
-          break;
-        case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-        case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-          env.statistics->intInfInductionInProof++;
-          break;
-        case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-        case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-          env.statistics->intFinInductionInProof++;
-          break;
-        case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-        case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-          env.statistics->intDBInductionInProof++;
-          break;
-        default:
-          ;
-      }
-      switch (inf.rule()) {
-        case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-          env.statistics->intInfUpInductionInProof++;
-          break;
-        case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-          env.statistics->intInfDownInductionInProof++;
-          break;
-        case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-          env.statistics->intFinUpInductionInProof++;
-          break;
-        case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-          env.statistics->intFinDownInductionInProof++;
-          break;
-        case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-          env.statistics->intDBUpInductionInProof++;
-          break;
-        case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-          env.statistics->intDBDownInductionInProof++;
-          break;
-        default:
-          ;
-      }
+      env.statistics->reportProofStep(current);
 
     } else {
       if (!done.insert(current)) {

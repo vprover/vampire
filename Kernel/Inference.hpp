@@ -198,16 +198,18 @@ enum class InferenceRule : unsigned char {
   ALASCA_INTEGER_TRANSFORMATION,
   /** skolemization */
   SKOLEMIZE,
+  /** skolem symbol introduction (there can be more than one introduction during one SKOLEMIZE step) */
+  SKOLEM_SYMBOL_INTRODUCTION,
   /** obtain clause from a formula */
   CLAUSIFY,
   /** the (preprocessing/normalisation) formula transformation marker --
     inferences between GENERIC_FORMULA_CLAUSE_TRANSFORMATION and INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST
     will be automatically understood as formula transformations (see also isFormulaClauseTransformation) */
-  INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST,
+  GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST,
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
-   * (see also INTERNAL_SIMPLIFYING_INFERNCE_LAST and isSimplifyingInferenceRule below). */
-  GENERIC_SIMPLIFYING_INFERNCE,
+   * (see also GENERIC_SIMPLIFYING_INFERENCE_LAST and isSimplifyingInferenceRule below). */
+  GENERIC_SIMPLIFYING_INFERENCE,
   /** obtained by reordering literals */
   REORDER_LITERALS,
   /** obtain a clause from a clause by removing duplicate literals */
@@ -216,8 +218,10 @@ enum class InferenceRule : unsigned char {
   TRIVIAL_INEQUALITY_REMOVAL,
   /** equality resolution as a simplification */
   EQUALITY_RESOLUTION_WITH_DELETION,
-  /** subsumption resolution simplification rule */
-  SUBSUMPTION_RESOLUTION,
+  /** forward subsumption resolution simplification rule */
+  FORWARD_SUBSUMPTION_RESOLUTION,
+  /** backward subsumption resolution simplification rule */
+  BACKWARD_SUBSUMPTION_RESOLUTION,
   /** forward demodulation inference */
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
@@ -247,7 +251,9 @@ enum class InferenceRule : unsigned char {
   /** inference rule for term algebras (no equality between terms of different constructors)*/
   TERM_ALGEBRA_DISTINCTNESS,
   /** inference rule for term algebras (injectivity of constructors)*/
-  TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
+  TERM_ALGEBRA_POSITIVE_INJECTIVITY_SIMPLIFYING,
+  /** inference rule for term algebras (injectivity of constructors)*/
+  TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING,
   /** global subsumption */
   GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
   /** distinct equality removal */
@@ -264,10 +270,6 @@ enum class InferenceRule : unsigned char {
   /* clause with literals added from AVATAR assertions of the parent */
   AVATAR_ASSERTION_REINTRODUCTION,
 
-   /* eager demodulation with combinator axioms */
-  COMBINATOR_DEMOD,
-  /* normalising combinators */
-  COMBINATOR_NORMALISE,
   /* negative extnsionality */
   CASES_SIMP,
   ALASCA_VIRAS_QE,
@@ -277,13 +279,13 @@ enum class InferenceRule : unsigned char {
   FUNCTION_DEFINITION_DEMODULATION,
 
   /** the last simplifying inference marker --
-    inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
+    inferences between GENERIC_SIMPLIFYING_INFERENCE and GENERIC_SIMPLIFYING_INFERENCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
-  INTERNAL_SIMPLIFYING_INFERNCE_LAST,
+  GENERIC_SIMPLIFYING_INFERENCE_LAST,
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL GENERATING INFERENCES SHOULD BELONG
-    * (see also INTERNAL_GENERATING_INFERNCE_LAST and isGeneratingInferenceRule below). */
-  GENERIC_GENERATING_INFERNCE,
+    * (see also GENERIC_GENERATING_INFERENCE_LAST and isGeneratingInferenceRule below). */
+  GENERIC_GENERATING_INFERENCE,
   /** resolution inference */
   RESOLUTION,
   /** constrained resolution inference */
@@ -328,61 +330,27 @@ enum class InferenceRule : unsigned char {
   ALASCA_COHERENCE_NORMALIZATION,
   ALASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
-        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        inferences between GENERIC_GENERATING_INFERENCE and GENERIC_GENERATING_INFERENCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
-  /* narrow with combinator axiom */
-  SXX_NARROW,
-
-  SX_NARROW,
-
-  S_NARROW,
-
-  CXX_NARROW,
-
-  CX_NARROW,
-
-  C_NARROW,
-
-  BXX_NARROW,
-
-  BX_NARROW,
-
-  B_NARROW,
-
-  KX_NARROW,
-
-  K_NARROW,
-
-  I_NARROW,
-  /* superposition beneath variable */
-  SUB_VAR_SUP,
-
   INJECTIVITY,
-
   PRIMITIVE_INSTANTIATION,
-
   LEIBNIZ_ELIMINATION,
-
+  HILBERTS_CHOICE_INSTANCE, // not considered a theory axiom at the moment (it's a HOL creature)
   NEGATIVE_EXT,
-
   EQ_TO_DISEQ,
   /** The next five rules can be either simplifying or generating */
   HOL_NOT_ELIMINATION,
-
   BINARY_CONN_ELIMINATION,
-
   VSIGMA_ELIMINATION,
-
   VPI_ELIMINATION,
-
   HOL_EQUALITY_ELIMINATION,
 
   /** the last generating inference marker --
-        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        inferences between GENERIC_GENERATING_INFERENCE and GENERIC_GENERATING_INFERENCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
-  INTERNAL_GENERATING_INFERNCE_LAST,
+  GENERIC_GENERATING_INFERENCE_LAST,
 
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
@@ -453,9 +421,6 @@ enum class InferenceRule : unsigned char {
   /** obtain a formula from a clause */
   FORMULIFY,
 
-  /** inference coming from outside of Vampire */
-  EXTERNAL,
-
   /* FMB flattening */
   FMB_FLATTENING,
   /* Functional definition for FMB */
@@ -469,24 +434,6 @@ enum class InferenceRule : unsigned char {
   ADD_SORT_PREDICATES,
   /* Adding sort functions */
   ADD_SORT_FUNCTIONS,
-
-  /** a premise to skolemization */
-  CHOICE_AXIOM,
-
-  /* Structural induction hypothesis*/
-  STRUCT_INDUCTION_AXIOM_ONE,
-  STRUCT_INDUCTION_AXIOM_TWO,
-  STRUCT_INDUCTION_AXIOM_THREE,
-  STRUCT_INDUCTION_AXIOM_RECURSION,
-  /* Integer induction hypothesis for infinite intervals */
-  INT_INF_UP_INDUCTION_AXIOM,
-  INT_INF_DOWN_INDUCTION_AXIOM,
-  /* Integer induction hypothesis for finite intervals */
-  INT_FIN_UP_INDUCTION_AXIOM,
-  INT_FIN_DOWN_INDUCTION_AXIOM,
-  /* Integer induction hypothesis for infinite interval and the default bound */
-  INT_DB_UP_INDUCTION_AXIOM,
-  INT_DB_DOWN_INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
@@ -550,45 +497,38 @@ enum class InferenceRule : unsigned char {
   TERM_ALGEBRA_DISTINCTNESS_AXIOM,
   /** exhaustiveness axiom (or domain closure axiom) for term algebras */
   TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM, // currently (sometimes) applied to a formula, so won't propagate to clause->isTheoryAxiom()
-  /** exhaustiveness axiom (or domain closure axiom) for term algebras */
+  /** injectivity axiom for term algebras */
   TERM_ALGEBRA_INJECTIVITY_AXIOM,
-  /** one of two axioms of FOOL (distinct constants or finite domain) */
+  /** distinctness axiom for FOOL */
   FOOL_AXIOM_TRUE_NEQ_FALSE,
+  /** exhaustiveness (finite domain) axiom for FOOL */
   FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,
 
-  COMBINATOR_AXIOM,
+  /* Structural induction axioms */
+  STRUCT_INDUCTION_AXIOM_ONE,
+  STRUCT_INDUCTION_AXIOM_TWO,
+  STRUCT_INDUCTION_AXIOM_THREE,
+  STRUCT_INDUCTION_AXIOM_RECURSION,
+  /* Integer induction axioms for infinite intervals */
+  INT_INF_UP_INDUCTION_AXIOM,
+  INT_INF_DOWN_INDUCTION_AXIOM,
+  /* Integer induction axioms for finite intervals */
+  INT_FIN_UP_INDUCTION_AXIOM,
+  INT_FIN_DOWN_INDUCTION_AXIOM,
+  /* Integer induction axioms for infinite interval and the default bound */
+  INT_DB_UP_INDUCTION_AXIOM,
+  INT_DB_DOWN_INDUCTION_AXIOM,
 
-  FUNC_EXT_AXIOM,
-
-  /** beginning of proxy function axioms marker --*/
-  PROXY_AXIOM,
-  /* Equality proxy axiom */
-  EQUALITY_PROXY_AXIOM,
-  /* Not proxy axiom */
-  NOT_PROXY_AXIOM,
-  /* And proxy axiom */
-  AND_PROXY_AXIOM,
-  /* OR proxy axiom */
-  OR_PROXY_AXIOM,
-  /* Implies proxy axiom */
-  IMPLIES_PROXY_AXIOM,
-  /* Forall proxy axiom */
-  PI_PROXY_AXIOM,
-  /* Exists proxy axiom */
-  SIGMA_PROXY_AXIOM,
-
-  /** the last internal theory axiom marker --
-    axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
-  INTERNAL_THEORY_AXIOM_LAST,
-  /** a theory axiom which is not generated internally in Vampire */
-  EXTERNAL_THEORY_AXIOM
+  /** the last theory axiom marker --
+    axioms between THEORY_AXIOM and GENERIC_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
+  GENERIC_THEORY_AXIOM_LAST
 }; // class InferenceRule
 
-inline std::underlying_type<InferenceRule>::type toNumber(InferenceRule r) { return static_cast<std::underlying_type<InferenceRule>::type>(r); }
+inline constexpr std::underlying_type_t<InferenceRule> toNumber(InferenceRule r) { return static_cast<std::underlying_type_t<InferenceRule>>(r); }
 
 inline bool isFormulaClauseTransformation(InferenceRule r) {
-  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST));
+  return (toNumber(r) > toNumber(InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST));
 }
 
 /** Currently not enforced but (almost) assumed:
@@ -599,8 +539,8 @@ inline bool isFormulaClauseTransformation(InferenceRule r) {
  * - the age of the corresponding Clause is the same as that of this main premise
  **/
 inline bool isSimplifyingInferenceRule(InferenceRule r) {
-  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_SIMPLIFYING_INFERNCE) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST));
+  return (toNumber(r) > toNumber(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST));
 }
 
 /**
@@ -610,26 +550,13 @@ inline bool isSimplifyingInferenceRule(InferenceRule r) {
  * - the age of the corresponding Clause is computed as the max over parent's ages +1
  */
 inline bool isGeneratingInferenceRule(InferenceRule r) {
-  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_GENERATING_INFERNCE) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST));
+  return (toNumber(r) > toNumber(InferenceRule::GENERIC_GENERATING_INFERENCE) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_GENERATING_INFERENCE_LAST));
 }
 
-inline bool isInternalTheoryAxiomRule(InferenceRule r) {
-  return (toNumber(r) >= toNumber(InferenceRule::GENERIC_THEORY_AXIOM) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_THEORY_AXIOM_LAST));
-}
-
-inline bool isCombinatorAxiomRule(InferenceRule r) {
-  return r == InferenceRule::COMBINATOR_AXIOM;
-}
-
-inline bool isProxyAxiomRule(InferenceRule r) {
-  return (toNumber(r) >= toNumber(InferenceRule::PROXY_AXIOM) &&
-      toNumber(r) < toNumber(InferenceRule::INTERNAL_THEORY_AXIOM_LAST));
-}
-
-inline bool isExternalTheoryAxiomRule(InferenceRule r) {
-  return r == InferenceRule::EXTERNAL_THEORY_AXIOM;
+inline bool isTheoryAxiomRule(InferenceRule r) {
+  return (toNumber(r) > toNumber(InferenceRule::GENERIC_THEORY_AXIOM) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST));
 }
 
 inline bool isSatRefutationRule(InferenceRule r) {
@@ -773,7 +700,7 @@ public:
   Inference(const FromInput& fi);
 
   /* Theory axioms are automatically of inputType AXIOM.
-   * and the corresponding rule should satisfy isInternalTheoryAxiomRule or isExternalTheoryAxiomRule
+   * and the corresponding rule should satisfy isTheoryAxiomRule
    * CAREFUL: extending what TheoryAxiomRule is influences the theory_split_queue heuristic
    **/
   Inference(const TheoryAxiom& ta);
@@ -900,55 +827,27 @@ public:
   /*
    * returns true if clause is a theory axiom
    *
-   * Definition: A unit is a theory axiom iff it is added internally in the TheoryAxiom-class or if it is an externally added theory axiom
+   * Definition: A unit is a theory axiom iff it is added internally in the TheoryAxiom-class
    * In particular:
-   * - integer/rational/real theory axioms are internal theory axioms
-   * - term algebra axioms are internal theory axioms
-   * - FOOL axioms are internal theory axioms
+   * - integer/rational/real theory axioms are theory axioms
+   * - term algebra axioms are theory axioms
+   * - FOOL axioms are theory axioms
+   * - instances of induction axioms
    * - equality-proxy-axioms
-   *   are not treated as internal theory axioms, since they are not generated in TheoryAxioms
+   *   are not treated as theory axioms, since they are not generated in TheoryAxioms
    *   (these axioms should probably be refactored into TheoryAxioms at some point)
    * - consequences of theory axioms are not theory axioms
    * - each theory axiom is a theory-tautology, but not every theory-tautology
    *   is a theory axiom (e.g. a consequence of two theory axioms or a conflict
    *   clause generated by a call to Z3)
-   * We are interested in whether a clause is an internal theory axiom, because of several reasons:
-   * - Internal theory axioms are already assumed to be simplified as much as possible
-   * - Internal theory axioms often blow up the search space
-   * - We don't need to pass internal theory axioms to another prover, if
+   * We are interested in whether a clause is a theory axiom, because of several reasons:
+   * - Theory axioms are already assumed to be simplified as much as possible
+   * - Theory axioms often blow up the search space
+   * - We don't need to pass theory axioms to another prover, if
    *   that prover natively handles the corresponding theory.
-   *
-   * TODO: handle the exhaustiveness axiom, which should be added as clause
    */
   bool isTheoryAxiom() const {
-    return isInternalTheoryAxiomRule(_rule) || isExternalTheoryAxiomRule(_rule);
-  }
-
-  bool isCombinatorAxiom() const {
-    return isCombinatorAxiomRule(_rule);
-  }
-
-  bool isProxyAxiom() const {
-    return isProxyAxiomRule(_rule);
-  }  
-
-  /*
-   * returns true if clause is an external theory axiom
-   *
-   * Definition: A unit is an external theory axiom iff it is added by parsing
-   * an external theory axioms
-   *
-   * We are interested in whether a clause is an external theory axiom, because of several reasons:
-   * - External theory axioms should already be simplified as much as possible
-   * - External theory axioms often blow up the search space
-   *
-   * TODO: If an unit u with inference EXTERNAL_THEORY_AXIOM is a formula (and therefore not a clause),
-   *  the results c_i of clausifying u will not be labeled EXTERNAL_THEORY_AXIOM, and therefore this function
-   * will return false for c_i. In particular, adding the same formula as a clause or as formula could cause
-   * different behavior by Vampire, which is probably a bad thing.
-   */
-  bool isExternalTheoryAxiom() const {
-    return isExternalTheoryAxiomRule(_rule);
+    return isTheoryAxiomRule(_rule);
   }
 
   /** Mark the corresponding unit as read from a TPTP included file  */
@@ -969,15 +868,6 @@ public:
   bool isPureTheoryDescendant() const { return _isPureTheoryDescendant; }
   /** This is how AVATAR sets it... */
   void setPureTheoryDescendant(bool val) { _isPureTheoryDescendant = val; }
-
-  bool isCombAxiomsDescendant() const { return _combAxiomsDescendant; }
-  void setCombAxiomsDescendant(bool val) { _combAxiomsDescendant=val; }
-
-  bool isProxyAxiomsDescendant() const { return _proxyAxiomsDescendant; }
-  void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; }
-
-  bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
-  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }
@@ -1018,12 +908,6 @@ private:
 
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;
-  /** Clause is a combinator axiom descendant */
-  unsigned _combAxiomsDescendant : 1;
-  /** */
-  unsigned _proxyAxiomsDescendant : 1;
-  /** clause is descended only from proxy or combinator axioms */
-  unsigned _holAxiomsDescendant : 1;
   /** Induction depth **/
   unsigned _inductionDepth : 5;
 

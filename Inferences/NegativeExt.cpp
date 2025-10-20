@@ -21,7 +21,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/List.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/Skolem.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -143,8 +142,6 @@ struct NegativeExt::ResultFn
     for (Literal* curr : iterTraits(_cl->iterLits())) {
       resLits->push(curr == lit ? newLit : curr);
     }
-
-    env.statistics->negativeExtensionality++;
  
     return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::NEGATIVE_EXT, _cl));
   }

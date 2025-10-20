@@ -13,8 +13,6 @@
  * @author Giles
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -29,8 +27,6 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/TermIterators.hpp"
-
-#include "Shell/Statistics.hpp"
 
 #include "Instantiation.hpp"
 

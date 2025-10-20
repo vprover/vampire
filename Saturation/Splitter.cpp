@@ -1025,7 +1025,6 @@ bool Splitter::doSplitting(Clause* cl)
 
   addSatClauseToSolver(splitClause);
 
-  env.statistics->satSplits++;
   return true;
 }
 

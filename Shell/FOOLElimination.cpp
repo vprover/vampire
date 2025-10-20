@@ -32,7 +32,6 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Rectify.hpp"
 
