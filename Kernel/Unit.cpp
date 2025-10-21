@@ -59,7 +59,7 @@ Unit::Unit(Kind kind, Inference inf)
     _inheritedColor(COLOR_INVALID),
     _inference(std::move(inf))
 {
-
+  env.statistics->reportUnit(this);
 } // Unit::Unit
   //
 

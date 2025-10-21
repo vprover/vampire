@@ -105,9 +105,8 @@ public:
 
   void print(std::ostream& out);
   void explainRefutationNotFound(std::ostream& out);
-  void reportClause(Clause* cl);
+  void reportUnit(Unit* u);
   /** Should be called for axioms that are not directly added to saturation. */
-  void reportTheoryAxiom(Unit* unit);
   void reportProofStep(Unit* unit);
 
   // Input

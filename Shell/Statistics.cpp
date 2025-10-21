@@ -37,6 +37,13 @@ using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
 
+string capitalize(string s) {
+  if (!s.empty() && std::isalpha(s[0]) && !std::isupper(s[0])) {
+    s[0] = std::toupper(s[0]);
+  }
+  return s;
+}
+
 void Statistics::explainRefutationNotFound(std::ostream& out)
 {
   // should be a one-liner for each case!
@@ -62,21 +69,6 @@ void Statistics::print(std::ostream& out)
   if (env.options->statistics() != Options::Statistics::NONE) {
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
-
-  bool separable=false;
-#define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
-#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << text << ": " << (num) << endl; separable = true; }
-#define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
-
-  auto cntInfRange = [&](InferenceRule first, InferenceRule last) {
-    return range(toNumber(first),toNumber(last)).map([&](unsigned i) { return inferenceCnts[i]; }).sum();
-  };
-
-  auto outputInfRange = [&](InferenceRule first, InferenceRule last, const auto& container) {
-    for (unsigned i : range(toNumber(first),toNumber(last))) {
-      COND_OUT(ruleName(static_cast<InferenceRule>(i)), container[i]);
-    }
-  };
 
   addCommentSignForSZS(out);
   out << "------------------------------\n";
@@ -127,133 +119,178 @@ void Statistics::print(std::ostream& out)
 
   if (env.options->statistics()==Options::Statistics::FULL) {
 
-  HEADING("Input",inputClauses+inputFormulas);
-  COND_OUT("Input clauses", inputClauses);
-  COND_OUT("Input formulas", inputFormulas);
-  SEPARATOR;
+    struct Entry {
+      string name;
+      string total;
+      string inproof;
+    };
+    struct Group {
+      string name;
+      Stack<Entry> entries;
+    };
+    Stack<Group> groups;
 
-  HEADING("Preprocessing",formulaNames+skolemFunctions+purePredicates+trivialPredicates+
-    unusedPredicateDefinitions+eliminatedFunctionDefinitions+selectedBySine+
-    sineIterations+blockedClauses+splitInequalities);
-  COND_OUT("Introduced names",formulaNames);
-  COND_OUT("Introduced skolems",skolemFunctions);
-  COND_OUT("Pure predicates", purePredicates);
-  COND_OUT("Trivial predicates", trivialPredicates);
-  COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
-  COND_OUT("Function definitions", eliminatedFunctionDefinitions);
-  COND_OUT("Selected by SInE selection", selectedBySine);
-  COND_OUT("SInE iterations", sineIterations);
-  COND_OUT("Blocked clauses", blockedClauses);
-  COND_OUT("Split inequalities", splitInequalities);
-  SEPARATOR;
+#define GROUP(gname) groups.push(Group { .name = gname, .entries = Stack<Entry>() });
+#define ENTRY(ename, num) if (num) { groups.top().entries.push(Entry { .name = ename, .total = Int::toString(num), .inproof = "~" }); }
 
-  HEADING("Saturation",activeClauses+passiveClauses+extensionalityClauses+
-      generatedClauses+finalActiveClauses+finalPassiveClauses+finalExtensionalityClauses+
-      discardedNonRedundantClauses);
-  COND_OUT("Initial clauses", initialClauses);
-  COND_OUT("Generated clauses", generatedClauses);
-  COND_OUT("Activations started", activations);
-  COND_OUT("Active clauses", activeClauses);
-  COND_OUT("Passive clauses", passiveClauses);
-  COND_OUT("Extensionality clauses", extensionalityClauses);
-  COND_OUT("Final active clauses", finalActiveClauses);
-  COND_OUT("Final passive clauses", finalPassiveClauses);
-  COND_OUT("Final extensionality clauses", finalExtensionalityClauses);
-  COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
-  SEPARATOR;
+    auto outputInfRange = [&](InferenceRule first, InferenceRule last) {
+      for (unsigned i : range(toNumber(first),toNumber(last))) {
+        ASS_GE(inferenceCnts[i], inProofInferenceCnts[i]);
+        if (!inferenceCnts[i]) { continue; }
+        Entry e {
+          .name = capitalize(ruleName(static_cast<InferenceRule>(i))),
+          .total = Int::toString(inferenceCnts[i]),
+          .inproof = Int::toString(inProofInferenceCnts[i])
+        };
+        groups.top().entries.push(e);
+      }
+    };
 
-  unsigned simplInfCnt = cntInfRange(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST);
-  HEADING("Simplifying Inferences",simplInfCnt+duplicateLiterals+trivialInequalities+
-      evaluationCnt
-      +( gveCnt - gveViolations)
-      +( asgCnt - asgViolations)
-      +( evaluationCnt - evaluationIncomp - evaluationGreater));
-  outputInfRange(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST, inferenceCnts);
-  COND_OUT("Duplicate literals", duplicateLiterals);
-  COND_OUT("Trivial inequalities", trivialInequalities);
-  COND_OUT("asg count", asgCnt);
-  COND_OUT("asg results not smaller than the premis", asgViolations);
-  COND_OUT("gve count", gveCnt);
-  COND_OUT("gve results not smaller than the premis", gveViolations);
-  COND_OUT("Evaluation count",         evaluationCnt);
-  COND_OUT("Evaluation results greater than premise", evaluationGreater);
-  COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
-  SEPARATOR;
+    GROUP("INPUT");
+    outputInfRange(InferenceRule::INPUT, InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION);
+    ENTRY("Input clauses", inputClauses);
+    ENTRY("Input formulas", inputFormulas);
 
-  HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
-      forwardSubsumed+backwardSubsumed+forwardGroundJoinable+forwardDemodulationsToEqTaut+
-      forwardSubsumptionDemodulationsToEqTaut+backwardSubsumptionDemodulationsToEqTaut+
-      backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
-  COND_OUT("Simple tautologies", simpleTautologies);
-  COND_OUT("Equational tautologies", equationalTautologies);
-  COND_OUT("Deep equational tautologies", deepEquationalTautologies);
-  COND_OUT("Forward subsumptions", forwardSubsumed);
-  COND_OUT("Backward subsumptions", backwardSubsumed);
-  COND_OUT("Forward ground joinable", forwardGroundJoinable);
-  COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
-  COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
-  COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
-  COND_OUT("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
-  COND_OUT("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
-  SEPARATOR;
+    GROUP("PREPROCESSING");
+    outputInfRange(InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION, InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST);
+    ENTRY("Introduced names", formulaNames);
+    ENTRY("Introduced skolems", skolemFunctions);
+    ENTRY("Pure predicates", purePredicates);
+    ENTRY("Trivial predicates", trivialPredicates);
+    ENTRY("Unused predicate definitions", unusedPredicateDefinitions);
+    ENTRY("Function definitions", eliminatedFunctionDefinitions);
+    ENTRY("Selected by SInE selection", selectedBySine);
+    ENTRY("SInE iterations", sineIterations);
+    ENTRY("Blocked clauses", blockedClauses);
+    ENTRY("Split inequalities", splitInequalities);
 
-  auto genInfCnts = cntInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST);
-  HEADING("Generating Inferences",genInfCnts+
-      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+introducedFunctionDefinitions);
-  outputInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST, inferenceCnts);
-  COND_OUT("TheoryInstSimp",theoryInstSimp);
-  COND_OUT("TheoryInstSimpCandidates",theoryInstSimpCandidates);
-  COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
-  COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
-  COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
-  COND_OUT("Introduced function definitions", introducedFunctionDefinitions);
-  SEPARATOR;
+    GROUP("SATURATION");
+    ENTRY("Initial clauses", initialClauses);
+    ENTRY("Generated clauses", generatedClauses);
+    ENTRY("Activations started", activations);
+    ENTRY("Active clauses", activeClauses);
+    ENTRY("Passive clauses", passiveClauses);
+    ENTRY("Extensionality clauses", extensionalityClauses);
+    ENTRY("Final active clauses", finalActiveClauses);
+    ENTRY("Final passive clauses", finalPassiveClauses);
+    ENTRY("Final extensionality clauses", finalExtensionalityClauses);
+    ENTRY("Discarded non-redundant clauses", discardedNonRedundantClauses);
 
-  auto theoryAxiomsCnt = cntInfRange(InferenceRule::GENERIC_THEORY_AXIOM, InferenceRule::GENERIC_THEORY_AXIOM_LAST);
-  HEADING("Theory Axioms",theoryAxiomsCnt);
-  outputInfRange(InferenceRule::GENERIC_THEORY_AXIOM, InferenceRule::GENERIC_THEORY_AXIOM_LAST, inferenceCnts);
-  SEPARATOR;
+    GROUP("SIMPLIFYING INFERENCES");
+    outputInfRange(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST);
+    ENTRY("Duplicate literals", duplicateLiterals);
+    ENTRY("Trivial inequalities", trivialInequalities);
+    ENTRY("asg count", asgCnt);
+    ENTRY("asg results not smaller than the premis", asgViolations);
+    ENTRY("gve count", gveCnt);
+    ENTRY("gve results not smaller than the premis", gveViolations);
+    ENTRY("Evaluation count",         evaluationCnt);
+    ENTRY("Evaluation results greater than premise", evaluationGreater);
+    ENTRY("Evaluation results incomparable to premise", evaluationIncomp);
 
-  // If any induction is applied, inductionApplication is non-zero
-  HEADING("Induction",inductionApplication);
-  COND_OUT("MaxInductionDepth",maxInductionDepth);
-  COND_OUT("InductionApplications",inductionApplication);
-  SEPARATOR;
+    GROUP("DELETION INFERENCES");
+    ENTRY("Simple tautologies", simpleTautologies);
+    ENTRY("Equational tautologies", equationalTautologies);
+    ENTRY("Deep equational tautologies", deepEquationalTautologies);
+    ENTRY("Forward subsumptions", forwardSubsumed);
+    ENTRY("Backward subsumptions", backwardSubsumed);
+    ENTRY("Forward ground joinable", forwardGroundJoinable);
+    ENTRY("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
+    ENTRY("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
+    ENTRY("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
+    ENTRY("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
+    ENTRY("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
 
-  HEADING("Redundant Inferences",
-    skippedSuperposition+skippedResolution+inferencesSkippedDueToOrderingConstraints+
-    inferencesSkippedDueToAvatarConstraints+inferencesSkippedDueToLiteralConstraints+
-    inferencesSkippedDueToColors+inferencesBlockedDueToOrderingAftercheck);
-  COND_OUT("Skipped superposition", skippedSuperposition);
-  COND_OUT("Skipped resolution", skippedResolution);
-  COND_OUT("Due to ordering constraints", inferencesSkippedDueToOrderingConstraints);
-  COND_OUT("Due to AVATAR constraints", inferencesSkippedDueToAvatarConstraints);
-  COND_OUT("Due to literal constraints", inferencesSkippedDueToLiteralConstraints);
-  COND_OUT("Due to colors", inferencesSkippedDueToColors);
-  COND_OUT("Due to ordering aftercheck", inferencesBlockedDueToOrderingAftercheck);
-  SEPARATOR;
+    GROUP("GENERATING INFERENCES");
+    outputInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST);
+    ENTRY("TheoryInstSimp",theoryInstSimp);
+    ENTRY("TheoryInstSimpCandidates",theoryInstSimpCandidates);
+    ENTRY("TheoryInstSimpTautologies",theoryInstSimpTautologies);
+    ENTRY("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
+    ENTRY("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
+    ENTRY("Introduced function definitions", introducedFunctionDefinitions);
 
-  HEADING("AVATAR",splitClauses+splitComponents+
-        satSplitRefutations);
-  COND_OUT("Split clauses", splitClauses);
-  COND_OUT("Split components", splitComponents);
-  COND_OUT("Sat splitting refutations", satSplitRefutations);
-  COND_OUT("SMT fallbacks",smtFallbacks);
-  SEPARATOR;
+    GROUP("THEORY AXIOMS");
+    outputInfRange(InferenceRule::GENERIC_THEORY_AXIOM, InferenceRule::GENERIC_THEORY_AXIOM_LAST);
 
-  //TODO record statistics for FMB
+    // If any induction is applied, inductionApplication is non-zero
+    GROUP("INDUCTION");
+    ENTRY("MaxInductionDepth",maxInductionDepth);
+    ENTRY("InductionApplications",inductionApplication);
 
-  //TODO record statistics for MiniSAT
-  HEADING("SAT Solver Statistics",satClauses+unitSatClauses+binarySatClauses);
-  COND_OUT("SAT solver clauses", satClauses);
-  COND_OUT("SAT solver unit clauses", unitSatClauses);
-  COND_OUT("SAT solver binary clauses", binarySatClauses);
-  SEPARATOR;
+    GROUP("REDUNDANCT INFERENCES");
+    ENTRY("Skipped superposition", skippedSuperposition);
+    ENTRY("Skipped resolution", skippedResolution);
+    ENTRY("Due to ordering constraints", inferencesSkippedDueToOrderingConstraints);
+    ENTRY("Due to AVATAR constraints", inferencesSkippedDueToAvatarConstraints);
+    ENTRY("Due to literal constraints", inferencesSkippedDueToLiteralConstraints);
+    ENTRY("Due to colors", inferencesSkippedDueToColors);
+    ENTRY("Due to ordering aftercheck", inferencesBlockedDueToOrderingAftercheck);
 
-  HEADING("In-Proof Statistics",refutation);
-  outputInfRange(InferenceRule::INPUT, InferenceRule::GENERIC_THEORY_AXIOM_LAST, inProofInferenceCnts);
-  SEPARATOR;
+    GROUP("AVATAR");
+    ENTRY("Split clauses", splitClauses);
+    ENTRY("Split components", splitComponents);
+    ENTRY("Sat splitting refutations", satSplitRefutations);
+    ENTRY("SMT fallbacks",smtFallbacks);
 
+    //TODO record statistics for FMB
+
+    //TODO record statistics for MiniSAT
+    GROUP("SAT SOLVER");
+    ENTRY("SAT solver clauses", satClauses);
+    ENTRY("SAT solver unit clauses", unitSatClauses);
+    ENTRY("SAT solver binary clauses", binarySatClauses);
+
+    const string TOTALSTR = "TOTAL";
+    const string PROOFSTR = "PROOF";
+    const string COL_SEP = " | ";
+
+    size_t enamemax = 0;
+    size_t totalmax = TOTALSTR.length();
+    size_t inproofmax = PROOFSTR.length();
+    for (const auto& [gname, entries] : groups) {
+      enamemax = max(enamemax, gname.length());
+      for (const auto& [ename, total, inproof] : entries) {
+        enamemax = max(enamemax, ename.length());
+        totalmax = max(totalmax, total.length());
+        inproofmax = max(inproofmax, inproof.length());
+      }
+    }
+
+#define SEP_LINE addCommentSignForSZS(out); \
+    out << string(enamemax + totalmax + COL_SEP.length() + (refutation ? inproofmax + COL_SEP.length() : 0) + 1, '-') << endl;
+
+    SEP_LINE;
+
+    for (const auto& [gname, entries] : groups) {
+      if (entries.isEmpty()) { continue; }
+      // header
+      addCommentSignForSZS(out);
+      out << setw(enamemax) << std::left << gname;
+      out << COL_SEP << setw(totalmax) << std::right << TOTALSTR;
+      if (refutation) {
+        out << COL_SEP << setw(inproofmax) << std::right << PROOFSTR;
+      }
+      out << endl;
+      SEP_LINE;
+
+      // entries
+      for (const auto& [ename, total, inproof] : entries) {
+        ASS(total);
+        ASS_GE(total, inproof);
+        addCommentSignForSZS(out);
+        out << setw(enamemax) << std::left << ename;
+        out << COL_SEP << setw(totalmax) << std::right << total;
+        if (refutation) {
+          out << COL_SEP << setw(inproofmax) << std::right << inproof;
+        }
+        out << endl;
+      }
+      SEP_LINE;
+    }
+#undef SEP_LINE
+#undef GROUP
+#undef ENTRY
   }
 
   addCommentSignForSZS(out);
@@ -283,8 +320,6 @@ void Statistics::print(std::ostream& out)
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
-#undef SEPARATOR
-#undef COND_OUT
   } // if (env.options->statistics()!=Options::Statistics::NONE)
 
 #if VTIME_PROFILING
@@ -294,19 +329,12 @@ void Statistics::print(std::ostream& out)
 #endif // VTIME_PROFILING
 }
 
-void Statistics::reportClause(Clause* cl)
+void Statistics::reportUnit(Unit* u)
 {
-  generatedClauses++;
-
-  auto rule = cl->inference().rule();
-  inferenceCnts[toNumber(rule)]++;
-}
-
-void Statistics::reportTheoryAxiom(Unit* unit)
-{
-  const auto& inf = unit->inference();
-  ASS(inf.isTheoryAxiom());
-  inferenceCnts[toNumber(inf.rule())]++;
+  if (u->isClause()) {
+    generatedClauses++;
+  }
+  inferenceCnts[toNumber(u->inference().rule())]++;
 }
 
 void Statistics::reportProofStep(Unit* unit)
