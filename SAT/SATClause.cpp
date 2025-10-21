@@ -71,7 +71,7 @@ void SATClause::operator delete(void *ptr, size_t sz) {
 }
 
 SATClause::SATClause(unsigned length)
-  : _length(length), _nonDestroyable(0), _inference(0), number(++_lastNumber)
+  : number(++_lastNumber), _length(length), _nonDestroyable(0), _inference(0)
 {
   env.statistics->satClauses++;
   if(length==1) {
