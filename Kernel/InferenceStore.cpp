@@ -366,7 +366,7 @@ protected:
     static unsigned lastP = Unit::getLastParsingNumber();
     static float chunk = lastP / 10.0;
     if(us->number() <= lastP){
-      if(us->number() == lastP){ 
+      if(us->number() == lastP){
         last_one = true;
       }
       unsigned bucket = (unsigned)(us->number() / chunk);
@@ -409,7 +409,7 @@ protected:
       }
       level--;
       //cout << "level is " << level << endl;
-      
+
       if(level > max_theory_clause_depth){
         max_theory_clause_depth=level;
       }
@@ -431,7 +431,7 @@ struct InferenceStore::TPTPProofPrinter
     splitPrefix = Saturation::Splitter::splPrefix;
   }
 
-  void print()
+  void print() override
   {
     //outputSymbolDeclarations also deals with sorts for now
     //UIHelper::outputSortDeclarations(out);
