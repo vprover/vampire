@@ -3071,7 +3071,7 @@ void TPTP::endEquality()
   }
 
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
-  _formulas.push(new AtomicFormula(l));
+  _formulas.push(new AtomicFormula(l, lhs != l->termArg(0)));
   _lastPushed = FORM;
 } // endEquality
 
@@ -3149,7 +3149,8 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   if (pred == -1) { // equality
     TermList rhs = _termLists.pop();
     TermList lhs = _termLists.pop();
-    return new AtomicFormula(createEquality(true,lhs,rhs));//TODO equality sort?
+    Literal *l = createEquality(true,lhs,rhs); //TODO equality sort?
+    return new AtomicFormula(l, lhs != l->termArg(0));
   }
   if (pred == -2){ // distinct
     // TODO check that we are top-level
@@ -3303,9 +3304,10 @@ void TPTP::endFormula()
     f = _formulas.pop();
     // This gets rid of the annoying step in proof output where ~(L) is flattened to (~L)
     if(f->connective()==LITERAL){
-      Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
+      auto af = static_cast<AtomicFormula*>(f);
+      Literal* oldLit = af->literal();
       Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
-      _formulas.push(new AtomicFormula(newLit));
+      _formulas.push(new AtomicFormula(newLit, af->flipForPrinting));
     }
     else{
       _formulas.push(new NegatedFormula(f));

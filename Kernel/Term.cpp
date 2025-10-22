@@ -835,34 +835,37 @@ TermList Literal::eqArgSort() const {
 
 /**
  * Return the result of conversion of a literal into a std::string.
+ *
+ * If `reverseEquality` and this is an equation, print the arguments in reverse order.
  * @since 16/05/2007 Manchester
  */
-std::string Literal::toString() const
+std::string Literal::toString(bool reverseEquality) const
 {
   if (isEquality()) {
-    const TermList* lhs = args();
-    std::string s = lhs->toString();
+    const TermList lhs = termArg(reverseEquality);
+    std::string lhss = lhs.toString();
 
     if (env.higherOrder() &&
         env.options->holPrinting() != Options::HPrinting::RAW &&
-        lhs->isApplication()) {
-      s = "(" + s + ")";
+        lhs.isApplication()) {
+      lhss = "(" + lhss + ")";
     }
 
     std::string eqSym = isPositive() ? " = " : " != ";
     if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
       eqSym = isPositive() ? " ≈ " : " ≉ ";
     }
-    s += eqSym;
+    lhss += eqSym;
 
-    auto rhs = lhs->next()->toString();
+    auto rhs = termArg(!reverseEquality);
+    std::string rhss = rhs.toString();
     if (env.higherOrder() &&
         env.options->holPrinting() != Options::HPrinting::RAW &&
-        lhs->next()->isApplication()) {
-      rhs = "(" + rhs + ")";
+        rhs.isApplication()) {
+      rhss = "(" + rhss + ")";
     }
 
-    std::string res = s + rhs;
+    std::string res = lhss + rhss;
     if (env.higherOrder() ||
         SortHelper::getEqualityArgumentSort(this).isBoolSort()) {
       res = "(" + res + ")";
