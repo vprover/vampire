@@ -107,13 +107,7 @@ public:
   void explainRefutationNotFound(std::ostream& out);
   void reportUnit(Unit* u);
   /** Should be called for axioms that are not directly added to saturation. */
-  void reportProofStep(Unit* unit);
-
-  // Input
-  /** number of input clauses */
-  unsigned inputClauses = 0;
-  /** number of input formulas */
-  unsigned inputFormulas = 0;
+  void reportProofStep(Unit* u);
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */
@@ -202,11 +196,6 @@ public:
   unsigned alascaVarElimKSum = 0;
   unsigned alascaVarElimKMax = 0;
 
-  /** number of inner rewrites into equational tautologies */
-  unsigned innerRewritesToEqTaut = 0;
-  /** number of equational tautologies discovered by CC */
-  unsigned deepEquationalTautologies = 0;
-
   // Deletion inferences
   /** number of tautologies A \/ ~A */
   unsigned simpleTautologies = 0;
@@ -220,6 +209,10 @@ public:
   unsigned forwardGroundJoinable = 0;
   /** number of term algebra distinctness tautology deletions */
   unsigned taDistinctnessTautologyDeletions = 0;
+  /** number of inner rewrites into equational tautologies */
+  unsigned innerRewritesToEqTaut = 0;
+  /** number of equational tautologies discovered by CC */
+  unsigned deepEquationalTautologies = 0;
 
   // Saturation
   unsigned activations = 0; // NOTE: This is not a mere stat, it is also used for LRS estimation!
@@ -295,12 +288,24 @@ public:
 private:
   static const char* phaseToString(ExecutionPhase p);
 
-  /** all clauses ever occurring in the unprocessed queue */
-  unsigned generatedClauses = 0;
-  /** inferences in the proof indexed by InferenceRule */
-  std::array<unsigned, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inProofInferenceCnts = {};
+  /** A pair counting the total and in-proof value of a statistic. */
+  struct StatPair {
+    unsigned total = 0;
+    unsigned inproof = 0;
+  };
+
+  /** number of input clauses */
+  StatPair inputClauses;
+  /** number of input formulas */
+  StatPair inputFormulas;
+  /** all clauses */
+  StatPair clauses;
+  /** all formulas */
+  StatPair formulas;
   /** inference counts indexed by InferenceRule */
-  std::array<unsigned, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
+  std::array<StatPair, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
+  /** input types indexed by UnitInputType */
+  std::array<StatPair, toNumber(UnitInputType::MODEL_DEFINITION)> inputTypeCnts = {};
 }; // class Statistics
 
 } // namespace Shell

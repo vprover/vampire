@@ -48,7 +48,7 @@ enum class UnitInputType : unsigned char {
   MODEL_DEFINITION = 6
 };
 
-inline std::underlying_type<UnitInputType>::type toNumber(UnitInputType t) { return static_cast<std::underlying_type<UnitInputType>::type>(t); }
+inline constexpr std::underlying_type_t<UnitInputType> toNumber(UnitInputType t) { return static_cast<std::underlying_type_t<UnitInputType>>(t); }
 
 UnitInputType getInputType(UnitList* units);
 UnitInputType getInputType(UnitInputType t1, UnitInputType t2);

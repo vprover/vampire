@@ -141,19 +141,26 @@ void Statistics::print(std::ostream& out)
     };
     Stack<Group> groups;
 
+#define GROUP(name) groups.emplace(name);
+#define ENTRY(name, num) if (num) { groups.top().addEntry(name, num); }
+
+#define IPGROUP(name) groups.emplace(name, /*inproof=*/true);
+#define IPENTRY(name, statpair) ASS_GE(statpair.total, statpair.inproof); \
+  if (statpair.total) { groups.top().addEntry(name, statpair.total, statpair.inproof); }
+
+    IPGROUP("INPUT");
+    for (unsigned i : range(toNumber(UnitInputType::AXIOM),toNumber(UnitInputType::MODEL_DEFINITION))) {
+      IPENTRY(capitalize(inputTypeName(static_cast<UnitInputType>(i))), inputTypeCnts[i]);
+    }
+
     auto outputInfGroup = [&](string name, InferenceRule first, InferenceRule last) {
-      groups.emplace(name, true);
       ASS_L(toNumber(first),toNumber(last));
+      IPGROUP(name);
       for (unsigned i : range(toNumber(first),toNumber(last))) {
-        ASS_GE(inferenceCnts[i], inProofInferenceCnts[i]);
-        if (!inferenceCnts[i]) {
-          continue;
-        }
-        groups.top().addEntry(capitalize(ruleName(static_cast<InferenceRule>(i))), inferenceCnts[i], inProofInferenceCnts[i]);
+        IPENTRY(capitalize(ruleName(static_cast<InferenceRule>(i))), inferenceCnts[i]);
       }
     };
 
-    outputInfGroup("INPUT", InferenceRule::INPUT, InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION);
     outputInfGroup("FORMULA TRANSFORMATIONS", InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION, InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST);
     outputInfGroup("SIMPLIFYING INFERENCES", InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST);
     outputInfGroup("GENERATING INFERENCES", InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST);
@@ -161,12 +168,11 @@ void Statistics::print(std::ostream& out)
     outputInfGroup("AVATAR", InferenceRule::GENERIC_AVATAR_INFERENCE, InferenceRule::GENERIC_AVATAR_INFERENCE_LAST);
     outputInfGroup("MISCELLANEOUS INFERENCES", InferenceRule::GENERIC_GENERATING_INFERENCE_LAST, InferenceRule::GENERIC_AVATAR_INFERENCE);
 
-#define GROUP(name) groups.emplace(name);
-#define ENTRY(name, num) if (num) { groups.top().addEntry(name, num); }
-
-    GROUP("INPUT");
-    ENTRY("Input clauses", inputClauses);
-    ENTRY("Input formulas", inputFormulas);
+    IPGROUP("CLAUSES/FORMULAS");
+    IPENTRY("Input clauses", inputClauses);
+    IPENTRY("Input formulas", inputFormulas);
+    IPENTRY("Clauses", clauses);
+    IPENTRY("Formulas", formulas);
 
     GROUP("PREPROCESSING");
     ENTRY("Introduced names", formulaNames);
@@ -182,7 +188,6 @@ void Statistics::print(std::ostream& out)
 
     GROUP("SATURATION");
     ENTRY("Initial clauses", initialClauses);
-    ENTRY("Generated clauses", generatedClauses);
     ENTRY("Activations started", activations);
     ENTRY("Active clauses", activeClauses);
     ENTRY("Passive clauses", passiveClauses);
@@ -303,6 +308,8 @@ void Statistics::print(std::ostream& out)
 #undef SEP_LINE
 #undef GROUP
 #undef ENTRY
+#undef IPGROUP
+#undef IPENTRY
   }
 
   addCommentSignForSZS(out);
@@ -341,17 +348,43 @@ void Statistics::print(std::ostream& out)
 #endif // VTIME_PROFILING
 }
 
+// TODO factor these two functions out
 void Statistics::reportUnit(Unit* u)
 {
   if (u->isClause()) {
-    generatedClauses++;
+    clauses.total++;
+  } else {
+    formulas.total++;
   }
-  inferenceCnts[toNumber(u->inference().rule())]++;
+  auto rule = u->inference().rule();
+  if (rule == InferenceRule::INPUT) {
+    inputTypeCnts[toNumber(u->inputType())].total++;
+    if (u->isClause()) {
+      inputClauses.total++;
+    } else {
+      inputFormulas.total++;
+    }
+  }
+  inferenceCnts[toNumber(u->inference().rule())].total++;
 }
 
-void Statistics::reportProofStep(Unit* unit)
+void Statistics::reportProofStep(Unit* u)
 {
-  inProofInferenceCnts[toNumber(unit->inference().rule())]++;
+  if (u->isClause()) {
+    clauses.inproof++;
+  } else {
+    formulas.inproof++;
+  }
+  auto rule = u->inference().rule();
+  if (rule == InferenceRule::INPUT) {
+    inputTypeCnts[toNumber(u->inputType())].inproof++;
+    if (u->isClause()) {
+      inputClauses.inproof++;
+    } else {
+      inputFormulas.inproof++;
+    }
+  }
+  inferenceCnts[toNumber(u->inference().rule())].inproof++;
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)
