@@ -120,39 +120,55 @@ void Statistics::print(std::ostream& out)
   if (env.options->statistics()==Options::Statistics::FULL) {
 
     struct Entry {
+      Entry(string name, string total, string inproof = string())
+        : name(name), total(total), inproof(inproof) {}
       string name;
       string total;
       string inproof;
     };
     struct Group {
+      Group(string name, bool infGroup = false) : name(name), infGroup(infGroup) {}
+      void addEntry(string name, unsigned total, unsigned inproof = 0) {
+        ASS(infGroup || inproof == 0);
+        ASS(total);
+        ASS_GE(total, inproof);
+        entries.emplace(name, Int::toString(total), Int::toString(inproof));
+      }
+
       string name;
       Stack<Entry> entries;
+      bool infGroup;
     };
     Stack<Group> groups;
 
-#define GROUP(gname) groups.push(Group { .name = gname, .entries = Stack<Entry>() });
-#define ENTRY(ename, num) if (num) { groups.top().entries.push(Entry { .name = ename, .total = Int::toString(num), .inproof = "~" }); }
-
-    auto outputInfRange = [&](InferenceRule first, InferenceRule last) {
+    auto outputInfGroup = [&](string name, InferenceRule first, InferenceRule last) {
+      groups.emplace(name, true);
+      ASS_L(toNumber(first),toNumber(last));
       for (unsigned i : range(toNumber(first),toNumber(last))) {
         ASS_GE(inferenceCnts[i], inProofInferenceCnts[i]);
-        if (!inferenceCnts[i]) { continue; }
-        Entry e {
-          .name = capitalize(ruleName(static_cast<InferenceRule>(i))),
-          .total = Int::toString(inferenceCnts[i]),
-          .inproof = Int::toString(inProofInferenceCnts[i])
-        };
-        groups.top().entries.push(e);
+        if (!inferenceCnts[i]) {
+          continue;
+        }
+        groups.top().addEntry(capitalize(ruleName(static_cast<InferenceRule>(i))), inferenceCnts[i], inProofInferenceCnts[i]);
       }
     };
 
+    outputInfGroup("INPUT", InferenceRule::INPUT, InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION);
+    outputInfGroup("FORMULA TRANSFORMATIONS", InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION, InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST);
+    outputInfGroup("SIMPLIFYING INFERENCES", InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST);
+    outputInfGroup("GENERATING INFERENCES", InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST);
+    outputInfGroup("THEORY AXIOMS", InferenceRule::GENERIC_THEORY_AXIOM, InferenceRule::GENERIC_THEORY_AXIOM_LAST);
+    outputInfGroup("AVATAR", InferenceRule::GENERIC_AVATAR_INFERENCE, InferenceRule::GENERIC_AVATAR_INFERENCE_LAST);
+    outputInfGroup("MISCELLANEOUS INFERENCES", InferenceRule::GENERIC_GENERATING_INFERENCE_LAST, InferenceRule::GENERIC_AVATAR_INFERENCE);
+
+#define GROUP(name) groups.emplace(name);
+#define ENTRY(name, num) if (num) { groups.top().addEntry(name, num); }
+
     GROUP("INPUT");
-    outputInfRange(InferenceRule::INPUT, InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION);
     ENTRY("Input clauses", inputClauses);
     ENTRY("Input formulas", inputFormulas);
 
     GROUP("PREPROCESSING");
-    outputInfRange(InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION, InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST);
     ENTRY("Introduced names", formulaNames);
     ENTRY("Introduced skolems", skolemFunctions);
     ENTRY("Pure predicates", purePredicates);
@@ -177,7 +193,6 @@ void Statistics::print(std::ostream& out)
     ENTRY("Discarded non-redundant clauses", discardedNonRedundantClauses);
 
     GROUP("SIMPLIFYING INFERENCES");
-    outputInfRange(InferenceRule::GENERIC_SIMPLIFYING_INFERENCE, InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST);
     ENTRY("Duplicate literals", duplicateLiterals);
     ENTRY("Trivial inequalities", trivialInequalities);
     ENTRY("asg count", asgCnt);
@@ -202,7 +217,6 @@ void Statistics::print(std::ostream& out)
     ENTRY("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
 
     GROUP("GENERATING INFERENCES");
-    outputInfRange(InferenceRule::GENERIC_GENERATING_INFERENCE, InferenceRule::GENERIC_GENERATING_INFERENCE_LAST);
     ENTRY("TheoryInstSimp",theoryInstSimp);
     ENTRY("TheoryInstSimpCandidates",theoryInstSimpCandidates);
     ENTRY("TheoryInstSimpTautologies",theoryInstSimpTautologies);
@@ -210,15 +224,11 @@ void Statistics::print(std::ostream& out)
     ENTRY("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
     ENTRY("Introduced function definitions", introducedFunctionDefinitions);
 
-    GROUP("THEORY AXIOMS");
-    outputInfRange(InferenceRule::GENERIC_THEORY_AXIOM, InferenceRule::GENERIC_THEORY_AXIOM_LAST);
-
-    // If any induction is applied, inductionApplication is non-zero
     GROUP("INDUCTION");
     ENTRY("MaxInductionDepth",maxInductionDepth);
     ENTRY("InductionApplications",inductionApplication);
 
-    GROUP("REDUNDANCT INFERENCES");
+    GROUP("REDUNDANT INFERENCES");
     ENTRY("Skipped superposition", skippedSuperposition);
     ENTRY("Skipped resolution", skippedResolution);
     ENTRY("Due to ordering constraints", inferencesSkippedDueToOrderingConstraints);
@@ -245,44 +255,46 @@ void Statistics::print(std::ostream& out)
     const string PROOFSTR = "PROOF";
     const string COL_SEP = " | ";
 
-    size_t enamemax = 0;
-    size_t totalmax = TOTALSTR.length();
-    size_t inproofmax = PROOFSTR.length();
-    for (const auto& [gname, entries] : groups) {
-      enamemax = max(enamemax, gname.length());
+    size_t col1max = 0;
+    size_t col2max = TOTALSTR.length();
+    col2max = max(col2max, PROOFSTR.length());
+    for (const auto& [gname, entries, infGroup] : groups) {
+      col1max = max(col1max, gname.length());
       for (const auto& [ename, total, inproof] : entries) {
-        enamemax = max(enamemax, ename.length());
-        totalmax = max(totalmax, total.length());
-        inproofmax = max(inproofmax, inproof.length());
+        col1max = max(col1max, ename.length());
+        col2max = max(col2max, total.length());
+        col2max = max(col2max, inproof.length());
       }
     }
 
 #define SEP_LINE addCommentSignForSZS(out); \
-    out << string(enamemax + totalmax + COL_SEP.length() + (refutation ? inproofmax + COL_SEP.length() : 0) + 1, '-') << endl;
+    out << string(col1max + 2 * (col2max + COL_SEP.length()) + 1, '-') << endl;
 
     SEP_LINE;
 
-    for (const auto& [gname, entries] : groups) {
+    for (const auto& [gname, entries, infGroup] : groups) {
       if (entries.isEmpty()) { continue; }
       // header
       addCommentSignForSZS(out);
-      out << setw(enamemax) << std::left << gname;
-      out << COL_SEP << setw(totalmax) << std::right << TOTALSTR;
-      if (refutation) {
-        out << COL_SEP << setw(inproofmax) << std::right << PROOFSTR;
+      out << setw(col1max) << std::left << gname;
+      if (refutation && infGroup) {
+        out << COL_SEP << setw(col2max) << std::right << PROOFSTR;
+        out << COL_SEP << setw(col2max) << std::right << TOTALSTR;
+      } else {
+        out << COL_SEP << setw(2 * col2max + COL_SEP.length()) << std::right << TOTALSTR;
       }
       out << endl;
       SEP_LINE;
 
       // entries
       for (const auto& [ename, total, inproof] : entries) {
-        ASS(total);
-        ASS_GE(total, inproof);
         addCommentSignForSZS(out);
-        out << setw(enamemax) << std::left << ename;
-        out << COL_SEP << setw(totalmax) << std::right << total;
-        if (refutation) {
-          out << COL_SEP << setw(inproofmax) << std::right << inproof;
+        out << setw(col1max) << std::left << ename;
+        if (refutation && infGroup) {
+          out << COL_SEP << setw(col2max) << std::right << inproof;
+          out << COL_SEP << setw(col2max) << std::right << total;
+        } else {
+          out << COL_SEP << setw(2 * col2max + COL_SEP.length()) << std::right << total;
         }
         out << endl;
       }

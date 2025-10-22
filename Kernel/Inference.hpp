@@ -404,18 +404,6 @@ enum class InferenceRule : unsigned char {
   /** replacing colored constants by skolem functions */
   COLOR_UNBLOCKING,
 
-  /** definition introduced by AVATAR */
-  AVATAR_DEFINITION,
-  /** component introduced by AVATAR */
-  AVATAR_COMPONENT,
-  /** inconsistency from AVATAR SAT solver */
-  AVATAR_REFUTATION,
-  /** inconsistency from AVATAR SMT solver (not necessarily propositionally unsat) */
-  AVATAR_REFUTATION_SMT,
-  /** sat clause representing FO clause for AVATAR */
-  AVATAR_SPLIT_CLAUSE,
-  /** sat clause representing FO clause for AVATAR */
-  AVATAR_CONTRADICTION_CLAUSE,
   /** sat color elimination */
   SAT_COLOR_ELIMINATION,
   /** obtain a formula from a clause */
@@ -441,6 +429,21 @@ enum class InferenceRule : unsigned char {
   /** A (first-order) tautology generated on behalf of a decision procedure,
    * whose propositional counterpart becomes a conflict clause in a sat solver */
   THEORY_TAUTOLOGY_SAT_CONFLICT,
+
+  GENERIC_AVATAR_INFERENCE,
+  /** definition introduced by AVATAR */
+  AVATAR_DEFINITION,
+  /** component introduced by AVATAR */
+  AVATAR_COMPONENT,
+  /** inconsistency from AVATAR SAT solver */
+  AVATAR_REFUTATION,
+  /** inconsistency from AVATAR SMT solver (not necessarily propositionally unsat) */
+  AVATAR_REFUTATION_SMT,
+  /** sat clause representing FO clause for AVATAR */
+  AVATAR_SPLIT_CLAUSE,
+  /** sat clause representing FO clause for AVATAR */
+  AVATAR_CONTRADICTION_CLAUSE,
+  GENERIC_AVATAR_INFERENCE_LAST,
 
   /** a not further specified theory axiom internally added by the class TheoryAxioms. */
   GENERIC_THEORY_AXIOM, // CAREFUL: adding rules here influences the theory_split_queue heuristic
