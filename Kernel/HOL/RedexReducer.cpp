@@ -23,10 +23,6 @@ TermList RedexReducer::reduce(TermList head, TermStack& args) {
   TermList t1Sort = *head.term()->nthArgument(1);
   _t2 = args.pop();
 
-  TermList transformed = transformSubterm(t1);
-
-  if(transformed != t1)
-    return HOL::create::app(t1Sort, transformed, args);
   return HOL::create::app(t1Sort, transform(t1), args);
 }
 
@@ -36,7 +32,7 @@ TermList RedexReducer::transformSubterm(TermList t) {
     if (index == _replace) {
       // any free indices in _t2 need to be lifted by the number of extra lambdas
       // that now surround them
-      return TermShifter::shift(_t2, _replace).first;
+      return _replace == 0 ? _t2 : TermShifter::shift(_t2, _replace).first;
     }
     if (index > _replace) {
       // free index. replace by index 1 less as now surrounded by one fewer lambdas

@@ -200,12 +200,10 @@ Term* TermTransformer::transform(Term* term)
 
     TermList dest = transformSubterm(tl);
     if (tl != dest) {
-      args.push(dest);
       modified.setTop(true);
-      continue;
     }
-    if (tl.isVar()) {
-      args.push(tl);
+    if (dest.isVar() || !exploreSubterms(tl, dest)) {
+      args.push(dest);
       continue;
     }
 

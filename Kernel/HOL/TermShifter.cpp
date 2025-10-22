@@ -16,10 +16,8 @@
 
 std::pair<TermList, Option<unsigned>> TermShifter::shift(TermList term, int shiftBy) {
   TermShifter ts = TermShifter(shiftBy);
+  TermList result = ts.transform(term);
 
-  const TermList transformed = ts.transformSubterm(term);
-  const TermList result = transformed == term ? ts.transform(term)
-                                              : transformed;
   return {result, ts._minFreeIndex};
 }
 

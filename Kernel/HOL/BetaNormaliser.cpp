@@ -16,8 +16,6 @@
 #include "Kernel/HOL/HOL.hpp"
 
 TermList BetaNormaliser::normalise(TermList t) {
-  // term transformer does not work at the top level...
-  // t = transformSubterm(t);
   return transform(t);
 }
 
