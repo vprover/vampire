@@ -178,7 +178,6 @@ void Statistics::print(std::ostream& out)
     ENTRY("Introduced names", formulaNames);
     ENTRY("Introduced skolems", skolemFunctions);
     ENTRY("Pure predicates", purePredicates);
-    ENTRY("Trivial predicates", trivialPredicates);
     ENTRY("Unused predicate definitions", unusedPredicateDefinitions);
     ENTRY("Function definitions", eliminatedFunctionDefinitions);
     ENTRY("Selected by SInE selection", selectedBySine);
@@ -200,13 +199,6 @@ void Statistics::print(std::ostream& out)
     GROUP("SIMPLIFYING INFERENCES");
     ENTRY("Duplicate literals", duplicateLiterals);
     ENTRY("Trivial inequalities", trivialInequalities);
-    ENTRY("asg count", asgCnt);
-    ENTRY("asg results not smaller than the premis", asgViolations);
-    ENTRY("gve count", gveCnt);
-    ENTRY("gve results not smaller than the premis", gveViolations);
-    ENTRY("Evaluation count",         evaluationCnt);
-    ENTRY("Evaluation results greater than premise", evaluationGreater);
-    ENTRY("Evaluation results incomparable to premise", evaluationIncomp);
 
     GROUP("DELETION INFERENCES");
     ENTRY("Simple tautologies", simpleTautologies);
@@ -221,13 +213,19 @@ void Statistics::print(std::ostream& out)
     ENTRY("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
     ENTRY("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
 
-    GROUP("GENERATING INFERENCES");
+    GROUP("ARITHMETIC");
     ENTRY("TheoryInstSimp",theoryInstSimp);
     ENTRY("TheoryInstSimpCandidates",theoryInstSimpCandidates);
     ENTRY("TheoryInstSimpTautologies",theoryInstSimpTautologies);
     ENTRY("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
     ENTRY("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
-    ENTRY("Introduced function definitions", introducedFunctionDefinitions);
+    ENTRY("ASG count", asgCnt);
+    ENTRY("ASG results not smaller than the premise", asgViolations);
+    ENTRY("GVE count", gveCnt);
+    ENTRY("GVE results not smaller than the premise", gveViolations);
+    ENTRY("Evaluation count",         evaluationCnt);
+    ENTRY("Evaluation results greater than premise", evaluationGreater);
+    ENTRY("Evaluation results incomparable to premise", evaluationIncomp);
 
     GROUP("INDUCTION");
     ENTRY("MaxInductionDepth",maxInductionDepth);

@@ -32,7 +32,6 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Property.hpp"
-#include "Statistics.hpp"
 #include "SymCounter.hpp"
 #include "TheoryAxioms.hpp"
 #include "Options.hpp"

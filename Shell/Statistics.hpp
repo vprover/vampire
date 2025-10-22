@@ -106,7 +106,6 @@ public:
   void print(std::ostream& out);
   void explainRefutationNotFound(std::ostream& out);
   void reportUnit(Unit* u);
-  /** Should be called for axioms that are not directly added to saturation. */
   void reportProofStep(Unit* u);
 
   // Preprocessing
@@ -120,14 +119,10 @@ public:
   unsigned splitInequalities = 0;
   /** number of pure predicates */
   unsigned purePredicates = 0;
-  /** number of trivial predicates */
-  unsigned trivialPredicates = 0;
   /** number of unused predicate definitions */
   unsigned unusedPredicateDefinitions = 0;
   /** number of eliminated function definitions */
   unsigned eliminatedFunctionDefinitions = 0;
-  /** number of introduced function definitions */
-  unsigned introducedFunctionDefinitions = 0;
   /** number of formulas selected by SInE selector */
   unsigned selectedBySine = 0;
   /** number of iterations before SInE reached fixpoint */
@@ -135,7 +130,7 @@ public:
   /** number of detected blocked clauses */
   unsigned blockedClauses = 0;
 
-  // Generating inferences
+  // Arithmetic
   /** number of theory inst simp **/
   unsigned theoryInstSimp = 0;
   /** number of theoryInstSimp candidates **/
@@ -146,6 +141,28 @@ public:
   unsigned theoryInstSimpLostSolution = 0;
   /** number of theoryInstSimp application where an empty substitution was applied */
   unsigned theoryInstSimpEmptySubstitution = 0;
+
+  /** how often did asg not simplify correctly. */
+  unsigned asgViolations = 0;
+  /** applications of asg */
+  unsigned asgCnt = 0;
+
+  /** how often did gve not simplify correctly. */
+  unsigned gveViolations = 0;
+  /** applications of gve */
+  unsigned gveCnt = 0;
+
+  /** number of evaluations that resulted in a incomparable literal */
+  unsigned evaluationIncomp = 0;
+  /** number of evaluations that resulted in a greater literal */
+  unsigned evaluationGreater = 0;
+  /** number of simplifications by PolynomialNormalizer */
+  unsigned evaluationCnt = 0;
+
+  /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
+  unsigned alascaVarElimKNonZeroCnt = 0;
+  unsigned alascaVarElimKSum = 0;
+  unsigned alascaVarElimKMax = 0;
 
   // Induction
   unsigned maxInductionDepth = 0;
@@ -173,28 +190,6 @@ public:
   unsigned forwardSubsumptionDemodulationsToEqTaut = 0;
   /** number of backward subsumption demodulations into equational tautologies */
   unsigned backwardSubsumptionDemodulationsToEqTaut = 0;
-
-  /** how often did asg not simplify correctly. */
-  unsigned asgViolations = 0;
-  /** applications of asg */
-  unsigned asgCnt = 0;
-
-  /** how often did gve not simplify correctly. */
-  unsigned gveViolations = 0;
-  /** applications of gve */
-  unsigned gveCnt = 0;
-
-  /** number of evaluations that resulted in a incomparable literal */
-  unsigned evaluationIncomp = 0;
-  /** number of evaluations that resulted in a greater literal */
-  unsigned evaluationGreater = 0;
-  /** number of simplifications by PolynomialNormalizer */
-  unsigned evaluationCnt = 0;
-
-  /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
-  unsigned alascaVarElimKNonZeroCnt = 0;
-  unsigned alascaVarElimKSum = 0;
-  unsigned alascaVarElimKMax = 0;
 
   // Deletion inferences
   /** number of tautologies A \/ ~A */
