@@ -1315,7 +1315,7 @@ public:
   bool isAnswerLiteral() const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
-  std::string toString() const;
+  std::string toString(bool reverseEquality = false) const;
 
   const std::string& predicateName() const;
 

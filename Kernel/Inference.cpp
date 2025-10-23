@@ -653,6 +653,8 @@ std::string Kernel::ruleName(InferenceRule rule)
 //  case MINISCOPE:
   case InferenceRule::CLAUSIFY:
     return "cnf transformation";
+  case InferenceRule::REORIENT_EQUATIONS:
+    return "reorient equations";
   case InferenceRule::FORMULIFY:
     return "formulify";
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
