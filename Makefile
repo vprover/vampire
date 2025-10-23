@@ -321,7 +321,8 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
-	 SAT/FallbackSolverWrapper.o
+	 SAT/FallbackSolverWrapper.o\
+	 SAT/ProofProducingSATSolver.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainers.o\
          Saturation/PredicateSplitPassiveClauseContainers.o\

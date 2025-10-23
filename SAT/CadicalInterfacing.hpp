@@ -17,6 +17,7 @@
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
+
 #include "MinisatInterfacing.hpp"
 
 #include "cadical/src/cadical.hpp"
@@ -26,7 +27,7 @@ namespace SAT{
 class CadicalInterfacing : public SATSolver
 {
 public:
-  CadicalInterfacing(const Shell::Options& opts, bool generateProofs=false);
+  CadicalInterfacing();
 
   /**
    * Can be called only when all assumptions are retracted
@@ -64,6 +65,12 @@ public:
       assumps.push(cadical2Vampire(l));
     return MinisatInterfacing<>::minimizePremiseList(premises, assumps);
   }
+
+  /*
+   * run CaDiCaL on the unsatisfiable set of `premises`
+   * and return the empty SAT clause with a proof
+   */
+  static SATClause *proof(SATClauseList* premises);
 
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);

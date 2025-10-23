@@ -20,29 +20,6 @@ namespace SAT
 {
 
 ///////////////////////
-// SATInference
-//
-
-UnitList* SATInference::getFOPremises(SATClause* cl)
-{
-  ASS(cl);
-  ASS(cl->inference());
-
-  static Stack<Unit*> prems;
-  prems.reset();
-
-  collectFOPremises(cl, prems);
-
-  UnitList* res = 0;
-  while (prems.isNonEmpty()) {
-    Unit* us = prems.pop();
-    UnitList::push(us, res);
-  }
-
-  return res;
-}
-
-///////////////////////
 // FOConversionInference
 //
 
