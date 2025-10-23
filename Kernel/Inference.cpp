@@ -117,10 +117,10 @@ Inference::Inference(const NeedsMinimization& fsr) {
   _ptr2 = new NeedsMinimizationInfo(fsr);
 }
 
-Inference::Inference(SATClause *cl, UnitList *foPrems) {
-  initMany(InferenceRule::AVATAR_REFUTATION, foPrems);
+Inference::Inference(const InferenceOfASatClause& isc) {
+  initMany(isc.rule, isc.premises);
   _kind = Kind::SAT;
-  _ptr2 = cl;
+  _ptr2 = isc.clause;
 }
 
 /**

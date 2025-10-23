@@ -202,7 +202,7 @@ void SplittingBranchSelector::handleSatRefutation()
       ? NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION_SMT, foPremises)
       :
 #endif
-      Inference(proof, foPremises)
+      Inference(InferenceOfASatClause(InferenceRule::AVATAR_REFUTATION, proof, foPremises))
     );
 
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)

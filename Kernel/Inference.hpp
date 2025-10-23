@@ -726,6 +726,13 @@ struct NonspecificInferenceMany {
   UnitList* premises;
 };
 
+struct InferenceOfASatClause {
+  InferenceOfASatClause(InferenceRule r, SAT::SATClause* cl, UnitList* prems) : rule(r), clause(cl), premises(prems) {}
+  InferenceRule rule;
+  SAT::SATClause* clause;
+  UnitList* premises;
+};
+
 struct NeedsMinimization; // defined in SATInference.hpp
 
 class Inference;
@@ -797,9 +804,7 @@ public:
   Inference(const NonspecificInferenceMany& gi);
 
   Inference(const NeedsMinimization& fsr);
-
-  /* put a SAT refutation in the Vampire inference graph */
-  Inference(SAT::SATClause *cl, UnitList *foPrems);
+  Inference(const InferenceOfASatClause& isc);
 
   Inference(const Inference&) = default;
 
