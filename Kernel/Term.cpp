@@ -27,6 +27,8 @@
 
 #include "Term.hpp"
 
+#include "HOL/SubtermReplacer.hpp"
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -193,10 +195,14 @@ TermList TermList::domain() {
   return *term()->nthArgument(0);
 }
 
-TermList TermList::result(){
+TermList TermList::result() {
   ASS(isArrowSort())
 
   return *term()->nthArgument(1);
+}
+
+TermList TermList::replaceSubterm(TermList what, TermList by, bool liftFreeIndices) const {
+  return SubtermReplacer(what, by, liftFreeIndices).replace(*this);
 }
 
 /**
@@ -1366,22 +1372,31 @@ TermList AtomicSort::rationalSort(){
   return TermList(_rat);
 }
 
-TermList AtomicSort::arrowSort(TermList s1, TermList s2){
-  unsigned arrow = env.signature->getArrowConstructor();
+TermList AtomicSort::arrowSort(TermList s1, TermList s2) {
+  static unsigned arrow = env.signature->getArrowConstructor();
+
   return TermList(create2(arrow, s1, s2));
 }
 
-TermList AtomicSort::arrowSort(TermList s1, TermList s2, TermList s3){
+TermList AtomicSort::arrowSort(TermList s1, TermList s2, TermList s3) {
   return arrowSort(s1, arrowSort(s2, s3));
 }
 
-TermList AtomicSort::arrowSort(TermStack& domSorts, TermList range)
-{
-  TermList res = range;
+TermList AtomicSort::arrowSort(unsigned size, const TermList* types, TermList range) {
+  ASS(size > 0)
 
-  for(unsigned i = 0; i < domSorts.size(); i++){
-    res = arrowSort(domSorts[i], res);
-  }
+  TermList res = range;
+  for (unsigned i = size; i-- > 0;)
+    res = arrowSort(types[i], res);
+
+  return res;
+}
+
+TermList AtomicSort::arrowSort(const TermStack & domSorts, TermList range) {
+  TermList res = range;
+  for (auto domSort : domSorts)
+    res = arrowSort(domSort, res);
+
   return res;
 }
 
@@ -1536,6 +1551,17 @@ AtomicSort* AtomicSort::create(AtomicSort const* sort,TermList* args)
   return AtomicSort::create(sort->functor(), sort->arity(), args);
 }
 
+AtomicSort* AtomicSort::createNonShared(AtomicSort const* sort,TermList* args) {
+  int arity = sort->arity();
+  AtomicSort* s = new(arity) AtomicSort(*sort);
+
+  TermList* ss = s->args();
+  for (int i = 0; i < arity; i++) {
+    ASS(!args[i].isEmpty())
+    *ss-- = args[i];
+  }
+  return s;
+}
 
 AtomicSort* AtomicSort::create2(unsigned tc, TermList arg1, TermList arg2)
 {
