@@ -3586,6 +3586,7 @@ void TPTP::endFof()
     Stack<Literal*> lits;
     Formula* g = nullptr;
     forms.push(f);
+    bool needsFlipDocumenting = false;
     while (! forms.isEmpty()) {
       g = forms.pop();
       switch (g->connective()) {
@@ -3609,7 +3610,9 @@ void TPTP::endFof()
 	  if (g->connective() != LITERAL) {
 	    USER_ERROR("input formula not in CNF: " + f->toString());
 	  }
-	  Literal* l = static_cast<AtomicFormula*>(g)->literal();
+    auto af = static_cast<AtomicFormula*>(g);
+    needsFlipDocumenting = needsFlipDocumenting || af->flipForPrinting;
+	  Literal* l = af->literal();
 	  lits.push(positive ? l : Literal::complementaryLiteral(l));
 	}
 	break;
@@ -3622,7 +3625,13 @@ void TPTP::endFof()
 	USER_ERROR("input formula not in CNF: " + f->toString());
       }
     }
-    unit = Clause::fromStack(lits,FromInput(_lastInputType));
+    if(needsFlipDocumenting) {
+      FormulaUnit *fu = new FormulaUnit(f, FromInput(_lastInputType));
+      FormulaClauseTransformation transform(InferenceRule::REORIENT_EQUATIONS, fu);
+      unit = Clause::fromStack(lits, transform);
+    }
+    else
+      unit = Clause::fromStack(lits, FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
 

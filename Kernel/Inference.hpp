@@ -202,6 +202,8 @@ enum class InferenceRule : unsigned char {
   SKOLEM_SYMBOL_INTRODUCTION,
   /** obtain clause from a formula */
   CLAUSIFY,
+  /** change the orientations of some equations in a formula */
+  REORIENT_EQUATIONS,
   /** the (preprocessing/normalisation) formula transformation marker --
     inferences between GENERIC_FORMULA_CLAUSE_TRANSFORMATION and INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST
     will be automatically understood as formula transformations (see also isFormulaClauseTransformation) */
