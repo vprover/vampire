@@ -3573,10 +3573,10 @@ void TPTP::endFof()
     return;
   }
 
-  Unit* unit;
+  Unit *unit, *original;
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
-    unit = new FormulaUnit(f,FromInput(_lastInputType));
+    original = unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
@@ -3627,21 +3627,22 @@ void TPTP::endFof()
     }
     if(needsFlipDocumenting) {
       FormulaUnit *fu = new FormulaUnit(f, FromInput(_lastInputType));
+      original = fu;
       FormulaClauseTransformation transform(InferenceRule::REORIENT_EQUATIONS, fu);
       unit = Clause::fromStack(lits, transform);
     }
     else
-      unit = Clause::fromStack(lits, FromInput(_lastInputType));
+      original = unit = Clause::fromStack(lits, FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
 
   if(source){ 
     ASS(_unitSources);
-    _unitSources->insert(unit,source);
+    _unitSources->insert(original,source);
   }
 
   if (env.options->outputAxiomNames()) {
-    assignAxiomName(unit,nm);
+    assignAxiomName(original,nm);
   }
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
