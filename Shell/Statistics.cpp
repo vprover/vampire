@@ -213,20 +213,6 @@ void Statistics::print(std::ostream& out)
     ENTRY("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
     ENTRY("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
 
-    GROUP("ARITHMETIC");
-    ENTRY("TheoryInstSimp",theoryInstSimp);
-    ENTRY("TheoryInstSimpCandidates",theoryInstSimpCandidates);
-    ENTRY("TheoryInstSimpTautologies",theoryInstSimpTautologies);
-    ENTRY("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
-    ENTRY("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
-    ENTRY("ASG count", asgCnt);
-    ENTRY("ASG results not smaller than the premise", asgViolations);
-    ENTRY("GVE count", gveCnt);
-    ENTRY("GVE results not smaller than the premise", gveViolations);
-    ENTRY("Evaluation count",         evaluationCnt);
-    ENTRY("Evaluation results greater than premise", evaluationGreater);
-    ENTRY("Evaluation results incomparable to premise", evaluationIncomp);
-
     GROUP("INDUCTION");
     ENTRY("MaxInductionDepth",maxInductionDepth);
     ENTRY("InductionApplications",inductionApplication);
@@ -258,6 +244,7 @@ void Statistics::print(std::ostream& out)
     const string PROOFSTR = "PROOF";
     const string COL_SEP = " | ";
 
+    // we create at most 3 cols, but the last 2 will have the same length
     size_t col1max = 0;
     size_t col2max = TOTALSTR.length();
     col2max = max(col2max, PROOFSTR.length());
@@ -404,10 +391,6 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Including theory axioms";
   case ExecutionPhase::PREPROCESS_1:
     return "Preprocessing 1";
-  case ExecutionPhase::PREDIACTE_DEFINITION_MERGING:
-    return "Predicate definition merging";
-  case ExecutionPhase::PREDICATE_DEFINITION_INLINING:
-    return "Predicate definition inlining";
   case ExecutionPhase::UNUSED_PREDICATE_DEFINITION_REMOVAL:
     return "Unused predicate definition removal";
   case ExecutionPhase::BLOCKED_CLAUSE_ELIMINATION:
@@ -440,20 +423,12 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Saturation";
   case ExecutionPhase::FINALIZATION:
     return "Finalization";
-  case ExecutionPhase::UNKNOWN_PHASE:
-    return "Unknown";
-  case ExecutionPhase::PREPROCESSING:
-    return "BP Preprocessing ";
-  case ExecutionPhase::SOLVING:
-    return "Solving with Conflict Resolution";
-  case ExecutionPhase::SAT_SOLVING:
-	  return "SAT Solving";
   case ExecutionPhase::FMB_PREPROCESSING:
-          return "Finite model building preprocessing";
+    return "Finite model building preprocessing";
   case ExecutionPhase::FMB_CONSTRAINT_GEN:
-          return "Finite model building constraint generation";
+    return "Finite model building constraint generation";
   case ExecutionPhase::FMB_SOLVING:
-          return "Finite model building SAT solving";
+    return "Finite model building SAT solving";
   default:
     ASSERTION_VIOLATION;
     return "Invalid ExecutionPhase value";

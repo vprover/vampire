@@ -66,8 +66,6 @@ enum class ExecutionPhase {
   SINE_SELECTION,
   INCLUDING_THEORY_AXIOMS,
   PREPROCESS_1,
-  PREDIACTE_DEFINITION_MERGING,
-  PREDICATE_DEFINITION_INLINING,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   BLOCKED_CLAUSE_ELIMINATION,
   TWEE,
@@ -83,17 +81,11 @@ enum class ExecutionPhase {
   EQUALITY_PROXY,
   GENERAL_SPLITTING,
   SATURATION,
-  /** The actual run of the conflict resolution algorithm */
-  SOLVING,
-  /** The actual run of the SAT solver*/
-  SAT_SOLVING,
-  PREPROCESSING,
   /** Whatever happens after the saturation algorithm finishes */
   FINALIZATION,
   FMB_PREPROCESSING,
   FMB_CONSTRAINT_GEN,
-  FMB_SOLVING,
-  UNKNOWN_PHASE
+  FMB_SOLVING
 };
 
 /**
@@ -129,40 +121,6 @@ public:
   unsigned sineIterations = 0;
   /** number of detected blocked clauses */
   unsigned blockedClauses = 0;
-
-  // Arithmetic
-  /** number of theory inst simp **/
-  unsigned theoryInstSimp = 0;
-  /** number of theoryInstSimp candidates **/
-  unsigned theoryInstSimpCandidates = 0;
-  /** number of theoryInstSimp tautologies **/
-  unsigned theoryInstSimpTautologies = 0;
-  /** number of theoryInstSimp solutions lost as we could not represent them **/
-  unsigned theoryInstSimpLostSolution = 0;
-  /** number of theoryInstSimp application where an empty substitution was applied */
-  unsigned theoryInstSimpEmptySubstitution = 0;
-
-  /** how often did asg not simplify correctly. */
-  unsigned asgViolations = 0;
-  /** applications of asg */
-  unsigned asgCnt = 0;
-
-  /** how often did gve not simplify correctly. */
-  unsigned gveViolations = 0;
-  /** applications of gve */
-  unsigned gveCnt = 0;
-
-  /** number of evaluations that resulted in a incomparable literal */
-  unsigned evaluationIncomp = 0;
-  /** number of evaluations that resulted in a greater literal */
-  unsigned evaluationGreater = 0;
-  /** number of simplifications by PolynomialNormalizer */
-  unsigned evaluationCnt = 0;
-
-  /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
-  unsigned alascaVarElimKNonZeroCnt = 0;
-  unsigned alascaVarElimKSum = 0;
-  unsigned alascaVarElimKMax = 0;
 
   // Induction
   unsigned maxInductionDepth = 0;
