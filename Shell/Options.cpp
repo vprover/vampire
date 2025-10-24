@@ -2457,7 +2457,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
         (!longOpt && !_lookup.findShort(name)->set(value))) {
       switch (ignoreMissing()) {
       case IgnoreMissing::OFF:
-        USER_ERROR((std::string) value +" is an invalid value for "+(std::string)name+"\nSee help or use explain i.e. vampire -explain mode");
+        USER_ERROR((std::string) value +" is an invalid value for "+(std::string)name+"\nSee vampire -explain "+std::string(name) + " for help.");
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
@@ -2575,24 +2575,17 @@ void Options::output (std::ostream& str) const
 
   }
 
-  if (showHelp()){
-    str << "=========== Usage ==========\n";
-    str << "Call vampire using\n";
-    str << "  vampire [options] [problem]\n";
-    str << "For example,\n";
-    str << "  vampire --mode casc --include ~/TPTP ~/TPTP/Problems/ALG/ALG150+1.p\n";
-
-    str << "=========== Hints ==========\n";
-
-
-    str << "=========== Options ==========\n";
-    str << "To see a list of all options use\n  --show_options on\n";
-    str << "Options will only be displayed for the current mode (Vampire by default)\n";
-    str << " use --mode to change mode\n";
-    //str << "By default experimental options will not be shown. To show ";
-    //str << "these options use\n  --show_experimental_options on\n";
-    str << "=========== End ==========\n";
-  }
+  if (showHelp())
+    str <<
+      "Usage: vampire [OPTIONS] PROBLEM\n\n"
+      "Supported options:\n\n"
+      "\t--mode portfolio (execute a schedule of many different proof attempts)\n"
+      "\t--schedule <schedule> (in portfolio mode, use the builtin <schedule>)\n"
+      "\t--input_syntax {tptp,smtlib2} (read TPTP or SMT-LIB 2.x input)\n"
+      "\t--proof tptp (use the TSTP proof format)\n"
+      "\t--output_mode {smtcomp,ucore} (output only sat/unsat with an optional core)\n"
+      "\t--time_limit <seconds> (limit Vampire's runtime)\n\n"
+      "Use '--show_options on' to see all available options.\n";
 
   bool normalshow = showOptions();
   bool experimental = showExperimentalOptions();
