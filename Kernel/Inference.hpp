@@ -202,6 +202,8 @@ enum class InferenceRule : unsigned char {
   SKOLEM_SYMBOL_INTRODUCTION,
   /** obtain clause from a formula */
   CLAUSIFY,
+  /** change the orientations of some equations in a formula */
+  REORIENT_EQUATIONS,
   /** the (preprocessing/normalisation) formula transformation marker --
     inferences between GENERIC_FORMULA_CLAUSE_TRANSFORMATION and INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST
     will be automatically understood as formula transformations (see also isFormulaClauseTransformation) */
@@ -562,12 +564,6 @@ inline bool isTheoryAxiomRule(InferenceRule r) {
       toNumber(r) < toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST));
 }
 
-inline bool isSatRefutationRule(InferenceRule r) {
-  return (r == InferenceRule::AVATAR_REFUTATION) ||
-         (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
-         (r == InferenceRule::GLOBAL_SUBSUMPTION);
-}
-
 std::string inputTypeName(UnitInputType type);
 std::string ruleName(InferenceRule rule);
 
@@ -662,6 +658,13 @@ struct NonspecificInferenceMany {
   UnitList* premises;
 };
 
+struct InferenceOfASatClause {
+  InferenceOfASatClause(InferenceRule r, SAT::SATClause* cl, UnitList* prems) : rule(r), clause(cl), premises(prems) {}
+  InferenceRule rule;
+  SAT::SATClause* clause;
+  UnitList* premises;
+};
+
 struct NeedsMinimization; // defined in SATInference.hpp
 
 class Inference;
@@ -678,6 +681,7 @@ private:
   enum class Kind : unsigned char {
     INFERENCE_012,
     INFERENCE_MANY,
+    SAT,
     SAT_NEEDS_MINIMIZATION
   };
 
@@ -732,6 +736,7 @@ public:
   Inference(const NonspecificInferenceMany& gi);
 
   Inference(const NeedsMinimization& fsr);
+  Inference(const InferenceOfASatClause& isc);
 
   Inference(const Inference&) = default;
 
@@ -892,6 +897,9 @@ public:
     ASS(!_splits);
     _splits=splits;
   }
+
+  SAT::SATClause *satPremise() const
+  { return _kind == Kind::SAT ? static_cast<SAT::SATClause *>(_ptr2) : nullptr; }
 
   /** Return the age */
   unsigned age() const { return _age; }

@@ -3070,7 +3070,7 @@ void TPTP::endEquality()
   }
 
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
-  _formulas.push(new AtomicFormula(l));
+  _formulas.push(new AtomicFormula(l, lhs != l->termArg(0)));
   _lastPushed = FORM;
 } // endEquality
 
@@ -3148,7 +3148,8 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   if (pred == -1) { // equality
     TermList rhs = _termLists.pop();
     TermList lhs = _termLists.pop();
-    return new AtomicFormula(createEquality(true,lhs,rhs));//TODO equality sort?
+    Literal *l = createEquality(true,lhs,rhs); //TODO equality sort?
+    return new AtomicFormula(l, lhs != l->termArg(0));
   }
   if (pred == -2){ // distinct
     // TODO check that we are top-level
@@ -3302,9 +3303,10 @@ void TPTP::endFormula()
     f = _formulas.pop();
     // This gets rid of the annoying step in proof output where ~(L) is flattened to (~L)
     if(f->connective()==LITERAL){
-      Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
+      auto af = static_cast<AtomicFormula*>(f);
+      Literal* oldLit = af->literal();
       Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
-      _formulas.push(new AtomicFormula(newLit));
+      _formulas.push(new AtomicFormula(newLit, af->flipForPrinting));
     }
     else{
       _formulas.push(new NegatedFormula(f));
@@ -3570,9 +3572,9 @@ void TPTP::endFof()
     return;
   }
 
-  Unit* unit;
+  Unit *unit, *original;
   if (isFof) { // fof() or tff()
-    unit = new FormulaUnit(f,FromInput(_lastInputType));
+    original = unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
@@ -3581,6 +3583,7 @@ void TPTP::endFof()
     Stack<Literal*> lits;
     Formula* g = nullptr;
     forms.push(f);
+    bool needsFlipDocumenting = false;
     while (! forms.isEmpty()) {
       g = forms.pop();
       switch (g->connective()) {
@@ -3604,7 +3607,9 @@ void TPTP::endFof()
 	  if (g->connective() != LITERAL) {
 	    USER_ERROR("input formula not in CNF: " + f->toString());
 	  }
-	  Literal* l = static_cast<AtomicFormula*>(g)->literal();
+    auto af = static_cast<AtomicFormula*>(g);
+    needsFlipDocumenting = needsFlipDocumenting || af->flipForPrinting;
+	  Literal* l = af->literal();
 	  lits.push(positive ? l : Literal::complementaryLiteral(l));
 	}
 	break;
@@ -3617,17 +3622,24 @@ void TPTP::endFof()
 	USER_ERROR("input formula not in CNF: " + f->toString());
       }
     }
-    unit = Clause::fromStack(lits,FromInput(_lastInputType));
+    if(needsFlipDocumenting) {
+      FormulaUnit *fu = new FormulaUnit(f, FromInput(_lastInputType));
+      original = fu;
+      FormulaClauseTransformation transform(InferenceRule::REORIENT_EQUATIONS, fu);
+      unit = Clause::fromStack(lits, transform);
+    }
+    else
+      original = unit = Clause::fromStack(lits, FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
 
   if(source){ 
     ASS(_unitSources);
-    _unitSources->insert(unit,source);
+    _unitSources->insert(original,source);
   }
 
   if (env.options->outputAxiomNames()) {
-    assignAxiomName(unit,nm);
+    assignAxiomName(original,nm);
   }
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";

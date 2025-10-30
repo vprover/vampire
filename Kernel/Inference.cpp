@@ -76,6 +76,7 @@ void Inference::destroyDirectlyOwned()
     case Kind::SAT_NEEDS_MINIMIZATION:
       delete static_cast<NeedsMinimizationInfo*>(_ptr2);
       // intentionally fall further
+    case Kind::SAT:
     case Kind::INFERENCE_MANY:
       UnitList::destroy(static_cast<UnitList*>(_ptr1));
     default:
@@ -90,6 +91,8 @@ void Inference::destroy()
       if (_ptr1) static_cast<Unit*>(_ptr1)->decRefCnt();
       if (_ptr2) static_cast<Unit*>(_ptr2)->decRefCnt();
       break;
+    case Kind::SAT:
+      static_cast<SATClause *>(_ptr2)->destroy();
     case Kind::SAT_NEEDS_MINIMIZATION:
       delete static_cast<NeedsMinimizationInfo*>(_ptr2);
       // intentionally fall further
@@ -108,14 +111,16 @@ void Inference::destroy()
 Inference::Inference(const NeedsMinimization& fsr) {
   initMany(fsr._rule,fsr._premises);
 
-  ASS_REP(isSatRefutationRule(fsr._rule),ruleName(fsr._rule));
-
-  if (fsr._satPremises == nullptr) {
-    return; // SAT solver did not support minimization anyway
-  }
+  ASS_REP(fsr._rule == InferenceRule::GLOBAL_SUBSUMPTION, ruleName(fsr._rule));
 
   _kind = Kind::SAT_NEEDS_MINIMIZATION;
   _ptr2 = new NeedsMinimizationInfo(fsr);
+}
+
+Inference::Inference(const InferenceOfASatClause& isc) {
+  initMany(isc.rule, isc.premises);
+  _kind = Kind::SAT;
+  _ptr2 = isc.clause;
 }
 
 /**
@@ -130,6 +135,7 @@ Inference::Iterator Inference::iterator() const
       it.integer=0;
       break;
     case Kind::INFERENCE_MANY:
+    case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       it.pointer = _ptr1;
       break;
@@ -159,6 +165,7 @@ bool Inference::hasNext(Iterator& it) const
       }
       break;
     case Kind::INFERENCE_MANY:
+    case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       return (it.pointer != nullptr);
     default:
@@ -187,6 +194,7 @@ Unit* Inference::next(Iterator& it) const
       }
       break;
     case Kind::INFERENCE_MANY:
+    case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION: {
       UnitList* lst = static_cast<UnitList*>(it.pointer);
       it.pointer = lst->tail();
@@ -225,11 +233,12 @@ void Inference::updateStatistics()
 
       break;
     case Kind::INFERENCE_MANY:
+    case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       _inductionDepth = 0;
       _XXNarrows = 0;
       _reductions = 0;
-      UnitList* it= static_cast<UnitList*>(_ptr1);
+      UnitList* it = static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
         _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
@@ -248,6 +257,9 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
       break;
     case Inference::Kind::INFERENCE_MANY:
       out << "INFERENCE_MANY, (";
+      break;
+    case Inference::Kind::SAT:
+      out << "SAT, (";
       break;
     case Inference::Kind::SAT_NEEDS_MINIMIZATION:
       out << "SAT_NEEDS_MINIMIZATION, (";
@@ -481,6 +493,7 @@ void Inference::minimizePremises()
   SATClause* newSatRef = new(0) SATClause(0);
   newSatRef->setInference(new PropInference(minimized));
 
+  // TODO dubious: isn't this just getOrigin() of all the info->_satPremises?
   UnitList* newFOPrems = SATInference::getFOPremises(newSatRef);
 
   // cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << endl;
@@ -640,6 +653,8 @@ std::string Kernel::ruleName(InferenceRule rule)
 //  case MINISCOPE:
   case InferenceRule::CLAUSIFY:
     return "cnf transformation";
+  case InferenceRule::REORIENT_EQUATIONS:
+    return "reorient equations";
   case InferenceRule::FORMULIFY:
     return "formulify";
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
