@@ -13,7 +13,6 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/MultiCounter.hpp"
 
 #include "Clause.hpp"
 #include "FormulaUnit.hpp"
@@ -354,7 +353,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
 void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound)
 {
   Stack<CollectTask> todo;
-  MultiCounter bound;
+  ZIArray<unsigned> bound;
 
   todo.push(task);
   while (todo.isNonEmpty()) {
@@ -633,14 +632,14 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
       case BIND: {
         VList::Iterator vit(task.vars);
         while (vit.hasNext()) {
-          bound.inc(vit.next());
+          bound[vit.next()]++;
         }
       } break;
 
       case UNBIND: {
         VList::Iterator vit(task.vars);
         while (vit.hasNext()) {
-          bound.dec(vit.next());
+          bound[vit.next()]--;
         }
       } break;
     }

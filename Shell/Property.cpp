@@ -947,8 +947,7 @@ bool Property::hasXEqualsY(const Clause* c)
  */
 bool Property::hasXEqualsY(const Formula* f)
 {
-  MultiCounter posVars; // universally quantified variables in positive subformulas
-  MultiCounter negVars; // universally quantified variables in negative subformulas
+  ZIArray<bool> posVars; // universally quantified variables in positive subformulas
 
   Stack<const Formula*> forms;
   Stack<int> pols; // polarities
@@ -985,9 +984,6 @@ bool Property::hasXEqualsY(const Formula* f)
 	  pol = -pol;
 	}
 	if (pol >= 0 && posVars.get(v1) && posVars.get(v2)) {
-	  return true;
-	}
-	if (pol <= 0 && negVars.get(v1) && negVars.get(v2)) {
 	  return true;
 	}
       }
@@ -1029,7 +1025,7 @@ bool Property::hasXEqualsY(const Formula* f)
       if (pol >= 0) {
         VList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          posVars.inc(vs.next());
+          posVars[vs.next()] = true;
         }
       }
       forms.push(f->qarg());
@@ -1041,7 +1037,7 @@ bool Property::hasXEqualsY(const Formula* f)
       if (pol <= 0) {
         VList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          posVars.inc(vs.next());
+          posVars[vs.next()] = true;
         }
       }
       forms.push(f->qarg());
