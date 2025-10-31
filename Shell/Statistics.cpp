@@ -333,44 +333,28 @@ void Statistics::print(std::ostream& out)
 #endif // VTIME_PROFILING
 }
 
-// TODO factor these two functions out
-void Statistics::reportUnit(Unit* u)
-{
-  if (u->isClause()) {
-    clauses.total++;
-  } else {
-    formulas.total++;
+#define DEF_REPORT_FUN(fnname, field)                       \
+  void Statistics::fnname(Unit* u)                          \
+  {                                                         \
+    if (u->isClause()) {                                    \
+      clauses.field++;                                      \
+    } else {                                                \
+      formulas.field++;                                     \
+    }                                                       \
+    auto rule = u->inference().rule();                      \
+    if (rule == InferenceRule::INPUT) {                     \
+      inputTypeCnts[toNumber(u->inputType())].field++;      \
+      if (u->isClause()) {                                  \
+        inputClauses.field++;                               \
+      } else {                                              \
+        inputFormulas.field++;                              \
+      }                                                     \
+    }                                                       \
+    inferenceCnts[toNumber(u->inference().rule())].field++; \
   }
-  auto rule = u->inference().rule();
-  if (rule == InferenceRule::INPUT) {
-    inputTypeCnts[toNumber(u->inputType())].total++;
-    if (u->isClause()) {
-      inputClauses.total++;
-    } else {
-      inputFormulas.total++;
-    }
-  }
-  inferenceCnts[toNumber(u->inference().rule())].total++;
-}
 
-void Statistics::reportProofStep(Unit* u)
-{
-  if (u->isClause()) {
-    clauses.inproof++;
-  } else {
-    formulas.inproof++;
-  }
-  auto rule = u->inference().rule();
-  if (rule == InferenceRule::INPUT) {
-    inputTypeCnts[toNumber(u->inputType())].inproof++;
-    if (u->isClause()) {
-      inputClauses.inproof++;
-    } else {
-      inputFormulas.inproof++;
-    }
-  }
-  inferenceCnts[toNumber(u->inference().rule())].inproof++;
-}
+DEF_REPORT_FUN(reportUnit, total)
+DEF_REPORT_FUN(reportProofStep, inproof)
 
 const char* Statistics::phaseToString(ExecutionPhase p)
 {
