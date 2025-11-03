@@ -924,11 +924,11 @@ bool Property::hasXEqualsY(const Clause* c)
     }
     const TermList* ts2 = ts1->next();
     if (ts2->isVar() &&
-	ts1->var() != ts2->var()) {
+      ts1->var() != ts2->var()) {
       return true;
     }
   }
-  return  false;
+  return false;
 } // Property::hasXEqualsY(const Clause*)
 
 /**
@@ -1136,18 +1136,18 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
         }
         break;
 
-        case TRUE:
-        case FALSE:
-          break;
+      case TRUE:
+      case FALSE:
+        break;
 
-        case BOOL_TERM:
-          return false; // FOOL stuff is out
+      case BOOL_TERM:
+        return false; // FOOL stuff is out
 
-        case NAME:
-        case NOCONN:
-          ASSERTION_VIOLATION;
-        }
+      case NAME:
+      case NOCONN:
+        ASSERTION_VIOLATION;
       }
+    }
   }
 
   return true;
