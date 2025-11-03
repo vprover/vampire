@@ -947,101 +947,121 @@ bool Property::hasXEqualsY(const Clause* c)
  */
 bool Property::hasXEqualsY(const Formula* f)
 {
-  ZIArray<bool> posVars; // universally quantified variables in positive subformulas
+  ZIArray<bool> existVars; // "in the currently processed subformula, marks variables which will clausify only as existential"
 
-  Stack<const Formula*> forms;
-  Stack<int> pols; // polarities
-  forms.push(f);
-  pols.push(1);
-  while (!forms.isEmpty()) {
-    f = forms.pop();
-    int pol = pols.pop();
+  struct Rec {
+    bool cleanup;
+    union {
+      struct {
+        const Formula* form;
+        int pol;
+      } FlaRec;
+      struct {
+        unsigned var;
+        bool origVal;
+      } VarRec;
+    };
+
+    Rec(const Formula* f, int p)
+      : cleanup(false), FlaRec{f, p} {}
+
+    Rec(unsigned v, bool val)
+      : cleanup(true), VarRec{v,val} {}
+  };
+  Stack<Rec> recs;
+
+  recs.push(Rec(f,1));
+
+  while (!recs.isEmpty()) {
+    auto rec = recs.pop();
+
+    if (rec.cleanup) {
+      existVars[rec.VarRec.var] = rec.VarRec.origVal;
+      continue;
+    }
+    auto [f,pol] = rec.FlaRec;
+    int eff_pol = pol; // unless changed in the EXISTS case below
 
     switch (f->connective()) {
     case LITERAL:
       {
-	const Literal* lit = f->literal();
-	if (lit->isNegative()) {
-	  break;
-	}
-	if (!lit->isEquality()) {
-	  break;
-	}
-	const TermList* ts1 = lit->args();
-	if (!ts1->isVar()) {
-	  break;
-	}
-	const TermList* ts2 = ts1->next();
-	if (!ts2->isVar()) {
-	  break;
-	}
-	unsigned v1 = ts1->var();
-	unsigned v2 = ts2->var();
-	if (v1 == v2) {
-	  break;
-	}
-	if (!lit->isPositive()) {
-	  pol = -pol;
-	}
-	if (pol >= 0 && posVars.get(v1) && posVars.get(v2)) {
-	  return true;
-	}
+        const Literal* lit = f->literal();
+
+        if (!lit->isEquality()) {
+          break;
+        }
+        const TermList* ts1 = lit->args();
+        if (!ts1->isVar()) {
+          break;
+        }
+        const TermList* ts2 = ts1->next();
+        if (!ts2->isVar()) {
+          break;
+        }
+        unsigned v1 = ts1->var();
+        unsigned v2 = ts2->var();
+        if (v1 == v2) {
+          break;
+        }
+        if (!lit->isPositive()) {
+          pol = -pol;
+        }
+        if (pol >= 0 && !existVars.get(v1) && !existVars.get(v2)) {
+          return true;
+        }
       }
       break;
 
     case AND:
     case OR:
       {
-	FormulaList::Iterator fs(f->args());
-	while (fs.hasNext()) {
-	  forms.push(fs.next());
-	  pols.push(pol);
-	}
+        FormulaList::Iterator fs(f->args());
+        while (fs.hasNext()) {
+          recs.push(Rec(fs.next(),pol));
+        }
       }
       break;
 
     case IMP:
-      forms.push(f->left());
-      pols.push(-pol);
-      forms.push(f->right());
-      pols.push(pol);
+      recs.push(Rec(f->left(),-pol));
+      recs.push(Rec(f->right(),pol));
       break;
 
     case IFF:
     case XOR:
-      forms.push(f->left());
-      pols.push(0);
-      forms.push(f->right());
-      pols.push(0);
+      recs.push(Rec(f->left(),0));
+      recs.push(Rec(f->right(),0));
       break;
 
     case NOT:
-      forms.push(f->uarg());
-      pols.push(-pol);
+      recs.push(Rec(f->uarg(),-pol));
       break;
 
+    case EXISTS:
+      eff_pol = -pol;
     case FORALL:
-      // remember universally quantified variables
-      if (pol >= 0) {
+      if (eff_pol >= 0) {
+        // will have a universal version
         VList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          posVars[vs.next()] = true;
+          unsigned v = vs.next();
+          if (existVars[v]) {
+            existVars[v] = false;
+            recs.push(Rec(v,true)); // restore back to true
+          }
         }
-      }
-      forms.push(f->qarg());
-      pols.push(pol);
-      break;
-
-  case EXISTS:
-      // remember universally quantified variables
-      if (pol <= 0) {
+      } else {
+        // only existential
         VList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          posVars[vs.next()] = true;
+          unsigned v = vs.next();
+          if (!existVars[v]) {
+            existVars[v] = true;
+            recs.push(Rec(v,false)); // restore back to false
+          }
         }
       }
-      forms.push(f->qarg());
-      pols.push(pol);
+      recs.push(Rec(f->qarg(),pol));
       break;
 
     case TRUE:
