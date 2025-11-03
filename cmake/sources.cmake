@@ -506,7 +506,6 @@ set(SOURCES
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/Metaiterators.hpp
-    Lib/MultiCounter.hpp
     Lib/NameArray.cpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp

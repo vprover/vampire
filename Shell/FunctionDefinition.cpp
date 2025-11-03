@@ -122,21 +122,6 @@ struct FunctionDefinition::Def
   }
 }; // class FunctionDefintion::Def
 
-
-/**
- * Initialise a function definition.
- * Move all definitions from the problem to _definitions and _map.
- * @since 29/05/2004 Manchester
- */
-FunctionDefinition::FunctionDefinition ()
-  :
-//    _defStore(32),
-    _found(0),
-    _removed(0),
-    _processedProblem(0)
-{
-} // FunctionDefinition::FunctionDefinition
-
 void FunctionDefinition::removeUnusedDefinitions(Problem& prb, bool inHigherOrder)
 {
   if(removeUnusedDefinitions(prb.units(), &prb, inHigherOrder)) {
@@ -877,16 +862,15 @@ FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
   // First, iterate subterms in lhs and check that all of them are variables
   // and each of them occurs exactly once. counter will contain variables
   // occurring in lhs
-  MultiCounter counter;
+  ZIArray<unsigned> counter;
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
     if (! ts->isVar()) {
       return 0;
     }
     int w = ts->var();
-    if (counter.get(w) != 0) { // more than one occurrence
+    if (counter[w]++) { // more than one occurrence
       return 0;
     }
-    counter.inc(w);
     vars++;
   }
 
@@ -904,7 +888,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
       return 0;
 
     case 1: // v occurs in lhs, it is first occurrence in rhs
-      counter.inc(v);
+      counter[v]++;
       vars--;
       break;
 
