@@ -965,6 +965,8 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST:
   case InferenceRule::GENERIC_GENERATING_INFERENCE:
   case InferenceRule::GENERIC_GENERATING_INFERENCE_LAST:
+  case InferenceRule::GENERIC_AVATAR_INFERENCE:
+  case InferenceRule::GENERIC_AVATAR_INFERENCE_LAST:
   case InferenceRule::GENERIC_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }
