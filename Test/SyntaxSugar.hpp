@@ -27,6 +27,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/TypedTermList.hpp"
@@ -713,8 +714,19 @@ inline Clause* clause(Stack<Lit> ls, Inference inf) {
 inline Clause* clause(Stack<Lit> ls)
 { return clause(ls, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT))); }
 
-inline Clause* clause(std::initializer_list<Lit> ls) 
+inline Clause* clause(std::initializer_list<Lit> ls)
 { return clause(Stack<Lit>(ls)); }
+
+inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) {
+  auto out = Stack<Clause*>();
+  for (auto cl : cls) {
+    out.push(clause(cl));
+  }
+  return out;
+}
+
+inline FormulaUnit* formula(Lit lit)
+{ return new FormulaUnit(new AtomicFormula(lit), Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT))); }
 
 inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
   // avoid redeclaration
