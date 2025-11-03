@@ -1083,8 +1083,8 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
     recs.push({f,1,0});
 
     while (!recs.isEmpty()) {
-      int eff_pol;
       auto [f,pol,state] = recs.pop();
+      int eff_pol = pol; // unless changed in the EXISTS case below
 
       switch (f->connective()) {
       case LITERAL:
@@ -1119,7 +1119,6 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
       case EXISTS:
         eff_pol = -pol;
       case FORALL:
-        eff_pol = pol;
         if (eff_pol == 1) {
           recs.push({f->qarg(),pol,2}); // in the forall bit now
         } else if (eff_pol == -1) {
