@@ -1049,7 +1049,7 @@ bool Property::hasXEqualsY(const Formula* f)
       break;
 
     case BOOL_TERM:
-      return true;
+      return true; // MS: Aztek, why this?
 
     case NAME:
     case NOCONN:
