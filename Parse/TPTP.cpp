@@ -3576,6 +3576,9 @@ void TPTP::endFof()
   Unit *unit, *original;
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
+    if (freeVariables(f)) {
+      USER_ERROR("unquantified variable detected for an fof formula");
+    }
     original = unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
@@ -3657,14 +3660,8 @@ void TPTP::endFof()
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
     {
-      VList* vs = freeVariables(f);
-      if (VList::isEmpty(vs)) {
-        f = new NegatedFormula(f);
-      }
-      else {
-        // TODO can we use sortOf to get the sorts of vs?
-        f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
-      }
+      ASS_EQ(freeVariables(f),VList::empty())
+      f = new NegatedFormula(f);
       unit = new FormulaUnit(f,
 			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
       if (_isQuestion) {
@@ -3702,11 +3699,7 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
   }
   env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
-  VList* vs = freeVariables(f);
-  if (VList::isNonEmpty(vs)) {
-    //TODO can we use sortOf to get sorts of vs?
-    f = new QuantifiedFormula(FORALL,vs,0,f);
-  }
+  ASS_EQ(freeVariables(f),VList::empty())
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
       FormulaClauseTransformation(InferenceRule::CLAIM_DEFINITION,unit));
