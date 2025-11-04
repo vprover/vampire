@@ -3574,6 +3574,9 @@ void TPTP::endFof()
 
   Unit *unit, *original;
   if (isFof) { // fof() or tff()
+    if (freeVariables(f)) {
+      USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
+    }
     original = unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
@@ -3588,38 +3591,38 @@ void TPTP::endFof()
       g = forms.pop();
       switch (g->connective()) {
       case OR:
-	{
-	  FormulaList::Iterator fs(static_cast<JunctionFormula*>(g)->getArgs());
-	  while (fs.hasNext()) {
-	    forms.push(fs.next());
-	  }
-	}
-	break;
+      {
+        FormulaList::Iterator fs(static_cast<JunctionFormula*>(g)->getArgs());
+        while (fs.hasNext()) {
+          forms.push(fs.next());
+        }
+      }
+      break;
 
       case LITERAL:
       case NOT:
-	{
-	  bool positive = true;
-	  while (g->connective() == NOT) {
-	    g = static_cast<NegatedFormula*>(g)->subformula();
-	    positive = !positive;
-	  }
-	  if (g->connective() != LITERAL) {
-	    USER_ERROR("input formula not in CNF: " + f->toString());
-	  }
-    auto af = static_cast<AtomicFormula*>(g);
-    needsFlipDocumenting = needsFlipDocumenting || af->flipForPrinting;
-	  Literal* l = af->literal();
-	  lits.push(positive ? l : Literal::complementaryLiteral(l));
-	}
-	break;
+      {
+        bool positive = true;
+        while (g->connective() == NOT) {
+          g = static_cast<NegatedFormula*>(g)->subformula();
+          positive = !positive;
+        }
+        if (g->connective() != LITERAL) {
+          USER_ERROR("input formula not in CNF: " + f->toString());
+        }
+        auto af = static_cast<AtomicFormula*>(g);
+        needsFlipDocumenting = needsFlipDocumenting || af->flipForPrinting;
+        Literal* l = af->literal();
+        lits.push(positive ? l : Literal::complementaryLiteral(l));
+      }
+      break;
 
       case TRUE:
-	return;
+        return;
       case FALSE:
-	break;
+        break;
       default:
-	USER_ERROR("input formula not in CNF: " + f->toString());
+        USER_ERROR("input formula not in CNF: " + f->toString());
       }
     }
     if(needsFlipDocumenting) {
@@ -3633,7 +3636,7 @@ void TPTP::endFof()
     unit->setInheritedColor(_currentColor);
   }
 
-  if(source){ 
+  if(source) {
     ASS(_unitSources);
     _unitSources->insert(original,source);
   }
@@ -3654,14 +3657,8 @@ void TPTP::endFof()
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
     {
-      VList* vs = freeVariables(f);
-      if (VList::isEmpty(vs)) {
-        f = new NegatedFormula(f);
-      }
-      else {
-        // TODO can we use sortOf to get the sorts of vs?
-        f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
-      }
+      ASS_EQ(freeVariables(f),VList::empty())
+      f = new NegatedFormula(f);
       unit = new FormulaUnit(f,
 			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
       if (_isQuestion) {
@@ -3699,11 +3696,7 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
   }
   env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
-  VList* vs = freeVariables(f);
-  if (VList::isNonEmpty(vs)) {
-    //TODO can we use sortOf to get sorts of vs?
-    f = new QuantifiedFormula(FORALL,vs,0,f);
-  }
+  ASS_EQ(freeVariables(f),VList::empty())
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
       FormulaClauseTransformation(InferenceRule::CLAIM_DEFINITION,unit));

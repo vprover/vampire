@@ -184,7 +184,7 @@ void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, F
 }
 
 inline UnitList *SATInference::getFOPremises(SATClause *cl) {
-  UnitList *result;
+  UnitList *result = nullptr;
   SATInference::visitFOConversions(cl, [&result](SATClause *cl) {
     UnitList::push(cl->inference()->foConversion()->getOrigin(), result);
   });
