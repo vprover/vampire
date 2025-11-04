@@ -3577,7 +3577,7 @@ void TPTP::endFof()
   if (isFof) { // fof() or tff()
     env.statistics->inputFormulas++;
     if (freeVariables(f)) {
-      USER_ERROR("unquantified variable detected for an fof formula");
+      USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
     }
     original = unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
