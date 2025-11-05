@@ -3566,6 +3566,7 @@ void TPTP::endFof()
   skipToRPAR();
   consumeToken(T_DOT);
 
+  _vars.reset();
   bool isFof = _bools.pop();
   Formula* f = _formulas.pop();
   std::string nm = _strings.pop(); // unit name
