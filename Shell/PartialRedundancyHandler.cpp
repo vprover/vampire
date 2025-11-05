@@ -98,7 +98,7 @@ private:
       FlatTerm* ft = FlatTerm::createUnexpanded(ts);
       vm.init(ft, this, &firstsInBlocks);
 
-      if (vm.next()) {
+      if (vm.execute()) {
         ASS(vm.op->isSuccess());
         auto container = vm.op->template getSuccessResult<EntryContainer>();
         container->tod->insert(ptr->ordCons, ptr);
@@ -250,7 +250,7 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher
+  : public Matcher</*removing*/false,false>
   {
     void init(CodeTree* tree, const TermStack& ts)
     {
@@ -285,11 +285,11 @@ private:
   };
 
   struct VariantMatcher
-  : public RemovingMatcher<true>
+  : public Matcher</*removing*/true,true>
   {
   public:
     void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
+      Matcher::init(tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
       ft=ft_;
       tp=0;
       op=entry;
