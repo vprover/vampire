@@ -1291,6 +1291,9 @@ void SaturationAlgorithm::doOneAlgorithmStep()
       std::cout << "[SA] undelaying remaining clauses" << std::endl;
     }
     for (const auto& cl : iterTraits(_delayed.clauses.iter())) {
+      if (_opt.showActive()) {
+        std::cout << "[SA] undelayed: " << cl->toString() << std::endl;
+      }
       cl->setStore(Clause::ACTIVE);
       _active->add(cl);
     }
@@ -1599,6 +1602,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->_delayedSubtermIndex->attachContainer(&res->_delayed);
   res->_delayedSideIndex->attachContainer(&res->_delayed);
   res->_delayedLiteralIndex->attachContainer(&res->_delayed);
+  res->_delayedPredicateIndex->attachContainer(&res->_delayed);
 
   if (opt.splitting()) {
     res->_splitter = new Splitter();

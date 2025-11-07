@@ -46,4 +46,45 @@ void Index::attachContainer(ClauseContainer* cc)
   _removedSD = cc->removedEvent.subscribe(this,&Index::onRemovedFromContainer);
 }
 
+void GoalDirectedPredicateIndex::handleClause(Clause* c, bool adding)
+{
+  for (const auto& lit : iterTraits(goal ? c->getSelectedLiteralIterator() : c->iterLits())) {
+    if (lit->isEquality()) {
+      continue;
+    }
+    if (goal) {
+      if (lit->isPositive()) {
+        continue;
+      }
+    } else {
+      if (lit->isNegative()) {
+        continue;
+      }
+    }
+    DHSet<Clause*>* ptr;
+    _container.getValuePtr(lit->functor(), ptr);
+    if (adding) {
+      ptr->insert(c);
+    } else {
+      ASS(ptr);
+      ptr->remove(c);
+    }
+  }
+}
+
+ClauseIterator GoalDirectedPredicateIndex::get(Literal* lit)
+{
+  ASS(!lit->isEquality());
+  if (goal) {
+    ASS(lit->isPositive());
+  } else {
+    ASS(lit->isNegative());
+  }
+  auto ptr = _container.find(lit->functor());
+  if (!ptr) {
+    return ClauseIterator::getEmpty();
+  }
+  return ptr->iterator();
+}
+
 }
