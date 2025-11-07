@@ -1357,12 +1357,14 @@ bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
       return true;
     }
     if (!lit->isEquality()) {
-      if (_goalLiteralIndex->getUnifications(lit, true, false).hasNext()) {
-        return true;
-      }
-      for (const auto& st : iterTraits(NonVariableNonTypeIterator(lit))) {
-        if (_goalLHSIndex->getUnifications(st, false).hasNext()) {
+      if (_goalPredicateIndex->get(lit).hasNext()) {
+        if (_goalLiteralIndex->getUnifications(lit, true, false).hasNext()) {
           return true;
+        }
+        for (const auto& st : iterTraits(NonVariableNonTypeIterator(lit))) {
+          if (_goalLHSIndex->getUnifications(st, false).hasNext()) {
+            return true;
+          }
         }
       }
       return false;
@@ -1416,6 +1418,11 @@ void SaturationAlgorithm::maybeUndelayClauses(Clause* cl)
     if (!lit->isEquality()) {
       for (const auto& qr : iterTraits(_delayedLiteralIndex->getUnifications(Literal::linearize(lit), true, false))) {
         toPassive.insert(qr.data->clause);
+      }
+      if (lit->isNegative()) {
+        for (const auto& c : iterTraits(_delayedPredicateIndex->get(lit))) {
+          toPassive.insert(c);
+        }
       }
     } else {
       for (auto lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, *_ordering, _opt))) {
@@ -1583,9 +1590,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 	  res->_imgr->request(GOAL_LHS_INDEX));
   res->_goalLiteralIndex = static_cast<BinaryResolutionIndex<true>*>(
 	  res->_imgr->request(GOAL_LITERAL_INDEX));
+  res->_goalPredicateIndex = static_cast<GoalDirectedPredicateIndex*>(
+	  res->_imgr->request(GOAL_PREDICATE_INDEX));
   res->_delayedSubtermIndex = new SubtermIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering());
   res->_delayedSideIndex = new PositiveEqualitySideIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
   res->_delayedLiteralIndex = new PositiveLiteralIndex(new LiteralSubstitutionTree<LiteralClause>());
+  res->_delayedPredicateIndex = new GoalDirectedPredicateIndex(false);
   res->_delayedSubtermIndex->attachContainer(&res->_delayed);
   res->_delayedSideIndex->attachContainer(&res->_delayed);
   res->_delayedLiteralIndex->attachContainer(&res->_delayed);

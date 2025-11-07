@@ -235,5 +235,48 @@ private:
   SubscriptionData _removedSD;
 };
 
+struct GoalDirectedPredicateIndex : public Index {
+  GoalDirectedPredicateIndex(bool goal) : goal(goal) {}
+  void handleClause(Clause* c, bool adding) override {
+    for (const auto& lit : iterTraits(goal ? c->getSelectedLiteralIterator() : c->iterLits())) {
+      if (lit->isEquality()) {
+        continue;
+      }
+      if (goal) {
+        if (lit->isPositive()) {
+          continue;
+        }
+      } else {
+        if (lit->isNegative()) {
+          continue;
+        }
+      }
+      DHSet<Clause*>* ptr;
+      _container.getValuePtr(lit->functor(), ptr);
+      if (adding) {
+        ptr->insert(c);
+      } else {
+        ASS(ptr);
+        ptr->remove(c);
+      }
+    }
+  }
+  ClauseIterator get(Literal* lit) {
+    ASS(!lit->isEquality());
+    if (goal) {
+      ASS(lit->isPositive());
+    } else {
+      ASS(lit->isNegative());
+    }
+    auto ptr = _container.find(lit->functor());
+    if (!ptr) {
+      return ClauseIterator::getEmpty();
+    }
+    return ptr->iterator();
+  }
+  bool goal;
+  DHMap<unsigned, DHSet<Clause*>> _container;
+};
+
 };
 #endif /*__Indexing_Index__*/

@@ -212,6 +212,10 @@ Index* IndexManager::create(IndexType t)
     res = new BinaryResolutionIndex<true>(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
+  case GOAL_PREDICATE_INDEX:
+    res = new GoalDirectedPredicateIndex(true);
+    isGenerating = true;
+    break;
 
   case SKOLEMISING_FORMULA_INDEX:
     res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());

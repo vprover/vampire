@@ -222,10 +222,12 @@ protected:
   TermIndex<TermLiteralClause>* _goalSubtermIndex;
   TermIndex<TermLiteralClause>* _goalLHSIndex;
   LiteralIndex<LiteralClause>* _goalLiteralIndex;
+  GoalDirectedPredicateIndex* _goalPredicateIndex;
 
   PositiveEqualitySideIndex* _delayedSideIndex;
   SubtermIndex* _delayedSubtermIndex;
   PositiveLiteralIndex* _delayedLiteralIndex;
+  GoalDirectedPredicateIndex* _delayedPredicateIndex;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
