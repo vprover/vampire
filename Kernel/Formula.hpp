@@ -146,11 +146,13 @@ class AtomicFormula
   : public Formula
 {
 public:
-  /** building atomic formula from a literal */
-  explicit AtomicFormula (Literal* lit)
+  /** building atomic formula from a literal
+   * */
+  explicit AtomicFormula (Literal* lit, bool flipForPrinting = false)
     : Formula(LITERAL),
-      _literal(lit)
-  {}
+      flipForPrinting(flipForPrinting),
+      _literal(lit) {}
+
   /** Return the literal of this formula */
   const Literal* getLiteral() const { return _literal; }
   /** Return the literal of this formula */
@@ -164,6 +166,10 @@ public:
 
   // use allocator to (de)allocate objects of this class
   USE_ALLOCATOR(AtomicFormula);
+
+  /** if `_literal` was an input equation and was flipped during parsing,
+   * we should print it in the original orientation -- see TermSharing */
+  bool flipForPrinting = false;
 protected:
   /** The literal of this formula */
   Literal* _literal;

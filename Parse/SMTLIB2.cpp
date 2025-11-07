@@ -288,16 +288,6 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       continue;
     }
 
-    if (ibRdr.tryAcceptAtom("assert-theory")) {
-
-      auto body = ibRdr.readExpr();
-      readAssertTheory(body);
-
-      ibRdr.acceptEOL();
-
-      continue;
-    }
-
     // not an official SMTLIB command
     if (ibRdr.tryAcceptAtom("color-symbol")) {
 
@@ -2087,7 +2077,8 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
           TermList second;
           firstParseResult.asTerm(first);
           secondParseResult.asTerm(second);
-          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+          Literal *l = Literal::createEquality(true, first, second, firstParseResult.sort);
+          lastConjunct = new AtomicFormula(l, first != l->termArg(0));
         }
       } else {
         Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
@@ -2124,7 +2115,8 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
             TermList second;
             firstParseResult.asTerm(first);
             secondParseResult.asTerm(second);
-            lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+            Literal *l = Literal::createEquality(true, first, second, firstParseResult.sort);
+            lastConjunct = new AtomicFormula(l, first != l->termArg(0));
           }
         } else {
           Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
@@ -2866,19 +2858,6 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
-  _formulas.pushBack(fu);
-}
-
-void SMTLIB2::readAssertTheory(LExpr* body)
-{
-  ParseResult res = parseTermOrFormula(body,false/*isSort*/);
-
-  Formula* theoryAxiom;
-  if (!res.asFormula(theoryAxiom)) {
-    USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
-  }
-
-  FormulaUnit* fu = new FormulaUnit(theoryAxiom, Inference(TheoryAxiom(InferenceRule::EXTERNAL_THEORY_AXIOM)));
   _formulas.pushBack(fu);
 }
 

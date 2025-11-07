@@ -122,9 +122,6 @@ public:
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
 
-  /** Return the number of clauses that entered the passive container */
-  unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
-
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
    */
@@ -279,7 +276,6 @@ protected:
   // counters
 
   /** Number of clauses that entered the unprocessed container */
-  unsigned _generatedClauseCount;
   unsigned _activationLimit;
 private:
   static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, Ordering& ordering,

@@ -17,6 +17,8 @@ set(TESTING_SOURCES
     Test/TestUtils.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
+    Test/HOLUtils.cpp
+    Test/HOLUtils.hpp
 )
 
 ################################################################
@@ -55,7 +57,6 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tHOL_Printing.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -83,6 +84,11 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/HOL/tHOL_Printing.cpp
+    UnitTests/HOL/tBetaReduction.cpp
+    UnitTests/HOL/tEtaReduction.cpp
+    UnitTests/HOL/tTermShifter.cpp
+    UnitTests/HOL/tSubtermReplacer.cpp
 )
 
 ################################################################
@@ -450,9 +456,20 @@ set(SOURCES
     Kernel/Unit.cpp
     Kernel/Unit.hpp
     Kernel/HOL/HOL.cpp
+    Kernel/HOL/HOL.hpp
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
-    Kernel/HOL/HOL.hpp
+    Kernel/HOL/Reduce.cpp
+    Kernel/HOL/BetaNormaliser.cpp
+    Kernel/HOL/BetaNormaliser.hpp
+    Kernel/HOL/RedexReducer.cpp
+    Kernel/HOL/RedexReducer.hpp
+    Kernel/HOL/TermShifter.cpp
+    Kernel/HOL/TermShifter.hpp
+    Kernel/HOL/EtaNormaliser.cpp
+    Kernel/HOL/EtaNormaliser.hpp
+    Kernel/HOL/SubtermReplacer.cpp
+    Kernel/HOL/SubtermReplacer.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
@@ -491,7 +508,6 @@ set(SOURCES
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/Metaiterators.hpp
-    Lib/MultiCounter.hpp
     Lib/NameArray.cpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
@@ -572,6 +588,7 @@ set(SOURCES
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/ProofProducingSATSolver.hpp
+    SAT/ProofProducingSATSolver.cpp
     SAT/SATSolver.hpp
     SAT/SATSolver.cpp
     SAT/Z3Interfacing.cpp
@@ -661,8 +678,6 @@ set(SOURCES
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.cpp
     Shell/InterpretedNormalizer.hpp
-    Shell/LaTeX.cpp
-    Shell/LaTeX.hpp
     Shell/Lexer.cpp
     Shell/Lexer.cpp
     Shell/Lexer.hpp

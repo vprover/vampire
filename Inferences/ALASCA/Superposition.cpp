@@ -17,7 +17,6 @@
 #include "Indexing/SubstitutionTree.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/OrderingUtils.hpp"

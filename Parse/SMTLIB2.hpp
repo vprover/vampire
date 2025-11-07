@@ -538,14 +538,6 @@ private:
   void readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body);
 
   /**
-   * Unofficial command
-   *
-   * Behaves like assert, but marks body clause as external theory axiom.
-   * Assumes that body is already fully simplified (as this is usual the case for theory axioms).
-   */
-  void readAssertTheory(LExpr* body);
-
-  /**
    * Helper method: switch on SymbolType and return corresponding Symbol.
    */
   Signature::Symbol* getSymbol(DeclaredSymbol& s);

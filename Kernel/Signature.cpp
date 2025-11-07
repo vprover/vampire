@@ -236,7 +236,6 @@ Signature::Signature ():
     _preds(32),
     _typeCons(32),
     _nextFreshSymbolNumber(0),
-    _skolemFunctionCount(0),
     _distinctGroupsAddedTo(false),
     _strings(0),
     _integers(0),
@@ -884,11 +883,6 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
   unsigned f = addFreshFunction(arity, "sK", suffix);
   Symbol* s = getFunction(f);
   s->markSkolem();
-
-  // Register it as a LaTeX function
-  // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
-  _skolemFunctionCount++;
-
   return f;
 } // addSkolemFunction
 
@@ -901,11 +895,6 @@ unsigned Signature::addSkolemTypeCon (unsigned arity, const char* suffix)
 {
   unsigned tc = addFreshTypeCon(arity, "sK", suffix);
   getTypeCon(tc)->markSkolem();
-
-  // Register it as a LaTeX function
- // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
-  _skolemFunctionCount++;
-
   return tc;
 } // addSkolemFunction
 
@@ -919,11 +908,6 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
 {
   unsigned p = addFreshPredicate(arity, "sK", suffix);
   getPredicate(p)->markSkolem();
-
-  // Register it as a LaTeX function
- // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
-  _skolemFunctionCount++;
-
   return p;
 } // addSkolemPredicate
 

@@ -37,7 +37,6 @@
 #include "AnswerLiteralManager.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
-#include "LaTeX.hpp"
 #include "LispParser.hpp"
 #include "Options.hpp"
 #include "SMTCheck.hpp"
@@ -395,8 +394,6 @@ void UIHelper::popLoadedPiece(int numPops)
  * Output result based on the content of
  * @b env.statistics->terminationReason
  *
- * If LaTeX output is enabled, it is output in this function.
- *
  * If interpolant output is enabled, it is output in this function.
  */
 void UIHelper::outputResult(std::ostream& out)
@@ -478,13 +475,6 @@ void UIHelper::outputResult(std::ostream& out)
       out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
       out << "Actual weight: " << interpolant->weight() << endl;
       out<<endl;
-    }
-
-    if (env.options->latexOutput() != "off") {
-      ofstream latexOut(env.options->latexOutput().c_str());
-
-      LaTeX formatter;
-      latexOut << formatter.refutationToString(refutation);
     }
 
     // the following two sanity checks are performed only after the proof printing, so we can also have a look at the proof, when we get a report back

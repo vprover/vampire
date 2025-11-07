@@ -174,8 +174,6 @@ Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
     res->push(subst->apply(lit, eqIsResult));
   }
 
-  env.statistics->goalParamodulation++;
-
   return Clause::fromStack(*res, Inference(GeneratingInference2(InferenceRule::GOAL_PARAMODULATION, rwClause, eqClause)));
 }
 

@@ -12,8 +12,6 @@
  * Implements class ForwardDemodulation.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -96,7 +94,7 @@ void ForwardDemodulation::detach()
   ForwardSimplificationEngine::detach();
 }
 
-bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
 
@@ -222,8 +220,6 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
             resLits->push(curr);
           }
         }
-
-        env.statistics->forwardDemodulations++;
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));

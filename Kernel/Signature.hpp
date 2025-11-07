@@ -928,7 +928,7 @@ class Signature
     ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
     
-    constexpr auto convert = [] (const std::string& name) {
+    static constexpr auto convert = [](const std::string& name) {
       if (name == "vIMP") return Proxy::IMP;
       if (name == "vAND") return Proxy::AND;
       if (name == "vOR") return Proxy::OR;
@@ -1026,12 +1026,9 @@ private:
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 
-  /** Number of Skolem functions (this is just for LaTeX output) */
-  unsigned _skolemFunctionCount;
-
   /** Map from symbol names to variable numbers*/
   SymbolMap _varNames;
-  
+
   // Store the premise of a distinct group for proof printing, if 0 then group is input
   Stack<Unit*> _distinctGroupPremises;
 

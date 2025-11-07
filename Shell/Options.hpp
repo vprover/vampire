@@ -2074,8 +2074,6 @@ public:
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
   int selection() const { return _selection.actualValue; }
   void setSelection(int v) { _selection.actualValue=v;}
-  std::string latexOutput() const { return _latexOutput.actualValue; }
-  bool latexUseDefault() const { return _latexUseDefaultSymbols.actualValue; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
   //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
@@ -2534,9 +2532,6 @@ private:
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
   BoolOptionValue _inductionOnActiveOccurrences;
-
-  StringOptionValue _latexOutput;
-  BoolOptionValue _latexUseDefaultSymbols;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
   IntOptionValue _lookaheadDelay;

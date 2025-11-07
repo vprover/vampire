@@ -1,0 +1,37 @@
+name: Create Source Archives
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout Tree
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: Strip Git Information
+      working-directory: ${{ runner.workspace }}/vampire
+      run: rm -rf .git cadical/.git viras/.git z3/.git
+    - name: Create Tarball
+      working-directory: ${{ runner.workspace }}
+      run: tar czf vampire-z3.tar.gz vampire
+    - name: Upload Tarball
+      uses: actions/upload-artifact@v4
+      with:
+        name: vampire-z3.tar.gz
+        path: ${{ runner.workspace }}/vampire-z3.tar.gz
+        overwrite: true
+        compression-level: 0
+    - name: Remove Z3
+      working-directory: ${{ runner.workspace }}/vampire
+      run: rm -rf z3
+    - name: Create Tarball
+      working-directory: ${{ runner.workspace }}
+      run: tar czf vampire.tar.gz vampire
+    - name: Upload Vampire (no Z3)
+      uses: actions/upload-artifact@v4
+      with:
+        name: vampire.tar.gz
+        path: ${{ runner.workspace }}/vampire.tar.gz
+        overwrite: true
+        compression-level: 0

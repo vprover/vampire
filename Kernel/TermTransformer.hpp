@@ -16,7 +16,7 @@
 #define __TermTransformer__
 
 #include "Forwards.hpp"
-
+#include "Kernel/Term.hpp"
 
 
 namespace Kernel {
@@ -53,12 +53,26 @@ protected:
  */
 class TermTransformer : public TermTransformerCommon {
 public:
+  const bool transformSorts;
   virtual ~TermTransformer() {}
+  explicit TermTransformer(const bool transformSorts = true) : transformSorts(transformSorts) {}
   Term* transform(Term* term) override;
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   Formula* transform(Formula* f) override;
   TermList transform(TermList ts) override;
+
+  virtual void onTermEntry(Term*) {}
+  virtual void onTermExit(Term*) {}
+
+  // default implementation, can override if required
+  virtual bool exploreSubterms(TermList orig, TermList newTerm) {
+    ASS(newTerm.isTerm());
+
+    return orig == newTerm;
+  }
+
+
 };
 
 class NonTypeTermTransformer {
