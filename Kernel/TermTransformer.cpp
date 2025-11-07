@@ -263,17 +263,17 @@ TermList TermTransformer::transform(TermList ts)
   }
 }
 
-Literal* NonTypeTermTransformer::transformLiteral(Literal* lit)
+Literal* TypeAwareTermTransformer::transformLiteral(Literal* lit)
 {
   Term* t = transform(static_cast<Term*>(lit));
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
 }
 
-TermList NonTypeTermTransformer::transform(TermList ts)
+TermList TypeAwareTermTransformer::transform(TermList ts, bool isSort)
 {
   // first let's try transforming ts directly
-  TermList transformed = transformSubterm(ts);
+  TermList transformed = transformSubterm(ts, isSort);
   if (transformed != ts) {
     // we did transform, so we are done
     return transformed;
@@ -287,9 +287,17 @@ TermList NonTypeTermTransformer::transform(TermList ts)
   }
 }
 
-Term* NonTypeTermTransformer::transform(Term* term)
+/**
+ * TODO: functions transform and transformSpecial call each other to process FOOL subterms,
+ * a fully non-recursive implementation is pretty complicated and is left for the future
+ */
+Term* TypeAwareTermTransformer::transform(Term* term)
 {
-  Stack<TermList*> toDo(8);
+  onTermEntry(term);
+
+  ASS(!term->isSpecial());
+
+  Stack<unsigned> toDo(8);
   Stack<Term*> terms(8);
   Stack<bool> modified(8);
   Stack<TermList> args(8);
@@ -299,22 +307,23 @@ Term* NonTypeTermTransformer::transform(Term* term)
   args.reset();
 
   modified.push(false);
-  for (unsigned i = 0; i < term->numTypeArguments(); i++) {
-    args.push(term->typeArg(i));
-  }
-  toDo.push(term->termArgs());
+  toDo.push(0);
 
   for (;;) {
-    TermList* tt = toDo.pop();
+    unsigned index = toDo.pop();
+    auto sterm = (terms.isEmpty() ? term : terms.top());
 
-    if (tt->isEmpty()) {
+    ASS_LE(index, sterm->arity());
+    if (index == sterm->arity()) {
       if (terms.isEmpty()) {
         //we're done, args stack contains modified arguments
         //of the literal.
         ASS(toDo.isEmpty());
         break;
       }
-      Term* orig = terms.pop();
+      auto orig = terms.pop();
+      onTermExit(orig);
+
       ASS(!orig->isSpecial());
       if (!modified.pop()) {
         args.truncate(args.length() - orig->arity());
@@ -328,36 +337,51 @@ Term* NonTypeTermTransformer::transform(Term* term)
       TermList *argLst = &args.top() - (orig->arity() - 1);
       args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
       Term* newTrm;
-      ASS (!orig->isSort());
-      newTrm=Term::create(orig,argLst);
+      if(orig->isSort()){
+        //For most applications we probably dont want to transform sorts.
+        //However, we don't enforce that here, inheriting classes can decide
+        //for themselves
+        newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+      } else {
+        newTrm=Term::create(orig,argLst);
+      }
       args.push(TermList(newTrm));
       modified.setTop(true);
       continue;
     } else {
-      toDo.push(tt->next());
+      toDo.push(index+1);
     }
 
-    TermList tl = *tt;
-    TermList dest = transformSubterm(tl);
-    if (tl != dest) {
-      args.push(dest);
-      modified.setTop(true);
-      continue;
-    }
-    if (tl.isVar()) {
+    TermList tl = *sterm->nthArgument(index);
+
+    // We still transform sort and term variables ...
+    // It is difficult to avoid this though
+    if (tl.isTerm() && tl.term()->isSort() && !transformSorts) {
       args.push(tl);
       continue;
     }
 
-    ASS(tl.isTerm());
-    Term* t = tl.term();
-    ASS(!t->isSpecial());
+    ASS (tl.isVar() || !tl.term()->isSpecial());
+
+    auto isSubtermSort = sterm->isSort() || index < sterm->numTypeArguments();
+    TermList dest = transformSubterm(tl, /*isSort=*/isSubtermSort);
+    if (tl != dest) {
+      modified.setTop(true);
+    }
+    if (dest.isVar() || !exploreSubterms(tl, dest)) {
+      args.push(dest);
+      continue;
+    }
+
+    ASS(dest.isTerm())
+    Term* t = dest.term();
+
+    onTermEntry(t);
+
+    ASS(!t->isSpecial())
     terms.push(t);
     modified.push(false);
-    for (unsigned i = 0; i < t->numTypeArguments(); i++) {
-      args.push(t->typeArg(i));
-    }
-    toDo.push(t->termArgs());
+    toDo.push(0);
   }
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
@@ -375,10 +399,17 @@ Term* NonTypeTermTransformer::transform(Term* term)
   TermList* argLst = &args.top() - (term->arity() - 1);
 
   if (term->isLiteral()) {
+    Literal* lit = static_cast<Literal*>(term);
+    if(lit->isEquality() && argLst[0].isVar() && argLst[1].isVar() && transformSorts) {
+      return Literal::createEquality(lit->polarity(), argLst[0], argLst[1],
+                                     transform(SortHelper::getEqualityArgumentSort(lit), true));
+    }
     return Literal::create(static_cast<Literal*>(term), argLst);
-  } else {
-    return Term::create(term, argLst);
   }
+  if (term->isSort()) {
+    return AtomicSort::create(static_cast<AtomicSort*>(term), argLst);
+  }
+  return Term::create(term, argLst);
 }
 
 Formula* TermTransformer::transform(Formula* f)

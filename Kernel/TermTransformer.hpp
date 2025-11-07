@@ -75,14 +75,26 @@ protected:
 
 };
 
-class NonTypeTermTransformer {
+class TypeAwareTermTransformer {
 public:
-  virtual ~NonTypeTermTransformer() {}
+  const bool transformSorts;
+  virtual ~TypeAwareTermTransformer() {}
+  explicit TypeAwareTermTransformer(const bool transformSorts = true) : transformSorts(transformSorts) {}
   Term* transform(Term* term);
   Literal* transformLiteral(Literal* lit);
 protected:
-  virtual TermList transformSubterm(TermList trm) = 0;
-  TermList transform(TermList ts);
+  virtual TermList transformSubterm(TermList trm, bool isSort) = 0;
+  TermList transform(TermList ts, bool isSort);
+
+  virtual void onTermEntry(Term*) {}
+  virtual void onTermExit(Term*) {}
+
+  // default implementation, can override if required
+  virtual bool exploreSubterms(TermList orig, TermList newTerm) {
+    ASS(newTerm.isTerm());
+
+    return orig == newTerm;
+  }
 };
 
 /**

@@ -1342,19 +1342,30 @@ Term* Term::foolFalse(){
   return _foolFalse;
 }
 
-Term* Term::linearize(Term* t)
-{
-  struct Linearizer : NonTypeTermTransformer {
-    TermList transformSubterm(TermList trm) override {
+namespace {
+  struct Linearizer : TypeAwareTermTransformer {
+    Linearizer() : TypeAwareTermTransformer(true) {}
+    TermList transformSubterm(TermList trm, bool isSort) override {
       if (trm.isVar()) {
+        if (isSort) {
+          unsigned* ptr;
+          if (sortVars.getValuePtr(trm.var(), ptr)) {
+            *ptr = cnt++;
+          }
+          return TermList::var(*ptr);
+        }
         return TermList::var(cnt++);
       }
       return trm;
     }
+    DHMap<unsigned, unsigned> sortVars;
     unsigned cnt = 0;
-  } linearizer;
+  };
+}
 
-  return linearizer.transform(t);
+Term* Term::linearize(Term* t)
+{
+  return Linearizer().transform(t);
 }
 
 /*
@@ -1746,17 +1757,7 @@ Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, Term
 
 Literal* Literal::linearize(Literal* lit)
 {
-  struct Linearizer : NonTypeTermTransformer {
-    TermList transformSubterm(TermList trm) override {
-      if (trm.isVar()) {
-        return TermList::var(cnt++);
-      }
-      return trm;
-    }
-    unsigned cnt = 0;
-  } linearizer;
-
-  return linearizer.transformLiteral(lit);
+  return Linearizer().transformLiteral(lit);
 }
 
 /** create a new term and copy from t the relevant part of t's content */
