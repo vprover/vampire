@@ -28,8 +28,6 @@
 
 #include "Indexing/TermSharing.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "InterpretedEvaluation.hpp"
 
 #undef LOGGING
@@ -94,7 +92,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       if(constant) {
         if(constTrue) {
           //cout << "evaluate " << cl->toString() << " to true" << endl;
-          env.statistics->evaluationCnt++;
           return 0;
         } else {
           continue;
@@ -107,7 +104,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       return cl;
     }
 
-    env.statistics->evaluationCnt++;
     return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::EVALUATION, cl));
 }
 

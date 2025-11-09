@@ -30,7 +30,6 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
-#include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"

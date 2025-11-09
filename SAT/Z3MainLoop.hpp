@@ -27,7 +27,6 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 namespace SAT{
 
