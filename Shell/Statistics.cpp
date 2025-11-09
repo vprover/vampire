@@ -145,8 +145,8 @@ void Statistics::print(std::ostream& out)
 #define ENTRY(name, num) if (num) { groups.top().addEntry(name, num); }
 
 #define IPGROUP(name) groups.emplace(name, /*inproof=*/true);
-#define IPENTRY(name, statpair) ASS_GE(statpair.total, statpair.inproof); \
-  if (statpair.total) { groups.top().addEntry(name, statpair.total, statpair.inproof); }
+#define IPENTRY(name, statpair) ASS_GE(statpair[TOTAL_CNT], statpair[INPROOF_CNT]); \
+  if (statpair[TOTAL_CNT]) { groups.top().addEntry(name, statpair[TOTAL_CNT], statpair[INPROOF_CNT]); }
 
     IPGROUP("INPUT");
     for (unsigned i : range(toNumber(UnitInputType::AXIOM),toNumber(UnitInputType::MODEL_DEFINITION))) {
@@ -333,28 +333,25 @@ void Statistics::print(std::ostream& out)
 #endif // VTIME_PROFILING
 }
 
-#define DEF_REPORT_FUN(fnname, field)                       \
-  void Statistics::fnname(Unit* u)                          \
-  {                                                         \
-    if (u->isClause()) {                                    \
-      clauses.field++;                                      \
-    } else {                                                \
-      formulas.field++;                                     \
-    }                                                       \
-    auto rule = u->inference().rule();                      \
-    if (rule == InferenceRule::INPUT) {                     \
-      inputTypeCnts[toNumber(u->inputType())].field++;      \
-      if (u->isClause()) {                                  \
-        inputClauses.field++;                               \
-      } else {                                              \
-        inputFormulas.field++;                              \
-      }                                                     \
-    }                                                       \
-    inferenceCnts[toNumber(u->inference().rule())].field++; \
-  }
 
-DEF_REPORT_FUN(reportUnit, total)
-DEF_REPORT_FUN(reportProofStep, inproof)
+  void Statistics::reportUnit(Unit* u, UnitCountCategory idx)
+  {
+    if (u->isClause()) {
+      clauses[idx]++;
+    } else {
+      formulas[idx]++;
+    }
+    auto rule = u->inference().rule();
+    if (rule == InferenceRule::INPUT) {
+      inputTypeCnts[toNumber(u->inputType())][idx]++;
+      if (u->isClause()) {
+        inputClauses[idx]++;
+      } else {
+        inputFormulas[idx]++;
+      }
+    }
+    inferenceCnts[toNumber(u->inference().rule())][idx]++;
+  }
 
 const char* Statistics::phaseToString(ExecutionPhase p)
 {
