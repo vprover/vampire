@@ -30,7 +30,7 @@
 #include "Options.hpp"
 #include "Statistics.hpp"
 #include <chrono>
-
+#include <cadical.hpp>
 
 using namespace std;
 using namespace Lib;
@@ -86,6 +86,13 @@ void Statistics::print(std::ostream& out)
   addCommentSignForSZS(out);
   out << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
 #endif
+  std::string cadicalVersion = CaDiCaL::Solver::signature();
+  size_t dashPosition = cadicalVersion.find("-");
+  if (dashPosition != string::npos) {
+    cadicalVersion = cadicalVersion.substr(dashPosition + 1);
+  }
+  addCommentSignForSZS(out);
+  out << "CaDiCaL version: " << cadicalVersion << endl;
 
   addCommentSignForSZS(out);
   out << "Termination reason: ";
