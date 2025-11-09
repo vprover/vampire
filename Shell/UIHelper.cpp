@@ -19,6 +19,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <cadical.hpp>
+
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
@@ -98,6 +100,11 @@ void reportSpiderStatus(char status)
   if (spacePosition != string::npos) {
     z3Version = z3Version.substr(0,spacePosition);
   }
+  std::string cadicalVersion = CaDiCaL::Solver::signature();
+  size_t dashPosition = cadicalVersion.find("-");
+  if (dashPosition != string::npos) {
+    cadicalVersion = cadicalVersion.substr(dashPosition + 1);
+  }
 
   std::string problemName = Lib::env.options->problemName();
   std::cout
@@ -106,7 +113,7 @@ void reportSpiderStatus(char status)
     << Timer::elapsedDeciseconds() << " "
     << Timer::elapsedMegaInstructions() << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
-    << commitNumber << ':' << z3Version << endl;
+    << commitNumber << ':' << z3Version << ':' << cadicalVersion << endl;
 #endif
 }
 
@@ -253,7 +260,7 @@ void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyn
 // Call this function to report a parsing attempt has failed and to reset the input
 void resetParsing(ParsingRelatedException& exception, istream& input, std::string nowtry)
 {
-  if (env.options->mode()!=Options::Mode::SPIDER) {
+  if (env.options->mode() != Options::Mode::SPIDER) {
     addCommentSignForSZS(std::cout);
     std::cout << "Failed with\n";
     addCommentSignForSZS(std::cout);
