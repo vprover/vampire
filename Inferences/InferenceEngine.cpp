@@ -543,7 +543,6 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
       out.push(orig);
     } else {
       auto simpl = result;
-      env.statistics->evaluationCnt++;
 
       if (simpl.isConstant()) {
 
@@ -575,11 +574,6 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
               break;
             case Ordering::Result::INCOMPARABLE:
             case Ordering::Result::GREATER:
-              if (cmp == Ordering::Result::INCOMPARABLE) {
-                env.statistics->evaluationIncomp++;
-              } else {
-                env.statistics->evaluationGreater++;
-              }
               DEBUG("ordering violated: ", cmp)
               DEBUG("orig: ", *orig)
               DEBUG("simp: ", *simplLit)

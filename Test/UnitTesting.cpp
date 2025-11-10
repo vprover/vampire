@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file RuntimeStatistics.cpp
- * Implements class RuntimeStatistics.
+ * @file UnitTesting.cpp
+ * Implements class TestUnit and UnitTesting.
  */
 
 #include <iomanip>

@@ -859,8 +859,6 @@ bool SaturationAlgorithm::clausesFlushed()
  */
 void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
-  env.statistics->reportClause(cl);
-
   cl=doImmediateSimplification(cl);
   if (!cl) {
     return;

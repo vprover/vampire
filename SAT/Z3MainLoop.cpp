@@ -16,7 +16,6 @@
 
 #include "Forwards.hpp"
 #include "Kernel/Clause.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Z3MainLoop.hpp"
 

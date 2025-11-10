@@ -103,7 +103,7 @@ Problem* preprocessProblem(Problem* prb)
   TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
-  if (env.options->mode()!=Options::Mode::SPIDER) {
+  if (env.options->mode() != Options::Mode::SPIDER) {
     env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ true);
   }
 
@@ -138,7 +138,7 @@ Problem *doProving(Problem* problem)
   Problem *prb = preprocessProblem(problem);
 
   // this will provide warning if options don't make sense for problem
-  if (env.options->mode()!=Options::Mode::SPIDER) {
+  if (env.options->mode() != Options::Mode::SPIDER) {
     env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
   }
 

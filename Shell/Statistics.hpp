@@ -66,8 +66,6 @@ enum class ExecutionPhase {
   SINE_SELECTION,
   INCLUDING_THEORY_AXIOMS,
   PREPROCESS_1,
-  PREDIACTE_DEFINITION_MERGING,
-  PREDICATE_DEFINITION_INLINING,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   BLOCKED_CLAUSE_ELIMINATION,
   TWEE,
@@ -83,17 +81,11 @@ enum class ExecutionPhase {
   EQUALITY_PROXY,
   GENERAL_SPLITTING,
   SATURATION,
-  /** The actual run of the conflict resolution algorithm */
-  SOLVING,
-  /** The actual run of the SAT solver*/
-  SAT_SOLVING,
-  PREPROCESSING,
   /** Whatever happens after the saturation algorithm finishes */
   FINALIZATION,
   FMB_PREPROCESSING,
   FMB_CONSTRAINT_GEN,
-  FMB_SOLVING,
-  UNKNOWN_PHASE
+  FMB_SOLVING
 };
 
 /**
@@ -105,16 +97,8 @@ public:
 
   void print(std::ostream& out);
   void explainRefutationNotFound(std::ostream& out);
-  void reportClause(Clause* cl);
-  /** Should be called for axioms that are not directly added to saturation. */
-  void reportTheoryAxiom(Unit* unit);
-  void reportProofStep(Unit* unit);
-
-  // Input
-  /** number of input clauses */
-  unsigned inputClauses = 0;
-  /** number of input formulas */
-  unsigned inputFormulas = 0;
+  void reportUnit(Unit* u);
+  void reportProofStep(Unit* u);
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */
@@ -127,32 +111,16 @@ public:
   unsigned splitInequalities = 0;
   /** number of pure predicates */
   unsigned purePredicates = 0;
-  /** number of trivial predicates */
-  unsigned trivialPredicates = 0;
   /** number of unused predicate definitions */
   unsigned unusedPredicateDefinitions = 0;
   /** number of eliminated function definitions */
   unsigned eliminatedFunctionDefinitions = 0;
-  /** number of introduced function definitions */
-  unsigned introducedFunctionDefinitions = 0;
   /** number of formulas selected by SInE selector */
   unsigned selectedBySine = 0;
   /** number of iterations before SInE reached fixpoint */
   unsigned sineIterations = 0;
   /** number of detected blocked clauses */
   unsigned blockedClauses = 0;
-
-  // Generating inferences
-  /** number of theory inst simp **/
-  unsigned theoryInstSimp = 0;
-  /** number of theoryInstSimp candidates **/
-  unsigned theoryInstSimpCandidates = 0;
-  /** number of theoryInstSimp tautologies **/
-  unsigned theoryInstSimpTautologies = 0;
-  /** number of theoryInstSimp solutions lost as we could not represent them **/
-  unsigned theoryInstSimpLostSolution = 0;
-  /** number of theoryInstSimp application where an empty substitution was applied */
-  unsigned theoryInstSimpEmptySubstitution = 0;
 
   // Induction
   unsigned maxInductionDepth = 0;
@@ -181,33 +149,6 @@ public:
   /** number of backward subsumption demodulations into equational tautologies */
   unsigned backwardSubsumptionDemodulationsToEqTaut = 0;
 
-  /** how often did asg not simplify correctly. */
-  unsigned asgViolations = 0;
-  /** applications of asg */
-  unsigned asgCnt = 0;
-
-  /** how often did gve not simplify correctly. */
-  unsigned gveViolations = 0;
-  /** applications of gve */
-  unsigned gveCnt = 0;
-
-  /** number of evaluations that resulted in a incomparable literal */
-  unsigned evaluationIncomp = 0;
-  /** number of evaluations that resulted in a greater literal */
-  unsigned evaluationGreater = 0;
-  /** number of simplifications by PolynomialNormalizer */
-  unsigned evaluationCnt = 0;
-
-  /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
-  unsigned alascaVarElimKNonZeroCnt = 0;
-  unsigned alascaVarElimKSum = 0;
-  unsigned alascaVarElimKMax = 0;
-
-  /** number of inner rewrites into equational tautologies */
-  unsigned innerRewritesToEqTaut = 0;
-  /** number of equational tautologies discovered by CC */
-  unsigned deepEquationalTautologies = 0;
-
   // Deletion inferences
   /** number of tautologies A \/ ~A */
   unsigned simpleTautologies = 0;
@@ -221,6 +162,10 @@ public:
   unsigned forwardGroundJoinable = 0;
   /** number of term algebra distinctness tautology deletions */
   unsigned taDistinctnessTautologyDeletions = 0;
+  /** number of inner rewrites into equational tautologies */
+  unsigned innerRewritesToEqTaut = 0;
+  /** number of equational tautologies discovered by CC */
+  unsigned deepEquationalTautologies = 0;
 
   // Saturation
   unsigned activations = 0; // NOTE: This is not a mere stat, it is also used for LRS estimation!
@@ -299,12 +244,24 @@ public:
 private:
   static const char* phaseToString(ExecutionPhase p);
 
-  /** all clauses ever occurring in the unprocessed queue */
-  unsigned generatedClauses = 0;
-  /** inferences in the proof indexed by InferenceRule */
-  std::array<unsigned, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inProofInferenceCnts = {};
+  /** A pair counting the total and in-proof value of a statistic. */
+  struct StatPair {
+    unsigned total = 0;
+    unsigned inproof = 0;
+  };
+
+  /** number of input clauses */
+  StatPair inputClauses;
+  /** number of input formulas */
+  StatPair inputFormulas;
+  /** all clauses */
+  StatPair clauses;
+  /** all formulas */
+  StatPair formulas;
   /** inference counts indexed by InferenceRule */
-  std::array<unsigned, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
+  std::array<StatPair, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
+  /** input types indexed by UnitInputType */
+  std::array<StatPair, toNumber(UnitInputType::MODEL_DEFINITION)> inputTypeCnts = {};
 }; // class Statistics
 
 } // namespace Shell

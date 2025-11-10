@@ -32,7 +32,6 @@
 
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Shell/UIHelper.hpp"
 
@@ -3576,7 +3575,6 @@ void TPTP::endFof()
 
   Unit *unit, *original;
   if (isFof) { // fof() or tff()
-    env.statistics->inputFormulas++;
     if (freeVariables(f)) {
       USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
     }
@@ -3584,7 +3582,6 @@ void TPTP::endFof()
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
-    env.statistics->inputClauses++;
     // convert the input formula f to a clause
     Stack<Formula*> forms;
     Stack<Literal*> lits;

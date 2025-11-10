@@ -48,7 +48,7 @@ enum class UnitInputType : unsigned char {
   MODEL_DEFINITION = 6
 };
 
-inline std::underlying_type<UnitInputType>::type toNumber(UnitInputType t) { return static_cast<std::underlying_type<UnitInputType>::type>(t); }
+inline constexpr std::underlying_type_t<UnitInputType> toNumber(UnitInputType t) { return static_cast<std::underlying_type_t<UnitInputType>>(t); }
 
 UnitInputType getInputType(UnitList* units);
 UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
@@ -407,18 +407,6 @@ enum class InferenceRule : unsigned char {
   /** replacing colored constants by skolem functions */
   COLOR_UNBLOCKING,
 
-  /** definition introduced by AVATAR */
-  AVATAR_DEFINITION,
-  /** component introduced by AVATAR */
-  AVATAR_COMPONENT,
-  /** inconsistency from AVATAR SAT solver */
-  AVATAR_REFUTATION,
-  /** inconsistency from AVATAR SMT solver (not necessarily propositionally unsat) */
-  AVATAR_REFUTATION_SMT,
-  /** sat clause representing FO clause for AVATAR */
-  AVATAR_SPLIT_CLAUSE,
-  /** sat clause representing FO clause for AVATAR */
-  AVATAR_CONTRADICTION_CLAUSE,
   /** sat color elimination */
   SAT_COLOR_ELIMINATION,
   /** obtain a formula from a clause */
@@ -445,19 +433,34 @@ enum class InferenceRule : unsigned char {
    * whose propositional counterpart becomes a conflict clause in a sat solver */
   THEORY_TAUTOLOGY_SAT_CONFLICT,
 
+  GENERIC_AVATAR_INFERENCE,
+  /** definition introduced by AVATAR */
+  AVATAR_DEFINITION,
+  /** component introduced by AVATAR */
+  AVATAR_COMPONENT,
+  /** inconsistency from AVATAR SAT solver */
+  AVATAR_REFUTATION,
+  /** inconsistency from AVATAR SMT solver (not necessarily propositionally unsat) */
+  AVATAR_REFUTATION_SMT,
+  /** sat clause representing FO clause for AVATAR */
+  AVATAR_SPLIT_CLAUSE,
+  /** sat clause representing FO clause for AVATAR */
+  AVATAR_CONTRADICTION_CLAUSE,
+  GENERIC_AVATAR_INFERENCE_LAST,
+
   /** a not further specified theory axiom internally added by the class TheoryAxioms. */
   GENERIC_THEORY_AXIOM, // CAREFUL: adding rules here influences the theory_split_queue heuristic
   /** Some specific groups of axioms coming from TheoryAxioms.cpp" */
   THA_COMMUTATIVITY,
   THA_ASSOCIATIVITY,
-  THA_RIGHT_IDENTINTY,
-  THA_LEFT_IDENTINTY,
+  THA_RIGHT_IDENTITY,
+  THA_LEFT_IDENTITY,
   THA_INVERSE_OP_OP_INVERSES,
   THA_INVERSE_OP_UNIT,
   THA_INVERSE_ASSOC,
   THA_NONREFLEX,
   THA_TRANSITIVITY,
-  THA_ORDER_TOTALALITY,
+  THA_ORDER_TOTALITY,
   THA_ORDER_MONOTONICITY,
   THA_ALASCA,
   THA_PLUS_ONE_GREATER,

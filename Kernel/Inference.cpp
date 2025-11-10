@@ -621,36 +621,12 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "fool match definition";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
-//  case CHOICE_AXIOM:
-//  case MONOTONE_REPLACEMENT:
-//  case FORALL_ELIMINATION:
-//  case NOT_AND:
-//  case NOT_OR:
-//  case NOT_IMP:
-//  case NOT_IFF:
-//  case NOT_XOR:
-//  case NOT_NOT:
-//  case NOT_FORALL:
-//  case NOT_EXISTS:
-//  case IMP_TO_OR:
-//  case IFF_TO_AND:
-//  case XOR_TO_AND:
   case InferenceRule::REORDER_LITERALS:
     return "literal reordering";
   case InferenceRule::ENNF:
     return "ennf transformation";
   case InferenceRule::NNF:
     return "nnf transformation";
-//  case DUMMY_QUANTIFIER_REMOVAL:
-//  case FORALL_AND:
-//  case EXISTS_OR:
-//  case QUANTIFIER_SWAP:
-//  case FORALL_OR:
-//  case EXISTS_AND:
-//  case PERMUT:
-//  case REORDER_EQ:
-//  case HALF_EQUIV:
-//  case MINISCOPE:
   case InferenceRule::CLAUSIFY:
     return "cnf transformation";
   case InferenceRule::REORIENT_EQUATIONS:
@@ -754,50 +730,90 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "distinctness axiom";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     return "theory tautology sat conflict";
-  case InferenceRule::GENERIC_THEORY_AXIOM:
   case InferenceRule::THA_COMMUTATIVITY:
+    return "tha commutativity";
   case InferenceRule::THA_ASSOCIATIVITY:
-  case InferenceRule::THA_RIGHT_IDENTINTY:
-  case InferenceRule::THA_LEFT_IDENTINTY:
+    return "tha associativity";
+  case InferenceRule::THA_RIGHT_IDENTITY:
+    return "tha right identity";
+  case InferenceRule::THA_LEFT_IDENTITY:
+    return "tha left identity";
   case InferenceRule::THA_INVERSE_OP_OP_INVERSES:
+    return "tha inverse op op inverses";
   case InferenceRule::THA_INVERSE_OP_UNIT:
+    return "tha inverse op unit";
   case InferenceRule::THA_INVERSE_ASSOC:
+    return "tha inverse associativity";
   case InferenceRule::THA_NONREFLEX:
+    return "tha non-reflexivity";
   case InferenceRule::THA_TRANSITIVITY:
-  case InferenceRule::THA_ORDER_TOTALALITY:
+    return "tha transitivity";
+  case InferenceRule::THA_ORDER_TOTALITY:
+    return "tha order totality";
   case InferenceRule::THA_ORDER_MONOTONICITY:
+    return "tha order monotonicity";
   case InferenceRule::THA_ALASCA:
+    return "tha alasca";
   case InferenceRule::THA_PLUS_ONE_GREATER:
+    return "tha plus one greater";
   case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
+    return "tha order plus one dichotomy";
   case InferenceRule::THA_MINUS_MINUS_X:
+    return "tha minus minus x";
   case InferenceRule::THA_TIMES_ZERO:
+    return "tha times zero";
   case InferenceRule::THA_DISTRIBUTIVITY:
+    return "tha distributivity";
   case InferenceRule::THA_DIVISIBILITY:
+    return "tha divisibility";
   case InferenceRule::THA_MODULO_MULTIPLY:
+    return "tha modulo multiply";
   case InferenceRule::THA_MODULO_POSITIVE:
+    return "tha modulo positive";
   case InferenceRule::THA_MODULO_SMALL:
+    return "tha modulo small";
   case InferenceRule::THA_DIVIDES_MULTIPLY:
+    return "tha divides multiply";
   case InferenceRule::THA_NONDIVIDES_SKOLEM:
+    return "tha nondivides skolem";
   case InferenceRule::THA_ABS_EQUALS:
+    return "tha abs equals";
   case InferenceRule::THA_ABS_MINUS_EQUALS:
+    return "tha abs minus equals";
   case InferenceRule::THA_QUOTIENT_NON_ZERO:
+    return "tha quotient non-zero";
   case InferenceRule::THA_QUOTIENT_MULTIPLY:
+    return "tha quotient multiply";
   case InferenceRule::THA_EXTRA_INTEGER_ORDERING:
+    return "tha extra integer ordering";
   case InferenceRule::THA_FLOOR_SMALL:
+    return "tha floor small";
   case InferenceRule::THA_FLOOR_BIG:
+    return "tha floor big";
   case InferenceRule::THA_CEILING_BIG:
+    return "tha ceiling big";
   case InferenceRule::THA_CEILING_SMALL:
+    return "tha ceiling small";
   case InferenceRule::THA_TRUNC1:
+    return "tha trunc1";
   case InferenceRule::THA_TRUNC2:
+    return "tha trunc2";
   case InferenceRule::THA_TRUNC3:
+    return "tha trunc3";
   case InferenceRule::THA_TRUNC4:
+    return "tha trunc4";
   case InferenceRule::THA_ARRAY_EXTENSIONALITY:
+    return "tha array extensionality";
   case InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY:
+    return "tha boolen array extensionality";
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE1:
+    return "tha boolean array write1";
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:
+    return "tha boolean array write2";
   case InferenceRule::THA_ARRAY_WRITE1:
+    return "tha array write1";
   case InferenceRule::THA_ARRAY_WRITE2:
-    return "theory axiom " + Int::toString((unsigned)toNumber(rule));
+    return "tha array write2";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
     return "term algebras acyclicity axiom";
   case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
@@ -967,6 +983,9 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST:
   case InferenceRule::GENERIC_GENERATING_INFERENCE:
   case InferenceRule::GENERIC_GENERATING_INFERENCE_LAST:
+  case InferenceRule::GENERIC_AVATAR_INFERENCE:
+  case InferenceRule::GENERIC_AVATAR_INFERENCE_LAST:
+  case InferenceRule::GENERIC_THEORY_AXIOM:
   case InferenceRule::GENERIC_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }

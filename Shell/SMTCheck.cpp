@@ -948,14 +948,14 @@ void outputStep(std::ostream &out, Unit *u)
     //case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
     case InferenceRule::THA_COMMUTATIVITY:
     case InferenceRule::THA_ASSOCIATIVITY:
-    case InferenceRule::THA_RIGHT_IDENTINTY:
-    case InferenceRule::THA_LEFT_IDENTINTY:
+    case InferenceRule::THA_RIGHT_IDENTITY:
+    case InferenceRule::THA_LEFT_IDENTITY:
     case InferenceRule::THA_INVERSE_OP_OP_INVERSES:
     case InferenceRule::THA_INVERSE_OP_UNIT:
     case InferenceRule::THA_INVERSE_ASSOC:
     case InferenceRule::THA_NONREFLEX:
     case InferenceRule::THA_TRANSITIVITY:
-    case InferenceRule::THA_ORDER_TOTALALITY:
+    case InferenceRule::THA_ORDER_TOTALITY:
     case InferenceRule::THA_ORDER_MONOTONICITY:
     case InferenceRule::THA_ALASCA:
     case InferenceRule::THA_PLUS_ONE_GREATER:

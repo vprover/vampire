@@ -3594,8 +3594,8 @@ bool Options::OptionValue<T>::checkConstraints()
     if (!con->check(*this)) {
 
       if (env.options->mode() == Mode::SPIDER) {
-      reportSpiderFail();
-      USER_ERROR("\nBroken Constraint: " + con->msg(*this));
+        reportSpiderFail();
+        USER_ERROR("\nBroken Constraint: " + con->msg(*this));
       }
 
       if (con->isHard()) {
