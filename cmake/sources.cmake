@@ -67,6 +67,7 @@ set(UNIT_TESTS
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
     UnitTests/tOptionConstraints.cpp
+    UnitTests/tProperty.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
