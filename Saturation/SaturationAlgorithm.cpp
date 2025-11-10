@@ -215,7 +215,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
  */
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt),
-    _clauseActivationInProgress(false),
+    _imgr(this), _clauseActivationInProgress(false),
     _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
@@ -248,10 +248,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _passive->attach(this);
 
   _active->addedEvent.subscribe(this, &SaturationAlgorithm::onActiveAdded);
-  _active->removedEvent.subscribe(this, &SaturationAlgorithm::activeRemovedHandler);
+  _active->removedEvent.subscribe(this, &SaturationAlgorithm::onActiveRemoved);
   _passive->addedEvent.subscribe(this, &SaturationAlgorithm::onPassiveAdded);
   _passive->removedEvent.subscribe(this, &SaturationAlgorithm::passiveRemovedHandler);
   _passive->selectedEvent.subscribe(this, &SaturationAlgorithm::onPassiveSelected);
+  _delayed.addedEvent.subscribe(this, &SaturationAlgorithm::onDelayedAdded);
+  _delayed.removedEvent2.subscribe(this, &SaturationAlgorithm::onDelayedRemoved);
 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
@@ -346,6 +348,18 @@ ClauseIterator SaturationAlgorithm::activeClauses()
   return _active->clauses();
 }
 
+void SaturationAlgorithm::activeOrDelayedClauseAdded(Clause* cl)
+{
+  ASS_EQ(cl->store(), Clause::SELECTED);
+  _simplCont.add(cl);
+}
+
+void SaturationAlgorithm::onSOSClauseAdded(Clause* cl)
+{
+  ASS_EQ(cl->store(), Clause::ACTIVE);
+  _simplCont.add(cl);
+}
+
 /**
  * A function that is called when a clause is added to the active clause container.
  */
@@ -354,6 +368,7 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
   if (env.options->showActive()) {
     std::cout << "[SA] active: " << c->toString() << std::endl;
   }
+  ASS_EQ(c->store(), Clause::ACTIVE);
 }
 
 /**
@@ -362,6 +377,7 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
 void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
   ASS_EQ(c->store(), Clause::ACTIVE);
+  _simplCont.remove(c);
   c->setStore(Clause::NONE);
   // at this point the c object may be deleted
 }
@@ -418,6 +434,23 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
+}
+
+void SaturationAlgorithm::onDelayedAdded(Clause* c)
+{
+  if (env.options->showActive()) {
+    std::cout << "[SA] delayed: " << c->toString() << std::endl;
+  }
+  ASS_EQ(c->store(), Clause::DELAYED);
+}
+
+void SaturationAlgorithm::onDelayedRemoved(Clause* c)
+{
+  if (env.options->showActive()) {
+    std::cout << "[SA] undelayed: " << c->toString() << std::endl;
+  }
+  ASS_EQ(c->store(), Clause::DELAYED);
+  _simplCont.remove(c);
 }
 
 /**
@@ -559,16 +592,6 @@ void SaturationAlgorithm::onParenthood(Clause* cl, Clause *parent)
   if (_symEl) {
     _symEl->onParenthood(cl, parent);
   }
-}
-
-/**
- * This function is subscribed to the remove event of the active container
- * instead of the @b onActiveRemoved function in the constructor, as the
- * @b onActiveRemoved function is virtual.
- */
-void SaturationAlgorithm::activeRemovedHandler(Clause* cl)
-{
-  onActiveRemoved(cl);
 }
 
 /**
@@ -1265,6 +1288,10 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
     cl->incRefCnt();
     UnitList::push(cl, res);
   }
+  for (const auto& cl : iterTraits(_delayed.clauses.iter())) {
+    cl->incRefCnt();
+    UnitList::push(cl, res);
+  }
   return res;
 }
 
@@ -1284,18 +1311,6 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     // if (termReason == Statistics::REFUTATION_NOT_FOUND){
     //   Shell::UIHelper::outputSaturatedSet(cout, pvi(UnitList::Iterator(collectSaturatedSet())));
     // }
-
-    if (_opt.showActive()) {
-      std::cout << "[SA] undelaying remaining clauses" << std::endl;
-    }
-    for (const auto& cl : iterTraits(_delayed.clauses.iter())) {
-      if (_opt.showActive()) {
-        std::cout << "[SA] undelayed: " << cl->toString() << std::endl;
-      }
-      cl->setStore(Clause::ACTIVE);
-      _active->add(cl);
-    }
-    _delayed.clauses.reset();
 
     if (termReason == TerminationReason::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
       res.saturatedSet = collectSaturatedSet();
@@ -1348,7 +1363,18 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     }
   }
 
-  activate(cl);
+  activeOrDelayedClauseAdded(cl);
+
+  ASS(_clausesToActivate.isEmpty());
+  _clausesToActivate.push(cl);
+
+  while (_clausesToActivate.isNonEmpty()) {
+
+    auto cl = _clausesToActivate.pop();
+    cl->setStore(Clause::SELECTED);
+
+    activate(cl);
+  }
 }
 
 bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
@@ -1406,9 +1432,6 @@ void SaturationAlgorithm::delayClause(Clause* cl)
   cl->setStore(Clause::DELAYED);
   env.statistics->delayedClauses++;
   _delayed.add(cl);
-  if (env.options->showActive()) {
-    std::cout << "[SA] delayed: " << cl->toString() << std::endl;
-  }
 }
 
 void SaturationAlgorithm::maybeUndelayClauses(Clause* cl)
@@ -1448,12 +1471,8 @@ void SaturationAlgorithm::maybeUndelayClauses(Clause* cl)
     if (!reachableFromGoal(cl)) {
       continue;
     }
-    if (env.options->showActive()) {
-      std::cout << "[SA] undelayed: " << cl->toString() << std::endl;
-    }
-    _delayed.remove(cl);
-    cl->setStore(Clause::PASSIVE);
-    _passive->add(cl);
+    _delayed.undelay(cl);
+    _clausesToActivate.push(cl);
   }
 }
 
@@ -1560,7 +1579,7 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
  */
-SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager *indexMgr)
+SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt)
 {
   bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
 
@@ -1578,21 +1597,14 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   default:
     NOT_IMPLEMENTED;
   }
-  if (indexMgr) {
-    res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
-    indexMgr->setSaturationAlgorithm(res);
-  }
-  else {
-    res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
-  }
   res->_goalSubtermIndex = static_cast<SuperpositionSubtermIndex<true>*>(
-	  res->_imgr->request(GOAL_SUBTERM_INDEX));
+	  res->_imgr.request(GOAL_SUBTERM_INDEX));
   res->_goalLHSIndex = static_cast<SuperpositionLHSIndex<true>*>(
-	  res->_imgr->request(GOAL_LHS_INDEX));
+	  res->_imgr.request(GOAL_LHS_INDEX));
   res->_goalLiteralIndex = static_cast<BinaryResolutionIndex<true>*>(
-	  res->_imgr->request(GOAL_LITERAL_INDEX));
+	  res->_imgr.request(GOAL_LITERAL_INDEX));
   res->_goalPredicateIndex = static_cast<GoalDirectedPredicateIndex*>(
-	  res->_imgr->request(GOAL_PREDICATE_INDEX));
+	  res->_imgr.request(GOAL_PREDICATE_INDEX));
   res->_delayedSubtermIndex = new SubtermIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering());
   res->_delayedSideIndex = new PositiveEqualitySideIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
   res->_delayedLiteralIndex = new PositiveLiteralIndex(new LiteralSubstitutionTree<LiteralClause>());

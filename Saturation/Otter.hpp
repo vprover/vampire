@@ -30,13 +30,9 @@ class Otter
 public:
   Otter(Problem& prb, const Options& opt);
 
-  ClauseContainer* getSimplifyingClauseContainer() override;
-
 protected:
 
-  void onSOSClauseAdded(Clause* cl) override;
-
-  void onActiveRemoved(Clause* cl) override;
+  void activeOrDelayedClauseAdded(Clause* cl) override;
 
   void onPassiveAdded(Clause* cl) override;
 
@@ -44,36 +40,8 @@ protected:
 
   void onClauseRetained(Clause* cl) override;
 
-
-
   /** called before the selected clause is deleted from the searchspace */
   void beforeSelectedRemoved(Clause* cl) override;
-
-  /**
-   * Dummy container for simplification indexes to subscribe
-   * to its events.
-   */
-  struct FakeContainer
-  : public ClauseContainer
-  {
-    /**
-     * This method is called by @b saturate() method when a clause
-     * makes it from unprocessed to passive container.
-     */
-    void add(Clause* c)
-    { addedEvent.fire(c); }
-
-    /**
-     * This method is subscribed to remove events of passive
-     * and active container, so it gets called automatically
-     * when a clause is removed from one of them. (Clause
-     * selection in passive container doesn't count as removal.)
-     */
-    void remove(Clause* c)
-    { removedEvent.fire(c); }
-  };
-
-  FakeContainer _simplCont;
 };
 
 };

@@ -68,7 +68,7 @@ public:
     return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
       (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
-  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
+  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
   virtual ~SaturationAlgorithm();
@@ -107,7 +107,7 @@ public:
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
 
-  virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
+  ClauseContainer* getSimplifyingClauseContainer() { return &_simplCont; };
   virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
   ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
     return _extensionality;
@@ -117,7 +117,7 @@ public:
 
   ActiveClauseContainer* getActiveClauseContainer() { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
-  IndexManager* getIndexManager() { return _imgr.ptr(); }
+  IndexManager* getIndexManager() { return &_imgr; }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
@@ -157,12 +157,15 @@ protected:
   void addToPassive(Clause* c);
   void activate(Clause* c);
   void removeSelected(Clause*);
-  virtual void onSOSClauseAdded(Clause* c) {}
+  void onSOSClauseAdded(Clause* c);
+  virtual void activeOrDelayedClauseAdded(Clause* c);
   void onActiveAdded(Clause* c);
-  virtual void onActiveRemoved(Clause* c);
+  void onActiveRemoved(Clause* c);
   virtual void onPassiveAdded(Clause* c);
   virtual void onPassiveRemoved(Clause* c);
   void onPassiveSelected(Clause* c);
+  void onDelayedAdded(Clause* c);
+  void onDelayedRemoved(Clause* c);
   void onNewUsefulPropositionalClause(Clause* c);
   virtual void onClauseRetained(Clause* cl);
   /** called before the selected clause is deleted from the searchspace */
@@ -173,7 +176,6 @@ protected:
 
 private:
   void passiveRemovedHandler(Clause* cl);
-  void activeRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
 
   bool reachableFromGoal(Clause* cl);
@@ -185,7 +187,7 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  SmartPtr<IndexManager> _imgr;
+  IndexManager _imgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;
@@ -198,11 +200,38 @@ protected:
   RCClauseStack _newClauses;
 
   ClauseStack _postponedClauseRemovals;
+  ClauseStack _clausesToActivate;
 
   UnprocessedClauseContainer* _unprocessed;
   std::unique_ptr<PassiveClauseContainer> _passive;
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
+
+  /**
+   * Dummy container for simplification indexes to subscribe
+   * to its events.
+   */
+  struct FakeContainer
+  : public ClauseContainer
+  {
+    /**
+     * This method is called by @b saturate() method when a clause
+     * makes it from unprocessed to passive container.
+     */
+    void add(Clause* c)
+    { addedEvent.fire(c); }
+
+    /**
+     * This method is subscribed to remove events of passive
+     * and active container, so it gets called automatically
+     * when a clause is removed from one of them. (Clause
+     * selection in passive container doesn't count as removal.)
+     */
+    void remove(Clause* c)
+    { removedEvent.fire(c); }
+  };
+
+  FakeContainer _simplCont;
 
   struct DelayedContainer
   : public ClauseContainer
@@ -214,7 +243,15 @@ protected:
     void remove(Clause* c) {
       ALWAYS(clauses.remove(c));
       removedEvent.fire(c);
+      removedEvent2.fire(c);
     }
+    // this method is for moving a clause to active
+    // without triggering the remove event
+    void undelay(Clause* c) {
+      ALWAYS(clauses.remove(c));
+      removedEvent.fire(c);
+    }
+    SingleParamEvent<Clause*> removedEvent2;
     DHSet<Clause*> clauses;
   };
   DelayedContainer _delayed;
