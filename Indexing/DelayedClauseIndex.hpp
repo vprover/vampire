@@ -23,16 +23,33 @@ namespace Indexing {
 
 class DelayedClauseIndex
 {
-  void handle(Clause* cl, Literal* lit, bool adding);
+public:
+  void attach(SaturationAlgorithm* salg);
+
+  bool checkReachableOrInsert(Clause* cl);
+  void remove(Clause* cl);
+  ClauseStack maybeUndelayClauses(Clause* cl);
+
+  const DHMap<Clause*,unsigned>& clauses() const { return _clauses; }
 
 private:
-  Ordering& _ord;
-  const Options& _opt;
+  bool checkReachable(Literal* lit);
+  void handle(Clause* cl, Literal* lit, bool adding);
+
+  const Ordering* _ord;
+  const Options* _opt;
+
+  DHMap<Clause*,unsigned> _clauses;
 
   TermSubstitutionTree<TermLiteralClause> _subtermIS;
   TermSubstitutionTree<TermLiteralClause> _posEqSideIS;
-  LiteralSubstitutionTree<LiteralClause> _posLitIS;
-  DHMap<unsigned, DHSet<Clause*>> _predIS;
+  LiteralSubstitutionTree<LiteralLiteralClause> _posLitIS;
+  DHMap<unsigned, DHMap<Clause*,Literal*>> _predIS;
+
+  TermIndex<TermLiteralClause>* _goalSubtermIndex;
+  TermIndex<TermLiteralClause>* _goalLHSIndex;
+  LiteralIndex<LiteralClause>* _goalLiteralIndex;
+  GoalDirectedPredicateIndex* _goalPredicateIndex;
 };
 
 } // namespace Indexing

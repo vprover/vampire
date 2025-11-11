@@ -252,8 +252,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _passive->addedEvent.subscribe(this, &SaturationAlgorithm::onPassiveAdded);
   _passive->removedEvent.subscribe(this, &SaturationAlgorithm::passiveRemovedHandler);
   _passive->selectedEvent.subscribe(this, &SaturationAlgorithm::onPassiveSelected);
-  _delayed.addedEvent.subscribe(this, &SaturationAlgorithm::onDelayedAdded);
-  _delayed.removedEvent2.subscribe(this, &SaturationAlgorithm::onDelayedRemoved);
 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
@@ -328,7 +326,7 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   }
   env.statistics->finalActiveClauses = inst->_active->sizeEstimate();
   env.statistics->finalPassiveClauses = inst->_passive->sizeEstimate();
-  env.statistics->finalDelayedClauses = inst->_delayed.clauses.size();
+  env.statistics->finalDelayedClauses = inst->_delayedClauseIndex.clauses().size();
   if (inst->_extensionality != 0) {
     env.statistics->finalExtensionalityClauses = inst->_extensionality->size();
   }
@@ -1084,7 +1082,8 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
       _active->remove(cl);
       break;
     case Clause::DELAYED:
-      _delayed.remove(cl);
+      _delayedClauseIndex.remove(cl);
+      onDelayedRemoved(cl);
       cl->setStore(Clause::NONE);
       break;
     default:
@@ -1164,8 +1163,9 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
 
   if (_opt.goalDirected()) {
-    if (!reachableFromGoal(cl)) {
-      delayClause(cl);
+    if (!_delayedClauseIndex.checkReachableOrInsert(cl)) {
+      cl->setStore(Clause::DELAYED);
+      env.statistics->delayedClauses++;
       _clauseActivationInProgress = false;
       return;
     }
@@ -1177,7 +1177,9 @@ void SaturationAlgorithm::activate(Clause* cl)
   _active->add(cl);
 
   if (_opt.goalDirected()) {
-    maybeUndelayClauses(cl);
+    for (const auto& qcl : _delayedClauseIndex.maybeUndelayClauses(cl)) {
+      _clausesToActivate.push(qcl);
+    }
   }
 
   _partialRedundancyHandler->checkEquations(cl);
@@ -1288,7 +1290,7 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
     cl->incRefCnt();
     UnitList::push(cl, res);
   }
-  for (const auto& cl : iterTraits(_delayed.clauses.iter())) {
+  for (const auto& [cl,index] : iterTraits(_delayedClauseIndex.clauses().items())) {
     cl->incRefCnt();
     UnitList::push(cl, res);
   }
@@ -1374,114 +1376,6 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     cl->setStore(Clause::SELECTED);
 
     activate(cl);
-  }
-}
-
-bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
-{
-  return cl->iterLits().all([this](Literal* lit) {
-    if (lit->isNegative()) {
-      return true;
-    }
-    if (!lit->isEquality()) {
-      if (_goalPredicateIndex->get(lit).hasNext()) {
-        if (_goalLiteralIndex->getUnifications(lit, true, false).hasNext()) {
-          return true;
-        }
-        for (const auto& st : iterTraits(NonVariableNonTypeIterator(lit))) {
-          if (_goalLHSIndex->getUnifications(st, false).hasNext()) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
-    auto linearizedTypedTerm = [](TermList t, TermList sort) {
-      if (t.isVar()) {
-        return TypedTermList(t, sort);
-      }
-      return TypedTermList(Term::linearize(t.term()));
-    };
-
-    auto eqSort = SortHelper::getEqualityArgumentSort(lit);
-
-    auto lhs = linearizedTypedTerm(lit->termArg(0), eqSort);
-    if (_goalSubtermIndex->getUnifications(lhs, false).hasNext()) {
-      return true;
-    }
-
-    auto rhs = linearizedTypedTerm(lit->termArg(1), eqSort);
-    if (_goalSubtermIndex->getUnifications(rhs, false).hasNext()) {
-      return true;
-    }
-
-    auto checkSubterms = [this](TypedTermList t) {
-      return t.isTerm() &&
-        iterTraits(NonVariableNonTypeIterator(t.term(), true))
-          .any([this](auto st) { return _goalLHSIndex->getUnifications(st, false).hasNext(); });
-    };
-
-    switch (_ordering->compare(lit->termArg(0), lit->termArg(1))) {
-      case Ordering::GREATER:
-        return checkSubterms(lhs);
-      case Ordering::LESS:
-        return checkSubterms(rhs);
-      case Ordering::INCOMPARABLE:
-        return checkSubterms(lhs) || checkSubterms(rhs);
-      default:
-        break;
-    }
-    ASSERTION_VIOLATION;
-  });
-}
-
-void SaturationAlgorithm::delayClause(Clause* cl)
-{
-  cl->setStore(Clause::DELAYED);
-  env.statistics->delayedClauses++;
-  _delayed.add(cl);
-}
-
-void SaturationAlgorithm::maybeUndelayClauses(Clause* cl)
-{
-  DHSet<Clause*> toPassive;
-
-  for (const auto& lit : cl->getSelectedLiteralIterator()) {
-    if (!lit->isEquality()) {
-      for (const auto& qr : iterTraits(_delayedLiteralIndex->getUnifications(Literal::linearize(lit), true, false))) {
-        toPassive.insert(qr.data->clause);
-      }
-      if (lit->isNegative()) {
-        for (const auto& c : iterTraits(_delayedPredicateIndex->get(lit))) {
-          toPassive.insert(c);
-        }
-      }
-    } else {
-      for (auto lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, *_ordering, _opt))) {
-        if (lhs.isTerm()) {
-          lhs = Term::linearize(lhs.term());
-        }
-        for (const auto& qr : iterTraits(_delayedSubtermIndex->getUnifications(lhs, false))) {
-          toPassive.insert(qr.data->clause);
-        }
-      }
-    }
-
-    for (auto st : iterTraits(EqHelper::getSubtermIterator(lit, *_ordering))) {
-      st = Term::linearize(st);
-      for (const auto& qr : iterTraits(_delayedSideIndex->getUnifications(st, false))) {
-        toPassive.insert(qr.data->clause);
-      }
-    }
-  }
-
-  for (const auto& cl : iterTraits(toPassive.iter())) {
-    if (!reachableFromGoal(cl)) {
-      continue;
-    }
-    _delayed.undelay(cl);
-    _clausesToActivate.push(cl);
   }
 }
 
@@ -1606,22 +1500,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   default:
     NOT_IMPLEMENTED;
   }
-  res->_goalSubtermIndex = static_cast<SuperpositionSubtermIndex<true>*>(
-	  res->_imgr.request(GOAL_SUBTERM_INDEX));
-  res->_goalLHSIndex = static_cast<SuperpositionLHSIndex<true>*>(
-	  res->_imgr.request(GOAL_LHS_INDEX));
-  res->_goalLiteralIndex = static_cast<BinaryResolutionIndex<true>*>(
-	  res->_imgr.request(GOAL_LITERAL_INDEX));
-  res->_goalPredicateIndex = static_cast<GoalDirectedPredicateIndex*>(
-	  res->_imgr.request(GOAL_PREDICATE_INDEX));
-  res->_delayedSubtermIndex = new SubtermIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering());
-  res->_delayedSideIndex = new PositiveEqualitySideIndex(new TermSubstitutionTree<TermLiteralClause>(), res->getOrdering(), res->getOptions());
-  res->_delayedLiteralIndex = new PositiveLiteralIndex(new LiteralSubstitutionTree<LiteralClause>());
-  res->_delayedPredicateIndex = new GoalDirectedPredicateIndex(false);
-  res->_delayedSubtermIndex->attachContainer(&res->_delayed);
-  res->_delayedSideIndex->attachContainer(&res->_delayed);
-  res->_delayedLiteralIndex->attachContainer(&res->_delayed);
-  res->_delayedPredicateIndex->attachContainer(&res->_delayed);
+  res->_delayedClauseIndex.attach(res);
 
   if (opt.splitting()) {
     res->_splitter = new Splitter();

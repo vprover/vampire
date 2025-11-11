@@ -27,8 +27,7 @@
 #include "Kernel/RCClauseStack.hpp"
 
 #include "Indexing/IndexManager.hpp"
-#include "Indexing/LiteralIndex.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/DelayedClauseIndex.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
@@ -178,10 +177,6 @@ private:
   void passiveRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
 
-  bool reachableFromGoal(Clause* cl);
-  void delayClause(Clause* cl);
-  void maybeUndelayClauses(Clause* cl);
-
   LiteralSelector& getSosLiteralSelector();
 
   void handleEmptyClause(Clause* cl);
@@ -233,38 +228,7 @@ protected:
 
   FakeContainer _simplCont;
 
-  struct DelayedContainer
-  : public ClauseContainer
-  {
-    void add(Clause* c) override {
-      ALWAYS(clauses.insert(c));
-      addedEvent.fire(c);
-    }
-    void remove(Clause* c) {
-      ALWAYS(clauses.remove(c));
-      removedEvent.fire(c);
-      removedEvent2.fire(c);
-    }
-    // this method is for moving a clause to active
-    // without triggering the remove event
-    void undelay(Clause* c) {
-      ALWAYS(clauses.remove(c));
-      removedEvent.fire(c);
-    }
-    SingleParamEvent<Clause*> removedEvent2;
-    DHSet<Clause*> clauses;
-  };
-  DelayedContainer _delayed;
-
-  TermIndex<TermLiteralClause>* _goalSubtermIndex;
-  TermIndex<TermLiteralClause>* _goalLHSIndex;
-  LiteralIndex<LiteralClause>* _goalLiteralIndex;
-  GoalDirectedPredicateIndex* _goalPredicateIndex;
-
-  PositiveEqualitySideIndex* _delayedSideIndex;
-  SubtermIndex* _delayedSubtermIndex;
-  PositiveLiteralIndex* _delayedLiteralIndex;
-  GoalDirectedPredicateIndex* _delayedPredicateIndex;
+  DelayedClauseIndex _delayedClauseIndex;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;

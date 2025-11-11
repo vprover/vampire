@@ -61,6 +61,26 @@ public:
   { return out << "{ " << Output::ptr(self.clause) << ", " << Output::ptr(self.literal) << " }"; }
 };
 
+struct LiteralLiteralClause 
+{
+  Literal* const& key() const
+  { return literal; }
+
+private:
+  std::tuple<unsigned,unsigned,unsigned> asTuple() const
+  { return std::make_tuple(clause->number(), literal->getId(), origLiteral->getId()); }
+public:
+
+  IMPL_COMPARISONS_FROM_TUPLE(LiteralLiteralClause)
+
+  Literal* literal = nullptr;
+  Literal* origLiteral = nullptr;
+  Clause* clause = nullptr;
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralLiteralClause const& self)
+  { return out << "{ " << Output::ptr(self.clause) << ", " << Output::ptr(self.literal) << ", " << Output::ptr(self.origLiteral) << " }"; }
+};
+
 template<class Value>
 struct TermWithValue {
   TypedTermList term;

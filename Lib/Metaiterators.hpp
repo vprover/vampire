@@ -1543,10 +1543,6 @@ public:
     return none<unsigned>();
   }
 
-  template<class... Is>
-  auto concat(Is... is) 
-  { return concatIters(std::move(_iter), std::move(is)...); }
-
   template<class F>
   IterTraits<MappingIterator<Iter, F>> map(F f)
   { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), std::move(f))); }

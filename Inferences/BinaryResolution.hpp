@@ -21,6 +21,8 @@
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
 
+#include "Indexing/LiteralIndex.hpp"
+
 namespace Inferences
 {
 
