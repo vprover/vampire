@@ -1397,34 +1397,43 @@ bool SaturationAlgorithm::reachableFromGoal(Clause* cl)
       return false;
     }
 
-    return iterTraits(EqHelper::getSuperpositionLHSIterator(lit, *_ordering, _opt))
-      .any([this,lit](TypedTermList lhs) -> bool {
+    auto linearizedTypedTerm = [](TermList t, TermList sort) {
+      if (t.isVar()) {
+        return TypedTermList(t, sort);
+      }
+      return TypedTermList(Term::linearize(t.term()));
+    };
 
-        TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-        if (rhs.isTerm()) {
-          rhs = Term::linearize(rhs.term());
-        }
-        if (_goalSubtermIndex->getUnifications(rhs, false).hasNext()) {
-          return true;
-        }
+    auto eqSort = SortHelper::getEqualityArgumentSort(lit);
 
-        if (lhs.isTerm()) {
-          lhs = Term::linearize(lhs.term());
-        }
-        if (_goalSubtermIndex->getUnifications(lhs, false).hasNext()) {
-          return true;
-        }
+    auto lhs = linearizedTypedTerm(lit->termArg(0), eqSort);
+    if (_goalSubtermIndex->getUnifications(lhs, false).hasNext()) {
+      return true;
+    }
 
-        if (lhs.isTerm()) {
-          for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), true))) {
-            if (_goalLHSIndex->getUnifications(st, false).hasNext()) {
-              return true;
-            }
-          }
-        }
-        return false;
-      });
-    });
+    auto rhs = linearizedTypedTerm(lit->termArg(1), eqSort);
+    if (_goalSubtermIndex->getUnifications(rhs, false).hasNext()) {
+      return true;
+    }
+
+    auto checkSubterms = [this](TypedTermList t) {
+      return t.isTerm() &&
+        iterTraits(NonVariableNonTypeIterator(t.term(), true))
+          .any([this](auto st) { return _goalLHSIndex->getUnifications(st, false).hasNext(); });
+    };
+
+    switch (_ordering->compare(lit->termArg(0), lit->termArg(1))) {
+      case Ordering::GREATER:
+        return checkSubterms(lhs);
+      case Ordering::LESS:
+        return checkSubterms(rhs);
+      case Ordering::INCOMPARABLE:
+        return checkSubterms(lhs) || checkSubterms(rhs);
+      default:
+        break;
+    }
+    ASSERTION_VIOLATION;
+  });
 }
 
 void SaturationAlgorithm::delayClause(Clause* cl)
