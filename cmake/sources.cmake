@@ -139,6 +139,8 @@ set(SOURCES
     FMB/SortInference.hpp
     Indexing/AcyclicityIndex.cpp
     Indexing/AcyclicityIndex.hpp
+    Indexing/DelayedClauseIndex.cpp
+    Indexing/DelayedClauseIndex.hpp
     Indexing/ClauseCodeTree.cpp
     Indexing/ClauseCodeTree.hpp
     Indexing/ClauseVariantIndex.cpp

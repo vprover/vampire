@@ -17,10 +17,8 @@
 #define __TermIndex__
 
 #include "Index.hpp"
-#include "TermIndexingStructure.hpp"
+#include "TermSubstitutionTree.hpp"
 
-#include "Indexing/TermSubstitutionTree.hpp"
-#include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
 
 namespace Indexing {
