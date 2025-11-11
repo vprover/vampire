@@ -440,13 +440,11 @@ void SaturationAlgorithm::onDelayedAdded(Clause* c)
     std::cout << "[SA] delayed: " << c->toString() << std::endl;
   }
   ASS_EQ(c->store(), Clause::DELAYED);
+  env.statistics->delayedClauses++;
 }
 
 void SaturationAlgorithm::onDelayedRemoved(Clause* c)
 {
-  if (env.options->showActive()) {
-    std::cout << "[SA] undelayed: " << c->toString() << std::endl;
-  }
   ASS_EQ(c->store(), Clause::DELAYED);
   _simplCont.remove(c);
 }
@@ -1165,7 +1163,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   if (_opt.goalDirected()) {
     if (!_delayedClauseIndex.checkReachableOrInsert(cl)) {
       cl->setStore(Clause::DELAYED);
-      env.statistics->delayedClauses++;
+      onDelayedAdded(cl);
       _clauseActivationInProgress = false;
       return;
     }
@@ -1178,6 +1176,9 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   if (_opt.goalDirected()) {
     for (const auto& qcl : _delayedClauseIndex.maybeUndelayClauses(cl)) {
+      if (env.options->showActive()) {
+        std::cout << "[SA] undelayed: " << qcl->toString() << std::endl;
+      }
       _clausesToActivate.push(qcl);
     }
   }

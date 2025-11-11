@@ -62,7 +62,7 @@ bool DelayedClauseIndex::checkReachable(Literal* lit)
     return true;
   }
   if (!lit->isEquality()) {
-    if (_predIS.findPtr(lit->functor())) {
+    if (_goalPredicateIndex->get(lit).hasNext()) {
       if (_goalLiteralIndex->getUnifications(lit, /*complementary=*/true, /*retrieveSubstitutions=*/false).hasNext()) {
         return true;
       }
