@@ -58,7 +58,7 @@ public:
 
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     ASS_EQ(trm->functor(), _origFun);
 
@@ -92,7 +92,7 @@ public:
     _one = TermList(theory->representConstant(IntegerConstantType(1)));
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     ASS_EQ(trm->functor(), _succFun);
 
@@ -123,7 +123,7 @@ public:
     _uMinusFun = env.signature->getInterpretingSymbol(uMinus);
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     ASS_EQ(trm->functor(), _bMinusFun);
 
@@ -376,7 +376,7 @@ protected:
    *
    * The rest of transformations is done by the @c FormulaTransformer ancestor.
    */
-  virtual Formula* applyLiteral(Formula* f)
+  Formula* applyLiteral(Formula* f) override
   {
     Literal* lit = f->literal();
     bool isConst;

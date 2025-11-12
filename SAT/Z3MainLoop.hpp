@@ -38,11 +38,11 @@ class Z3MainLoop : public MainLoop
 {
 public:
   Z3MainLoop(Problem& prb, const Options& opt);
-  ~Z3MainLoop(){};
+  ~Z3MainLoop() override{};
 
 protected:
-  virtual void init();
-  virtual MainLoopResult runImpl();
+  void init() override;
+  MainLoopResult runImpl() override;
 //private:
 
 };

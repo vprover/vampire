@@ -32,9 +32,9 @@ class InterpretedEvaluation
 {
 public:
   InterpretedEvaluation(bool doNormalize, Ordering& ordering);
-  virtual ~InterpretedEvaluation();
+  ~InterpretedEvaluation() override;
 
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 private:
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
 

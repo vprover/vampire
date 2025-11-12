@@ -38,25 +38,25 @@ class MinimizingSolver : public SATSolver {
 public:
   MinimizingSolver(SATSolver* inner);
 
-  virtual void randomizeForNextAssignment(unsigned maxVar) override {
+  void randomizeForNextAssignment(unsigned maxVar) override {
     _inner->randomizeForNextAssignment(maxVar); _assignmentValid = false;
   }
 
-  virtual void addClause(SATClause* cl) override;
+  void addClause(SATClause* cl) override;
 
-  virtual VarAssignment getAssignment(unsigned var) override;
-  virtual bool isZeroImplied(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) override;
+  bool isZeroImplied(unsigned var) override;
 
-  virtual void ensureVarCount(unsigned newVarCnt) override;
+  void ensureVarCount(unsigned newVarCnt) override;
 
-  virtual unsigned newVar() override {
+  unsigned newVar() override {
     DEBUG_CODE(unsigned oldVC = _varCnt);
     ensureVarCount(_varCnt+1);
     ASS_EQ(_varCnt,oldVC+1);
     return _varCnt;
   }
 
-  virtual void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
+  void suggestPolarity(unsigned var, unsigned pol) override { _inner->suggestPolarity(var,pol); }
 
   Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override {
     _assignmentValid = false;

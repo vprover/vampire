@@ -27,9 +27,9 @@ class PushUnaryMinus
 : public ImmediateSimplificationEngine
 {
 public:
-  virtual ~PushUnaryMinus();
+  ~PushUnaryMinus() override;
 
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

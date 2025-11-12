@@ -38,7 +38,7 @@ public:
   Normalization(std::shared_ptr<AlascaState> shared) : _shared(std::move(shared)) {}
   USE_ALLOCATOR(Normalization);
 
-  virtual Clause* simplify(Clause* cl) final override;
+  Clause* simplify(Clause* cl) final ;
 };
 
 
@@ -73,7 +73,7 @@ public:
   FloorElimination(std::shared_ptr<AlascaState> shared) : _shared(std::move(shared)) {}
   USE_ALLOCATOR(FloorElimination);
 
-  virtual Clause* simplify(Clause* cl) final override {
+  Clause* simplify(Clause* cl) final {
     auto res = RStack<Literal*>();
     for (auto l : cl->iterLits()) {
       auto norm = _shared->norm().tryNormalizeInterpreted(l);

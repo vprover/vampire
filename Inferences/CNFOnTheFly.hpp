@@ -34,7 +34,7 @@ class IFFXORRewriterISE
   : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* c);
+  Clause* simplify(Clause* c) override;
 };
 
 class EagerClausificationISE
@@ -42,7 +42,7 @@ class EagerClausificationISE
 {
 public:
   ClauseIterator simplifyMany(Clause* c);
-  Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
+  Clause* simplify(Clause* c) override{ NOT_IMPLEMENTED; }
 
 };
 

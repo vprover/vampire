@@ -38,7 +38,7 @@ class ExtensionalityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
   static Clause* performExtensionalityResolution(
     Clause* extCl, Literal* extLit,

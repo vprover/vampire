@@ -41,11 +41,11 @@ public:
     : _shared(std::move(shared))
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final ;
+  void detach() final ;
 
   Option<Clause*> applyRule(SelectedEquality const& e1, SelectedEquality const& e2);
-  ClauseIterator generateClauses(Clause* premise) final override;
+  ClauseIterator generateClauses(Clause* premise) final ;
   
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;

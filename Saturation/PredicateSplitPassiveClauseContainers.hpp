@@ -23,7 +23,7 @@ class PredicateSplitPassiveClauseContainer
 {
 public:
   PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues, std::vector<float> cutoffs, std::vector<int> ratios, bool layeredArrangement);
-  virtual ~PredicateSplitPassiveClauseContainer();
+  ~PredicateSplitPassiveClauseContainer() override;
 
   void add(Clause* cl) override;
   void remove(Clause* cl) override;

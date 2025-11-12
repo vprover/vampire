@@ -23,9 +23,9 @@ class NumeralMultiplicationGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  virtual ~NumeralMultiplicationGeneralization();
+  ~NumeralMultiplicationGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
@@ -33,9 +33,9 @@ class VariableMultiplicationGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  virtual ~VariableMultiplicationGeneralization();
+  ~VariableMultiplicationGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
@@ -43,9 +43,9 @@ class VariablePowerGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  virtual ~VariablePowerGeneralization();
+  ~VariablePowerGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
@@ -53,9 +53,9 @@ class AdditionGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  virtual ~AdditionGeneralization();
+  ~AdditionGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
+  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations();

@@ -53,7 +53,7 @@ class PolynomialEvaluationRule
 public:
 
   PolynomialEvaluationRule(Ordering& ordering);
-  virtual ~PolynomialEvaluationRule();
+  ~PolynomialEvaluationRule() override;
 
 private:
   Result simplifyLiteral(Literal*) override;

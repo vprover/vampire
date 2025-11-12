@@ -51,9 +51,9 @@ protected:
 class HashingClauseVariantIndex : public ClauseVariantIndex
 {
 public:
-  virtual ~HashingClauseVariantIndex() override;
+  ~HashingClauseVariantIndex() override;
 
-  virtual void insert(Clause* cl) override;
+  void insert(Clause* cl) override;
 
   ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
 

@@ -211,7 +211,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    res = new DemodulationSubtermIndexImpl(new TermSubstitutionTree(),_alg->getOptions());
+    res = new DemodulationSubtermIndex(new TermSubstitutionTree(),_alg->getOptions());
     isGenerating = false;
     break;
   case DEMODULATION_LHS_CODE_TREE:

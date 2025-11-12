@@ -37,7 +37,7 @@ namespace Shell
          * and ask solver for an optimal solution
          * we use z3 as solver
          */
-        virtual std::unordered_map<Kernel::Unit*, Kernel::Color> computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction) override;
+        std::unordered_map<Kernel::Unit*, Kernel::Color> computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction) override;
         
         /*
          * print statistics for a given local proof

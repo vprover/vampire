@@ -67,7 +67,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 }
 
 
-void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
+void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward demodulation index maintenance");
 

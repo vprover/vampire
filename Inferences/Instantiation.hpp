@@ -37,7 +37,7 @@ public:
 
   //void init();
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
   void registerClause(Clause* cl);
 

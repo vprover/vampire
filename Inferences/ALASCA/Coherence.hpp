@@ -236,11 +236,11 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
   std::shared_ptr<AlascaState> shared;
   CoherenceNormalization(std::shared_ptr<AlascaState> shared) : shared(std::move(shared)) {}
 
-  void attach(SaturationAlgorithm* salg) final override { }
+  void attach(SaturationAlgorithm* salg) final { }
 
-  void detach() final override { }
+  void detach() final { }
 
-  ClauseGenerationResult generateSimplify(Clause* premise) final override {
+  ClauseGenerationResult generateSimplify(Clause* premise) final {
     return ClauseGenerationResult {
       .clauses = pvi( Superposition::Lhs::iter(*shared, premise)
                         .filter([](auto& x) { return NumTraits::isFloor(x.biggerSide()); })

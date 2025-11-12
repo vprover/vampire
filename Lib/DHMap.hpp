@@ -745,13 +745,13 @@ private:
     /** Create a new iterator */
     inline DomainIteratorCore(const DHMap& map) : _base(map) {}
     /** True if there exists next element */
-    inline bool hasNext() { return _base.hasNext(); }
+    inline bool hasNext() override { return _base.hasNext(); }
 
     /**
      * Return the next key
      * @warning hasNext() must have been called before
      */
-    inline Key next() { return _base.next()->_key; }
+    inline Key next() override { return _base.next()->_key; }
   private:
     IteratorBase _base;
   }; // class DHMap::DomainIteratorCore
@@ -762,13 +762,13 @@ private:
         /** Create a new iterator */
         inline RangeIteratorCore(const DHMap& map) : _base(map) {}
         /** True if there exists next element */
-        inline bool hasNext() { return _base.hasNext(); }
+        inline bool hasNext() override { return _base.hasNext(); }
         
         /**
          * Return the next key
          * @warning hasNext() must have been called before
          */
-        inline Val next() { return _base.next()->_val; }
+        inline Val next() override { return _base.next()->_val; }
     private:
         IteratorBase _base;
     }; // class DHMap::RangeIteratorCore
@@ -792,13 +792,13 @@ private:
     /** Create a new iterator */
     inline ItemIteratorCore(const DHMap& map) : _base(map) {}
     /** True if there exists next element */
-    inline bool hasNext() { return _base.hasNext(); }
+    inline bool hasNext() override { return _base.hasNext(); }
 
     /**
      * Return the next key
      * @warning hasNext() must have been called before
      */
-    inline Item next()
+    inline Item next() override
     {
       Entry* e=_base.next();
       return Item(e->_key, e->_val);

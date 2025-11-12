@@ -110,9 +110,9 @@ struct AllIncomparableOrdering : Ordering {
   AllIncomparableOrdering() {
     WARN("using term ordering that makes all terms incomparable. This is meant for debugging purposes only, as it is potentially VERY slow. please be sure that you really want to do this.")
   }
-  virtual Result compare(Literal* l1,Literal* l2) const override { return Result::INCOMPARABLE; }
-  virtual Result compare(TermList t1,TermList t2) const override { return Result::INCOMPARABLE; }
-  virtual void show(std::ostream& out) const override { out << "everything incomparable" << std::endl; }
+  Result compare(Literal* l1,Literal* l2) const override { return Result::INCOMPARABLE; }
+  Result compare(TermList t1,TermList t2) const override { return Result::INCOMPARABLE; }
+  void show(std::ostream& out) const override { out << "everything incomparable" << std::endl; }
 };
 
 #define TIME_TRACING_ORD 0

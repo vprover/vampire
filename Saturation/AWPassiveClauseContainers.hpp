@@ -43,7 +43,7 @@ public:
   static constexpr OrdVal maxOrdVal = std::make_pair(UINT_MAX,UINT_MAX);
   OrdVal getOrdVal(Clause* cl) const;
 protected:
-  virtual bool lessThan(Clause*,Clause*);
+  bool lessThan(Clause*,Clause*) override;
 private:
   const Shell::Options& _opt;
 };
@@ -58,7 +58,7 @@ public:
   static constexpr OrdVal maxOrdVal = std::make_pair(UINT_MAX,UINT_MAX);
   OrdVal getOrdVal(Clause* cl) const;
 protected:
-  virtual bool lessThan(Clause*,Clause*);
+  bool lessThan(Clause*,Clause*) override;
 private:
   const Shell::Options& _opt;
 };
@@ -162,7 +162,7 @@ class AWPassiveClauseContainer
 {
 public:
   AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name);
-  ~AWPassiveClauseContainer();
+  ~AWPassiveClauseContainer() override;
   void add(Clause* cl) override;
 
   void remove(Clause* cl) override;

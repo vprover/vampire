@@ -87,8 +87,8 @@ public:
   {
   public:
     Exception (std::string message,const Token&);
-    void cry (std::ostream&) const;
-    ~Exception () {}
+    void cry (std::ostream&) const override;
+    ~Exception () override {}
   protected:
     std::string _message;
   }; // Exception

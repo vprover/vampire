@@ -40,9 +40,9 @@ public:
 
   InequalityPredicateNormalization(std::shared_ptr<AlascaState> shared) 
     : _shared(std::move(shared)) {}
-  virtual ~InequalityPredicateNormalization() {}
+  ~InequalityPredicateNormalization() override {}
 
-  virtual Clause* simplify(Clause* premise) override 
+  Clause* simplify(Clause* premise) override 
   {
     RStack<Literal*> res; 
     bool changed = false;

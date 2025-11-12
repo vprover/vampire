@@ -56,7 +56,7 @@ public:
     return (res1==EQUAL)?_c2.compare(l1,l2):res1;
   }
 
-  virtual void attachSelector(LiteralSelector* selector)
+  void attachSelector(LiteralSelector* selector) override
   {
     LiteralComparator::attachSelector(selector);
     _c1.attachSelector(selector);
@@ -76,7 +76,7 @@ public:
     return _c.compare(l2,l1);
   }
 
-  virtual void attachSelector(LiteralSelector* selector)
+  void attachSelector(LiteralSelector* selector) override
   {
     LiteralComparator::attachSelector(selector);
     _c.attachSelector(selector);

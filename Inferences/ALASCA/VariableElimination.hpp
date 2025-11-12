@@ -42,8 +42,8 @@ public:
     , _simplify(simplify)
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final ;
+  void detach() final ;
 
 
   template<class NumTraits>
@@ -89,7 +89,7 @@ public:
                             ClauseIterator applyRule(Clause* premise, FoundVariable<IntTraits> found) const { return ClauseIterator::getEmpty(); };
   template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
 
-  ClauseGenerationResult generateSimplify(Clause* premise)  final override;
+  ClauseGenerationResult generateSimplify(Clause* premise)  final ;
   
 
 #if VDEBUG

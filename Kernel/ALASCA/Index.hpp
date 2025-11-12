@@ -63,7 +63,7 @@ public:
   auto instances(TypedTermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
-  virtual void handleClause(Clause* c, bool adding) final override
+  void handleClause(Clause* c, bool adding) final 
   {
     TIME_TRACE(_maintenanceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {

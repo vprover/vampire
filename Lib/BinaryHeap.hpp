@@ -237,7 +237,7 @@ private:
   public:
     BHPopBacktrackObject(BinaryHeap* bh, T v, unsigned lastBubbleIndex)
     :_bh(bh), _val(v), _lastBubbleIndex(lastBubbleIndex) {}
-    void backtrack()
+    void backtrack() override
     {
       _bh->backtrackPop(_val,_lastBubbleIndex);
     }
@@ -254,7 +254,7 @@ private:
   public:
     BHInsertBacktrackObject(BinaryHeap* bh, unsigned lastBubbleIndex)
     :_bh(bh), _lastBubbleIndex(lastBubbleIndex) {}
-    void backtrack()
+    void backtrack() override
     {
       _bh->backtrackInsert(_lastBubbleIndex);
     }

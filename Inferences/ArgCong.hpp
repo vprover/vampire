@@ -31,7 +31,7 @@ class ArgCong
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct ResultFn;
   struct IsPositiveEqualityFn;

@@ -349,7 +349,7 @@ struct InferenceStore::ProofPropertyPrinter
     last_one = false;
   }
 
-  void print()
+  void print() override
   {
     ProofPrinter::print();
     for(unsigned i=0;i<11;i++){ out << buckets[i] << " ";}
@@ -360,7 +360,7 @@ struct InferenceStore::ProofPropertyPrinter
 
 protected:
 
-  void printStep(Unit* us)
+  void printStep(Unit* us) override
   {
     static unsigned lastP = Unit::getLastParsingNumber();
     static float chunk = lastP / 10.0;
@@ -821,7 +821,7 @@ struct InferenceStore::ProofCheckPrinter
   : ProofPrinter(out, is) {}
 
 protected:
-  void printStep(Unit* cs)
+  void printStep(Unit* cs) override
   {
     InferenceRule rule = cs->inference().rule();
     UnitIterator parents= cs->getParents();
@@ -851,7 +851,7 @@ protected:
     out << "%#\n";
   }
 
-  bool hideProofStep(InferenceRule rule)
+  bool hideProofStep(InferenceRule rule) override
   {
     switch(rule) {
     case InferenceRule::INPUT:
@@ -883,7 +883,7 @@ protected:
     }
   }
 
-  void print()
+  void print() override
   {
     ProofPrinter::print();
     out << "%#\n";
@@ -1508,7 +1508,7 @@ protected:
     }
   }
 
-  void printStep(Unit* concl)
+  void printStep(Unit* concl) override
   {
     auto prems = iterTraits(concl->getParents());
  
@@ -1537,7 +1537,7 @@ protected:
   }
 
 
-  bool hideProofStep(InferenceRule rule)
+  bool hideProofStep(InferenceRule rule) override
   {
     switch(rule) {
     case InferenceRule::INPUT:
@@ -1570,7 +1570,7 @@ protected:
     }
   }
 
-  void print()
+  void print() override
   {
     ProofPrinter::print();
     out << "%#\n";
@@ -1583,13 +1583,13 @@ struct InferenceStore::SMTCheckPrinter
   SMTCheckPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 
-  void print()
+  void print() override
   {
     SMTCheck::outputSignature(out);
     ProofPrinter::print();
   }
 
-  void printStep(Unit* u)
+  void printStep(Unit* u) override
   {
     SMTCheck::outputStep(out, u);
   }
