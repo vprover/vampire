@@ -14,8 +14,6 @@
  * @since 16/06/2005 Manchester
  */
 
-#include <new>
-
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
 #include "IntegerSet.hpp"

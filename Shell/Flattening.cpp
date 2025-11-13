@@ -17,7 +17,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/Unit.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"

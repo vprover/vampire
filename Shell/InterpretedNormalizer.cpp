@@ -24,8 +24,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
 
-#include "Property.hpp"
-
 #include "InterpretedNormalizer.hpp"
 
 namespace Shell

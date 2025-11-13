@@ -16,17 +16,13 @@
 #include <utility>
 #include <vector>
 
-#include "Lib/Output.hpp"
 #include "Forwards.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 
-#include "Indexing/ResultSubstitution.hpp"
-#include "Lib/BitUtils.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/Set.hpp"
 
 #include "Kernel/FormulaUnit.hpp"

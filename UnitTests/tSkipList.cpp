@@ -7,14 +7,10 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include <iostream>
 #include "Lib/SkipList.hpp"
-#include "Lib/BinaryHeap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/DArray.hpp"
-#include "Lib/Random.hpp"
-#include "Lib/Sort.hpp"
 
 #include "Test/UnitTesting.hpp"
 

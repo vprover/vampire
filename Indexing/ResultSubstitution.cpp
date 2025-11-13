@@ -13,8 +13,6 @@
  */
 
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Kernel/TermIterators.hpp"
 
 #include "ResultSubstitution.hpp"
 

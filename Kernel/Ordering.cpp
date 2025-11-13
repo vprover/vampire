@@ -20,17 +20,11 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Lib/Exception.hpp"
-#include "Lib/List.hpp"
-#include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Random.hpp"
-#include "Debug/TimeProfiling.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Property.hpp"
 #include "Shell/Shuffling.hpp"
 
 #include "LPO.hpp"

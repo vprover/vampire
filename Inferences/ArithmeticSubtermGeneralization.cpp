@@ -11,12 +11,8 @@
 #include "Debug/Assertion.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/IntUnionFind.hpp"
-#include "Lib/Array.hpp"
-#include "Lib/Set.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/Statistics.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 

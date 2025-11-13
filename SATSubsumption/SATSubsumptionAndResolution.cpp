@@ -72,11 +72,14 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include <algorithm>
-#include <iostream>
 #include <type_traits>
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "SATSubsumptionAndResolution.hpp"
+
+#if PRINT_CLAUSES_SUBS
+#include <iostream>
+#endif
 
 using namespace Indexing;
 using namespace Kernel;

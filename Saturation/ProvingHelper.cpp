@@ -20,7 +20,6 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
-#include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"

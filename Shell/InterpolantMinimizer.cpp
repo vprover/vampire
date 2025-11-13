@@ -18,7 +18,6 @@
 #include "InterpolantMinimizer.hpp"
 
 #include "Kernel/Unit.hpp"
-#include "Kernel/InferenceStore.hpp"
 
 #include <memory>
 #include <unordered_set> // TODO: remove this after benchmarking

@@ -12,17 +12,8 @@
  * Implements class TermCodeTree.
  */
 
-#include <utility>
- 
-#include "Lib/BitUtils.hpp"
-#include "Lib/Comparison.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/Sort.hpp"
-
-#include "Kernel/Clause.hpp"
 #include "Kernel/FlatTerm.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 
 #include "TermCodeTree.hpp"
 

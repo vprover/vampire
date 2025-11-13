@@ -15,13 +15,10 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Inference.hpp"
 
-#include "Lib/Map.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Array.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "ClauseFlattening.hpp"

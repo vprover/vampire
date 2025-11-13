@@ -12,11 +12,9 @@
 #include "Kernel/Inference.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Test/UnitTesting.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
 
 #include "Test/SimplificationTester.hpp"
-#include "Lib/Output.hpp"
 
 using namespace std;
 using namespace Kernel;

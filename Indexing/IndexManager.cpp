@@ -15,12 +15,9 @@
 #include "Indexing/Index.hpp"
 #include "Lib/Exception.hpp"
 
-#include "Kernel/Grounder.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "AcyclicityIndex.hpp"
-#include "Kernel/OrderingUtils.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
@@ -33,7 +30,6 @@
 #include "Inferences/ALASCA/Coherence.hpp"
 
 #include "IndexManager.hpp"
-#include "Kernel/ALASCA.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 
 using namespace Lib;

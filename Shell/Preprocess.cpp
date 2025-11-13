@@ -43,7 +43,6 @@
 #include "Options.hpp"
 #include "PredicateDefinition.hpp"
 #include "Preprocess.hpp"
-#include "Property.hpp"
 #include "Rectify.hpp"
 #include "Skolem.hpp"
 #include "SimplifyFalseTrue.hpp"
@@ -57,8 +56,6 @@
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
-
-#include "Kernel/TermIterators.hpp"
 
 using namespace std;
 using namespace Shell;

@@ -18,7 +18,6 @@
 #include "SATInference.hpp"
 
 #include "Lib/Array.hpp"
-#include "Lib/Environment.hpp"
 
 namespace SAT
 {

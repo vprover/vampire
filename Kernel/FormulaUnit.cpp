@@ -19,9 +19,7 @@
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
 #include "Inference.hpp"
-#include "SubformulaIterator.hpp"
 #include "FormulaVarIterator.hpp"
-#include "Term.hpp"
 
 using namespace std;
 using namespace Lib;

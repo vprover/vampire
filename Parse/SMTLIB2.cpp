@@ -12,14 +12,11 @@
  * Implements class SMTLIB.
  */
 
-#include <climits>
-#include <fstream>
 #include <map>
 
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
-#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Matcher.hpp"

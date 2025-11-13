@@ -14,7 +14,6 @@
 
 #include "Kernel/Theory.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -40,7 +39,6 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "SortHelper.hpp"
-#include "Kernel/NumTraits.hpp"
 
 #include "InferenceStore.hpp"
 

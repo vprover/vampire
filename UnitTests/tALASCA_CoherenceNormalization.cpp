@@ -8,24 +8,11 @@
  * and in the source directory
  */
 
-#include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Indexing/TermSharing.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
-#include "Kernel/KBO.hpp"
-#include "Indexing/TermSubstitutionTree.hpp" 
-#include "Inferences/PolynomialEvaluation.hpp"
 #include "Test/AlascaTestUtils.hpp"
 
 using namespace std;

@@ -18,15 +18,12 @@
 #include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/LiteralComparators.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Term.hpp"
 
 #include "LiteralMiniIndex.hpp"
-#include "LiteralSubstitutionTree.hpp"
 
 #include "ClauseVariantIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 
 namespace Indexing
 {
