@@ -22,18 +22,14 @@
 
 #include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Term.hpp"
 #include "Clause.hpp"
 #include "Ordering.hpp"
-#include "ApplicativeHelper.hpp"
-#include "TermIterators.hpp"
 
 #include "LiteralSelector.hpp"
-#include "LiteralComparators.hpp"
 
 namespace Kernel {
 

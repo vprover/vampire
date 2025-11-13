@@ -23,9 +23,7 @@
 #include "Allocator.hpp"
 #include "Backtrackable.hpp"
 #include "Comparison.hpp"
-#include "List.hpp"
 #include "Random.hpp"
-#include "Lib/Option.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
 

@@ -21,7 +21,6 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
 #include "Kernel/ALASCA.hpp"
 
 #include "Ordering.hpp"

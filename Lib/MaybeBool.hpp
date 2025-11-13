@@ -15,8 +15,6 @@
 #ifndef __MaybeBool__
 #define __MaybeBool__
 
-#include "Forwards.hpp"
-
 #include "Debug/Assertion.hpp"
 
 

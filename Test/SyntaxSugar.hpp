@@ -29,6 +29,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"

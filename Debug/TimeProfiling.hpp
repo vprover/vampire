@@ -13,8 +13,6 @@
 #define __TimeProfiling__
 
 #include "Lib/Stack.hpp"
-#include "Lib/Option.hpp"
-#include "Debug/Assertion.hpp"
 #include <chrono>
 #include "Lib/MacroUtils.hpp"
 

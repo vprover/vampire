@@ -13,7 +13,6 @@
 
 #include <iostream>
 #include <ostream>
-#include <fstream>
 
 #if VZ3
 #include "z3++.h"

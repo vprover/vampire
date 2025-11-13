@@ -17,12 +17,10 @@
 #define __DHMultiset__
 
 #include <cstdlib>
-#include <algorithm>
 
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
 #include "Exception.hpp"
-#include "Hash.hpp"
 #include "DHMap.hpp"
 #include "Portability.hpp"
 

@@ -17,6 +17,8 @@
 
 #include "InterpolantMinimizer.hpp"
 
+#include "Lib/VirtualIterator.hpp"
+
 #include "Kernel/Unit.hpp"
 
 #include <memory>

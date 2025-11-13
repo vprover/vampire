@@ -82,6 +82,7 @@ square's last digit:
 #include <ostream>
 
 #include "Lib/Array.hpp"
+#include "Lib/List.hpp"
 #include "Lib/SkipList.hpp"
 
 namespace Debug {

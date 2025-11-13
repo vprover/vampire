@@ -14,7 +14,6 @@
 #include "Kernel/SortHelper.hpp"
 #include <tuple>
 #include "Lib/Reflection.hpp"
-#include "Lib/Hash.hpp"
 
 namespace Kernel {
 using SortId = Kernel::TermList;

@@ -22,6 +22,8 @@
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
+#include "Kernel/Inference.hpp"
+
 extern const char *VERSION_STRING;
 
 namespace Kernel {

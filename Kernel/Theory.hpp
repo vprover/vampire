@@ -15,7 +15,6 @@
 #ifndef __Theory__
 #define __Theory__
 
-#include <cmath>
 #include <cstdint>
 
 #include "Forwards.hpp"

@@ -16,11 +16,9 @@
 #define __BinaryHeap__
 
 #include <algorithm>
-#include <limits>
 
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
-#include "Exception.hpp"
 #include "Comparison.hpp"
 #include "Backtrackable.hpp"
 #include "Metaiterators.hpp"

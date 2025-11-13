@@ -32,7 +32,6 @@
 #include <cassert>
 #include "Lib/Coproduct.hpp"
 #include "Lib/Option.hpp"
-#include "Lib/Map.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
 #include "ALASCA/Signature.hpp"
 #include "Kernel/Theory.hpp"
@@ -41,7 +40,6 @@
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Hash.hpp"
-#include <type_traits>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 #define OUTPUT_NICE 1

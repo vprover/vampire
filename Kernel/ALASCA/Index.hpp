@@ -15,8 +15,6 @@
 #include "Indexing/SubstitutionTree.hpp"
 #include "Kernel/ALASCA.hpp"
 
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/TermIndex.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"

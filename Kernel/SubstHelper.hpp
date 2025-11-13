@@ -19,7 +19,6 @@
 #include "Lib/Recycled.hpp"
 
 #include "Formula.hpp"
-#include "SortHelper.hpp"
 #include "Substitution.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"

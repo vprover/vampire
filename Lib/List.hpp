@@ -41,7 +41,7 @@
 #include "Forwards.hpp"
 
 #include "Allocator.hpp"
-#include "VirtualIterator.hpp"
+#include "Reflection.hpp"
 
 #include "Debug/Assertion.hpp"
 

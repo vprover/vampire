@@ -16,8 +16,6 @@
 #ifndef __Exception__
 #define __Exception__
 
-#include "Forwards.hpp"
-
 #include <iostream>
 #include <sstream>
 #include <string>
