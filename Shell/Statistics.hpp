@@ -17,6 +17,7 @@
 #ifndef __Statistics__
 #define __Statistics__
 
+#include <array>
 #include <ostream>
 
 #include "Forwards.hpp"

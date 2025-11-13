@@ -17,6 +17,7 @@
 
 #include "Debug/Assertion.hpp"
 
+#include <ostream>
 
 namespace Lib {
 

@@ -14,6 +14,7 @@
 
 #include "Lib/Stack.hpp"
 #include <chrono>
+#include <ostream>
 #include "Lib/MacroUtils.hpp"
 
 namespace Shell {
