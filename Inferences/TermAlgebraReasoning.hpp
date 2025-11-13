@@ -25,8 +25,6 @@
 #include "Inferences/InferenceEngine.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Term.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 

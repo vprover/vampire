@@ -21,7 +21,6 @@
 
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "TermIndexingStructure.hpp"
-#include "Lib/Set.hpp"
 
 namespace Indexing {
 

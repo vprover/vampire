@@ -19,9 +19,7 @@
 
 #include "Forwards.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
-#include "Kernel/Renaming.hpp"
 #include "Kernel/TypedTermList.hpp"
-#include "Lib/BiMap.hpp"
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"

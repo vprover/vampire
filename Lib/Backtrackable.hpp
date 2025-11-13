@@ -15,7 +15,6 @@
 #ifndef __Backtrackable__
 #define __Backtrackable__
 
-#include "List.hpp"
 #include "Int.hpp"
 #include "Lib/Stack.hpp"
 

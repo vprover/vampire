@@ -25,12 +25,10 @@
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/ClausePattern.hpp"
-#include "Saturation/Otter.hpp"
 #include "Kernel/Problem.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/STL.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
-#include "Test/SyntaxSugar.hpp"
 
 namespace Test {
 

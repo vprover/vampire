@@ -15,7 +15,6 @@
 #ifndef __Z3Interfacing__
 #define __Z3Interfacing__
 
-#include <algorithm>
 #if VZ3
 
 /* an (imperfect and under development) version of tracing the Z3 interface
@@ -37,13 +36,11 @@
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
 #include "Lib/Coproduct.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "Kernel/Signature.hpp"
 
 #define __EXCEPTIONS 1
 #include "z3++.h"
-#include "z3_api.h"
 
 namespace SAT{
 

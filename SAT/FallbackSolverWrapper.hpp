@@ -23,11 +23,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/ScopedPtr.hpp"
-#include "Lib/Stack.hpp"
 
 #include "SATSolver.hpp"
 

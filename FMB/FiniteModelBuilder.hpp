@@ -19,7 +19,6 @@
 
 #if VZ3
 #include "z3++.h"
-#include "z3_api.h"
 #endif
 
 #include "Kernel/MainLoop.hpp"

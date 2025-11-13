@@ -33,10 +33,6 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#if VDEBUG
-#include<iostream>
-#endif
-
 namespace Shell { class AnswerLiteralManager; }
 
 namespace Saturation

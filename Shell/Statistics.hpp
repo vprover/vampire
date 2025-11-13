@@ -20,7 +20,6 @@
 #include <ostream>
 
 #include "Forwards.hpp"
-#include "Lib/Timer.hpp"
 #include "Debug/Assertion.hpp"
 
 extern const char *VERSION_STRING;

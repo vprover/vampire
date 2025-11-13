@@ -14,7 +14,6 @@
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 #include "Lib/Stack.hpp"
-#include "PolynomialEvaluation.hpp"
 
 
 namespace Inferences {

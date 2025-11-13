@@ -20,9 +20,6 @@
 #include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Kernel/InductionTemplate.hpp"
-#include "Kernel/TermTransformer.hpp"
-
-#include "TermAlgebra.hpp"
 
 namespace Shell {
 

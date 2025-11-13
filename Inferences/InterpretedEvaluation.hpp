@@ -18,10 +18,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
-
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "InferenceEngine.hpp"
 

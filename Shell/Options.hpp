@@ -35,11 +35,9 @@
 #ifndef __Options__
 #define __Options__
 
-#include <iterator>
 #include <type_traits>
 #include <cstring>
 #include <memory>
-#include "Lib/StringUtils.hpp"
 
 #include "Forwards.hpp"
 
@@ -47,7 +45,6 @@
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/StringUtils.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"

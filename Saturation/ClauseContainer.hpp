@@ -21,11 +21,8 @@
 #include "Lib/Event.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
-#include "Lib/Stack.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Set.hpp"
-
-#include "Lib/Allocator.hpp"
 
 #define OUTPUT_LRS_DETAILS 0
 

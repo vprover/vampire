@@ -22,18 +22,11 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
-#include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
 #include "Lib/STL.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
-#include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/Reflection.hpp"
-#include "Shell/Options.hpp"
 #include "Lib/BacktrackableCollections.hpp"
-#include "Lib/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)

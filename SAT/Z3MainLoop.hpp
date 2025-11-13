@@ -19,12 +19,8 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/Problem.hpp"
-
-#include "SAT/Z3Interfacing.hpp"
 
 #include "Shell/Options.hpp"
 

@@ -18,8 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Array.hpp"
-#include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 

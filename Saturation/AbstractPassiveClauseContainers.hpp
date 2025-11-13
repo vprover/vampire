@@ -17,7 +17,6 @@
 #ifndef __AbstractPassiveClauseContainers__
 #define __AbstractPassiveClauseContainers__
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 #include "Debug/Assertion.hpp"

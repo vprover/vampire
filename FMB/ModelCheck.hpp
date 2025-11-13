@@ -23,9 +23,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/StringUtils.hpp"
 
-#include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
-#include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
 
 #include "FiniteModelMultiSorted.hpp"

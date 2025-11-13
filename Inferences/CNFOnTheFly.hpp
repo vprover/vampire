@@ -17,15 +17,10 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Inference.hpp"
 
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
-
-#include <memory>
 
 namespace Inferences {
 using namespace Indexing;

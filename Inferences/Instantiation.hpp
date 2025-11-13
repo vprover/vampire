@@ -18,9 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Set.hpp"
-#include "Kernel/OperatorType.hpp"
 
-#include "Kernel/Theory.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences

@@ -20,7 +20,7 @@
 #ifndef __TEST__SYNTAX_SUGAR__H__
 #define __TEST__SYNTAX_SUGAR__H__
 
-#include<functional>
+#include <functional>
 
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
@@ -30,12 +30,9 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
-#include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
-#include "Shell/FunctionDefinitionHandler.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
 #define __TO_SORT_INT IntegerConstantType::getSort()

@@ -19,10 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
-#include "Lib/Exception.hpp"
-#include "Shell/Options.hpp"
+#include "Kernel/ALASCA.hpp"
 
 namespace Inferences {
 namespace ALASCA {

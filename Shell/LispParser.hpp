@@ -22,8 +22,6 @@
 
 #include "Lib/Exception.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Portability.hpp"
-#include "Lib/Stack.hpp"
 
 namespace Shell {
 

@@ -16,6 +16,7 @@
 
 #include "Kernel/TermIterators.hpp"
 
+#include "Lib/Environment.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
 

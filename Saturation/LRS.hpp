@@ -18,8 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Event.hpp"
-
 #include "Otter.hpp"
 
 namespace Saturation {

@@ -13,9 +13,8 @@
 
 #include <memory>
 #include <vector>
-#include "Lib/Allocator.hpp"
+
 #include "ClauseContainer.hpp"
-#include "AWPassiveClauseContainers.hpp"
 
 namespace Saturation {
 class PredicateSplitPassiveClauseContainer

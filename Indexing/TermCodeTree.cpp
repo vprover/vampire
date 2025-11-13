@@ -15,6 +15,8 @@
 #include "Kernel/FlatTerm.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Index.hpp"
+
 #include "TermCodeTree.hpp"
 
 namespace Indexing

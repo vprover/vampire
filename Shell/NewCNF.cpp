@@ -23,6 +23,9 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
+
+#include "Lib/SharedSet.hpp"
+
 #include "Shell/Flattening.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Options.hpp"

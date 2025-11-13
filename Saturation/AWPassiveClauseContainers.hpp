@@ -16,18 +16,12 @@
 #ifndef __AWPassiveClauseContainers__
 #define __AWPassiveClauseContainers__
 
-#include <cmath>
-#include <memory>
-#include <vector>
 #include <climits>
-#include "Lib/Comparison.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
 #include "AbstractPassiveClauseContainers.hpp"
-
-#include "Lib/Allocator.hpp"
 
 namespace Saturation {
 

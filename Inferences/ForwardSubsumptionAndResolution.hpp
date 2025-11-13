@@ -17,7 +17,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "Indexing/LiteralMiniIndex.hpp"
 #include "Indexing/LiteralIndex.hpp"
 
 namespace Inferences {
