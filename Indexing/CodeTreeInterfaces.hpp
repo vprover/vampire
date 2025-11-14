@@ -39,7 +39,7 @@ class CodeTreeTIS : public TermIndexingStructure<Data>
 {
 public:
   /* INFO: we ignore unifying the sort of the keys here */
-  void handle(Data data, bool insert) final 
+  void handle(Data data, bool insert) final
   {
     if (insert) {
       auto ti = new Data(std::move(data));

@@ -77,7 +77,7 @@ public:
 
   bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
-  void output(std::ostream& out) const final 
+  void output(std::ostream& out) const final
   { out << "CodeTreeSubstitution(<output unimplemented>)"; }
 
   CodeTree::BindingArray* _bindings;

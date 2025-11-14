@@ -365,7 +365,7 @@ public:
 
       void destroyChildren();
 
-      void makeEmpty() final 
+      void makeEmpty() final
       {
         Node::makeEmpty();
         removeAllChildren();
@@ -617,7 +617,7 @@ public:
       size_t getResultApplicationWeight(TermList t) final { return t.weight(); }
       size_t getResultApplicationWeight(Literal* l) final { return l->weight(); }
 
-      void output(std::ostream& out) const final 
+      void output(std::ostream& out) const final
       { out << "{ _query: " << _query << ", _result: " << _result << " }"; }
     };
 

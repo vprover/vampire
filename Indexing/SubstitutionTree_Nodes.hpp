@@ -51,18 +51,18 @@ public:
   inline
   int size() const final { return _size; }
   inline
-  LDIterator allChildren() final 
+  LDIterator allChildren() final
   {
     return pvi( iterTraits(typename LDList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   inline
-  void insert(LeafData ld) final 
+  void insert(LeafData ld) final
   {
     LDList::push(ld, _children);
     _size++;
   }
   inline
-  void remove(LeafData ld) final 
+  void remove(LeafData ld) final
   {
     _children = LDList::remove(ld, _children);
     _size--;
@@ -93,7 +93,7 @@ public:
   inline
   int size() const final { return _children.size(); }
   inline
-  LDIterator allChildren() final 
+  LDIterator allChildren() final
   {
     return pvi( iterTraits(typename LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }

@@ -122,16 +122,16 @@ public:
     }
   }
 
-  TermList applyToBoundResult(TermList t) final 
+  TermList applyToBoundResult(TermList t) final
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  Literal* applyToBoundResult(Literal* lit) final 
+  Literal* applyToBoundResult(Literal* lit) final
   { return SubstHelper::apply(lit, *getApplicator()); }
 
   bool isIdentityOnQueryWhenResultBound() override
   { return true; }
 
-  void output(std::ostream& out) const final 
+  void output(std::ostream& out) const final
   { out << "GenMatcher::Substitution(<output unimplemented>)"; }
 private:
   Applicator* getApplicator()

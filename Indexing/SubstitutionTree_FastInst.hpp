@@ -55,10 +55,10 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() final 
+  bool isIdentityOnResultWhenQueryBound() final
   { return true; }
 
-  void output(std::ostream& out) const final 
+  void output(std::ostream& out) const final
   { out << "InstMatcher::Substitution(<output unimplemented>)"; }
 private:
   InstMatcher* _parent;

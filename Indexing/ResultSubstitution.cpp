@@ -29,19 +29,19 @@ public:
   RSProxy(RobSubstitution* subst, int queryBank, int resultBank)
   : _subst(subst), _queryBank(queryBank), _resultBank(resultBank) {}
 
-  TermList applyToQuery(TermList t) final 
+  TermList applyToQuery(TermList t) final
   { return _subst->apply(t,_queryBank); }
-  Literal* applyToQuery(Literal* l) final 
+  Literal* applyToQuery(Literal* l) final
   { return _subst->apply(l,_queryBank); }
 
-  TermList applyToResult(TermList t) final 
+  TermList applyToResult(TermList t) final
   { return _subst->apply(t,_resultBank); }
-  Literal* applyToResult(Literal* l) final 
+  Literal* applyToResult(Literal* l) final
   { return _subst->apply(l,_resultBank); }
 
-  TermList applyTo(TermList t,unsigned index) final 
+  TermList applyTo(TermList t,unsigned index) final
   { return _subst->apply(t,index); }
-  Literal* applyTo(Literal* l,unsigned index) final 
+  Literal* applyTo(Literal* l,unsigned index) final
   { return _subst->apply(l,index); }
 
   size_t getQueryApplicationWeight(TermList t) final { return _subst->getApplicationResultWeight(t, _queryBank); }

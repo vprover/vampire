@@ -78,7 +78,7 @@ public:
 
       
     
-  void attach(SaturationAlgorithm* salg) final 
+  void attach(SaturationAlgorithm* salg) final
   { 
     ASS(!_rhs);
     ASS(!_lhs);
@@ -114,7 +114,7 @@ public:
   }
 #endif
 
-  ClauseIterator generateClauses(Clause* premise) final 
+  ClauseIterator generateClauses(Clause* premise) final
   {
     ASS(_lhs)
     ASS(_rhs)
@@ -203,7 +203,7 @@ public:
     , _prem2(nullptr)
   {  }
 
-  void attach(SaturationAlgorithm* salg) final 
+  void attach(SaturationAlgorithm* salg) final
   { 
     ASS(!_prem0);
     ASS(!_prem1);
@@ -251,7 +251,7 @@ public:
   template<unsigned p>
   using Prem = TL::Get<p, TL::List<Premise0, Premise1, Premise2>>;
 
-  ClauseIterator generateClauses(Clause* premise) final 
+  ClauseIterator generateClauses(Clause* premise) final
   {
     ASS(_prem0)
     ASS(_prem1)

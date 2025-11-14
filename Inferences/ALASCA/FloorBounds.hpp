@@ -151,13 +151,13 @@ public:
     : _shared(std::move(shared))
   {  }
 
-  void attach(SaturationAlgorithm* salg) final 
+  void attach(SaturationAlgorithm* salg) final
   { GeneratingInferenceEngine::attach(salg); }
 
-  void detach() final 
+  void detach() final
   { ASS(_salg); GeneratingInferenceEngine::detach(); }
 
-  ClauseIterator generateClauses(Clause* premise) final 
+  ClauseIterator generateClauses(Clause* premise) final
   {
     return pvi(concatIters(
           generateClauses<Superposition::Lhs>(premise),

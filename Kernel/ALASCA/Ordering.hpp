@@ -419,10 +419,10 @@ public:
     }
   }
 
-  Result compare(TermList t1, TermList t2) const final 
+  Result compare(TermList t1, TermList t2) const final
   { return _termOrdering.compare(t1, t2); }
 
-  void show(std::ostream& out) const final 
+  void show(std::ostream& out) const final
   { _termOrdering.show(out); }
 
 private:
