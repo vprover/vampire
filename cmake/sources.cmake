@@ -123,8 +123,6 @@ set(SOURCES
     FMB/ClauseFlattening.hpp
     FMB/CliqueFinder.hpp
     FMB/DefinitionIntroduction.hpp
-    FMB/FiniteModel.cpp
-    FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.cpp
     FMB/FiniteModelBuilder.hpp
     FMB/FiniteModelMultiSorted.cpp
