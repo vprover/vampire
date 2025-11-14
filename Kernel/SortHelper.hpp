@@ -17,34 +17,9 @@
 
 #include "Forwards.hpp"
 
-#include "Kernel/Term.hpp"
-
 namespace Kernel {
 
 class SortHelper {
-private:
-  enum CollectWhat {
-    COLLECT_TERM,
-    COLLECT_TERMLIST,
-    COLLECT_SPECIALTERM,
-    COLLECT_FORMULA,
-    BIND,
-    UNBIND,
-  };
-
-  struct CollectTask {
-    CollectTask(CollectWhat what) : fncTag(what) {}
-    CollectWhat fncTag;
-    union {
-      TermList ts;
-      Term* t; // shared by TERM and SPECIALTERM
-      Formula* f;
-      VList* vars; // to bind/unbind by BIND/UNBIND
-    };
-    TermList contextSort; // only used by TERMLIST and SPECIALTERM
-  };
-
-  static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 public:
   static TermList getResultSort(const Term* t);
   static TermList getResultSortMono(const Term* t);
@@ -62,8 +37,6 @@ public:
   // DEPRECATED: this function scans the whole formula to figure out a variable's sort and is very inefficient - moreover, such information is normally carried around (see QuantifiedFormula's sorts())
   static bool tryGetVariableSort(unsigned var, Formula* f, TermList& res);
   static TermList getVariableSort(TermList var, Term* t);
-  [[deprecated("This function is usually only used if we loose the information about the sort of a variable somewhere while over subterms. Recovering the information using this method iterating the literal/term again, is very inefficient and should be avoided. Make sure to use TermIterators that return TypedTermList instead, or raise a discussion on slack/github if you have a use case where this function is *really* needed.")]]
-  static TermList getTermSort(TermList trm, Literal* lit);
 
   static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
@@ -80,8 +53,6 @@ public:
   static void normaliseSort(VList* qVars, TermList& sort);
   static void normaliseArgSorts(const TermStack& qVars, TermStack& argSorts);
   static void normaliseSort(TermStack qVars, TermList& sort);
-
-  static OperatorType* getType(Term const* t);
 
   /**
    * This function achieves the following. Let t = f<a1, a2>(t1, t2)

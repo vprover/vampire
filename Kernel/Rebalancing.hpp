@@ -11,7 +11,9 @@
 #define __REBALANCING_H__
 
 #include <iostream>
+
 #include "Forwards.hpp"
+#include "Term.hpp"
 #include "SortHelper.hpp"
 
 
