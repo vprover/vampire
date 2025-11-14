@@ -49,6 +49,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/Portability.hpp"
 
 #include "Property.hpp"
 

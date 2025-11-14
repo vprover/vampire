@@ -19,7 +19,6 @@
 #define __INT__
 
 #include "Comparison.hpp"
-#include "Portability.hpp"
 
 #include <iostream>
 #include <limits>

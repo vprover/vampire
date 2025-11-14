@@ -34,7 +34,6 @@
 
 #include "Lib/BitUtils.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"

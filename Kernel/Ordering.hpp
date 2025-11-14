@@ -27,7 +27,6 @@
 #include "Lib/DArray.hpp"
 #include "Kernel/Term.hpp"
 
-#include "Lib/Portability.hpp"
 #include "Kernel/SubstHelper.hpp"
 
 namespace Kernel {

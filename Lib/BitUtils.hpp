@@ -20,7 +20,7 @@
 #include <cstring>
 
 #include "Debug/Assertion.hpp"
-#include "Portability.hpp"
+#include <climits>
 
 namespace Lib {
 
