@@ -13,8 +13,6 @@
  */
 
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Kernel/TermIterators.hpp"
 
 #include "ResultSubstitution.hpp"
 
@@ -31,28 +29,28 @@ public:
   RSProxy(RobSubstitution* subst, int queryBank, int resultBank)
   : _subst(subst), _queryBank(queryBank), _resultBank(resultBank) {}
 
-  TermList applyToQuery(TermList t) final override
+  TermList applyToQuery(TermList t) final
   { return _subst->apply(t,_queryBank); }
-  Literal* applyToQuery(Literal* l) final override
+  Literal* applyToQuery(Literal* l) final
   { return _subst->apply(l,_queryBank); }
 
-  TermList applyToResult(TermList t) final override
+  TermList applyToResult(TermList t) final
   { return _subst->apply(t,_resultBank); }
-  Literal* applyToResult(Literal* l) final override
+  Literal* applyToResult(Literal* l) final
   { return _subst->apply(l,_resultBank); }
 
-  TermList applyTo(TermList t,unsigned index) final override
+  TermList applyTo(TermList t,unsigned index) final
   { return _subst->apply(t,index); }
-  Literal* applyTo(Literal* l,unsigned index) final override
+  Literal* applyTo(Literal* l,unsigned index) final
   { return _subst->apply(l,index); }
 
-  virtual size_t getQueryApplicationWeight(TermList t) final override { return _subst->getApplicationResultWeight(t, _queryBank); }
-  virtual size_t getQueryApplicationWeight(Literal* l) final override { return _subst->getApplicationResultWeight(l, _queryBank); }
-  virtual size_t getResultApplicationWeight(TermList t) final override { return _subst->getApplicationResultWeight(t, _resultBank); }
-  virtual size_t getResultApplicationWeight(Literal* l) final override { return _subst->getApplicationResultWeight(l, _resultBank); }
+  size_t getQueryApplicationWeight(TermList t) final { return _subst->getApplicationResultWeight(t, _queryBank); }
+  size_t getQueryApplicationWeight(Literal* l) final { return _subst->getApplicationResultWeight(l, _queryBank); }
+  size_t getResultApplicationWeight(TermList t) final { return _subst->getApplicationResultWeight(t, _resultBank); }
+  size_t getResultApplicationWeight(Literal* l) final { return _subst->getApplicationResultWeight(l, _resultBank); }
 
 
-  virtual void output(std::ostream& out) const final override { out << *_subst; }
+  void output(std::ostream& out) const final { out << *_subst; }
 
 private:
   RobSubstitution* _subst;

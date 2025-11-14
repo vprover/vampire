@@ -7,7 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include <iostream>
 #include "Lib/List.hpp"
 
 #include "Test/UnitTesting.hpp"

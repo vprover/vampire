@@ -10,8 +10,6 @@
 
 #include "PartialRedundancyHandler.hpp"
 
-#include "Lib/SharedSet.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -19,8 +17,6 @@
 
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/ResultSubstitution.hpp"
-
-#include "Inferences/DemodulationHelper.hpp"
 
 #include "Statistics.hpp"
 

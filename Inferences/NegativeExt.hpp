@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
-#include "Shell/Options.hpp"
 
 namespace Inferences {
 
@@ -31,7 +30,7 @@ class NegativeExt
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;

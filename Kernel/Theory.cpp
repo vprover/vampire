@@ -14,7 +14,6 @@
 #include <cmath>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -26,7 +25,6 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Lib/StringUtils.hpp"
 #include <cstdio>
 #include <iostream>
 

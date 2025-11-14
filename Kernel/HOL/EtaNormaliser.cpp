@@ -13,7 +13,6 @@
 
 #include "Kernel/HOL/EtaNormaliser.hpp"
 
-#include "SubtermReplacer.hpp"
 #include "Kernel/HOL/TermShifter.hpp"
 #include "Kernel/HOL/HOL.hpp"
 

@@ -33,10 +33,6 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#if VDEBUG
-#include<iostream>
-#endif
-
 namespace Shell { class AnswerLiteralManager; }
 
 namespace Saturation
@@ -69,7 +65,7 @@ public:
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
-  virtual ~SaturationAlgorithm();
+  ~SaturationAlgorithm() override;
 
 
   //the following two functions allow to run the saturation algorithm step by step.
@@ -142,8 +138,8 @@ public:
   void setSoftTimeLimit(unsigned deciseconds) { _softTimeLimit = deciseconds; }
 
 protected:
-  virtual void init();
-  virtual MainLoopResult runImpl();
+  void init() override;
+  MainLoopResult runImpl() override;
   void doUnprocessedLoop();
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);

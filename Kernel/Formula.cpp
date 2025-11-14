@@ -16,7 +16,6 @@
 
 #include "Clause.hpp"
 #include "SubformulaIterator.hpp"
-#include "FormulaVarIterator.hpp"
 #include "Lib/Environment.hpp"
 
 

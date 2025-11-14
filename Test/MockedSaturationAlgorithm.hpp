@@ -12,8 +12,6 @@
 #define __TEST__MOCKED_SATURATION_ALGORITHM__
 
 #include "Saturation/Otter.hpp"
-#include "Kernel/Clause.hpp"
-#include "Kernel/KBO.hpp"
 
 namespace Test {
 

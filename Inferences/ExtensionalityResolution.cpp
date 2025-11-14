@@ -18,7 +18,6 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"

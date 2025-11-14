@@ -177,8 +177,8 @@ public:
    */
   ImmediateSimplificationEngine& asISE();
 
-  virtual void attach(SaturationAlgorithm* salg) override { SimplifyingGeneratingInference::attach(salg); }
-  virtual void detach() override { SimplifyingGeneratingInference::detach(); }
+  void attach(SaturationAlgorithm* salg) override { SimplifyingGeneratingInference::attach(salg); }
+  void detach() override { SimplifyingGeneratingInference::detach(); }
   
 protected:
 
@@ -289,7 +289,7 @@ class DummyGIE
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise)
+  ClauseIterator generateClauses(Clause* premise) override
   {
     return ClauseIterator::getEmpty();
   }
@@ -323,11 +323,11 @@ class CompositeISE
 {
 public:
   CompositeISE() : _inners(0) {}
-  virtual ~CompositeISE();
+  ~CompositeISE() override;
   void addFront(ImmediateSimplificationEngine* fse);
-  Clause* simplify(Clause* cl);
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  Clause* simplify(Clause* cl) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 private:
   typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
@@ -347,7 +347,7 @@ public:
     /* reverse iter, to implement addFront */
     return arrayIter(_inners).reverse();
   }
-  Option<ClauseIterator> simplifyMany(Clause* cl) final override {
+  Option<ClauseIterator> simplifyMany(Clause* cl) final {
     for (auto& e : iter()) {
       if (auto res = e->simplifyMany(cl)) {
         return res;
@@ -355,8 +355,8 @@ public:
     }
     return {};
   }
-  void attach(SaturationAlgorithm* salg) final override { for (auto& e : iter()) { e->attach(salg); } }
-  void detach() final override { for (auto& e : iter()) { e->detach(); } }
+  void attach(SaturationAlgorithm* salg) final { for (auto& e : iter()) { e->attach(salg); } }
+  void detach() final { for (auto& e : iter()) { e->detach(); } }
 private:
   Stack<std::unique_ptr<ImmediateSimplificationEngineMany>> _inners;
 };
@@ -366,7 +366,7 @@ class CompositeGIE
 {
 public:
   CompositeGIE() : _inners(0) {}
-  virtual ~CompositeGIE();
+  ~CompositeGIE() override;
   void addFront(GeneratingInferenceEngine* fse);
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
@@ -382,7 +382,7 @@ class CompositeSGI
 {
 public:
   CompositeSGI() : _simplifiers(), _generators() {}
-  virtual ~CompositeSGI();
+  ~CompositeSGI() override;
   void push(SimplifyingGeneratingInference*);
   void push(GeneratingInferenceEngine*);
   ClauseGenerationResult generateSimplify(Clause* premise) override;
@@ -398,7 +398,7 @@ class ChoiceDefinitionISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 
   bool isPositive(Literal* lit);
  
@@ -410,21 +410,21 @@ class DuplicateLiteralRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 class TautologyDeletionISE2
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 class TrivialInequalitiesRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

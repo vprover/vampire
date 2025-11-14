@@ -19,7 +19,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Problem.hpp"
 
-#include "Lib/Hash.hpp"
 #include "Lib/SharedSet.hpp"
 
 using namespace Inferences;

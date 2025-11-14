@@ -17,7 +17,6 @@
 #include <cstdint>
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Lib/Slice.hpp"
 #include <chrono>
 

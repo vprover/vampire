@@ -14,7 +14,6 @@
  */
 
 #include "Test/UnitTesting.hpp"
-#include "Kernel/Inference.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Environment.hpp"
@@ -39,9 +38,6 @@ void fun01(unsigned i2, unsigned i3) {
 }
 
 TEST_FUN(test01) {
-#if VTIME_PROFILING
-  TimeTrace trace;
-#endif
   TIME_TRACE("test01")
   fun01(7, 2);
   fun01(0, 2);

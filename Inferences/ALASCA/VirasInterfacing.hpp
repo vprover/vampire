@@ -14,9 +14,6 @@
 
 #include "Kernel/ALASCA/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Clause.hpp"
-#include "Kernel/Theory.hpp"
-#include "Kernel/NumTraits.hpp"
 #define VIRAS_DEBUG_LEVEL 0
 #define VIRAS_ASSERT(...) ASS(__VA_ARGS__)
 #define VIRAS_OUTPUT(...) DBG(__VA_ARGS__)

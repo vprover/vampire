@@ -11,7 +11,6 @@
 #include "Inferences/Cancellation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 

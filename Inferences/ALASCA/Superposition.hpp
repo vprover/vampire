@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 
 #include "Indexing/IndexManager.hpp"
-#include "Inferences/InferenceEngine.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "BinInf.hpp"
 

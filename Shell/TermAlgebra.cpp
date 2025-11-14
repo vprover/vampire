@@ -7,9 +7,7 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SortHelper.hpp"

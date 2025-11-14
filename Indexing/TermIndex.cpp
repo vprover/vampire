@@ -14,16 +14,11 @@
 
 #include "Forwards.hpp"
 #include "Lib/DHSet.hpp"
-#include "Lib/DHMap.hpp"
 
 #include "Inferences/InductionHelper.hpp"
 
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Formula.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -67,7 +62,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 }
 
 
-void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
+void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward demodulation index maintenance");
 

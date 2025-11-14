@@ -35,8 +35,6 @@
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Shell/UIHelper.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Parse/TPTP.hpp"
 
 using namespace std;

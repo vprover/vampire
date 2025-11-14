@@ -20,16 +20,12 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Indexing/IndexManager.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Options.hpp"
 #include "Shell/FunctionDefinitionHandler.hpp"
 
 #include "FunctionDefinitionRewriting.hpp"

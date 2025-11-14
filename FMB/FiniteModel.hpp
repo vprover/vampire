@@ -18,7 +18,6 @@
 #ifndef __FiniteModel__
 #define __FiniteModel__
 
-#include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Kernel/Unit.hpp"

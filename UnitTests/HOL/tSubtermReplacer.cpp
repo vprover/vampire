@@ -8,7 +8,7 @@
  * and in the source directory
  */
 
-#include "Kernel/HOL/HOL.hpp"
+#include "Lib/Environment.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/HOLUtils.hpp"
 

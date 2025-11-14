@@ -10,36 +10,22 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
-#include "Kernel/ALASCA.hpp"
-#include "Lib/Environment.hpp"
 
 #include "Shell/Options.hpp"
 #include "Test/TestUtils.hpp"
 
-#include "Kernel/Unit.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Problem.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/OperatorType.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Test/AlascaTestUtils.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
-#include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
-#include "Indexing/TermIndex.hpp"
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#if VZ3
-#include "z3++.h"
-#endif
-#include <ios>
 
 using namespace std;
 using namespace Kernel;

@@ -70,7 +70,6 @@ set(UNIT_TESTS
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
-    UnitTests/tRatioKeeper.cpp
     UnitTests/tRebalance.cpp
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
@@ -472,7 +471,6 @@ set(SOURCES
     Lib/Allocator.hpp
     Lib/Array.hpp
     Lib/ArrayMap.hpp
-    Lib/BacktrackIterators.hpp
     Lib/Backtrackable.hpp
     Lib/BacktrackableCollections.hpp
     Lib/BiMap.hpp
@@ -480,7 +478,6 @@ set(SOURCES
     Lib/BitUtils.hpp
     Lib/Comparison.hpp
     Lib/Coproduct.hpp
-    Lib/Counter.hpp
     Lib/DArray.hpp
     Lib/DHMap.hpp
     Lib/DHMultiset.hpp
@@ -498,8 +495,6 @@ set(SOURCES
     Lib/Int.hpp
     Lib/IntUnionFind.cpp
     Lib/IntUnionFind.hpp
-    Lib/IntegerSet.cpp
-    Lib/IntegerSet.hpp
     Lib/InverseLookup.hpp
     Lib/List.hpp
     Lib/MacroUtils.hpp
@@ -517,7 +512,6 @@ set(SOURCES
     Lib/ProofExtra.hpp
     Lib/Random.cpp
     Lib/Random.hpp
-    Lib/RatioKeeper.hpp
     Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/STL.hpp

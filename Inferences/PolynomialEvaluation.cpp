@@ -10,9 +10,7 @@
 
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Lib/VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"

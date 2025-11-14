@@ -22,16 +22,9 @@
 #include "Kernel/MLMatcherSD.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/TPTPPrinter.hpp"
-#include <array>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 using namespace Kernel;

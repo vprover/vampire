@@ -8,16 +8,14 @@
  * and in the source directory
  */
 /**
- * @file PrimitiveInstantiation.cpp
- * Implements class PrimitiveInstantiation.
+ * @file Choice.cpp
+ * Implements class Choice.
  */
-
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Inference.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -29,11 +27,6 @@
 #include "Lib/DHSet.hpp"
 
 #include "Choice.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {

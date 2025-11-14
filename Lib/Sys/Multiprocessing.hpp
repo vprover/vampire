@@ -15,10 +15,9 @@
 #ifndef __Multiprocessing__
 #define __Multiprocessing__
 
-#include "Forwards.hpp"
+#include <sys/types.h>
 
-namespace Lib {
-namespace Sys {
+namespace Lib::Sys {
 
 class Multiprocessing {
 public:
@@ -33,6 +32,6 @@ public:
 };
 
 }
-}
+
 
 #endif // __Multiprocessing__

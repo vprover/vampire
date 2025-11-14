@@ -16,7 +16,6 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/TypedTermList.hpp"
-#include "Kernel/HOL/HOL.hpp"
 #include "Shell/Options.hpp"
 
 #include <optional>
@@ -32,6 +31,7 @@ namespace Test::HOL {
   void name ## _test_impl(const Defs& D)
 
 using namespace Kernel;
+using namespace Shell;
 
 std::string termListToString(TermList t, Options::HPrinting opt);
 

@@ -8,13 +8,9 @@
  * and in the source directory
  */
 
-
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/GenerationTester.hpp"
-
-#include "Kernel/FormulaUnit.hpp"
 
 #include "Shell/FunctionDefinitionHandler.hpp"
 

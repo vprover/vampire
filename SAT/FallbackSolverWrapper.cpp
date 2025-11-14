@@ -15,8 +15,6 @@
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "SAT/SATClause.hpp"
-
 #include "FallbackSolverWrapper.hpp"
 
 namespace SAT

@@ -12,21 +12,11 @@
  * Implements class InterpretedEvaluation.
  */
 
-#include "Shell/Options.hpp"
-
-#include "Lib/Exception.hpp"
-#include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Int.hpp"
 #include "Kernel/Ordering.hpp" 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Signature.hpp"
-
-#include "Indexing/TermSharing.hpp"
 
 #include "InterpretedEvaluation.hpp"
 

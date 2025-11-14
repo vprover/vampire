@@ -20,8 +20,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/List.hpp"
-
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 

@@ -15,7 +15,6 @@
 #include "Inferences/ProofExtra.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Parse/TPTP.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
 

@@ -14,7 +14,7 @@
 
 #include <cerrno>
 #include <csignal>
-#include <errno.h>
+#include <cerrno>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>

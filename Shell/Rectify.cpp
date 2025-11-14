@@ -14,7 +14,6 @@
  * @since 23/01/2004 Manchester, changed to use non-static objects
  */
 
-#include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Recycled.hpp"
 
@@ -25,8 +24,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
-
-#include "Indexing/TermSharing.hpp"
 
 #include "Rectify.hpp"
 

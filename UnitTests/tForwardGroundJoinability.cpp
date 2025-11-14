@@ -12,6 +12,8 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
 
+#include "Indexing/CodeTreeInterfaces.hpp"
+
 #include "Inferences/ForwardGroundJoinability.hpp"
 
 #define MY_SYNTAX_SUGAR          \
