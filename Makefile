@@ -408,7 +408,6 @@ VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
 	   FMB/Monotonicity.o\
 	   FMB/FunctionRelationshipInference.o\
-	   FMB/FiniteModel.o\
 	   FMB/FiniteModelMultiSorted.o\
            FMB/FiniteModelBuilder.o
 
