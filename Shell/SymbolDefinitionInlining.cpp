@@ -126,12 +126,6 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
           return ts;
         }
 
-        // Replace [$proj(0, t), ..., $proj(n, t)] with t
-        TermList tupleConstant;
-        if (mirroredTuple(t, tupleConstant)) {
-          return tupleConstant;
-        }
-
         return TermList(Term::createTuple(t));
       }
 
@@ -177,50 +171,6 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
   }
 
   return TermList(Term::create(term, args.begin()));
-}
-
-bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
-  bool foundTupleConstant = false;
-  TermList tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
-  ASS(tupleSort.isTupleSort());
-  for (unsigned i = 0; i < tuple->arity(); i++) {
-    if (!tuple->nthArgument(i)->isTerm()) {
-      return false;
-    }
-    Term* arg = (tuple->nthArgument(i))->term();
-    TermList possibleTupleConstant;
-    if (arg->isSpecial()) {
-      if (arg->specialFunctor() != SpecialFunctor::FORMULA) {
-        return false;
-      }
-      Formula* f = arg->getSpecialData()->getFormula();
-      if (f->connective() != LITERAL) {
-        return false;
-      }
-      Literal* l = f->literal();
-      if (l->functor() != Theory::tuples()->getProjectionFunctor(i, tupleSort)) {
-        return false;
-      }
-      possibleTupleConstant = *l->nthArgument(0);
-    } else {
-      if (arg->functor() != Theory::tuples()->getProjectionFunctor(i, tupleSort)) {
-        return false;
-      }
-      possibleTupleConstant = *arg->nthArgument(0);
-    }
-    if (!possibleTupleConstant.isTerm()) {
-      return false;
-    }
-    if (!foundTupleConstant) {
-      tupleConstant = possibleTupleConstant;
-      foundTupleConstant = true;
-    } else {
-      if (possibleTupleConstant != tupleConstant) {
-        return false;
-      }
-    }
-  }
-  return true;
 }
 
 Formula* SymbolDefinitionInlining::process(Formula* formula) {

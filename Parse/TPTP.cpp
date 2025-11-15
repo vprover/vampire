@@ -2364,16 +2364,17 @@ void TPTP::endLetTypes()
   symbol->setType(type);
   symbol->markLetBound();
 
-  LetSymbolName symbolName(name, arity);
-  LetSymbolReference symbolReference(functor, isPredicate);
+  auto args = TermStack::fromIterator(range(0,arity).map([](unsigned v) { return TermList::var(v); }));
+  auto def = Term::create(functor, args);
 
+  LetSymbolName symbolName(name, arity);
   LetSymbols scope = _letTypedSymbols.pop();
 
-  if (findLetSymbol(symbolName, scope, symbolReference)) {
+  if (findLetSymbol(symbolName, scope)) {
     USER_ERROR("The symbol " + name + " of arity " + Int::toString(arity) + " is defined twice in a $let-expression.");
   }
 
-  scope.push(LetSymbol(symbolName, symbolReference));
+  scope.push(LetSymbol(symbolName, def));
   _letTypedSymbols.push(scope);
 
   bool multipleLetTypes = _bools.pop();
@@ -2509,19 +2510,14 @@ void TPTP::symbolDefinition()
   }
 
   LetSymbolName name(nm, arity);
-  LetSymbolReference ref;
-  if (!findLetSymbol(name, _letTypedSymbols.top(), ref)) {
+  auto def = findLetSymbol(name, _letTypedSymbols.top());
+  if (!def) {
     USER_ERROR("Symbol " + nm + " with arity " + Int::toString(arity) + " is used in a let definition without a declared type");
   }
 
-  unsigned symbol = SYMBOL(ref);
-  bool isPredicate = IS_PREDICATE(ref);
-
   if (arity > 0) {
-    OperatorType* type = isPredicate
-                       ? env.signature->getPredicate(symbol)->predType()
-                       : env.signature->getFunction(symbol)->fnType();
-
+    // TODO deal with polymorphic types
+    auto type = SortHelper::getType(def);
     unsigned index = 0;
     while (vars.isNonEmpty()) {
       unsigned var = vars.pop();
@@ -2535,7 +2531,7 @@ void TPTP::symbolDefinition()
   }
 
   LetDefinitions definitions = _letDefinitions.pop();
-  definitions.push(LetSymbolReference(symbol, isPredicate));
+  definitions.push(def);
   _letDefinitions.push(definitions);
 
   _varLists.push(vs);
@@ -2565,20 +2561,13 @@ void TPTP::tupleDefinition()
     }
 
     LetSymbolName constantName(constant, 0);
-    LetSymbolReference ref;
-    if (!findLetSymbol(constantName, _letTypedSymbols.top(), ref)) {
+    auto def = findLetSymbol(constantName, _letTypedSymbols.top());
+    if (!def) {
       USER_ERROR("Constant " + constant + " is used in a tuple let definition without a declared sort");
     }
 
-    unsigned symbol = SYMBOL(ref);
-    bool isPredicate = IS_PREDICATE(ref);
-
-    symbols.push(symbol);
-
-    TermList sort = isPredicate
-                  ? AtomicSort::boolSort()
-                  : env.signature->getFunction(symbol)->fnType()->result();
-    sorts.push(sort);
+    symbols.push(def->functor());
+    sorts.push(SortHelper::getResultSort(def));
 
     if (getTok(0).tag == T_NAME) {
       constant = name();
@@ -2590,11 +2579,12 @@ void TPTP::tupleDefinition()
     }
   } while (true);
 
-  TermList tupleSort = AtomicSort::tupleSort(sorts.size(), sorts.begin());
-  unsigned tupleFunctor = Theory::tuples()->getFunctor(tupleSort);
+  auto args = sorts;
+  args.loadFromIterator(range(0,sorts.size()).map([](unsigned v) { return TermList::var(v); }));
+  auto let = Term::create(Theory::tuples()->getFunctor(sorts.size()), args);
 
   LetDefinitions definitions = _letDefinitions.pop();
-  definitions.push(LetSymbolReference(tupleFunctor, false));
+  definitions.push(let);
   _letDefinitions.push(definitions);
 
   VList* constants = VList::empty();
@@ -2608,26 +2598,20 @@ void TPTP::tupleDefinition()
 } // tupleDefinition
 
 void TPTP::endDefinition() {
-  LetSymbolReference ref = _letDefinitions.top().top();
-  unsigned symbol = SYMBOL(ref);
-  bool isPredicate = IS_PREDICATE(ref);
+  auto def = _letDefinitions.top().top();
 
   TermList definition = _termLists.top();
   TermList definitionSort = sortOf(definition);
 
-  TermList refSort = isPredicate
-                     ? AtomicSort::boolSort()
-                     : env.signature->getFunction(symbol)->fnType()->result();
+  auto refSort = SortHelper::getResultSort(def);
 
   if (refSort != definitionSort) {
-    std::string definitionSortName = definitionSort.toString();
-    std::string refSymbolName = isPredicate
+    auto symbol = def->functor();
+    auto refSymbolName = def->isLiteral()
                             ? env.signature->predicateName(symbol)
                             : env.signature->functionName(symbol);
-    OperatorType* type = isPredicate
-                         ? env.signature->getPredicate(symbol)->predType()
-                         : env.signature->getFunction(symbol)->fnType();
-    USER_ERROR("The term " + definition.toString() + " of the sort " + definitionSortName +
+    auto type = SortHelper::getType(def);
+    USER_ERROR("The term " + definition.toString() + " of the sort " + definitionSort.toString() +
                " is used as definition of the symbol " + refSymbolName +
                " of the type " + type->toString());
   }
@@ -2642,28 +2626,26 @@ void TPTP::endDefinition() {
   }
 } // endDefinition
 
-bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference) {
-  Stack<LetSymbols>::TopFirstIterator scopes(_letSymbols);
-  while (scopes.hasNext()) {
-    LetSymbols scope = scopes.next();
-    if (findLetSymbol(symbolName, scope, symbolReference)) {
-      return true;
+Term* TPTP::findLetSymbol(LetSymbolName symbolName)
+{
+  for (const auto& scope : iterTraits(_letSymbols.iter())) {
+    auto def = findLetSymbol(symbolName, scope);
+    if (def) {
+      return def;
     }
   }
-  return false;
-} // findLetSymbol(LetSymbolName,LetSymbolReference)
+  return nullptr;
+} // findLetSymbol(LetSymbolName)
 
-bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference) {
-  LetSymbols::Iterator symbols(scope);
-  while (symbols.hasNext()) {
-    LetSymbol symbol = symbols.next();
-    if (symbol.first == symbolName) {
-      symbolReference = symbol.second;
-      return true;
+Term* TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbols scope)
+{
+  for (const auto& [symbol, def] : scope) {
+    if (symbol == symbolName) {
+      return def;
     }
   }
-  return false;
-} // findLetSymbol(LetSymbolName,LetSymbols,LetSymbolReference)
+  return nullptr;
+} // findLetSymbol(LetSymbolName,LetSymbols)
 
 
 /**
@@ -2679,18 +2661,13 @@ void TPTP::endLet()
   LetDefinitions scope = _letDefinitions.pop(); // TODO: inlining this crashes the program, WTF?
   LetDefinitions::TopFirstIterator definitions(scope);
   while (definitions.hasNext()) {
-    LetSymbolReference ref = definitions.next();
-    unsigned symbol = SYMBOL(ref);
-    bool isPredicate = IS_PREDICATE(ref);
+    auto def = definitions.next();
+    auto symbol = def->functor();
 
     VList* varList = _varLists.pop();
     TermList definition = _termLists.pop();
 
-    bool isTuple = false;
-    if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = resultSort.isTupleSort();
-    }
+    bool isTuple = SortHelper::getResultSort(def).isTupleSort();
 
     if (isTuple) {
       let = TermList(Term::createTupleLet(symbol, varList, definition, let, sort));
@@ -2710,16 +2687,15 @@ void TPTP::endTuple()
   unsigned arity = (unsigned)_ints.pop();
   ASS_GE(_termLists.size(), arity);
 
-  DArray<TermList> elements(arity);
-  DArray<TermList> sorts(arity);
+  DArray<TermList> args(2*arity);
 
   for (int i = arity - 1; i >= 0; i--) {
     TermList ts = _termLists.pop();
-    elements[i] = ts;
-    sorts[i] = sortOf(ts);
+    args[arity+i] = ts;
+    args[i] = sortOf(ts);
   }
 
-  Term* t = Term::createTuple(arity, sorts.begin(), elements.begin());
+  auto t = Term::createTuple(arity, args.begin());
   _termLists.push(TermList(t));
 } // endTuple
 
@@ -2958,9 +2934,9 @@ void TPTP::endTerm()
     return;
   }
 
-  LetSymbolReference ref;
+  auto def = findLetSymbol(LetSymbolName(name, arity));
   if (env.signature->predicateExists(name, arity) ||
-      (findLetSymbol(LetSymbolName(name, arity), ref) && IS_PREDICATE(ref)) ||
+      (def && def->isLiteral()) ||
       findInterpretedPredicate(name, arity)) {
     // if the function symbol is actually a predicate,
     // we need to construct a formula and wrap it inside a term
@@ -3134,9 +3110,9 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   int pred;
-  LetSymbolReference ref;
-  if (findLetSymbol(LetSymbolName(name, arity), ref) && IS_PREDICATE(ref)) {
-    pred = (int)SYMBOL(ref);
+  auto def = findLetSymbol(LetSymbolName(name, arity));
+  if (def && def->isLiteral()) {
+    pred = (int)def->functor();
   } else {
     if (arity > 0) {
       bool dummy;
@@ -3216,9 +3192,9 @@ TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   unsigned fun;
-  LetSymbolReference ref;
-  if (findLetSymbol(LetSymbolName(name, arity), ref) && !IS_PREDICATE(ref)) {
-    fun = SYMBOL(ref);
+  auto def = findLetSymbol(LetSymbolName(name, arity));
+  if (def && !def->isLiteral()) {
+    fun = def->functor();
   } else {
     bool dummy;
     if (arity > 0) {

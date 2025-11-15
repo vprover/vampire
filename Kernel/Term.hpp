@@ -531,7 +531,7 @@ public:
   static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
   static Term* createTupleLet(unsigned functor, VList* symbols, TermList binding, TermList body, TermList bodySort);
   static Term* createFormula(Formula* formula);
-  static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
+  static Term* createTuple(unsigned arity, TermList* args);
   static Term* createTuple(Term* tupleTerm);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);

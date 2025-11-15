@@ -43,8 +43,6 @@ class SymbolDefinitionInlining {
 
     TermList substitute(Term::Iterator tit);
 
-    bool mirroredTuple(Term* tuple, TermList &tupleConstant);
-
     unsigned _counter;
     unsigned _freshVarOffset;
     List<std::pair<unsigned, unsigned>>* _varRenames;

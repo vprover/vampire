@@ -598,13 +598,8 @@ private:
   /** a function name and arity */
   typedef std::pair<std::string, unsigned> LetSymbolName;
 
-  /** a symbol number with a predicate/function flag */
-  typedef std::pair<unsigned, bool> LetSymbolReference;
-  #define SYMBOL(ref) (ref.first)
-  #define IS_PREDICATE(ref) (ref.second)
-
   /** a definition of a function symbol, defined in $let */
-  typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;
+  typedef std::pair<LetSymbolName, Term*> LetSymbol;
 
   /** a scope of function definitions */
   typedef Stack<LetSymbol> LetSymbols;
@@ -617,10 +612,10 @@ private:
   LastPushed _lastPushed;
 
   /** finds if the symbol has been defined in an enclosing $let */
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);
+  Term* findLetSymbol(LetSymbolName symbolName);
+  Term* findLetSymbol(LetSymbolName symbolName, LetSymbols scope);
 
-  typedef Stack<LetSymbolReference> LetDefinitions;
+  typedef Stack<Term*> LetDefinitions;
   Stack<LetDefinitions> _letDefinitions;
 
   /** model definition formula */

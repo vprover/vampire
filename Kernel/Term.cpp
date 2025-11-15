@@ -574,10 +574,9 @@ std::string Term::headToString() const
         ASS_EQ(arity(), 0);
         Term* term = sd->getTupleTerm();
         std::string termList = "";
-        Term::Iterator tit(term);
-        unsigned i = term->arity();
-        while (tit.hasNext()) {
-          termList += tit.next().toString();
+        unsigned i = term->numTermArguments();
+        for (const auto& arg : termArgIter(term)) {
+          termList += arg.toString();
           if (--i > 0) {
             termList += ", ";
           }
@@ -1190,7 +1189,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList bindi
 {
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
-  ASS_EQ(tupleSymbol->arity(), VList::length(symbols));
+  ASS_EQ(tupleSymbol->numTermArguments(), VList::length(symbols));
   ASS_REP(tupleSymbol->fnType()->result().isTupleSort(), tupleFunctor);
 
   Set<pair<int,bool> > distinctSymbols;
@@ -1259,9 +1258,9 @@ Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList
   return s;
 }
 
-Term* Term::createTuple(unsigned arity, TermList* sorts, TermList* elements) {
-  unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
-  Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
+Term* Term::createTuple(unsigned arity, TermList* args) {
+  unsigned tupleFunctor = Theory::tuples()->getFunctor(arity);
+  Term* tupleTerm = Term::create(tupleFunctor, 2*arity, args);
   return createTuple(tupleTerm);
 }
 
