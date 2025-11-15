@@ -21,7 +21,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Connective.hpp"
-#include "Kernel/InferenceStore.hpp"
 
 #include "Shell/Flattening.hpp"
 #include "SimplifyFalseTrue.hpp"

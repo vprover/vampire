@@ -34,24 +34,24 @@ public:
    *
    * A requirement is that in a clause, each variable occurs at most once.
    */
-  virtual void addClause(SATClause* cl) override;
+  void addClause(SATClause* cl) override;
 
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var) override;
+  bool isZeroImplied(unsigned var) override;
 
-  virtual void ensureVarCount(unsigned newVarCnt) override { _next = std::max(_next, int(newVarCnt) + 1); }
+  void ensureVarCount(unsigned newVarCnt) override { _next = std::max(_next, int(newVarCnt) + 1); }
 
-  virtual unsigned newVar() override { return _next++; }
+  unsigned newVar() override { return _next++; }
 
-  virtual void suggestPolarity(unsigned var, unsigned pol) override {
+  void suggestPolarity(unsigned var, unsigned pol) override {
     _solver.reserve(vampire2Cadical(true, var));
     _solver.phase(vampire2Cadical(pol, var));
   }

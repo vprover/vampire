@@ -16,22 +16,15 @@
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 
-#include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/List.hpp"
 #include "Shell/Skolem.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/LiteralSelector.hpp"
-#include "Saturation/SaturationAlgorithm.hpp"
 #include "NegativeExt.hpp"
 
 

@@ -18,12 +18,10 @@
 
 #include "Lib/ArrayMap.hpp"
 
-#include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/SafeRecursion.hpp"
 #include "Lib/DynamicHeap.hpp"
 
-#include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Shell/DistinctProcessor.hpp"

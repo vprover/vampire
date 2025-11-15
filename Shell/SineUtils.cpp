@@ -17,7 +17,6 @@
 
 #include "Lib/Deque.hpp"
 #include "Lib/DHSet.hpp"
-#include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -29,7 +28,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 

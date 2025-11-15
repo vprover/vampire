@@ -18,6 +18,7 @@
 #include "SATLiteral.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 #include <climits>
 

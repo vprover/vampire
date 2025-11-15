@@ -16,7 +16,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cerrno>
-#include <iostream>
 #include <climits>
 
 #include "Int.hpp"

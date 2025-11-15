@@ -15,7 +15,6 @@
 #ifndef __AnswerLiteralManager__
 #define __AnswerLiteralManager__
 
-#include <map>
 #include <vector>
 
 #include "Forwards.hpp"
@@ -27,8 +26,6 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/InferenceStore.hpp"
-#include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermTransformer.hpp"
 
 #include "Inferences/InferenceEngine.hpp"

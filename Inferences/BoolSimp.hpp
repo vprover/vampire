@@ -24,7 +24,7 @@ namespace Inferences {
 class BoolSimp : public ImmediateSimplificationEngine
 {
   public:
-    Clause* simplify(Clause* premise);
+    Clause* simplify(Clause* premise) override;
 
   private:
     TermList boolSimplify(TermList term); 

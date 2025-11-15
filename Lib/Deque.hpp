@@ -15,8 +15,6 @@
 #ifndef __Deque__
 #define __Deque__
 
-#include "Forwards.hpp"
-
 #include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"

@@ -23,7 +23,6 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Output.hpp"
-#include "Lib/StringUtils.hpp"
 
 #include "Term.hpp"
 

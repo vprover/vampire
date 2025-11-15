@@ -20,14 +20,11 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
-
-#include "Indexing/TermSharing.hpp"
 
 #include "EqualityProxyMono.hpp"
 

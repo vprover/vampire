@@ -24,7 +24,7 @@ namespace Inferences {
 class Cases : public GeneratingInferenceEngine {
   public:
     Clause* performParamodulation(Clause* cl, Literal* lit, TermList t);
-    ClauseIterator generateClauses(Clause* premise);
+    ClauseIterator generateClauses(Clause* premise) override;
     struct RewriteableSubtermsFn;
     struct ResultFn;
 };

@@ -15,7 +15,6 @@
 #ifndef __Z3Interfacing__
 #define __Z3Interfacing__
 
-#include <algorithm>
 #if VZ3
 
 /* an (imperfect and under development) version of tracing the Z3 interface
@@ -37,13 +36,11 @@
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
 #include "Lib/Coproduct.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "Kernel/Signature.hpp"
 
 #define __EXCEPTIONS 1
 #include "z3++.h"
-#include "z3_api.h"
 
 namespace SAT{
 
@@ -176,7 +173,7 @@ class Z3Interfacing : public SATSolver
 public:
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, std::string const& exportSmtlib,Shell::Options::ProblemExportSyntax s);
   Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, std::string const& exportSmtlib, Shell::Options::ProblemExportSyntax s);
-  ~Z3Interfacing();
+  ~Z3Interfacing() override;
 
   static char const* z3_full_version();
 
@@ -185,13 +182,13 @@ public:
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var) override;
+  bool isZeroImplied(unsigned var) override;
 
   void ensureVarCount(unsigned newVarCnt) override {
     while (_varCnt < newVarCnt) {
@@ -202,9 +199,9 @@ public:
   unsigned newVar() override;
 
   // Currently not implemented for Z3
-  virtual void suggestPolarity(unsigned var, unsigned pol) override {}
+  void suggestPolarity(unsigned var, unsigned pol) override {}
 
-  virtual Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
   SATLiteralStack failedAssumptions() override;
 
   // TODO do something more useful here: should now be possible

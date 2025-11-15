@@ -22,7 +22,6 @@
 #include "Lib/Deque.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
 

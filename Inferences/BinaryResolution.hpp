@@ -40,8 +40,8 @@ public:
     : _index(0)
   {  }
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
@@ -53,7 +53,7 @@ public:
                                 ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts,
                                 bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, PartialRedundancyHandler const* parRedHandler = 0);
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
 private:
   Clause* generateClause(

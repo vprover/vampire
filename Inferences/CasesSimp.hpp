@@ -23,7 +23,7 @@ namespace Inferences {
 
 class CasesSimp : public ImmediateSimplificationEngineMany {
   public:
-    Option<ClauseIterator> simplifyMany(Clause* premise);
+    Option<ClauseIterator> simplifyMany(Clause* premise) override;
 
     ClauseIterator performSimplification(Clause* cl, Literal* lit, TermList t);
     ClauseIterator generateClauses(Clause* premise);

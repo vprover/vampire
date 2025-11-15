@@ -22,8 +22,6 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-#include "Lib/Event.hpp"
 #include "Lib/InverseLookup.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"

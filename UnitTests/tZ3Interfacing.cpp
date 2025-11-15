@@ -12,7 +12,6 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "SAT/Z3Interfacing.hpp"
-#include <fstream>
 
 #if VZ3
 

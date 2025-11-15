@@ -19,9 +19,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/Hash.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
 
 #include "CodeTree.hpp"

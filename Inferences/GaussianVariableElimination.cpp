@@ -12,9 +12,6 @@
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/InterpretedLiteralEvaluator.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
 
 #define DEBUG(...)  //DBG(__VA_ARGS__)
 

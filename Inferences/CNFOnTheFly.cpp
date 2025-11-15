@@ -15,13 +15,9 @@
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 

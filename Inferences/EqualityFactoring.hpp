@@ -20,7 +20,6 @@
 
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
-#include "Shell/Options.hpp"
 
 namespace Inferences {
 
@@ -33,7 +32,7 @@ class EqualityFactoring
 {
 public:
   EqualityFactoring();
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct IsPositiveEqualityFn;
   struct IsDifferentPositiveEqualityFn;

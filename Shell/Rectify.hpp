@@ -62,13 +62,13 @@ private:
     {
       fillInterval(0,15);
     }
-    ~Renaming();
+    ~Renaming() override;
     bool tryGetBoundAndMarkUsed (int var,int& boundTo) const;
     VarWithUsageInfo getBoundAndUsage(int var) const;
     unsigned bind (unsigned v);
     void undoBinding(unsigned v);
   private:
-    virtual void fillInterval (size_t start,size_t end);
+    void fillInterval (size_t start,size_t end) override;
     /** next variable to rename to */
     unsigned _nextVar;
   };

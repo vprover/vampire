@@ -20,18 +20,14 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/DHMap.hpp"
 
 #include "SAT/SATClause.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"
-#include "InferenceStore.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
-#include "SubformulaIterator.hpp"
 
 #include "Unit.hpp"
 

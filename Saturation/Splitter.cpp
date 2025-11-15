@@ -20,7 +20,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/SharedSet.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 

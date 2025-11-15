@@ -43,11 +43,11 @@ public:
     , _index(nullptr)
   { ASS(_shared); }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final ;
+  void detach() final ;
 
 
-  virtual bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
 #endif // VDEBUG

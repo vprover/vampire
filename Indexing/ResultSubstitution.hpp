@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/SmartPtr.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Renaming.hpp"
 

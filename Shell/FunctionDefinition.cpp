@@ -17,9 +17,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -28,7 +26,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 

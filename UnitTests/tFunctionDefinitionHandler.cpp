@@ -11,10 +11,6 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-#include <tuple>
-
-#include "Kernel/FormulaUnit.hpp"
-
 #include "Shell/FunctionDefinitionHandler.hpp"
 
 using namespace Shell;

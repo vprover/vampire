@@ -12,6 +12,8 @@
  * Implements class TermTransformer.
  */
 
+#include "Lib/DArray.hpp"
+
 #include "SortHelper.hpp"
 #include "Term.hpp"
 

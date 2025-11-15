@@ -18,7 +18,6 @@
 
 
 #include "Forwards.hpp"
-#include "Kernel/Polynomial.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"
 #include "Term.hpp"
@@ -29,7 +28,6 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/TypedTermList.hpp"
-#include <initializer_list>
 
 #if VDEBUG
 #include <iostream>

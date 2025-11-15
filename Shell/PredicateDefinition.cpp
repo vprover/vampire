@@ -12,7 +12,6 @@
  * Implements class PredicateDefinition.
  */
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/ScopedLet.hpp"

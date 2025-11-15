@@ -22,8 +22,6 @@
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
-#include "Saturation/Splitter.hpp"
-
 namespace Inferences {
 
 using namespace Indexing;

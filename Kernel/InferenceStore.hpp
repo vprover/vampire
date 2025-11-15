@@ -26,7 +26,6 @@
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 

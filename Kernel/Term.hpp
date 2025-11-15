@@ -29,16 +29,13 @@
 #ifndef __Term__
 #define __Term__
 
-#include "Lib/Output.hpp"
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
 #include "Lib/BitUtils.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Reflection.hpp"
-#include "Lib/Sort.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Coproduct.hpp"

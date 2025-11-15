@@ -17,11 +17,13 @@
 #ifndef __Statistics__
 #define __Statistics__
 
+#include <array>
 #include <ostream>
 
 #include "Forwards.hpp"
-#include "Lib/Timer.hpp"
 #include "Debug/Assertion.hpp"
+
+#include "Kernel/Inference.hpp"
 
 extern const char *VERSION_STRING;
 

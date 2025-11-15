@@ -14,18 +14,13 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Renaming.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SortHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
