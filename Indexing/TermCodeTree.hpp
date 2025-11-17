@@ -17,18 +17,9 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/Index.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/Hash.hpp"
-#include "Lib/List.hpp"
-#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/TriangularArray.hpp"
 #include "Lib/Vector.hpp"
-#include "Lib/VirtualIterator.hpp"
-
 
 #include "CodeTree.hpp"
 

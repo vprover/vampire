@@ -13,7 +13,6 @@
  */
 
 #include "Debug/Assertion.hpp"
-#include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -65,7 +64,6 @@
 #include "Inferences/CodeTreeForwardSubsumptionAndResolution.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
-#include "Inferences/BoolEqToDiseq.hpp"
 #include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Injectivity.hpp"
@@ -80,8 +78,6 @@
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
-#include "Inferences/ArgCong.hpp"
-#include "Inferences/NegativeExt.hpp"
 #include "Inferences/Choice.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
@@ -219,8 +215,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
-    _partialRedundancyHandler(), _generatedClauseCount(0),
-    _activationLimit(0)
+    _partialRedundancyHandler(), _activationLimit(0)
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
@@ -858,9 +853,6 @@ bool SaturationAlgorithm::clausesFlushed()
  */
 void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
-  _generatedClauseCount++;
-  env.statistics->generatedClauses++;
-
   cl=doImmediateSimplification(cl);
   if (!cl) {
     return;
@@ -970,7 +962,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   if (synthesis) {
     ASS((_answerLiteralManager != nullptr));
     Clause* ansLitCl = cl;
-    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && static_cast<Shell::SynthesisALManager*>(_answerLiteralManager)->isComputable(cl)) {
       ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
     }
     Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
@@ -1649,7 +1641,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addForwardSimplifierToFront(new ForwardDemodulationImpl());
+        res->addForwardSimplifierToFront(new ForwardDemodulation());
         break;
       case Options::Demodulation::OFF:
         break;

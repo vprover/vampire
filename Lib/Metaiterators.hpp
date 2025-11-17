@@ -697,20 +697,20 @@ public:
   {
     _items=getUniqueItemList(inn, _size);
   }
-  ~UniquePersistentIterator()
+  ~UniquePersistentIterator() override
   {
     if(_items) {
       ItemList::destroy(_items);
     }
   }
-  inline bool hasNext() { return _items; };
-  inline T next()
+  inline bool hasNext() override { return _items; };
+  inline T next() override
   {
     return ItemList::pop(_items);
   };
 
-  inline bool knowsSize() const { return true; }
-  inline size_t size() const { return _size; }
+  inline bool knowsSize() const override { return true; }
+  inline size_t size() const override { return _size; }
 private:
   typedef DHSet<T> ItemSet;
 

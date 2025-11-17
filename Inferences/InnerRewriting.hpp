@@ -16,7 +16,6 @@
 #define __InnerRewriting__
 
 #include "Forwards.hpp"
-#include "Shell/Options.hpp"
 
 #include "InferenceEngine.hpp"
 

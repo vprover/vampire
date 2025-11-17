@@ -111,14 +111,6 @@ bool InductionHelper::isIntInductionOn() {
   return intInd;
 }
 
-bool InductionHelper::isIntInductionOneOn() {
-  return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::ONE);
-}
-
-bool InductionHelper::isIntInductionTwoOn() {
-  return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::TWO);
-}
-
 bool InductionHelper::isInductionForFiniteIntervalsOn() {
   static bool finite = env.options->integerInductionInterval() == Options::IntegerInductionInterval::FINITE ||
                        env.options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
@@ -148,7 +140,8 @@ bool InductionHelper::isInductionClause(Clause* c) {
   static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
   static unsigned maxD = env.options->maxInductionDepth();
   static bool unitOnly = env.options->inductionUnitOnly();
-  return ((!unitOnly || c->length()==1) && 
+  static bool ansLits = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS || env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN);
+  return ((!unitOnly || c->length()==1 || (c->length() == 2 && ansLits && c->hasAnswerLiteral())) && 
           (all || ( (goal || goal_plus) && c->derivedFromGoal())) &&
                   (maxD == 0 || c->inference().inductionDepth() < maxD)
          );
@@ -159,10 +152,6 @@ bool InductionHelper::isInductionLiteral(Literal* l) {
   return (!negOnly || l->isNegative() ||
           (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
          );
-}
-
-bool InductionHelper::isGroundInductionLiteral(Literal* l) {
-  return (l->ground() && isInductionLiteral(l));
 }
 
 bool inductionLiteralHasAdmissibleVariables(Literal* l) {
@@ -187,20 +176,25 @@ bool inductionLiteralHasAdmissibleVariables(Literal* l) {
 
 bool InductionHelper::isNonGroundInductionLiteral(Literal* l) {
   static bool groundOnly = env.options->inductionGroundOnly();
-  return (!groundOnly && !l->ground() && inductionLiteralHasAdmissibleVariables(l) && isInductionLiteral(l));
+  return (!groundOnly && inductionLiteralHasAdmissibleVariables(l) && isInductionLiteral(l));
 }
 
-bool InductionHelper::isInductionTermFunctor(unsigned f) {
+bool InductionHelper::isInductionTerm(Term* t)
+{
+  if (!t->ground()) {
+    return false;
+  }
+
   static Options::InductionChoice kind = env.options->inductionChoice();
   static bool all = (kind == Options::InductionChoice::ALL);
   static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return ((complexTermsAllowed || env.signature->functionArity(f)==0) &&
-          (all ||
-           env.signature->getFunction(f)->inGoal() ||
-           (goal_plus && env.signature->getFunction(f)->inductionSkolem()) // set in NewCNF
-          )
-         );
+
+  auto sym = t->isLiteral()
+    ? env.signature->getPredicate(t->functor())
+    : env.signature->getFunction(t->functor());
+  return (complexTermsAllowed || t->arity()==0) &&
+    (all || sym->inGoal() || (goal_plus && sym->inductionSkolem())); // set in NewCNF
 }
 
 static bool containsSkolem(Term* t) {
@@ -277,7 +271,7 @@ bool InductionHelper::isStructInductionTerm(Term* t) {
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
   return (env.signature->isTermAlgebraSort(SortHelper::getResultSort(t)) &&
            // skip base constructors even if induction on complex terms is on:
-          ((complexTermsAllowed && env.signature->functionArity(t->functor()) != 0) ||
+          ((complexTermsAllowed && t->arity() != 0) ||
            // otherwise skip all constructors:
            !env.signature->getFunction(t->functor())->termAlgebraCons())
          );

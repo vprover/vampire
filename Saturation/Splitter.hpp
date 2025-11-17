@@ -189,6 +189,7 @@ public:
   static std::string splitsToString(SplitSet* splits);
   static SATLiteral getLiteralFromName(SplitLevel compName);
   static std::string getFormulaStringFromName(SplitLevel compName, bool negated = false);
+  static std::string getFormulaStringFromLiteral(SATLiteral l);
 
   bool isUsedName(SplitLevel name) const {
     ASS_L(name,_db.size());

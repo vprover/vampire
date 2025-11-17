@@ -16,8 +16,6 @@
  * [1] http://arxiv.org/abs/1505.01682
  */
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -32,7 +30,6 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Rectify.hpp"
 

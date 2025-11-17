@@ -20,7 +20,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/SharedSet.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 
@@ -34,6 +33,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -80,7 +80,7 @@ void SplittingBranchSelector::init()
       inner = new MinisatInterfacing;
       break;
     case Options::SatSolver::CADICAL:
-      inner = new CadicalInterfacing(_parent.getOptions(),true);
+      inner = new CadicalInterfacing;
       break;
 #if VZ3
     case Options::SatSolver::Z3:
@@ -175,27 +175,34 @@ static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 
 void SplittingBranchSelector::handleSatRefutation()
 {
-  SATClauseList* satPremises = env.options->minimizeSatProofs()
-    ? _solver.minimizedPremises()
-    : _solver.premiseList();
-  ASS(satPremises);
+  SATClause *proof = nullptr;
+  SATClauseList *satPremises = nullptr;
+#if VZ3
+  if(_parent.hasSMTSolver)
+    satPremises = _solver.premiseList();
+#endif
+  if(!satPremises) {
+    proof = _solver.proof();
+    SATInference::visitFOConversions(proof, [&](SATClause *cl) {
+      SATClauseList::push(cl, satPremises);
+    });
+  }
+  ASS(satPremises)
+
+  UnitList *foPremises = nullptr;
+  for(auto satPrem : iterTraits(satPremises->iter()))
+    UnitList::push(satPrem->inference()->foConversion()->getOrigin(), foPremises);
+  ASS(foPremises)
 
   if (!env.colorUsed) { // color oblivious, simple approach
-    UnitStack premStack;
-    for(SATClause *satPrem : iterTraits(satPremises->iter()))
-      SATInference::collectFOPremises(satPrem, premStack);
-    UnitList* prems = UnitList::fromIterator(premStack.iter());
-
-    Clause* foRef = Clause::empty(NonspecificInferenceMany(
+    Clause *foRef = Clause::empty(
 #if VZ3
       _parent.hasSMTSolver
-      ? InferenceRule::AVATAR_REFUTATION_SMT
-      : InferenceRule::AVATAR_REFUTATION,
-#else
-      InferenceRule::AVATAR_REFUTATION,
+      ? NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION_SMT, foPremises)
+      :
 #endif
-      prems
-    ));
+      Inference(InferenceOfASatClause(InferenceRule::AVATAR_REFUTATION, proof, foPremises))
+    );
 
     // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
     throw MainLoop::RefutationFoundException(foRef);
@@ -584,6 +591,7 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
+
 std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
   if (splPrefix.empty()) {
@@ -597,6 +605,10 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
   if (negated) {
     lit = lit.opposite();
   }
+  return getFormulaStringFromLiteral(lit);
+}
+
+std::string Splitter::getFormulaStringFromLiteral(SATLiteral lit) {
   if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());
   } else {
@@ -943,7 +955,7 @@ bool Splitter::doSplitting(Clause* cl)
   // When synthesizing programs:
   // if this clause contains an answer literal or is not computable, don't split it
   static bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-  if (synthesis && (cl->hasAnswerLiteral() || !cl->computable())) {
+  if (synthesis && (cl->hasAnswerLiteral() || !static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->isComputable(cl))) {
     return false;
   }
   if ((_stopSplittingAtTime && (unsigned)Timer::elapsedMilliseconds() >= _stopSplittingAtTime)
@@ -1024,7 +1036,6 @@ bool Splitter::doSplitting(Clause* cl)
 
   addSatClauseToSolver(splitClause);
 
-  env.statistics->satSplits++;
   return true;
 }
 

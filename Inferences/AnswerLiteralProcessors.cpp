@@ -15,7 +15,6 @@
 #include "Inferences/ProofExtra.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Parse/TPTP.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
 
@@ -27,10 +26,13 @@ namespace Inferences
 Clause* UncomputableAnswerLiteralRemoval::simplify(Clause* cl)
 {
   unsigned cLen = cl->length();
+  static SynthesisALManager* synthMan = static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance());
+  ASS(synthMan);
   for (unsigned li = 0; li < cLen; li++) {
     Literal* lit = (*cl)[li];
-    if (lit->isAnswerLiteral() && !lit->computableOrVar())
+    if (lit->isAnswerLiteral() && !synthMan->isComputableOrVar(lit)) {
       return nullptr;
+    }
   }
   return cl;
 }
@@ -146,6 +148,10 @@ Option<ClauseIterator> SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
   // or resolution (which fill in sythesisExtra).
   // Clauses with a different number of answer literals or prodced by other rules are checked
   // by other simplification rules.
+  // TODO: make this work also for:
+  // - InferenceRule::UNIT_RESULTING_RESOLUTION
+  // - InferenceRule::ALASCA_FOURIER_MOTZKIN
+  // - possibly other ALASCA BinInf-based rules
   if (numAnsLits != 2 ||
       ((cl->inference().rule() != InferenceRule::SUPERPOSITION) &&
        (cl->inference().rule() != InferenceRule::RESOLUTION) &&

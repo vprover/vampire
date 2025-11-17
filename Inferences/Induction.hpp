@@ -16,9 +16,6 @@
 #ifndef __Induction__
 #define __Induction__
 
-#include <cmath>
-#include <functional>
-#include <map>
 #include <unordered_map>
 
 #include "Forwards.hpp"
@@ -30,10 +27,8 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/TermTransformer.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/List.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -62,16 +57,15 @@ class ActiveOccurrenceIterator
 {
 public:
   ActiveOccurrenceIterator(Literal* lit, FunctionDefinitionHandler& fnDefHandler)
-  : _returnStack(8), _processStack(8), _fnDefHandler(fnDefHandler)
+  : _stack(8), _fnDefHandler(fnDefHandler)
   {
-    _processStack.push(lit);
+    _stack.push(lit);
   }
 
-  bool hasNext() override;
+  bool hasNext() override { return _stack.isNonEmpty(); }
   Term* next() override;
 private:
-  Stack<Term*> _returnStack;
-  Stack<Term*> _processStack;
+  Stack<Term*> _stack;
   FunctionDefinitionHandler& _fnDefHandler;
 };
 
@@ -88,7 +82,7 @@ struct StlClauseHash {
  * formulas can be easily detected. We allow multiple induction terms,
  * so we have to index the placeholders as well with @b i.
  */
-Term* getPlaceholderForTerm(const std::vector<Term*>& ts, unsigned i);
+Term* getPlaceholderForTerm(const Stack<Term*>& ts, unsigned i);
 
 /**
  * Term transformer class that replaces
@@ -96,24 +90,35 @@ Term* getPlaceholderForTerm(const std::vector<Term*>& ts, unsigned i);
  */
 class TermReplacement : public TermTransformer {
 public:
-  TermReplacement(const std::map<Term*, TermList>& m) : _m(m) {}
+  TermReplacement(const std::unordered_map<Term*, TermList>& m) : _m(m) {}
   TermList transformSubterm(TermList trm) override;
 protected:
-  std::map<Term*,TermList> _m;
+  std::unordered_map<Term*,TermList> _m;
 };
 
 /**
- * Same as @b TermReplacement, except we replace non-sort Skolems
- * with variables, used for strengthening induction hypotheses.
+ * Similar to @b TermReplacement, except we replace free
+ * variables with fresh variables, and replace non-sort Skolems
+ * with variables if induction hypothesis strengthening is on.
  */
-class SkolemSquashingTermReplacement : public TermReplacement {
+class InductionTermReplacement : public TermReplacement {
 public:
-  SkolemSquashingTermReplacement(const std::map<Term*, TermList>& m, unsigned& var)
-    : TermReplacement(m), _v(var) {}
+  InductionTermReplacement(const std::unordered_map<Term*, TermList>& m, bool squashSkolems, unsigned& nextVar)
+    : TermReplacement(m), _squashSkolems(squashSkolems), _nextVar(nextVar), _renaming() {}
   TermList transformSubterm(TermList trm) override;
-  DHMap<Term*, unsigned, SharedTermHash> _tv; // maps terms to their variable replacement
-private:
-  unsigned& _v; // fresh variable counter supported by caller
+  
+  void resetRenaming(RobSubstitution* subst, unsigned bank);
+  VList* getRenamedFreeVars() const;
+  VList* getVarsReplacingSkolems() const;
+
+  const bool _squashSkolems;
+  unsigned& _nextVar; // fresh variable counter supported by caller
+
+  DHMap<Term*, unsigned, SharedTermHash> _skolemToVarMap; // maps terms to their variable replacement
+  DHSet<unsigned> _varsReplacingSkolems;
+
+  DHMap<unsigned,unsigned> _renaming; // for renaming free variables
+  DHSet<unsigned> _renamedFreeVars;
 };
 
 /**
@@ -123,49 +128,48 @@ private:
  *   which are inducted upon.
  */
 struct InductionContext {
-  explicit InductionContext(std::vector<Term*>&& ts)
-    : _indTerms(ts) {}
-  explicit InductionContext(const std::vector<Term*>& ts)
-    : _indTerms(ts) {}
-  InductionContext(const std::vector<Term*>& ts, Literal* l, Clause* cl)
-    : InductionContext(ts)
+  InductionContext(const Stack<Term*>& indTerms, Literal* lit, Clause* cl)
+    : InductionContext(indTerms, { { cl, { lit } } }) {}
+  InductionContext(const Stack<Term*>& indTerms, Stack<std::pair<Clause*, LiteralStack>>&& cls)
+    : _indTerms(indTerms), _cls(cls)
   {
-    insert(cl, l);
-  }
-
-  void insert(Clause* cl, Literal* lit) {
-    // this constructs an empty inner map if cl is not yet mapped
-    auto node = _cls.emplace(cl, LiteralStack()).first;
-    node->second.push(lit);
+    ASS(iterTraits(_indTerms.iter()).all([](Term* t) { return t->ground(); }));
+    // sort the elements by the stacks of literals
+    for (const auto& e : _cls) { std::sort(e.second.begin(), e.second.end()); }
+    std::sort(_cls.begin(), _cls.end(), [](const auto& e1, const auto& e2) { return e1.second < e2.second; });
   }
 
   // These functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
   Formula* getFormula(
-    const InductionUnit& unit, const Substitution& typeBinder, unsigned& var,
-    VList** varsReplacingSkolems = nullptr, Substitution* subst = nullptr) const;
-  Formula* getFormulaWithFreeVar(const std::vector<TermList>& r, unsigned freeVar, TermList& freeVarSub, Substitution* subst = nullptr) const;
+    const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar,
+    VList** varsReplacingSkolems = nullptr, RobSubstitution* subst = nullptr) const;
+  Formula* getFormulaWithFreeVar(TermList t, unsigned freeVar, unsigned freeVarSub, RobSubstitution* subst = nullptr) const;
+
+  template<typename Fun>
+  InductionContext transform(Fun fn) const;
 
   // Return some free variable that occurs in the induction literals.
   // If the literals are all ground, return 0 (and fail in debug mode).
   unsigned getFreeVariable() const;
 
-  std::string toString() const {
-    std::stringstream str;
-    for (const auto& indt : _indTerms) {
-      str << *indt << std::endl;
+  friend std::ostream& operator<<(std::ostream& out, const InductionContext& context) {
+    for (const auto& indt : context._indTerms) {
+      out << *indt << std::endl;
     }
-    for (const auto& kv : _cls) {
-      str << *kv.first << std::endl;
-      for (const auto& lit : kv.second) {
-        str << *lit << std::endl;
+    for (const auto& [cl, lits] : context._cls) {
+      out << "cl " << *cl << std::endl;
+      out << "lits ";
+      for (const auto& lit : lits) {
+        out << *lit << " ";
       }
+      out << std::endl;
     }
-    return str.str();
+    return out;
   }
 
-  std::vector<Term*> _indTerms;
+  Stack<Term*> _indTerms;
   // One could induct on all literals of a clause, but if a literal
   // doesn't contain the induction term, it just introduces a couple
   // of tautologies and duplicate literals (a hypothesis clause will
@@ -173,17 +177,17 @@ struct InductionContext {
   // we only store the literals we actually induct on. An alternative
   // would be storing indices but then we need to pass around the
   // clause as well.
-  std::unordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
+  Stack<std::pair<Clause*, LiteralStack>> _cls;
 private:
-  Formula* getFormula(const std::vector<TermList>& r, Substitution* subst) const;
   Formula* getFormulaWithSquashedSkolems(
-    const std::vector<TermList>& r, unsigned& var, VList** varsReplacingSkolems, Substitution* subst) const;
+    const std::vector<TermList>& r, unsigned& nextVar, VList*& renamedFreeVars, VList** varsReplacingSkolems, RobSubstitution* subst) const;
   /**
    * Creates a formula which corresponds to the disjunction of conjunction
    * of opposites of selected literals for each clause in @b _cls, where we
    * apply the term replacement @b tr on each literal.
    */
-  Formula* getFormula(TermReplacement& tr) const;
+  Formula* getFormula(InductionTermReplacement& tr, RobSubstitution* subst) const;
+  std::unordered_map<Term*,TermList> getReplacementMap(const std::vector<TermList>& r, RobSubstitution* subst) const;
 };
 
 /**
@@ -212,7 +216,7 @@ protected:
 class ActiveOccurrenceContextReplacement
   : public ContextReplacement {
 public:
-  ActiveOccurrenceContextReplacement(const InductionContext& context, FunctionDefinitionHandler& fnDefHandler);
+  ActiveOccurrenceContextReplacement(const InductionContext& context, const FunctionDefinitionHandler& fnDefHandler);
   InductionContext next() override;
   bool hasNonActive() const { return _hasNonActive; }
 
@@ -220,7 +224,7 @@ protected:
   TermList transformSubterm(TermList trm) override;
 
 private:
-  FunctionDefinitionHandler& _fnDefHandler;
+  const FunctionDefinitionHandler& _fnDefHandler;
   std::vector<unsigned> _iteration;
   std::vector<unsigned> _matchCount;
   bool _hasNonActive;
@@ -303,7 +307,6 @@ public:
     processClause(premise);
   }
 
-  USE_ALLOCATOR(InductionClauseIterator);
   DECL_ELEMENT_TYPE(Clause*);
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
@@ -316,9 +319,9 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
-  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHMap<unsigned, Term*>* bindings = nullptr);
-  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
-  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false, Substitution* indLitSubst = nullptr);
+  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, Substitution& cnfSubst);
+  void resolveClauses(const InductionContext& context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
+  void resolveClauses(const InductionInstance& indInst, const InductionContext& context);
 
   void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
@@ -332,8 +335,8 @@ private:
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, TermLiteralClause const& bound1, const TermLiteralClause* optionalBound2)
   { performIntInduction(context, e, increasing, Bound::variant<0>(bound1), optionalBound2); }
 
-  void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e, Substitution* freeVarSubst);
   void performInduction(const InductionContext& context, const InductionTemplate* templ, InductionFormulaIndex::Entry* e);
+  void performStructInductionFreeVar(const InductionContext& context, InductionFormulaIndex::Entry* e);
 
   /**
    * Whether an induction formula is applicable (or has already been generated)

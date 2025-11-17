@@ -19,11 +19,12 @@
 #include <iostream>
 #include <sstream>
 
+#include <cadical.hpp>
+
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Allocator.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Timer.hpp"
 
@@ -37,8 +38,6 @@
 #include "AnswerLiteralManager.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
-#include "LaTeX.hpp"
-#include "LispParser.hpp"
 #include "Options.hpp"
 #include "SMTCheck.hpp"
 #include "Statistics.hpp"
@@ -48,7 +47,6 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Lib/List.hpp"
-#include "Lib/ScopedPtr.hpp"
 
 namespace Shell {
 
@@ -99,6 +97,11 @@ void reportSpiderStatus(char status)
   if (spacePosition != string::npos) {
     z3Version = z3Version.substr(0,spacePosition);
   }
+  std::string cadicalVersion = CaDiCaL::Solver::signature();
+  size_t dashPosition = cadicalVersion.find("-");
+  if (dashPosition != string::npos) {
+    cadicalVersion = cadicalVersion.substr(dashPosition + 1);
+  }
 
   std::string problemName = Lib::env.options->problemName();
   std::cout
@@ -107,7 +110,7 @@ void reportSpiderStatus(char status)
     << Timer::elapsedDeciseconds() << " "
     << Timer::elapsedMegaInstructions() << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
-    << commitNumber << ':' << z3Version << endl;
+    << commitNumber << ':' << z3Version << ':' << cadicalVersion << endl;
 #endif
 }
 
@@ -254,7 +257,7 @@ void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyn
 // Call this function to report a parsing attempt has failed and to reset the input
 void resetParsing(ParsingRelatedException& exception, istream& input, std::string nowtry)
 {
-  if (env.options->mode()!=Options::Mode::SPIDER) {
+  if (env.options->mode() != Options::Mode::SPIDER) {
     addCommentSignForSZS(std::cout);
     std::cout << "Failed with\n";
     addCommentSignForSZS(std::cout);
@@ -395,8 +398,6 @@ void UIHelper::popLoadedPiece(int numPops)
  * Output result based on the content of
  * @b env.statistics->terminationReason
  *
- * If LaTeX output is enabled, it is output in this function.
- *
  * If interpolant output is enabled, it is output in this function.
  */
 void UIHelper::outputResult(std::ostream& out)
@@ -478,13 +479,6 @@ void UIHelper::outputResult(std::ostream& out)
       out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
       out << "Actual weight: " << interpolant->weight() << endl;
       out<<endl;
-    }
-
-    if (env.options->latexOutput() != "off") {
-      ofstream latexOut(env.options->latexOutput().c_str());
-
-      LaTeX formatter;
-      latexOut << formatter.refutationToString(refutation);
     }
 
     // the following two sanity checks are performed only after the proof printing, so we can also have a look at the proof, when we get a report back

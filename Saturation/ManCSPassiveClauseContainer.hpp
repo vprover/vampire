@@ -32,7 +32,7 @@ class ManCSPassiveClauseContainer : public PassiveClauseContainer
 {
 public:
   ManCSPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost, opt) {}
-  virtual ~ManCSPassiveClauseContainer(){}
+  ~ManCSPassiveClauseContainer() override{}
   
   unsigned sizeEstimate() const override;
   bool isEmpty() const override;

@@ -18,21 +18,15 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/TermOrderingDiagram.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-
-#include "DemodulationHelper.hpp"
 
 #include "ForwardGroundJoinability.hpp"
 

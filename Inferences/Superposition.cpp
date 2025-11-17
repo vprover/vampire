@@ -21,7 +21,6 @@
 #include "Lib/PairUtils.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -30,21 +29,16 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/NumTraits.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
-#include "Indexing/TermSharing.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Superposition.hpp"
@@ -441,7 +435,7 @@ Clause* Superposition::performSuperposition(
       if (afterCheck) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
           return nullptr;
         }
       }
@@ -480,7 +474,7 @@ Clause* Superposition::performSuperposition(
           Ordering::Result o = ordering.compare(currAfter,eqLitS);
 
           if (o == Ordering::GREATER || o == Ordering::EQUAL) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }
@@ -501,24 +495,6 @@ Clause* Superposition::performSuperposition(
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
     env.statistics->discardedNonRedundantClauses++;
     return nullptr;
-  }
-
-  if(!unifier->usesUwa()){
-    if(rwClause==eqClause) {
-      env.statistics->selfSuperposition++;
-    } else if(eqIsResult) {
-      env.statistics->forwardSuperposition++;
-    } else {
-      env.statistics->backwardSuperposition++;
-    }
-  } else {
-    if(rwClause==eqClause) {
-      env.statistics->cSelfSuperposition++;
-    } else if(eqIsResult) {
-      env.statistics->cForwardSuperposition++;
-    } else {
-      env.statistics->cBackwardSuperposition++;
-    }
   }
 
   inf_destroyer.disable(); // ownership passed to the the clause below

@@ -16,7 +16,6 @@
 #include "Kernel/Theory.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Lib/STL.hpp"
-#include "Lib/VirtualIterator.hpp"
 #include "Lib/Output.hpp"
 
 namespace Kernel {

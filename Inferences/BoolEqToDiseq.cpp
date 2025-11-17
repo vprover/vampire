@@ -12,25 +12,16 @@
  * Implements class PrimitiveInstantiation.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
-#include "Kernel/TermIterators.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 
 #include "BoolEqToDiseq.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {

@@ -14,14 +14,9 @@
  */
 
 #include "Superposition.hpp"
-#include "Indexing/SubstitutionTree.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/OrderingUtils.hpp"
-#include "Kernel/ALASCA.hpp"
 
 #define DEBUG(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 

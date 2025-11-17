@@ -16,11 +16,9 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/List.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"

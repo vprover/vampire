@@ -16,7 +16,6 @@
 
 #include "Clause.hpp"
 #include "SubformulaIterator.hpp"
-#include "FormulaVarIterator.hpp"
 #include "Lib/Environment.hpp"
 
 
@@ -139,10 +138,11 @@ std::string Formula::toString () const
     case NAME:
       res += static_cast<const NamedFormula*>(f)->name();
       continue;
-    case LITERAL:
-      res += f->literal()->toString();
+    case LITERAL: {
+      auto af = static_cast<const AtomicFormula *>(f);
+      res += af->literal()->toString(af->flipForPrinting);
       continue;
-
+    }
     case AND:
     case OR:
       {

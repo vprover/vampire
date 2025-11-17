@@ -32,10 +32,10 @@ class BackwardDemodulation
 : public BackwardSimplificationEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
-  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications);
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 private:
   struct RemovedIsNonzeroFn;
   struct RewritableClausesFn;

@@ -14,18 +14,13 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/Renaming.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SortHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -35,7 +30,6 @@
 
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "URResolution.hpp"
 
@@ -113,9 +107,9 @@ struct URResolution::Item
     _lits.reserve(litslen);
     unsigned nonGroundCnt = 0;
     for(unsigned i=0; i<clen; i++) {
+      if(!(*cl)[i]->ground()) nonGroundCnt++;
       if ((*cl)[i] != _ansLit) {
         _lits.push((*cl)[i]);
-        if(!_lits.top()->ground()) nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -142,9 +136,10 @@ struct URResolution::Item
     if (_ansLit && !_ansLit->ground()) {
       _ansLit = unif.unifier->apply(_ansLit, !useQuerySubstitution);
     }
+    Literal* premAnsLit = nullptr;
     bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
     if (synthesis && premise->hasAnswerLiteral()) {
-      Literal* premAnsLit = premise->getAnswerLiteral();
+      premAnsLit = premise->getAnswerLiteral();
       if (!premAnsLit->ground()) {
         premAnsLit = unif.unifier->apply(premAnsLit, useQuerySubstitution);
       }
@@ -164,7 +159,7 @@ struct URResolution::Item
       return;
     }
 
-    unsigned nonGroundCnt = 0;
+    unsigned nonGroundCnt = _ansLit ? !_ansLit->ground() : 0;
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
       Literal*& lit = _lits[i];
@@ -349,7 +344,6 @@ void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList
   while(itms) {
     Item* itm = ItemList::pop(itms);
     ClauseList::push(itm->generateClause(), acc);
-    env.statistics->urResolution++;
     delete itm;
   }
 }
@@ -377,7 +371,17 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     }
 
     Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
-    unsigned pos = ucl->getLiteralPosition(unif.data->literal);
+    unsigned pos = UINT_MAX;
+    if (!itm->_ansLit) {
+      pos = ucl->getLiteralPosition(unif.data->literal);
+    } else {
+      for (unsigned i = 0; i < itm->_lits.size(); ++i) {
+        if (itm->_lits[i] == unif.data->literal) {
+          pos = i;
+          break;
+        }
+      }
+    }
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
     itm->resolveLiteral(0, unif, cl, /* useQuerySubstitution */ false);

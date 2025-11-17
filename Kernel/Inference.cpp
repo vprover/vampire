@@ -15,7 +15,6 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/MinisatInterfacing.hpp"
@@ -76,6 +75,7 @@ void Inference::destroyDirectlyOwned()
     case Kind::SAT_NEEDS_MINIMIZATION:
       delete static_cast<NeedsMinimizationInfo*>(_ptr2);
       // intentionally fall further
+    case Kind::SAT:
     case Kind::INFERENCE_MANY:
       UnitList::destroy(static_cast<UnitList*>(_ptr1));
     default:
@@ -90,6 +90,8 @@ void Inference::destroy()
       if (_ptr1) static_cast<Unit*>(_ptr1)->decRefCnt();
       if (_ptr2) static_cast<Unit*>(_ptr2)->decRefCnt();
       break;
+    case Kind::SAT:
+      static_cast<SATClause *>(_ptr2)->destroy();
     case Kind::SAT_NEEDS_MINIMIZATION:
       delete static_cast<NeedsMinimizationInfo*>(_ptr2);
       // intentionally fall further
@@ -108,14 +110,16 @@ void Inference::destroy()
 Inference::Inference(const NeedsMinimization& fsr) {
   initMany(fsr._rule,fsr._premises);
 
-  ASS_REP(isSatRefutationRule(fsr._rule),ruleName(fsr._rule));
-
-  if (fsr._satPremises == nullptr) {
-    return; // SAT solver did not support minimization anyway
-  }
+  ASS_REP(fsr._rule == InferenceRule::GLOBAL_SUBSUMPTION, ruleName(fsr._rule));
 
   _kind = Kind::SAT_NEEDS_MINIMIZATION;
   _ptr2 = new NeedsMinimizationInfo(fsr);
+}
+
+Inference::Inference(const InferenceOfASatClause& isc) {
+  initMany(isc.rule, isc.premises);
+  _kind = Kind::SAT;
+  _ptr2 = isc.clause;
 }
 
 /**
@@ -130,6 +134,7 @@ Inference::Iterator Inference::iterator() const
       it.integer=0;
       break;
     case Kind::INFERENCE_MANY:
+    case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       it.pointer = _ptr1;
       break;
@@ -159,6 +164,7 @@ bool Inference::hasNext(Iterator& it) const
       }
       break;
     case Kind::INFERENCE_MANY:
+    case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       return (it.pointer != nullptr);
     default:
@@ -187,6 +193,7 @@ Unit* Inference::next(Iterator& it) const
       }
       break;
     case Kind::INFERENCE_MANY:
+    case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION: {
       UnitList* lst = static_cast<UnitList*>(it.pointer);
       it.pointer = lst->tail();
@@ -225,11 +232,12 @@ void Inference::updateStatistics()
 
       break;
     case Kind::INFERENCE_MANY:
+    case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       _inductionDepth = 0;
       _XXNarrows = 0;
       _reductions = 0;
-      UnitList* it= static_cast<UnitList*>(_ptr1);
+      UnitList* it = static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
         _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
@@ -248,6 +256,9 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
       break;
     case Inference::Kind::INFERENCE_MANY:
       out << "INFERENCE_MANY, (";
+      break;
+    case Inference::Kind::SAT:
+      out << "SAT, (";
       break;
     case Inference::Kind::SAT_NEEDS_MINIMIZATION:
       out << "SAT_NEEDS_MINIMIZATION, (";
@@ -278,9 +289,6 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
   computeTheoryRunningSums();
 
   _isPureTheoryDescendant = isTheoryAxiom();
-  _combAxiomsDescendant = isCombinatorAxiom();
-  _proxyAxiomsDescendant = isProxyAxiom();
-  _holAxiomsDescendant = _combAxiomsDescendant || _proxyAxiomsDescendant;
 
   //_inductionDepth = 0 from initDefault (or set externally)
   //_sineLevel = MAX from initDefault (or set externally)
@@ -298,9 +306,6 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise->isPureTheoryDescendant();
-  _combAxiomsDescendant = premise->isCombAxiomsDescendant();
-  _proxyAxiomsDescendant = premise->isProxyAxiomsDescendant();
-  _holAxiomsDescendant = premise->isHolAxiomsDescendant();
   _sineLevel = premise->getSineLevel();
 
   updateStatistics();
@@ -319,9 +324,6 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
-  _combAxiomsDescendant = premise1->isCombAxiomsDescendant() && premise2->isCombAxiomsDescendant() ;
-  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();
-  _holAxiomsDescendant = premise1->isHolAxiomsDescendant() && premise2->isHolAxiomsDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 
   updateStatistics();
@@ -345,25 +347,16 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
 
   if (premises) {
     _isPureTheoryDescendant = true;
-    _combAxiomsDescendant = true;
-    _proxyAxiomsDescendant = true;
-    _holAxiomsDescendant = true;
     it=premises;
     while(it) {
       const Inference& inf = it->head()->inference();
       _inputType = getInputType(_inputType,inf.inputType());
       _isPureTheoryDescendant &= inf.isPureTheoryDescendant();
-      _combAxiomsDescendant &= inf.isCombAxiomsDescendant();
-      _proxyAxiomsDescendant &= inf.isProxyAxiomsDescendant();
-      _holAxiomsDescendant &= inf.isHolAxiomsDescendant();
       _sineLevel = min(_sineLevel,inf.getSineLevel());
       it=it->tail();
     }
   } else {
     _isPureTheoryDescendant = isTheoryAxiom();
-    _combAxiomsDescendant = isCombinatorAxiom();
-    _proxyAxiomsDescendant = isProxyAxiom();
-    _holAxiomsDescendant = _combAxiomsDescendant || _proxyAxiomsDescendant;
   }
 
   updateStatistics();
@@ -375,7 +368,7 @@ Inference::Inference(const FromInput& fi) {
 
 Inference::Inference(const TheoryAxiom& ta) {
   init0(UnitInputType::AXIOM,ta.rule);
-  ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
+  ASS_REP(isTheoryAxiom(), ruleName(ta.rule));
 }
 
 Inference::Inference(const FormulaClauseTransformation& ft) {
@@ -499,6 +492,7 @@ void Inference::minimizePremises()
   SATClause* newSatRef = new(0) SATClause(0);
   newSatRef->setInference(new PropInference(minimized));
 
+  // TODO dubious: isn't this just getOrigin() of all the info->_satPremises?
   UnitList* newFOPrems = SATInference::getFOPremises(newSatRef);
 
   // cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << endl;
@@ -626,44 +620,24 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "fool match definition";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
-//  case CHOICE_AXIOM:
-//  case MONOTONE_REPLACEMENT:
-//  case FORALL_ELIMINATION:
-//  case NOT_AND:
-//  case NOT_OR:
-//  case NOT_IMP:
-//  case NOT_IFF:
-//  case NOT_XOR:
-//  case NOT_NOT:
-//  case NOT_FORALL:
-//  case NOT_EXISTS:
-//  case IMP_TO_OR:
-//  case IFF_TO_AND:
-//  case XOR_TO_AND:
   case InferenceRule::REORDER_LITERALS:
     return "literal reordering";
   case InferenceRule::ENNF:
     return "ennf transformation";
   case InferenceRule::NNF:
     return "nnf transformation";
-//  case DUMMY_QUANTIFIER_REMOVAL:
-//  case FORALL_AND:
-//  case EXISTS_OR:
-//  case QUANTIFIER_SWAP:
-//  case FORALL_OR:
-//  case EXISTS_AND:
-//  case PERMUT:
-//  case REORDER_EQ:
-//  case HALF_EQUIV:
-//  case MINISCOPE:
   case InferenceRule::CLAUSIFY:
     return "cnf transformation";
+  case InferenceRule::REORIENT_EQUATIONS:
+    return "reorient equations";
   case InferenceRule::FORMULIFY:
     return "formulify";
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
   case InferenceRule::SKOLEMIZE:
     return "skolemisation";
+  case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
+    return "skolem symbol introduction";
   case InferenceRule::RESOLUTION:
     return "resolution";
   case InferenceRule::CONSTRAINED_RESOLUTION:
@@ -680,7 +654,7 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "definition unfolding";
   case InferenceRule::DEFINITION_FOLDING:
     return "definition folding";
-  case InferenceRule::FUNCTION_DEFINITION: 
+  case InferenceRule::FUNCTION_DEFINITION:
     return "function definition";
   case InferenceRule::PREDICATE_DEFINITION:
     return "predicate definition introduction";
@@ -698,8 +672,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "factoring";
   case InferenceRule::CONSTRAINED_FACTORING:
     return "constrained factoring";
-  case InferenceRule::SUBSUMPTION_RESOLUTION:
-    return "subsumption resolution";
+  case InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION:
+    return "forward subsumption resolution";
+  case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
+    return "backward subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
@@ -747,78 +723,118 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
-  case InferenceRule::CHOICE_AXIOM:
-    return "choice axiom";
   case InferenceRule::DISTINCTNESS_AXIOM:
     return "distinctness axiom";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     return "theory tautology sat conflict";
-  case InferenceRule::GENERIC_THEORY_AXIOM:
   case InferenceRule::THA_COMMUTATIVITY:
+    return "tha commutativity";
   case InferenceRule::THA_ASSOCIATIVITY:
-  case InferenceRule::THA_RIGHT_IDENTINTY:
-  case InferenceRule::THA_LEFT_IDENTINTY:
+    return "tha associativity";
+  case InferenceRule::THA_RIGHT_IDENTITY:
+    return "tha right identity";
+  case InferenceRule::THA_LEFT_IDENTITY:
+    return "tha left identity";
   case InferenceRule::THA_INVERSE_OP_OP_INVERSES:
+    return "tha inverse op op inverses";
   case InferenceRule::THA_INVERSE_OP_UNIT:
+    return "tha inverse op unit";
   case InferenceRule::THA_INVERSE_ASSOC:
+    return "tha inverse associativity";
   case InferenceRule::THA_NONREFLEX:
+    return "tha non-reflexivity";
   case InferenceRule::THA_TRANSITIVITY:
-  case InferenceRule::THA_ORDER_TOTALALITY:
+    return "tha transitivity";
+  case InferenceRule::THA_ORDER_TOTALITY:
+    return "tha order totality";
   case InferenceRule::THA_ORDER_MONOTONICITY:
+    return "tha order monotonicity";
   case InferenceRule::THA_ALASCA:
+    return "tha alasca";
   case InferenceRule::THA_PLUS_ONE_GREATER:
+    return "tha plus one greater";
   case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
+    return "tha order plus one dichotomy";
   case InferenceRule::THA_MINUS_MINUS_X:
+    return "tha minus minus x";
   case InferenceRule::THA_TIMES_ZERO:
+    return "tha times zero";
   case InferenceRule::THA_DISTRIBUTIVITY:
+    return "tha distributivity";
   case InferenceRule::THA_DIVISIBILITY:
+    return "tha divisibility";
   case InferenceRule::THA_MODULO_MULTIPLY:
+    return "tha modulo multiply";
   case InferenceRule::THA_MODULO_POSITIVE:
+    return "tha modulo positive";
   case InferenceRule::THA_MODULO_SMALL:
+    return "tha modulo small";
   case InferenceRule::THA_DIVIDES_MULTIPLY:
+    return "tha divides multiply";
   case InferenceRule::THA_NONDIVIDES_SKOLEM:
+    return "tha nondivides skolem";
   case InferenceRule::THA_ABS_EQUALS:
+    return "tha abs equals";
   case InferenceRule::THA_ABS_MINUS_EQUALS:
+    return "tha abs minus equals";
   case InferenceRule::THA_QUOTIENT_NON_ZERO:
+    return "tha quotient non-zero";
   case InferenceRule::THA_QUOTIENT_MULTIPLY:
+    return "tha quotient multiply";
   case InferenceRule::THA_EXTRA_INTEGER_ORDERING:
+    return "tha extra integer ordering";
   case InferenceRule::THA_FLOOR_SMALL:
+    return "tha floor small";
   case InferenceRule::THA_FLOOR_BIG:
+    return "tha floor big";
   case InferenceRule::THA_CEILING_BIG:
+    return "tha ceiling big";
   case InferenceRule::THA_CEILING_SMALL:
+    return "tha ceiling small";
   case InferenceRule::THA_TRUNC1:
+    return "tha trunc1";
   case InferenceRule::THA_TRUNC2:
+    return "tha trunc2";
   case InferenceRule::THA_TRUNC3:
+    return "tha trunc3";
   case InferenceRule::THA_TRUNC4:
+    return "tha trunc4";
   case InferenceRule::THA_ARRAY_EXTENSIONALITY:
+    return "tha array extensionality";
   case InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY:
+    return "tha boolen array extensionality";
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE1:
+    return "tha boolean array write1";
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:
+    return "tha boolean array write2";
   case InferenceRule::THA_ARRAY_WRITE1:
+    return "tha array write1";
   case InferenceRule::THA_ARRAY_WRITE2:
-    return "theory axiom " + Int::toString((unsigned)toNumber(rule));
+    return "tha array write2";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
-    return "term algebras acyclicity";
+    return "term algebras acyclicity axiom";
   case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
-    return "term algebras discriminators";
+    return "term algebras discriminators axiom";
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS_AXIOM:
-    return "term algebras distinctness";
+    return "term algebras distinctness axiom";
   case InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM:
-    return "term algebras exhaustiveness";
+    return "term algebras exhaustiveness axiom";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_AXIOM:
-    return "term algebras injectivity";
+    return "term algebras injectivity axiom";
   case InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE:
+    return "fool distinctness axiom";
   case InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE:
-    return "fool axiom";
-  case InferenceRule::EXTERNAL_THEORY_AXIOM:
-    return "external theory axiom";
+    return "fool exhaustiveness axiom";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY:
     return "term algebras acyclicity";
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
     return "term algebras distinctness";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
-  case InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
-    return "term algebras injectivity";
+    return "term algebras injectivity (generating)";
+  case InferenceRule::TERM_ALGEBRA_POSITIVE_INJECTIVITY_SIMPLIFYING:
+    return "term algebras positive injectivity (simplifying)";
+  case InferenceRule::TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING:
+    return "term algebras negative injectivity (simplifying)";
   case InferenceRule::THEORY_FLATTENING:
     return "theory flattening";
   case InferenceRule::BOOLEAN_TERM_ENCODING:
@@ -851,8 +867,6 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "global subsumption";
   case InferenceRule::DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
-  case InferenceRule::EXTERNAL:
-    return "external";
   case InferenceRule::CLAIM_DEFINITION:
     return "claim definition";
   case InferenceRule::FMB_FLATTENING:
@@ -925,62 +939,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "integer induction formula (down, default bound)";
   case InferenceRule::INDUCTION_HYPERRESOLUTION:
     return "induction hyperresolution";
-  case InferenceRule::GEN_INDUCTION_HYPERRESOLUTION:
-    return "generalized induction hyperresolution";
-  case InferenceRule::FREE_VAR_INDUCTION_HYPERRESOLUTION:
-    return "induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
-  case InferenceRule::COMBINATOR_AXIOM:
-    return "combinator axiom";
-  case InferenceRule::FUNC_EXT_AXIOM:
-    return "functional extensionality axiom";
-  case InferenceRule::EQUALITY_PROXY_AXIOM:
-    return "equality proxy axiom";
-  case InferenceRule::NOT_PROXY_AXIOM:
-    return "logical not proxy axiom";
-  case InferenceRule::AND_PROXY_AXIOM:
-    return "logical and proxy axiom";
-  case InferenceRule::OR_PROXY_AXIOM:
-    return "logical or proxy axiom";
-  case InferenceRule::IMPLIES_PROXY_AXIOM:
-    return "implies proxy axiom";
-  case InferenceRule::PI_PROXY_AXIOM:
-    return "pi proxy axiom";
-  case InferenceRule::SIGMA_PROXY_AXIOM:
-    return "sigma proxy axiom";
   case InferenceRule::ARG_CONG:
     return "argument congruence";
-  case InferenceRule::SXX_NARROW:
-    return "sxx_narrow";
-  case InferenceRule::SX_NARROW:
-    return "sx_narrow";
-  case InferenceRule::S_NARROW:
-    return "s_narrow";
-  case InferenceRule::CXX_NARROW:
-    return "cxx_narrow";
-  case InferenceRule::CX_NARROW:
-    return "cx_narrow";
-  case InferenceRule::C_NARROW:
-    return "c_narrow";
-  case InferenceRule::BXX_NARROW:
-    return "bxx_narrow";
-  case InferenceRule::BX_NARROW:
-    return "bx_narrow";
-  case InferenceRule::B_NARROW:
-    return "b_narrow";
-  case InferenceRule::KX_NARROW:
-    return "kx_narrow";
-  case InferenceRule::K_NARROW:
-    return "k_narrow";
-  case InferenceRule::I_NARROW:
-    return "i_narrow";
-  case InferenceRule::SUB_VAR_SUP:
-    return "sub-var superposition";
-  case InferenceRule::COMBINATOR_DEMOD:
-    return "combinator demodulation";
-  case InferenceRule::COMBINATOR_NORMALISE:
-    return "combinator normalisation";  
   case InferenceRule::NEGATIVE_EXT:
     return "negative extensionality";
   case InferenceRule::INJECTIVITY:
@@ -1003,6 +965,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "primitive instantiation";
   case InferenceRule::LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
+  case InferenceRule::HILBERTS_CHOICE_INSTANCE:
+    return "Hilbert's choice axiom instance";
   case InferenceRule::CASES_SIMP:
     return "cases simplifying";
   case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
@@ -1010,17 +974,19 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
     return "term algebra subterm transitivity axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
-  case InferenceRule::PROXY_AXIOM:
-  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION: 
-  case InferenceRule::INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST: 
-  case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:
-  case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
-  case InferenceRule::GENERIC_GENERATING_INFERNCE:
-  case InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST:
-  case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
+  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION:
+  case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST:
+  case InferenceRule::GENERIC_SIMPLIFYING_INFERENCE:
+  case InferenceRule::GENERIC_SIMPLIFYING_INFERENCE_LAST:
+  case InferenceRule::GENERIC_GENERATING_INFERENCE:
+  case InferenceRule::GENERIC_GENERATING_INFERENCE_LAST:
+  case InferenceRule::GENERIC_AVATAR_INFERENCE:
+  case InferenceRule::GENERIC_AVATAR_INFERENCE_LAST:
+  case InferenceRule::GENERIC_THEORY_AXIOM:
+  case InferenceRule::GENERIC_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }
-  
+
   ASSERTION_VIOLATION;
   /* moved outside of the case statement to get a compiler warning */
   return "!UNKNOWN INFERENCE RULE!";

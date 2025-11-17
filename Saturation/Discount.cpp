@@ -12,12 +12,7 @@
  * Implements class Discount.
  */
 
-#include "Lib/Environment.hpp"
-#include "Lib/VirtualIterator.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/LiteralSelector.hpp"
-#include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Discount.hpp"
 

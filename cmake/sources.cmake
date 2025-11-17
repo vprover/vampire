@@ -17,6 +17,8 @@ set(TESTING_SOURCES
     Test/TestUtils.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
+    Test/HOLUtils.cpp
+    Test/HOLUtils.hpp
 )
 
 ################################################################
@@ -55,7 +57,6 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tHOL_Printing.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -69,7 +70,6 @@ set(UNIT_TESTS
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
-    UnitTests/tRatioKeeper.cpp
     UnitTests/tRebalance.cpp
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
@@ -83,6 +83,11 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/HOL/tHOL_Printing.cpp
+    UnitTests/HOL/tBetaReduction.cpp
+    UnitTests/HOL/tEtaReduction.cpp
+    UnitTests/HOL/tTermShifter.cpp
+    UnitTests/HOL/tSubtermReplacer.cpp
 )
 
 ################################################################
@@ -118,8 +123,6 @@ set(SOURCES
     FMB/ClauseFlattening.hpp
     FMB/CliqueFinder.hpp
     FMB/DefinitionIntroduction.hpp
-    FMB/FiniteModel.cpp
-    FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.cpp
     FMB/FiniteModelBuilder.hpp
     FMB/FiniteModelMultiSorted.cpp
@@ -448,14 +451,24 @@ set(SOURCES
     Kernel/Unit.cpp
     Kernel/Unit.hpp
     Kernel/HOL/HOL.cpp
+    Kernel/HOL/HOL.hpp
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
-    Kernel/HOL/HOL.hpp
+    Kernel/HOL/Reduce.cpp
+    Kernel/HOL/BetaNormaliser.cpp
+    Kernel/HOL/BetaNormaliser.hpp
+    Kernel/HOL/RedexReducer.cpp
+    Kernel/HOL/RedexReducer.hpp
+    Kernel/HOL/TermShifter.cpp
+    Kernel/HOL/TermShifter.hpp
+    Kernel/HOL/EtaNormaliser.cpp
+    Kernel/HOL/EtaNormaliser.hpp
+    Kernel/HOL/SubtermReplacer.cpp
+    Kernel/HOL/SubtermReplacer.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
     Lib/ArrayMap.hpp
-    Lib/BacktrackIterators.hpp
     Lib/Backtrackable.hpp
     Lib/BacktrackableCollections.hpp
     Lib/BiMap.hpp
@@ -463,7 +476,6 @@ set(SOURCES
     Lib/BitUtils.hpp
     Lib/Comparison.hpp
     Lib/Coproduct.hpp
-    Lib/Counter.hpp
     Lib/DArray.hpp
     Lib/DHMap.hpp
     Lib/DHMultiset.hpp
@@ -481,15 +493,12 @@ set(SOURCES
     Lib/Int.hpp
     Lib/IntUnionFind.cpp
     Lib/IntUnionFind.hpp
-    Lib/IntegerSet.cpp
-    Lib/IntegerSet.hpp
     Lib/InverseLookup.hpp
     Lib/List.hpp
     Lib/MacroUtils.hpp
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/Metaiterators.hpp
-    Lib/MultiCounter.hpp
     Lib/NameArray.cpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
@@ -501,7 +510,6 @@ set(SOURCES
     Lib/ProofExtra.hpp
     Lib/Random.cpp
     Lib/Random.hpp
-    Lib/RatioKeeper.hpp
     Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/STL.hpp
@@ -570,6 +578,7 @@ set(SOURCES
     SAT/SATInference.hpp
     SAT/SATLiteral.hpp
     SAT/ProofProducingSATSolver.hpp
+    SAT/ProofProducingSATSolver.cpp
     SAT/SATSolver.hpp
     SAT/SATSolver.cpp
     SAT/Z3Interfacing.cpp
@@ -659,8 +668,6 @@ set(SOURCES
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.cpp
     Shell/InterpretedNormalizer.hpp
-    Shell/LaTeX.cpp
-    Shell/LaTeX.hpp
     Shell/Lexer.cpp
     Shell/Lexer.cpp
     Shell/Lexer.hpp

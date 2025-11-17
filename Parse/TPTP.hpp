@@ -297,8 +297,8 @@ public:
       : _message(message), _path(path), _ln(ln) {}
     ParseErrorException(std::string message, Token& tok, std::filesystem::path path, unsigned ln)
       : ParseErrorException(message + " (text: " + tok.toString() + ')', path, ln) {}
-    void cry(std::ostream&) const;
-    ~ParseErrorException() {}
+    void cry(std::ostream&) const override;
+    ~ParseErrorException() override {}
   protected:
     std::string _message;
     std::filesystem::path _path;
@@ -836,13 +836,13 @@ public:
   struct FileSourceRecord : SourceRecord {
     const std::string fileName;
     const std::string nameInFile;
-    bool isFile(){ return true; }
+    bool isFile() override{ return true; }
     FileSourceRecord(std::string fN, std::string nF) : fileName(fN), nameInFile(nF) {}
   };
   struct InferenceSourceRecord : SourceRecord{
     const std::string name;
     Stack<std::string> premises;
-    bool isFile(){ return false; }
+    bool isFile() override{ return false; }
     InferenceSourceRecord(std::string n) : name(n) {}
   };
 

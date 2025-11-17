@@ -17,14 +17,12 @@
 #include "Lib/DHSet.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
@@ -139,7 +137,7 @@ void TheoryAxioms::addRightIdentity(Interpretation op, TermList e)
   TermList x(0,false);
   TermList fxe(Term::create2(f,x,e));
   Literal* eq = Literal::createEquality(true,fxe,x,srt);
-  addTheoryClauseFromLits({eq}, InferenceRule::THA_RIGHT_IDENTINTY, EXPENSIVE);
+  addTheoryClauseFromLits({eq}, InferenceRule::THA_RIGHT_IDENTITY, EXPENSIVE);
 } // addRightIdentity
 
 /**
@@ -155,7 +153,7 @@ void TheoryAxioms::addLeftIdentity(Interpretation op, TermList e)
   TermList x(0,false);
   TermList fex(Term::create2(f,e,x));
   Literal* eq = Literal::createEquality(true,fex,x,srt);
-  addTheoryClauseFromLits({eq}, InferenceRule::THA_LEFT_IDENTINTY, EXPENSIVE);
+  addTheoryClauseFromLits({eq}, InferenceRule::THA_LEFT_IDENTITY, EXPENSIVE);
 } // addLeftIdentity
 
 /**
@@ -275,7 +273,7 @@ void TheoryAxioms::addOrderingTotality(Interpretation less)
   TermList srt = theory->getOperationSort(less);
   Literal* eq = Literal::createEquality(true,x,y,srt);
 
-  addTheoryClauseFromLits({l12,l21,eq}, InferenceRule::THA_ORDER_TOTALALITY, CHEAP);
+  addTheoryClauseFromLits({l12,l21,eq}, InferenceRule::THA_ORDER_TOTALITY, CHEAP);
 }
 
 /**

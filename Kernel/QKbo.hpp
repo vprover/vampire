@@ -21,7 +21,6 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
 #include "Kernel/ALASCA.hpp"
 
 #include "Ordering.hpp"
@@ -82,12 +81,12 @@ public:
   QKbo(Problem& prb, const Options& opts)
     : QKbo(KBO(prb, opts, /* qkboPrecedence */ true), InequalityNormalizer::global()) {}
 
-  virtual ~QKbo() {}
+  ~QKbo() override {}
 
   Result compare(Literal* l1, Literal* l2) const override;
-  Result compare(TermList, TermList) const final override;
+  Result compare(TermList, TermList) const final ;
 
-  void show(std::ostream& out) const final override;
+  void show(std::ostream& out) const final ;
 
 private:
   auto& norm() const { return *_norm; }

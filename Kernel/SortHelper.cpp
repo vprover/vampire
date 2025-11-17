@@ -13,7 +13,6 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/MultiCounter.hpp"
 
 #include "Clause.hpp"
 #include "FormulaUnit.hpp"
@@ -30,12 +29,32 @@
 using namespace std;
 using namespace Kernel;
 
+enum CollectWhat {
+  COLLECT_TERM,
+  COLLECT_TERMLIST,
+  COLLECT_SPECIALTERM,
+  COLLECT_FORMULA,
+  BIND,
+  UNBIND,
+};
+
+struct CollectTask {
+  CollectTask(CollectWhat what) : fncTag(what) {}
+  CollectWhat fncTag;
+  union {
+    TermList ts;
+    Term* t; // shared by TERM and SPECIALTERM
+    Formula* f;
+    VList* vars; // to bind/unbind by BIND/UNBIND
+  };
+  TermList contextSort; // only used by TERMLIST and SPECIALTERM
+};
 
 /**
  * Return the type of a term or a literal @c t
  * @author Andrei Voronkov
  */
-OperatorType* SortHelper::getType(Term const* t)
+static OperatorType* getType(Term const* t)
 {
   if (t->isLiteral())
     return env.signature->getPredicate(t->functor())->predType();
@@ -261,21 +280,6 @@ TermList SortHelper::getEqualityArgumentSort(const Literal* lit)
 } //
 
 /**
- * Return sort of term @c trm that appears inside literal @c lit.
- */
-TermList SortHelper::getTermSort(TermList trm, Literal* lit)
-{
-  if (trm.isTerm()) {
-    return getResultSort(trm.term());
-  }
-  if(!trm.isVar()){
-    cout << "ERROR with " << trm.toString() << " in " << lit->toString() << endl;
-  }
-  ASS(trm.isVar());
-  return getVariableSort(trm, lit);
-}
-
-/**
  * Return sort of variable @c var in term or literal @c t
  *
  * Variable @c var must occur in @c t.
@@ -349,10 +353,10 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
  * @since 13/02/2017 Vienna
  * @author Martin Suda
  */
-void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound)
+static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound = false)
 {
   Stack<CollectTask> todo;
-  MultiCounter bound;
+  ZIArray<unsigned> bound;
 
   todo.push(task);
   while (todo.isNonEmpty()) {
@@ -361,12 +365,12 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
     switch(task.fncTag) {
       case COLLECT_TERM: {
         Term* term = task.t;
-    
+
         unsigned position = 0;
         for (TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()) {
           CollectTask newTask(COLLECT_TERMLIST);
           newTask.ts = *ts;
-          newTask.contextSort = getArgSort(term, position++);
+          newTask.contextSort = SortHelper::getArgSort(term, position++);
           todo.push(newTask);
         }
 
@@ -570,14 +574,14 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
       case BIND: {
         VList::Iterator vit(task.vars);
         while (vit.hasNext()) {
-          bound.inc(vit.next());
+          bound[vit.next()]++;
         }
       } break;
 
       case UNBIND: {
         VList::Iterator vit(task.vars);
         while (vit.hasNext()) {
-          bound.dec(vit.next());
+          bound[vit.next()]--;
         }
       } break;
     }

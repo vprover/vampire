@@ -16,18 +16,13 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/BitUtils.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Recycled.hpp"
-#include "Lib/Sort.hpp"
 #include "Lib/TriangularArray.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/FlatTerm.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 
 #include "ClauseCodeTree.hpp"
 

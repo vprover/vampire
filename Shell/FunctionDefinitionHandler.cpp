@@ -19,7 +19,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Problem.hpp"
 
-#include "Lib/Hash.hpp"
 #include "Lib/SharedSet.hpp"
 
 using namespace Inferences;
@@ -202,34 +201,37 @@ void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const Litera
   templ->addBranch(std::move(recursiveCalls), header);
 }
 
-const InductionTemplate* FunctionDefinitionHandler::matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const
+const InductionTemplate* FunctionDefinitionHandler::matchesTerm(Term* t, Stack<Term*>& inductionTerms) const
 {
-  ASS(t->ground());
-
+  if (!InductionHelper::isStructInductionOn()) {
+    return nullptr;
+  }
   auto rtempl = getRecursionTemplate(t);
   if (!rtempl) {
     return nullptr;
   }
 
-  inductionTerms.clear();
+  inductionTerms.reset();
   for (unsigned i = 0; i < t->arity(); i++) {
-    auto arg = t->nthArgument(i)->term();
-    auto f = arg->functor();
     if (!rtempl->inductionPositions()[i]) {
       continue;
     }
-    if (!InductionHelper::isInductionTermFunctor(f) ||
-        !InductionHelper::isStructInductionOn() ||
-        !InductionHelper::isStructInductionTerm(arg)) {
+    auto arg = *t->nthArgument(i);
+    if (arg.isVar()) {
       return nullptr;
     }
-    auto it = std::find(inductionTerms.begin(),inductionTerms.end(),arg);
+    auto argT = arg.term();
+    if (!InductionHelper::isInductionTerm(argT) ||
+        !InductionHelper::isStructInductionTerm(argT)) {
+      return nullptr;
+    }
+    auto it = std::find(inductionTerms.begin(),inductionTerms.end(),argT);
     if (it != inductionTerms.end()) {
       return nullptr;
     }
-    inductionTerms.push_back(arg);
+    inductionTerms.push(argT);
   }
-  if (inductionTerms.empty()) {
+  if (inductionTerms.isEmpty()) {
     return nullptr;
   }
   return rtempl->templ();

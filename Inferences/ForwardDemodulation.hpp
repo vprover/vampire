@@ -36,7 +36,7 @@ class ForwardDemodulation
 public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 protected:
   bool _preorderedOnly;
   bool _encompassing;
@@ -44,14 +44,6 @@ protected:
   bool _skipNonequationalLiterals;
   DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
-};
-
-class ForwardDemodulationImpl
-: public ForwardDemodulation
-{
-public:
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-private:
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;

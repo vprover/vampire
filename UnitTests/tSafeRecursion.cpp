@@ -7,7 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include <iostream>
 #include "Debug/Assertion.hpp"
 
 #include "Lib/DArray.hpp"

@@ -11,12 +11,8 @@
 #include "Debug/Assertion.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/IntUnionFind.hpp"
-#include "Lib/Array.hpp"
-#include "Lib/Set.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/Statistics.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -134,14 +130,9 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
 
   ASS(anyChange)
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION, cl));
-  bool redundant = allLessEq && oneLess;
-  env.statistics->asgCnt++;
-  if (!redundant) {
-    env.statistics->asgViolations++;
-  }
   return SimplifyingGeneratingInference1::Result{
     .simplified = Clause::fromStack(stack, inf), 
-    .premiseRedundant = redundant
+    .premiseRedundant = (allLessEq && oneLess)
   };
 }
 

@@ -31,7 +31,7 @@ public:
   {
     // do nothing
   }
-  ~BackwardSubsumptionAndResolution() {}
+  ~BackwardSubsumptionAndResolution() override {}
 
   void attach(Saturation::SaturationAlgorithm *salg) override;
   void detach() override;

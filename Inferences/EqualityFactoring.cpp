@@ -25,20 +25,11 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "EqualityFactoring.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {
@@ -153,7 +144,7 @@ struct EqualityFactoring::ResultFn
         if (sLitAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
           if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }
@@ -163,8 +154,6 @@ struct EqualityFactoring::ResultFn
     }
 
     resLits->loadFromIterator(constraints->iterFifo());
-
-    env.statistics->equalityFactoring++;
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)

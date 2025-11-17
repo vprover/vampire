@@ -20,10 +20,6 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
-#include "Lib/Exception.hpp"
-#include "Shell/Options.hpp"
 
 #define UNSTABILITY_ABSTRACTION 0
 
@@ -342,7 +338,7 @@ public:
     }
   }
 
-  virtual Clause* simplify(Clause* premise) final override {
+  Clause* simplify(Clause* premise) final {
     if (premise->size() == 0) {
       // TODO why do we ever get the empty clause here?
       return premise;

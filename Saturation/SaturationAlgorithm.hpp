@@ -33,10 +33,6 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#if VDEBUG
-#include<iostream>
-#endif
-
 namespace Shell { class AnswerLiteralManager; }
 
 namespace Saturation
@@ -69,7 +65,7 @@ public:
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
-  virtual ~SaturationAlgorithm();
+  ~SaturationAlgorithm() override;
 
 
   //the following two functions allow to run the saturation algorithm step by step.
@@ -120,9 +116,6 @@ public:
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
 
-  /** Return the number of clauses that entered the passive container */
-  unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
-
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
    */
@@ -145,8 +138,8 @@ public:
   void setSoftTimeLimit(unsigned deciseconds) { _softTimeLimit = deciseconds; }
 
 protected:
-  virtual void init();
-  virtual MainLoopResult runImpl();
+  void init() override;
+  MainLoopResult runImpl() override;
   void doUnprocessedLoop();
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);
@@ -250,7 +243,6 @@ protected:
   // counters
 
   /** Number of clauses that entered the unprocessed container */
-  unsigned _generatedClauseCount;
   unsigned _activationLimit;
 private:
   static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, Ordering& ordering,

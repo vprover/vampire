@@ -15,15 +15,8 @@
 #include <algorithm>
 #include <ostream>
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/Allocator.hpp"
-#include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-
-#include "Kernel/Clause.hpp"
-#include "Kernel/Term.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -36,6 +29,8 @@ namespace SAT {
 
 using namespace Lib;
 using namespace Shell;
+
+unsigned SATClause::_lastNumber = 0;
 
 /**
  * Allocate a clause having lits literals.
@@ -69,7 +64,7 @@ void SATClause::operator delete(void *ptr, size_t sz) {
 }
 
 SATClause::SATClause(unsigned length)
-  : _length(length), _nonDestroyable(0), _inference(0)
+  : number(++_lastNumber), _length(length), _nonDestroyable(0), _inference(0)
 {
   env.statistics->satClauses++;
   if(length==1) {
@@ -199,6 +194,42 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
   return rcl;
 }
 
+std::ostream &operator<<(std::ostream &out, const SATClause &cl)
+{
+  out << "s" << cl.number << ". ";
+  if (cl.length() == 0)
+    out << "#";
+  else {
+    out << cl[0];
+    for(unsigned i = 1; i < cl.length(); i++)
+      out << " | " << cl[i];
+  }
+
+  SATInference *inference = cl.inference();
+  if(!inference)
+    return out;
+
+  bool first = true;
+  out << " [";
+  switch(inference->getType()) {
+    case SATInference::PROP_INF: {
+      out << "rat ";
+      PropInference *deduction = static_cast<PropInference *>(inference);
+      for(SATClause *premise : iterTraits(deduction->getPremises()->iter())) {
+        if(!first)
+          out << ",";
+        first = false;
+        out << "s" << premise->number;
+      }
+      break;
+    }
+    case SAT::SATInference::FO_CONVERSION: {
+      FOConversionInference *deduction = static_cast<FOConversionInference *>(inference);
+      out << "sat_conversion " << deduction->getOrigin()->number();
+      break;
+    }
+  }
+  return out << "]";
+}
+
 };
-
-

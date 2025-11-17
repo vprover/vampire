@@ -15,17 +15,9 @@
  * Redundancy Avoidance" Section 4.2
  */
 
-
-
-#include "Lib/Environment.hpp"
-#include "Lib/Comparison.hpp"
-
-#include "Shell/Options.hpp"
-
 #include "Term.hpp"
 #include "LPO.hpp"
 #include "TermOrderingDiagramLPO.hpp"
-#include "Signature.hpp"
 
 namespace Kernel {
 

@@ -16,14 +16,11 @@
 
 #define DPRINT 0
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
@@ -38,8 +35,6 @@
 #include "Saturation/Splitter.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-#include "Shell/TheoryFlattening.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "SAT/SATLiteral.hpp"
@@ -550,7 +545,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       auto val = _solver->evaluateInModel(sk.term());
       if (!val) {
         // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-        env.statistics->theoryInstSimpLostSolution++;
         return Option<Substitution>();
       }
 
@@ -590,7 +584,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals 
       skolem.subst.rebind(var, ev);
     } else {
       // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-      env.statistics->theoryInstSimpLostSolution++;
       return Option<Substitution>();
     }
   }
@@ -722,21 +715,12 @@ struct InstanceFn
         redundant = status == Status::UNSATISFIABLE;
       }
 
-      if (redundant) {
-        env.statistics->theoryInstSimpTautologies++;
-      }
-
       DEBUG("tautology")
       return nullptr;
     }
 
     // If the solution is empty (for any reason) there is no point performing instantiation
-    if(sol.subst.isEmpty()){
-      env.statistics->theoryInstSimpEmptySubstitution++;
-    }
-    auto res = instantiate(original, sol.subst, theoryLits, splitter);
-    env.statistics->theoryInstSimp++;
-    return res;
+    return instantiate(original, sol.subst, theoryLits, splitter);
   }
 };
 
@@ -918,7 +902,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 
   // we have an eligible candidate
-  env.statistics->theoryInstSimpCandidates++;
 #if VTIME_PROFILING
   static const char* THEORY_INST_SIMP = "theory instantiation";
 #endif // VTIME_PROFILING

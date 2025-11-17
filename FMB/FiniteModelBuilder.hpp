@@ -19,7 +19,6 @@
 
 #if VZ3
 #include "z3++.h"
-#include "z3_api.h"
 #endif
 
 #include "Kernel/MainLoop.hpp"
@@ -59,14 +58,14 @@ using namespace SAT;
 class FiniteModelBuilder : public MainLoop {
 public:
   FiniteModelBuilder(Problem& prb, const Options& opt);
-  ~FiniteModelBuilder();
+  ~FiniteModelBuilder() override;
 
 protected:
   // Sets up everything
-  virtual void init();
+  void init() override;
 
   // Runs the saturation loop
-  virtual MainLoopResult runImpl();
+  MainLoopResult runImpl() override;
 
 private:
 

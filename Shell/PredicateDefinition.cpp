@@ -12,14 +12,12 @@
  * Implements class PredicateDefinition.
  */
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/MultiCounter.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -874,16 +872,15 @@ bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* uni
     return false;
   }
 
-  MultiCounter counter;
+  ZIArray<unsigned> counter;
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
     if (! ts->isVar()) {
       return false;
     }
     int w = ts->var();
-    if (counter.get(w) != 0) { // more than one occurrence
+    if (counter[w]++) { // more than one occurrence
       return false;
     }
-    counter.inc(w);
   }
 
   SubformulaIterator sfit(rhs);

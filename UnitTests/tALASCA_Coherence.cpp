@@ -8,23 +8,11 @@
  * and in the source directory
  */
 
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Indexing/TermSharing.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
-#include "Kernel/KBO.hpp"
-#include "Indexing/TermSubstitutionTree.hpp" 
-#include "Inferences/PolynomialEvaluation.hpp"
 #include "Test/AlascaTestUtils.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
 
@@ -59,10 +47,10 @@ using namespace Inferences::ALASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
-inline Stack<std::function<Indexing::Index*()>> alascaCoherenceIndices()
+inline Generation::TestIndices alascaCoherenceIndices()
 { return {
-    [](){ return new AlascaIndex<CoherenceConf<RealTraits>::Lhs>();},
-    [](){ return new AlascaIndex<CoherenceConf<RealTraits>::Rhs>();},
+    [](const Options&){ return new AlascaIndex<CoherenceConf<RealTraits>::Lhs>();},
+    [](const Options&){ return new AlascaIndex<CoherenceConf<RealTraits>::Rhs>();},
   }; }
 
 REGISTER_GEN_TESTER(AlascaGenerationTester<Coherence<RealTraits>>())

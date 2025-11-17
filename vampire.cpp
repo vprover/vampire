@@ -13,7 +13,6 @@
 
 #include <iostream>
 #include <ostream>
-#include <fstream>
 
 #if VZ3
 #include "z3++.h"
@@ -54,7 +53,6 @@
 #include "Shell/FOOLElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Shell/LaTeX.hpp"
 #include "Shell/SineUtils.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -104,7 +102,7 @@ Problem* preprocessProblem(Problem* prb)
   TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
-  if (env.options->mode()!=Options::Mode::SPIDER) {
+  if (env.options->mode() != Options::Mode::SPIDER) {
     env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ true);
   }
 
@@ -139,7 +137,7 @@ Problem *doProving(Problem* problem)
   Problem *prb = preprocessProblem(problem);
 
   // this will provide warning if options don't make sense for problem
-  if (env.options->mode()!=Options::Mode::SPIDER) {
+  if (env.options->mode() != Options::Mode::SPIDER) {
     env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
   }
 
@@ -169,81 +167,6 @@ void profileMode(Problem* problem)
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // profileMode
-
-// prints Unit u at an index to latexOut using the LaTeX object
-void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
-{
-    std::string stringform = latex.toString(u);
-    latexOut << index++ << " & ";
-    unsigned count = 0;
-    for(const char* p = stringform.c_str();*p;p++){
-      latexOut << *p;
-      count++;
-      if(count>80 && *p==' '){
-        latexOut << "\\\\ \n & ~~~~~";
-        count=0;
-      }
-    }
-    latexOut << "\\\\" << endl;
-}
-
-// print the clauses of a problem to a LaTeX file
-void outputClausesToLaTeX(Problem* prb)
-{
-  ASS(env.options->latexOutput()!="off");
-
-  LaTeX latex;
-  ofstream latexOut(env.options->latexOutput().c_str());
-  latexOut << latex.header() << endl;
-  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << endl;
-  //TODO output more header
-  latexOut << "\\[\n\\begin{array}{ll}" << endl;
-
-  CompositeISE simplifier;
-  simplifier.addFront(new TrivialInequalitiesRemovalISE());
-  simplifier.addFront(new TautologyDeletionISE());
-  simplifier.addFront(new DuplicateLiteralRemovalISE());
-
-  unsigned index=0;
-  ClauseIterator cit = prb->clauseIterator();
-  while (cit.hasNext()) {
-    Clause* cl = cit.next();
-    cl = simplifier.simplify(cl);
-    if (!cl) {
-      continue;
-    }
-    outputUnitToLaTeX(latex,latexOut,cl,index++);
-  }
-  latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
-
-  //close ofstream?
-}
-
-// print the formulas of a problem to a LaTeX file
-void outputProblemToLaTeX(Problem* prb)
-{
-  ASS(env.options->latexOutput()!="off");
-
-  LaTeX latex;
-  ofstream latexOut(env.options->latexOutput().c_str());
-  latexOut << latex.header() << endl;
-  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << endl;
-  //TODO output more header
-  latexOut << "\\[\n\\begin{array}{ll}" << endl;
-
-  //TODO  get symbol and sort declarations into LaTeX
-
-  UnitList::Iterator units(prb->units());
-
-  unsigned index = 0;
-  while (units.hasNext()) {
-    Unit* u = units.next();
-    outputUnitToLaTeX(latex,latexOut,u,index++);
-  }
-  latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
-
-  //close ofstream?
-}
 
 /**
  * This mode only preprocesses the input using the current preprocessing
@@ -296,8 +219,6 @@ void preprocessMode(Problem* problem, bool theory)
     }
   }
 
-  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb.ptr()); }
-
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // preprocessMode
@@ -338,8 +259,6 @@ void outputMode(Problem* problem)
     Unit* u = units.next();
     std::cout << TPTPPrinter::toString(u) << "\n";
   }
-
-  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -495,8 +414,6 @@ void clausifyMode(Problem* problem, bool theory)
       NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
     std::cout << TPTPPrinter::toString(c) << "\n";
   }
-
-  if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;

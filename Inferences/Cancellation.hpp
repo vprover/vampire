@@ -21,7 +21,7 @@ class Cancellation
 {
 public:
   Cancellation(Ordering& ordering);
-  virtual ~Cancellation();
+  ~Cancellation() override;
 
   Result simplifyLiteral(Literal*) override;
 };

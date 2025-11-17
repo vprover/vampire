@@ -20,7 +20,7 @@
 #ifndef __TEST__SYNTAX_SUGAR__H__
 #define __TEST__SYNTAX_SUGAR__H__
 
-#include<functional>
+#include <functional>
 
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
@@ -29,13 +29,11 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/TypedTermList.hpp"
 
-#include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
-#include "Shell/FunctionDefinitionHandler.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
 #define __TO_SORT_INT IntegerConstantType::getSort()
@@ -69,6 +67,7 @@
 #define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
 #define DECL_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
+#define DECL_SKOLEM_FUNC(f, ...) auto f = FuncSugar(#f, __VA_ARGS__, /*taArity=*/0, true);
 #define DECL_POLY_FUNC(f, i, ...)   auto f = FuncSugar(#f, __VA_ARGS__, i); 
 #define DECL_POLY_CONST(f, i, sort)   auto f = FuncSugar(#f, {}, sort, i);    
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
@@ -556,7 +555,7 @@ public:
     , _arity(env.signature->getFunction(functor)->arity()) {}
 
   FuncSugar(std::string const& name, std::initializer_list<SortSugar> as_, 
-    ExpressionSugar result, unsigned taArity = 0) 
+    ExpressionSugar result, unsigned taArity = 0, bool skolem = false)
   {
     Stack<SortId> as;
     for (auto a : as_) 
@@ -576,7 +575,10 @@ public:
 
       env.signature
         ->getFunction(_functor)
-        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), res, taArity));    
+        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), res, taArity));
+      if (skolem) {
+        env.signature->getFunction(_functor)->markSkolem();
+      }
     }
   }
 

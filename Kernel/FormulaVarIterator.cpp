@@ -227,7 +227,7 @@ bool FormulaVarIterator::hasNext()
           if (!_free.get(var) && !_bound.get(var)) {
             _nextVar = var;
             _found = true;
-            _free.inc(var);
+            _free[var] = true;
             return true;
           }
         } else {
@@ -240,7 +240,7 @@ bool FormulaVarIterator::hasNext()
       case FVI_BIND: {
         VList::Iterator vs(_vars.top());
         while (vs.hasNext()) {
-          _bound.inc(vs.next());
+          _bound[vs.next()]++;
         }
         break;
       }
@@ -248,7 +248,7 @@ bool FormulaVarIterator::hasNext()
       case FVI_UNBIND: {
         VList::Iterator vs(_vars.pop());
         while (vs.hasNext()) {
-          _bound.dec(vs.next());
+          _bound[vs.next()]--;
         }
         break;
       }

@@ -15,8 +15,6 @@
 #include "Indexing/SubstitutionTree.hpp"
 #include "Kernel/ALASCA.hpp"
 
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/TermIndex.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
@@ -63,7 +61,7 @@ public:
   auto instances(TypedTermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
-  virtual void handleClause(Clause* c, bool adding) final override
+  void handleClause(Clause* c, bool adding) final
   {
     TIME_TRACE(_maintenanceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {

@@ -29,16 +29,13 @@
 #ifndef __Term__
 #define __Term__
 
-#include "Lib/Output.hpp"
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
 #include "Lib/BitUtils.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Reflection.hpp"
-#include "Lib/Sort.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Coproduct.hpp"
@@ -301,6 +298,7 @@ public:
   std::pair<TermList, TermList> asPair();
   TermList domain();
   TermList result();
+  TermList replaceSubterm(TermList what, TermList by, bool liftFreeIndices = false) const;
   /* End higher-order terms */
 
 #if VDEBUG
@@ -926,9 +924,6 @@ public:
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
 
-  virtual bool computable() const;
-  virtual bool computableOrVar() const;
-
 protected:
   std::string headToString() const;
 
@@ -1045,6 +1040,7 @@ public:
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
   static AtomicSort* create(AtomicSort const* t,TermList* args);
+  static AtomicSort* createNonShared(AtomicSort const* sort,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   static AtomicSort* createConstant(const std::string& name); 
 
@@ -1059,9 +1055,10 @@ public:
 
   const std::string& typeConName() const;  
   
-  static TermList arrowSort(TermStack& domSorts, TermList range);
+  static TermList arrowSort(const TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(TermList s1, TermList s2, TermList s3);
+  static TermList arrowSort(unsigned size, const TermList* types, TermList range);
   static TermList arraySort(TermList indexSort, TermList innerSort);
   static TermList tupleSort(unsigned arity, TermList* sorts);
   static TermList defaultSort();
@@ -1293,12 +1290,9 @@ public:
   bool isAnswerLiteral() const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
-  std::string toString() const;
+  std::string toString(bool reverseEquality = false) const;
 
   const std::string& predicateName() const;
-
-  virtual bool computable() const;
-  virtual bool computableOrVar() const;
 
 private:
   template<class GetArg>

@@ -11,21 +11,14 @@
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
 
-#include "Indexing/TermSharing.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Problem.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Test/AlascaTestUtils.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/KBO.hpp"
-
-#include "Kernel/InterpretedLiteralEvaluator.hpp"
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"

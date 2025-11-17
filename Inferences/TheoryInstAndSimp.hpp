@@ -54,9 +54,9 @@ public:
   TheoryInstAndSimp(Options& opts);
   TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax);
 
-  void attach(SaturationAlgorithm* salg);
+  void attach(SaturationAlgorithm* salg) override;
 
-  ClauseGenerationResult generateSimplify(Clause* premise);
+  ClauseGenerationResult generateSimplify(Clause* premise) override;
 
   /**
    * Assuming cl is only built from theory material, this will use an SMT solver

@@ -19,19 +19,14 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
-#include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
@@ -40,7 +35,6 @@
 
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "BinaryResolution.hpp"
 #define DEBUG_RESOLUTION(lvl, ...) if (lvl < 0) { DBG("resolution: ", __VA_ARGS__) }
@@ -170,7 +164,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
           return nullptr;
         }
       }
@@ -204,7 +198,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
           return nullptr;
         }
       }
@@ -216,13 +210,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
       return 0;
     }
-  }
-
-  if(nConstraints != 0){
-    env.statistics->cResolution++;
-  }
-  else{
-    env.statistics->resolution++;
   }
 
   inf_destroyer.disable(); // ownership passed to the the clause below

@@ -12,14 +12,11 @@
  * Implements class SMTLIB.
  */
 
-#include <climits>
-#include <fstream>
 #include <map>
 
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
-#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Matcher.hpp"
@@ -30,6 +27,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/SMTLIBLogic.hpp"
@@ -281,16 +279,6 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       auto exist = ibRdr.readList();
       auto body = ibRdr.readExpr();
       readAssertSynth(forall, exist, body);
-
-      ibRdr.acceptEOL();
-
-      continue;
-    }
-
-    if (ibRdr.tryAcceptAtom("assert-theory")) {
-
-      auto body = ibRdr.readExpr();
-      readAssertTheory(body);
 
       ibRdr.acceptEOL();
 
@@ -2089,7 +2077,8 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
           TermList second;
           firstParseResult.asTerm(first);
           secondParseResult.asTerm(second);
-          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+          Literal *l = Literal::createEquality(true, first, second, firstParseResult.sort);
+          lastConjunct = new AtomicFormula(l, first != l->termArg(0));
         }
       } else {
         Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
@@ -2126,7 +2115,8 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
             TermList second;
             firstParseResult.asTerm(first);
             secondParseResult.asTerm(second);
-            lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+            Literal *l = Literal::createEquality(true, first, second, firstParseResult.sort);
+            lastConjunct = new AtomicFormula(l, first != l->termArg(0));
           }
         } else {
           Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
@@ -2871,19 +2861,6 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   _formulas.pushBack(fu);
 }
 
-void SMTLIB2::readAssertTheory(LExpr* body)
-{
-  ParseResult res = parseTermOrFormula(body,false/*isSort*/);
-
-  Formula* theoryAxiom;
-  if (!res.asFormula(theoryAxiom)) {
-    USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
-  }
-
-  FormulaUnit* fu = new FormulaUnit(theoryAxiom, Inference(TheoryAxiom(InferenceRule::EXTERNAL_THEORY_AXIOM)));
-  _formulas.pushBack(fu);
-}
-
 Signature::Symbol* SMTLIB2::getSymbol(DeclaredSymbol& s) {
   return s.second
     ? env.signature->getPredicate(s.first)
@@ -2909,9 +2886,11 @@ void SMTLIB2::markSymbolUncomputable(const std::string& name)
     USER_ERROR("'"+name+"' is not a user symbol");
   }
   DeclaredSymbol& f = _declaredSymbols.get(name);
-
-  Signature::Symbol* sym = getSymbol(f);
-  sym->markUncomputable();
+  if (env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
+    std::cout << "% WARNING: Found the :uncomputable option but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
+  } else {
+    static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addDeclaredSymbolAnnotatedAsUncomputable(f);
+  }
 }
 
 }

@@ -12,22 +12,17 @@
  * Implements class Z3Interfacing
  */
 
-#include "Lib/Allocator.hpp"
 #if VZ3
 #define UNIMPLEMENTED ASSERTION_VIOLATION
 #define MODEL_COMPLETION true
 
 #include "Forwards.hpp"
-#include "Lib/StringUtils.hpp"
-#include "z3.h"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
-#include "SATInference.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Lib/System.hpp"
 
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Signature.hpp"
@@ -38,7 +33,6 @@
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
-#include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)

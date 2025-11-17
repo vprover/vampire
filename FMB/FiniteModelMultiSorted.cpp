@@ -15,7 +15,6 @@
  * @author Giles
  */
 
-#include <cmath>
 #include <climits>
 
 #include "Kernel/Term.hpp"
@@ -26,7 +25,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"

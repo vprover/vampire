@@ -12,6 +12,8 @@
  * Implements class TermTransformer.
  */
 
+#include "Lib/DArray.hpp"
+
 #include "SortHelper.hpp"
 #include "Term.hpp"
 
@@ -108,6 +110,8 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
  */
 Term* TermTransformer::transform(Term* term)
 {
+  onTermEntry(term);
+
   if (term->isSpecial()) {
     return transformSpecial(term);
   }
@@ -135,6 +139,9 @@ Term* TermTransformer::transform(Term* term)
         break;
       }
       Term* orig = terms.pop();
+
+      onTermExit(orig);
+
       ASS(!orig->isSpecial());
       if (!modified.pop()) {
         args.truncate(args.length() - orig->arity());
@@ -164,6 +171,14 @@ Term* TermTransformer::transform(Term* term)
     }
 
     TermList tl = *tt;
+
+    // We still transform sort and term variables ...
+    // It is difficult to avoid this though
+    if (tl.isTerm() && tl.term()->isSort() && !transformSorts) {
+      args.push(tl);
+      continue;
+    }
+
     if (tl.isTerm() && tl.term()->isSpecial()) {
       Term* td = transformSpecial(tl.term());
       if (td != tl.term()) {
@@ -175,18 +190,19 @@ Term* TermTransformer::transform(Term* term)
 
     TermList dest = transformSubterm(tl);
     if (tl != dest) {
-      args.push(dest);
       modified.setTop(true);
-      continue;
     }
-    if (tl.isVar()) {
-      args.push(tl);
+    if (dest.isVar() || !exploreSubterms(tl, dest)) {
+      args.push(dest);
       continue;
     }
 
-    ASS(tl.isTerm());
-    Term* t = tl.term();
-    ASS(!t->isSpecial());
+    ASS(dest.isTerm())
+    Term* t = dest.term();
+
+    onTermEntry(t);
+
+    ASS(!t->isSpecial())
     terms.push(t);
     modified.push(false);
     toDo.push(t->args());
@@ -207,10 +223,17 @@ Term* TermTransformer::transform(Term* term)
   TermList* argLst = &args.top() - (term->arity() - 1);
 
   if (term->isLiteral()) {
+    Literal* lit = static_cast<Literal*>(term);
+    if(lit->isEquality() && argLst[0].isVar() && argLst[1].isVar() && transformSorts) {
+      return Literal::createEquality(lit->polarity(), argLst[0], argLst[1],
+                                     transform(SortHelper::getEqualityArgumentSort(lit)));
+    }
     return Literal::create(static_cast<Literal*>(term), argLst);
-  } else {
-    return Term::create(term, argLst);
   }
+  if (term->isSort()) {
+    return AtomicSort::create(static_cast<AtomicSort*>(term), argLst);
+  }
+  return Term::create(term, argLst);
 }
 
 TermList TermTransformer::transform(TermList ts)

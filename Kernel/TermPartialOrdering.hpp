@@ -17,8 +17,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
-
 #include "Ordering.hpp"
 #include "PartialOrdering.hpp"
 

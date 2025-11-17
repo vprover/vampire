@@ -18,7 +18,6 @@
 #include "Signature.hpp"
 #include "TermIterators.hpp"
 #include "ApplicativeHelper.hpp"
-#include "Lib/Deque.hpp"
 #include "Lib/Environment.hpp"
 
 namespace Kernel
