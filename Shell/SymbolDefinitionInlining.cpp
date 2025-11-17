@@ -18,7 +18,8 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
+TermList SymbolDefinitionInlining::substitute(Term::Iterator tit)
+{
   Substitution substitution;
 
   iterTraits(Term::Iterator(_lhs))
@@ -60,8 +61,9 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
   return SubstHelper::apply(_rhs, substitution);
 }
 
-TermList SymbolDefinitionInlining::process(TermList ts) {
-  if (ts.isVar()) {
+TermList SymbolDefinitionInlining::process(TermList ts)
+{
+  if (ts.isVar() || ts.term()->isSort()) {
     return ts;
   }
 
@@ -101,24 +103,6 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         }
 
         return TermList(Term::createLet(binding, body, sd->getSort()));
-      }
-
-      case SpecialFunctor::TUPLE: {
-        TermList tuple = process(TermList(sd->getTupleTerm()));
-        ASS(tuple.isTerm());
-
-        Term* t = tuple.term();
-        if (t == sd->getTupleTerm()) {
-          return ts;
-        }
-
-        // Replace [$proj(0, t), ..., $proj(n, t)] with t
-        TermList tupleConstant;
-        if (mirroredTuple(t, tupleConstant)) {
-          return tupleConstant;
-        }
-
-        return TermList(Term::createTuple(t));
       }
 
       case SpecialFunctor::LAMBDA:
@@ -165,51 +149,8 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
   return TermList(Term::create(term, args.begin()));
 }
 
-bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
-  bool foundTupleConstant = false;
-  TermList tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
-  ASS(tupleSort.isTupleSort());
-  for (unsigned i = 0; i < tuple->arity(); i++) {
-    if (!tuple->nthArgument(i)->isTerm()) {
-      return false;
-    }
-    Term* arg = (tuple->nthArgument(i))->term();
-    TermList possibleTupleConstant;
-    if (arg->isSpecial()) {
-      if (arg->specialFunctor() != SpecialFunctor::FORMULA) {
-        return false;
-      }
-      Formula* f = arg->getSpecialData()->getFormula();
-      if (f->connective() != LITERAL) {
-        return false;
-      }
-      Literal* l = f->literal();
-      if (l->functor() != Theory::tuples()->getProjectionFunctor(i, tupleSort)) {
-        return false;
-      }
-      possibleTupleConstant = *l->nthArgument(0);
-    } else {
-      if (arg->functor() != Theory::tuples()->getProjectionFunctor(i, tupleSort)) {
-        return false;
-      }
-      possibleTupleConstant = *arg->nthArgument(0);
-    }
-    if (!possibleTupleConstant.isTerm()) {
-      return false;
-    }
-    if (!foundTupleConstant) {
-      tupleConstant = possibleTupleConstant;
-      foundTupleConstant = true;
-    } else {
-      if (possibleTupleConstant != tupleConstant) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-Formula* SymbolDefinitionInlining::process(Formula* formula) {
+Formula* SymbolDefinitionInlining::process(Formula* formula)
+{
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -310,7 +251,8 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
   }
 }
 
-FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
+FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas)
+{
   Stack<Formula*> elements(FormulaList::length(formulas));
 
   bool substituted = false;
@@ -337,7 +279,8 @@ FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
   return processedFormula;
 }
 
-void SymbolDefinitionInlining::collectBoundVariables(TermList ts) {
+void SymbolDefinitionInlining::collectBoundVariables(TermList ts)
+{
   if (ts.isVar()) {
     return;
   }
@@ -345,7 +288,8 @@ void SymbolDefinitionInlining::collectBoundVariables(TermList ts) {
   collectBoundVariables(ts.term());
 }
 
-void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
+void SymbolDefinitionInlining::collectBoundVariables(Term* t)
+{
   if (t->shared()) {
     return;
   }
@@ -363,10 +307,6 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
       }
       case SpecialFunctor::LET: {
         collectBoundVariables(sd->getLetBinding());
-        break;
-      }
-      case SpecialFunctor::TUPLE: {
-        collectBoundVariables(sd->getTupleTerm());
         break;
       }
       case SpecialFunctor::LAMBDA:

@@ -459,14 +459,6 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare body of the let as usual below (although 1) what about sorts, 2) what about doing the modulo the bound name?)
       }
 
-      case SpecialFunctor::TUPLE: {
-        comp = compare(t1->getSpecialData()->getTupleTerm(), t2->getSpecialData()->getTupleTerm());
-        if (comp != EQUAL) {
-          return comp;
-        }
-        break; // compare body of the tuple below
-      }
-
       case SpecialFunctor::LAMBDA: {
         comp = compare((int) VList::length(t1->getSpecialData()->getLambdaVars()),
                        (int) VList::length(t2->getSpecialData()->getLambdaVars()));

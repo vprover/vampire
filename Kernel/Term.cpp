@@ -554,20 +554,6 @@ std::string Term::headToString() const
         ASS_EQ(arity(),2);
         return "$ite(" + sd->getITECondition()->toString() + ", ";
       }
-      case SpecialFunctor::TUPLE: {
-        ASS_EQ(arity(), 0);
-        Term* term = sd->getTupleTerm();
-        std::string termList = "";
-        Term::Iterator tit(term);
-        unsigned i = term->arity();
-        while (tit.hasNext()) {
-          termList += tit.next().toString();
-          if (--i > 0) {
-            termList += ", ";
-          }
-        }
-        return "[" + termList + "]";
-      }
       case SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
@@ -1178,19 +1164,6 @@ Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList
   return s;
 }
 
-Term* Term::createTuple(unsigned arity, TermList* sorts, TermList* elements) {
-  unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
-  Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
-  return createTuple(tupleTerm);
-}
-
-Term* Term::createTuple(Term* tupleTerm) {
-  Term* s = new(0, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(toNormalFunctor(SpecialFunctor::TUPLE), 0);
-  s->getSpecialData()->_tupleData.term = tupleTerm;
-  return s;
-}
-
 Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList *elements) {
   Term *s = new (arity, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::MATCH), arity);
@@ -1394,7 +1367,6 @@ bool Term::isBoolean() const {
     switch (term->specialFunctor()) {
       case SpecialFunctor::FORMULA:
         return true;
-      case SpecialFunctor::TUPLE:
       case SpecialFunctor::LAMBDA:
         return false;
       case SpecialFunctor::ITE:
@@ -1846,7 +1818,6 @@ std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)
     case SpecialFunctor::ITE: return out << "ITE";
     case SpecialFunctor::LET: return out << "LET";
     case SpecialFunctor::FORMULA: return out << "FORMULA";
-    case SpecialFunctor::TUPLE: return out << "TUPLE";
     case SpecialFunctor::LAMBDA: return out << "LAMBDA";
     case SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
   }

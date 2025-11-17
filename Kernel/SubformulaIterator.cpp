@@ -193,13 +193,6 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
-          case SpecialFunctor::TUPLE: {
-            delete _reserve;
-            Term* tupleTerm = sd->getTupleTerm();
-            // TODO: should be 1 instead of polarity?
-            _reserve = new Element(tupleTerm, polarity, rest);
-            break;
-          }
           case SpecialFunctor::MATCH: {
             delete _reserve;
             _reserve = rest;

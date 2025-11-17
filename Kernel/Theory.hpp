@@ -557,7 +557,7 @@ public:
   static Theory theory_obj;
   static Theory* instance();
 
-  void defineTupleTermAlgebra(unsigned arity, TermList* sorts);
+  Shell::TermAlgebra* getTupleTermAlgebra(unsigned arity);
 
   /** Returns true if the argument is an interpreted constant
    */
@@ -650,10 +650,9 @@ private:
 public:
   class Tuples {
   public:
-    bool isFunctor(unsigned functor);
-    unsigned getFunctor(unsigned arity, TermList sorts[]);
-    unsigned getFunctor(TermList tupleSort);
-    unsigned getProjectionFunctor(unsigned proj, TermList tupleSort);
+    bool isConstructor(Term* t);
+    unsigned getConstructor(unsigned arity);
+    unsigned getProjectionFunctor(unsigned arity, unsigned proj);
     bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
   };
 

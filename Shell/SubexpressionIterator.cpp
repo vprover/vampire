@@ -148,10 +148,6 @@ namespace Shell {
 			       _subexpressions.push(Expression(sd->getLambdaExp(), polarity));
 			       break;
 
-            case SpecialFunctor::TUPLE:
-              _subexpressions.push(Expression(sd->getTupleTerm()));
-              break;
-
             case SpecialFunctor::MATCH: {
               for (unsigned i = 0; i < term->arity(); i++) {
                 _subexpressions.push(Expression(*term->nthArgument(i), polarity));

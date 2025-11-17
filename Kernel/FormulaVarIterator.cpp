@@ -175,16 +175,6 @@ bool FormulaVarIterator::hasNext()
               break;
             }
 
-            case SpecialFunctor::TUPLE: {
-              Term* tt = sd->getTupleTerm();
-              Term::Iterator tts(tt);
-              while (tts.hasNext()) {
-                _instructions.push(FVI_TERM_LIST);
-                _termLists.push(tts.next());
-              }
-              break;
-            }
-      
             case SpecialFunctor::LAMBDA:{
               _instructions.push(FVI_UNBIND);
               SList* sorts = sd->getLambdaVarSorts();

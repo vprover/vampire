@@ -844,10 +844,6 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         count(sd->getLetBinding(), 0, add, unit);
         break;
 
-      case SpecialFunctor::TUPLE:
-        count(TermList(sd->getTupleTerm()), add, unit);
-        break;
-
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
       case SpecialFunctor::MATCH:

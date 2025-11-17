@@ -299,19 +299,6 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case SpecialFunctor::TUPLE: {
-        TermList tupleTerm = TermList(sd->getTupleTerm());
-        TermList ennfTupleTerm = ennf(tupleTerm, true);
-
-        if (tupleTerm == ennfTupleTerm) {
-          return ts;
-        } else {
-          ASS_REP(ennfTupleTerm.isTerm(), ennfTupleTerm.toString());
-          return TermList(Term::createTuple(ennfTupleTerm.term()));
-        }
-        break;
-      }
-
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
       case SpecialFunctor::MATCH: {

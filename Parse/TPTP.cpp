@@ -2367,9 +2367,20 @@ void TPTP::endLetTypes()
 
   // Save the symbol name with original arity (without counting implicit type variables),
   // so that when an application with the original arity occurs we can find the symbol.
-  LetSymbolName symbolName(name, arity - VList::length(iTypeVars));
-  LetSymbolReference symbolReference { functor, isPredicate, iTypeVars };
+  auto numITypeVars = VList::length(iTypeVars);
+  unsigned nextVar = 0;
+  TermStack args;
+  for (const auto& v : iterTraits(VList::Iterator(iTypeVars))) {
+    args.push(TermList::var(v));
+    nextVar = max(nextVar, v);
+  }
+  nextVar++;
+  // these variables will be universally quantified
+  args.loadFromIterator(range(numITypeVars,arity).map([&](unsigned v) { return TermList::var(nextVar++); }));
+  auto def = Term::create(functor, args);
 
+  LetSymbolName symbolName(name, arity-numITypeVars);
+  LetSymbolReference symbolReference { def, numITypeVars };
   LetSymbols scope = _letTypedSymbols.pop();
 
   if (findLetSymbol(symbolName, scope, symbolReference)) {
@@ -2518,22 +2529,14 @@ void TPTP::symbolDefinition()
   }
 
   if (arity > 0) {
-    OperatorType* type = ref.isPredicate
-                       ? env.signature->getPredicate(ref.symbol)->predType()
-                       : env.signature->getFunction(ref.symbol)->fnType();
-
     // Given a binding f(X1,...,Xn) := t, we now quantify variables X1,...,Xn.
     // However, if the type of f contained implicit type variables Y1,...,Ym,
     // the binding will look like f(Y1,...,Ym,X1,...,Xn) := t internally,
     // and we need to substitute Y1,...,Ym to get the right sort of X1,...,Xn.
-    Substitution subst;
     unsigned index = 0;
-    iterTraits(ref.iTypeVars->iter())
-      .forEach([&](unsigned var) { subst.bind(index++, TermList::var(var)); });
-
     iterTraits(vars.iterFifo())
       .forEach([&](unsigned var) {
-        bindVariable(var, SubstHelper::apply(type->arg(index++), subst));
+        bindVariable(var, SortHelper::getArgSort(ref.def, index++));
         VList::push(var, vs);
       });
 
@@ -2577,15 +2580,8 @@ void TPTP::tupleDefinition()
       USER_ERROR("Constant " + constant + " is used in a tuple let definition without a declared sort");
     }
 
-    unsigned symbol = SYMBOL(ref);
-    bool isPredicate = IS_PREDICATE(ref);
-
-    symbols.push(symbol);
-
-    TermList sort = isPredicate
-                  ? AtomicSort::boolSort()
-                  : env.signature->getFunction(symbol)->fnType()->result();
-    sorts.push(sort);
+    symbols.push(ref.def->functor());
+    sorts.push(SortHelper::getResultSort(ref.def));
 
     if (getTok(0).tag == T_NAME) {
       constant = name();
@@ -2597,12 +2593,14 @@ void TPTP::tupleDefinition()
     }
   } while (true);
 
-  TermList tupleSort = AtomicSort::tupleSort(sorts.size(), sorts.begin());
-  unsigned tupleFunctor = Theory::tuples()->getFunctor(tupleSort);
+  auto args = sorts;
+  // TODO these variables should not collide with the ones in sorts
+  args.loadFromIterator(range(0,sorts.size()).map([](unsigned v) { return TermList::var(v); }));
+  auto let = Term::create(Theory::tuples()->getConstructor(sorts.size()), args);
 
   LetDefinitions definitions = _letDefinitions.pop();
   // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
-  definitions.push(LetSymbolReference{ tupleFunctor, false, VList::empty() });
+  definitions.push(LetSymbolReference{ let, 0 });
   _letDefinitions.push(definitions);
 
   VList* constants = VList::empty();
@@ -2615,35 +2613,22 @@ void TPTP::tupleDefinition()
   addTagState(T_RBRA);
 } // tupleDefinition
 
-void TPTP::endDefinition() {
-  LetSymbolReference ref = _letDefinitions.top().top();
-  unsigned symbol = SYMBOL(ref);
-  bool isPredicate = IS_PREDICATE(ref);
+void TPTP::endDefinition()
+{
+  auto ref = _letDefinitions.top().top();
 
   TermList definition = _termLists.top();
   TermList definitionSort = sortOf(definition);
 
-  TermList refSort = isPredicate
-                     ? AtomicSort::boolSort()
-                     : env.signature->getFunction(symbol)->fnType()->result();
-
-  // Before checking the argument sorts, we must substitute in implicit type variables.
-  Substitution subst;
-  // Implicit type variables come first.
-  iterTraits(ref.iTypeVars->iter())
-    .enumerate([&](unsigned i, unsigned var) { subst.bind(i, TermList::var(var)); });
-  auto defSortS = SubstHelper::apply(definitionSort, subst);
-  if (refSort != defSortS) {
-    std::string definitionSortName = defSortS.toString();
-    std::string refSymbolName = isPredicate
-                            ? env.signature->predicateName(symbol)
-                            : env.signature->functionName(symbol);
-    OperatorType* type = isPredicate
-                         ? env.signature->getPredicate(symbol)->predType()
-                         : env.signature->getFunction(symbol)->fnType();
-    USER_ERROR("The term " + definition.toString() + " of the sort " + definitionSortName +
+  auto refSort = SortHelper::getResultSort(ref.def);
+  if (refSort != definitionSort) {
+    auto symbol = ref.def->functor();
+    auto refSymbolName = ref.def->isBoolean()
+      ? env.signature->predicateName(symbol)
+      : env.signature->functionName(symbol);
+    USER_ERROR("The term " + definition.toString() + " of the sort " + definitionSort.toString() +
                " is used as definition of the symbol " + refSymbolName +
-               " of the type " + type->toString());
+               " of the sort " + refSort.toString());
   }
 
   bool multipleDefinitions = _bools.pop();
@@ -2691,26 +2676,22 @@ void TPTP::endLet()
   LetDefinitions scope = _letDefinitions.pop(); // TODO: inlining this crashes the program, WTF?
   LetDefinitions::TopFirstIterator definitions(scope);
   while (definitions.hasNext()) {
-    LetSymbolReference ref = definitions.next();
-    unsigned symbol = SYMBOL(ref);
-    bool isPredicate = IS_PREDICATE(ref);
+    auto ref = definitions.next();
+    auto symbol = ref.def->functor();
 
     VList* varList = _varLists.pop();
     TermList body = _termLists.pop();
 
-    bool isTuple = false;
-    if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = resultSort.isTupleSort();
-    }
+    bool isTuple = SortHelper::getResultSort(ref.def).isTupleSort();
 
     TermStack args;
     auto vars = VList::empty();
     if (isTuple) {
+      args.loadFromIterator(range(0,ref.def->numTypeArguments()).map([&](unsigned i) { return ref.def->typeArg(i); }));
       args.loadFromIterator(iterTraits(varList->iter()).map([](unsigned fn) { return TermList(Term::createConstant(fn)); }));
     } else {
       // Implicit type variables come first, then the rest
-      args.loadFromIterator(iterTraits(ref.iTypeVars->iter()).map([](unsigned var) { return TermList::var(var); }));
+      args.loadFromIterator(range(0,ref.numITypeArgs).map([&](unsigned i) { return ref.def->typeArg(i); }));
       args.loadFromIterator(iterTraits(varList->iter()).map([](unsigned var) { return TermList::var(var); }));
       vars = varList;
     }
@@ -2729,16 +2710,15 @@ void TPTP::endTuple()
   unsigned arity = (unsigned)_ints.pop();
   ASS_GE(_termLists.size(), arity);
 
-  DArray<TermList> elements(arity);
-  DArray<TermList> sorts(arity);
+  DArray<TermList> args(2*arity);
 
   for (int i = arity - 1; i >= 0; i--) {
     TermList ts = _termLists.pop();
-    elements[i] = ts;
-    sorts[i] = sortOf(ts);
+    args[arity+i] = ts;
+    args[i] = sortOf(ts);
   }
 
-  Term* t = Term::createTuple(arity, sorts.begin(), elements.begin());
+  auto t =  Term::create(Theory::tuples()->getConstructor(arity), 2*arity, args.begin());
   _termLists.push(TermList(t));
 } // endTuple
 
@@ -2979,7 +2959,7 @@ void TPTP::endTerm()
 
   LetSymbolReference ref;
   if (env.signature->predicateExists(name, arity) ||
-      (findLetSymbol(LetSymbolName(name, arity), ref) && IS_PREDICATE(ref)) ||
+      (findLetSymbol(LetSymbolName(name, arity), ref) && ref.def->isBoolean()) ||
       findInterpretedPredicate(name, arity)) {
     // if the function symbol is actually a predicate,
     // we need to construct a formula and wrap it inside a term
@@ -3154,8 +3134,8 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
 
   int pred;
   LetSymbolReference ref;
-  if (findLetSymbol(LetSymbolName(name, arity), ref) && IS_PREDICATE(ref)) {
-    pred = (int)SYMBOL(ref);
+  if (findLetSymbol(LetSymbolName(name, arity), ref) && ref.def->isBoolean()) {
+    pred = (int)ref.def->functor();
     insertImplicitLetTypeArguments(ref, arity);
   } else {
     if (arity > 0) {
@@ -3237,8 +3217,8 @@ TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
 
   unsigned fun;
   LetSymbolReference ref;
-  if (findLetSymbol(LetSymbolName(name, arity), ref) && !IS_PREDICATE(ref)) {
-    fun = SYMBOL(ref);
+  if (findLetSymbol(LetSymbolName(name, arity), ref) && !ref.def->isBoolean()) {
+    fun = ref.def->functor();
     insertImplicitLetTypeArguments(ref, arity);
   } else {
     bool dummy;
@@ -3312,23 +3292,22 @@ void TPTP::insertImplicitLetTypeArguments(const LetSymbolReference& ref, unsigne
 
   // (1) add as many empty termlists as the number
   // of implicit type vars and count them
-  unsigned numiTypeVars = 0;
-  iterTraits(ref.iTypeVars->iter())
-    .forEach([&](unsigned var) { _termLists.push(TermList()); numiTypeVars++; });
+  range(0, ref.numITypeArgs)
+    .forEach([&](unsigned i) { _termLists.push(TermList()); });
 
   // (2) update the arity
-  arity += numiTypeVars;
-  if (numiTypeVars) {
+  arity += ref.numITypeArgs;
+  if (ref.numITypeArgs) {
     // (3) copy in reverse such that the topmost elements
     // are not overwritten when there is an overlap
     auto args = nLastTermLists(arity);
-    for (unsigned i : range(numiTypeVars,arity)) {
+    for (unsigned i : range(ref.numITypeArgs,arity)) {
       unsigned ri = arity-1-i;
-      args[ri+numiTypeVars] = args[ri];
+      args[ri+ref.numITypeArgs] = args[ri];
     }
     // (4) add the implicit ones below
-    iterTraits(ref.iTypeVars->iter())
-      .enumerate([&](unsigned i, unsigned var) { args[i] = TermList::var(var); });
+    range(0, ref.numITypeArgs)
+      .forEach([&](unsigned i) { args[i] = ref.def->typeArg(i); });
   }
 }
 

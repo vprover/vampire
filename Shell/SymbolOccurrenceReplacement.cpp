@@ -33,9 +33,6 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
       case SpecialFunctor::FORMULA:
           return Term::createFormula(process(sd->getFormula()));
 
-      case SpecialFunctor::TUPLE:
-        return Term::createTuple(process(TermList(sd->getTupleTerm())).term());
-
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
       case SpecialFunctor::MATCH: {

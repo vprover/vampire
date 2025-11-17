@@ -422,15 +422,6 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         TermList sort = sd->getSort();
         return TermList(Term::createLet(binding, body, sort));
       }
-      case SpecialFunctor::TUPLE: {
-        TermList tupleTerm = TermList(sd->getTupleTerm());
-        TermList simplifiedTupleTerm = simplify(tupleTerm);
-        if (tupleTerm == simplifiedTupleTerm) {
-          return ts;
-        }
-        ASS_REP(simplifiedTupleTerm.isTerm(), simplifiedTupleTerm.toString());
-        return TermList(Term::createTuple(simplifiedTupleTerm.term()));
-      }
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
       case SpecialFunctor::MATCH: {

@@ -332,8 +332,6 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case SpecialFunctor::TUPLE:
-      return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
     case SpecialFunctor::LAMBDA:
       // TODO in principle this should not be so difficult to handle
       ASSERTION_VIOLATION;

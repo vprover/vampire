@@ -109,10 +109,6 @@ TermList FormulaTransformer::apply(TermList ts) {
         return TermList(Term::createLet(apply(sd->getLetBinding()),
                                         apply(*term->nthArgument(0)),
                                         sd->getSort()));
-
-      case SpecialFunctor::TUPLE:
-        return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));
-
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
       case SpecialFunctor::MATCH: {

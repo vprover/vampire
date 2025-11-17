@@ -594,7 +594,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         auto bindingLhs = blit->termArg(0).term();
         auto bindingRhs = blit->termArg(1);
 
-        if (bindingLhs->isTuple()) {
+        if (Theory::tuples()->isConstructor(bindingLhs)) {
           NOT_IMPLEMENTED;
         }
 
@@ -713,8 +713,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         break;
       }
-      case SpecialFunctor::TUPLE:
-        NOT_IMPLEMENTED;
       case SpecialFunctor::FORMULA: {
         if (context == FORMULA_CONTEXT) {
           formulaResult = process(sd->getFormula());

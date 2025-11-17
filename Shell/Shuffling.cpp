@@ -275,11 +275,6 @@ void Shuffling::shuffleIter(Shufflable sh) {
                 goto tl_updated;
                 break; // I know, unreachable;
 
-              case SpecialFunctor::TUPLE:
-                tl = TermList(sd->getTupleTerm());
-                goto tl_updated;
-                break; // I know, unreachable;
-
               case SpecialFunctor::LAMBDA:
                 tl = sd->getLambdaExp();
                 goto tl_updated;

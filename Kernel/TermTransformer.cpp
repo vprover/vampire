@@ -74,16 +74,6 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
       }
     }
 
-    case SpecialFunctor::TUPLE: {
-      Term* tupleTerm = transform(sd->getTupleTerm());
-
-      if (tupleTerm == sd->getTupleTerm()) {
-        return term;
-      } else {
-        return Term::createTuple(tupleTerm);
-      }
-    }
-
     case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
     case SpecialFunctor::MATCH: {

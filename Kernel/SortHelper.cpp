@@ -206,10 +206,6 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
       resultSort = t->getSpecialData()->getSort();
       return true;
     }
-    case SpecialFunctor::TUPLE: {
-      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
-      return true;
-    }
   }
   ASSERTION_VIOLATION
   
@@ -443,12 +439,6 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
             CollectTask newTask(COLLECT_TERMLIST);
             newTask.contextSort = sd->getLambdaExpSort();
             newTask.ts = sd->getLambdaExp();
-            todo.push(newTask);
-          } break;
-
-          case SpecialFunctor::TUPLE: {
-            CollectTask newTask(COLLECT_TERM);
-            newTask.t = sd->getTupleTerm();
             todo.push(newTask);
           } break;
 

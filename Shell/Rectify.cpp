@@ -207,15 +207,6 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
   }
-  case SpecialFunctor::TUPLE:
-  {
-    ASS_EQ(t->arity(),0);
-    Term* rectifiedTupleTerm = rectify(sd->getTupleTerm());
-    if (rectifiedTupleTerm == sd->getTupleTerm()) {
-      return t;
-    }
-    return Term::createTuple(rectifiedTupleTerm);
-  }
   case SpecialFunctor::MATCH: {
     DArray<TermList> terms(t->arity());
     bool unchanged = true;

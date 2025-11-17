@@ -1045,41 +1045,21 @@ unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
   return skolemFunction; 
 }
 
-unsigned Theory::Tuples::getFunctor(unsigned arity, TermList* sorts) {
-  return getFunctor(AtomicSort::tupleSort(arity, sorts));
+unsigned Theory::Tuples::getConstructor(unsigned arity)
+{
+  return theory->getTupleTermAlgebra(arity)->constructor(0)->functor();
 }
 
-unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
-  ASS_REP(tupleSort.isTupleSort(), tupleSort.toString());
-
-  unsigned  arity = tupleSort.term()->arity();
-  TermList* sorts = tupleSort.term()->args();
-
-  theory->defineTupleTermAlgebra(arity, sorts);
-  ASS(env.signature->isTermAlgebraSort(tupleSort));
-  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
-
-  return ta->constructor(0)->functor();
+bool Theory::Tuples::isConstructor(Term* t)
+{
+  return !t->isSpecial() && getConstructor(t->numTypeArguments()) == t->functor();
 }
 
-bool Theory::Tuples::isFunctor(unsigned functor) {
-  TermList tupleSort = env.signature->getFunction(functor)->fnType()->result();
-  return tupleSort.isTupleSort();
-}
+unsigned Theory::Tuples::getProjectionFunctor(unsigned arity, unsigned proj)
+{
+  auto c = theory->getTupleTermAlgebra(arity)->constructor(0);
 
-unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort) {
-  ASS_REP(tupleSort.isTupleSort(), tupleSort.toString());
-
-  unsigned  arity = tupleSort.term()->arity();
-  TermList* sorts = tupleSort.term()->args();
-
-  theory->defineTupleTermAlgebra(arity, sorts);
-  ASS(env.signature->isTermAlgebraSort(tupleSort));
-  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
-
-  Shell::TermAlgebraConstructor* c = ta->constructor(0);
-
-  ASS_NEQ(proj, c->arity());
+  ASS_L(proj, c->arity());
 
   return c->destructorFunctor(proj);
 }
@@ -1315,40 +1295,40 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
   }
 }
 
-void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
-  TermList tupleSort = AtomicSort::tupleSort(arity, sorts);
+TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
+{
+  auto tupleTypeCon = env.signature->getTupleConstructor(arity);
+  auto typeVars = TermStack::fromIterator(range(0, arity).map([](unsigned v) { return TermList::var(v); }));
+
+  auto tupleSort = AtomicSort::tupleSort(arity, typeVars.begin());
 
   if (env.signature->isTermAlgebraSort(tupleSort)) {
-    return;
+    return env.signature->getTermAlgebraOfSort(tupleSort);
   }
 
-  unsigned functor = env.signature->addFreshFunction(arity, "tuple");
-  OperatorType* tupleType = OperatorType::getFunctionType(arity, sorts, tupleSort);
+  auto args = typeVars;
+  args.loadFromIterator(range(arity, 2*arity).map([](unsigned v) { return TermList::var(v); }));
+
+  auto functor = env.signature->addFreshFunction(2*arity, "tuple");
+  auto tupleType = OperatorType::getFunctionType(arity, args.begin(), tupleSort, arity);
   env.signature->getFunction(functor)->setType(tupleType);
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    TermList projSort = sorts[i];
-    unsigned destructor;
-    Signature::Symbol* destSym;
-    if (projSort == AtomicSort::boolSort()) {
-      destructor = env.signature->addFreshPredicate(1, "proj");
-      destSym = env.signature->getPredicate(destructor);
-      destSym->setType(OperatorType::getPredicateType({ tupleSort }));
-    } else {
-      destructor = env.signature->addFreshFunction(1, "proj");
-      destSym = env.signature->getFunction(destructor);
-      destSym->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
-    }
+    auto destructor = env.signature->addFreshFunction(arity+1, "proj");
+    auto destSym = env.signature->getFunction(destructor);
+    destSym->setType(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity));
     destSym->markTermAlgebraDest();
     destructors[i] = destructor;
   }
 
-  Shell::TermAlgebraConstructor* constructor = new Shell::TermAlgebraConstructor(functor, destructors);
+  auto constructor = new Shell::TermAlgebraConstructor(functor, destructors);
 
   Shell::TermAlgebraConstructor* constructors[] = { constructor };
-  env.signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, 1, constructors, false));
+  auto res = new Shell::TermAlgebra(tupleSort, 1, constructors, false);
+  env.signature->addTermAlgebra(res);
+  return res;
 }
 
 bool Theory::isInterpretedConstant(unsigned func)

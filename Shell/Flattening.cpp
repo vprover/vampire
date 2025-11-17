@@ -281,18 +281,6 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case SpecialFunctor::TUPLE: {
-        TermList tupleTerm = TermList(sd->getTupleTerm());
-        TermList flattenedTupleTerm = flatten(tupleTerm);
-
-        if (tupleTerm == flattenedTupleTerm) {
-          return ts;
-        } else {
-          ASS_REP(flattenedTupleTerm.isTerm(), flattenedTupleTerm.toString())
-          return TermList(Term::createTuple(flattenedTupleTerm.term()));
-        }
-      }
-
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
       case SpecialFunctor::MATCH: {

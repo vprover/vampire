@@ -598,14 +598,11 @@ private:
   /** a function name and arity */
   typedef std::pair<std::string, unsigned> LetSymbolName;
 
-  /** a symbol number with a predicate/function flag */
+  /** a definition term and the number of its implicit type arguments */
   struct LetSymbolReference {
-    unsigned symbol;
-    bool isPredicate;
-    VList* iTypeVars;
+    Term* def;
+    unsigned numITypeArgs;
   };
-  #define SYMBOL(ref) (ref.symbol)
-  #define IS_PREDICATE(ref) (ref.isPredicate)
 
   /** a definition of a function symbol, defined in $let */
   typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;

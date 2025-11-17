@@ -1291,8 +1291,6 @@ protected:
           out << ")";
           return;
         }
-        case SpecialFunctor::TUPLE: 
-            throw UserErrorException("tuples are not supperted in smt2 proofcheck");
 
         case SpecialFunctor::LAMBDA:
             throw UserErrorException("lambdas are not supperted in smt2 proofcheck");

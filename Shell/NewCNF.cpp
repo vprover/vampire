@@ -330,7 +330,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     unsigned proj;
     if (Theory::tuples()->findProjection(term->functor(), false, proj)) {
       TermList* arg = arguments.begin();
-      if (arg->isTerm() && Theory::tuples()->isFunctor(arg->term()->functor())) {
+      if (arg->isTerm() && Theory::tuples()->isConstructor(arg->term())) {
         return *arg->term()->nthArgument(proj);
       }
     }
@@ -364,11 +364,6 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
         elseBranches, matchVariables, matchConditions, matchBranches);
     }
 
-    case SpecialFunctor::TUPLE: {
-      TermList tupleTerm = TermList(sd->getTupleTerm());
-      return findITEs(tupleTerm, variables, conditions, thenBranches,
-                      elseBranches, matchVariables, matchConditions, matchBranches);
-    }
     case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
     case SpecialFunctor::MATCH: {
@@ -678,20 +673,18 @@ TermList NewCNF::eliminateLet(Term* term)
   auto bindingLhs = binding->literal()->termArg(0).term();
   auto bindingRhs = binding->literal()->termArg(1);
 
-  if (bindingLhs->isTuple()) {
+  if (Theory::tuples()->isConstructor(bindingLhs)) {
 
-    auto lhsTuple = bindingLhs->getSpecialData()->getTupleTerm();
     TermList bodySort = sd->getSort();
 
-    if (bindingRhs.isTerm() && bindingRhs.term()->isTuple()) {
+    if (bindingRhs.isTerm() && Theory::tuples()->isConstructor(bindingRhs.term())) {
       // binding of the form $let([x, y, z, ...] := [a, b, c, ...], ...) is processed
       // as $let(x := a, $let(y := b, $let(z := c, ...)))
-      auto rhsTuple = bindingRhs.term()->getSpecialData()->getTupleTerm();
 
-      Term::Iterator lhsit(lhsTuple);
-      Term::Iterator rhsit(rhsTuple);
+      auto lhsit = termArgIter(bindingLhs);
+      auto rhsit = termArgIter(bindingRhs.term());
       while (lhsit.hasNext()) {
-        ASS(rhsit.hasNext());
+        ASS_REP(rhsit.hasNext(), binding->toString());
         bindingLhs = lhsit.next().term();
         bindingRhs = rhsit.next();
         ASS_EQ(bindingLhs->arity(),0);
@@ -702,25 +695,29 @@ TermList NewCNF::eliminateLet(Term* term)
         }
       }
     } else {
-      TermList tupleSort = env.signature->getFunction(lhsTuple->functor())->fnType()->result();
+      TermList tupleSort = SortHelper::getResultSort(bindingLhs);
+      // TODO fix for polymorphism
       unsigned tuple = env.signature->addFreshFunction(0, "tuple");
       env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
+      auto arity = bindingLhs->numTypeArguments();
+      auto tupleTerm = Term::createConstant(tuple);
+      auto args = TermStack::fromIterator(typeArgIter(bindingLhs));
+      args.push(TermList(tupleTerm));
 
-      bindingLhs = Term::createConstant(tuple);
-
-      iterTraits(Term::Iterator(lhsTuple))
+      iterTraits(termArgIter(bindingLhs))
         .enumerate([&](unsigned i, TermList arg) {
           auto lhs = arg.term();
           ASS_EQ(lhs->arity(), 0);
 
-          unsigned projFunctor = Theory::tuples()->getProjectionFunctor(i, tupleSort);
-          Term* projectedArgument = (SortHelper::getResultSort(lhs) == AtomicSort::boolSort())
-            ? Term::createFormula(new AtomicFormula(Literal::create1(projFunctor, /*polarity*/true, TermList(bindingLhs))))
-            : Term::create1(projFunctor, TermList(bindingLhs));
+          unsigned projFunctor = Theory::tuples()->getProjectionFunctor(arity, i);
+          Term* projectedArgument = lhs->isBoolean()
+            ? Term::createFormula(new AtomicFormula(Literal::create(projFunctor, args.size(), /*polarity*/true, args.begin())))
+            : Term::create(projFunctor, args);
 
           SymbolDefinitionInlining inlining(lhs, TermList(projectedArgument), 0);
           body = inlining.process(body);
         });
+      bindingLhs = tupleTerm;
     }
     if (env.options->showPreprocessing()) {
       std::cout << "[PP] clausify (detuplify let) in:  " << *term << std::endl;
@@ -729,34 +726,7 @@ TermList NewCNF::eliminateLet(Term* term)
     }
   }
 
-  bool inlineLet = env.options->getIteInlineLet();
-
-  if (bindingRhs.isVar()) {
-    inlineLet = true;
-  } else {
-//    Term* term = binding.term();
-//    if (term->isSpecial()) {
-//      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->specialFunctor() == SpecialFunctor::FORMULA) {
-//        inlineLet = true;
-//      }
-//    }
-//    if (term->shared()) {
-//      // TODO: magic
-////      if (term->weight() < 6) {
-//        inlineLet = true;
-////      }
-//    } else if (term->isSpecial()) {
-//      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->specialFunctor() == SpecialFunctor::FORMULA) {
-//        Formula* f = sd->getFormula();
-//        if ((f->connective() == LITERAL) && f->literal()->shared()) {
-//          inlineLet = true;
-//        }
-//      }
-//    }
-  }
-
+  bool inlineLet = env.options->getIteInlineLet() || bindingRhs.isVar();
   TermList processedBody = inlineLet
     ? inlineLetBinding(bindingLhs, bindingRhs, body)
     : nameLetBinding(bindingLhs, bindingRhs, body, bindingBoundVars);
@@ -1153,8 +1123,6 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
       return;
-    case SpecialFunctor::TUPLE:
-      NOT_IMPLEMENTED;
     case SpecialFunctor::ITE: {
       Formula* condition = sd->getITECondition();
 

@@ -14,6 +14,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
 using namespace Kernel;
 using namespace Lib;
@@ -143,8 +144,9 @@ TermAlgebra::TermAlgebra(TermList sort,
   _constrs(constrs)
 {
   ASS(_sort.isTerm());
+  ASS(anyArgIter(_sort.term()).all([](TermList t) { return t.isVar(); }));
   for (unsigned i = 0; i < constrs.size(); i++) {
-    ASS(constrs[i]->rangeSort() == _sort);
+    ASS_EQ(constrs[i]->rangeSort(), _sort);
   }
 }
 
@@ -158,8 +160,9 @@ TermAlgebra::TermAlgebra(TermList sort,
   _constrs(n)
 {
   ASS(_sort.isTerm());
+  ASS(anyArgIter(_sort.term()).all([](TermList t) { return t.isVar(); }));
   for (unsigned i = 0; i < n; i++) {
-    ASS(constrs[i]->rangeSort() == _sort);
+    ASS_EQ(constrs[i]->rangeSort(), _sort);
     _constrs[i] = constrs[i];
   }
 }

@@ -389,7 +389,6 @@ enum class SpecialFunctor {
   ITE,
   LET,
   FORMULA,
-  TUPLE,
   LAMBDA,
   MATCH, // <- keep this one the last, or modify SPECIAL_FUNCTOR_LAST accordingly
 };
@@ -430,9 +429,6 @@ public:
       struct {
         Formula * formula;
       } _formulaData;
-      struct {
-        Term* term;
-      } _tupleData;
       struct {
         TermList lambdaExp;
         VList* _vars;
@@ -477,7 +473,6 @@ public:
       }
     }
     Formula* getFormula() const { ASS_EQ(specialFunctor(), SpecialFunctor::FORMULA); return _formulaData.formula; }
-    Term* getTupleTerm() const { return _tupleData.term; }
     TermList getMatchedSort() const { return _matchData.matchedSort; }
   };
 
@@ -507,8 +502,6 @@ public:
   static Term* createLet(Formula* binding, TermList body, TermList bodySort);
   static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
   static Term* createFormula(Formula* formula);
-  static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
-  static Term* createTuple(Term* tupleTerm);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
@@ -907,7 +900,6 @@ public:
 
   bool isITE()      const { return functor() == toNormalFunctor(SpecialFunctor::ITE); }
   bool isLet()      const { return functor() == toNormalFunctor(SpecialFunctor::LET); }
-  bool isTuple()    const { return functor() == toNormalFunctor(SpecialFunctor::TUPLE); }
   bool isFormula()  const { return functor() == toNormalFunctor(SpecialFunctor::FORMULA); }
   bool isLambda()   const { return functor() == toNormalFunctor(SpecialFunctor::LAMBDA); }
   bool isMatch()    const { return functor() == toNormalFunctor(SpecialFunctor::MATCH); }
