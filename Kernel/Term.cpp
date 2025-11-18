@@ -545,10 +545,34 @@ std::string Term::headToString() const
       case SpecialFunctor::LET: {
         ASS_EQ(arity(), 1);
         Formula* binding = sd->getLetBinding();
-        // TODO fix this
-        auto functor = "XXX";
-        // return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
-        return "$let(" + binding->toString() + ", ";
+        if (binding->connective() == Connective::FORALL) {
+          binding = binding->qarg();
+        }
+
+        ASS_EQ(binding->connective(), Connective::LITERAL);
+        ASS(binding->literal()->termArg(0).isTerm());
+        auto bindingLhs = binding->literal()->termArg(0).term();
+
+        std::string type;
+        if (Theory::tuples()->isConstructor(bindingLhs)) {
+          type += "[";
+          for (unsigned i = 0; i < bindingLhs->numTermArguments(); i++) {
+            auto arg = bindingLhs->termArg(i);
+            ASS(arg.isTerm() && !arg.term()->arity());
+            type += arg.toString() + ": " + SortHelper::getResultSort(arg.term()).toString();
+            if (i+1 < bindingLhs->numTermArguments()) {
+              type += ", ";
+            }
+          }
+          type += "]";
+        } else {
+          auto isPredicate = bindingLhs->isBoolean();
+          auto sym = isPredicate
+            ? env.signature->getPredicate(bindingLhs->functor())
+            : env.signature->getFunction(bindingLhs->functor());
+          type = sym->name() + ": " + (isPredicate ? sym->predType() : sym->fnType())->toString();
+        }
+        return "$let(" + type + ", " + binding->toString() + ", ";
       }
       case SpecialFunctor::ITE: {
         ASS_EQ(arity(),2);

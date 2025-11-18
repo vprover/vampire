@@ -734,9 +734,9 @@ TermList NewCNF::eliminateLet(Term* term)
   std::string opstr = inlineLet ? "inline" : "name";
 
   if (env.options->showPreprocessing()) {
-    std::cout << "[PP] clausify (" << opstr << " let) binding: " << *binding << std::endl;
-    std::cout << "[PP] clausify (" << opstr << " let) in:  " << body << std::endl;
-    std::cout << "[PP] clausify (" << opstr << " let) out: " << processedBody << std::endl;
+    std::cout << "[PP] clausify (" << opstr << " let) binding: " << *bindingLhs << " := " << bindingRhs << std::endl;
+    std::cout << "[PP] clausify (" << opstr << " let) in:      " << body << std::endl;
+    std::cout << "[PP] clausify (" << opstr << " let) out:     " << processedBody << std::endl;
   }
 
   return processedBody;

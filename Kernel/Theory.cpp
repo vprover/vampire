@@ -1052,7 +1052,7 @@ unsigned Theory::Tuples::getConstructor(unsigned arity)
 
 bool Theory::Tuples::isConstructor(Term* t)
 {
-  return !t->isSpecial() && getConstructor(t->numTypeArguments()) == t->functor();
+  return !t->isSpecial() && !t->isSort() && getConstructor(t->numTypeArguments()) == t->functor();
 }
 
 unsigned Theory::Tuples::getProjectionFunctor(unsigned arity, unsigned proj)
