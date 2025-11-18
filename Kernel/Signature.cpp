@@ -58,7 +58,6 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _skolem(0),
     _skipCongruence(0),
     _tuple(0),
-    _computable(1),
     _prox(Proxy::NOT_PROXY),
     _deBruijnIndex(-1)
 {
