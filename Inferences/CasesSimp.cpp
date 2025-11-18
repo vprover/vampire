@@ -17,17 +17,11 @@
  * [1] http://arxiv.org/abs/1505.01682
  */
 
-#include "Lib/Environment.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #include "CasesSimp.hpp"
@@ -100,7 +94,7 @@ struct CasesSimp::RewriteableSubtermsFn
 };
 
 
-ClauseIterator CasesSimp::simplifyMany(Clause* premise)
+Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)
 {
   auto it1 = premise->getLiteralIterator();
   auto it2 = getFilteredIterator(it1, isEqualityLit()); 
@@ -110,7 +104,11 @@ ClauseIterator CasesSimp::simplifyMany(Clause* premise)
   //Perform  Narrow
   auto it4 = getMapAndFlattenIterator(it3,ResultFn(premise, *this));
 
-  return pvi( it4 );
+  if (it4.hasNext()) {
+    return some(pvi(it4));
+  } else {
+    return {};
+  }
 }
 
 }

@@ -27,7 +27,6 @@
 #include "Lib/Map.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
 
 #include "Shell/TermAlgebra.hpp"
@@ -136,8 +135,6 @@ class Signature
     unsigned _skipCongruence : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
-    /** if allowed in answer literals */
-    unsigned _computable : 1;
     /** name that is bound by a $let-binder */
     unsigned _letBound : 1;
     /** proxy type */
@@ -176,8 +173,6 @@ class Signature
     void markTermAlgebraDest() { _termAlgebraDest=1; }
     /** mark symbol as a term algebra discriminator */
     void markTermAlgebraDiscriminator() { _termAlgebraDiscriminator=1; }
-    /** mark the symbol as uncomputable and hence not allowed in answer literals */
-    void markUncomputable() { _computable = 0; }
     /** mark the symbol as let-bound */
     void markLetBound() { _letBound = 1; }
 
@@ -224,8 +219,6 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDiscriminator() const { return _termAlgebraDiscriminator; }
-    /** Return true iff symbol is considered computable */
-    inline bool computable() const { return _computable; }
     /** if bound by a $let-binder */
     inline bool letBound() const { return _letBound; }
 
@@ -467,18 +460,8 @@ class Signature
     RealConstantType _realValue;
 
   public:
-    RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")") 
-                                                                         : Output::toString(val),
-        /*             arity */ 0, 
-        /*       interpreted */ true, 
-        /*    preventQuoting */ false, 
-        /*             super */ false),
-       _realValue(std::move(val))
-    {
-      setType(OperatorType::getConstantsType(AtomicSort::realSort()));
-    }
-  }; 
+    RealSymbol(const RealConstantType& val);
+  };
 
   //////////////////////////////////////
   // Uninterpreted symbol declarations
@@ -520,7 +503,7 @@ class Signature
    */
   unsigned addStringConstant(const std::string& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0, bool computable = false);
+  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
   unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
@@ -945,7 +928,7 @@ class Signature
     ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
     
-    constexpr auto convert = [] (const std::string& name) {
+    static constexpr auto convert = [](const std::string& name) {
       if (name == "vIMP") return Proxy::IMP;
       if (name == "vAND") return Proxy::AND;
       if (name == "vOR") return Proxy::OR;
@@ -1043,12 +1026,9 @@ private:
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 
-  /** Number of Skolem functions (this is just for LaTeX output) */
-  unsigned _skolemFunctionCount;
-
   /** Map from symbol names to variable numbers*/
   SymbolMap _varNames;
-  
+
   // Store the premise of a distinct group for proof printing, if 0 then group is input
   Stack<Unit*> _distinctGroupPremises;
 

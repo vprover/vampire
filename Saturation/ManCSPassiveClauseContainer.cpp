@@ -14,7 +14,6 @@
 #include <iostream>
 #include <algorithm>
 #include "ManCSPassiveClauseContainer.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 namespace Saturation
 {

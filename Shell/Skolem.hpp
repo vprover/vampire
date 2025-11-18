@@ -20,7 +20,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/Formula.hpp"
 #include "Kernel/Substitution.hpp"
 
 namespace Kernel {

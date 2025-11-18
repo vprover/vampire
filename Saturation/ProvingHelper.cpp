@@ -20,12 +20,10 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
-#include "Shell/Property.hpp"
+#include "Kernel/MainLoop.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
-
-#include "SaturationAlgorithm.hpp"
 
 #include "ProvingHelper.hpp"
 

@@ -21,14 +21,12 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
-#include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
 #include "Rectify.hpp"
@@ -487,7 +485,7 @@ Formula* Skolem::skolemise (Formula* f)
           def = new QuantifiedFormula(FORALL,vArgs.list(),nullptr,def);
         }
 
-        Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
+        Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::SKOLEM_SYMBOL_INTRODUCTION));
         UnitList::push(defUnit,_skolimizingDefinitions);
       }
 

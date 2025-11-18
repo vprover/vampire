@@ -56,7 +56,7 @@ public:
     return (res1==EQUAL)?_c2.compare(l1,l2):res1;
   }
 
-  virtual void attachSelector(LiteralSelector* selector)
+  void attachSelector(LiteralSelector* selector) override
   {
     LiteralComparator::attachSelector(selector);
     _c1.attachSelector(selector);
@@ -76,7 +76,7 @@ public:
     return _c.compare(l2,l1);
   }
 
-  virtual void attachSelector(LiteralSelector* selector)
+  void attachSelector(LiteralSelector* selector) override
   {
     LiteralComparator::attachSelector(selector);
     _c.attachSelector(selector);
@@ -256,7 +256,6 @@ struct LexComparator : public LiteralComparator
  * iff they're variants of each other, and if one literal
  * heavier than the other one, it is greater
  */
-template<bool ignorePolarity=false>
 struct NormalizedLinearComparatorByWeight : public LiteralComparator
 {
   Comparison compare(Term* t1, Term* t2)
@@ -269,12 +268,6 @@ struct NormalizedLinearComparatorByWeight : public LiteralComparator
     if(t1->functor()!=t2->functor()) {
       return Int::compare(t1->functor(),t2->functor());
     }
-    if(t1->isLiteral() && !ignorePolarity &&
-	    static_cast<Literal*>(t1)->polarity()!=static_cast<Literal*>(t2)->polarity()) {
-      return Int::compare(static_cast<Literal*>(t1)->polarity(),
-	      static_cast<Literal*>(t2)->polarity());
-    }
-
     // MR: this looked suspicious to me, but MS says...
     //
     // t1 and t2 are assumed to be distinct initially,

@@ -19,9 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
-#include "Shell/Options.hpp"
+#include "Kernel/ALASCA.hpp"
 
 namespace Inferences {
 namespace ALASCA {
@@ -41,8 +39,8 @@ public:
     : _shared(std::move(shared))
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final ;
+  void detach() final ;
 
   template<class NumTraits>
   ClauseIterator generateClauses(Clause* premise, 
@@ -60,7 +58,7 @@ public:
       Literal* lit2, AlascaLiteral<NumTraits> L2
     );
 
-  ClauseIterator generateClauses(Clause* premise) final override;
+  ClauseIterator generateClauses(Clause* premise) final ;
   
 
 #if VDEBUG

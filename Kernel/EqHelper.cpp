@@ -12,14 +12,11 @@
  * Implements class EqHelper.
  */
 
-#include "Lib/Environment.hpp"
-
 #include "Shell/Options.hpp"
 
 #include "Ordering.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
-#include "ApplicativeHelper.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Matcher.hpp"
 

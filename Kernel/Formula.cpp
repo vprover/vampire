@@ -16,7 +16,8 @@
 
 #include "Clause.hpp"
 #include "SubformulaIterator.hpp"
-#include "FormulaVarIterator.hpp"
+#include "Lib/Environment.hpp"
+
 
 namespace Kernel {
 
@@ -137,10 +138,11 @@ std::string Formula::toString () const
     case NAME:
       res += static_cast<const NamedFormula*>(f)->name();
       continue;
-    case LITERAL:
-      res += f->literal()->toString();
+    case LITERAL: {
+      auto af = static_cast<const AtomicFormula *>(f);
+      res += af->literal()->toString(af->flipForPrinting);
       continue;
-
+    }
     case AND:
     case OR:
       {
@@ -456,7 +458,7 @@ Formula* Formula::quantify(Formula* f)
  * Return formula equal to @b cl
  * that has all variables quantified
  */
-Formula* Formula::fromClause(Clause* cl)
+Formula* Formula::fromClause(Clause* cl, bool closed)
 {
   FormulaList* resLst=0;
   unsigned clen=cl->length();
@@ -466,7 +468,34 @@ Formula* Formula::fromClause(Clause* cl)
   }
 
   Formula* res=JunctionFormula::generalJunction(OR, resLst);
-  return Formula::quantify(res);
+  return closed ? Formula::quantify(res) : res;
+}
+
+Formula* BoolTermFormula::create(TermList ts)
+{
+  if (ts.isVar()) {
+    return new BoolTermFormula(ts);
+  }
+
+  Term* term = ts.term();
+  if (term->isSpecial()) {
+    Term::SpecialTermData *sd = term->getSpecialData();
+    switch (sd->specialFunctor()) {
+      case SpecialFunctor::FORMULA:
+        return sd->getFormula();
+      default:
+        return new BoolTermFormula(ts);
+    }
+  } else {
+    unsigned functor = term->functor();
+    if (env.signature->isFoolConstantSymbol(true, functor)) {
+      return new Formula(true);
+    }
+    if (env.signature->isFoolConstantSymbol(false, functor)) {
+      return new Formula(false);
+    }
+    return new BoolTermFormula(ts);
+  }
 }
 
 std::ostream& operator<< (std::ostream& out, const Formula& f)

@@ -18,11 +18,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Array.hpp"
-
-#include "Lib/Allocator.hpp"
-
-#include "Term.hpp"
+#include <functional>
 
 namespace Kernel {
 

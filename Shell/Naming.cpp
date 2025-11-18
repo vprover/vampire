@@ -16,7 +16,6 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
@@ -34,8 +33,6 @@
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
-
-#include "Indexing/TermSharing.hpp"
 
 #include "Naming.hpp"
 

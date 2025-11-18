@@ -15,18 +15,15 @@
 #ifndef __Theory__
 #define __Theory__
 
-#include <cmath>
 #include <cstdint>
 
 #include "Forwards.hpp"
+#include "OperatorType.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
-
 #include "Lib/Reflection.hpp"
-#include "Shell/TermAlgebra.hpp"
 
-#include "OperatorType.hpp"
 #include "Term.hpp"
 
 #include "mini-gmp.h"
@@ -597,16 +594,6 @@ public:
   Interpretation interpretFunction(TermList t);
   Interpretation interpretPredicate(unsigned pred);
   Interpretation interpretPredicate(Literal* t);
-
-  void registerLaTeXPredName(unsigned func, bool polarity, std::string temp);
-  void registerLaTeXFuncName(unsigned func, std::string temp);
-  std::string tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
-
-private:
-  // For recording the templates for predicate and function symbols
-  DHMap<unsigned,std::string> _predLaTeXnamesPos;
-  DHMap<unsigned,std::string> _predLaTeXnamesNeg;
-  DHMap<unsigned,std::string> _funcLaTeXnames;
 
 public:
 

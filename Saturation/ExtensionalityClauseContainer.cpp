@@ -11,6 +11,8 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Lib/Environment.hpp"
+
 #include "Shell/Statistics.hpp"
 #include "Shell/TheoryFinder.hpp"
 

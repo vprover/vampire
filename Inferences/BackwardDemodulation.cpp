@@ -15,8 +15,6 @@
 
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -26,10 +24,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -174,7 +169,6 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    env.statistics->backwardDemodulations++;
     _removed->insert(qr.data->clause);
     Clause *replacement = Clause::fromStack(
       *resLits,

@@ -20,8 +20,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/TypeList.hpp"
@@ -80,7 +78,7 @@ public:
 
       
     
-  void attach(SaturationAlgorithm* salg) final override
+  void attach(SaturationAlgorithm* salg) final
   { 
     ASS(!_rhs);
     ASS(!_lhs);
@@ -96,7 +94,7 @@ public:
     attachToInner(_rule, salg);
   }
 
-  void detach() final override {
+  void detach() final {
     ASS(_salg);
     _lhs = nullptr;
     _rhs = nullptr;
@@ -116,7 +114,7 @@ public:
   }
 #endif
 
-  ClauseIterator generateClauses(Clause* premise) final override
+  ClauseIterator generateClauses(Clause* premise) final
   {
     ASS(_lhs)
     ASS(_rhs)
@@ -205,7 +203,7 @@ public:
     , _prem2(nullptr)
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override
+  void attach(SaturationAlgorithm* salg) final
   { 
     ASS(!_prem0);
     ASS(!_prem1);
@@ -222,7 +220,7 @@ public:
     _prem2->setShared(_shared);
   }
 
-  void detach() final override {
+  void detach() final {
     ASS(_salg);
     _prem0 = nullptr;
     _prem1 = nullptr;
@@ -253,7 +251,7 @@ public:
   template<unsigned p>
   using Prem = TL::Get<p, TL::List<Premise0, Premise1, Premise2>>;
 
-  ClauseIterator generateClauses(Clause* premise) final override
+  ClauseIterator generateClauses(Clause* premise) final
   {
     ASS(_prem0)
     ASS(_prem1)

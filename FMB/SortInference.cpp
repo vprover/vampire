@@ -19,7 +19,6 @@
 #include "Shell/Options.hpp"
 
 #include "Kernel/Term.hpp"
-#include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -31,7 +30,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/List.hpp"
-#include "Lib/DHSet.hpp"
 
 #include "Monotonicity.hpp"
 #include "SortInference.hpp"

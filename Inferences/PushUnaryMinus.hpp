@@ -14,10 +14,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
-
 #include "Kernel/PolynomialNormalizer.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -27,9 +24,9 @@ class PushUnaryMinus
 : public ImmediateSimplificationEngine
 {
 public:
-  virtual ~PushUnaryMinus();
+  ~PushUnaryMinus() override;
 
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

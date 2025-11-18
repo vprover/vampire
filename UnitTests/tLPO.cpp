@@ -12,7 +12,6 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/LPO.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Problem.hpp"
 
 inline void compareTwoWays(const Ordering& ord, TermSugar t1, TermSugar t2) {
   ASS_EQ(ord.compare(t1, t2), Ordering::Result::GREATER);

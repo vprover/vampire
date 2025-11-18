@@ -8,17 +8,14 @@
  * and in the source directory
  */
 /**
- * @file PrimitiveInstantiation.cpp
- * Implements class PrimitiveInstantiation.
+ * @file Choice.cpp
+ * Implements class Choice.
  */
-
-#include "Debug/RuntimeStatistics.hpp"
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Inference.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -31,14 +28,9 @@
 
 #include "Choice.hpp"
 
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
-
 namespace Inferences
 {
-  
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -66,7 +58,7 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   return Clause::fromLiterals(
       { Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
         Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())},
-       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM)
+       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE)
   );
 }
 
@@ -88,14 +80,14 @@ struct Choice::AxiomsIterator
 
   DECL_ELEMENT_TYPE(Clause*);
 
-  bool hasNext() {  
+  bool hasNext() {
     if(_inBetweenNextandHasNext){ return true; }
 
     while(!_choiceOps.isEmpty()){
       unsigned op = _choiceOps.getOneKey();
       _choiceOps.remove(op);
       OperatorType* type = env.signature->getFunction(op)->fnType();
-      
+
       static RobSubstitution subst;
       static TermStack typeArgs;
       typeArgs.reset();
@@ -115,15 +107,14 @@ struct Choice::AxiomsIterator
         return true;
       }
     }
-     
-    return false;   
+
+    return false;
   }
 
   OWN_ELEMENT_TYPE next()
   {
     _inBetweenNextandHasNext = false;
-    Clause* c = createChoiceAxiom(_opApplied, _setApplied); 
-    env.statistics->choiceInstances++;
+    Clause* c = createChoiceAxiom(_opApplied, _setApplied);
     return c;
   }
 
@@ -141,14 +132,13 @@ private:
 struct Choice::ResultFn
 {
   ResultFn(){}
-  
+
   VirtualIterator<Clause*> operator() (Term* term){
     TermList op = *term->nthArgument(2);
     if(op.isVar()){
       return pvi(AxiomsIterator(term));
     } else {
       Clause* axiom = createChoiceAxiom(op, *term->nthArgument(3));
-      env.statistics->choiceInstances++;
       return pvi(getSingletonIterator(axiom));
     }
   }
@@ -157,18 +147,18 @@ struct Choice::ResultFn
 struct Choice::IsChoiceTerm
 {
   bool operator()(Term* t)
-  { 
+  {
     TermStack args;
     TermList head;
     ApplicativeHelper::getHeadAndArgs(t, head, args);
     if(args.size() != 1){ return false; }
-    
+
     TermList headSort = AtomicSort::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
 
     TermList tv = TermList(0, false);
     TermList o  = AtomicSort::boolSort();
     TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
- 
+
     static RobSubstitution subst;
     subst.reset();
 
@@ -194,7 +184,7 @@ struct Choice::SubtermsFn
 ClauseIterator Choice::generateClauses(Clause* premise)
 {
   //cout << "Choice with " << premise->toString() << endl;
-  
+
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();
   //filter out literals that are not suitable for narrowing
@@ -202,10 +192,10 @@ ClauseIterator Choice::generateClauses(Clause* premise)
 
   //pair of literals and possible rewrites that can be applied to literals
   auto it3 = getFilteredIterator(it2, IsChoiceTerm());
-  
+
   //apply rewrite rules to literals
   auto it4 = getMapAndFlattenIterator(it3, ResultFn());
-  
+
 
   return pvi( it4 );
 

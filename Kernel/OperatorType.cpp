@@ -14,12 +14,7 @@
 
 #include "OperatorType.hpp"
 
-#include "Lib/Environment.hpp"
-//#include "Kernel/Theory.hpp"
-#include "Shell/Options.hpp"
-
 #include "Term.hpp"
-#include "Signature.hpp"
 
 using namespace std;
 using namespace Kernel;

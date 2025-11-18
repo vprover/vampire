@@ -14,7 +14,6 @@
 #include <cmath>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -26,7 +25,6 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Lib/StringUtils.hpp"
 #include <cstdio>
 #include <iostream>
 
@@ -1636,27 +1634,6 @@ Term* Theory::representConstant(const RealConstantType& num)
   return Term::create(func, 0, 0);
 }
 
-/**
- * Register that a predicate pred with a given polarity has the given
- * template. See tryGetInterpretedLaTeXName for explanation of templates 
- */
-void Theory::registerLaTeXPredName(unsigned pred, bool polarity, std::string temp)
-{
-  if(polarity){
-    _predLaTeXnamesPos.insert(pred,temp);
-  }else{
-    _predLaTeXnamesNeg.insert(pred,temp); 
-  }
-}
-/**
- * Register that a function has the given template
- * See tryGetInterpretedLaTeXName for explanation of templates 
- */
-void Theory::registerLaTeXFuncName(unsigned func, std::string temp)
-{
-  _funcLaTeXnames.insert(func,temp);
-}
-
 std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self)
 {
   switch(self) {
@@ -1759,110 +1736,6 @@ std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
 
 std::ostream& operator<<(std::ostream& out, RealConstantType const& self)
 { return out << (RationalConstantType const&)self; }
-
-
-/**
- * We try and get a LaTeX special name for an interpreted function/predicate.
- * Note: the functions may not necessarily be interpreted in the sense that we treat
- *       them as interpreted in Vampire. They are just called that here as we have an
- *       interpretation for them. So we can have LaTeX symbols for any predicate or
- *       function if they are recorded e.g. skolem functions are recorded in Signature.
- *
- * See Shell/LaTeX for usage.
- *
- * Polarity only makes sense if pred=true
- *
- * First we look in the recorded templates and if one is not found we fallback to the
- * default templates for known interprted functions. Note that in most cases the known
- * interpreted functions will use these defaults.
- *
- * A template is a string with "ai" representing parameter i. These will be
- * replaced by the actual parameters elsewhere. For example, the template for 
- * not greater or equal to is "a0 \not \geq a1"
- */
-std::string Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
-{
-   //cout << "Get LaTeX for " << func << endl;
-
-  // Used if no recorded template is found
-  Interpretation i;
-
-  if(pred){
-    if(polarity){
-      if(_predLaTeXnamesPos.find(func)){ return _predLaTeXnamesPos.get(func); }
-      else if(_predLaTeXnamesNeg.find(func)){ 
-        // If a negative record is found but no positive we negate it
-        return "\neg ("+_predLaTeXnamesNeg.get(func)+")";
-      }
-    }
-    else{ 
-      if(_predLaTeXnamesNeg.find(func)){ return _predLaTeXnamesNeg.get(func); }
-      else if(_predLaTeXnamesPos.find(func)){ 
-        // If a positive record is found but no negative we negate it
-        return "\neg ("+_predLaTeXnamesPos.get(func)+")";
-      }
-    }
-    // We get here if no record is found for a predicate
-    if(!isInterpretedPredicate(func)) return "";
-    i = interpretPredicate(func);
-  }
-  else{
-    if(_funcLaTeXnames.find(func)){ return _funcLaTeXnames.get(func); }
-    // We get here if no record is found for a function
-    if(!isInterpretedFunction(func)) return "";
-    i = interpretFunction(func);
-  }
-
-  // There are some default templates
-  // For predicates these include the notion of polarity
-  std::string pol = polarity ? "" : " \\not ";
-
-  //TODO do we want special symbols for quotient, remainder, floor, ceiling, truncate, round?
-
-  switch(i){
-  case EQUAL:return "a0 "+pol+"= a1";
-
-  case INT_SUCCESSOR: return "a0++"; 
-  case INT_UNARY_MINUS:
-  case RAT_UNARY_MINUS:
-  case REAL_UNARY_MINUS: return "-a0";
-
-  case INT_GREATER: return "a0 "+pol+"> a1";
-  case INT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
-  case INT_LESS: return "a0 "+pol+"< a1";
-  case INT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
-  case INT_DIVIDES: return "a0 "+pol+"\\| a1"; // check?
-
-  case RAT_GREATER: return "a0 "+pol+"> a1";
-  case RAT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
-  case RAT_LESS: return "a0 "+pol+"< a1";
-  case RAT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
-
-  case REAL_GREATER: return "a0 "+pol+"> a1"; 
-  case REAL_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
-  case REAL_LESS: return "a0 "+pol+"< a1";
-  case REAL_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
-
-  case INT_PLUS: return "a0 + a1";
-  case INT_MINUS: return "a0 - a1";
-  case INT_MULTIPLY: return "a0 \\cdot a1";
-
-  case RAT_PLUS: return "a0 + a1";
-  case RAT_MINUS: return "a0 - a1";
-  case RAT_MULTIPLY: return "a0 \\cdot a1";
-  case RAT_QUOTIENT: return "a0 / a1";
-
-  case REAL_PLUS: return "a0 + a1";
-  case REAL_MINUS: return "a0 - a1";
-  case REAL_MULTIPLY: return "a0 \\cdot a1";
-  case REAL_QUOTIENT: return "a0 / a1";
-
-  default: return "";
-  } 
-
-  return "";
-
-}
 
 
 /**

@@ -22,7 +22,6 @@
 #include "Lib/Deque.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
 
@@ -67,7 +66,7 @@ public:
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
-  void clausify(FormulaUnit* unit, Stack<Clause*>& output, DHMap<unsigned, Term*>* bindings = nullptr);
+  void clausify(FormulaUnit* unit, Stack<Clause*>& output, Substitution* subst = nullptr);
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;
@@ -559,7 +558,10 @@ private:
   bool _collectedVarSorts;
   unsigned _maxVar;
 
+  Substitution _skolemTypeVarSubst;
+
   void ensureHavingVarSorts();
+  TermList getVarSort(unsigned var) const;
 
   Term* createSkolemTerm(unsigned var, VarSet* free);
 

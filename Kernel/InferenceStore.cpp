@@ -14,7 +14,6 @@
 
 #include "Kernel/Theory.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -23,9 +22,7 @@
 #include "Lib/StringUtils.hpp"
 #include "Lib/ScopedPtr.hpp"
 
-#include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
 
@@ -42,9 +39,10 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "SortHelper.hpp"
-#include "Kernel/NumTraits.hpp"
 
 #include "InferenceStore.hpp"
+
+#include <set>
 
 //TODO: when we delete clause, we should also delete all its records from the inference store
 
@@ -192,39 +190,55 @@ struct InferenceStore::ProofPrinter
   : _is(is), out(out)
   {
     outputAxiomNames=env.options->outputAxiomNames();
-    delayPrinting=true;
   }
 
+  // compute closure of `us`' ancestors for printing and insert into `proof`
   void scheduleForPrinting(Unit* us)
   {
-    outKernel.push(us);
-    handledKernel.insert(us);
+    std::vector<Unit *> todo = { us };
+    while(!todo.empty()) {
+      Unit *next = todo.back();
+      todo.pop_back();
+
+      // check if this step should be printed
+      InferenceRule rule = next->inference().rule();
+      if(!hideProofStep(rule)) {
+        // check if already processed (proofs are DAGs, not trees)
+        auto [_, inserted] = proof.insert(next);
+        if(!inserted)
+          continue;
+      }
+      // NB step may be hidden, but its parents are not
+      // TODO not sure this is desirable, but it was the old behaviour
+
+      // process premise parents
+      UnitIterator parents = next->getParents();
+      while(parents.hasNext()) {
+        Unit* prem = parents.next();
+        ASS_NEQ(prem, next)
+        todo.push_back(prem);
+      }
+    }
   }
 
   virtual ~ProofPrinter() {}
 
   virtual void print()
   {
-    while(outKernel.isNonEmpty()) {
-      Unit* cs=outKernel.pop();
-      handleStep(cs);
+    for(Unit *u : proof) {
+      SATClause *sat = u->inference().satPremise();
+      if(sat)
+        for(SATClause *scl : topological_sort(sat))
+          printSATStep(scl);
+
+      printStep(u);
     }
-    if(delayPrinting) printDelayed();
   }
 
 protected:
-
   virtual bool hideProofStep(InferenceRule rule)
   {
     return false;
-  }
-
-  void requestProofStep(Unit* prem)
-  {
-    if (!handledKernel.contains(prem)) {
-      handledKernel.insert(prem);
-      outKernel.push(prem);
-    }
   }
 
   virtual void printStep(Unit* cs)
@@ -273,49 +287,54 @@ protected:
     }
   }
 
-  void handleStep(Unit* cs)
-  {
-    InferenceRule rule = cs->inference().rule();
-    UnitIterator parents= cs->getParents();
-
-    while(parents.hasNext()) {
-      Unit* prem=parents.next();
-      ASS(prem!=cs);
-      requestProofStep(prem);
-    }
-
-    if (!hideProofStep(rule)) {
-      if(delayPrinting) delayed.push(cs);
-      else printStep(cs);
-    }
+  virtual void printSATStep(SATClause *cl) {
+    out << *cl << '\n';
   }
 
-  void printDelayed()
-  {
-    // Sort
-    sort(
-      delayed.begin(), delayed.end(),
-      [](Unit *u1, Unit *u2) -> bool { return u1->number() < u2->number(); }
-    );
-
-    // Print
-    for(unsigned i=0;i<delayed.size();i++){
-      printStep(delayed[i]);
-    }
-
-  }
-
-
-
-  Stack<Unit*> outKernel;
-  Set<Unit*> handledKernel; // use UnitSpec to provide its own hash and equals
-  Stack<Unit*> delayed;
-
-  InferenceStore* _is;
-  ostream& out;
-
+  InferenceStore *_is = nullptr;
+  ostream &out;
   bool outputAxiomNames;
-  bool delayPrinting;
+
+private:
+  struct CompareSATClauses {
+    bool operator()(SATClause *l, SATClause *r) const { return l->number < r->number; }
+  };
+
+  struct CompareUnits {
+    bool operator()(Unit *l, Unit *r) const { return l->number() < r->number(); }
+  };
+
+  // produce a topological sort of the SAT proof starting at `root`
+  std::set<SATClause *, CompareSATClauses> topological_sort(SATClause *root) {
+    // things inserted in here will be topologically sorted,
+    // because it's an ordered set and the clauses are numbered
+    std::set<SATClause *, CompareSATClauses> topological;
+
+    // compute closure of root and insert into `topological`
+    std::vector<SATClause *> todo = { root };
+    while(!todo.empty()) {
+      SATClause *next = todo.back();
+      todo.pop_back();
+
+      // check if already processed (proofs are DAGs, not trees)
+      auto [_, inserted] = topological.insert(next);
+      if(!inserted)
+        continue;
+
+      // process premise parents
+      SATInference *inference = next->inference();
+      if(inference->getType() != SATInference::InfType::PROP_INF)
+        continue;
+      SATClauseList *parents =
+        static_cast<PropInference *>(inference)->getPremises();
+      for(SATClause *parent : iterTraits(parents->iter()))
+        todo.push_back(parent);
+    }
+
+    return topological;
+  }
+
+  std::set<Unit *, CompareUnits> proof;
 };
 
 struct InferenceStore::ProofPropertyPrinter
@@ -328,7 +347,7 @@ struct InferenceStore::ProofPropertyPrinter
     last_one = false;
   }
 
-  void print()
+  void print() override
   {
     ProofPrinter::print();
     for(unsigned i=0;i<11;i++){ out << buckets[i] << " ";}
@@ -339,12 +358,12 @@ struct InferenceStore::ProofPropertyPrinter
 
 protected:
 
-  void printStep(Unit* us)
+  void printStep(Unit* us) override
   {
     static unsigned lastP = Unit::getLastParsingNumber();
     static float chunk = lastP / 10.0;
     if(us->number() <= lastP){
-      if(us->number() == lastP){ 
+      if(us->number() == lastP){
         last_one = true;
       }
       unsigned bucket = (unsigned)(us->number() / chunk);
@@ -387,7 +406,7 @@ protected:
       }
       level--;
       //cout << "level is " << level << endl;
-      
+
       if(level > max_theory_clause_depth){
         max_theory_clause_depth=level;
       }
@@ -407,11 +426,9 @@ struct InferenceStore::TPTPProofPrinter
   TPTPProofPrinter(std::ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {
     splitPrefix = Saturation::Splitter::splPrefix;
-    // Don't delay printing in TPTP proof mode
-    delayPrinting = false;
   }
 
-  void print()
+  void print() override
   {
     //outputSymbolDeclarations also deals with sorts for now
     //UIHelper::outputSortDeclarations(out);
@@ -435,6 +452,14 @@ protected:
       }
     case InferenceRule::NEGATED_CONJECTURE:
       return "negated_conjecture";
+    case InferenceRule::AVATAR_DEFINITION:
+    case InferenceRule::FUNCTION_DEFINITION:
+    case InferenceRule::FOOL_ITE_DEFINITION:
+    case InferenceRule::FOOL_LET_DEFINITION:
+    case InferenceRule::FOOL_FORMULA_DEFINITION:
+    case InferenceRule::FOOL_MATCH_DEFINITION:
+    case InferenceRule::GENERAL_SPLITTING_COMPONENT:
+      return "definition";
     default:
       return "plain";
     }
@@ -560,15 +585,12 @@ protected:
     return getNewSymbols(origin, SymbolStack::ConstIterator(syms));
   }
 
-  void printStep(Unit* us)
+  void printStep(Unit* us) override
   {
     InferenceRule rule = us->inference().rule();
     UnitIterator parents= us->getParents();
 
     switch(rule) {
-    //case Inference::AVATAR_COMPONENT:
-    //  printSplittingComponentIntroduction(us);
-    //  return;
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
       printGeneralSplittingComponent(us);
       return;
@@ -608,7 +630,8 @@ protected:
       std::string newSymbolInfo;
       if (hasNewSymbols(us)) {
         std::string newSymbOrigin;
-        if (rule == InferenceRule::FUNCTION_DEFINITION ||
+        if (
+          rule == InferenceRule::FUNCTION_DEFINITION ||
           rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
           rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) {
           newSymbOrigin = "definition";
@@ -617,7 +640,7 @@ protected:
         }
 	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
       }
-      inferenceStr="introduced("+tptpRuleName(rule)+",["+newSymbolInfo+"])";
+      inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
     }
     else {
       ASS(parents.hasNext());
@@ -632,19 +655,65 @@ protected:
       inferenceStr="inference("+tptpRuleName(rule);
 
       inferenceStr+=",["+statusStr+"],[";
-      bool first=true;
-      while(parents.hasNext()) {
-        Unit* prem=parents.next();
-        if (!first) {
-          inferenceStr+=',';
+      if(rule==InferenceRule::AVATAR_REFUTATION) {
+        SATClause *premise = us->inference().satPremise();
+        ASS(premise)
+        inferenceStr += "s" + Int::toString(premise->number);
+      }
+      else {
+        bool first=true;
+        while(parents.hasNext()) {
+          Unit* prem=parents.next();
+          if (!first) {
+            inferenceStr+=',';
+          }
+          inferenceStr+=tptpUnitId(prem);
+          first=false;
         }
-        inferenceStr+=tptpUnitId(prem);
-        first=false;
       }
       inferenceStr+="])";
     }
 
     out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule, us->inputType())<<endl;
+  }
+
+  void printSATStep(SATClause *cl) override {
+    out << "cnf(s" << cl->number << ", plain, ";
+    if(cl->isEmpty())
+      out << "$false";
+    else {
+      bool first = true;
+      for(SATLiteral l : iterTraits(cl->iter())) {
+        if(!first)
+          out << " | ";
+        first = false;
+        out << Saturation::Splitter::getFormulaStringFromLiteral(l);
+      }
+    }
+
+    out << ", inference(";
+    auto inference = cl->inference();
+    switch(inference->getType()) {
+    case SAT::SATInference::PROP_INF: {
+      out << "rat,[],[";
+      bool first = true;
+      SATClauseList *parents =
+        static_cast<PropInference *>(inference)->getPremises();
+      for(SATClause *parent : iterTraits(parents->iter())) {
+        if(!first)
+          out << ",";
+        first = false;
+        out << 's' << parent->number;
+      }
+      break;
+    }
+    case SAT::SATInference::FO_CONVERSION:
+      out
+        << "sat_conversion,[],[f"
+        << static_cast<FOConversionInference *>(inference)->getOrigin()->number();
+      break;
+    }
+    out << "])).\n";
   }
 
   void printSplitting(Unit* us)
@@ -735,38 +804,12 @@ protected:
 
     SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     std::ostringstream originStm;
-    originStm << "introduced(" << tptpRuleName(rule)
-	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
-	      << "])";
+    originStm << "introduced(definition,["
+	      << getNewSymbols("naming",getSingletonIterator(nameSymbol))
+	      << "],[" << tptpRuleName(rule) << "])";
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
   }
-
-  void printSplittingComponentIntroduction(Unit* us)
-  {
-    ASS(us->isClause());
-
-    Clause* cl=us->asClause();
-    ASS(cl->splits());
-    ASS_EQ(cl->splits()->size(),1);
-
-    InferenceRule rule=InferenceRule::AVATAR_COMPONENT;
-
-    std::string defId=tptpDefId(us);
-    std::string splitPred = splitsToString(cl->splits());
-    std::string defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
-
-    out<<getFofString(tptpUnitId(us), getFormulaString(us),
-      "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
-
-    std::stringstream originStm;
-    originStm << "introduced(" << tptpRuleName(rule)
-        << ",[" << getNewSymbols("naming",splitPred)
-        << "])";
-
-    out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
-  }
-
 };
 
 struct InferenceStore::ProofCheckPrinter
@@ -776,7 +819,7 @@ struct InferenceStore::ProofCheckPrinter
   : ProofPrinter(out, is) {}
 
 protected:
-  void printStep(Unit* cs)
+  void printStep(Unit* cs) override
   {
     InferenceRule rule = cs->inference().rule();
     UnitIterator parents= cs->getParents();
@@ -806,13 +849,14 @@ protected:
     out << "%#\n";
   }
 
-  bool hideProofStep(InferenceRule rule)
+  bool hideProofStep(InferenceRule rule) override
   {
     switch(rule) {
     case InferenceRule::INPUT:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::INEQUALITY_SPLITTING:
     case InferenceRule::SKOLEMIZE:
+    case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     case InferenceRule::EQUALITY_PROXY_AXIOM1:
     case InferenceRule::EQUALITY_PROXY_AXIOM2:
@@ -825,11 +869,11 @@ protected:
     case InferenceRule::AVATAR_DEFINITION:
     case InferenceRule::AVATAR_COMPONENT:
     case InferenceRule::AVATAR_REFUTATION:
+    case InferenceRule::AVATAR_REFUTATION_SMT:
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
     case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
     case InferenceRule::FOOL_ELIMINATION:
     case InferenceRule::BOOLEAN_TERM_ENCODING:
-    case InferenceRule::CHOICE_AXIOM:
     case InferenceRule::PREDICATE_DEFINITION:
       return true;
     default:
@@ -837,7 +881,7 @@ protected:
     }
   }
 
-  void print()
+  void print() override
   {
     ProofPrinter::print();
     out << "%#\n";
@@ -1462,7 +1506,7 @@ protected:
     }
   }
 
-  void printStep(Unit* concl)
+  void printStep(Unit* concl) override
   {
     auto prems = iterTraits(concl->getParents());
  
@@ -1491,13 +1535,14 @@ protected:
   }
 
 
-  bool hideProofStep(InferenceRule rule)
+  bool hideProofStep(InferenceRule rule) override
   {
     switch(rule) {
     case InferenceRule::INPUT:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::INEQUALITY_SPLITTING:
     case InferenceRule::SKOLEMIZE:
+    case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     case InferenceRule::EQUALITY_PROXY_AXIOM1:
     case InferenceRule::EQUALITY_PROXY_AXIOM2:
@@ -1516,7 +1561,6 @@ protected:
     case InferenceRule::FOOL_ITE_DEFINITION:
     case InferenceRule::FOOL_ELIMINATION:
     case InferenceRule::BOOLEAN_TERM_ENCODING:
-    case InferenceRule::CHOICE_AXIOM:
     case InferenceRule::PREDICATE_DEFINITION:
       return true;
     default:
@@ -1524,7 +1568,7 @@ protected:
     }
   }
 
-  void print()
+  void print() override
   {
     ProofPrinter::print();
     out << "%#\n";
@@ -1537,13 +1581,13 @@ struct InferenceStore::SMTCheckPrinter
   SMTCheckPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 
-  void print()
+  void print() override
   {
     SMTCheck::outputSignature(out);
     ProofPrinter::print();
   }
 
-  void printStep(Unit* u)
+  void printStep(Unit* u) override
   {
     SMTCheck::outputStep(out, u);
   }

@@ -14,16 +14,12 @@
  * @since 30/10/2005 Bellevue, information about positions removed
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/Unit.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Flattening.hpp"
 
@@ -96,8 +92,7 @@ Formula* Flattening::innerFlatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF() && !env.getMainProblem()->isHigherOrder() &&
-          !env.getMainProblem()->hasPolymorphicSym()) {
+      if (env.options->newCNF() && !env.getMainProblem()->isHigherOrder()) {
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);

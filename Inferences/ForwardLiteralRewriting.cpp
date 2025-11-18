@@ -12,8 +12,6 @@
  * Implements class ForwardLiteralRewriting.
  */
 
-#include "Lib/Int.hpp"
-
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -104,8 +102,6 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
           resLits->push(curr);
         }
       }
-
-      env.statistics->forwardLiteralRewrites++;
 
       premises = pvi( getSingletonIterator(premise));
       replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_LITERAL_REWRITING, cl, premise));

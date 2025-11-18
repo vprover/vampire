@@ -9,7 +9,6 @@
  */
 
 #include "Lib/Stack.hpp"
-#include "Lib/Int.hpp"
 
 #include "Test/UnitTesting.hpp"
 

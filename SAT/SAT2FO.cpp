@@ -12,6 +12,7 @@
  * Implements class SAT2FO.
  */
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
 
 #include "SATClause.hpp"
@@ -49,7 +50,7 @@ Literal* SAT2FO::toFO(SATLiteral sl) const
   if(!_posMap.findObj(sl.var(), posLit)) {
     return 0;
   }
-  Literal* res = sl.polarity() ? posLit : Literal::complementaryLiteral(posLit);
+  Literal* res = sl.positive() ? posLit : Literal::complementaryLiteral(posLit);
   return res;
 }
 
@@ -84,13 +85,13 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
 
   unsigned maxVar = maxSATVar();
   for (unsigned i = 1; i <= maxVar; i++) {
-    SATSolver::VarAssignment asgn = solver.getAssignment(i);
-    if(asgn==SATSolver::VarAssignment::DONT_CARE) {
+    VarAssignment asgn = solver.getAssignment(i);
+    if(asgn==VarAssignment::DONT_CARE) {
       //we don't add DONT_CARE literals into the assignment
       continue;
     }
-    ASS(asgn==SATSolver::VarAssignment::TRUE || asgn==SATSolver::VarAssignment::FALSE);
-    SATLiteral sl(i, asgn==SATSolver::VarAssignment::TRUE);
+    ASS(asgn==VarAssignment::TRUE || asgn==VarAssignment::FALSE);
+    SATLiteral sl(i, asgn==VarAssignment::TRUE);
     ASS(solver.trueInAssignment(sl));
     Literal* lit = toFO(sl);
     if(!lit) {

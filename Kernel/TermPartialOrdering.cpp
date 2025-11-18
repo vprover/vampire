@@ -13,7 +13,6 @@
  */
 
 #include <cstring>
-#include <iomanip>
 
 #include "TermPartialOrdering.hpp"
 

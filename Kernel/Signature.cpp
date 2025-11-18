@@ -58,7 +58,6 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _skolem(0),
     _skipCongruence(0),
     _tuple(0),
-    _computable(1),
     _letBound(0),
     _prox(Proxy::NOT_PROXY),
     _deBruijnIndex(-1)
@@ -214,6 +213,17 @@ OperatorType* Signature::Symbol::predType() const
   return _type;
 }
 
+Signature::RealSymbol::RealSymbol(const RealConstantType& val)
+  : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")")
+                                                                       : Output::toString(val),
+        /*             arity */ 0,
+        /*       interpreted */ true,
+        /*    preventQuoting */ false,
+        /*             super */ false),
+       _realValue(std::move(val))
+{
+  setType(OperatorType::getConstantsType(AtomicSort::realSort()));
+}
 
 /**
  * Create a Signature.
@@ -226,7 +236,6 @@ Signature::Signature ():
     _preds(32),
     _typeCons(32),
     _nextFreshSymbolNumber(0),
-    _skolemFunctionCount(0),
     _distinctGroupsAddedTo(false),
     _strings(0),
     _integers(0),
@@ -869,19 +878,11 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
  * into the name of the Skolem function.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix, bool computable)
+unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
 {
   unsigned f = addFreshFunction(arity, "sK", suffix);
   Symbol* s = getFunction(f);
   s->markSkolem();
-  if (!computable) {
-    s->markUncomputable();
-  }
-
-  // Register it as a LaTeX function
- // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
-  _skolemFunctionCount++;
-
   return f;
 } // addSkolemFunction
 
@@ -894,11 +895,6 @@ unsigned Signature::addSkolemTypeCon (unsigned arity, const char* suffix)
 {
   unsigned tc = addFreshTypeCon(arity, "sK", suffix);
   getTypeCon(tc)->markSkolem();
-
-  // Register it as a LaTeX function
- // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
-  _skolemFunctionCount++;
-
   return tc;
 } // addSkolemFunction
 
@@ -912,11 +908,6 @@ unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
 {
   unsigned p = addFreshPredicate(arity, "sK", suffix);
   getPredicate(p)->markSkolem();
-
-  // Register it as a LaTeX function
- // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");
-  _skolemFunctionCount++;
-
   return p;
 } // addSkolemPredicate
 

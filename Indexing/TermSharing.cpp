@@ -19,12 +19,9 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "TermSharing.hpp"

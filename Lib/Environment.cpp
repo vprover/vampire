@@ -18,7 +18,6 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"

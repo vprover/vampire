@@ -15,7 +15,6 @@
 #define __DecisionProcedure__
 
 #include "Forwards.hpp"
-#include "Kernel/Term.hpp"
 
 namespace DP {
 

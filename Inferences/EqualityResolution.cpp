@@ -12,35 +12,22 @@
  * Implements class EqualityResolution.
  */
 
-#include <utility>
-
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "EqualityResolution.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {
@@ -105,7 +92,7 @@ struct EqualityResolution::ResultFn
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }
@@ -115,8 +102,6 @@ struct EqualityResolution::ResultFn
     }
 
     resLits->loadFromIterator(constraints->iterFifo());
-
-    env.statistics->equalityResolution++;
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)

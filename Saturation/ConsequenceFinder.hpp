@@ -17,14 +17,11 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/Stack.hpp"
-
-#include "Kernel/Clause.hpp"
 
 #include "Inferences/TautologyDeletionISE.hpp"
 

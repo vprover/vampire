@@ -71,15 +71,15 @@
 #include "Kernel/Matcher.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-#include "Shell/Statistics.hpp"
-#include "Debug/RuntimeStatistics.hpp"
 #include <algorithm>
-#include <iostream>
 #include <type_traits>
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "Shell/Statistics.hpp"
 #include "SATSubsumptionAndResolution.hpp"
+
+#if PRINT_CLAUSES_SUBS
+#include <iostream>
+#endif
 
 using namespace Indexing;
 using namespace Kernel;
@@ -755,9 +755,11 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   return !solver.inconsistent();
 } // cnfForSubsumptionResolution
 
+// TODO maybe this could be merged with the one in SubsumptionDemodulationHelper
 Clause* SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause* mainPremise,
   Literal* m_j,
-  Clause* sidePremise)
+  Clause* sidePremise,
+  bool forward)
 {
   RStack<Literal*> resLits;
 
@@ -769,10 +771,12 @@ Clause* SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause* 
     resLits->push(curr);
   }
 
-  return Clause::fromStack(*resLits,SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, mainPremise, sidePremise));
+  return Clause::fromStack(*resLits,SimplifyingInference2(forward
+    ? InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION
+    : InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION, mainPremise, sidePremise));
 }
 
-Clause* SATSubsumptionAndResolution::generateConclusion()
+Clause* SATSubsumptionAndResolution::generateConclusion(bool forward)
 {
   ASS(_sidePremise)
   ASS(_mainPremise)
@@ -825,7 +829,7 @@ Clause* SATSubsumptionAndResolution::generateConclusion()
   }
   ASS_EQ(_n, _mainPremise->size())
   ASS(toRemove != INVALID)
-  return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_mainPremise, (*_mainPremise)[toRemove], _sidePremise);
+  return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_mainPremise, (*_mainPremise)[toRemove], _sidePremise, forward);
 } // SATSubsumptionResolution::generateConclusion
 
 bool SATSubsumptionAndResolution::checkSubsumption(Clause* sidePremise,
@@ -874,6 +878,7 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause* sidePremise,
 
 Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* sidePremise,
                                                                 Clause* mainPremise,
+                                                                bool forward,
                                                                 bool usePreviousSetUp)
 {
   ASS(sidePremise)
@@ -934,7 +939,7 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* sidePrem
 #endif
     _model.clear();
     _solver.get_model(_model);
-    conclusion = generateConclusion();
+    conclusion = generateConclusion(forward);
   }
 #if PRINT_CLAUSES_SUBS
   else

@@ -20,6 +20,8 @@
 
 #include "DHMap.hpp"
 
+struct EmptyStruct {};
+
 namespace Lib {
 
 /**

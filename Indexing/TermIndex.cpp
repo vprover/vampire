@@ -14,16 +14,11 @@
 
 #include "Forwards.hpp"
 #include "Lib/DHSet.hpp"
-#include "Lib/DHMap.hpp"
 
 #include "Inferences/InductionHelper.hpp"
 
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Formula.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -67,13 +62,11 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 }
 
 
-void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
+void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward demodulation index maintenance");
 
   static DHSet<Term*> inserted;
-
-  bool skipNonequationalLiterals = _opt.demodulationOnlyEquational();
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
@@ -86,7 +79,7 @@ void DemodulationSubtermIndexImpl::handleClause(Clause* c, bool adding)
     if (lit->isAnswerLiteral()) {
       continue;
     }
-    if (skipNonequationalLiterals && !lit->isEquality()) {
+    if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
 
@@ -118,8 +111,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("forward demodulation index maintenance");
 
   Literal* lit=(*c)[0];
-  auto [lhsi, preordered] = EqHelper::getDemodulationLHSIterator(
-      lit, _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
+  auto [lhsi, preordered] = EqHelper::getDemodulationLHSIterator(lit, _preordered, _ord);
 
   while (lhsi.hasNext()) {
     auto lhs = lhsi.next();
@@ -146,9 +138,12 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
   }
 
   // Iterate through literals & check if the literal is suitable for induction
-  for (unsigned i=0;i<c->length();i++) {
-    Literal* lit = (*c)[i];
-    if (!InductionHelper::isGroundInductionLiteral(lit)) {
+  for (const auto& lit : *c) {
+
+    if (_inductionGroundOnly && !lit->ground()) {
+      continue;
+    }
+    if (!InductionHelper::isInductionLiteral(lit)) {
       continue;
     }
 
@@ -160,10 +155,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
         it.right();
         continue;
       }
-      if (t->isLiteral()) {
-        continue;
-      }
-      if (InductionHelper::isInductionTermFunctor(t->functor()) &&
+      if (InductionHelper::isInductionTerm(t) &&
           InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
         if (adding) {
           _is->insert(TermLiteralClause{ t, lit, c });
@@ -180,25 +172,22 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
   if (!InductionHelper::isInductionClause(c)) {
     return;
   }
-  static DHSet<Term*> inserted;
   // Iterate through literals & check if the literal is suitable for induction
-  for (unsigned i=0;i<c->length();i++) {
-    inserted.reset();
-    Literal* lit = (*c)[i];
-    if (!lit->ground()) {
+  for (const auto& lit : *c) {
+
+    if (_inductionGroundOnly && !lit->ground()) {
       continue;
     }
+
+    DHSet<Term*> done;
     NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
       Term* t = it.next();
-      if (!inserted.insert(t)) {
+      if (!done.insert(t)) {
         it.right();
         continue;
       }
-      if (t->isLiteral()) {
-        continue;
-      }
-      if (InductionHelper::isInductionTermFunctor(t->functor()) &&
+      if (InductionHelper::isInductionTerm(t) &&
           InductionHelper::isStructInductionTerm(t)) {
         if (adding) {
           _is->insert(TermLiteralClause{ t, lit, c });

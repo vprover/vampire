@@ -16,14 +16,11 @@
 
 #define DPRINT 0
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
@@ -38,8 +35,6 @@
 #include "Saturation/Splitter.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
-#include "Shell/TheoryFlattening.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "SAT/SATLiteral.hpp"
@@ -550,7 +545,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       auto val = _solver->evaluateInModel(sk.term());
       if (!val) {
         // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-        env.statistics->theoryInstSimpLostSolution++;
         return Option<Substitution>();
       }
 
@@ -563,8 +557,8 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       });
     }
 
-    DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0);
-    ASS_EQ(res, SATSolver::Status::UNSATISFIABLE)
+    DEBUG_CODE(auto res =) _solver->solveUnderAssumptionsLimited(theoryLits, 0);
+    ASS_EQ(res, Status::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
     for (auto& x : _solver->failedAssumptions()) {
@@ -590,7 +584,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals 
       skolem.subst.rebind(var, ev);
     } else {
       // Failed to obtain a value; could be an algebraic number or some other currently unhandled beast...
-      env.statistics->theoryInstSimpLostSolution++;
       return Option<Substitution>();
     }
   }
@@ -647,13 +640,13 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
-  SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0);
+  Status status = _solver->solveUnderAssumptionsLimited(skolemized.lits, 0);
 
-  if(status == SATSolver::Status::UNSATISFIABLE) {
+  if(status == Status::UNSATISFIABLE) {
     DEBUG("unsat")
     return pvi(getSingletonIterator(Solution::unsat()));
 
-  } else if(status == SATSolver::Status::SATISFIABLE) {
+  } else if(status == Status::SATISFIABLE) {
     DEBUG("found model: ", _solver->getModel())
     auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar)
                                  : instantiateWithModel(skolemized);
@@ -717,13 +710,9 @@ struct InstanceFn
         redundant = true;
       } else {
         auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
-        auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0);
+        auto status = parent->_solver->solveUnderAssumptionsLimited(skolem.lits, 0);
         // we have an unsat solution without guards
-        redundant = status == SATSolver::Status::UNSATISFIABLE;
-      }
-
-      if (redundant) {
-        env.statistics->theoryInstSimpTautologies++;
+        redundant = status == Status::UNSATISFIABLE;
       }
 
       DEBUG("tautology")
@@ -731,12 +720,7 @@ struct InstanceFn
     }
 
     // If the solution is empty (for any reason) there is no point performing instantiation
-    if(sol.subst.isEmpty()){
-      env.statistics->theoryInstSimpEmptySubstitution++;
-    }
-    auto res = instantiate(original, sol.subst, theoryLits, splitter);
-    env.statistics->theoryInstSimp++;
-    return res;
+    return instantiate(original, sol.subst, theoryLits, splitter);
   }
 };
 
@@ -918,7 +902,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 
   // we have an eligible candidate
-  env.statistics->theoryInstSimpCandidates++;
 #if VTIME_PROFILING
   static const char* THEORY_INST_SIMP = "theory instantiation";
 #endif // VTIME_PROFILING

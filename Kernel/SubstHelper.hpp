@@ -19,12 +19,10 @@
 #include "Lib/Recycled.hpp"
 
 #include "Formula.hpp"
-#include "SortHelper.hpp"
+#include "Substitution.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-
-#include <unordered_map>
 
 namespace Kernel {
 
@@ -209,47 +207,6 @@ public:
   static Literal* applySV(Literal* lit, Applicator& applicator)
   {
     return static_cast<Literal*>(applySV(static_cast<Term*>(lit),applicator));
-  }
-
-
-  /**
-   * Apply a substitution represented by object, that supports
-   * just the method TermList apply(TermList t), to a Literal.
-   */
-  template<class Subst>
-  static Literal* applyToLiteral(Literal* lit, Subst subst)
-  {
-    static DArray<TermList> ts(32);
-
-    int arity = lit->arity();
-    ts.ensure(arity);
-    int i = 0;
-    for (TermList* args = lit->args(); ! args->isEmpty(); args = args->next()) {
-      ts[i++]=subst.apply(*args);
-    }
-    return Literal::create(lit,ts.array());
-  }
-
-  template<class Map>
-  class MapApplicator
-  {
-  public:
-    MapApplicator(Map* map) : _map(map) {}
-    TermList apply(unsigned var) {
-      TermList res;
-      if(!_map->find(var, res)) {
-	res = TermList(var, false);
-      }
-      return res;
-    }
-  private:
-    Map* _map;
-  };
-
-  template<class Map>
-  static MapApplicator<Map> getMapApplicator(Map* m)
-  {
-    return MapApplicator<Map>(m);
   }
 
 private:

@@ -13,10 +13,7 @@
 
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Renaming.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Kernel/Substitution.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -24,8 +21,6 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
-
-#include "Shell/Statistics.hpp"
 
 #include "TermAlgebraReasoning.hpp"
 
@@ -115,7 +110,6 @@ namespace Inferences {
         if (lit->isPositive()) {
           // equality of the form f(x) = g(y), delete literal from clause
           Clause* res = removeLit(c, i, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_DISTINCTNESS, c));
-          env.statistics->taDistinctnessSimplifications++;
           return res;
         } else {
           // inequality of the form f(x) != g(y) are theory tautologies
@@ -164,7 +158,6 @@ namespace Inferences {
       
       Clause * res = replaceLit(_clause, _lit, l, GeneratingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING, _clause));
       _index++;
-      env.statistics->taInjectivitySimplifications++;
       return res;
     }
   private:
@@ -212,8 +205,7 @@ namespace Inferences {
                                                     *lit->nthArgument(0)->term()->nthArgument(0),
                                                     *lit->nthArgument(1)->term()->nthArgument(0),
                                                     SortHelper::getArgSort(lit->nthArgument(0)->term(), 0));
-          Clause* res = replaceLit(c, lit, newlit, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
-          env.statistics->taInjectivitySimplifications++;
+          Clause* res = replaceLit(c, lit, newlit, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_POSITIVE_INJECTIVITY_SIMPLIFYING, c));
           return res;
         }
       }
@@ -276,9 +268,8 @@ namespace Inferences {
                                             SortHelper::getArgSort(lhs.term(), j));
           resLits->push(newLit);
         }
-        env.statistics->taNegativeInjectivitySimplifications++;
 
-        return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));       
+        return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING, c));       
       }
     }
     return c;
@@ -460,9 +451,7 @@ namespace Inferences {
                                                 *_lit->nthArgument(_leftSide ? 0 : 1),
                                                 *_subterms.pop(),
                                                 _sort);
-      Clause* res = replaceLit(_clause, _lit, newlit, GeneratingInference1(InferenceRule::TERM_ALGEBRA_ACYCLICITY, _clause));
-      env.statistics->taAcyclicityGeneratedDisequalities++;
-      return res;
+      return replaceLit(_clause, _lit, newlit, GeneratingInference1(InferenceRule::TERM_ALGEBRA_ACYCLICITY, _clause));
     }
         
   private:

@@ -17,9 +17,9 @@
 #ifndef __OPTIONAL_H__
 #define __OPTIONAL_H__
 
+#include <iosfwd>
 #include <type_traits>
 #include "Debug/Assertion.hpp"
-#include <iostream>
 #include "Lib/Reflection.hpp"
 
 

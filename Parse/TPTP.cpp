@@ -30,16 +30,13 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Shell/UIHelper.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
-#include "Saturation/SaturationAlgorithm.hpp"
-
 #include "Parse/TPTP.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -51,7 +48,7 @@ using namespace Parse;
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::string> TPTP::_axiomNames;
-DHMap<unsigned, Map<int,std::string>*> TPTP::_questionVariableNames;
+DHMap<unsigned, Map<unsigned,std::string>> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -1676,7 +1673,7 @@ void TPTP::holTerm()
       break;
     }
     case T_VAR:{
-      unsigned var = (unsigned)_vars.insert(name);
+      unsigned var = _vars.insert(name, _vars.size());
       _termLists.push(TermList(var, false)); // dummy arity to indicate a variable
       break;
     }
@@ -2512,7 +2509,7 @@ void TPTP::symbolDefinition()
     resetToks();
     for (;;) {
       if (getTok(0).tag == T_VAR) {
-        int var = _vars.insert(getTok(0).content);
+        unsigned var = _vars.insert(getTok(0).content, _vars.size());
         vars.push(var);
         resetToks();
       } else {
@@ -2814,7 +2811,7 @@ void TPTP::varList()
     if (tok.tag != T_VAR) {
       PARSE_ERROR_TOK("variable expected",tok);
     }
-    int var = _vars.insert(tok.content);
+    unsigned var = _vars.insert(tok.content, _vars.size());
     if (_isQuestion) {
       _curQuestionVarNames.insert(var,tok.content);
     }
@@ -2979,7 +2976,7 @@ void TPTP::endTerm()
 
   if (arity == -1) {
     // it was a variable
-    unsigned var = (unsigned)_vars.insert(name);
+    unsigned var = _vars.insert(name, _vars.size());
     _termLists.push(TermList(var, false));
     return;
   }
@@ -3055,7 +3052,7 @@ void TPTP::formulaInfix()
 
   if (arity == -1) {
     // that was a variable
-    unsigned var = (unsigned)_vars.insert(name);
+    unsigned var = _vars.insert(name, _vars.size());
     _termLists.push(TermList(var, false));
     _states.push(END_TERM_AS_FORMULA);
     return;
@@ -3096,7 +3093,7 @@ void TPTP::endEquality()
   }
 
   Literal* l = createEquality(_bools.pop(),lhs,rhs);
-  _formulas.push(new AtomicFormula(l));
+  _formulas.push(new AtomicFormula(l, lhs != l->termArg(0)));
   _lastPushed = FORM;
 } // endEquality
 
@@ -3174,7 +3171,8 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   if (pred == -1) { // equality
     TermList rhs = _termLists.pop();
     TermList lhs = _termLists.pop();
-    return new AtomicFormula(createEquality(true,lhs,rhs));//TODO equality sort?
+    Literal *l = createEquality(true,lhs,rhs); //TODO equality sort?
+    return new AtomicFormula(l, lhs != l->termArg(0));
   }
   if (pred == -2){ // distinct
     // TODO check that we are top-level
@@ -3328,9 +3326,10 @@ void TPTP::endFormula()
     f = _formulas.pop();
     // This gets rid of the annoying step in proof output where ~(L) is flattened to (~L)
     if(f->connective()==LITERAL){
-      Literal* oldLit = static_cast<AtomicFormula*>(f)->literal();
+      auto af = static_cast<AtomicFormula*>(f);
+      Literal* oldLit = af->literal();
       Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
-      _formulas.push(new AtomicFormula(newLit));
+      _formulas.push(new AtomicFormula(newLit, af->flipForPrinting));
     }
     else{
       _formulas.push(new NegatedFormula(f));
@@ -3415,7 +3414,7 @@ void TPTP::endFormula()
     case AND:
     case OR:
       f = _formulas.pop();
-      f = makeJunction((Connective)con,_formulas.pop(),f);
+      f = makeJunction((Connective)con,f,_formulas.pop());
       if (conReverse) {
 	f = new NegatedFormula(f);
       }
@@ -3597,6 +3596,7 @@ void TPTP::endFof()
   skipToRPAR();
   consumeToken(T_DOT);
 
+  _vars.reset();
   bool isFof = _bools.pop();
   Formula* f = _formulas.pop();
   std::string nm = _strings.pop(); // unit name
@@ -3609,66 +3609,77 @@ void TPTP::endFof()
     return;
   }
 
-  Unit* unit;
+  Unit *unit, *original;
   if (isFof) { // fof() or tff()
-    env.statistics->inputFormulas++;
-    unit = new FormulaUnit(f,FromInput(_lastInputType));
+    if (freeVariables(f)) {
+      USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
+    }
+    original = unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf()
-    env.statistics->inputClauses++;
     // convert the input formula f to a clause
     Stack<Formula*> forms;
     Stack<Literal*> lits;
     Formula* g = nullptr;
     forms.push(f);
+    bool needsFlipDocumenting = false;
     while (! forms.isEmpty()) {
       g = forms.pop();
       switch (g->connective()) {
       case OR:
-	{
-	  FormulaList::Iterator fs(static_cast<JunctionFormula*>(g)->getArgs());
-	  while (fs.hasNext()) {
-	    forms.push(fs.next());
-	  }
-	}
-	break;
+      {
+        FormulaList::Iterator fs(static_cast<JunctionFormula*>(g)->getArgs());
+        while (fs.hasNext()) {
+          forms.push(fs.next());
+        }
+      }
+      break;
 
       case LITERAL:
       case NOT:
-	{
-	  bool positive = true;
-	  while (g->connective() == NOT) {
-	    g = static_cast<NegatedFormula*>(g)->subformula();
-	    positive = !positive;
-	  }
-	  if (g->connective() != LITERAL) {
-	    USER_ERROR("input formula not in CNF: " + f->toString());
-	  }
-	  Literal* l = static_cast<AtomicFormula*>(g)->literal();
-	  lits.push(positive ? l : Literal::complementaryLiteral(l));
-	}
-	break;
+      {
+        bool positive = true;
+        while (g->connective() == NOT) {
+          g = static_cast<NegatedFormula*>(g)->subformula();
+          positive = !positive;
+        }
+        if (g->connective() != LITERAL) {
+          USER_ERROR("input formula not in CNF: " + f->toString());
+        }
+        auto af = static_cast<AtomicFormula*>(g);
+        needsFlipDocumenting = needsFlipDocumenting || af->flipForPrinting;
+        Literal* l = af->literal();
+        lits.push(positive ? l : Literal::complementaryLiteral(l));
+      }
+      break;
 
       case TRUE:
-	return;
+        return;
       case FALSE:
-	break;
+        break;
       default:
-	USER_ERROR("input formula not in CNF: " + f->toString());
+        USER_ERROR("input formula not in CNF: " + f->toString());
       }
     }
-    unit = Clause::fromStack(lits,FromInput(_lastInputType));
+    if(needsFlipDocumenting) {
+      FormulaUnit *fu = new FormulaUnit(f, FromInput(_lastInputType));
+      original = fu;
+      FormulaClauseTransformation transform(InferenceRule::REORIENT_EQUATIONS, fu);
+      unit = Clause::fromStack(lits, transform);
+    }
+    else
+      original = unit = Clause::fromStack(lits, FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
 
-  if(source){ 
+  if(source) {
     ASS(_unitSources);
-    _unitSources->insert(unit,source);
+    _unitSources->insert(original,source);
   }
 
   if (env.options->outputAxiomNames()) {
-    assignAxiomName(unit,nm);
+    assignAxiomName(original,nm);
   }
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
@@ -3683,18 +3694,12 @@ void TPTP::endFof()
     if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
     _seenConjecture=true;
     {
-      VList* vs = freeVariables(f);
-      if (VList::isEmpty(vs)) {
-        f = new NegatedFormula(f);
-      }
-      else {
-        // TODO can we use sortOf to get the sorts of vs?
-        f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
-      }
+      ASS_EQ(freeVariables(f),VList::empty())
+      f = new NegatedFormula(f);
       unit = new FormulaUnit(f,
 			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
       if (_isQuestion) {
-        _questionVariableNames.insert(unit->number(),new Map<int,std::string>(std::move(_curQuestionVarNames)));
+        _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
       }
     }
     break;
@@ -3728,11 +3733,7 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
   }
   env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
-  VList* vs = freeVariables(f);
-  if (VList::isNonEmpty(vs)) {
-    //TODO can we use sortOf to get sorts of vs?
-    f = new QuantifiedFormula(FORALL,vs,0,f);
-  }
+  ASS_EQ(freeVariables(f),VList::empty())
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
       FormulaClauseTransformation(InferenceRule::CLAIM_DEFINITION,unit));
@@ -4313,7 +4314,7 @@ TermList TPTP::readSort()
   case T_VAR:
     {
       std::string vname = tok.content;
-      unsigned var = (unsigned)_vars.insert(vname);
+      unsigned var = _vars.insert(vname, _vars.size());
       return  TermList(var, false);
     }
 
@@ -4823,53 +4824,6 @@ void TPTP::vampire()
       PARSE_ERROR_TOK("either atom or number expected as a value of a Vampire option",tok);
     }
   }
-  // Allows us to insert LaTeX templates for predicate and function symbols
-  else if(nm == "latex"){
-    consumeToken(T_COMMA);
-    std::string kind = name();
-    bool pred;
-    if (kind == "predicate") {
-      pred = true;
-    }
-    else if (kind == "function") {
-      pred = false;
-    }
-    else {
-      PARSE_ERROR_TOK("either 'predicate' or 'function' expected",getTok(0));
-    }
-    consumeToken(T_COMMA);
-    std::string symb = name();
-    consumeToken(T_COMMA);
-    Token tok = getTok(0);
-    if (tok.tag != T_INT) {
-      PARSE_ERROR_TOK("a non-negative integer (denoting arity) expected",tok);
-    }
-    unsigned arity;
-    if (!Int::stringToUnsignedInt(tok.content,arity)) {
-      PARSE_ERROR_TOK("a number denoting arity expected",tok);
-    }
-    resetToks();
-    consumeToken(T_COMMA);
-    tok = getTok(0);
-    if(tok.tag != T_STRING){
-      PARSE_ERROR_TOK("a template string expected",tok);
-    }
-    std::string temp = tok.content;
-    resetToks();
-    if(pred){
-      consumeToken(T_COMMA);
-      std::string pol= name();
-      bool polarity;
-      if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
-      else{ PARSE_ERROR_TOK("polarity expected (true/false)",getTok(0)); }
-      unsigned f = env.signature->addPredicate(symb,arity);
-      theory->registerLaTeXPredName(f,polarity,temp);
-    }
-    else{
-      unsigned f = env.signature->addFunction(symb,arity);
-      theory->registerLaTeXFuncName(f,temp);
-    }
-  }
   else if (nm == "symbol") {
     consumeToken(T_COMMA);
     std::string kind = name();
@@ -4917,14 +4871,17 @@ void TPTP::vampire()
     if (!uncomputable) {
       env.colorUsed = true;
     }
-    Signature::Symbol* sym = pred
-                             ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
-                             : env.signature->getFunction(env.signature->addFunction(symb,arity));
+    unsigned f = pred ? env.signature->addPredicate(symb,arity) : env.signature->addFunction(symb,arity);
+    Signature::Symbol* sym = pred ? env.signature->getPredicate(f) : env.signature->getFunction(f);
     if (skip) {
       sym->markSkip();
     }
     else if (uncomputable) {
-      sym->markUncomputable();
+      if (env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
+        std::cout << "% WARNING: Found the :uncomputable option but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
+      } else {
+        static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addDeclaredSymbolAnnotatedAsUncomputable(std::make_pair(f, pred));
+      }
     }
     else {
       ASS_NEQ(color, COLOR_INVALID);

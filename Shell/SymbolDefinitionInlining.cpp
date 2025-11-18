@@ -9,7 +9,6 @@
  */
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp"
-#include "Kernel/SortHelper.hpp"
 
 #include "SymbolDefinitionInlining.hpp"
 

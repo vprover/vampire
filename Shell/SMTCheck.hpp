@@ -12,9 +12,9 @@
  * Routines for producing a ground SMT proof-check script
  */
 
-#include <ostream>
+#include <iosfwd>
 
-#include "Kernel/Unit.hpp"
+#include "Forwards.hpp"
 
 namespace Shell {
 namespace SMTCheck {

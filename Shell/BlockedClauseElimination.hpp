@@ -20,7 +20,6 @@
 
 #include "Kernel/Problem.hpp"
 
-#include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
@@ -35,9 +34,18 @@ using namespace Kernel;
 class BlockedClauseElimination
 {
 public:
+  /**
+   * Equational version of the tautologyhood check is weaker, but has to be used in the presence of positive equalities.
+   *
+   * The option forceEquationally forces this even if autodetect would safely not use the equational version.
+  */
+  BlockedClauseElimination(bool forceEquationally = false) : _forceEquationally(forceEquationally) {}
+
   void apply(Kernel::Problem& prb);
 
 private:
+  bool _forceEquationally;
+
   struct ClWrapper;
 
   struct Candidate {
