@@ -410,6 +410,10 @@ Formula* Formula::createLet(Formula* binder, Formula* body)
   return new BoolTermFormula(letTerm);
 }
 
+/**
+ * Creates a formula of the form ∀ uVars. lhs := rhs, where := is an internal predicate,
+ * @b lhs and @b rhs are terms, to track that rhs is the definition of lhs.
+ */
 Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
 {
   auto sort = SortHelper::getResultSort(lhs);

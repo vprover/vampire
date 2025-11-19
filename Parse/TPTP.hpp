@@ -598,11 +598,14 @@ private:
   /** a function name and arity */
   typedef std::pair<std::string, unsigned> LetSymbolName;
 
-  /** a definition term and the number of its implicit type arguments */
+  /** a symbol number with a predicate/function flag, and implicit type args */
   struct LetSymbolReference {
-    Term* def;
-    unsigned numITypeArgs;
+    unsigned symbol;
+    bool isPredicate;
+    TermStack iTypeArgs;
   };
+  #define SYMBOL(ref) (ref.symbol)
+  #define IS_PREDICATE(ref) (ref.isPredicate)
 
   /** a definition of a function symbol, defined in $let */
   typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;
@@ -799,7 +802,7 @@ private:
 
   /* If ivars is non-null, the function collects into it the
    * implicit (non-quantified) type variables (needed in $lets). */
-  OperatorType* constructOperatorType(Type* t, VList* vars = 0, VList** ivars = 0);
+  OperatorType* constructOperatorType(Type* t, VList* vars = 0, DHSet<unsigned>* ivars = nullptr);
 
 public:
 

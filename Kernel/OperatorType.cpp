@@ -116,6 +116,11 @@ OperatorType* OperatorType::getTypeFromKey(OperatorKey* key, unsigned taArity)
     return resultType;
   }
 
+  /**
+   * This check is to make sure that @b taArity is properly set, leaving no variables in
+   * @b key unbound, as that would make those variables fixed which is very inconvenient,
+   * for example, if we want to rename variables anywhere.
+   */
 #if VDEBUG
   for (unsigned i = 0; i < key->length(); i++) {
     if ((*key)[i].isNonEmpty()) {
