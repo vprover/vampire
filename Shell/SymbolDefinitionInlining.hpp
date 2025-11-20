@@ -12,7 +12,7 @@
 
 #include "Forwards.hpp"
 
-#include "Kernel/Signature.hpp"
+#include "Kernel/Term.hpp"
 #include "Lib/Set.hpp"
 
 using namespace Lib;
@@ -21,9 +21,7 @@ using namespace Shell;
 
 class SymbolDefinitionInlining {
   public:
-    SymbolDefinitionInlining(Term* lhs, TermList rhs, unsigned freshVarOffset)
-            : _isPredicate(lhs->isBoolean()), _lhs(lhs), _rhs(rhs),
-              _bound(0), _counter(0), _freshVarOffset(freshVarOffset), _varRenames(0) {}
+    SymbolDefinitionInlining(Term* lhs, TermList rhs, unsigned freshVarOffset);
 
     Formula* process(Formula* formula);
     FormulaList* process(FormulaList* formulas);

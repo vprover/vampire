@@ -46,21 +46,16 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
     ASSERTION_VIOLATION;
   }
 
-  Term::Iterator it(term);
-
   if (!_isPredicate && (term->functor() == _oldApplication->functor())) {
     Substitution substitution;
-    iterTraits(Term::Iterator(_oldApplication))
-      .forEach([&](TermList baseArg) {
-        ASS(it.hasNext())
-        ALWAYS(MatchingUtils::matchTerms(baseArg, process(it.next()), substitution));
-      });
+    for (unsigned i = 0; i < term->arity(); i++) {
+      ALWAYS(MatchingUtils::matchTerms(*_oldApplication->nthArgument(i), process(*term->nthArgument(i)), substitution));
+    }
     return SubstHelper::apply(_freshApplication, substitution);
   }
 
   TermStack arguments;
-  while (it.hasNext()) {
-    auto arg = it.next();
+  for (const auto& arg : anyArgIter(term)) {
     if(arg.isVar() || arg.term()->isSort()){
       arguments.push(arg);
     } else {
@@ -83,17 +78,13 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
     case LITERAL: {
       Literal* literal = formula->literal();
 
-      Term::Iterator it(literal);
-      Substitution substitution;
       Literal* processedLiteral;
 
       if (_isPredicate && (literal->functor() == _oldApplication->functor())) {
-        iterTraits(Term::Iterator(_oldApplication))
-          .forEach([&](TermList baseArg) {
-            ASS(it.hasNext());
-            auto arg = it.next();
-            ALWAYS(MatchingUtils::matchTerms(baseArg, process(arg), substitution));
-          });
+        Substitution substitution;
+        for (unsigned i = 0; i < literal->arity(); i++) {
+          ALWAYS(MatchingUtils::matchTerms(*_oldApplication->nthArgument(i), process(*literal->nthArgument(i)), substitution));
+        }
 
         auto processedLiteral = SubstHelper::apply(static_cast<Literal*>(_freshApplication), substitution);
         if(!literal->polarity()){
@@ -103,8 +94,7 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
       }
 
       TermStack arguments;
-      while (it.hasNext()) {
-        auto arg = it.next();
+      for (const auto& arg : anyArgIter(literal)) {
         if(arg.isVar() || arg.term()->isSort()){
           arguments.push(arg);
         } else {

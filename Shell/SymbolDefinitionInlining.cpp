@@ -19,16 +19,28 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+SymbolDefinitionInlining::SymbolDefinitionInlining(Term* lhs, TermList rhs, unsigned freshVarOffset)
+  : _isPredicate(lhs->isBoolean()), _lhs(lhs), _rhs(rhs),
+    _bound(0), _counter(0), _freshVarOffset(freshVarOffset), _varRenames(0)
+{
+  // the symbol that we replace must be in the form of a literal
+  if (_isPredicate && !_lhs->isLiteral()) {
+    ASS(_lhs->isFormula());
+    auto inner = _lhs->getSpecialData()->getFormula();
+    ASS_EQ(inner->connective(), Connective::LITERAL);
+    _lhs = inner->literal();
+  }
+}
+
 TermList SymbolDefinitionInlining::substitute(Term::Iterator tit)
 {
   Substitution substitution;
 
-  iterTraits(Term::Iterator(_lhs))
-    .forEach([&](TermList baseArg) {
-      ASS(tit.hasNext());
-      // TODO find out if process needs to be called on tit.next() here
-      ALWAYS(MatchingUtils::matchTerms(baseArg, tit.next(), substitution));
-    });
+  for (const auto& baseArg : iterTraits(Term::Iterator(_lhs))) {
+    ASS(tit.hasNext());
+    // TODO find out if process needs to be called on tit.next() here
+    ALWAYS(MatchingUtils::matchTerms(baseArg, tit.next(), substitution));
+  }
   ASS(!tit.hasNext());
 
   if (_counter > 0) {

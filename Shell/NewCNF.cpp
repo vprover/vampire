@@ -24,6 +24,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 
+#include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Flattening.hpp"
@@ -753,66 +754,93 @@ void NewCNF::processLet(Term* term, Occurrences &occurrences)
 
 TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body, VList* bindingBoundVars)
 {
-  VList* bindingFreeVars = VList::empty();
-  FormulaVarIterator bfvi(bindingRhs);
-  while (bfvi.hasNext()) {
-    unsigned var = bfvi.next();
+  DHSet<unsigned> bindingFreeVars;
+  for (const auto& var : iterTraits(FormulaVarIterator(bindingRhs))) {
     if (!VList::member(var, bindingBoundVars)) {
-      VList::push(var,bindingFreeVars);
+      bindingFreeVars.insert(var);
     }
   }
 
   bool isPredicate = bindingLhs->isBoolean();
+  // the symbol that we name must be in the form of a literal
+  if (isPredicate && !bindingLhs->isLiteral()) {
+    ASS(bindingLhs->isFormula());
+    auto inner = bindingLhs->getSpecialData()->getFormula();
+    ASS_EQ(inner->connective(), Connective::LITERAL);
+    bindingLhs = inner->literal();
+  }
 
-  unsigned nameArity = VList::length(bindingBoundVars) + VList::length(bindingFreeVars);
+  unsigned nameArity = VList::length(bindingBoundVars) + bindingFreeVars.size();
   TermList nameSort;
   if (!isPredicate) {
-    nameSort = env.signature->getFunction(bindingLhs->functor())->fnType()->result();
+    nameSort = SortHelper::getResultSort(bindingLhs);
   }
 
   unsigned freshSymbol = bindingLhs->functor();
 
-  bool renameSymbol = VList::isNonEmpty(bindingFreeVars);
+  bool renameSymbol = !bindingFreeVars.isEmpty();
   if (renameSymbol) {
-    static Stack<TermList> sorts;
-    sorts.reset();
-
+    Recycled<TermStack> typeVars;
+    Recycled<TermStack> termVarSorts;
     ensureHavingVarSorts();
 
-    VList::Iterator vit(bindingFreeVars);
-    while (vit.hasNext()) {
-      unsigned var = vit.next();
-      sorts.push(getVarSort(var));
+    for (const auto& var : iterTraits(VList::Iterator(bindingBoundVars))) {
+      auto sort = getVarSort(var);
+      if (sort == AtomicSort::superSort()) {
+        typeVars->push(TermList::var(var));
+      } else {
+        termVarSorts->push(sort);
+      }
+    }
+    for (const auto& var : iterTraits(bindingFreeVars.iterator())) {
+      auto sort = getVarSort(var);
+      ASS(sort.isVar() || sort.term()->isSort());
+      if (sort == AtomicSort::superSort()) {
+        typeVars->push(TermList::var(var));
+      } else {
+        termVarSorts->push(sort);
+      }
     }
 
+    auto resultSort = nameSort;
+    SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
+    SortHelper::normaliseSort(*typeVars, resultSort);
+
     if (isPredicate) {
-      OperatorType* type = OperatorType::getPredicateType(nameArity, sorts.begin());
+      OperatorType* type = OperatorType::getPredicateType(termVarSorts->size(), termVarSorts->begin(), typeVars.size());
       freshSymbol = env.signature->addFreshPredicate(nameArity, "lG");
       env.signature->getPredicate(freshSymbol)->setType(type);
     } else {
-      OperatorType* type = OperatorType::getFunctionType(nameArity, sorts.begin(), nameSort);
+      OperatorType* type = OperatorType::getFunctionType(termVarSorts->size(), termVarSorts->begin(), resultSort, typeVars.size());
       freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
       env.signature->getFunction(freshSymbol)->setType(type);
     }
   }
 
-
-  TermStack arguments;
-  VList::Iterator bfvit(bindingFreeVars);
-  while (bfvit.hasNext()) {
-    unsigned var = bfvit.next();
-    arguments.push(TermList(var, false));
+  Recycled<TermStack> args;
+  Recycled<TermStack> termArgs;
+  for (const auto& var : iterTraits(VList::Iterator(bindingBoundVars))) {
+    auto sort = getVarSort(var);
+    if (sort == AtomicSort::superSort()) {
+      args->push(TermList::var(var));
+    } else {
+      termArgs->push(TermList::var(var));
+    }
   }
-  VList::Iterator vbit(bindingBoundVars);
-  while (vbit.hasNext()) {
-    unsigned var = vbit.next();
-    arguments.push(TermList(var, false));
+  for (const auto& var : iterTraits(bindingFreeVars.iterator())) {
+    auto sort = getVarSort(var);
+    if (sort == AtomicSort::superSort()) {
+      args->push(TermList::var(var));
+    } else {
+      termArgs->push(TermList::var(var));
+    }
   }
+  args->loadFromIterator(termArgs->iterFifo());
 
   Term* freshApplication;
 
   if (isPredicate) {
-    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, arguments.begin());
+    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, args->begin());
     freshApplication = name;
     Formula* nameFormula = new AtomicFormula(name);
 
@@ -823,7 +851,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
       introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
     }
   } else {
-    TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
+    TermList name = TermList(Term::create(freshSymbol, nameArity, args->begin()));
     freshApplication = name.term();
     Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, bindingRhs, nameSort));
 
@@ -840,7 +868,8 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
   return body;
 }
 
-TermList NewCNF::inlineLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body) {
+TermList NewCNF::inlineLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body)
+{
   ensureHavingVarSorts();
   SymbolDefinitionInlining inlining(bindingLhs, bindingRhs, _maxVar);
   TermList inlinedContents = inlining.process(body);
@@ -889,6 +918,12 @@ void NewCNF::ensureHavingVarSorts()
 TermList NewCNF::getVarSort(unsigned var) const
 {
   ASS(_collectedVarSorts);
+  return _varSorts.get(var, AtomicSort::defaultSort());
+}
+
+TermList NewCNF::getInstantiatedVarSort(unsigned var) const
+{
+  ASS(_collectedVarSorts);
   auto sort = _varSorts.get(var, AtomicSort::defaultSort());
   return SubstHelper::apply(sort, _skolemTypeVarSubst);
 }
@@ -898,13 +933,13 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
-  TermList rangeSort=getVarSort(var);
+  TermList rangeSort=getInstantiatedVarSort(var);
   Recycled<TermStack> termVarSorts;
   Recycled<TermStack> typeVars;
   Recycled<TermStack> termVars;
 
   for(unsigned uvar : iterTraits(free->iter())) {
-    auto varSort = getVarSort(uvar);
+    auto varSort = getInstantiatedVarSort(uvar);
     if (varSort == AtomicSort::superSort()) {
       typeVars->push(TermList::var(uvar));
     } else {
@@ -1172,7 +1207,8 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   ensureHavingVarSorts();
 
   for(unsigned uvar : iterTraits(VList::Iterator(free))) {
-    auto sort = getVarSort(uvar);
+    // TODO find out whether we need getVarSort here instead
+    auto sort = getInstantiatedVarSort(uvar);
     if (sort == AtomicSort::superSort()) {
       typeVars->push(TermList::var(uvar));
     } else {

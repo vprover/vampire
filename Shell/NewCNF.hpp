@@ -562,6 +562,9 @@ private:
 
   void ensureHavingVarSorts();
   TermList getVarSort(unsigned var) const;
+  // Variant of the above where we instantiate the
+  // sort with the Skolemizations of type variables.
+  TermList getInstantiatedVarSort(unsigned var) const;
 
   Term* createSkolemTerm(unsigned var, VarSet* free);
 
