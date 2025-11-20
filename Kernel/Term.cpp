@@ -558,8 +558,9 @@ std::string Term::headToString() const
           type += "[";
           for (unsigned i = 0; i < bindingLhs->numTermArguments(); i++) {
             auto arg = bindingLhs->termArg(i);
-            ASS(arg.isTerm() && !arg.term()->arity());
-            type += arg.toString() + ": " + SortHelper::getResultSort(arg.term()).toString();
+            ASS(arg.isTerm() && !arg.term()->numTermArguments());
+            type += arg.toString() + ": ";
+            type += (arg.term()->isBoolean() ? AtomicSort::boolSort() : SortHelper::getResultSort(arg.term())).toString();
             if (i+1 < bindingLhs->numTermArguments()) {
               type += ", ";
             }
@@ -567,9 +568,16 @@ std::string Term::headToString() const
           type += "]";
         } else {
           auto isPredicate = bindingLhs->isBoolean();
-          auto sym = isPredicate
-            ? env.signature->getPredicate(bindingLhs->functor())
-            : env.signature->getFunction(bindingLhs->functor());
+          Signature::Symbol* sym;
+          if (isPredicate) {
+            ASS(bindingLhs->isFormula());
+            auto f = bindingLhs->getSpecialData()->getFormula();
+            ASS_EQ(f->connective(), Connective::LITERAL);
+            auto lit = f->literal();
+            sym = env.signature->getPredicate(lit->functor());
+          } else {
+            sym = env.signature->getFunction(bindingLhs->functor());
+          }
           type = sym->name() + ": " + (isPredicate ? sym->predType() : sym->fnType())->toString();
         }
         return "$let(" + type + ", " + binding->toString() + ", ";

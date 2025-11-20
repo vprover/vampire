@@ -687,7 +687,7 @@ TermList NewCNF::eliminateLet(Term* term)
         ASS_REP(rhsit.hasNext(), binding->toString());
         bindingLhs = lhsit.next().term();
         bindingRhs = rhsit.next();
-        ASS_EQ(bindingLhs->arity(),0);
+        ASS_EQ(bindingLhs->numTermArguments(),0);
 
         if (lhsit.hasNext()) {
           body = TermList(
@@ -695,19 +695,18 @@ TermList NewCNF::eliminateLet(Term* term)
         }
       }
     } else {
-      TermList tupleSort = SortHelper::getResultSort(bindingLhs);
-      // TODO fix for polymorphism
-      unsigned tuple = env.signature->addFreshFunction(0, "tuple");
-      env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
+      auto tupleType = env.signature->getFunction(bindingLhs->functor())->fnType();
       auto arity = bindingLhs->numTypeArguments();
-      auto tupleTerm = Term::createConstant(tuple);
+      unsigned tuple = env.signature->addFreshFunction(arity, "tuple");
+      env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleType->result(), arity));
       auto args = TermStack::fromIterator(typeArgIter(bindingLhs));
+      auto tupleTerm = Term::create(tuple, args);
       args.push(TermList(tupleTerm));
 
       iterTraits(termArgIter(bindingLhs))
         .enumerate([&](unsigned i, TermList arg) {
           auto lhs = arg.term();
-          ASS_EQ(lhs->arity(), 0);
+          ASS_EQ(lhs->numTermArguments(), 0);
 
           unsigned projFunctor = Theory::tuples()->getProjectionFunctor(arity, i);
           Term* projectedArgument = lhs->isBoolean()

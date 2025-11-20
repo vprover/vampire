@@ -620,6 +620,8 @@ private:
   /** Record whether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
 
+  static Substitution getTypeSub(const LetSymbolReference& ref);
+
   /** finds if the symbol has been defined in an enclosing $let */
   bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
   bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);

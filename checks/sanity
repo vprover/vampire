@@ -70,6 +70,7 @@ check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 # FOOL
 check_szs_status Theorem fool/let-function.p
 check_szs_status Theorem -newcnf on fool/let-function.p
+check_szs_status Theorem -newcnf on fool/let-tuple.p
 
 # Integer induction problems
 check_szs_status Unsatisfiable -ind int induction/int_invariant_infinite_geq3_val3.smt2

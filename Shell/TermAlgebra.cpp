@@ -241,7 +241,7 @@ const InductionTemplate* TermAlgebra::getInductionTemplateOne()
   if (!_indTemplOne) {
     Stack<InductionCase> cases;
     auto taArity = nTypeArgs();
-    auto typeArgs = TermStack::fromIterator(range(0,taArity).map([](unsigned i){ return TermList::var(i); }));
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
     unsigned var = taArity;
 
     iterCons()
@@ -274,7 +274,7 @@ const InductionTemplate* TermAlgebra::getInductionTemplateTwo()
   if (!_indTemplTwo) {
     Stack<InductionUnit> hypotheses;
     auto taArity = nTypeArgs();
-    auto typeArgs = TermStack::fromIterator(range(0,taArity).map([](unsigned i){ return TermList::var(i); }));
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
     auto y = TermList::var(taArity);
     auto z = TermList::var(taArity+1);
 
@@ -327,7 +327,7 @@ const InductionTemplate* TermAlgebra::getInductionTemplateThree()
     auto y = TermList::var(taArity+1);
     auto z = TermList::var(taArity+2);
 
-    auto typeArgs = TermStack::fromIterator(range(0,taArity).map([](unsigned i){ return TermList::var(i); }));
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
     auto args = typeArgs;
     args.push(x);
     args.push(y);

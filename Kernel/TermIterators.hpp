@@ -626,6 +626,9 @@ static const auto anyArgIterTyped = [](Term const* term)
       .map([=](auto i)
            { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
 
+/** iterator that creates a range of variables */
+static const auto varRange = [](unsigned i, unsigned j)
+  { return range(i,j).map(unsignedToVarFn); };
 
 } // namespace Kernel
 

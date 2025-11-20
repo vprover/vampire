@@ -1499,7 +1499,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     }
 
     auto varList = vars.list();
-    auto args = TermStack::fromIterator(iterTraits(varList->iter()).map([](unsigned var) { return TermList::var(var); }));
+    auto args = TermStack::fromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
     auto binder = Formula::createDefinition(Term::create(exprT->functor(), args), SubstHelper::apply(boundExpr,subst), varList);
     let = TermList(Term::createLet(binder, let, letSort));
   }

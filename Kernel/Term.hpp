@@ -1304,6 +1304,10 @@ struct SharedTermHash {
   static unsigned hash(Term* t) { return t->getId(); }
 };
 
+/** helper lambda that turns a number into a variable */
+static const auto unsignedToVarFn = [](unsigned var)
+  { return TermList::var(var); };
+
 } // namespace Kernel
 
 template<>

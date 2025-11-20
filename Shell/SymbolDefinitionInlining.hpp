@@ -13,8 +13,6 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubstHelper.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/Set.hpp"
 
 using namespace Lib;

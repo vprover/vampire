@@ -25,6 +25,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -2364,7 +2365,7 @@ void TPTP::endLetTypes()
   symbol->setType(type);
 
   auto ivars = TermStack::fromIterator(iterTraits(iTypeVars.iterator())
-    .map([](unsigned v) { return TermList::var(v); }));
+    .map(unsignedToVarFn));
 
   // Save the symbol name with original arity (without counting implicit type variables),
   // so that when an application with the original arity occurs we can find the symbol.
@@ -2526,11 +2527,8 @@ void TPTP::symbolDefinition()
     // However, if the type of f contained implicit type variables Y1,...,Ym,
     // the binding will look like f(Y1,...,Ym,X1,...,Xn) := t internally,
     // and we need to substitute Y1,...,Ym to get the right sort of X1,...,Xn.
-    Substitution subst;
-    unsigned index = 0;
-    iterTraits(ref.iTypeArgs.iter())
-      .forEach([&](TermList arg) { subst.bind(index++, arg); });
-
+    auto subst = getTypeSub(ref);
+    auto index = ref.iTypeArgs.size();
     iterTraits(vars.iterFifo())
       .forEach([&](unsigned var) {
         bindVariable(var, SubstHelper::apply(type->arg(index++), subst));
@@ -2579,7 +2577,8 @@ void TPTP::tupleDefinition()
     TermList sort = IS_PREDICATE(ref)
                   ? AtomicSort::boolSort()
                   : env.signature->getFunction(SYMBOL(ref))->fnType()->result();
-    sorts.push(sort);
+    auto subst = getTypeSub(ref);
+    sorts.push(SubstHelper::apply(sort, subst));
 
     if (getTok(0).tag == T_NAME) {
       constant = name();
@@ -2620,17 +2619,13 @@ void TPTP::endDefinition()
                      : env.signature->getFunction(SYMBOL(ref))->fnType()->result();
 
   // Before checking the argument sorts, we must substitute in implicit type variables.
-  Substitution subst;
-  // Implicit type variables come first.
-  iterTraits(ref.iTypeArgs.iter())
-    .enumerate([&](unsigned i, TermList arg) { subst.bind(i, arg); });
+  auto subst = getTypeSub(ref);
   auto refSortS = SubstHelper::apply(refSort, subst);
-  auto defSortS = SubstHelper::apply(definitionSort, subst);
-  if (refSortS != defSortS) {
+  if (refSortS != definitionSort) {
     auto refSymbolName = IS_PREDICATE(ref)
       ? env.signature->predicateName(SYMBOL(ref))
       : env.signature->functionName(SYMBOL(ref));
-    USER_ERROR("The term " + definition.toString() + " of the sort " + defSortS.toString() +
+    USER_ERROR("The term " + definition.toString() + " of the sort " + definitionSort.toString() +
                " is used as definition of the symbol " + refSymbolName +
                " of the sort " + refSortS.toString());
   }
@@ -2644,6 +2639,14 @@ void TPTP::endDefinition()
     _letSymbols.push(_letTypedSymbols.pop());
   }
 } // endDefinition
+
+Substitution TPTP::getTypeSub(const TPTP::LetSymbolReference& ref)
+{
+  Substitution subst;
+  iterTraits(ref.iTypeArgs.iterFifo())
+    .enumerate([&](unsigned i, TermList arg) { subst.bind(i, arg); });
+  return subst;
+}
 
 bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference) {
   Stack<LetSymbols>::TopFirstIterator scopes(_letSymbols);
@@ -2696,9 +2699,29 @@ void TPTP::endLet()
     TermStack args = ref.iTypeArgs;
     auto vars = VList::empty();
     if (isTuple) {
-      args.loadFromIterator(iterTraits(varList->iter()).map([](unsigned fn) { return TermList(Term::createConstant(fn)); }));
+      iterTraits(varList->iter()).enumerate([&](unsigned i, unsigned fn) {
+        if (ref.iTypeArgs[i].isBoolSort()) {
+          // if the constant is Boolean, it is not polymorphic
+          args.emplace(Term::createFormula(new AtomicFormula(Literal::create(fn, true, {}))));
+        } else {
+          // otherwise we have to match its result type with the actual sort
+          auto argType = env.signature->getFunction(fn)->fnType();
+          ASS_EQ(argType->arity()-argType->numTypeArguments(),0);
+          Substitution subst;
+          MatchingUtils::matchTerms(argType->result(), ref.iTypeArgs[i], subst);
+          auto argArgs = TermStack::fromIterator(range(0,argType->numTypeArguments())
+            .map([&](unsigned i) {
+#if VDEBUG
+              TermList unused;
+              ASS(subst.findBinding(i, unused));
+#endif
+              return subst.apply(i);
+            }));
+          args.emplace(Term::create(fn, argArgs));
+        }
+      });
     } else {
-      args.loadFromIterator(iterTraits(varList->iter()).map([](unsigned var) { return TermList::var(var); }));
+      args.loadFromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
       vars = varList;
     }
     auto binding = Formula::createDefinition(Term::create(symbol, args), body, vars);

@@ -416,7 +416,7 @@ Formula* Formula::createLet(Formula* binder, Formula* body)
  */
 Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
 {
-  auto sort = SortHelper::getResultSort(lhs);
+  auto sort = lhs->isBoolean() ? AtomicSort::boolSort() : SortHelper::getResultSort(lhs);
   auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, TermList(lhs), rhs });
   Formula* res = new AtomicFormula(lit);
   if (uVars) {

@@ -15,6 +15,7 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Kernel/TermIterators.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
@@ -1298,7 +1299,7 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
 TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
 {
   auto tupleTypeCon = env.signature->getTupleConstructor(arity);
-  auto typeVars = TermStack::fromIterator(range(0, arity).map([](unsigned v) { return TermList::var(v); }));
+  auto typeVars = TermStack::fromIterator(varRange(0, arity));
 
   auto tupleSort = AtomicSort::tupleSort(arity, typeVars.begin());
 
@@ -1307,7 +1308,7 @@ TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
   }
 
   auto args = typeVars;
-  args.loadFromIterator(range(arity, 2*arity).map([](unsigned v) { return TermList::var(v); }));
+  args.loadFromIterator(varRange(arity, 2*arity));
 
   auto functor = env.signature->addFreshFunction(2*arity, "tuple");
   auto tupleType = OperatorType::getFunctionType(arity, args.begin(), tupleSort, arity);
