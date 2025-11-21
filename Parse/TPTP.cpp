@@ -2518,10 +2518,13 @@ void TPTP::symbolDefinition()
     USER_ERROR("Symbol " + nm + " with arity " + Int::toString(arity) + " is used in a let definition without a declared type");
   }
 
+  auto symbol = SYMBOL(ref);
+  auto isPredicate = IS_PREDICATE(ref);
+
   if (arity > 0) {
-    OperatorType* type = IS_PREDICATE(ref)
-                       ? env.signature->getPredicate(SYMBOL(ref))->predType()
-                       : env.signature->getFunction(SYMBOL(ref))->fnType();
+    OperatorType* type = isPredicate
+                       ? env.signature->getPredicate(symbol)->predType()
+                       : env.signature->getFunction(symbol)->fnType();
 
     // Given a binding f(X1,...,Xn) := t, we now quantify variables X1,...,Xn.
     // However, if the type of f contained implicit type variables Y1,...,Ym,
@@ -2573,10 +2576,13 @@ void TPTP::tupleDefinition()
       USER_ERROR("Constant " + constant + " is used in a tuple let definition without a declared sort");
     }
 
-    symbols.push(SYMBOL(ref));
-    TermList sort = IS_PREDICATE(ref)
+    auto symbol = SYMBOL(ref);
+    auto isPredicate = IS_PREDICATE(ref);
+
+    symbols.push(symbol);
+    TermList sort = isPredicate
                   ? AtomicSort::boolSort()
-                  : env.signature->getFunction(SYMBOL(ref))->fnType()->result();
+                  : env.signature->getFunction(symbol)->fnType()->result();
     auto subst = getTypeSub(ref);
     sorts.push(SubstHelper::apply(sort, subst));
 
@@ -2610,21 +2616,23 @@ void TPTP::tupleDefinition()
 void TPTP::endDefinition()
 {
   auto ref = _letDefinitions.top().top();
+  auto symbol = SYMBOL(ref);
+  auto isPredicate = IS_PREDICATE(ref);
 
   TermList definition = _termLists.top();
   TermList definitionSort = sortOf(definition);
 
-  TermList refSort = IS_PREDICATE(ref)
+  TermList refSort = isPredicate
                      ? AtomicSort::boolSort()
-                     : env.signature->getFunction(SYMBOL(ref))->fnType()->result();
+                     : env.signature->getFunction(symbol)->fnType()->result();
 
   // Before checking the argument sorts, we must substitute in implicit type variables.
   auto subst = getTypeSub(ref);
   auto refSortS = SubstHelper::apply(refSort, subst);
   if (refSortS != definitionSort) {
-    auto refSymbolName = IS_PREDICATE(ref)
-      ? env.signature->predicateName(SYMBOL(ref))
-      : env.signature->functionName(SYMBOL(ref));
+    auto refSymbolName = isPredicate
+      ? env.signature->predicateName(symbol)
+      : env.signature->functionName(symbol);
     USER_ERROR("The term " + definition.toString() + " of the sort " + definitionSort.toString() +
                " is used as definition of the symbol " + refSymbolName +
                " of the sort " + refSortS.toString());
@@ -2685,12 +2693,13 @@ void TPTP::endLet()
   while (definitions.hasNext()) {
     auto ref = definitions.next();
     auto symbol = SYMBOL(ref);
+    auto isPredicate = IS_PREDICATE(ref);
 
     VList* varList = _varLists.pop();
     TermList body = _termLists.pop();
 
     bool isTuple = false;
-    if (!IS_PREDICATE(ref)) {
+    if (!isPredicate) {
       TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
       isTuple = resultSort.isTupleSort();
     }

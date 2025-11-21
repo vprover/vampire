@@ -60,9 +60,7 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit)
       collectBoundVariables(_rhs);
     }
 
-    VList::Iterator bit(_bound);
-    while (bit.hasNext()) {
-      unsigned boundVar = bit.next();
+    for (const auto& boundVar : iterTraits(VList::Iterator(_bound))) {
       unsigned freshVar = ++_freshVarOffset;
       substitution.bindUnbound(boundVar, TermList(freshVar, false));
       List<pair<unsigned, unsigned>>::push(make_pair(boundVar, freshVar), _varRenames);

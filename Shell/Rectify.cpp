@@ -141,22 +141,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   {
     ASS_EQ(t->arity(),1);
 
-    // bindVars(sd->getVariables());
     Formula* binding = rectify(sd->getLetBinding());
-    // TODO understand what the code below does, and whether we still need it.
-    /**
-     * We don't need to remove unused variables from the body of a functions,
-     * otherwise the rectified list of variables might not fix the arity of the
-     * let functor. So, temporarily disable _removeUnusedVars;
-     */
-    // bool removeUnusedVars = _removeUnusedVars;
-    // _removeUnusedVars = false;
-    // VList* variables = rectifyBoundVars(sd->getVariables());
-    // _removeUnusedVars = removeUnusedVars; // restore the status quo
-    // unbindVars(sd->getVariables());
-
-    // ASS_EQ(VList::length(variables),VList::length(sd->getVariables()));
-
     TermList body = rectify(*t->nthArgument(0));
     TermList sort = rectify(sd->getSort());
     if (binding == sd->getLetBinding() && body == *t->nthArgument(0) && sort == sd->getSort()) {
