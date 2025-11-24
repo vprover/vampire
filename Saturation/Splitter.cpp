@@ -338,7 +338,7 @@ SAT::Status SplittingBranchSelector::processDPConflicts()
       // ... moreover, _dp->addLiterals will filter the set anyway
 
       _dp->reset();
-      _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ));
+      _dp->addLiterals(pvi( LiteralStack::ConstIterator(gndAssignment) ), false);
       DecisionProcedure::Status dpStatus = _dp->getStatus(true);
 
       if(dpStatus!=DecisionProcedure::UNSATISFIABLE) {

@@ -35,7 +35,7 @@
 #include "SAT/SATSolver.hpp"
 #include "SAT/ProofProducingSATSolver.hpp"
 
-#include "DP/DecisionProcedure.hpp"
+#include "DP/ShortConflictMetaDP.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -98,7 +98,7 @@ private:
   Splitter& _parent;
 
   ProofProducingSATSolver _solver;
-  ScopedPtr<DecisionProcedure> _dp;
+  ScopedPtr<ShortConflictMetaDP> _dp;
 
   /**
    * Contains selected component names (splitlevels)
