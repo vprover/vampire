@@ -368,11 +368,8 @@ TEST_FUN(kbo_test23) {
   DECL_DEFAULT_SORT_VARS  
   DECL_TYPE_CON(list, 1)
 
-  auto s1 = list(alpha);
-  auto s2 = list(beta);
-
-  DECL_POLY_CONST(f,1,s1)
-  DECL_POLY_CONST(g,1,s2)
+  DECL_POLY_CONST(f,1,list(alpha))
+  DECL_POLY_CONST(g,1,list(alpha))
 
   auto ord = kbo(
     weights(

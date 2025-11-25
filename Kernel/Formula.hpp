@@ -95,8 +95,8 @@ public:
   static Formula* falseFormula();
 
   static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
-  static Formula* createLet(unsigned functor, VList* variables, TermList body, Formula* contents);
-  static Formula* createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents);
+  static Formula* createLet(Formula* binder, Formula* body);
+  static Formula* createDefinition(Term* lhs, TermList rhs, VList* uVars = VList::empty());
 
 
   // use allocator to (de)allocate objects of this class
@@ -336,10 +336,10 @@ class BoolTermFormula
     : Formula(BOOL_TERM),
       _ts(ts)
   {
-    // only boolean terms in formula context are expected here
-    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() ||
-            ts.term()->isTupleLet() || ts.term()->isMatch() ||
-            SortHelper::getResultSort(ts.term()) == AtomicSort::boolSort(), ts.toString());
+    // only boolean terms in formula context that are not formulas are expected here
+    ASS_REP(ts.isVar() ||
+            (!ts.term()->isSpecial() && SortHelper::getResultSort(ts.term()) == AtomicSort::boolSort()) ||
+            (ts.term()->isSpecial() && !ts.term()->isFormula() && ts.term()->getSpecialData()->getSort() == AtomicSort::boolSort()), ts.toString());
   }
 
   static Formula* create(TermList ts);

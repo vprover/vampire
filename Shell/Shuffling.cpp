@@ -259,7 +259,7 @@ void Shuffling::shuffleIter(Shufflable sh) {
             Term::SpecialTermData* sd = t->getSpecialData();
             switch (sd->specialFunctor()) {
               case SpecialFunctor::ITE:
-                todo.push(Shufflable(sd->getCondition()));
+                todo.push(Shufflable(sd->getITECondition()));
                 todo.push(Shufflable(*t->nthArgument(0)));
                 tl = *t->nthArgument(1);
                 goto tl_updated;
@@ -270,14 +270,8 @@ void Shuffling::shuffleIter(Shufflable sh) {
                 break;
 
               case SpecialFunctor::LET:
-              case SpecialFunctor::LET_TUPLE:
-                todo.push(Shufflable(sd->getBinding()));
+                todo.push(Shufflable(sd->getLetBinding()));
                 tl = *t->nthArgument(0);
-                goto tl_updated;
-                break; // I know, unreachable;
-
-              case SpecialFunctor::TUPLE:
-                tl = TermList(sd->getTupleTerm());
                 goto tl_updated;
                 break; // I know, unreachable;
 

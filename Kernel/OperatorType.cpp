@@ -15,6 +15,7 @@
 #include "OperatorType.hpp"
 
 #include "Term.hpp"
+#include "TermIterators.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -96,7 +97,7 @@ OperatorType::OperatorTypes& OperatorType::operatorTypes() {
  *
  * Release key if not needed.
  */
-OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsigned taArity)
+OperatorType* OperatorType::getTypeFromKey(OperatorKey* key, unsigned taArity)
 {
   /*
   cout << "getTypeFromKey(" << key->length() << "): ";
@@ -114,6 +115,21 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsig
     
     return resultType;
   }
+
+  /**
+   * This check is to make sure that @b taArity is properly set, leaving no variables in
+   * @b key unbound, as that would make those variables fixed which is very inconvenient,
+   * for example, if we want to rename variables anywhere.
+   */
+#if VDEBUG
+  for (unsigned i = 0; i < key->length(); i++) {
+    if ((*key)[i].isNonEmpty()) {
+      ASS_REP(iterTraits(VariableIterator((*key)[i])).all([&](TermList var) {
+        return var.var() < taArity;
+      }), "Unbound variable in type " + resultType->toString());
+    }
+  }
+#endif
 
   operatorTypes().insert(resultType);
 
