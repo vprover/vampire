@@ -135,8 +135,6 @@ class Signature
     unsigned _skipCongruence : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
-    /** name that is bound by a $let-binder */
-    unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
     int _deBruijnIndex;
@@ -173,8 +171,6 @@ class Signature
     void markTermAlgebraDest() { _termAlgebraDest=1; }
     /** mark symbol as a term algebra discriminator */
     void markTermAlgebraDiscriminator() { _termAlgebraDiscriminator=1; }
-    /** mark the symbol as let-bound */
-    void markLetBound() { _letBound = 1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -219,8 +215,6 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDiscriminator() const { return _termAlgebraDiscriminator; }
-    /** if bound by a $let-binder */
-    inline bool letBound() const { return _letBound; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -517,6 +511,7 @@ class Signature
   unsigned getChoice();
   unsigned getDeBruijnIndex(int index);
   unsigned getPlaceholder();
+  unsigned getDefPred();
   /**
    * For a function f with result type t, this introduces a predicate
    * $def_f with the type t x t. This is used to track expressions of
@@ -775,6 +770,10 @@ class Signature
 
   bool isPlaceholder(unsigned fun) const{
     return fun == _placeholderFun && _placeholderFun != UINT_MAX;
+  }
+
+  bool isDefPred(unsigned p) const {
+    return p == _defPred && _defPred != UINT_MAX;
   }
 
   bool isFnDefPred(unsigned p) const{
@@ -1061,6 +1060,7 @@ private:
   unsigned _lamFun;
   unsigned _choiceFun;
   unsigned _placeholderFun;
+  unsigned _defPred;
   DHSet<unsigned> _fnDefPreds;
   DHMap<unsigned,unsigned> _boolDefPreds;
 

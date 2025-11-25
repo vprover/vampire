@@ -562,6 +562,9 @@ private:
 
   void ensureHavingVarSorts();
   TermList getVarSort(unsigned var) const;
+  // Variant of the above where we instantiate the
+  // sort with the Skolemizations of type variables.
+  TermList getInstantiatedVarSort(unsigned var) const;
 
   Term* createSkolemTerm(unsigned var, VarSet* free);
 
@@ -629,11 +632,11 @@ private:
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processMatch(Term::SpecialTermData* sd, Term* term, Occurrences &occurrences);
-  void processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences);
-  TermList eliminateLet(Term::SpecialTermData *sd, TermList contents);
+  void processLet(Term* term, Occurrences &occurrences);
+  TermList eliminateLet(Term* term);
 
-  TermList nameLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
-  TermList inlineLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
+  TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VList* boundVars);
+  TermList inlineLetBinding(Term* lhs, TermList rhs, TermList body);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
                     Stack<TermList> &thenBranches, Stack<TermList> &elseBranches,

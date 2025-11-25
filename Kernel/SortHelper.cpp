@@ -110,25 +110,10 @@ TermList SortHelper::getResultSort(const Term* t)
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
 
-  /*
-  either
-  1. the substitution is non-empty
-  2. the result is ground (or $tType)
-  3. t is let-bound: consider the following TFF1
-
-      % polymorphic constant
-      tff(c_type, type, c: !>[A: $tType]: A).
-      % some polymorphic predicate, not important
-      tff(p_type, type, p: !>[A: $tType]: A > $o).
-
-      % let-bind a polymorphic identity function
-      tff(bug, axiom, ![A: $tType]: $let(id: A > A, id(X) := X, p(A, id(c(A))))).
-      % note that type of id is A > A, *not* !>[A: $tType]: A > A.
-  */
+  // If the substitution is empty, then the result sort must be necessarily ground.
   ASS(
     !subst.isEmpty() ||
-    (result.isTerm() && (result.term()->isSuper() || result.term()->ground())) ||
-    sym->letBound()
+    (result.isTerm() && (result.term()->isSuper() || result.term()->ground()))
   )
   return SubstHelper::apply(result, subst, !shared);
 }
@@ -196,7 +181,6 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
 
   switch(t->specialFunctor()) {
     case SpecialFunctor::LET:
-    case SpecialFunctor::LET_TUPLE:
     case SpecialFunctor::ITE:
     case SpecialFunctor::MATCH:
       resultSort = t->getSpecialData()->getSort();
@@ -206,10 +190,6 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
       return true;
     case SpecialFunctor::LAMBDA: {
       resultSort = t->getSpecialData()->getSort();
-      return true;
-    }
-    case SpecialFunctor::TUPLE: {
-      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;
     }
   }
@@ -418,82 +398,21 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
             todo.push(newTask);
 
             newTask.fncTag = COLLECT_FORMULA;
-            newTask.f = sd->getCondition();
+            newTask.f = sd->getITECondition();
             todo.push(newTask);
 
             break;
           }
 
           case SpecialFunctor::LET: {
-            TermList binding = sd->getBinding();
-            bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-            Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
-                                                    : env.signature->getFunction(sd->getFunctor());
-            VList::Iterator vit(sd->getVariables());
-            Substitution subst;
-            auto type = isPredicate ? symbol->predType() : symbol->fnType();
-            for (unsigned i = 0; i < type->arity(); i++) {
-              ASS(vit.hasNext());
-              auto var = vit.next();
-              TermList sort = AtomicSort::superSort();
-              if (i < type->numTypeArguments()) {
-                subst.bindUnbound(type->quantifiedVar(i).var(), TermList(var, false));
-              } else {
-                sort = SubstHelper::apply(type->arg(i),subst);
-              }
-              if (!ignoreBound || !bound.get(var)) {
-                if (!map.insert(var, sort)) {
-                  ASS_EQ(sort, map.get(var));
-                }
-              }
-            }
-
-            CollectTask newTask(COLLECT_TERMLIST);
-            newTask.contextSort = sd->getSort();
-
-            newTask.ts = *term->nthArgument(0);
+            CollectTask newTask(COLLECT_FORMULA);
+            newTask.f = sd->getLetBinding();
             todo.push(newTask);
 
-            newTask.ts = binding;
-            if (!isPredicate) {
-              newTask.contextSort = SubstHelper::apply(type->result(),subst);
-            }
-            todo.push(newTask);
-
-            break;
-          }
-
-          case SpecialFunctor::LET_TUPLE: {
-            TermList binding = sd->getBinding();
-            Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
-            Substitution subst;
-            VList::Iterator vit(sd->getTupleSymbols());
-            auto type = symbol->fnType();
-            for (unsigned i = 0; i < type->arity(); i++) {
-              ASS(vit.hasNext());
-              auto var = vit.next();
-              TermList sort = AtomicSort::superSort();
-              if (i < type->numTypeArguments()) {
-                subst.bindUnbound(type->quantifiedVar(i).var(), TermList(var, false));
-              } else {
-                sort = SubstHelper::apply(type->arg(i),subst);
-              }
-              if (!ignoreBound || !bound.get(var)) {
-                if (!map.insert(var, sort)) {
-                  ASS_EQ(sort, map.get(var));
-                }
-              }
-            }
-
-            CollectTask newTask(COLLECT_TERMLIST);
+            newTask.fncTag = COLLECT_TERMLIST;
             newTask.contextSort = sd->getSort();
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
-
-            newTask.contextSort = SubstHelper::apply(type->result(),subst);
-            newTask.ts = binding;
-            todo.push(newTask);
-
             break;
           }
 
@@ -506,12 +425,6 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
             CollectTask newTask(COLLECT_TERMLIST);
             newTask.contextSort = sd->getLambdaExpSort();
             newTask.ts = sd->getLambdaExp();
-            todo.push(newTask);
-          } break;
-
-          case SpecialFunctor::TUPLE: {
-            CollectTask newTask(COLLECT_TERM);
-            newTask.t = sd->getTupleTerm();
             todo.push(newTask);
           } break;
 
@@ -776,17 +689,11 @@ bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result
   while (sit.hasNext()) {
     Term* t = sit.next().term();
     if(t->isLet()){
-      TermList binding = t->getSpecialData()->getBinding();
-      if(binding.isVar()) {
-        if ( binding == var) {
-          // get result sort of the functor
-          unsigned f = t->getSpecialData()->getFunctor();
-          Signature::Symbol* sym = env.signature->getFunction(f);
-          result = sym->fnType()->result();
+      if (recurseToSubformulas) {
+        Formula* binding = t->getSpecialData()->getLetBinding();
+        if (tryGetVariableSort(var.var(), binding, result)){
           return true;
         }
-      } else if(tryGetVariableSortTerm(var,binding.term(),result,recurseToSubformulas)){
-        return true;
       }
 
       ASS_EQ(t->arity(),1);
@@ -799,7 +706,7 @@ bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result
     }
     if (t->isITE()) {
       if (recurseToSubformulas) {
-        Formula* f = t->getSpecialData()->getCondition();
+        Formula* f = t->getSpecialData()->getITECondition();
         if(tryGetVariableSort(var.var(), f, result)){
           return true;
         }

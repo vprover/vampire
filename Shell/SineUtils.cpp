@@ -66,22 +66,13 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
       switch (sd->specialFunctor()) {
         case SpecialFunctor::FORMULA:
           extractFormulaSymbols(sd->getFormula(), ids);
-              break;
+          break;
         case SpecialFunctor::ITE:
-          extractFormulaSymbols(sd->getCondition(), ids);
-              break;
+          extractFormulaSymbols(sd->getITECondition(), ids);
+          break;
         case SpecialFunctor::LET:
-        case SpecialFunctor::LET_TUPLE: {
-          TermList binding = sd->getBinding();
-          if (binding.isTerm()) {
-            addSymIds(binding.term(), ids);
-          }
+          extractFormulaSymbols(sd->getLetBinding(), ids);
           break;
-        }
-        case SpecialFunctor::TUPLE: {
-          addSymIds(sd->getTupleTerm(), ids);
-          break;
-        }
         case SpecialFunctor::LAMBDA:
           NOT_IMPLEMENTED;
         case SpecialFunctor::MATCH: {

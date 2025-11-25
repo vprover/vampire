@@ -598,10 +598,14 @@ private:
   /** a function name and arity */
   typedef std::pair<std::string, unsigned> LetSymbolName;
 
-  /** a symbol number with a predicate/function flag */
-  typedef std::pair<unsigned, bool> LetSymbolReference;
-  #define SYMBOL(ref) (ref.first)
-  #define IS_PREDICATE(ref) (ref.second)
+  /** a symbol number with a predicate/function flag, and implicit type args */
+  struct LetSymbolReference {
+    unsigned symbol;
+    bool isPredicate;
+    TermStack iTypeArgs;
+  };
+  #define SYMBOL(ref) (ref.symbol)
+  #define IS_PREDICATE(ref) (ref.isPredicate)
 
   /** a definition of a function symbol, defined in $let */
   typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;
@@ -615,6 +619,8 @@ private:
 
   /** Record whether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
+
+  static Substitution getTypeSub(const LetSymbolReference& ref);
 
   /** finds if the symbol has been defined in an enclosing $let */
   bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
@@ -737,6 +743,7 @@ private:
   Formula* createPredicateApplication(std::string name,unsigned arity);
   TermList createFunctionApplication(std::string name,unsigned arity);
   TermList createTypeConApplication(std::string name,unsigned arity);
+  void insertImplicitLetTypeArguments(const LetSymbolReference& ref, unsigned& arity);
   void endEquality();
   void midEquality();
   void formulaInfix();
@@ -795,7 +802,9 @@ private:
 
   bool findInterpretedPredicate(std::string name, unsigned arity);
 
-  OperatorType* constructOperatorType(Type* t, VList* vars = 0);
+  /* If ivars is non-null, the function collects into it the
+   * implicit (non-quantified) type variables (needed in $lets). */
+  OperatorType* constructOperatorType(Type* t, VList* vars = 0, DHSet<unsigned>* ivars = nullptr);
 
 public:
 

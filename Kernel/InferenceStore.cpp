@@ -1268,23 +1268,14 @@ protected:
       switch(f) {
         case SpecialFunctor::FORMULA: outputFormula(out, sd->getFormula()); return;
         case SpecialFunctor::LET: {
-          out << "(let ((";
-          VList* variables = sd->getVariables();
-          if (VList::isNonEmpty(variables)) 
+          auto binding = sd->getLetBinding();
+          if (binding->connective() != Connective::LITERAL)
             throw UserErrorException("bindings with variables are not supperted in smt2 proofcheck");
 
-          auto binding = sd->getBinding();
-          bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-
-          out << "?";
-          if (isPredicate) {
-            outputPredicateName(out, sd->getFunctor());
-          } else {
-            outputFunctionName(out, sd->getFunctor());
-          }
-          out << " ";
-          outputTerm(out, binding);
+          out << "(let ((";
+          outputFormula(out, binding);
           out << "))";
+
           ASS_EQ(t->numTermArguments(), 1)
           outputTerm(out, t->termArg(0));
           out << ")";
@@ -1293,21 +1284,16 @@ protected:
 
         case SpecialFunctor::ITE: {
           out << "(ite ";
-          outputFormula(out, sd->getCondition());
+          outputFormula(out, sd->getITECondition());
           ASS_EQ(t->numTermArguments(), 2)
           outputTerm(out, t->termArg(0));
           outputTerm(out, t->termArg(1));
           out << ")";
           return;
         }
-        case SpecialFunctor::TUPLE: 
-            throw UserErrorException("tuples are not supperted in smt2 proofcheck");
 
         case SpecialFunctor::LAMBDA:
             throw UserErrorException("lambdas are not supperted in smt2 proofcheck");
-
-        case SpecialFunctor::LET_TUPLE: 
-            throw UserErrorException("tuples lets are not supperted in smt2 proofcheck");
 
         case SpecialFunctor::MATCH:
             throw UserErrorException("&match are not supperted in smt2 proofcheck");
