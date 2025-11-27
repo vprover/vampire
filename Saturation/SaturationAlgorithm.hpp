@@ -62,7 +62,7 @@ public:
     return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
       (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
-  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
+  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
   ~SaturationAlgorithm() override;
@@ -111,7 +111,7 @@ public:
 
   ActiveClauseContainer* getActiveClauseContainer() { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
-  IndexManager* getIndexManager() { return _imgr.ptr(); }
+  IndexManager* getIndexManager() { return &_imgr; }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
@@ -175,7 +175,7 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  SmartPtr<IndexManager> _imgr;
+  IndexManager _imgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;

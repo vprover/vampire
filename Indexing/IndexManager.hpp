@@ -71,14 +71,8 @@ enum IndexType {
 class IndexManager
 {
 public:
-  /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg);
-  void setSaturationAlgorithm(SaturationAlgorithm* alg) 
-  { 
-    ASS(!_alg);
-    ASS(alg);
-    _alg = alg; 
-  }
+  explicit IndexManager(SaturationAlgorithm& alg);
+
   Index* request(IndexType t);
   void release(IndexType t);
   bool contains(IndexType t);
@@ -91,7 +85,7 @@ private:
     Index* index;
     int refCnt;
   };
-  SaturationAlgorithm* _alg;
+  SaturationAlgorithm& _alg;
   DHMap<IndexType,Entry> _store;
 
   Index* create(IndexType t);

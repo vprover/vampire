@@ -35,7 +35,7 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg)
+IndexManager::IndexManager(SaturationAlgorithm& alg)
   : _alg(alg)
   , _uwa(AbstractionOracle::create())
   , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
@@ -187,12 +187,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg.getOrdering());
     isGenerating = true;
     break;
 
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg.getOrdering(), _alg.getOptions());
     isGenerating = true;
     break;
 
@@ -207,11 +207,11 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    res = new DemodulationSubtermIndex(new TermSubstitutionTree(),_alg->getOptions());
+    res = new DemodulationSubtermIndex(new TermSubstitutionTree(),_alg.getOptions());
     isGenerating = false;
     break;
   case DEMODULATION_LHS_CODE_TREE:
-    res = new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), _alg.getOrdering(), _alg.getOptions());
     isGenerating = false;
     break;
 
@@ -231,7 +231,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg->getOrdering());
+    res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg.getOrdering());
     isGenerating = false;
     break;
 
@@ -241,12 +241,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree(), _alg->getOptions());
+    res = new InductionTermIndex(new TermSubstitutionTree(), _alg.getOptions());
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree(), _alg->getOptions());
+    res = new StructInductionTermIndex(new TermSubstitutionTree(), _alg.getOptions());
     isGenerating = true;
     break;
 
@@ -254,10 +254,10 @@ Index* IndexManager::create(IndexType t)
     INVALID_OPERATION("Unsupported IndexType.");
   }
   if(isGenerating) {
-    res->attachContainer(_alg->getGeneratingClauseContainer());
+    res->attachContainer(_alg.getGeneratingClauseContainer());
   }
   else {
-    res->attachContainer(_alg->getSimplifyingClauseContainer());
+    res->attachContainer(_alg.getSimplifyingClauseContainer());
   }
   return res;
 }
