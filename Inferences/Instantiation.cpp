@@ -13,9 +13,6 @@
  * @author Giles
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
-#include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DArray.hpp"
@@ -23,14 +20,11 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/TermIterators.hpp"
-
-#include "Shell/Statistics.hpp"
 
 #include "Instantiation.hpp"
 

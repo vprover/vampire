@@ -12,14 +12,14 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Array.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Set.hpp"
 
-using Kernel::TermList;
+#include "Kernel/InductionTemplate.hpp"
+#include "Kernel/OperatorType.hpp"
+
+using namespace Kernel;
 
 namespace Shell {
   class TermAlgebraConstructor {
@@ -30,7 +30,6 @@ namespace Shell {
     TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
     TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors);
     TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
-    ~TermAlgebraConstructor() {}
 
     unsigned arity() const;
     unsigned numTypeArguments() const;
@@ -44,7 +43,10 @@ namespace Shell {
        environment signature. These functions should be called only
        after createSymbols() has been called once */
     unsigned functor() const { return _functor; }
-    unsigned destructorFunctor(unsigned ith) { return _destructors[ith]; }
+    unsigned destructorFunctor(unsigned ith) const {
+      ASS_L(ith,arity()-numTypeArguments());
+      return _destructors[ith];
+    }
 
     bool hasDiscriminator() { return _hasDiscriminator; }
     unsigned discriminator();
@@ -99,7 +101,6 @@ namespace Shell {
     TermAlgebra(TermList sort,
                 std::initializer_list<TermAlgebraConstructor*> constrs,
                 bool allowsCyclicTerms = false);
-    ~TermAlgebra() {}
 
     unsigned nTypeArgs() const { return _sort.term()->arity(); }
     unsigned nConstructors() const { return _n; }
@@ -157,6 +158,25 @@ namespace Shell {
     void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
 
     /**
+     * These three induction templates correspond to the schemas presented in the CADE 2019 paper.
+     * Examples use list datatype nil, cons(head,tail)
+     * 
+     * - one: based on constructors
+     *   (F[nil] ⋀ ∀ x,y. (F[y] → F[cons(x,y)])) → ∀ z. F[z]
+     * 
+     * - two: based on well-founded induction using subterms
+     *   (∀ x. (x = cons(head(x),tail(x)) → F[tail(x)]) → F[x]) → ∀ y. F[y]
+     * 
+     * - three: based on well-founded induction using subterm predicate
+     *   (note that this needs the axiomatisation of the subterm predicate)
+     *   (∀ x. (∀ y. (subterm(y,x) → F[y]) → F[x]) → ∀ z. F[z]
+     */
+    /* Constructor-based induction template. */
+    const InductionTemplate* getInductionTemplateOne();
+    const InductionTemplate* getInductionTemplateTwo();
+    const InductionTemplate* getInductionTemplateThree();
+
+    /**
      * Given a set of (possibly variable) term algebra terms in @b availables
      * and a term algebra term @b e, compute a new set of terms in @b availables
      * which covers the same term algebra terms, except for terms covered by @b e.
@@ -169,6 +189,9 @@ namespace Shell {
     unsigned _n; /* number of constructors */
     bool _allowsCyclicTerms;
     ConstructorArray _constrs;
+    std::unique_ptr<const InductionTemplate> _indTemplOne;
+    std::unique_ptr<const InductionTemplate> _indTemplTwo;
+    std::unique_ptr<const InductionTemplate> _indTemplThree;
   };
 }
 

@@ -13,14 +13,10 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/SharedSet.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
-
-#include "Shell/Options.hpp"
 
 #include "ConsequenceFinder.hpp"
 #include "SaturationAlgorithm.hpp"

@@ -22,13 +22,8 @@
 
 #include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
-#include "Lib/Coproduct.hpp"
 #include "Test/ClausePattern.hpp"
-#include "Saturation/Otter.hpp"
-#include "Kernel/Problem.hpp"
-#include "Shell/Options.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
-#include "Test/SyntaxSugar.hpp"
 #include "Test/BuilderPattern.hpp"
 
 namespace Test {

@@ -20,13 +20,11 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Lib/Environment.hpp"
 
 #include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"
 
 #include "LiteralIndex.hpp"
-#include "IndexManager.hpp"
 
 namespace Indexing
 {
@@ -173,10 +171,7 @@ Literal* RewriteRuleIndex::getGreater(Clause* c)
 {
   ASS_EQ(c->length(), 2);
 
-  static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
-
-  Comparison comp=comparator.compare((*c)[0], (*c)[1]);
-
+  Comparison comp = LiteralComparators::NormalizedLinearComparatorByWeight().compare((*c)[0], (*c)[1]);
   Literal* greater=
     ( comp==GREATER ) ? (*c)[0] :
     ( comp==LESS ) ? (*c)[1] : 0;

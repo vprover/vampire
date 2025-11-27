@@ -9,26 +9,12 @@
  */
 
 #include "Shell/Options.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Indexing/TermSharing.hpp"
-#include "Inferences/ALASCA/FourierMotzkin.hpp"
 #include "Inferences/ALASCA/IntegerFourierMotzkin.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/OrderingUtils.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Test/AlascaTestUtils.hpp"
-#include "Kernel/KBO.hpp"
-#include "Indexing/TermSubstitutionTree.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -100,10 +86,10 @@ using namespace Inferences::ALASCA;
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
 auto idxIntegerFourierMotzkin() { 
-  return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise0>(); },
-    [=]() { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise1>(); },
-    [=]() { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise2>(); },
+  return Generation::TestIndices{
+    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise0>(); },
+    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise1>(); },
+    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise2>(); },
   }; 
 }
 

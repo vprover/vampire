@@ -13,7 +13,6 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/Random.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -71,24 +70,6 @@ void CompositeISE::addFront(ImmediateSimplificationEngine* ise)
 {
   ASS_EQ(_salg,0);
   ISList::push(ise,_inners);
-}
-void CompositeISE::addFrontMany(ImmediateSimplificationEngine* ise)
-{
-  ASS_EQ(_salg,0);
-  ISList::push(ise,_innersMany);
-}
-ClauseIterator CompositeISE::simplifyMany(Clause* cl)
-{
-  ISList* curr=_innersMany;
-  while(curr && cl) {
-    ClauseIterator cIt=curr->head()->simplifyMany(cl);
-    if(cIt.hasNext()){
-      return cIt;
-    } else {
-      curr=curr->tail();      
-    }
-  }
-  return ClauseIterator::getEmpty();
 }
 Clause* CompositeISE::simplify(Clause* cl)
 {
@@ -561,7 +542,6 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
       out.push(orig);
     } else {
       auto simpl = result;
-      env.statistics->evaluationCnt++;
 
       if (simpl.isConstant()) {
 
@@ -593,11 +573,6 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
               break;
             case Ordering::Result::INCOMPARABLE:
             case Ordering::Result::GREATER:
-              if (cmp == Ordering::Result::INCOMPARABLE) {
-                env.statistics->evaluationIncomp++;
-              } else {
-                env.statistics->evaluationGreater++;
-              }
               DEBUG("ordering violated: ", cmp)
               DEBUG("orig: ", *orig)
               DEBUG("simp: ", *simplLit)

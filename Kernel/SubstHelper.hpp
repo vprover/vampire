@@ -19,12 +19,10 @@
 #include "Lib/Recycled.hpp"
 
 #include "Formula.hpp"
-#include "SortHelper.hpp"
+#include "Substitution.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-
-#include <unordered_map>
 
 namespace Kernel {
 
@@ -211,47 +209,6 @@ public:
     return static_cast<Literal*>(applySV(static_cast<Term*>(lit),applicator));
   }
 
-
-  /**
-   * Apply a substitution represented by object, that supports
-   * just the method TermList apply(TermList t), to a Literal.
-   */
-  template<class Subst>
-  static Literal* applyToLiteral(Literal* lit, Subst subst)
-  {
-    static DArray<TermList> ts(32);
-
-    int arity = lit->arity();
-    ts.ensure(arity);
-    int i = 0;
-    for (TermList* args = lit->args(); ! args->isEmpty(); args = args->next()) {
-      ts[i++]=subst.apply(*args);
-    }
-    return Literal::create(lit,ts.array());
-  }
-
-  template<class Map>
-  class MapApplicator
-  {
-  public:
-    MapApplicator(Map* map) : _map(map) {}
-    TermList apply(unsigned var) {
-      TermList res;
-      if(!_map->find(var, res)) {
-	res = TermList(var, false);
-      }
-      return res;
-    }
-  private:
-    Map* _map;
-  };
-
-  template<class Map>
-  static MapApplicator<Map> getMapApplicator(Map* m)
-  {
-    return MapApplicator<Map>(m);
-  }
-
 private:
   template<bool ProcessSpecVars, class Applicator>
   static Term* applyImpl(Term* t, Applicator& applicator, bool noSharing=false);
@@ -359,33 +316,22 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     switch(trm->specialFunctor()) {
     case SpecialFunctor::ITE:
       return Term::createITE(
-    applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(sd->getITECondition(), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
     applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
     );
     case SpecialFunctor::LET:
+      // TODO what about sd->getSort()?
       return Term::createLet(
-    sd->getFunctor(),
-    sd->getVariables(),
-    applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-    sd->getSort()
-    );
+        applyImpl<ProcessSpecVars>(sd->getLetBinding(), applicator, noSharing),
+        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+        sd->getSort()
+      );
     case SpecialFunctor::FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case SpecialFunctor::LET_TUPLE:
-      return Term::createTupleLet(
-        sd->getFunctor(),
-        sd->getTupleSymbols(),
-        applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-        sd->getSort()
-        );
-    case SpecialFunctor::TUPLE:
-      return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
     case SpecialFunctor::LAMBDA:
       // TODO in principle this should not be so difficult to handle
       ASSERTION_VIOLATION;

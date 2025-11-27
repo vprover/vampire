@@ -697,20 +697,20 @@ public:
   {
     _items=getUniqueItemList(inn, _size);
   }
-  ~UniquePersistentIterator()
+  ~UniquePersistentIterator() override
   {
     if(_items) {
       ItemList::destroy(_items);
     }
   }
-  inline bool hasNext() { return _items; };
-  inline T next()
+  inline bool hasNext() override { return _items; };
+  inline T next() override
   {
     return ItemList::pop(_items);
   };
 
-  inline bool knowsSize() const { return true; }
-  inline size_t size() const { return _size; }
+  inline bool knowsSize() const override { return true; }
+  inline size_t size() const override { return _size; }
 private:
   typedef DHSet<T> ItemSet;
 
@@ -775,16 +775,6 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* i
     return VirtualIterator<ELEMENT_TYPE(Inner)>::getEmpty();
   }
   return vi( new UniquePersistentIterator<Inner>(*it) );
-}
-
-/**
- * Remove duplicate elements from the container @c cont
- */
-template<class Container>
-void makeUnique(Container& cont)
-{
-  VirtualIterator<ELEMENT_TYPE(Container)> uniqueIt = pvi(
-      getUniquePersistentIterator(ITERATOR_TYPE(Container)(cont)) );
 }
 
 /**
@@ -1524,6 +1514,16 @@ public:
   {
     while (hasNext()) {
       f(next());
+    }
+  }
+
+  /** Python-style iteration that yields the index too. */
+  template<class F>
+  void enumerate(F f) 
+  {
+    unsigned i = 0;
+    while (hasNext()) {
+      f(i++, next());
     }
   }
 

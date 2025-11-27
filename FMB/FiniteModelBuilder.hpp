@@ -19,11 +19,11 @@
 
 #if VZ3
 #include "z3++.h"
-#include "z3_api.h"
 #endif
 
 #include "Kernel/MainLoop.hpp"
 #include "SAT/SATSolver.hpp"
+#include "SAT/SATClause.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
 #include "Lib/BinaryHeap.hpp"
@@ -58,14 +58,14 @@ using namespace SAT;
 class FiniteModelBuilder : public MainLoop {
 public:
   FiniteModelBuilder(Problem& prb, const Options& opt);
-  ~FiniteModelBuilder();
+  ~FiniteModelBuilder() override;
 
 protected:
   // Sets up everything
-  virtual void init();
+  void init() override;
 
   // Runs the saturation loop
-  virtual MainLoopResult runImpl();
+  MainLoopResult runImpl() override;
 
 private:
 
@@ -128,7 +128,7 @@ private:
 
   unsigned _curMaxVar;
   // SAT solver used to solve constraints (a new one is used for each model size)
-  ScopedPtr<SATSolverWithAssumptions> _solver;
+  ScopedPtr<SATSolver> _solver;
 
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
   DArray<bool> del_f;

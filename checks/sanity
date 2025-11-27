@@ -63,20 +63,41 @@ check_szs_status Theorem Problems/PUZ/PUZ139_1.p
 # check_smtcomp_status unsat --mode smtcomp ucore/test1.smt2
 check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.smt2
 
+# Term algebra problems
+check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
+check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
+
+# FOOL
+check_szs_status Theorem fool/let-function.p
+check_szs_status Theorem -newcnf on fool/let-function.p
+check_szs_status Theorem -newcnf on fool/let-tuple.p
+check_szs_status Theorem -newcnf on fool/let-tuple-bool.p
+check_szs_status Theorem -newcnf on -ile off fool/let-function.p
+check_szs_status Theorem -newcnf on -ile off fool/let-tuple.p
+check_szs_status Theorem -newcnf on -ile off fool/let-tuple-bool.p
+
 # Integer induction problems
+check_szs_status Unsatisfiable -ind int induction/int_invariant_infinite_geq3_val3.smt2
+check_szs_status Unsatisfiable -ind int induction/int_invariant_finite_a_to_b.smt2
 # disabled until we have a known strategy
-#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_invariant_infinite_geq3_val3.smt2
-#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_invariant_finite_a_to_b.smt2
-#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_power_0_all_0.smt2
-#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_sum_y_geq_0.smt2
+#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 induction/int_power_0_all_0.smt2
+#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 induction/int_sum_y_geq_0.smt2
 
 # Structural induction problems
-check_szs_status Unsatisfiable -ind struct -nui on ind/mem_append.smt2
+check_szs_status Unsatisfiable -ind struct -sik one -nui on induction/mem_append_poly.smt2
+check_szs_status Unsatisfiable -ind struct -sik two -nui on -to lpo induction/mem_append_poly.smt2
+# TODO get rid of -tac axiom
+check_szs_status Unsatisfiable -ind struct -sik three -nui on -tac axiom -to lpo induction/mem_append_poly.smt2
+check_szs_status Unsatisfiable -ind struct -sik recursion -nui on -newcnf on induction/mem_append_poly.smt2
+check_szs_status Unsatisfiable -ind struct -sik recursion -to lpo -newcnf on induction/qreva_len.smt2
+check_szs_status Unsatisfiable -ind struct -sik one -indstrhyp on induction/qreva_len.smt2
+check_szs_status Unsatisfiable -ind struct -nui on -indgo off -newcnf on induction/prefix-given-suffix.smt2
 
 # Parser
 check_szs_status Unsatisfiable parse/types-funs.smt2
 check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
-check_szs_status Unsatisfiable -t 2 parse/smtlib2-parametric-datatypes.smt2
+check_szs_status Unsatisfiable -t 1 parse/smtlib2-parametric-datatypes.smt2
+check_szs_status Unsatisfiable -newcnf on -t 1 parse/smtlib2-parametric-datatypes.smt2
 check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
@@ -95,7 +116,7 @@ check_szs_status Theorem -t 1d -sas z3 -nwc 5.0 -br off Problems/DAT/DAT005_1.p
 check_szs_status Theorem -t 1d -alasca on -alascai on -thf on Problems/DAT/DAT023_1.p
 check_szs_status Theorem -t 1d -tha off Problems/DAT/DAT042_1.p
 check_szs_status Theorem -t 1d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -canc force Problems/DAT/DAT043_1.p
-check_szs_status Theorem -t 5d -sa discount -s 2 -awr 1:32 -to lpo -s2a on -s2agt 20 -bd all Problems/HWV/HWV087_2.p
+check_szs_status Theorem -t 10d -sa discount -s 2 -awr 1:32 -to lpo -s2a on -s2agt 20 -bd all Problems/HWV/HWV087_2.p
 check_szs_status Theorem -t 1d -sa discount -awr 1:32 -to lpo -sp const_frequency -sos all -sac on -lma off Problems/ITP/ITP319_1.p
 check_szs_status Theorem -t 1d -sa discount -tha off -nwc 5.0 -gtg exists_sym -gtgl 5 Problems/ITP/ITP320_1.p
 check_szs_status Theorem -t 1d -to lpo -spb goal_then_units -sp arity Problems/ITP/ITP412_1.p
@@ -104,13 +125,17 @@ check_szs_status ContradictoryAxioms -t 1d -s 1011 -thi all -uwa ground -br off 
 check_szs_status Theorem -t 1d -s 1002 -to kbo -kws inv_frequency -sas z3 -nwc 5.0 -gtg exists_all Problems/PLA/PLA050_1.p
 check_szs_status Theorem -t 1d -sa discount -s 1002 -to lpo -tha off -canc force -fsr off -fdi 10 -nwc 1.0 Problems/SEV/SEV425_1.p
 check_szs_status Theorem -t 1d -isp bottom -to lpo -sas z3 -fd preordered -ev force -bd all -nwc 1.0 -sp arity Problems/SWC/SWC478_1.p
-check_szs_status Theorem --decode ott+11_1:1_to=lpo:thi=all:sas=z3:bd=all:fdtod=on:sp=const_max:foolp=on:gtgl=5:asg=cautious:gtg=all:rawr=on_1 -lma off -uhcvi off -aer on -add on -nwc 1.0  Problems/SWC/SWC482_1.p
+check_szs_status Theorem --decode ott+11_1:1_to=lpo:thi=all:sas=z3:bd=all:fdtod=on:sp=const_max:foolp=on:gtgl=5:asg=cautious:gtg=all:rawr=on_10 -lma off -add on -nwc 1.0  Problems/SWC/SWC482_1.p
 check_szs_status Theorem -t 1d -s 1011 -to lpo -sp unary_frequency -tha off -newcnf on -s2a on -doe on Problems/SWW/SWW587_2.p
-check_szs_status Theorem -t 3d -s 1011 -tgt full -fde none -nm 0 -bd all -sp arity -lma off -aer on -add on -nwc 1.0 Problems/SWW/SWW605_2.p
+check_szs_status Theorem -t 3d -s 1011 -tgt full -fde none -nm 0 -bd all -sp arity -lma off -add on -nwc 1.0 Problems/SWW/SWW605_2.p
 check_szs_status Theorem --decode ott+10_1:1024_to=kbo:norm_ineq=on:fde=unused:sas=z3:sos=on:tha=off:nm=16_1 Problems/SWW/SWW617_2.p
-check_szs_status Theorem -t 1d -t 1d -sas z3 -fs off -slsq off -s2a on -ep RSTC -fsr off -alasca on Problems/SWW/SWW620_2.p
+check_szs_status Theorem -t 1d -sas z3 -fs off -slsq off -s2a on -ep RSTC -fsr off -alasca on Problems/SWW/SWW620_2.p
 check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
 
 # Forward ground joinability
 check_szs_status Satisfiable -t 5d -fgj on Problems/SWV/SWV021-1.p
 check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
+
+# Synthesis without and with uncomputables
+check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
+check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2

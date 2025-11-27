@@ -16,9 +16,7 @@
 #include "Lib/Timer.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/VirtualIterator.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/LiteralSelector.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 

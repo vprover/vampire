@@ -16,15 +16,11 @@
 #ifndef __Set__
 #define __Set__
 
-#include <cstdlib>
-
 #include "Forwards.hpp"
 
 #include "Allocator.hpp"
-#include "Hash.hpp"
 #include "Reflection.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Output.hpp"
 
 namespace std {
 template<typename T, typename H>

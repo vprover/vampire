@@ -27,7 +27,7 @@ namespace Inferences {
 struct LiteralInferenceExtra : public InferenceExtra {
   LiteralInferenceExtra(Kernel::Literal *selected) : selectedLiteral(selected) {}
 
-  virtual void output(std::ostream &out) const override;
+  void output(std::ostream &out) const override;
 
   // the literal from the main premise
   Kernel::Literal *selectedLiteral;
@@ -35,22 +35,32 @@ struct LiteralInferenceExtra : public InferenceExtra {
 
 // inferences that use one literal from their side premise
 struct TwoLiteralInferenceExtra : public InferenceExtra {
-  TwoLiteralInferenceExtra(Kernel::Literal *selected, Kernel::Literal *other)
-    : selectedLiteral(selected), otherLiteral(other) {}
 
-  virtual void output(std::ostream &out) const override;
+  struct SynthesisExtra {
+    SynthesisExtra(Kernel::Literal *conditionLiteral, Kernel::Literal *thenLiteral, Kernel::Literal* elseLiteral) : condition(conditionLiteral), thenLit(thenLiteral), elseLit(elseLiteral) {}
+    Kernel::Literal *condition;
+    Kernel::Literal *thenLit;
+    Kernel::Literal *elseLit;
+  };
+
+  TwoLiteralInferenceExtra(Kernel::Literal *selected, Kernel::Literal *other, Kernel::Literal *condition = nullptr, Kernel::Literal* thenLit = nullptr, Kernel::Literal* elseLit = nullptr)
+    : selectedLiteral(selected), otherLiteral(other), synthesisExtra(condition, thenLit, elseLit) {}
+
+  void output(std::ostream &out) const override;
 
   // selected literal
   LiteralInferenceExtra selectedLiteral;
   // the literal from the side premise
   Kernel::Literal *otherLiteral;
+  // synthesis information: condition and branch literals for if-then-else
+  SynthesisExtra synthesisExtra;
 };
 
 struct RewriteInferenceExtra : public InferenceExtra {
   RewriteInferenceExtra(Kernel::TermList lhs, Kernel::TermList target)
     : lhs(lhs), rewritten(target) {}
 
-  virtual void output(std::ostream &out) const override;
+  void output(std::ostream &out) const override;
 
   // the LHS used to rewrite with
   Kernel::TermList lhs;
@@ -63,9 +73,12 @@ struct TwoLiteralRewriteInferenceExtra : public InferenceExtra {
     Kernel::Literal *selected,
     Kernel::Literal *other,
     Kernel::TermList lhs,
-    Kernel::TermList rewritten)
-    : selected(selected, other), rewrite(lhs, rewritten) {}
-  virtual void output(std::ostream &out) const override;
+    Kernel::TermList rewritten,
+    Kernel::Literal *condition = nullptr,
+    Kernel::Literal *thenLit = nullptr,
+    Kernel::Literal *elseLit = nullptr)
+    : selected(selected, other, condition, thenLit, elseLit), rewrite(lhs, rewritten) {}
+  void output(std::ostream &out) const override;
 
   // selected literals
   TwoLiteralInferenceExtra selected;

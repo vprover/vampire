@@ -8,10 +8,8 @@
  * and in the source directory
  */
 
-
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/GenerationTester.hpp"
 
 #include "Inferences/EqualityResolution.hpp"

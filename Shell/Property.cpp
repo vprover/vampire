@@ -22,7 +22,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
@@ -30,7 +29,6 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
-#include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
@@ -139,11 +137,15 @@ void Property::add(UnitList* units)
     dropProp(PR_ESSENTIALLY_GROUND);
   }
 
+  if ((_maxFunArity == 0) && onlyExistsForallPrefix(units)) {
+    addProp(PR_ESSENTIALLY_BSR);
+  }
+
   // information about sorts is read from the environment, not from the problem
   if (env.signature->hasSorts()) {
     addProp(PR_SORTS);
   }
-    
+
   // information about interpreted constant is read from the signature
   if (env.signature->strings()) {
     addProp(PR_HAS_STRINGS);
@@ -650,14 +652,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
         addProp(PR_HAS_ITE);
         break;
 
-      case SpecialFunctor::TUPLE:
-        // TODO something like
-        // _hasFOOL = true
-        // addProp(PR_HAS_TUPLE)
-        // for now, do nothing
-        break;
       case SpecialFunctor::LET:
-      case SpecialFunctor::LET_TUPLE:
         _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
         break;
@@ -919,19 +914,17 @@ bool Property::hasXEqualsY(const Clause* c)
     }
     const TermList* ts2 = ts1->next();
     if (ts2->isVar() &&
-	ts1->var() != ts2->var()) {
+      ts1->var() != ts2->var()) {
       return true;
     }
   }
-  return  false;
+  return false;
 } // Property::hasXEqualsY(const Clause*)
 
 /**
  * True if the subformula formula would have a literal X=Y
  * after clausification.
  *
- *
- * @warning Works correctly only with rectified formulas (closed or open)
  * @param f the formula
  * @since 11/12/2004 Manchester, true and false added
  * @since 27/05/2007 flight Frankfurt-Lisbon, changed to new datastructures
@@ -942,105 +935,121 @@ bool Property::hasXEqualsY(const Clause* c)
  */
 bool Property::hasXEqualsY(const Formula* f)
 {
-  MultiCounter posVars; // universally quantified variables in positive subformulas
-  MultiCounter negVars; // universally quantified variables in negative subformulas
+  ZIArray<bool> existVars; // "in the currently processed subformula, marks variables which will clausify only as existential"
 
-  Stack<const Formula*> forms;
-  Stack<int> pols; // polarities
-  forms.push(f);
-  pols.push(1);
-  while (!forms.isEmpty()) {
-    f = forms.pop();
-    int pol = pols.pop();
+  struct Rec {
+    bool cleanup;
+    union {
+      struct {
+        const Formula* form;
+        int pol;
+      } FlaRec;
+      struct {
+        unsigned var;
+        bool origVal;
+      } VarRec;
+    };
+
+    Rec(const Formula* f, int p)
+      : cleanup(false), FlaRec{f, p} {}
+
+    Rec(unsigned v, bool val)
+      : cleanup(true), VarRec{v,val} {}
+  };
+  Stack<Rec> recs;
+
+  recs.push(Rec(f,1));
+
+  while (!recs.isEmpty()) {
+    auto rec = recs.pop();
+
+    if (rec.cleanup) {
+      existVars[rec.VarRec.var] = rec.VarRec.origVal;
+      continue;
+    }
+    auto [f,pol] = rec.FlaRec;
+    int eff_pol = pol; // unless changed in the EXISTS case below
 
     switch (f->connective()) {
     case LITERAL:
       {
-	const Literal* lit = f->literal();
-	if (lit->isNegative()) {
-	  break;
-	}
-	if (!lit->isEquality()) {
-	  break;
-	}
-	const TermList* ts1 = lit->args();
-	if (!ts1->isVar()) {
-	  break;
-	}
-	const TermList* ts2 = ts1->next();
-	if (!ts2->isVar()) {
-	  break;
-	}
-	unsigned v1 = ts1->var();
-	unsigned v2 = ts2->var();
-	if (v1 == v2) {
-	  break;
-	}
-	if (!lit->isPositive()) {
-	  pol = -pol;
-	}
-	if (pol >= 0 && posVars.get(v1) && posVars.get(v2)) {
-	  return true;
-	}
-	if (pol <= 0 && negVars.get(v1) && negVars.get(v2)) {
-	  return true;
-	}
+        const Literal* lit = f->literal();
+
+        if (!lit->isEquality()) {
+          break;
+        }
+        const TermList* ts1 = lit->args();
+        if (!ts1->isVar()) {
+          break;
+        }
+        const TermList* ts2 = ts1->next();
+        if (!ts2->isVar()) {
+          break;
+        }
+        unsigned v1 = ts1->var();
+        unsigned v2 = ts2->var();
+        if (v1 == v2) {
+          break;
+        }
+        if (!lit->isPositive()) {
+          pol = -pol;
+        }
+        if (pol >= 0 && !existVars.get(v1) && !existVars.get(v2)) {
+          return true;
+        }
       }
       break;
 
     case AND:
     case OR:
       {
-	FormulaList::Iterator fs(f->args());
-	while (fs.hasNext()) {
-	  forms.push(fs.next());
-	  pols.push(pol);
-	}
+        FormulaList::Iterator fs(f->args());
+        while (fs.hasNext()) {
+          recs.push(Rec(fs.next(),pol));
+        }
       }
       break;
 
     case IMP:
-      forms.push(f->left());
-      pols.push(-pol);
-      forms.push(f->right());
-      pols.push(pol);
+      recs.push(Rec(f->left(),-pol));
+      recs.push(Rec(f->right(),pol));
       break;
 
     case IFF:
     case XOR:
-      forms.push(f->left());
-      pols.push(0);
-      forms.push(f->right());
-      pols.push(0);
+      recs.push(Rec(f->left(),0));
+      recs.push(Rec(f->right(),0));
       break;
 
     case NOT:
-      forms.push(f->uarg());
-      pols.push(-pol);
+      recs.push(Rec(f->uarg(),-pol));
       break;
 
+    case EXISTS:
+      eff_pol = -pol;
     case FORALL:
-      // remember universally quantified variables
-      if (pol >= 0) {
+      if (eff_pol >= 0) {
+        // will have a universal version
         VList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          posVars.inc(vs.next());
+          unsigned v = vs.next();
+          if (existVars[v]) {
+            existVars[v] = false;
+            recs.push(Rec(v,true)); // restore back to true
+          }
         }
-      }
-      forms.push(f->qarg());
-      pols.push(pol);
-      break;
-
-  case EXISTS:
-      // remember universally quantified variables
-      if (pol <= 0) {
+      } else {
+        // only existential
         VList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          posVars.inc(vs.next());
+          unsigned v = vs.next();
+          if (!existVars[v]) {
+            existVars[v] = true;
+            recs.push(Rec(v,false)); // restore back to false
+          }
         }
       }
-      forms.push(f->qarg());
-      pols.push(pol);
+      recs.push(Rec(f->qarg(),pol));
       break;
 
     case TRUE:
@@ -1048,7 +1057,7 @@ bool Property::hasXEqualsY(const Formula* f)
       break;
 
     case BOOL_TERM:
-      return true;
+      return true; // MS: Aztek, why this?
 
     case NAME:
     case NOCONN:
@@ -1057,6 +1066,100 @@ bool Property::hasXEqualsY(const Formula* f)
   }
   return false;
 } // Property::hasXEqualsY(const Formula* f)
+
+
+/**
+ * True if f should clausify to only introduce constants as Skolems.
+ *
+ * @warning Works correctly only closed formulas!
+ */
+bool Property::onlyExistsForallPrefix(UnitList* units)
+{
+  struct Rec {
+    const Formula* form;
+    int pol; // polarities
+    int state; // states: no commitment yet (0) - exists block (1) - forall block (2) - bailout (returns false)
+  };
+  Stack<Rec> recs;
+
+  UnitList::Iterator us(units);
+  while (us.hasNext()) {
+    Unit* unit = us.next();
+    if (unit->isClause()) continue;
+    const Formula* f = static_cast<FormulaUnit*>(unit)->formula();
+
+    recs.push({f,1,0});
+
+    while (!recs.isEmpty()) {
+      auto [f,pol,state] = recs.pop();
+      int eff_pol = pol; // unless changed in the EXISTS case below
+
+      switch (f->connective()) {
+      case LITERAL:
+        // we are good with this one
+        break;
+
+      case AND:
+      case OR:
+        {
+          FormulaList::Iterator fs(f->args());
+          while (fs.hasNext()) {
+            recs.push({fs.next(),pol,state});
+          }
+        }
+        break;
+
+      case IMP:
+        recs.push({f->left(),-pol,state});
+        recs.push({f->right(),pol,state});
+        break;
+
+      case IFF:
+      case XOR:
+        recs.push({f->left(),0,state});
+        recs.push({f->right(),0,state});
+        break;
+
+      case NOT:
+        recs.push({f->uarg(),-pol,state});
+        break;
+
+      case EXISTS:
+        eff_pol = -pol;
+      case FORALL:
+        if (eff_pol == 1) {
+          recs.push({f->qarg(),pol,2}); // in the forall bit now
+        } else if (eff_pol == -1) {
+          if (state >= 2) { // exists below forall
+            return false;
+          }
+          recs.push({f->qarg(),pol,1}); // in the exists bit now
+        } else { // pol == 0
+          if (state <= 1) { // we will do both polarities now, so, conservatibely, we are "already" in the forall part
+            recs.push({f->qarg(),pol,2}); // in the forall bit now
+          } else {
+            return false;
+          }
+        }
+        break;
+
+      case TRUE:
+      case FALSE:
+        break;
+
+      case BOOL_TERM:
+        return false; // FOOL stuff is out
+
+      case NAME:
+      case NOCONN:
+        ASSERTION_VIOLATION;
+      }
+    }
+  }
+
+  return true;
+} // Property::onlyExistsForallPrefix(UnitList* units)
+
 
 /**
  * Transforms the property to an SQL command asserting this
@@ -1088,10 +1191,12 @@ DHMap<std::string,std::string> Property::toDict() const
   result.set("@hasEquality",Int::toString(equalityAtoms()>0));
   result.set("@hasFOOL",Int::toString(hasFOOL()));
   result.set("@hasGoal",Int::toString(hasGoal()));
+  result.set("@essentiallyGround",Int::toString(hasProp(PR_ESSENTIALLY_GROUND)));
+  result.set("@essentiallyBSR",Int::toString(hasProp(PR_ESSENTIALLY_BSR)));
 
   result.set("@cat",categoryString());
   for (unsigned i = 1, n = 2; i <= 25; i++, n *= 2){
-    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString(unsigned(atoms() <= n)));
+    result.set("@atoms_leq_2^"+Int::toString(i),Int::toString((unsigned)atoms() <= n));
   }
   return result;
 } // Property::toDict

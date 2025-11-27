@@ -19,11 +19,12 @@
 #include <iostream>
 #include <sstream>
 
+#include <cadical.hpp>
+
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Allocator.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Timer.hpp"
 
@@ -37,8 +38,6 @@
 #include "AnswerLiteralManager.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
-#include "LaTeX.hpp"
-#include "LispParser.hpp"
 #include "Options.hpp"
 #include "SMTCheck.hpp"
 #include "Statistics.hpp"
@@ -48,7 +47,6 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Lib/List.hpp"
-#include "Lib/ScopedPtr.hpp"
 
 namespace Shell {
 
@@ -99,6 +97,11 @@ void reportSpiderStatus(char status)
   if (spacePosition != string::npos) {
     z3Version = z3Version.substr(0,spacePosition);
   }
+  std::string cadicalVersion = CaDiCaL::Solver::signature();
+  size_t dashPosition = cadicalVersion.find("-");
+  if (dashPosition != string::npos) {
+    cadicalVersion = cadicalVersion.substr(dashPosition + 1);
+  }
 
   std::string problemName = Lib::env.options->problemName();
   std::cout
@@ -107,7 +110,7 @@ void reportSpiderStatus(char status)
     << Timer::elapsedDeciseconds() << " "
     << Timer::elapsedMegaInstructions() << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
-    << commitNumber << ':' << z3Version << endl;
+    << commitNumber << ':' << z3Version << ':' << cadicalVersion << endl;
 #endif
 }
 
@@ -138,57 +141,44 @@ bool UIHelper::spiderOutputDone = false;
 
 void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string prefix)
 {
-#if 1
   InferenceStore::instance()->outputProof(cerr, units);
-#else
-  Stack<UnitSpec> prems;
-  Stack<UnitSpec> toDo;
-  DHSet<UnitSpec> seen;
-
-  //get the units to start with
-  UnitList::Iterator uit(units);
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-    toDo.push(UnitSpec(u));
-  }
-
-  while (toDo.isNonEmpty()) {
-    UnitSpec us = toDo.pop();
-    UnitSpecIterator pars = InferenceStore::instance()->getParents(us);
-    while (pars.hasNext()) {
-      UnitSpec par = pars.next();
-      if (seen.contains(par)) {
-	continue;
-      }
-      prems.push(par);
-      toDo.push(par);
-      seen.insert(par);
-    }
-  }
-
-  std::sort(prems.begin(), prems.end(), UIHelper::unitSpecNumberComparator);
-
-  Stack<UnitSpec>::BottomFirstIterator premIt(prems);
-  while (premIt.hasNext()) {
-    UnitSpec prem = premIt.next();
-    out << prefix << prem.toString() << endl;
-  }
-#endif
 }
 
 void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 {
-  addCommentSignForSZS(out);
-  out << "# SZS output start Saturation." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output start Saturation." << endl;
+  } else {
+    out << "# Saturated clause set:" << endl;
+  }
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
     out << TPTPPrinter::toString(cl) << endl;
   }
 
-  addCommentSignForSZS(out);
-  out << "# SZS output end Saturation." << endl;
+  if (szsOutputMode()) {
+    out << "% SZS output end Saturation." << endl;
+  }
 } // outputSaturatedSet
+
+void UIHelper::outputInterferences(std::ostream& out, const Problem& prob)
+{
+  if (szsOutputMode()) {
+    out << "% SZS output start Definitions and Model Updates." << endl;
+  } else {
+    out << "# Restored definitions and other model updates:" << endl;
+  }
+
+  auto ii = prob.interferences.iter(); // LIFO is the key here!
+  while (ii.hasNext()) {
+    ii.next()->outputDefinition(out);
+  }
+
+  if (szsOutputMode()) {
+    out << "% SZS output end Definitions and Model Updates." << endl;
+  }
+} // outputInterferences
 
 // String utility function that probably belongs elsewhere
 static bool hasEnding (std::string const &fullString, std::string const &ending) {
@@ -267,7 +257,7 @@ void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyn
 // Call this function to report a parsing attempt has failed and to reset the input
 void resetParsing(ParsingRelatedException& exception, istream& input, std::string nowtry)
 {
-  if (env.options->mode()!=Options::Mode::SPIDER) {
+  if (env.options->mode() != Options::Mode::SPIDER) {
     addCommentSignForSZS(std::cout);
     std::cout << "Failed with\n";
     addCommentSignForSZS(std::cout);
@@ -408,8 +398,6 @@ void UIHelper::popLoadedPiece(int numPops)
  * Output result based on the content of
  * @b env.statistics->terminationReason
  *
- * If LaTeX output is enabled, it is output in this function.
- *
  * If interpolant output is enabled, it is output in this function.
  */
 void UIHelper::outputResult(std::ostream& out)
@@ -492,13 +480,6 @@ void UIHelper::outputResult(std::ostream& out)
       out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
       out << "Actual weight: " << interpolant->weight() << endl;
       out<<endl;
-    }
-
-    if (env.options->latexOutput() != "off") {
-      ofstream latexOut(env.options->latexOutput().c_str());
-
-      LaTeX formatter;
-      latexOut << formatter.refutationToString(refutation);
     }
 
     // the following two sanity checks are performed only after the proof printing, so we can also have a look at the proof, when we get a report back
@@ -595,21 +576,21 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
   }
-  if (!env.statistics->model.empty()) {
-    if (szsOutputMode()) {
-	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+  if (env.options->proof() != Options::Proof::OFF) {
+    if (!env.statistics->model.empty()) {
+      if (szsOutputMode()) {
+        out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+      } else {
+        out << "# Finite Model:" << endl;
+      }
+      out << env.statistics->model;
+      if (szsOutputMode()) {
+        out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
+      }
+    } else {
+      outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
+      outputInterferences(out,*env.getMainProblem());
     }
-    out << env.statistics->model;
-    if (szsOutputMode()) {
-	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
-    }
-  }
-  else //if (env.statistics->saturatedSet)
-       /* -- MS: it's never incorrect to print the empty one, in fact this prevents us from losing
-        * points at CASC when the input gets completely emptied, by e.g. preprocessing
-        */
-  {
-    outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
   }
 }
 

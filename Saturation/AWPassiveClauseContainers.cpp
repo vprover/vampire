@@ -13,8 +13,6 @@
  * @since 30/12/2007 Manchester
  */
 
-#include <cmath>
-
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
@@ -28,9 +26,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 
-#include "SaturationAlgorithm.hpp"
-
-#if VDEBUG
+#if OUTPUT_LRS_DETAILS
 #include <iostream>
 #endif
 

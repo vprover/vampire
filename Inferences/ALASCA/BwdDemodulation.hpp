@@ -37,11 +37,11 @@ public:
     , _index(nullptr)
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final ;
+  void detach() final ;
 
 
-  virtual void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final override;
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final ;
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
 #endif // VDEBUG

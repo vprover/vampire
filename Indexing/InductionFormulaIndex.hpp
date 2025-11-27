@@ -19,11 +19,10 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Substitution.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
   struct InductionContext;
@@ -35,6 +34,11 @@ using namespace Lib;
 using namespace Kernel;
 using Key = std::pair<Stack<LiteralStack>,std::pair<Literal*,Literal*>>;
 
+struct InductionInstance {
+  ClauseStack cls;
+  RobSubstitution subst;
+};
+
 class InductionFormulaIndex
 {
 public:
@@ -45,7 +49,7 @@ public:
    * in a matching InductionContext.
    */
   struct Entry {
-    void add(ClauseStack&& cls, Substitution&& subst) {
+    void add(ClauseStack&& cls, RobSubstitution&& subst) {
       if (cls.isEmpty()) {
         return;
       }
@@ -54,13 +58,13 @@ public:
       for (const auto& cl : cls) {
         cl->incRefCnt();
       }
-      _st.push(std::make_pair(cls, subst));
+      _indInstances.push({ std::move(cls), std::move(subst) });
     }
-    const Stack<std::pair<ClauseStack,Substitution>>& get() const {
-      return _st;
-    }
+    const Stack<InductionInstance>& getInductionInstances() const
+    { return _indInstances; }
+
   private:
-    Stack<std::pair<ClauseStack,Substitution>> _st;
+    Stack<InductionInstance> _indInstances;
   };
 
   static Key represent(const Inferences::InductionContext& context);

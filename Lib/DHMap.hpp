@@ -19,10 +19,6 @@
 #include <cstdlib>
 #include <utility>
 
-#if VDEBUG
-#include <typeinfo>
-#endif
-
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
 #include "Exception.hpp"
@@ -31,10 +27,74 @@
 
 namespace Lib {
 
-#define DHMAP_MAX_CAPACITY_INDEX 29
+inline constexpr int DHMAP_MAX_CAPACITY_INDEX = 29;
 
-extern const unsigned DHMapTableCapacities[];
-extern const unsigned DHMapTableNextExpansions[];
+inline constexpr unsigned DHMapTableCapacities[] = {
+    0,
+    7,
+    13,
+    31,
+    61,
+    127,
+    251,
+    509,
+    1021,
+    2039,
+    4093,
+    8191,
+    16381,
+    32749,
+    65521,
+    131071,
+    262139,
+    524287,
+    1048573,
+    2097143,
+    4194301,
+    8388593,
+    16777213,
+    33554393,
+    67108859,
+    134217689,
+    268435399,
+    536870909,
+    1073741789,
+    2147483647,
+};
+
+//next expansion occupancy is equal to 0.7*capacity
+inline constexpr unsigned DHMapTableNextExpansions[] = {
+    0,
+    4,
+    9,
+    21,
+    42,
+    88,
+    175,
+    356,
+    714,
+    1427,
+    2865,
+    5733,
+    11466,
+    22924,
+    45864,
+    91749,
+    183497,
+    367000,
+    734001,
+    1468000,
+    2936010,
+    5872015,
+    11744049,
+    23488075,
+    46976201,
+    93952382,
+    187904779,
+    375809636,
+    751619252,
+    1503238552,
+};
 
 /**
  * Class DHMap implements generic maps with keys of a class Key
@@ -171,6 +231,18 @@ public:
   }
 
   /**
+   * const version of findPtr.
+   */
+  const Val* findPtr(Key key) const
+  {
+    const Entry* e=findEntry(key);
+    if(!e) {
+      return nullptr;
+    }
+    return &e->_val;
+  }
+
+  /**
    *  Return value associated with given key. A pair with
    *  this key has to be present.
    */
@@ -243,17 +315,9 @@ public:
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key = std::move(key);
       e->_val = std::move(val);
       _size++;
@@ -270,17 +334,9 @@ public:
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       e->_val=val;
       _size++;
@@ -298,17 +354,9 @@ public:
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       e->_val=initial;
       _size++;
@@ -323,23 +371,15 @@ public:
    * the value with @b initial, and return true. Otherwise,
    * return false.
    */
-  bool getValuePtr(Key key, Val*& pval, const Val& initial)
+  bool getValuePtr(Key key, Val*& pval, Val initial)
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
-      e->_val=initial;
+      e->_val=std::move(initial);
       _size++;
     }
     pval=&e->_val;
@@ -355,17 +395,9 @@ public:
   bool getValuePtr(Key key, Val*& pval)
   {
     Entry* e=findEntryToInsert(key);
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       e->_val.~Val();
       ::new (&e->_val) Val();
@@ -384,17 +416,9 @@ public:
   {
     ensureExpanded();
     Entry* e = findEntryToInsert(std::move(key));
-    bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
+    bool exists = doesExist(e);
     if(!exists) {
-      if(e->_info.timestamp!=_timestamp) {
-	e->_info.timestamp=_timestamp;
-	//no collision has occurred on this entry while this _timestamp is set
-	e->_info.collision=0;
-      } else {
-	ASS(e->_info.deleted);
-	_deleted--;
-      }
-      e->_info.deleted=0;
+      updateInfo(e);
       e->_key=key;
       _size++;
     }
@@ -470,7 +494,7 @@ public:
   void mapValues(F f) 
   { 
     for (Entry* e = _entries; e != _afterLast; e++) {
-      if (e->_info.timestamp==_timestamp && !e->_info.deleted) {
+      if (doesExist(e)) {
         e->_val = f(std::move(e->_val));
       }
     }
@@ -630,6 +654,26 @@ private:
     return res;
   }
 
+  /** Checks whether an entry is occupied. */
+  bool doesExist(Entry* e)
+  {
+    return e->_info.timestamp == _timestamp && !e->_info.deleted;
+  }
+
+  /** Updates meta-info of an entry. */
+  void updateInfo(Entry* e)
+  {
+    if (e->_info.timestamp != _timestamp) {
+      e->_info.timestamp = _timestamp;
+      // no collision has occurred on this entry while this _timestamp is set
+      e->_info.collision = 0;
+    } else {
+      ASS(e->_info.deleted);
+      _deleted--;
+    }
+    e->_info.deleted = 0;
+  }
+
   /** Entries with _timestamp different from this are considered empty */
   unsigned _timestamp;
   /** Number of entries stored in this DHMap */
@@ -697,13 +741,13 @@ private:
     /** Create a new iterator */
     inline DomainIteratorCore(const DHMap& map) : _base(map) {}
     /** True if there exists next element */
-    inline bool hasNext() { return _base.hasNext(); }
+    inline bool hasNext() override { return _base.hasNext(); }
 
     /**
      * Return the next key
      * @warning hasNext() must have been called before
      */
-    inline Key next() { return _base.next()->_key; }
+    inline Key next() override { return _base.next()->_key; }
   private:
     IteratorBase _base;
   }; // class DHMap::DomainIteratorCore
@@ -714,13 +758,13 @@ private:
         /** Create a new iterator */
         inline RangeIteratorCore(const DHMap& map) : _base(map) {}
         /** True if there exists next element */
-        inline bool hasNext() { return _base.hasNext(); }
+        inline bool hasNext() override { return _base.hasNext(); }
         
         /**
          * Return the next key
          * @warning hasNext() must have been called before
          */
-        inline Val next() { return _base.next()->_val; }
+        inline Val next() override { return _base.next()->_val; }
     private:
         IteratorBase _base;
     }; // class DHMap::RangeIteratorCore
@@ -744,13 +788,13 @@ private:
     /** Create a new iterator */
     inline ItemIteratorCore(const DHMap& map) : _base(map) {}
     /** True if there exists next element */
-    inline bool hasNext() { return _base.hasNext(); }
+    inline bool hasNext() override { return _base.hasNext(); }
 
     /**
      * Return the next key
      * @warning hasNext() must have been called before
      */
-    inline Item next()
+    inline Item next() override
     {
       Entry* e=_base.next();
       return Item(e->_key, e->_val);

@@ -18,9 +18,8 @@
 #define __TermSharing__
 
 #include "Lib/Set.hpp"
+#include "Lib/DHSet.hpp"
 #include "Kernel/Term.hpp"
-
-#include "Lib/Allocator.hpp"
 
 using namespace Lib;
 using namespace Kernel;

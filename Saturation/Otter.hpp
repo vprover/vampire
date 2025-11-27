@@ -60,7 +60,7 @@ protected:
      * This method is called by @b saturate() method when a clause
      * makes it from unprocessed to passive container.
      */
-    void add(Clause* c)
+    void add(Clause* c) override
     { addedEvent.fire(c); }
 
     /**

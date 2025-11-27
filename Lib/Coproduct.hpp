@@ -25,7 +25,6 @@
 #include "Lib/Sort.hpp"
 #include "Lib/TypeList.hpp"
 #include "Lib/Option.hpp"
-#include <memory>
 #include <functional>
 #include <type_traits>
 #include <vector>
@@ -266,6 +265,16 @@ namespace CoproductImpl {
   struct MaxSize<T, Ts...>
   { static constexpr unsigned value = std::max<unsigned>(sizeof(T), MaxSize<Ts...>::value); };
 
+  template<class... Ts>
+  struct MaxAlign;
+
+  template<>
+  struct MaxAlign<>
+  { static constexpr unsigned value = 0; };
+
+  template<class T, class... Ts>
+  struct MaxAlign<T, Ts...>
+  { static constexpr unsigned value = std::max<unsigned>(alignof(T), MaxAlign<Ts...>::value); };
 
   template<class... As>
   class RawCoproduct {
@@ -293,7 +302,7 @@ namespace CoproductImpl {
 
     using Bytes = char [MaxSize<As...>::value];
     unsigned _tag: neededBits(nTags);
-    Bytes _content;
+    alignas(MaxAlign<As...>::value) Bytes _content;
 
 
     TrivialOperations::DisableIfNeeded<TrivialOperations::CopyCons, Ts> _copyCons;

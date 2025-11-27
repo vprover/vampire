@@ -15,12 +15,11 @@
 #ifndef __TheoryAxioms__
 #define __TheoryAxioms__
 
+#include <initializer_list>
+
 #include "Forwards.hpp"
 
 #include "Kernel/Theory.hpp"
-#include "Options.hpp"
-
-#include <initializer_list>
 
 namespace Shell {
 
@@ -29,12 +28,10 @@ using namespace Kernel;
 
 class TheoryAxioms {
 public:
-  TheoryAxioms(Problem& prb) :
-    _prb(prb)
-  {} 
+  TheoryAxioms(Problem& prb) : _prb(prb) {}
 
-static unsigned const CHEAP = 0;
-static unsigned const EXPENSIVE = 1;
+  static unsigned const CHEAP = 0;
+  static unsigned const EXPENSIVE = 1;
 
   void apply();
 

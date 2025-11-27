@@ -26,7 +26,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -147,7 +146,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         // a low chance of it being resolved. However, in the case where there is no negative match,
         // checkSubsumption resolution is very fast after subsumption, since filling the match set
         // for subsumption will have already detected that subsumption resolution is impossible
-        conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);
+        conclusion = satSubs.checkSubsumptionResolution(mcl, cl, /*forward=*/true, checkS);
         if (conclusion) {
           ASS(premise == nullptr)
           // cannot override the premise since the loop would have ended otherwise
@@ -161,7 +160,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   if (conclusion) {
     premises = pvi(getSingletonIterator(premise));
     replacement = conclusion;
-    env.statistics->forwardSubsumptionResolution++;
     return true;
   }
   else if (!_subsumptionResolution) {
@@ -187,9 +185,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     if (it.hasNext()) {
       mcl = it.next().data->clause;
       ASS(mcl->length() == 1)
-      replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl);
+      replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl, /*forward=*/true);
       premises = pvi(getSingletonIterator(mcl));
-      env.statistics->forwardSubsumptionResolution++;
       return true;
     }
   }
@@ -209,13 +206,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       if (!_checkLongerClauses && mcl->length() > clen) {
         continue;
       }
-      conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+      conclusion = satSubs.checkSubsumptionResolution(mcl, cl, /*forward=*/true, false);
       if (conclusion) {
         ASS(premise == nullptr)
         premise = mcl;
         replacement = conclusion;
         premises = pvi(getSingletonIterator(premise));
-        env.statistics->forwardSubsumptionResolution++;
         return true;
       }
     }

@@ -146,7 +146,7 @@ bool FormulaVarIterator::hasNext()
         const Term* t = _terms.pop();
 
         // TODO: is there a better iterator over arguments of const Term*?
-        Term::Iterator ts(const_cast<Term*>(t));
+        Term::Iterator ts(t);
         while (ts.hasNext()) {
           _instructions.push(FVI_TERM_LIST);
           _termLists.push(ts.next());
@@ -157,7 +157,7 @@ bool FormulaVarIterator::hasNext()
           switch (t->specialFunctor()) {
             case SpecialFunctor::ITE:
               _instructions.push(FVI_FORMULA);
-              _formulas.push(sd->getCondition());
+              _formulas.push(sd->getITECondition());
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getSort());
               break;
@@ -168,37 +168,13 @@ bool FormulaVarIterator::hasNext()
               break;
 
             case SpecialFunctor::LET: {
-              _instructions.push(FVI_UNBIND);
-
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getBinding());
-
-              _instructions.push(FVI_BIND);
-              _vars.push(sd->getVariables());
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getSort());
-
-              break;
-            }
-
-            case SpecialFunctor::LET_TUPLE: {
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getBinding());
+              _instructions.push(FVI_FORMULA);
+              _formulas.push(sd->getLetBinding());
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getSort());
               break;
             }
 
-            case SpecialFunctor::TUPLE: {
-              Term* tt = sd->getTupleTerm();
-              Term::Iterator tts(tt);
-              while (tts.hasNext()) {
-                _instructions.push(FVI_TERM_LIST);
-                _termLists.push(tts.next());
-              }
-              break;
-            }
-      
             case SpecialFunctor::LAMBDA:{
               _instructions.push(FVI_UNBIND);
               SList* sorts = sd->getLambdaVarSorts();
@@ -241,7 +217,7 @@ bool FormulaVarIterator::hasNext()
           if (!_free.get(var) && !_bound.get(var)) {
             _nextVar = var;
             _found = true;
-            _free.inc(var);
+            _free[var] = true;
             return true;
           }
         } else {
@@ -254,7 +230,7 @@ bool FormulaVarIterator::hasNext()
       case FVI_BIND: {
         VList::Iterator vs(_vars.top());
         while (vs.hasNext()) {
-          _bound.inc(vs.next());
+          _bound[vs.next()]++;
         }
         break;
       }
@@ -262,7 +238,7 @@ bool FormulaVarIterator::hasNext()
       case FVI_UNBIND: {
         VList::Iterator vs(_vars.pop());
         while (vs.hasNext()) {
-          _bound.dec(vs.next());
+          _bound[vs.next()]--;
         }
         break;
       }

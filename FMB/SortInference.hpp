@@ -23,8 +23,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/IntUnionFind.hpp"
-#include "Kernel/Signature.hpp"
 
 namespace FMB {
 using namespace Kernel;

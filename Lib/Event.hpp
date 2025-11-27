@@ -104,7 +104,7 @@ protected:
   {
     Cls* pObj;
     void(Cls::*pMethod)();
-    void fire()
+    void fire() override
     {
       (pObj->*pMethod)();
     }
@@ -152,7 +152,7 @@ protected:
     Cls* pObj;
     void(Cls::*pMethod)(T);
 
-    void fire(T t)
+    void fire(T t) override
     {
       (pObj->*pMethod)(t);
     }
@@ -166,60 +166,7 @@ protected:
     res->pMethod=method;
     return res;
   }
-  
- 
 };
-
-
-template<typename T1, typename T2>
-class TwoParamEvent
-: public BaseEvent
-{
-public:
-  void fire(T1 t1, T2 t2)
-  {
-    HandlerList* hit=_handlers;
-    while(hit) {
-      static_cast<SpecificHandlerStruct*>(hit->head())->fire(t1, t2);
-      hit=hit->tail();
-    }
-  }
-  template<class Cls>
-  SubscriptionData subscribe(Cls* obj, void (Cls::*method)(T1, T2))
-  {
-    return BaseEvent::subscribe(getHandlerStruct(obj,method));
-  }
-protected:
-  struct SpecificHandlerStruct
-  : public HandlerStruct
-  {
-    virtual void fire(T1 t1, T2 t2) = 0;
-  };
-
-  template<class Cls>
-  struct MethodSpecificHandlerStruct
-  : public SpecificHandlerStruct
-  {
-    Cls* pObj;
-    void(Cls::*pMethod)(T1,T2);
-
-    void fire(T1 t1, T2 t2)
-    {
-      (pObj->*pMethod)(t1, t2);
-    }
-  };
-
-  template<class Cls>
-  HandlerStruct* getHandlerStruct(Cls* obj, void (Cls::*method)(T1,T2))
-  {
-    MethodSpecificHandlerStruct<Cls>* res=new MethodSpecificHandlerStruct<Cls>();
-    res->pObj=obj;
-    res->pMethod=method;
-    return res;
-  }
-};
-
-
 };
 
 #endif /*__Event__*/

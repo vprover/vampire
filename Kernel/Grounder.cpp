@@ -12,6 +12,8 @@
  * Implements class Grounder.
  */
 
+#include "Lib/DArray.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Term.hpp"

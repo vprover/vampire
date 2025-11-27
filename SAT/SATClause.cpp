@@ -15,15 +15,8 @@
 #include <algorithm>
 #include <ostream>
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/Allocator.hpp"
-#include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-
-#include "Kernel/Clause.hpp"
-#include "Kernel/Term.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -36,6 +29,8 @@ namespace SAT {
 
 using namespace Lib;
 using namespace Shell;
+
+unsigned SATClause::_lastNumber = 0;
 
 /**
  * Allocate a clause having lits literals.
@@ -69,7 +64,7 @@ void SATClause::operator delete(void *ptr, size_t sz) {
 }
 
 SATClause::SATClause(unsigned length)
-  : _length(length), _nonDestroyable(0), _inference(0)
+  : number(++_lastNumber), _length(length), _nonDestroyable(0), _inference(0)
 {
   env.statistics->satClauses++;
   if(length==1) {
@@ -132,18 +127,12 @@ void SATClause::setInference(SATInference* val)
   }
 }
 
-
-static bool litComparator(SATLiteral l1, SATLiteral l2)
-{
-  return l1.content()>l2.content();
-}
-
 /**
  * Sort literals in descending order.
  */
 void SATClause::sort()
 {
-  std::sort(&_literals[0], &_literals[length()], litComparator);
+  std::sort(_literals, _literals + length());
 }
 
 SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
@@ -155,7 +144,7 @@ SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
   unsigned duplicate=0;
   for(unsigned i=1;i<clen;i++) {
     if((*cl)[i-1].var()==(*cl)[i].var()) {
-      if((*cl)[i-1].polarity()==(*cl)[i].polarity()) {
+      if((*cl)[i-1].positive()==(*cl)[i].positive()) {
         //We must get rid of the first occurrence of the duplicate (at i-1). Removing
         //the second would make us miss the case when there are three duplicates.
         std::swap((*cl)[duplicate], (*cl)[i-1]);
@@ -205,31 +194,42 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
   return rcl;
 }
 
-/**
- * Convert the clause to the string representation.
- */
-std::string SATClause::toString() const
+std::ostream &operator<<(std::ostream &out, const SATClause &cl)
 {
-  std::string result;
-  if (_length == 0) {
-    result = "#";
-  } else {
-    result = _literals[0].toString();
-    if (_length > 1) {
-      for (unsigned i = 1; i < _length;i++) {
-	result += " | ";
-	result += _literals[i].toString();
+  out << "s" << cl.number << ". ";
+  if (cl.length() == 0)
+    out << "#";
+  else {
+    out << cl[0];
+    for(unsigned i = 1; i < cl.length(); i++)
+      out << " | " << cl[i];
+  }
+
+  SATInference *inference = cl.inference();
+  if(!inference)
+    return out;
+
+  bool first = true;
+  out << " [";
+  switch(inference->getType()) {
+    case SATInference::PROP_INF: {
+      out << "rat ";
+      PropInference *deduction = static_cast<PropInference *>(inference);
+      for(SATClause *premise : iterTraits(deduction->getPremises()->iter())) {
+        if(!first)
+          out << ",";
+        first = false;
+        out << "s" << premise->number;
       }
+      break;
+    }
+    case SAT::SATInference::FO_CONVERSION: {
+      FOConversionInference *deduction = static_cast<FOConversionInference *>(inference);
+      out << "sat_conversion " << deduction->getOrigin()->number();
+      break;
     }
   }
-  return result;
-} // SATClause::toString
-
-std::ostream& operator<< (std::ostream& out, const SAT::SATClause& cl )
-{
-  return out<<cl.toString();
+  return out << "]";
 }
 
 };
-
-

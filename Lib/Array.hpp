@@ -17,12 +17,12 @@
 #ifndef __Array__
 #define __Array__
 
+#include "Allocator.hpp"
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Allocator.hpp"
 #include <initializer_list>
+#include <ostream>
 #include <utility>
-#include <iostream>
 
 namespace Lib {
 
@@ -249,7 +249,7 @@ public:
   }
 
 
-  void fillInterval(size_t start,size_t end)
+  void fillInterval(size_t start,size_t end) override
   {
     for(size_t i=start; i<end; i++) {
       Array<T>::_array[i]=static_cast<T>(0);

@@ -30,7 +30,6 @@
 
 #include "Tracer.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/System.hpp"
 #include "Shell/Options.hpp"
 
 // define in version.cpp.in

@@ -12,7 +12,6 @@
  * Implements class InequalitySplitting.
  */
 
-#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -22,11 +21,8 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-
-#include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"

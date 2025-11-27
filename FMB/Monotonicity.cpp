@@ -20,12 +20,10 @@
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 
-#include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/TermTransformer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
 #include "SAT/SATSolver.hpp"
@@ -63,9 +61,9 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
    }
  }
 
- SATSolver::Status status = _solver->solve();
- ASS(status!=SATSolver::Status::UNKNOWN);
- _result = (status == SATSolver::Status::SATISFIABLE);
+ Status status = _solver->solve();
+ ASS(status!=Status::UNKNOWN);
+ _result = (status == Status::SATISFIABLE);
 }
 
 DArray<signed char>* Monotonicity::check() {

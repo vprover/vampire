@@ -12,23 +12,11 @@
  * Implements class InterpretedEvaluation.
  */
 
-#include "Shell/Options.hpp"
-
-#include "Lib/Exception.hpp"
-#include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Int.hpp"
 #include "Kernel/Ordering.hpp" 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Signature.hpp"
-
-#include "Indexing/TermSharing.hpp"
-
-#include "Shell/Statistics.hpp"
 
 #include "InterpretedEvaluation.hpp"
 
@@ -94,7 +82,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       if(constant) {
         if(constTrue) {
           //cout << "evaluate " << cl->toString() << " to true" << endl;
-          env.statistics->evaluationCnt++;
           return 0;
         } else {
           continue;
@@ -107,7 +94,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       return cl;
     }
 
-    env.statistics->evaluationCnt++;
     return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::EVALUATION, cl));
 }
 

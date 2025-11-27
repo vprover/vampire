@@ -17,7 +17,6 @@
 #ifndef __AbstractPassiveClauseContainers__
 #define __AbstractPassiveClauseContainers__
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 #include "Debug/Assertion.hpp"
@@ -45,7 +44,7 @@ public:
   SingleQueuePassiveClauseContainer(bool isOutermost, const Shell::Options& opt, Args&&... args)
     : PassiveClauseContainer(isOutermost, opt), _queue(std::forward<Args>(args)...), _size(0), _simulationIt(_queue) {}
 
-  ~SingleQueuePassiveClauseContainer() {
+  ~SingleQueuePassiveClauseContainer() override {
     ClauseQueue::Iterator cit(_queue);
     while (cit.hasNext()) {
       Clause* cl=cit.next();

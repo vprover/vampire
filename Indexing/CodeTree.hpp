@@ -20,17 +20,10 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Hash.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/TriangularArray.hpp"
 #include "Lib/Vector.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/FlatTerm.hpp"
-
-#include "Index.hpp"
-
 
 #define LOG_OP(x)
 //#define LOG_OP(x) std::cout<<x<<std::endl
@@ -172,7 +165,6 @@ public:
     {
       ASS(ptr); //data has to be a non-zero pointer
       CodeOp res;
-      res.setAlternative(0);
       res._setData(ptr);
       res._setInstruction(SUCCESS_OR_FAIL);
       ASS(res.isSuccess());
@@ -234,7 +226,7 @@ public:
 
   private:
     // bitfield
-    uint64_t _content;
+    uint64_t _content = 0;
 
     /**
      * Pointer to an alternative operation
@@ -242,7 +234,7 @@ public:
      * If nonzero, either points to the first operation of
      * a @b CodeBlock or to a @b landingOp of a @b SearchStruct.
      */
-    CodeOp* _alternative;
+    CodeOp* _alternative = 0;
   };
 
   /**

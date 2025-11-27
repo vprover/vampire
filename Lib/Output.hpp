@@ -10,7 +10,7 @@
 #ifndef __Lib_Output_HPP__
 #define __Lib_Output_HPP__
 
-#include <iostream>
+#include <iosfwd>
 #include <utility>
 #include <tuple>
 #include <string>

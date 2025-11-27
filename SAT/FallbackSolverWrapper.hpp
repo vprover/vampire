@@ -23,11 +23,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/ScopedPtr.hpp"
-#include "Lib/Stack.hpp"
 
 #include "SATSolver.hpp"
 
@@ -37,30 +33,22 @@ using namespace Lib;
 
 class FallbackSolverWrapper : public SATSolver {
 public:
-  FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback);
+  FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback)
+    : _inner(inner), _fallback(fallback) {}
 
-  virtual SATClause* getRefutation() override { 
-    if(_usingFallback){
-      return _fallback->getRefutation();
-    }
-    return _inner->getRefutation(); 
-  }
-  virtual SATClauseList* getRefutationPremiseList() override {
-    if(_usingFallback){
-      return _fallback->getRefutationPremiseList();
-    }
-    return _inner->getRefutationPremiseList();
-  }
-  virtual void randomizeForNextAssignment(unsigned maxVar) override {
-    _fallback->randomizeForNextAssignment(maxVar);
+  void randomizeForNextAssignment(unsigned maxVar) override {
     _inner->randomizeForNextAssignment(maxVar);
+    _fallback->randomizeForNextAssignment(maxVar);
   }
 
-  virtual void addClause(SATClause* cl) override;
-  virtual Status solve(unsigned conflictCountLimit) override;
-  virtual VarAssignment getAssignment(unsigned var) override;
+  void addClause(SATClause* cl) override {
+    _inner->addClause(cl);
+    _fallback->addClause(cl);
+  }
 
-  virtual bool isZeroImplied(unsigned var) override {
+  VarAssignment getAssignment(unsigned var) override;
+
+  bool isZeroImplied(unsigned var) override {
     ASS_G(var,0); ASS_LE(var,_varCnt);
 
     if(_usingFallback){
@@ -70,47 +58,45 @@ public:
     // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
     return  _inner->isZeroImplied(var);
   }
-  virtual void collectZeroImplied(SATLiteralStack& acc) override { 
-    if(_usingFallback){
-      _fallback->collectZeroImplied(acc);
-      return;
-    }
-    _inner->collectZeroImplied(acc); 
-  }
 
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override { 
-    if(_usingFallback){
-      return _fallback->getZeroImpliedCertificate(var);
-    }
-    return _inner->getZeroImpliedCertificate(var); 
-  }
-
-  virtual void ensureVarCount(unsigned newVarCnt) override { 
+  void ensureVarCount(unsigned newVarCnt) override { 
     _inner->ensureVarCount(newVarCnt); 
     _fallback->ensureVarCount(newVarCnt); 
     _varCnt=std::max(_varCnt,newVarCnt); 
   }
 
 
-  virtual unsigned newVar() override { 
+  unsigned newVar() override { 
     ALWAYS(_inner->newVar() == ++_varCnt);
     ALWAYS(_fallback->newVar() == _varCnt);
     return _varCnt;
   }
   
-  virtual void suggestPolarity(unsigned var,unsigned pol) override { 
+  void suggestPolarity(unsigned var,unsigned pol) override { 
     _inner->suggestPolarity(var,pol); 
     _fallback->suggestPolarity(var,pol); 
   }
 
+  Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+
+  SATLiteralStack failedAssumptions() override {
+    if(_usingFallback)
+      return _fallback->failedAssumptions();
+    return _inner->failedAssumptions();
+  }
+
+  SATClauseList *minimizePremises(SATClauseList *premises) override {
+    if(_usingFallback)
+      return _fallback->minimizePremises(premises);
+    return _inner->minimizePremises(premises);
+  }
 private:
 
   ScopedPtr<SATSolver> _inner;
   ScopedPtr<SATSolver> _fallback;
 
-  bool _usingFallback;
-
-  unsigned _varCnt;
+  bool _usingFallback = false;
+  unsigned _varCnt = 0;
 
 };
 

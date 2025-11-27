@@ -21,9 +21,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Option.hpp"
 #include "RobSubstitution.hpp"
-#include "Indexing/ResultSubstitution.hpp"
-#include "Kernel/Signature.hpp"
-#include "Lib/Reflection.hpp"
 #include "Shell/Options.hpp"
 
 namespace Kernel

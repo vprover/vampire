@@ -7,15 +7,14 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
 using namespace Kernel;
 using namespace Lib;
@@ -145,8 +144,9 @@ TermAlgebra::TermAlgebra(TermList sort,
   _constrs(constrs)
 {
   ASS(_sort.isTerm());
+  ASS(anyArgIter(_sort.term()).all([](TermList t) { return t.isVar(); }));
   for (unsigned i = 0; i < constrs.size(); i++) {
-    ASS(constrs[i]->rangeSort() == _sort);
+    ASS_EQ(constrs[i]->rangeSort(), _sort);
   }
 }
 
@@ -160,8 +160,9 @@ TermAlgebra::TermAlgebra(TermList sort,
   _constrs(n)
 {
   ASS(_sort.isTerm());
+  ASS(anyArgIter(_sort.term()).all([](TermList t) { return t.isVar(); }));
   for (unsigned i = 0; i < n; i++) {
-    ASS(constrs[i]->rangeSort() == _sort);
+    ASS_EQ(constrs[i]->rangeSort(), _sort);
     _constrs[i] = constrs[i];
   }
 }
@@ -233,6 +234,115 @@ void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
     ASS(t->nthArgument(i)->isVar());
     subst.bindUnbound(t->nthArgument(i)->var(), *sort->nthArgument(i));
   }
+}
+
+const InductionTemplate* TermAlgebra::getInductionTemplateOne()
+{
+  if (!_indTemplOne) {
+    Stack<InductionCase> cases;
+    auto taArity = nTypeArgs();
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
+    unsigned var = taArity;
+
+    iterCons()
+      .forEach([&](const auto& cons) {
+        Stack<InductionUnit> hyps;
+        TermStack args = typeArgs;
+        for (unsigned i = taArity; i < cons->arity(); i++) {
+          args.push(TermList::var(var++));
+          if (cons->argSort(i) == cons->rangeSort()) {
+            hyps.emplace(TermStack{ args.top() });
+          }
+        }
+        cases.emplace(
+          InductionUnit({ TermList(Term::create(cons->functor(),(unsigned)args.size(), args.begin())) }),
+          std::move(hyps)
+        );
+      });
+    _indTemplOne = std::make_unique<const InductionTemplate>(
+      TermStack{ TermList(AtomicSort::create(_sort.term()->functor(), typeArgs.size(), typeArgs.begin())) },
+      std::move(cases),
+      InductionUnit({ TermList::var(var++) }), /*maxVar=*/var,
+      InferenceRule::STRUCT_INDUCTION_AXIOM_ONE
+    );
+  }
+  return _indTemplOne.get();
+}
+
+const InductionTemplate* TermAlgebra::getInductionTemplateTwo()
+{
+  if (!_indTemplTwo) {
+    Stack<InductionUnit> hypotheses;
+    auto taArity = nTypeArgs();
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
+    auto y = TermList::var(taArity);
+    auto z = TermList::var(taArity+1);
+
+    iterCons()
+      .forEach([&](const auto& cons) {
+        if (!cons->recursive()) {
+          return;
+        }
+
+        TermStack args = typeArgs;
+        TermStack taTerms;
+        for (unsigned i = taArity; i < cons->arity(); i++) {
+          TermStack dargs = typeArgs;
+          dargs.push(y);
+
+          unsigned di = cons->destructorFunctor(i - taArity);
+          TermList diy = (cons->argSort(i)==AtomicSort::boolSort())
+            ? TermList(Term::createFormula(new AtomicFormula(Literal::create(di,dargs.size(),true,dargs.begin()))))
+            : TermList(Term::create(di,dargs.size(),dargs.begin()));
+
+          args.push(diy);
+          if (cons->argSort(i) == cons->rangeSort()) {
+            taTerms.push(diy);
+          }
+        }
+        ASS(taTerms.isNonEmpty());
+
+        for (const auto& t : taTerms) {
+          hypotheses.emplace(TermStack{ t },
+            LiteralStack{ Literal::createEquality(true, y, TermList(Term::create(cons->functor(), args.size(), args.begin())), cons->rangeSort()) });
+        }
+      });
+
+    _indTemplTwo = std::make_unique<const InductionTemplate>(
+      TermStack{ TermList(AtomicSort::create(_sort.term()->functor(), typeArgs.size(), typeArgs.begin())) },
+      Stack<InductionCase>{ { InductionUnit({ y }), std::move(hypotheses) } },
+      InductionUnit({ z }), /*maxVar=*/z.var(),
+      InferenceRule::STRUCT_INDUCTION_AXIOM_TWO
+    );
+  }
+  return _indTemplTwo.get();
+}
+
+const InductionTemplate* TermAlgebra::getInductionTemplateThree()
+{
+  if (!_indTemplThree) {
+    Stack<InductionUnit> hypotheses;
+    auto taArity = nTypeArgs();
+    auto x = TermList::var(taArity);
+    auto y = TermList::var(taArity+1);
+    auto z = TermList::var(taArity+2);
+
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
+    auto args = typeArgs;
+    args.push(x);
+    args.push(y);
+
+    auto cond = Literal::create(getSubtermPredicate(), args.size(), true, args.begin());
+    hypotheses.push(InductionUnit({ x }, { cond }));
+
+    _indTemplThree = std::make_unique<const InductionTemplate>(
+      TermStack{ TermList(AtomicSort::create(_sort.term()->functor(), typeArgs.size(), typeArgs.begin())) },
+      Stack<InductionCase>{ { InductionUnit({ y }), std::move(hypotheses), { x.var() } } },
+      InductionUnit({ z }), /*maxVar=*/z.var(),
+      InferenceRule::STRUCT_INDUCTION_AXIOM_THREE
+    );
+  }
+  return _indTemplThree.get();
 }
 
 void TermAlgebra::excludeTermFromAvailables(TermStack& availables, TermList e, unsigned& var)

@@ -14,10 +14,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
-
 #include "Kernel/Polynomial.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -56,7 +53,7 @@ class PolynomialEvaluationRule
 public:
 
   PolynomialEvaluationRule(Ordering& ordering);
-  virtual ~PolynomialEvaluationRule();
+  ~PolynomialEvaluationRule() override;
 
 private:
   Result simplifyLiteral(Literal*) override;

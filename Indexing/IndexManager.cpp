@@ -15,12 +15,9 @@
 #include "Indexing/Index.hpp"
 #include "Lib/Exception.hpp"
 
-#include "Kernel/Grounder.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "AcyclicityIndex.hpp"
-#include "Kernel/OrderingUtils.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "LiteralIndex.hpp"
 #include "LiteralSubstitutionTree.hpp"
@@ -32,10 +29,7 @@
 #include "Inferences/ALASCA/BinaryResolution.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "IndexManager.hpp"
-#include "Kernel/ALASCA.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 
 using namespace Lib;
@@ -213,7 +207,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    res = new DemodulationSubtermIndexImpl(new TermSubstitutionTree(),_alg->getOptions());
+    res = new DemodulationSubtermIndex(new TermSubstitutionTree(),_alg->getOptions());
     isGenerating = false;
     break;
   case DEMODULATION_LHS_CODE_TREE:
@@ -247,12 +241,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree());
+    res = new InductionTermIndex(new TermSubstitutionTree(), _alg->getOptions());
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree());
+    res = new StructInductionTermIndex(new TermSubstitutionTree(), _alg->getOptions());
     isGenerating = true;
     break;
 

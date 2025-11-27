@@ -21,13 +21,9 @@
 #include "Kernel/Inference.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#include "Indexing/Index.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
-
 #include "TermFactoring.hpp"
-#include "Kernel/ALASCA.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)

@@ -15,18 +15,15 @@
 #ifndef __Theory__
 #define __Theory__
 
-#include <cmath>
 #include <cstdint>
 
 #include "Forwards.hpp"
+#include "OperatorType.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
-
 #include "Lib/Reflection.hpp"
-#include "Shell/TermAlgebra.hpp"
 
-#include "OperatorType.hpp"
 #include "Term.hpp"
 
 #include "mini-gmp.h"
@@ -560,7 +557,7 @@ public:
   static Theory theory_obj;
   static Theory* instance();
 
-  void defineTupleTermAlgebra(unsigned arity, TermList* sorts);
+  Shell::TermAlgebra* getTupleTermAlgebra(unsigned arity);
 
   /** Returns true if the argument is an interpreted constant
    */
@@ -597,16 +594,6 @@ public:
   Interpretation interpretFunction(TermList t);
   Interpretation interpretPredicate(unsigned pred);
   Interpretation interpretPredicate(Literal* t);
-
-  void registerLaTeXPredName(unsigned func, bool polarity, std::string temp);
-  void registerLaTeXFuncName(unsigned func, std::string temp);
-  std::string tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
-
-private:
-  // For recording the templates for predicate and function symbols
-  DHMap<unsigned,std::string> _predLaTeXnamesPos;
-  DHMap<unsigned,std::string> _predLaTeXnamesNeg;
-  DHMap<unsigned,std::string> _funcLaTeXnames;
 
 public:
 
@@ -663,10 +650,9 @@ private:
 public:
   class Tuples {
   public:
-    bool isFunctor(unsigned functor);
-    unsigned getFunctor(unsigned arity, TermList sorts[]);
-    unsigned getFunctor(TermList tupleSort);
-    unsigned getProjectionFunctor(unsigned proj, TermList tupleSort);
+    bool isConstructor(Term* t);
+    unsigned getConstructor(unsigned arity);
+    unsigned getProjectionFunctor(unsigned arity, unsigned proj);
     bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
   };
 

@@ -16,7 +16,8 @@
 
 #include "Clause.hpp"
 #include "SubformulaIterator.hpp"
-#include "FormulaVarIterator.hpp"
+#include "Lib/Environment.hpp"
+
 
 namespace Kernel {
 
@@ -137,10 +138,11 @@ std::string Formula::toString () const
     case NAME:
       res += static_cast<const NamedFormula*>(f)->name();
       continue;
-    case LITERAL:
-      res += f->literal()->toString();
+    case LITERAL: {
+      auto af = static_cast<const AtomicFormula *>(f);
+      res += af->literal()->toString(af->flipForPrinting);
       continue;
-
+    }
     case AND:
     case OR:
       {
@@ -401,24 +403,26 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
  * and lhs and rhs form a binding for a function
  * @since 16/04/2015 Gothenburg
  */
-Formula* Formula::createLet(unsigned functor, VList* variables, TermList body, Formula* contents)
+Formula* Formula::createLet(Formula* binder, Formula* body)
 {
-  TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, AtomicSort::boolSort()));
+  TermList bodyTerm(Term::createFormula(body));
+  TermList letTerm(Term::createLet(binder, bodyTerm, AtomicSort::boolSort()));
   return new BoolTermFormula(letTerm);
 }
 
 /**
- * Creates a formula of the form $let(lhs := rhs, body), where body is a formula
- * and lhs and rhs form a binding for a predicate
- * @since 16/04/2015 Gothenburg
+ * Creates a formula of the form ∀ uVars. lhs := rhs, where := is an internal predicate,
+ * @b lhs and @b rhs are terms, to track that rhs is the definition of lhs.
  */
-Formula* Formula::createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents)
+Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
 {
-  TermList bodyTerm(Term::createFormula(body));
-  TermList contentsTerm(Term::createFormula(contents));
-  TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, AtomicSort::boolSort()));
-  return new BoolTermFormula(letTerm);
+  auto sort = lhs->isBoolean() ? AtomicSort::boolSort() : SortHelper::getResultSort(lhs);
+  auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, TermList(lhs), rhs });
+  Formula* res = new AtomicFormula(lit);
+  if (uVars) {
+    res = new QuantifiedFormula(Connective::FORALL, uVars, nullptr, res);
+  }
+  return res;
 }
 
 Formula* Formula::quantify(Formula* f)
@@ -456,7 +460,7 @@ Formula* Formula::quantify(Formula* f)
  * Return formula equal to @b cl
  * that has all variables quantified
  */
-Formula* Formula::fromClause(Clause* cl)
+Formula* Formula::fromClause(Clause* cl, bool closed)
 {
   FormulaList* resLst=0;
   unsigned clen=cl->length();
@@ -466,7 +470,34 @@ Formula* Formula::fromClause(Clause* cl)
   }
 
   Formula* res=JunctionFormula::generalJunction(OR, resLst);
-  return Formula::quantify(res);
+  return closed ? Formula::quantify(res) : res;
+}
+
+Formula* BoolTermFormula::create(TermList ts)
+{
+  if (ts.isVar()) {
+    return new BoolTermFormula(ts);
+  }
+
+  Term* term = ts.term();
+  if (term->isSpecial()) {
+    Term::SpecialTermData *sd = term->getSpecialData();
+    switch (sd->specialFunctor()) {
+      case SpecialFunctor::FORMULA:
+        return sd->getFormula();
+      default:
+        return new BoolTermFormula(ts);
+    }
+  } else {
+    unsigned functor = term->functor();
+    if (env.signature->isFoolConstantSymbol(true, functor)) {
+      return new Formula(true);
+    }
+    if (env.signature->isFoolConstantSymbol(false, functor)) {
+      return new Formula(false);
+    }
+    return new BoolTermFormula(ts);
+  }
 }
 
 std::ostream& operator<< (std::ostream& out, const Formula& f)

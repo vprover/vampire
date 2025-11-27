@@ -10,9 +10,8 @@
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/TermIterators.hpp"
 
-#include "Lib/SmartPtr.hpp"
+#include "Lib/Environment.hpp"
 
 #include "ApplicativeHelper.hpp"
 

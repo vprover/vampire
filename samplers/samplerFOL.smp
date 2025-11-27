@@ -594,37 +594,19 @@ av=on > aac ~cat ground:521,none:479
 @hasGoal=0 av=on > aac ~cat none:1000,ground:5
 # bumped the @hasGoal=0 case
 
-# avatar_buffered_solver
-# av=on > abs ~cat off:578,on:422
-@atoms_leq_2^19=1 av=on > abs ~cat off:576,on:424
-@atoms_leq_2^19=0 av=on > abs ~cat off:1000,on:5
-# bumped the large case
-
 # avatar_congruence_closure
 # sas!=z3 av=on > acc ~cat off:588,on:358
 ss!=off av=on > acc ~cat off:601,on:399
 ss=off  av=on > acc ~cat off:588,on:344
 # delete records about the "model" value
 
-# cc_unsat_cores
-acc!=off > ccuc ~cat small_ones:376,first:354,all:269
-
 # avatar_minimize_model
-av=on > amm ~cat sco:353,off:333,all:314
-
-# avatar_eager_removal
-av=on amm=all > aer ~cat off:503,on:497
+sa!=fmb av=on > amm ~cat on:600,off:69
 
 # avatar_delete_deactivated
 av=on > add ~cat large:403,off:309,on:288
 @cat=EPR  av=on > add ~cat large:613,on:387,off:5
 @cat!=EPR av=on > add ~cat large:400,off:313,on:287
-# boosted the EPR case 0->5
-
-# avatar_fast_restart
-# av=on > afr ~cat on:536,off:464
-@cat=EPR av=on > afr ~cat on:1000,off:5
-@cat!=EPR av=on > afr ~cat on:534,off:466
 # boosted the EPR case 0->5
 
 # avatar_literal_polarity_advice
@@ -644,37 +626,6 @@ av=on > add ~cat large:403,off:309,on:288
 # sa!=fmb av=on $atotf=1 > atotf ~cat 1:1
 # sa!=fmb av=on $atotf!=1 > atotf ~uf 0.0,0.7
 # TODO: leaving out weird timing dependent options
-
-# avatar_flush_period
-# av=on > $afp ~cat 0:223,1000000:107,40000:100,10000:96,100000:89,1000:79,4000:75,10:74,2000:57,50:50,300:49
-@cat=EPR  av=on > $afp ~cat 0:599,10:181,300:130,10000:57,50:34,100000:5,1000:5,40000:5,4000:5,2000:5,1000000:5
-@cat!=EPR av=on > $afp ~cat 0:218,1000000:109,40000:101,10000:97,100000:90,1000:79,4000:76,10:73,2000:58,50:50,300:49
-av=on $afp=0 > afp ~set 0
-av=on $afp=1000000 > afp ~set 1000000
-av=on $afp=40000 > afp ~set 40000
-av=on $afp=10000 > afp ~set 10000
-av=on $afp=100000 > afp ~set 100000
-av=on $afp=1000 > afp ~set 1000
-av=on $afp=4000 > afp ~set 4000
-av=on $afp=10 > afp ~set 10
-av=on $afp=2000 > afp ~set 2000
-av=on $afp=50 > afp ~set 50
-av=on $afp=300 > afp ~set 300
-# probably a good candidate for removal, as it doesn't seem to be doing much! (TODO: prove it!)
-# boosted the EPR case 0->5
-
-# avatar_flush_quotient
-afp!=0 > $afq ~cat 3.0+1.0:100,2.75+0.25:172,2.5+0.25:138,1.25+0.25:137,1.0+0.25:125,2.25+0.25:119,1.5+0.25:109,2.0+0.25:102,1.75+0.25:98
-afp!=0 $afq=2.75+0.25 > afq ~uf 2.75,3.0
-afp!=0 $afq=2.5+0.25 > afq ~uf 2.5,2.75
-afp!=0 $afq=1.25+0.25 > afq ~uf 1.25,1.5
-afp!=0 $afq=1.0+0.25 > afq ~uf 1.0,1.25
-afp!=0 $afq=2.25+0.25 > afq ~uf 2.25,2.5
-afp!=0 $afq=1.5+0.25 > afq ~uf 1.5,1.75
-afp!=0 $afq=2.0+0.25 > afq ~uf 2.0,2.25
-afp!=0 $afq=1.75+0.25 > afq ~uf 1.75,2.0
-afp!=0 $afq=3.0+1.0 > afq ~uf 3.0,4.0
-# added the last one; however, this is also a good candidate for removal, I think
 
 # nonliterals_in_clause_weight
 av=on > nicw ~cat off:553,on:447
@@ -719,29 +670,9 @@ avsq=on $avsqr=1.0+1.0 > avsqr ~u2r 1.0;2.0;,
 avsq=on $avsqr=2.0+1.0 > avsqr ~u2r 2.0;3.0;,
 avsq=on $avsqr=3.0+1.0 > avsqr ~u2r 3.0;4.0;,
 
-# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+# GLOBAL SUBSUMPTION
 # global_subsumption
 # > gs ~cat off:665,on:335
 @atoms_leq_2^19=1 > gs ~cat off:664,on:336
 @atoms_leq_2^19=0 > gs ~cat off:1000,on:10
 # bumped the large case
-
-# global_subsumption_explicit_minim
-# gs=on > gsem ~cat on:412,randomized:336,off:253
-@atoms_leq_2^6=1 gs=on > gsem ~cat off:1000,on:5,randomized:5
-@atoms_leq_2^6=0 gs=on > gsem ~cat on:429,randomized:338,off:233
-# bumped the small case
-
-# global_subsumption_sat_solver_power
-gs=on > gsssp ~cat propagation_only:576,full:424
-
-# global_subsumption_avatar_assumptions
-gs=on av=on > gsaa ~cat off:400,from_current:380,full_model:221
-
-# MISC
-
-# use_hashing_clause_variant_index
-# > uhcvi ~cat on:540,off:460
-@atoms_leq_2^4=1 > uhcvi ~cat off:543,on:457
-@atoms_leq_2^4=0 > uhcvi ~cat on:553,off:447
-

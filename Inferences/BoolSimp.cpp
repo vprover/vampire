@@ -17,11 +17,8 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
-
-#include "Shell/Statistics.hpp"
 
 #include "BoolSimp.hpp"
 
@@ -59,7 +56,6 @@ substitution:
     resLits->push(i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i]);
   }
 
-  env.statistics->booleanSimps++;
   return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
 }
 

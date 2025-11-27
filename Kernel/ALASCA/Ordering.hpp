@@ -13,12 +13,9 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
 #include "Kernel/ALASCA.hpp"
-
-#include "Kernel/Ordering.hpp"
-#include "Lib/DArray.hpp"
 #include "Kernel/KBO.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
 #define DEBUG_ALASCA_ORD(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
@@ -399,7 +396,7 @@ public:
   LiteralOrdering(Problem& prb, const Options& opt) 
     : LiteralOrdering(TermOrdering(prb, opt)) { }
 
-  virtual ~LiteralOrdering() {}
+  ~LiteralOrdering() override {}
 
   Result compare(Literal* l1, Literal* l2) const override {
     auto atoms1 = atoms(l1);
@@ -422,10 +419,10 @@ public:
     }
   }
 
-  Result compare(TermList t1, TermList t2) const final override 
+  Result compare(TermList t1, TermList t2) const final
   { return _termOrdering.compare(t1, t2); }
 
-  void show(std::ostream& out) const final override 
+  void show(std::ostream& out) const final
   { _termOrdering.show(out); }
 
 private:

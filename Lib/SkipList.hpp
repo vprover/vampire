@@ -23,9 +23,7 @@
 #include "Allocator.hpp"
 #include "Backtrackable.hpp"
 #include "Comparison.hpp"
-#include "List.hpp"
 #include "Random.hpp"
-#include "Lib/Option.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
 
@@ -559,7 +557,7 @@ private:
       REMOVE, INSERT
     };
     SingleValBacktrackObject(SkipList* sl, Action a, Value v): sl(sl), a(a), v(v) {}
-    void backtrack()
+    void backtrack() override
     {
       switch(a) {
       case REMOVE:

@@ -17,7 +17,7 @@
 #ifndef __LispLexer__
 #define __LispLexer__
 
-#include <iostream>
+#include <iosfwd>
 #include "Lexer.hpp"
 
 

@@ -28,7 +28,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/MultiCounter.hpp"
 #include "Lib/ProofExtra.hpp"
 #include "Lib/Stack.hpp"
 #include "Kernel/Unit.hpp"
@@ -53,7 +52,6 @@ class FunctionDefinition
 {
 public:
   struct Def;
-  FunctionDefinition();
   ~FunctionDefinition();
 
   void removeAllDefinitions(Problem& prb, bool inHigherOrder);
@@ -105,14 +103,7 @@ private:
   Stack<Def*> _blockedDefs;
 
   Stack<Def*> _safeDefs;
-  /** Counters for occurrences of function symbols */
-  MultiCounter _counter;
-  /** The number of found definitions */
-  int _found;
-  /** The number of removed definitions */
-  int _removed;
-
-  Problem* _processedProblem;
+  Problem* _processedProblem = nullptr;
 }; // class FunctionDefinition
 
 struct FunctionDefinitionExtra : public InferenceExtra {

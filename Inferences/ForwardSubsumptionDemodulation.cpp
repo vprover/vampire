@@ -22,16 +22,9 @@
 #include "Kernel/MLMatcherSD.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/TPTPPrinter.hpp"
-#include <array>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 using namespace Kernel;
@@ -542,7 +535,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                     ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
                     ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
                     ASS(SDHelper::checkForSubsumptionResolution(cl, SDClauseMatches{mcl,cl_miniIndex}, dlit));
-                    replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl);
+                    replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl, /*forward=*/true);
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
                     if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
                       // Note that mclθ < cl does not always hold here,
@@ -552,7 +545,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                     }
 #endif
                     premises = pvi(getSingletonIterator(mcl));
-                    env.statistics->forwardSubsumptionResolution++;
                     return true;
                   }
                 }
@@ -630,8 +622,6 @@ isRedundant:
                   resLits->push((*cl)[i]);
                 }
               }
-
-              env.statistics->forwardSubsumptionDemodulations++;
 
               premises = pvi(getSingletonIterator(mcl));
               replacement = Clause::fromStack(*resLits,

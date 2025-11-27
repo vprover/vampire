@@ -42,12 +42,9 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
-#include "Lib/System.hpp"
 
 #include "Shell/UIHelper.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/Property.hpp"
 
 #include "Kernel/Problem.hpp"
@@ -174,8 +171,10 @@ void Options::init()
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
          "casc_2024",
+         "casc_2025",
          "casc_sat",
          "casc_sat_2024",
+         "casc_sat_2025",
          "file",
          "induction",
          "integer_induction",
@@ -194,26 +193,38 @@ void Options::init()
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOn(UsingPortfolioTechnology());
+    _schedule.tag(OptionTag::PORTFOLIO);
 
     _scheduleFile = StringOptionValue("schedule_file", "", "");
     _scheduleFile.description = "Path to the input schedule file. Each line contains an encoded strategy. Disabled unless `--schedule file` is set.";
     _lookup.insert(&_scheduleFile);
     _scheduleFile.onlyUsefulWith(_schedule.is(equal(Schedule::FILE)));
+    _scheduleFile.tag(OptionTag::PORTFOLIO);
 
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
     _multicore.reliesOn(UsingPortfolioTechnology());
+    _multicore.tag(OptionTag::PORTFOLIO);
 
     _slowness = FloatOptionValue("slowness","",1.0);
     _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
+    _slowness.tag(OptionTag::PORTFOLIO);
 
-    _randomizSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
-    _randomizSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
-    _lookup.insert(&_randomizSeedForPortfolioWorkers);
-    _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
+    _randomizeSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
+    _randomizeSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
+    _lookup.insert(&_randomizeSeedForPortfolioWorkers);
+    _randomizeSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
+    _randomizeSeedForPortfolioWorkers.tag(OptionTag::PORTFOLIO);
+
+    _shuffleOnScheduleRepeats = BoolOptionValue("shuffle_on_schedule_repeats","",true);
+    _shuffleOnScheduleRepeats.description = "In portfolio mode, when we run out of strategies in the selected schedule, we restart from the beginning while doubling the limits,"
+                                             " under this option, we also force si=on:rtra=on to increase the chance that the repeated strategies `do something else`.";
+    _lookup.insert(&_shuffleOnScheduleRepeats);
+    _shuffleOnScheduleRepeats.onlyUsefulWith(UsingPortfolioTechnology());
+    _shuffleOnScheduleRepeats.tag(OptionTag::PORTFOLIO);
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -323,7 +334,7 @@ void Options::init()
     _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
 
     _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","msp",true);
-    _minimizeSatProofs.description="Perform unsat core minimization when a sat solver finds a clause set UNSAT\n"
+    _minimizeSatProofs.description="Perform premise minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).";
     _lookup.insert(&_minimizeSatProofs);
     _minimizeSatProofs.tag(OptionTag::OUTPUT);
@@ -628,17 +639,6 @@ void Options::init()
 
 //*********************** Output  ***********************
 
-    _latexOutput = StringOptionValue("latex_output","","off");
-    _latexOutput.description="File that will contain proof in the LaTeX format.";
-    _lookup.insert(&_latexOutput);
-    _latexOutput.tag(OptionTag::OUTPUT);
-
-    _latexUseDefaultSymbols = BoolOptionValue("latex_use_default_symbols","",true);
-    _latexUseDefaultSymbols.description="Interpreted symbols such as product have default LaTeX symbols"
-        " that can be used. They can be overridden in the normal way. This option can turn them off";
-    _latexUseDefaultSymbols.tag(OptionTag::OUTPUT);
-    _lookup.insert(&_latexUseDefaultSymbols);
-
     _outputAxiomNames = BoolOptionValue("output_axiom_names","",false);
     _outputAxiomNames.description="Preserve names of axioms from the problem file in the proof output";
     _lookup.insert(&_outputAxiomNames);
@@ -648,6 +648,15 @@ void Options::init()
     _printClausifierPremises.description="Output how the clausified problem was derived.";
     _lookup.insert(&_printClausifierPremises);
     _printClausifierPremises.tag(OptionTag::OUTPUT);
+
+    _replaceDomainElements = BoolOptionValue("replace_domain_elements","",false);
+    // Note that while we have the code in place thanks to Giles, Geoff didn't like the functionality
+    // (and, arguably, since it in general incomplete in the sense that sometimes the domain elements are anyway necessary,
+    // it's a bit ugly for its non-uniformity and for mixing syntax - the constants - with semantics - domain elements)
+    // To sum up, we have a feature maybe nobody really likes? A candidate for removal.
+    _replaceDomainElements.description="When printing a finite model, try hard to look for constants from the original formulation to use instead of domain elements.";
+    _lookup.insert(&_replaceDomainElements);
+    _replaceDomainElements.tag(OptionTag::OUTPUT);
 
     _showAll = BoolOptionValue("show_everything","",false);
     _showAll.description="Turn (almost) all of the showX commands on";
@@ -930,6 +939,13 @@ void Options::init()
     _fmbKeepSbeamGenerators.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbKeepSbeamGenerators.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::SBMEAM)));
     _fmbKeepSbeamGenerators.tag(OptionTag::FMB);
+
+    _fmbUseSimplifyingSolver = BoolOptionValue("fmb_use_simplifying_solver","fmbuss",true);
+    _fmbUseSimplifyingSolver.description = "Allow the SAT solver to internally simplify the instance.";
+    _fmbUseSimplifyingSolver.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
+    _fmbUseSimplifyingSolver.onlyUsefulWith(_satSolver.is(equal(SatSolver::MINISAT)));
+    _fmbUseSimplifyingSolver.tag(OptionTag::FMB);
+    _lookup.insert(&_fmbUseSimplifyingSolver);
 
     _selection = SelectionOptionValue("selection","s",10);
     _selection.description=
@@ -1232,6 +1248,8 @@ void Options::init()
     _lrsPreemptiveDeletes = BoolOptionValue("lrs_preemptive_deletes","lpd",true);
     _lrsPreemptiveDeletes.description = "If false, LRS will not use limits to delete clauses entering passive."
      " (Only the retroactive deletes might apply.)";
+     // Under lrd=off:lpd=off, we don't have any LRS anymore (and are back to Otter, essentially), so the value of this option is questionable.
+     // (Still, it's currently used in a few strategies in Schedules.)
     _lrsPreemptiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
     _lookup.insert(&_lrsPreemptiveDeletes);
     _lrsPreemptiveDeletes.tag(OptionTag::LRS);
@@ -2104,36 +2122,6 @@ void Options::init()
     _globalSubsumption.tag(OptionTag::INFERENCES);
     // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
 
-    _globalSubsumptionSatSolverPower = ChoiceOptionValue<GlobalSubsumptionSatSolverPower>("global_subsumption_sat_solver_power","gsssp",
-          GlobalSubsumptionSatSolverPower::PROPAGATION_ONLY,{"propagation_only","full"});
-    _globalSubsumptionSatSolverPower.description="";
-    _lookup.insert(&_globalSubsumptionSatSolverPower);
-    _globalSubsumptionSatSolverPower.tag(OptionTag::INFERENCES);
-    _globalSubsumptionSatSolverPower.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-
-    _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
-        GlobalSubsumptionExplicitMinim::ON,{"off","on","randomized"});
-    _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global subsumption reduction.";
-    _lookup.insert(&_globalSubsumptionExplicitMinim);
-    _globalSubsumptionExplicitMinim.tag(OptionTag::INFERENCES);
-    _globalSubsumptionExplicitMinim.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-
-    _globalSubsumptionAvatarAssumptions = ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions>("global_subsumption_avatar_assumptions","gsaa",
-        GlobalSubsumptionAvatarAssumptions::OFF,{"off","from_current","full_model"});
-    _globalSubsumptionAvatarAssumptions.description=
-      "When running global subsumption and AVATAR at the same time we need to include information about the current AVATAR model. When this is off "
-      "we ignore clauses with AVATAR assumptions for GS. When it is from_current we assume the assumptions in the current clause. When it is "
-      "full_model we assume the full model from AVATAR. See paper Global Subsumption Revisited (Briefly).";
-    _lookup.insert(&_globalSubsumptionAvatarAssumptions);
-    _globalSubsumptionAvatarAssumptions.tag(OptionTag::INFERENCES);
-    _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_globalSubsumption.is(equal(true)));
-    _globalSubsumptionAvatarAssumptions.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _useHashingVariantIndex = BoolOptionValue("use_hashing_clause_variant_index","uhcvi",true);
-    _useHashingVariantIndex.description= "Use clause variant index based on hashing for clause variant detection (affects avatar).";
-    _lookup.insert(&_useHashingVariantIndex);
-    _useHashingVariantIndex.tag(OptionTag::OTHER);
-
 //*********************** AVATAR  ***********************
 
     _splitting = BoolOptionValue("avatar","av",true);
@@ -2148,6 +2136,12 @@ void Options::init()
     _lookup.insert(&_splitAtActivation);
     _splitAtActivation.onlyUsefulWith(_splitting.is(equal(true)));
     _splitAtActivation.tag(OptionTag::AVATAR);
+
+    _cleaveNonsplittables = BoolOptionValue("cleave_nonsplittables","cn",false);
+    _cleaveNonsplittables.description="Tentatively propose single-literal component strengthenings. Sometimes useful for bringing about finite saturations.";
+    _lookup.insert(&_cleaveNonsplittables);
+    _cleaveNonsplittables.onlyUsefulWith(_splitting.is(equal(true)));
+    _cleaveNonsplittables.tag(OptionTag::AVATAR);
 
     _splittingAddComplementary = ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","aac",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"});
@@ -2166,13 +2160,6 @@ void Options::init()
 #endif
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
 
-    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::SMALL_ONES,
-                                                     {"first", "small_ones", "all"});
-    _ccUnsatCores.description="";
-    _lookup.insert(&_ccUnsatCores);
-    _ccUnsatCores.tag(OptionTag::AVATAR);
-    _ccUnsatCores.onlyUsefulWith(_splittingCongruenceClosure.is(equal(true)));
-
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "avatar_literal_polarity_advice","alpa",
                                                 SplittingLiteralPolarityAdvice::NONE,
@@ -2182,36 +2169,12 @@ void Options::init()
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
     _splittingLiteralPolarityAdvice.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
-                                                                        SplittingMinimizeModel::ALL,{"off","sco","all"});
+    _splittingMinimizeModel = BoolOptionValue("avatar_minimize_model","amm",true);
     _splittingMinimizeModel.description="Minimize the SAT-solver model by replacing concrete values with don't-cares"
-                                        " provided <all> the sat clauses (or only the split clauses with <sco>) remain provably satisfied"
-                                        " by the partial model.";
+                                        " provided the sat clauses remain provably satisfied by the partial model.";
     _lookup.insert(&_splittingMinimizeModel);
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",false);
-    _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
-    _lookup.insert(&_splittingEagerRemoval);
-    _splittingEagerRemoval.tag(OptionTag::AVATAR);
-    _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
-    // if minimize is off then aer makes no difference
-    // if minimize is sco then aer=off could lead to a conflict clause added infinitely often
-    // (we actually protect against the problematic combination in Splitter, by ignoring aer=off even if requested)
-    _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
-
-    _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
-    _splittingFastRestart.description="";
-    _lookup.insert(&_splittingFastRestart);
-    _splittingFastRestart.tag(OptionTag::AVATAR);
-    _splittingFastRestart.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _splittingBufferedSolver = BoolOptionValue("avatar_buffered_solver","abs",false);
-    _splittingBufferedSolver.description="Added buffering functionality to the SAT solver used in AVATAR.";
-    _lookup.insert(&_splittingBufferedSolver);
-    _splittingBufferedSolver.tag(OptionTag::AVATAR);
-    _splittingBufferedSolver.onlyUsefulWith(_splitting.is(equal(true)));
 
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
                                                                         SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"});
@@ -2220,21 +2183,6 @@ void Options::init()
     _lookup.insert(&_splittingDeleteDeactivated);
     _splittingDeleteDeactivated.tag(OptionTag::AVATAR);
     _splittingDeleteDeactivated.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _splittingFlushPeriod = UnsignedOptionValue("avatar_flush_period","afp",0);
-    _splittingFlushPeriod.description=
-    "after given number of generated clauses without deriving an empty clause, the splitting component selection is shuffled. If equal to zero, shuffling is never performed.";
-    _lookup.insert(&_splittingFlushPeriod);
-    _splittingFlushPeriod.tag(OptionTag::AVATAR);
-    _splittingFlushPeriod.onlyUsefulWith(_splitting.is(equal(true)));
-
-    _splittingFlushQuotient = FloatOptionValue("avatar_flush_quotient","afq",1.5);
-    _splittingFlushQuotient.description=
-    "after each flush, the avatar_flush_period is multiplied by the quotient";
-    _lookup.insert(&_splittingFlushQuotient);
-    _splittingFlushQuotient.tag(OptionTag::AVATAR);
-    _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
-    _splittingFlushQuotient.onlyUsefulWith(_splittingFlushPeriod.is(notEqual((unsigned)0)));
 
     _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",1.0);
     _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 1.0 means AVATAR runs until the end).\n"
@@ -2533,6 +2481,7 @@ void Options::init()
                  "Other",
                  "Development",
                  "Output",
+                 "Portfolio",
                  "Finite Model Building",
                  "SAT Solving",
                  "AVATAR",
@@ -2594,7 +2543,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
         (!longOpt && !_lookup.findShort(name)->set(value))) {
       switch (ignoreMissing()) {
       case IgnoreMissing::OFF:
-        USER_ERROR((std::string) value +" is an invalid value for "+(std::string)name+"\nSee help or use explain i.e. vampire -explain mode");
+        USER_ERROR((std::string) value +" is an invalid value for "+(std::string)name+"\nSee vampire -explain "+std::string(name) + " for help.");
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
@@ -2712,24 +2661,17 @@ void Options::output (std::ostream& str) const
 
   }
 
-  if (showHelp()){
-    str << "=========== Usage ==========\n";
-    str << "Call vampire using\n";
-    str << "  vampire [options] [problem]\n";
-    str << "For example,\n";
-    str << "  vampire --mode casc --include ~/TPTP ~/TPTP/Problems/ALG/ALG150+1.p\n";
-
-    str << "=========== Hints ==========\n";
-
-
-    str << "=========== Options ==========\n";
-    str << "To see a list of all options use\n  --show_options on\n";
-    str << "Options will only be displayed for the current mode (Vampire by default)\n";
-    str << " use --mode to change mode\n";
-    //str << "By default experimental options will not be shown. To show ";
-    //str << "these options use\n  --show_experimental_options on\n";
-    str << "=========== End ==========\n";
-  }
+  if (showHelp())
+    str <<
+      "Usage: vampire [OPTIONS] PROBLEM\n\n"
+      "Supported options:\n\n"
+      "\t--mode portfolio (execute a schedule of many different proof attempts)\n"
+      "\t--schedule <schedule> (in portfolio mode, use the builtin <schedule>)\n"
+      "\t--input_syntax {tptp,smtlib2} (read TPTP or SMT-LIB 2.x input)\n"
+      "\t--proof tptp (use the TSTP proof format)\n"
+      "\t--output_mode {smtcomp,ucore} (output only sat/unsat with an optional core)\n"
+      "\t--time_limit <seconds> (limit Vampire's runtime)\n\n"
+      "Use '--show_options on' to see all available options.\n";
 
   bool normalshow = showOptions();
   bool experimental = showExperimentalOptions();
@@ -3523,6 +3465,10 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_decode);
     forbidden.insert(&_sampleStrategy);
     forbidden.insert(&_normalize);
+    forbidden.insert(&_outputAxiomNames);
+    forbidden.insert(&_randomizeSeedForPortfolioWorkers);
+    forbidden.insert(&_schedule);
+    forbidden.insert(&_scheduleFile);
 
     // not filenames, please
     forbidden.insert(&_lrsSaveTraceFile);
@@ -3533,6 +3479,9 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
     forbidden.insert(&_inputSyntax);
+    forbidden.insert(&_multicore);
+    forbidden.insert(&_statistics);
+    forbidden.insert(&_forcedOptions);
 #if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
@@ -3544,8 +3493,7 @@ std::string Options::generateEncodedOptions() const
   bool first=true;
   while(options.hasNext()){
     AbstractOptionValue* option = options.next();
-    // TODO do we want to also filter by !isDefault?
-    if(!forbidden.contains(option) && option->is_set && !option->isDefault()){
+    if (!forbidden.contains(option) && !option->isDefault()){
       std::string name = option->shortName;
       if(name.empty()) name = option->longName;
       if(!first){ res<<":";}else{first=false;}
@@ -3686,6 +3634,7 @@ bool Options::complete(const Problem& prb) const
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
+
   if (!_superpositionFromVariables.actualValue) {
     return false;
   }
@@ -3727,8 +3676,8 @@ bool Options::OptionValue<T>::checkConstraints()
     if (!con->check(*this)) {
 
       if (env.options->mode() == Mode::SPIDER) {
-      reportSpiderFail();
-      USER_ERROR("\nBroken Constraint: " + con->msg(*this));
+        reportSpiderFail();
+        USER_ERROR("\nBroken Constraint: " + con->msg(*this));
       }
 
       if (con->isHard()) {
@@ -3738,6 +3687,7 @@ bool Options::OptionValue<T>::checkConstraints()
       case BadOption::HARD:
         USER_ERROR("\nBroken Constraint: " + con->msg(*this));
       case BadOption::SOFT:
+        addCommentSignForSZS(cout);
         cout << "WARNING Broken Constraint: " + con->msg(*this) << endl;
         return false;
       case BadOption::FORCED:

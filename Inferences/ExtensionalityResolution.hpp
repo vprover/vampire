@@ -18,8 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Saturation/ExtensionalityClauseContainer.hpp"
-
 #include "InferenceEngine.hpp"
 
 namespace Inferences
@@ -40,15 +38,12 @@ class ExtensionalityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  ExtensionalityResolution() {}
-  
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
   static Clause* performExtensionalityResolution(
     Clause* extCl, Literal* extLit,
     Clause* otherCl, Literal* otherLit,
     RobSubstitution* subst,
-    unsigned& counter,
     const Options& opts);
 private:
   struct ForwardPairingFn;

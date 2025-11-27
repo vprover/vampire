@@ -18,7 +18,6 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -38,7 +37,7 @@ Environment::Environment()
     sharing(nullptr),
     maxSineLevel(1),
     predicateSineLevels(nullptr),
-    inferenceAgeCorrections(toNumber(InferenceRule::INTERNAL_INFERNCE_LAST)),
+    inferenceAgeCorrections(toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)),
     colorUsed(false),
     _problem(nullptr),
     _higherOrder(false)
@@ -49,7 +48,7 @@ Environment::Environment()
   signature = new Signature;
   sharing = new Indexing::TermSharing;
 
-  for (unsigned i = toNumber(InferenceRule::GENERIC_GENERATING_INFERNCE); i < toNumber(InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST); i++) {
+  for (unsigned i = toNumber(InferenceRule::GENERIC_GENERATING_INFERENCE); i < toNumber(InferenceRule::GENERIC_GENERATING_INFERENCE_LAST); i++) {
     inferenceAgeCorrections[i] = 1.0;
   }
   // inferenceAgeCorrections[toNumber(InferenceRule::TERM_ALGEBRA_ACYCLICITY)] = 1.0;

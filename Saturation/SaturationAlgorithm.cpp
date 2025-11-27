@@ -15,7 +15,6 @@
 #define USING_LIBTORCH // see Lib/Output.hpp
 
 #include "Debug/Assertion.hpp"
-#include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -59,6 +58,7 @@
 #include "Inferences/DistinctEqualitySimplifier.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/AnswerLiteralProcessors.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionAndResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
@@ -66,7 +66,6 @@
 #include "Inferences/CodeTreeForwardSubsumptionAndResolution.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
-#include "Inferences/BoolEqToDiseq.hpp"
 #include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Injectivity.hpp"
@@ -76,14 +75,11 @@
 #include "Inferences/ForwardGroundJoinability.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
-#include "Inferences/InvalidAnswerLiteralRemovals.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
-#include "Inferences/ArgCong.hpp"
-#include "Inferences/NegativeExt.hpp"
 #include "Inferences/Choice.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
@@ -241,8 +237,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
-    _partialRedundancyHandler(), _generatedClauseCount(0),
-    _activationLimit(0)
+    _partialRedundancyHandler(), _activationLimit(0)
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
@@ -1284,19 +1279,13 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 
   Clause* cl = cl0;
 
-  Clause *simplCl = _immediateSimplifier->simplify(cl);
-  if (simplCl != cl) {
-    if (simplCl) {
-      addNewClause(simplCl);
-    }
-    onClauseReduction(cl, &simplCl, 1, 0);
-    return 0;
-  }
-
-  ClauseIterator cIt = _immediateSimplifier->simplifyMany(cl);
-  if (cIt.hasNext()) {
-    while (cIt.hasNext()) {
-      Clause *simpedCl = cIt.next();
+  // Note: simplifyMany() has to go before simplify(), since the former
+  // postprocesses clauses with answer literals, while the latter deletes
+  // those which are invalid even after postprocessing.
+  // TODO: maybe change all ImmediateSimplificationEngine to ImmediateSimplificationEngineMany
+  if (auto cIt = _immediateSimplifierMany.simplifyMany(cl)) {
+    while (cIt->hasNext()) {
+      Clause *simpedCl = cIt->next();
       if (!splitSet) {
         splitSet = simpedCl->splits();
       }
@@ -1309,6 +1298,15 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
       addNewClause(simpedCl);
     }
     onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
+    return 0;
+  }
+
+  Clause *simplCl = _immediateSimplifier->simplify(cl);
+  if (simplCl != cl) {
+    if (simplCl) {
+      addNewClause(simplCl);
+    }
+    onClauseReduction(cl, &simplCl, 1, 0);
     return 0;
   }
 
@@ -1393,9 +1391,6 @@ bool SaturationAlgorithm::clausesFlushed()
  */
 void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
-  _generatedClauseCount++;
-  env.statistics->generatedClauses++;
-
   cl=doImmediateSimplification(cl);
   if (!cl) {
     return;
@@ -1505,7 +1500,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   if (synthesis) {
     ASS((_answerLiteralManager != nullptr));
     Clause* ansLitCl = cl;
-    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && static_cast<Shell::SynthesisALManager*>(_answerLiteralManager)->isComputable(cl)) {
       ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
     }
     Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
@@ -2129,7 +2124,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  auto ise = createISE(prb, opt, ordering, alascaTakesOver);
+  auto [ise, iseMany] = createISE(prb, opt, ordering, alascaTakesOver);
   if (alascaTakesOver) {
     auto shared = Kernel::AlascaState::create(
         InequalityNormalizer::global(),
@@ -2191,6 +2186,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->setGeneratingInferenceEngine(sgi);
 
   res->setImmediateSimplificationEngine(ise);
+  res->setImmediateSimplificationEngineMany(std::move(iseMany));
 
   // create simplification engine
 
@@ -2222,7 +2218,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addForwardSimplifierToFront(new ForwardDemodulationImpl());
+        res->addForwardSimplifierToFront(new ForwardDemodulation());
         break;
       case Options::Demodulation::OFF:
         break;
@@ -2290,9 +2286,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering, bool alascaTakesOver)
+std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering, bool alascaTakesOver)
 {
   CompositeISE* res =new CompositeISE();
+  CompositeISEMany resMany;
 
   bool mayHaveEquality = couldEqualityArise(prb,opt);
 
@@ -2321,7 +2318,7 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
   }
 
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
-    res->addFrontMany(new CasesSimp());
+    resMany.addFront(std::make_unique<CasesSimp>());
   }
 
   // Only add if there are distinct groups
@@ -2386,6 +2383,8 @@ CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, O
   } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
     res->addFront(new UncomputableAnswerLiteralRemoval());
     res->addFront(new MultipleAnswerLiteralRemoval());
+    // Note: SynthesisAnswerLiteralProcessor must be THE LAST added simplification-many rule.
+    resMany.addFront(std::make_unique<SynthesisAnswerLiteralProcessor>());
   }
-  return res;
+  return std::make_pair(res, std::move(resMany));
 }

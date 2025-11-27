@@ -21,7 +21,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Inferences/ProofExtra.hpp"
-#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
 
@@ -33,10 +32,10 @@ class Superposition
 : public GeneratingInferenceEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
 
 private:

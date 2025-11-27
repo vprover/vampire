@@ -17,7 +17,6 @@
 #define __ELiteralSelector__
 
 #include "Forwards.hpp"
-#include "Lib/SmartPtr.hpp"
 #include "Ordering.hpp"
 
 #include "LiteralSelector.hpp"

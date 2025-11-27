@@ -17,15 +17,10 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Inference.hpp"
 
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
-
-#include <memory>
 
 namespace Inferences {
 using namespace Indexing;
@@ -34,7 +29,7 @@ class IFFXORRewriterISE
   : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* c);
+  Clause* simplify(Clause* c) override;
 };
 
 class EagerClausificationISE
@@ -42,7 +37,7 @@ class EagerClausificationISE
 {
 public:
   ClauseIterator simplifyMany(Clause* c);
-  Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
+  Clause* simplify(Clause* c) override{ NOT_IMPLEMENTED; }
 
 };
 

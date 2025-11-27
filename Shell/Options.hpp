@@ -35,11 +35,9 @@
 #ifndef __Options__
 #define __Options__
 
-#include <iterator>
 #include <type_traits>
 #include <cstring>
 #include <memory>
-#include "Lib/StringUtils.hpp"
 
 #include "Forwards.hpp"
 
@@ -47,11 +45,11 @@
 
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/StringUtils.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/Portability.hpp"
 
 #include "Property.hpp"
 
@@ -169,6 +167,7 @@ public:
         OTHER,
         DEVELOPMENT,
         OUTPUT,
+        PORTFOLIO,
         FMB,
         SAT,
         AVATAR,
@@ -399,8 +398,10 @@ public:
   enum class Schedule : unsigned int {
     CASC,
     CASC_2024,
+    CASC_2025,
     CASC_SAT,
     CASC_SAT_2024,
+    CASC_SAT_2025,
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
@@ -603,12 +604,6 @@ public:
     RANDOM
   };
 
-  enum class SplittingMinimizeModel : unsigned int {
-    OFF = 0,
-    SCO = 1,
-    ALL = 2
-  };
-
   enum class SplittingDeleteDeactivated : unsigned int {
     ON,
     LARGE_ONLY,
@@ -631,23 +626,6 @@ public:
     OFF = 0,
     GROUND = 1,
     FULL = 2
-  };
-
-  enum class CCUnsatCores : unsigned int {
-    FIRST = 0,
-    SMALL_ONES = 1,
-    ALL = 2
-  };
-
-  enum class GlobalSubsumptionSatSolverPower : unsigned int {
-    PROPAGATION_ONLY,
-    FULL
-  };
-
-  enum class GlobalSubsumptionExplicitMinim : unsigned int {
-    OFF,
-    ON,
-    RANDOMIZED
   };
 
   enum class GlobalSubsumptionAvatarAssumptions : unsigned int {
@@ -970,11 +948,11 @@ private:
         T defaultValue;
         T actualValue;
 
-        virtual bool isDefault() const { return defaultValue==actualValue;}
+        bool isDefault() const override { return defaultValue==actualValue;}
 
         // Getting the string versions of values, useful for output
         virtual std::string getStringOfValue(T value) const{ ASSERTION_VIOLATION;}
-        virtual std::string getStringOfActual() const { return getStringOfValue(actualValue); }
+        std::string getStringOfActual() const override { return getStringOfValue(actualValue); }
         
         // Adding and checking constraints
         // By default constraints are soft and reaction to them is controlled by the bad_option option
@@ -1018,7 +996,7 @@ private:
             _constraints.push(std::move(tc));
         }
         // This checks the constraints and may cause a UserError
-        bool checkConstraints();
+        bool checkConstraints() override;
 
         // Produces a separate constraint object based on this option
         /// Useful for IfThen constraints and onlyUsefulWith i.e. _splitting.is(equal(true))
@@ -1029,9 +1007,9 @@ private:
         bool hasProblemConstraints(){
           return !supress_problemconstraints && !_prob_constraints.isEmpty();
         }
-        virtual bool checkProblemConstraints(Property* prop);
+        bool checkProblemConstraints(Property* prop) override;
 
-        virtual void output(std::ostream& out, bool linewrap) const {
+        void output(std::ostream& out, bool linewrap) const override {
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << getStringOfValue(defaultValue) << std::endl;
         }
@@ -1060,8 +1038,7 @@ private:
         ChoiceOptionValue(std::string l, std::string s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
         ChoiceOptionValue(std::string l, std::string s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
-
-        bool setValue(const std::string& value){
+        bool setValue(const std::string& value) override {
             // makes reasonable assumption about ordering of every enum
             int index = choices.find(value.c_str());
             if(index<0) return false;
@@ -1069,7 +1046,7 @@ private:
             return true;
         }
 
-        virtual void output(std::ostream& out,bool linewrap) const {
+        void output(std::ostream& out,bool linewrap) const override {
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
             out << std::endl;
@@ -1095,8 +1072,7 @@ private:
             }
             out << std::endl;
         }
-
-        std::string getStringOfValue(T value) const {
+        std::string getStringOfValue(T value) const override {
             unsigned i = static_cast<unsigned>(value);
             return choices[i];
         }
@@ -1113,7 +1089,7 @@ private:
     struct BoolOptionValue : public OptionValue<bool> {
         BoolOptionValue(){}
         BoolOptionValue(std::string l,std::string s, bool d) : OptionValue(l,s,d){}
-        bool setValue(const std::string& value){
+        bool setValue(const std::string& value) override{
             if (! value.compare("on") || ! value.compare("true")) {
                 actualValue=true;
 
@@ -1125,37 +1101,36 @@ private:
 
             return true;
         }
-
-        std::string getStringOfValue(bool value) const { return (value ? "on" : "off"); }
+        std::string getStringOfValue(bool value) const override { return (value ? "on" : "off"); }
     };
 
     struct IntOptionValue : public OptionValue<int> {
         IntOptionValue(){}
         IntOptionValue(std::string l,std::string s, int d) : OptionValue(l,s,d){}
-        bool setValue(const std::string& value){
+        bool setValue(const std::string& value) override{
             return Int::stringToInt(value.c_str(),actualValue);
         }
-        std::string getStringOfValue(int value) const{ return Lib::Int::toString(value); }
+        std::string getStringOfValue(int value) const override{ return Lib::Int::toString(value); }
     };
 
     struct UnsignedOptionValue : public OptionValue<unsigned> {
         UnsignedOptionValue(){}
         UnsignedOptionValue(std::string l,std::string s, unsigned d) : OptionValue(l,s,d){}
 
-        bool setValue(const std::string& value){
+        bool setValue(const std::string& value) override{
             return Int::stringToUnsignedInt(value.c_str(),actualValue);
         }
-        std::string getStringOfValue(unsigned value) const{ return Lib::Int::toString(value); }
+        std::string getStringOfValue(unsigned value) const override{ return Lib::Int::toString(value); }
     };
 
     struct StringOptionValue : public OptionValue<std::string> {
         StringOptionValue(){}
         StringOptionValue(std::string l,std::string s, std::string d) : OptionValue(l,s,d){}
-        bool setValue(const std::string& value){
+        bool setValue(const std::string& value) override{
             actualValue = (value=="<empty>") ? "" : value;
             return true;
         }
-        std::string getStringOfValue(std::string value) const{
+        std::string getStringOfValue(std::string value) const override{
             if(value.empty()) return "<empty>";
             return value;
         }
@@ -1164,19 +1139,19 @@ private:
     struct LongOptionValue : public OptionValue<long> {
         LongOptionValue(){}
         LongOptionValue(std::string l,std::string s, long d) : OptionValue(l,s,d){}
-        bool setValue(const std::string& value){
+        bool setValue(const std::string& value) override{
             return Int::stringToLong(value.c_str(),actualValue);
         }
-        std::string getStringOfValue(long value) const{ return Lib::Int::toString(value); }
+        std::string getStringOfValue(long value) const override{ return Lib::Int::toString(value); }
     };
 
 struct FloatOptionValue : public OptionValue<float>{
 FloatOptionValue(){}
 FloatOptionValue(std::string l,std::string s, float d) : OptionValue(l,s,d){}
-bool setValue(const std::string& value){
+bool setValue(const std::string& value) override{
     return Int::stringToFloat(value.c_str(),actualValue);
 }
-std::string getStringOfValue(float value) const{ return Lib::Int::toString(value); }
+std::string getStringOfValue(float value) const override{ return Lib::Int::toString(value); }
 };
 
 /**
@@ -1189,9 +1164,9 @@ RatioOptionValue(){}
 RatioOptionValue(std::string l, std::string s, int def, int other, char sp=':') :
 OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
 
-virtual OptionValueConstraintUP<int> getNotDefault() override { return isNotDefaultRatio(); }
+OptionValueConstraintUP<int> getNotDefault() override { return isNotDefaultRatio(); }
 
-virtual bool isDefault() const override { return defaultValue * otherValue == actualValue * defaultOtherValue; }
+bool isDefault() const override { return defaultValue * otherValue == actualValue * defaultOtherValue; }
 
 void addConstraintIfNotDefault(AbstractWrappedConstraintUP c){
     addConstraint(If(isNotDefaultRatio()).then(unwrap<int>(c)));
@@ -1206,14 +1181,14 @@ char sep;
 int defaultOtherValue;
 int otherValue;
 
-virtual void output(std::ostream& out,bool linewrap) const override {
+void output(std::ostream& out,bool linewrap) const override {
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault left: " << defaultValue << std::endl;
     out << "\tdefault right: " << defaultOtherValue << std::endl;
 }
 
-virtual std::string getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
-virtual std::string getStringOfActual() const override {
+std::string getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
+std::string getStringOfActual() const override {
     return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
 }
 
@@ -1231,14 +1206,14 @@ NonGoalWeightOptionValue(){}
 NonGoalWeightOptionValue(std::string l, std::string s) :
 OptionValue(l,s,10.0), numerator(10), denominator(1) {};
 
-bool setValue(const std::string& value);
+bool setValue(const std::string& value) override;
 
 // output does not output numerator and denominator as they
 // are produced from defaultValue
 int numerator;
 int denominator;
 
-virtual std::string getStringOfValue(float value) const{ return Lib::Int::toString(value); }
+std::string getStringOfValue(float value) const override{ return Lib::Int::toString(value); }
 };
 
 /**
@@ -1251,14 +1226,14 @@ SelectionOptionValue(){}
 SelectionOptionValue(std::string l,std::string s, int def):
 OptionValue(l,s,def){};
 
-bool setValue(const std::string& value);
+bool setValue(const std::string& value) override;
 
-virtual void output(std::ostream& out,bool linewrap) const {
+void output(std::ostream& out,bool linewrap) const override {
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << std::endl;;
 }
 
-virtual std::string getStringOfValue(int value) const{ return Lib::Int::toString(value); }
+std::string getStringOfValue(int value) const override{ return Lib::Int::toString(value); }
 
 AbstractWrappedConstraintUP isLookAheadSelection(){
   return AbstractWrappedConstraintUP(new WrappedConstraint<int>(*this,OptionValueConstraintUP<int>(new isLookAheadSelectionConstraint())));
@@ -1274,13 +1249,13 @@ InputFileOptionValue(){}
 InputFileOptionValue(std::string l,std::string s, std::string def,Options* p):
 OptionValue(l,s,def), parent(p){};
 
-bool setValue(const std::string& value);
+bool setValue(const std::string& value) override;
 
-virtual void output(std::ostream& out,bool linewrap) const {
+void output(std::ostream& out,bool linewrap) const override {
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << std::endl;;
 }
-virtual std::string getStringOfValue(std::string value) const{ return value; }
+std::string getStringOfValue(std::string value) const override{ return value; }
 private:
 Options* parent;
 
@@ -1294,11 +1269,11 @@ DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
 DecodeOptionValue(std::string l,std::string s,Options* p):
 OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
 
-bool setValue(const std::string& value){
+bool setValue(const std::string& value) override{
     parent->readFromEncodedOptions(value);
     return true;
 }
-virtual std::string getStringOfValue(std::string value) const{ return value; }
+std::string getStringOfValue(std::string value) const override{ return value; }
 
 private:
 Options* parent;
@@ -1314,13 +1289,13 @@ TimeLimitOptionValue(){}
 TimeLimitOptionValue(std::string l, std::string s, float def) :
 OptionValue(l,s,def) {};
 
-bool setValue(const std::string& value);
+bool setValue(const std::string& value) override;
 
-virtual void output(std::ostream& out,bool linewrap) const {
+void output(std::ostream& out,bool linewrap) const override {
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << "d" << std::endl;
 }
-virtual std::string getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
+std::string getStringOfValue(int value) const override{ return Lib::Int::toString(value)+"d"; }
 };
 
 /**
@@ -1428,10 +1403,10 @@ bool _hard;
     template<typename T>
     struct OptionValueConstraintOrWrapper : public OptionValueConstraint<T>{
         OptionValueConstraintOrWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const OptionValue<T>& value) override{
             return left->check(value) || right->check(value);
         }
-        std::string msg(const OptionValue<T>& value){ return left->msg(value) + " or " + right->msg(value); }
+        std::string msg(const OptionValue<T>& value) override{ return left->msg(value) + " or " + right->msg(value); }
 
         OptionValueConstraintUP<T> left;
         OptionValueConstraintUP<T> right;
@@ -1453,8 +1428,8 @@ bool _hard;
     struct UnWrappedConstraint : public OptionValueConstraint<T>{
         UnWrappedConstraint(AbstractWrappedConstraintUP c) : con(std::move(c)) {}
 
-        bool check(const OptionValue<T>&){ return con->check(); }
-        std::string msg(const OptionValue<T>&){ return con->msg(); }
+        bool check(const OptionValue<T>&) override{ return con->check(); }
+        std::string msg(const OptionValue<T>&) override{ return con->msg(); }
         
         AbstractWrappedConstraintUP con;
     };
@@ -1514,10 +1489,10 @@ bool _hard;
     template<typename T>
     struct Equal : public OptionValueConstraint<T>{
         Equal(T gv) : _goodvalue(gv) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const OptionValue<T>& value) override{
             return value.actualValue == _goodvalue;
         }
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const OptionValue<T>& value) override{
             return value.longName+"("+value.getStringOfActual()+") is equal to " + value.getStringOfValue(_goodvalue);
         }
         T _goodvalue;
@@ -1530,10 +1505,10 @@ bool _hard;
     template<typename T>
     struct NotEqual : public OptionValueConstraint<T>{
         NotEqual(T bv) : _badvalue(bv) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const OptionValue<T>& value) override{
             return value.actualValue != _badvalue;
         }
-        std::string msg(const OptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
+        std::string msg(const OptionValue<T>& value) override{ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
         T _badvalue;
     };
     template<typename T>
@@ -1546,10 +1521,10 @@ bool _hard;
     template<typename T>
     struct LessThan : public OptionValueConstraint<T>{
         LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const OptionValue<T>& value) override{
             return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const OptionValue<T>& value) override{
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1571,11 +1546,11 @@ bool _hard;
     template<typename T>
     struct GreaterThan : public OptionValueConstraint<T>{
         GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const OptionValue<T>& value) override{
             return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
         
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const OptionValue<T>& value) override{
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1597,11 +1572,11 @@ bool _hard;
     template<typename T>
     struct SmallerThan : public OptionValueConstraint<T>{
         SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const OptionValue<T>& value) override{
             return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
 
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const OptionValue<T>& value) override{
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is smaller than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is smaller than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1630,12 +1605,12 @@ bool _hard;
         IfThenConstraint(OptionValueConstraintUP<T> ic, OptionValueConstraintUP<T> c) :
         if_con(std::move(ic)), then_con(std::move(c)) {}
 
-        bool check(const OptionValue<T>& value){
+        bool check(const OptionValue<T>& value) override{
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
         }
         
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const OptionValue<T>& value) override{
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
 
@@ -1691,20 +1666,20 @@ bool _hard;
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
 
-        bool check(const OptionValue<T>& value){
+        bool check(const OptionValue<T>& value) override{
             return value.defaultValue != value.actualValue;
         }
-        std::string msg(const OptionValue<T>& value) { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
+        std::string msg(const OptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
     };
     struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
         NotDefaultRatioConstraint() {}
 
-        bool check(const OptionValue<int>& value){
+        bool check(const OptionValue<int>& value) override{
             const RatioOptionValue& rvalue = static_cast<const RatioOptionValue&>(value);
             return (rvalue.defaultValue != rvalue.actualValue ||
                     rvalue.defaultOtherValue != rvalue.otherValue);
         }
-        std::string msg(const OptionValue<int>& value) { return value.longName+"("+value.getStringOfActual()+") is not default";}
+        std::string msg(const OptionValue<int>& value) override { return value.longName+"("+value.getStringOfActual()+") is not default";}
         
     };
 
@@ -1720,10 +1695,10 @@ bool _hard;
 
     struct isLookAheadSelectionConstraint : public OptionValueConstraint<int>{
         isLookAheadSelectionConstraint() {}
-        bool check(const OptionValue<int>& value){
+        bool check(const OptionValue<int>& value) override{
             return value.actualValue == 11 || value.actualValue == 1011 || value.actualValue == -11 || value.actualValue == -1011;
         }
-        std::string msg(const OptionValue<int>& value){
+        std::string msg(const OptionValue<int>& value) override{
             return value.longName+"("+value.getStringOfActual()+") is not lookahead selection";
         }
     };
@@ -1747,11 +1722,11 @@ bool _hard;
 
     struct CategoryCondition : OptionProblemConstraint{
       CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
-      bool check(Property*p){
+      bool check(Property*p) override{
           ASS(p);
           return has ? p->category()==cat : p->category()!=cat;
       }
-      std::string msg(){
+      std::string msg() override{
         std::string m =" not useful for property ";
         if(has) m+="not";
         return m+" in category "+Property::categoryToString(cat);
@@ -1761,23 +1736,23 @@ bool _hard;
     };
 
     struct UsesEquality : OptionProblemConstraint{
-      bool check(Property*p){
+      bool check(Property*p) override{
         ASS(p)
         return (p->equalityAtoms() != 0) ||
           // theories may introduce equality at various places of the pipeline!
           HasTheories::actualCheck(p) || p->hasFOOL();
       }
-      std::string msg(){ return " only useful with equality"; }
+      std::string msg() override{ return " only useful with equality"; }
     };
 
     struct NegatedOptionProblemConstraint : OptionProblemConstraint {
       OptionProblemConstraintUP  _inner;
       USE_ALLOCATOR(NegatedOptionProblemConstraint);
 
-      bool check(Property*p){
+      bool check(Property*p) override{
         return !_inner->check(p);
       }
-      std::string msg(){ return "not (" + _inner->msg() + ")"; }
+      std::string msg() override{ return "not (" + _inner->msg() + ")"; }
     };
       
     friend OptionProblemConstraintUP operator~(OptionProblemConstraintUP x) {
@@ -1788,54 +1763,54 @@ bool _hard;
     struct HasPolymorphism : OptionProblemConstraint{
       USE_ALLOCATOR(HasHigherOrder);
 
-      bool check(Property*p){
+      bool check(Property*p) override{
         ASS(p)
         return (p->hasPolymorphicSym());
       }
-      std::string msg(){ return " only useful with polymorphic problems"; }
+      std::string msg() override{ return " only useful with polymorphic problems"; }
     };
 
 
     struct HasHigherOrder : OptionProblemConstraint{
-      bool check(Property*p){
+      bool check(Property*p) override{
         ASS(p)
         return (p->higherOrder());
       }
-      std::string msg(){ return " only useful with higher-order problems"; }
+      std::string msg() override{ return " only useful with higher-order problems"; }
     };
 
     struct OnlyFirstOrder : OptionProblemConstraint{
-      bool check(Property*p){
+      bool check(Property*p) override{
         ASS(p)
         return (!p->higherOrder());
       }
-      std::string msg(){ return " not compatible with higher-order problems"; }
+      std::string msg() override{ return " not compatible with higher-order problems"; }
     };
 
     struct MayHaveNonUnits : OptionProblemConstraint{
-      bool check(Property*p){
+      bool check(Property*p) override{
         return (p->formulas() > 0) // let's not try to guess what kind of clauses these will give rise to
           || (p->clauses() > p->unitClauses());
       }
-      std::string msg(){ return " only useful with non-unit clauses"; }
+      std::string msg() override{ return " only useful with non-unit clauses"; }
     };
 
     struct NotJustEquality : OptionProblemConstraint{
-      bool check(Property*p){
+      bool check(Property*p) override{
         return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
       }
-      std::string msg(){ return " not useful with just equality"; }
+      std::string msg() override{ return " not useful with just equality"; }
     };
 
     struct AtomConstraint : OptionProblemConstraint{
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
       int atoms;
       bool greater;
-      bool check(Property*p){
+      bool check(Property*p) override{
         return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
 
-      std::string msg(){
+      std::string msg() override{
         std::string m = " not with ";
         if(greater){ m+="more";}else{m+="less";}
         return m+" than "+Lib::Int::toString(atoms)+" atoms";
@@ -1845,22 +1820,22 @@ bool _hard;
     struct HasTheories : OptionProblemConstraint {
       static bool actualCheck(Property*p);
 
-      bool check(Property*p);
-      std::string msg(){ return " only useful with theories"; }
+      bool check(Property*p) override;
+      std::string msg() override{ return " only useful with theories"; }
     };
 
     struct HasFormulas : OptionProblemConstraint {
-      bool check(Property*p) {
+      bool check(Property*p) override {
         return p->hasFormulas();
       }
-      std::string msg(){ return " only useful with (non-cnf) formulas"; }
+      std::string msg() override{ return " only useful with (non-cnf) formulas"; }
     };
 
     struct HasGoal : OptionProblemConstraint {
-      bool check(Property*p){
+      bool check(Property*p) override{
         return p->hasGoal();
       }
-      std::string msg(){ return " only useful with a goal: (conjecture) formulas or (negated_conjecture) clauses"; }
+      std::string msg() override{ return " only useful with a goal: (conjecture) formulas or (negated_conjecture) clauses"; }
     };
 
     // Factory methods
@@ -1894,8 +1869,8 @@ bool _hard;
 
     struct OptionHasValue : OptionProblemConstraint{
       OptionHasValue(std::string ov,std::string v) : option_value(ov),value(v) {}
-      bool check(Property*p);
-      std::string msg(){ return option_value+" has value "+value; } 
+      bool check(Property*p) override;
+      std::string msg() override{ return option_value+" has value "+value; } 
       std::string option_value;
       std::string value; 
     };
@@ -1903,7 +1878,7 @@ bool _hard;
     struct ManyOptionProblemConstraints : OptionProblemConstraint {
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
-      bool check(Property*p){
+      bool check(Property*p) override{
         bool res = is_and;
         Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         while(it.hasNext()){
@@ -1911,7 +1886,7 @@ bool _hard;
         return res;
       }
 
-      std::string msg(){
+      std::string msg() override{
         std::string res="";
         Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         if(it.hasNext()){ res=it.next()->msg();}
@@ -1987,6 +1962,7 @@ public:
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
   bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
+  bool fmbUseSimplifyingSolver() const { return _fmbUseSimplifyingSolver.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   Mode mode() const { return _mode.actualValue; }
@@ -2016,6 +1992,7 @@ public:
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   const std::string& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
+  bool replaceDomainElements() const { return _replaceDomainElements.actualValue; }
 
   unsigned numClauseFeatures() const { return _numClauseFeatures.actualValue; }
   unsigned numProblemFeatures() const { return _numProblemFeatures.actualValue; }
@@ -2101,8 +2078,6 @@ public:
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
   int selection() const { return _selection.actualValue; }
   void setSelection(int v) { _selection.actualValue=v;}
-  std::string latexOutput() const { return _latexOutput.actualValue; }
-  bool latexUseDefault() const { return _latexUseDefaultSymbols.actualValue; }
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
   //void setForwardSubsumptionResolution(bool newVal) { _forwardSubsumptionResolution = newVal; }
@@ -2218,8 +2193,10 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
-  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizeSeedForPortfolioWorkers.actualValue = val; }
+  bool shuffleOnScheduleRepeats() const { return _shuffleOnScheduleRepeats.actualValue; }
+  void enableShuffling() { _shuffleInput.actualValue = true; _randomTraversals.actualValue = true; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2238,8 +2215,6 @@ public:
   std::string thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
-  GlobalSubsumptionSatSolverPower globalSubsumptionSatSolverPower() const { return _globalSubsumptionSatSolverPower.actualValue; }
-  GlobalSubsumptionExplicitMinim globalSubsumptionExplicitMinim() const { return _globalSubsumptionExplicitMinim.actualValue; }
   GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
 
   /** true if calling set() on non-existing options does not result in a user error */
@@ -2293,25 +2268,18 @@ public:
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
   bool inductionOnActiveOccurrences() const { return _inductionOnActiveOccurrences.actualValue; }
 
-  bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
-
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
+  bool cleaveNonsplittables() const{ return _cleaveNonsplittables.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
-  SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
+  bool splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
-  bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
-  bool splittingBufferedSolver() const { return _splittingBufferedSolver.actualValue; }
-  int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
-  float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
-  bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
-  CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
   bool newCNF() const { return _newCNF.actualValue; }
@@ -2602,6 +2570,7 @@ private:
   UnsignedOptionValue _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
   BoolOptionValue _fmbKeepSbeamGenerators;
+  BoolOptionValue _fmbUseSimplifyingSolver;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
@@ -2621,8 +2590,6 @@ private:
 
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
-  ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
-  ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
   ChoiceOptionValue<GoalGuess> _guessTheGoal;
   UnsignedOptionValue _guessTheGoalLimit;
@@ -2650,7 +2617,6 @@ private:
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   ChoiceOptionValue<Instantiation> _instantiation;
-  BoolOptionValue _useHashingVariantIndex;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
@@ -2673,9 +2639,6 @@ private:
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
   BoolOptionValue _inductionOnActiveOccurrences;
-
-  StringOptionValue _latexOutput;
-  BoolOptionValue _latexUseDefaultSymbols;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
   IntOptionValue _lookaheadDelay;
@@ -2700,7 +2663,8 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
-  BoolOptionValue _randomizSeedForPortfolioWorkers;
+  BoolOptionValue _randomizeSeedForPortfolioWorkers;
+  BoolOptionValue _shuffleOnScheduleRepeats;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
@@ -2712,6 +2676,7 @@ private:
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
+  BoolOptionValue _replaceDomainElements;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
@@ -2807,19 +2772,14 @@ private:
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
+  BoolOptionValue _cleaveNonsplittables;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   BoolOptionValue _splittingCongruenceClosure;
-  ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
-  BoolOptionValue _splittingEagerRemoval;
-  UnsignedOptionValue _splittingFlushPeriod;
-  FloatOptionValue _splittingFlushQuotient;
   FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
-  ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
+  BoolOptionValue _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
-  BoolOptionValue _splittingFastRestart;
-  BoolOptionValue _splittingBufferedSolver;
 
   ChoiceOptionValue<Statistics> _statistics;
   BoolOptionValue _showInferenceRuleTable;
