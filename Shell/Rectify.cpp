@@ -128,11 +128,11 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   case SpecialFunctor::ITE:
   {
     ASS_EQ(t->arity(),2);
-    Formula* c = rectify(sd->getCondition());
+    Formula* c = rectify(sd->getITECondition());
     TermList th = rectify(*t->nthArgument(0));
     TermList el = rectify(*t->nthArgument(1));
     TermList sort = rectify(sd->getSort());
-    if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1) && sort==sd->getSort()) {
+    if(c==sd->getITECondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1) && sort==sd->getSort()) {
 	return t;
     }
     return Term::createITE(c, th, el, sort);
@@ -141,42 +141,14 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   {
     ASS_EQ(t->arity(),1);
 
-    bindVars(sd->getVariables());
-    TermList binding = rectify(sd->getBinding());
-    /**
-     * We don't need to remove unused variables from the body of a functions,
-     * otherwise the rectified list of variables might not fix the arity of the
-     * let functor. So, temporarily disable _removeUnusedVars;
-     */
-    bool removeUnusedVars = _removeUnusedVars;
-    _removeUnusedVars = false;
-    VList* variables = rectifyBoundVars(sd->getVariables());
-    _removeUnusedVars = removeUnusedVars; // restore the status quo
-    unbindVars(sd->getVariables());
-
-    ASS_EQ(VList::length(variables),VList::length(sd->getVariables()));
-
-    TermList contents = rectify(*t->nthArgument(0));
+    Formula* binding = rectify(sd->getLetBinding());
+    TermList body = rectify(*t->nthArgument(0));
     TermList sort = rectify(sd->getSort());
-    if (sd->getVariables() == variables && binding == sd->getBinding() && 
-        contents == *t->nthArgument(0) && sort == sd->getSort()) {
+    if (binding == sd->getLetBinding() && body == *t->nthArgument(0) && sort == sd->getSort()) {
       return t;
     }
-    return Term::createLet(sd->getFunctor(), variables, binding, contents, sort);
+    return Term::createLet(binding, body, sort);
   }
-  case SpecialFunctor::LET_TUPLE:
-  {
-    ASS_EQ(t->arity(),1);
-
-    TermList binding = rectify(sd->getBinding());
-    TermList contents = rectify(*t->nthArgument(0));
-    TermList sort = rectify(sd->getSort());
-
-    if (binding == sd->getBinding() && contents == *t->nthArgument(0) && sort == sd->getSort()) {
-      return t;
-    }
-    return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sort);
-  } 
   case SpecialFunctor::FORMULA:
   {
     ASS_EQ(t->arity(),0);
@@ -219,15 +191,6 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       return t;
     }
     return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
-  }
-  case SpecialFunctor::TUPLE:
-  {
-    ASS_EQ(t->arity(),0);
-    Term* rectifiedTupleTerm = rectify(sd->getTupleTerm());
-    if (rectifiedTupleTerm == sd->getTupleTerm()) {
-      return t;
-    }
-    return Term::createTuple(rectifiedTupleTerm);
   }
   case SpecialFunctor::MATCH: {
     DArray<TermList> terms(t->arity());

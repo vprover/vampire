@@ -628,12 +628,6 @@ public:
     FULL = 2
   };
 
-  enum class CCUnsatCores : unsigned int {
-    FIRST = 0,
-    SMALL_ONES = 1,
-    ALL = 2
-  };
-
   enum class GlobalSubsumptionAvatarAssumptions : unsigned int {
     OFF,
     FROM_CURRENT,
@@ -2269,7 +2263,6 @@ public:
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
   float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
   bool splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
-  CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
   bool newCNF() const { return _newCNF.actualValue; }
@@ -2647,7 +2640,6 @@ private:
   BoolOptionValue _cleaveNonsplittables;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   BoolOptionValue _splittingCongruenceClosure;
-  ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
   FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
   BoolOptionValue _splittingMinimizeModel;

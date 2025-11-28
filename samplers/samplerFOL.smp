@@ -305,9 +305,6 @@ sa!=fmb av=on > aac ~cat none:147,ground:600
 # avatar_congruence_closure
 sa!=fmb sas!=z3 av=on > acc ~cat off:600,on:58
 
-# cc_unsat_cores
-sa!=fmb acc!=off > ccuc ~cat first:1,small_ones:1,all:3
-
 # avatar_minimize_model
 sa!=fmb av=on > amm ~cat on:600,off:69
 

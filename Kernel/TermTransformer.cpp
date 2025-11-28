@@ -40,11 +40,11 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->specialFunctor()) {
     case SpecialFunctor::ITE: {
-      Formula* condition = transform(sd->getCondition());
+      Formula* condition = transform(sd->getITECondition());
       TermList thenBranch = transform(*term->nthArgument(0));
       TermList elseBranch = transform(*term->nthArgument(1));
 
-      if ((condition == sd->getCondition()) &&
+      if ((condition == sd->getITECondition()) &&
           (thenBranch == *term->nthArgument(0)) &&
           (elseBranch == *term->nthArgument(1))) {
         return term;
@@ -64,35 +64,13 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
     }
 
     case SpecialFunctor::LET: {
-      TermList binding = transform(sd->getBinding());
+      Formula* binding = transform(sd->getLetBinding());
       TermList body = transform(*term->nthArgument(0));
 
-      if ((binding == sd->getBinding() && (body == *term->nthArgument(0)))) {
+      if ((binding == sd->getLetBinding() && (body == *term->nthArgument(0)))) {
         return term;
       } else {
-        return Term::createLet(sd->getFunctor(), sd->getVariables(), binding, body, sd->getSort());
-      }
-    }
-
-    case SpecialFunctor::LET_TUPLE: {
-      TermList binding = transform(sd->getBinding());
-      TermList body = transform(*term->nthArgument(0));
-
-      if ((binding == sd->getBinding()) && (body == *term->nthArgument(0))) {
-        return term;
-      } else {
-        return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, body, sd->getSort());
-      }
-      break;
-    }
-
-    case SpecialFunctor::TUPLE: {
-      Term* tupleTerm = transform(sd->getTupleTerm());
-
-      if (tupleTerm == sd->getTupleTerm()) {
-        return term;
-      } else {
-        return Term::createTuple(tupleTerm);
+        return Term::createLet(binding, body, sd->getSort());
       }
     }
 

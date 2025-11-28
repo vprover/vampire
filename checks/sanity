@@ -67,6 +67,15 @@ check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 
+# FOOL
+check_szs_status Theorem fool/let-function.p
+check_szs_status Theorem -newcnf on fool/let-function.p
+check_szs_status Theorem -newcnf on fool/let-tuple.p
+check_szs_status Theorem -newcnf on fool/let-tuple-bool.p
+check_szs_status Theorem -newcnf on -ile off fool/let-function.p
+check_szs_status Theorem -newcnf on -ile off fool/let-tuple.p
+check_szs_status Theorem -newcnf on -ile off fool/let-tuple-bool.p
+
 # Integer induction problems
 check_szs_status Unsatisfiable -ind int induction/int_invariant_infinite_geq3_val3.smt2
 check_szs_status Unsatisfiable -ind int induction/int_invariant_finite_a_to_b.smt2

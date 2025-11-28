@@ -444,48 +444,19 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         return compare(t1->getSpecialData()->getFormula(), t2->getSpecialData()->getFormula());
 
       case SpecialFunctor::ITE:
-        comp = compare(t1->getSpecialData()->getCondition(), t2->getSpecialData()->getCondition());
+        comp = compare(t1->getSpecialData()->getITECondition(), t2->getSpecialData()->getITECondition());
         if (comp != EQUAL) {
           return comp;
         }
         break; // compare arguments "then" and "else" as usual below
 
       case SpecialFunctor::LET: {
-        comp = compare((int) VList::length(t1->getSpecialData()->getVariables()),
-                       (int) VList::length(t2->getSpecialData()->getVariables()));
-        if (comp != EQUAL) {
-          return comp;
-        }
-        TermList b1 = t1->getSpecialData()->getBinding();
-        TermList b2 = t2->getSpecialData()->getBinding();
-        comp = compare(b1, b2);
+        comp = compare(t1->getSpecialData()->getLetBinding(),
+                       t2->getSpecialData()->getLetBinding());
         if (comp != EQUAL) {
           return comp;
         }
         break; // compare body of the let as usual below (although 1) what about sorts, 2) what about doing the modulo the bound name?)
-      }
-
-      case SpecialFunctor::LET_TUPLE: {
-        comp = compare((int) VList::length(t1->getSpecialData()->getTupleSymbols()),
-                       (int) VList::length(t2->getSpecialData()->getTupleSymbols()));
-        if (comp != EQUAL) {
-          return comp;
-        }
-        TermList b1 = t1->getSpecialData()->getBinding();
-        TermList b2 = t2->getSpecialData()->getBinding();
-        comp = compare(b1, b2);
-        if (comp != EQUAL) {
-          return comp;
-        }
-        break; // compare body of the tuple below
-      }
-
-      case SpecialFunctor::TUPLE: {
-        comp = compare(t1->getSpecialData()->getTupleTerm(), t2->getSpecialData()->getTupleTerm());
-        if (comp != EQUAL) {
-          return comp;
-        }
-        break; // compare body of the tuple below
       }
 
       case SpecialFunctor::LAMBDA: {

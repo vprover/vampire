@@ -1517,6 +1517,16 @@ public:
     }
   }
 
+  /** Python-style iteration that yields the index too. */
+  template<class F>
+  void enumerate(F f) 
+  {
+    unsigned i = 0;
+    while (hasNext()) {
+      f(i++, next());
+    }
+  }
+
   template<class P>
   Option<Elem> find(P p) 
   {
