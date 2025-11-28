@@ -61,7 +61,7 @@ void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
   BackwardSimplificationEngine::attach(salg);
 
-  _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
+  _index.request(salg->getIndexManager());
 }
 
 

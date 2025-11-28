@@ -20,7 +20,6 @@
 #include "AcyclicityIndex.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "LiteralIndex.hpp"
-#include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
 #include "Inferences/ALASCA/Demodulation.hpp"
@@ -37,8 +36,6 @@ using namespace Indexing;
 
 IndexManager::IndexManager(SaturationAlgorithm& alg)
   : _alg(alg)
-  , _uwa(AbstractionOracle::create())
-  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 { }
 
 Index* IndexManager::request(IndexType t)
@@ -72,6 +69,19 @@ bool IndexManager::contains(IndexType t)
   return _store.find(t);
 }
 
+template<bool isGenerating>
+void IndexManager::attachContainer(Index* i)
+{
+  if constexpr (isGenerating) {
+    i->attachContainer(_alg.getGeneratingClauseContainer());
+  } else {
+    i->attachContainer(_alg.getSimplifyingClauseContainer());
+  }
+}
+
+template void IndexManager::attachContainer<true>(Index*);
+template void IndexManager::attachContainer<false>(Index*);
+
 /**
  * If IndexManager contains index @b t, return pointer to it
  *
@@ -83,56 +93,31 @@ Index* IndexManager::get(IndexType t)
   return _store.get(t).index;
 }
 
-/**
- * Provide index form the outside
- *
- * There must not be index of the same type from before.
- * The provided index is never deleted by the IndexManager.
- */
-void IndexManager::provideIndex(IndexType t, Index* index)
-{
-  ASS(!_store.find(t));
-
-  Entry e;
-  e.index = index;
-  e.refCnt = 1; //reference to 1, so that we never delete the provided index
-  _store.set(t,e);
-}
-
 Index* IndexManager::create(IndexType t)
 {
   Index* res;
   using TermSubstitutionTree    = Indexing::TermSubstitutionTree<TermLiteralClause>;
-  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 
   bool isGenerating;
   switch(t) {
-  case BINARY_RESOLUTION_SUBST_TREE:
-    res = new BinaryResolutionIndex(new LiteralSubstitutionTree());
-    isGenerating = true;
-    break;
-  case BACKWARD_SUBSUMPTION_SUBST_TREE:
-    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree());
-    isGenerating = false;
-    break;
   case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
+    res = new UnitClauseLiteralIndex();
     isGenerating = false;
     break;
   case URR_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
+    res = new UnitClauseLiteralIndex();
     isGenerating = true;
     break;
   case URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
-    res=new UnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
+    res = new UnitClauseWithALLiteralIndex();
     isGenerating = true;
     break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
-    res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
+    res = new NonUnitClauseLiteralIndex();
     isGenerating = true;
     break;
   case URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
-    res=new NonUnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
+    res=new NonUnitClauseWithALLiteralIndex();
     isGenerating = true;
     break;
 
@@ -221,22 +206,17 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree());
-    isGenerating = false;
-    break;
-
-  case FSD_SUBST_TREE:
-    res = new FSDLiteralIndex(new LiteralSubstitutionTree());
+    res = new FwSubsSimplifyingLiteralIndex();
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg.getOrdering());
+    res = new RewriteRuleIndex(_alg.getOrdering());
     isGenerating = false;
     break;
 
   case UNIT_INT_COMPARISON_INDEX:
-    res = new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
+    res = new UnitIntegerComparisonLiteralIndex();
     isGenerating = true;
     break;
 

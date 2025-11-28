@@ -23,6 +23,7 @@
 #include "Forwards.hpp"
 #include "Kernel/Unit.hpp"
 #include "Lib/Option.hpp"
+#include "Lib/ConstTypeId.hpp"
 
 // the 32-bit FNV prime
 static const unsigned FNV32_PRIME = 16777619;
@@ -211,6 +212,9 @@ public:
     );
   }
 
+  static unsigned hash(const ConstTypeId &id) {
+    return DefaultHash::hashNulTerminated(id.str);
+  }
 
   /**
    * FNV-1a with initial value @b hash.
@@ -317,6 +321,10 @@ public:
   // containers use their length
   template<typename T> static unsigned hash(const Vector<T> &vector) {
     return vector.length();
+  }
+
+  static unsigned hash(const ConstTypeId &id) {
+    return DefaultHash::hashNulTerminated(id.str);
   }
 
   // std::pair combines default secondary hashes of first and second

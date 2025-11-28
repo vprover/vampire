@@ -128,9 +128,8 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
     return;
   }
   TIME_TRACE("non unit clause index maintenance");
-  unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
-  for(unsigned i=0; i<activeLen; i++) {
-    handle(LiteralClause{(*c)[i], c}, adding);
+  for (const auto& lit : *c) {
+    handle(LiteralClause{lit, c}, adding);
   }
 }
 
@@ -141,21 +140,9 @@ void NonUnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
     return;
   }
   TIME_TRACE("non unit clause with answer literals index maintenance");
-  unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
-  for(unsigned i=0; i<activeLen; i++) {
-    handle(LiteralClause{(*c)[i], c}, adding);
+  for (const auto& lit : *c) {
+    handle(LiteralClause{lit, c}, adding);
   }
-}
-
-RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure<LiteralClause>* is, Ordering& ordering)
-: LiteralIndex(is), _ordering(ordering)
-{
-  _partialIndex = new LiteralSubstitutionTree<LiteralClause>();
-}
-
-RewriteRuleIndex::~RewriteRuleIndex()
-{
-  delete _partialIndex;
 }
 
 /**
@@ -204,7 +191,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
   if(greater) {
     if(adding) {
       // true here means get complementary, false means do not get subs
-      auto vit = _partialIndex->getVariants(greater,true,false);
+      auto vit = _partialIndex.getVariants(greater,true,false);
       while(vit.hasNext()) {
         auto qr = vit.next();
 
@@ -218,7 +205,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         return;
       }
       //there is no counterpart, so insert the clause into the partial index
-      _partialIndex->insert(LiteralClause{ greater, c });
+      _partialIndex.insert(LiteralClause{ greater, c });
     }
     else {
       Clause* d;
@@ -228,7 +215,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 	handleEquivalence(c, greater, d, dgr, false);
       }
       else {
-	_partialIndex->remove(LiteralClause{ greater, c });
+	_partialIndex.remove(LiteralClause{ greater, c });
       }
     }
   }
@@ -318,42 +305,16 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
     ALWAYS(_counterparts.insert(d, c));
 
     //we can remove the literal from the index of partial definitions
-    _partialIndex->remove(LiteralClause{ dgr, d });
+    _partialIndex.remove(LiteralClause{ dgr, d });
   }
   else {
     _counterparts.remove(c);
     _counterparts.remove(d);
 
     //we put the remaining counterpart into the index of partial definitions
-    _partialIndex->insert(LiteralClause{ dgr, d });
+    _partialIndex.insert(LiteralClause{ dgr, d });
   }
 
-}
-
-
-/**
- * 
- * We assume the clause has already been instantiated
- * Just add/remove each term to the indexing structure
- *
- * TODO - this should not be used with the general substitution tree
- *        index as it is memory inefficient, and expensive to create
- *
- * @author Giles
- */
-void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
-{
-  //TODO add time counter for dismatching
-
-  unsigned clen=c->length();
-  for(unsigned i=0; i<clen; i++) {
-    handle(LiteralClause{(*c)[i], c}, adding);
-  }
-}
-void DismatchingLiteralIndex::addLiteral(Literal* l)
-{
-  //TODO is it safe to pass 0 here?
-  handle(LiteralClause{l,0},true);
 }
 
 void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)

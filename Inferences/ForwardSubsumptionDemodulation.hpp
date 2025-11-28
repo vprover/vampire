@@ -58,8 +58,8 @@ class ForwardSubsumptionDemodulation
     bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   private:
-    RequestedIndex<LiteralIndex<LiteralClause>> _unitIndex;
-    RequestedIndex<LiteralIndex<LiteralClause>> _index;
+    RequestedIndex<UnitClauseLiteralIndex, /*isGenerating=*/false> _unitIndex;
+    RequestedIndex<FSDLiteralIndex, /*isGenerating=*/false> _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;

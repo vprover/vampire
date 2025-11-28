@@ -20,6 +20,8 @@
 #include "Lib/DHMap.hpp"
 #include "Index.hpp"
 
+#include "Lib/ConstTypeId.hpp"
+
 namespace Indexing
 {
 
@@ -27,8 +29,6 @@ using namespace Lib;
 using namespace Saturation;
 
 enum IndexType {
-  BINARY_RESOLUTION_SUBST_TREE=1,
-  BACKWARD_SUBSUMPTION_SUBST_TREE,
   FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE,
 
   URR_UNIT_CLAUSE_SUBST_TREE,
@@ -56,8 +56,6 @@ enum IndexType {
   FW_SUBSUMPTION_SUBST_TREE,
   BW_SUBSUMPTION_SUBST_TREE,
 
-  FSD_SUBST_TREE,
-
   REWRITE_RULE_SUBST_TREE,
 
   ACYCLICITY_INDEX,
@@ -73,13 +71,56 @@ class IndexManager
 public:
   explicit IndexManager(SaturationAlgorithm& alg);
 
+  template<typename IndexType, bool isGenerating>
+  constexpr static auto key()
+  { return std::make_pair(ConstTypeId::getTypeId<IndexType>(), isGenerating); }
+
+  template<typename IndexType, bool isGenerating>
+  IndexType* request()
+  {
+    Entry* e;
+    if (_store2.getValuePtr(key<IndexType, isGenerating>(), e)) {
+      e->index = new IndexType();
+      attachContainer<isGenerating>(e->index);
+      e->refCnt=1;
+    } else {
+      e->refCnt++;
+    }
+    return static_cast<IndexType*>(e->index);
+  }
   Index* request(IndexType t);
+
+  template<typename IndexType, bool isGenerating>
+  void release()
+  {
+    auto ptr = _store2.findPtr(key<IndexType, isGenerating>());
+    ASS(ptr);
+
+    ptr->refCnt--;
+    if (ptr->refCnt == 0) {
+      delete ptr->index;
+      _store2.remove(key<IndexType, isGenerating>());
+    }
+  }
   void release(IndexType t);
+
+  template<typename IndexType, bool isGenerating>
+  bool contains()
+  {
+    return _store2.find(key<IndexType, isGenerating>());
+  }
   bool contains(IndexType t);
+
+  template<typename IndexType, bool isGenerating> IndexType* get()
+  {
+    return static_cast<IndexType*>(_store2.get(key<IndexType, isGenerating>()).index);
+  }
   Index* get(IndexType t);
 
-  void provideIndex(IndexType t, Index* index);
 private:
+  Index* create(IndexType t);
+  template<bool isGenerating>
+  void attachContainer(Index* i);
 
   struct Entry {
     Index* index;
@@ -87,10 +128,7 @@ private:
   };
   SaturationAlgorithm& _alg;
   DHMap<IndexType,Entry> _store;
-
-  Index* create(IndexType t);
-  Shell::Options::UnificationWithAbstraction _uwa;
-  bool _uwaFixedPointIteration;
+  DHMap<std::pair<ConstTypeId,bool>,Entry> _store2;
 };
 
 };

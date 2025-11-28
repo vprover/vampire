@@ -15,13 +15,11 @@
 
 namespace Indexing {
 
-
-template <typename Index>
+template <typename IndexType, bool isGenerating>
 class RequestedIndex final
 {
   public:
-    RequestedIndex()
-    { }
+    RequestedIndex() = default;
 
     // Disallow copying
     RequestedIndex(RequestedIndex const&) = delete;
@@ -30,7 +28,6 @@ class RequestedIndex final
     // Moving transfers ownership of the index
     RequestedIndex(RequestedIndex&& other) noexcept
       : _index{std::exchange(other._index, nullptr)}
-      , _type{other._type}
       , _indexManager{std::exchange(other._indexManager, nullptr)}
     { }
 
@@ -46,13 +43,12 @@ class RequestedIndex final
       release();
     }
 
-    void request(IndexManager* indexManager, IndexType type)
+    void request(IndexManager* indexManager)
     {
       ASS(!_index);
       ASS(!_indexManager);
       _indexManager = indexManager;
-      _type = type;
-      _index = static_cast<Index*>(_indexManager->request(type));
+      _index = _indexManager->request<IndexType, isGenerating>();
     }
 
     // NOTE: release() might be called multiple times (manually and by destructor)
@@ -60,24 +56,24 @@ class RequestedIndex final
     {
       _index = nullptr;
       if (_indexManager != nullptr) {
-        _indexManager->release(_type);
+        _indexManager->release<IndexType, isGenerating>();
         _indexManager = nullptr;
       }
     }
 
-    Index& operator*() const
+    IndexType& operator*() const
     {
       ASS(_index);
       return *_index;
     }
 
-    Index* operator->() const
+    IndexType* operator->() const
     {
       ASS(_index);
       return _index;
     }
 
-    Index* get() const
+    IndexType* get() const
     {
       ASS(_index);
       return _index;
@@ -87,13 +83,11 @@ class RequestedIndex final
     {
       using std::swap;
       swap(_index, other._index);
-      swap(_type, other._type);
       swap(_indexManager, other._indexManager);
     }
 
   private:
-    Index* _index = nullptr;
-    IndexType _type;
+    IndexType* _index = nullptr;
     IndexManager* _indexManager = nullptr;
 };
 

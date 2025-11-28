@@ -475,6 +475,7 @@ set(SOURCES
     Lib/BinaryHeap.hpp
     Lib/BitUtils.hpp
     Lib/Comparison.hpp
+    Lib/ConstTypeId.hpp
     Lib/Coproduct.hpp
     Lib/DArray.hpp
     Lib/DHMap.hpp

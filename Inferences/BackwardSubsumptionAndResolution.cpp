@@ -42,15 +42,13 @@ using namespace Saturation;
 void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _bwIndex = static_cast<BackwardSubsumptionIndex *>(
-      _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE)
-  );
+  _bwIndex = _salg->getIndexManager()->request<BackwardSubsumptionIndex, /*isGenerating=*/false>();
 }
 
 void BackwardSubsumptionAndResolution::detach()
 {
   _bwIndex = 0;
-  _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
+  _salg->getIndexManager()->release<BackwardSubsumptionIndex, /*isGenerating=*/false>();
   BackwardSimplificationEngine::detach();
 }
 
