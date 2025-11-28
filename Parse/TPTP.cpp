@@ -2594,7 +2594,7 @@ void TPTP::tupleDefinition()
     }
   } while (true);
 
-  auto tupleFunctor = Theory::tuples()->getConstructor(sorts.size());
+  auto tupleFunctor = Theory::getTupleConstructor(sorts.size());
 
   LetDefinitions definitions = _letDefinitions.pop();
   // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
@@ -2754,7 +2754,7 @@ void TPTP::endTuple()
     args[i] = sortOf(ts);
   }
 
-  auto t =  Term::create(Theory::tuples()->getConstructor(arity), 2*arity, args.begin());
+  auto t =  Term::create(Theory::getTupleConstructor(arity), 2*arity, args.begin());
   _termLists.push(TermList(t));
 } // endTuple
 

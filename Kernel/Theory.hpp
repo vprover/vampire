@@ -507,7 +507,6 @@ public:
   static bool isNonLinearOperation(Interpretation i);
   bool isPartiallyInterpretedFunction(Term* t);
   bool partiallyDefinedFunctionUndefinedForArgs(Term* t);
-  // static bool isPartialFunction(Interpretation i);
 
   static bool isPolymorphic(Interpretation i);
 
@@ -543,7 +542,6 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
-  // bool isInterpretedPartialFunction(unsigned func);
   bool isZero(TermList t);
 
   Interpretation interpretFunction(unsigned func);
@@ -599,20 +597,14 @@ public:
   Term* representConstant(const RealConstantType& num);
 
 private:
-  Theory();
+  Theory() = default;
   static OperatorType* getConversionOperationType(Interpretation i);
 
 public:
-  class Tuples {
-  public:
-    bool isConstructor(Term* t);
-    unsigned getConstructor(unsigned arity);
-    unsigned getProjectionFunctor(unsigned arity, unsigned proj);
-    bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
-  };
-
-  static Theory::Tuples tuples_obj;
-  static Theory::Tuples* tuples();
+  static bool isTupleConstructor(Term* t);
+  static unsigned getTupleConstructor(unsigned arity);
+  static unsigned getTupleProjectionFunctor(unsigned arity, unsigned proj);
+  static bool findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
 };
 
 #define ANY_INTERPRETED_PREDICATE                                                         \

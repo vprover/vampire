@@ -420,10 +420,8 @@ namespace Kernel {
 //
 
 Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
-Theory::Tuples Theory::tuples_obj;
 
 Theory* theory = &Theory::theory_obj;
-Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
@@ -431,21 +429,6 @@ Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 Theory* Theory::instance()
 {
   return theory;
-}
-
-Theory::Tuples* Theory::tuples()
-{
-  return theory_tuples;
-}
-
-/**
- * Constructor of the Theory object
- *
- * The constructor is private, since Theory is a singleton class.
- */
-Theory::Theory()
-{
-
 }
 
 /**
@@ -1012,17 +995,17 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
   }
 }
 
-unsigned Theory::Tuples::getConstructor(unsigned arity)
+unsigned Theory::getTupleConstructor(unsigned arity)
 {
   return theory->getTupleTermAlgebra(arity)->constructor(0)->functor();
 }
 
-bool Theory::Tuples::isConstructor(Term* t)
+bool Theory::isTupleConstructor(Term* t)
 {
-  return !t->isSpecial() && !t->isSort() && getConstructor(t->numTypeArguments()) == t->functor();
+  return !t->isSpecial() && !t->isSort() && getTupleConstructor(t->numTypeArguments()) == t->functor();
 }
 
-unsigned Theory::Tuples::getProjectionFunctor(unsigned arity, unsigned proj)
+unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)
 {
   auto c = theory->getTupleTermAlgebra(arity)->constructor(0);
 
@@ -1032,7 +1015,7 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned arity, unsigned proj)
 }
 
 // TODO: replace with a constant time algorithm
-bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
+bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
                                        : env.signature->getFunction(projFunctor)->fnType();
 

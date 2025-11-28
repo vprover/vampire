@@ -594,7 +594,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         auto bindingLhs = blit->termArg(0).term();
         auto bindingRhs = blit->termArg(1);
 
-        if (Theory::tuples()->isConstructor(bindingLhs)) {
+        if (Theory::isTupleConstructor(bindingLhs)) {
           NOT_IMPLEMENTED;
         }
 
