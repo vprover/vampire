@@ -1232,6 +1232,8 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   ClauseList* external_newcomers = 0;
   { // external sources
+    static FILE* fp = fdopen(3, "r+");
+
     unsigned selCnt=cl->numSelected();
     for (unsigned i=0; i<selCnt; i++) {
       Literal* lit=(*cl)[i];
@@ -1251,7 +1253,6 @@ void SaturationAlgorithm::activate(Clause* cl)
         ASS_EQ(lit->functor(), ext_lit->functor());
 
         Signature::Symbol* symb = env.signature->getPredicate(lit->functor());
-        std::string query = "\""+symb->name()+"(";
         unsigned j;
         for (j = 0; j < symb->arity(); j++) {
           TermList arg = (*lit)[j];
@@ -1272,26 +1273,31 @@ void SaturationAlgorithm::activate(Clause* cl)
               }
             }
           }
-          if (j > 0) query += ",";
-          query += arg.toString();
         }
         if (j == symb->arity()) { // all went through nicely, let's do the question asking
-          query += ")\"";
-          cout << "About to ask " +query+ " for " << lit->toString() << " through " << es.f->toString() << endl;
-          if (!List<std::string>::member(query,es.already_asked)) { // unless already asked
-            std::string answers = System::executeCommand((es.exec + " " + query).c_str());
-            cout << "Got back " << answers << endl;
-            Stack<std::string> lines;
-            StringUtils::splitStr(answers.c_str(),'\n',lines);
-            StringUtils::dropEmpty(lines);
 
-            for (j=0; j < lines.size(); j++) {
-              Clause* ext_cl = Parse::TPTP::parseClauseFromString(lines[j]);
+          cout << "About to ask for " << lit->toString() << " through " << es.f->toString() << endl;
+          if (!List<Literal*>::member(lit,es.already_asked)) { // unless already asked
+            auto query = Literal::complementaryLiteral(lit)->toString();
+
+            fprintf(fp, "%s %s\n", es.exec.c_str(), query.c_str());
+            fflush(fp);
+
+            char *line = NULL;
+            size_t len = 0;
+            while (true) {
+              getline(&line, &len, fp);
+              // check if empty:
+              if (line[0]=='\n' || line[0]=='\r' || line[0]=='\0') {
+                break;
+              }
+              Clause* ext_cl = Parse::TPTP::parseClauseFromString(line);
               ext_cl->setInputType(UnitInputType::EXTERNAL_SOURCE);
-              // cout << "read " << ext_cl->toString() << endl;
+              cout << "Read back" << ext_cl->toString() << endl;
               ClauseList::push(ext_cl,external_newcomers);
-            }
-            List<std::string>::push(query,es.already_asked);
+            };
+            free(line);
+            List<Literal*>::push(lit,es.already_asked);
           } else {
             cout << "... but already did." << endl;
           }
