@@ -155,36 +155,33 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
 
   TIME_TRACE("sort sharing");
 
-    if(sort->isArraySort()){
-      _arraySorts.insert(TermList(sort));
-    }
-    unsigned weight = 1;
-    unsigned vars = 0;
+  unsigned weight = 1;
+  unsigned vars = 0;
 
-    for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
-      if (tt->isVar()) {
-        ASS(tt->isOrdinaryVar());
-        vars++;
-        weight += 1;
-      }
-      else {
-        ASS_REP(tt->term()->shared(), tt->term()->toString());
-        
-        Term* r = tt->term();
-  
-        vars += r->numVarOccs();
-        weight += r->weight();
-      }
+  for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
+    if (tt->isVar()) {
+      ASS(tt->isOrdinaryVar());
+      vars++;
+      weight += 1;
     }
-    sort->markShared();
-    sort->setId(_sorts.size());
-    sort->setNumVarOccs(vars);
-    sort->setWeight(weight);
+    else {
+      ASS_REP(tt->term()->shared(), tt->term()->toString());
+      
+      Term* r = tt->term();
 
-    ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
-    if (!SortHelper::allTopLevelArgsAreSorts(sort)){
-      USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
+      vars += r->numVarOccs();
+      weight += r->weight();
     }
+  }
+  sort->markShared();
+  sort->setId(_sorts.size());
+  sort->setNumVarOccs(vars);
+  sort->setWeight(weight);
+
+  ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
+  if (!SortHelper::allTopLevelArgsAreSorts(sort)){
+    USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
+  }
 } // TermSharing::computeAndSetSharedSortData
 
 /** same as `TermSharing::computeAndSetSharedTermData(Term*)` but for literals 

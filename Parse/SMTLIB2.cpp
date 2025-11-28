@@ -2306,21 +2306,12 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      if (SortHelper::getInnerSort(arraySortIdx)== AtomicSort::boolSort()) {
-        OperatorType* predType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_BOOL_SELECT);
-        unsigned pred = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,predType);
+      auto indexSort = SortHelper::getIndexSort(arraySortIdx);
+      auto innerSort = SortHelper::getInnerSort(arraySortIdx);
 
-        Formula* res = new AtomicFormula(Literal::create2(pred,true,theArray,theIndex));
-
-        _results.push(ParseResult(res));
-      } else {
-        OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_SELECT);
-        unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,funType);
-
-        TermList res = TermList(Term::create2(fun,theArray,theIndex));
-
-        _results.push(ParseResult(SortHelper::getInnerSort(arraySortIdx),res));
-      }
+      TermList res(Term::create(env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT),
+        { indexSort, innerSort, theArray, theIndex }));
+      _results.push(ParseResult(innerSort,res));
 
       return true;
     }
@@ -2347,11 +2338,13 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_STORE);
-      unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,funType);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE);
 
-      TermList args[] = {theArray, theIndex, theValue};
-      TermList res = TermList(Term::create(fun, 3, args));
+      auto indexSort = SortHelper::getIndexSort(arraySortIdx);
+      auto innerSort = SortHelper::getInnerSort(arraySortIdx);
+
+      TermList res(Term::create(fun,
+        { indexSort, innerSort, theArray, theIndex, theValue }));
 
       _results.push(ParseResult(arraySortIdx,res));
 

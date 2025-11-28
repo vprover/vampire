@@ -1586,7 +1586,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
           if (Theory::isPolymorphic(interp)) {
             switch(interp){
               case Theory::ARRAY_SELECT:
-              case Theory::ARRAY_BOOL_SELECT:
                 // select(array,index)
                 return select(args[0],args[1]);
 

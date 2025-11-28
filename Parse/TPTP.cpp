@@ -1966,7 +1966,7 @@ void TPTP::endTheoryFunction() {
    */
 
   Theory::Interpretation itp;
-  TermList args[3]; // all theory function use up to 3 arguments as for now
+  TermList args[5]; // all theory function use up to 3 arguments as for now
   TermList arraySort;
 
   TheoryFunction tf = _theoryFunctions.pop();
@@ -1985,14 +1985,12 @@ void TPTP::endTheoryFunction() {
         USER_ERROR("sort of index is not the same as the index sort of the array");
       }
 
-      args[0] = array;
-      args[1] = index;
+      args[0] = indexSort;
+      args[1] = SortHelper::getInnerSort(arraySort);
+      args[2] = array;
+      args[3] = index;
 
-      if (SortHelper::getInnerSort(arraySort) == AtomicSort::boolSort()) {
-        itp = Theory::Interpretation::ARRAY_BOOL_SELECT;
-      } else {
-        itp = Theory::Interpretation::ARRAY_SELECT;
-      }
+      itp = Theory::Interpretation::ARRAY_SELECT;
       break;
     }
     case TF_STORE: {
@@ -2015,20 +2013,20 @@ void TPTP::endTheoryFunction() {
         USER_ERROR("sort of value is not the same as the value sort of the array");
       }
 
-      args[0] = array;
-      args[1] = index;
-      args[2] = value;
+      args[0] = indexSort;
+      args[1] = innerSort;
+      args[2] = array;
+      args[3] = index;
+      args[4] = value;
 
       itp = Theory::Interpretation::ARRAY_STORE;
-
       break;
     }
     default:
       ASSERTION_VIOLATION_REP(tf);
   }
 
-  OperatorType* type = Theory::getArrayOperatorType(arraySort,itp);
-  unsigned symbol = env.signature->getInterpretingSymbol(itp, type);
+  unsigned symbol = env.signature->getInterpretingSymbol(itp);
   unsigned arity = Theory::getArity(itp);
 
   if (Theory::isFunction(itp)) {
