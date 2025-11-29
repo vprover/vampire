@@ -36,13 +36,13 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
 
-  _index.request(salg->getIndexManager());
+  _index.request(salg);
 
   _preorderedOnly = false;
   _allowIncompleteness = false;
 
   if (_doSubsumption) {
-    _unitIndex.request(salg->getIndexManager());
+    _unitIndex.request(salg);
   }
 }
 

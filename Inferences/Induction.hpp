@@ -23,6 +23,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/InductionFormulaIndex.hpp"
 #include "Indexing/LiteralIndex.hpp"
+#include "Indexing/RequestedIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Kernel/Formula.hpp"
@@ -275,7 +276,7 @@ public:
 
 private:
   // The following pointers can be null if int induction is off.
-  LiteralIndex<LiteralClause>* _comparisonIndex = nullptr;
+  RequestedIndex<UnitIntegerComparisonLiteralIndex, /*isGenerating=*/true> _comparisonIndex;
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
   InductionFormulaIndex _formulaIndex;

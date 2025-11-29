@@ -493,7 +493,7 @@ void ContextSubsetReplacement::stepIteration()
 void Induction::attach(SaturationAlgorithm* salg) {
   GeneratingInferenceEngine::attach(salg);
   if (InductionHelper::isIntInductionOn()) {
-    _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
+    _comparisonIndex.request(salg);
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
   if (InductionHelper::isNonUnitStructInductionOn()) {
@@ -508,8 +508,7 @@ void Induction::detach() {
     _salg->getIndexManager()->release(STRUCT_INDUCTION_TERM_INDEX);
   }
   if (InductionHelper::isIntInductionOn()) {
-    _comparisonIndex = nullptr;
-    _salg->getIndexManager()->release(UNIT_INT_COMPARISON_INDEX);
+    _comparisonIndex.release();
     _inductionTermIndex = nullptr;
     _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
   }
@@ -518,7 +517,7 @@ void Induction::detach() {
 
 ClauseIterator Induction::generateClauses(Clause* premise)
 {
-  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex),
+  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex.get(), _inductionTermIndex),
     _salg, _structInductionTermIndex, _formulaIndex));
 }
 

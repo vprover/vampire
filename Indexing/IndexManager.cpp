@@ -100,10 +100,6 @@ Index* IndexManager::create(IndexType t)
 
   bool isGenerating;
   switch(t) {
-  case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex();
-    isGenerating = false;
-    break;
   case URR_UNIT_CLAUSE_SUBST_TREE:
     res = new UnitClauseLiteralIndex();
     isGenerating = true;
@@ -200,24 +196,9 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case FW_SUBSUMPTION_CODE_TREE:
-    res = new CodeTreeSubsumptionIndex();
-    isGenerating = false;
-    break;
-
-  case FW_SUBSUMPTION_SUBST_TREE:
-    res = new FwSubsSimplifyingLiteralIndex();
-    isGenerating = false;
-    break;
-
   case REWRITE_RULE_SUBST_TREE:
     res = new RewriteRuleIndex(_alg.getOrdering());
     isGenerating = false;
-    break;
-
-  case UNIT_INT_COMPARISON_INDEX:
-    res = new UnitIntegerComparisonLiteralIndex();
-    isGenerating = true;
     break;
 
   case INDUCTION_TERM_INDEX:

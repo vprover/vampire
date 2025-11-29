@@ -15,6 +15,7 @@
 #ifndef __CodeTreeForwardSubsumptionAndResolution__
 #define __CodeTreeForwardSubsumptionAndResolution__
 
+#include "Indexing/RequestedIndex.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Indexing/CodeTreeInterfaces.hpp"
 #if VDEBUG
@@ -38,6 +39,7 @@ public:
 
 private:
   bool _subsumptionResolution;
+  Indexing::RequestedIndex<Indexing::CodeTreeSubsumptionIndex, /*isGenerating=*/false> _index;
   Indexing::ClauseCodeTree* _ct;
 #if VDEBUG
   SATSubsumption::SATSubsumptionAndResolution satSubs;

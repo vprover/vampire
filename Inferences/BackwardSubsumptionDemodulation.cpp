@@ -30,7 +30,6 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -60,8 +59,7 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrde
 void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
   BackwardSimplificationEngine::attach(salg);
-
-  _index.request(salg->getIndexManager());
+  _index.request(salg);
 }
 
 

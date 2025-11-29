@@ -11,7 +11,7 @@
 #ifndef REQUESTEDINDEX_HPP
 #define REQUESTEDINDEX_HPP
 
-#include "Indexing/IndexManager.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 namespace Indexing {
 
@@ -43,11 +43,11 @@ class RequestedIndex final
       release();
     }
 
-    void request(IndexManager* indexManager)
+    void request(SaturationAlgorithm* salg)
     {
       ASS(!_index);
       ASS(!_indexManager);
-      _indexManager = indexManager;
+      _indexManager = salg->getIndexManager();
       _index = _indexManager->request<IndexType, isGenerating>();
     }
 
@@ -75,7 +75,6 @@ class RequestedIndex final
 
     IndexType* get() const
     {
-      ASS(_index);
       return _index;
     }
 
