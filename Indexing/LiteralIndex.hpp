@@ -108,18 +108,27 @@ protected:
 class UnitClauseWithALLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  UnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
 class NonUnitClauseLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  NonUnitClauseLiteralIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
 class NonUnitClauseWithALLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  NonUnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 

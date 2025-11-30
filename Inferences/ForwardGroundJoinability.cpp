@@ -22,8 +22,6 @@
 #include "Kernel/TermOrderingDiagram.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Indexing/IndexManager.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"

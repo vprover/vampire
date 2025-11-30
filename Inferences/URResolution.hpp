@@ -17,6 +17,8 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/LiteralIndex.hpp"
+#include "Indexing/RequestedIndex.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences
@@ -26,13 +28,12 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool synthesis>
 class URResolution
 : public GeneratingInferenceEngine
 {
 public:
   URResolution(bool full);
-  URResolution(bool full, bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
-      NonUnitClauseLiteralIndex* nonUnitIndex);
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -52,8 +53,10 @@ private:
   bool _full;
   bool _emptyClauseOnly;
   bool _selectedOnly;
-  UnitClauseLiteralIndex* _unitIndex;
-  NonUnitClauseLiteralIndex* _nonUnitIndex;
+  RequestedIndex<std::conditional_t<synthesis, UnitClauseWithALLiteralIndex, UnitClauseLiteralIndex>,
+    /*isGenerating=*/true> _unitIndex;
+  RequestedIndex<std::conditional_t<synthesis, NonUnitClauseWithALLiteralIndex, NonUnitClauseLiteralIndex>,
+    /*isGenerating=*/true> _nonUnitIndex;
 };
 
 };

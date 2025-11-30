@@ -28,7 +28,6 @@
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"

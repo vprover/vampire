@@ -28,16 +28,6 @@ namespace Indexing
 using namespace Lib;
 using namespace Saturation;
 
-enum IndexType {
-
-  URR_UNIT_CLAUSE_SUBST_TREE,
-  URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE,
-  URR_NON_UNIT_CLAUSE_SUBST_TREE,
-  URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE,
-
-  SKOLEMISING_FORMULA_INDEX,
-};
-
 class IndexManager
 {
 public:
@@ -51,7 +41,7 @@ public:
   IndexType* request()
   {
     Entry* e;
-    if (_store2.getValuePtr(key<IndexType, isGenerating>(), e)) {
+    if (_store.getValuePtr(key<IndexType, isGenerating>(), e)) {
       e->index = new IndexType(_alg);
       attachContainer<isGenerating>(e->index);
       e->refCnt=1;
@@ -60,37 +50,32 @@ public:
     }
     return static_cast<IndexType*>(e->index);
   }
-  Index* request(IndexType t);
 
   template<typename IndexType, bool isGenerating>
   void release()
   {
-    auto ptr = _store2.findPtr(key<IndexType, isGenerating>());
+    auto ptr = _store.findPtr(key<IndexType, isGenerating>());
     ASS(ptr);
 
     ptr->refCnt--;
     if (ptr->refCnt == 0) {
       delete ptr->index;
-      _store2.remove(key<IndexType, isGenerating>());
+      _store.remove(key<IndexType, isGenerating>());
     }
   }
-  void release(IndexType t);
 
   template<typename IndexType, bool isGenerating>
   bool contains()
   {
-    return _store2.find(key<IndexType, isGenerating>());
+    return _store.find(key<IndexType, isGenerating>());
   }
-  bool contains(IndexType t);
 
   template<typename IndexType, bool isGenerating> IndexType* get()
   {
-    return static_cast<IndexType*>(_store2.get(key<IndexType, isGenerating>()).index);
+    return static_cast<IndexType*>(_store.get(key<IndexType, isGenerating>()).index);
   }
-  Index* get(IndexType t);
 
 private:
-  Index* create(IndexType t);
   template<bool isGenerating>
   void attachContainer(Index* i);
 
@@ -99,8 +84,7 @@ private:
     int refCnt;
   };
   SaturationAlgorithm& _alg;
-  DHMap<IndexType,Entry> _store;
-  DHMap<std::pair<ConstTypeId,bool>,Entry> _store2;
+  DHMap<std::pair<ConstTypeId,bool>,Entry> _store;
 };
 
 };

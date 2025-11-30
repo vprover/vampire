@@ -28,7 +28,6 @@
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"

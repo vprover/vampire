@@ -132,8 +132,7 @@ class SkolemisingFormulaIndex
 : public TermIndex<TermWithValue<TermList>>
 {
 public:
-  SkolemisingFormulaIndex(TermIndexingStructure<TermWithValue<TermList>>* is) : TermIndex(is)
-  {}
+  SkolemisingFormulaIndex(SaturationAlgorithm&);
   void insertFormula(TermList formula, TermList skolem);
 };
 

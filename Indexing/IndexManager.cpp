@@ -12,14 +12,9 @@
  * Implements class IndexManager.
  */
 
-#include "Indexing/Index.hpp"
-#include "Lib/Exception.hpp"
+#include "Index.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
-
-#include "LiteralIndex.hpp"
-#include "TermIndex.hpp"
-#include "TermSubstitutionTree.hpp"
 
 #include "IndexManager.hpp"
 
@@ -29,37 +24,6 @@ using namespace Indexing;
 IndexManager::IndexManager(SaturationAlgorithm& alg)
   : _alg(alg)
 { }
-
-Index* IndexManager::request(IndexType t)
-{
-  Entry e;
-  if(_store.find(t,e)) {
-    e.refCnt++;
-  } else {
-    e.index=create(t);
-    e.refCnt=1;
-  }
-  _store.set(t,e);
-  return e.index;
-}
-
-void IndexManager::release(IndexType t)
-{
-  Entry e=_store.get(t);
-
-  e.refCnt--;
-  if(e.refCnt==0) {
-    delete e.index;
-    _store.remove(t);
-  } else {
-    _store.set(t,e);
-  }
-}
-
-bool IndexManager::contains(IndexType t)
-{
-  return _store.find(t);
-}
 
 template<bool isGenerating>
 void IndexManager::attachContainer(Index* i)
@@ -73,55 +37,3 @@ void IndexManager::attachContainer(Index* i)
 
 template void IndexManager::attachContainer<true>(Index*);
 template void IndexManager::attachContainer<false>(Index*);
-
-/**
- * If IndexManager contains index @b t, return pointer to it
- *
- * The pointer can become invalid after return from the code that
- * has requested it through this function.
- */
-Index* IndexManager::get(IndexType t)
-{
-  return _store.get(t).index;
-}
-
-Index* IndexManager::create(IndexType t)
-{
-  Index* res;
-  using TermSubstitutionTree    = Indexing::TermSubstitutionTree<TermLiteralClause>;
-
-  bool isGenerating;
-  switch(t) {
-  case URR_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(_alg);
-    isGenerating = true;
-    break;
-  case URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
-    res = new UnitClauseWithALLiteralIndex();
-    isGenerating = true;
-    break;
-  case URR_NON_UNIT_CLAUSE_SUBST_TREE:
-    res = new NonUnitClauseLiteralIndex();
-    isGenerating = true;
-    break;
-  case URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
-    res=new NonUnitClauseWithALLiteralIndex();
-    isGenerating = true;
-    break;
-
-  case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
-    isGenerating = false;
-    break;
-
-  default:
-    INVALID_OPERATION("Unsupported IndexType.");
-  }
-  if(isGenerating) {
-    res->attachContainer(_alg.getGeneratingClauseContainer());
-  }
-  else {
-    res->attachContainer(_alg.getSimplifyingClauseContainer());
-  }
-  return res;
-}
