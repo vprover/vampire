@@ -22,23 +22,18 @@ namespace Inferences {
 namespace ALASCA {
 
 void FwdDemodulation::attach(SaturationAlgorithm* salg)
-{  
-  ASS(!_index);
-
-  this->ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<decltype(_index)> (
-	  _salg->getIndexManager()->request(ALASCA_FWD_DEMODULATION_SUBST_TREE));
+{
+  ForwardSimplificationEngine::attach(salg);
+  _index.request(_salg);
   _index->setShared(_shared);
 }
 
 void FwdDemodulation::detach()
 {
-
   ASS(_salg);
 
-  _index=0;
-  _salg->getIndexManager()->release(ALASCA_FWD_DEMODULATION_SUBST_TREE);
-  this->ForwardSimplificationEngine::detach();
+  _index.release();
+  ForwardSimplificationEngine::detach();
 }
 
 

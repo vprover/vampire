@@ -52,13 +52,6 @@ private:
       ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
-  {
-    _lhsIndex.setTestIndex(static_cast<SuperpositionLHSIndex*>(is[0]));
-    _subtermIndex.setTestIndex(static_cast<SuperpositionSubtermIndex*>(is[1]));
-  }
-#endif
 
   struct ForwardResultFn;
 

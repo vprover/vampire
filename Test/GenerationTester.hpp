@@ -311,7 +311,6 @@ public:
 
     auto container = alg.getActiveClauseContainer();
 
-    rule.setTestIndices(indices);
     for (auto i : indices) {
       i->attachContainer(container);
     }

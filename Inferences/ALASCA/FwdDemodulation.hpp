@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/RequestedIndex.hpp"
 #include "Inferences/ALASCA/Demodulation.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 
@@ -40,7 +41,6 @@ public:
   FwdDemodulation(FwdDemodulation&&) = default;
   FwdDemodulation(std::shared_ptr<AlascaState> shared) 
     : _shared(shared)
-    , _index(nullptr)
   { ASS(_shared); }
 
   void attach(SaturationAlgorithm* salg) final;
@@ -50,8 +50,7 @@ public:
 
 private:
   std::shared_ptr<AlascaState> _shared;
-  // FwdDemodulationIndex* _index;
-  AlascaIndex<Demodulation::Lhs>* _index;
+  RequestedIndex<AlascaIndex<Demodulation::Lhs>,/*isGenerating=*/false> _index;
 };
 
 } // namespaceALASCA 

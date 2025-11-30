@@ -19,22 +19,17 @@ namespace ALASCA {
 
 void BwdDemodulation::attach(SaturationAlgorithm* salg)
 {
-  ASS(!_index);
-
-  this->BackwardSimplificationEngine::attach(salg);
-  _index = static_cast<decltype(_index)> (
-	  _salg->getIndexManager()->request(ALASCA_BWD_DEMODULATION_SUBST_TREE) );
+  BackwardSimplificationEngine::attach(salg);
+  _index.request(_salg);
   _index->setShared(_shared);
 }
 
 void BwdDemodulation::detach()
 {
-
   ASS(_salg);
 
-  _index=0;
-  _salg->getIndexManager()->release(ALASCA_BWD_DEMODULATION_SUBST_TREE);
-  this->BackwardSimplificationEngine::detach();
+  _index.release();
+  BackwardSimplificationEngine::detach();
 }
 
 
