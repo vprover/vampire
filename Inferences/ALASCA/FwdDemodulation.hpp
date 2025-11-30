@@ -43,14 +43,10 @@ public:
     , _index(nullptr)
   { ASS(_shared); }
 
-  void attach(SaturationAlgorithm* salg) final ;
-  void detach() final ;
-
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
-#endif // VDEBUG
 
 private:
   std::shared_ptr<AlascaState> _shared;

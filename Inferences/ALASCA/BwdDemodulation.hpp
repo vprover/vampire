@@ -41,10 +41,7 @@ public:
   void detach() final ;
 
 
-  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final ;
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
-#endif // VDEBUG
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final;
 
 private:
   std::shared_ptr<AlascaState> _shared;

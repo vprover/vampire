@@ -17,17 +17,6 @@ using Demod = Inferences::ALASCA::Demodulation;
 namespace Inferences {
 namespace ALASCA {
 
-
-#if VDEBUG
-void BwdDemodulation::setTestIndices(Stack<Indexing::Index*> const& indices) 
-{
-  _index = (decltype(_index)) indices[0]; 
-  _index->setShared(_shared);
-}
-#endif
-
-
-
 void BwdDemodulation::attach(SaturationAlgorithm* salg)
 {
   ASS(!_index);

@@ -116,52 +116,52 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case ALASCA_FWD_DEMODULATION_SUBST_TREE:
-    res = new AlascaIndex<ALASCA::Demodulation::Lhs>();
+    res = new AlascaIndex<ALASCA::Demodulation::Lhs>(_alg);
     isGenerating = false;
     break;
 
   case ALASCA_BWD_DEMODULATION_SUBST_TREE:
-    res = new AlascaIndex<ALASCA::Demodulation::Rhs>();
+    res = new AlascaIndex<ALASCA::Demodulation::Rhs>(_alg);
     isGenerating = false;
     break;
 
   case ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE:
-    res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Lhs>();
+    res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Lhs>(_alg);
     isGenerating = true;
     break;
 
   case ALASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE:
-    res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Rhs>();
+    res=new AlascaIndex<Inferences::ALASCA::FourierMotzkin::Rhs>(_alg);
     isGenerating = true;
     break;
 
   case ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE:
-    res = new AlascaIndex<Inferences::ALASCA::BinaryResolution::Lhs>();
+    res = new AlascaIndex<Inferences::ALASCA::BinaryResolution::Lhs>(_alg);
     isGenerating = true;
     break;
 
   case ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE:
-    res = new AlascaIndex<Inferences::ALASCA::BinaryResolution::Rhs>();
+    res = new AlascaIndex<Inferences::ALASCA::BinaryResolution::Rhs>(_alg);
     isGenerating = true;
     break;
 
   case ALASCA_SUPERPOSITION_LHS_SUBST_TREE:
-    res = new AlascaIndex<Inferences::ALASCA::Superposition::Lhs>();
+    res = new AlascaIndex<Inferences::ALASCA::Superposition::Lhs>(_alg);
     isGenerating = true;
     break;
 
   case ALASCA_SUPERPOSITION_RHS_SUBST_TREE:
-    res = new AlascaIndex<Inferences::ALASCA::Superposition::Rhs>();
+    res = new AlascaIndex<Inferences::ALASCA::Superposition::Rhs>(_alg);
     isGenerating = true;
     break;
 
   case ALASCA_COHERENCE_LHS_SUBST_TREE:
-    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Lhs>();
+    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Lhs>(_alg);
     isGenerating = true;
     break;
 
   case ALASCA_COHERENCE_RHS_SUBST_TREE:
-    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Rhs>();
+    res = new AlascaIndex<Inferences::ALASCA::Coherence<RealTraits>::Rhs>(_alg);
     isGenerating = true;
     break;
 
