@@ -15,6 +15,7 @@
 #ifndef __BackwardSubsumptionAndResolution__
 #define __BackwardSubsumptionAndResolution__
 
+#include "Indexing/RequestedIndex.hpp"
 #include "Lib/DHSet.hpp"
 #include "InferenceEngine.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -48,7 +49,7 @@ private:
   bool _srByUnitsOnly;
 
   /// @brief Backward index for subsumption and subsumption resolution candidates
-  Indexing::BackwardSubsumptionIndex *_bwIndex;
+  Indexing::RequestedIndex<Indexing::BackwardSubsumptionIndex,/*isGenerating=*/false> _bwIndex;
   /// @brief SAT-based subsumption and subsumption resolution engine
   SATSubsumption::SATSubsumptionAndResolution _satSubs;
   /// @brief Set of clauses that have already been checked for subsumption and/or subsumption resolution

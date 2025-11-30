@@ -17,8 +17,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "AcyclicityIndex.hpp"
-#include "CodeTreeInterfaces.hpp"
 #include "LiteralIndex.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
@@ -101,7 +99,7 @@ Index* IndexManager::create(IndexType t)
   bool isGenerating;
   switch(t) {
   case URR_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex();
+    res = new UnitClauseLiteralIndex(_alg);
     isGenerating = true;
     break;
   case URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
@@ -167,48 +165,9 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg.getOrdering());
-    isGenerating = true;
-    break;
-
-  case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg.getOrdering(), _alg.getOptions());
-    isGenerating = true;
-    break;
-
   case SKOLEMISING_FORMULA_INDEX:
     res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
     isGenerating = false;
-    break;
-
-   case ACYCLICITY_INDEX:
-    res = new AcyclicityIndex(new TermSubstitutionTree());
-    isGenerating = true;
-    break;
-
-  case DEMODULATION_SUBTERM_SUBST_TREE:
-    res = new DemodulationSubtermIndex(new TermSubstitutionTree(),_alg.getOptions());
-    isGenerating = false;
-    break;
-  case DEMODULATION_LHS_CODE_TREE:
-    res = new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), _alg.getOrdering(), _alg.getOptions());
-    isGenerating = false;
-    break;
-
-  case REWRITE_RULE_SUBST_TREE:
-    res = new RewriteRuleIndex(_alg.getOrdering());
-    isGenerating = false;
-    break;
-
-  case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree(), _alg.getOptions());
-    isGenerating = true;
-    break;
-
-  case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree(), _alg.getOptions());
-    isGenerating = true;
     break;
 
   default:

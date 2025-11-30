@@ -63,30 +63,45 @@ protected:
 class BinaryResolutionIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  BinaryResolutionIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
 class BackwardSubsumptionIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  BackwardSubsumptionIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
 class FwSubsSimplifyingLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  FwSubsSimplifyingLiteralIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
 class FSDLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  FSDLiteralIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
 class UnitClauseLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  UnitClauseLiteralIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
@@ -112,7 +127,7 @@ class RewriteRuleIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  RewriteRuleIndex(Ordering& ordering) : _ordering(ordering) {}
+  RewriteRuleIndex(SaturationAlgorithm& salg);
 
   Clause* getCounterpart(Clause* c) {
     return _counterparts.get(c);
@@ -132,6 +147,9 @@ private:
 class UnitIntegerComparisonLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
+public:
+  UnitIntegerComparisonLiteralIndex(SaturationAlgorithm&) {}
+protected:
   void handleClause(Clause* c, bool adding) override;
 };
 

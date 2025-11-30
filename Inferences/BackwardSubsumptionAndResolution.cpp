@@ -27,7 +27,6 @@
 #include "Lib/List.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "BackwardSubsumptionAndResolution.hpp"
@@ -42,13 +41,12 @@ using namespace Saturation;
 void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _bwIndex = _salg->getIndexManager()->request<BackwardSubsumptionIndex, /*isGenerating=*/false>();
+  _bwIndex.request(salg);
 }
 
 void BackwardSubsumptionAndResolution::detach()
 {
-  _bwIndex = 0;
-  _salg->getIndexManager()->release<BackwardSubsumptionIndex, /*isGenerating=*/false>();
+  _bwIndex.release();
   BackwardSimplificationEngine::detach();
 }
 
@@ -57,7 +55,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
   ASSERT_VALID(*cl)
-  ASS(_bwIndex)
+  ASS(_bwIndex.get())
   simplifications = BwSimplificationRecordIterator::getEmpty();
 
   if (!_subsumption && !_subsumptionResolution) {

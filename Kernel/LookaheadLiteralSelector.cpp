@@ -83,8 +83,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     }
     case 1:  //backward superposition
     {
-      if(!imgr->contains(SUPERPOSITION_SUBTERM_SUBST_TREE)) { stage++; goto start; }
-      TermIndex* bsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_SUBTERM_SUBST_TREE));
+      if(!imgr->contains<SuperpositionSubtermIndex, /*isGenerating=*/true>()) { stage++; goto start; }
+      auto bsi=imgr->get<SuperpositionSubtermIndex, /*isGenerating=*/true>();
       ASS(bsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
@@ -94,8 +94,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     }
     case 2:  //forward superposition
     {
-      if(!imgr->contains(SUPERPOSITION_LHS_SUBST_TREE)) { stage++; goto start; }
-      TermIndex* fsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_LHS_SUBST_TREE));
+      if(!imgr->contains<SuperpositionLHSIndex, /*isGenerating=*/true>()) { stage++; goto start; }
+      auto fsi=imgr->get<SuperpositionLHSIndex, /*isGenerating=*/true>();
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(

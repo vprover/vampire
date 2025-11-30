@@ -277,8 +277,8 @@ public:
 private:
   // The following pointers can be null if int induction is off.
   RequestedIndex<UnitIntegerComparisonLiteralIndex, /*isGenerating=*/true> _comparisonIndex;
-  TermIndex* _inductionTermIndex = nullptr;
-  TermIndex* _structInductionTermIndex = nullptr;
+  RequestedIndex<InductionTermIndex, /*isGenerating=*/true> _inductionTermIndex;
+  RequestedIndex<StructInductionTermIndex, /*isGenerating=*/true> _structInductionTermIndex;
   InductionFormulaIndex _formulaIndex;
   InductionFormulaIndex _recFormulaIndex;
 };

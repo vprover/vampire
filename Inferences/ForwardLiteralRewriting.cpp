@@ -16,8 +16,6 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ColorHelper.hpp"
 
-#include "Indexing/IndexManager.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ForwardLiteralRewriting.hpp"
@@ -28,14 +26,12 @@ namespace Inferences
 void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<RewriteRuleIndex*>(
-    _salg->getIndexManager()->request(REWRITE_RULE_SUBST_TREE) );
+  _index.request(salg);
 }
 
 void ForwardLiteralRewriting::detach()
 {
-  _index=0;
-  _salg->getIndexManager()->release(REWRITE_RULE_SUBST_TREE);
+  _index.release();
   ForwardSimplificationEngine::detach();
 }
 

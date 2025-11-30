@@ -17,6 +17,7 @@
 #define __ForwardGroundJoinability__
 
 #include "Forwards.hpp"
+#include "Indexing/RequestedIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "InferenceEngine.hpp"
 
@@ -34,12 +35,6 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-
-#if VDEBUG
-  void setTestIndices(const Stack<Index*>& indices) override {
-    _index = static_cast<DemodulationLHSIndex*>(indices[0]);
-  }
-#endif // VDEBUG
 
   static bool makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res);
 
@@ -59,7 +54,7 @@ private:
     Branch* _curr;
   };
 
-  DemodulationLHSIndex* _index;
+  RequestedIndex<DemodulationLHSIndex,/*isGenerating=*/false> _index;
 };
 
 };

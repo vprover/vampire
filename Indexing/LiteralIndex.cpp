@@ -23,6 +23,7 @@
 
 #include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "LiteralIndex.hpp"
 
@@ -177,6 +178,9 @@ Literal* RewriteRuleIndex::getGreater(Clause* c)
 
   return greater;
 }
+
+RewriteRuleIndex::RewriteRuleIndex(SaturationAlgorithm& salg)
+: _ordering(salg.getOrdering()) {}
 
 void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 {

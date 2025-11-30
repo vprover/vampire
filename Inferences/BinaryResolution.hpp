@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/RequestedIndex.hpp"
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
 
@@ -36,10 +37,6 @@ class BinaryResolution
 : public GeneratingInferenceEngine
 {
 public:
-  BinaryResolution() 
-    : _index(0)
-  {  }
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
@@ -60,7 +57,7 @@ private:
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
     ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
-  BinaryResolutionIndex* _index;
+  RequestedIndex<BinaryResolutionIndex,/*isGenerating=*/true> _index;
 };
 
 using BinaryResolutionExtra = TwoLiteralInferenceExtra;

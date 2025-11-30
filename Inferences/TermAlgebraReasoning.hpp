@@ -22,6 +22,7 @@
 
 #include "Indexing/AcyclicityIndex.hpp"
 
+#include "Indexing/RequestedIndex.hpp"
 #include "Inferences/InferenceEngine.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -108,7 +109,7 @@ private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
   
-  Indexing::AcyclicityIndex *_acyclIndex;
+  Indexing::RequestedIndex<Indexing::AcyclicityIndex,/*isGenerating=*/true> _acyclIndex;
 };
 
 class AcyclicityGIE1

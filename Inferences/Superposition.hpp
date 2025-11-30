@@ -17,6 +17,7 @@
 #define __Superposition__
 
 #include "Forwards.hpp"
+#include "Indexing/RequestedIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
@@ -53,9 +54,9 @@ private:
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
-  { 
-    _lhsIndex = static_cast<decltype(_lhsIndex)>(is[0]);
-    _subtermIndex = static_cast<decltype(_subtermIndex)>(is[1]);
+  {
+    _lhsIndex.setTestIndex(static_cast<SuperpositionLHSIndex*>(is[0]));
+    _subtermIndex.setTestIndex(static_cast<SuperpositionSubtermIndex*>(is[1]));
   }
 #endif
 
@@ -65,8 +66,8 @@ private:
   struct RewritableResultsFn;
   struct BackwardResultFn;
 
-  SuperpositionSubtermIndex* _subtermIndex;
-  SuperpositionLHSIndex* _lhsIndex;
+  RequestedIndex<SuperpositionSubtermIndex,/*isGenerating=*/true> _subtermIndex;
+  RequestedIndex<SuperpositionLHSIndex,/*isGenerating=*/true> _lhsIndex;
 };
 
 using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;

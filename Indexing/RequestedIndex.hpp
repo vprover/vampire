@@ -85,6 +85,13 @@ class RequestedIndex final
       swap(_indexManager, other._indexManager);
     }
 
+    void setTestIndex(IndexType* index)
+    {
+      ASS(!_index);
+      ASS(!_indexManager);
+      _index = index;
+    }
+
   private:
     IndexType* _index = nullptr;
     IndexManager* _indexManager = nullptr;

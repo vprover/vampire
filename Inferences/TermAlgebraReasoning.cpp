@@ -278,14 +278,12 @@ namespace Inferences {
   void AcyclicityGIE::attach(SaturationAlgorithm* salg)
   {
     GeneratingInferenceEngine::attach(salg);
-
-    _acyclIndex = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
+    _acyclIndex.request(salg);
   }
 
   void AcyclicityGIE::detach()
   {
-    _acyclIndex = 0;
-    _salg->getIndexManager()->release(ACYCLICITY_INDEX);
+    _acyclIndex.release();
     GeneratingInferenceEngine::detach();
   }
 
@@ -368,7 +366,7 @@ namespace Inferences {
   ClauseIterator AcyclicityGIE::generateClauses(Clause *c)
   {
     auto it1 = c->getSelectedLiteralIterator();
-    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex, c));
+    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex.get(), c));
     auto it3 = getFlattenedIterator(it2);
     return pvi(it3);
   }
