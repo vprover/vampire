@@ -781,7 +781,18 @@ void SaturationAlgorithm::init()
     _symEl->init(this);
   }
 
+  if (env.options->externalSourcesFD() >= 3) {
+    _externFP = fdopen(env.options->externalSourcesFD(), "r+");
+    if (!_externFP) {
+      cout << "Failed to open external sources fd " << env.options->externalSourcesFD() << " with an error: " << strerror(errno) << endl;
+    }
+  }
+
   { // external sources pre-compilation (also, we barf here (i.e., early), if not well-formed)
+    if (_prb.externals() && !_externFP) {
+      std::cout << "WARNING: External axioms declared but running with no valid external source!" << endl;
+    }
+
     ESList::RefIterator it(_prb.externals());
     while (it.hasNext()) {
       ExternalSource& es = it.next();
@@ -1232,8 +1243,6 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   ClauseList* external_newcomers = 0;
   { // external sources
-    static FILE* fp = fdopen(3, "r+");
-
     unsigned selCnt=cl->numSelected();
     for (unsigned i=0; i<selCnt; i++) {
       Literal* lit=(*cl)[i];
@@ -1275,25 +1284,27 @@ void SaturationAlgorithm::activate(Clause* cl)
           }
         }
         if (j == symb->arity()) { // all went through nicely, let's do the question asking
-
           cout << "About to ask for " << lit->toString() << " through " << es.f->toString() << endl;
-          if (!List<Literal*>::member(lit,es.already_asked)) { // unless already asked
+          if (!_externFP) {
+            cout << "But external_sources_fd was not properly set. No questions will be asked!" << endl;
+          } else if (!List<Literal*>::member(lit,es.already_asked)) { // unless already asked
             auto query = Literal::complementaryLiteral(lit)->toString();
 
-            fprintf(fp, "%s %s\n", es.exec.c_str(), query.c_str());
-            fflush(fp);
+            // cout << "our fp is " << _externFP << endl;
+            fprintf(_externFP, "%s %s\n", es.exec.c_str(), query.c_str());
+            fflush(_externFP);
 
             char *line = NULL;
             size_t len = 0;
             while (true) {
-              getline(&line, &len, fp);
+              getline(&line, &len, _externFP);
               // check if empty:
               if (line[0]=='\n' || line[0]=='\r' || line[0]=='\0') {
                 break;
               }
               Clause* ext_cl = Parse::TPTP::parseClauseFromString(line);
               ext_cl->setInputType(UnitInputType::EXTERNAL_SOURCE);
-              cout << "Read back" << ext_cl->toString() << endl;
+              cout << "Read back: " << ext_cl->toString() << endl;
               ClauseList::push(ext_cl,external_newcomers);
             };
             free(line);

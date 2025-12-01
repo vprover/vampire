@@ -1995,6 +1995,7 @@ public:
   const std::string& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
   bool replaceDomainElements() const { return _replaceDomainElements.actualValue; }
+  unsigned externalSourcesFD() const { return _externalSourcesFD.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
@@ -2571,6 +2572,8 @@ private:
 
   UnsignedOptionValue _randomSeed;
   UnsignedOptionValue _randomStrategySeed;
+
+  UnsignedOptionValue _externalSourcesFD;
 
   StringOptionValue _sampleStrategy;
 

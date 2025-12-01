@@ -243,6 +243,11 @@ void Options::init()
     _sampleStrategy.setExperimental();
     _sampleStrategy.tag(OptionTag::DEVELOPMENT);
 
+    _externalSourcesFD = UnsignedOptionValue("external_sources_fd","esfd",0);
+    _externalSourcesFD.description="The file descriptor of the source/hub for external axioms. Only values >= 3 are expected to work.";
+    _lookup.insert(&_externalSourcesFD);
+    _externalSourcesFD.tag(OptionTag::INPUT);
+
     _randomStrategySeed = UnsignedOptionValue("random_strategy_seed","",0);
     _randomStrategySeed.description="Sets the seed for generating random strategies."
       " This option is necessary because --random_seed <value> will be included as a fixed value in the generated random strategy,"

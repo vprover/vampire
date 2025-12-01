@@ -244,6 +244,7 @@ protected:
 
   // external sources indexed by their predicate symbol
   DHMap<unsigned,ESList*> _indexedExternals;
+  FILE* _externFP = 0;
 
   // start for the first activation, for the LRS estimate
   long _lrsStartTime = 0;
