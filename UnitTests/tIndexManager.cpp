@@ -38,8 +38,18 @@ TEST_FUN(index_shared) {
   auto index2 = imgr.request<TestIndex, /*isGenerating=*/true>();
   ASS_EQ(index, index2);
 
+  typedef TestIndex TestIndexDef;
+  auto index3 = imgr.request<TestIndexDef, /*isGenerating=*/true>();
+  ASS_EQ(index, index3);
+
+  using TestIndexUsing = TestIndex;
+  auto index4 = imgr.request<TestIndexDef, /*isGenerating=*/true>();
+  ASS_EQ(index, index4);
+
   imgr.release<TestIndex, /*isGenerating=*/true>();
   imgr.release<TestIndex, /*isGenerating=*/true>();
+  imgr.release<TestIndexDef, /*isGenerating=*/true>();
+  imgr.release<TestIndexUsing, /*isGenerating=*/true>();
 }
 
 TEST_FUN(index_refcounted) {

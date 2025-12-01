@@ -213,7 +213,7 @@ public:
   }
 
   static unsigned hash(const ConstTypeId &id) {
-    return DefaultHash::hashNulTerminated(id.str);
+    return hash(id.str);
   }
 
   /**
@@ -324,7 +324,7 @@ public:
   }
 
   static unsigned hash(const ConstTypeId &id) {
-    return DefaultHash::hashNulTerminated(id.str);
+    return hash(id.str);
   }
 
   // std::pair combines default secondary hashes of first and second
