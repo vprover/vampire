@@ -63,11 +63,11 @@ Environment::Environment()
 
 Environment::~Environment()
 {
-  delete sharing;
-  delete signature;
-  delete statistics;
-  delete predicateSineLevels;
-  delete options;
+  // delete sharing;
+  // delete signature;
+  // delete statistics;
+  // delete predicateSineLevels;
+  // delete options;
 }
 
 /**
