@@ -69,12 +69,12 @@ namespace Kernel {
     auto maxLits(Clause* cl, SelectionCriterion sel) {
       return OrderingUtils::maxElems(
           cl->size(), 
-          [=](unsigned l, unsigned r) 
+          [=,this](unsigned l, unsigned r) 
           { return ordering->compare((*cl)[l], (*cl)[r]); },
           [=](unsigned i) -> Literal&
           { return *(*cl)[i]; },
           sel)
-        .map([=](auto i) 
+        .map([=,this](auto i) 
             { return SelectedLiteral(cl, i, *this); });
     }
 
@@ -99,7 +99,7 @@ namespace Kernel {
 
         return iterTraits(OrderingUtils::maxElems(
                   lit.term().nSummands(),
-                  [=](unsigned l, unsigned r) 
+                  [=,this](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
                   [=](unsigned i)
                   { return monomAt(i); },
@@ -126,7 +126,7 @@ namespace Kernel {
 
         return iterTraits(OrderingUtils::maxElems(
                   sum.size(),
-                  [=](unsigned l, unsigned r) 
+                  [=,this](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
                   [=](unsigned i)
                   { return monomAt(i); },
@@ -182,15 +182,15 @@ namespace Kernel {
     {
       return iterTraits(norm().tryNormalizeInterpreted(l)
         .match(
-          [=](AnyAlascaLiteral l) -> VirtualIterator<TermList> {
-            return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
+          [this](AnyAlascaLiteral l) -> VirtualIterator<TermList> {
+            return pvi(coproductIter(std::move(l).applyCo([this](auto l)  {
                 return maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
                          .map([l](auto i) {
                              return l.term().summandAt(i).factors->denormalize();
                          });
             })));
           },
-          [=]() {
+          [=,this]() {
             if (l->isEquality()) {
               return pvi(maxEqIndices(l, SelectionCriterion::NOT_LEQ)
                 .map([=](auto i) { return l->termArg(i); }));
@@ -224,7 +224,7 @@ namespace Kernel {
     {
       using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
       return maxLits(cl, selLit)
-        .flatMap([=](auto sel_lit) -> VirtualIterator<Out> {
+        .flatMap([=,this](auto sel_lit) -> VirtualIterator<Out> {
             auto lit = sel_lit.literal();
             if (sel_lit.interpreted.isSome()) {
               return pvi(maxSummands(sel_lit, selSum)
@@ -325,7 +325,7 @@ namespace Kernel {
 
       return OrderingUtils::maxElems(
           atoms->size(), 
-          [=](unsigned l, unsigned r) 
+          [=,this](unsigned l, unsigned r) 
           { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
           [=](unsigned i)
           { return (*atoms)[i].atom(); },

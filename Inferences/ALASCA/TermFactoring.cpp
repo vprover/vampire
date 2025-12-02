@@ -230,12 +230,12 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
     litRanges.push(std::make_pair(last, selected->size()));
 
   return pvi(arrayIter(std::move(litRanges))
-                .flatMap([=] (auto r) {
+                .flatMap([=,this] (auto r) {
                        ASS(r.first < r.second)
                        return range(r.first, r.second - 1)
-                                .flatMap([=](auto i) {
+                                .flatMap([=,this](auto i) {
                                    return range(i + 1, r.second)
-                                            .filterMap([=](auto j) 
+                                            .filterMap([=,this](auto j) 
                                               { return applyRule((*selected)[i], (*selected)[j], *max); });
                         });
                      }));

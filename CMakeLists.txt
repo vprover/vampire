@@ -14,8 +14,8 @@ include(cmake/sources.cmake)
 
 find_package(Git QUIET)
 
-# require the compiler to use C++17
-set(CMAKE_CXX_STANDARD 17)
+# require the compiler to use C++20
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

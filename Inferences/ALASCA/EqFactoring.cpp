@@ -165,11 +165,11 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
         .template collect<Stack>());
 
   return pvi(range(0, selected->size())
-      .flatMap([=](auto i) {
+      .flatMap([=,this](auto i) {
         return range(0, rest->size())
           .filter([=](auto j) { return (*selected)[i].litIdx() != (*rest)[j].litIdx(); })
           // .filter([=](auto j) { return (*selected)[i].numTraits() == (*rest)[j].numTraits(); })
-          .flatMap([=](auto j) {
+          .flatMap([=,this](auto j) {
               auto& max = (*selected)[i];
               auto& other = (*rest)[j];
               return ifElseIter(
