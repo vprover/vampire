@@ -1,7 +1,7 @@
 
 (declare-sort S 0)
 
-(assert (not 
+(assert (not
   (forall ((arr (Array Int S)) (a S) (b S) (i Int))
     (=>
       (forall ((i Int)) (= (select arr i) a))

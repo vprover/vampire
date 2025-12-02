@@ -1966,7 +1966,7 @@ void TPTP::endTheoryFunction() {
    */
 
   Theory::Interpretation itp;
-  TermList args[5]; // all theory function use up to 3 arguments as for now
+  TermList args[5]; // all theory function use up to 5 arguments as for now
   TermList arraySort;
 
   TheoryFunction tf = _theoryFunctions.pop();
