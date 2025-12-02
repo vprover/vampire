@@ -33,142 +33,52 @@
 namespace Kernel
 {
 
-using namespace std;
 using namespace Lib;
 using namespace Indexing;
 using namespace Saturation;
 
-/**
- * Iterator that yields the same number of elements as there are inferences
- * that can be performed with a clause that has the literal passed to
- * the constructor selected
- */
-struct LookaheadLiteralSelector::GenIteratorIterator
-{
+// estimate the number of inferences that can be performed with `lit` under `ord`
+static size_t estimateNumberOfInferences(Literal *lit, const Ordering &ord) {
   using TermIndex = Indexing::TermIndex<TermLiteralClause>;
-  DECL_ELEMENT_TYPE(VirtualIterator<std::tuple<>>);
 
-  GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}
+  size_t total = 0;
 
-  bool hasNext()
-  {
-    if(prepared) {
-      return true;
-    }
+  SaturationAlgorithm *salg = SaturationAlgorithm::tryGetInstance();
+  ASS(salg)
+  IndexManager* imgr=salg->getIndexManager();
+  ASS(imgr);
 
-    SaturationAlgorithm* salg=SaturationAlgorithm::tryGetInstance();
-    if(!salg) {
-      static bool errAnnounced = false;
-      if(!errAnnounced) {
-	errAnnounced = true;
-  std::cout<<"Using LookaheadLiteralSelector without having an SaturationAlgorithm object\n";
-      }
-      //we are too early, there's no saturation algorithm and therefore no generating inferences
-      prepared=false;
-      return false;
-    }
-
-    IndexManager* imgr=salg->getIndexManager();
-    ASS(imgr);
-  start:
-    switch(stage) {
-    case 0:  //resolution
-    {
-      if(!imgr->contains(BINARY_RESOLUTION_SUBST_TREE)) { stage++; goto start; }
-      BinaryResolutionIndex* gli=static_cast<BinaryResolutionIndex*>(imgr->get(BINARY_RESOLUTION_SUBST_TREE));
-      ASS(gli);
-
-      nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );
-      break;
-    }
-    case 1:  //backward superposition
-    {
-      if(!imgr->contains(SUPERPOSITION_SUBTERM_SUBST_TREE)) { stage++; goto start; }
-      TermIndex* bsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_SUBTERM_SUBST_TREE));
-      ASS(bsi);
-
-      nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi)) );
-      break;
-    }
-    case 2:  //forward superposition
-    {
-      if(!imgr->contains(SUPERPOSITION_LHS_SUBST_TREE)) { stage++; goto start; }
-      TermIndex* fsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_LHS_SUBST_TREE));
-      ASS(fsi);
-
-      nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
-	       TermUnificationRetriever(fsi)) );
-      break;
-    }
-    case 3:  //equality resolution
-    {
-      bool haveEqRes=false;
-      if(lit->isNegative() && lit->isEquality()) {
-	RobSubstitution rs;
-	if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0)) {
-	  haveEqRes=true;
-	  nextIt=pvi( dropElementType(getSingletonIterator(0)) );
-	}
-      }
-      if(!haveEqRes) {
-	stage++;
-	goto start;
-      }
-      break;
-    }
-    default:
-      ASSERTION_VIOLATION;
-    case 4:  //finish
-    {
-      prepared=false;
-      return false;
-    }
-    }
-    prepared=true;
-    return true;
+  // resolution
+  if(imgr->contains(BINARY_RESOLUTION_SUBST_TREE)) {
+    auto bri = static_cast<BinaryResolutionIndex *>(imgr->get(BINARY_RESOLUTION_SUBST_TREE));
+    total += countIteratorElements(bri->getUnifications(lit,true,false));
   }
 
-  VirtualIterator<std::tuple<>> next()
-  {
-    if(!prepared) {
-      ALWAYS(hasNext());
-    }
-    ASS(prepared);
-    prepared=false;
-    stage++;
-    return nextIt;
+  // backward superposition
+  if(imgr->contains(SUPERPOSITION_SUBTERM_SUBST_TREE)) {
+    auto ti = static_cast<TermIndex *>(imgr->get(SUPERPOSITION_SUBTERM_SUBST_TREE));
+    total += countIteratorElements(getMapAndFlattenIterator(
+      EqHelper::getLHSIterator(lit, ord),
+      [ti](TypedTermList trm) { return ti->getUnifications(trm, /* retrieveSubst */ false); }
+    ));
   }
-private:
 
-  struct TermUnificationRetriever
-  {
-    TermUnificationRetriever(TermIndex* index) : _index(index) {}
-    VirtualIterator<std::tuple<>> operator()(TypedTermList trm)
-    {
-      return pvi(dropElementType(_index->getUnifications(trm, /* retrieveSubst */ false)));
-    }
-  private:
-    TermIndex* _index;
-  };
+  // forward superposition
+  if(imgr->contains(SUPERPOSITION_LHS_SUBST_TREE)) {
+    auto ti = static_cast<TermIndex* >(imgr->get(SUPERPOSITION_LHS_SUBST_TREE));
+    total += countIteratorElements(getMapAndFlattenIterator(
+      EqHelper::getSubtermIterator(lit, ord), //TODO update for HO superposition
+      [ti](TypedTermList trm) { return ti->getUnifications(trm, /* retrieveSubst */ false); }
+    ));
+  }
 
-  int stage;
-  Literal* lit;
-  bool prepared;
-  VirtualIterator<std::tuple<>> nextIt;
+  // equality resolution
+  if(lit->isNegative() && lit->isEquality()) {
+    RobSubstitution rs;
+    total += rs.unify(lit->termArg(0), 0, lit->termArg(1), 0);
+  }
 
-  LookaheadLiteralSelector& _parent;
-};
-
-/**
- * Return iterator with the same number of elements as there are inferences
- * that can be performed with @b lit literal selected
- */
-VirtualIterator<std::tuple<>> LookaheadLiteralSelector::getGeneraingInferenceIterator(Literal* lit)
-{
-  return pvi( getFlattenedIterator(GenIteratorIterator(lit, *this)) );
+  return total;
 }
 
 /**
@@ -180,25 +90,22 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
 {
   ASS_G(cnt,1); //special cases are handled elsewhere
 
-  static DArray<VirtualIterator<std::tuple<>> > runifs; //resolution unification iterators
-  runifs.ensure(cnt);
-
-  for(unsigned i=0;i<cnt;i++) {
-    runifs[i]=getGeneraingInferenceIterator(lits[i]);
-  }
-
+  // find all minimal candidate literals,
+  // according to an estimate of how many inferences they produce
+  size_t minInferences = std::numeric_limits<size_t>::max();
   static Stack<Literal*> candidates;
   candidates.reset();
-  do {
-    for(unsigned i=0;i<cnt;i++) {
-      if(runifs[i].hasNext()) {
-	runifs[i].next();
-      }
-      else {
-	candidates.push(lits[i]);
-      }
+  for(unsigned i = 0; i < cnt; i++) {
+    size_t estimate = estimateNumberOfInferences(lits[i], _ord);
+    // new minimum
+    if(estimate < minInferences) {
+      candidates.reset();
+      minInferences = estimate;
     }
-  } while(candidates.isEmpty());
+    // add to minimal candidates
+    if(estimate == minInferences)
+      candidates.push(lits[i]);
+  }
 
   using namespace LiteralComparators;
   typedef Composite<ColoredFirst,
@@ -216,10 +123,6 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
       }
     }
   }
-
-  for(unsigned i=0;i<cnt;i++) {
-    runifs[i].drop(); //release the iterators
-  }
   return res;
 }
 
@@ -233,9 +136,9 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
   for(size_t i=0;i<cnt-1;i++) {
     for(size_t j=i+1;j<cnt;j++) {
       if(MatchingUtils::isVariant(lits[i], lits[j], false)) {
-	cnt--;
-	swap(lits[j], lits[cnt]);
-	lits.pop();
+        cnt--;
+        std::swap(lits[j], lits[cnt]);
+        lits.pop();
       }
     }
   }
@@ -320,13 +223,12 @@ selection_done:
     ASS_L(li,eligible);
     if((*c)[li]==maximals->head()) {
       if(li!=selCnt) {
-	swap((*c)[li], (*c)[selCnt]);
+        std::swap((*c)[li], (*c)[selCnt]);
       }
       selCnt++;
       LiteralList::pop(maximals);
     }
   }
-
   ASS(selCnt>0);
 
   c->setSelected(selCnt);

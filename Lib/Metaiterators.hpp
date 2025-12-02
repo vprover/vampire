@@ -1767,10 +1767,6 @@ auto iterPointer(P p) { return iterTraits(IterPointer<P>(std::move(p))); }
 
 ///@}
 
-template<class Iterator>
-auto dropElementType(Iterator iter) 
-{ return iterTraits(std::move(iter)).map([](auto _) { return std::make_tuple(); }); }
-
 template<class Array, class Size>
 auto arrayIter(Array const& a, Size s) { return range(0, s).map([&](auto i) -> decltype(auto) { return a[i]; }); }
 
