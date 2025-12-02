@@ -68,13 +68,17 @@ check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 
 # FOOL
-check_szs_status Theorem fool/let-function.p
-check_szs_status Theorem -newcnf on fool/let-function.p
-check_szs_status Theorem -newcnf on fool/let-tuple.p
-check_szs_status Theorem -newcnf on fool/let-tuple-bool.p
-check_szs_status Theorem -newcnf on -ile off fool/let-function.p
-check_szs_status Theorem -newcnf on -ile off fool/let-tuple.p
-check_szs_status Theorem -newcnf on -ile off fool/let-tuple-bool.p
+check_szs_status Theorem theory/let-function.p
+check_szs_status Theorem -newcnf on theory/let-function.p
+check_szs_status Theorem -newcnf on theory/let-tuple.p
+check_szs_status Theorem -newcnf on theory/let-tuple-bool.p
+check_szs_status Theorem -newcnf on -ile off theory/let-function.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool.p
+
+# Arrays
+check_szs_status Unsatisfiable theory/arrays.smt2
+check_szs_status Unsatisfiable -newcnf on theory/arrays.smt2
 
 # Integer induction problems
 check_szs_status Unsatisfiable -ind int induction/int_invariant_infinite_geq3_val3.smt2
