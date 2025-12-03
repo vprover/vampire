@@ -742,7 +742,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  3) Replace the term with g(Y1, ..., Ym, X1, ..., Xn)
          */
         if (_higherOrder) {
-            USER_ERROR("FOOLElimination does not yet handle HOL");
+          termResult = HOL::convert::toNameless(term);
         }
         else {
           Formula *formula = process(sd->getFormula());
