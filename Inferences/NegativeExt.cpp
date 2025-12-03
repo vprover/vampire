@@ -21,9 +21,9 @@
 #include "Shell/Skolem.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "NegativeExt.hpp"
 
@@ -123,10 +123,10 @@ struct NegativeExt::ResultFn
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     //cout << "the head is " + head.toString() << endl;
     //cout << "It has sort " + skSymSort.toString() << endl;
-    TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
+    TermList skolemTerm = HOL::create::app(head, termVars);
 
-    TermList newLhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, lhs, skolemTerm);
-    TermList newRhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, rhs, skolemTerm);
+    TermList newLhs = HOL::create::app(alpha1, alpha2, lhs, skolemTerm);
+    TermList newRhs = HOL::create::app(alpha1, alpha2, rhs, skolemTerm);
 
     Literal* newLit = Literal::createEquality(false, newLhs, newRhs, alpha2);
 

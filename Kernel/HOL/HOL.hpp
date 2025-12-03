@@ -20,18 +20,21 @@
 
 /**
  * This namespace contains several helper functions to deal with higher-order terms.
- * It will eventually replace the legacy ApplicativeHelper
  */
 namespace HOL {
 
 using Kernel::Term;
-  
+
 inline bool isTrue(TermList term) {
   return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
 }
 
 inline bool isFalse(TermList term) {
   return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
+}
+
+inline bool isBool(TermList term) {
+  return isTrue(term) || isFalse(term);
 }
 
 std::string toString(const Term &term, bool topLevel);
@@ -51,6 +54,8 @@ void getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermSta
 TermList lhsSort(TermList t);
 TermList rhsSort(TermList t);
 
+TermList finalResult(TermList sort);
+
 void getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts);
 
 inline bool canHeadReduce(const TermList& head, const TermStack& args) {
@@ -64,6 +69,7 @@ namespace HOL::create {
   TermList app(TermList head, TermList arg);
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
   TermList app(TermList sort, TermList head, const TermStack& terms); // todo const termstack
+  TermList app(TermList head, const TermStack& terms);
 
   inline TermList app2(TermList sort, TermList head, TermList arg1, TermList arg2) {
     return app(app(sort, head, arg1), arg2);

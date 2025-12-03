@@ -20,6 +20,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -773,7 +774,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
       case SpecialFunctor::LAMBDA: {
-        USER_ERROR("HOL lambdas in FOOLElimination are not yet handled");
+        // Lambda terms using named representation are converted to nameless De Bruijn representation
+        termResult = HOL::convert::toNameless(term);
         break;
       }
 

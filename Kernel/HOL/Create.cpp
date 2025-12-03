@@ -56,6 +56,12 @@ TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms) 
   return res;
 }
 
+TermList HOL::create::app(TermList head, const TermStack& terms) {
+  ASS(head.isTerm())
+
+  return app(SortHelper::getResultSort(head.term()), head, terms);
+}
+
 Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {
   auto s = new (0, sizeof(Term::SpecialTermData)) Term;
   s->makeSymbol(Term::toNormalFunctor(SpecialFunctor::LAMBDA), 0);

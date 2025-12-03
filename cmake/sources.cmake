@@ -327,8 +327,6 @@ set(SOURCES
     Kernel/ALASCA/Signature.hpp
     Kernel/ALASCA/State.cpp
     Kernel/ALASCA/State.hpp
-    Kernel/ApplicativeHelper.cpp
-    Kernel/ApplicativeHelper.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/BottomUpEvaluation.hpp
     Kernel/Clause.cpp
@@ -669,8 +667,6 @@ set(SOURCES
     Shell/InterpretedNormalizer.cpp
     Shell/InterpretedNormalizer.hpp
     Shell/Lexer.cpp
-    Shell/Lexer.cpp
-    Shell/Lexer.hpp
     Shell/Lexer.hpp
     Shell/LispLexer.cpp
     Shell/LispLexer.hpp
