@@ -187,6 +187,13 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
     runifs[i]=getGeneraingInferenceIterator(lits[i]);
   }
 
+  /*
+   * MR: the above thing looks like a crazy way to estimate which literal
+   * generate least inferences and that a loop returning size_t would be better.
+   *
+   * However, the trick here is that the iterators compute the inferences _lazily_,
+   * and so saves some effort in the common case where there is one clear winner.
+   */
   static Stack<Literal*> candidates;
   candidates.reset();
   do {
