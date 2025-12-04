@@ -26,6 +26,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
@@ -717,6 +718,9 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
   }
   return out;
 }
+
+inline FormulaUnit* formula(Lit lit)
+{ return new FormulaUnit(new AtomicFormula(lit), Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT))); }
 
 inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
   // avoid redeclaration
