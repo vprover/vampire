@@ -49,17 +49,18 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
     if (var > max) {
       max = var;
     }
-  } 
+  }
   TermList freshVar = TermList(max+1, false);
 
   TermList t1 = HC::app(setSort, set, freshVar);
   TermList t2 = HC::app(op, set);
   t2 =          HC::app(setSort, set, t2);
 
-  return Clause::fromLiterals({
-    Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
-    Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())
-  }, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE));
+  return Clause::fromLiterals(
+      { Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
+        Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())},
+       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE)
+  );
 }
 
 struct Choice::AxiomsIterator
