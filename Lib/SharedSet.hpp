@@ -525,7 +525,7 @@ public:
   }
 
   auto iter() const
-  { return arrayIter(_items, size()); }
+  { return arrayIter(static_cast<const T *>(_items), size()); }
 
 };
 
