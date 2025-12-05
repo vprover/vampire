@@ -293,6 +293,49 @@ void TPTP::parseImpl(State initialState)
   }
 } // TPTP::parse()
 
+void TPTP::parseInputType(const std::string& tp)
+{
+  _isQuestion = false;
+  if(_modelDefinition){
+    _lastInputType = UnitInputType::MODEL_DEFINITION;
+  }
+  else if (tp == "axiom" || tp == "plain") {
+    _lastInputType = UnitInputType::AXIOM;
+  }
+  else if (tp == "extensionality"){
+    // this will be transformed to just AXIOM after clausification
+    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
+  }
+  else if (tp == "definition") {
+    _lastInputType = UnitInputType::AXIOM;
+  }
+  else if (tp == "conjecture") {
+    _containsConjecture = true;
+    _lastInputType = UnitInputType::CONJECTURE;
+  }
+  else if (tp == "question") {
+    _isQuestion = true;
+    _containsConjecture = true;
+    _lastInputType = UnitInputType::CONJECTURE;
+  }
+  else if (tp == "negated_conjecture") {
+    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
+  }
+  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
+    _lastInputType = UnitInputType::ASSUMPTION;
+  }
+  else if (tp == "claim") {
+    _lastInputType = UnitInputType::CLAIM;
+  }
+  else if (tp == "assumption" || tp == "unknown" || tp == "logic") {
+    // MS: we were silently dropping these until now. I wonder why...
+    USER_ERROR("Unsupported unit type '", tp, "' found");
+  }
+  else {
+    PARSE_ERROR("unit type, such as axiom or definition expected but "s + tp + " found");
+  }
+}
+
 /**
  * Return either the content or the string for this token
  * @since 11/04/2011 Manchester
@@ -1290,46 +1333,8 @@ void TPTP::fof(bool fo)
   consumeToken(T_COMMA);
   tok = getTok(0);
   std::string tp = name();
+  parseInputType(tp);
 
-  _isQuestion = false;
-  if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
-  }
-  else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if(tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "conjecture") {
-    _containsConjecture = true;
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "question") {
-    _isQuestion = true;
-    _containsConjecture = true;
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "negated_conjecture") {
-    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
-  }
-  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = UnitInputType::ASSUMPTION;
-  }
-  else if (tp == "claim") {
-    _lastInputType = UnitInputType::CLAIM;
-  }
-  else if (tp == "assumption" || tp == "unknown") {
-    // MS: we were silently dropping these until now. I wonder why...
-    USER_ERROR("Unsupported unit type '", tp, "' found");
-  }
-  else {
-    PARSE_ERROR("unit type, such as axiom or definition expected but "s + tp + " found");
-  }
   consumeToken(T_COMMA);
   _states.push(END_FOF);
   _states.push(FORMULA);
@@ -1416,46 +1421,8 @@ void TPTP::tff()
     return;
   }
 
+  parseInputType(tp);
   _bools.push(true); // to denote that it is an FOF formula
-  _isQuestion = false;
-  if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
-  }
-  else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "conjecture") {
-    _containsConjecture = true;
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "question") {
-    _isQuestion = true;
-    _containsConjecture = true;
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "negated_conjecture") {
-    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
-  }
-  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = UnitInputType::ASSUMPTION;
-  }
-  else if (tp == "assumption" || tp == "unknown") {
-    // MS: we were silently dropping these until now. I wonder why...
-    USER_ERROR("Unsupported unit type '", tp);
-  }
-  else if (tp == "claim") {
-    _lastInputType = UnitInputType::CLAIM;
-  }
-  else {
-    PARSE_ERROR("unit type, such as axiom or definition expected but " + tp + " found");
-  }
   consumeToken(T_COMMA);
   _states.push(END_FOF);
   _states.push(FORMULA);

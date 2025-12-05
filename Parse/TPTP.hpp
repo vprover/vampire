@@ -353,6 +353,7 @@ public:
   }
 private:
   void parseImpl(State initialState = State::UNIT_LIST);
+  void parseInputType(const std::string& tp);
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 
