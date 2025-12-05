@@ -74,7 +74,6 @@ set(UNIT_TESTS
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSafeRecursion.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
@@ -511,7 +510,6 @@ set(SOURCES
     Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/STL.hpp
-    Lib/SafeRecursion.hpp
     Lib/ScopeGuard.hpp
     Lib/ScopedLet.hpp
     Lib/ScopedPtr.hpp
