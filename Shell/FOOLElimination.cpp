@@ -621,8 +621,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         collectSorts(vars, typeVars, termVars, allVars, termVarSorts);
 
         // take the defined function symbol and its result sort
-        unsigned symbol = bindingLhs->functor();
-        TermList bindingSort = SortHelper::getResultSort(bindingLhs);
+        unsigned symbol = bindingLhs->isBoolean()
+          ? bindingLhs->getSpecialData()->getFormula()->literal()->functor() // this is ugly, but otherwise := would have to be special
+          : bindingLhs->functor();
+        TermList bindingSort = bindingLhs->isBoolean() ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
 
         SortHelper::normaliseSort(typeVars, bindingSort);
 

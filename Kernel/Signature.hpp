@@ -671,18 +671,18 @@ class Signature
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
   {
-    ASS_REP(n < _funs.length(),n);
+    ASS_L(n, _funs.length());
     return _funs[n];
   } // getFunction
   /** Return the predicate symbol by its number */
   inline Symbol* getPredicate(unsigned n)
   {
-    ASS(n < _preds.length());
+    ASS_L(n, _preds.length());
     return _preds[n];
   } // getPredicate
   inline Symbol* getTypeCon(unsigned n)
   {
-    ASS(n < _typeCons.length());
+    ASS_L(n, _typeCons.length());
     return _typeCons[n];
   }
 
