@@ -176,7 +176,7 @@ void SplittingBranchSelector::handleSatRefutation()
   SATClauseList *satPremises = nullptr;
 #if VZ3
   if(_parent.hasSMTSolver) {
-    satPremises = _solver.premiseList();
+    satPremises = _solver.minimizedPremises();
     // SATClause::removeDuplicateLiterals can insert a single PROP_INF between here and the FO_CONVERSION
     // replace these cases with the "true" duplicate-literal premise
     for(SATClause *&cl : iterTraits(satPremises->iter())) {
