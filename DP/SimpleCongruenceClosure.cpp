@@ -19,7 +19,6 @@
 #include "Lib/ArrayMap.hpp"
 
 #include "Lib/IntUnionFind.hpp"
-#include "Lib/SafeRecursion.hpp"
 #include "Lib/DynamicHeap.hpp"
 
 #include "Kernel/SortHelper.hpp"
@@ -230,55 +229,8 @@ unsigned SimpleCongruenceClosure::getPairName(CPair p)
   return res;
 }
 
-struct SimpleCongruenceClosure::FOConversionWorker
-{
-  FOConversionWorker(SimpleCongruenceClosure& parent)
-      : _parent(parent) {}
-
-
-  template<class ChildCallback>
-  void pre(TermList t, ChildCallback childCallbackFn) {
-    if (t.isTerm()) {
-      if(_parent._termNames.find(t)) {
-        //term is in cache, we don't need to traverse it
-        return;
-      }
-
-      Term::Iterator argIt(t.term());
-      while(argIt.hasNext()) {
-        TermList arg = argIt.next();
-        childCallbackFn(arg);
-      }
-    }
-  }
-
-  unsigned post(TermList t, size_t childCnt, unsigned* childRes)
-  {
-    unsigned res;
-    if(_parent._termNames.find(t, res)) {
-      return res;
-    }
-
-    if(t.isVar()) {
-      res = _parent.getSignatureConst(t.var(), SignatureKind::VARIABLE);
-    }
-    else {
-      ASS(t.isTerm());
-      Term* trm = t.term();
-      SignatureKind sk = trm->isSort() ? SignatureKind::TYPECON : SignatureKind::FUNCTION;
-      res = _parent.getSignatureConst(trm->functor(), sk);
-      for(size_t i=0; i<childCnt; i++) {
-        res = _parent.getPairName(CPair(res, childRes[i]));
-      }
-    }
-    _parent._cInfos[res].term = t;
-    _parent._termNames.insert(t, res);
-    return res;
-  }
-
-  SimpleCongruenceClosure& _parent;
-};
-
+// memoising structure used in convertFO below
+// TODO: should this be provided as part of the BUE machinery?
 struct Memo {
   Option<unsigned> get(TermList t) {
     unsigned cached;
@@ -305,14 +257,8 @@ struct Memo {
  */
 unsigned SimpleCongruenceClosure::convertFO(TermList trm)
 {
-  unsigned cachedRes;
-  if(_termNames.find(trm, cachedRes)) {
-    return cachedRes;
-  }
-
-  FOConversionWorker wrk(*this);
-  SafeRecursion<TermList,unsigned,FOConversionWorker> converter(wrk);
-  auto bue = BottomUpEvaluation<TermList, unsigned>()
+  return BottomUpEvaluation<TermList, unsigned>()
+    .context(TermListContext {.ignoreTypeArgs = false})
     .function([&](TermList t, unsigned *children) {
         unsigned res;
         if(t.isVar()) {
@@ -330,21 +276,8 @@ unsigned SimpleCongruenceClosure::convertFO(TermList trm)
         _cInfos[res].term = t;
         return res;
     })
-    .context(TermListContext {.ignoreTypeArgs = false})
-    .memo(Memo {_termNames});
-
-  if(Random::getBit()) {
-    unsigned safe = converter(trm);
-    unsigned iffy = bue.apply(trm);
-    ASS_EQ(safe, iffy)
-    return safe;
-  }
-  else {
-    unsigned iffy = bue.apply(trm);
-    unsigned safe = converter(trm);
-    ASS_EQ(safe, iffy)
-    return safe;
-  }
+    .memo(Memo {_termNames})
+    .apply(trm);
 }
 
 /**
@@ -372,7 +305,7 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
     TermList a = ait.next();
     unsigned argConst = convertFO(a);
     res = getPairName(CPair(res, argConst));
-    //Martin: same way to currify like in FOConversionWorker::post
+    //Martin: same way to currify like in convertFO
   }
   _cInfos[res].lit = lit;
 
