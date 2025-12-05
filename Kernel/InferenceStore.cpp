@@ -1137,7 +1137,6 @@ protected:
       case Theory::REAL_QUOTIENT: out << "/"; return;
 
       // array functions
-      case Theory::ARRAY_BOOL_SELECT:
       case Theory::ARRAY_SELECT: out << "select"; return;
       case Theory::ARRAY_STORE: out << "store"; return;
 
@@ -1240,7 +1239,6 @@ protected:
       case Theory::INT_REMAINDER_E:                                                       \
       case Theory::INT_FLOOR:                                                             \
       case Theory::REAL_QUOTIENT:                                                         \
-      case Theory::ARRAY_BOOL_SELECT:                                                     \
       case Theory::ARRAY_SELECT:                                                          \
       case Theory::ARRAY_STORE
 
