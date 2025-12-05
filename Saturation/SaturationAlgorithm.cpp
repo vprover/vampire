@@ -1736,7 +1736,6 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
-    HOL_ERROR;
     res->addFront(new BoolSimp());
   }
 

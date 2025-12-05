@@ -16,11 +16,11 @@
 #include "Lib/Metaiterators.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -78,8 +78,8 @@ struct ArgCong::ResultFn
       lhs = SubstHelper::apply(lhs, subst);
       rhs = SubstHelper::apply(rhs, subst);
     }
-    TermList newLhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, lhs, freshVar);
-    TermList newRhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, rhs, freshVar);
+    TermList newLhs = HOL::create::app(alpha1, alpha2, lhs, freshVar);
+    TermList newRhs = HOL::create::app(alpha1, alpha2, rhs, freshVar);
 
     Literal* newLit = Literal::createEquality(true, newLhs, newRhs, alpha2);
 

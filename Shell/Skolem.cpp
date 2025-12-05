@@ -14,6 +14,7 @@
  * @since 08/07/2007 flight Manchester-Cork, changed to new datastructures
  */
 
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Inference.hpp"
@@ -22,7 +23,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -445,8 +445,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
           sym = addSkolemFunction(typeVars.size(), typeVars.size(), nullptr, skSymSort);
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
-          skolemTerm = ApplicativeHelper::createAppTerm(
-            SortHelper::getResultSort(head.term()), head, termVars).term();
+          skolemTerm = HOL::create::app(head, termVars).term();
         }
         _introducedSkolemSyms.push(make_pair(skolemisingTypeVar, sym));
 
