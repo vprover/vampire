@@ -279,6 +279,23 @@ struct SimpleCongruenceClosure::FOConversionWorker
   SimpleCongruenceClosure& _parent;
 };
 
+struct Memo {
+  Option<unsigned> get(TermList t) {
+    unsigned cached;
+    return termNames.find(t, cached) ? some(cached) : none<unsigned>();
+  }
+
+  template<class Init> unsigned getOrInit(TermList orig, Init init) {
+    unsigned cached;
+    if(termNames.find(orig, cached))
+      return cached;
+    unsigned result = init();
+    termNames.insert(orig, result);
+    return result;
+  }
+  DHMap<TermList, unsigned> &termNames;
+};
+
 /**
  * Convert a first-order term into a canonical constant
  * by traversing the term structure converting each subterm, results are
@@ -295,7 +312,39 @@ unsigned SimpleCongruenceClosure::convertFO(TermList trm)
 
   FOConversionWorker wrk(*this);
   SafeRecursion<TermList,unsigned,FOConversionWorker> converter(wrk);
-  return converter(trm);
+  auto bue = BottomUpEvaluation<TermList, unsigned>()
+    .function([&](TermList t, unsigned *children) {
+        unsigned res;
+        if(t.isVar()) {
+          res = getSignatureConst(t.var(), SignatureKind::VARIABLE);
+        }
+        else {
+          ASS(t.isTerm());
+          Term *trm = t.term();
+          SignatureKind sk = trm->isSort() ? SignatureKind::TYPECON : SignatureKind::FUNCTION;
+          res = getSignatureConst(trm->functor(), sk);
+          for(size_t i = 0; i < trm->arity(); i++) {
+            res = getPairName(CPair(res, children[i]));
+          }
+        }
+        _cInfos[res].term = t;
+        return res;
+    })
+    .context(TermListContext {.ignoreTypeArgs = false})
+    .memo(Memo {_termNames});
+
+  if(Random::getBit()) {
+    unsigned safe = converter(trm);
+    unsigned iffy = bue.apply(trm);
+    ASS_EQ(safe, iffy)
+    return safe;
+  }
+  else {
+    unsigned iffy = bue.apply(trm);
+    unsigned safe = converter(trm);
+    ASS_EQ(safe, iffy)
+    return safe;
+  }
 }
 
 /**
