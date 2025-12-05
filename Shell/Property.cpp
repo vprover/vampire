@@ -22,12 +22,12 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
 #include "FunctionDefinition.hpp"
@@ -532,9 +532,8 @@ void Property::scanSort(TermList sort)
     }
     return;
   }
-  
-  TermList resultSort = ApplicativeHelper::getResultSort(sort);
-  if(resultSort == AtomicSort::boolSort()){
+
+  if(HOL::finalResult(sort).isBoolSort()){
     _hasFOOL = true;
   }
 
@@ -690,11 +689,8 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(t->isApplication()){
       _hasApp = true;
       TermList sort = SortHelper::getResultSort(t);
-      if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
-        TermList head = ApplicativeHelper::getHead(ts);
-        if(head.isVar()){
-          _hasBoolVar = true;
-        }
+      if(HOL::finalResult(sort).isBoolSort() && ts.head().isVar()){
+        _hasBoolVar = true;
       }
     }
 
@@ -702,7 +698,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(func->proxy() == Proxy::PI || func->proxy() == Proxy::SIGMA) {
         ASS(t->arity() == 1);
         TermList sort = *t->nthArgument(0);
-        if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
+        if(HOL::finalResult(sort).isBoolSort()){
           _hasBoolVar = true;
         }
       }

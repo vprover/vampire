@@ -16,7 +16,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
@@ -28,6 +28,8 @@
 
 #include "Choice.hpp"
 
+namespace HC = HOL::create;
+
 namespace Inferences
 {
 
@@ -38,8 +40,7 @@ using namespace Saturation;
 
 Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 {
-  TermList opType = SortHelper::getResultSort(op.term());
-  TermList setType = ApplicativeHelper::getNthArg(opType, 1);
+  TermList setSort = SortHelper::getResultSort(op.term()).domain();
 
   unsigned max = 0;
   FormulaVarIterator fvi(set);
@@ -51,9 +52,9 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   }
   TermList freshVar = TermList(max+1, false);
 
-  TermList t1 = ApplicativeHelper::createAppTerm(setType, set, freshVar);
-  TermList t2 = ApplicativeHelper::createAppTerm(opType, op, set);
-  t2 =  ApplicativeHelper::createAppTerm(setType, set, t2);
+  TermList t1 = HC::app(setSort, set, freshVar);
+  TermList t2 = HC::app(op, set);
+  t2 =          HC::app(setSort, set, t2);
 
   return Clause::fromLiterals(
       { Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
@@ -68,7 +69,7 @@ struct Choice::AxiomsIterator
   {
     _set = *term->nthArgument(3);
     _headSort = AtomicSort::arrowSort(*term->nthArgument(0),*term->nthArgument(1));
-    _resultSort = ApplicativeHelper::getResultApplieadToNArgs(_headSort, 1);
+    _resultSort = HOL::getResultAppliedToNArgs(_headSort, 1);
 
     //cout << "the result sort is " + _resultSort.toString() << endl;
 
@@ -148,9 +149,7 @@ struct Choice::IsChoiceTerm
 {
   bool operator()(Term* t)
   {
-    TermStack args;
-    TermList head;
-    ApplicativeHelper::getHeadAndArgs(t, head, args);
+    auto [head, args] = HOL::getHeadAndArgs(TermList(t));
     if(args.size() != 1){ return false; }
 
     TermList headSort = AtomicSort::arrowSort(*t->nthArgument(0), *t->nthArgument(1));

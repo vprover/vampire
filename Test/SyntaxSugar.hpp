@@ -26,9 +26,9 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #include "Kernel/Signature.hpp"
@@ -451,7 +451,7 @@ inline TermSugar fool(bool b)
 inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); }
 
 inline TermSugar ap(SortSugar sort, TermSugar lhs, TermSugar rhs) 
-{ return ApplicativeHelper::createAppTerm(sort, lhs, rhs); }  
+{ return HOL::create::app(sort, lhs, rhs); }  
 
 inline TermSugar ap(TermSugar lhs, TermSugar rhs) 
 { return ap(lhs.sort(), lhs, rhs); }  
