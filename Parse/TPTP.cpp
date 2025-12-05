@@ -3269,8 +3269,17 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
 
   bool added = false;
   unsigned typeCon = env.signature->addTypeCon(name,arity,added);
-  if(added)
+  if(added) {
+    // at this point we fail anyways, so no problem declaring unneeded stuff
+    bool fnAdded, predAdded;
+    auto fn = env.signature->addFunction(name,arity,fnAdded);
+    auto pred = env.signature->addPredicate(name,arity,predAdded);
+    if (!fnAdded || !predAdded) {
+      auto type = fnAdded ? env.signature->getPredicate(pred)->predType() : env.signature->getFunction(fn)->fnType();
+      USER_ERROR("Vampire does not yet support dependent types (symbol '", name, ": ", type->toString(), "' was used in a type declaration).");
+    }
     USER_ERROR("Undeclared type constructor ", name, "/", arity);
+  }
 
   auto args = nLastTermLists(arity);
   for (auto i : range(0, arity)) {
