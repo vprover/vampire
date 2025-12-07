@@ -27,10 +27,8 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/TermTransformer.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/List.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 

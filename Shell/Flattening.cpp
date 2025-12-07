@@ -17,7 +17,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/Unit.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
@@ -253,7 +252,7 @@ TermList Flattening::flatten (TermList ts)
       case SpecialFunctor::ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
-        Formula* condition  = sd->getCondition();
+        Formula* condition  = sd->getITECondition();
 
         TermList flattenedThenBranch = flatten(thenBranch);
         TermList flattenedElseBranch = flatten(elseBranch);
@@ -269,42 +268,16 @@ TermList Flattening::flatten (TermList ts)
       }
 
       case SpecialFunctor::LET: {
-        TermList binding = sd->getBinding();
+        Formula* binding = sd->getLetBinding();
         TermList body = *term->nthArgument(0);
 
-        TermList flattenedBinding = flatten(binding);
+        Formula* flattenedBinding = flatten(binding);
         TermList flattenedBody = flatten(body);
 
         if ((binding == flattenedBinding) && (body == flattenedBody)) {
           return ts;
         } else {
-          return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(), flattenedBinding, flattenedBody, sd->getSort()));
-        }
-      }
-
-      case SpecialFunctor::LET_TUPLE: {
-        TermList binding = sd->getBinding();
-        TermList body = *term->nthArgument(0);
-
-        TermList flattenedBinding = flatten(binding);
-        TermList flattenedBody = flatten(body);
-
-        if ((binding == flattenedBinding) && (body == flattenedBody)) {
-          return ts;
-        } else {
-          return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), flattenedBinding, flattenedBody, sd->getSort()));
-        }
-      }
-
-      case SpecialFunctor::TUPLE: {
-        TermList tupleTerm = TermList(sd->getTupleTerm());
-        TermList flattenedTupleTerm = flatten(tupleTerm);
-
-        if (tupleTerm == flattenedTupleTerm) {
-          return ts;
-        } else {
-          ASS_REP(flattenedTupleTerm.isTerm(), flattenedTupleTerm.toString())
-          return TermList(Term::createTuple(flattenedTupleTerm.term()));
+          return TermList(Term::createLet(flattenedBinding, flattenedBody, sd->getSort()));
         }
       }
 

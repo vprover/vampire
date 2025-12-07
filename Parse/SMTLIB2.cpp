@@ -12,14 +12,11 @@
  * Implements class SMTLIB.
  */
 
-#include <climits>
-#include <fstream>
 #include <map>
 
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
-#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Matcher.hpp"
@@ -1501,7 +1498,10 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
       vars.pushBack(_nextVar++);
     }
 
-    let = TermList(Term::createLet(exprT->functor(), vars.list(), SubstHelper::apply(boundExpr,subst), let, letSort));
+    auto varList = vars.list();
+    auto args = TermStack::fromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
+    auto binder = Formula::createDefinition(Term::create(exprT->functor(), args), SubstHelper::apply(boundExpr,subst), varList);
+    let = TermList(Term::createLet(binder, let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));

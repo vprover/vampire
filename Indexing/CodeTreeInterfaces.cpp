@@ -77,7 +77,7 @@ public:
 
   bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
-  virtual void output(std::ostream& out) const final override 
+  void output(std::ostream& out) const final
   { out << "CodeTreeSubstitution(<output unimplemented>)"; }
 
   CodeTree::BindingArray* _bindings;
@@ -102,7 +102,7 @@ public:
     }
   }
 
-  ~ResultIterator()
+  ~ResultIterator() override
   {
     if(_retrieveSubstitutions) {
       delete _subst;
@@ -111,7 +111,7 @@ public:
 
   USE_ALLOCATOR(ResultIterator);
 
-  bool hasNext()
+  bool hasNext() override
   {
     if(_found) {
       return true;
@@ -126,7 +126,7 @@ public:
     return _found;
   }
 
-  QueryRes<ResultSubstitutionSP, Data> next()
+  QueryRes<ResultSubstitutionSP, Data> next() override
   {
     ASS(_found);
 

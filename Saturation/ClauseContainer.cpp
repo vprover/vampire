@@ -18,11 +18,9 @@
 #include "Lib/Stack.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "Indexing/LiteralIndexingStructure.hpp"
-
 #include "SaturationAlgorithm.hpp"
 
-#if VDEBUG
+#if OUTPUT_LRS_DETAILS
 #include <iostream>
 using namespace std;
 #endif

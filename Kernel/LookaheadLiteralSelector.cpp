@@ -13,13 +13,11 @@
  */
 
 #include "Lib/DArray.hpp"
-#include "Lib/Exception.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/LiteralIndexingStructure.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"

@@ -15,7 +15,6 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "SAT/SATInference.hpp"
 #include "SAT/MinisatInterfacing.hpp"

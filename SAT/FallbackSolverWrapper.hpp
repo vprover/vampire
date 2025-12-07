@@ -23,11 +23,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/ScopedPtr.hpp"
-#include "Lib/Stack.hpp"
 
 #include "SATSolver.hpp"
 
@@ -40,19 +36,19 @@ public:
   FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback)
     : _inner(inner), _fallback(fallback) {}
 
-  virtual void randomizeForNextAssignment(unsigned maxVar) override {
+  void randomizeForNextAssignment(unsigned maxVar) override {
     _inner->randomizeForNextAssignment(maxVar);
     _fallback->randomizeForNextAssignment(maxVar);
   }
 
-  virtual void addClause(SATClause* cl) override {
+  void addClause(SATClause* cl) override {
     _inner->addClause(cl);
     _fallback->addClause(cl);
   }
 
-  virtual VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) override;
 
-  virtual bool isZeroImplied(unsigned var) override {
+  bool isZeroImplied(unsigned var) override {
     ASS_G(var,0); ASS_LE(var,_varCnt);
 
     if(_usingFallback){
@@ -63,20 +59,20 @@ public:
     return  _inner->isZeroImplied(var);
   }
 
-  virtual void ensureVarCount(unsigned newVarCnt) override { 
+  void ensureVarCount(unsigned newVarCnt) override { 
     _inner->ensureVarCount(newVarCnt); 
     _fallback->ensureVarCount(newVarCnt); 
     _varCnt=std::max(_varCnt,newVarCnt); 
   }
 
 
-  virtual unsigned newVar() override { 
+  unsigned newVar() override { 
     ALWAYS(_inner->newVar() == ++_varCnt);
     ALWAYS(_fallback->newVar() == _varCnt);
     return _varCnt;
   }
   
-  virtual void suggestPolarity(unsigned var,unsigned pol) override { 
+  void suggestPolarity(unsigned var,unsigned pol) override { 
     _inner->suggestPolarity(var,pol); 
     _fallback->suggestPolarity(var,pol); 
   }

@@ -11,10 +11,8 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/ScopeGuard.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -27,8 +25,6 @@
 #include "Kernel/MLMatcherSD.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Indexing/Index.hpp"
@@ -39,7 +35,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
-#include "Shell/TPTPPrinter.hpp"
 
 #include "BackwardSubsumptionDemodulation.hpp"
 #include "SubsumptionDemodulationHelper.hpp"

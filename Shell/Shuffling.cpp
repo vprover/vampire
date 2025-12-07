@@ -13,7 +13,6 @@
  * @since 25/12/2003 Manchester
  */
 
-#include "Lib/Sort.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
 
@@ -23,7 +22,6 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Shuffling.hpp"
@@ -261,7 +259,7 @@ void Shuffling::shuffleIter(Shufflable sh) {
             Term::SpecialTermData* sd = t->getSpecialData();
             switch (sd->specialFunctor()) {
               case SpecialFunctor::ITE:
-                todo.push(Shufflable(sd->getCondition()));
+                todo.push(Shufflable(sd->getITECondition()));
                 todo.push(Shufflable(*t->nthArgument(0)));
                 tl = *t->nthArgument(1);
                 goto tl_updated;
@@ -272,14 +270,8 @@ void Shuffling::shuffleIter(Shufflable sh) {
                 break;
 
               case SpecialFunctor::LET:
-              case SpecialFunctor::LET_TUPLE:
-                todo.push(Shufflable(sd->getBinding()));
+                todo.push(Shufflable(sd->getLetBinding()));
                 tl = *t->nthArgument(0);
-                goto tl_updated;
-                break; // I know, unreachable;
-
-              case SpecialFunctor::TUPLE:
-                tl = TermList(sd->getTupleTerm());
                 goto tl_updated;
                 break; // I know, unreachable;
 

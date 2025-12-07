@@ -29,7 +29,6 @@
 
 #include "Options.hpp"
 #include "Statistics.hpp"
-#include <chrono>
 #include <cadical.hpp>
 
 using namespace std;

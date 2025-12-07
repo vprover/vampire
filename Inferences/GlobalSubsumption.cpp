@@ -33,7 +33,6 @@
 #include "Shell/Options.hpp"
 
 #include "GlobalSubsumption.hpp"
-#include "Saturation/Splitter.hpp"
 
 #undef LOGGING
 #define LOGGING 0

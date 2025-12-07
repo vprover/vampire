@@ -11,9 +11,7 @@
 #ifndef REQUESTEDINDEX_HPP
 #define REQUESTEDINDEX_HPP
 
-#include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
-#include "Lib/Allocator.hpp"
 
 namespace Indexing {
 

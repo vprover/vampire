@@ -19,7 +19,8 @@
 #include "Index.hpp"
 #include "TermSubstitutionTree.hpp"
 
-#include "Lib/Set.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
+#include "TermIndexingStructure.hpp"
 
 namespace Indexing {
 
@@ -28,7 +29,7 @@ class TermIndex
 : public Index
 {
 public:
-  virtual ~TermIndex() {}
+  ~TermIndex() override {}
 
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
@@ -58,7 +59,7 @@ public:
   SuperpositionSubtermIndex(Indexing::TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
   : TermIndex(is), _ord(ord) {};
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   Ordering& _ord;
 };
@@ -96,7 +97,7 @@ public:
   PositiveEqualitySideIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   Ordering& _ord;
   const Options& _opt;
@@ -109,22 +110,10 @@ class DemodulationSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  // people seemed to like the class, although it add's no interface on top of TermIndex
-  DemodulationSubtermIndex(TermIndexingStructure<TermLiteralClause>* is)
-  : TermIndex(is) {};
+  DemodulationSubtermIndex(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
+  : TermIndex(is), _skipNonequationalLiterals(opt.demodulationOnlyEquational()) {};
 protected:
-  // it's the implementation of this below in DemodulationSubtermIndexImpl, which makes this work
-  void handleClause(Clause* c, bool adding) = 0;
-};
-
-class DemodulationSubtermIndexImpl
-: public DemodulationSubtermIndex
-{
-public:
-  DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
-  : DemodulationSubtermIndex(is), _skipNonequationalLiterals(opt.demodulationOnlyEquational()) {};
-protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   const bool _skipNonequationalLiterals;
 };
@@ -139,7 +128,7 @@ public:
   DemodulationLHSIndex(TermIndexingStructure<DemodulatorData>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _preordered(opt.forwardDemodulation()==Options::Demodulation::PREORDERED) {};
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   Ordering& _ord;
   const bool _preordered;
@@ -179,7 +168,7 @@ public:
   : TermIndex(is), _inductionGroundOnly(opt.inductionGroundOnly()) {}
 
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   const bool _inductionGroundOnly;
 };
@@ -195,7 +184,7 @@ public:
   : TermIndex(is), _inductionGroundOnly(opt.inductionGroundOnly()) {}
 
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   const bool _inductionGroundOnly;
 };

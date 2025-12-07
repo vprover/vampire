@@ -31,7 +31,7 @@ class EqualityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
   struct ResultFn;

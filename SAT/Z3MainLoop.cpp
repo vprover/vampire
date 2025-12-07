@@ -17,6 +17,8 @@
 #include "Forwards.hpp"
 #include "Kernel/Clause.hpp"
 
+#include "Z3Interfacing.hpp"
+
 #include "Z3MainLoop.hpp"
 
 namespace SAT

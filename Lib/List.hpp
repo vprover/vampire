@@ -40,8 +40,10 @@
 
 #include "Forwards.hpp"
 
+#include <utility>
+
 #include "Allocator.hpp"
-#include "VirtualIterator.hpp"
+#include "Reflection.hpp"
 
 #include "Debug/Assertion.hpp"
 

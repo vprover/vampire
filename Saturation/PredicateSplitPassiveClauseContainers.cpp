@@ -10,7 +10,6 @@
 
 #include "PredicateSplitPassiveClauseContainers.hpp"
 
-#include <numeric>
 #include <string>
 #include <algorithm>
 #include <iterator>

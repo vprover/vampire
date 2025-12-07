@@ -18,7 +18,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Term.hpp"
 
 #include "SymElOutput.hpp"
 

@@ -16,8 +16,6 @@
  * [1] http://arxiv.org/abs/1505.01682
  */
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -492,7 +490,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  3) Replace the term with g(Y1,...,Ym,X1, ..., Xn)
          */
 
-        Formula* condition = process(sd->getCondition());
+        Formula* condition = process(sd->getITECondition());
 
         TermList thenBranch;
         Formula* thenBranchFormula {};
@@ -582,37 +580,48 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  4) Replace the term with t'
          */
 
-        TermList binding = sd->getBinding(); // deliberately unprocessed here
-
-        /**
-         * $let-expressions are used for binding both function and predicate symbols.
-         * The body of the binding, however, is always stored as a term. When f is a
-         * predicate, the body is a formula, wrapped in a term. So, this is how we
-         * check that it is a predicate binding and the body of the function stands in
-         * the formula context
-         */
-        Context bindingContext = binding.isTerm() && binding.term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
+        Formula* binding = sd->getLetBinding(); // deliberately unprocessed here
 
         // collect variables A1,...Am,Y1, ..., Yk
-        VList* argumentVars = sd->getVariables();
+        if (binding->connective() == Connective::FORALL) {
+          binding = binding->qarg();
+        }
+        ASS_EQ(binding->connective(), Connective::LITERAL);
+        auto blit = binding->literal();
+        ASS(env.signature->isDefPred(blit->functor()));
+        ASS(blit->termArg(0).isTerm());
 
-        // collect variables B1,...,Bj,X1, ..., Xn
-        VList* bodyFreeVars = VList::empty();
-        FormulaVarIterator bfvi(binding);
-        while (bfvi.hasNext()) {
-          unsigned var = bfvi.next();
-          if (!VList::member(var, argumentVars)) {
-            VList::push(var, bodyFreeVars);
-          }
+        auto bindingLhs = blit->termArg(0).term();
+        auto bindingRhs = blit->termArg(1);
+
+        if (Theory::tuples()->isConstructor(bindingLhs)) {
+          NOT_IMPLEMENTED;
         }
 
+        // The let binder bindingLhs can contain free variables in potentially
+        // arbitrary places if it has implicit type arguments.
+        auto argumentVars = VList::empty();
+        iterTraits(FormulaVarIterator(bindingLhs))
+          .forEach([&](unsigned var) {
+            VList::push(var, argumentVars);
+          });
+
+        // collect variables B1,...,Bj,X1, ..., Xn
+        auto bodyFreeVars = VList::empty();
+        iterTraits(FormulaVarIterator(bindingRhs))
+          .forEach([&](unsigned var) {
+            if (!VList::member(var, argumentVars)) {
+              VList::push(var, bodyFreeVars);
+            }
+          });
+
         // build the list all of variables and collect their sorts
-        VList* vars = VList::append(bodyFreeVars, argumentVars);
+        auto vars = VList::append(bodyFreeVars, argumentVars);
         collectSorts(vars, typeVars, termVars, allVars, termVarSorts);
 
         // take the defined function symbol and its result sort
-        unsigned symbol = sd->getFunctor();
-        TermList bindingSort = SortHelper::getResultSort(binding, _varSorts);
+        unsigned symbol = bindingLhs->functor();
+        TermList bindingSort = SortHelper::getResultSort(bindingLhs);
 
         SortHelper::normaliseSort(typeVars, bindingSort);
 
@@ -623,6 +632,15 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * reuse f and leave the t term as it is.
          */
         bool renameSymbol = VList::isNonEmpty(bodyFreeVars);
+
+        /**
+         * $let-expressions are used for binding both function and predicate symbols.
+         * The body of the binding, however, is always stored as a term. When f is a
+         * predicate, the body is a formula, wrapped in a term. So, this is how we
+         * check that it is a predicate binding and the body of the function stands in
+         * the formula context
+         */
+        Context bindingContext = (bindingSort == AtomicSort::boolSort()) ? FORMULA_CONTEXT : TERM_CONTEXT;
 
         /**
          * If the symbol is not marked as introduced then this means it was used
@@ -637,12 +655,22 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // process the body of the function
         TermList processedBody;
         Formula* processedBodyFormula = nullptr;
-        process(binding, bindingContext, processedBody, processedBodyFormula);
+        process(bindingRhs, bindingContext, processedBody, processedBodyFormula);
 
         // g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
         TermList freshFunctionApplication;
         Formula* freshPredicateApplication = nullptr;
-        buildApplication(freshSymbol, bindingContext, allVars, freshFunctionApplication, freshPredicateApplication);
+
+        TermStack args;
+        if (renameSymbol) {
+          // If symbol is renamed, we just take the list of all variables
+          args = allVars;
+        } else {
+          // Otherwise we take the original args to get a well-formed type
+          args.loadFromIterator(anyArgIter(bindingLhs));
+        }
+
+        buildApplication(freshSymbol, bindingContext, args, freshFunctionApplication, freshPredicateApplication);
 
         Term* freshApplication = bindingContext == FORMULA_CONTEXT ? freshPredicateApplication->literal() :
                                                                      freshFunctionApplication.term();
@@ -672,8 +700,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             std::cout << "[PP] FOOL replace in: " << contents.toString() << endl;
           }
 
-          SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT,
-              freshApplication, symbol, argumentVars);
+          SymbolOccurrenceReplacement replacement(bindingLhs, freshApplication);
 
           contents = replacement.process(contents);
 
@@ -686,9 +713,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         break;
       }
-      case SpecialFunctor::TUPLE:
-      case SpecialFunctor::LET_TUPLE:
-        NOT_IMPLEMENTED;
       case SpecialFunctor::FORMULA: {
         if (context == FORMULA_CONTEXT) {
           formulaResult = process(sd->getFormula());

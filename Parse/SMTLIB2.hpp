@@ -19,10 +19,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Set.hpp"
-
 #include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Shell/LispParser.hpp"

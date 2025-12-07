@@ -58,14 +58,14 @@ public:
     _tis(tis)
   {}
 
-  ~AcyclicityIndex() {}
+  ~AcyclicityIndex() override {}
   
   void insert(Kernel::Literal *lit, Kernel::Clause *c);
   void remove(Kernel::Literal *lit, Kernel::Clause *c);
 
   CycleQueryResultsIterator queryCycles(Kernel::Literal *lit, Kernel::Clause *c);
 protected:
-  void handleClause(Kernel::Clause* c, bool adding);
+  void handleClause(Kernel::Clause* c, bool adding) override;
 private:
   bool matchesPattern(Kernel::Literal *lit, Kernel::TermList *&fs, Kernel::TermList *&t, TermList *sort);
   Lib::List<TypedTermList>* getSubterms(Kernel::Term *t);

@@ -12,20 +12,13 @@
  * Implements class ArgCong.
  */
 
-#include <utility>
-
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
-
-#include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Ordering.hpp"
@@ -33,11 +26,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ArgCong.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {

@@ -20,7 +20,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/ScopedPtr.hpp"
-#include "Lib/Stack.hpp"
 
 #include "Kernel/Problem.hpp"
 

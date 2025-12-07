@@ -21,11 +21,8 @@
 #include "Lib/Event.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
-#include "Lib/Stack.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Set.hpp"
-
-#include "Lib/Allocator.hpp"
 
 #define OUTPUT_LRS_DETAILS 0
 
@@ -121,7 +118,7 @@ class UnprocessedClauseContainer
 : public ClauseContainer
 {
 public:
-  virtual ~UnprocessedClauseContainer();
+  ~UnprocessedClauseContainer() override;
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c) override;
   Clause* pop();
@@ -138,12 +135,12 @@ class PassiveClauseContainer
 {
 public:
   PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
-  virtual ~PassiveClauseContainer(){};
+  ~PassiveClauseContainer() override{};
 
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
 
-  virtual unsigned sizeEstimate() const = 0;
+  unsigned sizeEstimate() const override = 0;
 
   /*
    * LRS specific methods for computation of Limits

@@ -21,7 +21,6 @@
 #include "Lib/PairUtils.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -30,15 +29,11 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/NumTraits.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
-#include "Indexing/TermSharing.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 

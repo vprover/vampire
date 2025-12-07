@@ -17,6 +17,7 @@
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Comparison.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
 #include "Kernel/Clause.hpp"

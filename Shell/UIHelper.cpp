@@ -25,7 +25,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Allocator.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Timer.hpp"
 
@@ -39,7 +38,6 @@
 #include "AnswerLiteralManager.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
-#include "LispParser.hpp"
 #include "Options.hpp"
 #include "SMTCheck.hpp"
 #include "Statistics.hpp"
@@ -49,7 +47,6 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Lib/List.hpp"
-#include "Lib/ScopedPtr.hpp"
 
 namespace Shell {
 

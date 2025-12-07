@@ -14,8 +14,6 @@
 
 #include <algorithm>
 
-#include "Lib/List.hpp"
-
 #include "Term.hpp"
 #include "Clause.hpp"
 

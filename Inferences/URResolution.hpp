@@ -34,10 +34,10 @@ public:
   URResolution(bool full, bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
       NonUnitClauseLiteralIndex* nonUnitIndex);
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
 private:
   struct Item;

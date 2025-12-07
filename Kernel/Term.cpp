@@ -24,7 +24,6 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Output.hpp"
-#include "Lib/StringUtils.hpp"
 
 #include "Term.hpp"
 
@@ -546,68 +545,47 @@ std::string Term::headToString() const
       }
       case SpecialFunctor::LET: {
         ASS_EQ(arity(), 1);
-        TermList binding = sd->getBinding();
-        bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-        std::string functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
-                                      : env.signature->functionName(sd->getFunctor());
-        OperatorType* type = isPredicate ? env.signature->getPredicate(sd->getFunctor())->predType()
-                                         : env.signature->getFunction(sd->getFunctor())->fnType();
+        Formula* binding = sd->getLetBinding();
+        if (binding->connective() == Connective::FORALL) {
+          binding = binding->qarg();
+        }
 
-        const VList* variables = sd->getVariables();
-        std::string variablesList = "";
-        for (unsigned i = 0; i < VList::length(variables); i++) {
-          unsigned var = VList::nth(variables, i);
-          variablesList += Term::variableToString(var);
-          if (i < VList::length(variables) - 1) {
-            variablesList += ", ";
+        ASS_EQ(binding->connective(), Connective::LITERAL);
+        ASS(binding->literal()->termArg(0).isTerm());
+        auto bindingLhs = binding->literal()->termArg(0).term();
+
+        std::string type;
+        if (Theory::tuples()->isConstructor(bindingLhs)) {
+          type += "[";
+          for (unsigned i = 0; i < bindingLhs->numTermArguments(); i++) {
+            auto arg = bindingLhs->termArg(i);
+            ASS(arg.isTerm() && !arg.term()->numTermArguments());
+            type += arg.toString() + ": ";
+            type += (arg.term()->isBoolean() ? AtomicSort::boolSort() : SortHelper::getResultSort(arg.term())).toString();
+            if (i+1 < bindingLhs->numTermArguments()) {
+              type += ", ";
+            }
           }
+          type += "]";
+        } else {
+          auto isPredicate = bindingLhs->isBoolean();
+          Signature::Symbol* sym;
+          if (isPredicate) {
+            ASS(bindingLhs->isFormula());
+            auto f = bindingLhs->getSpecialData()->getFormula();
+            ASS_EQ(f->connective(), Connective::LITERAL);
+            auto lit = f->literal();
+            sym = env.signature->getPredicate(lit->functor());
+          } else {
+            sym = env.signature->getFunction(bindingLhs->functor());
+          }
+          type = sym->name() + ": " + (isPredicate ? sym->predType() : sym->fnType())->toString();
         }
-        if (VList::length(variables)) {
-          variablesList = "(" + variablesList + ")";
-        }
-        return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
+        return "$let(" + type + ", " + binding->toString() + ", ";
       }
       case SpecialFunctor::ITE: {
         ASS_EQ(arity(),2);
-        return "$ite(" + sd->getCondition()->toString() + ", ";
-      }
-      case SpecialFunctor::TUPLE: {
-        ASS_EQ(arity(), 0);
-        Term* term = sd->getTupleTerm();
-        std::string termList = "";
-        Term::Iterator tit(term);
-        unsigned i = term->arity();
-        while (tit.hasNext()) {
-          termList += tit.next().toString();
-          if (--i > 0) {
-            termList += ", ";
-          }
-        }
-        return "[" + termList + "]";
-      }
-      case SpecialFunctor::LET_TUPLE: {
-        ASS_EQ(arity(), 1);
-        VList* symbols = sd->getTupleSymbols();
-        unsigned tupleFunctor = sd->getFunctor();
-        TermList binding = sd->getBinding();
-
-        OperatorType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
-
-        std::string symbolsList = "";
-        std::string typesList = "";
-        for (unsigned i = 0; i < VList::length(symbols); i++) {
-          Signature::Symbol* symbol = (fnType->arg(i) == AtomicSort::boolSort())
-            ? env.signature->getPredicate(VList::nth(symbols, i))
-            : env.signature->getFunction(VList::nth(symbols, i));
-          symbolsList += symbol->name();
-          typesList += symbol->name() + ": " + fnType->arg(i).toString();
-          if (i != VList::length(symbols) - 1) {
-            symbolsList += ", ";
-            typesList += ", ";
-          }
-        }
-
-        return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
+        return "$ite(" + sd->getITECondition()->toString() + ", ";
       }
       case SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
@@ -873,6 +851,10 @@ std::string Literal::toString(bool reverseEquality) const
     }
 
     return res;
+  }
+
+  if (env.signature->isDefPred(functor())) {
+    return termArg(0).toString() + " := " + termArg(1).toString();
   }
 
 #if NICE_THEORY_OUTPUT
@@ -1155,20 +1137,15 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  * Create (let lhs <- rhs in t) expression and return
  * the resulting term
  */
-Term* Term::createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort)
+Term* Term::createLet(Formula* binding, TermList body, TermList bodySort)
 {
 #if VDEBUG
-  Set<unsigned> distinctVars;
-  VList::Iterator vit(variables);
-  while (vit.hasNext()) {
-    distinctVars.insert(vit.next());
+  auto debugBinding = binding;
+  if (debugBinding->connective() == Connective::FORALL) {
+    debugBinding = debugBinding->qarg(); 
   }
-  ASS_EQ(distinctVars.size(), VList::length(variables));
-
-  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-  const unsigned int arity = isPredicate ? env.signature->predicateArity(functor)
-                                         : env.signature->functionArity(functor);
-  ASS_EQ(arity, VList::length(variables));
+  ASS_EQ(debugBinding->connective(), Connective::LITERAL);
+  ASS(env.signature->isDefPred(debugBinding->literal()->functor()));
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
@@ -1176,48 +1153,8 @@ Term* Term::createLet(unsigned functor, VList* variables, TermList binding, Term
   TermList* ss = s->args();
   *ss = body;
   ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_letData.functor = functor;
-  s->getSpecialData()->_letData.variables = variables;
-  s->getSpecialData()->_letData.sort = bodySort;
   s->getSpecialData()->_letData.binding = binding;
-  return s;
-}
-
-/**
- * Create (let [a, b, c] <- rhs in t) expression and return
- * the resulting term
- */
-Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList binding, TermList body, TermList bodySort)
-{
-#if VDEBUG
-  Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
-  ASS_EQ(tupleSymbol->arity(), VList::length(symbols));
-  ASS_REP(tupleSymbol->fnType()->result().isTupleSort(), tupleFunctor);
-
-  Set<pair<int,bool> > distinctSymbols;
-  VList::Iterator sit(symbols);
-  unsigned arg = 0;
-  while (sit.hasNext()) {
-    unsigned symbol = sit.next();
-    bool isPredicate = tupleSymbol->fnType()->arg(arg) == AtomicSort::boolSort();
-    if (!distinctSymbols.contains(make_pair(symbol, isPredicate))) {
-      distinctSymbols.insert(make_pair(symbol, isPredicate));
-    } else {
-      ASSERTION_VIOLATION_REP(symbol);
-    }
-    arg++;
-  }
-#endif
-
-  Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(toNormalFunctor(SpecialFunctor::LET_TUPLE), 1);
-  TermList* ss = s->args();
-  *ss = body;
-  ASS(ss->next()->isEmpty());
-  s->getSpecialData()->_letTupleData.functor = tupleFunctor;
-  s->getSpecialData()->_letTupleData.symbols = symbols;
-  s->getSpecialData()->_letTupleData.sort = bodySort;
-  s->getSpecialData()->_letTupleData.binding = binding;
+  s->getSpecialData()->_letData.sort = bodySort;
   return s;
 }
 
@@ -1257,19 +1194,6 @@ Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList
     lambdaTmSort = AtomicSort::arrowSort(varSort, lambdaTmSort);
   }
   s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
-  return s;
-}
-
-Term* Term::createTuple(unsigned arity, TermList* sorts, TermList* elements) {
-  unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
-  Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
-  return createTuple(tupleTerm);
-}
-
-Term* Term::createTuple(Term* tupleTerm) {
-  Term* s = new(0, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(toNormalFunctor(SpecialFunctor::TUPLE), 0);
-  s->getSpecialData()->_tupleData.term = tupleTerm;
   return s;
 }
 
@@ -1502,12 +1426,10 @@ bool Term::isBoolean() const {
     switch (term->specialFunctor()) {
       case SpecialFunctor::FORMULA:
         return true;
-      case SpecialFunctor::TUPLE:
       case SpecialFunctor::LAMBDA:
         return false;
       case SpecialFunctor::ITE:
-      case SpecialFunctor::LET:
-      case SpecialFunctor::LET_TUPLE: {
+      case SpecialFunctor::LET: {
         const TermList *ts = term->nthArgument(0);
         if (!ts->isTerm()) {
           return false;
@@ -1960,8 +1882,6 @@ std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)
     case SpecialFunctor::ITE: return out << "ITE";
     case SpecialFunctor::LET: return out << "LET";
     case SpecialFunctor::FORMULA: return out << "FORMULA";
-    case SpecialFunctor::TUPLE: return out << "TUPLE";
-    case SpecialFunctor::LET_TUPLE: return out << "LET_TUPLE";
     case SpecialFunctor::LAMBDA: return out << "LAMBDA";
     case SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
   }

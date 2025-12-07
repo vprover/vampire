@@ -20,13 +20,12 @@
 #include "Lib/StringUtils.hpp"
 
 #include "Kernel/Signature.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/InferenceStore.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -34,10 +33,6 @@
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Indexing/Index.hpp"
-#include "Indexing/LiteralIndexingStructure.hpp"
-
-#include "Shell/Flattening.hpp"
 #include "Shell/Options.hpp"
 
 #include "Parse/TPTP.hpp"

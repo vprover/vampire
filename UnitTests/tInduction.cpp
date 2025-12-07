@@ -23,7 +23,6 @@
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 

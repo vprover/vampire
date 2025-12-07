@@ -21,7 +21,6 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
@@ -36,7 +35,6 @@
 #include "Saturation/Splitter.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/TheoryFlattening.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "SAT/SATLiteral.hpp"

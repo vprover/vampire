@@ -28,37 +28,6 @@
 
 namespace Kernel {
 
-/** iterator over all term arguments of @code term */
-static const auto termArgIter = [](Term const* term) 
-  { return range((unsigned)0, term->numTermArguments())
-      .map([=](auto i)
-           { return term->termArg(i); }); };
-
-/** iterator over all term arguments of @code term */
-static const auto termArgIterTyped = [](Term const* term) 
-  { return range((unsigned)0, term->numTermArguments())
-      .map([=](auto i)
-           { return TypedTermList(term->termArg(i), SortHelper::getArgSort(term, i)); }); };
-
-/** iterator over all type arguments of @code term */
-static const auto typeArgIter = [](Term const* term) 
-  { return range((unsigned)0, term->numTypeArguments())
-      .map([=](auto i)
-           { return term->typeArg(i); }); };
-
-/** iterator over all type and term arguments of @code term */
-static const auto anyArgIter = [](Term const* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
-      .map([=](auto i)
-           { return *term->nthArgument(i); }); };
-
-
-/** iterator over all type and term arguments of @code term */
-static const auto anyArgIterTyped = [](Term const* term) 
-  { return range(0, term->arity())
-      .map([=](auto i)
-           { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
-
 /**
  * Iterator that yields variables of specified
  * @b term in DFS left to right order.
@@ -165,10 +134,10 @@ public:
   }
 
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used);
     ASS(_stack.top()->isVar());
@@ -235,10 +204,10 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  std::pair<TermList, TermList> next()
+  std::pair<TermList, TermList> next() override
   {
     ASS(!_used);
     _used=true;
@@ -264,10 +233,10 @@ public:
     pushNext(term->args());
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used && !_stack->isEmpty());
     _used=true;
@@ -322,8 +291,8 @@ public:
     _stack.push(term);
   }
 
-  bool hasNext();
-  TermList next(){
+  bool hasNext() override;
+  TermList next() override{
     ASS(!_used);
     _used = true;
     return _next;
@@ -355,10 +324,10 @@ public:
     pushNext(term->args());
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used && !_stack.isEmpty());
     _used=true;
@@ -412,8 +381,8 @@ public:
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
+  bool hasNext() override { return !_stack.isEmpty(); }
+  TermList next() override;
   void right();
 private:
   /** available non-variable subterms */
@@ -453,8 +422,8 @@ public:
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  Term* next();
+  bool hasNext() override { return !_stack.isEmpty(); }
+  Term* next() override;
   void right();
 private:
   /** available non-variable subterms */
@@ -558,11 +527,11 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
 
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  std::pair<TermList, TermList> next()
+  std::pair<TermList, TermList> next() override
   {
     std::pair<TermList, TermList> res(_arg1,_arg2);
     _arg1 = TermList::empty();
@@ -589,8 +558,8 @@ class TermFunIterator
 public:
   TermFunIterator (const Term*);
 
-  bool hasNext();
-  unsigned next();
+  bool hasNext() override;
+  unsigned next() override;
 private:
   /** True if the next symbol is found */
   bool _hasNext;
@@ -613,8 +582,8 @@ public:
   TermVarIterator (const Term*);
   TermVarIterator (const TermList*);
 
-  bool hasNext ();
-  unsigned next ();
+  bool hasNext () override;
+  unsigned next () override;
 private:
   /** True if the next variable is found */
   // bool _hasNext; // MS: unused
@@ -638,6 +607,42 @@ public:
   inline TermList next() { return TypedTermList(*_lit->nthArgument(_idx), SortHelper::getArgSort(_lit, _idx)); _idx++; }
   unsigned size() const { return _lit->arity(); }
 };
+
+
+/** iterator over all term arguments of @code term */
+static const auto termArgIter = [](Term const* term) 
+  { return range((unsigned)0, term->numTermArguments())
+      .map([=](auto i)
+           { return term->termArg(i); }); };
+
+/** iterator over all term arguments of @code term */
+static const auto termArgIterTyped = [](Term const* term) 
+  { return range((unsigned)0, term->numTermArguments())
+      .map([=](auto i)
+           { return TypedTermList(term->termArg(i), SortHelper::getArgSort(term, i)); }); };
+
+/** iterator over all type arguments of @code term */
+static const auto typeArgIter = [](Term const* term) 
+  { return range((unsigned)0, term->numTypeArguments())
+      .map([=](auto i)
+           { return term->typeArg(i); }); };
+
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIter = [](Term const* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
+      .map([=](auto i)
+           { return *term->nthArgument(i); }); };
+
+
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIterTyped = [](Term const* term) 
+  { return range(0, term->arity())
+      .map([=](auto i)
+           { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
+
+/** iterator that creates a range of variables */
+static const auto varRange = [](unsigned i, unsigned j)
+  { return range(i,j).map(unsignedToVarFn); };
 
 } // namespace Kernel
 

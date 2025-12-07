@@ -10,6 +10,7 @@
 
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Inferences {

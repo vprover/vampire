@@ -34,24 +34,24 @@ public:
    *
    * A requirement is that in a clause, each variable occurs at most once.
    */
-  virtual void addClause(SATClause* cl) override;
+  void addClause(SATClause* cl) override;
 
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var) override;
+  bool isZeroImplied(unsigned var) override;
 
-  virtual void ensureVarCount(unsigned newVarCnt) override;
+  void ensureVarCount(unsigned newVarCnt) override;
 
-  virtual unsigned newVar() override;
+  unsigned newVar() override;
 
-  virtual void suggestPolarity(unsigned var, unsigned pol) override {
+  void suggestPolarity(unsigned var, unsigned pol) override {
     // 0 -> true which means negated, e.g. false in the model
     bool mpol = pol ? false : true; 
     _solver.suggestPolarity(vampireVar2Minisat(var),mpol);

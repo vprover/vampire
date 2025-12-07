@@ -16,11 +16,9 @@
 #define __BinaryHeap__
 
 #include <algorithm>
-#include <limits>
 
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
-#include "Exception.hpp"
 #include "Comparison.hpp"
 #include "Backtrackable.hpp"
 #include "Metaiterators.hpp"
@@ -237,7 +235,7 @@ private:
   public:
     BHPopBacktrackObject(BinaryHeap* bh, T v, unsigned lastBubbleIndex)
     :_bh(bh), _val(v), _lastBubbleIndex(lastBubbleIndex) {}
-    void backtrack()
+    void backtrack() override
     {
       _bh->backtrackPop(_val,_lastBubbleIndex);
     }
@@ -254,7 +252,7 @@ private:
   public:
     BHInsertBacktrackObject(BinaryHeap* bh, unsigned lastBubbleIndex)
     :_bh(bh), _lastBubbleIndex(lastBubbleIndex) {}
-    void backtrack()
+    void backtrack() override
     {
       _bh->backtrackInsert(_lastBubbleIndex);
     }

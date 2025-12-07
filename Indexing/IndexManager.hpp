@@ -20,10 +20,6 @@
 #include "Lib/DHMap.hpp"
 #include "Index.hpp"
 
-#include "Lib/Allocator.hpp"
-#include "Kernel/UnificationWithAbstraction.hpp"
-
-
 namespace Indexing
 {
 

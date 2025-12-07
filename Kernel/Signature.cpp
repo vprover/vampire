@@ -58,7 +58,6 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interprete
     _skolem(0),
     _skipCongruence(0),
     _tuple(0),
-    _letBound(0),
     _prox(Proxy::NOT_PROXY),
     _deBruijnIndex(-1)
 {
@@ -247,6 +246,7 @@ Signature::Signature ():
     _lamFun(UINT_MAX),
     _choiceFun(UINT_MAX),
     _placeholderFun(UINT_MAX),
+    _defPred(UINT_MAX),
     _termAlgebras()
 {
   ALWAYS(createDistinctGroup() == STRING_DISTINCT_GROUP);
@@ -590,6 +590,17 @@ unsigned Signature::getDiff() {
   return diff;
 }
 
+unsigned Signature::getDefPred()
+{
+  bool added = false;
+  unsigned def = addPredicate(":=", 3, added);
+  if (added) {
+    _defPred = def;
+    getPredicate(def)->setType(
+      OperatorType::getPredicateType({ TermList::var(0), TermList::var(0) }, /*taArity=*/ 1));
+  }
+  return def;
+}
 
 unsigned Signature::getFnDef(unsigned fn)
 {

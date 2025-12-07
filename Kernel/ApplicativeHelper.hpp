@@ -16,10 +16,8 @@
 #define __ApplicativeHelper__
 
 #include "Forwards.hpp"
-#include "Signature.hpp"
+#include "Kernel/Term.hpp"
 #include "Lib/Deque.hpp"
-#include "Lib/BiMap.hpp"
-#include "TypedTermList.hpp"
 
 using namespace Kernel;
 using namespace Shell;

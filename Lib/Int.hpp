@@ -18,10 +18,7 @@
 #ifndef __INT__
 #define __INT__
 
-#include "Forwards.hpp"
-
 #include "Comparison.hpp"
-#include "Portability.hpp"
 
 #include <iostream>
 #include <limits>

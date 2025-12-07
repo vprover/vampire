@@ -42,12 +42,9 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
-#include "Lib/System.hpp"
 
 #include "Shell/UIHelper.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/Property.hpp"
 
 #include "Kernel/Problem.hpp"
@@ -2076,13 +2073,6 @@ void Options::init()
     _splittingCongruenceClosure.onlyUsefulWith(_satSolver.is(notEqual(SatSolver::Z3)));
 #endif
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
-
-    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::SMALL_ONES,
-                                                     {"first", "small_ones", "all"});
-    _ccUnsatCores.description="";
-    _lookup.insert(&_ccUnsatCores);
-    _ccUnsatCores.tag(OptionTag::AVATAR);
-    _ccUnsatCores.onlyUsefulWith(_splittingCongruenceClosure.is(equal(true)));
 
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "avatar_literal_polarity_advice","alpa",

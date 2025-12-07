@@ -10,9 +10,7 @@
 
 
 #include "VIRAS.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/ALASCA.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Option.hpp"

@@ -22,7 +22,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
@@ -654,14 +653,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
         addProp(PR_HAS_ITE);
         break;
 
-      case SpecialFunctor::TUPLE:
-        // TODO something like
-        // _hasFOOL = true
-        // addProp(PR_HAS_TUPLE)
-        // for now, do nothing
-        break;
       case SpecialFunctor::LET:
-      case SpecialFunctor::LET_TUPLE:
         _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
         break;

@@ -26,7 +26,6 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 

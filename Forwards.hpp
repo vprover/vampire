@@ -67,6 +67,8 @@ typedef List<Literal*> LiteralList;
 typedef Stack<Literal*> LiteralStack;
 typedef VirtualIterator<Literal*> LiteralIterator;
 
+class AtomicSort;
+
 class Inference;
 
 class Unit;
@@ -190,5 +192,6 @@ class Statistics;
 class FunctionDefinitionHandler;
 class PartialRedundancyHandler;
 struct PartialRedundancyEntry;
+class TermAlgebra;
 }
 #endif /* __Forwards__ */

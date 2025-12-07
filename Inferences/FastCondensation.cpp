@@ -13,7 +13,6 @@
  */
 
 #include "Lib/DHMap.hpp"
-#include "Lib/Int.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -21,8 +20,6 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-
-#include "Lib/Environment.hpp"
 
 #include "FastCondensation.hpp"
 

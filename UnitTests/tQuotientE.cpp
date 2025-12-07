@@ -10,9 +10,6 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
 
-#include <climits>
-
-
 IntegerConstantType quotientE(int lhs, int rhs) {
   return IntegerConstantType(lhs).quotientE(IntegerConstantType(rhs));
 }

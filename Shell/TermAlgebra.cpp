@@ -7,15 +7,14 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 
 using namespace Kernel;
 using namespace Lib;
@@ -145,8 +144,9 @@ TermAlgebra::TermAlgebra(TermList sort,
   _constrs(constrs)
 {
   ASS(_sort.isTerm());
+  ASS(anyArgIter(_sort.term()).all([](TermList t) { return t.isVar(); }));
   for (unsigned i = 0; i < constrs.size(); i++) {
-    ASS(constrs[i]->rangeSort() == _sort);
+    ASS_EQ(constrs[i]->rangeSort(), _sort);
   }
 }
 
@@ -160,8 +160,9 @@ TermAlgebra::TermAlgebra(TermList sort,
   _constrs(n)
 {
   ASS(_sort.isTerm());
+  ASS(anyArgIter(_sort.term()).all([](TermList t) { return t.isVar(); }));
   for (unsigned i = 0; i < n; i++) {
-    ASS(constrs[i]->rangeSort() == _sort);
+    ASS_EQ(constrs[i]->rangeSort(), _sort);
     _constrs[i] = constrs[i];
   }
 }
@@ -240,7 +241,7 @@ const InductionTemplate* TermAlgebra::getInductionTemplateOne()
   if (!_indTemplOne) {
     Stack<InductionCase> cases;
     auto taArity = nTypeArgs();
-    auto typeArgs = TermStack::fromIterator(range(0,taArity).map([](unsigned i){ return TermList::var(i); }));
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
     unsigned var = taArity;
 
     iterCons()
@@ -273,7 +274,7 @@ const InductionTemplate* TermAlgebra::getInductionTemplateTwo()
   if (!_indTemplTwo) {
     Stack<InductionUnit> hypotheses;
     auto taArity = nTypeArgs();
-    auto typeArgs = TermStack::fromIterator(range(0,taArity).map([](unsigned i){ return TermList::var(i); }));
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
     auto y = TermList::var(taArity);
     auto z = TermList::var(taArity+1);
 
@@ -326,7 +327,7 @@ const InductionTemplate* TermAlgebra::getInductionTemplateThree()
     auto y = TermList::var(taArity+1);
     auto z = TermList::var(taArity+2);
 
-    auto typeArgs = TermStack::fromIterator(range(0,taArity).map([](unsigned i){ return TermList::var(i); }));
+    auto typeArgs = TermStack::fromIterator(varRange(0,taArity));
     auto args = typeArgs;
     args.push(x);
     args.push(y);

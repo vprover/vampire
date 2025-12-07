@@ -17,7 +17,6 @@
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/TriangularArray.hpp"
 
@@ -27,11 +26,6 @@
 #include "TermIterators.hpp"
 
 #include "MLMatcher.hpp"
-
-#if VDEBUG
-#include <iostream>
-#endif
-
 
 namespace {
 

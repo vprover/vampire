@@ -25,18 +25,11 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "EqualityFactoring.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {

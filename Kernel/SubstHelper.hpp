@@ -19,7 +19,6 @@
 #include "Lib/Recycled.hpp"
 
 #include "Formula.hpp"
-#include "SortHelper.hpp"
 #include "Substitution.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
@@ -317,33 +316,22 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     switch(trm->specialFunctor()) {
     case SpecialFunctor::ITE:
       return Term::createITE(
-    applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
+    applyImpl<ProcessSpecVars>(sd->getITECondition(), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
     applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
     );
     case SpecialFunctor::LET:
+      // TODO what about sd->getSort()?
       return Term::createLet(
-    sd->getFunctor(),
-    sd->getVariables(),
-    applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-    sd->getSort()
-    );
+        applyImpl<ProcessSpecVars>(sd->getLetBinding(), applicator, noSharing),
+        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+        sd->getSort()
+      );
     case SpecialFunctor::FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case SpecialFunctor::LET_TUPLE:
-      return Term::createTupleLet(
-        sd->getFunctor(),
-        sd->getTupleSymbols(),
-        applyImpl<ProcessSpecVars>(sd->getBinding(), applicator, noSharing),
-        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-        sd->getSort()
-        );
-    case SpecialFunctor::TUPLE:
-      return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
     case SpecialFunctor::LAMBDA:
       // TODO in principle this should not be so difficult to handle
       ASSERTION_VIOLATION;

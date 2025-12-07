@@ -22,18 +22,11 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
-#include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
 #include "Lib/STL.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
-#include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/Reflection.hpp"
-#include "Shell/Options.hpp"
 #include "Lib/BacktrackableCollections.hpp"
-#include "Lib/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
@@ -236,11 +229,11 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
   std::shared_ptr<AlascaState> shared;
   CoherenceNormalization(std::shared_ptr<AlascaState> shared) : shared(std::move(shared)) {}
 
-  void attach(SaturationAlgorithm* salg) final override { }
+  void attach(SaturationAlgorithm* salg) final { }
 
-  void detach() final override { }
+  void detach() final { }
 
-  ClauseGenerationResult generateSimplify(Clause* premise) final override {
+  ClauseGenerationResult generateSimplify(Clause* premise) final {
     return ClauseGenerationResult {
       .clauses = pvi( Superposition::Lhs::iter(*shared, premise)
                         .filter([](auto& x) { return NumTraits::isFloor(x.biggerSide()); })

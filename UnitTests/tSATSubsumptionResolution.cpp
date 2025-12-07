@@ -9,11 +9,8 @@
  */
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Test/GenerationTester.hpp"
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "Kernel/Inference.hpp"
 
 using namespace std;
 using namespace SATSubsumption;

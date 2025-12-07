@@ -13,7 +13,6 @@
  */
 
 #include "Lib/Stack.hpp"
-#include "Lib/Environment.hpp"
 
 #include "KBO.hpp"
 #include "SubstHelper.hpp"

@@ -12,8 +12,7 @@
 
 #include "Forwards.hpp"
 
-#include "Kernel/Signature.hpp"
-#include "Lib/Environment.hpp"
+#include "Kernel/Term.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -28,19 +27,14 @@ using namespace Shell;
 class SymbolOccurrenceReplacement {
   public:
     /**
-     * symbol = f
+     * oldApplication = f(B1, ..., Bj, Y1, ..., Yk)
      * freshApplication = g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
-     * argVars = B1, ..., Bj, Y1, ..., Yk
-     * isPredicate = whether or not f and g are predicate symbols
      */
-    SymbolOccurrenceReplacement(bool isPredicate, Term* freshApplication, unsigned symbol, VList* argVars)
-            : _isPredicate(isPredicate), _freshApplication(freshApplication), _symbol(symbol), _argVars(argVars) {
-        
-        if(isPredicate){
-          ASS(VList::length(argVars) == env.signature->getPredicate(symbol)->arity());
-        } else {
-          ASS(VList::length(argVars) == env.signature->getFunction(symbol)->arity());
-        }
+    SymbolOccurrenceReplacement(Term* oldApplication, Term* freshApplication)
+      : _isPredicate(oldApplication->isBoolean()),
+        _oldApplication(oldApplication),
+        _freshApplication(freshApplication)
+    {
         // The implementation of this class doesn't requite argVars to be
         // non-empty, however, its use case expects this constraint
         //ASS(argVars || !env.signature->getFunction(symbol)->introduced());
@@ -52,9 +46,8 @@ class SymbolOccurrenceReplacement {
 
   private:
     const bool _isPredicate;
+    Term* _oldApplication;
     Term* _freshApplication;
-    const unsigned _symbol;
-    const VList* _argVars;
 };
 
 #endif // __SymbolOccurrenceReplacement__

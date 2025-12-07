@@ -17,7 +17,6 @@
 
 #include "Lib/Deque.hpp"
 #include "Lib/DHSet.hpp"
-#include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -29,7 +28,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -68,22 +66,13 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
       switch (sd->specialFunctor()) {
         case SpecialFunctor::FORMULA:
           extractFormulaSymbols(sd->getFormula(), ids);
-              break;
+          break;
         case SpecialFunctor::ITE:
-          extractFormulaSymbols(sd->getCondition(), ids);
-              break;
+          extractFormulaSymbols(sd->getITECondition(), ids);
+          break;
         case SpecialFunctor::LET:
-        case SpecialFunctor::LET_TUPLE: {
-          TermList binding = sd->getBinding();
-          if (binding.isTerm()) {
-            addSymIds(binding.term(), ids);
-          }
+          extractFormulaSymbols(sd->getLetBinding(), ids);
           break;
-        }
-        case SpecialFunctor::TUPLE: {
-          addSymIds(sd->getTupleTerm(), ids);
-          break;
-        }
         case SpecialFunctor::LAMBDA:
           NOT_IMPLEMENTED;
         case SpecialFunctor::MATCH: {
