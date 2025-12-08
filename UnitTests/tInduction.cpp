@@ -53,9 +53,9 @@ TermIndex<TermLiteralClause>* structInductionIndex(const Options& opt) {
 
 auto getIndices() {
   return TestIndices {
-    [](const Options&) { return comparisonIndex(); },
-    [](const Options& opt) { return intInductionIndex(opt); },
-    [](const Options& opt) { return structInductionIndex(opt); },
+    [](const SaturationAlgorithm&) { return comparisonIndex(); },
+    [](const SaturationAlgorithm& alg) { return intInductionIndex(alg.getOptions()); },
+    [](const SaturationAlgorithm& alg) { return structInductionIndex(alg.getOptions()); },
   };
 }
 

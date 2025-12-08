@@ -42,7 +42,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
     auto rsti = EqHelper::getSubtermIterator(lit, _ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
-      ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause{ tt, lit, c }, adding);
+      _is->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
@@ -61,6 +61,17 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void GoalTermIndex::handleClause(Clause* c, bool adding)
+{
+  DHSet<Term*> done;
+  for (const auto& lit : c->getSelectedLiteralIterator()) {
+    if (lit->isPositive()) { continue; }
+    for (const auto& st : iterTraits(NonVariableNonTypeIterator(lit))) {
+      if (!done.insert(st)) { continue; }
+      _is->handle(TermLiteralClause{ st, lit, c }, adding);
+    }
+  }
+}
 
 void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {

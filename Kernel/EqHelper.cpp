@@ -194,30 +194,30 @@ TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& o
 template<class SubtermIterator>
 VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  if (lit->isEquality()) {
-    TermList sel;
-    switch(ord.getEqualityArgumentOrder(lit)) {
-    case Ordering::INCOMPARABLE: {
-      SubtermIterator si(lit);
-      return getUniquePersistentIteratorFromPtr(&si);
-    }
-    case Ordering::EQUAL:
-    case Ordering::GREATER:
-      sel=*lit->nthArgument(0);
-      break;
-    case Ordering::LESS:
-      sel=*lit->nthArgument(1);
-      break;
-#if VDEBUG
-    default:
-      ASSERTION_VIOLATION;
-#endif
-    }
-    if (!sel.isTerm()) {
-      return VirtualIterator<ELEMENT_TYPE(SubtermIterator)>::getEmpty();
-    }
-    return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
-  }
+//   if (lit->isEquality()) {
+//     TermList sel;
+//     switch(ord.getEqualityArgumentOrder(lit)) {
+//     case Ordering::INCOMPARABLE: {
+//       SubtermIterator si(lit);
+//       return getUniquePersistentIteratorFromPtr(&si);
+//     }
+//     case Ordering::EQUAL:
+//     case Ordering::GREATER:
+//       sel=*lit->nthArgument(0);
+//       break;
+//     case Ordering::LESS:
+//       sel=*lit->nthArgument(1);
+//       break;
+// #if VDEBUG
+//     default:
+//       ASSERTION_VIOLATION;
+// #endif
+//     }
+//     if (!sel.isTerm()) {
+//       return VirtualIterator<ELEMENT_TYPE(SubtermIterator)>::getEmpty();
+//     }
+//     return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
+//   }
 
   SubtermIterator si(lit);
   return getUniquePersistentIteratorFromPtr(&si);

@@ -87,9 +87,9 @@ using namespace Inferences::ALASCA;
 
 auto idxIntegerFourierMotzkin() { 
   return Generation::TestIndices{
-    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise0>(); },
-    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise1>(); },
-    [=](const Options&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise2>(); },
+    [=](const SaturationAlgorithm&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise0>(); },
+    [=](const SaturationAlgorithm&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise1>(); },
+    [=](const SaturationAlgorithm&) { return new AlascaIndex<IntegerFourierMotzkin<RealTraits>::Premise2>(); },
   }; 
 }
 

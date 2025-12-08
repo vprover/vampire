@@ -228,6 +228,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
 
+  _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
+
   _completeOptionSettings = opt.complete(prb);
 
   _unprocessed = new UnprocessedClauseContainer();
@@ -1476,7 +1478,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     gie->addFront(new EqualityResolution());
     if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
-      gie->addFront(new Superposition());
+      gie->addFront(new Superposition(opt.goalOrientedSuperposition()));
     }
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
@@ -1697,8 +1699,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl = new SymElOutput();
   }
-
-  res->_partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, &ordering, res->_splitter));
 
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);

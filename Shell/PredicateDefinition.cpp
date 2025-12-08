@@ -17,7 +17,6 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
-#include "Lib/Int.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"

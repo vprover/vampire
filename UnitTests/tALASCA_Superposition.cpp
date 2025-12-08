@@ -86,8 +86,8 @@ using namespace Inferences::ALASCA;
 
 Generation::TestIndices alascaSuperpositionIndices()
 { return {
-    [](const Options&){ return new AlascaIndex<Superposition::Lhs>();},
-    [](const Options&){ return new AlascaIndex<Superposition::Rhs>();},
+    [](const SaturationAlgorithm&){ return new AlascaIndex<Superposition::Lhs>();},
+    [](const SaturationAlgorithm&){ return new AlascaIndex<Superposition::Rhs>();},
   }; }
 
 auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultaneous = false)

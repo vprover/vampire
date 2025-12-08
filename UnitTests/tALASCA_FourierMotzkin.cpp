@@ -90,8 +90,8 @@ using namespace Inferences::ALASCA;
 auto idxFourierMotzkin(
     ) { 
   return Generation::TestIndices{
-    [=](const Options&) { return new AlascaIndex<FourierMotzkin::Lhs>(); },
-    [=](const Options&) { return new AlascaIndex<FourierMotzkin::Rhs>(); },
+    [=](const SaturationAlgorithm&) { return new AlascaIndex<FourierMotzkin::Lhs>(); },
+    [=](const SaturationAlgorithm&) { return new AlascaIndex<FourierMotzkin::Rhs>(); },
   }; 
 }
 

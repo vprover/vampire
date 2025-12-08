@@ -1863,6 +1863,12 @@ void Options::init()
     _simultaneousSuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
     _simultaneousSuperposition.tag(OptionTag::INFERENCES);
 
+    _goalOrientedSuperposition = BoolOptionValue("goal_oriented_superposition","gos",false);
+    _goalOrientedSuperposition.description="New calculus, to be described.";
+    _lookup.insert(&_goalOrientedSuperposition);
+    _goalOrientedSuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
+    _goalOrientedSuperposition.tag(OptionTag::INFERENCES);
+
     _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
     _innerRewriting.description="C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2";
     _innerRewriting.onlyUsefulWith(ProperSaturationAlgorithm());

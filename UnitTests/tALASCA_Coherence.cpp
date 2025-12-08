@@ -49,8 +49,8 @@ using namespace Inferences::ALASCA;
 
 inline Generation::TestIndices alascaCoherenceIndices()
 { return {
-    [](const Options&){ return new AlascaIndex<CoherenceConf<RealTraits>::Lhs>();},
-    [](const Options&){ return new AlascaIndex<CoherenceConf<RealTraits>::Rhs>();},
+    [](const SaturationAlgorithm&){ return new AlascaIndex<CoherenceConf<RealTraits>::Lhs>();},
+    [](const SaturationAlgorithm&){ return new AlascaIndex<CoherenceConf<RealTraits>::Rhs>();},
   }; }
 
 REGISTER_GEN_TESTER(AlascaGenerationTester<Coherence<RealTraits>>())

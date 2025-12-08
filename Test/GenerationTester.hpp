@@ -224,7 +224,7 @@ public:
   friend class SymmetricTest;
 };
 
-using TestIndices = Stack<std::function<Indexing::Index*(const Options&)>>;
+using TestIndices = Stack<std::function<Indexing::Index*(const SaturationAlgorithm&)>>;
 
 class AsymmetricTest
 {
@@ -309,7 +309,7 @@ public:
     rule.InferenceEngine::attach(&alg);
     Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
-      indices.push(i(*env.options));
+      indices.push(i(alg));
     }
 
     rule.setTestIndices(indices);

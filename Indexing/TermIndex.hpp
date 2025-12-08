@@ -77,6 +77,15 @@ private:
   TermSubstitutionTree<TermLiteralClause>* _tree;
 };
 
+class GoalTermIndex
+: public TermIndex<TermLiteralClause>
+{
+public:
+  GoalTermIndex() : TermIndex(new TermSubstitutionTree<TermLiteralClause>()) {}
+protected:
+  void handleClause(Clause* c, bool adding) override;
+};
+
 /**
  * Term index for backward demodulation
  */

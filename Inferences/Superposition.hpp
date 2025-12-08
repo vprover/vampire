@@ -32,6 +32,8 @@ class Superposition
 : public GeneratingInferenceEngine
 {
 public:
+  Superposition(const bool goalOriented) : _goalOriented(goalOriented) {}
+
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
@@ -51,9 +53,12 @@ private:
       ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
+
+  bool isGoalLiteral(Literal* lit);
+  bool isGoalTerm(TypedTermList t);
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
-  { 
+  {
     _lhsIndex = static_cast<decltype(_lhsIndex)>(is[0]);
     _subtermIndex = static_cast<decltype(_subtermIndex)>(is[1]);
   }
@@ -67,6 +72,9 @@ private:
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;
+  GoalTermIndex* _goalTermIndex;
+
+  const bool _goalOriented;
 };
 
 using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;

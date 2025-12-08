@@ -16,7 +16,6 @@
 
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/Recycled.hpp"
@@ -62,14 +61,18 @@ void Superposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
   _lhsIndex=static_cast<SuperpositionLHSIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
+  _goalTermIndex=static_cast<GoalTermIndex*> (
+	  _salg->getIndexManager()->request(GOAL_TERM_INDEX) );
 }
 
 void Superposition::detach()
 {
   _subtermIndex=0;
   _lhsIndex=0;
+  _goalTermIndex = nullptr;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
   _salg->getIndexManager()->release(SUPERPOSITION_LHS_SUBST_TREE);
+  _salg->getIndexManager()->release(GOAL_TERM_INDEX);
   GeneratingInferenceEngine::detach();
 }
 
@@ -109,6 +112,18 @@ private:
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
+  if (_goalOriented && premise->length()>1) {
+    INVALID_OPERATION("non-unit clauses not yet supported");
+  }
+  static bool positiveHandled = false;
+  if (_goalOriented) {
+    if ((*premise)[0]->isPositive()) {
+      positiveHandled = true;
+    } else if (positiveHandled) {
+      INVALID_OPERATION("positive equation was already added, this path is not yet complete.");
+    }
+  }
+
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
@@ -283,6 +298,28 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   return true;
 }
 
+bool Superposition::isGoalLiteral(Literal* lit)
+{
+  if (lit->isNegative()) {
+    return true;
+  }
+  if (!lit->isEquality()) {
+    INVALID_OPERATION("predicates not yet supported");
+  }
+
+  for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _salg->getOrdering(), _salg->getOptions()))) {
+    if (isGoalTerm(TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Superposition::isGoalTerm(TypedTermList t)
+{
+  return _goalTermIndex->getUnifications(t).hasNext();
+}
+
 /**
  * If superposition should be performed, return result of the superposition,
  * otherwise return 0.
@@ -370,13 +407,33 @@ Clause* Superposition::performSuperposition(
     TermList arg0=*rwLitS->nthArgument(0);
     TermList arg1=*rwLitS->nthArgument(1);
 
-    if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
-        return 0;
+    if (_goalOriented) {
+      if (!isGoalLiteral(rwLitS)) {
+        if (!isGoalTerm(TypedTermList(tgtTermS, subst->apply(eqLHSsort, eqIsResult)))) {
+          env.statistics->backwardDemodulationsToEqTaut++;
+          return 0;
+        }
+        if (!arg0.containsSubterm(rwTermS)) {
+          if (Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+            env.statistics->backwardDemodulationsToEqTaut++;
+            return 0;
+          }
+        } else if (!arg1.containsSubterm(rwTermS)) {
+          if (Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
+            env.statistics->backwardDemodulationsToEqTaut++;
+            return 0;
+          }
+        }
       }
-    } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-        return 0;
+    } else {
+      if(!arg0.containsSubterm(rwTermS)) {
+        if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
+          return 0;
+        }
+      } else if(!arg1.containsSubterm(rwTermS)) {
+        if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+          return 0;
+        }
       }
     }
   }
