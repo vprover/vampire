@@ -1867,6 +1867,7 @@ void Options::init()
     _goalOrientedSuperposition.description="New calculus, to be described.";
     _lookup.insert(&_goalOrientedSuperposition);
     _goalOrientedSuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
+    _goalOrientedSuperposition.addHardConstraint(If(equal(true)).then(_demodulationRedundancyCheck.is(notEqual(DemodulationRedundancyCheck::ENCOMPASS))));
     _goalOrientedSuperposition.tag(OptionTag::INFERENCES);
 
     _innerRewriting = BoolOptionValue("inner_rewriting","irw",false);
