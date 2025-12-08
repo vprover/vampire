@@ -63,18 +63,18 @@ private:
   Ordering& _ord;
 };
 
+template<bool inverse>
 class SuperpositionLHSIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
   SuperpositionLHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
+  : TermIndex(is), _ord(ord), _opt(opt) {}
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
   Ordering& _ord;
   const Options& _opt;
-  TermSubstitutionTree<TermLiteralClause>* _tree;
 };
 
 class GoalTermIndex

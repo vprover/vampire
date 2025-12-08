@@ -59,8 +59,10 @@ void Superposition::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _subtermIndex=static_cast<SuperpositionSubtermIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
-  _lhsIndex=static_cast<SuperpositionLHSIndex*> (
+  _lhsIndex=static_cast<decltype(_lhsIndex)> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
+  _rhsIndex=static_cast<decltype(_rhsIndex)> (
+	  _salg->getIndexManager()->request(SUPERPOSITION_RHS_SUBST_TREE) );
   _goalTermIndex=static_cast<GoalTermIndex*> (
 	  _salg->getIndexManager()->request(GOAL_TERM_INDEX) );
 }
@@ -69,9 +71,11 @@ void Superposition::detach()
 {
   _subtermIndex=0;
   _lhsIndex=0;
+  _rhsIndex = nullptr;
   _goalTermIndex = nullptr;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
   _salg->getIndexManager()->release(SUPERPOSITION_LHS_SUBST_TREE);
+  _salg->getIndexManager()->release(SUPERPOSITION_RHS_SUBST_TREE);
   _salg->getIndexManager()->release(GOAL_TERM_INDEX);
   GeneratingInferenceEngine::detach();
 }
@@ -112,50 +116,12 @@ private:
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
-  if (_goalOriented && premise->length()>1) {
-    INVALID_OPERATION("non-unit clauses not yet supported");
-  }
-  static bool positiveHandled = false;
-  if (_goalOriented) {
-    if ((*premise)[0]->isPositive()) {
-      positiveHandled = true;
-    } else if (positiveHandled) {
-      INVALID_OPERATION("positive equation was already added, this path is not yet complete.");
-    }
-  }
-
-  auto itf1 = premise->getSelectedLiteralIterator();
-
-  // Get an iterator of pairs of selected literals and rewritable subterms of those literals
-  // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
-  // a maximal side of an equality or of a non-equational literal
-  auto itf2 = getMapAndFlattenIterator(itf1,
-      [this](Literal* lit)
-      // returns an iterator over the rewritable subterms
-      { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator(lit,  _salg->getOrdering())); });
-
-  // Get clauses with a literal whose complement unifies with the rewritable subterm,
-  // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,
-      [this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
-
-  //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, *this));
-
-  auto itb1 = premise->getSelectedLiteralIterator();
-  auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2,
-      [this] (pair<Literal*, TermList> arg)
-      { return pushPairIntoRightIterator(
-              arg,
-              _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
-
-  //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, *this));
+  auto itf = performForwardSuperpositions(premise);
+  auto itb = performBackwardSuperpositions(premise);
+  auto itg = performSuperpositionsWithGoal(premise);
 
   // Add the results of forward and backward together
-  auto it5 = concatIters(itf4,itb4);
+  auto it5 = concatIters(itf,itb,itg);
 
   // Remove null elements - these can come from performSuperposition
   auto it6 = getFilteredIterator(it5,NonzeroFn());
@@ -164,6 +130,71 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto it7 = TIME_TRACE_ITER("superposition", it6);
 
   return pvi( it7 );
+}
+
+ClauseIterator Superposition::performForwardSuperpositions(Clause* premise)
+{
+  return pvi(premise->getSelectedLiteralIterator()
+    // Get an iterator of pairs of selected literals and rewritable subterms of those literals
+    // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
+    // a maximal side of an equality or of a non-equational literal
+    .flatMap(
+      [this](Literal* lit)
+      // returns an iterator over the rewritable subterms
+      { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator(lit,  _salg->getOrdering())); })
+    // Get clauses with a literal whose complement unifies with the rewritable subterm,
+    // returns a pair with the original pair and the unification result (includes substitution)
+    .flatMap(
+      [this](pair<Literal*, TypedTermList> arg)
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); })
+    //Perform forward superposition
+    .map(ForwardResultFn(premise, *this)));
+}
+
+ClauseIterator Superposition::performBackwardSuperpositions(Clause* premise)
+{
+  return pvi(premise->getSelectedLiteralIterator()
+    .flatMap(EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()))
+    .flatMap(
+      [this] (pair<Literal*, TermList> arg)
+      { return pushPairIntoRightIterator(
+              arg,
+              _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); })
+    //Perform backward superposition
+    .map(BackwardResultFn(premise, *this)));
+}
+
+ClauseIterator Superposition::performSuperpositionsWithGoal(Clause* premise)
+{
+  if (!_goalOriented) {
+    return ClauseIterator::getEmpty();
+  }
+  if (premise->length()>1) {
+    INVALID_OPERATION("non-unit clauses not yet supported");
+  }
+  auto lit = (*premise)[0];
+  if (!lit->isEquality()) {
+    INVALID_OPERATION("predicates not yet supported");
+  }
+
+  if (lit->isPositive()) {
+    return ClauseIterator::getEmpty();
+  }
+  // TODO this is a bit dubious, static is needed because
+  // the iterator is evaluated outside of this function
+  static DHSet<Clause*> done;
+  done.reset();
+  return pvi(iterTraits(NonVariableNonTypeIterator(lit))
+    .flatMap([&](const auto& t) {
+      return _rhsIndex->getUnifications(t);
+    })
+    .flatMap([&](const auto& qr) {
+      if (!done.insert(qr.data->clause)) { return ClauseIterator::getEmpty(); }
+      return pvi(concatIters(
+        performForwardSuperpositions(qr.data->clause),
+        performBackwardSuperpositions(qr.data->clause)
+      ));
+    }));
 }
 
 /**
@@ -305,6 +336,10 @@ bool Superposition::isGoalLiteral(Literal* lit)
   }
   if (!lit->isEquality()) {
     INVALID_OPERATION("predicates not yet supported");
+  }
+  // TODO this case is a violation in EqHelper::getSuperpositionLHSIterator
+  if (EqHelper::isEqTautology(lit)) {
+    return isGoalTerm(TypedTermList(lit->termArg(0), SortHelper::getEqualityArgumentSort(lit)));
   }
 
   for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _salg->getOrdering(), _salg->getOptions()))) {
