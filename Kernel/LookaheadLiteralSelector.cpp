@@ -139,7 +139,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     ASS(prepared);
     prepared=false;
     stage++;
-    return nextIt;
+    return std::move(nextIt);
   }
 private:
 
@@ -225,7 +225,7 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   }
 
   for(unsigned i=0;i<cnt;i++) {
-    runifs[i].drop(); //release the iterators
+    runifs[i].~VirtualIterator(); //release the iterators
   }
   return res;
 }

@@ -72,9 +72,9 @@ struct EqualityFactoring::FactorablePairsFn
 
     auto it3 = getMapAndFlattenIterator(it2,EqHelper::EqualityArgumentIteratorFn());
 
-    auto it4 = pushPairIntoRightIterator(arg,it3);
+    auto it4 = pushPairIntoRightIterator(arg,std::move(it3));
 
-    return pvi( it4 );
+    return pvi( std::move(it4) );
   }
 private:
   Clause* _cl;
@@ -182,15 +182,15 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg->getOrdering()));
 
-  auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
+  auto it4 = getMapAndFlattenIterator(std::move(it3),FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
+  auto it5 = getMappingIterator(std::move(it4),ResultFn(*this, premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
       _salg->getOrdering(), _uwaFixedPointIteration));
 
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
+  auto it6 = getFilteredIterator(std::move(it5),NonzeroFn());
 
-  return pvi( it6 );
+  return pvi( std::move(it6) );
 }
 
 }

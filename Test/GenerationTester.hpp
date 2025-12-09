@@ -333,7 +333,7 @@ public:
 
     // run checks
     auto sExp = this->_expected.unwrap();
-    auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
+    auto sRes = Stack<Kernel::Clause*>::fromIterator(std::move(res.clauses));
 
     if (!sExp.matches(sRes, simpl)) {
       testFail(sRes, sExp);

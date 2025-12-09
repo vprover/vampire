@@ -487,7 +487,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, u
     premises = ClauseIterator::getEmpty();
   }
 
-  onClauseReduction(cl, replacements, numOfReplacements, premises, forward);
+  onClauseReduction(cl, replacements, numOfReplacements, std::move(premises), forward);
 }
 
 void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, unsigned numOfReplacements,
@@ -497,7 +497,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, u
 
   static ClauseStack premStack;
   premStack.reset();
-  premStack.loadFromIterator(premises);
+  premStack.loadFromIterator(std::move(premises));
 
   Clause *replacement = numOfReplacements ? *replacements : 0;
 
@@ -920,13 +920,12 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
     {
       Clause *replacement = 0;
-      ClauseIterator premises = ClauseIterator::getEmpty();
-
+      auto premises = ClauseIterator::getEmpty();
       if (fse->perform(cl, replacement, premises)) {
         if (replacement) {
           addNewClause(replacement);
         }
-        onClauseReduction(cl, &replacement, 1, premises);
+        onClauseReduction(cl, &replacement, 1, std::move(premises));
 
         return false;
       }
@@ -1138,7 +1137,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   _partialRedundancyHandler->checkEquations(cl);
 
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
-  auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
+  auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, std::move(generated.clauses));
 
   while (toAdd.hasNext()) {
     Clause *genCl = toAdd.next();
@@ -1303,12 +1302,11 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     ForwardSimplificationEngine *fse = fsit.next();
     Clause *replacement = 0;
     auto premises = ClauseIterator::getEmpty();
-
     if (fse->perform(cl, replacement, premises)) {
       if (replacement) {
         addNewClause(replacement);
       }
-      onClauseReduction(cl, nullptr, 0, premises);
+      onClauseReduction(cl, nullptr, 0, std::move(premises));
       removeSelected(cl);
       return;
     }

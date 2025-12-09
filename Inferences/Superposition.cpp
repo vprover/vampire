@@ -121,34 +121,34 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,
+  auto itf3 = getMapAndFlattenIterator(std::move(itf2),
       [this](pair<Literal*, TypedTermList> arg)
       { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
 
   //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, *this));
+  auto itf4 = getMappingIterator(std::move(itf3),ForwardResultFn(premise, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2,
+  auto itb3 = getMapAndFlattenIterator(std::move(itb2),
       [this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(
               arg,
               _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
 
   //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, *this));
+  auto itb4 = getMappingIterator(std::move(itb3),BackwardResultFn(premise, *this));
 
   // Add the results of forward and backward together
-  auto it5 = concatIters(itf4,itb4);
+  auto it5 = concatIters(std::move(itf4),std::move(itb4));
 
   // Remove null elements - these can come from performSuperposition
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
+  auto it6 = getFilteredIterator(std::move(it5),NonzeroFn());
 
   // The outer iterator ensures we update the time counter for superposition
-  auto it7 = TIME_TRACE_ITER("superposition", it6);
+  auto it7 = TIME_TRACE_ITER("superposition", std::move(it6));
 
-  return pvi( it7 );
+  return pvi( std::move(it7) );
 }
 
 /**

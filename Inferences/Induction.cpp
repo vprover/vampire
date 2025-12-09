@@ -375,7 +375,7 @@ VirtualIterator<InductionContext> contextReplacementInstance(const InductionCont
       }
     }
   }
-  return pvi(concatIters(res, vi(opt.inductionGen()
+  return pvi(concatIters(std::move(res), vi(opt.inductionGen()
     ? new ContextSubsetReplacement(ctx, opt.maxInductionGenSubsetSize())
     : new ContextReplacement(ctx))));
 }
@@ -611,7 +611,7 @@ struct InductionContextFn
           { _premise, { _lit } },
           { tqr.clause, { tqr.literal } }
         });
-        res = pvi(concatIters(res, getSingletonIterator(ctx)));
+        res = pvi(concatIters(std::move(res), getSingletonIterator(ctx)));
       }
       return res;
     // heuristic 1
@@ -666,7 +666,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     } else {
       it = vi(new NonVariableNonTypeIterator(lit, /*includeSelf=*/true));
     }
-    for (const auto& t : iterTraits(it)) {
+    for (const auto& t : iterTraits(std::move(it))) {
       if (!t->isLiteral() && InductionHelper::isInductionTerm(t)){
         if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(t)){
           ta_terms.emplace(Stack<Term*>{ t }, TemplateTypeArgsSet());
@@ -745,13 +745,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         .map([this](Stack<Term*> ts) {
           auto res = VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
           for (const auto& t : ts) {
-            res = pvi(concatIters(res, _structInductionTermIndex->getGeneralizations(t, false)));
+            res = pvi(concatIters(std::move(res), _structInductionTermIndex->getGeneralizations(t, false)));
           }
-          return make_pair(ts, res);
+          return make_pair(ts, std::move(res));
         }));
     }
     // put clauses from queries into contexts alongside with the given clause and induction term
-    auto sideLitsIt2 = iterTraits(sideLitsIt)
+    auto sideLitsIt2 = iterTraits(std::move(sideLitsIt))
       .flatMap(InductionContextFn(premise, lit))
       // generalize all contexts if needed
       .flatMap([this](const InductionContext& arg) {
@@ -778,7 +778,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       .flatMap([this](const InductionContext& arg) {
         return contextReplacementInstance(arg, _opt, _fnDefHandler);
       });
-    auto indCtxIt = concatIters(sideLitsIt2, indCtxSingle)
+    auto indCtxIt = concatIters(std::move(sideLitsIt2), std::move(indCtxSingle))
       // filter out the ones without an induction literal
       .filter([](const InductionContext& arg) {
         for (const auto& kv : arg._cls) {

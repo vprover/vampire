@@ -190,13 +190,13 @@ ClauseIterator Choice::generateClauses(Clause* premise)
   auto it2 = getMapAndFlattenIterator(it1, SubtermsFn());
 
   //pair of literals and possible rewrites that can be applied to literals
-  auto it3 = getFilteredIterator(it2, IsChoiceTerm());
+  auto it3 = getFilteredIterator(std::move(it2), IsChoiceTerm());
 
   //apply rewrite rules to literals
-  auto it4 = getMapAndFlattenIterator(it3, ResultFn());
+  auto it4 = getMapAndFlattenIterator(std::move(it3), ResultFn());
 
 
-  return pvi( it4 );
+  return pvi( std::move(it4) );
 
 }
 
