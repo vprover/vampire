@@ -68,14 +68,13 @@ public:
   }
 
   template<typename IndexType, bool isGenerating>
-  bool contains()
+  IndexType* tryGet() const
   {
-    return _store.find(key<IndexType, isGenerating>());
-  }
-
-  template<typename IndexType, bool isGenerating> IndexType* get()
-  {
-    return static_cast<IndexType*>(_store.get(key<IndexType, isGenerating>()).index);
+    auto ptr = _store.findPtr(key<IndexType, isGenerating>());
+    if (!ptr) {
+      return nullptr;
+    }
+    return static_cast<IndexType*>(*ptr);
   }
 
 private:

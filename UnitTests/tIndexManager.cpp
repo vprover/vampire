@@ -64,23 +64,23 @@ TEST_FUN(index_refcounted) {
   Indexing::IndexManager imgr(alg);
 
   // TODO for whatever reason I cannot put res1 into ASS()
-  auto res1 = imgr.contains<TestIndex, /*isGenerating=*/true>();
+  auto res1 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
   ASS(!res1);
 
   imgr.request<TestIndex, /*isGenerating=*/true>();
-  auto res2 = imgr.contains<TestIndex, /*isGenerating=*/true>();
+  auto res2 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
   ASS(res2);
 
   imgr.request<TestIndex, /*isGenerating=*/true>();
-  auto res3 = imgr.contains<TestIndex, /*isGenerating=*/true>();
+  auto res3 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
   ASS(res3);
 
   imgr.release<TestIndex, /*isGenerating=*/true>();
-  auto res4 = imgr.contains<TestIndex, /*isGenerating=*/true>();
+  auto res4 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
   ASS(res4);
 
   imgr.release<TestIndex, /*isGenerating=*/true>();
-  auto res5 = imgr.contains<TestIndex, /*isGenerating=*/true>();
+  auto res5 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
   ASS(!res5);
 }
 

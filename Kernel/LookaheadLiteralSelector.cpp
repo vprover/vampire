@@ -74,18 +74,16 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     switch(stage) {
     case 0:  //resolution
     {
-      if(!imgr->contains<BinaryResolutionIndex, /*isGenerating=*/true>()) { stage++; goto start; }
-      auto gli = imgr->get<BinaryResolutionIndex, /*isGenerating=*/true>();
-      ASS(gli);
+      auto gli = imgr->tryGet<BinaryResolutionIndex, /*isGenerating=*/true>();
+      if(!gli) { stage++; goto start; }
 
       nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );
       break;
     }
     case 1:  //backward superposition
     {
-      if(!imgr->contains<SuperpositionSubtermIndex, /*isGenerating=*/true>()) { stage++; goto start; }
-      auto bsi=imgr->get<SuperpositionSubtermIndex, /*isGenerating=*/true>();
-      ASS(bsi);
+      auto bsi = imgr->tryGet<SuperpositionSubtermIndex, /*isGenerating=*/true>();
+      if(!bsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getLHSIterator(lit, _parent._ord),
@@ -94,9 +92,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     }
     case 2:  //forward superposition
     {
-      if(!imgr->contains<SuperpositionLHSIndex, /*isGenerating=*/true>()) { stage++; goto start; }
-      auto fsi=imgr->get<SuperpositionLHSIndex, /*isGenerating=*/true>();
-      ASS(fsi);
+      auto fsi=imgr->tryGet<SuperpositionLHSIndex, /*isGenerating=*/true>();
+      if(!fsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
