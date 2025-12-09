@@ -257,6 +257,10 @@ struct Memo {
  */
 unsigned SimpleCongruenceClosure::convertFO(TermList trm)
 {
+  unsigned cached;
+  if(_termNames.find(trm, cached))
+    return cached;
+
   return BottomUpEvaluation<TermList, unsigned>()
     .context(TermListContext {.ignoreTypeArgs = false})
     .function([&](TermList t, unsigned *children) {
