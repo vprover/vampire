@@ -74,7 +74,7 @@ public:
     if (!ptr) {
       return nullptr;
     }
-    return static_cast<IndexType*>(*ptr);
+    return static_cast<IndexType*>(ptr->index);
   }
 
 private:
