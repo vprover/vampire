@@ -20,27 +20,25 @@
 #include "Lib/DHMap.hpp"
 #include "Index.hpp"
 
-// #include "Lib/ConstTypeId.hpp"
-
 namespace Indexing
 {
 
 using namespace Lib;
 using namespace Saturation;
 
-struct IndexTag {};
-template<typename T> inline constexpr IndexTag index_id_impl{};
-template<typename T> inline constexpr IndexTag const* index_id = &index_id_impl<T>;
-
 class IndexManager
 {
 public:
   explicit IndexManager(SaturationAlgorithm& alg);
 
+  template<typename IndexType> static unsigned indexId();
+
   template<typename IndexType, bool isGenerating>
-  constexpr static auto key()
-  // { return std::make_pair(ConstTypeId::getTypeId<IndexType>(), isGenerating); }
-  { return std::make_pair(index_id<IndexType>, isGenerating); }
+  static auto key()
+  {
+    static_assert(std::is_base_of<Index, IndexType>());
+    return std::make_pair(indexId<IndexType>(), isGenerating);
+  }
 
   template<typename IndexType, bool isGenerating>
   IndexType* request()
@@ -89,7 +87,9 @@ private:
     int refCnt;
   };
   SaturationAlgorithm& _alg;
-  DHMap<std::pair<const IndexTag*, bool>,Entry> _store;
+  // indices mapped by unsigned index id and Boolean telling
+  // whether they are for the generating container or not
+  DHMap<std::pair<unsigned, bool>,Entry> _store;
 };
 
 };

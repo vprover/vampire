@@ -27,6 +27,9 @@ struct TestIndex : public Index
   DHSet<Clause*> cls;
 };
 
+// any index id suffices for this test
+template<> unsigned IndexManager::indexId<TestIndex>() { return 0; }
+
 TEST_FUN(index_shared) {
   Problem p;
   Options o;
