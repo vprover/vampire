@@ -34,6 +34,9 @@ using namespace Indexing;
 
 #define INDEX_ID_IMPL(IndexType, Id) template<> unsigned IndexManager::indexId<IndexType>() { return Id; }
 
+/**
+ * IMPORTANT: Keep these values distinct from each other!
+ */
 INDEX_ID_IMPL(AlascaIndex<ALASCA::Demodulation::Lhs>,                                   0)
 INDEX_ID_IMPL(AlascaIndex<ALASCA::Demodulation::Rhs>,                                   1)
 INDEX_ID_IMPL(AlascaIndex<ALASCA::CoherenceConf<NumTraits<RealConstantType>>::Lhs>,     2)
@@ -66,8 +69,7 @@ INDEX_ID_IMPL(NonUnitClauseWithALLiteralIndex,                                  
 INDEX_ID_IMPL(UnitIntegerComparisonLiteralIndex,                                       29)
 
 IndexManager::IndexManager(SaturationAlgorithm& alg)
-  : _alg(alg)
-{ }
+  : _alg(alg) {}
 
 template<bool isGenerating>
 void IndexManager::attachContainer(Index* i)
