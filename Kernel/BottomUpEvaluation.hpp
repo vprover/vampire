@@ -410,8 +410,10 @@ struct BottomUpChildIter<Kernel::TermList>
   }
 
   bool hasNext(EmptyContext = EmptyContext()) const { return hasNext(TermListContext()); }
-  bool hasNext(TermListContext c) const
-  { return _self.isTerm() && _idx < _self.term()->numTermArguments(); }
+  bool hasNext(TermListContext ctx) const
+  { return _self.isTerm() && (ctx.ignoreTypeArgs 
+      ? _idx < _self.term()->numTermArguments()
+      : _idx < _self.term()->arity()); }
 
   unsigned nChildren(EmptyContext = EmptyContext()) const { return nChildren(TermListContext()); }
   unsigned nChildren(TermListContext c) const
