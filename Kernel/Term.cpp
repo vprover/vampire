@@ -554,7 +554,7 @@ std::string Term::headToString() const
         auto bindingLhs = binding->literal()->termArg(0).term();
 
         std::string type;
-        if (Theory::tuples()->isConstructor(bindingLhs)) {
+        if (Theory::isTupleConstructor(bindingLhs)) {
           type += "[";
           for (unsigned i = 0; i < bindingLhs->numTermArguments(); i++) {
             auto arg = bindingLhs->termArg(i);
@@ -614,7 +614,7 @@ std::string Term::headToString() const
     }
   } else {
     unsigned proj;
-    if (!isSort() && Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
+    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
     std::string name = "";
@@ -889,7 +889,7 @@ std::string Literal::toString(bool reverseEquality) const
   }
 
   unsigned proj;
-  if (Theory::tuples()->findProjection(functor(), true, proj)) {
+  if (Theory::findTupleProjection(functor(), true, proj)) {
     return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
   }
   s += predicateName();

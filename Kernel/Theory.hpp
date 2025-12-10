@@ -20,7 +20,6 @@
 #include "Forwards.hpp"
 #include "OperatorType.hpp"
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Reflection.hpp"
 
@@ -480,53 +479,15 @@ public:
 
     // array functions
     ARRAY_SELECT,
-    ARRAY_BOOL_SELECT,
     ARRAY_STORE,
 
     INVALID_INTERPRETATION // LEAVE THIS AS THE LAST ELEMENT OF THE ENUM
   };
 
-  enum IndexedInterpretation {
-    FOR_NOW_EMPTY
-  };
-
-  typedef std::pair<IndexedInterpretation, unsigned> ConcreteIndexedInterpretation;
-
-  /**
-   * Interpretations represent the abstract concept of an interpreted operation vampire knows about.
-   *
-   * Some of them are polymorphic, such the ones for ARRAYs, and only become a concrete operation when supplied with OperatorType*.
-   * To identify these, MonomorphisedInterpretation (see below) can be used. However, notice that the appropriate Symbol always carries
-   * an Interpretation (if interpreted) and an OperatorType*.
-   *
-   * Other operations might be, in fact, indexed families of operations, and need an additional index (unsigned) to be specified.
-   * To keep the Symbol structure from growing for their sake, these IndexedInterpretations are instantiated to a concrete member of a family on demand
-   * and we keep track of this instantiation in _indexedInterpretations (see below). Members of _indexedInterpretations
-   * implicitly "inhabit" a range of values in Interpretation after INVALID_INTERPRETATION, so that again an
-   * Interpretation (this time >= INVALID_INTERPRETATION) and an OperatorType* are enough to identify a member of an indexed family.
-   */
-
-  typedef std::pair<Interpretation, OperatorType*> MonomorphisedInterpretation;
-
-private:
-  DHMap<ConcreteIndexedInterpretation,Interpretation> _indexedInterpretations;
-
 public:
 
   static unsigned numberOfFixedInterpretations() {
     return INVALID_INTERPRETATION;
-  }
-
-  Interpretation interpretationFromIndexedInterpretation(IndexedInterpretation ii, unsigned index)
-  {
-    ConcreteIndexedInterpretation cii = std::make_pair(ii,index);
-
-    Interpretation res;
-    if (!_indexedInterpretations.find(cii, res)) {
-      res = static_cast<Interpretation>(numberOfFixedInterpretations() + _indexedInterpretations.size());
-      _indexedInterpretations.insert(cii, res);
-    }
-    return res;
   }
 
   static bool isPlus(Interpretation i){
@@ -537,9 +498,7 @@ public:
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
-  static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
-
-  static OperatorType* getArrayOperatorType(TermList arraySort, Interpretation i);
+  static OperatorType* getOperatorType(Interpretation i);
 
   static bool hasSingleSort(Interpretation i);
   static TermList getOperationSort(Interpretation i);
@@ -548,11 +507,8 @@ public:
   static bool isNonLinearOperation(Interpretation i);
   bool isPartiallyInterpretedFunction(Term* t);
   bool partiallyDefinedFunctionUndefinedForArgs(Term* t);
-  // static bool isPartialFunction(Interpretation i);
 
   static bool isPolymorphic(Interpretation i);
-
-  unsigned getArrayExtSkolemFunction(TermList sort);
 
   static Theory theory_obj;
   static Theory* instance();
@@ -586,7 +542,6 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
-  // bool isInterpretedPartialFunction(unsigned func);
   bool isZero(TermList t);
 
   Interpretation interpretFunction(unsigned func);
@@ -642,22 +597,14 @@ public:
   Term* representConstant(const RealConstantType& num);
 
 private:
-  Theory();
+  Theory() = default;
   static OperatorType* getConversionOperationType(Interpretation i);
 
-  DHMap<TermList,unsigned> _arraySkolemFunctions;
-
 public:
-  class Tuples {
-  public:
-    bool isConstructor(Term* t);
-    unsigned getConstructor(unsigned arity);
-    unsigned getProjectionFunctor(unsigned arity, unsigned proj);
-    bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
-  };
-
-  static Theory::Tuples tuples_obj;
-  static Theory::Tuples* tuples();
+  static bool isTupleConstructor(Term* t);
+  static unsigned getTupleConstructor(unsigned arity);
+  static unsigned getTupleProjectionFunctor(unsigned arity, unsigned proj);
+  static bool findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
 };
 
 #define ANY_INTERPRETED_PREDICATE                                                         \
@@ -683,7 +630,6 @@ public:
     case Kernel::Theory::REAL_GREATER:                                                    \
     case Kernel::Theory::REAL_GREATER_EQUAL:                                              \
     case Kernel::Theory::REAL_LESS:                                                       \
-    case Kernel::Theory::ARRAY_BOOL_SELECT:                                               \
     case Kernel::Theory::REAL_LESS_EQUAL
 
 #define ANY_INTERPRETED_FUNCTION                                                          \
