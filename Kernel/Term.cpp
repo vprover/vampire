@@ -1270,6 +1270,7 @@ namespace {
   struct Linearizer : TypeAwareTermTransformer {
     Linearizer() : TypeAwareTermTransformer(true) {}
     TermList transformSubterm(TermList trm, bool isSort) override {
+      // return trm;
       if (trm.isVar()) {
         if (isSort) {
           unsigned* ptr;

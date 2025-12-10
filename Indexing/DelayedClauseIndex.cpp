@@ -76,10 +76,10 @@ bool DelayedClauseIndex::checkReachable(Literal* lit)
   }
 
   auto linearizedTypedTerm = [](TermList t, TermList sort) {
-    if (t.isVar()) {
+    // if (t.isVar()) {
       return TypedTermList(t, sort);
-    }
-    return TypedTermList(Term::linearize(t.term()));
+    // }
+    // return TypedTermList(Term::linearize(t.term()));
   };
 
   auto eqSort = SortHelper::getEqualityArgumentSort(lit);
@@ -120,9 +120,9 @@ void DelayedClauseIndex::handle(Clause* cl, Literal* lit, bool adding)
   // SubtermIndex
   for (TypedTermList tt : iterTraits(EqHelper::getSubtermIterator(lit, *_ord))) {
     // TODO don't linearize here
-    if (tt.isTerm()) {
-      tt = Term::linearize(tt.term());
-    }
+    // if (tt.isTerm()) {
+    //   tt = Term::linearize(tt.term());
+    // }
     _subtermIS.handle(TermLiteralClause{ tt, lit, cl }, adding);
   }
 
@@ -130,14 +130,15 @@ void DelayedClauseIndex::handle(Clause* cl, Literal* lit, bool adding)
     // PositiveEqualitySideIndex
     for (unsigned i = 0; i < 2; i++) {
       TypedTermList tt(lit->termArg(i), SortHelper::getEqualityArgumentSort(lit));
-      if (tt.isTerm()) {
-        tt = Term::linearize(tt.term());
-      }
+      // if (tt.isTerm()) {
+      //   tt = Term::linearize(tt.term());
+      // }
       _posEqSideIS.handle(TermLiteralClause{ tt, lit, cl }, adding);
     }
   } else {
     // PositiveLiteralIndex
-    _posLitIS.handle(LiteralLiteralClause{ Literal::linearize(lit), lit, cl }, adding);
+    // _posLitIS.handle(LiteralLiteralClause{ Literal::linearize(lit), lit, cl }, adding);
+    _posLitIS.handle(LiteralLiteralClause{ lit, lit, cl }, adding);
 
     // PredicateIndex
     DHMap<Clause*,Literal*>* ptr;

@@ -250,13 +250,13 @@ private:
   typedef std::array<unsigned,2> StatPair;
 
   /** number of input clauses */
-  StatPair inputClauses;
+  StatPair inputClauses = {};
   /** number of input formulas */
-  StatPair inputFormulas;
+  StatPair inputFormulas = {};
   /** all clauses */
-  StatPair clauses;
+  StatPair clauses = {};
   /** all formulas */
-  StatPair formulas;
+  StatPair formulas = {};
   /** inference counts indexed by InferenceRule */
   std::array<StatPair, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
   /** input types indexed by UnitInputType */
