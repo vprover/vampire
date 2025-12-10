@@ -257,6 +257,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _extensionality = 0;
   }
 
+  if (opt.splitting()) {
+    _splitter = new Splitter();
+  }
+
+  _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
+
   s_instance = this;
 }
 
@@ -1437,10 +1443,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     NOT_IMPLEMENTED;
   }
 
-  if (opt.splitting()) {
-    res->_splitter = new Splitter();
-  }
-
   // create generating inference engine
   CompositeGIE *gie = new CompositeGIE();
 
@@ -1692,8 +1694,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl = new SymElOutput();
   }
-
-  res->_partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, &ordering, res->_splitter));
 
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);

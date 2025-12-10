@@ -224,19 +224,17 @@ public:
   friend class SymmetricTest;
 };
 
-using TestIndices = Stack<std::function<Indexing::Index*(const Options&)>>;
+using OptionMap = Stack<std::pair<std::string,std::string>>;
 
 class AsymmetricTest
 {
   using Clause = Kernel::Clause;
-  using OptionMap = Stack<std::pair<std::string,std::string>>;
   using Condition = std::function<bool(std::string&, std::string&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Option<StackMatcher> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
-  TestIndices _indices;
   std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   bool _selfApplications;
   OptionMap _options;
@@ -272,7 +270,6 @@ public:
   __BUILDER_METHOD(bool, premiseRedundant)
   __BUILDER_METHOD(bool, selfApplications)
   __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(TestIndices, indices)
   __BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   __BUILDER_METHOD(OptionMap, options)
 
@@ -304,16 +301,8 @@ public:
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
     rule.attach(&alg);
-    Stack<Indexing::Index*> indices;
-    for (auto i : _indices) {
-      indices.push(i(*env.options));
-    }
 
     auto container = alg.getActiveClauseContainer();
-
-    for (auto i : indices) {
-      i->attachContainer(container);
-    }
 
     // add the clauses to the index
     for (auto c : _context) {
@@ -321,9 +310,10 @@ public:
       container->add(c);
     }
 
+    _input->setStore(Clause::ACTIVE);
+
     // run rule
     if (_selfApplications) {
-      _input->setStore(Clause::ACTIVE);
       container->add(_input);
     }
 
@@ -363,7 +353,7 @@ class SymmetricTest
   Option<StackMatcher> _expected;
   bool _premiseRedundant;
   bool _selfApplications;
-  TestIndices _indices;
+  OptionMap _options;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -390,7 +380,7 @@ public:
   __BUILDER_METHOD(bool, premiseRedundant)
   __BUILDER_METHOD(bool, selfApplications)
   __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(TestIndices, indices)
+  __BUILDER_METHOD(OptionMap, options)
 
 #undef __BUILDER_METHOD
 
@@ -417,7 +407,7 @@ public:
       .premiseRedundant(_premiseRedundant)
       .selfApplications(_selfApplications)
       .rule(rule)
-      .indices(_indices)
+      .options(_options)
       .run(simpl);
   }
 };

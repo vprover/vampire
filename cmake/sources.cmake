@@ -63,7 +63,6 @@ set(UNIT_TESTS
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
-    UnitTests/tKBO.hpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
@@ -78,6 +77,7 @@ set(UNIT_TESTS
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
+    UnitTests/tSuperposition.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
