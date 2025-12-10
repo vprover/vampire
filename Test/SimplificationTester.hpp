@@ -149,7 +149,7 @@ public:
   void run(SimplificationManyTester<Rule>& simpl) {
     auto resOp = simpl.simplifyMany(_input);
     if (resOp.isSome()) {
-      auto res = Stack<Kernel::Clause*>::fromIterator(*resOp);
+      auto res = Stack<Kernel::Clause*>::fromIterator(std::move(*resOp));
       std::cout  << std::endl;
       std::cout << "[     case ]: " << pretty(*_input) << std::endl;
       std::cout << "[       is ]: " << pretty(res) << std::endl;
@@ -190,7 +190,7 @@ public:
       std::cout << "[ expected ]: " << pretty(exp) << std::endl;
       exit(-1);
     } else {
-      auto res = Stack<Kernel::Clause*>::fromIterator(*resOp);
+      auto res = Stack<Kernel::Clause*>::fromIterator(std::move(*resOp));
       if (!exp.matches(res, simpl)) {
         std::cout  << std::endl;
         std::cout << "[     case ]: " << pretty(*_input) << std::endl;

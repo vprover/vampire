@@ -102,10 +102,10 @@ Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)
   auto it3 = getMapAndFlattenIterator(it2,RewriteableSubtermsFn());
 
   //Perform  Narrow
-  auto it4 = getMapAndFlattenIterator(it3,ResultFn(premise, *this));
+  auto it4 = getMapAndFlattenIterator(std::move(it3),ResultFn(premise, *this));
 
   if (it4.hasNext()) {
-    return some(pvi(it4));
+    return some(pvi(std::move(it4)));
   } else {
     return {};
   }

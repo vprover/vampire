@@ -215,7 +215,7 @@ void BackwardDemodulation::perform(Clause* cl,
   //replacementIterator right at this point, so we can measure the time just
   //simply (which cannot be generally done when iterators are involved)
 
-  simplifications=getPersistentIterator(replacementIterator);
+  simplifications=getPersistentIterator(std::move(replacementIterator));
 }
 
 }
