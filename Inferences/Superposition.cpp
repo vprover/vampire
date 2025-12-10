@@ -323,7 +323,7 @@ Clause* Superposition::performSuperposition(
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
 
-  unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
+  unsigned numPositiveLiteralsLowerBound = std::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
   //TODO update inference rule name AYB
   Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);

@@ -78,8 +78,6 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
     case LITERAL: {
       Literal* literal = formula->literal();
 
-      Literal* processedLiteral;
-
       if (_isPredicate && (literal->functor() == _oldApplication->functor())) {
         Substitution substitution;
         for (unsigned i = 0; i < literal->arity(); i++) {

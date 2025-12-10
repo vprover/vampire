@@ -20,6 +20,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -619,9 +620,17 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         auto vars = VList::append(bodyFreeVars, argumentVars);
         collectSorts(vars, typeVars, termVars, allVars, termVarSorts);
 
+        // this is ugly, but otherwise := would have to be special
+        if (bindingLhs->isBoolean()) {
+          ASS(bindingLhs->isFormula());
+          auto inner = bindingLhs->getSpecialData()->getFormula();
+          ASS_EQ(inner->connective(), Connective::LITERAL);
+          bindingLhs = inner->literal();
+        }
+
         // take the defined function symbol and its result sort
         unsigned symbol = bindingLhs->functor();
-        TermList bindingSort = SortHelper::getResultSort(bindingLhs);
+        TermList bindingSort = bindingLhs->isLiteral() ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
 
         SortHelper::normaliseSort(typeVars, bindingSort);
 
@@ -741,7 +750,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          *  3) Replace the term with g(Y1, ..., Ym, X1, ..., Xn)
          */
         if (_higherOrder) {
-            HOL_ERROR;
+          termResult = HOL::convert::toNameless(term);
         }
         else {
           Formula *formula = process(sd->getFormula());
@@ -773,7 +782,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
       case SpecialFunctor::LAMBDA: {
-        HOL_ERROR;
+        // Lambda terms using named representation are converted to nameless De Bruijn representation
+        termResult = HOL::convert::toNameless(term);
         break;
       }
 

@@ -165,14 +165,6 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
-    HOL_ERROR;
-  }
-
-  if (env.options->choiceAxiom()) {
-    HOL_ERROR;
-  }
-
   (void)prb.getProperty();
 
 

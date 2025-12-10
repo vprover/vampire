@@ -129,7 +129,6 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
     case Connective::OR: {
       FormulaList::Iterator argsIt(formula->args());
 
-      const std::string name = conn == Connective::AND ? "vAND" : "vOR";
       auto constant = TermList(Term::createConstant(env.signature->getBinaryProxy(connectiveToString(conn))));
 
       TermList appTerm;

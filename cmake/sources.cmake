@@ -74,7 +74,6 @@ set(UNIT_TESTS
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSafeRecursion.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
@@ -331,8 +330,6 @@ set(SOURCES
     Kernel/ALASCA/Signature.hpp
     Kernel/ALASCA/State.cpp
     Kernel/ALASCA/State.hpp
-    Kernel/ApplicativeHelper.cpp
-    Kernel/ApplicativeHelper.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/BottomUpEvaluation.hpp
     Kernel/Clause.cpp
@@ -517,7 +514,6 @@ set(SOURCES
     Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/STL.hpp
-    Lib/SafeRecursion.hpp
     Lib/ScopeGuard.hpp
     Lib/ScopedLet.hpp
     Lib/ScopedPtr.hpp
@@ -673,8 +669,6 @@ set(SOURCES
     Shell/InterpretedNormalizer.cpp
     Shell/InterpretedNormalizer.hpp
     Shell/Lexer.cpp
-    Shell/Lexer.cpp
-    Shell/Lexer.hpp
     Shell/Lexer.hpp
     Shell/LispLexer.cpp
     Shell/LispLexer.hpp

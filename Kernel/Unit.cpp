@@ -56,7 +56,7 @@ Unit::Unit(Kind kind, Inference inf)
     _inheritedColor(COLOR_INVALID),
     _inference(std::move(inf))
 {
-  env.statistics->reportUnit(this);
+  env.statistics->reportUnit(this,Statistics::TOTAL_CNT);
 } // Unit::Unit
   //
 
@@ -269,7 +269,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
         ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
       }
       inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
-      env.statistics->reportProofStep(current);
+      env.statistics->reportUnit(current,Statistics::INPROOF_CNT);
 
     } else {
       if (!done.insert(current)) {

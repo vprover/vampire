@@ -1499,8 +1499,20 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     }
 
     auto varList = vars.list();
-    auto args = TermStack::fromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
-    auto binder = Formula::createDefinition(Term::create(exprT->functor(), args), SubstHelper::apply(boundExpr,subst), varList);
+    TermStack args;
+    if (varList) {
+      args.loadFromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
+    }
+    Term* lhs;
+    if (exprSort == AtomicSort::boolSort()) {
+      // This solution is ugly, but either := has to be special or we have
+      // to wrap this as a formula to preserve the term-formula boundary.
+      lhs = Term::createFormula(new AtomicFormula(Literal::create(exprT->functor(), args.size(), true, args.begin())));
+    } else {
+      lhs = Term::create(exprT->functor(), args);
+    }
+
+    auto binder = Formula::createDefinition(lhs, SubstHelper::apply(boundExpr,subst), varList);
     let = TermList(Term::createLet(binder, let, letSort));
   }
 

@@ -96,11 +96,11 @@ enum class ExecutionPhase {
  */
 class Statistics {
 public:
+  enum UnitCountCategory { TOTAL_CNT = 0, INPROOF_CNT = 1 };
 
   void print(std::ostream& out);
   void explainRefutationNotFound(std::ostream& out);
-  void reportUnit(Unit* u);
-  void reportProofStep(Unit* u);
+  void reportUnit(Unit* u, UnitCountCategory idx);
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */
@@ -247,10 +247,7 @@ private:
   static const char* phaseToString(ExecutionPhase p);
 
   /** A pair counting the total and in-proof value of a statistic. */
-  struct StatPair {
-    unsigned total = 0;
-    unsigned inproof = 0;
-  };
+  typedef std::array<unsigned,2> StatPair;
 
   /** number of input clauses */
   StatPair inputClauses;

@@ -354,6 +354,17 @@ TermList HOL::rhsSort(TermList t) {
   return *t.term()->nthArgument(0);
 }
 
+TermList HOL::finalResult(TermList sort)
+{
+  if (sort.isVar() || !sort.isArrowSort()) {
+    return sort;
+  }
+  while (sort.isArrowSort()) {
+    sort = sort.result();
+  }
+  return sort;
+}
+
 void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) {
   while (t.isLambdaTerm()) {
     sorts.push(*t.term()->nthArgument(0));

@@ -157,9 +157,8 @@ Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
     return env.options->unificationWithAbstraction();
-  } else if (/* env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && */ env.getMainProblem()->getProperty()->higherOrder()) {
-    HOL_ERROR;
-    // return Options::UnificationWithAbstraction::FUNC_EXT;
+  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) {
+    return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
   }
@@ -167,9 +166,8 @@ Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
 
 Shell::Options::UnificationWithAbstraction AbstractionOracle::createOnlyHigherOrder()
 {
-  if (/* env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION &&*/ env.getMainProblem()->getProperty()->higherOrder()) {
-    // return Options::UnificationWithAbstraction::FUNC_EXT;
-    HOL_ERROR;
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) {
+    return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
   }
