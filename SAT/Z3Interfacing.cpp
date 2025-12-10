@@ -35,6 +35,8 @@
 #include "Shell/UIHelper.hpp"
 #include "Z3Interfacing.hpp"
 
+#include <unordered_set>
+
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 #define TRACE_Z3 0
@@ -1010,6 +1012,43 @@ SATLiteralStack Z3Interfacing::failedAssumptions() {
   ASSERTION_VIOLATION
 }
 
+SATClauseList *Z3Interfacing::minimizePremises(SATClauseList *premises) {
+  // auxiliary solver to produce an unsat core
+  z3::solver solver(*_context);
+
+  // load all SAT clauses into `solver`
+  for(SATClause *cl : iterTraits(premises->iter())) {
+    // including their theory representation
+    auto repr = getRepresentation(cl);
+    // tag this clause with its number so that it can appear in the unsat core
+    auto tag = _context->constant(_context->int_symbol(cl->number), _context->bool_sort());
+    solver.add(repr.expr, tag);
+
+    // won't need tracking for definitions, they're just "ambient"
+    for(z3::expr def : repr.defs)
+      solver.add(def);
+  }
+
+  // if this fails, somehow `premises` is not enough to show unsatisfiability
+  // - good luck!
+  ALWAYS(solver.check() == z3::unsat);
+
+  // load the unsat core into a lookup of SAT clause numbers
+  z3::expr_vector core = solver.unsat_core();
+  std::unordered_set<unsigned> lookup;
+  for(z3::expr member : core) {
+    ASS(member.is_const())
+    lookup.insert(member.decl().name().to_int());
+  }
+
+  // finally look for `premises` in the unsat core
+  SATClauseList *minimised = nullptr;
+  for(SATClause *cl : iterTraits(premises->iter()))
+    if(lookup.count(cl->number))
+      SATClauseList::push(cl, minimised);
+  return minimised;
+}
+
 VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
   ASS_EQ(_status,Status::SATISFIABLE);
@@ -1058,8 +1097,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   DEBUG("model: \n", _model)
   ASS(!trm->isLiteral());
 
-  auto ev = z3_eval(getRepresentation(trm).expr);
-  ASS(getRepresentation(trm).defs.isEmpty())
+  auto ev = z3_eval(getRepresentation(trm));
   SortId sort = SortHelper::getResultSort(trm);
 
   DEBUG("z3 expr: ", ev)
@@ -1500,9 +1538,8 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
+z3::expr Z3Interfacing::getRepresentation(Term* trm)
 {
-  Stack<z3::expr> defs;
   auto expr = BottomUpEvaluation<TermList, z3::expr>()
     .function(
       [&](TermList toEval, z3::expr* args) -> z3::expr
@@ -1735,7 +1772,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         return f(f.arity(), args);
       })
       .apply(TermList(trm));
-  return Representation(expr, std::move(defs));
+  return expr;
 }
 
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
@@ -1746,7 +1783,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object
     try{
-      auto repr = getRepresentation(lit);
+      Representation repr(getRepresentation(lit), Stack<z3::expr>());
       _exporter.apply([&expr = repr.expr](auto& exp){ exp.instantiate_expression(expr); });
 
       /* we name all literals in order to make z3 cache their truth values.

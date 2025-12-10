@@ -176,7 +176,7 @@ void SplittingBranchSelector::handleSatRefutation()
   SATClauseList *satPremises = nullptr;
 #if VZ3
   if(_parent.hasSMTSolver)
-    satPremises = _solver.premiseList();
+    satPremises = _solver.minimizedPremises();
 #endif
   if(!satPremises) {
     proof = _solver.proof();
