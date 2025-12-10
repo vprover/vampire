@@ -18,7 +18,6 @@
 
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
 
@@ -263,7 +262,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
         FormulaList* currArg = f->args();
         for (unsigned i = 0; i < length; i++) {
           int c = sand.cls[i];
-          sum = Int::min(_threshold, sum + c);
+          sum = std::min(_threshold, sum + c);
           bool canBeDefEvaluated = false;
           bool canBeDef = false;
           if (c > maxPos) {
@@ -276,7 +275,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
           }
           if (tas.where == UNDER_IFF) {
             int d = sand.negCls[i];
-            product = Int::min(_threshold, product * d);
+            product = std::min(_threshold, product * d);
             if (d > maxNeg) {
               if (!canBeDefEvaluated) {
                 canBeDef = canBeInDefinition(currArg->head(), tas.where);
@@ -382,7 +381,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
         FormulaList* currArg = f->args();
         for (unsigned i = 0; i < length; i++) {
           int c = sor.cls[i];
-          product = Int::min(_threshold, product * c);
+          product = std::min(_threshold, product * c);
           bool canBeDefEvaluated = false;
           bool canBeDef = false;
           if (c > maxPos) {
@@ -395,7 +394,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
           }
           if (tas.where == UNDER_IFF) {
             int d = sor.negCls[i];
-            sum = Int::min(_threshold, sum + d);
+            sum = std::min(_threshold, sum + d);
             if (d > maxNeg) {
               if (!canBeDefEvaluated) {
                 canBeDef = canBeInDefinition(currArg->head(), tas.where);
@@ -524,12 +523,12 @@ Formula* Naming::apply_iter(Formula* top_f) {
           f = new BinaryFormula(con, l, r);
         }
 
-        // pos = Int::min(_threshold, Int::max(posl, posr));
+        // pos = std::min(_threshold, std::max(posl, posr));
         // return f;
 
         {
           Result r;
-          r.resSub.pos = Int::min(_threshold, Int::max(posl, posr));
+          r.resSub.pos = std::min(_threshold, std::max(posl, posr));
           r.resSub.res = f;
           result_stack.push(r);
         }
@@ -537,8 +536,8 @@ Formula* Naming::apply_iter(Formula* top_f) {
         todo_stack.pop();  // finished
         break; // case APPLY_SUB_IFFXOR
       }
-      int pos = Int::min(negl * posr + negr * posl, _threshold);
-      int neg = Int::min(posl * posr + negl * negr, _threshold);
+      int pos = std::min(negl * posr + negr * posl, _threshold);
+      int neg = std::min(posl * posr + negl * negr, _threshold);
       bool left; // name left
       if (pos < _threshold) {
         if (tas.where != UNDER_IFF || neg < _threshold) {
@@ -586,12 +585,12 @@ Formula* Naming::apply_iter(Formula* top_f) {
       if (left) {
         Formula* newl = introduceDefinition(l, true);
         f = new BinaryFormula(con, newl, r);
-        // neg = Int::min(posr + negr, _threshold);
+        // neg = std::min(posr + negr, _threshold);
         // pos = neg;
         // return f;
         {
           Result r;
-          r.resSub.neg = Int::min(posr + negr, _threshold);
+          r.resSub.neg = std::min(posr + negr, _threshold);
           r.resSub.pos = neg;
           r.resSub.res = f;
           result_stack.push(r);
@@ -603,12 +602,12 @@ Formula* Naming::apply_iter(Formula* top_f) {
 
       Formula* newr = introduceDefinition(r, true);
       f = new BinaryFormula(con, l, newr);
-      // neg = Int::min(posl + negl, _threshold);
+      // neg = std::min(posl + negl, _threshold);
       // pos = neg;
       // return f;
       {
         Result r;
-        r.resSub.neg = Int::min(posl + negl, _threshold);
+        r.resSub.neg = std::min(posl + negl, _threshold);
         r.resSub.pos = neg;
         r.resSub.res = f;
         result_stack.push(r);
@@ -763,7 +762,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       FormulaList* currArg = f->args();
       for (unsigned i = 0; i < length; i++) {
         int c = cls[i];
-        sum = Int::min(_threshold, sum + c);
+        sum = std::min(_threshold, sum + c);
         bool canBeDefEvaluated = false;
         bool canBeDef;
         if (c > maxPos) {
@@ -776,7 +775,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
         }
         if (where == UNDER_IFF) {
           int d = negCls[i];
-          product = Int::min(_threshold, product * d);
+          product = std::min(_threshold, product * d);
           if (d > maxNeg) {
             if (!canBeDefEvaluated) {
               canBeDef = canBeInDefinition(currArg->head(), where);
@@ -871,7 +870,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       FormulaList* currArg = f->args();
       for (unsigned i = 0; i < length; i++) {
         int c = cls[i];
-        product = Int::min(_threshold, product * c);
+        product = std::min(_threshold, product * c);
         bool canBeDefEvaluated = false;
         bool canBeDef;
         if (c > maxPos) {
@@ -884,7 +883,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
         }
         if (where == UNDER_IFF) {
           int d = negCls[i];
-          sum = Int::min(_threshold, sum + d);
+          sum = std::min(_threshold, sum + d);
           if (d > maxNeg) {
             if (!canBeDefEvaluated) {
               canBeDef = canBeInDefinition(currArg->head(), where);
@@ -977,11 +976,11 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       if (l != f->left() || r != f->right()) {
         f = new BinaryFormula(con, l, r);
       }
-      pos = Int::min(_threshold, Int::max(posl, posr));
+      pos = std::min(_threshold, std::max(posl, posr));
       return f;
     }
-    pos = Int::min(negl * posr + negr * posl, _threshold);
-    neg = Int::min(posl * posr + negl * negr, _threshold);
+    pos = std::min(negl * posr + negr * posl, _threshold);
+    neg = std::min(posl * posr + negl * negr, _threshold);
     bool left; // name left
     if (pos < _threshold) {
       if (where != UNDER_IFF || neg < _threshold) {
@@ -1011,14 +1010,14 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
     if (left) {
       Formula* newl = introduceDefinition(l, true);
       f = new BinaryFormula(con, newl, r);
-      neg = Int::min(posr + negr, _threshold);
+      neg = std::min(posr + negr, _threshold);
       pos = neg;
       return f;
     }
 
     Formula* newr = introduceDefinition(r, true);
     f = new BinaryFormula(con, l, newr);
-    neg = Int::min(posl + negl, _threshold);
+    neg = std::min(posl + negl, _threshold);
     pos = neg;
     return f;
   }

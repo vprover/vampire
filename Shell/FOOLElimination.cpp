@@ -620,11 +620,17 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         auto vars = VList::append(bodyFreeVars, argumentVars);
         collectSorts(vars, typeVars, termVars, allVars, termVarSorts);
 
+        // this is ugly, but otherwise := would have to be special
+        if (bindingLhs->isBoolean()) {
+          ASS(bindingLhs->isFormula());
+          auto inner = bindingLhs->getSpecialData()->getFormula();
+          ASS_EQ(inner->connective(), Connective::LITERAL);
+          bindingLhs = inner->literal();
+        }
+
         // take the defined function symbol and its result sort
-        unsigned symbol = bindingLhs->isBoolean()
-          ? bindingLhs->getSpecialData()->getFormula()->literal()->functor() // this is ugly, but otherwise := would have to be special
-          : bindingLhs->functor();
-        TermList bindingSort = bindingLhs->isBoolean() ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
+        unsigned symbol = bindingLhs->functor();
+        TermList bindingSort = bindingLhs->isLiteral() ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
 
         SortHelper::normaliseSort(typeVars, bindingSort);
 

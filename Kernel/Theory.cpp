@@ -1002,7 +1002,8 @@ unsigned Theory::getTupleConstructor(unsigned arity)
 
 bool Theory::isTupleConstructor(Term* t)
 {
-  return !t->isSpecial() && !t->isSort() && getTupleConstructor(t->numTypeArguments()) == t->functor();
+  return !t->isSpecial() && !t->isSort() && SortHelper::getResultSort(t).isTupleSort()
+    && getTupleConstructor(t->numTypeArguments()) == t->functor();
 }
 
 unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)
