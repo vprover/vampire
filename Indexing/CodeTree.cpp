@@ -230,6 +230,13 @@ bool CodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
   if(varCnt!=o.varCnt) {
     return false;
   }
+  // avoids passing nullptr to memcmp below,
+  // which is technically UB
+  if(!varCnt)
+    return true;
+
+  ASS(globalVarNumbers)
+  ASS(o.globalVarNumbers)
   return std::memcmp(globalVarNumbers, o.globalVarNumbers, varCnt * sizeof(unsigned)) == 0;
 }
 

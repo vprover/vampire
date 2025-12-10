@@ -47,9 +47,6 @@ if(CCACHE_PROGRAM)
   message(STATUS "CCACHE_PROGRAM: " ${CCACHE_PROGRAM})
 endif()
 
-# wrap up common object files so not built multiple times for each target
-add_library(common OBJECT ${SOURCES})
-
 ################################################################
 # compiler configuration
 ################################################################
@@ -104,6 +101,11 @@ if(GCC_OR_CLANG)
   add_compile_options(-fno-threadsafe-statics)
   # ...or RTTI
   add_compile_options(-fno-rtti)
+
+  if(CMAKE_BUILD_TYPE STREQUAL Debug)
+    add_compile_options(-fsanitize=undefined)
+    add_link_options(-fsanitize=undefined)
+  endif()
 endif()
 
 # switch on coverage options per-compiler if desired
@@ -204,6 +206,15 @@ else ()
 endif()
 
 ################################################################
+# Vampire
+################################################################
+# wrap up common object files so not built multiple times for each target
+add_library(common OBJECT ${SOURCES})
+
+# the actual Vampire executable
+add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
+
+################################################################
 # UNIT TESTING
 ################################################################
 
@@ -267,8 +278,3 @@ add_executable(subsat
     SATSubsumption/subsat/subsat_main.cpp
     $<TARGET_OBJECTS:common>
 )
-
-################################################################
-# Vampire
-################################################################
-add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)

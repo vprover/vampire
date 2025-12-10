@@ -368,9 +368,6 @@ Problem* UIHelper::getInputProblem()
   // NB this must happen immediately, as the Property relies on it
   res->setSMTLIBLogic(topPiece._smtLibLogic);
 
-  if(res->isHigherOrder())
-    HOL_ERROR;
-
   env.setMainProblem(res);
   return res;
 }
