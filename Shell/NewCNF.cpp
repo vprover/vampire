@@ -763,7 +763,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
 
   bool isPredicate = bindingLhs->isBoolean();
   // the symbol that we name must be in the form of a literal
-  if (isPredicate && !bindingLhs->isLiteral()) {
+  if (isPredicate) {
     ASS(bindingLhs->isFormula());
     auto inner = bindingLhs->getSpecialData()->getFormula();
     ASS_EQ(inner->connective(), Connective::LITERAL);
@@ -771,10 +771,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
   }
 
   unsigned nameArity = VList::length(bindingBoundVars) + bindingFreeVars.size();
-  TermList nameSort;
-  if (!isPredicate) {
-    nameSort = SortHelper::getResultSort(bindingLhs);
-  }
+  TermList nameSort = isPredicate ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
 
   unsigned freshSymbol = bindingLhs->functor();
 
