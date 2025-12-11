@@ -108,9 +108,12 @@ public:
   }
 
   void setGSD(unsigned val) {
-    auto method = _model.find_method("set_gsd");
-    if (method) {
-      (*method)({(int64_t)val});
+    if (val > 0) {
+      auto tweak = _model.attr("tweaks").toModule().attr(Int::toString(val-1)).toTensor();
+      auto method = _model.find_method("bake_tweak");
+      if (method) {
+        (*method)({tweak});
+      }
     }
   }
 

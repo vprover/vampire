@@ -132,6 +132,16 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   _evalClauses = _model.find_method("eval_clauses");
   _journal = _model.find_method("journal_record");
 
+  /*
+  cout << _model.attr("tweaks").toModule().attr("0") << endl;
+
+  auto param_list = _model.attr("tweaks").toModule();
+  auto his_type = param_list.type();
+  for (size_t i = 0; i < his_type->numAttributes(); i++) {
+    cout << his_type->getAttributeName(i) << endl;
+  }
+  */
+
   Timer::updateInstructionCount();
   env.statistics->neuralModelWarmup += (Timer::elapsedInstructions()-neural_model_start_instrs);
 }
