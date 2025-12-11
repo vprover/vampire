@@ -43,7 +43,7 @@ private:
 
   TermSubstitutionTree<TermLiteralClause> _subtermIS;
   TermSubstitutionTree<TermLiteralClause> _posEqSideIS;
-  LiteralSubstitutionTree<LiteralLiteralClause> _posLitIS;
+  LiteralSubstitutionTree<LiteralClause> _posLitIS;
   DHMap<unsigned, DHMap<Clause*,Literal*>> _predIS;
 
   TermIndex<TermLiteralClause>* _goalSubtermIndex;
