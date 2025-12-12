@@ -36,10 +36,6 @@ class BinaryResolution
 : public GeneratingInferenceEngine
 {
 public:
-  BinaryResolution() 
-    : _index(0)
-  {  }
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 

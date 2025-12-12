@@ -16,7 +16,6 @@
 
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/Recycled.hpp"
@@ -33,7 +32,6 @@
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -58,18 +56,14 @@ using std::pair;
 void Superposition::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _subtermIndex=static_cast<SuperpositionSubtermIndex*> (
-	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
-  _lhsIndex=static_cast<SuperpositionLHSIndex*> (
-	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
+  _subtermIndex = salg->getGeneratingIndex<SuperpositionSubtermIndex>();
+  _lhsIndex = salg->getGeneratingIndex<SuperpositionLHSIndex>();
 }
 
 void Superposition::detach()
 {
-  _subtermIndex=0;
-  _lhsIndex=0;
-  _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
-  _salg->getIndexManager()->release(SUPERPOSITION_LHS_SUBST_TREE);
+  _subtermIndex = nullptr;
+  _lhsIndex = nullptr;
   GeneratingInferenceEngine::detach();
 }
 

@@ -45,10 +45,6 @@ class LazyClausification
   : public SimplificationEngine
 {
 public:
-  LazyClausification(){
-    _formulaIndex = 0;
-  }
-
   ClauseIterator perform(Clause* c) override;
 
   void attach(SaturationAlgorithm* salg) override;
@@ -62,10 +58,6 @@ class LazyClausificationGIE
   : public GeneratingInferenceEngine
 {
 public:
-  LazyClausificationGIE(){
-    _formulaIndex = 0;
-  }
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 

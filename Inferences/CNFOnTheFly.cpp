@@ -728,28 +728,24 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
 void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
-    _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
+  _formulaIndex = salg->getSimplifyingIndex<SkolemisingFormulaIndex>();
 }
 
 void LazyClausificationGIE::detach()
 {
-  _formulaIndex=0;
-  _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
+  _formulaIndex = nullptr;
   GeneratingInferenceEngine::detach();
 }
 
 void LazyClausification::attach(SaturationAlgorithm* salg)
 {
   SimplificationEngine::attach(salg);
-  _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
-   _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
+  _formulaIndex = salg->getSimplifyingIndex<SkolemisingFormulaIndex>();
 }
 
 void LazyClausification::detach()
 {
-  _formulaIndex=0;
-  _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
+  _formulaIndex = nullptr;
   SimplificationEngine::detach();
 }
 

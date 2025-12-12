@@ -12,7 +12,6 @@
  * Implements class AcyclicityIndex
  */
 
-#include "Indexing/TermIndexingStructure.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Signature.hpp"
@@ -22,6 +21,8 @@
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
+
+#include "Indexing/TermSubstitutionTree.hpp"
 
 #include "AcyclicityIndex.hpp"
 
@@ -53,6 +54,11 @@ namespace Indexing
     }
     List<TypedTermList>::push(t, l);
   }
+
+  AcyclicityIndex::AcyclicityIndex(SaturationAlgorithm&) :
+    _sIndexes(),
+    _tis(new TermSubstitutionTree<TermLiteralClause>())
+  {}
   
   List<TypedTermList>* AcyclicityIndex::getSubterms(Term *t)
   {

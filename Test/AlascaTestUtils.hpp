@@ -59,13 +59,6 @@ struct AlascaSimplRule
       .premiseRedundant = res.premiseRedundant,
     };
   }
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& i) final override {
-    _rule.setTestIndices(i);
-    _norm.setTestIndices(i);
-  }
-#endif
 };
 
 template<class Rule>

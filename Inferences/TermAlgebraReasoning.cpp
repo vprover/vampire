@@ -278,14 +278,12 @@ namespace Inferences {
   void AcyclicityGIE::attach(SaturationAlgorithm* salg)
   {
     GeneratingInferenceEngine::attach(salg);
-
-    _acyclIndex = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
+    _acyclIndex = salg->getGeneratingIndex<AcyclicityIndex>();
   }
 
   void AcyclicityGIE::detach()
   {
-    _acyclIndex = 0;
-    _salg->getIndexManager()->release(ACYCLICITY_INDEX);
+    _acyclIndex = nullptr;
     GeneratingInferenceEngine::detach();
   }
 

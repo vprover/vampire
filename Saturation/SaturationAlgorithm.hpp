@@ -18,6 +18,10 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/AcyclicityIndex.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
+#include "Indexing/LiteralIndex.hpp"
+#include "Indexing/TermIndex.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -62,7 +66,7 @@ public:
     return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
       (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
-  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
+  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
   ~SaturationAlgorithm() override;
@@ -111,7 +115,12 @@ public:
 
   ActiveClauseContainer* getActiveClauseContainer() { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
-  IndexManager* getIndexManager() { return _imgr.ptr(); }
+  IndexManager* getIndexManager() { return &_imgr; }
+
+  template<typename IndexType> IndexType* getGeneratingIndex() { return _genImgr.get<IndexType>(); }
+  template<typename IndexType> IndexType* getSimplifyingIndex() { return _simpImgr.get<IndexType>(); }
+  template<typename IndexType> IndexType* tryGetGeneratingIndex() { return _genImgr.tryGet<IndexType>(); }
+
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
@@ -175,7 +184,99 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  SmartPtr<IndexManager> _imgr;
+  IndexManager _imgr;
+
+  template<bool isGenerating, typename... IndexTypes> class IM;
+
+  template <bool isGenerating, typename IndexType, typename... IndexTypes>
+  class IM<isGenerating, IndexType, IndexTypes...> {
+  public:
+    IM(SaturationAlgorithm& salg) : rest(salg) {}
+
+    SaturationAlgorithm& alg() { return rest.alg(); }
+
+    template <typename DesiredIndexType>
+    DesiredIndexType* get() {
+      static_assert(std::is_base_of<Index, IndexType>());
+      if constexpr (std::is_same_v<DesiredIndexType, IndexType>) {
+        if (!index) {
+          index = new IndexType(alg());
+          if constexpr (isGenerating) {
+            index->attachContainer(alg().getGeneratingClauseContainer());
+          } else {
+            index->attachContainer(alg().getSimplifyingClauseContainer());
+          }
+        }
+        return index;
+      } else {
+        return rest.template get<DesiredIndexType>();
+      }
+    }
+
+    template <typename DesiredIndexType>
+    DesiredIndexType* tryGet() {
+      static_assert(std::is_base_of<Index, IndexType>());
+      if constexpr (std::is_same_v<DesiredIndexType, IndexType>) {
+        return index;
+      } else {
+        return rest.template tryGet<DesiredIndexType>();
+      }
+    }
+
+    // template<> IndexType* get();
+
+  private:
+    // TODO check that types are distinct
+    // static_assert(!std::is_same_v<IndexType, List> || ...);
+    IndexType* index = nullptr;
+    IM<isGenerating, IndexTypes...> rest;
+  };
+
+  template <bool isGenerating>
+  class IM<isGenerating> {
+  public:
+    IM(SaturationAlgorithm& salg) : salg(salg) {}
+
+    SaturationAlgorithm& alg() { return salg; }
+
+    template <typename DesiredIndexType> DesiredIndexType* get() {
+      static_assert(false);
+    }
+
+    template <typename DesiredIndexType> DesiredIndexType* tryGet() {
+      static_assert(false);
+    }
+  private:
+    SaturationAlgorithm& salg;
+  };
+
+  IM<
+    /*isGenerating=*/true,
+    AcyclicityIndex,
+    InductionTermIndex,
+    BinaryResolutionIndex,
+    SuperpositionLHSIndex,
+    StructInductionTermIndex,
+    UnitClauseLiteralIndex,
+    NonUnitClauseLiteralIndex,
+    SuperpositionSubtermIndex,
+    UnitClauseWithALLiteralIndex,
+    NonUnitClauseWithALLiteralIndex,
+    UnitIntegerComparisonLiteralIndex
+  > _genImgr;
+
+  IM<
+    /*isGenerating=*/false,
+    FSDLiteralIndex,
+    RewriteRuleIndex,
+    DemodulationLHSIndex,
+    UnitClauseLiteralIndex,
+    SkolemisingFormulaIndex,
+    BackwardSubsumptionIndex,
+    CodeTreeSubsumptionIndex,
+    DemodulationSubtermIndex,
+    FwSubsSimplifyingLiteralIndex
+  > _simpImgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;

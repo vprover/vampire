@@ -26,77 +26,59 @@ namespace Indexing
 using namespace Lib;
 using namespace Saturation;
 
-enum IndexType {
-  BINARY_RESOLUTION_SUBST_TREE=1,
-  BACKWARD_SUBSUMPTION_SUBST_TREE,
-  FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE,
-
-  URR_UNIT_CLAUSE_SUBST_TREE,
-  URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE,
-  URR_NON_UNIT_CLAUSE_SUBST_TREE,
-  URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE,
-  
-  SUPERPOSITION_SUBTERM_SUBST_TREE,
-  SUPERPOSITION_LHS_SUBST_TREE,
-  ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE,
-  ALASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE,
-  ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE,
-  ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE,
-  ALASCA_SUPERPOSITION_LHS_SUBST_TREE,
-  ALASCA_SUPERPOSITION_RHS_SUBST_TREE,
-  ALASCA_COHERENCE_RHS_SUBST_TREE,
-  ALASCA_COHERENCE_LHS_SUBST_TREE,
-  ALASCA_FWD_DEMODULATION_SUBST_TREE,
-  ALASCA_BWD_DEMODULATION_SUBST_TREE,
-
-  DEMODULATION_SUBTERM_SUBST_TREE,
-  DEMODULATION_LHS_CODE_TREE,
-
-  FW_SUBSUMPTION_CODE_TREE,
-  FW_SUBSUMPTION_SUBST_TREE,
-  BW_SUBSUMPTION_SUBST_TREE,
-
-  FSD_SUBST_TREE,
-
-  REWRITE_RULE_SUBST_TREE,
-
-  ACYCLICITY_INDEX,
-  SKOLEMISING_FORMULA_INDEX,
-
-  UNIT_INT_COMPARISON_INDEX,
-  INDUCTION_TERM_INDEX,
-  STRUCT_INDUCTION_TERM_INDEX,
-};
-
 class IndexManager
 {
 public:
-  /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg);
-  void setSaturationAlgorithm(SaturationAlgorithm* alg) 
-  { 
-    ASS(!_alg);
-    ASS(alg);
-    _alg = alg; 
-  }
-  Index* request(IndexType t);
-  void release(IndexType t);
-  bool contains(IndexType t);
-  Index* get(IndexType t);
+  explicit IndexManager(SaturationAlgorithm& alg);
 
-  void provideIndex(IndexType t, Index* index);
+  template<typename IndexType> static unsigned indexId();
+
+  template<typename IndexType, bool isGenerating>
+  static auto key()
+  {
+    static_assert(std::is_base_of<Index, IndexType>());
+    return std::make_pair(indexId<IndexType>(), isGenerating);
+  }
+
+  template<typename IndexType, bool isGenerating>
+  IndexType* request()
+  {
+    Entry* e;
+    if (_store.getValuePtr(key<IndexType, isGenerating>(), e)) {
+      e->index = new IndexType(_alg);
+      attachContainer<isGenerating>(e->index);
+      e->refCnt=1;
+    } else {
+      e->refCnt++;
+    }
+    return static_cast<IndexType*>(e->index);
+  }
+
+  template<typename IndexType, bool isGenerating>
+  void release()
+  {
+    auto ptr = _store.findPtr(key<IndexType, isGenerating>());
+    ASS(ptr);
+
+    ptr->refCnt--;
+    if (ptr->refCnt == 0) {
+      delete ptr->index;
+      _store.remove(key<IndexType, isGenerating>());
+    }
+  }
+
 private:
+  template<bool isGenerating>
+  void attachContainer(Index* i);
 
   struct Entry {
     Index* index;
     int refCnt;
   };
-  SaturationAlgorithm* _alg;
-  DHMap<IndexType,Entry> _store;
-
-  Index* create(IndexType t);
-  Shell::Options::UnificationWithAbstraction _uwa;
-  bool _uwaFixedPointIteration;
+  SaturationAlgorithm& _alg;
+  // indices mapped by unsigned index id and Boolean telling
+  // whether they are for the generating container or not
+  DHMap<std::pair<unsigned, bool>,Entry> _store;
 };
 
 };

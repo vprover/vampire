@@ -27,7 +27,6 @@
 #include "Lib/List.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "BackwardSubsumptionAndResolution.hpp"
@@ -42,15 +41,12 @@ using namespace Saturation;
 void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _bwIndex = static_cast<BackwardSubsumptionIndex *>(
-      _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE)
-  );
+  _bwIndex = salg->getSimplifyingIndex<BackwardSubsumptionIndex>();
 }
 
 void BackwardSubsumptionAndResolution::detach()
 {
-  _bwIndex = 0;
-  _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
+  _bwIndex = nullptr;
   BackwardSimplificationEngine::detach();
 }
 

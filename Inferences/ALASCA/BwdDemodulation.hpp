@@ -13,6 +13,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/RequestedIndex.hpp"
 #include "Inferences/ALASCA/Demodulation.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 
@@ -34,21 +35,17 @@ public:
   BwdDemodulation(BwdDemodulation&&) = default;
   BwdDemodulation(std::shared_ptr<AlascaState> shared) 
     : _shared(shared)
-    , _index(nullptr)
   {  }
 
   void attach(SaturationAlgorithm* salg) final ;
   void detach() final ;
 
 
-  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final ;
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
-#endif // VDEBUG
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final;
 
 private:
   std::shared_ptr<AlascaState> _shared;
-  AlascaIndex<Rhs>* _index;
+  RequestedIndex<AlascaIndex<Rhs>,/*isGenerating=*/false> _index;
 };
 
 } // namespaceALASCA 

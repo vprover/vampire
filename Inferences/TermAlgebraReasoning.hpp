@@ -108,7 +108,7 @@ private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
   
-  Indexing::AcyclicityIndex *_acyclIndex;
+  Indexing::AcyclicityIndex* _acyclIndex;
 };
 
 class AcyclicityGIE1

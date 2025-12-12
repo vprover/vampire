@@ -88,11 +88,6 @@ public:
   template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
 
   ClauseGenerationResult generateSimplify(Clause* premise)  final ;
-  
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
-#endif
 
 private:
 

@@ -107,31 +107,28 @@ public:
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, justifications)
   BUILDER_METHOD(TestCase, ForwardSimplificationEngine* , fwd)
   BUILDER_METHOD(TestCase, BackwardSimplificationEngine*, bwd)
-  BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, fwdIdx)
-  BUILDER_METHOD(TestCase, Stack<Indexing::Index*>, bwdIdx)
 
   void runFwd() 
   {
+    Problem p;
+    Options o;
+    o.resolveAwayAutoValues(p);
+    MockedSaturationAlgorithm alg(p, o);
     // set up clause container and indexing structure
-    auto container =  PlainClauseContainer();
+    auto container = alg.getSimplifyingClauseContainer();
 
     ForwardSimplificationEngine& fwd = *this->fwd().unwrap();
-
-    auto indices = this->fwdIdx().unwrapOr(Stack<Indexing::Index*>());
-    fwd.setTestIndices(indices);
-    for (auto i : indices) {
-      i->attachContainer(&container);
-    }
+    fwd.attach(&alg);
 
     // add the clauses to the index
     auto simplifyWith = this->simplifyWith().unwrap();
     for (auto c : simplifyWith) {
-      container.add(c);
+      container->add(c);
     }
 
     // simplify all the clauses in toSimplify
-    Stack<Clause*> results;
-    Stack<Clause*> justifications;
+    ClauseStack results;
+    ClauseStack justifications;
     auto toSimpl = toSimplify().unwrap();
     for (auto toSimpl : toSimpl) {
       Clause* replacement = nullptr;
@@ -153,6 +150,8 @@ public:
     justifications.sort();
     justifications.dedup();
     // dedup(justifications);
+    fwd.detach();
+    Ordering::unsetGlobalOrdering();
 
     // run checks
     auto expected = this->expected().unwrap();
@@ -172,21 +171,20 @@ public:
 
   void runBwd() 
   {
+    Problem p;
+    Options o;
+    o.resolveAwayAutoValues(p);
+    MockedSaturationAlgorithm alg(p, o);
     // set up clause container and indexing structure
-    auto container =  PlainClauseContainer();
+    auto container = alg.getSimplifyingClauseContainer();
 
     BackwardSimplificationEngine& bwd = *this->bwd().unwrap();
-
-    auto indices = this->bwdIdx().unwrapOr(Stack<Indexing::Index*>());
-    bwd.setTestIndices(indices);
-    for (auto i : indices) {
-      i->attachContainer(&container);
-    }
+    bwd.attach(&alg);
 
     // add the clauses to the index
     auto toSimpl = toSimplify().unwrap();
     for (auto c : toSimpl) {
-      container.add(c);
+      container->add(c);
     }
 
     // simplify using every clause in simplifyWith.unwrap()
@@ -203,6 +201,8 @@ public:
         results.push(simpl.replacement);
       }
     }
+    bwd.detach();
+    Ordering::unsetGlobalOrdering();
 
     // run checks
     auto expected = this->expected().unwrap();
