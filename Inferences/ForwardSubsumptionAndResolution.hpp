@@ -15,7 +15,6 @@
 #ifndef __Forward_Subsumption_And_Resolution__
 #define __Forward_Subsumption_And_Resolution__
 
-#include "Indexing/RequestedIndex.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -55,9 +54,9 @@ public:
 
 private:
   /// @brief Unit index of the saturation algorithm
-  Indexing::RequestedIndex<Indexing::UnitClauseLiteralIndex, /*isGenerating=*/false> _unitIndex;
+  Indexing::UnitClauseLiteralIndex* _unitIndex;
   /// @brief Forward index containing the clauses with which the inference engine can perform forward subsumption and resolution
-  Indexing::RequestedIndex<Indexing::FwSubsSimplifyingLiteralIndex, /*isGenerating=*/false> _fwIndex;
+  Indexing::FwSubsSimplifyingLiteralIndex* _fwIndex;
 
   /// @brief Parameter to enable or disable subsumption resolution
   /// @note If the parameter is set to false, then the inference engine will only perform forward subsumption

@@ -17,7 +17,6 @@
 #define __BackwardDemodulation__
 
 #include "Forwards.hpp"
-#include "Indexing/RequestedIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "DemodulationHelper.hpp"
@@ -42,7 +41,7 @@ private:
   struct RewritableClausesFn;
   struct ResultFn;
 
-  RequestedIndex<DemodulationSubtermIndex,/*isGenerating=*/false> _index;
+  DemodulationSubtermIndex* _index;
   DemodulationHelper _helper;
 };
 

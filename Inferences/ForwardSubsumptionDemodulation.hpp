@@ -13,7 +13,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/RequestedIndex.hpp"
 
 namespace Inferences {
 
@@ -58,8 +57,8 @@ class ForwardSubsumptionDemodulation
     bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   private:
-    RequestedIndex<UnitClauseLiteralIndex, /*isGenerating=*/false> _unitIndex;
-    RequestedIndex<FSDLiteralIndex, /*isGenerating=*/false> _index;
+    UnitClauseLiteralIndex* _unitIndex;
+    FSDLiteralIndex* _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;

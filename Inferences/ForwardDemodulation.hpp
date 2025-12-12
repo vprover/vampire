@@ -17,7 +17,6 @@
 #define __ForwardDemodulation__
 
 #include "Forwards.hpp"
-#include "Indexing/RequestedIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "DemodulationHelper.hpp"
@@ -44,7 +43,7 @@ protected:
   bool _useTermOrderingDiagrams;
   bool _skipNonequationalLiterals;
   DemodulationHelper _helper;
-  RequestedIndex<DemodulationLHSIndex,/*isGenerating=*/false> _index;
+  DemodulationLHSIndex* _index;
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;

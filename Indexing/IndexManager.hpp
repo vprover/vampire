@@ -67,16 +67,6 @@ public:
     }
   }
 
-  template<typename IndexType, bool isGenerating>
-  IndexType* tryGet() const
-  {
-    auto ptr = _store.findPtr(key<IndexType, isGenerating>());
-    if (!ptr) {
-      return nullptr;
-    }
-    return static_cast<IndexType*>(ptr->index);
-  }
-
 private:
   template<bool isGenerating>
   void attachContainer(Index* i);

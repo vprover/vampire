@@ -36,20 +36,21 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
 
-  _index.request(salg);
+  _index = salg->getSimplifyingIndex<FSDLiteralIndex>();
 
   _preorderedOnly = false;
   _allowIncompleteness = false;
 
   if (_doSubsumption) {
-    _unitIndex.request(salg);
+    _unitIndex = salg->getSimplifyingIndex<UnitClauseLiteralIndex>();
   }
 }
 
 
 void ForwardSubsumptionDemodulation::detach()
 {
-  _index.release();
+  _index = nullptr;
+  _unitIndex = nullptr;
   ForwardSimplificationEngine::detach();
 }
 

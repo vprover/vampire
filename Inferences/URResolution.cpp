@@ -22,7 +22,6 @@
 #include "Kernel/Inference.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/LiteralIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -49,8 +48,8 @@ void URResolution<synthesis>::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
 
-  _unitIndex.request(salg);
-  _nonUnitIndex.request(salg);
+  _unitIndex = salg->getGeneratingIndex<UnitIndexType>();
+  _nonUnitIndex = salg->getGeneratingIndex<NonUnitIndexType>();
 
   Options::URResolution optSetting = _salg->getOptions().unitResultingResolution();
   ASS_NEQ(optSetting,  Options::URResolution::OFF);
@@ -60,8 +59,8 @@ void URResolution<synthesis>::attach(SaturationAlgorithm* salg)
 template<bool synthesis>
 void URResolution<synthesis>::detach()
 {
-  _nonUnitIndex.release();
-  _unitIndex.release();
+  _nonUnitIndex = nullptr;
+  _unitIndex = nullptr;
   GeneratingInferenceEngine::detach();
 }
 

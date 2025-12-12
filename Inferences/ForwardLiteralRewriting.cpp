@@ -26,12 +26,12 @@ namespace Inferences
 void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _index.request(salg);
+  _index = salg->getSimplifyingIndex<RewriteRuleIndex>();
 }
 
 void ForwardLiteralRewriting::detach()
 {
-  _index.release();
+  _index = nullptr;
   ForwardSimplificationEngine::detach();
 }
 

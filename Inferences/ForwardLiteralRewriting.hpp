@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 #include "Indexing/LiteralIndex.hpp"
 
-#include "Indexing/RequestedIndex.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences {
@@ -36,7 +35,7 @@ public:
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 private:
-  RequestedIndex<RewriteRuleIndex,/*isGenerating=*/false> _index;
+  RewriteRuleIndex* _index;
 };
 
 };

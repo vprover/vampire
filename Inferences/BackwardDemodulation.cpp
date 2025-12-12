@@ -48,13 +48,13 @@ using namespace Saturation;
 void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _index.request(salg);
+  _index = salg->getSimplifyingIndex<DemodulationSubtermIndex>();
   _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
 }
 
 void BackwardDemodulation::detach()
 {
-  _index.release();
+  _index = nullptr;
   BackwardSimplificationEngine::detach();
 }
 
@@ -204,7 +204,7 @@ void BackwardDemodulation::perform(Clause* cl,
 			    EqHelper::getDemodulationLHSIterator(lit,
             _salg->getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED,
             _salg->getOrdering()).first,
-			    RewritableClausesFn(_index.get())),
+			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this, _helper)),
  	    RemovedIsNonzeroFn()) );
 

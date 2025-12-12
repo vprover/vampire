@@ -16,7 +16,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
@@ -68,13 +67,11 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       return false;
     }
 
-    IndexManager* imgr=salg->getIndexManager();
-    ASS(imgr);
   start:
     switch(stage) {
     case 0:  //resolution
     {
-      auto gli = imgr->tryGet<BinaryResolutionIndex, /*isGenerating=*/true>();
+      auto gli = salg->tryGetGeneratingIndex<BinaryResolutionIndex>();
       if(!gli) { stage++; goto start; }
 
       nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );
@@ -82,7 +79,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     }
     case 1:  //backward superposition
     {
-      auto bsi = imgr->tryGet<SuperpositionSubtermIndex, /*isGenerating=*/true>();
+      auto bsi = salg->tryGetGeneratingIndex<SuperpositionSubtermIndex>();
       if(!bsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
@@ -92,7 +89,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     }
     case 2:  //forward superposition
     {
-      auto fsi=imgr->tryGet<SuperpositionLHSIndex, /*isGenerating=*/true>();
+      auto fsi=salg->tryGetGeneratingIndex<SuperpositionLHSIndex>();
       if(!fsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(

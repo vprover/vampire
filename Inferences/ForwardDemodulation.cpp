@@ -71,7 +71,7 @@ struct ApplicatorWithEqSort : SubstApplicator {
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _index.request(salg);
+  _index = salg->getSimplifyingIndex<DemodulationLHSIndex>();
 
   auto& opt = getOptions();
   _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
@@ -83,7 +83,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardDemodulation::detach()
 {
-  _index.release();
+  _index = nullptr;
   ForwardSimplificationEngine::detach();
 }
 

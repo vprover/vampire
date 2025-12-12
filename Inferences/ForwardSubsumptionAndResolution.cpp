@@ -47,14 +47,14 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptio
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _unitIndex.request(_salg);
-  _fwIndex.request(_salg);
+  _unitIndex = salg->getSimplifyingIndex<UnitClauseLiteralIndex>();
+  _fwIndex = salg->getSimplifyingIndex<FwSubsSimplifyingLiteralIndex>();
 }
 
 void ForwardSubsumptionAndResolution::detach()
 {
-  _fwIndex.release();
-  _unitIndex.release();
+  _fwIndex = nullptr;
+  _unitIndex = nullptr;
   ForwardSimplificationEngine::detach();
 }
 

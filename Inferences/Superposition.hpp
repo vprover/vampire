@@ -17,7 +17,6 @@
 #define __Superposition__
 
 #include "Forwards.hpp"
-#include "Indexing/RequestedIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
@@ -59,8 +58,8 @@ private:
   struct RewritableResultsFn;
   struct BackwardResultFn;
 
-  RequestedIndex<SuperpositionSubtermIndex,/*isGenerating=*/true> _subtermIndex;
-  RequestedIndex<SuperpositionLHSIndex,/*isGenerating=*/true> _lhsIndex;
+  SuperpositionSubtermIndex* _subtermIndex;
+  SuperpositionLHSIndex* _lhsIndex;
 };
 
 using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;

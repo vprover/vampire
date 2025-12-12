@@ -728,24 +728,24 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
 void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _formulaIndex.request(salg);
+  _formulaIndex = salg->getSimplifyingIndex<SkolemisingFormulaIndex>();
 }
 
 void LazyClausificationGIE::detach()
 {
-  _formulaIndex.release();
+  _formulaIndex = nullptr;
   GeneratingInferenceEngine::detach();
 }
 
 void LazyClausification::attach(SaturationAlgorithm* salg)
 {
   SimplificationEngine::attach(salg);
-  _formulaIndex.request(salg);
+  _formulaIndex = salg->getSimplifyingIndex<SkolemisingFormulaIndex>();
 }
 
 void LazyClausification::detach()
 {
-  _formulaIndex.release();
+  _formulaIndex = nullptr;
   SimplificationEngine::detach();
 }
 
@@ -756,12 +756,12 @@ ClauseIterator EagerClausificationISE::simplifyMany(Clause* c)
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  return produceClauses(c, true, _formulaIndex.get());
+  return produceClauses(c, true, _formulaIndex);
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  return produceClauses(c, false, _formulaIndex.get());
+  return produceClauses(c, false, _formulaIndex);
 }
 
 

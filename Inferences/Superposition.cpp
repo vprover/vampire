@@ -16,7 +16,6 @@
 
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/Recycled.hpp"
@@ -57,14 +56,14 @@ using std::pair;
 void Superposition::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _subtermIndex.request(salg);
-  _lhsIndex.request(salg);
+  _subtermIndex = salg->getGeneratingIndex<SuperpositionSubtermIndex>();
+  _lhsIndex = salg->getGeneratingIndex<SuperpositionLHSIndex>();
 }
 
 void Superposition::detach()
 {
-  _subtermIndex.release();
-  _lhsIndex.release();
+  _subtermIndex = nullptr;
+  _lhsIndex = nullptr;
   GeneratingInferenceEngine::detach();
 }
 

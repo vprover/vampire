@@ -41,12 +41,12 @@ using namespace Saturation;
 void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _bwIndex.request(salg);
+  _bwIndex = salg->getSimplifyingIndex<BackwardSubsumptionIndex>();
 }
 
 void BackwardSubsumptionAndResolution::detach()
 {
-  _bwIndex.release();
+  _bwIndex = nullptr;
   BackwardSimplificationEngine::detach();
 }
 
@@ -55,7 +55,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
   ASSERT_VALID(*cl)
-  ASS(_bwIndex.get())
+  ASS(_bwIndex)
   simplifications = BwSimplificationRecordIterator::getEmpty();
 
   if (!_subsumption && !_subsumptionResolution) {

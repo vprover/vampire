@@ -14,7 +14,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/RequestedIndex.hpp"
 #include "Kernel/MLMatcherSD.hpp"
 
 namespace Inferences {
@@ -57,7 +56,7 @@ class BackwardSubsumptionDemodulation
     void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 
   private:
-    RequestedIndex<BackwardSubsumptionIndex, /*isGenerating=*/false> _index;
+    BackwardSubsumptionIndex* _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;

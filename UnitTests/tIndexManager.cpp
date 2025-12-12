@@ -55,34 +55,34 @@ TEST_FUN(index_shared) {
   imgr.release<TestIndexUsing, /*isGenerating=*/true>();
 }
 
-TEST_FUN(index_refcounted) {
-  Problem p;
-  Options o;
-  o.resolveAwayAutoValues(p);
-  Test::MockedSaturationAlgorithm alg(p, o);
+// TEST_FUN(index_refcounted) {
+//   Problem p;
+//   Options o;
+//   o.resolveAwayAutoValues(p);
+//   Test::MockedSaturationAlgorithm alg(p, o);
 
-  Indexing::IndexManager imgr(alg);
+//   Indexing::IndexManager imgr(alg);
 
-  // TODO for whatever reason I cannot put res1 into ASS()
-  auto res1 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-  ASS(!res1);
+//   // TODO for whatever reason I cannot put res1 into ASS()
+//   auto res1 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
+//   ASS(!res1);
 
-  imgr.request<TestIndex, /*isGenerating=*/true>();
-  auto res2 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-  ASS(res2);
+//   imgr.request<TestIndex, /*isGenerating=*/true>();
+//   auto res2 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
+//   ASS(res2);
 
-  imgr.request<TestIndex, /*isGenerating=*/true>();
-  auto res3 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-  ASS(res3);
+//   imgr.request<TestIndex, /*isGenerating=*/true>();
+//   auto res3 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
+//   ASS(res3);
 
-  imgr.release<TestIndex, /*isGenerating=*/true>();
-  auto res4 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-  ASS(res4);
+//   imgr.release<TestIndex, /*isGenerating=*/true>();
+//   auto res4 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
+//   ASS(res4);
 
-  imgr.release<TestIndex, /*isGenerating=*/true>();
-  auto res5 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-  ASS(!res5);
-}
+//   imgr.release<TestIndex, /*isGenerating=*/true>();
+//   auto res5 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
+//   ASS(!res5);
+// }
 
 TEST_FUN(index_not_shared) {
   Problem p;

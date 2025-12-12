@@ -18,7 +18,6 @@
 #include "Forwards.hpp"
 
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/RequestedIndex.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences
@@ -53,10 +52,10 @@ private:
   bool _full;
   bool _emptyClauseOnly;
   bool _selectedOnly;
-  RequestedIndex<std::conditional_t<synthesis, UnitClauseWithALLiteralIndex, UnitClauseLiteralIndex>,
-    /*isGenerating=*/true> _unitIndex;
-  RequestedIndex<std::conditional_t<synthesis, NonUnitClauseWithALLiteralIndex, NonUnitClauseLiteralIndex>,
-    /*isGenerating=*/true> _nonUnitIndex;
+  using UnitIndexType = std::conditional_t<synthesis, UnitClauseWithALLiteralIndex, UnitClauseLiteralIndex>;
+  using NonUnitIndexType = std::conditional_t<synthesis, NonUnitClauseWithALLiteralIndex, NonUnitClauseLiteralIndex>;
+  UnitIndexType* _unitIndex;
+  NonUnitIndexType* _nonUnitIndex;
 };
 
 };

@@ -16,7 +16,6 @@
 #define __CNFOnTheFly__
 
 #include "Forwards.hpp"
-#include "Indexing/RequestedIndex.hpp"
 #include "InferenceEngine.hpp"
 
 #include "Indexing/TermIndex.hpp"
@@ -52,7 +51,7 @@ public:
   void detach() override;
 
 private:
-  RequestedIndex<SkolemisingFormulaIndex,/*isGenerating=*/false> _formulaIndex;
+  SkolemisingFormulaIndex* _formulaIndex;
 };
 
 class LazyClausificationGIE
@@ -65,7 +64,7 @@ public:
   ClauseIterator generateClauses(Clause* c) override;
 
 private:
-  RequestedIndex<SkolemisingFormulaIndex,/*isGenerating=*/false> _formulaIndex;
+  SkolemisingFormulaIndex* _formulaIndex;
 };
 
 /*class NotProxyISE

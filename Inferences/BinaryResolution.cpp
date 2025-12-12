@@ -49,12 +49,12 @@ using namespace Saturation;
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _index.request(salg);
+  _index = salg->getGeneratingIndex<BinaryResolutionIndex>();
 }
 
 void BinaryResolution::detach()
 {
-  _index.release();
+  _index = nullptr;
   GeneratingInferenceEngine::detach();
 }
 

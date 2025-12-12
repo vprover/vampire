@@ -22,14 +22,14 @@ namespace Inferences {
 void CodeTreeForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _index.request(_salg);
+  _index = salg->getSimplifyingIndex<CodeTreeSubsumptionIndex>();
   _ct = _index->getClauseCodeTree();
 }
 
 void CodeTreeForwardSubsumptionAndResolution::detach()
 {
   _ct = nullptr;
-  _index.release();
+  _index = nullptr;
   ForwardSimplificationEngine::detach();
 }
 

@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/RequestedIndex.hpp"
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
 
@@ -57,7 +56,7 @@ private:
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
     ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
-  RequestedIndex<BinaryResolutionIndex,/*isGenerating=*/true> _index;
+  BinaryResolutionIndex* _index;
 };
 
 using BinaryResolutionExtra = TwoLiteralInferenceExtra;

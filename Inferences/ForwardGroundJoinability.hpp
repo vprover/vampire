@@ -17,7 +17,6 @@
 #define __ForwardGroundJoinability__
 
 #include "Forwards.hpp"
-#include "Indexing/RequestedIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "InferenceEngine.hpp"
 
@@ -54,7 +53,7 @@ private:
     Branch* _curr;
   };
 
-  RequestedIndex<DemodulationLHSIndex,/*isGenerating=*/false> _index;
+  DemodulationLHSIndex* _index;
 };
 
 };

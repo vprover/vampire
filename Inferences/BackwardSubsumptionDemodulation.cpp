@@ -59,13 +59,13 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrde
 void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _index.request(salg);
+  _index = salg->getSimplifyingIndex<BackwardSubsumptionIndex>();
 }
 
 
 void BackwardSubsumptionDemodulation::detach()
 {
-  _index.release();
+  _index = nullptr;
   BackwardSimplificationEngine::detach();
 }
 
