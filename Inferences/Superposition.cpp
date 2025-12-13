@@ -437,41 +437,41 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if(rwLitS->isEquality()) {
-    //check that we're not rewriting only the smaller side of an equality
-    TermList arg0=*rwLitS->nthArgument(0);
-    TermList arg1=*rwLitS->nthArgument(1);
+  // if(rwLitS->isEquality()) {
+  //   //check that we're not rewriting only the smaller side of an equality
+  //   TermList arg0=*rwLitS->nthArgument(0);
+  //   TermList arg1=*rwLitS->nthArgument(1);
 
-    if (_goalOriented) {
-      if (!isGoalLiteral(rwLitS)) {
-        if (!isGoalTerm(TypedTermList(tgtTermS, subst->apply(eqLHSsort, eqIsResult)))) {
-          env.statistics->backwardDemodulationsToEqTaut++;
-          return 0;
-        }
-        if (!arg0.containsSubterm(rwTermS)) {
-          if (Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-            env.statistics->backwardDemodulationsToEqTaut++;
-            return 0;
-          }
-        } else if (!arg1.containsSubterm(rwTermS)) {
-          if (Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
-            env.statistics->backwardDemodulationsToEqTaut++;
-            return 0;
-          }
-        }
-      }
-    } else {
-      if(!arg0.containsSubterm(rwTermS)) {
-        if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
-          return 0;
-        }
-      } else if(!arg1.containsSubterm(rwTermS)) {
-        if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-          return 0;
-        }
-      }
-    }
-  }
+  //   if (_goalOriented) {
+  //     if (!isGoalLiteral(rwLitS)) {
+  //       if (!isGoalTerm(TypedTermList(tgtTermS, subst->apply(eqLHSsort, eqIsResult)))) {
+  //         env.statistics->backwardDemodulationsToEqTaut++;
+  //         return 0;
+  //       }
+  //       if (!arg0.containsSubterm(rwTermS)) {
+  //         if (Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+  //           env.statistics->backwardDemodulationsToEqTaut++;
+  //           return 0;
+  //         }
+  //       } else if (!arg1.containsSubterm(rwTermS)) {
+  //         if (Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
+  //           env.statistics->backwardDemodulationsToEqTaut++;
+  //           return 0;
+  //         }
+  //       }
+  //     }
+  //   } else {
+  //     if(!arg0.containsSubterm(rwTermS)) {
+  //       if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
+  //         return 0;
+  //       }
+  //     } else if(!arg1.containsSubterm(rwTermS)) {
+  //       if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+  //         return 0;
+  //       }
+  //     }
+  //   }
+  // }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
