@@ -81,3 +81,24 @@ TEST_FUN(test03) {
   auto c3 = clause({ f(c,f(c,d)) == f(c,d) });
   ASS(handler.addClause(c3));
 }
+
+TEST_FUN(test04) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  Problem prb;
+  Options opt;
+  opt.resolveAwayAutoValues(prb);
+  auto ord = Ordering::create(prb, opt);
+
+  GoalReachabilityHandler handler(*ord, opt);
+
+  auto c1 = clause({ f(a,b) != b });
+  ASS(handler.addClause(c1));
+
+  auto c2 = clause({ f(f(x,y),z) == f(x,y) });
+  ASS(handler.addClause(c2));
+
+  // iteration stops because loop is detected
+  auto c3 = clause({ f(c,f(c,d)) == f(c,d) });
+  ASS(!handler.addClause(c3));
+}

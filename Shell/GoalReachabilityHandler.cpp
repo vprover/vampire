@@ -127,7 +127,7 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
 
 bool GoalReachabilityHandler::ReachabilityTree::addTerm(TypedTermList t)
 {
-  DEBUG("adding term ", t);
+  DEBUG("adding term ", t.untyped());
 
   Stack<TypedTermList> todo;
   todo.push(t);
@@ -136,7 +136,7 @@ bool GoalReachabilityHandler::ReachabilityTree::addTerm(TypedTermList t)
 
   while (todo.isNonEmpty()) {
     auto curr = todo.pop();
-    DEBUG("iterating ", curr);
+    DEBUG("iterating ", curr.untyped());
 
     if (++iterCnt == kIterationLimit) {
       // we reached the limit, giving up
@@ -145,7 +145,7 @@ bool GoalReachabilityHandler::ReachabilityTree::addTerm(TypedTermList t)
 
     // we have already inserted this term
     if (!terms.insert(curr)) {
-      DEBUG("already contains ", curr);
+      DEBUG("already contains ", curr.untyped());
       return true;
     }
 
@@ -171,7 +171,7 @@ bool GoalReachabilityHandler::ReachabilityTree::addTerm(TypedTermList t)
 
 bool GoalReachabilityHandler::ReachabilityTree::canBeAdded(TypedTermList t, ResultSubstitution& subst, bool result)
 {
-  DEBUG("can be added? ", t, " ", subst.apply(t, result));
+  DEBUG("can be added? ", t.untyped(), " ", subst.apply(t, result).untyped());
 
   DHSet<TermList> renamingDomain;
   DHSet<TermList> renamingRange;
