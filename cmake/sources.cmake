@@ -57,6 +57,7 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tGoalReachabilityHandler.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -659,6 +660,8 @@ set(SOURCES
     Shell/GeneralSplitting.hpp
     Shell/GoalGuessing.cpp
     Shell/GoalGuessing.hpp
+    Shell/GoalReachabilityHandler.cpp
+    Shell/GoalReachabilityHandler.hpp
     Shell/InequalitySplitting.cpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.cpp
