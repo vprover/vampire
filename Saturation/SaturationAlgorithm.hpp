@@ -33,6 +33,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+namespace Inferences { class Superposition; }
 namespace Shell { class AnswerLiteralManager; }
 
 namespace Saturation
@@ -224,6 +225,8 @@ protected:
   Instantiation* _instantiation;
   FunctionDefinitionHandler& _fnDefHandler;
   std::unique_ptr<PartialRedundancyHandler> _partialRedundancyHandler;
+  std::unique_ptr<GoalReachabilityHandler> _goalReachabilityHandler;
+  Superposition* _superposition = nullptr;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

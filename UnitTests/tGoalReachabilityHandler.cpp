@@ -35,13 +35,13 @@ TEST_FUN(test01) {
   GoalReachabilityHandler handler(*ord, opt);
 
   auto c1 = clause({ a != b });
-  ASS(handler.addClause(c1));
+  ASS_EQ(handler.addClause(c1), ClauseStack{ c1 });
 
   auto c2 = clause({ f(x,x) == x });
-  ASS(handler.addClause(c2));
+  ASS_EQ(handler.addClause(c2), ClauseStack{ c2 });
 
   auto c3 = clause({ f(f(x,y),z) == f(x,f(y,z)) });
-  ASS(!handler.addClause(c3));
+  ASS_EQ(handler.addClause(c3), ClauseStack());
 }
 
 TEST_FUN(test02) {
@@ -55,10 +55,10 @@ TEST_FUN(test02) {
   GoalReachabilityHandler handler(*ord, opt);
 
   auto c1 = clause({ f(a,f(b,a)) != b });
-  ASS(handler.addClause(c1));
+  ASS_EQ(handler.addClause(c1), ClauseStack{ c1 });
 
   auto c2 = clause({ f(a,b) == b });
-  ASS(handler.addClause(c2));
+  ASS_EQ(handler.addClause(c2), ClauseStack{ c2 });
 }
 
 TEST_FUN(test03) {
@@ -72,14 +72,14 @@ TEST_FUN(test03) {
   GoalReachabilityHandler handler(*ord, opt);
 
   auto c1 = clause({ f(a,f(b,a)) != b });
-  ASS(handler.addClause(c1));
+  ASS_EQ(handler.addClause(c1), ClauseStack{ c1 });
 
   auto c2 = clause({ f(f(x,y),z) == f(x,f(y,z)) });
-  ASS(handler.addClause(c2));
+  ASS_EQ(handler.addClause(c2), ClauseStack{ c2 });
 
   // added due to giving up at the limit of iteration
   auto c3 = clause({ f(c,f(c,d)) == f(c,d) });
-  ASS(handler.addClause(c3));
+  ASS_EQ(handler.addClause(c3), ClauseStack{ c3 });
 }
 
 TEST_FUN(test04) {
@@ -93,12 +93,12 @@ TEST_FUN(test04) {
   GoalReachabilityHandler handler(*ord, opt);
 
   auto c1 = clause({ f(a,b) != b });
-  ASS(handler.addClause(c1));
+  ASS_EQ(handler.addClause(c1), ClauseStack{ c1 });
 
   auto c2 = clause({ f(f(x,y),z) == f(x,y) });
-  ASS(handler.addClause(c2));
+  ASS_EQ(handler.addClause(c2), ClauseStack{ c2 });
 
   // iteration stops because loop is detected
   auto c3 = clause({ f(c,f(c,d)) == f(c,d) });
-  ASS(!handler.addClause(c3));
+  ASS_EQ(handler.addClause(c3), ClauseStack());
 }

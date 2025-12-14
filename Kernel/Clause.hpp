@@ -374,6 +374,9 @@ public:
     return getAnswerLiteral() != nullptr;
   }
 
+  bool isGoalClause() const { return _goalClause; }
+  void makeGoalClause() { ASS(!_goalClause); _goalClause = true; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -397,6 +400,8 @@ protected:
   mutable unsigned _weight;
   /** weight for clause selection */
   unsigned _weightForClauseSelection;
+
+  bool _goalClause = false;
 
   /** number of references to this clause */
   unsigned _refCnt;

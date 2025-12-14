@@ -38,6 +38,7 @@ public:
   void detach() override;
 
   ClauseIterator generateClauses(Clause* premise) override;
+  ClauseIterator generateClausesWithGoalClause(Clause* premise);
 
 private:
   ClauseIterator performForwardSuperpositions(Clause* premise);
@@ -56,8 +57,8 @@ private:
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
-  bool isGoalLiteral(Literal* lit);
-  bool isGoalTerm(TypedTermList t);
+  // bool isGoalLiteral(Literal* lit);
+  // bool isGoalTerm(TypedTermList t);
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
   {

@@ -93,6 +93,7 @@
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/GoalReachabilityHandler.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -229,6 +230,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
+  _goalReachabilityHandler.reset(new GoalReachabilityHandler(*_ordering, opt));
 
   _completeOptionSettings = opt.complete(prb);
 
@@ -1180,6 +1182,33 @@ void SaturationAlgorithm::activate(Clause* cl)
     _active->remove(cl);
   }
 
+  for (const auto& gcl : _goalReachabilityHandler->addClause(cl)) {
+    gcl->makeGoalClause();
+    env.statistics->goalClauses++;
+    // TODO add to some indices and perform extra inferences
+    _clauseActivationInProgress = true;
+
+    ASS(_superposition);
+    // this is similar as the generation above
+    // TODO do not perform inferences twice
+    for (const auto& genCl : iterTraits(_superposition->generateClauses(gcl))) {
+      addNewClause(genCl);
+
+      Inference::Iterator iit = genCl->inference().iterator();
+      while (genCl->inference().hasNext(iit)) {
+        Unit *premUnit = genCl->inference().next(iit);
+        if (premUnit->isClause()) {
+          Clause *premCl = static_cast<Clause *>(premUnit);
+          onParenthood(genCl, premCl);
+        }
+      }
+    }
+
+    _clauseActivationInProgress = false;
+    ASS(_postponedClauseRemovals.isEmpty()); // TODO is this even possible to be non-empty?
+  }
+
+
   return;
 }
 
@@ -1478,7 +1507,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     gie->addFront(new EqualityResolution());
     if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
-      gie->addFront(new Superposition(opt.goalOrientedSuperposition()));
+      res->_superposition = new Superposition(opt.goalOrientedSuperposition());
+      gie->addFront(res->_superposition);
     }
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {

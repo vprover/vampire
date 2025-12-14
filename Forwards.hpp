@@ -192,6 +192,7 @@ class Statistics;
 class FunctionDefinitionHandler;
 class PartialRedundancyHandler;
 struct PartialRedundancyEntry;
+class GoalReachabilityHandler;
 class TermAlgebra;
 }
 #endif /* __Forwards__ */

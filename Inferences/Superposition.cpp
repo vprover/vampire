@@ -118,10 +118,10 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   auto itf = performForwardSuperpositions(premise);
   auto itb = performBackwardSuperpositions(premise);
-  auto itg = performSuperpositionsWithGoal(premise);
+  // auto itg = performSuperpositionsWithGoal(premise);
 
   // Add the results of forward and backward together
-  auto it5 = concatIters(itf,itb,itg);
+  auto it5 = concatIters(itf,itb);
 
   // Remove null elements - these can come from performSuperposition
   auto it6 = getFilteredIterator(it5,NonzeroFn());
@@ -130,6 +130,11 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto it7 = TIME_TRACE_ITER("superposition", it6);
 
   return pvi( it7 );
+}
+
+ClauseIterator Superposition::generateClausesWithGoalClause(Clause* premise)
+{
+  NOT_IMPLEMENTED;
 }
 
 ClauseIterator Superposition::performForwardSuperpositions(Clause* premise)
@@ -329,31 +334,31 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   return true;
 }
 
-bool Superposition::isGoalLiteral(Literal* lit)
-{
-  if (lit->isNegative()) {
-    return true;
-  }
-  if (!lit->isEquality()) {
-    INVALID_OPERATION("predicates not yet supported");
-  }
-  // TODO this case is a violation in EqHelper::getSuperpositionLHSIterator
-  if (EqHelper::isEqTautology(lit)) {
-    return isGoalTerm(TypedTermList(lit->termArg(0), SortHelper::getEqualityArgumentSort(lit)));
-  }
+// bool Superposition::isGoalLiteral(Literal* lit)
+// {
+//   if (lit->isNegative()) {
+//     return true;
+//   }
+//   if (!lit->isEquality()) {
+//     INVALID_OPERATION("predicates not yet supported");
+//   }
+//   // TODO this case is a violation in EqHelper::getSuperpositionLHSIterator
+//   if (EqHelper::isEqTautology(lit)) {
+//     return isGoalTerm(TypedTermList(lit->termArg(0), SortHelper::getEqualityArgumentSort(lit)));
+//   }
 
-  for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _salg->getOrdering(), _salg->getOptions()))) {
-    if (isGoalTerm(TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()))) {
-      return true;
-    }
-  }
-  return false;
-}
+//   for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _salg->getOrdering(), _salg->getOptions()))) {
+//     if (isGoalTerm(TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()))) {
+//       return true;
+//     }
+//   }
+//   return false;
+// }
 
-bool Superposition::isGoalTerm(TypedTermList t)
-{
-  return _goalTermIndex->getUnifications(t).hasNext();
-}
+// bool Superposition::isGoalTerm(TypedTermList t)
+// {
+//   return _goalTermIndex->getUnifications(t).hasNext();
+// }
 
 /**
  * If superposition should be performed, return result of the superposition,
@@ -437,41 +442,29 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  // if(rwLitS->isEquality()) {
-  //   //check that we're not rewriting only the smaller side of an equality
-  //   TermList arg0=*rwLitS->nthArgument(0);
-  //   TermList arg1=*rwLitS->nthArgument(1);
+  // disallow superpositions with only non-goal clauses
+  if (!rwClause->isGoalClause() && !eqClause->isGoalClause()) {
+    return 0;
+  }
 
-  //   if (_goalOriented) {
-  //     if (!isGoalLiteral(rwLitS)) {
-  //       if (!isGoalTerm(TypedTermList(tgtTermS, subst->apply(eqLHSsort, eqIsResult)))) {
-  //         env.statistics->backwardDemodulationsToEqTaut++;
-  //         return 0;
-  //       }
-  //       if (!arg0.containsSubterm(rwTermS)) {
-  //         if (Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-  //           env.statistics->backwardDemodulationsToEqTaut++;
-  //           return 0;
-  //         }
-  //       } else if (!arg1.containsSubterm(rwTermS)) {
-  //         if (Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
-  //           env.statistics->backwardDemodulationsToEqTaut++;
-  //           return 0;
-  //         }
-  //       }
-  //     }
-  //   } else {
-  //     if(!arg0.containsSubterm(rwTermS)) {
-  //       if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
-  //         return 0;
-  //       }
-  //     } else if(!arg1.containsSubterm(rwTermS)) {
-  //       if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-  //         return 0;
-  //       }
-  //     }
-  //   }
-  // }
+  if(rwLitS->isEquality()) {
+    //check that we're not rewriting only the smaller side of an equality
+    TermList arg0=*rwLitS->nthArgument(0);
+    TermList arg1=*rwLitS->nthArgument(1);
+
+    // disallow superpositions with non-goal clauses into smaller sides of goal clauses 
+    if (rwClause->isGoalClause() && !eqClause->isGoalClause()) {
+      if(!arg0.containsSubterm(rwTermS)) {
+        if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
+          return 0;
+        }
+      } else if(!arg1.containsSubterm(rwTermS)) {
+        if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+          return 0;
+        }
+      }
+    }
+  }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 

@@ -123,6 +123,7 @@ public:
   unsigned sineIterations = 0;
   /** number of detected blocked clauses */
   unsigned blockedClauses = 0;
+  unsigned goalClauses = 0;
 
   // Induction
   unsigned maxInductionDepth = 0;

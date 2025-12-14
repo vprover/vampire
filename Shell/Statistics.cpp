@@ -196,6 +196,7 @@ void Statistics::print(std::ostream& out)
     ENTRY("Activations started", activations);
     ENTRY("Active clauses", activeClauses);
     ENTRY("Passive clauses", passiveClauses);
+    ENTRY("Goal clauses", goalClauses);
     ENTRY("Extensionality clauses", extensionalityClauses);
     ENTRY("Final active clauses", finalActiveClauses);
     ENTRY("Final passive clauses", finalPassiveClauses);

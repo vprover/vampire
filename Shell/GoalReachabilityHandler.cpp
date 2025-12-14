@@ -19,7 +19,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/TypedTermList.hpp"
-#include "Lib/Exception.hpp"
 
 using namespace Shell;
 using namespace Kernel;
@@ -48,8 +47,9 @@ VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord)
   }
 }
 
-bool GoalReachabilityHandler::addClause(Clause* cl)
+ClauseStack GoalReachabilityHandler::addClause(Clause* cl)
 {
+  DEBUG("addClause ", cl);
   if (cl->length() != 1) {
     INVALID_OPERATION("only unit clauses are supported");
   }
@@ -67,62 +67,119 @@ bool GoalReachabilityHandler::addClause(Clause* cl)
   }
 
   {
-    auto tree = new ReachabilityTree(*this);
+    auto tree = new ReachabilityTree(*this, cl);
     for (const auto& lhs : iterTraits(getLHSIterator(lit, ord))) {
       if (!tree->addTerm(TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()))) {
+        // there may be already terms in the index
+        for (const auto& t : iterTraits(tree->terms.iter())) {
+          _rhsIndex.remove({ t, cl });
+        }
         goto GOAL_CLAUSE;
       }
     }
     ALWAYS(clauseTrees.insert(cl, tree));
-    return false;
+    return ClauseStack();
   }
 
   // If it is, it possibly contributes to some reachibility
   // trees, so we insert it as such
 GOAL_CLAUSE:
-  addGoalClause(cl);
-  return true;
+  return addGoalClause(cl);
 }
 
-void GoalReachabilityHandler::addGoalClause(Clause* cl)
+ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
 {
-  DEBUG("goal clause added ", *cl);
-  ASS_EQ(cl->length(),1);
+  ClauseStack res;
 
-  auto lit = (*cl)[0];
-  ASS(lit->isEquality());
+  ClauseStack todo;
+  todo.push(cl);
 
-  // 1. Insert all strict subterms of the greater side into indices.
-  // Note: this has to be done before step 2 below
-  for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
-    if (lhs.isVar()) { continue; }
-    for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/lit->isNegative()))) {
-      DEBUG("adding to goal lhs index ", *st);
-      _goalSubtermIndex.insert({ st, lhs, lit, cl });
+  DHSet<Clause*> nonGoalRemoved;
+  // no need to add cl, as it has not been added yet
+  // nonGoalRemoved.insert(cl);
+
+  while (todo.isNonEmpty()) {
+    auto curr = todo.pop();
+
+    // curr itself is becoming goal clause, so let's add it here
+    res.push(curr);
+
+    ASS_EQ(curr->length(),1);
+
+    auto lit = (*curr)[0];
+    ASS(lit->isEquality());
+
+    DEBUG("adding goal clause ", *curr);
+
+    // 1. Insert all strict subterms of the greater side into indices.
+    // Note: this has to be done before step 2 below
+    for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+      if (lhs.isVar()) { continue; }
+      for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/lit->isNegative()))) {
+        DEBUG("adding to goal lhs index ", *st);
+        _goalSubtermIndex.insert({ st, lhs, lit, curr });
+      }
     }
-  }
 
-  // 2. Iterate reachibility trees
-  for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
-    if (lhs.isVar()) { continue; }
-    TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-    for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/lit->isNegative()))) {
-      for (const auto& qr : iterTraits(_rhsIndex.getUnifications(st, /*retrieveSubstitutions=*/true))) {
+    // 2. Iterate reachibility trees
+    // We only 
+    Stack<std::pair<Clause*, TypedTermList>> termsToAdd;
 
-        if (lit->isNegative()) {
-          // TODO handle case when qr.data->clause becomes goal clause
-          INVALID_OPERATION("clause becomes goal is not handled");
-        } else {
-          auto& tree = clauseTrees.get(qr.data->clause);
-          if (!tree->canBeAdded(rhs, *qr.unifier.ptr(), /*result=*/false)) {
-            // TODO handle case when qr.data->clause becomes goal clause
-            INVALID_OPERATION("clause becomes goal is not handled");
+    for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+      if (lhs.isVar()) { continue; }
+      TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
+      for (const auto& st : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/lit->isNegative()))) {
+        for (const auto& qr : iterTraits(_rhsIndex.getUnifications(st, /*retrieveSubstitutions=*/true))) {
+
+          auto qcl = qr.data->clause;
+          DEBUG("qcl ", qcl); 
+
+          if (nonGoalRemoved.contains(qcl)) {
+            continue;
           }
-          tree->addTerm(qr.unifier->apply(rhs, /*result=*/false));
+
+          if (lit->isNegative()) {
+            todo.push(qcl);
+            nonGoalRemoved.insert(qcl);
+          } else {
+            if (!ReachabilityTree::canBeAdded(rhs, *qr.unifier.ptr(), /*result=*/false)) {
+              todo.push(qcl);
+              nonGoalRemoved.insert(qcl);
+            } else {
+              termsToAdd.push({ qcl, qr.unifier->apply(rhs, /*result=*/false) });
+            }
+          }
         }
       }
     }
+
+    // do this separately because the indices are modified
+    while (termsToAdd.isNonEmpty()) {
+      auto [qcl, t] = termsToAdd.pop();
+      if (nonGoalRemoved.contains(qcl)) {
+        continue;
+      }
+      auto& tree = clauseTrees.get(qcl);
+      if (!tree->addTerm(t)) {
+        nonGoalRemoved.insert(qcl);
+      }
+    }
   }
+
+  for (const auto& rcl : iterTraits(nonGoalRemoved.iter())) {
+    // TODO remove rcl
+    ReachabilityTree* tree = nullptr;
+    ALWAYS(clauseTrees.pop(rcl, tree));
+    ASS_EQ(rcl, tree->cl);
+
+    for (const auto& t : iterTraits(tree->terms.iter())) {
+      _rhsIndex.remove({ t, rcl });
+    }
+
+    delete tree;
+  }
+
+  return res;
 }
 
 bool GoalReachabilityHandler::ReachabilityTree::addTerm(TypedTermList t)
@@ -148,6 +205,8 @@ bool GoalReachabilityHandler::ReachabilityTree::addTerm(TypedTermList t)
       DEBUG("already contains ", curr.untyped());
       return true;
     }
+
+    handler._rhsIndex.insert({ curr, cl });
 
     for (const auto& qr : iterTraits(handler._goalSubtermIndex.getUnifications(curr, /*retrieveSubstitutions=*/true))) {
       DEBUG("unified with term ", qr.data->term.untyped(), " (", qr.unifier->apply(qr.data->term, /*result=*/true).untyped(),

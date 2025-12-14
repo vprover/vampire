@@ -86,20 +86,20 @@ using namespace Inferences::ALASCA;
 
 Generation::TestIndices alascaSuperpositionIndices()
 { return {
-    [](const SaturationAlgorithm&){ return new AlascaIndex<Superposition::Lhs>();},
-    [](const SaturationAlgorithm&){ return new AlascaIndex<Superposition::Rhs>();},
+    [](const SaturationAlgorithm&){ return new AlascaIndex<ALASCA::Superposition::Lhs>();},
+    [](const SaturationAlgorithm&){ return new AlascaIndex<ALASCA::Superposition::Rhs>();},
   }; }
 
 auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultaneous = false)
 { 
   auto s = testAlascaState(uwa);
   auto n = ALASCA::Normalization(s);
-  return alascaSimplRule(s,Superposition(s, simultaneous), n);
+  return alascaSimplRule(s,ALASCA::Superposition(s, simultaneous), n);
 }
 
 
 
-REGISTER_GEN_TESTER(AlascaGenerationTester<Superposition>(testSuperposition(UWA_MODE, /* simultaneous superpos */ false)))
+REGISTER_GEN_TESTER(AlascaGenerationTester<ALASCA::Superposition>(testSuperposition(UWA_MODE, /* simultaneous superpos */ false)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
