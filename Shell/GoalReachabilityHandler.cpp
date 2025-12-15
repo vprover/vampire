@@ -49,7 +49,7 @@ VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord)
 
 ClauseStack GoalReachabilityHandler::addClause(Clause* cl)
 {
-  DEBUG("addClause ", cl);
+  DEBUG("addClause ", *cl);
   if (cl->length() != 1) {
     INVALID_OPERATION("only unit clauses are supported");
   }
@@ -98,6 +98,11 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
   // no need to add cl, as it has not been added yet
   // nonGoalRemoved.insert(cl);
 
+  auto nonGoalRemoveFn = [&todo,&nonGoalRemoved](Clause* cl) {
+    todo.push(cl);
+    nonGoalRemoved.insert(cl);
+  };
+
   while (todo.isNonEmpty()) {
     auto curr = todo.pop();
 
@@ -122,7 +127,6 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
     }
 
     // 2. Iterate reachibility trees
-    // We only 
     Stack<std::pair<Clause*, TypedTermList>> termsToAdd;
 
     for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
@@ -132,19 +136,17 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
         for (const auto& qr : iterTraits(_rhsIndex.getUnifications(st, /*retrieveSubstitutions=*/true))) {
 
           auto qcl = qr.data->clause;
-          DEBUG("qcl ", qcl); 
+          DEBUG("qcl ", *qcl);
 
           if (nonGoalRemoved.contains(qcl)) {
             continue;
           }
 
           if (lit->isNegative()) {
-            todo.push(qcl);
-            nonGoalRemoved.insert(qcl);
+            nonGoalRemoveFn(qcl);
           } else {
             if (!ReachabilityTree::canBeAdded(rhs, *qr.unifier.ptr(), /*result=*/false)) {
-              todo.push(qcl);
-              nonGoalRemoved.insert(qcl);
+              nonGoalRemoveFn(qcl);
             } else {
               termsToAdd.push({ qcl, qr.unifier->apply(rhs, /*result=*/false) });
             }
@@ -161,13 +163,13 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
       }
       auto& tree = clauseTrees.get(qcl);
       if (!tree->addTerm(t)) {
-        nonGoalRemoved.insert(qcl);
+        nonGoalRemoveFn(qcl);
       }
     }
   }
 
   for (const auto& rcl : iterTraits(nonGoalRemoved.iter())) {
-    // TODO remove rcl
+
     ReachabilityTree* tree = nullptr;
     ALWAYS(clauseTrees.pop(rcl, tree));
     ASS_EQ(rcl, tree->cl);
@@ -203,7 +205,7 @@ bool GoalReachabilityHandler::ReachabilityTree::addTerm(TypedTermList t)
     // we have already inserted this term
     if (!terms.insert(curr)) {
       DEBUG("already contains ", curr.untyped());
-      return true;
+      continue;
     }
 
     handler._rhsIndex.insert({ curr, cl });

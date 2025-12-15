@@ -24,81 +24,89 @@
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_FUNC(h, {s, s}, s)
 
+class SymmetricTester {
+public:
+  SymmetricTester(
+    std::initializer_list<Clause*> clauses,
+    std::initializer_list<Clause*> goalClauses)
+    : clauses(clauses)
+  {
+    for (const auto& cl : goalClauses) { ALWAYS(expectedGoalClauses.insert(cl)); }
+  }
+
+  void run() const {
+    Problem prb;
+    Options opt;
+    opt.resolveAwayAutoValues(prb);
+    auto ord = Ordering::create(prb, opt);
+
+    auto indices = Stack<unsigned>::fromIterator(range(0, clauses.size()));
+    do {
+
+      DHSet<Clause*> goalClauses;
+      GoalReachabilityHandler handler(*ord, opt);
+
+      for (const auto& index : indices) {
+        for (const auto& ng : handler.addClause(clauses[index])) {
+          ASS_REP(goalClauses.insert(ng), ng->toString() + " removed multiple times");
+        }
+      }
+
+      for (const auto& cl : iterTraits(goalClauses.iter())) {
+        ASS_REP(expectedGoalClauses.contains(cl), cl->toString() + " is not expected to be goal clause");
+      }
+      for (const auto& cl : iterTraits(expectedGoalClauses.iter())) {
+        ASS_REP(goalClauses.contains(cl), cl->toString() + " is expected to be goal clause");
+      }
+
+    } while (std::next_permutation(indices.begin(), indices.end()));
+  }
+private:
+  ClauseStack clauses;
+  DHSet<Clause*> expectedGoalClauses;
+};
+
 TEST_FUN(test01) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
 
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  auto ord = Ordering::create(prb, opt);
-
-  GoalReachabilityHandler handler(*ord, opt);
-
   auto c1 = clause({ a != b });
-  ASS_EQ(handler.addClause(c1), ClauseStack{ c1 });
-
   auto c2 = clause({ f(x,x) == x });
-  ASS_EQ(handler.addClause(c2), ClauseStack{ c2 });
-
   auto c3 = clause({ f(f(x,y),z) == f(x,f(y,z)) });
-  ASS_EQ(handler.addClause(c3), ClauseStack());
+
+  SymmetricTester tester({ c1, c2, c3 }, { c1, c2 });
+  tester.run();
 }
 
 TEST_FUN(test02) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
 
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  auto ord = Ordering::create(prb, opt);
-
-  GoalReachabilityHandler handler(*ord, opt);
-
   auto c1 = clause({ f(a,f(b,a)) != b });
-  ASS_EQ(handler.addClause(c1), ClauseStack{ c1 });
-
   auto c2 = clause({ f(a,b) == b });
-  ASS_EQ(handler.addClause(c2), ClauseStack{ c2 });
+
+  SymmetricTester tester({ c1, c2 }, { c1, c2 });
+  tester.run();
 }
 
 TEST_FUN(test03) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
 
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  auto ord = Ordering::create(prb, opt);
-
-  GoalReachabilityHandler handler(*ord, opt);
-
   auto c1 = clause({ f(a,f(b,a)) != b });
-  ASS_EQ(handler.addClause(c1), ClauseStack{ c1 });
-
   auto c2 = clause({ f(f(x,y),z) == f(x,f(y,z)) });
-  ASS_EQ(handler.addClause(c2), ClauseStack{ c2 });
-
-  // added due to giving up at the limit of iteration
   auto c3 = clause({ f(c,f(c,d)) == f(c,d) });
-  ASS_EQ(handler.addClause(c3), ClauseStack{ c3 });
+
+  // c3 also added due to giving up at the limit of iteration
+  SymmetricTester tester({ c1, c2, c3 }, { c1, c2, c3 });
+  tester.run();
 }
 
 TEST_FUN(test04) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
 
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  auto ord = Ordering::create(prb, opt);
-
-  GoalReachabilityHandler handler(*ord, opt);
-
   auto c1 = clause({ f(a,b) != b });
-  ASS_EQ(handler.addClause(c1), ClauseStack{ c1 });
-
   auto c2 = clause({ f(f(x,y),z) == f(x,y) });
-  ASS_EQ(handler.addClause(c2), ClauseStack{ c2 });
-
-  // iteration stops because loop is detected
   auto c3 = clause({ f(c,f(c,d)) == f(c,d) });
-  ASS_EQ(handler.addClause(c3), ClauseStack());
+
+  // iteration for c3 stops because loop is detected
+  SymmetricTester tester({ c1, c2, c3 }, { c1, c2 });
+  tester.run();
 }
