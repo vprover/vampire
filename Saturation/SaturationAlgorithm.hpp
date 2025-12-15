@@ -18,10 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/AcyclicityIndex.hpp"
-#include "Indexing/CodeTreeInterfaces.hpp"
-#include "Indexing/LiteralIndex.hpp"
-#include "Indexing/TermIndex.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -117,9 +113,12 @@ public:
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return &_imgr; }
 
-  template<typename IndexType> IndexType* getGeneratingIndex() { return _genImgr.get<IndexType>(); }
-  template<typename IndexType> IndexType* getSimplifyingIndex() { return _simpImgr.get<IndexType>(); }
-  template<typename IndexType> IndexType* tryGetGeneratingIndex() { return _genImgr.tryGet<IndexType>(); }
+  template<typename IndexType>
+  std::shared_ptr<IndexType> getGeneratingIndex() { return _imgr.get<IndexType, true>(); }
+  template<typename IndexType>
+  std::shared_ptr<IndexType> getSimplifyingIndex() { return _imgr.get<IndexType, false>(); }
+  template<typename IndexType>
+  std::shared_ptr<IndexType> tryGetGeneratingIndex() { return _imgr.tryGet<IndexType, true>(); }
 
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
@@ -185,98 +184,6 @@ private:
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
   IndexManager _imgr;
-
-  template<bool isGenerating, typename... IndexTypes> class IM;
-
-  template <bool isGenerating, typename IndexType, typename... IndexTypes>
-  class IM<isGenerating, IndexType, IndexTypes...> {
-  public:
-    IM(SaturationAlgorithm& salg) : rest(salg) {}
-
-    SaturationAlgorithm& alg() { return rest.alg(); }
-
-    template <typename DesiredIndexType>
-    DesiredIndexType* get() {
-      static_assert(std::is_base_of<Index, IndexType>());
-      if constexpr (std::is_same_v<DesiredIndexType, IndexType>) {
-        if (!index) {
-          index = new IndexType(alg());
-          if constexpr (isGenerating) {
-            index->attachContainer(alg().getGeneratingClauseContainer());
-          } else {
-            index->attachContainer(alg().getSimplifyingClauseContainer());
-          }
-        }
-        return index;
-      } else {
-        return rest.template get<DesiredIndexType>();
-      }
-    }
-
-    template <typename DesiredIndexType>
-    DesiredIndexType* tryGet() {
-      static_assert(std::is_base_of<Index, IndexType>());
-      if constexpr (std::is_same_v<DesiredIndexType, IndexType>) {
-        return index;
-      } else {
-        return rest.template tryGet<DesiredIndexType>();
-      }
-    }
-
-    // template<> IndexType* get();
-
-  private:
-    // TODO check that types are distinct
-    // static_assert(!std::is_same_v<IndexType, List> || ...);
-    IndexType* index = nullptr;
-    IM<isGenerating, IndexTypes...> rest;
-  };
-
-  template <bool isGenerating>
-  class IM<isGenerating> {
-  public:
-    IM(SaturationAlgorithm& salg) : salg(salg) {}
-
-    SaturationAlgorithm& alg() { return salg; }
-
-    template <typename DesiredIndexType> DesiredIndexType* get() {
-      static_assert(false);
-    }
-
-    template <typename DesiredIndexType> DesiredIndexType* tryGet() {
-      static_assert(false);
-    }
-  private:
-    SaturationAlgorithm& salg;
-  };
-
-  IM<
-    /*isGenerating=*/true,
-    AcyclicityIndex,
-    InductionTermIndex,
-    BinaryResolutionIndex,
-    SuperpositionLHSIndex,
-    StructInductionTermIndex,
-    UnitClauseLiteralIndex,
-    NonUnitClauseLiteralIndex,
-    SuperpositionSubtermIndex,
-    UnitClauseWithALLiteralIndex,
-    NonUnitClauseWithALLiteralIndex,
-    UnitIntegerComparisonLiteralIndex
-  > _genImgr;
-
-  IM<
-    /*isGenerating=*/false,
-    FSDLiteralIndex,
-    RewriteRuleIndex,
-    DemodulationLHSIndex,
-    UnitClauseLiteralIndex,
-    SkolemisingFormulaIndex,
-    BackwardSubsumptionIndex,
-    CodeTreeSubsumptionIndex,
-    DemodulationSubtermIndex,
-    FwSubsSimplifyingLiteralIndex
-  > _simpImgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;

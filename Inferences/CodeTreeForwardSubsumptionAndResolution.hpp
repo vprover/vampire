@@ -38,7 +38,7 @@ public:
 
 private:
   bool _subsumptionResolution;
-  Indexing::CodeTreeSubsumptionIndex* _index;
+  std::shared_ptr<Indexing::CodeTreeSubsumptionIndex> _index;
   Indexing::ClauseCodeTree* _ct;
 #if VDEBUG
   SATSubsumption::SATSubsumptionAndResolution satSubs;

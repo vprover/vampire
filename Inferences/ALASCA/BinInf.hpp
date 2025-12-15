@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/RequestedIndex.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/ALASCA/Index.hpp"
@@ -64,8 +63,8 @@ struct BinInf
 private:
   std::shared_ptr<AlascaState> _shared;
   Rule _rule;
-  RequestedIndex<AlascaIndex<Lhs>,/*isGenerating=*/true> _lhs;
-  RequestedIndex<AlascaIndex<Rhs>,/*isGenerating=*/true> _rhs;
+  std::shared_ptr<AlascaIndex<Lhs>> _lhs;
+  std::shared_ptr<AlascaIndex<Rhs>> _rhs;
 public:
   USE_ALLOCATOR(BinInf);
 
@@ -79,8 +78,8 @@ public:
   {
     GeneratingInferenceEngine::attach(salg);
 
-    _lhs.request(_salg);
-    _rhs.request(_salg);
+    _lhs = _salg->getGeneratingIndex<AlascaIndex<Lhs>>();
+    _rhs = _salg->getGeneratingIndex<AlascaIndex<Rhs>>();
 
     _lhs->setShared(_shared);
     _rhs->setShared(_shared);
@@ -90,8 +89,8 @@ public:
 
   void detach() final {
     ASS(_salg);
-    _lhs.release();
-    _rhs.release();
+    _lhs = nullptr;
+    _rhs = nullptr;
     GeneratingInferenceEngine::detach();
   }
 
@@ -169,9 +168,9 @@ struct TriInf
 private:
   std::shared_ptr<AlascaState> _shared;
   Rule _rule;
-  RequestedIndex<AlascaIndex<Premise0>,/*isGenerating=*/true> _prem0;
-  RequestedIndex<AlascaIndex<Premise1>,/*isGenerating=*/true> _prem1;
-  RequestedIndex<AlascaIndex<Premise2>,/*isGenerating=*/true> _prem2;
+  std::shared_ptr<AlascaIndex<Premise0>> _prem0;
+  std::shared_ptr<AlascaIndex<Premise1>> _prem1;
+  std::shared_ptr<AlascaIndex<Premise2>> _prem2;
 public:
   USE_ALLOCATOR(TriInf);
 
@@ -185,9 +184,9 @@ public:
   {
     GeneratingInferenceEngine::attach(salg);
 
-    _prem0.request(salg);
-    _prem1.request(salg);
-    _prem2.request(salg);
+    _prem0 = salg->getGeneratingIndex<AlascaIndex<Premise0>>();
+    _prem1 = salg->getGeneratingIndex<AlascaIndex<Premise1>>();
+    _prem2 = salg->getGeneratingIndex<AlascaIndex<Premise2>>();
 
     _prem0->setShared(_shared);
     _prem1->setShared(_shared);
@@ -196,9 +195,9 @@ public:
 
   void detach() final {
     ASS(_salg);
-    _prem0.release();
-    _prem1.release();
-    _prem2.release();
+    _prem0 = nullptr;
+    _prem1 = nullptr;
+    _prem2 = nullptr;
     GeneratingInferenceEngine::detach();
   }
 

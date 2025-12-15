@@ -84,7 +84,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi)) );
+	       TermUnificationRetriever(bsi.get())) );
       break;
     }
     case 2:  //forward superposition
@@ -94,7 +94,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
-	       TermUnificationRetriever(fsi)) );
+	       TermUnificationRetriever(fsi.get())) );
       break;
     }
     case 3:  //equality resolution

@@ -57,8 +57,8 @@ class ForwardSubsumptionDemodulation
     bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   private:
-    UnitClauseLiteralIndex* _unitIndex;
-    FSDLiteralIndex* _index;
+    std::shared_ptr<UnitClauseLiteralIndex> _unitIndex;
+    std::shared_ptr<FSDLiteralIndex> _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;

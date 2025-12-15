@@ -156,7 +156,6 @@ set(SOURCES
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
-    Indexing/RequestedIndex.hpp
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp

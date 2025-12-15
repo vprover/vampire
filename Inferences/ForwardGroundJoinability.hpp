@@ -53,7 +53,7 @@ private:
     Branch* _curr;
   };
 
-  DemodulationLHSIndex* _index;
+  std::shared_ptr<DemodulationLHSIndex> _index;
 };
 
 };

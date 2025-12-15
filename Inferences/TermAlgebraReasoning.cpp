@@ -366,7 +366,7 @@ namespace Inferences {
   ClauseIterator AcyclicityGIE::generateClauses(Clause *c)
   {
     auto it1 = c->getSelectedLiteralIterator();
-    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex, c));
+    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex.get(), c));
     auto it3 = getFlattenedIterator(it2);
     return pvi(it3);
   }

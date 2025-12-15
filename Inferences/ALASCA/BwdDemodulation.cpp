@@ -20,7 +20,7 @@ namespace ALASCA {
 void BwdDemodulation::attach(SaturationAlgorithm* salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _index.request(_salg);
+  _index = _salg->getSimplifyingIndex<AlascaIndex<Rhs>>();
   _index->setShared(_shared);
 }
 
@@ -28,7 +28,7 @@ void BwdDemodulation::detach()
 {
   ASS(_salg);
 
-  _index.release();
+  _index = nullptr;
   BackwardSimplificationEngine::detach();
 }
 

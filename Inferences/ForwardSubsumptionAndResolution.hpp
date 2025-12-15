@@ -54,9 +54,9 @@ public:
 
 private:
   /// @brief Unit index of the saturation algorithm
-  Indexing::UnitClauseLiteralIndex* _unitIndex;
+  std::shared_ptr<Indexing::UnitClauseLiteralIndex> _unitIndex;
   /// @brief Forward index containing the clauses with which the inference engine can perform forward subsumption and resolution
-  Indexing::FwSubsSimplifyingLiteralIndex* _fwIndex;
+  std::shared_ptr<Indexing::FwSubsSimplifyingLiteralIndex> _fwIndex;
 
   /// @brief Parameter to enable or disable subsumption resolution
   /// @note If the parameter is set to false, then the inference engine will only perform forward subsumption

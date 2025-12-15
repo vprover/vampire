@@ -107,8 +107,8 @@ public:
 private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
-  
-  Indexing::AcyclicityIndex* _acyclIndex;
+
+  std::shared_ptr<Indexing::AcyclicityIndex> _acyclIndex;
 };
 
 class AcyclicityGIE1

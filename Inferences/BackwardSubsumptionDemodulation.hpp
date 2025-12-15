@@ -56,7 +56,7 @@ class BackwardSubsumptionDemodulation
     void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 
   private:
-    BackwardSubsumptionIndex* _index;
+    std::shared_ptr<BackwardSubsumptionIndex> _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;

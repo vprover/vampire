@@ -210,7 +210,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
  * @b selector object to select literals before clauses are activated.
  */
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
-  : MainLoop(prb, opt), _imgr(*this), _genImgr(*this), _simpImgr(*this),
+  : MainLoop(prb, opt), _imgr(*this),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),

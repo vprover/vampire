@@ -13,7 +13,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/RequestedIndex.hpp"
 #include "Inferences/ALASCA/Demodulation.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 
@@ -45,7 +44,7 @@ public:
 
 private:
   std::shared_ptr<AlascaState> _shared;
-  RequestedIndex<AlascaIndex<Rhs>,/*isGenerating=*/false> _index;
+  std::shared_ptr<AlascaIndex<Rhs>> _index;
 };
 
 } // namespaceALASCA 

@@ -509,8 +509,8 @@ void Induction::detach() {
 
 ClauseIterator Induction::generateClauses(Clause* premise)
 {
-  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex),
-    _salg, _structInductionTermIndex, _formulaIndex));
+  return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex.get(), _inductionTermIndex.get()),
+    _salg, _structInductionTermIndex.get(), _formulaIndex));
 }
 
 void InductionClauseIterator::processClause(Clause* premise)

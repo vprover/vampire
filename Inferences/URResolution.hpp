@@ -54,8 +54,8 @@ private:
   bool _selectedOnly;
   using UnitIndexType = std::conditional_t<synthesis, UnitClauseWithALLiteralIndex, UnitClauseLiteralIndex>;
   using NonUnitIndexType = std::conditional_t<synthesis, NonUnitClauseWithALLiteralIndex, NonUnitClauseLiteralIndex>;
-  UnitIndexType* _unitIndex;
-  NonUnitIndexType* _nonUnitIndex;
+  std::shared_ptr<UnitIndexType> _unitIndex;
+  std::shared_ptr<NonUnitIndexType> _nonUnitIndex;
 };
 
 };

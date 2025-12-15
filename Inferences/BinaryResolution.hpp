@@ -56,7 +56,7 @@ private:
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
     ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
-  BinaryResolutionIndex* _index;
+  std::shared_ptr<BinaryResolutionIndex> _index;
 };
 
 using BinaryResolutionExtra = TwoLiteralInferenceExtra;

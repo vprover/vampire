@@ -275,9 +275,9 @@ public:
 
 private:
   // The following pointers can be null if int induction is off.
-  UnitIntegerComparisonLiteralIndex* _comparisonIndex;
-  InductionTermIndex* _inductionTermIndex;
-  StructInductionTermIndex* _structInductionTermIndex;
+  std::shared_ptr<UnitIntegerComparisonLiteralIndex> _comparisonIndex;
+  std::shared_ptr<InductionTermIndex> _inductionTermIndex;
+  std::shared_ptr<StructInductionTermIndex> _structInductionTermIndex;
   InductionFormulaIndex _formulaIndex;
   InductionFormulaIndex _recFormulaIndex;
 };

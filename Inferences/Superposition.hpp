@@ -58,8 +58,8 @@ private:
   struct RewritableResultsFn;
   struct BackwardResultFn;
 
-  SuperpositionSubtermIndex* _subtermIndex;
-  SuperpositionLHSIndex* _lhsIndex;
+  std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
+  std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
 };
 
 using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;

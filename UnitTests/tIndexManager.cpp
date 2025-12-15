@@ -27,8 +27,8 @@ struct TestIndex : public Index
   DHSet<Clause*> cls;
 };
 
-// any index id suffices for this test
-template<> unsigned IndexManager::indexId<TestIndex>() { return 0; }
+GEN_INDEX_IMPL(TestIndex)
+SIMP_INDEX_IMPL(TestIndex)
 
 TEST_FUN(index_shared) {
   Problem p;
@@ -37,52 +37,18 @@ TEST_FUN(index_shared) {
   Test::MockedSaturationAlgorithm alg(p, o);
 
   Indexing::IndexManager imgr(alg);
-  auto index = imgr.request<TestIndex, /*isGenerating=*/true>();
-  auto index2 = imgr.request<TestIndex, /*isGenerating=*/true>();
+  auto index = imgr.get<TestIndex, /*isGenerating=*/true>();
+  auto index2 = imgr.get<TestIndex, /*isGenerating=*/true>();
+  ASS(index);
   ASS_EQ(index, index2);
 
   typedef TestIndex TestIndexDef;
-  auto index3 = imgr.request<TestIndexDef, /*isGenerating=*/true>();
+  auto index3 = imgr.get<TestIndexDef, /*isGenerating=*/true>();
   ASS_EQ(index, index3);
 
-  using TestIndexUsing = TestIndex;
-  auto index4 = imgr.request<TestIndexDef, /*isGenerating=*/true>();
+  auto index4 = imgr.get<TestIndexDef, /*isGenerating=*/true>();
   ASS_EQ(index, index4);
-
-  imgr.release<TestIndex, /*isGenerating=*/true>();
-  imgr.release<TestIndex, /*isGenerating=*/true>();
-  imgr.release<TestIndexDef, /*isGenerating=*/true>();
-  imgr.release<TestIndexUsing, /*isGenerating=*/true>();
 }
-
-// TEST_FUN(index_refcounted) {
-//   Problem p;
-//   Options o;
-//   o.resolveAwayAutoValues(p);
-//   Test::MockedSaturationAlgorithm alg(p, o);
-
-//   Indexing::IndexManager imgr(alg);
-
-//   // TODO for whatever reason I cannot put res1 into ASS()
-//   auto res1 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-//   ASS(!res1);
-
-//   imgr.request<TestIndex, /*isGenerating=*/true>();
-//   auto res2 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-//   ASS(res2);
-
-//   imgr.request<TestIndex, /*isGenerating=*/true>();
-//   auto res3 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-//   ASS(res3);
-
-//   imgr.release<TestIndex, /*isGenerating=*/true>();
-//   auto res4 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-//   ASS(res4);
-
-//   imgr.release<TestIndex, /*isGenerating=*/true>();
-//   auto res5 = imgr.tryGet<TestIndex, /*isGenerating=*/true>();
-//   ASS(!res5);
-// }
 
 TEST_FUN(index_not_shared) {
   Problem p;
@@ -91,12 +57,10 @@ TEST_FUN(index_not_shared) {
   Test::MockedSaturationAlgorithm alg(p, o);
 
   Indexing::IndexManager imgr(alg);
-  auto index = imgr.request<TestIndex, /*isGenerating=*/true>();
-  auto index2 = imgr.request<TestIndex, /*isGenerating=*/false>();
+  auto index = imgr.get<TestIndex, /*isGenerating=*/true>();
+  auto index2 = imgr.get<TestIndex, /*isGenerating=*/false>();
+  ASS(index);
   ASS_NEQ(index, index2);
-
-  imgr.release<TestIndex, /*isGenerating=*/true>();
-  imgr.release<TestIndex, /*isGenerating=*/false>();
 }
 
 TEST_FUN(clause_appears_in_generating_index) {
@@ -106,8 +70,8 @@ TEST_FUN(clause_appears_in_generating_index) {
   Test::MockedSaturationAlgorithm alg(p, o);
 
   Indexing::IndexManager imgr(alg);
-  auto gindex = imgr.request<TestIndex, /*isGenerating=*/true>();
-  auto sindex = imgr.request<TestIndex, /*isGenerating=*/false>();
+  auto gindex = imgr.get<TestIndex, /*isGenerating=*/true>();
+  auto sindex = imgr.get<TestIndex, /*isGenerating=*/false>();
 
   auto cl = clause({});
   auto cl2 = clause({});
@@ -117,9 +81,6 @@ TEST_FUN(clause_appears_in_generating_index) {
   ASS(!gindex->cls.contains(cl2));
   ASS(!sindex->cls.contains(cl));
   ASS(!sindex->cls.contains(cl2));
-
-  imgr.release<TestIndex, /*isGenerating=*/true>();
-  imgr.release<TestIndex, /*isGenerating=*/false>();
 }
 
 TEST_FUN(clause_appears_in_simplifying_index) {
@@ -129,8 +90,8 @@ TEST_FUN(clause_appears_in_simplifying_index) {
   Test::MockedSaturationAlgorithm alg(p, o);
 
   Indexing::IndexManager imgr(alg);
-  auto gindex = imgr.request<TestIndex, /*isGenerating=*/true>();
-  auto sindex = imgr.request<TestIndex, /*isGenerating=*/false>();
+  auto gindex = imgr.get<TestIndex, /*isGenerating=*/true>();
+  auto sindex = imgr.get<TestIndex, /*isGenerating=*/false>();
 
   auto cl = clause({});
   auto cl2 = clause({});
@@ -139,7 +100,4 @@ TEST_FUN(clause_appears_in_simplifying_index) {
   ASS(!gindex->cls.contains(cl2));
   ASS(sindex->cls.contains(cl));
   ASS(!sindex->cls.contains(cl2));
-
-  imgr.release<TestIndex, /*isGenerating=*/true>();
-  imgr.release<TestIndex, /*isGenerating=*/false>();
 }

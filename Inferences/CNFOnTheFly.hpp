@@ -51,7 +51,7 @@ public:
   void detach() override;
 
 private:
-  SkolemisingFormulaIndex* _formulaIndex;
+  std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
 };
 
 class LazyClausificationGIE
@@ -64,7 +64,7 @@ public:
   ClauseIterator generateClauses(Clause* c) override;
 
 private:
-  SkolemisingFormulaIndex* _formulaIndex;
+  std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
 };
 
 /*class NotProxyISE

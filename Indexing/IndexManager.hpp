@@ -16,8 +16,9 @@
 #ifndef __IndexManager__
 #define __IndexManager__
 
+#include <memory>
+
 #include "Forwards.hpp"
-#include "Lib/DHMap.hpp"
 #include "Index.hpp"
 
 namespace Indexing
@@ -31,55 +32,43 @@ class IndexManager
 public:
   explicit IndexManager(SaturationAlgorithm& alg);
 
-  template<typename IndexType> static unsigned indexId();
-
   template<typename IndexType, bool isGenerating>
-  static auto key()
-  {
-    static_assert(std::is_base_of<Index, IndexType>());
-    return std::make_pair(indexId<IndexType>(), isGenerating);
+  std::shared_ptr<IndexType> tryGet() {
+    return getUniqueWeakPtr<IndexType, isGenerating>().lock();
   }
 
   template<typename IndexType, bool isGenerating>
-  IndexType* request()
-  {
-    Entry* e;
-    if (_store.getValuePtr(key<IndexType, isGenerating>(), e)) {
-      e->index = new IndexType(_alg);
-      attachContainer<isGenerating>(e->index);
-      e->refCnt=1;
-    } else {
-      e->refCnt++;
+  std::shared_ptr<IndexType> get() {
+    auto &weak = getUniqueWeakPtr<IndexType, isGenerating>();
+    auto shared = weak.lock();
+    if (shared) {
+      return shared;
     }
-    return static_cast<IndexType*>(e->index);
-  }
 
-  template<typename IndexType, bool isGenerating>
-  void release()
-  {
-    auto ptr = _store.findPtr(key<IndexType, isGenerating>());
-    ASS(ptr);
-
-    ptr->refCnt--;
-    if (ptr->refCnt == 0) {
-      delete ptr->index;
-      _store.remove(key<IndexType, isGenerating>());
-    }
+    shared = std::make_shared<IndexType>(_alg);
+    weak = shared;
+    attachContainer<isGenerating>(*shared);
+    return shared;
   }
 
 private:
-  template<bool isGenerating>
-  void attachContainer(Index* i);
+  template<typename IndexType, bool isGenerating>
+  std::weak_ptr<IndexType> &getUniqueWeakPtr();
 
-  struct Entry {
-    Index* index;
-    int refCnt;
-  };
+  template<bool isGenerating>
+  void attachContainer(Index &i);
   SaturationAlgorithm& _alg;
-  // indices mapped by unsigned index id and Boolean telling
-  // whether they are for the generating container or not
-  DHMap<std::pair<unsigned, bool>,Entry> _store;
 };
+
+#define INDEX_IMPL(IndexType, isGenerating)                                 \
+  template<> std::weak_ptr<IndexType> &                                     \
+  IndexManager::getUniqueWeakPtr<IndexType, isGenerating>() {               \
+    static std::weak_ptr<IndexType> index;                                  \
+    return index;                                                           \
+  }
+
+#define GEN_INDEX_IMPL(IndexType) INDEX_IMPL(IndexType, /*isGenerating=*/true)
+#define SIMP_INDEX_IMPL(IndexType) INDEX_IMPL(IndexType, /*isGenerating=*/false)
 
 };
 

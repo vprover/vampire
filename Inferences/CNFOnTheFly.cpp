@@ -756,12 +756,12 @@ ClauseIterator EagerClausificationISE::simplifyMany(Clause* c)
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  return produceClauses(c, true, _formulaIndex);
+  return produceClauses(c, true, _formulaIndex.get());
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  return produceClauses(c, false, _formulaIndex);
+  return produceClauses(c, false, _formulaIndex.get());
 }
 
 
