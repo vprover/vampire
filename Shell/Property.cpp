@@ -283,6 +283,20 @@ void Property::scan(Clause* clause)
       if (literal->isPositive()) {
 	positiveEquationalLiterals++;
       }
+      DHSet<unsigned> vars;
+      auto lhs = literal->termArg(0);
+      for (const auto& v : iterTraits(VariableIterator(lhs))) {
+        if (!vars.insert(v.var())) {
+          USER_ERROR("non-linear literal ", literal->toString(), " is not supported");
+        }
+      }
+      vars.reset();
+      auto rhs = literal->termArg(1);
+      for (const auto& v : iterTraits(VariableIterator(rhs))) {
+        if (!vars.insert(v.var())) {
+          USER_ERROR("non-linear literal ", literal->toString(), " is not supported");
+        }
+      }
     }
 
     bool goal = (clause->inputType()==UnitInputType::CONJECTURE ||
