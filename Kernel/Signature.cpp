@@ -164,7 +164,7 @@ void Signature::Symbol::setType(OperatorType* type)
  */
 void Signature::Symbol::forceType(OperatorType* type)
 {
-  if(_type){ delete _type; }
+  _defaultEndowed = false;
   _type = type;
 }
 
@@ -179,6 +179,7 @@ OperatorType* Signature::Symbol::fnType() const
   if (!_type) {
     TermList def = AtomicSort::defaultSort();
     _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def);
+    _defaultEndowed = true;
   }
   return _type;
 }

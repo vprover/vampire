@@ -90,6 +90,7 @@ class Signature
 
     /** Either a FunctionType of a PredicateType object */
     mutable OperatorType* _type;
+    mutable bool _defaultEndowed = false;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
@@ -322,6 +323,7 @@ class Signature
 
     void setType(OperatorType* type);
     void forceType(OperatorType* type);
+    bool isDefaultTypeEndowed() const { return _defaultEndowed; }
     OperatorType* fnType() const;
     OperatorType* predType() const;
     OperatorType* typeConType() const;

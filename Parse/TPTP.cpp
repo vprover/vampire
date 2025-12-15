@@ -3248,6 +3248,14 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   for (auto i : range(0, arity)) {
     TermList sort = type->arg(i);
     TermList ts = args[i];
+    if (!ts.isVar()) {
+      Term* t = ts.term();
+      Signature::Symbol* sym = env.signature->getFunction(t->functor());
+      // a constant can infer and use the type of its surrounding predicate, if it has been given the default $i, but the defaulting rule
+      if (t->arity() == 0 && sym->isDefaultTypeEndowed()) {
+        sym->forceType(OperatorType::getConstantsType(sort));
+      }
+    }
     TermList tsSort = sortOf(ts);
     if(i < type->numTypeArguments()){
       if(tsSort != AtomicSort::superSort()){
