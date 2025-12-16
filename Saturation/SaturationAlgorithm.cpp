@@ -230,7 +230,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
-  _goalReachabilityHandler.reset(new GoalReachabilityHandler(*_ordering, opt));
+  _goalReachabilityHandler.reset(new GoalReachabilityHandler(*_ordering));
+  _goalNonLinearityHandler.reset(new GoalNonLinearityHandler(*_ordering));
 
   _completeOptionSettings = opt.complete(prb);
 
@@ -1057,6 +1058,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     }
     case Clause::ACTIVE:
       _active->remove(cl);
+      _goalReachabilityHandler->removeClause(cl);
       break;
     default:
       ASS_REP2(false, cl->store(), *cl);
@@ -1182,6 +1184,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     _active->remove(cl);
   }
 
+  _goalNonLinearityHandler->checkNonGoalClause(cl);
+
   for (const auto& gcl : _goalReachabilityHandler->addClause(cl)) {
     gcl->makeGoalClause();
     env.statistics->goalClauses++;
@@ -1203,6 +1207,8 @@ void SaturationAlgorithm::activate(Clause* cl)
         }
       }
     }
+
+    _goalNonLinearityHandler->checkGoalClause(gcl);
 
     _clauseActivationInProgress = false;
     ASS(_postponedClauseRemovals.isEmpty()); // TODO is this even possible to be non-empty?

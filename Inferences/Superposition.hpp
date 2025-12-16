@@ -43,7 +43,6 @@ public:
 private:
   ClauseIterator performForwardSuperpositions(Clause* premise);
   ClauseIterator performBackwardSuperpositions(Clause* premise);
-  ClauseIterator performSuperpositionsWithGoal(Clause* premise);
 
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
@@ -57,15 +56,11 @@ private:
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
-  // bool isGoalLiteral(Literal* lit);
-  // bool isGoalTerm(TypedTermList t);
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
   {
     _lhsIndex = static_cast<decltype(_lhsIndex)>(is[0]);
     _subtermIndex = static_cast<decltype(_subtermIndex)>(is[1]);
-    _goalTermIndex = static_cast<decltype(_goalTermIndex)>(is[2]);
-    _rhsIndex = static_cast<decltype(_rhsIndex)>(is[3]);
   }
 #endif
 
@@ -76,9 +71,7 @@ private:
   struct BackwardResultFn;
 
   SuperpositionSubtermIndex* _subtermIndex;
-  SuperpositionLHSIndex</*inverse=*/false>* _lhsIndex;
-  SuperpositionLHSIndex</*inverse=*/true>* _rhsIndex;
-  GoalTermIndex* _goalTermIndex;
+  SuperpositionLHSIndex* _lhsIndex;
 
   const bool _goalOriented;
 };

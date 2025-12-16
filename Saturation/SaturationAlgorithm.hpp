@@ -226,6 +226,7 @@ protected:
   FunctionDefinitionHandler& _fnDefHandler;
   std::unique_ptr<PartialRedundancyHandler> _partialRedundancyHandler;
   std::unique_ptr<GoalReachabilityHandler> _goalReachabilityHandler;
+  std::unique_ptr<GoalNonLinearityHandler> _goalNonLinearityHandler;
   Superposition* _superposition = nullptr;
 
   SubscriptionData _passiveContRemovalSData;

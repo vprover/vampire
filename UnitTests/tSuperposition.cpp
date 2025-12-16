@@ -35,13 +35,9 @@ Generation::TestIndices superpositionIndices()
 {
   return {
     [](const SaturationAlgorithm& alg){
-      return new Indexing::SuperpositionLHSIndex</*inverse=*/false>(new Indexing::TermSubstitutionTree<TermLiteralClause>(), alg.getOrdering(), alg.getOptions()); },
+      return new Indexing::SuperpositionLHSIndex(new Indexing::TermSubstitutionTree<TermLiteralClause>(), alg.getOrdering(), alg.getOptions()); },
     [](const SaturationAlgorithm& alg){
-      return new Indexing::SuperpositionSubtermIndex(new Indexing::TermSubstitutionTree<TermLiteralClause>(), alg.getOrdering()); },
-    [](const SaturationAlgorithm& alg){
-      return new Indexing::GoalTermIndex(); },
-    [](const SaturationAlgorithm& alg){
-      return new Indexing::SuperpositionLHSIndex</*inverse=*/true>(new Indexing::TermSubstitutionTree<TermLiteralClause>(), alg.getOrdering(), alg.getOptions()); },
+      return new Indexing::SuperpositionSubtermIndex(new Indexing::TermSubstitutionTree<TermLiteralClause>(), alg.getOrdering()); }
   };
 }
 

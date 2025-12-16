@@ -61,22 +61,14 @@ void Superposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
   _lhsIndex=static_cast<decltype(_lhsIndex)> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
-  _rhsIndex=static_cast<decltype(_rhsIndex)> (
-	  _salg->getIndexManager()->request(SUPERPOSITION_RHS_SUBST_TREE) );
-  _goalTermIndex=static_cast<GoalTermIndex*> (
-	  _salg->getIndexManager()->request(GOAL_TERM_INDEX) );
 }
 
 void Superposition::detach()
 {
   _subtermIndex=0;
   _lhsIndex=0;
-  _rhsIndex = nullptr;
-  _goalTermIndex = nullptr;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
   _salg->getIndexManager()->release(SUPERPOSITION_LHS_SUBST_TREE);
-  _salg->getIndexManager()->release(SUPERPOSITION_RHS_SUBST_TREE);
-  _salg->getIndexManager()->release(GOAL_TERM_INDEX);
   GeneratingInferenceEngine::detach();
 }
 
@@ -118,7 +110,6 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   auto itf = performForwardSuperpositions(premise);
   auto itb = performBackwardSuperpositions(premise);
-  // auto itg = performSuperpositionsWithGoal(premise);
 
   // Add the results of forward and backward together
   auto it5 = concatIters(itf,itb);
@@ -167,39 +158,6 @@ ClauseIterator Superposition::performBackwardSuperpositions(Clause* premise)
               _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); })
     //Perform backward superposition
     .map(BackwardResultFn(premise, *this)));
-}
-
-ClauseIterator Superposition::performSuperpositionsWithGoal(Clause* premise)
-{
-  if (!_goalOriented) {
-    return ClauseIterator::getEmpty();
-  }
-  if (premise->length()>1) {
-    INVALID_OPERATION("non-unit clauses not yet supported");
-  }
-  auto lit = (*premise)[0];
-  if (!lit->isEquality()) {
-    INVALID_OPERATION("predicates not yet supported");
-  }
-
-  if (lit->isPositive()) {
-    return ClauseIterator::getEmpty();
-  }
-  // TODO this is a bit dubious, static is needed because
-  // the iterator is evaluated outside of this function
-  static DHSet<Clause*> done;
-  done.reset();
-  return pvi(iterTraits(NonVariableNonTypeIterator(lit))
-    .flatMap([&](const auto& t) {
-      return _rhsIndex->getUnifications(t);
-    })
-    .flatMap([&](const auto& qr) {
-      if (!done.insert(qr.data->clause)) { return ClauseIterator::getEmpty(); }
-      return pvi(concatIters(
-        performForwardSuperpositions(qr.data->clause),
-        performBackwardSuperpositions(qr.data->clause)
-      ));
-    }));
 }
 
 /**
@@ -333,32 +291,6 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 
   return true;
 }
-
-// bool Superposition::isGoalLiteral(Literal* lit)
-// {
-//   if (lit->isNegative()) {
-//     return true;
-//   }
-//   if (!lit->isEquality()) {
-//     INVALID_OPERATION("predicates not yet supported");
-//   }
-//   // TODO this case is a violation in EqHelper::getSuperpositionLHSIterator
-//   if (EqHelper::isEqTautology(lit)) {
-//     return isGoalTerm(TypedTermList(lit->termArg(0), SortHelper::getEqualityArgumentSort(lit)));
-//   }
-
-//   for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _salg->getOrdering(), _salg->getOptions()))) {
-//     if (isGoalTerm(TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()))) {
-//       return true;
-//     }
-//   }
-//   return false;
-// }
-
-// bool Superposition::isGoalTerm(TypedTermList t)
-// {
-//   return _goalTermIndex->getUnifications(t).hasNext();
-// }
 
 /**
  * If superposition should be performed, return result of the superposition,

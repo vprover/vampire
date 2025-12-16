@@ -193,6 +193,7 @@ class FunctionDefinitionHandler;
 class PartialRedundancyHandler;
 struct PartialRedundancyEntry;
 class GoalReachabilityHandler;
+class GoalNonLinearityHandler;
 class TermAlgebra;
 }
 #endif /* __Forwards__ */

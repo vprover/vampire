@@ -1691,7 +1691,7 @@ void Options::init()
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
     _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",
-       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"});
+       DemodulationRedundancyCheck::ORDERING,{"off","ordering","encompass"});
     _demodulationRedundancyCheck.description=
        "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"

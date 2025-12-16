@@ -22,7 +22,7 @@
   DECL_CONST(d, s)                                                                         \
   DECL_FUNC(f, {s, s}, s)                                                                  \
   DECL_FUNC(g, {s}, s)                                                                     \
-  DECL_FUNC(h, {s, s}, s)
+  DECL_FUNC(h, {s, s, s}, s)
 
 class SymmetricTester {
 public:
@@ -44,7 +44,7 @@ public:
     do {
 
       DHSet<Clause*> goalClauses;
-      GoalReachabilityHandler handler(*ord, opt);
+      GoalReachabilityHandler handler(*ord);
 
       for (const auto& index : indices) {
         for (const auto& ng : handler.addClause(clauses[index])) {
@@ -108,5 +108,18 @@ TEST_FUN(test04) {
 
   // iteration for c3 stops because loop is detected
   SymmetricTester tester({ c1, c2, c3 }, { c1, c2 });
+  tester.run();
+}
+
+TEST_FUN(test05) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ a != b });
+  auto c2 = clause({ h(x,x,y) == y });
+  auto c3 = clause({ h(f(c,x),d,b) == a });
+  auto c4 = clause({ f(x,c) == d });
+
+  // iteration for c3 stops because loop is detected
+  SymmetricTester tester({ c1, c2, c3, c4 }, { c1, c2 });
   tester.run();
 }

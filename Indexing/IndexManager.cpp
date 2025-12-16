@@ -192,17 +192,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex</*inverse=*/false>(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
-    isGenerating = true;
-    break;
-
-  case SUPERPOSITION_RHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex</*inverse=*/true>(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
-    isGenerating = true;
-    break;
-
-  case GOAL_TERM_INDEX:
-    res = new GoalTermIndex();
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
 

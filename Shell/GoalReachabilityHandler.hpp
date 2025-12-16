@@ -25,7 +25,7 @@ using namespace Indexing;
 
 namespace Shell {
 
-struct TermTermLiteralClause 
+struct TermTermLiteralClause
 {
   TypedTermList term;
   TypedTermList side;
@@ -59,14 +59,40 @@ struct TermClause
   { return out << "(" << self.term << ", " << *self.clause << ")"; }
 };
 
+using LinearityConstraint = std::pair<unsigned,unsigned>;
+using LinearityConstraints = Stack<LinearityConstraint>;
+
+struct LinearTermLiteralClause
+{
+  TypedTermList term;
+  LinearityConstraints constraints;
+  Literal* literal = nullptr;
+  Clause* clause = nullptr;
+
+  TypedTermList const& key() const { return term; }
+
+  auto  asTuple() const
+  { return std::make_tuple(clause->number(), constraints, literal->getId(), term); }
+
+  IMPL_COMPARISONS_FROM_TUPLE(LinearTermLiteralClause)
+
+  friend std::ostream& operator<<(std::ostream& out, LinearTermLiteralClause const& self)
+  { return out << "("
+               << self.term << ", "
+               << self.constraints << ", "
+               << self.literal << ", "
+               << Output::ptr(self.clause)
+               << ")"; }
+};
+
 class GoalReachabilityHandler {
 public:
-  GoalReachabilityHandler(const Ordering& ord, const Options& opt) : ord(ord), opt(opt) {}
+  GoalReachabilityHandler(const Ordering& ord) : ord(ord) {}
 
   // returns clauses that become goal clauses when adding this clause
   // note that the clause itself can be among them
   [[nodiscard]] ClauseStack addClause(Clause* cl);
-  void removeClause(Clause* cl);
+  void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
 
 private:
   [[nodiscard]] ClauseStack addGoalClause(Clause* cl);
@@ -94,10 +120,31 @@ private:
 
   DHMap<Clause*, ReachabilityTree*> clauseTrees;
   const Ordering& ord;
-  const Options& opt;
 
   TermSubstitutionTree<TermTermLiteralClause> _goalSubtermIndex;
   TermSubstitutionTree<TermClause> _rhsIndex;
+};
+
+class GoalNonLinearityHandler {
+public:
+  GoalNonLinearityHandler(const Ordering& ord) : ord(ord) {}
+
+  void checkNonGoalClause(Clause* cl);
+  void checkGoalClause(Clause* cl);
+
+  // TODO implement removal
+  void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
+
+private:
+  void perform(const LinearityConstraints& cons, ResultSubstitution* subst, bool result);
+
+  const Ordering& ord;
+
+  TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalTermIndex;
+  TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalLHSIndex;
+
+  TermSubstitutionTree<TermLiteralClause> _nonGoalLHSIndex;
+  TermSubstitutionTree<TermLiteralClause> _nonGoalSubtermIndex;
 };
 
 }

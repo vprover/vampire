@@ -45,25 +45,16 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-template<bool inverse>
-void SuperpositionLHSIndex<inverse>::handleClause(Clause* c, bool adding)
+void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("forward superposition index maintenance");
 
   for (const auto& lit : c->getSelectedLiteralIterator()) {
     for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
-      if constexpr (inverse) {
-        TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-	      _is->handle(TermLiteralClause{ rhs, lit, c }, adding);
-      } else {
-	      _is->handle(TermLiteralClause{ lhs, lit, c }, adding);
-      }
+      _is->handle(TermLiteralClause{ lhs, lit, c }, adding);
     }
   }
 }
-
-template class SuperpositionLHSIndex<true>;
-template class SuperpositionLHSIndex<false>;
 
 void GoalTermIndex::handleClause(Clause* c, bool adding)
 {

@@ -18,6 +18,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 using namespace Shell;
@@ -255,3 +256,95 @@ bool GoalReachabilityHandler::ReachabilityTree::canBeAdded(TypedTermList t, Resu
   return false;
 }
 
+void GoalNonLinearityHandler::checkNonGoalClause(Clause* cl)
+{
+  ASS(!cl->isGoalClause());
+
+  for (const auto& lit : cl->getSelectedLiteralIterator()) {
+    for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
+        // handle equality lhs
+        if (t == lhs && lit->isPositive()) {
+          _nonGoalLHSIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/true);
+
+          for (const auto& qr : iterTraits(_nonLinearGoalTermIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+            perform(qr.data->constraints, qr.unifier.ptr(), /*result=*/true);
+          }
+        }
+        _nonGoalSubtermIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/true);
+
+        for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+          perform(qr.data->constraints, qr.unifier.ptr(), /*result=*/true);
+        }
+      }
+    }
+  }
+  // INVALID_OPERATION("TODO");
+}
+
+namespace {
+  struct Linearizer : TermTransformer {
+    Linearizer(unsigned nextVar) : TermTransformer(true), nextVar(nextVar) {}
+    TermList transformSubterm(TermList trm) override {
+      if (trm.isVar() && !seen.insert(trm.var())) {
+        auto v = nextVar++;
+        constraints.emplace(trm.var(), v);
+        return TermList::var(v);
+      }
+      return trm;
+    }
+    Stack<std::pair<unsigned, unsigned>> constraints;
+    DHSet<unsigned> seen;
+    unsigned nextVar;
+  };
+}
+
+void GoalNonLinearityHandler::checkGoalClause(Clause* cl)
+{
+  ASS(cl->isGoalClause());
+
+  DHSet<unsigned> vars;
+  unsigned maxVar = 0;
+  for (const auto& v : iterTraits(cl->getVariableIterator())) {
+    vars.insert(v);
+    maxVar = std::max(maxVar,v);
+  }
+  maxVar++;
+
+  for (const auto& lit : cl->getSelectedLiteralIterator()) {
+    for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
+        Linearizer linearizer(maxVar);
+        auto lt = linearizer.transform(t);
+        if (linearizer.constraints.isEmpty()) {
+          continue;
+        }
+        // handle equality lhs
+        if (t == lhs && lit->isPositive()) {
+          _nonLinearGoalLHSIndex.handle(LinearTermLiteralClause{ lt, linearizer.constraints, lit, cl }, /*adding=*/true);
+
+          for (const auto& qr : iterTraits(_nonGoalSubtermIndex.getUnifications(lt, /*retrieveSubstitutions=*/true))) {
+            perform(linearizer.constraints, qr.unifier.ptr(), /*result=*/false);
+          }
+        }
+        _nonLinearGoalTermIndex.handle(LinearTermLiteralClause{ lt, linearizer.constraints, lit, cl }, /*adding=*/true);
+
+        for (const auto& qr : iterTraits(_nonGoalLHSIndex.getUnifications(lt, /*retrieveSubstitutions=*/true))) {
+          perform(linearizer.constraints, qr.unifier.ptr(), /*result=*/false);
+        }
+      }
+    }
+  }
+  // INVALID_OPERATION("TODO");
+}
+
+void GoalNonLinearityHandler::perform(const LinearityConstraints& cons, ResultSubstitution* subst, bool result)
+{
+  for (const auto& [x,y] : cons) {
+    auto xS = subst->apply(TermList::var(x), result);
+    auto yS = subst->apply(TermList::var(y), result);
+    if (xS != yS) {
+      std::cout << "found pair " << x << " != " << y << " (" << xS << " != " << yS << ")" << std::endl;
+    }
+  }
+}

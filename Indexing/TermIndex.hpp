@@ -63,7 +63,6 @@ private:
   Ordering& _ord;
 };
 
-template<bool inverse>
 class SuperpositionLHSIndex
 : public TermIndex<TermLiteralClause>
 {
