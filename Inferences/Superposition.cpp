@@ -72,21 +72,6 @@ void Superposition::detach()
   GeneratingInferenceEngine::detach();
 }
 
-struct Superposition::ForwardResultFn
-{
-  ForwardResultFn(Clause* cl, Superposition& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
-  {
-    auto& qr = arg.second;
-    return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
-  }
-private:
-  Clause* _cl;
-  Superposition& _parent;
-};
-
-
 struct Superposition::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, Superposition& parent) : _cl(cl), _parent(parent) {}
@@ -98,7 +83,7 @@ struct Superposition::BackwardResultFn
 
     auto& qr = arg.second;
     return _parent.performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
-	    _cl, arg.first.first, arg.first.second, qr.unifier, false);
+	    _cl, arg.first.first, arg.first.second, qr.unifier, false, /*nonGoalNonGoal=*/false);
   }
 private:
   Clause* _cl;
@@ -123,9 +108,20 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   return pvi( it7 );
 }
 
-ClauseIterator Superposition::generateClausesWithGoalClause(Clause* premise)
+ClauseIterator Superposition::generateClausesWithNonGoalSuperposableTerms(Clause* premise, TypedTermList t)
 {
-  NOT_IMPLEMENTED;
+  return pvi(premise->getSelectedLiteralIterator()
+    .filter([t](Literal* lit) { return lit->containsSubterm(t); })
+    .map([t](Literal* lit) { return std::pair(lit, t); })
+    .flatMap(
+      [this](pair<Literal*, TypedTermList> arg)
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); })
+    //Perform forward superposition
+    .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) {
+      auto& qr = arg.second;
+      return performSuperposition(premise, arg.first.first, arg.first.second,
+        qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true, /*nonGoalNonGoal=*/true);
+    }));
 }
 
 ClauseIterator Superposition::performForwardSuperpositions(Clause* premise)
@@ -144,7 +140,11 @@ ClauseIterator Superposition::performForwardSuperpositions(Clause* premise)
       [this](pair<Literal*, TypedTermList> arg)
       { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); })
     //Perform forward superposition
-    .map(ForwardResultFn(premise, *this)));
+    .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) {
+      auto& qr = arg.second;
+      return performSuperposition(premise, arg.first.first, arg.first.second,
+        qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true, /*nonGoalNonGoal=*/false);
+    }));
 }
 
 ClauseIterator Superposition::performBackwardSuperpositions(Clause* premise)
@@ -299,7 +299,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    AbstractingUnifier* unifier, bool eqIsResult)
+    AbstractingUnifier* unifier, bool eqIsResult, bool nonGoalNonGoal)
 {
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
@@ -374,18 +374,17 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  // disallow superpositions with only non-goal clauses
-  if (!rwClause->isGoalClause() && !eqClause->isGoalClause()) {
-    return 0;
-  }
+  if (nonGoalNonGoal) {
+    // disallow superpositions with goal clauses
+    if (rwClause->isGoalClause() || eqClause->isGoalClause()) {
+      return 0;
+    }
 
-  if(rwLitS->isEquality()) {
-    //check that we're not rewriting only the smaller side of an equality
-    TermList arg0=*rwLitS->nthArgument(0);
-    TermList arg1=*rwLitS->nthArgument(1);
+    if(rwLitS->isEquality()) {
+      //check that we're not rewriting only the smaller side of an equality
+      TermList arg0=*rwLitS->nthArgument(0);
+      TermList arg1=*rwLitS->nthArgument(1);
 
-    // disallow superpositions with non-goal clauses into smaller sides of goal clauses 
-    if (rwClause->isGoalClause() && !eqClause->isGoalClause()) {
       if(!arg0.containsSubterm(rwTermS)) {
         if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
           return 0;
@@ -393,6 +392,31 @@ Clause* Superposition::performSuperposition(
       } else if(!arg1.containsSubterm(rwTermS)) {
         if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
           return 0;
+        }
+      }
+    }
+
+  } else {
+    // disallow superpositions with only non-goal clauses
+    if (!rwClause->isGoalClause() && !eqClause->isGoalClause()) {
+      return 0;
+    }
+
+    if(rwLitS->isEquality()) {
+      //check that we're not rewriting only the smaller side of an equality
+      TermList arg0=*rwLitS->nthArgument(0);
+      TermList arg1=*rwLitS->nthArgument(1);
+
+      // disallow superpositions with non-goal clauses into smaller sides of goal clauses 
+      if (rwClause->isGoalClause() && !eqClause->isGoalClause()) {
+        if(!arg0.containsSubterm(rwTermS)) {
+          if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
+            return 0;
+          }
+        } else if(!arg1.containsSubterm(rwTermS)) {
+          if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+            return 0;
+          }
         }
       }
     }

@@ -376,6 +376,10 @@ public:
 
   bool isGoalClause() const { return _goalClause; }
   void makeGoalClause() { ASS(!_goalClause); _goalClause = true; }
+#if VDEBUG
+  // this is only used in testing
+  void unmakeGoalClause() { _goalClause = false; }
+#endif
 
 protected:
   /** number of literals */

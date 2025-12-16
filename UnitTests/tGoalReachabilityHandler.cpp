@@ -47,8 +47,11 @@ public:
       GoalReachabilityHandler handler(*ord);
 
       for (const auto& index : indices) {
-        for (const auto& ng : handler.addClause(clauses[index])) {
-          ASS_REP(goalClauses.insert(ng), ng->toString() + " removed multiple times");
+        clauses[index]->unmakeGoalClause();
+        auto [gcls, kvs] = handler.addClause(clauses[index]);
+        // TODO test kvs too
+        for (const auto& gc : gcls) {
+          ASS_REP(goalClauses.insert(gc), gc->toString() + " removed multiple times");
         }
       }
 

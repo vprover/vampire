@@ -231,7 +231,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
   _goalReachabilityHandler.reset(new GoalReachabilityHandler(*_ordering));
-  _goalNonLinearityHandler.reset(new GoalNonLinearityHandler(*_ordering));
 
   _completeOptionSettings = opt.complete(prb);
 
@@ -1184,13 +1183,13 @@ void SaturationAlgorithm::activate(Clause* cl)
     _active->remove(cl);
   }
 
-  _goalNonLinearityHandler->checkNonGoalClause(cl);
+  // TODO add to some indices and perform extra inferences
+  _clauseActivationInProgress = true;
 
-  for (const auto& gcl : _goalReachabilityHandler->addClause(cl)) {
-    gcl->makeGoalClause();
+  auto [gcls, kvs] = _goalReachabilityHandler->addClause(cl);
+  for (const auto& gcl : gcls) {
+    ASS(gcl->isGoalClause());
     env.statistics->goalClauses++;
-    // TODO add to some indices and perform extra inferences
-    _clauseActivationInProgress = true;
 
     ASS(_superposition);
     // this is similar as the generation above
@@ -1207,13 +1206,26 @@ void SaturationAlgorithm::activate(Clause* cl)
         }
       }
     }
-
-    _goalNonLinearityHandler->checkGoalClause(gcl);
-
-    _clauseActivationInProgress = false;
-    ASS(_postponedClauseRemovals.isEmpty()); // TODO is this even possible to be non-empty?
   }
 
+  for (const auto& [ngcl, t] : kvs) {
+    ASS(!ngcl->isGoalClause());
+    for (const auto& genCl : iterTraits(_superposition->generateClausesWithNonGoalSuperposableTerms(ngcl, t))) {
+      addNewClause(genCl);
+
+      Inference::Iterator iit = genCl->inference().iterator();
+      while (genCl->inference().hasNext(iit)) {
+        Unit *premUnit = genCl->inference().next(iit);
+        if (premUnit->isClause()) {
+          Clause *premCl = static_cast<Clause *>(premUnit);
+          onParenthood(genCl, premCl);
+        }
+      }
+    }
+  }
+
+  _clauseActivationInProgress = false;
+  ASS(_postponedClauseRemovals.isEmpty()); // TODO is this even possible to be non-empty?
 
   return;
 }

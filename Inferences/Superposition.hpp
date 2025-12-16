@@ -38,7 +38,7 @@ public:
   void detach() override;
 
   ClauseIterator generateClauses(Clause* premise) override;
-  ClauseIterator generateClausesWithGoalClause(Clause* premise);
+  ClauseIterator generateClausesWithNonGoalSuperposableTerms(Clause* premise, TypedTermList t);
 
 private:
   ClauseIterator performForwardSuperpositions(Clause* premise);
@@ -47,7 +47,7 @@ private:
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-    AbstractingUnifier* unifier, bool eqIsResult);
+    AbstractingUnifier* unifier, bool eqIsResult, bool nonGoalNonGoal);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,

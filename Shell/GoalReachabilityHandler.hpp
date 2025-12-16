@@ -59,7 +59,7 @@ struct TermClause
   { return out << "(" << self.term << ", " << *self.clause << ")"; }
 };
 
-using LinearityConstraint = std::pair<unsigned,unsigned>;
+using LinearityConstraint = std::pair<TypedTermList,TypedTermList>;
 using LinearityConstraints = Stack<LinearityConstraint>;
 
 struct LinearTermLiteralClause
@@ -85,17 +85,43 @@ struct LinearTermLiteralClause
                << ")"; }
 };
 
-class GoalReachabilityHandler {
-public:
-  GoalReachabilityHandler(const Ordering& ord) : ord(ord) {}
+using ClauseTermPair = std::pair<Clause*, TypedTermList>;
+using ClauseTermPairs = Stack<ClauseTermPair>;
 
-  // returns clauses that become goal clauses when adding this clause
-  // note that the clause itself can be among them
-  [[nodiscard]] ClauseStack addClause(Clause* cl);
+class GoalNonLinearityHandler {
+public:
+  GoalNonLinearityHandler(const Ordering& ord, const GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
+
+  [[nodiscard]] ClauseTermPairs checkNonGoalClause(Clause* cl);
+  [[nodiscard]] ClauseTermPairs checkGoalClause(Clause* cl);
+
+  // TODO implement removal
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
 
 private:
-  [[nodiscard]] ClauseStack addGoalClause(Clause* cl);
+  void perform(Clause* ngcl, const LinearityConstraints& cons, ResultSubstitution* subst, bool result, ClauseTermPairs& res);
+
+  const Ordering& ord;
+  const GoalReachabilityHandler& handler;
+
+  TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalTermIndex;
+  TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalLHSIndex;
+
+  TermSubstitutionTree<TermLiteralClause> _nonGoalLHSIndex;
+  TermSubstitutionTree<TermLiteralClause> _nonGoalSubtermIndex;
+};
+
+class GoalReachabilityHandler {
+public:
+  GoalReachabilityHandler(const Ordering& ord) : ord(ord), _nonLinearityHandler(ord, *this) {}
+
+  // returns clauses that become goal clauses when adding this clause
+  // note that the clause itself can be among them
+  [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addClause(Clause* cl);
+  void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
+
+private:
+  [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addGoalClause(Clause* cl);
 
   struct ReachabilityTree {
     ReachabilityTree(GoalReachabilityHandler& handler, Clause* cl) : handler(handler), cl(cl) {}
@@ -115,36 +141,19 @@ private:
     // TODO store terms that have been superposed into by non-goal terms
     DHSet<TypedTermList> terms;
     GoalReachabilityHandler& handler;
+    DHSet<TypedTermList> nonGoalSuperposableTerms;
     Clause* cl;
   };
+
+  friend class GoalNonLinearityHandler;
 
   DHMap<Clause*, ReachabilityTree*> clauseTrees;
   const Ordering& ord;
 
   TermSubstitutionTree<TermTermLiteralClause> _goalSubtermIndex;
   TermSubstitutionTree<TermClause> _rhsIndex;
-};
 
-class GoalNonLinearityHandler {
-public:
-  GoalNonLinearityHandler(const Ordering& ord) : ord(ord) {}
-
-  void checkNonGoalClause(Clause* cl);
-  void checkGoalClause(Clause* cl);
-
-  // TODO implement removal
-  void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
-
-private:
-  void perform(const LinearityConstraints& cons, ResultSubstitution* subst, bool result);
-
-  const Ordering& ord;
-
-  TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalTermIndex;
-  TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalLHSIndex;
-
-  TermSubstitutionTree<TermLiteralClause> _nonGoalLHSIndex;
-  TermSubstitutionTree<TermLiteralClause> _nonGoalSubtermIndex;
+  GoalNonLinearityHandler _nonLinearityHandler;
 };
 
 }
