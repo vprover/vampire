@@ -1190,6 +1190,9 @@ void SaturationAlgorithm::activate(Clause* cl)
   for (const auto& gcl : gcls) {
     ASS(gcl->isGoalClause());
     env.statistics->goalClauses++;
+    if (env.options->showAll()) {
+      std::cout << "[SA] goal clause: " << gcl->toString() << endl;
+    }
 
     ASS(_superposition);
     // this is similar as the generation above
