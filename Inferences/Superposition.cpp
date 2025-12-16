@@ -110,9 +110,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
 ClauseIterator Superposition::generateClausesWithNonGoalSuperposableTerms(Clause* premise, TypedTermList t)
 {
-  return pvi(premise->getSelectedLiteralIterator()
-    .filter([t](Literal* lit) { return lit->containsSubterm(t); })
-    .map([t](Literal* lit) { return std::pair(lit, t); })
+  if (premise->length() != 1) {
+    INVALID_OPERATION("non-unit clauses are not yet supported");
+  }
+  ASS(t.isTerm());
+  auto lit = (*premise)[0];
+
+  return pvi(iterTraits(NonVariableNonTypeIterator(t.term(), /*includeSelf=*/true))
+    .map([lit](Term* st) ->std::pair<Literal*,Term*> { return std::pair(lit, st); })
     .flatMap(
       [this](pair<Literal*, TypedTermList> arg)
       { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); })
@@ -332,7 +337,10 @@ Clause* Superposition::performSuperposition(
 
   unsigned numPositiveLiteralsLowerBound = std::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
   //TODO update inference rule name AYB
-  Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
+  const bool bothGoal = eqClause->isGoalClause() && rwClause->isGoalClause();
+  const bool anyGoal = eqClause->isGoalClause() || rwClause->isGoalClause();
+  Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION :
+    (bothGoal ? InferenceRule::SUPERPOSITION : (anyGoal ? InferenceRule::GOAL_NONGOAL_SUPERPOSITION : InferenceRule::NONGOAL_SUPERPOSITION)), rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
   auto passiveClauseContainer = _salg->getPassiveClauseContainer();

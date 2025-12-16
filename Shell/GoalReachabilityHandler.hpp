@@ -99,7 +99,7 @@ public:
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
 
 private:
-  void perform(Clause* ngcl, const LinearityConstraints& cons, ResultSubstitution* subst, bool result, ClauseTermPairs& res);
+  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons, ClauseTermPairs& res);
 
   const Ordering& ord;
   const GoalReachabilityHandler& handler;

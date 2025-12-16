@@ -678,6 +678,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "backward subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
+  case InferenceRule::GOAL_NONGOAL_SUPERPOSITION:
+    return "goal non-goal superposition";
+  case InferenceRule::NONGOAL_SUPERPOSITION:
+    return "non-goal superposition";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
     return "function definition rewriting";
   case InferenceRule::FUNCTION_DEFINITION_DEMODULATION:

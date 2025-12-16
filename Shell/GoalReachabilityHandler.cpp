@@ -130,7 +130,7 @@ std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::addGoalClause(C
     }
 
     // 2. Iterate reachibility trees
-    Stack<std::pair<Clause*, TypedTermList>> termsToAdd;
+    ClauseTermPairs termsToAdd;
 
     for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
       if (lhs.isVar()) { continue; }
@@ -262,11 +262,11 @@ bool GoalReachabilityHandler::ReachabilityTree::canBeAdded(TypedTermList t, Resu
   return false;
 }
 
-Stack<std::pair<Clause*, TypedTermList>> GoalNonLinearityHandler::checkNonGoalClause(Clause* cl)
+ClauseTermPairs GoalNonLinearityHandler::checkNonGoalClause(Clause* cl)
 {
   ASS(!cl->isGoalClause());
 
-  Stack<std::pair<Clause*, TypedTermList>> res;
+  ClauseTermPairs res;
 
   for (const auto& lit : cl->getSelectedLiteralIterator()) {
     for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
@@ -275,14 +275,14 @@ Stack<std::pair<Clause*, TypedTermList>> GoalNonLinearityHandler::checkNonGoalCl
         if (t == lhs && lit->isPositive()) {
           _nonGoalLHSIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/true);
 
-          for (const auto& qr : iterTraits(_nonLinearGoalTermIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-            perform(cl, qr.data->constraints, qr.unifier.ptr(), /*result=*/true, res);
+          for (const auto& qr : iterTraits(_nonLinearGoalTermIndex.getUnifications(t, /*retrieveSubstitutions=*/false))) {
+            perform(cl, qr.data->term, t, qr.data->constraints, res);
           }
         }
         _nonGoalSubtermIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/true);
 
-        for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-          perform(cl, qr.data->constraints, qr.unifier.ptr(), /*result=*/true, res);
+        for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/false))) {
+          perform(cl, qr.data->term, t, qr.data->constraints, res);
         }
       }
     }
@@ -310,10 +310,10 @@ namespace {
   };
 }
 
-Stack<std::pair<Clause*, TypedTermList>> GoalNonLinearityHandler::checkGoalClause(Clause* cl)
+ClauseTermPairs GoalNonLinearityHandler::checkGoalClause(Clause* cl)
 {
   ASS(cl->isGoalClause());
-  Stack<std::pair<Clause*, TypedTermList>> res;
+  ClauseTermPairs res;
 
   DHMap<unsigned,TermList> varSorts;
   SortHelper::collectVariableSorts(const_cast<Clause*>(cl),varSorts);
@@ -336,14 +336,14 @@ Stack<std::pair<Clause*, TypedTermList>> GoalNonLinearityHandler::checkGoalClaus
         if (t == lhs && lit->isPositive()) {
           _nonLinearGoalLHSIndex.handle(LinearTermLiteralClause{ lt, linearizer.constraints, lit, cl }, /*adding=*/true);
 
-          for (const auto& qr : iterTraits(_nonGoalSubtermIndex.getUnifications(lt, /*retrieveSubstitutions=*/true))) {
-            perform(qr.data->clause, linearizer.constraints, qr.unifier.ptr(), /*result=*/false, res);
+          for (const auto& qr : iterTraits(_nonGoalSubtermIndex.getUnifications(lt, /*retrieveSubstitutions=*/false))) {
+            perform(qr.data->clause, lt, qr.data->term, linearizer.constraints, res);
           }
         }
         _nonLinearGoalTermIndex.handle(LinearTermLiteralClause{ lt, linearizer.constraints, lit, cl }, /*adding=*/true);
 
-        for (const auto& qr : iterTraits(_nonGoalLHSIndex.getUnifications(lt, /*retrieveSubstitutions=*/true))) {
-          perform(qr.data->clause, linearizer.constraints, qr.unifier.ptr(), /*result=*/false, res);
+        for (const auto& qr : iterTraits(_nonGoalLHSIndex.getUnifications(lt, /*retrieveSubstitutions=*/false))) {
+          perform(qr.data->clause, lt, qr.data->term, linearizer.constraints, res);
         }
       }
     }
@@ -352,27 +352,49 @@ Stack<std::pair<Clause*, TypedTermList>> GoalNonLinearityHandler::checkGoalClaus
   return res;
 }
 
-void GoalNonLinearityHandler::perform(Clause* ngcl, const LinearityConstraints& cons, ResultSubstitution* subst, bool result, Stack<std::pair<Clause*, TypedTermList>>& res)
+void GoalNonLinearityHandler::perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons, ClauseTermPairs& res)
 {
   // TODO maybe put this somewhere else
   if (ngcl->isGoalClause()) {
     return;
   }
+  ASS(goalTerm.isTerm());
+  ASS(nonGoalTerm.isTerm());
+
+  DHMap<unsigned, TermList> map;
+
+  SubtermIterator goalIt(goalTerm.term());
+  SubtermIterator nonGoalIt(nonGoalTerm.term());
+
+  while (goalIt.hasNext()) {
+    ALWAYS(nonGoalIt.hasNext());
+    auto goalSt = goalIt.next();
+    auto nonGoalSt = nonGoalIt.next();
+
+    if (goalSt.isVar()) {
+      ALWAYS(map.insert(goalSt.var(), nonGoalSt));
+      nonGoalIt.right();
+    } else if (nonGoalSt.isVar()) {
+      goalIt.right();
+    }
+  }
 
   for (const auto& [x,y] : cons) {
-    auto xS = subst->apply(x, result);
-    auto yS = subst->apply(y, result);
+    ASS(x.isVar());
+    ASS(y.isVar());
+    auto xS = map.get(x.var());
+    auto yS = map.get(y.var());
     // TODO handle non-ground terms
-    if (xS != yS && xS.isTerm() && xS.term()->ground() && yS.isTerm() && yS.term()->ground()) {
+    if (xS != yS && xS.isTerm() && yS.isTerm()) {
       std::cout << "found pair " << x << " != " << y << " (" << xS << " != " << yS << ")" << std::endl;
       std::cout << ngcl << std::endl;
       auto tree = handler.clauseTrees.get(ngcl);
-      if (tree->nonGoalSuperposableTerms.insert(xS)) {
-        res.emplace(ngcl, xS);
+      if (tree->nonGoalSuperposableTerms.insert(xS.term())) {
+        res.emplace(ngcl, xS.term());
         std::cout << "could insert " << xS << std::endl;
       }
-      if (tree->nonGoalSuperposableTerms.insert(yS)) {
-        res.emplace(ngcl, yS);
+      if (tree->nonGoalSuperposableTerms.insert(yS.term())) {
+        res.emplace(ngcl, yS.term());
         std::cout << "could insert " << yS << std::endl;
       }
     }
