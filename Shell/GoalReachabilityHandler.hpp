@@ -92,8 +92,10 @@ class GoalNonLinearityHandler {
 public:
   GoalNonLinearityHandler(const Ordering& ord, const GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
 
-  [[nodiscard]] ClauseTermPairs checkNonGoalClause(Clause* cl);
-  [[nodiscard]] ClauseTermPairs checkGoalClause(Clause* cl);
+  [[nodiscard]] ClauseTermPairs addNonGoalClause(Clause* cl);
+  [[nodiscard]] ClauseTermPairs addGoalClause(Clause* cl);
+  void removeNonGoalClause(Clause* cl);
+  void removeGoalClause(Clause* cl) { NOT_IMPLEMENTED; }
 
   // TODO implement removal
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }

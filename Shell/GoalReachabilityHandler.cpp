@@ -79,7 +79,7 @@ std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::addClause(Claus
       }
     }
     ALWAYS(clauseTrees.insert(cl, tree));
-    return { ClauseStack(), _nonLinearityHandler.checkNonGoalClause(cl) };
+    return { ClauseStack(), _nonLinearityHandler.addNonGoalClause(cl) };
   }
 
   // If it is, it possibly contributes to some reachibility
@@ -190,14 +190,16 @@ std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::addGoalClause(C
       _rhsIndex.remove({ t, rcl });
     }
 
+    _nonLinearityHandler.removeNonGoalClause(rcl);
+
     delete tree;
 
     rcl->makeGoalClause();
 
-    resPairs.loadFromIterator(_nonLinearityHandler.checkGoalClause(rcl).iter());
+    resPairs.loadFromIterator(_nonLinearityHandler.addGoalClause(rcl).iter());
   }
 
-  resPairs.loadFromIterator(_nonLinearityHandler.checkGoalClause(cl).iter());
+  resPairs.loadFromIterator(_nonLinearityHandler.addGoalClause(cl).iter());
 
   return { resCls, resPairs };
 }
@@ -273,7 +275,7 @@ bool GoalReachabilityHandler::ReachabilityTree::canBeAdded(TypedTermList t, Resu
   return false;
 }
 
-ClauseTermPairs GoalNonLinearityHandler::checkNonGoalClause(Clause* cl)
+ClauseTermPairs GoalNonLinearityHandler::addNonGoalClause(Clause* cl)
 {
   ASS(!cl->isGoalClause());
 
@@ -302,6 +304,23 @@ ClauseTermPairs GoalNonLinearityHandler::checkNonGoalClause(Clause* cl)
   return res;
 }
 
+void GoalNonLinearityHandler::removeNonGoalClause(Clause* cl)
+{
+  ASS(!cl->isGoalClause());
+
+  for (const auto& lit : cl->getSelectedLiteralIterator()) {
+    for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
+        // handle equality lhs
+        if (t == lhs && lit->isPositive()) {
+          _nonGoalLHSIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/false);
+        }
+        _nonGoalSubtermIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/false);
+      }
+    }
+  }
+}
+
 namespace {
   struct Linearizer : TermTransformer {
     Linearizer(unsigned nextVar, const DHMap<unsigned,TermList>& varSorts) : TermTransformer(true), nextVar(nextVar), varSorts(varSorts) {}
@@ -321,7 +340,7 @@ namespace {
   };
 }
 
-ClauseTermPairs GoalNonLinearityHandler::checkGoalClause(Clause* cl)
+ClauseTermPairs GoalNonLinearityHandler::addGoalClause(Clause* cl)
 {
   ASS(cl->isGoalClause());
   ClauseTermPairs res;
@@ -389,12 +408,19 @@ void GoalNonLinearityHandler::perform(Clause* ngcl, TypedTermList goalTerm, Type
       goalIt.right();
     }
   }
+  ASS(!nonGoalIt.hasNext());
 
   for (const auto& [x,y] : cons) {
     ASS(x.isVar());
     ASS(y.isVar());
-    auto xS = map.get(x.var());
-    auto yS = map.get(y.var());
+    auto xptr = map.findPtr(x.var());
+    auto yptr = map.findPtr(y.var());
+    // TODO find out if this is really correct
+    if (!xptr || !yptr) {
+      continue;
+    }
+    auto xS = *xptr;
+    auto yS = *yptr;
     // TODO handle non-ground terms
     if (xS != yS && xS.isTerm() && yS.isTerm()) {
       DEBUG("found pair ", x, " != ", y, " (", xS, " != ", yS, ")");
