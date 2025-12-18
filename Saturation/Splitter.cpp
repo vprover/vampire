@@ -1312,7 +1312,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   SplitSet* unionAll;
   if(replacement) {
     unionAll = replacement->splits();
-    ASS(forAll(premises, 
+    ASS(forAll(std::move(premises),
             [replacement] (Clause* premise) { 
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true

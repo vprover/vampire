@@ -173,10 +173,10 @@ struct URResolution<synthesis>::Item
       if (!_ansLit || _ansLit->ground()) {
         single = Renaming::normalize(single);
       }
-      res = Clause::fromIterator(concatIters(getSingletonIterator(single), it), inf);
+      res = Clause::fromIterator(concatIters(getSingletonIterator(single), std::move(it)), inf);
     }
     else {
-      res = Clause::fromIterator(it, inf);
+      res = Clause::fromIterator(std::move(it), inf);
     }
     return res;
   }

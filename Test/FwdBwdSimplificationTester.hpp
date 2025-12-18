@@ -144,7 +144,7 @@ public:
         if (replacement) {
           results.push(replacement);
         }
-        justifications.loadFromIterator(premises);
+        justifications.loadFromIterator(std::move(premises));
       }
     }
     justifications.sort();
@@ -197,7 +197,7 @@ public:
       } catch (Lib::Exception& e) { 
         testFail("bwd", e); 
       }
-      for (auto simpl : iterTraits(simpls)) {
+      for (auto simpl : iterTraits(std::move(simpls))) {
         results.push(simpl.replacement);
       }
     }

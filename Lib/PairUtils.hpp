@@ -71,7 +71,7 @@ template<typename C, typename DIt>
 MappingIterator<DIt,PairRightPushingFn<C,ELEMENT_TYPE(DIt)> >
   pushPairIntoRightIterator(C c, DIt dit)
 {
-  return getMappingIterator(dit, PairRightPushingFn<C,ELEMENT_TYPE(DIt)>(c));
+  return getMappingIterator(std::move(dit), PairRightPushingFn<C,ELEMENT_TYPE(DIt)>(c));
 }
 
 template<typename C, typename D>
