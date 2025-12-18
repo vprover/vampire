@@ -116,6 +116,7 @@ public:
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
+  const GoalReachabilityHandler& getGoalReachabilityHandler() const { return *_goalReachabilityHandler; }
 
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function

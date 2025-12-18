@@ -119,6 +119,7 @@ public:
   // note that the clause itself can be among them
   [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addClause(Clause* cl);
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
+  bool isTermSuperposable(Clause* cl, TypedTermList t) const;
 
 private:
   [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addGoalClause(Clause* cl);

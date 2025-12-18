@@ -88,6 +88,15 @@ GOAL_CLAUSE:
   return addGoalClause(cl);
 }
 
+bool GoalReachabilityHandler::isTermSuperposable(Clause* cl, TypedTermList t) const
+{
+  ASS(!cl->isGoalClause());
+  // TODO should we allow clauses not yet added to the handler? Check flow.
+  auto ptr = clauseTrees.findPtr(cl);
+  return ptr && iterTraits((*ptr)->nonGoalSuperposableTerms.iter())
+    .any([t](TermList st) { return st.containsSubterm(t); });
+}
+
 std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::addGoalClause(Clause* cl)
 {
   ClauseStack resCls;
@@ -184,6 +193,8 @@ std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::addGoalClause(C
     delete tree;
 
     rcl->makeGoalClause();
+
+    resPairs.loadFromIterator(_nonLinearityHandler.checkGoalClause(rcl).iter());
   }
 
   resPairs.loadFromIterator(_nonLinearityHandler.checkGoalClause(cl).iter());
@@ -386,16 +397,16 @@ void GoalNonLinearityHandler::perform(Clause* ngcl, TypedTermList goalTerm, Type
     auto yS = map.get(y.var());
     // TODO handle non-ground terms
     if (xS != yS && xS.isTerm() && yS.isTerm()) {
-      std::cout << "found pair " << x << " != " << y << " (" << xS << " != " << yS << ")" << std::endl;
-      std::cout << ngcl << std::endl;
+      DEBUG("found pair ", x, " != ", y, " (", xS, " != ", yS, ")");
+      DEBUG("for ", *ngcl);
       auto tree = handler.clauseTrees.get(ngcl);
       if (tree->nonGoalSuperposableTerms.insert(xS.term())) {
         res.emplace(ngcl, xS.term());
-        std::cout << "could insert " << xS << std::endl;
+        DEBUG("could insert ", xS);
       }
       if (tree->nonGoalSuperposableTerms.insert(yS.term())) {
         res.emplace(ngcl, yS.term());
-        std::cout << "could insert " << yS << std::endl;
+        DEBUG("could insert ", yS);
       }
     }
   }

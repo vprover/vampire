@@ -37,6 +37,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/PartialRedundancyHandler.hpp"
+#include "Shell/GoalReachabilityHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Debug/TimeProfiling.hpp"
 
@@ -83,7 +84,7 @@ struct Superposition::BackwardResultFn
 
     auto& qr = arg.second;
     return _parent.performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
-	    _cl, arg.first.first, arg.first.second, qr.unifier, false, /*nonGoalNonGoal=*/false);
+	    _cl, arg.first.first, arg.first.second, qr.unifier, false);
   }
 private:
   Clause* _cl;
@@ -125,8 +126,9 @@ ClauseIterator Superposition::generateClausesWithNonGoalSuperposableTerms(Clause
     .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) {
       auto& qr = arg.second;
       return performSuperposition(premise, arg.first.first, arg.first.second,
-        qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true, /*nonGoalNonGoal=*/true);
-    }));
+        qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
+    })
+    .filter(NonzeroFn()));
 }
 
 ClauseIterator Superposition::performForwardSuperpositions(Clause* premise)
@@ -148,7 +150,7 @@ ClauseIterator Superposition::performForwardSuperpositions(Clause* premise)
     .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) {
       auto& qr = arg.second;
       return performSuperposition(premise, arg.first.first, arg.first.second,
-        qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true, /*nonGoalNonGoal=*/false);
+        qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
     }));
 }
 
@@ -304,7 +306,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    AbstractingUnifier* unifier, bool eqIsResult, bool nonGoalNonGoal)
+    AbstractingUnifier* unifier, bool eqIsResult)
 {
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
@@ -382,9 +384,10 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if (nonGoalNonGoal) {
-    // disallow superpositions with goal clauses
-    if (rwClause->isGoalClause() || eqClause->isGoalClause()) {
+  if (!rwClause->isGoalClause() && !eqClause->isGoalClause()) {
+
+    ASS(rwTerm.isTerm());
+    if (!_salg->getGoalReachabilityHandler().isTermSuperposable(rwClause, rwTerm.term())) {
       return 0;
     }
 
@@ -403,13 +406,7 @@ Clause* Superposition::performSuperposition(
         }
       }
     }
-
   } else {
-    // disallow superpositions with only non-goal clauses
-    if (!rwClause->isGoalClause() && !eqClause->isGoalClause()) {
-      return 0;
-    }
-
     if(rwLitS->isEquality()) {
       //check that we're not rewriting only the smaller side of an equality
       TermList arg0=*rwLitS->nthArgument(0);
