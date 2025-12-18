@@ -175,8 +175,19 @@ void SplittingBranchSelector::handleSatRefutation()
   SATClause *proof = nullptr;
   SATClauseList *satPremises = nullptr;
 #if VZ3
-  if(_parent.hasSMTSolver)
+  if(_parent.hasSMTSolver) {
     satPremises = _solver.premiseList();
+    // SATClause::removeDuplicateLiterals can insert a single PROP_INF between here and the FO_CONVERSION
+    // replace these cases with the "true" duplicate-literal premise
+    for(SATClause *&cl : iterTraits(satPremises->iter())) {
+      SATInference *inf = cl->inference();
+      if(inf->getType() == SATInference::InfType::PROP_INF) {
+        ASS_EQ(SATClauseList::length(inf->propInf()->getPremises()), 1)
+        cl = inf->propInf()->getPremises()->head();
+      }
+      ASS(cl->inference()->getType() == SATInference::InfType::FO_CONVERSION)
+    }
+  }
 #endif
   if(!satPremises) {
     proof = _solver.proof();
