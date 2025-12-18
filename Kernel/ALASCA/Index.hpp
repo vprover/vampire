@@ -42,7 +42,7 @@ class AlascaIndex : public Indexing::Index
 public:
   USE_ALLOCATOR(AlascaIndex);
 
-  AlascaIndex()
+  AlascaIndex(SaturationAlgorithm&)
     : _index()
     , _shared()
   {}

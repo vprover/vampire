@@ -59,11 +59,6 @@ public:
     );
 
   ClauseIterator generateClauses(Clause* premise) final ;
-  
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
-#endif
 
 private:
 

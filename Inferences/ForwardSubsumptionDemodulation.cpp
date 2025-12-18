@@ -13,7 +13,6 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 #include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -37,20 +36,21 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
 
-  _index.request(salg->getIndexManager(), FSD_SUBST_TREE);
+  _index = salg->getSimplifyingIndex<FSDLiteralIndex>();
 
   _preorderedOnly = false;
   _allowIncompleteness = false;
 
   if (_doSubsumption) {
-    _unitIndex.request(salg->getIndexManager(), FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
+    _unitIndex = salg->getSimplifyingIndex<UnitClauseLiteralIndex>();
   }
 }
 
 
 void ForwardSubsumptionDemodulation::detach()
 {
-  _index.release();
+  _index = nullptr;
+  _unitIndex = nullptr;
   ForwardSimplificationEngine::detach();
 }
 

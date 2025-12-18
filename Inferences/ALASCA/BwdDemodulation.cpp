@@ -17,35 +17,19 @@ using Demod = Inferences::ALASCA::Demodulation;
 namespace Inferences {
 namespace ALASCA {
 
-
-#if VDEBUG
-void BwdDemodulation::setTestIndices(Stack<Indexing::Index*> const& indices) 
-{
-  _index = (decltype(_index)) indices[0]; 
-  _index->setShared(_shared);
-}
-#endif
-
-
-
 void BwdDemodulation::attach(SaturationAlgorithm* salg)
 {
-  ASS(!_index);
-
-  this->BackwardSimplificationEngine::attach(salg);
-  _index = static_cast<decltype(_index)> (
-	  _salg->getIndexManager()->request(ALASCA_BWD_DEMODULATION_SUBST_TREE) );
+  BackwardSimplificationEngine::attach(salg);
+  _index = _salg->getSimplifyingIndex<AlascaIndex<Rhs>>();
   _index->setShared(_shared);
 }
 
 void BwdDemodulation::detach()
 {
-
   ASS(_salg);
 
-  _index=0;
-  _salg->getIndexManager()->release(ALASCA_BWD_DEMODULATION_SUBST_TREE);
-  this->BackwardSimplificationEngine::detach();
+  _index = nullptr;
+  BackwardSimplificationEngine::detach();
 }
 
 

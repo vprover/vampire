@@ -210,7 +210,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
  * @b selector object to select literals before clauses are activated.
  */
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
-  : MainLoop(prb, opt),
+  : MainLoop(prb, opt), _imgr(*this),
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
@@ -1418,7 +1418,7 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
  */
-SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager *indexMgr)
+SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt)
 {
   bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
 
@@ -1435,13 +1435,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     break;
   default:
     NOT_IMPLEMENTED;
-  }
-  if (indexMgr) {
-    res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
-    indexMgr->setSaturationAlgorithm(res);
-  }
-  else {
-    res->_imgr = SmartPtr<IndexManager>(new IndexManager(res));
   }
 
   if (opt.splitting()) {
@@ -1490,7 +1483,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
-    gie->addFront(new URResolution(opt.unitResultingResolution() == Options::URResolution::FULL));
+    if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+      gie->addFront(new URResolution</*synthesis=*/true>(opt.unitResultingResolution() == Options::URResolution::FULL));
+    } else {
+      gie->addFront(new URResolution</*synthesis=*/false>(opt.unitResultingResolution() == Options::URResolution::FULL));
+    }
   }
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
