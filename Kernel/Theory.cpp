@@ -16,6 +16,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Kernel/TermIterators.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 

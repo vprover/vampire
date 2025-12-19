@@ -154,8 +154,8 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
-        ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
-        Applicator applWithoutEqSort(subs.ptr());
+        ApplicatorWithEqSort applWithEqSort(subs.get(), eqSortSubs);
+        Applicator applWithoutEqSort(subs.get());
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
         AppliedTerm rhsApplied(qr.data->rhs,appl,true);

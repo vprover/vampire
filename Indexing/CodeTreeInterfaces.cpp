@@ -98,14 +98,7 @@ public:
     _matcher->init(&_tree->_ct, t);
 
     if(_retrieveSubstitutions) {
-      _subst = new CodeTreeSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);
-    }
-  }
-
-  ~ResultIterator() override
-  {
-    if(_retrieveSubstitutions) {
-      delete _subst;
+      _subst = std::make_shared<CodeTreeSubstitution<Data>>(&_matcher->bindings, &*_resultNormalizer);
     }
   }
 
@@ -136,15 +129,14 @@ public:
         _resultNormalizer->reset();
         _resultNormalizer->normalizeVariables(_found->term);
       }
-      subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
+      subs = _subst;
     }
-    auto out = QueryRes<ResultSubstitutionSP, Data>(subs, _found);
+    auto out = QueryRes<ResultSubstitutionSP, Data>(std::move(subs), _found);
     _found=0;
     return out;
   }
 private:
-
-  CodeTreeSubstitution<Data>* _subst;
+  std::shared_ptr<CodeTreeSubstitution<Data>> _subst;
   Recycled<Renaming> _resultNormalizer;
   bool _retrieveSubstitutions;
   Data* _found;

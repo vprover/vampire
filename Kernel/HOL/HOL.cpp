@@ -15,6 +15,8 @@
 
 #include "Kernel/Formula.hpp"
 
+#include "Shell/Options.hpp"
+
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
 using Kernel::Term;
 

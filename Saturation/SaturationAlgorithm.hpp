@@ -220,7 +220,7 @@ protected:
   typedef List<BackwardSimplificationEngine*> BwSimplList;
   BwSimplList* _bwSimplifiers;
 
-  OrderingSP _ordering;
+  std::shared_ptr<Ordering> _ordering;
   ScopedPtr<LiteralSelector> _selector;
 
   Splitter* _splitter;

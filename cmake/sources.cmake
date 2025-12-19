@@ -517,7 +517,6 @@ set(SOURCES
     Lib/SharedSet.hpp
     Lib/SkipList.hpp
     Lib/Slice.hpp
-    Lib/SmartPtr.hpp
     Lib/Sort.hpp
     Lib/Stack.hpp
     Lib/StringUtils.cpp

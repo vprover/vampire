@@ -133,7 +133,7 @@ public:
 
   static Ordering* create(Problem& prb, const Options& opt);
 
-  static bool trySetGlobalOrdering(OrderingSP ordering);
+  static bool trySetGlobalOrdering(std::shared_ptr<Ordering> &ordering);
   static bool unsetGlobalOrdering();
   static Ordering* tryGetGlobalOrdering();
 
@@ -160,7 +160,7 @@ private:
    * better performance, as the equality orientation will be cached
    * inside the sharing structure.
    */
-  static OrderingSP s_globalOrdering;
+  static std::shared_ptr<Ordering> s_globalOrdering;
 }; // class Ordering
 
 // orderings that rely on symbol precedence

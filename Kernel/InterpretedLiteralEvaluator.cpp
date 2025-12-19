@@ -20,8 +20,9 @@
 #include "Theory.hpp"
 #include "NumTraits.hpp"
 
-
 #include "InterpretedLiteralEvaluator.hpp"
+
+#include "Shell/Options.hpp"
 
 #if VDEBUG
 #define _DEBUG(...) 

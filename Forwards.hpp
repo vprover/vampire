@@ -22,7 +22,6 @@ struct EmptyStruct {};
 template<typename T> class VirtualIterator;
 
 template<typename T> class ScopedPtr;
-template<typename T> class SmartPtr;
 
 template<class C> class DArray;
 template<class C> class Stack;
@@ -94,14 +93,12 @@ class Substitution;
 
 class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
-typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
 class LiteralSelector;
 
 class OperatorType;
 
 class Ordering;
-typedef Lib::SmartPtr<Ordering> OrderingSP;
 struct TermOrderingDiagram;
 
 class PartialOrdering;
@@ -145,7 +142,6 @@ class TermIndexingStructure;
 class TermSharing;
 
 class ResultSubstitution;
-typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 };
 
 namespace Saturation

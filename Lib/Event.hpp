@@ -17,7 +17,8 @@
 #define __Event__
 
 #include "List.hpp"
-#include "SmartPtr.hpp"
+
+#include <memory>
 
 namespace Lib
 {
@@ -25,7 +26,7 @@ namespace Lib
 class SubscriptionObject;
 
 
-typedef SmartPtr<SubscriptionObject> SubscriptionData;
+typedef std::unique_ptr<SubscriptionObject> SubscriptionData;
 
 class BaseEvent
 {

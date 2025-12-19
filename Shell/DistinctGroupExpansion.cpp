@@ -63,11 +63,11 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
   bool someLeft = false;
 
   for(unsigned i=0;i<group_members.size();i++){
-    Signature::DistinctGroupMembers members = group_members[i];
-    if(members->size() > 0) {
-      if( members->size()>1 && (expandEverything || members->size() <= _expandUpToSize)) {
+    Signature::DistinctGroupMembers &members = group_members[i];
+    if(members.size() > 0) {
+      if( members.size()>1 && (expandEverything || members.size() <= _expandUpToSize)) {
         added=true;
-        Formula* expansion = expand(*members);
+        Formula* expansion = expand(members);
         if(env.options->showPreprocessing()){
           std::cout << "  expansion adding " << expansion->toString() << endl;
         }

@@ -16,11 +16,13 @@
 #ifndef __NEWCNF__
 #define __NEWCNF__
 
+#include <optional>
+
+#include "Lib/Int.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Deque.hpp"
-#include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
@@ -175,7 +177,7 @@ private:
     }
 
     // Position of a gen literal in _genClauses
-    std::list<SmartPtr<GenClause>>::iterator iter;
+    std::list<std::shared_ptr<GenClause>>::iterator iter;
 
     std::string toString() {
       std::string res = "GC("+Int::toString(size())+")";
@@ -202,7 +204,7 @@ private:
     }
   };
 
-  typedef SmartPtr<GenClause> SPGenClause;
+  typedef std::shared_ptr<GenClause> SPGenClause;
 
   void toClauses(SPGenClause gc, Stack<Clause*>& output);
   bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
@@ -401,7 +403,7 @@ private:
             _iterator.del();
             continue;
           }
-          _current = SmartPtr<Occurrence>(new Occurrence(occ.gc, occ.position));
+          _current = Occurrence(occ.gc, occ.position);
           return true;
         }
         return false;
@@ -411,12 +413,12 @@ private:
       }
     private:
       List<Occurrence>::DelIterator _iterator;
-      SmartPtr<Occurrence> _current;
+      std::optional<Occurrence> _current;
     };
   };
 
   SPGenClause makeGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
-    SPGenClause gc = SPGenClause(new GenClause(List<GenLit>::length(gls), bindings, foolBindings));
+    auto gc = std::make_shared<GenClause>(List<GenLit>::length(gls), bindings, foolBindings);
 
     ASS(_literalsCache.isEmpty());
     ASS(_formulasCache.isEmpty());
@@ -471,7 +473,7 @@ private:
     unsigned position = occ.position;
 
     unsigned size = gc->size() + List<GenLit>::length(gls) - 1;
-    SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings, gc->foolBindings));
+    auto newGc = std::make_shared<GenClause>(size, gc->bindings, gc->foolBindings);
 
     ASS(_literalsCache.isEmpty());
     ASS(_formulasCache.isEmpty());

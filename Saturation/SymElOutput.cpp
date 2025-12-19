@@ -13,6 +13,7 @@
  */
 
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"

@@ -16,6 +16,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Stack.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
@@ -30,6 +31,8 @@
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+
+#include "Shell/Property.hpp"
 
 #include "Monotonicity.hpp"
 

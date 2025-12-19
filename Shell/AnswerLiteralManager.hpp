@@ -22,6 +22,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 
 #include "Kernel/Formula.hpp"

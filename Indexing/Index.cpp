@@ -25,8 +25,8 @@ using namespace Saturation;
 
 Index::~Index()
 {
-  if(!_addedSD.isEmpty()) {
-    ASS(!_removedSD.isEmpty());
+  if(_addedSD) {
+    ASS(_removedSD);
     _addedSD->unsubscribe();
     _removedSD->unsubscribe();
   }
@@ -39,7 +39,7 @@ Index::~Index()
  */
 void Index::attachContainer(ClauseContainer* cc)
 {
-  ASS(_addedSD.isEmpty()); //only one container can be attached
+  ASS(!_addedSD); //only one container can be attached
 
   _addedSD = cc->addedEvent.subscribe(this,&Index::onAddedToContainer);
   _removedSD = cc->removedEvent.subscribe(this,&Index::onRemovedFromContainer);

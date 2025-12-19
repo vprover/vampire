@@ -24,6 +24,8 @@
 
 #include "GoalGuessing.hpp"
 
+#include "Shell/Options.hpp"
+
 namespace Shell
 {
 

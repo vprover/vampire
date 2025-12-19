@@ -608,7 +608,7 @@ void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(
     }
     auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
     auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet(), SplitSet::getEmpty());
+    (*clDataPtr)->insert(_ord, rsubs.get(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet(), SplitSet::getEmpty());
   });
 }
 

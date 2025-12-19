@@ -18,11 +18,14 @@
 #ifndef __FiniteModelMultiSorted__
 #define __FiniteModelMultiSorted__
 
+#include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Int.hpp"
 
-#include "Kernel/Unit.hpp"
+#include "Kernel/OperatorType.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
-
+#include "Kernel/Unit.hpp"
 
 namespace FMB {
 

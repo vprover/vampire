@@ -44,8 +44,8 @@ public:
 
   virtual Kernel::Clause* simplify(Kernel::Clause* in) override 
   {
-    auto ord = KBO::testKBO();
-    Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
+    std::shared_ptr<Ordering> ord = std::make_shared<KBO>(KBO::testKBO());
+    Ordering::trySetGlobalOrdering(ord);
     auto apply = [](SimplifyingGeneratingInference1& simpl, Kernel::Clause* in) {
      auto out = simpl.asISE().simplify(in);
      // DEBUG("result: ", pretty(out));

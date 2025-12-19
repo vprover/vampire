@@ -137,8 +137,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   List<unsigned>::push(group, _distinctGroups);
   env.signature->_distinctGroupsAddedTo=true;
 
-  Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
-  members->push(this_number);
+  env.signature->_distinctGroupMembers[group].push(this_number);
 } // addToDistinctGroup
 
 /**
@@ -957,8 +956,7 @@ unsigned Signature::createDistinctGroup(Unit* premise)
 {
   unsigned res = _distinctGroupPremises.size();
   _distinctGroupPremises.push(premise);
-  // DistinctGroupMember stack = ;
-  _distinctGroupMembers.push(DistinctGroupMembers(new Stack<unsigned>));
+  _distinctGroupMembers.emplace();
   return res;
 }
 

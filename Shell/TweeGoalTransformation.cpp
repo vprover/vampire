@@ -38,6 +38,8 @@
 
 #include "Lib/Environment.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "TweeGoalTransformation.hpp"
 
 using Kernel::Clause;

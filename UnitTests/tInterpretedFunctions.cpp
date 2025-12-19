@@ -91,8 +91,8 @@ static Failure evaluationFail;
 
 Option<LitSimplResult> evaluate(Literal* lit) 
 {
-  auto ord = KBO::testKBO();
-  Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
+  std::shared_ptr<Ordering> ord = std::make_shared<KBO>(KBO::testKBO());
+  Ordering::trySetGlobalOrdering(ord);
 
   using Opt = Option<LitSimplResult>;
   auto& cl = *clause({lit});

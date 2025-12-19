@@ -94,11 +94,10 @@ struct BackwardDemodulation::ResultFn
   typedef DHMultiset<Clause*> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
-  : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering())
+  : _cl(cl), removed(new ClauseSet), _helper(helper), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
-    _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
 
   /**
@@ -115,7 +114,7 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(_cl==qr.data->clause || _removed->find(qr.data->clause)) {
+    if(_cl==qr.data->clause || removed->find(qr.data->clause)) {
       //the retrieved clause was already replaced during this
       //backward demodulation
       return BwSimplificationRecord(0);
@@ -131,7 +130,7 @@ struct BackwardDemodulation::ResultFn
     auto subs = qr.unifier;
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
-    Applicator appl(subs.ptr());
+    Applicator appl(subs.get());
 
     TermList lhsS=qr.data->term;
 
@@ -150,7 +149,7 @@ struct BackwardDemodulation::ResultFn
     Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
-      _removed->insert(qr.data->clause);
+      removed->insert(qr.data->clause);
       return BwSimplificationRecord(qr.data->clause);
     }
 
@@ -166,7 +165,7 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    _removed->insert(qr.data->clause);
+    removed->insert(qr.data->clause);
     Clause *replacement = Clause::fromStack(
       *resLits,
       SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)
@@ -178,7 +177,7 @@ struct BackwardDemodulation::ResultFn
 private:
   Literal* _eqLit;
   Clause* _cl;
-  SmartPtr<ClauseSet> _removed;
+  std::unique_ptr<ClauseSet> removed;
 
   const DemodulationHelper& _helper;
 

@@ -49,7 +49,7 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-OrderingSP Ordering::s_globalOrdering;
+std::shared_ptr<Ordering> Ordering::s_globalOrdering;
 
 /**
  * If there is no global ordering yet, assign @c ordering to be
@@ -61,7 +61,7 @@ OrderingSP Ordering::s_globalOrdering;
  * better performance, as the equality orientation will be cached
  * inside the sharing structure.
  */
-bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
+bool Ordering::trySetGlobalOrdering(std::shared_ptr<Ordering> &ordering)
 {
   if(s_globalOrdering) {
     return false;
@@ -73,7 +73,7 @@ bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
 bool Ordering::unsetGlobalOrdering()
 {
   if(s_globalOrdering) {
-    s_globalOrdering = OrderingSP();
+    s_globalOrdering = nullptr;
     return true;
   } else {
     return false;
@@ -92,12 +92,7 @@ bool Ordering::unsetGlobalOrdering()
  */
 Ordering* Ordering::tryGetGlobalOrdering()
 {
-  if(s_globalOrdering) {
-    return s_globalOrdering.ptr();
-  }
-  else {
-    return 0;
-  }
+  return s_globalOrdering.get();
 }
 
 struct AllIncomparableOrdering : Ordering {

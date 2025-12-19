@@ -199,7 +199,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   if (nConstraints == 0 && parRedHandler) {
-    if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
+    if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.get())) {
       return 0;
     }
   }

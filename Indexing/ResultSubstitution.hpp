@@ -130,11 +130,13 @@ public:
    */
   virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
-  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
+  static std::shared_ptr<ResultSubstitution> fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
   virtual void output(std::ostream& ) const = 0;
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { self.output(out); return out; }
 };
+
+using ResultSubstitutionSP = std::shared_ptr<ResultSubstitution>;
 
 }; // namespace Indexing
 
