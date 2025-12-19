@@ -356,6 +356,11 @@ ClauseTermPairs GoalNonLinearityHandler::addGoalClause(Clause* cl)
 
   for (const auto& lit : cl->getSelectedLiteralIterator()) {
     for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+      if (lhs.isVar()) {
+        _nonLinearGoalLHSIndex.handle(LinearTermLiteralClause{ lhs, LinearityConstraints(), lit, cl }, /*adding=*/true);
+        _nonLinearGoalTermIndex.handle(LinearTermLiteralClause{ lhs, LinearityConstraints(), lit, cl }, /*adding=*/true);
+        continue;
+      }
       for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
         Linearizer linearizer(maxVar, varSorts);
         auto lt = linearizer.transform(t);
