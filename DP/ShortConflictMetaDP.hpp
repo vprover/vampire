@@ -41,7 +41,7 @@ public:
   : _inner(inner), _sat2fo(sat2fo), _solver(solver) {}
 
   void addLiterals(LiteralIterator lits, bool onlyEqualites) override {
-    _inner->addLiterals(lits, onlyEqualites);
+    _inner->addLiterals(std::move(lits), onlyEqualites);
   }
 
   void reset() override {

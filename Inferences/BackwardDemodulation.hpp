@@ -41,7 +41,7 @@ private:
   struct RewritableClausesFn;
   struct ResultFn;
 
-  DemodulationSubtermIndex* _index;
+  std::shared_ptr<DemodulationSubtermIndex> _index;
   DemodulationHelper _helper;
 };
 

@@ -32,7 +32,6 @@
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -58,18 +57,14 @@ using std::pair;
 void Superposition::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _subtermIndex=static_cast<SuperpositionSubtermIndex*> (
-	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
-  _lhsIndex=static_cast<decltype(_lhsIndex)> (
-	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
+  _subtermIndex = salg->getGeneratingIndex<SuperpositionSubtermIndex>();
+  _lhsIndex = salg->getGeneratingIndex<SuperpositionLHSIndex>();
 }
 
 void Superposition::detach()
 {
-  _subtermIndex=0;
-  _lhsIndex=0;
-  _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
-  _salg->getIndexManager()->release(SUPERPOSITION_LHS_SUBST_TREE);
+  _subtermIndex = nullptr;
+  _lhsIndex = nullptr;
   GeneratingInferenceEngine::detach();
 }
 
@@ -98,15 +93,15 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itb = performBackwardSuperpositions(premise);
 
   // Add the results of forward and backward together
-  auto it5 = concatIters(itf,itb);
+  auto it5 = concatIters(std::move(itf),std::move(itb));
 
   // Remove null elements - these can come from performSuperposition
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
+  auto it6 = getFilteredIterator(std::move(it5),NonzeroFn());
 
   // The outer iterator ensures we update the time counter for superposition
-  auto it7 = TIME_TRACE_ITER("superposition", it6);
+  auto it7 = TIME_TRACE_ITER("superposition", std::move(it6));
 
-  return pvi( it7 );
+  return pvi( std::move(it7) );
 }
 
 ClauseIterator Superposition::generateClausesWithNonGoalSuperposableTerms(Clause* premise, TypedTermList t)

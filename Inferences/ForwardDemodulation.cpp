@@ -28,7 +28,6 @@
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -72,8 +71,7 @@ struct ApplicatorWithEqSort : SubstApplicator {
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<DemodulationLHSIndex*>(
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
+  _index = salg->getSimplifyingIndex<DemodulationLHSIndex>();
 
   auto& opt = getOptions();
   _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
@@ -85,8 +83,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardDemodulation::detach()
 {
-  _index=0;
-  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
+  _index = nullptr;
   ForwardSimplificationEngine::detach();
 }
 

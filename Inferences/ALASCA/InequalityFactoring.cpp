@@ -246,11 +246,5 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
       }));
 }
 
-  
-
-#if VDEBUG
-void InequalityFactoring::setTestIndices(Stack<Indexing::Index*> const&) { }
-#endif
-
 } // namespace ALASCA 
 } // namespace Inferences 

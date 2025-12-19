@@ -35,7 +35,7 @@ public:
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 private:
-  RewriteRuleIndex* _index;
+  std::shared_ptr<RewriteRuleIndex> _index;
 };
 
 };

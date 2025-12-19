@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/IndexManager.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "BinInf.hpp"
 
@@ -57,14 +56,11 @@ struct SuperpositionConf
              .filter([](auto& l) { return !forAnyNumTraits([&](auto n) { return n.isNumeral(l.biggerSide()); }); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
-
-    static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_LHS_SUBST_TREE; }
   };
 
   struct Rhs : public SelectedLiteral
   {
     static const char* name() { return "alasca superposition rhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_SUPERPOSITION_RHS_SUBST_TREE; }
 
     Rhs(SelectedLiteral lit, TypedTermList toRewrite, bool inLitPlus) 
       : SelectedLiteral(std::move(lit))

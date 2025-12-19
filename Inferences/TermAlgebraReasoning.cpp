@@ -188,7 +188,7 @@ namespace Inferences {
     auto it1 = c->getSelectedLiteralIterator();
     auto it2 = getMappingIterator(it1, SubtermEqualityFn(c));
     auto it3 = getFlattenedIterator(it2);
-    return pvi(it3);
+    return pvi(std::move(it3));
   }
 
   Clause* InjectivityISE::simplify(Clause *c)
@@ -278,14 +278,12 @@ namespace Inferences {
   void AcyclicityGIE::attach(SaturationAlgorithm* salg)
   {
     GeneratingInferenceEngine::attach(salg);
-
-    _acyclIndex = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
+    _acyclIndex = salg->getGeneratingIndex<AcyclicityIndex>();
   }
 
   void AcyclicityGIE::detach()
   {
-    _acyclIndex = 0;
-    _salg->getIndexManager()->release(ACYCLICITY_INDEX);
+    _acyclIndex = nullptr;
     GeneratingInferenceEngine::detach();
   }
 
@@ -294,7 +292,7 @@ namespace Inferences {
     AcyclicityGenIterator(Clause *premise, Indexing::CycleQueryResultsIterator results)
       :
       _premise(premise),
-      _queryResults(results)
+      _queryResults(std::move(results))
     {}
 
     DECL_ELEMENT_TYPE(Clause *);
@@ -368,9 +366,9 @@ namespace Inferences {
   ClauseIterator AcyclicityGIE::generateClauses(Clause *c)
   {
     auto it1 = c->getSelectedLiteralIterator();
-    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex, c));
+    auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex.get(), c));
     auto it3 = getFlattenedIterator(it2);
-    return pvi(it3);
+    return pvi(std::move(it3));
   }
 
   void pushSubterms(TermList *tl, Stack<TermList*> &stack)
@@ -501,7 +499,7 @@ namespace Inferences {
     LiteralIterator it1(c);
     auto it2 = getMappingIterator(it1, SubtermDisequalityFn(c));
     auto it3 = getFlattenedIterator(it2);
-    return pvi(it3);
+    return pvi(std::move(it3));
   }
  
 }

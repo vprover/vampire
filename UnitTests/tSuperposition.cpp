@@ -8,7 +8,6 @@
  * and in the source directory
  */
 
-#include "Indexing/TermIndex.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -31,16 +30,6 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
 
-Generation::TestIndices superpositionIndices()
-{
-  return {
-    [](const SaturationAlgorithm& alg){
-      return new Indexing::SuperpositionLHSIndex(new Indexing::TermSubstitutionTree<TermLiteralClause>(), alg.getOrdering(), alg.getOptions()); },
-    [](const SaturationAlgorithm& alg){
-      return new Indexing::SuperpositionSubtermIndex(new Indexing::TermSubstitutionTree<TermLiteralClause>(), alg.getOrdering()); }
-  };
-}
-
 namespace Superposition_Nongoaloriented {
 
 REGISTER_GEN_TESTER(Generation::GenerationTester<Inferences::Superposition>(Superposition(/*goalOriented=*/false)))
@@ -48,7 +37,6 @@ REGISTER_GEN_TESTER(Generation::GenerationTester<Inferences::Superposition>(Supe
 // no superposition with negative equations
 TEST_GENERATION(ngo_test_01,
     Generation::SymmetricTest()
-      .indices(superpositionIndices())
       .inputs({
         clause({ selected(f(x,y) != x) }),
         clause({ selected(f(x,y) != y) })
@@ -59,7 +47,6 @@ TEST_GENERATION(ngo_test_01,
 // self superposition with equation
 TEST_GENERATION(ngo_test_02,
     Generation::SymmetricTest()
-      .indices(superpositionIndices())
       .inputs({ clause({ selected(f(f(x,y),z) == x) }) })
       .expected({ clause({ f(x,y) == f(x,z) }) })
     )
@@ -73,7 +60,6 @@ REGISTER_GEN_TESTER(Generation::GenerationTester<Inferences::Superposition>(Supe
 // no superposition with negative equations
 TEST_GENERATION(go_test_01,
     Generation::SymmetricTest()
-      .indices(superpositionIndices())
       .inputs({
         clause({ selected(f(x,y) != x) }),
         clause({ selected(f(x,y) != y) })
@@ -84,7 +70,6 @@ TEST_GENERATION(go_test_01,
 // no self superposition with equation
 TEST_GENERATION(ngo_test_02,
     Generation::SymmetricTest()
-      .indices(superpositionIndices())
       .inputs({ clause({ selected(f(f(x,y),z) == x) }) })
       .expected(none())
     )
@@ -92,7 +77,6 @@ TEST_GENERATION(ngo_test_02,
 // self superposition if goal term is present
 TEST_GENERATION(ngo_test_03,
     Generation::SymmetricTest()
-      .indices(superpositionIndices())
       .inputs({
         clause({ selected(f(a,a) != a) }),
         clause({ selected(f(f(x,y),z) == x) })

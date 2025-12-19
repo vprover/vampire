@@ -56,22 +56,14 @@ private:
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
-  {
-    _lhsIndex = static_cast<decltype(_lhsIndex)>(is[0]);
-    _subtermIndex = static_cast<decltype(_subtermIndex)>(is[1]);
-  }
-#endif
-
   struct ForwardResultFn;
 
   struct LHSsFn;
   struct RewritableResultsFn;
   struct BackwardResultFn;
 
-  SuperpositionSubtermIndex* _subtermIndex;
-  SuperpositionLHSIndex* _lhsIndex;
+  std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
+  std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
 
   const bool _goalOriented;
 };

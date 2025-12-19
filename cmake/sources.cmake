@@ -58,6 +58,7 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tGoalReachabilityHandler.cpp
+    UnitTests/tIndexManager.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -75,7 +76,6 @@ set(UNIT_TESTS
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSafeRecursion.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
@@ -158,7 +158,6 @@ set(SOURCES
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
-    Indexing/RequestedIndex.hpp
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp
@@ -513,7 +512,6 @@ set(SOURCES
     Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/STL.hpp
-    Lib/SafeRecursion.hpp
     Lib/ScopeGuard.hpp
     Lib/ScopedLet.hpp
     Lib/ScopedPtr.hpp

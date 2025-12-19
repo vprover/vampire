@@ -211,7 +211,6 @@ public:
     );
   }
 
-
   /**
    * FNV-1a with initial value @b hash.
    * @since 31/03/2006

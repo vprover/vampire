@@ -21,32 +21,20 @@ using Demod = Inferences::ALASCA::Demodulation;
 namespace Inferences {
 namespace ALASCA {
 
-#if VDEBUG
-void FwdDemodulation::setTestIndices(Stack<Indexing::Index*> const& indices) 
-{
-  _index = (decltype(_index)) indices[0]; 
-  _index->setShared(_shared);
-}
-#endif
-
 void FwdDemodulation::attach(SaturationAlgorithm* salg)
-{  
-  ASS(!_index);
+{
+  ForwardSimplificationEngine::attach(salg);
 
-  this->ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<decltype(_index)> (
-	  _salg->getIndexManager()->request(ALASCA_FWD_DEMODULATION_SUBST_TREE));
+  _index = _salg->getSimplifyingIndex<AlascaIndex<Demodulation::Lhs>>();
   _index->setShared(_shared);
 }
 
 void FwdDemodulation::detach()
 {
-
   ASS(_salg);
 
-  _index=0;
-  _salg->getIndexManager()->release(ALASCA_FWD_DEMODULATION_SUBST_TREE);
-  this->ForwardSimplificationEngine::detach();
+  _index = nullptr;
+  ForwardSimplificationEngine::detach();
 }
 
 

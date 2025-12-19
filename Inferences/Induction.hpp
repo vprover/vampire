@@ -273,19 +273,11 @@ public:
 
   ClauseIterator generateClauses(Clause* premise) override;
 
-#if VDEBUG
-  void setTestIndices(const Stack<Index*>& indices) override {
-    _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(indices[0]);
-    _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
-    _structInductionTermIndex = static_cast<TermIndex*>(indices[2]);
-  }
-#endif // VDEBUG
-
 private:
   // The following pointers can be null if int induction is off.
-  LiteralIndex<LiteralClause>* _comparisonIndex = nullptr;
-  TermIndex* _inductionTermIndex = nullptr;
-  TermIndex* _structInductionTermIndex = nullptr;
+  std::shared_ptr<UnitIntegerComparisonLiteralIndex> _comparisonIndex;
+  std::shared_ptr<InductionTermIndex> _inductionTermIndex;
+  std::shared_ptr<StructInductionTermIndex> _structInductionTermIndex;
   InductionFormulaIndex _formulaIndex;
   InductionFormulaIndex _recFormulaIndex;
 };
