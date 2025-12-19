@@ -183,6 +183,7 @@ void SplittingBranchSelector::handleSatRefutation()
       SATInference *inf = cl->inference();
       if(inf->getType() == SATInference::InfType::PROP_INF) {
         ASS_EQ(SATClauseList::length(inf->propInf()->getPremises()), 1)
+        // The following (destructively) changes satPremises, as cl is a reference!
         cl = inf->propInf()->getPremises()->head();
       }
       ASS(cl->inference()->getType() == SATInference::InfType::FO_CONVERSION)
