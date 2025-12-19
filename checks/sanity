@@ -8,12 +8,24 @@
 # where is Vampire? passed by CI
 vampire="`pwd`/$1 --traceback on"
 
+run_vampire() {
+	echo $vampire $@
+	(cd checks; $vampire $@ > vampire-stdout 2> vampire-stderr)
+	errors=`grep -E 'SIG|viola|error' checks/vampire-stderr`
+	if test -n "$errors"
+	then
+		echo "run failed: contains errors"
+		cat checks/vampire-stderr
+		exit 1
+	fi
+}
+
 # check the output is exactly what we expect: quite fragile by nature, be careful
 check_exact_output() {
-	expected=$1
+	expected=checks/$1
 	shift
-	echo $@
-	diff=`cd checks && $vampire $@ | diff $expected -`
+	run_vampire $@
+	diff=`diff $expected checks/vampire-stdout`
 	if test -n "$diff"
 	then
 		echo "$output check against $expected failed: diff follows"
@@ -26,13 +38,12 @@ check_exact_output() {
 check_szs_status() {
 	status=$1
 	shift
-	echo $@
-	out=`cd checks && $vampire $@`
-	szs=`echo "$out" | grep -E "^% SZS status $status for .+$"`
+	run_vampire $@
+	szs=`grep -E "^% SZS status $status for .+$" checks/vampire-stdout`
 	if test -z "$szs"
 	then
 		echo "SZS check failed: should have been SZS $status"
-		echo "$out"
+		cat checks/vampire-stdout
 		exit 1
 	fi
 }
@@ -41,9 +52,8 @@ check_szs_status() {
 check_smtcomp_status() {
 	status=$1
 	shift
-	echo $@
-	out=`cd checks && $vampire $@`
-	result=`echo "$out" | grep -E "^$status$"`
+	run_vampire $@
+	result=`grep -E "^$status$" checks/vampire-stdout`
 	if test -z "$result"
 	then
 		echo "$SMT check failed: should have been $status"
