@@ -90,7 +90,7 @@ using ClauseTermPairs = Stack<ClauseTermPair>;
 
 class GoalNonLinearityHandler {
 public:
-  GoalNonLinearityHandler(const Ordering& ord, const GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
+  GoalNonLinearityHandler(const Ordering& ord, GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
 
   [[nodiscard]] ClauseTermPairs addNonGoalClause(Clause* cl);
   [[nodiscard]] ClauseTermPairs addGoalClause(Clause* cl);
@@ -104,7 +104,7 @@ private:
   void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons, ClauseTermPairs& res);
 
   const Ordering& ord;
-  const GoalReachabilityHandler& handler;
+  GoalReachabilityHandler& handler;
 
   TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalTermIndex;
   TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalLHSIndex;
@@ -112,6 +112,50 @@ private:
   TermSubstitutionTree<TermLiteralClause> _nonGoalLHSIndex;
   TermSubstitutionTree<TermLiteralClause> _nonGoalSubtermIndex;
 };
+
+struct Chain {
+  Chain(TypedTermList lhs, TypedTermList rhs, unsigned length);
+
+  bool isBase() const { return rhs.isEmpty(); }
+  bool isLengthZero() const { return length==0; }
+  bool isLengthOne() const { return length==1; }
+
+  friend std::ostream& operator<<(std::ostream& out, Chain const& self)
+  {
+    out << self.lhs;
+    if (!self.isBase()) {
+      out << " -> " << self.rhs;
+    }
+    out << " (" << self.length << ")";
+    return out;
+  }
+
+  TypedTermList lhs;
+  TypedTermList rhs;
+  unsigned length;
+
+  TypedTermList linearLhs;
+  LinearityConstraints constraints;
+};
+
+struct TermChain
+{
+  TypedTermList term;
+  Chain* chain;
+
+  TypedTermList const& key() const { return term; }
+  auto asTuple() const { return std::make_tuple(chain, term); }
+
+  IMPL_COMPARISONS_FROM_TUPLE(TermChain)
+
+  friend std::ostream& operator<<(std::ostream& out, TermChain const& self) { return out; }
+};
+
+/**
+ * We maintain
+ * - a set of "chains", pairs of terms (s, t), s.t. given non-goal clause l ≈ r v C where l ≈ r is selected,
+ *   if r unifies with some strict subterm r' of s with substitution θ
+ */
 
 class GoalReachabilityHandler {
 public:
@@ -121,10 +165,20 @@ public:
   // note that the clause itself can be among them
   [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addClause(Clause* cl);
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
-  bool isTermSuperposable(Clause* cl, TypedTermList t) const;
+  [[nodiscard]] bool isTermSuperposable(Clause* cl, TypedTermList t) const;
+
+  [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> iterate(Clause* cl);
+  [[nodiscard]] bool addNonGoalClause(Clause* cl);
 
 private:
   [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addGoalClause(Clause* cl);
+
+  void addChain(Chain* chain);
+  [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> checkNonGoalReachability(Chain* chain);
+  [[nodiscard]] Stack<Chain*> buildNewChains(Chain* chain);
+
+  [[nodiscard]] Stack<Chain*> insertGoalClause(Clause* cl);
+  void handleNonGoalClause(Clause* cl, bool insert);
 
   struct ReachabilityTree {
     ReachabilityTree(GoalReachabilityHandler& handler, Clause* cl) : handler(handler), cl(cl) {}
@@ -155,6 +209,18 @@ private:
 
   TermSubstitutionTree<TermTermLiteralClause> _goalSubtermIndex;
   TermSubstitutionTree<TermClause> _rhsIndex;
+
+  // index for chain LHS subterms unifying with non-goal RHSs
+  TermSubstitutionTree<TermChain> _linearChainSubtermIndex;
+  // index for chain LHS subterms unifying with chain RHSs
+  TermSubstitutionTree<TermChain> _nonlinearChainSubtermIndex;
+  // index for chain RHSs unifying with chain LHS subterms
+  TermSubstitutionTree<TermChain> _chainRHSIndex;
+
+  // index for non-goal RHSs
+  TermSubstitutionTree<TermLiteralClause> _nonGoalRHSIndex;
+
+  DHMap<Clause*, DHSet<Term*>> _superposableTerms;
 
   GoalNonLinearityHandler _nonLinearityHandler;
 };

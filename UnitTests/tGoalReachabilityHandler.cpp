@@ -28,10 +28,12 @@ class SymmetricTester {
 public:
   SymmetricTester(
     std::initializer_list<Clause*> clauses,
-    std::initializer_list<Clause*> goalClauses)
+    std::initializer_list<Clause*> goalClauses,
+    std::initializer_list<std::pair<Clause*, TermList>> superposableTermPairs)
     : clauses(clauses)
   {
     for (const auto& cl : goalClauses) { ALWAYS(expectedGoalClauses.insert(cl)); }
+    for (const auto& kv : superposableTermPairs) { ALWAYS(expectedSuperposableTermPairs.insert(kv)); }
   }
 
   void run() const {
@@ -44,14 +46,21 @@ public:
     do {
 
       DHSet<Clause*> goalClauses;
+      DHSet<std::pair<Clause*, TermList>> superposableTermPairs;
       GoalReachabilityHandler handler(*ord);
 
       for (const auto& index : indices) {
         clauses[index]->unmakeGoalClause();
         auto [gcls, kvs] = handler.addClause(clauses[index]);
-        // TODO test kvs too
+
         for (const auto& gc : gcls) {
-          ASS_REP(goalClauses.insert(gc), gc->toString() + " removed multiple times");
+          ASS(gc->isGoalClause());
+          ASS_REP(goalClauses.insert(gc), gc->toString() + " inserted multiple times");
+        }
+
+        for (const auto& [ngc, t] : kvs) {
+          ASS(!ngc->isGoalClause());
+          ASS_REP(superposableTermPairs.insert({ ngc, t }), ngc->toString() + " and term " + t.toString() + " inserted multiple times");
         }
       }
 
@@ -61,12 +70,25 @@ public:
       for (const auto& cl : iterTraits(expectedGoalClauses.iter())) {
         ASS_REP(goalClauses.contains(cl), cl->toString() + " is expected to be goal clause");
       }
+      for (const auto& cl : iterTraits(clauses.iter())) {
+        if (!goalClauses.contains(cl)) {
+          ASS(!cl->isGoalClause());
+        }
+      }
+
+      for (const auto& [ngc, t] : iterTraits(superposableTermPairs.iter())) {
+        ASS_REP(expectedSuperposableTermPairs.contains({ ngc, t }), ngc->toString() + " and term " + t.toString() + " is not expected to be superposable");
+      }
+      for (const auto& [ngc, t] : iterTraits(expectedSuperposableTermPairs.iter())) {
+        ASS_REP(superposableTermPairs.contains({ ngc, t }), ngc->toString() + " and term " + t.toString() + " is expected to be superposable");
+      }
 
     } while (std::next_permutation(indices.begin(), indices.end()));
   }
 private:
   ClauseStack clauses;
   DHSet<Clause*> expectedGoalClauses;
+  DHSet<std::pair<Clause*, TermList>> expectedSuperposableTermPairs;
 };
 
 TEST_FUN(test01) {
@@ -76,7 +98,11 @@ TEST_FUN(test01) {
   auto c2 = clause({ f(x,x) == x });
   auto c3 = clause({ f(f(x,y),z) == f(x,f(y,z)) });
 
-  SymmetricTester tester({ c1, c2, c3 }, { c1, c2 });
+  SymmetricTester tester(
+    { c1, c2, c3 },
+    { c1, c2 },
+    { }
+  );
   tester.run();
 }
 
@@ -86,7 +112,11 @@ TEST_FUN(test02) {
   auto c1 = clause({ f(a,f(b,a)) != b });
   auto c2 = clause({ f(a,b) == b });
 
-  SymmetricTester tester({ c1, c2 }, { c1, c2 });
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1, c2 },
+    { }
+  );
   tester.run();
 }
 
@@ -98,7 +128,11 @@ TEST_FUN(test03) {
   auto c3 = clause({ f(c,f(c,d)) == f(c,d) });
 
   // c3 also added due to giving up at the limit of iteration
-  SymmetricTester tester({ c1, c2, c3 }, { c1, c2, c3 });
+  SymmetricTester tester(
+    { c1, c2, c3 },
+    { c1, c2, c3 },
+    { }
+  );
   tester.run();
 }
 
@@ -110,7 +144,11 @@ TEST_FUN(test04) {
   auto c3 = clause({ f(c,f(c,d)) == f(c,d) });
 
   // iteration for c3 stops because loop is detected
-  SymmetricTester tester({ c1, c2, c3 }, { c1, c2 });
+  SymmetricTester tester(
+    { c1, c2, c3 },
+    { c1, c2 },
+    { }
+  );
   tester.run();
 }
 
@@ -123,6 +161,25 @@ TEST_FUN(test05) {
   auto c4 = clause({ f(x,c) == d });
 
   // iteration for c3 stops because loop is detected
-  SymmetricTester tester({ c1, c2, c3, c4 }, { c1, c2 });
+  SymmetricTester tester(
+    { c1, c2, c3, c4 },
+    { c1, c2 },
+    { { c3, f(c,x) }, { c3, d } }
+  );
+  tester.run();
+}
+
+TEST_FUN(test06) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ f(x,x) != x });
+  auto c2 = clause({ f(c,d) == d });
+
+  // iteration for c3 stops because loop is detected
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1 },
+    { { c2, c }, { c2, d } }
+  );
   tester.run();
 }
