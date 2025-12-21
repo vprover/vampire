@@ -21,6 +21,8 @@
   DECL_CONST(c, s)                                                                         \
   DECL_CONST(d, s)                                                                         \
   DECL_FUNC(f, {s, s}, s)                                                                  \
+  DECL_FUNC(f1, {s, s}, s)                                                                 \
+  DECL_FUNC(f2, {s, s}, s)                                                                 \
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_FUNC(h, {s, s, s}, s)
 
@@ -54,12 +56,12 @@ public:
         auto [gcls, kvs] = handler.addClause(clauses[index]);
 
         for (const auto& gc : gcls) {
-          ASS(gc->isGoalClause());
+          ASS_REP(gc->isGoalClause(), gc->toString() + " should be goal clause");
           ASS_REP(goalClauses.insert(gc), gc->toString() + " inserted multiple times");
         }
 
         for (const auto& [ngc, t] : kvs) {
-          ASS(!ngc->isGoalClause());
+          ASS_REP(!ngc->isGoalClause(), ngc->toString() + " should be non-goal clause");
           ASS_REP(superposableTermPairs.insert({ ngc, t }), ngc->toString() + " and term " + t.toString() + " inserted multiple times");
         }
       }
@@ -180,6 +182,22 @@ TEST_FUN(test06) {
     { c1, c2 },
     { c1 },
     { { c2, c }, { c2, d } }
+  );
+  tester.run();
+}
+
+TEST_FUN(test07) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ f(g(c),g(c)) == f1(c,d) });
+  auto c2 = clause({ g(f1(x,y)) == f2(x,y) });
+  auto c3 = clause({ f2(x,x) != x });
+
+  // iteration for c3 stops because loop is detected
+  SymmetricTester tester(
+    { c1, c2, c3 },
+    { c2, c3 },
+    { { c1, c }, { c1, d } }
   );
   tester.run();
 }

@@ -92,6 +92,8 @@ class GoalNonLinearityHandler {
 public:
   GoalNonLinearityHandler(const Ordering& ord, GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
 
+  [[nodiscard]] static ClauseTermPairs perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
+
   [[nodiscard]] ClauseTermPairs addNonGoalClause(Clause* cl);
   [[nodiscard]] ClauseTermPairs addGoalClause(Clause* cl);
   void removeNonGoalClause(Clause* cl);
@@ -101,7 +103,7 @@ public:
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
 
 private:
-  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons, ClauseTermPairs& res);
+  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons, ClauseTermPairs& resPairs);
 
   const Ordering& ord;
   GoalReachabilityHandler& handler;
@@ -167,11 +169,9 @@ public:
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
   [[nodiscard]] bool isTermSuperposable(Clause* cl, TypedTermList t) const;
 
-  [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> iterate(Clause* cl);
-  [[nodiscard]] bool addNonGoalClause(Clause* cl);
-
 private:
   [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addGoalClause(Clause* cl);
+  [[nodiscard]] bool addNonGoalClause(Clause* cl, ClauseTermPairs& resPairs);
 
   void addChain(Chain* chain);
   [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> checkNonGoalReachability(Chain* chain);
@@ -180,35 +180,9 @@ private:
   [[nodiscard]] Stack<Chain*> insertGoalClause(Clause* cl);
   void handleNonGoalClause(Clause* cl, bool insert);
 
-  struct ReachabilityTree {
-    ReachabilityTree(GoalReachabilityHandler& handler, Clause* cl) : handler(handler), cl(cl) {}
-
-    // Take smaller side(s) and explore all possible unifiers
-    // with strict subterms of LHSs of goal clauses. If we find any
-    // unifier σ and goal clause l ≈ r \lor C such that rσ = r,
-    // then the clause we are considering is a goal clause, otherwise
-    // we repeat the process with rσ.
-    // Returns true iff the term could be inserted, i.e. the term has no goal
-    // term instances yet.
-    [[nodiscard]] bool addTerm(TypedTermList t);
-    // Returns true iff the term could be inserted, i.e. the term has no goal
-    // term instances yet.
-    [[nodiscard]] static bool canBeAdded(TypedTermList t, ResultSubstitution& subst, bool result);
-
-    // TODO store terms that have been superposed into by non-goal terms
-    DHSet<TypedTermList> terms;
-    GoalReachabilityHandler& handler;
-    DHSet<TypedTermList> nonGoalSuperposableTerms;
-    Clause* cl;
-  };
-
   friend class GoalNonLinearityHandler;
 
-  DHMap<Clause*, ReachabilityTree*> clauseTrees;
   const Ordering& ord;
-
-  TermSubstitutionTree<TermTermLiteralClause> _goalSubtermIndex;
-  TermSubstitutionTree<TermClause> _rhsIndex;
 
   // index for chain LHS subterms unifying with non-goal RHSs
   TermSubstitutionTree<TermChain> _linearChainSubtermIndex;
