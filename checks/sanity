@@ -28,7 +28,7 @@ check_exact_output() {
 	diff=`diff $expected checks/vampire-stdout`
 	if test -n "$diff"
 	then
-		echo "$output check against $expected failed: diff follows"
+		echo "check against $expected failed: diff follows"
 		echo "$diff"
 		exit 1
 	fi
@@ -43,7 +43,7 @@ check_szs_status() {
 	if test -z "$szs"
 	then
 		echo "SZS check failed: should have been SZS $status"
-		cat checks/vampire-stdout
+		cat checks/vampire-stdout checks/vampire-stderr
 		exit 1
 	fi
 }
@@ -57,7 +57,7 @@ check_smtcomp_status() {
 	if test -z "$result"
 	then
 		echo "$SMT check failed: should have been $status"
-		echo "$out"
+		cat checks/vampire-stdout checks/vampire-stderr
 		exit 1
 	fi
 }

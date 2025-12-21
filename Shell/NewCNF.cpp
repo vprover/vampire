@@ -402,7 +402,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 bool NewCNF::shouldInlineITE(unsigned iteCounter) {
   /*
    * MS : TODO:
-   * Since _iteInliningThreshold is when namingThreshold is 0,
+   * Since _iteInliningThreshold is 0 when namingThreshold is 0,
    * and since "namingThreshold == 0" means "never name anything",
    * it would make sense to add "|| _iteInliningThreshold == 0" here.
    */
