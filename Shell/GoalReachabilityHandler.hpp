@@ -25,40 +25,6 @@ using namespace Indexing;
 
 namespace Shell {
 
-struct TermTermLiteralClause
-{
-  TypedTermList term;
-  TypedTermList side;
-  Literal* literal = nullptr;
-  Clause* clause = nullptr;
-
-  TypedTermList const& key() const { return term; }
-
-  auto asTuple() const
-  { return std::make_tuple(clause->number(), literal->getId(), side, term); }
-
-  IMPL_COMPARISONS_FROM_TUPLE(TermTermLiteralClause)
-
-  friend std::ostream& operator<<(std::ostream& out, TermTermLiteralClause const& self)
-  { return out << "(" << self.term << ", " << self.side << ", " << *self.literal << ", " << *self.clause << ")"; }
-};
-
-struct TermClause 
-{
-  TypedTermList term;
-  Clause* clause = nullptr;
-
-  TypedTermList const& key() const { return term; }
-
-  auto asTuple() const
-  { return std::make_tuple(clause->number(), term); }
-
-  IMPL_COMPARISONS_FROM_TUPLE(TermClause)
-
-  friend std::ostream& operator<<(std::ostream& out, TermClause const& self)
-  { return out << "(" << self.term << ", " << *self.clause << ")"; }
-};
-
 using LinearityConstraint = std::pair<TypedTermList,TypedTermList>;
 using LinearityConstraints = Stack<LinearityConstraint>;
 
@@ -172,6 +138,9 @@ public:
 private:
   [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addGoalClause(Clause* cl);
   [[nodiscard]] bool addNonGoalClause(Clause* cl, ClauseTermPairs& resPairs);
+
+  [[nodiscard]] bool isReached(Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm,
+    const Chain* chain, ResultSubstitution& subst, bool result, ClauseTermPairs& resPairs);
 
   void addChain(Chain* chain);
   [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> checkNonGoalReachability(Chain* chain);

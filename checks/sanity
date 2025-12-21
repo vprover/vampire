@@ -56,6 +56,7 @@ check_szs_status Satisfiable   -sa discount -fd off -bd off -fsr off -fde none g
 check_szs_status Unsatisfiable -sa discount -fd off -bd off -fsr off -fde none goal-oriented2.p
 check_szs_status Unsatisfiable -sa discount -fd off -bd off -fsr off -fde none goal-oriented3.p
 check_szs_status Unsatisfiable -sa discount -fd off -bd off -fsr off -fde none goal-oriented4.p
+check_szs_status Unsatisfiable -sa discount -fd off -bd off -fsr off -fde none goal-oriented5.p
 
 # Some simple problems: fail early!
 check_szs_status Theorem Problems/PUZ/PUZ001+1.p

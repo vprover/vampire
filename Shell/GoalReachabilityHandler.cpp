@@ -225,6 +225,33 @@ std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::addGoalClause(C
   return { resCls, resPairs };
 }
 
+bool GoalReachabilityHandler::isReached(
+  Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm, const Chain* chain, ResultSubstitution& subst, bool result, ClauseTermPairs& resPairs)
+{
+  auto clauseTermPairs = GoalNonLinearityHandler::perform(ngCl, gSubterm, ngRhs, chain->constraints);
+  if (clauseTermPairs.isNonEmpty()) {
+    for (auto [ngcl, t] : clauseTermPairs) {
+      DHSet<Term*>* ptr;
+      _superposableTerms.getValuePtr(ngcl, ptr);
+      if (ptr->insert(t.term())) {
+        resPairs.emplace(ngcl, t);
+        DEBUG("could insert ", t, " for ", *ngcl);
+      }
+    }
+    return false;
+  }
+
+  if (isRenamingOn(chain->rhs, subst, result)) {
+    DEBUG("reached ", *ngCl, " with ", *chain, " unifying ", ngRhs, " with ", gSubterm);
+    return true;
+  }
+  if (chain->length == kMaxChainLength) {
+    DEBUG("max chain length reached for ", *ngCl, " with ", *chain);
+    return true;
+  }
+  return false;
+}
+
 bool GoalReachabilityHandler::addNonGoalClause(Clause* cl, ClauseTermPairs& resPairs)
 {
   DEBUG("addNonGoalClause ", *cl);
@@ -237,26 +264,8 @@ bool GoalReachabilityHandler::addNonGoalClause(Clause* cl, ClauseTermPairs& resP
   for (const auto& lhs : iterTraits(getLHSIterator(lit, ord))) {
     TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
     for (const auto& qr : iterTraits(_linearChainSubtermIndex.getUnifications(rhs, /*retrieveSubstitutions=*/true))) {
-
-      auto clauseTermPairs = GoalNonLinearityHandler::perform(cl, qr.data->term, rhs, qr.data->chain->constraints);
-      if (clauseTermPairs.isNonEmpty()) {
-        for (auto [ngcl, t] : clauseTermPairs) {
-          DHSet<Term*>* ptr;
-          _superposableTerms.getValuePtr(ngcl, ptr);
-          if (ptr->insert(t.term())) {
-            resPairs.emplace(ngcl, t);
-            DEBUG("could insert ", t, " for ", *ngcl);
-          }
-        }
-      } else {
-        if (isRenamingOn(qr.data->chain->rhs, *qr.unifier.ptr(), /*result=*/true)) {
-          DEBUG("reached ", *cl, " with ", *qr.data->chain, " unifying ", rhs, " with ", qr.data->term);
-          return false;
-        }
-        if (qr.data->chain->length == kMaxChainLength) {
-          DEBUG("max chain length reached for ", *cl, " with ", *qr.data->chain);
-          return false;
-        }
+      if (isReached(cl, rhs, qr.data->term, qr.data->chain, *qr.unifier.ptr(), /*result=*/true, resPairs)) {
+        return false;
       }
     }
   }
@@ -296,26 +305,8 @@ std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::checkNonGoalRea
 
   for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->isLengthZero()))) {
     for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-
-      auto clauseTermPairs = GoalNonLinearityHandler::perform(qr.data->clause, t, qr.data->term, chain->constraints);
-      if (clauseTermPairs.isNonEmpty()) {
-        for (auto [ngcl, t] : clauseTermPairs) {
-          DHSet<Term*>* ptr;
-          _superposableTerms.getValuePtr(ngcl, ptr);
-          if (ptr->insert(t.term())) {
-            resPairs.emplace(ngcl, t);
-            DEBUG("could insert ", t, " for ", *ngcl);
-          }
-        }
-      } else {
-        if (isRenamingOn(chain->rhs, *qr.unifier.ptr(), /*result=*/false)) {
-          DEBUG("reached ", *qr.data->clause, " with ", *chain, " unifying ", qr.data->term, " with ", *t);
-          reached.insert(qr.data->clause);
-        }
-        if (chain->length == kMaxChainLength) {
-          DEBUG("max chain length reached for ", *qr.data->clause, " with ", *chain);
-          reached.insert(qr.data->clause);
-        }
+      if (isReached(qr.data->clause, qr.data->term, t, chain, *qr.unifier.ptr(), /*result=*/false, resPairs)) {
+        reached.insert(qr.data->clause);
       }
     }
   }
