@@ -28,58 +28,8 @@ namespace Shell {
 using LinearityConstraint = std::pair<TypedTermList,TypedTermList>;
 using LinearityConstraints = Stack<LinearityConstraint>;
 
-struct LinearTermLiteralClause
-{
-  TypedTermList term;
-  LinearityConstraints constraints;
-  Literal* literal = nullptr;
-  Clause* clause = nullptr;
-
-  TypedTermList const& key() const { return term; }
-
-  auto  asTuple() const
-  { return std::make_tuple(clause->number(), constraints, literal->getId(), term); }
-
-  IMPL_COMPARISONS_FROM_TUPLE(LinearTermLiteralClause)
-
-  friend std::ostream& operator<<(std::ostream& out, LinearTermLiteralClause const& self)
-  { return out << "("
-               << self.term << ", "
-               << self.constraints << ", "
-               << self.literal << ", "
-               << Output::ptr(self.clause)
-               << ")"; }
-};
-
 using ClauseTermPair = std::pair<Clause*, Term*>;
 using ClauseTermPairs = Stack<ClauseTermPair>;
-
-class GoalNonLinearityHandler {
-public:
-  GoalNonLinearityHandler(const Ordering& ord, GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
-
-  [[nodiscard]] static ClauseTermPairs get(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
-
-  void addNonGoalClause(Clause* cl);
-  void addGoalClause(Clause* cl);
-  void removeNonGoalClause(Clause* cl);
-  void removeGoalClause(Clause* cl) { NOT_IMPLEMENTED; }
-
-  // TODO implement removal
-  void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
-
-private:
-  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
-
-  const Ordering& ord;
-  GoalReachabilityHandler& handler;
-
-  TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalTermIndex;
-  TermSubstitutionTree<LinearTermLiteralClause> _nonLinearGoalLHSIndex;
-
-  TermSubstitutionTree<TermLiteralClause> _nonGoalLHSIndex;
-  TermSubstitutionTree<TermLiteralClause> _nonGoalSubtermIndex;
-};
 
 struct Chain {
   Chain(TypedTermList lhs, TypedTermList rhs, unsigned length, bool isBase);
@@ -116,6 +66,33 @@ struct TermChain
   friend std::ostream& operator<<(std::ostream& out, TermChain const& self) { return out; }
 };
 
+class GoalNonLinearityHandler {
+public:
+  GoalNonLinearityHandler(const Ordering& ord, GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
+
+  [[nodiscard]] static ClauseTermPairs get(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
+
+  void addNonGoalClause(Clause* cl);
+  void addChain(Chain* chain);
+  void removeNonGoalClause(Clause* cl);
+  void removeGoalClause(Clause* cl) { NOT_IMPLEMENTED; }
+
+  // TODO implement removal
+  void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
+
+private:
+  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
+
+  const Ordering& ord;
+  GoalReachabilityHandler& handler;
+
+  TermSubstitutionTree<TermChain> _nonLinearGoalTermIndex;
+  TermSubstitutionTree<TermChain> _nonLinearGoalLHSIndex;
+
+  TermSubstitutionTree<TermLiteralClause> _nonGoalLHSIndex;
+  TermSubstitutionTree<TermLiteralClause> _nonGoalSubtermIndex;
+};
+
 /**
  * We maintain
  * - a set of "chains", pairs of terms (s, t), s.t. given non-goal clause l ≈ r v C where l ≈ r is selected,
@@ -134,12 +111,11 @@ public:
 
 private:
   [[nodiscard]] ClauseStack addGoalClause(Clause* cl);
-  [[nodiscard]] bool addNonGoalClause(Clause* cl);
+  [[nodiscard]] bool tryAddNonGoalClause(Clause* cl);
 
   [[nodiscard]] bool isReached(Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm,
     const Chain* chain, ResultSubstitution& subst, bool result);
 
-  void addChain(Chain* chain);
   [[nodiscard]] ClauseStack checkNonGoalReachability(Chain* chain);
   [[nodiscard]] Stack<Chain*> buildNewChains(Chain* chain);
 

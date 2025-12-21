@@ -150,22 +150,12 @@ std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::addClause(Claus
 
   _newSuperposableTerms.reset();
 
-  // We check whether the clause is a goal clause or not.
-
-  // It is a goal clause if the literal is negative
-  if (lit->isNegative()) {
-    goto GOAL_CLAUSE;
-  }
-
-  {
-    if (addNonGoalClause(cl)) {
-      _nonLinearityHandler.addNonGoalClause(cl);
-      return { ClauseStack(), _newSuperposableTerms };
-    }
+  // Try adding it as non-goal clause
+  if (lit->isPositive() && tryAddNonGoalClause(cl)) {
+    return { ClauseStack(), _newSuperposableTerms };
   }
 
   // If it is, it possibly contributes to reachibility of other clauses
-GOAL_CLAUSE:
   return { addGoalClause(cl), _newSuperposableTerms };
 }
 
@@ -186,8 +176,6 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
 
   ClauseStack resCls { cl };
 
-  _nonLinearityHandler.addGoalClause(cl);
-
   auto todo = Stack<Chain*>::fromIterator(insertGoalClause(cl).iter());
 
   while (todo.isNonEmpty()) {
@@ -198,8 +186,17 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
       continue;
     }
 
-    // 1. add to indices
-    addChain(curr);
+    // 1. insert chain into indices
+    // variables do not need to be inserted into the subterm indices
+    DEBUG("adding chain ", *chain);
+    if (curr->lhs.isTerm()) {
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(curr->linearLhs.term(), /*includeSelf=*/curr->length==0))) {
+        _linearChainSubtermIndex.handle(TermChain{ t, curr }, /*insert=*/true);
+      }
+    }
+    if (curr->rhs.isNonEmpty()) {
+      _chainRHSIndex.insert(TermChain{ curr->rhs, curr });
+    }
 
     // 2. get unifications with non-goal rhss
     for (const auto& rcl : checkNonGoalReachability(curr)) {
@@ -211,7 +208,6 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
       rcl->makeGoalClause();
 
       todo.loadFromIterator(insertGoalClause(rcl).iter());
-      _nonLinearityHandler.addGoalClause(rcl);
     }
 
     // 3. build new chains, i.e. get unifications with goal rhss and lhss
@@ -244,9 +240,9 @@ bool GoalReachabilityHandler::isReached(
   return false;
 }
 
-bool GoalReachabilityHandler::addNonGoalClause(Clause* cl)
+bool GoalReachabilityHandler::tryAddNonGoalClause(Clause* cl)
 {
-  DEBUG("addNonGoalClause ", *cl);
+  DEBUG("tryAddNonGoalClause ", *cl);
   auto lit = assertUnitEquality(cl);
 
   if (lit->isNegative()) {
@@ -267,22 +263,9 @@ bool GoalReachabilityHandler::addNonGoalClause(Clause* cl)
     _nonGoalRHSIndex.insert({ TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()), lit, cl });
   }
 
+  _nonLinearityHandler.addNonGoalClause(cl);
+
   return true;
-}
-
-void GoalReachabilityHandler::addChain(Chain* chain)
-{
-  DEBUG("adding chain ", *chain);
-
-  // variables do not need to be inserted into the subterm indices
-  if (chain->lhs.isTerm()) {
-    for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->length==0))) {
-      _linearChainSubtermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
-    }
-  }
-  if (chain->rhs.isNonEmpty()) {
-    _chainRHSIndex.insert(TermChain{ chain->rhs, chain });
-  }
 }
 
 ClauseStack GoalReachabilityHandler::checkNonGoalReachability(Chain* chain)
@@ -368,6 +351,7 @@ Stack<Chain*> GoalReachabilityHandler::insertGoalClause(Clause* cl)
       for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/lit->isNegative()))) {
         _nonlinearChainSubtermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
       }
+      _nonLinearityHandler.addChain(chain);
     }
   }
   return res;
@@ -395,16 +379,16 @@ void GoalNonLinearityHandler::addNonGoalClause(Clause* cl)
     for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
       // handle equality lhs
       if (t == lhs && lit->isPositive()) {
-        _nonGoalLHSIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/true);
+        _nonGoalLHSIndex.handle(TermLiteralClause{ t, lit, cl }, /*insert=*/true);
 
         for (const auto& qr : iterTraits(_nonLinearGoalTermIndex.getUnifications(t, /*retrieveSubstitutions=*/false))) {
-          perform(cl, qr.data->term, t, qr.data->constraints);
+          perform(cl, qr.data->term, t, qr.data->chain->constraints);
         }
       }
-      _nonGoalSubtermIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/true);
+      _nonGoalSubtermIndex.handle(TermLiteralClause{ t, lit, cl }, /*insert=*/true);
 
       for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/false))) {
-        perform(cl, qr.data->term, t, qr.data->constraints);
+        perform(cl, qr.data->term, t, qr.data->chain->constraints);
       }
     }
   }
@@ -419,54 +403,28 @@ void GoalNonLinearityHandler::removeNonGoalClause(Clause* cl)
     for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
       // handle equality lhs
       if (t == lhs && lit->isPositive()) {
-        _nonGoalLHSIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/false);
+        _nonGoalLHSIndex.handle(TermLiteralClause{ t, lit, cl }, /*insert=*/false);
       }
-      _nonGoalSubtermIndex.handle(TermLiteralClause{ t, lit, cl }, /*adding=*/false);
+      _nonGoalSubtermIndex.handle(TermLiteralClause{ t, lit, cl }, /*insert=*/false);
     }
   }
 }
 
-void GoalNonLinearityHandler::addGoalClause(Clause* cl)
+void GoalNonLinearityHandler::addChain(Chain* chain)
 {
-  DEBUG("linearity addGoalClause ", *cl);
-  auto lit = assertUnitEquality(cl);
+  DEBUG("linearity addChain ", *chain);
 
-  ASS(cl->isGoalClause());
+  _nonLinearGoalLHSIndex.handle(TermChain{ chain->linearLhs, chain }, /*insert=*/true);
 
-  DHMap<unsigned,TermList> varSorts;
-  SortHelper::collectVariableSorts(const_cast<Clause*>(cl),varSorts);
-
-  unsigned maxVar = 0;
-  for (const auto& [v,s] : iterTraits(varSorts.items())) {
-    maxVar = std::max(maxVar,v);
+  for (const auto& qr : iterTraits(_nonGoalSubtermIndex.getUnifications(chain->linearLhs, /*retrieveSubstitutions=*/false))) {
+    perform(qr.data->clause, chain->linearLhs, qr.data->term, chain->constraints);
   }
-  maxVar++;
 
-  for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
-    if (lhs.isVar()) {
-      _nonLinearGoalLHSIndex.handle(LinearTermLiteralClause{ lhs, LinearityConstraints(), lit, cl }, /*adding=*/true);
-      _nonLinearGoalTermIndex.handle(LinearTermLiteralClause{ lhs, LinearityConstraints(), lit, cl }, /*adding=*/true);
-      continue;
-    }
-    for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
-      Linearizer linearizer(maxVar, varSorts);
-      auto lt = linearizer.transform(t);
-      if (linearizer.constraints.isEmpty()) {
-        continue;
-      }
-      // handle equality lhs
-      if (t == lhs && lit->isPositive()) {
-        _nonLinearGoalLHSIndex.handle(LinearTermLiteralClause{ lt, linearizer.constraints, lit, cl }, /*adding=*/true);
+  for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/true))) {
+    _nonLinearGoalTermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
 
-        for (const auto& qr : iterTraits(_nonGoalSubtermIndex.getUnifications(lt, /*retrieveSubstitutions=*/false))) {
-          perform(qr.data->clause, lt, qr.data->term, linearizer.constraints);
-        }
-      }
-      _nonLinearGoalTermIndex.handle(LinearTermLiteralClause{ lt, linearizer.constraints, lit, cl }, /*adding=*/true);
-
-      for (const auto& qr : iterTraits(_nonGoalLHSIndex.getUnifications(lt, /*retrieveSubstitutions=*/false))) {
-        perform(qr.data->clause, lt, qr.data->term, linearizer.constraints);
-      }
+    for (const auto& qr : iterTraits(_nonGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/false))) {
+      perform(qr.data->clause, t, qr.data->term, chain->constraints);
     }
   }
 }
