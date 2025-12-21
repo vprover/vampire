@@ -35,7 +35,7 @@ public:
     : clauses(clauses)
   {
     for (const auto& cl : goalClauses) { ALWAYS(expectedGoalClauses.insert(cl)); }
-    for (const auto& kv : superposableTermPairs) { ALWAYS(expectedSuperposableTermPairs.insert(kv)); }
+    for (auto [cl, t] : superposableTermPairs) { ALWAYS(expectedSuperposableTermPairs.insert({cl, t.term()})); }
   }
 
   void run() const {
@@ -48,7 +48,7 @@ public:
     do {
 
       DHSet<Clause*> goalClauses;
-      DHSet<std::pair<Clause*, TermList>> superposableTermPairs;
+      DHSet<ClauseTermPair> superposableTermPairs;
       GoalReachabilityHandler handler(*ord);
 
       for (const auto& index : indices) {
@@ -62,7 +62,7 @@ public:
 
         for (const auto& [ngc, t] : kvs) {
           ASS_REP(!ngc->isGoalClause(), ngc->toString() + " should be non-goal clause");
-          ASS_REP(superposableTermPairs.insert({ ngc, t }), ngc->toString() + " and term " + t.toString() + " inserted multiple times");
+          ASS_REP(superposableTermPairs.insert({ ngc, t }), ngc->toString() + " and term " + t->toString() + " inserted multiple times");
         }
       }
 
@@ -79,10 +79,10 @@ public:
       }
 
       for (const auto& [ngc, t] : iterTraits(superposableTermPairs.iter())) {
-        ASS_REP(expectedSuperposableTermPairs.contains({ ngc, t }), ngc->toString() + " and term " + t.toString() + " is not expected to be superposable");
+        ASS_REP(expectedSuperposableTermPairs.contains({ ngc, t }), ngc->toString() + " and term " + t->toString() + " is not expected to be superposable");
       }
       for (const auto& [ngc, t] : iterTraits(expectedSuperposableTermPairs.iter())) {
-        ASS_REP(superposableTermPairs.contains({ ngc, t }), ngc->toString() + " and term " + t.toString() + " is expected to be superposable");
+        ASS_REP(superposableTermPairs.contains({ ngc, t }), ngc->toString() + " and term " + t->toString() + " is expected to be superposable");
       }
 
     } while (std::next_permutation(indices.begin(), indices.end()));
@@ -90,7 +90,7 @@ public:
 private:
   ClauseStack clauses;
   DHSet<Clause*> expectedGoalClauses;
-  DHSet<std::pair<Clause*, TermList>> expectedSuperposableTermPairs;
+  DHSet<ClauseTermPair> expectedSuperposableTermPairs;
 };
 
 TEST_FUN(test01) {

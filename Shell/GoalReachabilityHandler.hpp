@@ -51,17 +51,17 @@ struct LinearTermLiteralClause
                << ")"; }
 };
 
-using ClauseTermPair = std::pair<Clause*, TypedTermList>;
+using ClauseTermPair = std::pair<Clause*, Term*>;
 using ClauseTermPairs = Stack<ClauseTermPair>;
 
 class GoalNonLinearityHandler {
 public:
   GoalNonLinearityHandler(const Ordering& ord, GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
 
-  [[nodiscard]] static ClauseTermPairs perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
+  [[nodiscard]] static ClauseTermPairs get(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
 
-  [[nodiscard]] ClauseTermPairs addNonGoalClause(Clause* cl);
-  [[nodiscard]] ClauseTermPairs addGoalClause(Clause* cl);
+  void addNonGoalClause(Clause* cl);
+  void addGoalClause(Clause* cl);
   void removeNonGoalClause(Clause* cl);
   void removeGoalClause(Clause* cl) { NOT_IMPLEMENTED; }
 
@@ -69,7 +69,7 @@ public:
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
 
 private:
-  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons, ClauseTermPairs& resPairs);
+  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
 
   const Ordering& ord;
   GoalReachabilityHandler& handler;
@@ -136,18 +136,20 @@ public:
   [[nodiscard]] bool isTermSuperposable(Clause* cl, TypedTermList t) const;
 
 private:
-  [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addGoalClause(Clause* cl);
-  [[nodiscard]] bool addNonGoalClause(Clause* cl, ClauseTermPairs& resPairs);
+  [[nodiscard]] ClauseStack addGoalClause(Clause* cl);
+  [[nodiscard]] bool addNonGoalClause(Clause* cl);
 
   [[nodiscard]] bool isReached(Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm,
-    const Chain* chain, ResultSubstitution& subst, bool result, ClauseTermPairs& resPairs);
+    const Chain* chain, ResultSubstitution& subst, bool result);
 
   void addChain(Chain* chain);
-  [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> checkNonGoalReachability(Chain* chain);
+  [[nodiscard]] ClauseStack checkNonGoalReachability(Chain* chain);
   [[nodiscard]] Stack<Chain*> buildNewChains(Chain* chain);
 
   [[nodiscard]] Stack<Chain*> insertGoalClause(Clause* cl);
   void handleNonGoalClause(Clause* cl, bool insert);
+
+  void addSuperposableTerm(Clause* ngcl, Term* t);
 
   friend class GoalNonLinearityHandler;
 
@@ -163,6 +165,7 @@ private:
   // index for non-goal RHSs
   TermSubstitutionTree<TermLiteralClause> _nonGoalRHSIndex;
 
+  ClauseTermPairs _newSuperposableTerms;
   DHMap<Clause*, DHSet<Term*>> _superposableTerms;
 
   GoalNonLinearityHandler _nonLinearityHandler;
