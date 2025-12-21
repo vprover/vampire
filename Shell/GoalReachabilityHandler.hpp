@@ -82,16 +82,12 @@ private:
 };
 
 struct Chain {
-  Chain(TypedTermList lhs, TypedTermList rhs, unsigned length);
-
-  bool isBase() const { return rhs.isEmpty(); }
-  bool isLengthZero() const { return length==0; }
-  bool isLengthOne() const { return length==1; }
+  Chain(TypedTermList lhs, TypedTermList rhs, unsigned length, bool isBase);
 
   friend std::ostream& operator<<(std::ostream& out, Chain const& self)
   {
     out << self.lhs;
-    if (!self.isBase()) {
+    if (!self.rhs.isNonEmpty()) {
       out << " -> " << self.rhs;
     }
     out << " (" << self.length << ")";
@@ -101,6 +97,7 @@ struct Chain {
   TypedTermList lhs;
   TypedTermList rhs;
   unsigned length;
+  bool isBase;
 
   TypedTermList linearLhs;
   LinearityConstraints constraints;

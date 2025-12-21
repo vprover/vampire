@@ -105,8 +105,8 @@ void collectVariableSorts(TypedTermList t, DHMap<unsigned,TermList>& varSorts)
   }
 }
 
-Chain::Chain(TypedTermList lhs, TypedTermList rhs, unsigned length)
-  : lhs(lhs), rhs(rhs), length(length)
+Chain::Chain(TypedTermList lhs, TypedTermList rhs, unsigned length, bool isBase)
+  : lhs(lhs), rhs(rhs), length(length), isBase(isBase)
 {
   // ASS_EQ(rhs.isEmpty(), !length);
 
@@ -276,12 +276,12 @@ void GoalReachabilityHandler::addChain(Chain* chain)
 
   // variables do not need to be inserted into the subterm indices
   if (chain->lhs.isTerm()) {
-    for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/chain->isLengthZero()))) {
-      _nonlinearChainSubtermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
-    }
-    for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->isLengthZero()))) {
+    for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->length==0))) {
       _linearChainSubtermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
     }
+  }
+  if (chain->rhs.isNonEmpty()) {
+    _chainRHSIndex.insert(TermChain{ chain->rhs, chain });
   }
 }
 
@@ -293,7 +293,7 @@ ClauseStack GoalReachabilityHandler::checkNonGoalReachability(Chain* chain)
     return ClauseStack();
   }
 
-  for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->isLengthZero()))) {
+  for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->length==0))) {
     for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
       if (isReached(qr.data->clause, qr.data->term, t, chain, *qr.unifier.ptr(), /*result=*/false)) {
         reached.insert(qr.data->clause);
@@ -309,11 +309,11 @@ Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitut
 {
   DEBUG("combining chains ", *left, " and ", *right, " in subterm ", t);
 
-  ASS(left->isLengthOne());
+  ASS(right->isBase);
 
   auto lhs = subst.apply(left->lhs, leftIsResult);
   TypedTermList rhs;
-  if (!right->isBase()) {
+  if (right->rhs.isNonEmpty()) {
     rhs = subst.apply(right->rhs, !leftIsResult);
   }
   auto length = left->length+right->length;
@@ -323,26 +323,26 @@ Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitut
   if (left->lhs == lhs && left->rhs == rhs) {
     return nullptr;
   }
-  return new Chain(lhs, rhs, length);
+  return new Chain(lhs, rhs, length, /*isBase=*/false);
 }
 
 Stack<Chain*> GoalReachabilityHandler::buildNewChains(Chain* chain)
 {
   Stack<Chain*> res;
 
-  // forward: (result) l -> r and (query) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
-  if (chain->lhs.isTerm()) {
-    for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/chain->isLengthZero()))) {
-      for (const auto& qr : iterTraits(_chainRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-        res.push(combineChains(qr.data->chain, chain, t, *qr.unifier.ptr(), /*leftIsResult=*/true));
-      }
+  // forward: (query) l -> r and (result) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
+  if (chain->rhs.isNonEmpty()) {
+    for (const auto& qr : iterTraits(_nonlinearChainSubtermIndex.getUnifications(chain->rhs, /*retrieveSubstitutions=*/true))) {
+      res.push(combineChains(chain, qr.data->chain, qr.data->term, *qr.unifier.ptr(), /*leftIsResult=*/false));
     }
   }
 
-  // backward: (query) l -> r and (result) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
-  if (chain->isLengthOne() && !chain->isBase()) {
-    for (const auto& qr : iterTraits(_nonlinearChainSubtermIndex.getUnifications(chain->rhs, /*retrieveSubstitutions=*/true))) {
-      res.push(combineChains(chain, qr.data->chain, qr.data->term, *qr.unifier.ptr(), /*leftIsResult=*/false));
+  // backward: (result) l -> r and (query) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
+  if (chain->isBase && chain->lhs.isTerm()) {
+    for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/chain->length==0))) {
+      for (const auto& qr : iterTraits(_chainRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+        res.push(combineChains(qr.data->chain, chain, t, *qr.unifier.ptr(), /*leftIsResult=*/true));
+      }
     }
   }
 
@@ -357,14 +357,17 @@ Stack<Chain*> GoalReachabilityHandler::insertGoalClause(Clause* cl)
 
   Stack<Chain*> res;
 
-  for (const auto& lhs : iterTraits(getLHSIterator(lit, ord))) {
-    if (lit->isNegative()) {
-      res.push(new Chain(lhs, TypedTermList(), 0));
-    } else {
-      auto chain = new Chain(lhs, TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()), 1);
-      res.push(chain);
-      // only add these length-1 chains to avoid explosion of chains
-      _chainRHSIndex.insert(TermChain{ chain->rhs, chain });
+  for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+    auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
+    auto length = lit->isNegative() ? 0 : 1;
+    auto chain = new Chain(lhs, rhs, length, /*isBase=*/true);
+    res.push(chain);
+
+    // only add these length-1 chains to avoid explosion of chains
+    if (lhs.isTerm()) {
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/lit->isNegative()))) {
+        _nonlinearChainSubtermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
+      }
     }
   }
   return res;
