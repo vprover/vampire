@@ -381,6 +381,9 @@ public:
   void unmakeGoalClause() { _goalClause = false; }
 #endif
 
+  bool isGoalClauseSaturation() const { return _goalClauseSaturation; }
+  void makeGoalClauseSaturation() { ASS(!_goalClauseSaturation); _goalClauseSaturation = true; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -406,6 +409,7 @@ protected:
   unsigned _weightForClauseSelection;
 
   bool _goalClause = false;
+  bool _goalClauseSaturation = false;
 
   /** number of references to this clause */
   unsigned _refCnt;

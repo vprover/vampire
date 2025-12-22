@@ -1188,6 +1188,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   _goalReachabilityHandler->addClause(cl);
   for (const auto& gcl : _goalReachabilityHandler->goalClauses()) {
     ASS(gcl->isGoalClause());
+    gcl->makeGoalClauseSaturation();
     env.statistics->goalClauses++;
     if (env.options->showAll()) {
       std::cout << "[SA] goal clause: " << gcl->toString() << endl;

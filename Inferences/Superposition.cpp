@@ -356,8 +356,8 @@ Clause* Superposition::performSuperposition(
 
   unsigned numPositiveLiteralsLowerBound = std::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
   //TODO update inference rule name AYB
-  const bool bothGoal = eqClause->isGoalClause() && rwClause->isGoalClause();
-  const bool anyGoal = eqClause->isGoalClause() || rwClause->isGoalClause();
+  const bool bothGoal = eqClause->isGoalClauseSaturation() && rwClause->isGoalClauseSaturation();
+  const bool anyGoal = eqClause->isGoalClauseSaturation() || rwClause->isGoalClauseSaturation();
   Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION :
     (bothGoal ? InferenceRule::SUPERPOSITION : (anyGoal ? InferenceRule::GOAL_NONGOAL_SUPERPOSITION : InferenceRule::NONGOAL_SUPERPOSITION)), rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
@@ -401,9 +401,9 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if (rwClause->isGoalClause()) {
+  if (rwClause->isGoalClauseSaturation()) {
     // if eqClause is non-goal clause, we shouldn't superpose only into smaller side
-    if (!eqClause->isGoalClause()) {
+    if (!eqClause->isGoalClauseSaturation()) {
       if (isSuperposingOnlyIntoSmallerSide(ordering, rwLitS, rwTermS)) {
         return 0;
       }
@@ -417,7 +417,7 @@ Clause* Superposition::performSuperposition(
   } else {
     ASS(rwTerm.isTerm());
     // if neither is a goal clause, we only allow superpositions into specific terms
-    if (!eqClause->isGoalClause() && !_salg->getGoalReachabilityHandler().isTermSuperposable(rwClause, rwTerm.term())) {
+    if (!eqClause->isGoalClauseSaturation() && !_salg->getGoalReachabilityHandler().isTermSuperposable(rwClause, rwTerm.term())) {
       return 0;
     }
   }
