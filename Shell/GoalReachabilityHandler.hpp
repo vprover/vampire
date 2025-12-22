@@ -53,6 +53,8 @@ struct Chain {
 
   TypedTermList linearLhs;
   LinearityConstraints constraints;
+
+  bool expanded = false;
 };
 
 struct TermChain
@@ -112,14 +114,13 @@ public:
   const ClauseTermPairs& superposableTerms() { return _newSuperposableTerms; }
 
 private:
-  [[nodiscard]] bool tryAddNonGoalClause(Clause* cl);
   void addGoalClause(Clause* cl);
   void handleNewChains();
 
   [[nodiscard]] bool isReached(Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm,
     const Chain* chain, ResultSubstitution& subst, bool result);
 
-  [[nodiscard]] Stack<Chain*> buildNewChains(Chain* chain);
+  [[nodiscard]] Stack<Chain*> chainForward(Chain* chain);
 
   void handleNonGoalClause(Clause* cl, bool insert);
 
