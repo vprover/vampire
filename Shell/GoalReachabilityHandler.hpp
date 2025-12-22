@@ -36,11 +36,11 @@ struct Chain {
 
   friend std::ostream& operator<<(std::ostream& out, Chain const& self)
   {
-    out << self.lhs;
-    if (!self.rhs.isNonEmpty()) {
-      out << " -> " << self.rhs;
+    out << self.lhs.untyped();
+    if (self.rhs.isNonEmpty()) {
+      out << " -> " << self.rhs.untyped();
     }
-    out << " (" << self.length << ")";
+    out << " (length " << self.length << ")";
     return out;
   }
 
@@ -103,23 +103,23 @@ class GoalReachabilityHandler {
 public:
   GoalReachabilityHandler(const Ordering& ord) : ord(ord), _nonLinearityHandler(ord, *this) {}
 
-  // returns clauses that become goal clauses when adding this clause
-  // note that the clause itself can be among them
-  [[nodiscard]] std::pair<ClauseStack, ClauseTermPairs> addClause(Clause* cl);
+  void addClause(Clause* cl);
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
+
   [[nodiscard]] bool isTermSuperposable(Clause* cl, TypedTermList t) const;
+  const ClauseStack& goalClauses() { return _newGoalClauses; }
+  const ClauseTermPairs& superposableTerms() { return _newSuperposableTerms; }
 
 private:
-  [[nodiscard]] ClauseStack addGoalClause(Clause* cl);
   [[nodiscard]] bool tryAddNonGoalClause(Clause* cl);
+  void addGoalClause(Clause* cl);
+  void handleNewChains();
 
   [[nodiscard]] bool isReached(Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm,
     const Chain* chain, ResultSubstitution& subst, bool result);
 
-  [[nodiscard]] ClauseStack checkNonGoalReachability(Chain* chain);
   [[nodiscard]] Stack<Chain*> buildNewChains(Chain* chain);
 
-  [[nodiscard]] Stack<Chain*> insertGoalClause(Clause* cl);
   void handleNonGoalClause(Clause* cl, bool insert);
 
   void addSuperposableTerm(Clause* ngcl, Term* t);
@@ -138,10 +138,14 @@ private:
   // index for non-goal RHSs
   TermSubstitutionTree<TermLiteralClause> _nonGoalRHSIndex;
 
+  ClauseStack _newGoalClauses;
+
   ClauseTermPairs _newSuperposableTerms;
   DHMap<Clause*, DHSet<Term*>> _superposableTerms;
 
   GoalNonLinearityHandler _nonLinearityHandler;
+
+  Stack<Chain*> _newChainsToHandle;
 };
 
 }

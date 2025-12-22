@@ -53,14 +53,15 @@ public:
 
       for (const auto& index : indices) {
         clauses[index]->unmakeGoalClause();
-        auto [gcls, kvs] = handler.addClause(clauses[index]);
 
-        for (const auto& gc : gcls) {
+        handler.addClause(clauses[index]);
+
+        for (const auto& gc : handler.goalClauses()) {
           ASS_REP(gc->isGoalClause(), gc->toString() + " should be goal clause");
           ASS_REP(goalClauses.insert(gc), gc->toString() + " inserted multiple times");
         }
 
-        for (const auto& [ngc, t] : kvs) {
+        for (const auto& [ngc, t] : handler.superposableTerms()) {
           ASS_REP(!ngc->isGoalClause(), ngc->toString() + " should be non-goal clause");
           ASS_REP(superposableTermPairs.insert({ ngc, t }), ngc->toString() + " and term " + t->toString() + " inserted multiple times");
         }

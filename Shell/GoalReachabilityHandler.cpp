@@ -143,20 +143,24 @@ Literal* assertUnitEquality(Clause* cl) {
   return lit;
 }
 
-std::pair<ClauseStack, ClauseTermPairs> GoalReachabilityHandler::addClause(Clause* cl)
+void GoalReachabilityHandler::addClause(Clause* cl)
 {
   DEBUG("addClause ", *cl);
   auto lit = assertUnitEquality(cl);
 
   _newSuperposableTerms.reset();
+  _newGoalClauses.reset();
+  ASS(_newChainsToHandle.isEmpty());
 
   // Try adding it as non-goal clause
   if (lit->isPositive() && tryAddNonGoalClause(cl)) {
-    return { ClauseStack(), _newSuperposableTerms };
+    ASS(_newGoalClauses.isEmpty());
+    return;
   }
 
   // If it is, it possibly contributes to reachibility of other clauses
-  return { addGoalClause(cl), _newSuperposableTerms };
+  addGoalClause(cl);
+  handleNewChains();
 }
 
 bool GoalReachabilityHandler::isTermSuperposable(Clause* cl, TypedTermList t) const
@@ -167,20 +171,68 @@ bool GoalReachabilityHandler::isTermSuperposable(Clause* cl, TypedTermList t) co
   return ptr && iterTraits(ptr->iter()).any([t](Term* st) { return st->containsSubterm(t); });
 }
 
-ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
+// combine (left) l -> r and (right) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
+Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult)
+{
+  DEBUG("combining chains ", *left, " and ", *right, " in subterm ", t);
+
+  ASS(right->isBase);
+
+  auto lhs = subst.apply(left->lhs, leftIsResult);
+  TypedTermList rhs;
+  if (right->rhs.isNonEmpty()) {
+    rhs = subst.apply(right->rhs, !leftIsResult);
+  }
+  auto length = left->length+right->length;
+  if (length > kMaxChainLength) {
+    return nullptr;
+  }
+  if (left->lhs == lhs && left->rhs == rhs) {
+    return nullptr;
+  }
+  return new Chain(lhs, rhs, length, /*isBase=*/false);
+}
+
+void GoalReachabilityHandler::addGoalClause(Clause* cl)
 {
   DEBUG("addGoalClause ", *cl);
-  assertUnitEquality(cl);
+  auto lit = assertUnitEquality(cl);
 
+  ASS(!cl->isGoalClause());
   cl->makeGoalClause();
+  _newGoalClauses.push(cl);
 
-  ClauseStack resCls { cl };
+  for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+    auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
+    auto length = lit->isNegative() ? 0 : 1;
+    auto chain = new Chain(lhs, rhs, length, /*isBase=*/true);
+    _newChainsToHandle.push(chain);
 
-  auto todo = Stack<Chain*>::fromIterator(insertGoalClause(cl).iter());
+    // only add these length-1 chains to avoid explosion of chains
+    if (lhs.isTerm()) {
+      // insert into forward chaining index
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/lit->isNegative()))) {
+        _nonlinearChainSubtermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
+      }
 
-  while (todo.isNonEmpty()) {
+      // perform backward chaining: combine (result) l -> r and (query) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/chain->length==0))) {
+        for (const auto& qr : iterTraits(_chainRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+          _newChainsToHandle.push(combineChains(qr.data->chain, chain, t, *qr.unifier.ptr(), /*leftIsResult=*/true));
+        }
+      }
 
-    auto curr = todo.pop();
+      // add to non-linearity handler
+      _nonLinearityHandler.addChain(chain);
+    }
+  }
+}
+
+void GoalReachabilityHandler::handleNewChains()
+{
+  while (_newChainsToHandle.isNonEmpty()) {
+
+    auto curr = _newChainsToHandle.pop();
 
     if (!curr) {
       continue;
@@ -188,7 +240,7 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
 
     // 1. insert chain into indices
     // variables do not need to be inserted into the subterm indices
-    DEBUG("adding chain ", *chain);
+    DEBUG("adding chain ", *curr);
     if (curr->lhs.isTerm()) {
       for (const auto& t : iterTraits(NonVariableNonTypeIterator(curr->linearLhs.term(), /*includeSelf=*/curr->length==0))) {
         _linearChainSubtermIndex.handle(TermChain{ t, curr }, /*insert=*/true);
@@ -199,23 +251,28 @@ ClauseStack GoalReachabilityHandler::addGoalClause(Clause* cl)
     }
 
     // 2. get unifications with non-goal rhss
-    for (const auto& rcl : checkNonGoalReachability(curr)) {
-      resCls.push(rcl);
+    DHSet<Clause*> reached;
+    if (curr->lhs.isTerm()) {
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(curr->linearLhs.term(), /*includeSelf=*/curr->length==0))) {
+        for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+          if (isReached(qr.data->clause, qr.data->term, t, curr, *qr.unifier.ptr(), /*result=*/false)) {
+            reached.insert(qr.data->clause);
+          }
+        }
+      }
+    }
 
+    for (const auto& rcl : iterTraits(reached.iter())) {
       handleNonGoalClause(rcl, /*insert=*/false);
       _nonLinearityHandler.removeNonGoalClause(rcl);
-
-      rcl->makeGoalClause();
-
-      todo.loadFromIterator(insertGoalClause(rcl).iter());
+      addGoalClause(rcl);
     }
 
     // 3. build new chains, i.e. get unifications with goal rhss and lhss
     for (auto&& newChain : buildNewChains(curr)) {
-      todo.push(newChain);
+      _newChainsToHandle.push(newChain);
     }
   }
-  return resCls;
 }
 
 bool GoalReachabilityHandler::isReached(
@@ -268,47 +325,6 @@ bool GoalReachabilityHandler::tryAddNonGoalClause(Clause* cl)
   return true;
 }
 
-ClauseStack GoalReachabilityHandler::checkNonGoalReachability(Chain* chain)
-{
-  DHSet<Clause*> reached;
-
-  if (chain->lhs.isVar()) {
-    return ClauseStack();
-  }
-
-  for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->length==0))) {
-    for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-      if (isReached(qr.data->clause, qr.data->term, t, chain, *qr.unifier.ptr(), /*result=*/false)) {
-        reached.insert(qr.data->clause);
-      }
-    }
-  }
-
-  return ClauseStack::fromIterator(reached.iter());
-}
-
-// combine (left) l -> r and (right) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
-Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult)
-{
-  DEBUG("combining chains ", *left, " and ", *right, " in subterm ", t);
-
-  ASS(right->isBase);
-
-  auto lhs = subst.apply(left->lhs, leftIsResult);
-  TypedTermList rhs;
-  if (right->rhs.isNonEmpty()) {
-    rhs = subst.apply(right->rhs, !leftIsResult);
-  }
-  auto length = left->length+right->length;
-  if (length > kMaxChainLength) {
-    return nullptr;
-  }
-  if (left->lhs == lhs && left->rhs == rhs) {
-    return nullptr;
-  }
-  return new Chain(lhs, rhs, length, /*isBase=*/false);
-}
-
 Stack<Chain*> GoalReachabilityHandler::buildNewChains(Chain* chain)
 {
   Stack<Chain*> res;
@@ -332,31 +348,6 @@ Stack<Chain*> GoalReachabilityHandler::buildNewChains(Chain* chain)
   return res;
 }
 
-Stack<Chain*> GoalReachabilityHandler::insertGoalClause(Clause* cl)
-{
-  auto lit = assertUnitEquality(cl);
-
-  ASS(cl->isGoalClause());
-
-  Stack<Chain*> res;
-
-  for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
-    auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-    auto length = lit->isNegative() ? 0 : 1;
-    auto chain = new Chain(lhs, rhs, length, /*isBase=*/true);
-    res.push(chain);
-
-    // only add these length-1 chains to avoid explosion of chains
-    if (lhs.isTerm()) {
-      for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/lit->isNegative()))) {
-        _nonlinearChainSubtermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
-      }
-      _nonLinearityHandler.addChain(chain);
-    }
-  }
-  return res;
-}
-
 void GoalReachabilityHandler::handleNonGoalClause(Clause* cl, bool insert)
 {
   auto lit = assertUnitEquality(cl);
@@ -368,6 +359,8 @@ void GoalReachabilityHandler::handleNonGoalClause(Clause* cl, bool insert)
     _nonGoalRHSIndex.handle({ TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()), lit, cl }, insert);
   }
 }
+
+// GoalNonLinearityHandler
 
 void GoalNonLinearityHandler::addNonGoalClause(Clause* cl)
 {
@@ -413,6 +406,7 @@ void GoalNonLinearityHandler::removeNonGoalClause(Clause* cl)
 void GoalNonLinearityHandler::addChain(Chain* chain)
 {
   DEBUG("linearity addChain ", *chain);
+  ASS(chain->isBase);
 
   _nonLinearGoalLHSIndex.handle(TermChain{ chain->linearLhs, chain }, /*insert=*/true);
 

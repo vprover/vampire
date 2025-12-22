@@ -1185,8 +1185,8 @@ void SaturationAlgorithm::activate(Clause* cl)
   // TODO add to some indices and perform extra inferences
   _clauseActivationInProgress = true;
 
-  auto [gcls, kvs] = _goalReachabilityHandler->addClause(cl);
-  for (const auto& gcl : gcls) {
+  _goalReachabilityHandler->addClause(cl);
+  for (const auto& gcl : _goalReachabilityHandler->goalClauses()) {
     ASS(gcl->isGoalClause());
     env.statistics->goalClauses++;
     if (env.options->showAll()) {
@@ -1210,7 +1210,7 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  for (const auto& [ngcl, t] : kvs) {
+  for (const auto& [ngcl, t] : _goalReachabilityHandler->superposableTerms()) {
     ASS(!ngcl->isGoalClause());
     for (const auto& genCl : iterTraits(_superposition->generateClausesWithNonGoalSuperposableTerms(ngcl, t))) {
       addNewClause(genCl);
