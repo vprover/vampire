@@ -230,7 +230,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
-  _goalReachabilityHandler.reset(new GoalReachabilityHandler(*_ordering));
 
   _completeOptionSettings = opt.complete(prb);
 
@@ -260,6 +259,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   else {
     _extensionality = 0;
   }
+  _goalReachabilityHandler.reset(new GoalReachabilityHandler(*this));
 
   s_instance = this;
 }

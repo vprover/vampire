@@ -18,7 +18,9 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/TermIndex.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 using namespace Kernel;
 using namespace Indexing;
@@ -68,13 +70,12 @@ struct TermChain
 
 class GoalNonLinearityHandler {
 public:
-  GoalNonLinearityHandler(const Ordering& ord, GoalReachabilityHandler& handler) : ord(ord), handler(handler) {}
+  GoalNonLinearityHandler(SaturationAlgorithm& salg, GoalReachabilityHandler& handler);
 
   [[nodiscard]] static ClauseTermPairs get(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
 
   void addNonGoalClause(Clause* cl);
   void addChain(Chain* chain);
-  void removeNonGoalClause(Clause* cl);
   void removeGoalClause(Clause* cl) { NOT_IMPLEMENTED; }
 
   // TODO implement removal
@@ -89,8 +90,8 @@ private:
   TermSubstitutionTree<TermChain> _nonLinearGoalTermIndex;
   TermSubstitutionTree<TermChain> _nonLinearGoalLHSIndex;
 
-  TermSubstitutionTree<TermLiteralClause> _nonGoalLHSIndex;
-  TermSubstitutionTree<TermLiteralClause> _nonGoalSubtermIndex;
+  std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
+  std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
 };
 
 /**
@@ -101,7 +102,7 @@ private:
 
 class GoalReachabilityHandler {
 public:
-  GoalReachabilityHandler(const Ordering& ord) : ord(ord), _nonLinearityHandler(ord, *this) {}
+  GoalReachabilityHandler(SaturationAlgorithm& salg) : ord(salg.getOrdering()), _nonLinearityHandler(salg, *this) {}
 
   void addClause(Clause* cl);
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }

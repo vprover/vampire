@@ -272,7 +272,6 @@ public:
   __BUILDER_METHOD(bool, premiseRedundant)
   __BUILDER_METHOD(bool, selfApplications)
   __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(TestIndices, indices)
   __BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   __BUILDER_METHOD(OptionMap, options)
 
@@ -304,16 +303,8 @@ public:
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
     rule.attach(&alg);
-    Stack<Indexing::Index*> indices;
-    for (auto i : _indices) {
-      indices.push(i(alg));
-    }
 
     auto container = alg.getActiveClauseContainer();
-
-    for (auto i : indices) {
-      i->attachContainer(container);
-    }
 
     // add the clauses to the index
     for (auto c : _context) {
@@ -417,7 +408,6 @@ public:
       .premiseRedundant(_premiseRedundant)
       .selfApplications(_selfApplications)
       .rule(rule)
-      .indices(_indices)
       .run(simpl);
   }
 };
