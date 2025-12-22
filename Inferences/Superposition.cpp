@@ -409,7 +409,8 @@ Clause* Superposition::performSuperposition(
       }
     // otherwise, we have to perform the rest of superpositions
     } else {
-      if (!isSuperposingOnlyIntoSmallerSide(ordering, rwLitS, rwTermS)) {
+      // this includes also all self-superpositions
+      if (rwClause != eqClause && !isSuperposingOnlyIntoSmallerSide(ordering, rwLitS, rwTermS)) {
         return 0;
       }
     }
