@@ -294,6 +294,28 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   return true;
 }
 
+bool isSuperposingOnlyIntoSmallerSide(const Ordering& ord, Literal* rwLitS, TermList rwTermS)
+{
+  if (!rwLitS->isEquality()) {
+    return false;
+  }
+  auto lhs = rwLitS->termArg(0);
+  auto rhs = rwLitS->termArg(1);
+
+  if (!lhs.containsSubterm(rwTermS)) {
+    // lhs is greater but it does not contain rwTermS
+    if (Ordering::isGreaterOrEqual(ord.getEqualityArgumentOrder(rwLitS))) {
+      return true;
+    }
+  } else if (!rhs.containsSubterm(rwTermS)) {
+    // rhs is greater but it does not contain rwTermS
+    if (Ordering::isGreaterOrEqual(Ordering::reverse(ord.getEqualityArgumentOrder(rwLitS)))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * If superposition should be performed, return result of the superposition,
  * otherwise return 0.
@@ -379,47 +401,23 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if (!rwClause->isGoalClause() && !eqClause->isGoalClause()) {
-
-    ASS(rwTerm.isTerm());
-    if (!_salg->getGoalReachabilityHandler().isTermSuperposable(rwClause, rwTerm.term())) {
-      return 0;
-    }
-
-    // TODO try to refine this if possible
-    // if(rwLitS->isEquality()) {
-    //   //check that we're not rewriting only the smaller side of an equality
-    //   TermList arg0=*rwLitS->nthArgument(0);
-    //   TermList arg1=*rwLitS->nthArgument(1);
-
-    //   if(!arg0.containsSubterm(rwTermS)) {
-    //     if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
-    //       return 0;
-    //     }
-    //   } else if(!arg1.containsSubterm(rwTermS)) {
-    //     if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-    //       return 0;
-    //     }
-    //   }
-    // }
-  } else {
-    if(rwLitS->isEquality()) {
-      //check that we're not rewriting only the smaller side of an equality
-      TermList arg0=*rwLitS->nthArgument(0);
-      TermList arg1=*rwLitS->nthArgument(1);
-
-      // disallow superpositions with non-goal clauses into smaller sides of goal clauses 
-      if (rwClause->isGoalClause() && !eqClause->isGoalClause()) {
-        if(!arg0.containsSubterm(rwTermS)) {
-          if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
-            return 0;
-          }
-        } else if(!arg1.containsSubterm(rwTermS)) {
-          if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-            return 0;
-          }
-        }
+  if (rwClause->isGoalClause()) {
+    // if eqClause is non-goal clause, we shouldn't superpose only into smaller side
+    if (!eqClause->isGoalClause()) {
+      if (isSuperposingOnlyIntoSmallerSide(ordering, rwLitS, rwTermS)) {
+        return 0;
       }
+    // otherwise, we have to perform the rest of superpositions
+    } else {
+      if (!isSuperposingOnlyIntoSmallerSide(ordering, rwLitS, rwTermS)) {
+        return 0;
+      }
+    }
+  } else {
+    ASS(rwTerm.isTerm());
+    // if neither is a goal clause, we only allow superpositions into specific terms
+    if (!eqClause->isGoalClause() && !_salg->getGoalReachabilityHandler().isTermSuperposable(rwClause, rwTerm.term())) {
+      return 0;
     }
   }
 
