@@ -26,8 +26,6 @@ using namespace Kernel;
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
-constexpr unsigned kMaxChainLength = 2;
-
 // This is different from EqHelper::getSuperpositionLHSIterator because it works for negative equalities too
 VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord)
 {
@@ -152,7 +150,7 @@ bool GoalReachabilityHandler::isTermSuperposable(Clause* cl, TypedTermList t) co
 }
 
 // combine (left) l -> r and (right) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
-Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult)
+Chain* GoalReachabilityHandler::combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult)
 {
   DEBUG("combining chains ", *left, " and ", *right, " in subterm ", t);
 
@@ -164,7 +162,7 @@ Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitut
     rhs = subst.apply(right->rhs, !leftIsResult);
   }
   auto length = left->length+right->length;
-  if (length > kMaxChainLength) {
+  if (length > _chainLimit) {
     return nullptr;
   }
   if (left->lhs == lhs && left->rhs == rhs) {
@@ -280,7 +278,7 @@ bool GoalReachabilityHandler::isReached(
     DEBUG("reached ", *ngCl, " with ", *chain, " unifying ", ngRhs, " with ", gSubterm);
     return true;
   }
-  if (chain->length == kMaxChainLength) {
+  if (chain->length == _chainLimit) {
     DEBUG("max chain length reached for ", *ngCl, " with ", *chain);
     return true;
   }

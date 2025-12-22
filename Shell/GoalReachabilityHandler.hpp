@@ -104,7 +104,10 @@ private:
 
 class GoalReachabilityHandler {
 public:
-  GoalReachabilityHandler(SaturationAlgorithm& salg) : ord(salg.getOrdering()), _nonLinearityHandler(salg, *this) {}
+  GoalReachabilityHandler(SaturationAlgorithm& salg)
+    : ord(salg.getOrdering()),
+      _nonLinearityHandler(salg, *this),
+      _chainLimit(salg.getOptions().goalOrientedChainLimit()) {}
 
   void addClause(Clause* cl);
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
@@ -121,6 +124,7 @@ private:
     const Chain* chain, ResultSubstitution& subst, bool result);
 
   [[nodiscard]] Stack<Chain*> chainForward(Chain* chain);
+  [[nodiscard]] Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult);
 
   void handleNonGoalClause(Clause* cl, bool insert);
 
@@ -148,6 +152,8 @@ private:
   GoalNonLinearityHandler _nonLinearityHandler;
 
   Stack<Chain*> _newChainsToHandle;
+
+  const unsigned _chainLimit;
 };
 
 }
