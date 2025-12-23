@@ -172,7 +172,7 @@ TEST_FUN(test05) {
   SymmetricTester tester(
     { c1, c2, c3, c4 },
     { c1, c2 },
-    { { c3, f(c,x) }, { c3, d } }
+    { { c3, f(c,x) } }
   );
   tester.run();
 }
@@ -187,7 +187,7 @@ TEST_FUN(test06) {
   SymmetricTester tester(
     { c1, c2 },
     { c1 },
-    { { c2, c }, { c2, d } }
+    { { c2, d } }
   );
   tester.run();
 }
@@ -203,7 +203,7 @@ TEST_FUN(test07) {
   SymmetricTester tester(
     { c1, c2, c3 },
     { c2, c3 },
-    { { c1, c }, { c1, d } }
+    { { c1, d } }
   );
   tester.run();
 }
@@ -280,6 +280,21 @@ TEST_FUN(test12) {
     { c1, c2 },
     { c1 },
     { { c2, g(x) } }
+  );
+  tester.run();
+}
+
+TEST_FUN(test13) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(f(x,x) != x) });
+  auto c2 = clause({ selected(f(h(x,y,z),f2(x,x)) == g(x)) });
+
+  // linearity constraints for incomparable terms are returned
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1 },
+    { { c2, h(x,y,z) }, { c2, f2(x,x) } }
   );
   tester.run();
 }

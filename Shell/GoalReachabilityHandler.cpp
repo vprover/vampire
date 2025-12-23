@@ -459,7 +459,7 @@ ClauseTermPairs GoalNonLinearityHandler::get(Clause* ngcl, TypedTermList goalTer
 
   ClauseTermPairs res;
   if (!unifies) {
-    // ord.removeNonMaximal(tl);
+    ord.removeNonMaximal(tl);
     DEBUG("linearity cannot not unify");
     while (tl) {
       auto t = List<TermList>::pop(tl);
