@@ -28,6 +28,8 @@
 
 #include "HOL/SubtermReplacer.hpp"
 
+#include "Shell/Options.hpp"
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;

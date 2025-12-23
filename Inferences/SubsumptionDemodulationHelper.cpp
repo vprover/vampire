@@ -12,6 +12,7 @@
 
 #include "Kernel/Inference.hpp"
 #include "Kernel/MLMatcher.hpp"
+#include "Shell/Options.hpp"
 
 namespace Inferences {
 

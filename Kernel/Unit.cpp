@@ -22,6 +22,7 @@
 #include "Lib/List.hpp"
 
 #include "SAT/SATClause.hpp"
+#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"

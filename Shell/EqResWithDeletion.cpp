@@ -20,6 +20,7 @@
 #include "Kernel/FormulaVarIterator.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/Options.hpp"
 
 #include "EqResWithDeletion.hpp"
 

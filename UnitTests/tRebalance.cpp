@@ -13,7 +13,7 @@
 #include "Kernel/Rebalancing.hpp"
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
-
+#include "Shell/Options.hpp"
 
 using namespace std;
 using namespace Kernel;

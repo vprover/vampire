@@ -27,10 +27,8 @@
 #include "Lib/Map.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/SmartPtr.hpp"
 
 #include "Shell/TermAlgebra.hpp"
-#include "Shell/Options.hpp"
 
 #include "OperatorType.hpp"
 #include "Theory.hpp"
@@ -789,8 +787,7 @@ class Signature
   unsigned getFunctionNumber(const std::string& name, unsigned arity) const;
   unsigned getPredicateNumber(const std::string& name, unsigned arity) const;
 
-  typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
-  
+  typedef Stack<unsigned> DistinctGroupMembers;
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
@@ -800,7 +797,7 @@ class Signature
 
   bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
   bool hasDefPreds() const { return !_fnDefPreds.isEmpty() || !_boolDefPreds.isEmpty(); }
-      
+
   static SymbolKey key(const std::string& name,int arity);
 
   /** the number of string constants */

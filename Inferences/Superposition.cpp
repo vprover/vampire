@@ -339,7 +339,7 @@ Clause* Superposition::performSuperposition(
 
   const auto& parRedHandler = _salg->parRedHandler();
   if (!unifier->usesUwa()) {
-    if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+    if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.get())) {
       return 0;
     }
   }
@@ -384,7 +384,7 @@ Clause* Superposition::performSuperposition(
     // Save this superposition conclusion despite immediately being removed.
     if (!unifier->usesUwa()) {
       parRedHandler.insertSuperposition(
-        eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+        eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.get());
     }
     return 0;
   }
@@ -480,7 +480,7 @@ Clause* Superposition::performSuperposition(
 
   if (!unifier->usesUwa()) {
     parRedHandler.insertSuperposition(
-      eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+      eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.get());
   }
 
   res->loadFromIterator(unifier->computeConstraintLiterals()->iter());

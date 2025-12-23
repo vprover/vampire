@@ -32,6 +32,7 @@
 #include "Shell/Rectify.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
 #include "Shell/Flattening.hpp"
+#include "Shell/Options.hpp"
 
 #include "FiniteModelMultiSorted.hpp"
 

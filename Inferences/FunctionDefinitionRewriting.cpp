@@ -58,7 +58,7 @@ Clause* performRewriting(
   ASS(subst->isIdentityOnQueryWhenResultBound());
   TermList tgtTermS = subst->applyToBoundResult(tgtTerm);
 
-  Applicator appl(subst.ptr());
+  Applicator appl(subst.get());
 
   if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl)) {
     return 0;

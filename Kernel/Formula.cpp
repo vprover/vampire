@@ -18,6 +18,7 @@
 #include "SubformulaIterator.hpp"
 #include "Lib/Environment.hpp"
 
+#include "Shell/Options.hpp"
 
 namespace Kernel {
 

@@ -19,6 +19,7 @@
 #include "SAT/SATInference.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "Debug/TimeProfiling.hpp"
+#include "Shell/Options.hpp"
 
 #include "Inference.hpp"
 

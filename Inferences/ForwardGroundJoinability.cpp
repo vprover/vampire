@@ -137,7 +137,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());
-        Applicator appl(subs.ptr());
+        Applicator appl(subs.get());
 
         AppliedTerm rhsApplied(rhs, &appl, true);
 

@@ -58,7 +58,7 @@ private:
   int _resultBank;
 };
 
-ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
-{ return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
+std::shared_ptr<ResultSubstitution> ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
+{ return std::make_shared<RSProxy>(s, queryBank, resultBank); }
 
 } // namespace Indexing

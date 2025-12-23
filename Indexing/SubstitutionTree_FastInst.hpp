@@ -69,8 +69,7 @@ private:
 template<class LeafData_>
 ResultSubstitutionSP SubstitutionTree<LeafData_>::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
 {
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultDenormalizer));
+  return std::make_shared<Substitution>(this, resultDenormalizer);
 }
 
 template<class LeafData_>

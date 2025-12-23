@@ -212,7 +212,9 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt), _imgr(*this),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0),
+    _ordering(Ordering::create(prb, opt)),
+    _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _partialRedundancyHandler(), _activationLimit(0)
@@ -221,7 +223,6 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _activationLimit = opt.activationLimit();
 
-  _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
     // this is not an error, it may just lead to lower performance (and most likely not significantly lower)
     cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;

@@ -668,7 +668,7 @@ inline
 FlatMapIter<Inner,Functor> getMapAndFlattenIterator(Inner it, Functor f)
 {
   return FlatteningIterator<MappingIterator<Inner,Functor> >(
-	  MappingIterator<Inner,Functor>(std::move(it), f) );
+	  MappingIterator<Inner,Functor>(std::move(it), std::move(f)) );
 }
 
 

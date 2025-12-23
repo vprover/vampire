@@ -631,8 +631,7 @@ public:
     template<class Query>
     VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Query query, bool retrieveSubstitutions)
     {
-      auto renaming = retrieveSubstitutions ? std::make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
-      ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(&*renaming) : ResultSubstitutionSP();
+      auto renaming = retrieveSubstitutions ? std::make_shared<RenamingSubstitution>() : std::shared_ptr<RenamingSubstitution>();
 
       Query normQuery;
       if (retrieveSubstitutions) {
@@ -652,13 +651,13 @@ public:
         return VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>>::getEmpty();
       } else {
         return pvi(iterTraits(leaf->allChildren())
-          .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData* ld) 
+          .map([retrieveSubstitutions, renaming = std::move(renaming)](LeafData* ld) 
             {
               ResultSubstitutionSP subs;
               if (retrieveSubstitutions) {
                 renaming->_result->reset();
                 renaming->_result->normalizeVariables(ld->key());
-                subs = resultSubst;
+                subs = renaming;
               }
               return QueryRes(subs, ld);
             }));

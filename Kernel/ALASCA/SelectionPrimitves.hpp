@@ -19,6 +19,8 @@
 #include "Kernel/OrderingUtils.hpp"
 #include "Kernel/Clause.hpp"
 
+#include "Indexing/ResultSubstitution.hpp"
+
 namespace Kernel {
 
   using Inferences::PolynomialEvaluation;

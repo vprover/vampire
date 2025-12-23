@@ -71,20 +71,20 @@ private:
  */
 struct ExtensionalityResolution::ForwardUnificationsFn
 {
-  ForwardUnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
+  ForwardUnificationsFn() : subst(new RobSubstitution) {}
   VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> > operator()(pair<Literal*, ExtensionalityClause> arg)
   {
     Literal* trmEq = arg.first;
     Literal* varEq = arg.second.literal;
 
-    SubstIterator unifs = _subst->unifiers(varEq,0,trmEq,1,true);
+    SubstIterator unifs = subst->unifiers(varEq,0,trmEq,1,true);
     if (!unifs.hasNext()) {
       return VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, std::move(unifs)));
   }
 private:
-  RobSubstitutionSP _subst;
+  std::unique_ptr<RobSubstitution> subst;
 };
 
 /**
@@ -150,12 +150,12 @@ private:
 struct ExtensionalityResolution::BackwardUnificationsFn
 {
   BackwardUnificationsFn(Literal* extLit)
-  : _extLit (extLit) { _subst = RobSubstitutionSP(new RobSubstitution()); }
+  : _extLit (extLit), subst(new RobSubstitution) {}
   VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> > operator()(pair<Clause*, Literal*> arg)
   {
     Literal* otherLit = arg.second;
     
-    SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
+    SubstIterator unifs = subst->unifiers(_extLit,0,otherLit,1,true);
     if (!unifs.hasNext()) {
       return VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> >::getEmpty();
     }
@@ -163,7 +163,7 @@ struct ExtensionalityResolution::BackwardUnificationsFn
   }
 private:
   Literal* _extLit;
-  RobSubstitutionSP _subst;
+  std::unique_ptr<RobSubstitution> subst;
 };
 
 /**
@@ -276,7 +276,7 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
   // unifying literal and extClause.literal, i.e. the variable equality in
   // extensionality clause).
   // Elements: <<literal,extClause>,subst>
-  auto it2 = getMapAndFlattenIterator(std::move(it1),ForwardUnificationsFn());
+  auto it2 = getMapAndFlattenIterator(std::move(it1), ForwardUnificationsFn());
 
   // Construct result clause by applying substitution.
   auto it3 = getMappingIterator(std::move(it2),ForwardResultFn(premise, *this));

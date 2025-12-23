@@ -21,6 +21,8 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Shell/Options.hpp"
+
 #include "Debug/TimeProfiling.hpp"
 
 #include "TermSharing.hpp"

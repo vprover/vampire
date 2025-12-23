@@ -68,6 +68,9 @@ public:
     }
   }
 
+  DHMultiset(const DHMultiset& obj) = delete;
+  DHMultiset& operator=(const DHMultiset& obj) = delete;
+
   /**
    * Return true iff given value is stored in the set.
    */
@@ -219,12 +222,6 @@ private:
     };
     Val _val;
   };
-
-  /** Copy constructor is private and without a body, because we don't want any. */
-  DHMultiset(const DHMultiset& obj);
-  /** operator= is private and without a body, because we don't want any. */
-  DHMultiset& operator=(const DHMultiset& obj);
-
 
   /** Check whether an expansion is needed and if so, expand */
   inline

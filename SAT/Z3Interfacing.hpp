@@ -39,6 +39,8 @@
 
 #include "Kernel/Signature.hpp"
 
+#include "Shell/Options.hpp"
+
 #define __EXCEPTIONS 1
 #include "z3++.h"
 
