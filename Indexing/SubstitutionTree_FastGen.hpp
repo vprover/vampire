@@ -230,10 +230,8 @@ template<class LeafData_>
 ResultSubstitutionSP SubstitutionTree<LeafData_>::GenMatcher::getSubstitution(
 	Renaming* resultNormalizer)
 {
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultNormalizer));
+  return std::make_shared<Substitution>(this, resultNormalizer);
 }
-
 
 
 template<class LeafData_>
