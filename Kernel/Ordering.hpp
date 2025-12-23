@@ -110,7 +110,8 @@ public:
 
   static bool isGreaterOrEqual(Result r) { return (r == GREATER || r == EQUAL); }
 
-  void removeNonMaximal(LiteralList*& lits) const;
+  template<typename T>
+  void removeNonMaximal(List<T>*& elems) const;
 
   static Result fromComparison(Comparison c);
   static Comparison intoComparison(Result c);

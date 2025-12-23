@@ -74,7 +74,8 @@ class GoalNonLinearityHandler {
 public:
   GoalNonLinearityHandler(SaturationAlgorithm& salg, GoalReachabilityHandler& handler);
 
-  [[nodiscard]] static ClauseTermPairs get(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
+  [[nodiscard]] ClauseTermPairs get(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm,
+    const LinearityConstraints& cons, ResultSubstitution& subst, bool goalIsResult);
 
   void addNonGoalClause(Clause* cl);
   void addChain(Chain* chain);
@@ -84,7 +85,8 @@ public:
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
 
 private:
-  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons);
+  void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm,
+    const LinearityConstraints& cons, ResultSubstitution& subst, bool goalIsResult);
 
   const Ordering& ord;
   GoalReachabilityHandler& handler;
@@ -121,7 +123,7 @@ private:
   void handleNewChains();
 
   [[nodiscard]] bool isReached(Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm,
-    const Chain* chain, ResultSubstitution& subst, bool result);
+    const Chain* chain, ResultSubstitution& subst, bool goalIsResult);
 
   [[nodiscard]] Stack<Chain*> chainForward(Chain* chain);
   [[nodiscard]] Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult);

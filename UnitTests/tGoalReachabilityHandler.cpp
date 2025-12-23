@@ -43,26 +43,20 @@ public:
     Problem prb;
     Options opt;
     opt.resolveAwayAutoValues(prb);
-    Test::MockedSaturationAlgorithm alg(prb, opt);
-
-    auto container = alg.getActiveClauseContainer();
-
-    // add the clauses to the index
-    for (auto c : clauses) {
-      c->setStore(Clause::ACTIVE);
-      container->add(c);
-    }
-
     auto indices = Stack<unsigned>::fromIterator(range(0, clauses.size()));
     do {
 
       DHSet<Clause*> goalClauses;
       DHSet<ClauseTermPair> superposableTermPairs;
+
+      Test::MockedSaturationAlgorithm alg(prb, opt);
       GoalReachabilityHandler handler(alg);
 
       for (const auto& index : indices) {
         clauses[index]->unmakeGoalClause();
+        clauses[index]->setStore(Clause::ACTIVE);
 
+        alg.getActiveClauseContainer()->add(clauses[index]);
         handler.addClause(clauses[index]);
 
         for (const auto& gc : handler.goalClauses()) {
@@ -94,6 +88,8 @@ public:
       for (const auto& [ngc, t] : iterTraits(expectedSuperposableTermPairs.iter())) {
         ASS_REP(superposableTermPairs.contains({ ngc, t }), ngc->toString() + " and term " + t->toString() + " is expected to be superposable");
       }
+
+      Ordering::unsetGlobalOrdering();
 
     } while (std::next_permutation(indices.begin(), indices.end()));
   }
@@ -172,7 +168,7 @@ TEST_FUN(test05) {
   auto c3 = clause({ selected(h(f(c,x),d,b) == a) });
   auto c4 = clause({ selected(f(x,c) == d) });
 
-  // iteration for c3 stops because loop is detected
+  // superposable terms are returned
   SymmetricTester tester(
     { c1, c2, c3, c4 },
     { c1, c2 },
@@ -187,7 +183,7 @@ TEST_FUN(test06) {
   auto c1 = clause({ selected(f(x,x) != x) });
   auto c2 = clause({ selected(f(c,d) == d) });
 
-  // iteration for c3 stops because loop is detected
+  // superposable terms are returned
   SymmetricTester tester(
     { c1, c2 },
     { c1 },
@@ -203,11 +199,87 @@ TEST_FUN(test07) {
   auto c2 = clause({ selected(g(f1(x,y)) == f2(x,y)) });
   auto c3 = clause({ selected(f2(x,x) != x) });
 
-  // iteration for c3 stops because loop is detected
+  // superposable terms are returned from the bottom of a chain
   SymmetricTester tester(
     { c1, c2, c3 },
     { c2, c3 },
     { { c1, c }, { c1, d } }
+  );
+  tester.run();
+}
+
+TEST_FUN(test08) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(a != b) });
+  auto c2 = clause({ selected(f(x,y) == x) });
+  auto c3 = clause({ selected(g(f1(x,y)) == f(x,y)) });
+
+  // side of equality itself is not considered when checking for reachability
+  SymmetricTester tester(
+    { c1, c2, c3 },
+    { c1, c2 },
+    { }
+  );
+  tester.run();
+}
+
+TEST_FUN(test09) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(f(x,x) != x) });
+  auto c2 = clause({ selected(g(f1(f(x,y),z)) == f(g(x),y)) });
+
+  // no linearity constraints are returned when terms unify
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1, c2 },
+    { }
+  );
+  tester.run();
+}
+
+TEST_FUN(test10) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(f(x,x) != x) });
+  auto c2 = clause({ selected(f(g(x),y) == g(x)) });
+
+  // no linearity constraints are returned when terms unify
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1 },
+    { }
+  );
+  tester.run();
+}
+
+TEST_FUN(test11) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(f(x,x) != x) });
+  auto c2 = clause({ selected(g(f1(f(x,y),x)) == f(g(x),x)) });
+
+  // linearity constraints are returned when terms don't unify due to occurs check
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1 },
+    { { c2, g(x) } }
+  );
+  tester.run();
+}
+
+TEST_FUN(test12) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(f(x,x) != x) });
+  auto c2 = clause({ selected(f(g(x),x) == g(x)) });
+
+  // linearity constraints are returned when terms don't unify due to occurs check
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1 },
+    { { c2, g(x) } }
   );
   tester.run();
 }

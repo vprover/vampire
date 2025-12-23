@@ -13,13 +13,8 @@
  */
 
 #include "GoalReachabilityHandler.hpp"
-#include "Indexing/ResultSubstitution.hpp"
-#include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/TermTransformer.hpp"
-#include "Kernel/TypedTermList.hpp"
 
 using namespace Shell;
 using namespace Kernel;
@@ -152,7 +147,7 @@ bool GoalReachabilityHandler::isTermSuperposable(Clause* cl, TypedTermList t) co
 // combine (left) l -> r and (right) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
 Chain* GoalReachabilityHandler::combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult)
 {
-  DEBUG("combining chains ", *left, " and ", *right, " in subterm ", t);
+  DEBUG("combining chains ", *left, " and ", *right, " in subterm ", t.untyped());
 
   ASS(right->isBase);
 
@@ -224,7 +219,7 @@ void GoalReachabilityHandler::handleNewChains()
     if (curr->lhs.isTerm()) {
       for (const auto& t : iterTraits(NonVariableNonTypeIterator(curr->linearLhs.term(), /*includeSelf=*/curr->length==0))) {
         for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-          if (isReached(qr.data->clause, qr.data->term, t, curr, *qr.unifier.ptr(), /*result=*/false)) {
+          if (isReached(qr.data->clause, qr.data->term, t, curr, *qr.unifier.ptr(), /*goalIsResult=*/false)) {
             reached.insert(qr.data->clause);
           }
           expand = true;
@@ -264,9 +259,9 @@ void GoalReachabilityHandler::handleNewChains()
 }
 
 bool GoalReachabilityHandler::isReached(
-  Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm, const Chain* chain, ResultSubstitution& subst, bool result)
+  Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm, const Chain* chain, ResultSubstitution& subst, bool goalIsResult)
 {
-  auto clauseTermPairs = GoalNonLinearityHandler::get(ngCl, gSubterm, ngRhs, chain->constraints);
+  auto clauseTermPairs = _nonLinearityHandler.get(ngCl, gSubterm, ngRhs, chain->constraints, subst, goalIsResult);
   if (clauseTermPairs.isNonEmpty()) {
     for (auto [ngcl, t] : clauseTermPairs) {
       addSuperposableTerm(ngcl, t);
@@ -274,8 +269,8 @@ bool GoalReachabilityHandler::isReached(
     return false;
   }
 
-  if (isRenamingOn(chain->rhs, subst, result)) {
-    DEBUG("reached ", *ngCl, " with ", *chain, " unifying ", ngRhs, " with ", gSubterm);
+  if (isRenamingOn(chain->rhs, subst, goalIsResult)) {
+    DEBUG("reached ", *ngCl, " with ", *chain, " unifying ", ngRhs.untyped(), " with ", gSubterm.untyped());
     return true;
   }
   if (chain->length == _chainLimit) {
@@ -305,7 +300,7 @@ void GoalReachabilityHandler::addClause(Clause* cl)
     for (const auto& lhs : iterTraits(getLHSIterator(lit, ord))) {
       TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
       for (const auto& qr : iterTraits(_linearChainSubtermIndex.getUnifications(rhs, /*retrieveSubstitutions=*/true))) {
-        if (isReached(cl, rhs, qr.data->term, qr.data->chain, *qr.unifier.ptr(), /*result=*/true)) {
+        if (isReached(cl, rhs, qr.data->term, qr.data->chain, *qr.unifier.ptr(), /*goalIsResult=*/true)) {
           addGoalClause(cl);
           goto ITER;
         }
@@ -382,12 +377,12 @@ void GoalNonLinearityHandler::addNonGoalClause(Clause* cl)
     for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
       // handle equality lhs
       if (t == lhs && lit->isPositive()) {
-        for (const auto& qr : iterTraits(_nonLinearGoalTermIndex.getUnifications(t, /*retrieveSubstitutions=*/false))) {
-          perform(cl, qr.data->term, t, qr.data->chain->constraints);
+        for (const auto& qr : iterTraits(_nonLinearGoalTermIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+          perform(cl, qr.data->term, t, qr.data->chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/true);
         }
       }
-      for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/false))) {
-        perform(cl, qr.data->term, t, qr.data->chain->constraints);
+      for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+        perform(cl, qr.data->term, t, qr.data->chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/true);
       }
     }
   }
@@ -400,26 +395,28 @@ void GoalNonLinearityHandler::addChain(Chain* chain)
 
   _nonLinearGoalLHSIndex.handle(TermChain{ chain->linearLhs, chain }, /*insert=*/true);
 
-  for (const auto& qr : iterTraits(_subtermIndex->getUnifications(chain->linearLhs, /*retrieveSubstitutions=*/false))) {
-    perform(qr.data->clause, chain->linearLhs, qr.data->term, chain->constraints);
+  for (const auto& qr : iterTraits(_subtermIndex->getUnifications(chain->linearLhs, /*retrieveSubstitutions=*/true))) {
+    perform(qr.data->clause, chain->linearLhs, qr.data->term, chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/false);
   }
 
   for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/true))) {
     _nonLinearGoalTermIndex.handle(TermChain{ t, chain }, /*insert=*/true);
 
-    for (const auto& qr : iterTraits(_lhsIndex->getUnifications(t, /*retrieveSubstitutions=*/false))) {
-      perform(qr.data->clause, t, qr.data->term, chain->constraints);
+    for (const auto& qr : iterTraits(_lhsIndex->getUnifications(t, /*retrieveSubstitutions=*/true))) {
+      perform(qr.data->clause, t, qr.data->term, chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/false);
     }
   }
 }
 
-ClauseTermPairs GoalNonLinearityHandler::get(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons)
+ClauseTermPairs GoalNonLinearityHandler::get(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons, ResultSubstitution& subst, bool goalIsResult)
 {
   ASS(!ngcl->isGoalClause());
   if (cons.isEmpty() || nonGoalTerm.isVar()) {
     return ClauseTermPairs();
   }
   ASS(goalTerm.isTerm());
+
+  DEBUG("linearity unifying ", goalTerm.untyped(), " with ", nonGoalTerm.untyped(), " with constraints ", cons);
 
   DHMap<unsigned, TermList> map;
 
@@ -440,31 +437,40 @@ ClauseTermPairs GoalNonLinearityHandler::get(Clause* ngcl, TypedTermList goalTer
   }
   ASS(!nonGoalIt.hasNext());
 
-  ClauseTermPairs res;
+  auto tl = List<TermList>::empty();
+  RobSubstitution rsubst;
+  bool unifies = true;
 
   for (const auto& [x,y] : cons) {
     ASS(x.isVar());
     ASS(y.isVar());
-    auto xptr = map.findPtr(x.var());
-    auto yptr = map.findPtr(y.var());
-    // TODO find out if this is really correct
-    if (!xptr || !yptr) {
-      continue;
+    if (unifies && !rsubst.unify(subst.apply(x, goalIsResult), 0, subst.apply(y, goalIsResult), 0)) {
+      unifies = false;
     }
-    auto xS = *xptr;
-    auto yS = *yptr;
-    // TODO handle non-ground terms
-    if (xS != yS && xS.isTerm() && yS.isTerm()) {
-      DEBUG("found pair ", x, " != ", y, " (", xS, " != ", yS, ")");
-      DEBUG("for ", *ngcl);
-      res.emplace(ngcl, xS.term());
-      res.emplace(ngcl, yS.term());
+    auto xptr = map.findPtr(x.var());
+    if (xptr && xptr->isTerm()) {
+      List<TermList>::push(*xptr, tl);
+    }
+    auto yptr = map.findPtr(y.var());
+    if (yptr && yptr->isTerm()) {
+      List<TermList>::push(*yptr, tl);
+    }
+  }
+
+  ClauseTermPairs res;
+  if (!unifies) {
+    // ord.removeNonMaximal(tl);
+    DEBUG("linearity cannot not unify");
+    while (tl) {
+      auto t = List<TermList>::pop(tl);
+      DEBUG("linearity adding ", t, " for ", *ngcl);
+      res.emplace(ngcl, t.term());
     }
   }
   return res;
 }
 
-void GoalNonLinearityHandler::perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons)
+void GoalNonLinearityHandler::perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm, const LinearityConstraints& cons, ResultSubstitution& subst, bool goalIsResult)
 {
   // TODO maybe put this somewhere else
   if (ngcl->isGoalClause()) {
@@ -473,7 +479,7 @@ void GoalNonLinearityHandler::perform(Clause* ngcl, TypedTermList goalTerm, Type
   ASS(goalTerm.isTerm());
   ASS(nonGoalTerm.isTerm());
 
-  for (auto [cl, t] : get(ngcl, goalTerm, nonGoalTerm, cons)) {
+  for (auto [cl, t] : get(ngcl, goalTerm, nonGoalTerm, cons, subst, goalIsResult)) {
     handler.addSuperposableTerm(ngcl, t);
   }
 }
@@ -484,6 +490,6 @@ void GoalReachabilityHandler::addSuperposableTerm(Clause* ngcl, Term* t)
   _superposableTerms.getValuePtr(ngcl, ptr);
   if (ptr->insert(t)) {
     _newSuperposableTerms.emplace(ngcl, t);
-    DEBUG("could insert ", t, " for ", *ngcl);
+    DEBUG("could insert ", *t, " for ", *ngcl);
   }
 }

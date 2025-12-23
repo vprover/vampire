@@ -201,22 +201,23 @@ const char* Ordering::resultToString(Result r)
 }
 
 /**
- * Remove non-maximal literals from the list @b lits. The order
- * of remaining literals stays unchanged.
+ * Remove non-maximal elements from the list @b elems. The order
+ * of remaining elements stays unchanged.
  */
-void Ordering::removeNonMaximal(LiteralList*& lits) const
+template<typename T>
+void Ordering::removeNonMaximal(List<T>*& elems) const
 {
-  LiteralList** ptr1 = &lits;
+  List<T>** ptr1 = &elems;
   while (*ptr1) {
-    LiteralList** ptr2 = &(*ptr1)->tailReference();
+    List<T>** ptr2 = &(*ptr1)->tailReference();
     while (*ptr2 && *ptr1) {
       Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
       if (res == Ordering::GREATER || res == Ordering::EQUAL) {
-        LiteralList::pop(*ptr2);
+        List<T>::pop(*ptr2);
         continue;
       } else if (res == Ordering::LESS) {
-        LiteralList::pop(*ptr1);
+        List<T>::pop(*ptr1);
         goto topLevelContinue;
       }
       ptr2 = &(*ptr2)->tailReference();
@@ -225,6 +226,9 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
     topLevelContinue: ;
   }
 }
+
+template void Ordering::removeNonMaximal(List<Literal*>*&) const;
+template void Ordering::removeNonMaximal(List<TermList>*&) const;
 
 Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 {
