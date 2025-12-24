@@ -84,12 +84,6 @@ sa=lrs > lwlo ~cat off:15,on:1
 sa=lrs > lecc ~cat 1:10,666:1
 lecc!=1 > lecc ~uf 0.5,2.0
 
-# age_weight_ratio_shape
-> awrs ~cat constant:20,converge:2,decay:1
-
-# age_weight_ratio_shape_frequency
-awrs!=constant > awrsf ~ui 1,500
-
 # nongoal_weight_coefficient
 > nwc ~cat 1:2,2:1
 nwc!=1 > nwc ~ui 2,15
@@ -140,7 +134,7 @@ fsd=on > fsdmm ~cat 0:10,1:3,2:2,3:1
 > bd ~cat all:500,off:245,preordered:91
 
 # backward_subsumption
-fs!=off > bs ~cat off::500,unit_only:74,on:64
+fs!=off > bs ~cat off:500,unit_only:74,on:64
 
 # backward_subsumption_resolution
 > bsr ~cat off:500,unit_only:118,on:75
@@ -242,27 +236,14 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 # avatar_add_complementary
 av=on > aac ~cat none:19,ground:100
 
-# avatar_buffered_solver
-av=on > abs ~cat on:8,off:100
-
 # avatar_congruence_closure
 av=on > acc ~cat off:100,model:2,on:5
 
-# cc_unsat_cores
-acc!=off > ccuc ~cat first:1,small_ones:1,all:3
-
 # avatar_minimize_model
-av=on  acc=model > amm ~cat all:600,off:69
-av=on acc!=model > amm ~cat all:600,sco:32,off:69
-
-# avatar_eager_removal
-av=on amm=all > aer ~cat on:300,off:1
+av=on > amm ~cat on:600,off:69
 
 # avatar_delete_deactivated
 av=on > add ~cat on:100,large:2,off:1
-
-# avatar_fast_restart
-av=on > afr ~cat off:10,on:1
 
 # avatar_literal_polarity_advice
 av=on > alpa ~cat none:200,false:1,true:6,random:1
@@ -274,13 +255,6 @@ av=on > anc ~cat known:300,all_dependent:14,all:5,none:14
 av=on > atotf ~cat 1.0:10,0.5:1
 # careful that 1.0 becomes "1" by the ->toFloat->toStr internal transformation
 atotf!=1 > atotf ~uf 0.0,0.5
-
-# avatar_flush_period
-av=on > afp ~cat 0:15,1:1
-afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
-
-# avatar_flush_quotient
-afp!=0 > afq ~uf 1.0,3.0
 
 # nonliterals_in_clause_weight
 av=on > nicw ~cat off:100,on:1
@@ -317,10 +291,6 @@ gs=on > gsssp ~cat propagation_only:20,full:1
 
 # global_subsumption_avatar_assumptions
 gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
-
-# MISC
-
-> uhcvi ~cat off:1,on:1
 
 # HIGHER ORDER STUFF
 
