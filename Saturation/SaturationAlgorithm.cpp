@@ -213,7 +213,8 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt), _imgr(*this),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0),
+    _splitter(opt.splitting() ? new Splitter() : nullptr),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _partialRedundancyHandler(), _activationLimit(0)
@@ -1495,10 +1496,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     break;
   default:
     NOT_IMPLEMENTED;
-  }
-
-  if (opt.splitting()) {
-    res->_splitter = new Splitter();
   }
 
   // create generating inference engine
