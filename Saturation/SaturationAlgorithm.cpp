@@ -1182,10 +1182,16 @@ void SaturationAlgorithm::activate(Clause* cl)
     _active->remove(cl);
   }
 
-  // TODO add to some indices and perform extra inferences
+  _goalReachabilityHandler->addClause(cl);
+  return;
+}
+
+void SaturationAlgorithm::iterateGoalReachability()
+{
   _clauseActivationInProgress = true;
 
-  _goalReachabilityHandler->addClause(cl);
+  _goalReachabilityHandler->iterate();
+
   for (const auto& gcl : _goalReachabilityHandler->goalClauses()) {
     ASS(gcl->isGoalClause());
     gcl->makeGoalClauseSaturation();
@@ -1212,7 +1218,9 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
 
   for (const auto& [ngcl, t] : _goalReachabilityHandler->superposableTerms()) {
-    ASS(!ngcl->isGoalClause());
+    if (ngcl->isGoalClause()) {
+      continue;
+    }
     for (const auto& genCl : iterTraits(_superposition->generateClausesWithNonGoalSuperposableTerms(ngcl, t))) {
       addNewClause(genCl);
 
@@ -1229,8 +1237,6 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   _clauseActivationInProgress = false;
   ASS(_postponedClauseRemovals.isEmpty()); // TODO is this even possible to be non-empty?
-
-  return;
 }
 
 /**
@@ -1304,6 +1310,7 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
  */
 void SaturationAlgorithm::doOneAlgorithmStep()
 {
+  iterateGoalReachability();
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {

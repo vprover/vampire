@@ -58,6 +58,7 @@ public:
 
         alg.getActiveClauseContainer()->add(clauses[index]);
         handler.addClause(clauses[index]);
+        handler.iterate();
 
         for (const auto& gc : handler.goalClauses()) {
           ASS_REP(gc->isGoalClause(), gc->toString() + " should be goal clause");

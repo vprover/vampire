@@ -179,7 +179,7 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
     auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
     auto length = lit->isNegative() ? 0 : 1;
     auto chain = new Chain(lhs, rhs, length, /*isBase=*/true);
-    _newChainsToHandle.push(chain);
+    _newChainsToHandle.push_back(chain);
 
     // only add these length-1 chains to avoid explosion of chains
     if (lhs.isTerm()) {
@@ -191,7 +191,7 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
       // perform backward chaining: combine (result) l -> r and (query) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
       for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/chain->length==0))) {
         for (const auto& qr : iterTraits(_chainRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-          _newChainsToHandle.push(combineChains(qr.data->chain, chain, t, *qr.unifier.ptr(), /*leftIsResult=*/true));
+          _newChainsToHandle.push_back(combineChains(qr.data->chain, chain, t, *qr.unifier.ptr(), /*leftIsResult=*/true));
         }
       }
 
@@ -201,11 +201,13 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
   }
 }
 
-void GoalReachabilityHandler::handleNewChains()
+void GoalReachabilityHandler::iterate()
 {
+  DEBUG("iterate");
+
   while (_newChainsToHandle.isNonEmpty()) {
 
-    auto curr = _newChainsToHandle.pop();
+    auto curr = _newChainsToHandle.pop_front();
 
     if (!curr) {
       continue;
@@ -251,7 +253,7 @@ void GoalReachabilityHandler::handleNewChains()
     // 5. build new chains if needed, i.e. get unifications with goal rhss and lhss
     if (expand) {
       for (auto&& newChain : chainForward(curr)) {
-        _newChainsToHandle.push(newChain);
+        _newChainsToHandle.push_back(newChain);
       }
       curr->expanded = true;
     }
@@ -285,51 +287,43 @@ void GoalReachabilityHandler::addClause(Clause* cl)
   DEBUG("addClause ", *cl);
   auto lit = assertUnitEquality(cl);
 
-  _newSuperposableTerms.reset();
-  _newGoalClauses.reset();
+  // for now we must ensure that these hold
+  ASS(_newSuperposableTerms.isEmpty());
+  ASS(_newGoalClauses.isEmpty());
   ASS(_newChainsToHandle.isEmpty());
 
   if (lit->isNegative()) {
     addGoalClause(cl);
-    goto ITER;
+    return;
   }
 
-  {
-    DHSet<Chain*> toExpand;
+  DHSet<Chain*> toExpand;
 
-    for (const auto& lhs : iterTraits(getLHSIterator(lit, ord))) {
-      TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-      for (const auto& qr : iterTraits(_linearChainSubtermIndex.getUnifications(rhs, /*retrieveSubstitutions=*/true))) {
-        if (isReached(cl, rhs, qr.data->term, qr.data->chain, *qr.unifier.ptr(), /*goalIsResult=*/true)) {
-          addGoalClause(cl);
-          goto ITER;
-        }
-        if (!qr.data->chain->expanded) {
-          toExpand.insert(qr.data->chain);
-        }
+  for (const auto& lhs : iterTraits(getLHSIterator(lit, ord))) {
+    TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
+    for (const auto& qr : iterTraits(_linearChainSubtermIndex.getUnifications(rhs, /*retrieveSubstitutions=*/true))) {
+      if (isReached(cl, rhs, qr.data->term, qr.data->chain, *qr.unifier.ptr(), /*goalIsResult=*/true)) {
+        addGoalClause(cl);
+        return;
       }
-    }
-
-    // insert as non-goal clause
-    for (const auto& lhs : iterTraits(getLHSIterator(lit, ord))) {
-      _nonGoalRHSIndex.insert({ TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()), lit, cl });
-    }
-
-    for (const auto& chain : iterTraits(toExpand.iter())) {
-      ASS(!chain->expanded);
-      for (auto&& newChain : chainForward(chain)) {
-        _newChainsToHandle.push(newChain);
+      if (!qr.data->chain->expanded) {
+        toExpand.insert(qr.data->chain);
       }
-      chain->expanded = true;
     }
   }
 
-ITER:
-  handleNewChains();
+  // insert as non-goal clause
+  for (const auto& lhs : iterTraits(getLHSIterator(lit, ord))) {
+    _nonGoalRHSIndex.insert({ TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()), lit, cl });
+  }
+  _nonLinearityHandler.addNonGoalClause(cl);
 
-  // TODO handle this differently
-  if (!cl->isGoalClause()) {
-    _nonLinearityHandler.addNonGoalClause(cl);
+  for (const auto& chain : iterTraits(toExpand.iter())) {
+    ASS(!chain->expanded);
+    for (auto&& newChain : chainForward(chain)) {
+      _newChainsToHandle.push_back(newChain);
+    }
+    chain->expanded = true;
   }
 }
 

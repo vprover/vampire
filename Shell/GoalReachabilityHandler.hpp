@@ -113,14 +113,22 @@ public:
 
   void addClause(Clause* cl);
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
+  void iterate();
 
   [[nodiscard]] bool isTermSuperposable(Clause* cl, TypedTermList t) const;
-  const ClauseStack& goalClauses() { return _newGoalClauses; }
-  const ClauseTermPairs& superposableTerms() { return _newSuperposableTerms; }
+  ClauseStack goalClauses() {
+    ClauseStack res;
+    std::swap(res, _newGoalClauses);
+    return res;
+  }
+  ClauseTermPairs superposableTerms() {
+    ClauseTermPairs res;
+    std::swap(res, _newSuperposableTerms);
+    return res;
+  }
 
 private:
   void addGoalClause(Clause* cl);
-  void handleNewChains();
 
   [[nodiscard]] bool isReached(Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm,
     const Chain* chain, ResultSubstitution& subst, bool goalIsResult);
@@ -153,7 +161,7 @@ private:
 
   GoalNonLinearityHandler _nonLinearityHandler;
 
-  Stack<Chain*> _newChainsToHandle;
+  Deque<Chain*> _newChainsToHandle;
 
   const unsigned _chainLimit;
 };
