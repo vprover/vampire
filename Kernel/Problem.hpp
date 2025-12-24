@@ -151,7 +151,6 @@ public:
   bool hasNumerals() const; // meaning the interpreted constants of arithmetic theories, e.g. 1,2, 3.1415,...
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
-  bool hasCombs() const;
   bool hasLogicalProxy() const;
   bool hasBoolVar() const;
   bool hasApp() const;
