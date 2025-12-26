@@ -78,11 +78,7 @@ public:
     const LinearityConstraints& cons, ResultSubstitution& subst, bool goalIsResult);
 
   void addNonGoalClause(Clause* cl);
-  void addChain(Chain* chain);
-  void removeGoalClause(Clause* cl) { NOT_IMPLEMENTED; }
-
-  // TODO implement removal
-  void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
+  void handleChain(Chain* chain, bool insert);
 
 private:
   void perform(Clause* ngcl, TypedTermList goalTerm, TypedTermList nonGoalTerm,
@@ -109,7 +105,7 @@ public:
   GoalReachabilityHandler(SaturationAlgorithm& salg);
 
   void addClause(Clause* cl);
-  void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
+  void removeClause(Clause* cl);
   [[nodiscard]] bool iterate();
 
   [[nodiscard]] bool isTermSuperposable(Clause* cl, TypedTermList t) const;
@@ -134,13 +130,23 @@ private:
   [[nodiscard]] Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult);
 
   void handleNonGoalClause(Clause* cl, bool insert);
+  void handleBaseChain(Chain* chain, bool insert);
+  void handleChain(Chain* chain, bool expand, bool insert);
 
   void addSuperposableTerm(Clause* ngcl, Term* t);
 
   friend class GoalNonLinearityHandler;
 
-  const Ordering& ord;
+  ClauseStack _newGoalClauses;
+  ClauseTermPairs _newSuperposableTerms;
 
+  Deque<Chain*> _newChainsToHandle;
+
+  const Ordering& _ord;
+  const unsigned _chainLimit;
+
+  // stores which chains belong to which goal clause
+  DHMap<Clause*, Stack<Chain*>> _chainMap;
   // index for chain LHS subterms unifying with non-goal RHSs
   TermSubstitutionTree<TermChain> _linearChainSubtermIndex;
   // index for chain LHS subterms unifying with chain RHSs
@@ -148,19 +154,12 @@ private:
   // index for chain RHSs unifying with chain LHS subterms
   TermSubstitutionTree<TermChain> _chainRHSIndex;
 
+  // stores which terms are superposable in which non-goal clause
+  DHMap<Clause*, DHSet<Term*>> _superposableTerms;
   // index for non-goal RHSs
   TermSubstitutionTree<TermLiteralClause> _nonGoalRHSIndex;
-
-  ClauseStack _newGoalClauses;
-
-  ClauseTermPairs _newSuperposableTerms;
-  DHMap<Clause*, DHSet<Term*>> _superposableTerms;
-
+  
   GoalNonLinearityHandler _nonLinearityHandler;
-
-  Deque<Chain*> _newChainsToHandle;
-
-  const unsigned _chainLimit;
 };
 
 }
