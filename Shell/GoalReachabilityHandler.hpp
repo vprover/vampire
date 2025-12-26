@@ -106,14 +106,11 @@ private:
 
 class GoalReachabilityHandler {
 public:
-  GoalReachabilityHandler(SaturationAlgorithm& salg)
-    : ord(salg.getOrdering()),
-      _nonLinearityHandler(salg, *this),
-      _chainLimit(salg.getOptions().goalOrientedChainLimit()) {}
+  GoalReachabilityHandler(SaturationAlgorithm& salg);
 
   void addClause(Clause* cl);
   void removeClause(Clause* cl) { NOT_IMPLEMENTED; }
-  void iterate();
+  [[nodiscard]] bool iterate();
 
   [[nodiscard]] bool isTermSuperposable(Clause* cl, TypedTermList t) const;
   ClauseStack goalClauses() {

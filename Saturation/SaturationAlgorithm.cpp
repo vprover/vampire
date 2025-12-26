@@ -1187,11 +1187,11 @@ void SaturationAlgorithm::activate(Clause* cl)
   return;
 }
 
-void SaturationAlgorithm::iterateGoalReachability()
+bool SaturationAlgorithm::iterateGoalReachability()
 {
   _clauseActivationInProgress = true;
 
-  _goalReachabilityHandler->iterate();
+  auto terminated = _goalReachabilityHandler->iterate();
 
   for (const auto& gcl : _goalReachabilityHandler->goalClauses()) {
     ASS(gcl->isGoalClause());
@@ -1238,6 +1238,8 @@ void SaturationAlgorithm::iterateGoalReachability()
 
   _clauseActivationInProgress = false;
   ASS(_postponedClauseRemovals.isEmpty()); // TODO is this even possible to be non-empty?
+
+  return terminated;
 }
 
 /**
@@ -1311,10 +1313,13 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
  */
 void SaturationAlgorithm::doOneAlgorithmStep()
 {
-  iterateGoalReachability();
+  bool goalReachabilityTerminated = iterateGoalReachability();
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {
+    if (!goalReachabilityTerminated) {
+      return;
+    }
     TerminationReason termReason =
         isComplete() ? TerminationReason::SATISFIABLE : TerminationReason::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);

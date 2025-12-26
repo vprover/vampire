@@ -160,7 +160,7 @@ protected:
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
   void activate(Clause* c);
-  void iterateGoalReachability();
+  [[nodiscard]] bool iterateGoalReachability();
   void removeSelected(Clause*);
   virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);

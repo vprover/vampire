@@ -201,7 +201,7 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
   }
 }
 
-void GoalReachabilityHandler::iterate()
+bool GoalReachabilityHandler::iterate()
 {
   DEBUG("iterate");
 
@@ -258,6 +258,8 @@ void GoalReachabilityHandler::iterate()
       curr->expanded = true;
     }
   }
+
+  return true;
 }
 
 bool GoalReachabilityHandler::isReached(
@@ -281,6 +283,12 @@ bool GoalReachabilityHandler::isReached(
   }
   return false;
 }
+
+GoalReachabilityHandler::GoalReachabilityHandler(SaturationAlgorithm& salg)
+  : ord(salg.getOrdering()),
+    _nonLinearityHandler(salg, *this),
+    _chainLimit(salg.getOptions().goalOrientedChainLimit())
+{}
 
 void GoalReachabilityHandler::addClause(Clause* cl)
 {
