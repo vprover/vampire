@@ -1870,7 +1870,7 @@ void Options::init()
     _goalOrientedSuperposition.addHardConstraint(If(equal(true)).then(_demodulationRedundancyCheck.is(notEqual(DemodulationRedundancyCheck::ENCOMPASS))));
     _goalOrientedSuperposition.tag(OptionTag::INFERENCES);
 
-    _goalOrientedChainLimit = UnsignedOptionValue("goal_oriented_chain_limit","gocl",3);
+    _goalOrientedChainLimit = UnsignedOptionValue("goal_oriented_chain_limit","gocl",1);
     _goalOrientedChainLimit.description="Upper limit for chain expansion for goal-oriented superposition";
     _lookup.insert(&_goalOrientedChainLimit);
     _goalOrientedChainLimit.onlyUsefulWith(_goalOrientedSuperposition.is(equal(true)));

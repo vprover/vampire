@@ -157,9 +157,9 @@ Chain* GoalReachabilityHandler::combineChains(Chain* left, Chain* right, TypedTe
     rhs = subst.apply(right->rhs, !leftIsResult);
   }
   auto length = left->length+right->length;
-  if (length > _chainLimit) {
-    return nullptr;
-  }
+  // if (length > _chainLimit) {
+  //   return nullptr;
+  // }
   if (left->lhs == lhs && left->rhs == rhs) {
     return nullptr;
   }
@@ -205,7 +205,13 @@ bool GoalReachabilityHandler::iterate()
 {
   DEBUG("iterate");
 
+  unsigned cnt = 0;
+
   while (_newChainsToHandle.isNonEmpty()) {
+
+    if (cnt++ >= _chainLimit) {
+      return false;
+    }
 
     auto curr = _newChainsToHandle.pop_front();
 
@@ -253,22 +259,30 @@ bool GoalReachabilityHandler::iterate()
 bool GoalReachabilityHandler::isReached(
   Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm, const Chain* chain, ResultSubstitution& subst, bool goalIsResult)
 {
+  BacktrackData btd;
+  subst.bdRecord(btd);
   auto clauseTermPairs = _nonLinearityHandler.get(ngCl, gSubterm, ngRhs, chain->constraints, subst, goalIsResult);
   if (clauseTermPairs.isNonEmpty()) {
     for (auto [ngcl, t] : clauseTermPairs) {
       addSuperposableTerm(ngcl, t);
     }
+    btd.backtrack();
+    subst.bdDone();
     return false;
   }
 
   if (isRenamingOn(chain->rhs, subst, goalIsResult)) {
     DEBUG("reached ", *ngCl, " with ", *chain, " unifying ", ngRhs.untyped(), " with ", gSubterm.untyped());
+    btd.backtrack();
+    subst.bdDone();
     return true;
   }
-  if (chain->length == _chainLimit) {
-    DEBUG("max chain length reached for ", *ngCl, " with ", *chain);
-    return true;
-  }
+  btd.backtrack();
+  subst.bdDone();
+  // if (chain->length == _chainLimit) {
+  //   DEBUG("max chain length reached for ", *ngCl, " with ", *chain);
+  //   return true;
+  // }
   return false;
 }
 
@@ -286,7 +300,7 @@ void GoalReachabilityHandler::addClause(Clause* cl)
   // for now we must ensure that these hold
   ASS(_newSuperposableTerms.isEmpty());
   ASS(_newGoalClauses.isEmpty());
-  ASS(_newChainsToHandle.isEmpty());
+  // ASS(_newChainsToHandle.isEmpty());
 
   if (lit->isNegative()) {
     addGoalClause(cl);
@@ -502,13 +516,14 @@ ClauseTermPairs GoalNonLinearityHandler::get(Clause* ngcl, TypedTermList goalTer
   ASS(!nonGoalIt.hasNext());
 
   auto tl = List<TermList>::empty();
-  RobSubstitution rsubst;
+  // RobSubstitution rsubst;
   bool unifies = true;
 
   for (const auto& [x,y] : cons) {
     ASS(x.isVar());
     ASS(y.isVar());
-    if (unifies && !rsubst.unify(subst.apply(x, goalIsResult), 0, subst.apply(y, goalIsResult), 0)) {
+    if (unifies && !subst.constrain(x, y, goalIsResult)) {
+    // if (unifies && !rsubst.unify(subst.apply(x, goalIsResult), 0, subst.apply(y, goalIsResult), 0)) {
       unifies = false;
     }
     auto xptr = map.findPtr(x.var());

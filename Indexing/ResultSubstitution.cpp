@@ -13,6 +13,7 @@
  */
 
 #include "Kernel/RobSubstitution.hpp"
+#include "Lib/Backtrackable.hpp"
 
 #include "ResultSubstitution.hpp"
 
@@ -43,6 +44,17 @@ public:
   { return _subst->apply(t,index); }
   Literal* applyTo(Literal* l,unsigned index) final
   { return _subst->apply(l,index); }
+
+  bool constrainQuery(TermList t1, TermList t2) final
+  { return _subst->unify(t1, _queryBank, t2, _queryBank); }
+  bool constrainResult(TermList t1, TermList t2) final
+  { return _subst->unify(t1, _resultBank, t2, _resultBank); }
+
+  void bdRecord(BacktrackData& btd) final
+  { _subst->bdRecord(btd); }
+
+  void bdDone() final
+  { _subst->bdDone(); }
 
   size_t getQueryApplicationWeight(TermList t) final { return _subst->getApplicationResultWeight(t, _queryBank); }
   size_t getQueryApplicationWeight(Literal* l) final { return _subst->getApplicationResultWeight(l, _queryBank); }
