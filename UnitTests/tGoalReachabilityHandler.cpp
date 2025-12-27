@@ -299,3 +299,19 @@ TEST_FUN(test13) {
   );
   tester.run();
 }
+
+TEST_FUN(test14) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(a != b) });
+  auto c2 = clause({ selected(f(x,g(x)) == x) });
+  auto c3 = clause({ selected(f2(x,c) == g(c)) });
+
+  // c3 is not reachable despite the linearization in the second occurrence of x in c2
+  SymmetricTester tester(
+    { c1, c2, c3 },
+    { c1, c2 },
+    { }
+  );
+  tester.run();
+}

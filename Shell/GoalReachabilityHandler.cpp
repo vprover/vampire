@@ -98,8 +98,8 @@ void collectVariableSorts(TypedTermList t, DHMap<unsigned,TermList>& varSorts)
   }
 }
 
-Chain::Chain(TypedTermList lhs, TypedTermList rhs, unsigned length, bool isBase)
-  : lhs(lhs), rhs(rhs), length(length), isBase(isBase)
+Chain::Chain(TypedTermList origLhs, TypedTermList lhs, TypedTermList rhs, unsigned length, bool isBase)
+  : origLhs(origLhs), lhs(lhs), rhs(rhs), length(length), isBase(isBase)
 {
   // ASS_EQ(rhs.isEmpty(), !length);
 
@@ -163,7 +163,7 @@ Chain* GoalReachabilityHandler::combineChains(Chain* left, Chain* right, TypedTe
   if (left->lhs == lhs && left->rhs == rhs) {
     return nullptr;
   }
-  return new Chain(lhs, rhs, length, /*isBase=*/false);
+  return new Chain(left->origLhs, lhs, rhs, length, /*isBase=*/false);
 }
 
 void GoalReachabilityHandler::addGoalClause(Clause* cl)
@@ -180,7 +180,7 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
   for (auto lhs : iterTraits(getLHSIterator(lit, _ord))) {
     auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
     auto length = lit->isNegative() ? 0 : 1;
-    auto chain = new Chain(lhs, rhs, length, /*isBase=*/true);
+    auto chain = new Chain(lhs, lhs, rhs, length, /*isBase=*/true);
 
     // associate chain with clause
     ptr->push(chain);
@@ -205,7 +205,14 @@ bool GoalReachabilityHandler::iterate()
 {
   DEBUG("iterate");
 
+  // unsigned cnt = 0;
+
   while (_newChainsToHandle.isNonEmpty()) {
+
+    // uncomment this to enable dovetailing
+    // if (cnt++ >= _chainLimit) {
+    //   return false;
+    // }
 
     auto curr = _newChainsToHandle.pop_front();
 
@@ -219,14 +226,44 @@ bool GoalReachabilityHandler::iterate()
     bool expand = false;
     DHSet<Clause*> reached;
     if (curr->lhs.isTerm()) {
-      for (const auto& t : iterTraits(NonVariableNonTypeIterator(curr->linearLhs.term(), /*includeSelf=*/curr->length==0))) {
-        for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-          if (isReached(qr.data->clause, qr.data->term, t, curr, *qr.unifier.ptr(), /*goalIsResult=*/false)) {
+
+      if (curr->length == 0) {
+        for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(curr->linearLhs.term(), /*retrieveSubstitutions=*/true))) {
+          if (isReached(qr.data->clause, qr.data->term, curr->linearLhs.term(), curr, *qr.unifier.ptr(), /*goalIsResult=*/false)) {
             reached.insert(qr.data->clause);
           }
           expand = true;
         }
       }
+      SubtermIterator itO(curr->origLhs.term());
+      SubtermIterator itL(curr->linearLhs.term());
+      while (itO.hasNext()) {
+        ALWAYS(itL.hasNext());
+        auto tO = itO.next();
+        auto tL = itL.next();
+        if (tO.isVar()) {
+          itL.right();
+          continue;
+        }
+        if (tL.isVar()) {
+          continue;
+        }
+        for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(tL.term(), /*retrieveSubstitutions=*/true))) {
+          if (isReached(qr.data->clause, qr.data->term, tL.term(), curr, *qr.unifier.ptr(), /*goalIsResult=*/false)) {
+            reached.insert(qr.data->clause);
+          }
+          expand = true;
+        }
+      }
+
+      // for (const auto& t : iterTraits(NonVariableNonTypeIterator(curr->linearLhs.term(), /*includeSelf=*/curr->length==0))) {
+      //   for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+      //     if (isReached(qr.data->clause, qr.data->term, t, curr, *qr.unifier.ptr(), /*goalIsResult=*/false)) {
+      //       reached.insert(qr.data->clause);
+      //     }
+      //     expand = true;
+      //   }
+      // }
     }
 
     // 2. insert chain into indices
@@ -253,18 +290,26 @@ bool GoalReachabilityHandler::iterate()
 bool GoalReachabilityHandler::isReached(
   Clause* ngCl, TypedTermList ngRhs, TypedTermList gSubterm, const Chain* chain, ResultSubstitution& subst, bool goalIsResult)
 {
+  BacktrackData btd;
+  subst.bdRecord(btd);
   auto clauseTermPairs = _nonLinearityHandler.get(ngCl, gSubterm, ngRhs, chain->constraints, subst, goalIsResult);
   if (clauseTermPairs.isNonEmpty()) {
     for (auto [ngcl, t] : clauseTermPairs) {
       addSuperposableTerm(ngcl, t);
     }
+    btd.backtrack();
+    subst.bdDone();
     return false;
   }
 
   if (isRenamingOn(chain->rhs, subst, goalIsResult)) {
     DEBUG("reached ", *ngCl, " with ", *chain, " unifying ", ngRhs.untyped(), " with ", gSubterm.untyped());
+    btd.backtrack();
+    subst.bdDone();
     return true;
   }
+  btd.backtrack();
+  subst.bdDone();
   if (chain->length == _chainLimit) {
     DEBUG("max chain length reached for ", *ngCl, " with ", *chain);
     return true;
@@ -286,7 +331,7 @@ void GoalReachabilityHandler::addClause(Clause* cl)
   // for now we must ensure that these hold
   ASS(_newSuperposableTerms.isEmpty());
   ASS(_newGoalClauses.isEmpty());
-  ASS(_newChainsToHandle.isEmpty());
+  // ASS(_newChainsToHandle.isEmpty());
 
   if (lit->isNegative()) {
     addGoalClause(cl);
@@ -390,10 +435,32 @@ void GoalReachabilityHandler::handleChain(Chain* chain, bool expand, bool insert
 {
   DEBUG("handling chain ", *chain, ", expand = ", expand, ", insert = ", insert);
   // variables do not need to be inserted into the subterm indices
-  if (chain->lhs.isTerm()) {
-    for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->length==0))) {
-      _linearChainSubtermIndex.handle(TermChain{ t, chain }, insert);
+  if (chain->origLhs.isTerm()) {
+    ASS(chain->lhs.isTerm());
+    ASS(chain->linearLhs.isTerm());
+
+    if (chain->length == 0) {
+      _linearChainSubtermIndex.handle(TermChain{ chain->linearLhs.term(), chain }, insert);
     }
+    SubtermIterator itO(chain->origLhs.term());
+    SubtermIterator itL(chain->linearLhs.term());
+    while (itO.hasNext()) {
+      ALWAYS(itL.hasNext());
+      auto tO = itO.next();
+      auto tL = itL.next();
+      if (tO.isVar()) {
+        itL.right();
+        continue;
+      }
+      if (tL.isVar()) {
+        continue;
+      }
+      _linearChainSubtermIndex.handle(TermChain{ tL.term(), chain }, insert);
+    }
+
+    // for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/chain->length==0))) {
+    //   _linearChainSubtermIndex.handle(TermChain{ t, chain }, insert);
+    // }
   }
   // only insert RHS if it is to be expanded
   if (expand) {
@@ -502,13 +569,12 @@ ClauseTermPairs GoalNonLinearityHandler::get(Clause* ngcl, TypedTermList goalTer
   ASS(!nonGoalIt.hasNext());
 
   auto tl = List<TermList>::empty();
-  RobSubstitution rsubst;
   bool unifies = true;
 
   for (const auto& [x,y] : cons) {
     ASS(x.isVar());
     ASS(y.isVar());
-    if (unifies && !rsubst.unify(subst.apply(x, goalIsResult), 0, subst.apply(y, goalIsResult), 0)) {
+    if (unifies && !subst.constrain(x, y, goalIsResult)) {
       unifies = false;
     }
     auto xptr = map.findPtr(x.var());

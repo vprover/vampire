@@ -20,6 +20,8 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Lib/Backtrackable.hpp"
+#include "Lib/Exception.hpp"
 
 namespace Indexing {
 
@@ -49,6 +51,22 @@ public:
 
   virtual TermList applyTo(TermList t, unsigned index) { ASSERTION_VIOLATION; }
   virtual Literal* applyTo(Literal* l, unsigned index) { NOT_IMPLEMENTED; }
+
+  virtual bool constrainResult(TermList t1, TermList t2) { NOT_IMPLEMENTED; }
+  virtual bool constrainQuery(TermList t1, TermList t2) { NOT_IMPLEMENTED; }
+
+  template<typename T>
+  bool constrain(T t1, T t2, bool result)
+  {
+    if(result) {
+      return constrainResult(t1, t2);
+    } else {
+      return constrainQuery(t1, t2);
+    }
+  }
+
+  virtual void bdRecord(BacktrackData& btd) { NOT_IMPLEMENTED; }
+  virtual void bdDone() { NOT_IMPLEMENTED; }
 
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getQueryApplicationWeight(TermList t) { return 0; }

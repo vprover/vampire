@@ -34,7 +34,7 @@ using ClauseTermPair = std::pair<Clause*, Term*>;
 using ClauseTermPairs = Stack<ClauseTermPair>;
 
 struct Chain {
-  Chain(TypedTermList lhs, TypedTermList rhs, unsigned length, bool isBase);
+  Chain(TypedTermList origLhs, TypedTermList lhs, TypedTermList rhs, unsigned length, bool isBase);
 
   friend std::ostream& operator<<(std::ostream& out, Chain const& self)
   {
@@ -46,6 +46,7 @@ struct Chain {
     return out;
   }
 
+  TypedTermList origLhs;
   TypedTermList lhs;
   TypedTermList rhs;
   unsigned length;
