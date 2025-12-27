@@ -428,6 +428,9 @@ void GoalNonLinearityHandler::addNonGoalClause(Clause* cl)
   ASS(!cl->isGoalClause());
 
   for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+    if (lhs.isVar()) {
+      continue;
+    }
     for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
       // handle equality lhs
       if (t == lhs && lit->isPositive()) {
