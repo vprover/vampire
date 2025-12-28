@@ -55,6 +55,7 @@ struct Chain {
   TypedTermList linearLhs;
   LinearityConstraints constraints;
 
+  bool processed = false;
   bool expanded = false;
 };
 
