@@ -178,14 +178,12 @@ bool GoalReachabilityHandler::forwardSimplify(Chain* chain)
         return true;
       }
     }
-    _chainCodeTreeZero.insert(chain);
   } else {
     if (!_chainCodeTreeOne.isEmpty()) {
       if (cm.check(&_chainCodeTreeOne, chain)) {
         return true;
       }
     }
-    _chainCodeTreeOne.insert(chain);
   }
   return false;
 }
@@ -248,6 +246,7 @@ bool GoalReachabilityHandler::iterate()
     ASS(!curr->expanded);
 
     if (forwardSimplify(curr)) {
+      DEBUG("forward simplified ", *curr);
       env.statistics->forwardSimplifedChains++;
       if (curr->isBase) {
         handleBaseChain(curr, /*insert=*/false);
@@ -524,6 +523,19 @@ void GoalReachabilityHandler::handleChain(Chain* chain, bool expand, bool insert
       _chainRHSIndex.handle(TermChain{ chain->rhs, chain }, insert);
     }
   }
+  if (chain->rhs.isNonEmpty()) {
+    if (insert) {
+      _chainCodeTreeZero.insert(chain);
+    } else {
+      _chainCodeTreeZero.remove(chain);
+    }
+  } else {
+    if (insert) {
+      _chainCodeTreeOne.insert(chain);
+    } else {
+      _chainCodeTreeOne.remove(chain);
+    }
+  }
 }
 
 void GoalReachabilityHandler::addSuperposableTerm(Clause* ngcl, Term* t)
@@ -699,7 +711,7 @@ void ChainCodeTree::insert(Chain* chain)
   ASS(code.isEmpty());
 }
 
-bool ChainCodeTree::ChainMatcher::check(CodeTree* tree, Chain* t)
+bool ChainCodeTree::ChainMatcher::check(CodeTree* tree, Chain* chain)
 {
   Matcher::init(tree,tree->getEntryPoint());
 
@@ -708,9 +720,9 @@ bool ChainCodeTree::ChainMatcher::check(CodeTree* tree, Chain* t)
 
   ASS(!ft);
   TermStack ts;
-  ts.push(t->lhs);
-  if (t->rhs.isNonEmpty()) {
-    ts.push(t->rhs);
+  ts.push(chain->lhs);
+  if (chain->rhs.isNonEmpty()) {
+    ts.push(chain->rhs);
   }
   ft = FlatTerm::createUnexpanded(ts);
 
@@ -722,4 +734,50 @@ bool ChainCodeTree::ChainMatcher::check(CodeTree* tree, Chain* t)
   ft = nullptr;
 
   return matched;
+}
+
+void ChainCodeTree::remove(Chain* chain)
+{
+  static RemovingChainMatcher rcm;
+  static Stack<CodeOp*> firstsInBlocks;
+  firstsInBlocks.reset();
+
+  TermStack ts;
+  ts.push(chain->lhs);
+  if (chain->rhs.isNonEmpty()) {
+    ts.push(chain->rhs);
+  }
+  FlatTerm* ft=FlatTerm::createUnexpanded(ts);
+  rcm.init(ft, this, &firstsInBlocks);
+  
+  Chain* ptr = nullptr;
+  for(;;) {
+    if (!rcm.next()) {
+      ASSERTION_VIOLATION;
+      INVALID_OPERATION("chain being removed was not found");
+    }
+    ASS(rcm.op->isSuccess());
+    ptr = rcm.op->template getSuccessResult<Chain>();
+    if (ptr == chain) {
+      break;
+    }
+  }
+  
+  rcm.op->makeFail();
+  ASS(ptr);
+  ft->destroy();
+
+  optimizeMemoryAfterRemoval(&firstsInBlocks, rcm.op);
+}
+
+void ChainCodeTree::RemovingChainMatcher::init(
+  FlatTerm* ft_, ChainCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
+{
+  RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
+  
+  firstsInBlocks->push(entry);
+
+  ft=ft_;
+  tp=0;
+  op=entry;
 }

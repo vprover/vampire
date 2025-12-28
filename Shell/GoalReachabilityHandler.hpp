@@ -109,12 +109,18 @@ struct ChainCodeTree : public CodeTree
   ChainCodeTree();
 
   void insert(Chain* chain);
-  void remove(const Chain& chain) { NOT_IMPLEMENTED; }
+  void remove(Chain* chain);
 
   struct ChainMatcher
   : public Matcher
   {
     bool check(CodeTree* tree, Chain* t);
+  };
+
+  struct RemovingChainMatcher
+  : public RemovingMatcher<false>
+  {
+    void init(FlatTerm* ft_, ChainCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
   };
 };
 
