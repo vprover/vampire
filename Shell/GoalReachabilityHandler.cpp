@@ -22,7 +22,7 @@ using namespace Kernel;
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 // This is different from EqHelper::getSuperpositionLHSIterator because it works for negative equalities too
-VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord)
+auto lhsIter(Literal* lit, const Ordering& ord)
 {
   ASS(lit->isEquality());
   auto sort = SortHelper::getEqualityArgumentSort(lit);
@@ -30,13 +30,13 @@ VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord)
   auto rhs = lit->termArg(1);
   switch (ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE:
-      return pvi(iterItems(TypedTermList(lhs, sort), TypedTermList(rhs, sort)));
+      return iterItems(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
     case Ordering::GREATER:
-      return pvi(iterItems(TypedTermList(lhs, sort)));
+      return iterItems(TypedTermList(lhs, sort));
     case Ordering::LESS:
-      return pvi(iterItems(TypedTermList(rhs, sort)));
+      return iterItems(TypedTermList(rhs, sort));
     //there should be no equality literals of equal terms
-    case Ordering::EQUAL:
+    default:
       ASSERTION_VIOLATION;
   }
 }
@@ -157,9 +157,9 @@ Chain* GoalReachabilityHandler::combineChains(Chain* left, Chain* right, TypedTe
     rhs = subst.apply(right->rhs, !leftIsResult);
   }
   auto length = left->length+right->length;
-  if (length > _chainLimit) {
-    return nullptr;
-  }
+  // if (length > _chainLimit) {
+  //   return nullptr;
+  // }
   if (left->lhs == lhs && left->rhs == rhs) {
     return nullptr;
   }
@@ -177,7 +177,7 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
   Stack<Chain*>* ptr;
   ALWAYS(_chainMap.getValuePtr(cl, ptr));
 
-  for (auto lhs : iterTraits(getLHSIterator(lit, _ord))) {
+  for (auto lhs : lhsIter(lit, _ord)) {
     auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
     auto length = lit->isNegative() ? 0 : 1;
     auto chain = new Chain(lhs, lhs, rhs, length, /*isBase=*/true);
@@ -205,14 +205,14 @@ bool GoalReachabilityHandler::iterate()
 {
   DEBUG("iterate");
 
-  // unsigned cnt = 0;
+  unsigned cnt = 0;
 
   while (_newChainsToHandle.isNonEmpty()) {
 
     // uncomment this to enable dovetailing
-    // if (cnt++ >= _chainLimit) {
-    //   return false;
-    // }
+    if (cnt++ >= _chainLimit) {
+      return false;
+    }
 
     auto curr = _newChainsToHandle.pop_front();
 
@@ -310,10 +310,10 @@ bool GoalReachabilityHandler::isReached(
   }
   btd.backtrack();
   subst.bdDone();
-  if (chain->length == _chainLimit) {
-    DEBUG("max chain length reached for ", *ngCl, " with ", *chain);
-    return true;
-  }
+  // if (chain->length == _chainLimit) {
+  //   DEBUG("max chain length reached for ", *ngCl, " with ", *chain);
+  //   return true;
+  // }
   return false;
 }
 
@@ -340,7 +340,7 @@ void GoalReachabilityHandler::addClause(Clause* cl)
 
   DHSet<Chain*> toExpand;
 
-  for (const auto& lhs : iterTraits(getLHSIterator(lit, _ord))) {
+  for (const auto& lhs : lhsIter(lit, _ord)) {
     TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
     for (const auto& qr : iterTraits(_linearChainSubtermIndex.getUnifications(rhs, /*retrieveSubstitutions=*/true))) {
       if (isReached(cl, rhs, qr.data->term, qr.data->chain, *qr.unifier.ptr(), /*goalIsResult=*/true)) {
@@ -408,7 +408,7 @@ void GoalReachabilityHandler::handleNonGoalClause(Clause* cl, bool insert)
   ASS(lit->isPositive());
   ASS(!cl->isGoalClause());
 
-  for (const auto& lhs : iterTraits(getLHSIterator(lit, _ord))) {
+  for (const auto& lhs : lhsIter(lit, _ord)) {
     _nonGoalRHSIndex.handle({ TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()), lit, cl }, insert);
   }
   if (!insert) {
@@ -494,7 +494,7 @@ void GoalNonLinearityHandler::addNonGoalClause(Clause* cl)
   auto lit = assertUnitEquality(cl);
   ASS(!cl->isGoalClause());
 
-  for (auto lhs : iterTraits(getLHSIterator(lit, ord))) {
+  for (auto lhs : lhsIter(lit, ord)) {
     if (lhs.isVar()) {
       continue;
     }

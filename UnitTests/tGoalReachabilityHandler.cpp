@@ -32,8 +32,9 @@ public:
   SymmetricTester(
     std::initializer_list<Clause*> clauses,
     std::initializer_list<Clause*> goalClauses,
-    std::initializer_list<std::pair<Clause*, TermList>> superposableTermPairs)
-    : clauses(clauses)
+    std::initializer_list<std::pair<Clause*, TermList>> superposableTermPairs,
+    bool allowNontermination = false)
+    : allowNontermination(allowNontermination), clauses(clauses)
   {
     for (const auto& cl : goalClauses) { ALWAYS(expectedGoalClauses.insert(cl)); }
     for (auto [cl, t] : superposableTermPairs) { ALWAYS(expectedSuperposableTermPairs.insert({cl, t.term()})); }
@@ -43,6 +44,7 @@ public:
     Problem prb;
     Options opt;
     opt.resolveAwayAutoValues(prb);
+    opt.set("goal_oriented_chain_limit", "4");
     auto indices = Stack<unsigned>::fromIterator(range(0, clauses.size()));
     do {
 
@@ -58,7 +60,8 @@ public:
 
         alg.getActiveClauseContainer()->add(clauses[index]);
         handler.addClause(clauses[index]);
-        ASS(handler.iterate());
+        auto terminated = handler.iterate();
+        ASS(allowNontermination || terminated);
 
         for (const auto& gc : handler.goalClauses()) {
           ASS_REP(gc->isGoalClause(), gc->toString() + " should be goal clause");
@@ -95,6 +98,7 @@ public:
     } while (std::next_permutation(indices.begin(), indices.end()));
   }
 private:
+  bool allowNontermination;
   ClauseStack clauses;
   DHSet<Clause*> expectedGoalClauses;
   DHSet<ClauseTermPair> expectedSuperposableTermPairs;
@@ -139,8 +143,9 @@ TEST_FUN(test03) {
   // c3 also added due to giving up at the limit of iteration
   SymmetricTester tester(
     { c1, c2, c3 },
-    { c1, c2, c3 },
-    { }
+    { c1, c2 },
+    { },
+    /*allowNontermination=*/true
   );
   tester.run();
 }
