@@ -26,18 +26,15 @@ auto lhsIter(Literal* lit, const Ordering& ord)
 {
   ASS(lit->isEquality());
   auto sort = SortHelper::getEqualityArgumentSort(lit);
-  auto lhs = lit->termArg(0);
-  auto rhs = lit->termArg(1);
+  TypedTermList lhs(lit->termArg(0), sort);
+  TypedTermList rhs(lit->termArg(1), sort);
+
   switch (ord.getEqualityArgumentOrder(lit)) {
-    case Ordering::INCOMPARABLE:
-      return iterItems(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
-    case Ordering::GREATER:
-      return iterItems(TypedTermList(lhs, sort));
-    case Ordering::LESS:
-      return iterItems(TypedTermList(rhs, sort));
+    case Ordering::INCOMPARABLE: return iterItems(lhs, rhs);
+    case Ordering::GREATER:      return iterItems(lhs);
+    case Ordering::LESS:         return iterItems(rhs);
     //there should be no equality literals of equal terms
-    default:
-      ASSERTION_VIOLATION;
+    default: ASSERTION_VIOLATION;
   }
 }
 
@@ -386,6 +383,23 @@ void GoalReachabilityHandler::removeClause(Clause* cl)
       handleBaseChain(c, /*insert=*/false);
       if (c->processed) {
         handleChain(c, /*expand=*/c->expanded, /*insert=*/false);
+      } else {
+        // remove chain from unprocessed queue
+        // TODO make this more efficient
+        int index = -1;
+        for (unsigned i = 0; i < _newChainsToHandle.size(); i++) {
+          if (_newChainsToHandle[i] == c) {
+            _newChainsToHandle[i] = nullptr;
+            index = i;
+            break;
+          }
+        }
+        ASS_NEQ(index, -1);
+#if VDEBUG
+        for (unsigned i = index + 1; i < _newChainsToHandle.size(); i++) {
+          ASS_NEQ(_newChainsToHandle[i], c);
+        }
+#endif
       }
       delete c;
     }
