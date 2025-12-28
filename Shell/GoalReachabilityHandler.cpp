@@ -122,6 +122,11 @@ Chain::Chain(TypedTermList origLhs, TypedTermList lhs, TypedTermList rhs, unsign
     linearLhs = linearizer.transform(lhs.term());
     constraints = linearizer.constraints;
   }
+
+  env.statistics->numberOfChains++;
+  if (length > env.statistics->maxChainLength) {
+    env.statistics->maxChainLength = length;
+  }
 }
 
 Literal* assertUnitEquality(Clause* cl) {

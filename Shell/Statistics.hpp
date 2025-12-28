@@ -205,6 +205,9 @@ public:
 
   unsigned smtFallbacks = 0;
 
+  unsigned maxChainLength = 0;
+  unsigned numberOfChains = 0;
+
   friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
   {
     switch (self) {

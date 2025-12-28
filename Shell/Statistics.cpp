@@ -239,6 +239,10 @@ void Statistics::print(std::ostream& out)
     ENTRY("Sat splitting refutations", satSplitRefutations);
     ENTRY("SMT fallbacks",smtFallbacks);
 
+    GROUP("GOAL-ORIENTED");
+    ENTRY("Max chain length", maxChainLength);
+    ENTRY("Number of chains", numberOfChains);
+
     //TODO record statistics for FMB
 
     //TODO record statistics for MiniSAT
