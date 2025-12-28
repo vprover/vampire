@@ -242,6 +242,7 @@ void Statistics::print(std::ostream& out)
     GROUP("GOAL-ORIENTED");
     ENTRY("Max chain length", maxChainLength);
     ENTRY("Number of chains", numberOfChains);
+    ENTRY("Forward simplified chains", forwardSimplifedChains);
 
     //TODO record statistics for FMB
 

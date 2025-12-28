@@ -168,6 +168,28 @@ Chain* GoalReachabilityHandler::combineChains(Chain* left, Chain* right, TypedTe
   return new Chain(left->origLhs, lhs, rhs, length, /*isBase=*/false);
 }
 
+bool GoalReachabilityHandler::forwardSimplify(Chain* chain)
+{
+  static typename ChainCodeTree::ChainMatcher cm;
+
+  if (chain->rhs.isNonEmpty()) {
+    if (!_chainCodeTreeZero.isEmpty()) {
+      if (cm.check(&_chainCodeTreeZero, chain)) {
+        return true;
+      }
+    }
+    _chainCodeTreeZero.insert(chain);
+  } else {
+    if (!_chainCodeTreeOne.isEmpty()) {
+      if (cm.check(&_chainCodeTreeOne, chain)) {
+        return true;
+      }
+    }
+    _chainCodeTreeOne.insert(chain);
+  }
+  return false;
+}
+
 void GoalReachabilityHandler::addGoalClause(Clause* cl)
 {
   DEBUG("addGoalClause ", *cl);
@@ -183,6 +205,7 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
     auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
     auto length = lit->isNegative() ? 0 : 1;
     auto chain = new Chain(lhs, lhs, rhs, length, /*isBase=*/true);
+    chain->origin = cl;
 
     // associate chain with clause
     ptr->push(chain);
@@ -223,6 +246,17 @@ bool GoalReachabilityHandler::iterate()
     }
 
     ASS(!curr->expanded);
+
+    if (forwardSimplify(curr)) {
+      env.statistics->forwardSimplifedChains++;
+      if (curr->isBase) {
+        handleBaseChain(curr, /*insert=*/false);
+        ASS(curr->origin);
+        ALWAYS(_chainMap.get(curr->origin).remove(curr));
+      }
+      delete curr;
+      continue;
+    }
 
     // 1. get unifications with non-goal rhss
     bool expand = false;
@@ -634,4 +668,58 @@ void GoalNonLinearityHandler::perform(Clause* ngcl, TypedTermList goalTerm, Type
   for (auto [cl, t] : get(ngcl, goalTerm, nonGoalTerm, cons, subst, goalIsResult)) {
     handler.addSuperposableTerm(ngcl, t);
   }
+}
+
+ChainCodeTree::ChainCodeTree()
+{
+  _clauseCodeTree=false;
+}
+
+void ChainCodeTree::insert(Chain* chain)
+{
+  CodeStack code;
+  TermCompiler compiler(code);
+
+  if (chain->lhs.isVar()) {
+    compiler.handleVar(chain->lhs.var());
+  } else {
+    compiler.handleTerm(chain->lhs.term());
+  }
+  if (chain->rhs.isNonEmpty()) {
+    if (chain->rhs.isVar()) {
+      compiler.handleVar(chain->rhs.var());
+    } else {
+      compiler.handleTerm(chain->rhs.term());
+    }
+  }
+  compiler.updateCodeTree(this);
+
+  code.push(CodeOp::getSuccess(chain));
+  incorporate(code);
+  ASS(code.isEmpty());
+}
+
+bool ChainCodeTree::ChainMatcher::check(CodeTree* tree, Chain* t)
+{
+  Matcher::init(tree,tree->getEntryPoint());
+
+  linfos=0;
+  linfoCnt=0;
+
+  ASS(!ft);
+  TermStack ts;
+  ts.push(t->lhs);
+  if (t->rhs.isNonEmpty()) {
+    ts.push(t->rhs);
+  }
+  ft = FlatTerm::createUnexpanded(ts);
+
+  op=entry;
+  tp=0;
+
+  auto matched = execute();
+  ft->destroy();
+  ft = nullptr;
+
+  return matched;
 }

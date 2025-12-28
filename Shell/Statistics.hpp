@@ -207,6 +207,7 @@ public:
 
   unsigned maxChainLength = 0;
   unsigned numberOfChains = 0;
+  unsigned forwardSimplifedChains = 0;
 
   friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
   {

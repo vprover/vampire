@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -57,6 +58,7 @@ struct Chain {
 
   bool processed = false;
   bool expanded = false;
+  Clause* origin = nullptr;
 };
 
 struct TermChain
@@ -102,6 +104,20 @@ private:
  *   if r unifies with some strict subterm r' of s with substitution θ
  */
 
+struct ChainCodeTree : public CodeTree
+{
+  ChainCodeTree();
+
+  void insert(Chain* chain);
+  void remove(const Chain& chain) { NOT_IMPLEMENTED; }
+
+  struct ChainMatcher
+  : public Matcher
+  {
+    bool check(CodeTree* tree, Chain* t);
+  };
+};
+
 class GoalReachabilityHandler {
 public:
   GoalReachabilityHandler(SaturationAlgorithm& salg);
@@ -130,6 +146,7 @@ private:
 
   [[nodiscard]] Stack<Chain*> chainForward(Chain* chain);
   [[nodiscard]] Chain* combineChains(Chain* left, Chain* right, TypedTermList t, ResultSubstitution& subst, bool leftIsResult);
+  [[nodiscard]] bool forwardSimplify(Chain* chain);
 
   void handleNonGoalClause(Clause* cl, bool insert);
   void handleBaseChain(Chain* chain, bool insert);
@@ -162,6 +179,9 @@ private:
   TermSubstitutionTree<TermLiteralClause> _nonGoalRHSIndex;
   
   GoalNonLinearityHandler _nonLinearityHandler;
+
+  ChainCodeTree _chainCodeTreeZero;
+  ChainCodeTree _chainCodeTreeOne;
 };
 
 }
