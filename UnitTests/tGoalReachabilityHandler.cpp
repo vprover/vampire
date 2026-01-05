@@ -25,7 +25,9 @@
   DECL_FUNC(f1, {s, s}, s)                                                                 \
   DECL_FUNC(f2, {s, s}, s)                                                                 \
   DECL_FUNC(g, {s}, s)                                                                     \
-  DECL_FUNC(h, {s, s, s}, s)
+  DECL_FUNC(h, {s, s, s}, s)                                                               \
+  DECL_PRED(p, {s, s})                                                                     \
+  DECL_PRED(q, {s})
 
 class SymmetricTester {
 public:
@@ -317,6 +319,36 @@ TEST_FUN(test14) {
     { c1, c2, c3 },
     { c1, c2 },
     { }
+  );
+  tester.run();
+}
+
+TEST_FUN(test15) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(~q(f(a,b))) });
+  auto c2 = clause({ selected(h(x,y,z) == f(x,y)) });
+
+  // base test with negative predicate
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1, c2 },
+    { }
+  );
+  tester.run();
+}
+
+TEST_FUN(test16) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+
+  auto c1 = clause({ selected(~p(x,x)) });
+  auto c2 = clause({ selected(p(a,b)) });
+
+  // linearization constraints work with predicates
+  SymmetricTester tester(
+    { c1, c2 },
+    { c1 },
+    { { c2, b } }
   );
   tester.run();
 }

@@ -106,21 +106,17 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
 ClauseIterator Superposition::generateClausesWithNonGoalSuperposableTerms(Clause* premise, TypedTermList t)
 {
-  if (premise->length() != 1) {
-    INVALID_OPERATION("non-unit clauses are not yet supported");
-  }
   ASS(t.isTerm());
-  auto lit = (*premise)[0];
 
   return pvi(iterTraits(NonVariableNonTypeIterator(t.term(), /*includeSelf=*/true))
-    .map([lit](Term* st) ->std::pair<Literal*,Term*> { return std::pair(lit, st); })
+    .flatMap([premise](Term* st) { return pushPairIntoRightIterator(st, premise->getSelectedLiteralIterator()); })
     .flatMap(
-      [this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); })
+      [this](pair<TypedTermList, Literal*> arg)
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.first, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); })
     //Perform forward superposition
-    .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) {
+    .map([this,premise](pair<pair<TypedTermList, Literal*>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) {
       auto& qr = arg.second;
-      return performSuperposition(premise, arg.first.first, arg.first.second,
+      return performSuperposition(premise, arg.first.second, arg.first.first,
         qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
     })
     .filter(NonzeroFn()));

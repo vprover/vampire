@@ -1201,7 +1201,10 @@ bool SaturationAlgorithm::iterateGoalReachability()
       std::cout << "[SA] goal clause: " << gcl->toString() << endl;
     }
 
-    ASS(_superposition);
+    // ASS(_superposition);
+    if (!_superposition) {
+      continue;
+    }
     // this is similar as the generation above
     // TODO do not perform inferences twice
     for (const auto& genCl : iterTraits(_superposition->generateClauses(gcl))) {
@@ -1219,7 +1222,7 @@ bool SaturationAlgorithm::iterateGoalReachability()
   }
 
   for (const auto& [ngcl, t] : _goalReachabilityHandler->superposableTerms()) {
-    if (ngcl->isGoalClause()) {
+    if (ngcl->isGoalClause() || !_superposition) {
       continue;
     }
     for (const auto& genCl : iterTraits(_superposition->generateClausesWithNonGoalSuperposableTerms(ngcl, t))) {

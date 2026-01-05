@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Indexing/CodeTreeInterfaces.hpp"
+#include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -61,18 +62,22 @@ struct Chain {
   Clause* origin = nullptr;
 };
 
-struct TermChain
+template<typename T>
+struct ItemChain
 {
-  TypedTermList term;
+  T item;
   Chain* chain;
 
-  TypedTermList const& key() const { return term; }
-  auto asTuple() const { return std::make_tuple(chain, term); }
+  T const& key() const { return item; }
+  auto asTuple() const { return std::make_tuple(chain, item); }
 
-  IMPL_COMPARISONS_FROM_TUPLE(TermChain)
+  IMPL_COMPARISONS_FROM_TUPLE(ItemChain)
 
-  friend std::ostream& operator<<(std::ostream& out, TermChain const& self) { return out; }
+  friend std::ostream& operator<<(std::ostream& out, ItemChain const& self) { return out; }
 };
+
+using TermChain = ItemChain<TypedTermList>;
+using LiteralChain = ItemChain<Literal*>;
 
 class GoalNonLinearityHandler {
 public:
@@ -93,9 +98,11 @@ private:
 
   TermSubstitutionTree<TermChain> _nonLinearGoalTermIndex;
   TermSubstitutionTree<TermChain> _nonLinearGoalLHSIndex;
+  LiteralSubstitutionTree<LiteralChain> _nonLinearGoalLiteralIndex;
 
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
   std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
+  std::shared_ptr<BinaryResolutionIndex> _resolutionIndex;
 };
 
 /**
@@ -183,11 +190,11 @@ private:
   DHMap<Clause*, DHSet<Term*>> _superposableTerms;
   // index for non-goal RHSs
   TermSubstitutionTree<TermLiteralClause> _nonGoalRHSIndex;
-  
+
   GoalNonLinearityHandler _nonLinearityHandler;
 
-  ChainCodeTree _chainCodeTreeZero;
-  ChainCodeTree _chainCodeTreeOne;
+  // ChainCodeTree _chainCodeTreeZero;
+  // ChainCodeTree _chainCodeTreeOne;
 };
 
 }

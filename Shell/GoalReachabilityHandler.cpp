@@ -95,6 +95,9 @@ void collectVariableSorts(TypedTermList t, DHMap<unsigned,TermList>& varSorts)
   }
 }
 
+TypedTermList typedLit(Term* lit)
+{ return TypedTermList(TermList(lit), AtomicSort::boolSort()); }
+
 Chain::Chain(TypedTermList origLhs, TypedTermList lhs, TypedTermList rhs, unsigned length, bool isBase)
   : origLhs(origLhs), lhs(lhs), rhs(rhs), length(length), isBase(isBase)
 {
@@ -116,7 +119,12 @@ Chain::Chain(TypedTermList origLhs, TypedTermList lhs, TypedTermList rhs, unsign
     linearLhs = lhs;
   } else {
     Linearizer linearizer(maxVar, varSorts);
-    linearLhs = linearizer.transform(lhs.term());
+    auto res = linearizer.transform(lhs.term());
+    if (res->isLiteral()) {
+      linearLhs = typedLit(res);
+    } else {
+      linearLhs = res;
+    }
     constraints = linearizer.constraints;
   }
 
@@ -126,17 +134,17 @@ Chain::Chain(TypedTermList origLhs, TypedTermList lhs, TypedTermList rhs, unsign
   }
 }
 
-Literal* assertUnitEquality(Clause* cl) {
-  if (cl->length() != 1) {
-    INVALID_OPERATION("only unit clauses are supported");
-  }
+// Literal* assertUnitEquality(Clause* cl) {
+//   if (cl->length() != 1) {
+//     INVALID_OPERATION("only unit clauses are supported");
+//   }
 
-  auto lit = (*cl)[0];
-  if (!lit->isEquality()) {
-    INVALID_OPERATION("only equality is supported");
-  }
-  return lit;
-}
+//   auto lit = (*cl)[0];
+//   if (!lit->isEquality()) {
+//     INVALID_OPERATION("only equality is supported");
+//   }
+//   return lit;
+// }
 
 bool GoalReachabilityHandler::isTermSuperposable(Clause* cl, TypedTermList t) const
 {
@@ -168,30 +176,30 @@ Chain* GoalReachabilityHandler::combineChains(Chain* left, Chain* right, TypedTe
   return new Chain(left->origLhs, lhs, rhs, length, /*isBase=*/false);
 }
 
-bool GoalReachabilityHandler::forwardSimplify(Chain* chain)
-{
-  static typename ChainCodeTree::ChainMatcher cm;
+// bool GoalReachabilityHandler::forwardSimplify(Chain* chain)
+// {
+//   static typename ChainCodeTree::ChainMatcher cm;
 
-  if (chain->rhs.isNonEmpty()) {
-    if (!_chainCodeTreeZero.isEmpty()) {
-      if (cm.check(&_chainCodeTreeZero, chain)) {
-        return true;
-      }
-    }
-  } else {
-    if (!_chainCodeTreeOne.isEmpty()) {
-      if (cm.check(&_chainCodeTreeOne, chain)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
+//   if (chain->rhs.isNonEmpty()) {
+//     if (!_chainCodeTreeZero.isEmpty()) {
+//       if (cm.check(&_chainCodeTreeZero, chain)) {
+//         return true;
+//       }
+//     }
+//   } else {
+//     if (!_chainCodeTreeOne.isEmpty()) {
+//       if (cm.check(&_chainCodeTreeOne, chain)) {
+//         return true;
+//       }
+//     }
+//   }
+//   return false;
+// }
 
 void GoalReachabilityHandler::addGoalClause(Clause* cl)
 {
   DEBUG("addGoalClause ", *cl);
-  auto lit = assertUnitEquality(cl);
+  // auto lit = assertUnitEquality(cl);
 
   ASS(!cl->isGoalClause());
   cl->makeGoalClause();
@@ -199,28 +207,52 @@ void GoalReachabilityHandler::addGoalClause(Clause* cl)
   Stack<Chain*>* ptr;
   ALWAYS(_chainMap.getValuePtr(cl, ptr));
 
-  for (auto lhs : lhsIter(lit, _ord)) {
-    auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-    auto length = lit->isNegative() ? 0 : 1;
-    auto chain = new Chain(lhs, lhs, rhs, length, /*isBase=*/true);
-    chain->origin = cl;
+  for (auto lit : cl->getSelectedLiteralIterator()) {
+    if (!lit->isEquality()) {
+      auto tlit = typedLit(lit);
+      auto chain = new Chain(tlit, tlit, TypedTermList(), /*length=*/0, /*isBase=*/true);
+      chain->origin = cl;
 
-    // associate chain with clause
-    ptr->push(chain);
+      // associate chain with clause
+      ptr->push(chain);
 
-    // insert into indices
-    handleBaseChain(chain, /*insert=*/true);
+      // insert into indices
+      handleBaseChain(chain, /*insert=*/true);
 
-    if (lhs.isTerm()) {
       // perform backward chaining: combine (result) l -> r and (query) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
-      for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/chain->length==0))) {
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/false))) {
         for (const auto& qr : iterTraits(_chainRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
           _newChainsToHandle.push_back(combineChains(qr.data->chain, chain, t, *qr.unifier.ptr(), /*leftIsResult=*/true));
         }
       }
+      // add to chains to be handled
+      _newChainsToHandle.push_back(chain);
+
+      continue;
     }
-    // add to chains to be handled
-    _newChainsToHandle.push_back(chain);
+    for (auto lhs : lhsIter(lit, _ord)) {
+      auto rhs = lit->isNegative() ? TypedTermList() : TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
+      auto length = lit->isNegative() ? 0 : 1;
+      auto chain = new Chain(lhs, lhs, rhs, length, /*isBase=*/true);
+      chain->origin = cl;
+
+      // associate chain with clause
+      ptr->push(chain);
+
+      // insert into indices
+      handleBaseChain(chain, /*insert=*/true);
+
+      if (lhs.isTerm()) {
+        // perform backward chaining: combine (result) l -> r and (query) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
+        for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/chain->length==0))) {
+          for (const auto& qr : iterTraits(_chainRHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+            _newChainsToHandle.push_back(combineChains(qr.data->chain, chain, t, *qr.unifier.ptr(), /*leftIsResult=*/true));
+          }
+        }
+      }
+      // add to chains to be handled
+      _newChainsToHandle.push_back(chain);
+    }
   }
 }
 
@@ -245,24 +277,24 @@ bool GoalReachabilityHandler::iterate()
 
     ASS(!curr->expanded);
 
-    if (forwardSimplify(curr)) {
-      DEBUG("forward simplified ", *curr);
-      env.statistics->forwardSimplifedChains++;
-      if (curr->isBase) {
-        handleBaseChain(curr, /*insert=*/false);
-        ASS(curr->origin);
-        ALWAYS(_chainMap.get(curr->origin).remove(curr));
-      }
-      delete curr;
-      continue;
-    }
+    // if (forwardSimplify(curr)) {
+    //   DEBUG("forward simplified ", *curr);
+    //   env.statistics->forwardSimplifedChains++;
+    //   if (curr->isBase) {
+    //     handleBaseChain(curr, /*insert=*/false);
+    //     ASS(curr->origin);
+    //     ALWAYS(_chainMap.get(curr->origin).remove(curr));
+    //   }
+    //   delete curr;
+    //   continue;
+    // }
 
     // 1. get unifications with non-goal rhss
     bool expand = false;
     DHSet<Clause*> reached;
     if (curr->lhs.isTerm()) {
 
-      if (curr->length == 0) {
+      if (curr->length == 0 && !curr->lhs.term()->isLiteral()) {
         for (const auto& qr : iterTraits(_nonGoalRHSIndex.getUnifications(curr->linearLhs.term(), /*retrieveSubstitutions=*/true))) {
           if (isReached(qr.data->clause, qr.data->term, curr->linearLhs.term(), curr, *qr.unifier.ptr(), /*goalIsResult=*/false)) {
             reached.insert(qr.data->clause);
@@ -357,34 +389,44 @@ GoalReachabilityHandler::GoalReachabilityHandler(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering()),
     _chainLimit(salg.getOptions().goalOrientedChainLimit()),
     _nonLinearityHandler(salg, *this)
-{}
+{
+  if (salg.getProblem().hasPolymorphicSym()) {
+    INVALID_OPERATION("polymorphism is not yet handled");
+  }
+}
 
 void GoalReachabilityHandler::addClause(Clause* cl)
 {
   DEBUG("addClause ", *cl);
-  auto lit = assertUnitEquality(cl);
+  // auto lit = assertUnitEquality(cl);
 
   // for now we must ensure that these hold
   ASS(_newSuperposableTerms.isEmpty());
   ASS(_newGoalClauses.isEmpty());
   // ASS(_newChainsToHandle.isEmpty());
 
-  if (lit->isNegative()) {
+  if (cl->getSelectedLiteralIterator().any([](Literal* lit) { return lit->isNegative(); })) {
+  // if (lit->isNegative()) {
     addGoalClause(cl);
     return;
   }
 
   DHSet<Chain*> toExpand;
 
-  for (const auto& lhs : lhsIter(lit, _ord)) {
-    TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
-    for (const auto& qr : iterTraits(_linearChainSubtermIndex.getUnifications(rhs, /*retrieveSubstitutions=*/true))) {
-      if (isReached(cl, rhs, qr.data->term, qr.data->chain, *qr.unifier.ptr(), /*goalIsResult=*/true)) {
-        addGoalClause(cl);
-        return;
-      }
-      if (!qr.data->chain->expanded) {
-        toExpand.insert(qr.data->chain);
+  for (const auto& lit : cl->getSelectedLiteralIterator()) {
+    if (!lit->isEquality()) {
+      continue;
+    }
+    for (const auto& lhs : lhsIter(lit, _ord)) {
+      TypedTermList rhs(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort());
+      for (const auto& qr : iterTraits(_linearChainSubtermIndex.getUnifications(rhs, /*retrieveSubstitutions=*/true))) {
+        if (isReached(cl, rhs, qr.data->item, qr.data->chain, *qr.unifier.ptr(), /*goalIsResult=*/true)) {
+          addGoalClause(cl);
+          return;
+        }
+        if (!qr.data->chain->expanded) {
+          toExpand.insert(qr.data->chain);
+        }
       }
     }
   }
@@ -448,7 +490,7 @@ Stack<Chain*> GoalReachabilityHandler::chainForward(Chain* chain)
   // forward: (query) l -> r and (result) s[r'] -> t into lσ -> tσ where σ = mgu(r,r')
   if (chain->rhs.isNonEmpty()) {
     for (const auto& qr : iterTraits(_nonlinearChainSubtermIndex.getUnifications(chain->rhs, /*retrieveSubstitutions=*/true))) {
-      res.push(combineChains(chain, qr.data->chain, qr.data->term, *qr.unifier.ptr(), /*leftIsResult=*/false));
+      res.push(combineChains(chain, qr.data->chain, qr.data->item, *qr.unifier.ptr(), /*leftIsResult=*/false));
     }
   }
 
@@ -458,13 +500,19 @@ Stack<Chain*> GoalReachabilityHandler::chainForward(Chain* chain)
 void GoalReachabilityHandler::handleNonGoalClause(Clause* cl, bool insert)
 {
   DEBUG("handling non-goal clause ", *cl, ", insert = ", insert);
-  auto lit = assertUnitEquality(cl);
+  // auto lit = assertUnitEquality(cl);
 
-  ASS(lit->isPositive());
+  // ASS(lit->isPositive());
   ASS(!cl->isGoalClause());
 
-  for (const auto& lhs : lhsIter(lit, _ord)) {
-    _nonGoalRHSIndex.handle({ TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()), lit, cl }, insert);
+  for (const auto& lit : cl->getSelectedLiteralIterator()) {
+    ASS(lit->isPositive());
+    if (!lit->isEquality()) {
+      continue;
+    }
+    for (const auto& lhs : lhsIter(lit, _ord)) {
+      _nonGoalRHSIndex.handle({ TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), lhs.sort()), lit, cl }, insert);
+    }
   }
   if (!insert) {
     _superposableTerms.remove(cl);
@@ -480,6 +528,7 @@ void GoalReachabilityHandler::handleBaseChain(Chain* chain, bool insert)
   }
 
   for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->lhs.term(), /*includeSelf=*/chain->length==0))) {
+    if (t->isLiteral()) { continue; }
     _nonlinearChainSubtermIndex.handle(TermChain{ t, chain }, insert);
   }
 
@@ -494,7 +543,7 @@ void GoalReachabilityHandler::handleChain(Chain* chain, bool expand, bool insert
     ASS(chain->lhs.isTerm());
     ASS(chain->linearLhs.isTerm());
 
-    if (chain->length == 0) {
+    if (chain->length == 0 && !chain->lhs.term()->isLiteral()) {
       _linearChainSubtermIndex.handle(TermChain{ chain->linearLhs.term(), chain }, insert);
     }
     SubtermIterator itO(chain->origLhs.term());
@@ -523,19 +572,19 @@ void GoalReachabilityHandler::handleChain(Chain* chain, bool expand, bool insert
       _chainRHSIndex.handle(TermChain{ chain->rhs, chain }, insert);
     }
   }
-  if (chain->rhs.isNonEmpty()) {
-    if (insert) {
-      _chainCodeTreeZero.insert(chain);
-    } else {
-      _chainCodeTreeZero.remove(chain);
-    }
-  } else {
-    if (insert) {
-      _chainCodeTreeOne.insert(chain);
-    } else {
-      _chainCodeTreeOne.remove(chain);
-    }
-  }
+  // if (chain->rhs.isNonEmpty()) {
+  //   if (insert) {
+  //     _chainCodeTreeZero.insert(chain);
+  //   } else {
+  //     _chainCodeTreeZero.remove(chain);
+  //   }
+  // } else {
+  //   if (insert) {
+  //     _chainCodeTreeOne.insert(chain);
+  //   } else {
+  //     _chainCodeTreeOne.remove(chain);
+  //   }
+  // }
 }
 
 void GoalReachabilityHandler::addSuperposableTerm(Clause* ngcl, Term* t)
@@ -554,27 +603,45 @@ GoalNonLinearityHandler::GoalNonLinearityHandler(SaturationAlgorithm& salg, Goal
   : ord(salg.getOrdering()),
     handler(handler),
     _lhsIndex(salg.getGeneratingIndex<SuperpositionLHSIndex>()),
-    _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex>()) {}
+    _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex>()),
+    _resolutionIndex(salg.getGeneratingIndex<BinaryResolutionIndex>()) {}
 
 void GoalNonLinearityHandler::addNonGoalClause(Clause* cl)
 {
   DEBUG("linearity addNonGoalClause ", *cl);
-  auto lit = assertUnitEquality(cl);
+  // auto lit = assertUnitEquality(cl);
   ASS(!cl->isGoalClause());
 
-  for (auto lhs : lhsIter(lit, ord)) {
-    if (lhs.isVar()) {
-      continue;
-    }
-    for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
-      // handle equality lhs
-      if (t == lhs && lit->isPositive()) {
-        for (const auto& qr : iterTraits(_nonLinearGoalTermIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-          perform(cl, qr.data->term, t, qr.data->chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/true);
+  for (const auto& lit : cl->getSelectedLiteralIterator()) {
+    if (!lit->isEquality()) {
+      if (lit->isPositive()) {
+        for (const auto& qr : iterTraits(_nonLinearGoalLiteralIndex.getUnifications(lit, /*complementary=*/true, /*retrieveSubstitutions=*/true))) {
+          // INVALID_OPERATION("non-equalities not yet handled");
+          perform(cl, typedLit(qr.data->item), typedLit(lit), qr.data->chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/true);
         }
       }
-      for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-        perform(cl, qr.data->term, t, qr.data->chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/true);
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(lit, /*includeSelf=*/false))) {
+        // handle equality lhs
+        for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+          perform(cl, qr.data->item, t, qr.data->chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/true);
+        }
+      }
+      continue;
+    }
+    for (auto lhs : lhsIter(lit, ord)) {
+      if (lhs.isVar()) {
+        continue;
+      }
+      for (const auto& t : iterTraits(NonVariableNonTypeIterator(lhs.term(), /*includeSelf=*/true))) {
+        // handle equality lhs
+        if (t == lhs && lit->isPositive()) {
+          for (const auto& qr : iterTraits(_nonLinearGoalTermIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+            perform(cl, qr.data->item, t, qr.data->chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/true);
+          }
+        }
+        for (const auto& qr : iterTraits(_nonLinearGoalLHSIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+          perform(cl, qr.data->item, t, qr.data->chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/true);
+        }
       }
     }
   }
@@ -588,15 +655,30 @@ void GoalNonLinearityHandler::handleChain(Chain* chain, bool insert)
     return;
   }
 
-  _nonLinearGoalLHSIndex.handle(TermChain{ chain->linearLhs, chain }, /*insert=*/insert);
+  const auto isLit = chain->linearLhs.term()->isLiteral();
 
-  if (insert) {
-    for (const auto& qr : iterTraits(_subtermIndex->getUnifications(chain->linearLhs, /*retrieveSubstitutions=*/true))) {
-      perform(qr.data->clause, chain->linearLhs, qr.data->term, chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/false);
+  if (isLit) {
+    auto lit = static_cast<Literal*>(chain->linearLhs.term());
+    ASS(lit->isNegative());
+    _nonLinearGoalLiteralIndex.handle(LiteralChain{ lit, chain }, /*insert=*/insert);
+
+    if (insert) {
+      for (const auto& qr : iterTraits(_resolutionIndex->getUnifications(lit, /*complementary=*/true, /*retrieveSubstitutions=*/true))) {
+        perform(qr.data->clause, typedLit(chain->linearLhs.term()), typedLit(qr.data->literal), chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/false);
+      }
+    }
+
+  } else {
+    _nonLinearGoalLHSIndex.handle(TermChain{ chain->linearLhs, chain }, /*insert=*/insert);
+
+    if (insert) {
+      for (const auto& qr : iterTraits(_subtermIndex->getUnifications(chain->linearLhs, /*retrieveSubstitutions=*/true))) {
+        perform(qr.data->clause, chain->linearLhs, qr.data->term, chain->constraints, *qr.unifier.ptr(), /*goalIsResult=*/false);
+      }
     }
   }
 
-  for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/true))) {
+  for (const auto& t : iterTraits(NonVariableNonTypeIterator(chain->linearLhs.term(), /*includeSelf=*/!isLit))) {
     _nonLinearGoalTermIndex.handle(TermChain{ t, chain }, /*insert=*/insert);
 
     if (insert) {
