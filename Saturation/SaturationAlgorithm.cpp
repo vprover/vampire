@@ -1058,6 +1058,9 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     case Clause::ACTIVE:
       _active->remove(cl);
       _goalReachabilityHandler->removeClause(cl);
+      if (cl->isGoalClauseSaturation()) {
+        cl->unmakeGoalClauseSaturation();
+      }
       break;
     default:
       ASS_REP2(false, cl->store(), *cl);

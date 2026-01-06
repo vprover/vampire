@@ -478,6 +478,8 @@ void GoalReachabilityHandler::removeClause(Clause* cl)
       }
       delete c;
     }
+    cl->unmakeGoalClause();
+
   } else {
     handleNonGoalClause(cl, /*insert=*/false);
   }

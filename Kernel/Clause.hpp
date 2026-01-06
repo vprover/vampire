@@ -376,13 +376,11 @@ public:
 
   bool isGoalClause() const { return _goalClause; }
   void makeGoalClause() { ASS(!_goalClause); _goalClause = true; }
-#if VDEBUG
-  // this is only used in testing
-  void unmakeGoalClause() { _goalClause = false; }
-#endif
+  void unmakeGoalClause() { ASS(_goalClause); _goalClause = false; }
 
   bool isGoalClauseSaturation() const { return _goalClauseSaturation; }
   void makeGoalClauseSaturation() { ASS(!_goalClauseSaturation); _goalClauseSaturation = true; }
+  void unmakeGoalClauseSaturation() { ASS(_goalClauseSaturation); _goalClauseSaturation = false; }
 
 protected:
   /** number of literals */
