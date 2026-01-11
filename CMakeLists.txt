@@ -108,6 +108,13 @@ if(GCC_OR_CLANG)
   endif()
 endif()
 
+include(${CMAKE_SOURCE_DIR}/cmake/CodeCoverage.cmake)
+setup_target_for_coverage_gcovr_html(
+  NAME coverage
+  EXECUTABLE ctest
+  EXECUTABLE_ARGS "-j6"
+  EXCLUDE "${PROJECT_SOURCE_DIR}/UnitTests" "${PROJECT_SOURCE_DIR}/cadical" "${PROJECT_SOURCE_DIR}/viras" "${PROJECT_SOURCE_DIR}/z3" "${PROJECT_SOURCE_DIR}/Test")
+
 # switch on coverage options per-compiler if desired
 option(COVERAGE "generate code coverage reports" OFF)
 if(COVERAGE)

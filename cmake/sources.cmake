@@ -62,7 +62,6 @@ set(UNIT_TESTS
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
-    UnitTests/tKBO.hpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
