@@ -53,9 +53,9 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   ClauseList* checkingClauses = getCheckingClauses();
 
-  ClauseIterator cit = pvi(concatIters(clauses,ClauseList::Iterator(checkingClauses)));
+  ClauseIterator cit = pvi(concatIters(std::move(clauses),ClauseList::Iterator(checkingClauses)));
 
-  Problem prb(cit,false);
+  Problem prb(std::move(cit),false);
   Options opt; // default saturation algorithm options
 
   Problem* inputProblem = env.getMainProblem();

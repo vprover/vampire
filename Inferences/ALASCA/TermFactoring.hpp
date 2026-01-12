@@ -44,12 +44,7 @@ public:
 
   ClauseIterator generateClauses(Clause* premise) final ;
 
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {  }
-#endif
-
 private:
-
                             Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
   template<class NumTraits> Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
 

@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "BinInf.hpp"
@@ -56,8 +55,6 @@ struct BinaryResolutionConf
              .filter([](auto x) { return x.literal()->isPositive(); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
-
-    static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE; }
   };
 
 
@@ -75,8 +72,6 @@ struct BinaryResolutionConf
              .filter([](auto x) { return !x.literal()->isPositive(); })
              .map([](auto x) { return Rhs(std::move(x)); });
     }
-
-    static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE; }
   };
 
   auto applyRule(

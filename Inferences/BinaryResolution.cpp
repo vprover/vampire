@@ -27,7 +27,6 @@
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -49,19 +48,13 @@ using namespace Saturation;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
-  ASS(!_index);
-
   GeneratingInferenceEngine::attach(salg);
-  _index=static_cast<BinaryResolutionIndex*> (
-	  _salg->getIndexManager()->request(BINARY_RESOLUTION_SUBST_TREE) );
+  _index = salg->getGeneratingIndex<BinaryResolutionIndex>();
 }
 
 void BinaryResolution::detach()
 {
-  ASS(_salg);
-
-  _index=0;
-  _salg->getIndexManager()->release(BINARY_RESOLUTION_SUBST_TREE);
+  _index = nullptr;
   GeneratingInferenceEngine::detach();
 }
 

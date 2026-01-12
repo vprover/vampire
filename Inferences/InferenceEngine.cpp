@@ -216,7 +216,7 @@ CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clau
   /* apply generations as until a redundancy is discovered */
   for (auto simpl : _simplifiers) {
     auto res = simpl->generateSimplify(cl);
-    clauses.push(res.clauses);
+    clauses.push(std::move(res.clauses));
     if (res.premiseRedundant) {
       redundant = true;
       break;

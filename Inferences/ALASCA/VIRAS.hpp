@@ -43,10 +43,6 @@ public:
 
   ClauseGenerationResult generateSimplify(Clause* premise) final ;
 
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {}
-#endif
-
 private:
   Option<ClauseGenerationResult> generateSimplify(IntTraits n, Clause* premise);
   template<class NumTraits>

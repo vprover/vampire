@@ -16,13 +16,6 @@
 #include "Test/TestUtils.hpp"
 #include "Test/GenerationTester.hpp"
 
-#include "Indexing/TermIndex.hpp"
-#include "Indexing/TermSubstitutionTree.hpp"
-#include "Indexing/LiteralIndex.hpp"
-#include "Indexing/LiteralSubstitutionTree.hpp"
-#include "Indexing/TermIndex.hpp"
-#include "Indexing/TermSubstitutionTree.hpp"
-
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 
@@ -39,25 +32,6 @@ using namespace Test::Generation;
 
 namespace InductionTest {
 
-LiteralIndex<LiteralClause>* comparisonIndex() {
-  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree<LiteralClause>());
-}
-
-TermIndex<TermLiteralClause>* intInductionIndex(const Options& opt) {
-  return new InductionTermIndex(new TermSubstitutionTree<TermLiteralClause>(), opt);
-}
-
-TermIndex<TermLiteralClause>* structInductionIndex(const Options& opt) {
-  return new StructInductionTermIndex(new TermSubstitutionTree<TermLiteralClause>(), opt);
-}
-
-auto getIndices() {
-  return TestIndices {
-    [](const SaturationAlgorithm&) { return comparisonIndex(); },
-    [](const SaturationAlgorithm& alg) { return intInductionIndex(alg.getOptions()); },
-    [](const SaturationAlgorithm& alg) { return structInductionIndex(alg.getOptions()); },
-  };
-}
 
 inline Clause* fromInduction(Clause* cl) {
   cl->inference().setInductionDepth(1);
@@ -321,7 +295,6 @@ TEST_FUN(test_tester6) {
 TEST_GENERATION_INDUCTION(test_01,
     Generation::AsymmetricTest()
       .options({ { "induction", "struct" } })
-      .indices(getIndices())
       .input( clause({  p(f(sK1,sK2)) }))
       .expected(none())
     )
@@ -330,7 +303,6 @@ TEST_GENERATION_INDUCTION(test_01,
 TEST_GENERATION_INDUCTION(test_02,
     Generation::AsymmetricTest()
       .options({ { "induction", "struct" } })
-      .indices(getIndices())
       .input( clause({  f(sK1,sK2) == g(sK1) }))
       .expected(none())
     )
@@ -339,7 +311,6 @@ TEST_GENERATION_INDUCTION(test_02,
 TEST_GENERATION_INDUCTION(test_03,
     Generation::AsymmetricTest()
       .options({ { "induction", "struct" } })
-      .indices(getIndices())
       .input( clause({  f(sK1,skx0) != g(sK1) }))
       .expected(none())
     )
@@ -348,7 +319,6 @@ TEST_GENERATION_INDUCTION(test_03,
 TEST_GENERATION_INDUCTION(test_04,
     Generation::AsymmetricTest()
       .options({ { "induction", "struct" } })
-      .indices(getIndices())
       .input( clause({  ~p(f(sK1,sK2)) }))
       .expected({
         clause({ ~p(f(b,sK2)), p(f(skx0,sK2)) }),
@@ -365,7 +335,6 @@ TEST_GENERATION_INDUCTION(test_05,
         { "induction", "struct" },
         { "structural_induction_kind", "two" }
       })
-      .indices(getIndices())
       .input( clause({  ~p(f(sK1,sK2)) }))
       .expected({
         clause({ skx0 != r(r0(skx0)), p(f(r0(skx0),sK2)) }),
@@ -382,7 +351,6 @@ TEST_GENERATION_INDUCTION(test_06,
       { "induction", "struct" },
       { "structural_induction_kind", "three" }
     })
-    .indices(getIndices())
     .input( clause({  ~p(f(sK1,sK2)) }))
     .expected({
       clause({ ~subterm_s(x,skx0), p(f(x,sK2)) }),
@@ -401,7 +369,6 @@ TEST_GENERATION_INDUCTION(test_06,
 // TEST_GENERATION_INDUCTION(test_06,
 //     Generation::AsymmetricTest()
 //       .options({ { "induction", "struct" }, { "structural_induction_kind", "three" } })
-//       .indices(getIndices())
 //       .input( clause({  f(sK1,sK2) != g(sK1) }))
 //       .expected({ })
 //     )
@@ -413,7 +380,6 @@ TEST_GENERATION_INDUCTION(test_07,
         { "induction_gen", "on" },
         { "induction", "struct" }
       })
-      .indices(getIndices())
       .input( clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,sK3))) }) )
       .expected({
         // sK1 100
@@ -473,7 +439,6 @@ TEST_GENERATION_INDUCTION(test_08,
         { "induction_on_complex_terms", "on" },
         { "induction", "struct" }
       })
-      .indices(getIndices())
       .input( clause({ f(f(g(sK1),f(sK2,sK3)),sK1) != g(f(sK1,f(sK2,g(sK1)))) }) )
       .expected({
         // sK1
@@ -525,7 +490,6 @@ TEST_GENERATION_INDUCTION(test_09,
         { "induction_neg_only", "off" },
         { "induction", "struct" }
       })
-      .indices(getIndices())
       .input( clause({  p(sK1) }))
       .expected({
         clause({ p(b), ~p(skx0), }),
@@ -540,7 +504,6 @@ TEST_GENERATION_INDUCTION(test_10,
         { "induction_neg_only", "off" },
         { "induction", "struct" }
       })
-      .indices(getIndices())
       .input( clause({  sK1 == g(sK1) }))
       .expected({
         clause({ b == g(b), skx0 != g(skx0), }),
@@ -555,7 +518,6 @@ TEST_GENERATION_INDUCTION(test_11,
         { "induction_unit_only", "off" },
         { "induction", "struct" }
       })
-      .indices(getIndices())
       .input( clause({  sK1 != g(sK1), p(g(sK2)), ~p(f(sK3,sK4)) }))
       .expected({
         // 1. literal sK1
@@ -582,7 +544,6 @@ TEST_GENERATION_INDUCTION(test_12,
         { "induction_unit_only", "off" },
         { "induction", "struct" }
       })
-      .indices(getIndices())
       .input( clause({  sK1 != g(sK1), sK2 != g(sK2) }))
       .expected({
         clause({ b != g(b), skx0 == g(skx0), sK2 != g(sK2) }),
@@ -598,7 +559,6 @@ TEST_GENERATION_INDUCTION(int_test_1,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ ~pi(sK6) }) )
       .expected({
         clause({ ~pi(1), ~(skx0 < num(1)) }),
@@ -615,7 +575,6 @@ TEST_GENERATION_INDUCTION(int_test_2,
         { "int_induction_interval", "infinite" }
       })
       .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
-      .indices(getIndices())
       .input( clause({ ~pi(sK6) }) )
       .expected({
         // upward induction
@@ -638,7 +597,6 @@ TEST_GENERATION_INDUCTION(int_test_3,
         { "int_induction_interval", "finite" }
       })
       .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
-      .indices(getIndices())
       .input( clause({ ~pi(sK6) }) )
       .expected({
         // upward induction
@@ -665,7 +623,6 @@ TEST_GENERATION_INDUCTION(int_test_4,
         { "int_induction_default_bound", "on" }
       })
       .context({ clause({ ~(sK6 < num(0)) }) })
-      .indices(getIndices())
       .input( clause({ ~pi(sK6) }) )
       .expected({
         // upward induction
@@ -690,7 +647,6 @@ TEST_GENERATION_INDUCTION(int_test_5,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~pi(sK6) }) })
-      .indices(getIndices())
       .input( clause({ ~(sK6 < num(1)) }) )
       .expected({
         clause({ ~pi(1), ~(skx0 < num(1)) }),
@@ -704,7 +660,6 @@ TEST_GENERATION_INDUCTION(int_test_6,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~pi(sK6) }), clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ sK6 < bi }) )
       .expected({
         // infinite induction
@@ -726,7 +681,6 @@ TEST_GENERATION_INDUCTION(int_test_7,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ ~pi(1) }) )
       .expected(none())
     )
@@ -742,7 +696,6 @@ TEST_GENERATION_INDUCTION(int_test_8,
         { "int_induction_strictness_term", "none" }
       })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ ~pi(1) }) )
       .expected({
         clause({ ~pi(sK6), ~(sK6 < skx0) }),
@@ -762,7 +715,6 @@ TEST_GENERATION_INDUCTION(int_test_9,
         { "int_induction_strictness_comp", "none" },
       })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ ~(bi < sK6) }) )
       .expected({
         // input used as main literal
@@ -784,7 +736,6 @@ TEST_GENERATION_INDUCTION(int_test_10,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ ~(bi < gi(sK6)) }) )
       .expected({
         clause({ ~(bi < gi(1)), ~(skx0 < num(1)) }),
@@ -800,7 +751,6 @@ TEST_GENERATION_INDUCTION(int_test_11,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ ~(bi < sK6) }) )
       .expected(none())
     )
@@ -812,7 +762,6 @@ TEST_GENERATION_INDUCTION(int_test_12,
     Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ bi != sK6 }) )
       .expected({
         clause({ bi != num(1), ~(skx0 < num(1)) }),
@@ -833,7 +782,6 @@ TEST_GENERATION_INDUCTION(int_test_13,
         { "int_induction_strictness_term", "none" }
       })
       .context({ clause({ ~(sK6 < num(1)) }) })
-      .indices(getIndices())
       .input( clause({ bi != sK6 }) )
       .expected(none())
     )
@@ -846,7 +794,6 @@ TEST_GENERATION_INDUCTION(int_test_14,
       { "int_induction_interval", "finite" }
     })
     .context({ clause({ ~(sK6 < bi) }), clause({ ~(bi < sK6) }) })
-    .indices(getIndices())
     .input( clause({ ~pi(sK6) }) )
     .expected(none())
   )
@@ -860,7 +807,6 @@ TEST_GENERATION_INDUCTION(int_test_15,
       { "induction_strengthen_hypothesis", "on" }
     })
     .context({ clause({ ~(sK6 < sK7) }) })
-    .indices(getIndices())
     .input( clause({ fi(sK6,sK1) != fi(sK6,sK2) }) )
     .expected({
       clause({ fi(sK7,skx0) != fi(sK7,skx1), ~(skx2 < sK7) }),
@@ -876,7 +822,6 @@ TEST_GENERATION_INDUCTION(test_26,
         { "induction", "struct" },
         { "induction_strengthen_hypothesis", "on" }
       })
-      .indices(getIndices())
       .input( clause({ f(sK1,sK2) != g(sK3) }) )
       .expected({
         // sK1
@@ -901,7 +846,6 @@ TEST_GENERATION_INDUCTION(test_27,
         { "structural_induction_kind", "two" },
         { "induction_strengthen_hypothesis", "on" }
       })
-      .indices(getIndices())
       .input( clause({ f(sK1,sK2) != g(sK3) }) )
       .expected({
         // sK1
@@ -926,7 +870,6 @@ TEST_GENERATION_INDUCTION(test_28,
         { "non_unit_induction", "on" }
       })
       .context({ clause({ p(sK1) })})
-      .indices(getIndices())
       .input( clause({ sK2 != g(f(sK1,sK1)) }))
       .expected({
         // sK2
@@ -959,7 +902,6 @@ TEST_GENERATION_INDUCTION(test_29,
         fromInduction(clause({ p(g(sK3)) })),
         fromInduction(clause({ ~p(f(sK4,sK3)) }))
       })
-      .indices(getIndices())
       .input( fromInduction(clause({ ~p(f(g(sK3),f(sK4,sK3))) })) )
       .expected({
         // g(sK3) multiple literals
@@ -1011,7 +953,6 @@ TEST_GENERATION_INDUCTION(test_30,
       .context({
         fromInduction(clause({ ~p(g(g(sK3))) }))
       })
-      .indices(getIndices())
       .input( fromInduction(clause({ ~p(g(sK3)) })) )
       .expected({
         // g(sK3) given clause
@@ -1040,7 +981,6 @@ TEST_GENERATION_INDUCTION(test_31,
         { "induction", "struct" },
         { "non_unit_induction", "on" },
       })
-      .indices(getIndices())
       .input( clause({ ~p(sK1), ~p1(sK1) }) )
       .expected({
         // sK1, first literal
@@ -1071,7 +1011,6 @@ TEST_GENERATION_INDUCTION(test_32,
         { "non_unit_induction", "on" }
       })
       .context({ clause({ p(sK1) }) })
-      .indices(getIndices())
       .input( clause({ ~p(sK1) }) )
       .expected({
         // sK1, given clause
@@ -1089,7 +1028,6 @@ TEST_GENERATION_INDUCTION(test_33,
         { "non_unit_induction", "on" },
       })
       .context({ clause({ sK1 == sK2 }) })
-      .indices(getIndices())
       .input( clause({ ~p(f(sK1,sK1)) }) )
       .expected({
         // sK1, given clause 01
@@ -1162,7 +1100,6 @@ TEST_GENERATION_INDUCTION(test_34,
         { "induction", "struct" },
         { "structural_induction_kind", "recursion" },
       })
-      .indices(getIndices())
       .input( clause({ ~p(sK1) }) )
       .expected({
         clause({ ~p(b), ~p(r(b)), p(skx0) }),
@@ -1178,7 +1115,6 @@ TEST_GENERATION_INDUCTION(test_35,
         { "induction", "struct" },
         { "structural_induction_kind", "recursion" },
       })
-      .indices(getIndices())
       .input( clause({ f(sK1,sK2) != g(sK2) }) )
       .expected({
         clause({ f(b,skx0) != g(skx0), f(skx1,skx1) == g(skx1), f(skx2,g(skx3)) == g(g(skx3)) }),
@@ -1200,7 +1136,6 @@ TEST_GENERATION_INDUCTION(test_36,
         { "induction", "struct" },
         { "induction_on_active_occurrences", "on" },
       })
-      .indices(getIndices())
       .input( clause({ h(h(sK1,sK2),f(sK3,sK4)) != g(sK4) }) )
       .expected({
         clause({ h(h(b,sK2),f(sK3,sK4)) != g(sK4), h(h(skx0,sK2),f(sK3,sK4)) == g(sK4) }),
@@ -1224,7 +1159,6 @@ TEST_GENERATION_INDUCTION(test_37,
         { "induction_on_active_occurrences", "on" },
         { "induction_gen", "on" },
       })
-      .indices(getIndices())
       .input( clause({ h(h(sK1,sK1),sK1) != g(sK1) }) )
       .expected({
         clause({ h(h(b,sK1),sK1) != g(b), h(h(skx0,sK1),sK1) == g(skx0) }),
@@ -1252,7 +1186,6 @@ TEST_GENERATION_INDUCTION(test_38,
         { "induction", "struct" },
         { "induction_ground_only", "off" }
       })
-      .indices(getIndices())
       .input( clause({  ~p(f(sK1,x3)) }))
       .expected({
         clause({ ~p(f(b,x4)), p(f(skx0,skx1)) }),
@@ -1268,7 +1201,6 @@ TEST_GENERATION_INDUCTION(test_39,
         { "induction_ground_only", "off" },
         { "induction_unit_only", "off" }
       })
-      .indices(getIndices())
       .input( clause({  ~p(f(sK1,z)), f(z,y) != x }))
       .expected({
         clause({ ~p(f(b,x)), p(f(skx0,skx1)), f(skx2,z) != x3 }),
@@ -1286,7 +1218,6 @@ TEST_GENERATION_INDUCTION(test_40,
         { "non_unit_induction", "on" }
       })
       .context({ clause({ p(h(sK1,y)), ~p(y), p(f(x,z)) }) })
-      .indices(getIndices())
       .input( clause({  ~p(f(sK1,z)), f(z,y) != x }))
       .expected({
         // only input clause

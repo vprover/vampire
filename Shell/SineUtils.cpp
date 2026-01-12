@@ -543,7 +543,7 @@ void SineTheorySelector::updateDefRelation(Unit* u)
 
   static Stack<SymId> symIds;
   symIds.reset();
-  symIds.loadFromIterator(sit0);
+  symIds.loadFromIterator(std::move(sit0));
 
   Stack<SymId>::Iterator sit(symIds);
 

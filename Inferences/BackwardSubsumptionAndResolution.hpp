@@ -48,7 +48,7 @@ private:
   bool _srByUnitsOnly;
 
   /// @brief Backward index for subsumption and subsumption resolution candidates
-  Indexing::BackwardSubsumptionIndex *_bwIndex;
+  std::shared_ptr<Indexing::BackwardSubsumptionIndex> _bwIndex;
   /// @brief SAT-based subsumption and subsumption resolution engine
   SATSubsumption::SATSubsumptionAndResolution _satSubs;
   /// @brief Set of clauses that have already been checked for subsumption and/or subsumption resolution

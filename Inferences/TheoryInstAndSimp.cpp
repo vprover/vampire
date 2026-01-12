@@ -930,10 +930,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
-  auto it2 = TIME_TRACE_ITER(THEORY_INST_SIMP, it1);
+  auto it2 = TIME_TRACE_ITER(THEORY_INST_SIMP, std::move(it1));
 
   // we need to strictily evaluate the iterator to
-  auto clauses =  getPersistentIterator(it2);
+  auto clauses =  getPersistentIterator(std::move(it2));
 
   if (premiseRedundant && _thiTautologyDeletion) {
     return ClauseGenerationResult {
@@ -942,7 +942,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     };
   } else {
     return ClauseGenerationResult {
-      .clauses          = clauses,
+      .clauses          = std::move(clauses),
       .premiseRedundant = false,
     };
   }

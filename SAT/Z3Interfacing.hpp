@@ -204,8 +204,7 @@ public:
   Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
   SATLiteralStack failedAssumptions() override;
 
-  // TODO do something more useful here: should now be possible
-  SATClauseList *minimizePremises(SATClauseList *premises) override { return premises; }
+  SATClauseList *minimizePremises(SATClauseList *premises) override;
 
   template<class F>
   auto scoped(F f)  -> decltype(f())
@@ -319,7 +318,7 @@ public:
   };
 
 
-  Representation getRepresentation(Term* trm);
+  z3::expr getRepresentation(Term* trm);
   Representation getRepresentation(SATLiteral lit);
   Representation getRepresentation(SATClause* cl);
 

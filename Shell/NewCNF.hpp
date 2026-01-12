@@ -63,7 +63,8 @@ class NewCNF
 {
 public:
   NewCNF(unsigned namingThreshold)
-    : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
+    : _namingThreshold(namingThreshold),
+      _iteInliningThreshold(namingThreshold ? (unsigned)ceil(log2(namingThreshold)) : 0),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
   void clausify(FormulaUnit* unit, Stack<Clause*>& output, Substitution* subst = nullptr);

@@ -165,12 +165,6 @@ public:
           generateClauses<FourierMotzkin::Rhs>(premise)
     ));
   }
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
-  { }
-#endif
-    
 };
 
 } // namespace ALASCA 
