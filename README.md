@@ -1,3 +1,6 @@
+[![License: BSD](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+![CI](https://github.com/vprover/vampire/workflows/CI/badge.svg)
+
 # Vampire
 This is the main source repository of the [Vampire](https://vprover.github.io) project, an advanced tool for automated reasoning.
 The following is for end-users of Vampire: new developers should read the [wiki](https://github.com/vprover/vampire/wiki) as well.
