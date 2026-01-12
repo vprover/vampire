@@ -290,13 +290,7 @@ public:
     p.addUnits(ul);
     env.setMainProblem(&p);
 
-    delete env.options;
-    env.options = new Options;
-    for (const auto& kv : _options) {
-      env.options->set(kv.first, kv.second);
-    }
-    env.options->resolveAwayAutoValues0();
-    env.options->resolveAwayAutoValues(p);
+    resetAndFillEnvOptions(Option<OptionMap>(_options), p);
     MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });

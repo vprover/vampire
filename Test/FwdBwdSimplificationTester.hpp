@@ -28,28 +28,6 @@
 
 namespace Test {
 
-  /** removes consecutive duplicates. instead of the operator== the given predicate is used */
-  template<class A, class Equal>
-  void dedup(Stack<A>& self, Equal eq)
-{ 
-    if (self.size() == 0) return;
-    unsigned offs = 0;
-    for (unsigned i = 1;  i < self.size(); i++) {
-      if (eq(self[offs], self[i])) {
-        /* skip */
-      } else {
-        self[offs++ + 1] = std::move(self[i]);
-      }
-    }
-    self.pop(self.size() - (offs + 1));
-  }
-
-  /** removes consecutive duplicates */
-  template<class A>
-  void dedup(Stack<A>& self)
-  { dedup(self, [](auto const& l, auto const& r) { return l == r; }); }
-
-
 namespace FwdBwdSimplification {
 class TestCase;
 
@@ -59,7 +37,6 @@ class FwdBwdSimplificationTester
   Rule _rule;
 
 public:
-
   FwdBwdSimplificationTester(Rule rule) 
     : _rule(std::move(rule)) 
   {  }
@@ -73,8 +50,6 @@ public:
 class TestCase
 {
   using Clause = Kernel::Clause;
-
-  
 
   void testFail(std::string const& test, Lib::Exception& e) 
   {
@@ -100,20 +75,19 @@ class TestCase
   }
 
 public:
-
   BUILDER_METHOD(TestCase, Stack<Clause*>, simplifyWith)
   BUILDER_METHOD(TestCase, Stack<Clause*>, toSimplify  )
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, expected)
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, justifications)
   BUILDER_METHOD(TestCase, ForwardSimplificationEngine* , fwd)
   BUILDER_METHOD(TestCase, BackwardSimplificationEngine*, bwd)
+  BUILDER_METHOD(TestCase, OptionMap, options)
 
   void runFwd() 
   {
     Problem p;
-    Options o;
-    o.resolveAwayAutoValues(p);
-    MockedSaturationAlgorithm alg(p, o);
+    resetAndFillEnvOptions(options(), p);
+    MockedSaturationAlgorithm alg(p, *env.options);
     // set up clause container and indexing structure
     auto container = alg.getSimplifyingClauseContainer();
 
@@ -149,7 +123,6 @@ public:
     }
     justifications.sort();
     justifications.dedup();
-    // dedup(justifications);
     fwd.detach();
     Ordering::unsetGlobalOrdering();
 
@@ -172,9 +145,8 @@ public:
   void runBwd() 
   {
     Problem p;
-    Options o;
-    o.resolveAwayAutoValues(p);
-    MockedSaturationAlgorithm alg(p, o);
+    resetAndFillEnvOptions(options(), p);
+    MockedSaturationAlgorithm alg(p, *env.options);
     // set up clause container and indexing structure
     auto container = alg.getSimplifyingClauseContainer();
 
@@ -188,7 +160,7 @@ public:
     }
 
     // simplify using every clause in simplifyWith.unwrap()
-    Stack<Clause*> results; //= toSimplify().unwrap();
+    ClauseStack results; //= toSimplify().unwrap();
     auto simplifyWith = this->simplifyWith().unwrap();
     for (auto cl : simplifyWith) {
       Inferences::BwSimplificationRecordIterator simpls;
