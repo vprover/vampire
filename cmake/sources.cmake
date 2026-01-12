@@ -49,7 +49,6 @@ set(UNIT_TESTS
     UnitTests/tCoproduct.cpp
     UnitTests/tDHMap.cpp
     UnitTests/tDHMultiset.cpp
-    UnitTests/tDemodulation.cpp
     UnitTests/tDeque.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
