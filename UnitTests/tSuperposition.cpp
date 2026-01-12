@@ -22,6 +22,7 @@ using namespace Test;
  */
 #define MY_SYNTAX_SUGAR                                                                                       \
   DECL_DEFAULT_VARS                                                                                           \
+  DECL_VAR(u, 3)                                                                                              \
   DECL_SORT(s)                                                                                                \
   DECL_FUNC(f, {s, s}, s)                                                                                     \
   DECL_FUNC(g, {s}, s)                                                                                        \
@@ -46,21 +47,21 @@ TEST_GENERATION(test_01,
 TEST_GENERATION(test_02,
     Generation::SymmetricTest()
       .inputs({ clause({ selected(f(f(x,y),z) == x) }) })
-      .expected({ clause({ f(x,y) == f(x,z) }) })
+      .expected(exactly(clause({ f(x,y) == f(x,z) })))
     )
 
 // superposition from variable
 TEST_GENERATION(test_03,
     Generation::SymmetricTest()
       .inputs({
-        clause({ selected(x == a), p(y) }),
+        clause({ selected(x == a), p(y), f(y,z) == g(z) }),
         clause({ selected(f(x,y) == g(z)) }),
       })
       .selfApplications(false)
-      .expected({
-        clause({ a == g(x), p(y) }),
-        clause({ f(x,y) == a, p(z) })
-      })
+      .expected(exactly(
+        clause({ a == g(x), p(y), f(y,z) == g(z) }),
+        clause({ f(x,y) == a, p(z), f(z,u) == g(u) })
+      ))
     )
 
 // superposition from variable is not performed due to variable in predicate
@@ -137,9 +138,7 @@ TEST_GENERATION(test_10,
         clause({ selected(~p(f(x,y))), q(f(x,y)) }),
       })
       .selfApplications(false)
-      .expected({
-        clause({ ~p(y), q(y), g(x) == y })
-      })
+      .expected(exactly(clause({ ~p(y), q(y), g(x) == y })))
     )
 
 // non-simultaneous superposition
@@ -151,10 +150,81 @@ TEST_GENERATION(test_11,
       })
       .options({ { "simultaneous_superposition", "off" } })
       .selfApplications(false)
-      .expected({
-        clause({ ~p(y), q(f(x,y)), g(x) == y })
-      })
+      .expected(exactly(clause({ ~p(y), q(f(x,y)), g(x) == y })))
     )
 
+// superposition not performed due to trivial equality in superposed-from clause
+TEST_GENERATION(test_12,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(g(x) == x), x == a }),
+        clause({ selected(~p(g(a))) }),
+      })
+      .selfApplications(false)
+      .expected(none())
+    )
+
+// superposition not performed due to trivial equality in superposed-into clause
+TEST_GENERATION(test_13,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(g(a) == a) }),
+        clause({ selected(~p(g(x))), x == a }),
+      })
+      .selfApplications(false)
+      .expected(none())
+    )
+
+// superposition performed despite maximality aftercheck in superposed-into clause
+TEST_GENERATION(test_14,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(f(b,a) == g(a)) }),
+        clause({ selected(f(x,y) != x), selected(f(y,x) != y) }),
+      })
+      .selfApplications(false)
+      .expected(exactly(
+        clause({ g(a) != b, f(b,a) != a }),
+        clause({ g(a) != b, f(b,a) != a })
+      ))
+    )
+
+// superposition not performed due to maximality aftercheck in superposed-into clause
+TEST_GENERATION(test_15,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(f(a,b) == g(a)) }),
+        clause({ selected(f(x,y) != x), selected(f(y,x) != y) }),
+      })
+      .selfApplications(false)
+      .expected(none())
+    )
+
+// superposition performed despite maximality aftercheck in superposed-from clause
+TEST_GENERATION(test_16,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(f(x,y) == x), selected(f(y,x) == y) }),
+        clause({ selected(~p(f(b,a))) }),
+      })
+      .selfApplications(false)
+      .expected(exactly(
+        clause({ ~p(b), f(a,b) == a }),
+        clause({ ~p(b), f(a,b) == a })
+      ))
+    )
+
+// superposition not performed due to maximality aftercheck in superposed-from clause
+TEST_GENERATION(test_17,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(f(x,y) == x), selected(f(y,x) == y) }),
+        clause({ selected(~p(f(a,b))) }),
+      })
+      .selfApplications(false)
+      .expected(none())
+    )
+
+// TODO
+// superposition with colors
 // superposition only into bigger side of the equation
-// superposition maximality aftercheck
