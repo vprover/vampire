@@ -111,12 +111,18 @@ endif()
 # switch on coverage options per-compiler if desired
 option(COVERAGE "generate code coverage reports" OFF)
 if(COVERAGE)
+  message(STATUS "Coverage is enabled")
   if(GCC_OR_CLANG)
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
     set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --coverage)
     set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
   endif()
   include(${CMAKE_SOURCE_DIR}/cmake/CodeCoverage.cmake)
+
+  message(STATUS "Removing previous coverage data")
+  file(GLOB_RECURSE GCDA_FILES ${CMAKE_BINARY_DIR}/*.gcda)
+  file(REMOVE ${GCDA_FILES})
+
   setup_target_for_coverage_gcovr_html(
     NAME coverage
     EXECUTABLE ctest

@@ -45,6 +45,7 @@ set(UNIT_TESTS
     UnitTests/tArithCompare.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tBinaryHeap.cpp
+    UnitTests/tBinaryResolution.cpp
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
     UnitTests/tDHMap.cpp
