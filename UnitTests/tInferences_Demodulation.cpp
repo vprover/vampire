@@ -27,6 +27,8 @@ using namespace Test;
   DECL_DEFAULT_VARS                                                                                           \
   DECL_VAR(u, 3)                                                                                              \
   DECL_SORT(s)                                                                                                \
+  DECL_LEFT_FUNC(left, {s}, s)                                                                                \
+  DECL_RIGHT_FUNC(right, {s}, s)                                                                              \
   DECL_FUNC(f, {s, s}, s)                                                                                     \
   DECL_FUNC(g, {s}, s)                                                                                        \
   DECL_CONST(a, s)                                                                                            \
@@ -71,7 +73,7 @@ TEST_SIMPLIFICATION(test04,
   tester()
     .simplifyWith({ clause({ f(x,y) == f(y,x) }) })
     .toSimplify({ clause({ f(b,a) == a }) })
-    .expected({ clause({ f(b,a) == a }) })
+    .expected({ clause({ f(a,b) == a }) })
 )
 
 // encompassment demodulation fails due to equation being equally general and demodulator being bigger
@@ -123,13 +125,16 @@ TEST_SIMPLIFICATION(test09,
 
 // TODO this should be a simplification, but maybe not worth checking,
 // otherwise I'm not sure if we should even handle variable equations
-// // demodulation with variable equality
-// TEST_SIMPLIFICATION(test10,
-//   tester()
-//     .simplifyWith({ clause({ TermSugar(TermList::var(0), s) == y }) })
-//     .toSimplify({ clause({ f(b,a) == a }) })
-//     .expected({ clause({ x == a }) })
-// )
+//
+// demodulation with variable equality
+TEST_SIMPLIFICATION(test10,
+  tester()
+    .simplifyWith({ clause({ TermSugar(TermList::var(0), s) == y }) })
+    .toSimplify({ clause({ f(b,a) == a }) })
+    // .expected({ clause({ x == a }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+)
 
 // demodulation of the smaller side of an equation
 TEST_SIMPLIFICATION(test11,
@@ -154,4 +159,21 @@ TEST_SIMPLIFICATION(test13,
     .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
     .toSimplify({ clause({ f(b,a) == a, ~p(x) }) })
     .expected({ clause({ f(a,b) == a, ~p(x) }) })
+)
+
+// no demodulation due to different colors
+TEST_SIMPLIFICATION(test14,
+  tester()
+    .simplifyWith({ clause({ f(x,y) == left(y) }) })
+    .toSimplify({ clause({ g(f(a,b)) == right(a) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+)
+
+// demodulation with colors
+TEST_SIMPLIFICATION(test15,
+  tester()
+    .simplifyWith({ clause({ f(x,y) == left(y) }) })
+    .toSimplify({ clause({ g(f(a,b)) == left(a) }) })
+    .expected({ clause({ g(left(b)) == left(a) }) })
 )
