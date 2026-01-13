@@ -60,15 +60,6 @@ public:
     } while (latest != last);
     return latest;
   }
-
-  /** 
-   * OPTIONAL: override how equality between clauses is checked. 
-   * Defaults to TestUtils::eqModAC(Clause*, Clause*).
-   */
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const override
-  {
-    return TestUtils::eqModAC(lhs, rhs);
-  }
 };
 
 /**

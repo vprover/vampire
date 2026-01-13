@@ -43,24 +43,27 @@ set(UNIT_TESTS
     UnitTests/tALASCA_VariableElimination.cpp
     UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
     UnitTests/tArithCompare.cpp
-    UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tBinaryHeap.cpp
-    UnitTests/tBinaryResolution.cpp
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
     UnitTests/tDHMap.cpp
     UnitTests/tDHMultiset.cpp
-    UnitTests/tDemodulation.cpp
     UnitTests/tDeque.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
-    UnitTests/tEqualityResolution.cpp
-    UnitTests/tForwardGroundJoinability.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
-    UnitTests/tFunctionDefinitionRewriting.cpp
-    UnitTests/tGaussianElimination.cpp
     UnitTests/tIndexManager.cpp
-    UnitTests/tInduction.cpp
+    UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
+    UnitTests/tInferences_BinaryResolution.cpp
+    UnitTests/tInferences_Demodulation.cpp
+    UnitTests/tInferences_EqualityResolution.cpp
+    UnitTests/tInferences_ForwardGroundJoinability.cpp
+    UnitTests/tInferences_FunctionDefinitionRewriting.cpp
+    UnitTests/tInferences_GaussianVariableElimination.cpp
+    UnitTests/tInferences_Induction.cpp
+    UnitTests/tInferences_InferenceEngine.cpp
+    UnitTests/tInferences_PushUnaryMinus.cpp
+    UnitTests/tInferences_Superposition.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
@@ -69,7 +72,6 @@ set(UNIT_TESTS
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
     UnitTests/tOptionConstraints.cpp
-    UnitTests/tPushUnaryMinus.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tRebalance.cpp
@@ -79,7 +81,6 @@ set(UNIT_TESTS
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
-    UnitTests/tSuperposition.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
@@ -96,7 +97,7 @@ set(UNIT_TESTS
 # unit tests (only if Z3 enabled)
 ################################################################
 set(UNIT_TESTS_Z3
-    UnitTests/tTheoryInstAndSimp.cpp
+    UnitTests/tInferences_TheoryInstAndSimp.cpp
     UnitTests/tZ3Interfacing.cpp
 )
 
