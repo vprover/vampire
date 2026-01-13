@@ -710,14 +710,6 @@ inline Clause* clause(Stack<Lit> ls)
 inline Clause* clause(std::initializer_list<Lit> ls) 
 { return clause(Stack<Lit>(ls)); }
 
-inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
-  auto out = Stack<Clause*>();
-  for (auto cl : cls) {
-    out.push(clause(cl));
-  }
-  return out;
-}
-
 inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
   // avoid redeclaration
   if (env.signature->isTermAlgebraSort(sort.sugaredExpr())) {
