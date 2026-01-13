@@ -64,6 +64,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_PushUnaryMinus.cpp
     UnitTests/tInferences_Superposition.cpp
+    UnitTests/tInferences_TautologyDeletionISE.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
