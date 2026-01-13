@@ -171,7 +171,9 @@ public:
         testFail("bwd", e); 
       }
       for (auto simpl : iterTraits(std::move(simpls))) {
-        results.push(simpl.replacement);
+        if (simpl.replacement) {
+          results.push(simpl.replacement);
+        }
       }
     }
     bwd.detach();

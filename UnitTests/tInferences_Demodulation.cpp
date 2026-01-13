@@ -120,3 +120,38 @@ TEST_SIMPLIFICATION(test09,
     .justifications({ /* nothing */ })
     .options({ { "term_ordering", "lpo" }, { "backward_demodulation", "preordered" }, { "forward_demodulation", "preordered" } });
 )
+
+// TODO this should be a simplification, but maybe not worth checking,
+// otherwise I'm not sure if we should even handle variable equations
+// // demodulation with variable equality
+// TEST_SIMPLIFICATION(test10,
+//   tester()
+//     .simplifyWith({ clause({ TermSugar(TermList::var(0), s) == y }) })
+//     .toSimplify({ clause({ f(b,a) == a }) })
+//     .expected({ clause({ x == a }) })
+// )
+
+// demodulation of the smaller side of an equation
+TEST_SIMPLIFICATION(test11,
+  tester()
+    .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
+    .toSimplify({ clause({ g(f(x,b)) == f(b,a) }) })
+    .expected({ clause({ g(f(x,b)) == f(a,b) }) })
+)
+
+// demodulation results in equational tautology
+TEST_SIMPLIFICATION(test12,
+  tester()
+    .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
+    .toSimplify({ clause({ g(f(b,a)) == g(f(a,b)) }) })
+    .expected({ /* nothing */ })
+    .justifications({ clause({ f(b,a) == f(a,b) }) })
+)
+
+// demodulation into non-unit clause
+TEST_SIMPLIFICATION(test13,
+  tester()
+    .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
+    .toSimplify({ clause({ f(b,a) == a, ~p(x) }) })
+    .expected({ clause({ f(a,b) == a, ~p(x) }) })
+)

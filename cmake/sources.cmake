@@ -57,6 +57,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_BinaryResolution.cpp
     UnitTests/tInferences_Demodulation.cpp
     UnitTests/tInferences_EqualityResolution.cpp
+    UnitTests/tInferences_Factoring.cpp
     UnitTests/tInferences_ForwardGroundJoinability.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
