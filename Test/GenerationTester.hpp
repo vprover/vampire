@@ -26,7 +26,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Test/ClausePattern.hpp"
 #include "Kernel/Problem.hpp"
-#include "Shell/Options.hpp"
+#include "UnitTesting.hpp"
 #include "Lib/STL.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
 

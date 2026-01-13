@@ -8,15 +8,12 @@
  * and in the source directory
  */
 #include "Test/AlascaTestUtils.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/Cancellation.hpp"
 
-#include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"

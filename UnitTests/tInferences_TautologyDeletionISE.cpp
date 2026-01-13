@@ -7,21 +7,15 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-
 #include "Test/SyntaxSugar.hpp"
-#include "Test/GenerationTester.hpp"
+#include "Inferences/TautologyDeletionISE.hpp"
 
-#include "Inferences/BinaryResolution.hpp"
+#include "Test/SimplificationTester.hpp"
 
 using namespace Test;
 
-/**
- * NECESSARY: We need to tell the tester which syntax sugar to import for creating terms & clauses.
- * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
- */
 #define MY_SYNTAX_SUGAR                                                                                       \
   DECL_DEFAULT_VARS                                                                                           \
-  DECL_VAR(u, 3)                                                                                              \
   DECL_SORT(s)                                                                                                \
   DECL_FUNC(f, {s, s}, s)                                                                                     \
   DECL_FUNC(g, {s}, s)                                                                                        \
@@ -30,24 +24,34 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
 
-REGISTER_GEN_TESTER(Generation::GenerationTester<BinaryResolution>(BinaryResolution()))
+REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<TautologyDeletionISE>)
 
-// binary resolution with selected literals
-TEST_GENERATION(test_01,
-    Generation::SymmetricTest()
-      .inputs({
-        clause({ selected(p(x)), f(x,y) == x  }),
-        clause({ selected(~p(g(x))), ~q(x) })
-      })
-      .expected(exactly(clause({ f(g(x),y) == g(x), ~q(x) })))
+TEST_SIMPLIFY(test01,
+    Simplification::Success()
+      .input(clause({ f(x,y) == g(x) }))
+      .expected(clause({ f(x,y) == g(x) }))
     )
 
-// no binary resolution with equalities
-TEST_GENERATION(test_02,
-    Generation::SymmetricTest()
-      .inputs({
-        clause({ selected(g(x) == x), f(x,y) == x  }),
-        clause({ selected(g(x) != x), ~q(x) })
-      })
-      .expected(none())
+TEST_SIMPLIFY(test02,
+    Simplification::Success()
+      .input(clause({ p(x) }))
+      .expected(clause({ p(x) }))
+    )
+
+TEST_SIMPLIFY(test03,
+    Simplification::Success()
+      .input(clause({ f(x,y) == f(x,y) }))
+      .expected(Simplification::Redundant{})
+    )
+
+TEST_SIMPLIFY(test04,
+    Simplification::Success()
+      .input(clause({ p(x), ~p(y) }))
+      .expected(clause({ p(x), ~p(y) }))
+    )
+
+TEST_SIMPLIFY(test05,
+    Simplification::Success()
+      .input(clause({ p(x), ~p(x) }))
+      .expected(Simplification::Redundant{})
     )

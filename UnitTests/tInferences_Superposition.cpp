@@ -7,8 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/GenerationTester.hpp"
 
@@ -26,10 +24,12 @@ using namespace Test;
   DECL_SORT(s)                                                                                                \
   DECL_FUNC(f, {s, s}, s)                                                                                     \
   DECL_FUNC(g, {s}, s)                                                                                        \
+  DECL_LEFT_FUNC(left, {s}, s)                                                                                \
+  DECL_RIGHT_FUNC(right, {s}, s)                                                                              \
   DECL_CONST(a, s)                                                                                            \
   DECL_CONST(b, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
-  DECL_PRED (q, {s})                                                                                          \
+  DECL_PRED (q, {s})
 
 REGISTER_GEN_TESTER(Generation::GenerationTester<Inferences::Superposition>(Superposition()))
 
@@ -225,6 +225,35 @@ TEST_GENERATION(test_17,
       .expected(none())
     )
 
-// TODO
-// superposition with colors
-// superposition only into bigger side of the equation
+// superposition not performed due to rewriting smaller side of equality
+TEST_GENERATION(test_18,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(f(a,b) == a) }),
+        clause({ selected(g(f(x,y)) != g(f(y,x))) }),
+      })
+      .selfApplications(false)
+      .expected(none())
+    )
+
+// superposition not performed due to different colors
+TEST_GENERATION(test_19,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(g(left(x)) == x) }),
+        clause({ selected(f(g(x),y) != right(x)) }),
+      })
+      .selfApplications(false)
+      .expected(none())
+    )
+
+// superposition performed with colors
+TEST_GENERATION(test_20,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(g(left(x)) == x) }),
+        clause({ selected(f(g(x),y) != left(x)) }),
+      })
+      .selfApplications(false)
+      .expected(exactly(clause({ f(x,y) != left(left(x)) })))
+    )
