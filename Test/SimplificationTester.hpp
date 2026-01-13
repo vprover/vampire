@@ -36,17 +36,25 @@ public:
   { return TestUtils::eqModAC(lhs, rhs); }
 };
 
+template<typename T>
+class RuleSimplificationTester
+  : public SimplificationTester
+{
+  T _rule;
+public:
+  Kernel::Clause* simplify(Kernel::Clause* cl) override
+  { return _rule.simplify(cl); }
+};
+
 class Redundant { };
 
 // TODO use builder pattern macros from GenerationTester here
 class Success
 {
-  Kernel::Clause* _input;
+  Kernel::Clause* _input = nullptr;
   Option<Coproduct<ClausePattern, Redundant>> _expected;
 
 public:
-  Success() : _input(nullptr) {}
-
   Success input(Kernel::Clause* x) 
   {
     _input = x;
@@ -101,18 +109,15 @@ class NotApplicable
 {
   Kernel::Clause* _input;
 public:
-  NotApplicable() {}
-
   NotApplicable input(Kernel::Clause* x) 
   {
     _input = x;
     return *this;
   }
 
-
   void run(SimplificationTester& simpl) {
     auto res = simpl.simplify(_input);
-    if (res != _input ) {
+    if (res != _input) {
       std::cout  << std::endl;
       std::cout << "[     case ]: " << pretty(*_input) << std::endl;
       std::cout << "[       is ]: " << pretty(*res) << std::endl;
@@ -137,8 +142,6 @@ class NotApplicableMany
 {
   Kernel::Clause* _input;
 public:
-  NotApplicableMany() {}
-
   NotApplicableMany input(Kernel::Clause* x)
   {
     _input = x;
@@ -161,12 +164,10 @@ public:
 
 class SuccessMany
 {
-  Kernel::Clause* _input;
+  Kernel::Clause* _input = nullptr;
   Option<StackMatcher> _expected;
 
 public:
-  SuccessMany() : _input(nullptr) {}
-
   SuccessMany input(Kernel::Clause* x)
   {
     _input = x;

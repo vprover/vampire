@@ -9,15 +9,10 @@
  */
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/TautologyDeletion.hpp"
-#include "Inferences/InferenceEngine.hpp"
-#include "Kernel/ALASCA/State.hpp"
 #include "Test/UnitTesting.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Inferences/GaussianVariableElimination.hpp"
+#include "Inferences/LfpRule.hpp"
 
-#include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SimplificationTester.hpp"
 
 using namespace std;
@@ -28,7 +23,6 @@ using namespace Test;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST UNIT INITIALIZATION
 /////////////////////////////////////
-
 
 /** 
  * NECESSARY: We need a subclass of SimplificationTester
@@ -44,13 +38,8 @@ public:
     , _rule(lfpISE(tupleISE(ALASCA::Normalization(_state), Rule(_state))))
   { }
 
-  virtual Kernel::Clause* simplify(Kernel::Clause* in) override 
+  Kernel::Clause* simplify(Kernel::Clause* in) override 
   { return _rule.simplify(in); }
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const override
-  {
-    return TestUtils::eqModAC(lhs, rhs);
-  }
 };
 
 REGISTER_SIMPL_TESTER(AlascaSimplTester<ALASCA::TautologyDeletion>)
