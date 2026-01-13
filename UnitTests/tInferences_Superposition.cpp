@@ -184,8 +184,8 @@ TEST_GENERATION(test_14,
       })
       .selfApplications(false)
       .expected(exactly(
-        clause({ g(a) != b, f(b,a) != a }),
-        clause({ g(a) != b, f(b,a) != a })
+        clause({ g(a) != b, f(a,b) != a }),
+        clause({ g(a) != b, f(a,b) != a })
       ))
     )
 
