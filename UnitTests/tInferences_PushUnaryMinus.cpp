@@ -7,13 +7,10 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Inferences/PushUnaryMinus.hpp"
-
-#include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SimplificationTester.hpp"
+
+#include "Inferences/PushUnaryMinus.hpp"
 
 using namespace std;
 using namespace Kernel;

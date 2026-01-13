@@ -13,7 +13,6 @@
 #include "Lib/BitUtils.hpp"
 // TODO rename to theory test
 #include "Kernel/Theory.hpp"
-#include "Lib/Int.hpp"
 
 #include "Test/UnitTesting.hpp"
 

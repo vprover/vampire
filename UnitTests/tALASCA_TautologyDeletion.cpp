@@ -9,7 +9,6 @@
  */
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/TautologyDeletion.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/LfpRule.hpp"
 

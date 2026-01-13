@@ -11,7 +11,6 @@
 #include "Inferences/ProofExtra.hpp"
 #include "Kernel/Inference.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
 #include "Test/SimplificationTester.hpp"

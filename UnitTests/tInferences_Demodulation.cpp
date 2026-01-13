@@ -12,7 +12,6 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 
-#include "Test/UnitTesting.hpp"
 #include "Test/FwdBwdSimplificationTester.hpp"
 
 using namespace std;
@@ -33,13 +32,13 @@ using namespace Test;
   DECL_CONST(a, s)                                                                                            \
   DECL_CONST(b, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
-  DECL_PRED (q, {s})                                                                                          \
+  DECL_PRED (q, {s})
 
 inline auto tester() {
   return FwdBwdSimplification::TestCase()
     .fwd(new ForwardDemodulation())
     .bwd(new BackwardDemodulation())
-    .options({ { "term_ordering", "lpo" }}); // use LPO as KBO fails due to caching things in terms 
+    .options({ { "term_ordering", "lpo" } }); // use LPO as KBO fails due to caching things in terms
 }
 
 // demodulation with preordered equation
@@ -58,11 +57,66 @@ TEST_SIMPLIFICATION(test02,
     .expected({ clause({ ~p(f(a,b)) }) })
 )
 
-// TODO find out why this fails
-// // demodulation fails with postordered equation
-// TEST_SIMPLIFICATION(test03,
-//   tester()
-//     .simplifyWith({ clause({ f(x,y) == f(y,x) }) })
-//     .toSimplify({ clause({ ~p(f(a,b)) }) })
-//     .expected({ /*nothing*/ })
-// )
+// demodulation fails with postordered equation
+TEST_SIMPLIFICATION(test03,
+  tester()
+    .simplifyWith({ clause({ f(x,y) == f(y,x) }) })
+    .toSimplify({ clause({ ~p(f(a,b)) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+)
+
+// encompassment demodulation
+TEST_SIMPLIFICATION(test04,
+  tester()
+    .simplifyWith({ clause({ f(x,y) == f(y,x) }) })
+    .toSimplify({ clause({ f(b,a) == a }) })
+    .expected({ clause({ f(b,a) == a }) })
+)
+
+// encompassment demodulation fails due to equation being equally general and demodulator being bigger
+TEST_SIMPLIFICATION(test05,
+  tester()
+    .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
+    .toSimplify({ clause({ f(b,a) == a }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+)
+
+// drc=ordering fails due to other side being smaller than the terms we demodulate into
+TEST_SIMPLIFICATION(test06,
+  tester()
+    .simplifyWith({ clause({ f(a,b) == a }) })
+    .toSimplify({ clause({ f(a,b) == b }) })
+    .expected({ clause({ a == b }) })
+    .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "ordering" } });
+)
+
+// drc=ordering fails due to other side being smaller than the terms we demodulate into
+TEST_SIMPLIFICATION(test07,
+  tester()
+    .simplifyWith({ clause({ f(x,y) == f(y,x) }) })
+    .toSimplify({ clause({ f(b,a) == a }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+    .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "ordering" } });
+)
+
+// drc=ordering does not care about ordering of equations
+TEST_SIMPLIFICATION(test08,
+  tester()
+    .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
+    .toSimplify({ clause({ f(b,a) == a }) })
+    .expected({ clause({ f(a,b) == a }) })
+    .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "off" } });
+)
+
+// non-preordered equation is not used with bd/fd=preordered
+TEST_SIMPLIFICATION(test09,
+  tester()
+    .simplifyWith({ clause({ f(x,y) == f(y,x) }) })
+    .toSimplify({ clause({ p(f(b,a)) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+    .options({ { "term_ordering", "lpo" }, { "backward_demodulation", "preordered" }, { "forward_demodulation", "preordered" } });
+)
