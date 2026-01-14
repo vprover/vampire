@@ -123,11 +123,18 @@ if(COVERAGE)
   file(GLOB_RECURSE GCDA_FILES ${CMAKE_BINARY_DIR}/*.gcda)
   file(REMOVE ${GCDA_FILES})
 
+  # set(GCOVR_ADDITIONAL_ARGS "--exclude-throw-branches")
   setup_target_for_coverage_gcovr_html(
     NAME coverage
     EXECUTABLE ctest
     EXECUTABLE_ARGS "-j6"
-    EXCLUDE "${PROJECT_SOURCE_DIR}/UnitTests" "${PROJECT_SOURCE_DIR}/cadical" "${PROJECT_SOURCE_DIR}/viras" "${PROJECT_SOURCE_DIR}/z3" "${PROJECT_SOURCE_DIR}/Test")
+    EXCLUDE "${PROJECT_SOURCE_DIR}/CASC"
+      "${PROJECT_SOURCE_DIR}/Debug"
+      "${PROJECT_SOURCE_DIR}/UnitTests"
+      "${PROJECT_SOURCE_DIR}/Test"
+      "${PROJECT_SOURCE_DIR}/cadical"
+      "${PROJECT_SOURCE_DIR}/viras"
+      "${PROJECT_SOURCE_DIR}/z3")
 endif()
 
 ################################################################
