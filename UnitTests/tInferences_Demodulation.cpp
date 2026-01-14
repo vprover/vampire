@@ -36,6 +36,8 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})
 
+namespace DemodulationTester {
+
 inline auto tester() {
   return FwdBwdSimplification::TestCase()
     .fwd(new ForwardDemodulation())
@@ -177,3 +179,5 @@ TEST_SIMPLIFICATION(test15,
     .toSimplify({ clause({ g(f(a,b)) == left(a) }) })
     .expected({ clause({ g(left(b)) == left(a) }) })
 )
+
+}
