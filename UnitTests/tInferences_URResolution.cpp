@@ -11,7 +11,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Test/GenerationTester.hpp"
 
-#include "Inferences/BinaryResolution.hpp"
+#include "Inferences/URResolution.hpp"
 
 using namespace Test;
 
@@ -30,48 +30,51 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
 
-REGISTER_GEN_TESTER(Generation::GenerationTester<BinaryResolution>(BinaryResolution()))
+REGISTER_GEN_TESTER(Generation::GenerationTester<URResolution<false>>(URResolution<false>()))
 
-// binary resolution with selected literals
+// simple resolution
 TEST_GENERATION(test01,
     Generation::SymmetricTest()
       .inputs({
-        clause({ selected(p(x)), f(x,y) == x  }),
-        clause({ selected(~p(g(x))), ~q(x) })
+        clause({ p(x), f(x,y) == x }),
+        clause({ ~p(g(x)) })
       })
-      .expected(exactly(clause({ f(g(x),y) == g(x), ~q(x) })))
+      .options({ { "unit_resulting_resolution", "full" } })
+      .expected(exactly(clause({ f(g(x),y) == g(x) })))
     )
 
-// no binary resolution with equalities
+// no resolution due to result not being unit
 TEST_GENERATION(test02,
     Generation::SymmetricTest()
       .inputs({
-        clause({ selected(g(x) == x), f(x,y) == x  }),
-        clause({ selected(g(x) != x), ~q(x) })
+        clause({ p(x), f(x,y) == x }),
+        clause({ ~p(g(x)), ~q(x) })
       })
+      .options({ { "unit_resulting_resolution", "full" } })
       .expected(none())
     )
 
-// no resolution due to maximality check in left premise
+// resolution with multiple clauses
 TEST_GENERATION(test03,
     Generation::SymmetricTest()
       .inputs({
-        clause({ selected(p(f(x,b))), selected(p(f(b,x)))  }),
-        clause({ selected(~p(f(a,x))), ~q(x) })
+        clause({ f(g(a),b) != g(a) }),
+        clause({ p(x) }),
+        clause({ ~p(g(x)), ~q(x), f(x,y) == x })
       })
-      // sadly the default is based on frequency which changes in
-      // the second round due to sharing
-      .options({ { "symbol_precedence", "occurrence" }})
-      .expected(none())
+      .options({ { "unit_resulting_resolution", "full" } })
+      .expected(exactly(clause({ ~q(g(a)) })))
     )
 
-// no resolution due to maximality check in right premise
+// resolution with multiple clauses resulting in empty clause
 TEST_GENERATION(test04,
     Generation::SymmetricTest()
       .inputs({
-        clause({ selected(p(f(x,b))), ~q(x) }),
-        clause({ selected(~p(f(a,x))), selected(p(f(x,a))) })
+        clause({ q(g(y)) }),
+        clause({ f(g(a),b) != g(a) }),
+        clause({ p(x) }),
+        clause({ ~p(g(x)), ~q(x), f(x,y) == x })
       })
-      .options({ { "symbol_precedence", "occurrence" }})
-      .expected(none())
+      .options({ { "unit_resulting_resolution", "ec_only" } })
+      .expected(exactly(clause({ })))
     )

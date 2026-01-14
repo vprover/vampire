@@ -36,7 +36,7 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})
 
-namespace DemodulationTester {
+namespace {
 
 inline auto tester() {
   return FwdBwdSimplification::TestCase()

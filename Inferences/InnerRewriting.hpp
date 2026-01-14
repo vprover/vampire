@@ -25,11 +25,17 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
+// TODO this should be an immediate simplification
 class InnerRewriting
-: public ForwardSimplificationEngine
+: public ImmediateSimplificationEngine
 {
 public:
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  InnerRewriting(const Ordering& ord) : _ord(ord) {}
+
+  Clause* simplify(Clause* cl) override;
+
+private:
+  const Ordering& _ord;
 };
 
 };

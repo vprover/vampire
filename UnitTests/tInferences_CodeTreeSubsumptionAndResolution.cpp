@@ -58,7 +58,7 @@ using namespace Test;
     DECL_PRED(r2, {s, s}) \
   )
 
-namespace CodeTreeForwardSubsumptionAndResolutionTest {
+namespace {
 
 inline auto tester() {
   return FwdBwdSimplification::TestCase()

@@ -41,7 +41,6 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
-    UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tBottomUpEvaluation.cpp
@@ -53,22 +52,28 @@ set(UNIT_TESTS
     UnitTests/tDynamicHeap.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tIndexManager.cpp
+    UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
     UnitTests/tInferences_BinaryResolution.cpp
     UnitTests/tInferences_CodeTreeSubsumptionAndResolution.cpp
+    UnitTests/tInferences_Condensation.cpp
     UnitTests/tInferences_Demodulation.cpp
+    UnitTests/tInferences_EqualityFactoring.cpp
     UnitTests/tInferences_EqualityResolution.cpp
     UnitTests/tInferences_Factoring.cpp
+    UnitTests/tInferences_FastCondensation.cpp
     UnitTests/tInferences_ForwardGroundJoinability.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
+    UnitTests/tInferences_InnerRewriting.cpp
     UnitTests/tInferences_PushUnaryMinus.cpp
     UnitTests/tInferences_SubsumptionDemodulation.cpp
     UnitTests/tInferences_SubsumptionAndResolution.cpp
     UnitTests/tInferences_Superposition.cpp
     UnitTests/tInferences_TautologyDeletionISE.cpp
+    UnitTests/tInferences_URResolution.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp

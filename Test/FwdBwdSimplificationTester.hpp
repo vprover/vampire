@@ -30,23 +30,6 @@
 namespace Test {
 
 namespace FwdBwdSimplification {
-class TestCase;
-
-template<class Rule>
-class FwdBwdSimplificationTester
-{
-  Rule _rule;
-
-public:
-  FwdBwdSimplificationTester(Rule rule) 
-    : _rule(std::move(rule)) 
-  {  }
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const 
-  { return TestUtils::eqModAC(lhs, rhs); }
-
-  friend class TestCase;
-};
 
 class TestCase
 {

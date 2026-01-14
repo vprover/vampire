@@ -1465,7 +1465,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (mayHaveEquality) {
     if (!alascaTakesOver) { // in alasca we have a special equality factoring rule
-      gie->addFront(new EqualityFactoring());
+      gie->addFront(new EqualityFactoring(AbstractionOracle::createOnlyHigherOrder(), opt.unificationWithAbstractionFixedPointIteration()));
     }
     gie->addFront(new EqualityResolution());
     if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
@@ -1486,9 +1486,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
     if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
-      gie->addFront(new URResolution</*synthesis=*/true>(opt.unitResultingResolution() == Options::URResolution::FULL));
+      gie->addFront(new URResolution</*synthesis=*/true>());
     } else {
-      gie->addFront(new URResolution</*synthesis=*/false>(opt.unitResultingResolution() == Options::URResolution::FULL));
+      gie->addFront(new URResolution</*synthesis=*/false>());
     }
   }
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
@@ -1611,9 +1611,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create simplification engine
 
   // create forward simplification engine
-  if (mayHaveEquality && opt.innerRewriting()) {
-    res->addForwardSimplifierToFront(new InnerRewriting());
-  }
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
   }
@@ -1803,5 +1800,12 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     // Note: SynthesisAnswerLiteralProcessor must be THE LAST added simplification-many rule.
     resMany.addFront(std::make_unique<SynthesisAnswerLiteralProcessor>());
   }
+
+  // This was earlier at the beginning of forward simplifications,
+  // so let's put it for now to the end of immediate simplifications
+  if (mayHaveEquality && opt.innerRewriting()) {
+    res->addFront(new InnerRewriting(ordering));
+  }
+
   return std::make_pair(res, std::move(resMany));
 }
