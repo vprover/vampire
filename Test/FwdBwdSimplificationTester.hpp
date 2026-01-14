@@ -192,7 +192,14 @@ public:
   void run() 
   {
     runFwd();
+    if (fwd().isSome()) {
+      delete fwd().unwrap();
+    }
+
     runBwd();
+    if (bwd().isSome()) {
+      delete bwd().unwrap();
+    }
   }
 
   template<class A>
