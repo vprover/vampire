@@ -1486,9 +1486,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
     if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
-      gie->addFront(new URResolution</*synthesis=*/true>(opt.unitResultingResolution() == Options::URResolution::FULL));
+      gie->addFront(new URResolution</*synthesis=*/true>());
     } else {
-      gie->addFront(new URResolution</*synthesis=*/false>(opt.unitResultingResolution() == Options::URResolution::FULL));
+      gie->addFront(new URResolution</*synthesis=*/false>());
     }
   }
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {

@@ -32,8 +32,6 @@ class URResolution
 : public GeneratingInferenceEngine
 {
 public:
-  URResolution(bool full);
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 

@@ -69,6 +69,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_SubsumptionAndResolution.cpp
     UnitTests/tInferences_Superposition.cpp
     UnitTests/tInferences_TautologyDeletionISE.cpp
+    UnitTests/tInferences_URResolution.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
