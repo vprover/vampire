@@ -55,6 +55,7 @@ set(UNIT_TESTS
     UnitTests/tIndexManager.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
     UnitTests/tInferences_BinaryResolution.cpp
+    UnitTests/tInferences_CodeTreeSubsumptionAndResolution.cpp
     UnitTests/tInferences_Demodulation.cpp
     UnitTests/tInferences_EqualityResolution.cpp
     UnitTests/tInferences_Factoring.cpp
@@ -64,6 +65,8 @@ set(UNIT_TESTS
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_PushUnaryMinus.cpp
+    UnitTests/tInferences_SubsumptionDemodulation.cpp
+    UnitTests/tInferences_SubsumptionAndResolution.cpp
     UnitTests/tInferences_Superposition.cpp
     UnitTests/tInferences_TautologyDeletionISE.cpp
     UnitTests/tIntegerConstantType.cpp
