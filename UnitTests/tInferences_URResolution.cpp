@@ -33,10 +33,10 @@ using namespace Test;
 REGISTER_GEN_TESTER(Generation::GenerationTester<URResolution<false>>(URResolution<false>()))
 
 // simple resolution
-TEST_GENERATION(test_01,
+TEST_GENERATION(test01,
     Generation::SymmetricTest()
       .inputs({
-        clause({ p(x), f(x,y) == x  }),
+        clause({ p(x), f(x,y) == x }),
         clause({ ~p(g(x)) })
       })
       .options({ { "unit_resulting_resolution", "full" } })
@@ -44,12 +44,37 @@ TEST_GENERATION(test_01,
     )
 
 // no resolution due to result not being unit
-TEST_GENERATION(test_02,
+TEST_GENERATION(test02,
     Generation::SymmetricTest()
       .inputs({
-        clause({ p(x), f(x,y) == x  }),
+        clause({ p(x), f(x,y) == x }),
         clause({ ~p(g(x)), ~q(x) })
       })
       .options({ { "unit_resulting_resolution", "full" } })
       .expected(none())
+    )
+
+// resolution with multiple clauses
+TEST_GENERATION(test03,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ f(g(a),b) != g(a) }),
+        clause({ p(x) }),
+        clause({ ~p(g(x)), ~q(x), f(x,y) == x })
+      })
+      .options({ { "unit_resulting_resolution", "full" } })
+      .expected(exactly(clause({ ~q(g(a)) })))
+    )
+
+// resolution with multiple clauses resulting in empty clause
+TEST_GENERATION(test04,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ q(g(y)) }),
+        clause({ f(g(a),b) != g(a) }),
+        clause({ p(x) }),
+        clause({ ~p(g(x)), ~q(x), f(x,y) == x })
+      })
+      .options({ { "unit_resulting_resolution", "ec_only" } })
+      .expected(exactly(clause({ })))
     )

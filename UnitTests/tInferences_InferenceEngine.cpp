@@ -7,6 +7,7 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+#include "Kernel/Clause.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/InferenceEngine.hpp"
 
@@ -29,9 +30,8 @@ namespace DuplicateLiteralRemovalISETest {
 REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<DuplicateLiteralRemovalISE>)
 
 TEST_SIMPLIFY(dlr_test01,
-    Simplification::Success()
+    Simplification::NotApplicable()
       .input(clause({ p(a) }))
-      .expected(clause({ p(a) }))
     )
 
 TEST_SIMPLIFY(dlr_test02,
@@ -41,15 +41,13 @@ TEST_SIMPLIFY(dlr_test02,
     )
 
 TEST_SIMPLIFY(dlr_test03,
-    Simplification::Success()
+    Simplification::NotApplicable()
       .input(clause({ p(a), q(b) }))
-      .expected(clause({ p(a), q(b) }))
     )
 
 TEST_SIMPLIFY(dlr_test04,
-    Simplification::Success()
+    Simplification::NotApplicable()
       .input(clause({ p(x), p(y) }))
-      .expected(clause({ p(x), p(y) }))
     )
 
 TEST_SIMPLIFY(dlr_test05,
@@ -63,6 +61,17 @@ TEST_SIMPLIFY(dlr_test06,
       .input(clause({ p(a), ~p(a), ~p(a), p(a), q(b) }))
       .expected(clause({ p(a), ~p(a), q(b) }))
     )
+
+TEST_SIMPLIFY(dlr_test07,
+    Simplification::NotApplicable()
+      .input(clause({ p(a), f(x,y) == x, q(b) }))
+    )
+
+TEST_SIMPLIFY(dlr_test08,
+    Simplification::Success()
+      .input(clause({ f(x,y) == x, f(x,y) == x, q(b) }))
+      .expected((clause({ f(x,y) == x, q(b) })))
+    )
 }
 
 namespace TrivialInequalitiesRemovalISETest {
@@ -70,21 +79,18 @@ namespace TrivialInequalitiesRemovalISETest {
 REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<TrivialInequalitiesRemovalISE>)
 
 TEST_SIMPLIFY(tir_test01,
-    Simplification::Success()
+    Simplification::NotApplicable()
       .input(clause({ a == b }))
-      .expected(clause({ a == b }))
     )
 
 TEST_SIMPLIFY(tir_test02,
-    Simplification::Success()
+    Simplification::NotApplicable()
       .input(clause({ a != b }))
-      .expected(clause({ a != b }))
     )
 
 TEST_SIMPLIFY(tir_test03,
-    Simplification::Success()
+    Simplification::NotApplicable()
       .input(clause({ a == a }))
-      .expected(clause({ a == a }))
     )
 
 TEST_SIMPLIFY(tir_test04,

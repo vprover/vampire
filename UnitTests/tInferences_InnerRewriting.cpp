@@ -56,8 +56,8 @@ REGISTER_SIMPL_TESTER(InnerRewritingTester)
 // inner rewriting with preordered equation
 TEST_SIMPLIFY(test01,
   Simplification::Success()
-    .input(clause({  ~p(f(x,y)), f(x,y) != x }))
-    .expected(clause({  ~p(x), f(x,y) != x }))
+    .input(clause({ ~p(f(x,y)), f(x,y) != x, q(y) }))
+    .expected(clause({ ~p(x), f(x,y) != x, q(y) }))
   )
 
 // inner rewriting fails with postordered equation
@@ -69,20 +69,20 @@ TEST_SIMPLIFY(test02,
 // inner rewriting not performed with positive equations
 TEST_SIMPLIFY(test03,
   Simplification::Success()
-    .input(clause({  ~p(f(x,y)), f(x,y) == x }))
-    .expected(clause({  ~p(f(x,y)), f(x,y) == x }))
+    .input(clause({ ~p(f(x,y)), f(x,y) == x }))
+    .expected(clause({ ~p(f(x,y)), f(x,y) == x }))
   )
 
 // inner rewriting to tautology
 TEST_SIMPLIFY(test04,
   Simplification::Success()
-    .input(clause({  g(f(x,y)) == g(x), f(x,y) != x }))
+    .input(clause({ g(f(x,y)) == g(x), f(x,y) != x }))
     .expected(Simplification::Redundant{})
   )
 
 // inner rewriting to tautology after rewriting a non-tautological literal
 TEST_SIMPLIFY(test05,
   Simplification::Success()
-    .input(clause({  p(f(x,y)), g(f(x,y)) == g(x), f(x,y) != x }))
+    .input(clause({ q(z), p(f(x,y)), g(f(x,y)) == g(x), f(x,y) != x }))
     .expected(Simplification::Redundant{})
   )

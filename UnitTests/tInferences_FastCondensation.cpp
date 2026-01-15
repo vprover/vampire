@@ -28,9 +28,8 @@ REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<Condensation>)
 
 // nothing happens with one literal
 TEST_SIMPLIFY(test01,
-    Simplification::Success()
+    Simplification::NotApplicable()
       .input(clause({  f(x) == a }))
-      .expected(clause({ f(x) == a }))
     )
 
 // condensation happens with two literals
