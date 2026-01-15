@@ -214,6 +214,8 @@ add_library(common OBJECT ${SOURCES})
 # the actual Vampire executable
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
 
+install(TARGETS vampire)
+
 ################################################################
 # UNIT TESTING
 ################################################################
