@@ -33,7 +33,7 @@ using namespace Test;
 REGISTER_GEN_TESTER(Generation::GenerationTester<BinaryResolution>(BinaryResolution()))
 
 // binary resolution with selected literals
-TEST_GENERATION(test_01,
+TEST_GENERATION(test01,
     Generation::SymmetricTest()
       .inputs({
         clause({ selected(p(x)), f(x,y) == x  }),
@@ -43,11 +43,35 @@ TEST_GENERATION(test_01,
     )
 
 // no binary resolution with equalities
-TEST_GENERATION(test_02,
+TEST_GENERATION(test02,
     Generation::SymmetricTest()
       .inputs({
         clause({ selected(g(x) == x), f(x,y) == x  }),
         clause({ selected(g(x) != x), ~q(x) })
       })
+      .expected(none())
+    )
+
+// no resolution due to maximality check in left premise
+TEST_GENERATION(test03,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(p(f(x,b))), selected(p(f(b,x)))  }),
+        clause({ selected(~p(f(a,x))), ~q(x) })
+      })
+      // sadly the default is based on frequency which changes in
+      // the second round due to sharing
+      .options({ { "symbol_precedence", "occurrence" }})
+      .expected(none())
+    )
+
+// no resolution due to maximality check in right premise
+TEST_GENERATION(test04,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(p(f(x,b))), ~q(x) }),
+        clause({ selected(~p(f(a,x))), selected(p(f(x,a))) })
+      })
+      .options({ { "symbol_precedence", "occurrence" }})
       .expected(none())
     )

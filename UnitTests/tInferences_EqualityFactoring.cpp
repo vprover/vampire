@@ -41,5 +41,5 @@ TEST_GENERATION(test01,
 TEST_GENERATION(test02,
   Generation::AsymmetricTest()
     .input( clause({  f(f(x)) == x, f(y) == y, selected(g(x) == x), p(y) }))
-    .expected({ /* nothing */ })
+    .expected(none())
   )
