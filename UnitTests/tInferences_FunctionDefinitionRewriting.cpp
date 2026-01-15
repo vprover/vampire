@@ -19,7 +19,7 @@ using namespace Test;
 
 REGISTER_GEN_TESTER(Generation::GenerationTester<FunctionDefinitionRewriting>(FunctionDefinitionRewriting()))
 
-namespace FunctionDefinitionRewritingTest {
+namespace {
 
 /**
  * NECESSARY: We need to tell the tester which syntax sugar to import for creating terms & clauses.

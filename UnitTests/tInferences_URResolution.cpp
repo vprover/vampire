@@ -43,12 +43,13 @@ TEST_GENERATION(test_01,
       .expected(exactly(clause({ f(g(x),y) == g(x) })))
     )
 
-// // no binary resolution with equalities
-// TEST_GENERATION(test_02,
-//     Generation::SymmetricTest()
-//       .inputs({
-//         clause({ selected(g(x) == x), f(x,y) == x  }),
-//         clause({ selected(g(x) != x), ~q(x) })
-//       })
-//       .expected(none())
-//     )
+// no resolution due to result not being unit
+TEST_GENERATION(test_02,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ p(x), f(x,y) == x  }),
+        clause({ ~p(g(x)), ~q(x) })
+      })
+      .options({ { "unit_resulting_resolution", "full" } })
+      .expected(none())
+    )

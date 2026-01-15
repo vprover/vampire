@@ -1611,9 +1611,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create simplification engine
 
   // create forward simplification engine
-  if (mayHaveEquality && opt.innerRewriting()) {
-    res->addForwardSimplifierToFront(new InnerRewriting());
-  }
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
   }
@@ -1803,5 +1800,12 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     // Note: SynthesisAnswerLiteralProcessor must be THE LAST added simplification-many rule.
     resMany.addFront(std::make_unique<SynthesisAnswerLiteralProcessor>());
   }
+
+  // This was earlier at the beginning of forward simplifications,
+  // so let's put it for now to the end of immediate simplifications
+  if (mayHaveEquality && opt.innerRewriting()) {
+    res->addFront(new InnerRewriting(ordering));
+  }
+
   return std::make_pair(res, std::move(resMany));
 }
