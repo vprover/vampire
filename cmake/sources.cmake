@@ -58,6 +58,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_CodeTreeSubsumptionAndResolution.cpp
     UnitTests/tInferences_Condensation.cpp
     UnitTests/tInferences_Demodulation.cpp
+    UnitTests/tInferences_EqualityFactoring.cpp
     UnitTests/tInferences_EqualityResolution.cpp
     UnitTests/tInferences_Factoring.cpp
     UnitTests/tInferences_FastCondensation.cpp

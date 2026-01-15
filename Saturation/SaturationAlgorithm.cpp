@@ -1465,7 +1465,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (mayHaveEquality) {
     if (!alascaTakesOver) { // in alasca we have a special equality factoring rule
-      gie->addFront(new EqualityFactoring());
+      gie->addFront(new EqualityFactoring(AbstractionOracle::createOnlyHigherOrder(), opt.unificationWithAbstractionFixedPointIteration()));
     }
     gie->addFront(new EqualityResolution());
     if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule

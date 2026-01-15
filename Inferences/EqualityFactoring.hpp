@@ -18,6 +18,8 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/UnificationWithAbstraction.hpp"
+
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
 
@@ -31,7 +33,7 @@ class EqualityFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  EqualityFactoring();
+  EqualityFactoring(Options::UnificationWithAbstraction uwa, bool uwaFixedPointIteration);
   ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct IsPositiveEqualityFn;
