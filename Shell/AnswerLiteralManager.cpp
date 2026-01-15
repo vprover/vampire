@@ -143,36 +143,27 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     return unit; // do nothing
   }
 
-  VList* eVars = eQuant->vars();
-  SList* eSrts = eQuant->sorts();
+  VSList* eVars = eQuant->vars();
   ASS(eVars);
 
   FormulaList* conjArgs = 0;
   FormulaList::push(eQuant->qarg(), conjArgs);
-  Literal* ansLit = getAnswerLiteral(eVars,eSrts,eQuant);
+  Literal* ansLit = getAnswerLiteral(eVars, eQuant);
   _originUnitsAndInjectedLiterals.insert(ansLit->functor(),make_pair(unit,ansLit));
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
-  Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVars, eSrts, new JunctionFormula(AND, conjArgs)));
+  Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVars, new JunctionFormula(AND, conjArgs)));
 
   if (skolemise) {
     Map<int,std::string>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
 
-    VList* fVars = subNot->vars();
-    SList* fSrts = subNot->sorts();
+    VSList* varsWithSorts = subNot->vars();
     Substitution subst;
-    while (VList::isNonEmpty(fVars)) {
-      unsigned var = fVars->head();
-      fVars = fVars->tail();
+    VSList::Iterator vsit(varsWithSorts);
+    while (vsit.hasNext()) {
+      auto [var, sort] = vsit.next();
       unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
       Signature::Symbol* skSym = env.signature->getFunction(skFun);
-      TermList sort;
-      if (SList::isNonEmpty(fSrts)) {
-        sort = fSrts->head();
-        fSrts = fSrts->tail();
-      } else if (!SortHelper::tryGetVariableSort(var, subNot, sort)) {
-        sort = AtomicSort::defaultSort();
-      }
       OperatorType* ot = OperatorType::getConstantsType(sort);
       skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
@@ -342,21 +333,15 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answ
   return false;
 }
 
-Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,SList* srts,Formula* f)
+Literal* AnswerLiteralManager::getAnswerLiteral(VSList* varsWithSorts, Formula* f)
 {
   static Stack<TermList> litArgs;
   litArgs.reset();
   TermStack sorts;
-  while(VList::isNonEmpty(vars)) {
-    unsigned var = vars->head();
-    vars = vars->tail();
-    TermList sort;
-    if (SList::isNonEmpty(srts)) {
-      sort = srts->head();
-      srts = srts->tail();
-    } else if(!SortHelper::tryGetVariableSort(var, f, sort)) {
-      sort = AtomicSort::defaultSort();
-    }
+
+  VSList::Iterator vsit(varsWithSorts);
+  while(vsit.hasNext()) {
+    auto [var, sort] = vsit.next();
     litArgs.push(TermList(var, false));
     sorts.push(sort);
   }

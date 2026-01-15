@@ -227,29 +227,53 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
                                                TermList arg_srt, TermList ret_srt, VList* existential,
                                                ClauseList*& newClauses)
 {
-    VList* xy = VList::cons(0,VList::cons(1,VList::empty()));
+    // Build VSList for variables 0,1 with arg_srt
+    VSList* xySorted = VSList::empty();
+    VSList::push(std::make_pair(1, arg_srt), xySorted);
+    VSList::push(std::make_pair(0, arg_srt), xySorted);
 
     Formula* eq_fxfy = new AtomicFormula(Literal::createEquality(true,fx,fy,ret_srt));
     Formula* eq_xy = new AtomicFormula(Literal::createEquality(true,x,y,arg_srt));
 
-    Formula* injective = 
-      new QuantifiedFormula(FORALL,xy,0,new BinaryFormula(IMP,eq_fxfy,eq_xy));
+    Formula* injective =
+      new QuantifiedFormula(FORALL, xySorted, new BinaryFormula(IMP,eq_fxfy,eq_xy));
+
+    // For surjective: variable 1 has ret_srt, variable 0 has arg_srt
+    VSList* ySorted = VSList::singleton(std::make_pair(1, ret_srt));
+    VSList* xSorted = VSList::singleton(std::make_pair(0, arg_srt));
 
     Formula* surjective =
-      new QuantifiedFormula(FORALL, VList::singleton(1),0,
-      new QuantifiedFormula(EXISTS, VList::singleton(0),0,
+      new QuantifiedFormula(FORALL, ySorted,
+      new QuantifiedFormula(EXISTS, xSorted,
       new AtomicFormula(Literal::createEquality(true,fx,y,ret_srt))));
 
-    Formula* ing_and_nons = new JunctionFormula(AND, 
+    Formula* ing_and_nons = new JunctionFormula(AND,
                             new FormulaList(injective, new FormulaList(new NegatedFormula(surjective))));
-    Formula* sur_and_noni = new JunctionFormula(AND, 
+    Formula* sur_and_noni = new JunctionFormula(AND,
                             new FormulaList(surjective, new FormulaList(new NegatedFormula(injective))));
 
     if(existential){
-      injective  = new QuantifiedFormula(EXISTS, existential, 0, injective);
-      surjective = new QuantifiedFormula(EXISTS, existential, 0, surjective);
-      ing_and_nons = new QuantifiedFormula(EXISTS, existential, 0, ing_and_nons);
-      sur_and_noni = new QuantifiedFormula(EXISTS, existential, 0, sur_and_noni);
+      // Convert existential VList* to VSList* with appropriate sorts
+      // Need to determine sort from context - these are function quantifiers
+      VSList* existentialSorted = VSList::empty();
+      VList::Iterator vit(existential);
+      while (vit.hasNext()) {
+        unsigned var = vit.next();
+        // These are function-typed variables, get their sort from the outer context
+        // For this case, they should have the function sort
+        TermList varSort;
+        // The existential variables quantify over functions, so we need to get their sorts
+        // This is complex - for now, we try to infer from one of the formulas
+        if (!SortHelper::tryGetVariableSort(var, injective, varSort)) {
+          // Fallback: use default sort (this shouldn't happen in well-formed formulas)
+          varSort = AtomicSort::defaultSort();
+        }
+        VSList::push(std::make_pair(var, varSort), existentialSorted);
+      }
+      injective  = new QuantifiedFormula(EXISTS, existentialSorted, injective);
+      surjective = new QuantifiedFormula(EXISTS, existentialSorted, surjective);
+      ing_and_nons = new QuantifiedFormula(EXISTS, existentialSorted, ing_and_nons);
+      sur_and_noni = new QuantifiedFormula(EXISTS, existentialSorted, sur_and_noni);
     }
     // Add names (true/false relates to being injective or not i.e. surjective)
     injective    = new BinaryFormula(IMP,injective,getName(ret_srt,arg_srt,false));

@@ -228,9 +228,10 @@ std::string LaTeX::toString (Formula* f) const
   case EXISTS:
   {
     std::string result("(");
-    VList::Iterator vs(f->vars());
+    VSList::Iterator vs(f->vars());
     while (vs.hasNext()) {
-      result += con + varToString(vs.next()) + std::string(" ");
+      auto [var, sort] = vs.next();
+      result += con + varToString(var) + std::string(" ");
     }
     return result + ")" + toString(f->qarg(),c);
   }

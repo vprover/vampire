@@ -530,13 +530,14 @@ bool TheoryFinder::matchCode(const void* obj,
     if (f->connective() != FORALL) {
       goto backtrack;
     }
-    if (VList::length(f->vars()) != code[cp+1]) {
+    if (VSList::length(f->vars()) != code[cp+1]) {
       goto backtrack;
     }
     cp += 2;
-    VList::Iterator vs(f->vars());
+    VSList::Iterator vs(f->vars());
     while (vs.hasNext()) {
-      vars[code[cp++]] = vs.next();
+      auto [var, sort] = vs.next();
+      vars[code[cp++]] = var;
     }
     objects[objectPos++] = f->qarg();
 

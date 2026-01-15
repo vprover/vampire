@@ -1041,9 +1041,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
       processedBindings = nullptr;
       processedFoolBindings = nullptr;
 
-      VList::Iterator vs(g->vars());
+      VSList::Iterator vs(g->vars());
       while (vs.hasNext()) {
-        unsigned var = vs.next();
+        auto [var, sort] = vs.next();
 
         Term *skolem = createSkolemTerm(var, unboundFreeVars);
 

@@ -80,8 +80,18 @@ FormulaUnit* Rectify::rectify(FormulaUnit* unit0, bool removeUnusedVars)
   }
 
   if (VList::isNonEmpty(vars)) {
-    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),
-      FormulaTransformation(InferenceRule::CLOSURE,unit));
+    // Build VSList with sorts for free variables
+    VSList* varSorts = VSList::empty();
+    VList::Iterator vit(vars);
+    while (vit.hasNext()) {
+      unsigned var = vit.next();
+      TermList sort;
+      ALWAYS(SortHelper::tryGetVariableSort(var, g, sort));  // Free variables must have inferrable sorts
+      VSList::push(std::make_pair(var, sort), varSorts);
+    }
+
+    unit = new FormulaUnit(new QuantifiedFormula(FORALL, varSorts, g),
+      FormulaTransformation(InferenceRule::CLOSURE, unit));
   }
   return unit;
 } // Rectify::rectify (Unit& unit)
@@ -190,36 +200,28 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   case SpecialFunctor::LAMBDA:
   {
     ASS_EQ(t->arity(),0);
-    bindVars(sd->getLambdaVarsWithSorts());
-    bool modified = false;
+    VSList* origVs = sd->getLambdaVarsWithSorts();
+    bindVars(origVs);
+
     TermList lambdaTerm = rectify(sd->getLambdaExp());
     TermList lambdaTermS = rectify(sd->getLambdaExpSort());
-    if(lambdaTerm != sd->getLambdaExp() || lambdaTermS != sd->getLambdaExpSort())
-    { modified = true; }
+    bool modified = (lambdaTerm != sd->getLambdaExp()) || (lambdaTermS != sd->getLambdaExpSort());
+
     /**
      * We don't want to remove unused variables from the variable list,
      * ^[X].exp is not equivalent to exp.
      */
     bool removeUnusedVars = _removeUnusedVars;
     _removeUnusedVars = false;
-    VList* vs = rectifyBoundVars(sd->getLambdaVars());
-    SList* sorts = sd->getLambdaVarSorts();
-    SList* rectifiedSorts = SList::empty();
-    SList::Iterator slit(sorts);
-    while(slit.hasNext()){
-      TermList sort = slit.next();
-      TermList rectifiedSort = rectify(sort);
-      if(sort != rectifiedSort){
-        modified = true;
-      }
-      rectifiedSorts = SList::addLast(rectifiedSorts, rectifiedSort); // careful: quadratic complexity
-    }
-    _removeUnusedVars = removeUnusedVars; // restore the status quo
-    unbindVars(sd->getLambdaVars());
-    if (vs == sd->getLambdaVars() && !modified) {
+    VSList* vs = rectifyBoundVars(origVs);  // Now returns VSList*
+    _removeUnusedVars = removeUnusedVars;  // restore the status quo
+
+    unbindVars(origVs);
+
+    if (vs == origVs && !modified) {
       return t;
     }
-    return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);
+    return Term::createLambda(lambdaTerm, vs, lambdaTermS);  // No separate sorts param
   }
   case SpecialFunctor::TUPLE:
   {
@@ -444,17 +446,19 @@ Formula* Rectify::rectify (Formula* f)
   case FORALL:
   case EXISTS:
   {
-    bindVars(f->vars());
+    VSList* origVs = f->vars();
+    bindVars(origVs);
     Formula* arg = rectify(f->qarg());
-    VList* vs = rectifyBoundVars(f->vars());
-    unbindVars(f->vars());
-    if (vs == f->vars() && arg == f->qarg()) {
+    VSList* vs = rectifyBoundVars(origVs);  // Now returns VSList*
+    unbindVars(origVs);
+
+    if (vs == origVs && arg == f->qarg()) {
       return f;
     }
-    if(VList::isEmpty(vs)) {
+    if (VSList::isEmpty(vs)) {
       return arg;
     }
-    return new QuantifiedFormula(f->connective(),vs,0,arg);
+    return new QuantifiedFormula(f->connective(), vs, arg);  // No null sorts param
   }
 
   case TRUE:
@@ -504,8 +508,8 @@ void Rectify::bindVars(VSList* vs)
 {
   VSList::Iterator vit(vs);
   while(vit.hasNext()) {
-    unsigned v = vit.next();
-    _renaming.bind(v);
+    auto [var, sort] = vit.next();  // Extract var from pair
+    _renaming.bind(var);
   }
 }
 
@@ -513,6 +517,30 @@ void Rectify::bindVars(VSList* vs)
  * Undo bindings to variables of a list
  */
 void Rectify::unbindVars(VSList* vs)
+{
+  VSList::Iterator vit(vs);  // Use VSList::Iterator
+  while(vit.hasNext()) {
+    auto [var, sort] = vit.next();  // Extract var from pair
+    _renaming.undoBinding(var);
+  }
+}
+
+/**
+ * Add fresh bindings to a list of variables (VList version for let-bindings)
+ */
+void Rectify::bindVars(VList* vs)
+{
+  VList::Iterator vit(vs);
+  while(vit.hasNext()) {
+    unsigned v = vit.next();
+    _renaming.bind(v);
+  }
+}
+
+/**
+ * Undo bindings to variables of a list (VList version for let-bindings)
+ */
+void Rectify::unbindVars(VList* vs)
 {
   VList::Iterator vit(vs);
   while(vit.hasNext()) {
@@ -522,9 +550,7 @@ void Rectify::unbindVars(VSList* vs)
 }
 
 /**
- * Rectify a list of variables.
- *
- * @param vs the list to rectify
+ * Rectify a list of variables (VList version for let-bindings)
  */
 VList* Rectify::rectifyBoundVars(VList* vs)
 {
@@ -545,7 +571,7 @@ VList* Rectify::rectifyBoundVars(VList* vs)
     vs = args.pop();
 
     VList* vtail = vs->tail();
-    VList* ws = res; // = rectifyBoundVars(vtail);
+    VList* ws = res;
 
     int v = vs->head();
 
@@ -562,7 +588,59 @@ VList* Rectify::rectifyBoundVars(VList* vs)
       if (v == w && vtail == ws) {
         res = vs;
       } else {
-        res = VList::cons(w,ws);
+        res = VList::cons(w, ws);
+      }
+    }
+  }
+
+  return res;
+}
+
+/**
+ * Rectify a list of variables.
+ *
+ * @param vs the list to rectify
+ */
+VSList* Rectify::rectifyBoundVars(VSList* vs)
+{
+  if (VSList::isEmpty(vs)) {
+    return vs;
+  }
+
+  Stack<VSList*> args;
+  while (VSList::isNonEmpty(vs)) {
+    args.push(vs);
+    vs = vs->tail();
+  }
+
+  VSList* res = VSList::empty();
+
+  DHSet<int> seen;
+  while (args.isNonEmpty()) {
+    vs = args.pop();
+
+    VSList* vtail = vs->tail();
+    VSList* ws = res; // = rectifyBoundVars(vtail);
+
+    auto [v, sort] = vs->head();
+
+    // each variable mentioned only once per quantifier!
+    if (!seen.insert(v)) {
+      continue;
+    }
+
+    int w;
+    VarWithUsageInfo wWithUsg = _renaming.getBoundAndUsage(v);
+    if (wWithUsg.second || !_removeUnusedVars) {
+      w = wWithUsg.first;
+
+      // Rectify the sort as well
+      TermList rectifiedSort = rectify(sort);
+
+      if (v == w && rectifiedSort == sort && vtail == ws) {
+        res = vs;
+      } else {
+        res = VSList::cons(std::make_pair(w, rectifiedSort), ws);
       }
     }
     // else nothing, because "else" means dropping the variable from the list and returning ws, but res == ws already ...

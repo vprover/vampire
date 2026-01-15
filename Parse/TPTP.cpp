@@ -2515,23 +2515,31 @@ void TPTP::symbolDefinition()
                        ? env.signature->getPredicate(symbol)->predType()
                        : env.signature->getFunction(symbol)->fnType();
 
+    VSList* vsWithSorts = VSList::empty();
     unsigned index = 0;
     while (vars.isNonEmpty()) {
       unsigned var = vars.pop();
       TermList sort = type->arg(arity - 1 - index++);
       bindVariable(var, sort);
       VList::push(var, vs);
+      VSList::push(std::make_pair(var, sort), vsWithSorts);
     }
 
     _bindLists.push(vs);
     _states.push(UNBIND_VARIABLES);
+
+    LetDefinitions definitions = _letDefinitions.pop();
+    definitions.push(LetSymbolReference(symbol, isPredicate));
+    _letDefinitions.push(definitions);
+
+    _varLists.push(vsWithSorts);
+  } else {
+    LetDefinitions definitions = _letDefinitions.pop();
+    definitions.push(LetSymbolReference(symbol, isPredicate));
+    _letDefinitions.push(definitions);
+
+    _varLists.push(VSList::empty());
   }
-
-  LetDefinitions definitions = _letDefinitions.pop();
-  definitions.push(LetSymbolReference(symbol, isPredicate));
-  _letDefinitions.push(definitions);
-
-  _varLists.push(vs);
 
   _states.push(END_DEFINITION);
   consumeToken(T_ASS);
@@ -2590,9 +2598,14 @@ void TPTP::tupleDefinition()
   definitions.push(LetSymbolReference(tupleFunctor, false));
   _letDefinitions.push(definitions);
 
-  VList* constants = VList::empty();
-  VList::pushFromIterator(Stack<unsigned>::Iterator(symbols), constants);
-  _varLists.push(constants);
+  // Build VSList from symbols and their sorts
+  VSList* constantsWithSorts = VSList::empty();
+  Stack<unsigned>::Iterator symIt(symbols);
+  TermStack::Iterator sortIt(sorts);
+  while (symIt.hasNext() && sortIt.hasNext()) {
+    VSList::push(std::make_pair(symIt.next(), sortIt.next()), constantsWithSorts);
+  }
+  _varLists.push(constantsWithSorts);
 
   _states.push(END_DEFINITION);
   _states.push(TERM);
@@ -2676,8 +2689,16 @@ void TPTP::endLet()
     unsigned symbol = SYMBOL(ref);
     bool isPredicate = IS_PREDICATE(ref);
 
-    VSList* varList = _varLists.pop();
+    VSList* varListWithSorts = _varLists.pop();
     TermList definition = _termLists.pop();
+
+    // Extract just variables for let-bindings (which use VList*, not VSList*)
+    VList* varList = VList::empty();
+    VSList::Iterator vit(varListWithSorts);
+    while (vit.hasNext()) {
+      auto [var, sort] = vit.next();
+      VList::push(var, varList);
+    }
 
     bool isTuple = false;
     if (!isPredicate) {
@@ -2813,12 +2834,14 @@ void TPTP::varList()
           bindVariable(var,AtomicSort::defaultSort());
         }
         VSList* vs = VSList::empty();
+        VList* bindVs = VList::empty();
         while (!vars.isEmpty()) {
           int v = vars.pop();
           VSList::push(std::make_pair(v,sortOf(TermList(v,false))),vs);
+          VList::push(v, bindVs);
         }
         _varLists.push(vs);
-        _bindLists.push(vs);
+        _bindLists.push(bindVs);
         return;
       }
     }
@@ -3304,7 +3327,7 @@ void TPTP::endFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con, _varLists.pop(), f));
     _states.push(END_FORMULA);
     return;
   case LITERAL:
@@ -3494,8 +3517,15 @@ void TPTP::endType()
     tt = _typeTags.pop();
     break;
   case TT_QUANTIFIED:
-    VList* vl = _varLists.pop();
-    _sortLists.pop();
+    // For type quantification, we need VList not VSList
+    // Extract variables from VSList
+    VSList* vs = _varLists.pop();
+    VList* vl = VList::empty();
+    VSList::Iterator vit(vs);
+    while (vit.hasNext()) {
+      auto [var, sort] = vit.next();
+      VList::push(var, vl);
+    }
     t = new QuantifiedType(t, vl);
     tt = _typeTags.pop();
     break;
@@ -3636,13 +3666,14 @@ void TPTP::endFof()
     if (_isQuestion && ((env.options->mode() == Options::Mode::CLAUSIFY) || (env.options->mode() == Options::Mode::TCLAUSIFY)) && f->connective() == EXISTS) {
       // create an answer predicate
       QuantifiedFormula* g = static_cast<QuantifiedFormula*>(f);
-      unsigned arity = VList::length(g->vars());
+      unsigned arity = VSList::length(g->vars());
       unsigned pred = env.signature->addPredicate("$$answer",arity);
       env.signature->getPredicate(pred)->markAnswerPredicate();
       Recycled<Stack<TermList>> args;
-      VList::Iterator vs(g->vars());
+      VSList::Iterator vs(g->vars());
       while (vs.hasNext()) {
-        args->push(TermList::var(vs.next()));
+        auto [var, sort] = vs.next();
+        args->push(TermList::var(var));
       }
       Literal* a = Literal::create(pred, arity, /* polarity */ true, /* commutative */  false, args->begin());
       f = new QuantifiedFormula(FORALL,g->vars(),
@@ -5216,6 +5247,8 @@ void TPTP::printStacks() {
   }
   cout << endl;
 
+  // _sortLists no longer exists - sorts are now embedded in _varLists as VSList
+  /*
   Stack<SortList*>::Iterator slsit(_sortLists);
   cout << "Sort lists: ";
   if   (!slsit.hasNext()) cout << "<empty>";
@@ -5227,6 +5260,7 @@ void TPTP::printStacks() {
     cout << ";";
   }
   cout << endl;
+  */
 
   Stack<TheoryFunction>::Iterator tfit(_theoryFunctions);
   cout << "Theory functions: ";

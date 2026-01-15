@@ -196,14 +196,16 @@ void Skolem::preskolemise (Formula* f)
 
   case FORALL:
     {
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        ALWAYS(_varOccs.insert(vs.next(),{false /* = univeral*/,BoolList::empty()})); // ALWAYS, because we are rectified
+        auto [var, sort] = vs.next();
+        ALWAYS(_varOccs.insert(var,{false /* = univeral*/,BoolList::empty()})); // ALWAYS, because we are rectified
       }
       preskolemise(f->qarg());
       vs.reset(f->vars());
       while (vs.hasNext()) {
-        _varOccs.remove(vs.next());
+        auto [var, sort] = vs.next();
+        _varOccs.remove(var);
       }
       return;
     }
@@ -221,9 +223,9 @@ void Skolem::preskolemise (Formula* f)
       }
 
       // add our own variables (for which we are not interested in occurrences)
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        unsigned var = vs.next();
+        auto [var, sort] = vs.next();
         ALWAYS(_varOccs.insert(var,{true /* = existential */,BoolList::empty()})); // ALWAYS, because we are rectified
         ALWAYS(_blockLookup.insert(var,f));
       }
@@ -233,7 +235,8 @@ void Skolem::preskolemise (Formula* f)
       // take ours out again
       vs.reset(f->vars());
       while (vs.hasNext()) {
-        _varOccs.remove(vs.next());
+        auto [var, sort] = vs.next();
+        _varOccs.remove(var);
       }
 
       static Stack<unsigned> univ_dep_stack;
@@ -335,7 +338,7 @@ Formula* Skolem::skolemise (Formula* f)
       if (g == f->qarg()) {
         return f;
       }
-      return new QuantifiedFormula(f->connective(),f->vars(),f->sorts(),g);
+      return new QuantifiedFormula(f->connective(), f->vars(), g);
     }
 
   case EXISTS: 
@@ -415,9 +418,9 @@ Formula* Skolem::skolemise (Formula* f)
       }
       SortHelper::normaliseArgSorts(typeVars, termVarSorts);
 
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        unsigned v = vs.next();
+        auto [v, sort] = vs.next();
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
 
         bool skolemisingTypeVar = rangeSort == AtomicSort::superSort();
@@ -484,7 +487,15 @@ Formula* Skolem::skolemise (Formula* f)
         Formula* def = new BinaryFormula(IMP, before, after);
 
         if (arity > 0) {
-          def = new QuantifiedFormula(FORALL,vArgs.list(),nullptr,def);
+          // Build VSList from vArgs by looking up sorts
+          VSList* vArgsWithSorts = VSList::empty();
+          VList::Iterator vit(vArgs.list());
+          while (vit.hasNext()) {
+            unsigned var = vit.next();
+            TermList varSort = _varSorts.get(var, AtomicSort::defaultSort());
+            VSList::push(std::make_pair(var, varSort), vArgsWithSorts);
+          }
+          def = new QuantifiedFormula(FORALL, vArgsWithSorts, def);
         }
 
         Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));

@@ -285,7 +285,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(),formula->sorts(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
     case BOOL_TERM: {
       Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
@@ -534,8 +534,20 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (f => g(Y1, ..., Ym,X1, ..., Xn) == s)
         if (VList::length(freeVars) > 0) {
-          //TODO do we know the sorts of freeVars?
-          thenImplication = new QuantifiedFormula(FORALL, freeVars,0, thenImplication);
+          // Collect sorts for free variables from the formula
+          DHMap<unsigned, TermList> varSorts;
+          SortHelper::collectVariableSorts(thenImplication, varSorts);
+
+          // Build VSList with sorts
+          VSList* freeVarsSorted = VSList::empty();
+          VList::Iterator vit(freeVars);
+          while (vit.hasNext()) {
+            unsigned var = vit.next();
+            TermList sort = varSorts.get(var);
+            VSList::push(std::make_pair(var, sort), freeVarsSorted);
+          }
+
+          thenImplication = new QuantifiedFormula(FORALL, freeVarsSorted, thenImplication);
         }
 
         // build g(Y1, ..., Ym, X1, ..., Xn) == t
@@ -547,8 +559,20 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (~f => g(Y1,...,Ym,X1, ..., Xn) == t)
         if (VList::length(freeVars) > 0) {
-          //TODO do we know the sorts of freeVars?
-          elseImplication = new QuantifiedFormula(FORALL, freeVars, 0, elseImplication);
+          // Collect sorts for free variables from the formula
+          DHMap<unsigned, TermList> varSorts;
+          SortHelper::collectVariableSorts(elseImplication, varSorts);
+
+          // Build VSList with sorts
+          VSList* freeVarsSorted = VSList::empty();
+          VList::Iterator vit(freeVars);
+          while (vit.hasNext()) {
+            unsigned var = vit.next();
+            TermList sort = varSorts.get(var);
+            VSList::push(std::make_pair(var, sort), freeVarsSorted);
+          }
+
+          elseImplication = new QuantifiedFormula(FORALL, freeVarsSorted, elseImplication);
         }
 
         // conjoin both definitions for Geoff:
@@ -659,7 +683,20 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk) == s
         if (VList::length(vars) > 0) {
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, 0, freshSymbolDefinition);
+          // Collect sorts for free variables from the formula
+          DHMap<unsigned, TermList> varSorts;
+          SortHelper::collectVariableSorts(freshSymbolDefinition, varSorts);
+
+          // Build VSList with sorts
+          VSList* varsSorted = VSList::empty();
+          VList::Iterator vit(vars);
+          while (vit.hasNext()) {
+            unsigned var = vit.next();
+            TermList sort = varSorts.get(var);
+            VSList::push(std::make_pair(var, sort), varsSorted);
+          }
+
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, varsSorted, freshSymbolDefinition);
         }
 
         // add the introduced definition
@@ -736,8 +773,20 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // build ![X1, ..., Xn]: (f <=> g(Y1, ..., Ym, X1, ..., Xn) = true)
           if (VList::length(freeVars) > 0) {
-            // TODO do we know the sorts of freeVars?
-            freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+            // Collect sorts for free variables from the formula
+            DHMap<unsigned, TermList> varSorts;
+            SortHelper::collectVariableSorts(freshSymbolDefinition, varSorts);
+
+            // Build VSList with sorts
+            VSList* freeVarsSorted = VSList::empty();
+            VList::Iterator vit(freeVars);
+            while (vit.hasNext()) {
+              unsigned var = vit.next();
+              TermList sort = varSorts.get(var);
+              VSList::push(std::make_pair(var, sort), freeVarsSorted);
+            }
+
+            freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVarsSorted, freshSymbolDefinition);
           }
 
           // add the introduced definition
@@ -815,8 +864,20 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
           if (VList::length(freeVars) > 0) {
-            //TODO do we know the sorts of freeVars?
-            impl = new QuantifiedFormula(FORALL, freeVars, 0, impl);
+            // Collect sorts for free variables from the formula
+            DHMap<unsigned, TermList> varSorts;
+            SortHelper::collectVariableSorts(impl, varSorts);
+
+            // Build VSList with sorts
+            VSList* freeVarsSorted = VSList::empty();
+            VList::Iterator vit(freeVars);
+            while (vit.hasNext()) {
+              unsigned var = vit.next();
+              TermList sort = varSorts.get(var);
+              VSList::push(std::make_pair(var, sort), freeVarsSorted);
+            }
+
+            impl = new QuantifiedFormula(FORALL, freeVarsSorted, impl);
           }
           FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
           addDefinition(defUnit);

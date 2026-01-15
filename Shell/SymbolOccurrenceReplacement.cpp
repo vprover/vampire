@@ -158,7 +158,7 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(), formula->sorts(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
     case BOOL_TERM:
       return new BoolTermFormula(process(formula->getBooleanTerm()));

@@ -507,13 +507,13 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      isForall = true;
     case EXISTS:
     {
-     VList* vs = formula->vars();
-     int var = vs->head();
+     VSList* vs = formula->vars();
+     auto [var, sort] = vs->head();
 
      //cout << "Quant " << isForall << " with " << var << endl;
 
      Formula* next = 0;
-     if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),0,formula->qarg());
+     if(vs->tail()) next = new QuantifiedFormula(formula->connective(), vs->tail(), formula->qarg());
      else next = formula->qarg();
 
      for(unsigned c=1;c<=_size;c++){
@@ -603,10 +603,10 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 case FORALL:
                 case EXISTS:
             {
-                VList* vs = formula->vars();
+                VSList* vs = formula->vars();
                 Formula* inner  = formula->qarg();
                 Formula* newInner = partialEvaluate(inner,depth+1);
-                return new QuantifiedFormula(formula->connective(),vs,0,newInner);
+                return new QuantifiedFormula(formula->connective(), vs, newInner);
             }
             default:
                 USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");

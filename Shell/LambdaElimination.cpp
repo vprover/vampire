@@ -203,22 +203,17 @@ TermList LambdaElimination::elimLambda(Formula* formula)
     }
     case FORALL:
     case EXISTS: {
-      VList* vars = formula->vars();
-      VList::Iterator vit(vars);
-      SList* sort = SList::singleton(TermList(0, true)); //dummy data
-      VList* var = VList::singleton(0);
+      VSList* vars = formula->vars();
+      VSList::Iterator vit(vars);
 
       TermList form = elimLambda(formula->qarg());
       std::string name = (conn == FORALL ? "vPI" : "vSIGMA");
       unsigned proxy = env.signature->getPiSigmaProxy(name);
 
-      TermList s;
       while(vit.hasNext()){
-        int v = vit.next();
-        ALWAYS(SortHelper::tryGetVariableSort(v, formula->qarg(), s));
-        var->setHead(v);
-        sort->setHead(s);
-        form = elimLambda(Term::createLambda(form, var, sort, AtomicSort::boolSort())); 
+        auto [v, s] = vit.next();
+        VSList* varWithSort = VSList::singleton(std::make_pair(v, s));
+        form = elimLambda(Term::createLambda(form, varWithSort, AtomicSort::boolSort()));
         constant = TermList(Term::create1(proxy, s));
         form = AH::createAppTerm(sortOf(constant), constant, form);
       }
@@ -252,15 +247,14 @@ TermList LambdaElimination::elimLambda(TermList term)
         Stack<int> vars;
         TermStack sorts;
         Term::SpecialTermData* sd = t->getSpecialData();
-        SList* srts = sd->getLambdaVarSorts();
-        VList* vrs = sd->getLambdaVars();
-        
-        VList::Iterator vlit(vrs);
-        SList::Iterator slit(srts);
+        VSList* varsWithSorts = sd->getLambdaVarsWithSorts();
 
-        while(vlit.hasNext()){
-          vars.push(vlit.next());
-          sorts.push(slit.next());
+        VSList::Iterator vsit(varsWithSorts);
+
+        while(vsit.hasNext()){
+          auto [var, sort] = vsit.next();
+          vars.push(var);
+          sorts.push(sort);
         }
         TermList eliminated = elimLambda(vars, sorts, sd->getLambdaExp(), sd->getLambdaExpSort());
         ASS_REP2(eliminated.isVar() || sortOf(eliminated) == sd->getSort(), t->toString(), eliminated.toString())

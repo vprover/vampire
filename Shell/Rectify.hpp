@@ -79,6 +79,9 @@ private:
 
   Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
+  void bindVars(VSList*);
+  void unbindVars(VSList*);
+  VSList* rectifyBoundVars(VSList*);
   void bindVars(VList*);
   void unbindVars(VList*);
   VList* rectifyBoundVars(VList*);

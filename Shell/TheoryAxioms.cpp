@@ -780,9 +780,9 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsig
   Formula* sel_y_sk = new AtomicFormula(Literal::create2(sel, true, y, sk)); //select(y,sk(x,y))
   Formula* sx_neq_sy = new BinaryFormula(XOR, sel_x_sk, sel_y_sk); //select(x,sk(x,y)) <~> select(y,sk(x,y))
 
-  Formula* axiom = new QuantifiedFormula(FORALL, VList::cons(0, VList::cons(1, VList::empty())),
-                                         SList::cons(arraySort, SList::cons(arraySort,SList::empty())),
-                                         new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
+  VSList* vars = VSList::cons(std::make_pair(0, arraySort),
+                              VSList::cons(std::make_pair(1, arraySort), VSList::empty()));
+  Formula* axiom = new QuantifiedFormula(FORALL, vars, new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
 
   addAndOutputTheoryUnit(new FormulaUnit(axiom, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY)),CHEAP);
 } // addBooleanArrayExtensionalityAxiom
@@ -1176,9 +1176,8 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
       }
       disjunction = new JunctionFormula(Connective::OR, fl);
     }
-    VList* vars = VList::singleton(x.var());
-    SList* sorts = SList::singleton(ta->sort());
-    auto universal = new QuantifiedFormula(Connective::FORALL, vars, sorts, disjunction);
+    VSList* vars = VSList::singleton(std::make_pair(x.var(), ta->sort()));
+    auto universal = new QuantifiedFormula(Connective::FORALL, vars, disjunction);
 
     axiom = new FormulaUnit(universal, TheoryAxiom(InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM));
 

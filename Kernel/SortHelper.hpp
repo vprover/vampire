@@ -58,6 +58,7 @@ public:
 
   static bool tryGetResultSort(const Term* t, TermList& result);
   static bool tryGetResultSort(const TermList t, TermList& result);
+  static bool getResultSortOrMasterVariable(const Term* t, TermList& resultSort, TermList& resultVar);
   static bool getResultSortOrMasterVariable(const TermList t, TermList& resultSort, TermList& resultVar);
 
   static TermList getEqualityArgumentSort(const Literal* lit);

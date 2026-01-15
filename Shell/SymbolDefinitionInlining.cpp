@@ -302,7 +302,7 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
         return formula;
       }
 
-      return new QuantifiedFormula(formula->connective(), formula->vars(), formula->sorts(), qarg);
+      return new QuantifiedFormula(formula->connective(), formula->vars(), qarg);
     }
 
     case BOOL_TERM: {
@@ -409,8 +409,11 @@ void SymbolDefinitionInlining::collectBoundVariables(Formula* formula) {
     case FORALL:
     case EXISTS: {
       collectBoundVariables(formula->qarg());
-      VList::Iterator vit(formula->vars());
-      VList::pushFromIterator(vit, _bound);
+      VSList::Iterator vit(formula->vars());
+      while (vit.hasNext()) {
+        auto [var, sort] = vit.next();
+        VList::push(var, _bound);
+      }
       break;
     }
 

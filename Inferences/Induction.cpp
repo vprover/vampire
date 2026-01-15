@@ -1293,7 +1293,17 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
         auto hyp = context.getFormulaWithSquashedSkolems({ tvit.next() },true,var,&hypVars);
         // quantify each hypotheses with variables replacing Skolems explicitly
         if (hypVars) {
-          hyp = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), hyp);
+          // Convert VList to VSList by collecting sorts
+          DHMap<unsigned, TermList> varSorts;
+          SortHelper::collectVariableSorts(hyp, varSorts);
+          VSList* hypVarsSorted = VSList::empty();
+          VList::Iterator vit(hypVars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList sort = varSorts.get(v);
+            VSList::push(std::make_pair(v, sort), hypVarsSorted);
+          }
+          hyp = new QuantifiedFormula(Connective::FORALL, hypVarsSorted, hyp);
         }
         FormulaList::push(hyp,args);
       }
@@ -1372,7 +1382,17 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
         auto hypVars = VList::empty();
         auto f = context.getFormulaWithSquashedSkolems({ djy },true,var,&hypVars);
         if (hypVars) {
-          f = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), f);
+          // Convert VList to VSList by collecting sorts
+          DHMap<unsigned, TermList> varSorts;
+          SortHelper::collectVariableSorts(f, varSorts);
+          VSList* hypVarsSorted = VSList::empty();
+          VList::Iterator vit(hypVars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList sort = varSorts.get(v);
+            VSList::push(std::make_pair(v, sort), hypVarsSorted);
+          }
+          f = new QuantifiedFormula(Connective::FORALL, hypVarsSorted, f);
         }
         FormulaList::push(f,And);
       }
@@ -1384,9 +1404,18 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
     }
   }
   // quantify with mainVars explicitly
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, mainVars,SList::empty(),
-                        formulas ? new JunctionFormula(Connective::AND,FormulaList::cons(Ly,formulas))
-                                 : Ly);
+  Formula* bodyFormula = formulas ? new JunctionFormula(Connective::AND,FormulaList::cons(Ly,formulas)) : Ly;
+  // Convert mainVars to VSList by collecting sorts
+  DHMap<unsigned, TermList> varSorts;
+  SortHelper::collectVariableSorts(bodyFormula, varSorts);
+  VSList* mainVarsSorted = VSList::empty();
+  VList::Iterator vit(mainVars);
+  while (vit.hasNext()) {
+    unsigned v = vit.next();
+    TermList sort = varSorts.get(v);
+    VSList::push(std::make_pair(v, sort), mainVarsSorted);
+  }
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, mainVarsSorted, bodyFormula);
 
   Substitution subst;
   auto conclusion = context.getFormulaWithSquashedSkolems({ TermList(var++, false) }, true, var, nullptr, &subst);
@@ -1501,8 +1530,18 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
   FormulaList::push(smallerImpNL,conjunction);
   // quantify with mainVars explicitly
-  Formula* exists = new QuantifiedFormula(Connective::EXISTS, mainVars,SList::empty(),
-                       new JunctionFormula(Connective::AND,conjunction));
+  Formula* bodyFormula = new JunctionFormula(Connective::AND,conjunction);
+  // Convert mainVars to VSList by collecting sorts
+  DHMap<unsigned, TermList> varSorts;
+  SortHelper::collectVariableSorts(bodyFormula, varSorts);
+  VSList* mainVarsSorted = VSList::empty();
+  VList::Iterator vit(mainVars);
+  while (vit.hasNext()) {
+    unsigned v = vit.next();
+    TermList sort = varSorts.get(v);
+    VSList::push(std::make_pair(v, sort), mainVarsSorted);
+  }
+  Formula* exists = new QuantifiedFormula(Connective::EXISTS, mainVarsSorted, bodyFormula);
 
   Substitution subst;
   auto conclusion = context.getFormulaWithSquashedSkolems({ x },true,vars,nullptr,&subst);
