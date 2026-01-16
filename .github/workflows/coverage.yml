@@ -6,6 +6,12 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
+    - name: Get python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Install gcovr
+      run: pip install gcovr
     - name: Checkout Tree
       uses: actions/checkout@v4
       with:
