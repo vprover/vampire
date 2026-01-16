@@ -12,7 +12,7 @@ jobs:
         os:
           - ubuntu-22.04      # Linux   x64
           - ubuntu-22.04-arm  # Linux   ARM
-          - macos-13          # macOS   x64
+          - macos-15-intel    # macOS   x64
           - macos-14          # macOS   ARM
           - windows-2022      # Windows x64
           - windows-11-arm    # Windows ARM
