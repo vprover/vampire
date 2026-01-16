@@ -37,7 +37,7 @@ jobs:
       run: >-
         mkdir build &&
         cmake -B build -DCMAKE_BUILD_TYPE=Release -DZ3_BUILD_EXECUTABLE=OFF -DZ3_BUILD_TEST_EXECUTABLES=OFF -DZ3_BUILD_LIBZ3_SHARED=OFF &&
-        make -j8 -C build
+        make -j4 -C build
     - name: Configure and Build Vampire
       working-directory: ${{ runner.workspace }}/vampire
       shell: bash
@@ -47,7 +47,7 @@ jobs:
       run: >-
         mkdir build &&
         cmake -B build -DCMAKE_BUILD_TYPE=Release -DCCACHE_PROGRAM=OFF &&
-        make -j8 -C build vampire
+        make -j4 -C build vampire
     - name: Obtain Cygwin DLL
       working-directory: ${{ runner.workspace }}/vampire
       run: mv ${{ steps.cygwin.outputs.root }}/bin/cygwin1.dll build/cygwin1.dll
