@@ -221,63 +221,6 @@ TEST_SIMPLIFICATION(pos_sub_res_test05,
     .expected({ clause({ ~p2(x2, x5), q(x2), ~q(g(x5)) }) })
 )
 
-// TODO I'm assuming these give different results for forwards and backwards, so they cannot be enabled
-// TEST_SIMPLIFICATION(pos_sub_res_test06,
-//   tester()
-//     .simplifyWith({ clause({ p(f2(y7, x6)), p2(y7, x6) }) })
-//     .toSimplify({ clause({ p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4)), ~p2(f2(f(g(x5)), y4), x5) }) })
-//     .expected({ /* nothing */ })
-//     .justifications({ /* nothing */ })
-// )
-
-// TEST_SIMPLIFICATION(pos_sub_res_test07,
-//   tester()
-//     .simplifyWith({ clause({ p(f2(y7, x6)), p2(y7, x6) }) })
-//     .toSimplify({ clause({ p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4)), ~p2(f2(f(g(x5)), y4), x5) }) })
-//     .expected({ /* nothing */ })
-//     .justifications({ /* nothing */ })
-// )
-
-// TEST_SIMPLIFICATION(pos_sub_res_test08,
-//   tester()
-//     .simplifyWith({ clause({ ~p2(y7, d) }) })
-//     .toSimplify({ clause({ ~p(x6), ~p(x5), ~p2(f(f2(f2(x5, x5), f2(x5, x6))), x6), p2(f2(f2(x5, x5), f2(x5, x6)), d) }) })
-//     .expected({ /* nothing */ })
-//     .justifications({ /* nothing */ })
-// )
-
-// TEST_SIMPLIFICATION(pos_sub_res_test09,
-//   tester()
-//     .simplifyWith({ clause({ ~p3(d, y7, d), ~p3(y7, e, c) }) })
-//     .toSimplify({ clause({ p3(d, x6, d), ~p3(x6, e, c) }) })
-//     .expected({ /* nothing */ })
-//     .justifications({ /* nothing */ })
-// )
-
-// TEST_SIMPLIFICATION(pos_sub_res_test10,
-//   tester()
-//     .simplifyWith({ clause({ p2(y7, x6), f2(y7, x6) == f2(f3(x5, y4, x4), x4), p2(y4, x4) }) })
-//     .toSimplify({ clause({ ~p2(g2(h2(y3, x2), x2), x7), f2(g2(h2(y3, x2), x2), x7) == f2(f3(y6, g2(h2(y3, x2), x2), x7), x7) }) })
-//     .expected({ /* nothing */ })
-//     .justifications({ /* nothing */ })
-// )
-
-// TEST_SIMPLIFICATION(pos_sub_res_test11,
-//   tester()
-//     .simplifyWith({ clause({ p2(y7, x6), ~q2(x5, x6), ~p2(y7, x5) }) })
-//     .toSimplify({ clause({ p2(f2(y4, x6), y4), ~p2(x6, y7), ~r2(y4, y7), ~p2(x6, d), ~q2(y4, d), ~q2(y7, d) }) })
-//     .expected({ /* nothing */ })
-//     .justifications({ /* nothing */ })
-// )
-
-// TEST_SIMPLIFICATION(pos_sub_res_test12,
-//   tester()
-//     .simplifyWith({ clause({ p(d) }) })
-//     .toSimplify({ clause({ q(d), ~p(d) }) })
-//     .expected({ /* nothing */ })
-//     .justifications({ /* nothing */ })
-// )
-
 // negative subsumption resolutions
 
 TEST_SIMPLIFICATION(neg_sub_res_test01,

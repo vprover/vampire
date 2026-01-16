@@ -32,20 +32,6 @@
 
 namespace Test {
 
-#define TEST_FN_ASS_EQ(VAL1, VAL2)                                                        \
-  [] (std::string& s1, std::string& s2) {                                                 \
-    bool res = (VAL1 == VAL2);                                                            \
-    if (!res) {                                                                           \
-      s1 = Int::toString(VAL1);                                                           \
-      s1.append(" != ");                                                                  \
-      s1.append(Int::toString(VAL2));                                                     \
-      s2 = std::string(#VAL1);                                                            \
-      s2.append(" == ");                                                                  \
-      s2.append(#VAL2);                                                                   \
-    }                                                                                     \
-    return res;                                                                           \
-  }
-
 namespace Generation {
 template<class R>
 class GenerationTester;
@@ -104,8 +90,6 @@ public:
 class TodoStackMatcher {
 
 public:
-  TodoStackMatcher() {}
-
   template<class F>
   TodoStackMatcher mapClauses(F fun) const 
   { return TodoStackMatcher(); }
@@ -229,7 +213,6 @@ using OptionMap = Stack<std::pair<std::string,std::string>>;
 class AsymmetricTest
 {
   using Clause = Kernel::Clause;
-  using Condition = std::function<bool(std::string&, std::string&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Option<StackMatcher> _expected;
@@ -238,8 +221,6 @@ class AsymmetricTest
   std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   bool _selfApplications;
   OptionMap _options;
-  Stack<Condition> _preConditions;
-  Stack<Condition> _postConditions;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -285,8 +266,7 @@ public:
 
     // init problem
     Problem p;
-    auto ul = UnitList::empty();
-    UnitList::pushFromIterator(ClauseStack::Iterator(_context), ul);
+    auto ul = UnitList::fromIterator(ClauseStack::Iterator(_context));
     p.addUnits(ul);
     env.setMainProblem(&p);
 
