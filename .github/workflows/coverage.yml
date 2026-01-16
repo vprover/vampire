@@ -1,0 +1,12 @@
+name: Code Coverage
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout Tree
+      uses: actions/checkout@v4
+      with:
+        submodules: true
