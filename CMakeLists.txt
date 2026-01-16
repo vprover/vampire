@@ -108,14 +108,31 @@ if(GCC_OR_CLANG)
   endif()
 endif()
 
-# switch on coverage options per-compiler if desired
+################################################################
+# CODE COVERAGE
+################################################################
+
 option(COVERAGE "generate code coverage reports" OFF)
 if(COVERAGE)
-  if(GCC_OR_CLANG)
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
-    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --coverage)
-    set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
-  endif()
+  message(STATUS "Coverage is enabled")
+  include(${CMAKE_SOURCE_DIR}/cmake/CodeCoverage.cmake)
+
+  message(STATUS "Removing previous coverage data")
+  file(GLOB_RECURSE GCDA_FILES ${CMAKE_BINARY_DIR}/*.gcda)
+  file(REMOVE ${GCDA_FILES})
+
+  append_coverage_compiler_flags()
+  setup_target_for_coverage_gcovr_html(
+    NAME vcoverage
+    EXECUTABLE ctest
+    EXECUTABLE_ARGS "-j${CMAKE_BUILD_PARALLEL_LEVEL}"
+    EXCLUDE "${PROJECT_SOURCE_DIR}/CASC"
+      "${PROJECT_SOURCE_DIR}/Debug"
+      "${PROJECT_SOURCE_DIR}/UnitTests"
+      "${PROJECT_SOURCE_DIR}/Test"
+      "${PROJECT_SOURCE_DIR}/cadical"
+      "${PROJECT_SOURCE_DIR}/viras"
+      "${PROJECT_SOURCE_DIR}/z3")
 endif()
 
 ################################################################
