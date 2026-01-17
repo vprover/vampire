@@ -14,7 +14,6 @@
 
 #include "Lib/Stack.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Kernel/Ordering.hpp" 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 
@@ -30,7 +29,7 @@ using namespace Lib;
 using namespace Kernel;
 
 
-InterpretedEvaluation::InterpretedEvaluation(bool doNormalize, Ordering& ordering) :
+InterpretedEvaluation::InterpretedEvaluation(bool doNormalize) :
   _simpl(new InterpretedLiteralEvaluator(doNormalize))
 {
 }

@@ -228,7 +228,7 @@ namespace Inferences {
                                              SortHelper::getArgSort(lit->nthArgument(0)->term(),j));
         for (unsigned k = 0; k < c->length(); k++) {
           if (k != i) {
-            if (_salg->getOrdering().compare((*c)[k], l) != Ordering::GREATER) {
+            if (_ord.compare((*c)[k], l) != Ordering::GREATER) {
               return false;
             }
           }

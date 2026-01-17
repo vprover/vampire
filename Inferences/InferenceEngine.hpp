@@ -110,9 +110,9 @@ public:
 };
 
 class ImmediateSimplificationEngine
-: public InferenceEngine
 {
 public:
+  virtual ~ImmediateSimplificationEngine() = default;
   /**
    * Perform an immediate simplification on @b cl and return
    * the result. If the simplification is not applicable, return
@@ -210,12 +210,12 @@ public:
   };
 
 protected:
-  SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering);
+  SimplifyingGeneratingLiteralSimplification(InferenceRule rule, const Ordering& ordering);
   virtual Result simplifyLiteral(Literal* l) = 0;
   SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 
 private:
-  Ordering* _ordering;
+  const Ordering& _ordering;
   const InferenceRule _rule;
 };
 
@@ -317,8 +317,6 @@ public:
   ~CompositeISE() override;
   void addFront(ImmediateSimplificationEngine* fse);
   Clause* simplify(Clause* cl) override;
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
 private:
   typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;

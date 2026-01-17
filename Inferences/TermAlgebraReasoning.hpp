@@ -92,10 +92,14 @@ class NegativeInjectivityISE
   : public ImmediateSimplificationEngine
 {
 public:
+  NegativeInjectivityISE(const Ordering& ord) : _ord(ord) {}
+
   Kernel::Clause* simplify(Kernel::Clause* c) override;
 
 private:
   bool litCondition(Clause* c, unsigned i);
+
+  const Ordering& _ord;
 };
 
 class AcyclicityGIE

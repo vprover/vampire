@@ -82,7 +82,7 @@ Literal* tryCancel(Interpretation inter, Literal* lit) {
   return lit;
 }
 
-Cancellation::Cancellation(Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::CANCELLATION, ordering) {}
+Cancellation::Cancellation(const Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::CANCELLATION, ordering) {}
 
 Cancellation::Result Cancellation::simplifyLiteral(Literal* litIn) 
 {

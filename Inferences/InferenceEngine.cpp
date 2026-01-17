@@ -66,7 +66,6 @@ CompositeISE::~CompositeISE()
  */
 void CompositeISE::addFront(ImmediateSimplificationEngine* ise)
 {
-  ASS_EQ(_salg,0);
   ISList::push(ise,_inners);
 }
 Clause* CompositeISE::simplify(Clause* cl)
@@ -82,64 +81,6 @@ Clause* CompositeISE::simplify(Clause* cl)
   }
   return cl;
 }
-void CompositeISE::attach(SaturationAlgorithm* salg)
-{
-  ImmediateSimplificationEngine::attach(salg);
-  ISList::Iterator eit(_inners);
-  while(eit.hasNext()) {
-    eit.next()->attach(salg);
-  }
-}
-void CompositeISE::detach()
-{
-  ISList::Iterator eit(_inners);
-  while(eit.hasNext()) {
-    eit.next()->detach();
-  }
-  ImmediateSimplificationEngine::detach();
-}
-
-
-//CompositeFSE::~CompositeFSE()
-//{
-//  _inners->destroy();
-//}
-//void CompositeFSE::addFront(ForwardSimplificationEngineSP fse)
-//{
-//  ASS_EQ(_salg,0);
-//  FSList::push(fse,_inners);
-//}
-//void CompositeFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
-//{
-//  keep=true;
-//  FSList* eit=_inners;
-//  if(!eit) {
-//    toAdd=ClauseIterator::getEmpty();
-//    return;
-//  }
-//  while(eit && keep) {
-//    eit->head()->perform(cl,keep,toAdd, premises);
-//    eit=eit->tail();
-//  }
-//}
-//void CompositeFSE::attach(SaturationAlgorithm* salg)
-//{
-//  ForwardSimplificationEngine::attach(salg);
-//  FSList* eit=_inners;
-//  while(eit) {
-//    eit->head()->attach(salg);
-//    eit=eit->tail();
-//  }
-//}
-//void CompositeFSE::detach()
-//{
-//  FSList* eit=_inners;
-//  while(eit) {
-//    eit->head()->detach();
-//    eit=eit->tail();
-//  }
-//  ForwardSimplificationEngine::detach();
-//}
 
 struct GeneratingFunctor
 {
@@ -555,8 +496,7 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
         out.push(simplLit);
 
         if (doOrderingCheck) {
-          ASS(_ordering)
-          auto cmp = _ordering->compare(simplLit, orig);
+          auto cmp = _ordering.compare(simplLit, orig);
           switch(cmp) {
             case Ordering::Result::LESS:
               oneLess = true;
@@ -590,7 +530,7 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
   }
 }
 
-SimplifyingGeneratingLiteralSimplification::SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering): _ordering(&ordering), _rule(rule) {}
+SimplifyingGeneratingLiteralSimplification::SimplifyingGeneratingLiteralSimplification(InferenceRule rule, const Ordering& ordering): _ordering(ordering), _rule(rule) {}
 
 
 

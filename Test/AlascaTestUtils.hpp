@@ -41,12 +41,10 @@ struct AlascaSimplRule
 
   void attach(SaturationAlgorithm* salg) final override {
     _rule.attach(salg);
-    _norm.attach(salg);
   }
 
   void detach() final override {
     _rule.detach();
-    _norm.detach();
   }
 
   ClauseGenerationResult generateSimplify(Clause* premise) final override {

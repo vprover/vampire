@@ -285,9 +285,6 @@ SaturationAlgorithm::~SaturationAlgorithm()
   if (_generator) {
     _generator->detach();
   }
-  if (_immediateSimplifier) {
-    _immediateSimplifier->detach();
-  }
 
   while (_fwSimplifiers) {
     ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
@@ -1374,7 +1371,6 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
 {
   ASS(!_immediateSimplifier);
   _immediateSimplifier = immediateSimplifier;
-  _immediateSimplifier->attach(this);
 }
 
 /**
@@ -1420,7 +1416,7 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  */
 SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt)
 {
-  bool alascaTakesOver = env.options->alasca() && prb.hasAlascaArithmetic();
+  bool alascaTakesOver = opt.alasca() && prb.hasAlascaArithmetic();
 
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
@@ -1466,7 +1462,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new EqualityFactoring());
     }
     gie->addFront(new EqualityResolution());
-    if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
+    if(opt.superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
       gie->addFront(new Superposition());
     }
   }
@@ -1474,7 +1470,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution());
   }
 
-  if (env.options->choiceReasoning()) {
+  if (opt.choiceReasoning()) {
     gie->addFront(new Choice());
   }
 
@@ -1483,7 +1479,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
-    if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+    if (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
       gie->addFront(new URResolution</*synthesis=*/true>(opt.unitResultingResolution() == Options::URResolution::FULL));
     } else {
       gie->addFront(new URResolution</*synthesis=*/false>(opt.unitResultingResolution() == Options::URResolution::FULL));
@@ -1514,7 +1510,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new InjectivityGIE());
     }
   }
-  if (env.options->functionDefinitionRewriting()) {
+  if (opt.functionDefinitionRewriting()) {
     gie->addFront(new FunctionDefinitionRewriting());
     res->addForwardSimplifierToFront(new FunctionDefinitionDemodulation());
   }
@@ -1528,15 +1524,15 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new PolynomialEvaluationRule(ordering));
   }
 
-  if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+  if (opt.cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
     sgi->push(new Cancellation(ordering));
   }
 
-  if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+  if (opt.gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
     sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination()));
   }
 
-  if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
+  if (opt.arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
     for (auto gen : allArithmeticSubtermGeneralizations()) {
       sgi->push(gen);
     }
@@ -1547,22 +1543,22 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     auto shared = Kernel::AlascaState::create(
         InequalityNormalizer::global(),
         &ordering,
-        env.options->unificationWithAbstraction(),
-        env.options->unificationWithAbstractionFixedPointIteration()
+        opt.unificationWithAbstraction(),
+        opt.unificationWithAbstractionFixedPointIteration()
         );
-    if (env.options->alascaDemodulation()) {
+    if (opt.alascaDemodulation()) {
       res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(shared));
       res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared));
     }
-    ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
+    ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false));
     // TODO add an option for this
     ise->addFront(new ALASCA::FloorElimination(shared));
-    if (env.options->alascaAbstraction()) {
+    if (opt.alascaAbstraction()) {
       ise->addFront(new ALASCA::Abstraction<RealTraits>(shared));
       ise->addFront(new ALASCA::Abstraction<RatTraits>(shared));
     }
 
-    if (env.options->alascaStrongNormalization()) {
+    if (opt.alascaStrongNormalization()) {
       ise->addFront(new ALASCA::InequalityPredicateNormalization(shared));
     }
 
@@ -1570,7 +1566,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new ALASCA::TautologyDeletion(shared));
     ise->addFront(new ALASCA::Normalization(shared));
     // TODO check when the other one is better
-    if (env.options->viras()) {
+    if (opt.viras()) {
       sgi->push(new ALASCA::VirasQuantifierElimination(shared));
     } else {
       sgi->push(new ALASCA::VariableElimination(shared, /* simpl */ true ));
@@ -1583,10 +1579,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new ALASCA::FloorFourierMotzkin<RealTraits>(shared));
     sgi->push(new ALASCA::IntegerFourierMotzkin<RealTraits>(shared));
     sgi->push(new ALASCA::IntegerFourierMotzkin<RatTraits>(shared));
-    if (env.options->superposition()) {
+    if (opt.superposition()) {
       sgi->push(new ALASCA::Superposition(shared));
     }
-    if (env.options->binaryResolution()) {
+    if (opt.binaryResolution()) {
       sgi->push(new ALASCA::BinaryResolution(shared));
     }
     sgi->push(new ALASCA::CoherenceNormalization<RatTraits>(shared));
@@ -1704,7 +1700,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering, bool alascaTakesOver)
+std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Problem& prb, const Options& opt, const Ordering& ordering, bool alascaTakesOver)
 {
   CompositeISE* res =new CompositeISE();
   CompositeISEMany resMany;
@@ -1726,7 +1722,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
       break;
   }
 
-  if (env.options->choiceReasoning()) {
+  if (opt.choiceReasoning()) {
     res->addFront(new ChoiceDefinitionISE());
   }
 
@@ -1746,31 +1742,31 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     if (opt.termAlgebraInferences()) {
       res->addFront(new DistinctnessISE());
       res->addFront(new InjectivityISE());
-      res->addFront(new NegativeInjectivityISE());
+      res->addFront(new NegativeInjectivityISE(ordering));
     }
   }
   if (prb.hasInterpretedOperations() || prb.hasNumerals()) {
-    if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
+    if (opt.arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::FORCE) {
       for (auto gen : allArithmeticSubtermGeneralizations()) {
         res->addFront(&gen->asISE());
       }
     }
 
-    if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::FORCE) {
+    if (opt.gaussianVariableElimination() == Options::ArithmeticSimplificationMode::FORCE) {
       res->addFront(&(new GaussianVariableElimination())->asISE());
     }
 
-    if (env.options->cancellation() == Options::ArithmeticSimplificationMode::FORCE) {
+    if (opt.cancellation() == Options::ArithmeticSimplificationMode::FORCE) {
       res->addFront(&(new Cancellation(ordering))->asISE());
     }
 
     if (alascaTakesOver) {
       // all alasca rules are added later
-    } else switch (env.options->evaluationMode()) {
+    } else switch (opt.evaluationMode()) {
       case Options::EvaluationMode::OFF:
         break;
       case Options::EvaluationMode::SIMPLE:
-        res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
+        res->addFront(new InterpretedEvaluation(opt.inequalityNormalization()));
         break;
       case Options::EvaluationMode::POLYNOMIAL_FORCE:
         res->addFront(&(new PolynomialEvaluationRule(ordering))->asISE());
@@ -1779,7 +1775,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
         break;
     }
 
-    if (env.options->pushUnaryMinus()) {
+    if (opt.pushUnaryMinus()) {
       res->addFront(new PushUnaryMinus());
     }
   }
@@ -1787,17 +1783,17 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
-  if (env.options->newTautologyDel()) {
+  if (opt.newTautologyDel()) {
     res->addFront(new TautologyDeletionISE2());
   }
   res->addFront(new DuplicateLiteralRemovalISE());
 
-  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) {
+  if (opt.questionAnswering() == Options::QuestionAnsweringMode::PLAIN) {
     res->addFront(new AnswerLiteralResolver());
-    if (env.options->questionAnsweringAvoidThese() != "") {
-      res->addFront(new UndesiredAnswerLiteralRemoval(env.options->questionAnsweringAvoidThese()));
+    if (opt.questionAnsweringAvoidThese() != "") {
+      res->addFront(new UndesiredAnswerLiteralRemoval(opt.questionAnsweringAvoidThese()));
     }
-  } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+  } else if (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
     res->addFront(new UncomputableAnswerLiteralRemoval());
     res->addFront(new MultipleAnswerLiteralRemoval());
     // Note: SynthesisAnswerLiteralProcessor must be THE LAST added simplification-many rule.
