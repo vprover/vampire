@@ -329,9 +329,9 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     }
 
     unsigned proj;
-    if (Theory::tuples()->findProjection(term->functor(), false, proj)) {
+    if (Theory::findTupleProjection(term->functor(), false, proj)) {
       TermList* arg = arguments.begin();
-      if (arg->isTerm() && Theory::tuples()->isConstructor(arg->term())) {
+      if (arg->isTerm() && Theory::isTupleConstructor(arg->term())) {
         return *arg->term()->nthArgument(proj);
       }
     }
@@ -673,11 +673,11 @@ TermList NewCNF::eliminateLet(Term* term)
   auto bindingLhs = binding->literal()->termArg(0).term();
   auto bindingRhs = binding->literal()->termArg(1);
 
-  if (Theory::tuples()->isConstructor(bindingLhs)) {
+  if (Theory::isTupleConstructor(bindingLhs)) {
 
     TermList bodySort = sd->getSort();
 
-    if (bindingRhs.isTerm() && Theory::tuples()->isConstructor(bindingRhs.term())) {
+    if (bindingRhs.isTerm() && Theory::isTupleConstructor(bindingRhs.term())) {
       // binding of the form $let([x, y, z, ...] := [a, b, c, ...], ...) is processed
       // as $let(x := a, $let(y := b, $let(z := c, ...)))
 
@@ -708,7 +708,7 @@ TermList NewCNF::eliminateLet(Term* term)
           auto lhs = arg.term();
           ASS_EQ(lhs->numTermArguments(), 0);
 
-          unsigned projFunctor = Theory::tuples()->getProjectionFunctor(arity, i);
+          unsigned projFunctor = Theory::getTupleProjectionFunctor(arity, i);
           Term* projectedArgument = lhs->isBoolean()
             ? Term::createFormula(new AtomicFormula(Literal::create(projFunctor, args.size(), /*polarity*/true, args.begin())))
             : Term::create(projFunctor, args);
