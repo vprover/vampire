@@ -45,18 +45,12 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void BackwardDemodulation::attach(SaturationAlgorithm* salg)
-{
-  BackwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<DemodulationSubtermIndex>();
-  _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
-}
-
-void BackwardDemodulation::detach()
-{
-  _index = nullptr;
-  BackwardSimplificationEngine::detach();
-}
+BackwardDemodulation::BackwardDemodulation(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()),
+    _preordered(salg.getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED),
+    _index(salg.getSimplifyingIndex<DemodulationSubtermIndex>()),
+    _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering()))
+{}
 
 struct BackwardDemodulation::RemovedIsNonzeroFn
 {
@@ -94,7 +88,7 @@ struct BackwardDemodulation::ResultFn
   typedef DHMultiset<Clause*> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
-  : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering())
+  : _cl(cl), _helper(helper), _ordering(parent._ord)
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
@@ -182,7 +176,7 @@ private:
 
   const DemodulationHelper& _helper;
 
-  Ordering& _ordering;
+  const Ordering& _ordering;
 };
 
 
@@ -201,9 +195,7 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getDemodulationLHSIterator(lit,
-            _salg->getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED,
-            _salg->getOrdering()).first,
+			    EqHelper::getDemodulationLHSIterator(lit, _preordered, _ord).first,
 			    RewritableClausesFn(_index.get())),
 		    ResultFn(cl, *this, _helper)),
  	    RemovedIsNonzeroFn()) );

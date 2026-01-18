@@ -105,8 +105,8 @@ public:
   BUILDER_METHOD(TestCase, Stack<Clause*>, toSimplify  )
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, expected)
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, justifications)
-  BUILDER_METHOD(TestCase, ForwardSimplificationEngine* , fwd)
-  BUILDER_METHOD(TestCase, BackwardSimplificationEngine*, bwd)
+  BUILDER_METHOD(TestCase, ForwardSimplificationEngine*, fwd)
+  BUILDER_METHOD(TestCase, std::function<std::unique_ptr<BackwardSimplificationEngine>(SaturationAlgorithm&)>, bwd)
 
   void runFwd() 
   {
@@ -178,8 +178,8 @@ public:
     // set up clause container and indexing structure
     auto container = alg.getSimplifyingClauseContainer();
 
-    BackwardSimplificationEngine& bwd = *this->bwd().unwrap();
-    bwd.attach(&alg);
+    auto bwdFn = this->bwd().unwrap();
+    auto bwd = bwdFn(alg);
 
     // add the clauses to the index
     auto toSimpl = toSimplify().unwrap();
@@ -193,7 +193,7 @@ public:
     for (auto cl : simplifyWith) {
       Inferences::BwSimplificationRecordIterator simpls;
       try {
-        bwd.perform(cl, simpls);
+        bwd->perform(cl, simpls);
       } catch (Lib::Exception& e) { 
         testFail("bwd", e); 
       }
@@ -201,7 +201,6 @@ public:
         results.push(simpl.replacement);
       }
     }
-    bwd.detach();
     Ordering::unsetGlobalOrdering();
 
     // run checks

@@ -17,21 +17,11 @@ using Demod = Inferences::ALASCA::Demodulation;
 namespace Inferences {
 namespace ALASCA {
 
-void BwdDemodulation::attach(SaturationAlgorithm* salg)
+BwdDemodulation::BwdDemodulation(std::shared_ptr<AlascaState> shared, SaturationAlgorithm& salg)
+  : _shared(shared), _index(salg.getSimplifyingIndex<AlascaIndex<Rhs>>())
 {
-  BackwardSimplificationEngine::attach(salg);
-  _index = _salg->getSimplifyingIndex<AlascaIndex<Rhs>>();
   _index->setShared(_shared);
 }
-
-void BwdDemodulation::detach()
-{
-  ASS(_salg);
-
-  _index = nullptr;
-  BackwardSimplificationEngine::detach();
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // RULE APPLICATION

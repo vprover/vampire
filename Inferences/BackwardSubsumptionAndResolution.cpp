@@ -38,18 +38,15 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
+BackwardSubsumptionAndResolution::BackwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumption(salg.getOptions().backwardSubsumption() != Options::Subsumption::OFF),
+    _subsumptionResolution(salg.getOptions().backwardSubsumptionResolution() != Options::Subsumption::OFF),
+    _subsumptionByUnitsOnly(salg.getOptions().backwardSubsumption() == Options::Subsumption::UNIT_ONLY),
+    _srByUnitsOnly(salg.getOptions().backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY),
+    _bwIndex(salg.getSimplifyingIndex<BackwardSubsumptionIndex>())
 {
-  BackwardSimplificationEngine::attach(salg);
-  _bwIndex = salg->getSimplifyingIndex<BackwardSubsumptionIndex>();
+  ASS(_subsumption || _subsumptionResolution);
 }
-
-void BackwardSubsumptionAndResolution::detach()
-{
-  _bwIndex = nullptr;
-  BackwardSimplificationEngine::detach();
-}
-
 
 void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)

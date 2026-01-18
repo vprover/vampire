@@ -302,9 +302,7 @@ SaturationAlgorithm::~SaturationAlgorithm()
     delete fse;
   }
   while (_bwSimplifiers) {
-    BackwardSimplificationEngine* bse = BwSimplList::pop(_bwSimplifiers);
-    bse->detach();
-    delete bse;
+    delete BwSimplList::pop(_bwSimplifiers);
   }
 
   delete _unprocessed;
@@ -1407,7 +1405,6 @@ void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
 void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEngine *bwSimplifier)
 {
   BwSimplList::push(bwSimplifier, _bwSimplifiers);
-  bwSimplifier->attach(this);
 }
 
 /**
@@ -1548,7 +1545,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         );
     if (opt.alascaDemodulation()) {
       res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(shared));
-      res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared));
+      res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared, *res));
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false));
     // TODO add an option for this
@@ -1659,7 +1656,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.backwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addBackwardSimplifierToFront(new BackwardDemodulation());
+        res->addBackwardSimplifierToFront(new BackwardDemodulation(*res));
         break;
       case Options::Demodulation::OFF:
         break;
@@ -1671,15 +1668,13 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   
   if (mayHaveEquality && opt.backwardSubsumptionDemodulation()) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(subDemodOrdOpt));
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(subDemodOrdOpt, *res));
   }
 
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
   bool backSR = opt.backwardSubsumptionResolution() != Options::Subsumption::OFF;
-  bool subsumptionUnitOnly = opt.backwardSubsumption() == Options::Subsumption::UNIT_ONLY;
-  bool srUnitOnly = opt.backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY;
   if (backSubsumption || backSR) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionAndResolution(backSubsumption, subsumptionUnitOnly, backSR, srUnitOnly));
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionAndResolution(*res));
   }
 
   if (opt.mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {

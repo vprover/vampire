@@ -26,33 +26,26 @@ class BackwardSubsumptionAndResolution
     : public BackwardSimplificationEngine {
 
 public:
-  BackwardSubsumptionAndResolution(bool subsumption, bool subsumptionByUnitsOnly, bool subsumptionResolution, bool srByUnitsOnly)
-    : _subsumption(subsumption), _subsumptionResolution(subsumptionResolution), _subsumptionByUnitsOnly(subsumptionByUnitsOnly), _srByUnitsOnly(srByUnitsOnly)
-  {
-    // do nothing
-  }
-  ~BackwardSubsumptionAndResolution() override {}
+  BackwardSubsumptionAndResolution(SaturationAlgorithm& salg);
 
-  void attach(Saturation::SaturationAlgorithm *salg) override;
-  void detach() override;
   void perform(Kernel::Clause *premise, Inferences::BwSimplificationRecordIterator &simplifications) override;
 
 private:
   /// @brief True if the inference engine should perform subsumption
-  bool _subsumption;
+  const bool _subsumption;
   /// @brief True if the inference engine should perform subsumption resolution
-  bool _subsumptionResolution;
+  const bool _subsumptionResolution;
   /// @brief True if the inference engine should perform subsumption by unit clauses only
-  bool _subsumptionByUnitsOnly;
+  const bool _subsumptionByUnitsOnly;
   /// @brief True if the inference engine should perform subsumption resolution by unit clauses only
-  bool _srByUnitsOnly;
+  const bool _srByUnitsOnly;
 
   /// @brief Backward index for subsumption and subsumption resolution candidates
   std::shared_ptr<Indexing::BackwardSubsumptionIndex> _bwIndex;
   /// @brief SAT-based subsumption and subsumption resolution engine
   SATSubsumption::SATSubsumptionAndResolution _satSubs;
   /// @brief Set of clauses that have already been checked for subsumption and/or subsumption resolution
-  Lib::DHSet<Clause *> _checked;
+  Lib::DHSet<Clause*> _checked;
 
 };
 

@@ -49,26 +49,15 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrderingOptimizations)
-  : _preorderedOnly{false}
+BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrderingOptimizations, SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering())
+  , _index(salg.getSimplifyingIndex<BackwardSubsumptionIndex>())
+  , _preorderedOnly{false}
   , _allowIncompleteness{false}
   , _enableOrderingOptimizations{enableOrderingOptimizations}
+  , _literalComparisonMode(salg.getOptions().literalComparisonMode())
+  , _backwardSubsumptionDemodulationMaxMatches(salg.getOptions().backwardSubsumptionDemodulationMaxMatches())
 { }
-
-
-void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
-{
-  BackwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<BackwardSubsumptionIndex>();
-}
-
-
-void BackwardSubsumptionDemodulation::detach()
-{
-  _index = nullptr;
-  BackwardSimplificationEngine::detach();
-}
-
 
 void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
@@ -318,9 +307,9 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
     matcher.init(sideCl, mainCl, alts.data());
 
     static unsigned const maxMatches =
-      getOptions().backwardSubsumptionDemodulationMaxMatches() == 0
+      _backwardSubsumptionDemodulationMaxMatches == 0
       ? std::numeric_limits<decltype(maxMatches)>::max()
-      : getOptions().backwardSubsumptionDemodulationMaxMatches();
+      : _backwardSubsumptionDemodulationMaxMatches;
 
     unsigned numMatches = 0;
     for (; numMatches < maxMatches; ++numMatches) {
@@ -348,7 +337,6 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
 /// Returns true iff the main premise has been simplified.
 bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
 {
-  Ordering const& ordering = _salg->getOrdering();
   // to see why we use this have a look at the respective line in ForwardSubsumptionDemodulation
   DEBUG_CODE(static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
                               || env.options->termOrdering () == Shell::Options::TermOrdering::LAKBO;)
@@ -357,10 +345,10 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     // eqLit == nullptr means that the whole side premise can be instantiated to some subset of the candidate,
     // i.e., we have subsumption.
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-    if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+    if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
       OverlayBinder tmpBinder;
       matcher.getBindings(tmpBinder.base());
-      ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, tmpBinder, mainCl, ordering));
+      ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, tmpBinder, mainCl, _ord));
     }
 #endif
     ASS(replacement == nullptr);
@@ -372,7 +360,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
   TermList const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
 
-  Ordering::Result const eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
+  Ordering::Result const eqArgOrder = _ord.getEqualityArgumentOrder(eqLit);
   bool const preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
   if (_preorderedOnly && !preordered) {
     return false;
@@ -499,7 +487,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         TermList rhsS = binder.applyTo(rhs);
         ASS_EQ(lhsS, binder.applyTo(lhs));
 
-        if (!preordered && ordering.compare(lhsS, rhsS) != Ordering::GREATER) {
+        if (!preordered && _ord.compare(lhsS, rhsS) != Ordering::GREATER) {
           continue;
         }
 
@@ -512,13 +500,13 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
           {
           if (!dlit->isEquality()) {
             // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
-            ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
+            ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
             goto isRedundant;
           }
           if (lhsS != *dlit->nthArgument(0) && lhsS != *dlit->nthArgument(1)) {
             // lhsS appears as argument to some function, e.g. f(lhsS) = t
             // from subterm property of simplification ordering we know that lhsS < f(lhsS) and thus eqLitS < dlit
-            ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
+            ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
             goto isRedundant;
           }
           // Now we are in the following situation:
@@ -537,8 +525,8 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
               // in this case, eqLitS == dlit; and we have subsumption
               ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
-                ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, binder, mainCl, ordering));
+              if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
+                ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, binder, mainCl, _ord));
               }
 #endif
               ASS(replacement == nullptr);
@@ -547,25 +535,25 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
             } else {
               // Here, we have subsumption resolution
               ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
-              ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
+              ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
               ASS(SDHelper::checkForSubsumptionResolution(mainCl, SDClauseMatches{sideCl,LiteralMiniIndex{mainCl}}, dlit));
               replacement = SDHelper::generateSubsumptionResolutionClause(mainCl, dlit, sideCl, /*forward=*/false);
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+              if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
                 // Note that mclθ < cl does not always hold here,
                 // but we don't need it to ensure redundancy of cl
                 // because cl is already entailed by replacement alone
-                ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
+                ASS(SDHelper::clauseIsSmaller(replacement, mainCl, _ord));
               }
 #endif
               return true;
             }
           }
           dli_was_checked = true;
-          Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
+          Ordering::Result r_cmp_t = _ord.compare(rhsS, t);
           if (r_cmp_t == Ordering::LESS) {
             // rhsS < t implies eqLitS < dlit
-            ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
+            ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
             goto isRedundant;
           }
           }
@@ -578,7 +566,7 @@ afterOptimizations:
             // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
             if ((!dli_was_checked || dli != li2) && !isMatched[li2]) {
               Literal* lit2 = (*mainCl)[li2];
-              if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
+              if (_ord.compare(eqLitS, lit2) == Ordering::LESS) {
                 // we found that eqLitS < lit2; and thus sideCl < mainCl => after inference, mainCl is redundant
                 goto isRedundant;
               }
@@ -591,10 +579,10 @@ afterOptimizations:
 isRedundant:
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE && !isAlascaOrdering) {
+        if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE && !isAlascaOrdering) {
           // Check mclΘ < cl.
           // This is not clear and might easily be violated if we have a bug above.
-          if (!SDHelper::substClauseIsSmaller(sideCl, binder, mainCl, ordering)) {
+          if (!SDHelper::substClauseIsSmaller(sideCl, binder, mainCl, _ord)) {
             std::cerr << "BSD: redundancy violated!" << std::endl;
             std::cerr << "side: " << sideCl->toString() << std::endl;
             std::cerr << "main: " << mainCl->toString() << std::endl;
@@ -610,11 +598,11 @@ isRedundant:
         Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
 #if VDEBUG
         if (!isAlascaOrdering)
-          ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
+          ASS_EQ(_ord.compare(lhsS, rhsS), Ordering::GREATER);
+        if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE
             && !isAlascaOrdering) {
           // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
-          ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
+          ASS_EQ(_ord.compare(dlit, newLit), Ordering::GREATER);
         }
 #endif
 
@@ -658,10 +646,10 @@ isRedundant:
 #endif
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
-        if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
+        if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE
             && !isAlascaOrdering) {  // see note above
           // Check replacement < mainCl.
-          ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
+          ASS(SDHelper::clauseIsSmaller(replacement, mainCl, _ord));
         }
 #endif
 

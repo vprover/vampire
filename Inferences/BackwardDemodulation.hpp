@@ -32,8 +32,7 @@ class BackwardDemodulation
 : public BackwardSimplificationEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  BackwardDemodulation(SaturationAlgorithm& salg);
 
   void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 private:
@@ -41,6 +40,8 @@ private:
   struct RewritableClausesFn;
   struct ResultFn;
 
+  const Ordering& _ord;
+  const bool _preordered;
   std::shared_ptr<DemodulationSubtermIndex> _index;
   DemodulationHelper _helper;
 };

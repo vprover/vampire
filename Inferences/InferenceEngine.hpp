@@ -262,9 +262,9 @@ struct BwSimplificationRecord
 typedef VirtualIterator<BwSimplificationRecord> BwSimplificationRecordIterator;
 
 class BackwardSimplificationEngine
-: public InferenceEngine
 {
 public:
+  virtual ~BackwardSimplificationEngine() = default;
   /**
    * Perform backward simplification with @b premise.
    *
@@ -273,17 +273,6 @@ public:
    * the time of call to this method.
    */
   virtual void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) = 0;
-};
-
-
-class DummyGIE
-: public GeneratingInferenceEngine
-{
-public:
-  ClauseIterator generateClauses(Clause* premise) override
-  {
-    return ClauseIterator::getEmpty();
-  }
 };
 
 template<class... Args>
