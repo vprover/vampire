@@ -122,9 +122,9 @@ public:
 };
 
 class ImmediateSimplificationEngineMany
-: public InferenceEngine
 {
 public:
+  virtual ~ImmediateSimplificationEngineMany() = default;
   /**
    * Perform an immediate simplification on @b cl and return
    * the resulting clauses. If the simplification is not applicable 
@@ -220,9 +220,9 @@ private:
 };
 
 class SimplificationEngine
-: public InferenceEngine
 {
 public:
+  virtual ~SimplificationEngine() = default;
   /**
    * Perform simplification on @b cl
    *
@@ -333,8 +333,6 @@ public:
     }
     return {};
   }
-  void attach(SaturationAlgorithm* salg) final { for (auto& e : iter()) { e->attach(salg); } }
-  void detach() final { for (auto& e : iter()) { e->detach(); } }
 private:
   Stack<std::unique_ptr<ImmediateSimplificationEngineMany>> _inners;
 };

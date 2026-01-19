@@ -737,17 +737,9 @@ void LazyClausificationGIE::detach()
   GeneratingInferenceEngine::detach();
 }
 
-void LazyClausification::attach(SaturationAlgorithm* salg)
-{
-  SimplificationEngine::attach(salg);
-  _formulaIndex = salg->getSimplifyingIndex<SkolemisingFormulaIndex>();
-}
-
-void LazyClausification::detach()
-{
-  _formulaIndex = nullptr;
-  SimplificationEngine::detach();
-}
+LazyClausification::LazyClausification(SaturationAlgorithm& salg)
+  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
+{}
 
 ClauseIterator EagerClausificationISE::simplifyMany(Clause* c)
 {

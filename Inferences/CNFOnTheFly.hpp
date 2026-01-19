@@ -45,11 +45,9 @@ class LazyClausification
   : public SimplificationEngine
 {
 public:
+  LazyClausification(SaturationAlgorithm& salg);
+
   ClauseIterator perform(Clause* c) override;
-
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-
 private:
   std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
 };

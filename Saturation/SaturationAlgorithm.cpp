@@ -293,9 +293,7 @@ SaturationAlgorithm::~SaturationAlgorithm()
     delete FwSimplList::pop(_expensiveFwSimplifiers);
   }
   while (_simplifiers) {
-    SimplificationEngine* fse = SimplList::pop(_simplifiers);
-    fse->detach();
-    delete fse;
+    delete SimplList::pop(_simplifiers);
   }
   while (_bwSimplifiers) {
     delete BwSimplList::pop(_bwSimplifiers);
@@ -1388,7 +1386,6 @@ void SaturationAlgorithm::addExpensiveForwardSimplifierToFront(ForwardSimplifica
 void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
 {
   SimplList::push(simplifier, _simplifiers);
-  simplifier->attach(this);
 }
 
 /**
