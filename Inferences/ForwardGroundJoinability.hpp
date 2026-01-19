@@ -31,8 +31,8 @@ class ForwardGroundJoinability
 : public ForwardSimplificationEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  ForwardGroundJoinability(SaturationAlgorithm& salg);
+
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   static bool makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res);
@@ -53,6 +53,7 @@ private:
     Branch* _curr;
   };
 
+  const Ordering& _ord;
   std::shared_ptr<DemodulationLHSIndex> _index;
 };
 

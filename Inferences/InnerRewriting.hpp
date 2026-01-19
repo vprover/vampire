@@ -29,7 +29,10 @@ class InnerRewriting
 : public ForwardSimplificationEngine
 {
 public:
+  InnerRewriting(SaturationAlgorithm& salg);
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+private:
+  const Ordering& _ord;
 };
 
 };

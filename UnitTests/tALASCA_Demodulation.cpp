@@ -47,7 +47,7 @@ using namespace Inferences::ALASCA;
 
 inline auto demodTester() {
     return FwdBwdSimplification::TestCase()
-      .fwd   (   new FwdDemodulation(testAlascaState(UWA_MODE))  )
+      .fwd([](SaturationAlgorithm& salg) { return std::make_unique<FwdDemodulation>(testAlascaState(UWA_MODE), salg); })
       .bwd([](SaturationAlgorithm& salg) { return std::make_unique<BwdDemodulation>(testAlascaState(UWA_MODE), salg); });
 }
 // ±ks + t ≈ 0          C[sσ]

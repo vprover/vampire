@@ -24,16 +24,17 @@ namespace Inferences {
 using namespace Lib;
 using namespace Kernel;
 
+InnerRewriting::InnerRewriting(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()) {}
+
 bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  Ordering& ordering = _salg->getOrdering();
-
   // look for the first equality which rewrites something and rewrite everything with it (check for EqTaut as you go)
   unsigned len = cl->length();
   for (unsigned i = 0; i < len; i++) {
     Literal* rwLit=(*cl)[i];
     TermList lhs, rhs;
-    if (rwLit->isEquality() && rwLit->isNegative() && EqHelper::hasGreaterEqualitySide(rwLit,ordering,lhs,rhs)) {
+    if (rwLit->isEquality() && rwLit->isNegative() && EqHelper::hasGreaterEqualitySide(rwLit,_ord,lhs,rhs)) {
       for (unsigned j = 0; j < len; j++) {
         if (i != j) {
           Literal* lit = (*cl)[j];

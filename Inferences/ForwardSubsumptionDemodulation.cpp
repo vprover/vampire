@@ -31,29 +31,17 @@ using namespace Lib;
 using namespace Inferences;
 using namespace Saturation;
 
-
-void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-
-  _index = salg->getSimplifyingIndex<FSDLiteralIndex>();
-
-  _preorderedOnly = false;
-  _allowIncompleteness = false;
-
-  if (_doSubsumption) {
-    _unitIndex = salg->getSimplifyingIndex<UnitClauseLiteralIndex>();
-  }
-}
-
-
-void ForwardSubsumptionDemodulation::detach()
-{
-  _index = nullptr;
-  _unitIndex = nullptr;
-  ForwardSimplificationEngine::detach();
-}
-
+ForwardSubsumptionDemodulation::ForwardSubsumptionDemodulation(SaturationAlgorithm& salg)
+  : _preorderedOnly(false),
+    _allowIncompleteness(false),
+    _enableOrderingOptimizations(
+      salg.getOptions().termOrdering() == Shell::Options::TermOrdering::KBO ||
+      salg.getOptions().termOrdering() == Shell::Options::TermOrdering::LPO),
+    _forwardSubsumptionDemodulationMaxMatches(salg.getOptions().forwardSubsumptionDemodulationMaxMatches()),
+    _literalComparisonMode(salg.getOptions().literalComparisonMode()),
+    _ord(salg.getOrdering()),
+    _index(salg.getSimplifyingIndex<FSDLiteralIndex>())
+{}
 
 bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
@@ -76,8 +64,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
   TIME_TRACE("forward subsumption demodulation");
 
-
-  Ordering const& ordering = _salg->getOrdering();
   // some assertions won't hold if we use an alasca ordering i.e. in an alasca ordering we might have s subterm t but s not less than t, especially for non-atomic theory terms. 
   // e.g. a subterm a - a
   // but  a greater 0 equiv a - a
@@ -90,29 +76,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   // Discard all previous aux values (so after this, hasAux() returns false for any clause).
   Clause::requestAux();
   ON_SCOPE_EXIT({ Clause::releaseAux(); });
-
-  // Subsumption by unit clauses
-  if (_doSubsumption) {
-    for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
-      auto rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
-      while (rit.hasNext()) {
-        Clause* premise = rit.next().data->clause;
-
-        if (premise->hasAux()) {
-          continue;  // we've already checked this premise
-        }
-        premise->setAux(nullptr);
-
-        if (!ColorHelper::compatible(cl->color(), premise->color())) {
-          continue;
-        }
-
-        premises = pvi(getSingletonIterator(premise));
-        env.statistics->forwardSubsumed++;
-        return true;
-      }
-    }
-  }
 
   LiteralMiniIndex const cl_miniIndex(cl);
 
@@ -222,9 +185,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       matcher.init(mcl, cl, alts.data());
 
       static unsigned const maxMatches =
-        getOptions().forwardSubsumptionDemodulationMaxMatches() == 0
+        _forwardSubsumptionDemodulationMaxMatches == 0
         ? std::numeric_limits<decltype(maxMatches)>::max()
-        : getOptions().forwardSubsumptionDemodulationMaxMatches();
+        : _forwardSubsumptionDemodulationMaxMatches;
 
       unsigned numMatches = 0;
       for (; numMatches < maxMatches; ++numMatches) {
@@ -240,10 +203,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           // Note that we should always apply Forward Subsumption if possible,
           // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-          if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+          if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
             OverlayBinder tmpBinder;
             matcher.getBindings(tmpBinder.base());
-            ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, tmpBinder, cl, ordering));
+            ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, tmpBinder, cl, _ord));
           }
 #endif
           ASS(replacement == nullptr);
@@ -256,7 +219,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
         TermList const eqSort = SortHelper::getEqualityArgumentSort(eqLit);
 
-        Ordering::Result const eqArgOrder = ordering.getEqualityArgumentOrder(eqLit);
+        Ordering::Result const eqArgOrder = _ord.getEqualityArgumentOrder(eqLit);
         bool const preordered = (eqArgOrder == Ordering::LESS) || (eqArgOrder == Ordering::GREATER);
         if (_preorderedOnly && !preordered) {
           continue;
@@ -452,7 +415,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               TermList rhsS = binder.applyTo(rhs);
               ASS_EQ(lhsS, binder.applyTo(lhs));
 
-              if (!preordered && ordering.compare(lhsS, rhsS) != Ordering::GREATER) {
+              if (!preordered && _ord.compare(lhsS, rhsS) != Ordering::GREATER) {
                 continue;
               }
 
@@ -495,13 +458,13 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 }
                 if (!dlit->isEquality()) {
                   // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
-                  ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
+                  ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
                 if (lhsS != *dlit->nthArgument(0) && lhsS != *dlit->nthArgument(1)) {
                   // lhsS appears as argument to some function, e.g. f(lhsS) = t
                   // from subterm property of simplification ordering we know that lhsS < f(lhsS) and thus eqLitS < dlit
-                  ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
+                  ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
                 // Now we are in the following situation:
@@ -522,8 +485,8 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                     // Here, we have subsumption
                     ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-                    if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
-                      ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, binder, cl, ordering));
+                    if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
+                      ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, binder, cl, _ord));
                     }
 #endif
                     ASS(replacement == nullptr);
@@ -533,26 +496,26 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   } else {
                     // Here, we have subsumption resolution
                     ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
-                    ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
+                    ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
                     ASS(SDHelper::checkForSubsumptionResolution(cl, SDClauseMatches{mcl,cl_miniIndex}, dlit));
                     replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl, /*forward=*/true);
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-                    if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+                    if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
                       // Note that mclθ < cl does not always hold here,
                       // but we don't need it to ensure redundancy of cl
                       // because cl is already entailed by replacement alone
-                      ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));
+                      ASS(SDHelper::clauseIsSmaller(replacement, cl, _ord));
                     }
 #endif
                     premises = pvi(getSingletonIterator(mcl));
                     return true;
                   }
                 }
-                Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
+                Ordering::Result r_cmp_t = _ord.compare(rhsS, t);
                 dli_was_checked = true;
                 if (r_cmp_t == Ordering::LESS) {
                   // rhsS < t implies eqLitS < dlit
-                  ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
+                  ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
                 }
@@ -565,7 +528,7 @@ afterOptimizations:
                   // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
                   if ((!dli_was_checked || dli != li2) && !isMatched[li2]) {
                     Literal* lit2 = (*cl)[li2];
-                    if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
+                    if (_ord.compare(eqLitS, lit2) == Ordering::LESS) {
                       // we found that eqLitS < lit2; and thus mcl < cl => after inference, cl is redundant
                       goto isRedundant;
                     }
@@ -578,10 +541,10 @@ afterOptimizations:
 isRedundant:
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+              if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
                 // Check mclΘ < cl.
                 // This is not clear and might easily be violated if we have a bug above.
-                if (!SDHelper::substClauseIsSmaller(mcl, binder, cl, ordering)) {
+                if (!SDHelper::substClauseIsSmaller(mcl, binder, cl, _ord)) {
                   std::cerr << "FSD: redundancy violated!" << std::endl;
                   std::cerr << "mcl: " << mcl->toString() << std::endl;
                   std::cerr << " cl: " <<  cl->toString() << std::endl;
@@ -597,12 +560,12 @@ isRedundant:
               Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
 #if VDEBUG
               if (!isAlascaOrdering) 
-                ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
+                ASS_EQ(_ord.compare(lhsS, rhsS), Ordering::GREATER);
+              if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE 
                   && !isAlascaOrdering ) {
 
                 // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
-                ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
+                ASS_EQ(_ord.compare(dlit, newLit), Ordering::GREATER);
               }
 #endif
 
@@ -650,12 +613,12 @@ isRedundant:
               RSTAT_MCTR_INC("FSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
+              if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE
                   && !isAlascaOrdering
                   ) {  // see note above
                 // Check replacement < cl.
                 // This is quite obvious, and there should be no problems with this.
-                ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));
+                ASS(SDHelper::clauseIsSmaller(replacement, cl, _ord));
               }
 #endif
 

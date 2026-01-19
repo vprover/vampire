@@ -68,30 +68,19 @@ struct ApplicatorWithEqSort : SubstApplicator {
 
 } // end namespace
 
-void ForwardDemodulation::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<DemodulationLHSIndex>();
-
-  auto& opt = getOptions();
-  _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
-  _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _useTermOrderingDiagrams = opt.forwardDemodulationTermOrderingDiagrams();
-  _skipNonequationalLiterals = opt.demodulationOnlyEquational();
-  _helper = DemodulationHelper(opt, &_salg->getOrdering());
-}
-
-void ForwardDemodulation::detach()
-{
-  _index = nullptr;
-  ForwardSimplificationEngine::detach();
-}
+ForwardDemodulation::ForwardDemodulation(SaturationAlgorithm& salg)
+  : _preorderedOnly(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED),
+    _encompassing(salg.getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS),
+    _useTermOrderingDiagrams(salg.getOptions().forwardDemodulationTermOrderingDiagrams()),
+    _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()),
+    _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering())),
+    _ord(salg.getOrdering()),
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
+{}
 
 bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
-
-  Ordering& ordering = _salg->getOrdering();
 
   //Perhaps it might be a good idea to try to
   //replace subterms in some special order, like
@@ -161,11 +150,11 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
         AppliedTerm rhsApplied(qr.data->rhs,appl,true);
         bool preordered = qr.data->preordered;
 
-        ASS_EQ(ordering.compare(trm,rhsApplied),Ordering::reverse(ordering.compare(rhsApplied,trm)));
+        ASS_EQ(_ord.compare(trm,rhsApplied),Ordering::reverse(_ord.compare(rhsApplied,trm)));
 
         if (_useTermOrderingDiagrams) {
 #if VDEBUG
-          auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
+          auto dcomp = _ord.compareUnidirectional(trm,rhsApplied);
 #endif
           qr.data->tod->init(appl);
           if (!preordered && (_preorderedOnly || !qr.data->tod->next())) {
@@ -174,7 +163,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
           }
           ASS_EQ(dcomp,Ordering::GREATER);
         } else {
-          if (!preordered && (_preorderedOnly || ordering.compareUnidirectional(trm,rhsApplied)!=Ordering::GREATER)) {
+          if (!preordered && (_preorderedOnly || _ord.compareUnidirectional(trm,rhsApplied)!=Ordering::GREATER)) {
             continue;
           }
         }
@@ -184,7 +173,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
           // this will only run at most once;
           // could have been factored out of the getGeneralizations loop,
           // but then it would run exactly once there
-          Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
+          Ordering::Result litOrder = _ord.getEqualityArgumentOrder(lit);
           if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
               (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
             redundancyCheck = false;

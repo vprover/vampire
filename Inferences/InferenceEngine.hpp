@@ -233,9 +233,9 @@ public:
 };
 
 class ForwardSimplificationEngine
-: public InferenceEngine
 {
 public:
+  virtual ~ForwardSimplificationEngine() = default;
   /**
    * Perform forward simplification on @b cl
    *

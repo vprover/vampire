@@ -21,22 +21,11 @@ using Demod = Inferences::ALASCA::Demodulation;
 namespace Inferences {
 namespace ALASCA {
 
-void FwdDemodulation::attach(SaturationAlgorithm* salg)
+FwdDemodulation::FwdDemodulation(std::shared_ptr<AlascaState> shared, SaturationAlgorithm& salg)
+  : _shared(shared), _index(salg.getSimplifyingIndex<AlascaIndex<Demodulation::Lhs>>())
 {
-  ForwardSimplificationEngine::attach(salg);
-
-  _index = _salg->getSimplifyingIndex<AlascaIndex<Demodulation::Lhs>>();
   _index->setShared(_shared);
 }
-
-void FwdDemodulation::detach()
-{
-  ASS(_salg);
-
-  _index = nullptr;
-  ForwardSimplificationEngine::detach();
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // RULE APPLICATION

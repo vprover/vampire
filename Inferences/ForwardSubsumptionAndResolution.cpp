@@ -22,9 +22,7 @@
  * In particular, this file implements the loop optimization described in 2023 and 2024.
  */
 
-#include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Indexing/LiteralIndex.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
@@ -38,25 +36,11 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
-    : _subsumptionResolution(subsumptionResolution)
-    , satSubs()
-{
-}
-
-void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _unitIndex = salg->getSimplifyingIndex<UnitClauseLiteralIndex>();
-  _fwIndex = salg->getSimplifyingIndex<FwSubsSimplifyingLiteralIndex>();
-}
-
-void ForwardSubsumptionAndResolution::detach()
-{
-  _fwIndex = nullptr;
-  _unitIndex = nullptr;
-  ForwardSimplificationEngine::detach();
-}
+ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
+    _unitIndex(salg.getSimplifyingIndex<UnitClauseLiteralIndex>()),
+    _fwIndex(salg.getSimplifyingIndex<FwSubsSimplifyingLiteralIndex>())
+{}
 
 /// @brief Set of clauses that were already checked
 static DHSet<Clause *> checkedClauses;

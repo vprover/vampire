@@ -287,14 +287,10 @@ SaturationAlgorithm::~SaturationAlgorithm()
   }
 
   while (_fwSimplifiers) {
-    ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
-    fse->detach();
-    delete fse;
+    delete FwSimplList::pop(_fwSimplifiers);
   }
   while (_expensiveFwSimplifiers) {
-    ForwardSimplificationEngine* fse = FwSimplList::pop(_expensiveFwSimplifiers);
-    fse->detach();
-    delete fse;
+    delete FwSimplList::pop(_expensiveFwSimplifiers);
   }
   while (_simplifiers) {
     SimplificationEngine* fse = SimplList::pop(_simplifiers);
@@ -1382,13 +1378,11 @@ void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificati
 void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngine *fwSimplifier)
 {
   FwSimplList::push(fwSimplifier, _fwSimplifiers);
-  fwSimplifier->attach(this);
 }
 
 void SaturationAlgorithm::addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine *fwSimplifier)
 {
   FwSimplList::push(fwSimplifier, _expensiveFwSimplifiers);
-  fwSimplifier->attach(this);
 }
 
 void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
@@ -1509,7 +1503,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.functionDefinitionRewriting()) {
     gie->addFront(new FunctionDefinitionRewriting());
-    res->addForwardSimplifierToFront(new FunctionDefinitionDemodulation());
+    res->addForwardSimplifierToFront(new FunctionDefinitionDemodulation(*res));
   }
 
   CompositeSGI *sgi = new CompositeSGI();
@@ -1544,7 +1538,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         opt.unificationWithAbstractionFixedPointIteration()
         );
     if (opt.alascaDemodulation()) {
-      res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(shared));
+      res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(shared, *res));
       res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(shared, *res));
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false));
@@ -1603,13 +1597,13 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   // create forward simplification engine
   if (mayHaveEquality && opt.innerRewriting()) {
-    res->addForwardSimplifierToFront(new InnerRewriting());
+    res->addForwardSimplifierToFront(new InnerRewriting(*res));
   }
   if (opt.globalSubsumption()) {
-    res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
+    res->addForwardSimplifierToFront(new GlobalSubsumption(*res));
   }
   if (opt.forwardLiteralRewriting()) {
-    res->addForwardSimplifierToFront(new ForwardLiteralRewriting());
+    res->addForwardSimplifierToFront(new ForwardLiteralRewriting(*res));
   }
   bool subDemodOrdOpt = /* enables ordering optimizations of subsumption demodulation rules */
             opt.termOrdering() == Shell::Options::TermOrdering::KBO
@@ -1619,17 +1613,17 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false, subDemodOrdOpt));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(*res));
     }
   }
   if (mayHaveEquality) {
     if (opt.forwardGroundJoinability()) {
-      res->addExpensiveForwardSimplifierToFront(new ForwardGroundJoinability());
+      res->addExpensiveForwardSimplifierToFront(new ForwardGroundJoinability(*res));
     }
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addForwardSimplifierToFront(new ForwardDemodulation());
+        res->addForwardSimplifierToFront(new ForwardDemodulation(*res));
         break;
       case Options::Demodulation::OFF:
         break;
@@ -1642,9 +1636,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (opt.forwardSubsumption()) {
     if (opt.codeTreeSubsumption()) {
-      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(opt.forwardSubsumptionResolution()));
+      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(*res));
     } else {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(opt.forwardSubsumptionResolution()));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(*res));
     }
   }
   else if (opt.forwardSubsumptionResolution()) {

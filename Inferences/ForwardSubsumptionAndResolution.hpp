@@ -23,20 +23,7 @@ namespace Inferences {
 class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
 public:
-  ForwardSubsumptionAndResolution(bool subsumptionResolution = true);
-
-  /**
-   * Attaches the inference engine to the saturation algorithm.
-   * Also fetches the unit and forward index from the saturation algorithm.
-   * @param salg the saturation algorithm
-   */
-  void attach(Saturation::SaturationAlgorithm *salg) override;
-
-  /**
-   * Detaches the inference engine from the saturation algorithm.
-   * Also clears the unit and forward index.
-   */
-  void detach() override;
+  ForwardSubsumptionAndResolution(Saturation::SaturationAlgorithm& salg);
 
   /**
    * @brief Performs forward subsumption and resolution on the given clause.
@@ -53,16 +40,15 @@ public:
                Kernel::ClauseIterator &premises) override;
 
 private:
+  /// @brief Parameter to enable or disable subsumption resolution
+  /// @note If the parameter is set to false, then the inference engine will only perform forward subsumption
+  const bool _subsumptionResolution;
+  const bool _checkLongerClauses = true;
+
   /// @brief Unit index of the saturation algorithm
   std::shared_ptr<Indexing::UnitClauseLiteralIndex> _unitIndex;
   /// @brief Forward index containing the clauses with which the inference engine can perform forward subsumption and resolution
   std::shared_ptr<Indexing::FwSubsSimplifyingLiteralIndex> _fwIndex;
-
-  /// @brief Parameter to enable or disable subsumption resolution
-  /// @note If the parameter is set to false, then the inference engine will only perform forward subsumption
-  bool _subsumptionResolution;
-
-  bool _checkLongerClauses = true;
 
   /// @brief Engine performing subsumption and subsumption resolution using a sat solver
   SATSubsumption::SATSubsumptionAndResolution satSubs;
