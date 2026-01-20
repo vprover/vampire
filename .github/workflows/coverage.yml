@@ -42,6 +42,6 @@ jobs:
       with:
         name: vcoverage-${{ github.sha }}
         path: |
-          ${{ runner.workspace }}/vampire/build/vcoverage/*.html
+          ${{ runner.workspace }}/vampire/build/vcoverage/*
         overwrite: true
         if-no-files-found: error
