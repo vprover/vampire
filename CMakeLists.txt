@@ -249,7 +249,12 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
     )
     # register it with CTest
     add_test(${test_name} ${CMAKE_BINARY_DIR}/vtest run ${test_name})
-    set_tests_properties(${test_name} PROPERTIES TIMEOUT 60)
+    if(COVERAGE)
+      # coverage is a lot slower, so increase the timeout
+      set_tests_properties(${test_name} PROPERTIES TIMEOUT 180)
+    else()
+      set_tests_properties(${test_name} PROPERTIES TIMEOUT 60)
+    endif()
   endforeach()
 
   # build test executable
