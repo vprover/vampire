@@ -1203,10 +1203,16 @@ std::string Theory::getInterpretationName(Interpretation interp) {
  */
 OperatorType* Theory::getOperatorType(Interpretation i)
 {
+  // Equality is of predicate type with two arguments.
+  // Note that equality is treated specially as monomorphic,
+  // as deducing the actual arguments types from the arguments
+  // (except for two variable equalities where the type argument
+  // is stored as an extra in the Literal).
   if (i == Interpretation::EQUAL) {
     return OperatorType::getPredicateType(2);
   }
 
+  // Array operators have two type arguments, index type and element type
   if (i == Interpretation::ARRAY_SELECT || i == Interpretation::ARRAY_STORE) {
     auto indexSort = TermList::var(0);
     auto innerSort = TermList::var(1);
